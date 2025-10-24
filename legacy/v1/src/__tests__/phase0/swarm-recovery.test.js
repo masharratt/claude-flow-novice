@@ -76,7 +76,7 @@ describe('Swarm Recovery Engine', () => {
   });
 
   describe('Swarm State Recovery', () => {
-    it('should recover interrupted swarm state', async () => {
+    it('should recover interrupted swarm state', async () => { try {
       const swarmId = 'recovery-test-123';
       const interruptedState = {
         id: swarmId,
@@ -118,7 +118,7 @@ describe('Swarm Recovery Engine', () => {
       expect(recoveredSwarm.metadata.progress).toBe(0.25);
     });
 
-    it('should analyze recovery requirements', async () => {
+    it('should analyze recovery requirements', async () => { try {
       const swarmId = 'recovery-test-123';
       const partialState = {
         id: swarmId,
@@ -166,7 +166,7 @@ describe('Swarm Recovery Engine', () => {
       expect(recoveryPlan.confidence).toBe(0.85);
     });
 
-    it('should handle non-existent swarm recovery', async () => {
+    it('should handle non-existent swarm recovery', async () => { try {
       const swarmId = 'non-existent-swarm';
       loadSwarmState.mockResolvedValue(null);
 
@@ -176,7 +176,7 @@ describe('Swarm Recovery Engine', () => {
       expect(loadSwarmState).toHaveBeenCalledWith(mockRedisClient, swarmId);
     });
 
-    it('should create recovery state with proper metadata', async () => {
+    it('should create recovery state with proper metadata', async () => { try {
       const swarmId = 'recovery-test-123';
       const interruptedState = {
         id: swarmId,
@@ -214,7 +214,7 @@ describe('Swarm Recovery Engine', () => {
   });
 
   describe('Recovery Query Interface', () => {
-    it('should find all interrupted swarms', async () => {
+    it('should find all interrupted swarms', async () => { try {
       const swarmKeys = ['swarm:interrupted-1', 'swarm:active-2', 'swarm:recovering-3'];
       const interruptedSwarm = {
         id: 'interrupted-1',
@@ -267,7 +267,7 @@ describe('Swarm Recovery Engine', () => {
       expect(interruptedSwarms[1].progress).toBe(0.7);
     });
 
-    it('should handle empty swarm list', async () => {
+    it('should handle empty swarm list', async () => { try {
       mockRedisClient.keys.mockResolvedValue([]);
 
       const allSwarms = await mockRedisClient.keys('swarm:*');
@@ -275,7 +275,7 @@ describe('Swarm Recovery Engine', () => {
       expect(allSwarms).toHaveLength(0);
     });
 
-    it('should handle corrupted swarm data gracefully', async () => {
+    it('should handle corrupted swarm data gracefully', async () => { try {
       const swarmKeys = ['swarm:valid', 'swarm:corrupted'];
       const validSwarm = {
         id: 'valid',
@@ -310,7 +310,7 @@ describe('Swarm Recovery Engine', () => {
   });
 
   describe('Persistence Across Reconnections', () => {
-    it('should maintain swarm state across multiple reconnection cycles', async () => {
+    it('should maintain swarm state across multiple reconnection cycles', async () => { try {
       const swarmId = 'persistence-test';
       const initialState = {
         id: swarmId,
@@ -352,7 +352,7 @@ describe('Swarm Recovery Engine', () => {
       expect(saveSwarmState).toHaveBeenCalledTimes(3);
     });
 
-    it('should preserve agent and task states during recovery', async () => {
+    it('should preserve agent and task states during recovery', async () => { try {
       const swarmId = 'state-preservation-test';
       const complexState = {
         id: swarmId,
@@ -439,7 +439,7 @@ describe('Swarm Recovery Engine', () => {
   });
 
   describe('Recovery Performance', () => {
-    it('should handle large swarm states efficiently', async () => {
+    it('should handle large swarm states efficiently', async () => { try {
       const swarmId = 'large-swarm-test';
       const largeState = {
         id: swarmId,
@@ -486,7 +486,7 @@ describe('Swarm Recovery Engine', () => {
       expect(pendingTasks).toHaveLength(300);
     });
 
-    it('should batch process multiple swarm recoveries', async () => {
+    it('should batch process multiple swarm recoveries', async () => { try {
       const swarmIds = Array(20).fill(null).map((_, i) => `swarm-${i}`);
       const swarms = swarmIds.map(id => ({
         id,
@@ -529,7 +529,7 @@ describe('Swarm Recovery Engine', () => {
   });
 
   describe('Error Handling and Edge Cases', () => {
-    it('should handle Redis connection failures during recovery', async () => {
+    it('should handle Redis connection failures during recovery', async () => { try {
       const swarmId = 'connection-fail-test';
 
       loadSwarmState.mockRejectedValue(new Error('Redis connection failed'));
@@ -538,7 +538,7 @@ describe('Swarm Recovery Engine', () => {
         .rejects.toThrow('Redis connection failed');
     });
 
-    it('should handle corrupted checkpoint data', async () => {
+    it('should handle corrupted checkpoint data', async () => { try {
       const swarmId = 'corrupted-checkpoint-test';
       const baseState = {
         id: swarmId,
@@ -559,7 +559,7 @@ describe('Swarm Recovery Engine', () => {
       }
     });
 
-    it('should handle memory constraints during recovery', async () => {
+    it('should handle memory constraints during recovery', async () => { try {
       const swarmId = 'memory-constraint-test';
 
       // Create a very large state that might cause memory issues
@@ -580,7 +580,7 @@ describe('Swarm Recovery Engine', () => {
       expect(memoryUsage.heapUsed).toBeLessThan(500 * 1024 * 1024); // Less than 500MB
     });
 
-    it('should handle concurrent recovery attempts', async () => {
+    it('should handle concurrent recovery attempts', async () => { try {
       const swarmId = 'concurrent-recovery-test';
       const baseState = {
         id: swarmId,
@@ -613,7 +613,7 @@ describe('Swarm Recovery Engine', () => {
   });
 
   describe('Recovery State Validation', () => {
-    it('should validate recovered swarm structure', async () => {
+    it('should validate recovered swarm structure', async () => { try {
       const swarmId = 'validation-test';
       const validState = {
         id: swarmId,
@@ -643,7 +643,7 @@ describe('Swarm Recovery Engine', () => {
       expect(Array.isArray(recoveredState.tasks)).toBe(true);
     });
 
-    it('should sanitize corrupted recovery data', async () => {
+    it('should sanitize corrupted recovery data', async () => { try {
       const swarmId = 'sanitize-test';
       const corruptedState = {
         id: swarmId,
@@ -679,4 +679,4 @@ describe('Swarm Recovery Engine', () => {
       expect(typeof sanitizedState.metadata.progress).toBe('number');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

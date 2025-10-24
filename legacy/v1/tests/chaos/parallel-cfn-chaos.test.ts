@@ -34,7 +34,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
   let orchestrators: Map<string, CFNLoopOrchestrator>;
   let failureInjector: NodeJS.Timeout | null;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis
     redis = new Redis({
       host: 'localhost',
@@ -54,7 +54,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Stop failure injection
     if (failureInjector) {
       clearInterval(failureInjector);
@@ -74,7 +74,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
   });
 
   describe('Agent Crash Simulation (10% Failure Rate)', () => {
-    it('should complete epic despite 10% random agent failures', async () => {
+    it('should complete epic despite 10% random agent failures', async () => { try {
       const totalAgents = 20;
       const failureRate = 0.1; // 10%
       const expectedFailures = Math.ceil(totalAgents * failureRate);
@@ -183,7 +183,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
   });
 
   describe('Redis Connection Failures', () => {
-    it('should handle Redis disconnection and reconnect automatically', async () => {
+    it('should handle Redis disconnection and reconnect automatically', async () => { try {
       let disconnectCount = 0;
       let reconnectCount = 0;
 
@@ -251,7 +251,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
       await redis.del('chaos:test:initial', 'chaos:test:after-reconnect');
     }, CHAOS_TIMEOUT);
 
-    it('should queue operations during Redis downtime and replay on reconnect', async () => {
+    it('should queue operations during Redis downtime and replay on reconnect', async () => { try {
       const operations: string[] = [];
 
       // Store initial state
@@ -299,7 +299,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
   });
 
   describe('Test Lock Timeout Scenarios', () => {
-    it('should force-release expired test locks', async () => {
+    it('should force-release expired test locks', async () => { try {
       const lockKey = 'chaos:test:lock:expired';
       const lockTimeout = 5000; // 5 seconds
 
@@ -357,7 +357,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
       await redis.del(lockKey);
     }, CHAOS_TIMEOUT);
 
-    it('should handle concurrent lock acquisition attempts', async () => {
+    it('should handle concurrent lock acquisition attempts', async () => { try {
       const lockKey = 'chaos:test:lock:concurrent';
       const attempts = 10;
       const successfulAcquisitions: string[] = [];
@@ -398,7 +398,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
   });
 
   describe('Concurrent Conflict Resolution Stress Test', () => {
-    it('should resolve 100 concurrent conflicts correctly', async () => {
+    it('should resolve 100 concurrent conflicts correctly', async () => { try {
       const conflictCount = 100;
       const resource = 'chaos:resource:shared';
 
@@ -470,7 +470,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
   });
 
   describe('Network Partition Simulation', () => {
-    it('should handle network partition and recover', async () => {
+    it('should handle network partition and recover', async () => { try {
       // Store data before partition
       await redis.set('chaos:partition:before', 'data-before');
 
@@ -512,7 +512,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
   });
 
   describe('Resource Exhaustion Scenarios', () => {
-    it('should handle Redis memory pressure gracefully', async () => {
+    it('should handle Redis memory pressure gracefully', async () => { try {
       const keyCount = 1000;
       const keySize = 1024; // 1KB per key
 
@@ -550,7 +550,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
       await redis.del('chaos:memory:test');
     }, CHAOS_TIMEOUT);
 
-    it('should handle connection pool exhaustion', async () => {
+    it('should handle connection pool exhaustion', async () => { try {
       // Create many concurrent Redis operations
       const concurrentOps = 50;
 
@@ -587,7 +587,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
   });
 
   describe('Chaos Monkey Integration', () => {
-    it('should maintain 99% success rate under continuous chaos', async () => {
+    it('should maintain 99% success rate under continuous chaos', async () => { try {
       const testDuration = 10000; // 10 seconds
       const operationInterval = 100; // 100ms
       const chaosRate = 0.10; // 10% chaos injection
@@ -601,7 +601,7 @@ describe('Parallel CFN Loop Chaos Tests', () => {
       const startTime = Date.now();
 
       // Continuous operation loop
-      const operationLoop = async () => {
+      const operationLoop = async () => { try {
         while (Date.now() - startTime < testDuration) {
           operationCount++;
 

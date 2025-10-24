@@ -13,27 +13,27 @@ describe('V1 Transparency System Security Validation', () => {
   let transparencySystem: V1TransparencySystem;
   let logger: Logger;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     logger = new Logger({
       level: 'error',
       format: 'text',
       destination: 'console',
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     transparencySystem = new V1TransparencySystem(logger);
     await transparencySystem.initialize({
       enableRealTimeMonitoring: true,
       enableEventStreaming: true,
       maxEventsInMemory: 100,
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await transparencySystem.cleanup();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Input Sanitization Implementation', () => {
-    it('should sanitize XSS patterns in event data', async () => {
+    it('should sanitize XSS patterns in event data', async () => { try {
       const maliciousEventData = {
         agentId: 'test-agent',
         maliciousInput: '<script>alert("XSS")</script>',
@@ -54,7 +54,7 @@ describe('V1 Transparency System Security Validation', () => {
         },
         severity: 'info',
         category: 'test'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const events = await transparencySystem.getRecentEvents(1);
       const sanitizedEvent = events[0];
@@ -64,9 +64,9 @@ describe('V1 Transparency System Security Validation', () => {
       expect(sanitizedEvent.eventData.anotherField).toBe('[JS_REMOVED]');
       expect(sanitizedEvent.eventData.handler).toBe('[EVENT_HANDLER_REMOVED]');
       expect(sanitizedEvent.eventData.safeData).toBe('normal data');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should limit string lengths to prevent DoS attacks', async () => {
+    it('should limit string lengths to prevent DoS attacks', async () => { try {
       const longString = 'a'.repeat(2000); // Exceeds 1000 char limit
       const longEventType = 'b'.repeat(200); // Exceeds 100 char limit
 
@@ -83,7 +83,7 @@ describe('V1 Transparency System Security Validation', () => {
         },
         severity: 'info',
         category: 'test'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const events = await transparencySystem.getRecentEvents(1);
       const sanitizedEvent = events[0];
@@ -91,9 +91,9 @@ describe('V1 Transparency System Security Validation', () => {
       // Verify string lengths are truncated
       expect(sanitizedEvent.eventType.length).toBeLessThanOrEqual(100);
       expect(sanitizedEvent.eventData.longField.length).toBeLessThanOrEqual(1000);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should recursively sanitize nested objects', async () => {
+    it('should recursively sanitize nested objects', async () => { try {
       const maliciousNestedData = {
         level1: {
           level2: {
@@ -116,7 +116,7 @@ describe('V1 Transparency System Security Validation', () => {
         },
         severity: 'info',
         category: 'test'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const events = await transparencySystem.getRecentEvents(1);
       const sanitizedEvent = events[0];
@@ -124,9 +124,9 @@ describe('V1 Transparency System Security Validation', () => {
       // Verify nested sanitization
       expect(sanitizedEvent.eventData.level1.level2.maliciousScript).toBe('[SCRIPT_REMOVED]');
       expect(sanitizedEvent.eventData.level1.level2.level3.deepMalicious).toBe('[JS_REMOVED]');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should validate severity values', async () => {
+    it('should validate severity values', async () => { try {
       transparencySystem['recordEvent']({
         eventId: 'test-event-4',
         timestamp: new Date(),
@@ -138,16 +138,16 @@ describe('V1 Transparency System Security Validation', () => {
         },
         severity: 'invalid_severity' as any,
         category: 'test'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const events = await transparencySystem.getRecentEvents(1);
       const sanitizedEvent = events[0];
 
       // Should default to 'info' for invalid severity
       expect(sanitizedEvent.severity).toBe('info');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle null and undefined event data gracefully', async () => {
+    it('should handle null and undefined event data gracefully', async () => { try {
       transparencySystem['recordEvent']({
         eventId: 'test-event-5',
         timestamp: new Date(),
@@ -159,18 +159,18 @@ describe('V1 Transparency System Security Validation', () => {
         },
         severity: 'info',
         category: 'test'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const events = await transparencySystem.getRecentEvents(1);
       const sanitizedEvent = events[0];
 
       // Should handle null eventData gracefully
-      expect(sanitizedEvent.eventData).toEqual({});
-    });
-  });
+      expect(sanitizedEvent.eventData).toEqual({} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Rate Limiting Effectiveness', () => {
-    it('should enforce rate limits per source', async () => {
+    it('should enforce rate limits per source', async () => { try {
       const sourceId = 'test-source';
       const rateLimitWindow = 60000; // 1 minute
       const maxEventsPerWindow = 1000;
@@ -188,7 +188,7 @@ describe('V1 Transparency System Security Validation', () => {
           },
           severity: 'info',
           category: 'test'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       const eventsBeforeLimit = await transparencySystem.getRecentEvents(2000);
@@ -206,7 +206,7 @@ describe('V1 Transparency System Security Validation', () => {
         },
         severity: 'info',
         category: 'test'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const eventsAfterLimit = await transparencySystem.getRecentEvents(2000);
       // Should still be at the limit (new event dropped)
@@ -215,9 +215,9 @@ describe('V1 Transparency System Security Validation', () => {
       // Verify the dropped event is not in the events
       const droppedEvent = eventsAfterLimit.find(e => e.eventId === 'event-exceeding-limit');
       expect(droppedEvent).toBeUndefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should allow different sources to have independent rate limits', async () => {
+    it('should allow different sources to have independent rate limits', async () => { try {
       const source1 = 'source-1';
       const source2 = 'source-2';
       const maxEventsPerWindow = 1000;
@@ -235,7 +235,7 @@ describe('V1 Transparency System Security Validation', () => {
           },
           severity: 'info',
           category: 'test'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       // Source 2 should still be able to add events
@@ -250,7 +250,7 @@ describe('V1 Transparency System Security Validation', () => {
         },
         severity: 'info',
         category: 'test'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const events = await transparencySystem.getRecentEvents(2000);
 
@@ -260,9 +260,9 @@ describe('V1 Transparency System Security Validation', () => {
 
       expect(source1Events.length).toBe(maxEventsPerWindow);
       expect(source2Events.length).toBe(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reset rate limits after time window expires', async () => {
+    it('should reset rate limits after time window expires', async () => { try {
       const sourceId = 'test-source-reset';
 
       // Fill rate limit
@@ -278,7 +278,7 @@ describe('V1 Transparency System Security Validation', () => {
           },
           severity: 'info',
           category: 'test'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       // Manually reset the rate limit counter by simulating time passage
@@ -300,16 +300,16 @@ describe('V1 Transparency System Security Validation', () => {
         },
         severity: 'info',
         category: 'test'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const events = await transparencySystem.getRecentEvents(2000);
       const newEvent = events.find(e => e.eventId === 'reset-test-after-window');
       expect(newEvent).toBeDefined();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Event Structure Validation', () => {
-    it('should handle malformed event objects gracefully', async () => {
+    it('should handle malformed event objects gracefully', async () => { try {
       // Test with missing required fields
       const malformedEvent = {
         // Missing eventId
@@ -331,9 +331,9 @@ describe('V1 Transparency System Security Validation', () => {
         expect(events[0].eventType).toBeDefined();
         expect(events[0].severity).toBe('info'); // Default value
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should enforce event retention limits', async () => {
+    it('should enforce event retention limits', async () => { try {
       const maxEvents = 100;
 
       // Create more events than the retention limit
@@ -349,7 +349,7 @@ describe('V1 Transparency System Security Validation', () => {
           },
           severity: 'info',
           category: 'test'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       const events = await transparencySystem.getRecentEvents(200);
@@ -362,12 +362,12 @@ describe('V1 Transparency System Security Validation', () => {
       recentEvents.forEach((event, index) => {
         const expectedIndex = maxEvents + 50 - 10 + index;
         expect(event.eventData.index).toBe(expectedIndex);
-      });
-    });
-  });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Production Readiness Assessment', () => {
-    it('should handle high-volume event processing without memory leaks', async () => {
+    it('should handle high-volume event processing without memory leaks', async () => { try {
       const initialEvents = await transparencySystem.getRecentEvents(1000);
 
       // Process a large number of events
@@ -386,7 +386,7 @@ describe('V1 Transparency System Security Validation', () => {
           },
           severity: 'info',
           category: 'test'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       const finalEvents = await transparencySystem.getRecentEvents(1000);
@@ -397,9 +397,9 @@ describe('V1 Transparency System Security Validation', () => {
       // Should have processed events from multiple sources
       const uniqueSources = new Set(finalEvents.map(e => e.source.instance));
       expect(uniqueSources.size).toBeGreaterThan(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should maintain security under concurrent event processing', async () => {
+    it('should maintain security under concurrent event processing', async () => { try {
       const promises: Promise<void>[] = [];
       const sources = ['concurrent-1', 'concurrent-2', 'concurrent-3'];
 
@@ -424,13 +424,13 @@ describe('V1 Transparency System Security Validation', () => {
                   },
                   severity: 'info',
                   category: 'test'
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 resolve();
               }, Math.random() * 50); // Random delay up to 50ms
             })
           );
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await Promise.all(promises);
 
@@ -447,11 +447,11 @@ describe('V1 Transparency System Security Validation', () => {
         e.eventData.malicious && e.eventData.malicious === '[SCRIPT_REMOVED]'
       );
       expect(sanitizedEvents.length).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Comprehensive Security Integration', () => {
-    it('should demonstrate all security improvements working together', async () => {
+    it('should demonstrate all security improvements working together', async () => { try {
       const testScenarios = [
         {
           name: 'XSS Prevention',
@@ -494,13 +494,13 @@ describe('V1 Transparency System Security Validation', () => {
           },
           severity: 'info',
           category: 'test'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         results.push({
           scenario: scenario.name,
           passed: true // Would be false if security failed
-        });
-      });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Test rate limiting with rapid events
       for (let i = 0; i < 50; i++) {
@@ -515,7 +515,7 @@ describe('V1 Transparency System Security Validation', () => {
           },
           severity: 'info',
           category: 'test'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       const events = await transparencySystem.getRecentEvents(200);
@@ -535,7 +535,7 @@ describe('V1 Transparency System Security Validation', () => {
       // Verify all test scenarios passed
       results.forEach(result => {
         expect(result.passed).toBe(true);
-      });
-    });
-  });
-});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

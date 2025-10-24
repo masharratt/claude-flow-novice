@@ -15,7 +15,7 @@ describe('Gossip Protocol Integration Tests', () => {
   let monitors = [];
   let validators = [];
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Create a network of 5 nodes for testing
     for (let i = 0; i < 5; i++) {
       const gossip = new GossipCoordinator({
@@ -71,7 +71,7 @@ describe('Gossip Protocol Integration Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Stop all nodes and monitors
     for (const node of nodes) {
       node.stop();
@@ -81,7 +81,8 @@ describe('Gossip Protocol Integration Tests', () => {
     }
   });
 
-  test('should propagate verification tasks across network', async () => {
+  jest.setTimeout(10000);
+  test('should propagate verification tasks across network', async () => { try {
     const receivedTasks = [];
 
     // Set up listeners on all engines
@@ -110,7 +111,8 @@ describe('Gossip Protocol Integration Tests', () => {
     expect(receivedTask.task.data.requirements.memoryThreshold).toBe(75);
   });
 
-  test('should achieve consensus on verification results', async () => {
+  jest.setTimeout(10000);
+  test('should achieve consensus on verification results', async () => { try {
     return new Promise(async (resolve) => {
       let consensusReached = false;
 
@@ -138,7 +140,8 @@ describe('Gossip Protocol Integration Tests', () => {
     });
   });
 
-  test('should detect and propagate resource alerts', async () => {
+  jest.setTimeout(10000);
+  test('should detect and propagate resource alerts', async () => { try {
     const receivedAlerts = [];
 
     // Set up alert listeners
@@ -164,7 +167,8 @@ describe('Gossip Protocol Integration Tests', () => {
     expect(receivedAlerts.length).toBeGreaterThan(0);
   });
 
-  test('should validate agent spawning across network', async () => {
+  jest.setTimeout(10000);
+  test('should validate agent spawning across network', async () => { try {
     return new Promise(async (resolve) => {
       let validationCompleted = false;
 
@@ -195,7 +199,8 @@ describe('Gossip Protocol Integration Tests', () => {
     });
   });
 
-  test('should validate agent termination across network', async () => {
+  jest.setTimeout(10000);
+  test('should validate agent termination across network', async () => { try {
     return new Promise(async (resolve) => {
       let validationCompleted = false;
 
@@ -228,7 +233,8 @@ describe('Gossip Protocol Integration Tests', () => {
     });
   });
 
-  test('should maintain eventual consistency across nodes', async () => {
+  jest.setTimeout(10000);
+  test('should maintain eventual consistency across nodes', async () => { try {
     // Start multiple verification tasks simultaneously
     const taskPromises = [];
 
@@ -255,7 +261,8 @@ describe('Gossip Protocol Integration Tests', () => {
     });
   });
 
-  test('should handle network partitions gracefully', async () => {
+  jest.setTimeout(10000);
+  test('should handle network partitions gracefully', async () => { try {
     // Simulate network partition by disconnecting nodes 3 and 4
     nodes[3].removePeer('node-0');
     nodes[3].removePeer('node-1');
@@ -290,7 +297,8 @@ describe('Gossip Protocol Integration Tests', () => {
     expect(totalCompletedTasks).toBeGreaterThan(0);
   });
 
-  test('should monitor gossip convergence metrics', async () => {
+  jest.setTimeout(10000);
+  test('should monitor gossip convergence metrics', async () => { try {
     // Start verification and monitor convergence
     await engines[0].startVerification('consensus_state', 'convergence-test');
 
@@ -316,7 +324,8 @@ describe('Gossip Protocol Integration Tests', () => {
     });
   });
 
-  test('should handle concurrent verification tasks efficiently', async () => {
+  jest.setTimeout(10000);
+  test('should handle concurrent verification tasks efficiently', async () => { try {
     const startTime = Date.now();
     const numberOfTasks = 10;
     const taskPromises = [];

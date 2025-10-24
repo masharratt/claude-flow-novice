@@ -39,7 +39,7 @@ export const validationResults = {
 
 describe('Sprint 1.3 Production Hardening Validation', () => {
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     console.log('\n🚀 Sprint 1.3 Production Hardening Validation Starting...');
     console.log('   Target: ≥0.90 confidence for production readiness\n');
 
@@ -102,7 +102,7 @@ describe('Sprint 1.3 Production Hardening Validation', () => {
   });
 
   describe('Task 1: WASM Deserialization Fix', () => {
-    it('should deserialize 1000 messages with 100% success rate', async () => {
+    it('should deserialize 1000 messages with 100% success rate', async () => { try {
       const result = {
         totalMessages: 1000,
         successfulDeserializations: 0,
@@ -233,7 +233,7 @@ describe('Sprint 1.3 Production Hardening Validation', () => {
   });
 
   describe('Task 2: Integration Test ESM Conversion', () => {
-    it('should verify all integration tests are executable', async () => {
+    it('should verify all integration tests are executable', async () => { try {
       const result = {
         executableSuites: 0,
         testsPassing: 'N/A',
@@ -304,7 +304,7 @@ describe('Sprint 1.3 Production Hardening Validation', () => {
   });
 
   describe('Task 3: WASM Memory Cleanup', () => {
-    it('should maintain stable memory over 10,000 operations', async () => {
+    it('should maintain stable memory over 10,000 operations', async () => { try {
       const result = {
         operations: 10000,
         memoryStable: false,
@@ -419,7 +419,7 @@ describe('Sprint 1.3 Production Hardening Validation', () => {
   });
 
   describe('Task 4: ADR Documentation Review', () => {
-    it('should validate ADR documentation quality', async () => {
+    it('should validate ADR documentation quality', async () => { try {
       const result = {
         adrsComplete: 0,
         dataQuality: 'unknown',
@@ -524,7 +524,7 @@ describe('Sprint 1.3 Production Hardening Validation', () => {
   });
 
   describe('Task 5: End-to-End Load Test', () => {
-    it('should process 100,000 events with zero errors', async () => {
+    it('should process 100,000 events with zero errors', async () => { try {
       const result = {
         eventsProcessed: 0,
         throughput: 'N/A',

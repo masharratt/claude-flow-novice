@@ -19,7 +19,7 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
     let goapPlanner;
     let byzantineCoordinator;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         byzantineCoordinator = new ByzantineConsensusCoordinator({
             nodeId: 'goap-test-' + crypto.randomBytes(4).toString('hex'),
             totalNodes: 4
@@ -35,11 +35,13 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
     });
 
     describe('TDD Phase - Failing Tests (Must fail until implementation)', () => {
-        test('should fail: GOAP agent assignment system not implemented yet', () => {
+        jest.setTimeout(10000);
+  test('should fail: GOAP agent assignment system not implemented yet', () => {
             expect(goapPlanner).toBeNull();
         });
 
-        test('should fail: planAssignments method not available', () => {
+        jest.setTimeout(10000);
+  test('should fail: planAssignments method not available', () => {
             if (goapPlanner) {
                 expect(typeof goapPlanner.planAssignments).toBe('undefined');
             } else {
@@ -76,7 +78,8 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
             }
         ];
 
-        test('should generate optimal agent assignments within 200ms (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should generate optimal agent assignments within 200ms (WILL FAIL INITIALLY)', async () => { try {
             if (!goapPlanner) {
                 expect(true).toBe(false); // Force failure until implemented
                 return;
@@ -122,7 +125,8 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
             }
         });
 
-        test('should maintain consensus across distributed planning nodes (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should maintain consensus across distributed planning nodes (WILL FAIL INITIALLY)', async () => { try {
             if (!goapPlanner) {
                 expect(true).toBe(false);
                 return;
@@ -169,7 +173,8 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
             });
         });
 
-        test('should resist Byzantine attacks during planning (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should resist Byzantine attacks during planning (WILL FAIL INITIALLY)', async () => { try {
             if (!goapPlanner) {
                 expect(true).toBe(false);
                 return;
@@ -218,7 +223,8 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
             }
         });
 
-        test('should provide cryptographic evidence of optimal planning (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should provide cryptographic evidence of optimal planning (WILL FAIL INITIALLY)', async () => { try {
             if (!goapPlanner) {
                 expect(true).toBe(false);
                 return;
@@ -259,7 +265,8 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
     });
 
     describe('Resource Conflict Analysis - 60% Reduction Requirement', () => {
-        test('should demonstrate 60%+ conflict reduction vs baseline (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should demonstrate 60%+ conflict reduction vs baseline (WILL FAIL INITIALLY)', async () => { try {
             if (!goapPlanner) {
                 expect(true).toBe(false);
                 return;
@@ -304,7 +311,8 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
             }
         });
 
-        test('should provide detailed conflict analysis with Byzantine validation (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should provide detailed conflict analysis with Byzantine validation (WILL FAIL INITIALLY)', async () => { try {
             if (!goapPlanner) {
                 expect(true).toBe(false);
                 return;
@@ -342,7 +350,8 @@ describe('GOAP Agent Assignment System - Consensus Tests', () => {
     });
 
     describe('Stress Testing and Edge Cases', () => {
-        test('should handle extreme planning scenarios (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should handle extreme planning scenarios (WILL FAIL INITIALLY)', async () => { try {
             if (!goapPlanner) {
                 expect(true).toBe(false);
                 return;

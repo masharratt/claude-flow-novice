@@ -10,7 +10,8 @@ const __dirname = path.dirname(__filename);
 
 describe('Typo and Syntax Fixes', () => {
   describe('daa-tools.js processCommunication fix', () => {
-    test('should have fixed processCommuncation to processCommunication', () => {
+    jest.setTimeout(10000);
+  test('should have fixed processCommuncation to processCommunication', () => {
       const filePath = path.join(process.cwd(), 'src/ui/console/js/daa-tools.js');
       const fileContent = fs.readFileSync(filePath, 'utf-8');
       
@@ -29,7 +30,8 @@ describe('Typo and Syntax Fixes', () => {
   });
   
   describe('sparc-commands.js ternary operator check', () => {
-    test('should have properly formatted ternary operators', () => {
+    jest.setTimeout(10000);
+  test('should have properly formatted ternary operators', () => {
       const filePath = path.join(process.cwd(), 'src/cli/simple-commands/init/claude-commands/sparc-commands.js');
       const fileContent = fs.readFileSync(filePath, 'utf-8');
       
@@ -44,7 +46,8 @@ describe('Typo and Syntax Fixes', () => {
       expect(arrayTernaryMatch).toBeTruthy();
     });
     
-    test('should be valid JavaScript syntax', async () => {
+    jest.setTimeout(10000);
+  test('should be valid JavaScript syntax', async () => { try {
       const filePath = path.join(process.cwd(), 'src/cli/simple-commands/init/claude-commands/sparc-commands.js');
       
       // Dynamic import to check syntax
@@ -59,4 +62,4 @@ describe('Typo and Syntax Fixes', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

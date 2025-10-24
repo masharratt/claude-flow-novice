@@ -221,7 +221,7 @@ describe('Integration: Real RateLimiter Components', () => {
   });
 
   describe('Utils RateLimiter - Token Bucket Algorithm', () => {
-    it('should allow operations when tokens available', async () => {
+    it('should allow operations when tokens available', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 10,
         refillRate: 5
@@ -235,7 +235,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(stats.totalAcquired).toBe(5);
     });
 
-    it('should wait when insufficient tokens', async () => {
+    it('should wait when insufficient tokens', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 10,
         refillRate: 10, // 10 tokens/sec
@@ -254,7 +254,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(elapsedMs).toBeLessThan(500);
     });
 
-    it('should refill tokens over time', async () => {
+    it('should refill tokens over time', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 100,
         refillRate: 50 // 50 tokens/sec
@@ -270,7 +270,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(limiter.hasTokens(10)).toBe(true);
     });
 
-    it('should not exceed max token capacity', async () => {
+    it('should not exceed max token capacity', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 50,
         refillRate: 100
@@ -297,7 +297,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(limiter.tryAcquire(1)).toBe(false);
     });
 
-    it('should track accurate statistics', async () => {
+    it('should track accurate statistics', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 20,
         refillRate: 10,
@@ -330,7 +330,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(timeMs).toBeLessThanOrEqual(900);
     });
 
-    it('should reset limiter state', async () => {
+    it('should reset limiter state', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 10,
         refillRate: 5
@@ -348,7 +348,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(stats.totalWaitTime).toBe(0);
     });
 
-    it('should validate token cost', async () => {
+    it('should validate token cost', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 10,
         refillRate: 5
@@ -361,7 +361,7 @@ describe('Integration: Real RateLimiter Components', () => {
   });
 
   describe('Utils RateLimiter - Adaptive Refill', () => {
-    it('should increase refill rate under high load', async () => {
+    it('should increase refill rate under high load', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 50,
         refillRate: 10,
@@ -380,7 +380,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(stats.refillRate).toBeGreaterThan(10);
     });
 
-    it('should decrease refill rate when load is low', async () => {
+    it('should decrease refill rate when load is low', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 100,
         refillRate: 20,
@@ -404,7 +404,7 @@ describe('Integration: Real RateLimiter Components', () => {
   });
 
   describe('Specialized Rate Limiters', () => {
-    it('should create memory rate limiter (CVE-2025-001 mitigation)', async () => {
+    it('should create memory rate limiter (CVE-2025-001 mitigation)', async () => { try {
       const limiter = createMemoryRateLimiter();
 
       const stats = limiter.getStats();
@@ -418,7 +418,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(limiter.hasTokens(1)).toBe(false);
     });
 
-    it('should create sprint rate limiter', async () => {
+    it('should create sprint rate limiter', async () => { try {
       const limiter = createSprintRateLimiter();
 
       const stats = limiter.getStats();
@@ -475,7 +475,7 @@ describe('Integration: Real RateLimiter Components', () => {
       }
     });
 
-    it('should handle concurrent reset during operations', async () => {
+    it('should handle concurrent reset during operations', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 20,
         refillRate: 10,
@@ -506,7 +506,7 @@ describe('Integration: Real RateLimiter Components', () => {
   });
 
   describe('100-Agent Coordination Simulation', () => {
-    it('should handle 100 concurrent agent spawns with rate limiting', async () => {
+    it('should handle 100 concurrent agent spawns with rate limiting', async () => { try {
       const config: Partial<RateLimitConfig> = {
         maxConcurrentWorkers: 100,
         maxTaskQueueSize: 500,
@@ -549,7 +549,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(status.recentWorkerSpawns).toBe(100);
     });
 
-    it('should handle 100 agents with task delegation backpressure', async () => {
+    it('should handle 100 agents with task delegation backpressure', async () => { try {
       const config: Partial<RateLimitConfig> = {
         maxConcurrentWorkers: 100,
         maxTaskQueueSize: 50, // Limited queue
@@ -583,7 +583,7 @@ describe('Integration: Real RateLimiter Components', () => {
       expect(successCount + failureCount).toBe(100);
     });
 
-    it('should handle 100-agent token bucket coordination', async () => {
+    it('should handle 100-agent token bucket coordination', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 200,
         refillRate: 50, // 50 tokens/sec

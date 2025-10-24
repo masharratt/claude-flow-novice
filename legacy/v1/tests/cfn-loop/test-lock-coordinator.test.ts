@@ -29,7 +29,7 @@ describe('TestLockCoordinator', () => {
     }
   };
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     coordinator1 = new TestLockCoordinator(
       'coordinator-1',
       'sprint-test-1',
@@ -45,24 +45,24 @@ describe('TestLockCoordinator', () => {
     );
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await coordinator1.disconnect();
     await coordinator2.disconnect();
   });
 
   describe('Connection Management', () => {
-    it('should connect to Redis successfully', async () => {
+    it('should connect to Redis successfully', async () => { try {
       await expect(coordinator1.connect()).resolves.not.toThrow();
       expect(coordinator1['isConnected']).toBe(true);
     });
 
-    it('should disconnect gracefully', async () => {
+    it('should disconnect gracefully', async () => { try {
       await coordinator1.connect();
       await coordinator1.disconnect();
       expect(coordinator1['isConnected']).toBe(false);
     });
 
-    it('should emit connected event on successful connection', async () => {
+    it('should emit connected event on successful connection', async () => { try {
       const connectListener = vi.fn();
       coordinator1.on('connected', connectListener);
 
@@ -78,12 +78,12 @@ describe('TestLockCoordinator', () => {
   });
 
   describe('Lock Acquisition', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator1.connect();
       await coordinator2.connect();
     });
 
-    it('should acquire lock when available', async () => {
+    it('should acquire lock when available', async () => { try {
       const acquired = await coordinator1.acquireLock();
       expect(acquired).toBe(true);
       expect(coordinator1['isLockHeld']).toBe(true);
@@ -92,7 +92,7 @@ describe('TestLockCoordinator', () => {
       expect(metrics.totalAcquires).toBe(1);
     });
 
-    it('should emit lock:acquired event', async () => {
+    it('should emit lock:acquired event', async () => { try {
       const acquireListener = vi.fn();
       coordinator1.on('lock:acquired', acquireListener);
 
@@ -108,7 +108,7 @@ describe('TestLockCoordinator', () => {
       );
     });
 
-    it('should queue when lock is held by another coordinator', async () => {
+    it('should queue when lock is held by another coordinator', async () => { try {
       // Coordinator 1 acquires lock
       await coordinator1.acquireLock();
 
@@ -134,7 +134,7 @@ describe('TestLockCoordinator', () => {
       await acquirePromise;
     });
 
-    it('should acquire lock after first coordinator releases (FIFO)', async () => {
+    it('should acquire lock after first coordinator releases (FIFO)', async () => { try {
       // Coordinator 1 acquires lock
       await coordinator1.acquireLock();
 
@@ -155,11 +155,11 @@ describe('TestLockCoordinator', () => {
   });
 
   describe('Lock Release', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator1.connect();
     });
 
-    it('should release lock successfully', async () => {
+    it('should release lock successfully', async () => { try {
       await coordinator1.acquireLock();
       await coordinator1.releaseLock();
 
@@ -169,7 +169,7 @@ describe('TestLockCoordinator', () => {
       expect(metrics.totalReleases).toBe(1);
     });
 
-    it('should emit lock:released event', async () => {
+    it('should emit lock:released event', async () => { try {
       const releaseListener = vi.fn();
       coordinator1.on('lock:released', releaseListener);
 
@@ -185,18 +185,18 @@ describe('TestLockCoordinator', () => {
       );
     });
 
-    it('should not throw if releasing without holding lock', async () => {
+    it('should not throw if releasing without holding lock', async () => { try {
       await expect(coordinator1.releaseLock()).resolves.not.toThrow();
     });
   });
 
   describe('Force Release (Stale Lock)', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator1.connect();
       await coordinator2.connect();
     });
 
-    it('should force release expired lock', async () => {
+    it('should force release expired lock', async () => { try {
       // Create coordinator with very short timeout
       const shortTimeoutCoordinator = new TestLockCoordinator(
         'coordinator-short',
@@ -231,7 +231,7 @@ describe('TestLockCoordinator', () => {
       await shortTimeoutCoordinator.disconnect();
     });
 
-    it('should track force release metrics', async () => {
+    it('should track force release metrics', async () => { try {
       const shortTimeoutCoordinator = new TestLockCoordinator(
         'coordinator-short',
         'sprint-short',
@@ -260,17 +260,17 @@ describe('TestLockCoordinator', () => {
   });
 
   describe('Lock Status', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator1.connect();
     });
 
-    it('should return AVAILABLE when lock is not held', async () => {
+    it('should return AVAILABLE when lock is not held', async () => { try {
       const status = await coordinator1.getLockStatus();
       expect(status.status).toBe(TestLockStatus.AVAILABLE);
       expect(status.queueLength).toBe(0);
     });
 
-    it('should return LOCKED with metadata when lock is held', async () => {
+    it('should return LOCKED with metadata when lock is held', async () => { try {
       await coordinator1.acquireLock();
 
       const status = await coordinator1.getLockStatus();
@@ -282,7 +282,7 @@ describe('TestLockCoordinator', () => {
       });
     });
 
-    it('should return TIMEOUT when lock is expired', async () => {
+    it('should return TIMEOUT when lock is expired', async () => { try {
       const shortTimeoutCoordinator = new TestLockCoordinator(
         'coordinator-short',
         'sprint-short',
@@ -309,12 +309,12 @@ describe('TestLockCoordinator', () => {
   });
 
   describe('Metrics Tracking', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator1.connect();
       await coordinator2.connect();
     });
 
-    it('should track acquire and release counts', async () => {
+    it('should track acquire and release counts', async () => { try {
       await coordinator1.acquireLock();
       await coordinator1.releaseLock();
       await coordinator1.acquireLock();
@@ -325,7 +325,7 @@ describe('TestLockCoordinator', () => {
       expect(metrics.totalReleases).toBe(2);
     });
 
-    it('should track average wait time', async () => {
+    it('should track average wait time', async () => { try {
       await coordinator1.acquireLock();
 
       const acquirePromise = coordinator2.acquireLock();
@@ -338,7 +338,7 @@ describe('TestLockCoordinator', () => {
       expect(metrics.averageWaitTime).toBeGreaterThan(0);
     });
 
-    it('should track max wait time', async () => {
+    it('should track max wait time', async () => { try {
       await coordinator1.acquireLock();
 
       const acquirePromise = coordinator2.acquireLock();
@@ -351,7 +351,7 @@ describe('TestLockCoordinator', () => {
       expect(metrics.maxWaitTime).toBeGreaterThanOrEqual(200);
     });
 
-    it('should track hold time', async () => {
+    it('should track hold time', async () => { try {
       await coordinator1.acquireLock();
       await new Promise(resolve => setTimeout(resolve, 100));
       await coordinator1.releaseLock();
@@ -362,12 +362,12 @@ describe('TestLockCoordinator', () => {
   });
 
   describe('Queue Management', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator1.connect();
       await coordinator2.connect();
     });
 
-    it('should maintain FIFO queue order', async () => {
+    it('should maintain FIFO queue order', async () => { try {
       const coordinator3 = new TestLockCoordinator(
         'coordinator-3',
         'sprint-test-3',
@@ -408,7 +408,7 @@ describe('TestLockCoordinator', () => {
       await coordinator3.disconnect();
     });
 
-    it('should handle queue timeout', async () => {
+    it('should handle queue timeout', async () => { try {
       const timeoutCoordinator = new TestLockCoordinator(
         'coordinator-timeout',
         'sprint-timeout',
@@ -441,7 +441,7 @@ describe('TestLockCoordinator', () => {
   });
 
   describe('Exit Cleanup', () => {
-    it('should release lock on process exit', async () => {
+    it('should release lock on process exit', async () => { try {
       await coordinator1.connect();
       await coordinator1.acquireLock();
 

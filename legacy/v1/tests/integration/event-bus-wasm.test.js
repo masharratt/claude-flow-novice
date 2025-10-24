@@ -38,7 +38,7 @@ const testResults = {
 describe('Event Bus WASM Integration', () => {
   let eventBus;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     console.log('\n🚀 Event Bus WASM Integration Tests Starting...');
   });
 
@@ -60,7 +60,7 @@ describe('Event Bus WASM Integration', () => {
     console.log(`  Overall Confidence: ${(testResults.confidence * 100).toFixed(1)}%`);
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize fresh event bus for each test
     eventBus = new OptimizedEventBus({
       performance: {
@@ -72,7 +72,7 @@ describe('Event Bus WASM Integration', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup event bus
     if (eventBus) {
       try {
@@ -84,7 +84,7 @@ describe('Event Bus WASM Integration', () => {
   });
 
   describe('1. WASM Validation Working Correctly', () => {
-    it('should initialize with WASM-accelerated message processing', async () => {
+    it('should initialize with WASM-accelerated message processing', async () => { try {
       const result = {
         initialized: false,
         wasmEnabled: false,
@@ -128,7 +128,7 @@ describe('Event Bus WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 10000);
 
-    it('should validate message integrity with WASM processing', async () => {
+    it('should validate message integrity with WASM processing', async () => { try {
       await eventBus.initialize();
 
       const testMessages = [
@@ -158,7 +158,7 @@ describe('Event Bus WASM Integration', () => {
   });
 
   describe('2. Fallback to JavaScript When WASM Unavailable', () => {
-    it('should gracefully fallback when WASM methods fail', async () => {
+    it('should gracefully fallback when WASM methods fail', async () => { try {
       const result = {
         fallbackTriggered: false,
         dataIntegrity: false,
@@ -202,7 +202,7 @@ describe('Event Bus WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 10000);
 
-    it('should maintain functionality without WASM acceleration', async () => {
+    it('should maintain functionality without WASM acceleration', async () => { try {
       await eventBus.initialize();
 
       const eventsToPublish = 100;
@@ -236,7 +236,7 @@ describe('Event Bus WASM Integration', () => {
   });
 
   describe('3. Zero-Copy Batching Functional', () => {
-    it('should batch messages efficiently with zero-copy optimization', async () => {
+    it('should batch messages efficiently with zero-copy optimization', async () => { try {
       const result = {
         batchSize: 0,
         totalMessages: 0,
@@ -293,7 +293,7 @@ describe('Event Bus WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 15000);
 
-    it('should handle concurrent batch operations', async () => {
+    it('should handle concurrent batch operations', async () => { try {
       await eventBus.initialize();
 
       const concurrentBatches = 5;
@@ -326,7 +326,7 @@ describe('Event Bus WASM Integration', () => {
   });
 
   describe('4. Hash-Based Routing O(1) Performance', () => {
-    it('should route messages with O(1) hash-based lookup', async () => {
+    it('should route messages with O(1) hash-based lookup', async () => { try {
       const result = {
         totalRoutes: 0,
         avgRoutingTime: 0,
@@ -390,7 +390,7 @@ describe('Event Bus WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 15000);
 
-    it('should scale routing performance linearly with channels', async () => {
+    it('should scale routing performance linearly with channels', async () => { try {
       await eventBus.initialize();
 
       const channelCounts = [10, 50, 100, 200];

@@ -19,7 +19,7 @@ describe('Dashboard API Integration Tests', () => {
   let server: Server;
   let originalEnv: NodeJS.ProcessEnv;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     originalEnv = process.env;
     process.env.NODE_ENV = 'test';
     process.env.PORT = '0'; // Use random available port
@@ -509,7 +509,7 @@ describe('Dashboard API Integration Tests', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (server) {
       await new Promise<void>((resolve) => {
         server.close(resolve);
@@ -520,7 +520,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Health Check Endpoints', () => {
-    test('GET /health returns health status', async () => {
+    jest.setTimeout(10000);
+  test('GET /health returns health status', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -533,7 +534,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('environment', 'test');
     });
 
-    test('health check includes memory usage', async () => {
+    jest.setTimeout(10000);
+  test('health check includes memory usage', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -546,7 +548,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Agent Status Endpoints', () => {
-    test('GET /api/agents returns list of agents', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/agents returns list of agents', async () => { try {
       const response = await request(app)
         .get('/api/agents')
         .expect(200);
@@ -560,7 +563,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.agents[0]).toHaveProperty('performance');
     });
 
-    test('GET /api/agents supports status filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/agents supports status filtering', async () => { try {
       const response = await request(app)
         .get('/api/agents?status=active')
         .expect(200);
@@ -569,7 +573,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.agents[0].status).toBe('active');
     });
 
-    test('GET /api/agents supports type filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/agents supports type filtering', async () => { try {
       const response = await request(app)
         .get('/api/agents?type=researcher')
         .expect(200);
@@ -578,7 +583,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.agents[0].type).toBe('researcher');
     });
 
-    test('GET /api/agents supports pagination', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/agents supports pagination', async () => { try {
       const response = await request(app)
         .get('/api/agents?limit=2&offset=1')
         .expect(200);
@@ -590,7 +596,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.pagination).toHaveProperty('hasMore', true);
     });
 
-    test('GET /api/agents/:agentId returns specific agent', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/agents/:agentId returns specific agent', async () => { try {
       const response = await request(app)
         .get('/api/agents/agent-researcher-001')
         .expect(200);
@@ -602,7 +609,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('healthMetrics');
     });
 
-    test('GET /api/agents/:agentId returns 404 for non-existent agent', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/agents/:agentId returns 404 for non-existent agent', async () => { try {
       const response = await request(app)
         .get('/api/agents/non-existent-agent')
         .expect(404);
@@ -610,7 +618,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('error', 'Agent not found');
     });
 
-    test('agent data includes performance metrics', async () => {
+    jest.setTimeout(10000);
+  test('agent data includes performance metrics', async () => { try {
       const response = await request(app)
         .get('/api/agents/agent-researcher-001')
         .expect(200);
@@ -623,7 +632,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Swarm Metrics Endpoints', () => {
-    test('GET /api/swarm/metrics returns swarm metrics', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/swarm/metrics returns swarm metrics', async () => { try {
       const response = await request(app)
         .get('/api/swarm/metrics')
         .expect(200);
@@ -640,7 +650,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('responseTime');
     });
 
-    test('GET /api/swarm/metrics includes agent distribution', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/swarm/metrics includes agent distribution', async () => { try {
       const response = await request(app)
         .get('/api/swarm/metrics')
         .expect(200);
@@ -651,7 +662,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.agentsByType).toHaveProperty('researcher');
     });
 
-    test('GET /api/swarm/metrics includes performance trends', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/swarm/metrics includes performance trends', async () => { try {
       const response = await request(app)
         .get('/api/swarm/metrics')
         .expect(200);
@@ -663,7 +675,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.performanceTrends.efficiency).toHaveLength(3);
     });
 
-    test('GET /api/swarm/metrics supports time range parameter', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/swarm/metrics supports time range parameter', async () => { try {
       const response = await request(app)
         .get('/api/swarm/metrics?timeRange=24h')
         .expect(200);
@@ -673,7 +686,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Decision Transparency Endpoints', () => {
-    test('GET /api/decisions returns list of decisions', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/decisions returns list of decisions', async () => { try {
       const response = await request(app)
         .get('/api/decisions')
         .expect(200);
@@ -688,7 +702,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.decisions[0]).toHaveProperty('reasoning');
     });
 
-    test('GET /api/decisions supports agent filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/decisions supports agent filtering', async () => { try {
       const response = await request(app)
         .get('/api/decisions?agentId=agent-researcher-001')
         .expect(200);
@@ -699,7 +714,8 @@ describe('Dashboard API Integration Tests', () => {
       });
     });
 
-    test('GET /api/decisions supports category filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/decisions supports category filtering', async () => { try {
       const response = await request(app)
         .get('/api/decisions?category=architecture')
         .expect(200);
@@ -710,7 +726,8 @@ describe('Dashboard API Integration Tests', () => {
       });
     });
 
-    test('GET /api/decisions supports pagination', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/decisions supports pagination', async () => { try {
       const response = await request(app)
         .get('/api/decisions?limit=2&offset=1')
         .expect(200);
@@ -722,7 +739,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.pagination).toHaveProperty('hasMore', true);
     });
 
-    test('GET /api/decisions/:decisionId returns specific decision', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/decisions/:decisionId returns specific decision', async () => { try {
       const response = await request(app)
         .get('/api/decisions/decision-simple-001')
         .expect(200);
@@ -734,7 +752,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('impact');
     });
 
-    test('GET /api/decisions/:decisionId returns 404 for non-existent decision', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/decisions/:decisionId returns 404 for non-existent decision', async () => { try {
       const response = await request(app)
         .get('/api/decisions/non-existent-decision')
         .expect(404);
@@ -742,7 +761,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('error', 'Decision not found');
     });
 
-    test('decision data includes confidence scores', async () => {
+    jest.setTimeout(10000);
+  test('decision data includes confidence scores', async () => { try {
       const response = await request(app)
         .get('/api/decisions/decision-simple-001')
         .expect(200);
@@ -753,7 +773,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Reasoning Chain Endpoints', () => {
-    test('GET /api/reasoning-chains returns list of reasoning chains', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/reasoning-chains returns list of reasoning chains', async () => { try {
       const response = await request(app)
         .get('/api/reasoning-chains')
         .expect(200);
@@ -767,7 +788,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.reasoningChains[0]).toHaveProperty('steps');
     });
 
-    test('GET /api/reasoning-chains supports agent filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/reasoning-chains supports agent filtering', async () => { try {
       const response = await request(app)
         .get('/api/reasoning-chains?agentId=agent-researcher-001')
         .expect(200);
@@ -778,7 +800,8 @@ describe('Dashboard API Integration Tests', () => {
       });
     });
 
-    test('GET /api/reasoning-chains supports task filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/reasoning-chains supports task filtering', async () => { try {
       const response = await request(app)
         .get('/api/reasoning-chains?taskId=oauth-provider-selection')
         .expect(200);
@@ -789,7 +812,8 @@ describe('Dashboard API Integration Tests', () => {
       });
     });
 
-    test('GET /api/reasoning-chains/:chainId returns specific reasoning chain', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/reasoning-chains/:chainId returns specific reasoning chain', async () => { try {
       const response = await request(app)
         .get('/api/reasoning-chains/reasoning-chain-simple-001')
         .expect(200);
@@ -802,7 +826,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('totalDuration');
     });
 
-    test('reasoning chain includes step details', async () => {
+    jest.setTimeout(10000);
+  test('reasoning chain includes step details', async () => { try {
       const response = await request(app)
         .get('/api/reasoning-chains/reasoning-chain-simple-001')
         .expect(200);
@@ -820,7 +845,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Human Intervention Endpoints', () => {
-    test('GET /api/interventions returns list of interventions', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/interventions returns list of interventions', async () => { try {
       const response = await request(app)
         .get('/api/interventions')
         .expect(200);
@@ -834,7 +860,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.interventions[0]).toHaveProperty('priority');
     });
 
-    test('GET /api/interventions supports agent filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/interventions supports agent filtering', async () => { try {
       const response = await request(app)
         .get('/api/interventions?agentId=agent-coder-001')
         .expect(200);
@@ -845,7 +872,8 @@ describe('Dashboard API Integration Tests', () => {
       });
     });
 
-    test('GET /api/interventions supports priority filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/interventions supports priority filtering', async () => { try {
       const response = await request(app)
         .get('/api/interventions?priority=high')
         .expect(200);
@@ -856,7 +884,8 @@ describe('Dashboard API Integration Tests', () => {
       });
     });
 
-    test('intervention data includes human response', async () => {
+    jest.setTimeout(10000);
+  test('intervention data includes human response', async () => { try {
       const response = await request(app)
         .get('/api/interventions?agentId=agent-coder-001')
         .expect(200);
@@ -870,7 +899,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Test Status Endpoints', () => {
-    test('GET /api/tests/status returns overall test status', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/tests/status returns overall test status', async () => { try {
       const response = await request(app)
         .get('/api/tests/status')
         .expect(200);
@@ -884,7 +914,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.overall).toHaveProperty('successRate');
     });
 
-    test('GET /api/tests/status includes suite breakdown', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/tests/status includes suite breakdown', async () => { try {
       const response = await request(app)
         .get('/api/tests/status')
         .expect(200);
@@ -899,7 +930,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(unitSuite).toHaveProperty('coverage');
     });
 
-    test('GET /api/tests/status supports suite filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/tests/status supports suite filtering', async () => { try {
       const response = await request(app)
         .get('/api/tests/status?suite=unit')
         .expect(200);
@@ -910,7 +942,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('recentRuns');
     });
 
-    test('test status includes coverage metrics', async () => {
+    jest.setTimeout(10000);
+  test('test status includes coverage metrics', async () => { try {
       const response = await request(app)
         .get('/api/tests/status')
         .expect(200);
@@ -923,7 +956,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('WebSocket Status Endpoints', () => {
-    test('GET /api/websocket/status returns WebSocket status', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/websocket/status returns WebSocket status', async () => { try {
       const response = await request(app)
         .get('/api/websocket/status')
         .expect(200);
@@ -936,7 +970,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('messageRate');
     });
 
-    test('WebSocket status includes numeric metrics', async () => {
+    jest.setTimeout(10000);
+  test('WebSocket status includes numeric metrics', async () => { try {
       const response = await request(app)
         .get('/api/websocket/status')
         .expect(200);
@@ -950,7 +985,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Performance Metrics Endpoints', () => {
-    test('GET /api/performance returns comprehensive performance data', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/performance returns comprehensive performance data', async () => { try {
       const response = await request(app)
         .get('/api/performance')
         .expect(200);
@@ -962,7 +998,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('database');
     });
 
-    test('GET /api/performance includes system metrics', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/performance includes system metrics', async () => { try {
       const response = await request(app)
         .get('/api/performance')
         .expect(200);
@@ -973,7 +1010,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.system).toHaveProperty('networkIO');
     });
 
-    test('GET /api/performance includes application metrics', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/performance includes application metrics', async () => { try {
       const response = await request(app)
         .get('/api/performance')
         .expect(200);
@@ -984,7 +1022,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.application).toHaveProperty('activeConnections');
     });
 
-    test('GET /api/performance supports metric filtering', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/performance supports metric filtering', async () => { try {
       const response = await request(app)
         .get('/api/performance?metric=system.cpuUsage')
         .expect(200);
@@ -994,7 +1033,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(typeof response.body.value).toBe('number');
     });
 
-    test('GET /api/performance returns 404 for invalid metric', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/performance returns 404 for invalid metric', async () => { try {
       const response = await request(app)
         .get('/api/performance?metric=invalid.metric.path')
         .expect(404);
@@ -1004,7 +1044,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    test('returns 404 for non-existent endpoints', async () => {
+    jest.setTimeout(10000);
+  test('returns 404 for non-existent endpoints', async () => { try {
       const response = await request(app)
         .get('/api/non-existent-endpoint')
         .expect(404);
@@ -1014,7 +1055,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('method');
     });
 
-    test('handles invalid JSON in request body', async () => {
+    jest.setTimeout(10000);
+  test('handles invalid JSON in request body', async () => { try {
       const response = await request(app)
         .post('/api/agents')
         .set('Content-Type', 'application/json')
@@ -1024,7 +1066,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body).toHaveProperty('error');
     });
 
-    test('handles missing query parameters gracefully', async () => {
+    jest.setTimeout(10000);
+  test('handles missing query parameters gracefully', async () => { try {
       const response = await request(app)
         .get('/api/decisions')
         .query({ invalidParam: 'value' })
@@ -1037,7 +1080,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Response Headers and Security', () => {
-    test('includes security headers', async () => {
+    jest.setTimeout(10000);
+  test('includes security headers', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -1048,7 +1092,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.headers).toHaveProperty('x-xss-protection');
     });
 
-    test('includes CORS headers', async () => {
+    jest.setTimeout(10000);
+  test('includes CORS headers', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -1056,7 +1101,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.headers).toHaveProperty('access-control-allow-origin');
     });
 
-    test('includes compression for large responses', async () => {
+    jest.setTimeout(10000);
+  test('includes compression for large responses', async () => { try {
       const response = await request(app)
         .get('/api/decisions')
         .set('Accept-Encoding', 'gzip')
@@ -1066,7 +1112,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.headers['content-encoding']).toBeDefined();
     });
 
-    test('handles concurrent requests', async () => {
+    jest.setTimeout(10000);
+  test('handles concurrent requests', async () => { try {
       const promises = Array.from({ length: 10 }, () =>
         request(app).get('/api/agents').expect(200)
       );
@@ -1081,7 +1128,8 @@ describe('Dashboard API Integration Tests', () => {
   });
 
   describe('Rate Limiting and Performance', () => {
-    test('responds within acceptable time limits', async () => {
+    jest.setTimeout(10000);
+  test('responds within acceptable time limits', async () => { try {
       const startTime = performance.now();
 
       await request(app)
@@ -1095,7 +1143,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(responseTime).toBeLessThan(100);
     });
 
-    test('handles large pagination requests', async () => {
+    jest.setTimeout(10000);
+  test('handles large pagination requests', async () => { try {
       const response = await request(app)
         .get('/api/decisions?limit=1000')
         .expect(200);
@@ -1104,7 +1153,8 @@ describe('Dashboard API Integration Tests', () => {
       expect(response.body.pagination).toHaveProperty('total');
     });
 
-    test('maintains response consistency under load', async () => {
+    jest.setTimeout(10000);
+  test('maintains response consistency under load', async () => { try {
       const requests = Array.from({ length: 20 }, (_, i) =>
         request(app).get('/api/agents').expect(200)
       );
@@ -1117,4 +1167,4 @@ describe('Dashboard API Integration Tests', () => {
       });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

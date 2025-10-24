@@ -18,7 +18,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
   let redis: RedisClientType;
   const testPrefix = 'doc-test:';
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     redis = createClient({
       socket: { host: 'localhost', port: 6379 },
     });
@@ -29,7 +29,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
       'test-secret-32-bytes-long-string-here-for-testing';
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup all test keys
     const keys = await redis.keys(`${testPrefix}*`);
     if (keys.length > 0) {
@@ -39,7 +39,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
   });
 
   describe('Example 1: Basic Blocking Coordination', () => {
-    it('should acknowledge signal and send ACK (lines 17-78)', async () => {
+    it('should acknowledge signal and send ACK (lines 17-78)', async () => { try {
       const coordinator = new BlockingCoordinationManager({
         redisClient: redis,
         coordinatorId: `${testPrefix}coordinator-1`,
@@ -72,7 +72,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
   });
 
   describe('Example 2: Signal Sending with ACK Verification', () => {
-    it('should send signal and wait for ACK (lines 102-194)', async () => {
+    it('should send signal and wait for ACK (lines 102-194)', async () => { try {
       const signals = new BlockingCoordinationSignals({
         redisHost: 'localhost',
         redisPort: 6379,
@@ -114,7 +114,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
   });
 
   describe('Example 3: Dead Coordinator Handling', () => {
-    it('should detect stale heartbeat and trigger timeout (lines 224-319)', async () => {
+    it('should detect stale heartbeat and trigger timeout (lines 224-319)', async () => { try {
       const handler = new CoordinatorTimeoutHandler({
         redisClient: redis,
         timeoutThreshold: 1000, // 1 second for testing
@@ -150,7 +150,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
   });
 
   describe('Example 4: Circuit Breaker Integration', () => {
-    it('should execute Redis operations with circuit breaker protection (conceptual)', async () => {
+    it('should execute Redis operations with circuit breaker protection (conceptual)', async () => { try {
       // Note: The CircuitBreaker class is imported differently in the actual implementation
       // This test validates the concept shown in the documentation
 
@@ -169,7 +169,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
   });
 
   describe('Example 6: Complete CFN Loop 2 Validation Flow', () => {
-    it('should execute validation flow with blocking coordination (lines 604-755)', async () => {
+    it('should execute validation flow with blocking coordination (lines 604-755)', async () => { try {
       const parentCoordinator = new BlockingCoordinationManager({
         redisClient: redis,
         coordinatorId: `${testPrefix}loop2-parent`,
@@ -250,7 +250,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
   });
 
   describe('Example 7: Error Handling and Retry Logic', () => {
-    it('should handle ACK timeout gracefully (lines 808-951)', async () => {
+    it('should handle ACK timeout gracefully (lines 808-951)', async () => { try {
       const coordinator = new BlockingCoordinationManager({
         redisClient: redis,
         coordinatorId: `${testPrefix}coordinator-error-handling`,
@@ -276,7 +276,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
   });
 
   describe('Anti-Pattern Detection', () => {
-    it('should NOT use redis.keys() - use SCAN instead', async () => {
+    it('should NOT use redis.keys() - use SCAN instead', async () => { try {
       // This is a validation test - the documentation shows the anti-pattern
       // but we verify the correct pattern here
 
@@ -324,7 +324,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
       expect(process.env.BLOCKING_COORDINATION_SECRET!.length).toBeGreaterThanOrEqual(32);
     });
 
-    it('should handle timeout gracefully with fallback', async () => {
+    it('should handle timeout gracefully with fallback', async () => { try {
       const coordinator = new BlockingCoordinationManager({
         redisClient: redis,
         coordinatorId: `${testPrefix}coordinator-timeout-test`,
@@ -348,7 +348,7 @@ describe('Documentation Executable Examples - Sprint 4.1', () => {
       }
     });
 
-    it('should cleanup resources in finally block', async () => {
+    it('should cleanup resources in finally block', async () => { try {
       let cleanupExecuted = false;
 
       try {

@@ -10,7 +10,7 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
     let securityManager;
     let performanceMetrics;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         securityManager = new ByzantineSecurityManager({
             nodeId: 'performance-validator-' + crypto.randomUUID(),
             performanceOptimized: true,
@@ -42,7 +42,7 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
     });
 
     describe('Cryptographically Verified Performance Improvements', () => {
-        it('should achieve 8x operation speed improvement with Byzantine verification', async () => {
+        it('should achieve 8x operation speed improvement with Byzantine verification', async () => { try {
             // TDD: Write test FIRST - this should fail initially
             const operationSuite = [
                 'code_analysis',
@@ -104,7 +104,7 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
             expect(performanceProof.tamperEvident).to.be.true;
         });
 
-        it('should achieve 8x memory efficiency with resource optimization', async () => {
+        it('should achieve 8x memory efficiency with resource optimization', async () => { try {
             const memoryIntensiveOperations = [
                 {
                     name: 'large_codebase_analysis',
@@ -169,7 +169,7 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
             expect(averageMemoryEfficiency).to.be.at.least(8.0);
         });
 
-        it('should achieve 8x throughput improvement with parallel optimization', async () => {
+        it('should achieve 8x throughput improvement with parallel optimization', async () => { try {
             const throughputTestScenarios = [
                 {
                     name: 'concurrent_code_analysis',
@@ -240,7 +240,7 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
     });
 
     describe('Performance Scaling Under Load with Byzantine Consensus', () => {
-        it('should maintain 8x performance improvement under increasing load', async () => {
+        it('should maintain 8x performance improvement under increasing load', async () => { try {
             const loadLevels = [
                 { name: 'light', operations: 10, concurrency: 2 },
                 { name: 'medium', operations: 50, concurrency: 5 },
@@ -283,7 +283,7 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
             }
         });
 
-        it('should handle performance stress testing with fault tolerance', async () => {
+        it('should handle performance stress testing with fault tolerance', async () => { try {
             const stressTestConfig = {
                 duration: 30000, // 30 seconds
                 maxConcurrency: 100,
@@ -314,7 +314,7 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
     });
 
     describe('Real-World Performance Validation', () => {
-        it('should demonstrate 8-10x improvement in real development workflows', async () => {
+        it('should demonstrate 8-10x improvement in real development workflows', async () => { try {
             const realWorldScenarios = [
                 {
                     name: 'full_stack_development',
@@ -392,7 +392,7 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
     });
 
     describe('Performance Regression Prevention', () => {
-        it('should maintain performance improvements over time with continuous monitoring', async () => {
+        it('should maintain performance improvements over time with continuous monitoring', async () => { try {
             const monitoringDuration = 10000; // 10 seconds continuous monitoring
             const measurementInterval = 1000; // 1 second intervals
 
@@ -476,4 +476,4 @@ describe('End-to-End Performance Validation - 8-10x Improvement Target', () => {
             userSatisfaction: 3.0 + Math.random() * 0.5 // 3.0-3.5
         };
     }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

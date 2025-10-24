@@ -60,7 +60,7 @@ describe('RedisHealthMonitor', () => {
     mockRedisClient.quit.mockResolvedValue('OK');
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (healthMonitor) {
       await healthMonitor.disconnect();
     }
@@ -73,7 +73,7 @@ describe('RedisHealthMonitor', () => {
       expect(healthMonitor.isConnected()).toBe(false);
     });
 
-    it('should connect to Redis successfully', async () => {
+    it('should connect to Redis successfully', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       const connectedSpy = vi.fn();
@@ -93,7 +93,7 @@ describe('RedisHealthMonitor', () => {
       );
     });
 
-    it('should emit status change events', async () => {
+    it('should emit status change events', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       const statusChangeSpy = vi.fn();
@@ -116,7 +116,7 @@ describe('RedisHealthMonitor', () => {
       );
     });
 
-    it('should handle connection failure', async () => {
+    it('should handle connection failure', async () => { try {
       mockRedisClient.connect.mockRejectedValue(new Error('Connection refused'));
 
       healthMonitor = new RedisHealthMonitor(config);
@@ -133,7 +133,7 @@ describe('RedisHealthMonitor', () => {
       );
     });
 
-    it('should disconnect gracefully', async () => {
+    it('should disconnect gracefully', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
       await healthMonitor.connect();
 
@@ -149,12 +149,12 @@ describe('RedisHealthMonitor', () => {
   });
 
   describe('Health Checks', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
       await healthMonitor.connect();
     });
 
-    it('should perform successful health check', async () => {
+    it('should perform successful health check', async () => { try {
       const result = await healthMonitor.performHealthCheck();
 
       expect(result.healthy).toBe(true);
@@ -163,7 +163,7 @@ describe('RedisHealthMonitor', () => {
       expect(mockRedisClient.ping).toHaveBeenCalled();
     });
 
-    it('should emit health check events', async () => {
+    it('should emit health check events', async () => { try {
       const healthCheckSpy = vi.fn();
       healthMonitor.on('redis:health:check', healthCheckSpy);
 
@@ -177,7 +177,7 @@ describe('RedisHealthMonitor', () => {
       );
     });
 
-    it('should detect health check failure', async () => {
+    it('should detect health check failure', async () => { try {
       mockRedisClient.ping.mockRejectedValue(new Error('Timeout'));
 
       const result = await healthMonitor.performHealthCheck();
@@ -187,7 +187,7 @@ describe('RedisHealthMonitor', () => {
       expect(result.error).toBe('Timeout');
     });
 
-    it('should handle health check timeout', async () => {
+    it('should handle health check timeout', async () => { try {
       // Simulate slow response
       mockRedisClient.ping.mockImplementation(() =>
         new Promise(resolve => setTimeout(resolve, 1000))
@@ -199,7 +199,7 @@ describe('RedisHealthMonitor', () => {
       expect(result.error).toContain('timeout');
     });
 
-    it('should track consecutive failures', async () => {
+    it('should track consecutive failures', async () => { try {
       mockRedisClient.ping.mockRejectedValue(new Error('Connection lost'));
 
       // Perform multiple failed checks
@@ -212,7 +212,7 @@ describe('RedisHealthMonitor', () => {
       expect(metrics.totalFailures).toBe(3);
     });
 
-    it('should reset consecutive failures on success', async () => {
+    it('should reset consecutive failures on success', async () => { try {
       // Fail once
       mockRedisClient.ping.mockRejectedValueOnce(new Error('Temporary failure'));
       await healthMonitor.performHealthCheck();
@@ -231,7 +231,7 @@ describe('RedisHealthMonitor', () => {
   });
 
   describe('Auto-Reconnection', () => {
-    it('should trigger reconnection after failure threshold', async () => {
+    it('should trigger reconnection after failure threshold', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
       await healthMonitor.connect();
 
@@ -252,7 +252,7 @@ describe('RedisHealthMonitor', () => {
       expect(reconnectingSpy).toHaveBeenCalled();
     });
 
-    it('should use exponential backoff delays', async () => {
+    it('should use exponential backoff delays', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       const reconnectingSpy = vi.fn();
@@ -279,7 +279,7 @@ describe('RedisHealthMonitor', () => {
       );
     });
 
-    it('should succeed on reconnection attempt', async () => {
+    it('should succeed on reconnection attempt', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       const reconnectedSpy = vi.fn();
@@ -304,7 +304,7 @@ describe('RedisHealthMonitor', () => {
       expect(healthMonitor.getStatus()).toBe(ConnectionStatus.CONNECTED);
     });
 
-    it('should emit failed event after max attempts', async () => {
+    it('should emit failed event after max attempts', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       const failedSpy = vi.fn();
@@ -331,7 +331,7 @@ describe('RedisHealthMonitor', () => {
       expect(healthMonitor.getStatus()).toBe(ConnectionStatus.FAILED);
     });
 
-    it('should reset reconnect attempts on success', async () => {
+    it('should reset reconnect attempts on success', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       // Fail first attempt, succeed second
@@ -353,7 +353,7 @@ describe('RedisHealthMonitor', () => {
       expect((healthMonitor as any).reconnectAttempts).toBe(0); // Should reset
     });
 
-    it('should track reconnection metrics', async () => {
+    it('should track reconnection metrics', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       // Fail all attempts
@@ -374,7 +374,7 @@ describe('RedisHealthMonitor', () => {
   });
 
   describe('Metrics Collection', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
       await healthMonitor.connect();
     });
@@ -395,7 +395,7 @@ describe('RedisHealthMonitor', () => {
       });
     });
 
-    it('should emit metrics periodically', async () => {
+    it('should emit metrics periodically', async () => { try {
       const metricsSpy = vi.fn();
       healthMonitor.on('redis:metrics', metricsSpy);
 
@@ -410,7 +410,7 @@ describe('RedisHealthMonitor', () => {
       );
     });
 
-    it('should calculate average latency', async () => {
+    it('should calculate average latency', async () => { try {
       // Perform multiple health checks
       await healthMonitor.performHealthCheck();
       await healthMonitor.performHealthCheck();
@@ -420,7 +420,7 @@ describe('RedisHealthMonitor', () => {
       expect(metrics.averageLatency).toBeGreaterThan(0);
     });
 
-    it('should track uptime', async () => {
+    it('should track uptime', async () => { try {
       const initialMetrics = healthMonitor.getMetrics();
       const initialUptime = initialMetrics.uptime;
 
@@ -433,7 +433,7 @@ describe('RedisHealthMonitor', () => {
   });
 
   describe('Event Emission', () => {
-    it('should emit all connection lifecycle events', async () => {
+    it('should emit all connection lifecycle events', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       const events: string[] = [];
@@ -449,7 +449,7 @@ describe('RedisHealthMonitor', () => {
       expect(events).toContain('status_changed');
     });
 
-    it('should emit connection lost event', async () => {
+    it('should emit connection lost event', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
       await healthMonitor.connect();
 
@@ -471,7 +471,7 @@ describe('RedisHealthMonitor', () => {
       );
     });
 
-    it('should emit error events', async () => {
+    it('should emit error events', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
       await healthMonitor.connect();
 
@@ -496,7 +496,7 @@ describe('RedisHealthMonitor', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle ping errors gracefully', async () => {
+    it('should handle ping errors gracefully', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
       await healthMonitor.connect();
 
@@ -510,7 +510,7 @@ describe('RedisHealthMonitor', () => {
       expect(metrics.lastError).toBe('Network error');
     });
 
-    it('should handle disconnect errors gracefully', async () => {
+    it('should handle disconnect errors gracefully', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
       await healthMonitor.connect();
 
@@ -520,7 +520,7 @@ describe('RedisHealthMonitor', () => {
       await expect(healthMonitor.disconnect()).resolves.not.toThrow();
     });
 
-    it('should prevent duplicate reconnection attempts', async () => {
+    it('should prevent duplicate reconnection attempts', async () => { try {
       healthMonitor = new RedisHealthMonitor(config);
 
       mockRedisClient.connect.mockRejectedValue(new Error('Connection refused'));
@@ -554,7 +554,7 @@ describe('RedisHealthMonitor', () => {
       expect(metrics).toBeDefined();
     });
 
-    it('should allow custom health check interval', async () => {
+    it('should allow custom health check interval', async () => { try {
       const customConfig = {
         ...config,
         health: {

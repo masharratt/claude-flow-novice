@@ -25,13 +25,13 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
     handler = new HelpRequestHandler({ broker, coordinator });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await handler.stop();
     await broker.shutdown(1000);
   });
 
   describe('Subscription Management', () => {
-    it('should start and subscribe to help topics', async () => {
+    it('should start and subscribe to help topics', async () => { try {
       await handler.start();
 
       expect(handler.isStarted()).toBe(true);
@@ -43,7 +43,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       expect(helpTopics.length).toBeGreaterThan(0);
     });
 
-    it('should stop and unsubscribe from all topics', async () => {
+    it('should stop and unsubscribe from all topics', async () => { try {
       await handler.start();
       const beforeCount = broker.getSubscriptions().length;
 
@@ -56,7 +56,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
   });
 
   describe('Help Request Routing', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Register test agent
       const profile: AgentProfile = {
         agentId: 'helper-agent-1',
@@ -72,7 +72,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       await handler.start();
     });
 
-    it('should route help request via MessageBroker with HIGH priority', async () => {
+    it('should route help request via MessageBroker with HIGH priority', async () => { try {
       const payload: HelpRequestPayload = {
         requesterId: 'requester-1',
         description: 'Need help with API design',
@@ -96,7 +96,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       expect(reply.payload.match.agentId).toBe('helper-agent-1');
     });
 
-    it('should handle no match scenario', async () => {
+    it('should handle no match scenario', async () => { try {
       const payload: HelpRequestPayload = {
         requesterId: 'requester-2',
         description: 'Need help with quantum computing',
@@ -117,7 +117,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       expect(reply.payload.match).toBeNull();
     });
 
-    it('should route via wildcard topic', async () => {
+    it('should route via wildcard topic', async () => { try {
       const payload: HelpRequestPayload = {
         requesterId: 'requester-3',
         description: 'API design assistance',
@@ -139,7 +139,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
   });
 
   describe('Help Acceptance Flow', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const profile: AgentProfile = {
         agentId: 'helper-2',
         state: AgentState.IDLE,
@@ -154,7 +154,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       await handler.start();
     });
 
-    it('should handle help acceptance notification', async () => {
+    it('should handle help acceptance notification', async () => { try {
       // Create help request first
       const requestPayload: HelpRequestPayload = {
         requesterId: 'requester-4',
@@ -194,7 +194,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
   });
 
   describe('Help Completion Flow', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const profile: AgentProfile = {
         agentId: 'helper-3',
         state: AgentState.IDLE,
@@ -209,7 +209,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       await handler.start();
     });
 
-    it('should handle successful help completion', async () => {
+    it('should handle successful help completion', async () => { try {
       // Create and route help request
       const requestPayload: HelpRequestPayload = {
         requesterId: 'requester-5',
@@ -261,7 +261,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       expect(metrics.coordinatorMetrics.resolvedRequests).toBeGreaterThan(0);
     });
 
-    it('should handle failed help completion', async () => {
+    it('should handle failed help completion', async () => { try {
       const requestPayload: HelpRequestPayload = {
         requesterId: 'requester-6',
         description: 'Review assistance',
@@ -312,7 +312,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
   });
 
   describe('Metrics and Monitoring', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const profile: AgentProfile = {
         agentId: 'metrics-helper',
         state: AgentState.IDLE,
@@ -327,7 +327,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       await handler.start();
     });
 
-    it('should track routing metrics', async () => {
+    it('should track routing metrics', async () => { try {
       const payload: HelpRequestPayload = {
         requesterId: 'requester-metrics',
         description: 'Monitoring help',
@@ -345,7 +345,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       expect(metrics.avgRoutingLatencyMs).toBeGreaterThan(0);
     });
 
-    it('should emit monitoring events', async () => {
+    it('should emit monitoring events', async () => { try {
       const events: any[] = [];
 
       await broker.subscribe({
@@ -374,11 +374,11 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await handler.start();
     });
 
-    it('should handle invalid payload gracefully', async () => {
+    it('should handle invalid payload gracefully', async () => { try {
       const invalidPayload: any = {
         requesterId: 'invalid-requester'
         // Missing required fields
@@ -394,7 +394,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       expect(reply.error).toBeDefined();
     });
 
-    it('should track failed requests', async () => {
+    it('should track failed requests', async () => { try {
       const invalidPayload: any = {
         description: 'Missing requester ID'
       };
@@ -407,7 +407,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
   });
 
   describe('Performance', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Register multiple helpers
       for (let i = 0; i < 5; i++) {
         const profile: AgentProfile = {
@@ -425,7 +425,7 @@ describe('HelpRequestHandler - MessageBroker Integration', () => {
       await handler.start();
     });
 
-    it('should route requests within latency target (<200ms p95)', async () => {
+    it('should route requests within latency target (<200ms p95)', async () => { try {
       const latencies: number[] = [];
 
       for (let i = 0; i < 20; i++) {

@@ -27,7 +27,7 @@ describe('EventBus', () => {
     eventBus = EventBus.getInstance();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await cleanupTestEnv();
   });
 
@@ -97,7 +97,7 @@ describe('EventBus', () => {
     assertSpyCalls(handler, 1);
   });
 
-  it('should wait for event', async () => {
+  it('should wait for event', async () => { try {
     const promise = eventBus.waitFor(SystemEvents.SYSTEM_READY, 1000);
 
     setTimeout(() => {
@@ -108,7 +108,7 @@ describe('EventBus', () => {
     expect(result.timestamp instanceof Date).toBe(true);
   });
 
-  it('should timeout when waiting for event', async () => {
+  it('should timeout when waiting for event', async () => { try {
     await assertRejects(
       () => eventBus.waitFor('non-existent-event', 100),
       Error,
@@ -188,4 +188,4 @@ describe('EventBus', () => {
     stats = debugBus.getEventStats();
     expect(stats.length).toBe(0);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

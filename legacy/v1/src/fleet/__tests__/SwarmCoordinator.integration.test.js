@@ -42,22 +42,22 @@ describe('SwarmCoordinator Integration Tests', () => {
   let coordinator;
   let testRedis;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Setup test Redis
     testRedis = await setupTestRedis();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup test Redis
     await cleanupTestRedis(testRedis);
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create new coordinator for each test
     coordinator = new SwarmCoordinator(TEST_CONFIG);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup coordinator after each test
     if (coordinator && coordinator.isRunning) {
       await coordinator.shutdown();
@@ -65,7 +65,7 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Initialization', () => {
-    it('should initialize SwarmCoordinator successfully', async () => {
+    it('should initialize SwarmCoordinator successfully', async () => { try {
       await coordinator.initialize();
 
       assert.strictEqual(coordinator.isRunning, true);
@@ -78,7 +78,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(coordinator.healthMonitor);
     });
 
-    it('should initialize fleet components correctly', async () => {
+    it('should initialize fleet components correctly', async () => { try {
       await coordinator.initialize();
 
       // Check fleet commander is initialized
@@ -96,11 +96,11 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Agent Lifecycle Orchestration', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    it('should spawn a new agent successfully', async () => {
+    it('should spawn a new agent successfully', async () => { try {
       const agentConfig = {
         type: 'coder',
         capabilities: ['javascript', 'typescript'],
@@ -125,7 +125,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(workload.totalTasks, 0);
     });
 
-    it('should monitor agent status', async () => {
+    it('should monitor agent status', async () => { try {
       // Spawn an agent
       const agentId = await coordinator.spawnAgent({
         type: 'tester',
@@ -142,7 +142,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(status.healthStatus);
     });
 
-    it('should terminate agent successfully', async () => {
+    it('should terminate agent successfully', async () => { try {
       // Spawn an agent
       const agentId = await coordinator.spawnAgent({
         type: 'reviewer',
@@ -165,7 +165,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(workload, undefined);
     });
 
-    it('should handle agent termination with active tasks', async () => {
+    it('should handle agent termination with active tasks', async () => { try {
       // Spawn an agent
       const agentId = await coordinator.spawnAgent({
         type: 'coder',
@@ -192,11 +192,11 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Task Distribution and Load Balancing', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    it('should submit task to queue successfully', async () => {
+    it('should submit task to queue successfully', async () => { try {
       const task = {
         title: 'Write JavaScript function',
         poolType: 'coder',
@@ -217,7 +217,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(queuedTask.status, 'queued');
     });
 
-    it('should allocate task to suitable agent', async () => {
+    it('should allocate task to suitable agent', async () => { try {
       // Spawn a suitable agent
       const agentId = await coordinator.spawnAgent({
         type: 'coder',
@@ -242,7 +242,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(taskExecution.status, 'executing');
     });
 
-    it('should handle task completion', async () => {
+    it('should handle task completion', async () => { try {
       // Spawn agent
       const agentId = await coordinator.spawnAgent({
         type: 'coder',
@@ -281,7 +281,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(workload.totalTasks, 1);
     });
 
-    it('should handle task failure', async () => {
+    it('should handle task failure', async () => { try {
       // Spawn agent
       const agentId = await coordinator.spawnAgent({
         type: 'tester',
@@ -313,7 +313,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(workload.performanceScore < 1.0);
     });
 
-    it('should prioritize tasks correctly', async () => {
+    it('should prioritize tasks correctly', async () => { try {
       // Submit tasks with different priorities
       const lowPriorityTask = await coordinator.submitTask({
         title: 'Low priority task',
@@ -339,11 +339,11 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Dynamic Agent Scaling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    it('should scale pool up when needed', async () => {
+    it('should scale pool up when needed', async () => { try {
       const initialStatus = await coordinator.fleetCommander.getFleetStatus();
       const initialCoderCount = initialStatus.pools.coder?.currentAgents || 0;
 
@@ -362,7 +362,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(coordinator.metrics.scalingEvents, 1);
     });
 
-    it('should scale pool down when underutilized', async () => {
+    it('should scale pool down when underutilized', async () => { try {
       // First scale up
       await coordinator.scalePool('coder', 8);
 
@@ -379,7 +379,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       }
     });
 
-    it('should calculate optimal agent count based on workload', async () => {
+    it('should calculate optimal agent count based on workload', async () => { try {
       const poolType = 'coder';
 
       // Submit many tasks to create workload pressure
@@ -399,11 +399,11 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Fleet Monitoring and Metrics', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    it('should collect comprehensive fleet metrics', async () => {
+    it('should collect comprehensive fleet metrics', async () => { try {
       const metrics = await coordinator.getFleetMetrics();
 
       assert.ok(metrics);
@@ -429,7 +429,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(metrics.performance.averagePerformance >= 0);
     });
 
-    it('should create metrics dashboard', async () => {
+    it('should create metrics dashboard', async () => { try {
       const dashboard = await coordinator.createMetricsDashboard();
 
       assert.ok(dashboard);
@@ -450,7 +450,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(typeof dashboard.performance.successRate === 'number');
     });
 
-    it('should track agent workload correctly', async () => {
+    it('should track agent workload correctly', async () => { try {
       // Spawn agent
       const agentId = await coordinator.spawnAgent({
         type: 'coder',
@@ -477,11 +477,11 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Redis Coordination', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    it('should publish coordination events', async () => {
+    it('should publish coordination events', async () => { try {
       // Subscribe to coordination channel
       let eventReceived = false;
       let eventData = null;
@@ -512,7 +512,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(eventData.data, 'test_payload');
     });
 
-    it('should handle orchestration commands', async () => {
+    it('should handle orchestration commands', async () => { try {
       let agentSpawned = false;
 
       // Listen for agent spawned event
@@ -543,7 +543,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(agentSpawned);
     });
 
-    it('should coordinate with multiple instances', async () => {
+    it('should coordinate with multiple instances', async () => { try {
       // Create second coordinator
       const coordinator2 = new SwarmCoordinator({
         ...TEST_CONFIG,
@@ -580,11 +580,11 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Error Handling and Recovery', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    it('should handle agent health issues', async () => {
+    it('should handle agent health issues', async () => { try {
       // Spawn agent
       const agentId = await coordinator.spawnAgent({
         type: 'coder',
@@ -615,7 +615,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(coordinator.metrics.recoveryEvents, 1);
     });
 
-    it('should handle task timeouts', async () => {
+    it('should handle task timeouts', async () => { try {
       // Spawn agent
       await coordinator.spawnAgent({
         type: 'reviewer',
@@ -637,7 +637,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(coordinator.metrics.failedTasks > 0);
     });
 
-    it('should maintain stability during high load', async () => {
+    it('should maintain stability during high load', async () => { try {
       // Spawn multiple agents
       const agentIds = [];
       for (let i = 0; i < 5; i++) {
@@ -674,11 +674,11 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Performance and Scalability', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    it('should handle concurrent task submission', async () => {
+    it('should handle concurrent task submission', async () => { try {
       const taskPromises = [];
 
       // Submit 50 tasks concurrently
@@ -701,7 +701,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(uniqueIds.size, 50);
     });
 
-    it('should maintain performance under load', async () => {
+    it('should maintain performance under load', async () => { try {
       const startTime = Date.now();
 
       // Spawn agents
@@ -735,7 +735,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(metrics.performance.agentUtilization >= 0);
     });
 
-    it('should handle large number of agents', async () => {
+    it('should handle large number of agents', async () => { try {
       const agentIds = [];
 
       // Spawn many agents
@@ -763,7 +763,7 @@ describe('SwarmCoordinator Integration Tests', () => {
   });
 
   describe('Cleanup and Shutdown', () => {
-    it('should shutdown gracefully', async () => {
+    it('should shutdown gracefully', async () => { try {
       await coordinator.initialize();
 
       // Spawn agents and submit tasks
@@ -793,7 +793,7 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.strictEqual(coordinator.activeTasks.size, 0);
     });
 
-    it('should cleanup resources properly', async () => {
+    it('should cleanup resources properly', async () => { try {
       await coordinator.initialize();
 
       const redisCoordinator = coordinator.redisCoordinator;
@@ -809,4 +809,4 @@ describe('SwarmCoordinator Integration Tests', () => {
       assert.ok(!fleetCommander.isRunning);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

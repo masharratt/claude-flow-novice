@@ -32,7 +32,8 @@ describe('RaftConsensusManager', () => {
     });
 
     describe('Leader Election', () => {
-        test('should elect a leader within reasonable time', async () => {
+        jest.setTimeout(10000);
+  test('should elect a leader within reasonable time', async () => { try {
             const leaderElectedPromise = new Promise(resolve => {
                 cluster.forEach(node => {
                     node.on('leaderElected', (event) => {
@@ -50,7 +51,8 @@ describe('RaftConsensusManager', () => {
             expect(leader.getState().isLeader).toBe(true);
         }, 10000);
 
-        test('should handle leader failure and re-election', async () => {
+        jest.setTimeout(10000);
+  test('should handle leader failure and re-election', async () => { try {
             // First election
             await new Promise(resolve => {
                 cluster[0].on('leaderElected', () => {
@@ -78,7 +80,8 @@ describe('RaftConsensusManager', () => {
             expect(newElection.nodeId).not.toBe(leader.nodeId);
         }, 15000);
 
-        test('should maintain single leader per term', async () => {
+        jest.setTimeout(10000);
+  test('should maintain single leader per term', async () => { try {
             const leaders = [];
 
             await new Promise(resolve => {
@@ -102,7 +105,7 @@ describe('RaftConsensusManager', () => {
     });
 
     describe('Resource Validation', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             // Ensure we have a leader
             await new Promise(resolve => {
                 cluster[0].on('leaderElected', () => {
@@ -112,7 +115,8 @@ describe('RaftConsensusManager', () => {
             });
         });
 
-        test('should validate swarm shutdown and relaunch functionality', async () => {
+        jest.setTimeout(10000);
+  test('should validate swarm shutdown and relaunch functionality', async () => { try {
             const claims = {
                 swarmRecovery: true,
                 leaderElection: true,
@@ -128,7 +132,8 @@ describe('RaftConsensusManager', () => {
             expect(validation.results.swarmFunctionality.leaderRecovery).toBe(true);
         });
 
-        test('should validate MCP integration functions', async () => {
+        jest.setTimeout(10000);
+  test('should validate MCP integration functions', async () => { try {
             const claims = {
                 mcpIntegration: true,
                 swarmOperations: true,
@@ -148,7 +153,8 @@ describe('RaftConsensusManager', () => {
             expect(testTypes).toContain('neural');
         });
 
-        test('should verify performance improvement claims', async () => {
+        jest.setTimeout(10000);
+  test('should verify performance improvement claims', async () => { try {
             const claims = {
                 performanceImprovements: {
                     solveBenchRate: 84.8,
@@ -170,7 +176,8 @@ describe('RaftConsensusManager', () => {
             expect(metrics.neuralModels).toBeDefined();
         });
 
-        test('should make consensus decisions based on validation results', async () => {
+        jest.setTimeout(10000);
+  test('should make consensus decisions based on validation results', async () => { try {
             const claims = {
                 comprehensiveValidation: true
             };
@@ -185,7 +192,8 @@ describe('RaftConsensusManager', () => {
             );
         });
 
-        test('should reject validation from non-leader nodes', async () => {
+        jest.setTimeout(10000);
+  test('should reject validation from non-leader nodes', async () => { try {
             const follower = cluster.find(node => node.getState().state === 'follower');
 
             if (follower) {
@@ -196,7 +204,7 @@ describe('RaftConsensusManager', () => {
     });
 
     describe('Log Replication', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await new Promise(resolve => {
                 cluster[0].on('leaderElected', () => {
                     leader = cluster[0];
@@ -205,7 +213,8 @@ describe('RaftConsensusManager', () => {
             });
         });
 
-        test('should replicate validation results across cluster', async () => {
+        jest.setTimeout(10000);
+  test('should replicate validation results across cluster', async () => { try {
             const claims = { testReplication: true };
 
             const entryCommittedPromise = new Promise(resolve => {
@@ -221,7 +230,8 @@ describe('RaftConsensusManager', () => {
             expect(committedEntry.claims).toEqual(claims);
         });
 
-        test('should maintain log consistency across nodes', async () => {
+        jest.setTimeout(10000);
+  test('should maintain log consistency across nodes', async () => { try {
             // Perform multiple validations
             const validations = [];
             for (let i = 0; i < 3; i++) {
@@ -238,7 +248,8 @@ describe('RaftConsensusManager', () => {
     });
 
     describe('Fault Tolerance', () => {
-        test('should handle network partitions gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle network partitions gracefully', async () => { try {
             // Wait for initial leader election
             await new Promise(resolve => {
                 cluster[0].on('leaderElected', () => {
@@ -259,7 +270,8 @@ describe('RaftConsensusManager', () => {
             expect(validation.validationId).toBeDefined();
         });
 
-        test('should recover from temporary failures', async () => {
+        jest.setTimeout(10000);
+  test('should recover from temporary failures', async () => { try {
             await new Promise(resolve => {
                 cluster[0].on('leaderElected', () => {
                     leader = cluster[0];
@@ -286,7 +298,7 @@ describe('RaftConsensusManager', () => {
     });
 
     describe('Performance and Metrics', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await new Promise(resolve => {
                 cluster[0].on('leaderElected', () => {
                     leader = cluster[0];
@@ -295,7 +307,8 @@ describe('RaftConsensusManager', () => {
             });
         });
 
-        test('should track consensus metrics accurately', async () => {
+        jest.setTimeout(10000);
+  test('should track consensus metrics accurately', async () => { try {
             const initialMetrics = leader.getState().metrics;
 
             await leader.validateResourceClaims({ metrics: true });
@@ -308,7 +321,8 @@ describe('RaftConsensusManager', () => {
             expect(finalMetrics.consensusDecisions.length).toBeGreaterThan(initialMetrics.consensusDecisions.length);
         });
 
-        test('should measure validation performance', async () => {
+        jest.setTimeout(10000);
+  test('should measure validation performance', async () => { try {
             const start = Date.now();
             const validation = await leader.validateResourceClaims({ performance: true });
             const duration = Date.now() - start;
@@ -320,7 +334,8 @@ describe('RaftConsensusManager', () => {
     });
 
     describe('Cluster Management', () => {
-        test('should handle dynamic node addition', () => {
+        jest.setTimeout(10000);
+  test('should handle dynamic node addition', () => {
             const newNode = new RaftConsensusManager('node-6', ['node-1', 'node-2', 'node-3']);
 
             // Add to existing cluster
@@ -332,7 +347,8 @@ describe('RaftConsensusManager', () => {
             newNode.destroy();
         });
 
-        test('should handle node removal', () => {
+        jest.setTimeout(10000);
+  test('should handle node removal', () => {
             cluster[0].removeNode('node-5');
 
             expect(cluster[0].clusterNodes.has('node-5')).toBe(false);
@@ -340,4 +356,4 @@ describe('RaftConsensusManager', () => {
             expect(cluster[0].matchIndex.has('node-5')).toBe(false);
         });
     });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

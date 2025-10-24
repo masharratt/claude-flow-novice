@@ -13,19 +13,19 @@ const Database = require('better-sqlite3');
 describe('CFN Loop Enforcement Assumptions', () => {
   let redis;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     redis = createClient();
     await redis.connect();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (redis) {
       await redis.quit();
     }
   });
 
   describe('Assumption 1: Redis Iteration Tracking', () => {
-    it('should increment iteration counter atomically', async () => {
+    it('should increment iteration counter atomically', async () => { try {
       const key = 'cfn:test:iteration:atomic';
       await redis.del(key);
 
@@ -38,7 +38,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
       expect(iter3).toBe(3);
     });
 
-    it('should handle concurrent increments correctly', async () => {
+    it('should handle concurrent increments correctly', async () => { try {
       const key = 'cfn:test:iteration:concurrent';
       await redis.del(key);
 
@@ -51,7 +51,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
       expect(sorted).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     });
 
-    it('should support max iteration checking', async () => {
+    it('should support max iteration checking', async () => { try {
       const key = 'cfn:test:iteration:max-check';
       const maxIterations = 10;
       await redis.del(key);
@@ -67,7 +67,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
   });
 
   describe('Assumption 2: Redis Pub/Sub for Coordinator Communication', () => {
-    it('should publish and receive decision messages', async () => {
+    it('should publish and receive decision messages', async () => { try {
       const channel = 'cfn:test:coordinator:decisions';
       const subscriber = createClient();
       await subscriber.connect();
@@ -105,7 +105,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
     ];
 
     for (const file of instructionFiles) {
-      it(`should have readable ${file}`, async () => {
+      it(`should have readable ${file}`, async () => { try {
         await access(file, constants.R_OK);
         const content = await readFile(file, 'utf-8');
         expect(content.length).toBeGreaterThan(0);
@@ -113,7 +113,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
       });
     }
 
-    it('should have consistent structure across modes', async () => {
+    it('should have consistent structure across modes', async () => { try {
       const contents = await Promise.all(
         instructionFiles.map(f => readFile(f, 'utf-8'))
       );
@@ -133,7 +133,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
   });
 
   describe('Assumption 4: CFN Loop Rules File', () => {
-    it('should have readable cfn-loop-rules.md', async () => {
+    it('should have readable cfn-loop-rules.md', async () => { try {
       await access('.claude/cfn-loop-rules.md', constants.R_OK);
       const content = await readFile('.claude/cfn-loop-rules.md', 'utf-8');
 
@@ -144,7 +144,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
       expect(content).toContain('ESCALATE');
     });
 
-    it('should define iteration limits for all modes', async () => {
+    it('should define iteration limits for all modes', async () => { try {
       const content = await readFile('.claude/cfn-loop-rules.md', 'utf-8');
 
       expect(content).toContain('MVP');
@@ -229,7 +229,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
     ];
 
     for (const file of coordinatorFiles) {
-      it(`${file} should reference decision pattern functions`, async () => {
+      it(`${file} should reference decision pattern functions`, async () => { try {
         const content = await readFile(file, 'utf-8');
 
         // Should have Loop 3 Iteration Decision Pattern
@@ -251,7 +251,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
   });
 
   describe('Assumption 7: Context Injection Command Works', () => {
-    it('should validate /context-inject command exists', async () => {
+    it('should validate /context-inject command exists', async () => { try {
       await access('.claude/commands/context-inject.md', constants.R_OK);
       const content = await readFile('.claude/commands/context-inject.md', 'utf-8');
 
@@ -262,7 +262,7 @@ describe('CFN Loop Enforcement Assumptions', () => {
   });
 
   describe('Assumption 8: Agent Instruction Injection is Possible', () => {
-    it('should support appending to instruction files', async () => {
+    it('should support appending to instruction files', async () => { try {
       const tempPath = '/tmp/test-cfn-injection.md';
       const original = '# Original Instructions\n';
       const injected = '\n## CFN Rules (Auto-Injected)\nTest rules';

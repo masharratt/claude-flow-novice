@@ -125,7 +125,7 @@ class BlockingCoordinator {
       }, this.timeoutMs);
 
       // Poll for signal
-      const checkInterval = setInterval(async () => {
+      const checkInterval = setInterval(async () => { try {
         try {
           const result = await this.signals.receiveSignal(this.coordinatorId);
 
@@ -206,7 +206,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
   let redis: Redis;
   let signals: BlockingCoordinationSignals;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis client
     redis = new Redis(REDIS_CONFIG);
 
@@ -231,7 +231,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
     await signals.connect();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup
     await cleanupRedis(redis);
     await signals.disconnect();
@@ -243,7 +243,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
   describe('3-Minute Baseline Tests', () => {
     it(
       'should unblock coordinator when signal received at 2:30 (before 3-minute timeout)',
-      async () => {
+      async () => { try {
         const coordinator = new BlockingCoordinator(
           signals,
           'coordinator-baseline',
@@ -251,7 +251,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
         );
 
         // Schedule signal at 2:30
-        const signalTimer = setTimeout(async () => {
+        const signalTimer = setTimeout(async () => { try {
           await coordinator.sendSignal('coordinator-baseline', SignalType.COMPLETION);
         }, TIMEOUTS.SIGNAL_DELAY);
 
@@ -273,7 +273,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
 
     it(
       'should track elapsed time accurately (signal at 2:30)',
-      async () => {
+      async () => { try {
         const coordinator = new BlockingCoordinator(
           signals,
           'coordinator-timing',
@@ -283,7 +283,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
         const startTime = Date.now();
 
         // Schedule signal at 2:30
-        const signalTimer = setTimeout(async () => {
+        const signalTimer = setTimeout(async () => { try {
           await coordinator.sendSignal('coordinator-timing', SignalType.COMPLETION);
         }, TIMEOUTS.SIGNAL_DELAY);
 
@@ -306,7 +306,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
 
     it(
       'should cleanup state after successful completion (baseline)',
-      async () => {
+      async () => { try {
         const coordinator = new BlockingCoordinator(
           signals,
           'coordinator-cleanup-success',
@@ -335,7 +335,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
   describe('5-Minute Timeout Tests', () => {
     it(
       'should timeout after 5 minutes when no signal received',
-      async () => {
+      async () => { try {
         const coordinator = new BlockingCoordinator(
           signals,
           'coordinator-timeout',
@@ -372,7 +372,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
 
     it(
       'should cleanup state after timeout (5-minute)',
-      async () => {
+      async () => { try {
         const coordinator = new BlockingCoordinator(
           signals,
           'coordinator-cleanup-timeout',
@@ -399,7 +399,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
 
     it(
       'should trigger timeout at exactly configured time (5 minutes)',
-      async () => {
+      async () => { try {
         const coordinator = new BlockingCoordinator(
           signals,
           'coordinator-exact-timeout',
@@ -431,7 +431,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
   // ===== 3. CONFIGURABLE TIMEOUT TESTS =====
 
   describe('Configurable Timeout Tests', () => {
-    it('should accept custom timeout parameter (1 minute)', async () => {
+    it('should accept custom timeout parameter (1 minute)', async () => { try {
       const customTimeout = 1 * 60 * 1000; // 1 minute
       const coordinator = new BlockingCoordinator(
         signals,
@@ -455,7 +455,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
       }
     }, 80000); // 1:20 test timeout
 
-    it('should handle very short timeout (10 seconds)', async () => {
+    it('should handle very short timeout (10 seconds)', async () => { try {
       const shortTimeout = 10 * 1000; // 10 seconds
       const coordinator = new BlockingCoordinator(
         signals,
@@ -483,7 +483,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
   // ===== 4. MULTIPLE COORDINATOR TESTS =====
 
   describe('Multiple Coordinator Timeout Tests', () => {
-    it('should handle different timeout configurations per coordinator', async () => {
+    it('should handle different timeout configurations per coordinator', async () => { try {
       const coordinator1 = new BlockingCoordinator(
         signals,
         'coordinator-multi-1',
@@ -536,7 +536,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
   describe.skip('Production Timeout Tests (30 minutes) - Optional Slow Tests', () => {
     it(
       'should handle production 30-minute timeout',
-      async () => {
+      async () => { try {
         const coordinator = new BlockingCoordinator(
           signals,
           'coordinator-production',
@@ -565,7 +565,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
 
     it(
       'should unblock production coordinator when signal received at 29:30',
-      async () => {
+      async () => { try {
         const coordinator = new BlockingCoordinator(
           signals,
           'coordinator-production-signal',
@@ -574,7 +574,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
 
         // Schedule signal at 29:30
         const signalDelay = 29.5 * 60 * 1000; // 29:30
-        const signalTimer = setTimeout(async () => {
+        const signalTimer = setTimeout(async () => { try {
           await coordinator.sendSignal(
             'coordinator-production-signal',
             SignalType.COMPLETION
@@ -600,7 +600,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
   // ===== 6. EDGE CASES =====
 
   describe('Edge Cases', () => {
-    it('should handle immediate signal (0ms delay)', async () => {
+    it('should handle immediate signal (0ms delay)', async () => { try {
       const coordinator = new BlockingCoordinator(
         signals,
         'coordinator-immediate',
@@ -620,7 +620,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
       }
     });
 
-    it('should handle multiple signals (last one wins)', async () => {
+    it('should handle multiple signals (last one wins)', async () => { try {
       const coordinator = new BlockingCoordinator(
         signals,
         'coordinator-multiple-signals',
@@ -645,7 +645,7 @@ describe('Extended Timeout Testing - Sprint 1.4', () => {
       }
     });
 
-    it('should handle coordinator restart after timeout', async () => {
+    it('should handle coordinator restart after timeout', async () => { try {
       const coordinator1 = new BlockingCoordinator(
         signals,
         'coordinator-restart',

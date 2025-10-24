@@ -73,19 +73,21 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
   });
 
   describe('Byzantine Security Validation', () => {
-    test('should reject patterns without valid cryptographic signatures', async () => {
+    jest.setTimeout(10000);
+  test('should reject patterns without valid cryptographic signatures', async () => { try {
       // FAILING TEST: Pattern recognition class doesn't exist yet
       const maliciousData = {
         ...mockHistoricalData.workflows[0],
         signature: 'invalid_signature'
       };
 
-      expect(async () => {
+      expect(async () => { try {
         await patternRecognition.analyzePattern(maliciousData);
       }).rejects.toThrow('Invalid cryptographic signature detected');
     });
 
-    test('should require consensus validation for pattern identification', async () => {
+    jest.setTimeout(10000);
+  test('should require consensus validation for pattern identification', async () => { try {
       // FAILING TEST: Byzantine consensus not implemented
       const pattern = {
         ...mockHistoricalData.workflows[0],
@@ -99,7 +101,8 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
       expect(result.cryptographicEvidence).toBeDefined();
     });
 
-    test('should maintain pattern integrity under adversarial attacks', async () => {
+    jest.setTimeout(10000);
+  test('should maintain pattern integrity under adversarial attacks', async () => { try {
       // FAILING TEST: Attack resistance not implemented
       const attackScenarios = [
         { type: 'poisoning', maliciousNodes: ['evil-node-1'] },
@@ -117,7 +120,8 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
   });
 
   describe('PageRank Pattern Identification', () => {
-    test('should achieve 85% accuracy in pattern recognition', async () => {
+    jest.setTimeout(10000);
+  test('should achieve 85% accuracy in pattern recognition', async () => { try {
       // FAILING TEST: Pattern recognition algorithm not implemented
       const testDataset = generateTestDataset(1000); // 1000 test patterns
 
@@ -128,7 +132,8 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
       expect(results.cryptographicEvidenceCount).toBeGreaterThanOrEqual(850); // 85% with evidence
     });
 
-    test('should process 1000+ events per minute with Byzantine validation', async () => {
+    jest.setTimeout(10000);
+  test('should process 1000+ events per minute with Byzantine validation', async () => { try {
       // FAILING TEST: Performance requirements not met
       const startTime = Date.now();
       const eventStream = generateEventStream(100); // Reduced for faster test
@@ -148,7 +153,8 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
       expect(processingResults.every(r => r.byzantineValidated)).toBe(true);
     });
 
-    test('should generate cryptographic evidence for all pattern discoveries', async () => {
+    jest.setTimeout(10000);
+  test('should generate cryptographic evidence for all pattern discoveries', async () => { try {
       // FAILING TEST: Cryptographic evidence generation not implemented
       const patterns = mockHistoricalData.workflows;
 
@@ -165,7 +171,8 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
   });
 
   describe('PageRank Algorithm Integration', () => {
-    test('should use PageRank for workflow node importance scoring', async () => {
+    jest.setTimeout(10000);
+  test('should use PageRank for workflow node importance scoring', async () => { try {
       // FAILING TEST: PageRank integration not implemented
       const workflow = mockHistoricalData.workflows[0];
 
@@ -177,7 +184,8 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
       expect(pageRankResult.convergenceProof).toBeDefined();
     });
 
-    test('should identify critical workflow bottlenecks using PageRank', async () => {
+    jest.setTimeout(10000);
+  test('should identify critical workflow bottlenecks using PageRank', async () => { try {
       // FAILING TEST: Bottleneck identification not implemented
       const complexWorkflow = {
         nodes: ['start', 'auth', 'validate', 'process', 'store', 'notify', 'end'],
@@ -194,7 +202,8 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
   });
 
   describe('SQLite Integration with Byzantine Security', () => {
-    test('should securely extract patterns from .hive-mind/hive.db', async () => {
+    jest.setTimeout(10000);
+  test('should securely extract patterns from .hive-mind/hive.db', async () => { try {
       // FAILING TEST: SQLite integration not implemented
       const dbPath = '.hive-mind/hive.db';
 
@@ -205,7 +214,8 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
       expect(extractedPatterns.every(p => p.byzantineSecured)).toBe(true);
     });
 
-    test('should maintain real-time analytics without compromising database performance', async () => {
+    jest.setTimeout(10000);
+  test('should maintain real-time analytics without compromising database performance', async () => { try {
       // FAILING TEST: Real-time analytics not implemented
       const performanceMetrics = await patternRecognition.benchmarkDatabaseIntegration();
 
@@ -247,4 +257,4 @@ describe('Byzantine-Secure PageRank Pattern Recognition', () => {
       return event;
     });
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

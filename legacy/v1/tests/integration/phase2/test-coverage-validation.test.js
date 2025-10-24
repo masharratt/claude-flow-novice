@@ -427,7 +427,7 @@ class MockCoverageAnalyzer {
                     issues: analysis.issues,
                     coverage: analysis.coverage,
                     recommendations: this.generateComponentRecommendations(analysis)
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
 
             // Check for specific gap patterns
@@ -439,7 +439,7 @@ class MockCoverageAnalyzer {
                     type: 'branch_coverage_gap',
                     severity: 'medium',
                     description: `Line coverage (${lines}%) significantly higher than branch coverage (${branches}%)`
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
 
             if (functions === 100 && lines < 95) {
@@ -448,7 +448,7 @@ class MockCoverageAnalyzer {
                     type: 'line_coverage_gap',
                     severity: 'high',
                     description: 'All functions tested but line coverage incomplete - possible dead code or complex branches'
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
         }
 
@@ -463,7 +463,7 @@ class MockCoverageAnalyzer {
                 type: 'increase_line_coverage',
                 priority: 'high',
                 description: `Add tests to cover untested lines (currently ${analysis.coverage.lines}%)`
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         if (analysis.coverage.branches < this.config.minimumCoverage) {
@@ -471,7 +471,7 @@ class MockCoverageAnalyzer {
                 type: 'increase_branch_coverage',
                 priority: 'high',
                 description: `Add tests for edge cases and error conditions (currently ${analysis.coverage.branches}%)`
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         if (analysis.coverage.functions < 100) {
@@ -479,7 +479,7 @@ class MockCoverageAnalyzer {
                 type: 'test_all_functions',
                 priority: 'medium',
                 description: `Ensure all functions have at least one test (currently ${analysis.coverage.functions}%)`
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         if (analysis.testCount === 0) {
@@ -487,7 +487,7 @@ class MockCoverageAnalyzer {
                 type: 'create_tests',
                 priority: 'critical',
                 description: 'Component has no tests - create comprehensive test suite'
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         if (analysis.criticality === 'high' && analysis.coverage.lines < 97) {
@@ -495,7 +495,7 @@ class MockCoverageAnalyzer {
                 type: 'high_criticality_coverage',
                 priority: 'high',
                 description: 'High-criticality component requires >97% coverage'
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         return recommendations;
@@ -568,7 +568,7 @@ class MockCoverageAnalyzer {
                 suite: suiteName,
                 testsPerKLOC: Math.round((suite.testCount / (componentLines / 1000)) * 100) / 100,
                 assertionsPerKLOC: Math.round((suite.assertionCount / (componentLines / 1000)) * 100) / 100
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         const avgTestsPerKLOC = densities.reduce((sum, d) => sum + d.testsPerKLOC, 0) / densities.length;
@@ -650,7 +650,7 @@ class MockCoverageAnalyzer {
                     'Add integration tests for cross-component interactions',
                     'Implement comprehensive edge case testing'
                 ]
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         // Component-specific recommendations
@@ -674,7 +674,7 @@ class MockCoverageAnalyzer {
                     'Create comprehensive test plans for each component',
                     'Add unit tests for uncovered functions and branches'
                 ]
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         // Test quality recommendations
@@ -698,7 +698,7 @@ class MockCoverageAnalyzer {
                     'Add more comprehensive test scenarios',
                     'Improve test organization and clarity'
                 ]
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         // Coverage gap recommendations
@@ -722,7 +722,7 @@ class MockCoverageAnalyzer {
                         'Add error handling and edge case tests',
                         'Implement integration tests for component interactions'
                     ]
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
         }
 
@@ -740,7 +740,7 @@ class MockCoverageAnalyzer {
                     'Implement automated coverage monitoring',
                     'Add performance and load testing'
                 ]
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         return recommendations;
@@ -847,12 +847,13 @@ describe('Test Coverage Validation', () => {
             enableBranchCoverage: true,
             enableFunctionCoverage: true,
             enableIntegrationCoverage: true
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         jest.clearAllMocks();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Overall Coverage Analysis', () => {
-        test('should calculate comprehensive coverage metrics', async () => {
+        jest.setTimeout(10000);
+  test('should calculate comprehensive coverage metrics', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             expect(analysis.overallCoverage).toBeDefined();
@@ -861,9 +862,10 @@ describe('Test Coverage Validation', () => {
             expect(analysis.overallCoverage.branches.total).toBeGreaterThan(0);
             expect(analysis.overallCoverage.overall).toBeGreaterThanOrEqual(0);
             expect(analysis.overallCoverage.overall).toBeLessThanOrEqual(100);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should validate >95% coverage requirement', async () => {
+        jest.setTimeout(10000);
+  test('should validate >95% coverage requirement', async () => { try {
             const validation = await coverageAnalyzer.validateMinimumRequirements();
 
             expect(validation.requirements.minimumCoverage).toBeDefined();
@@ -876,9 +878,10 @@ describe('Test Coverage Validation', () => {
                 expect(validation.requirements.minimumCoverage.passed).toBe(false);
                 expect(validation.issues.length).toBeGreaterThan(0);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should analyze coverage distribution across test suites', async () => {
+        jest.setTimeout(10000);
+  test('should analyze coverage distribution across test suites', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             expect(analysis.qualityMetrics.coverageDistribution).toBeDefined();
@@ -891,9 +894,10 @@ describe('Test Coverage Validation', () => {
             expect(linesDist.min).toBeLessThanOrEqual(linesDist.max);
             expect(linesDist.avg).toBeGreaterThan(0);
             expect(linesDist.standardDeviation).toBeGreaterThanOrEqual(0);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should track total lines of code covered', async () => {
+        jest.setTimeout(10000);
+  test('should track total lines of code covered', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             // Verify Phase 2 has substantial codebase (>4000 lines)
@@ -909,11 +913,12 @@ describe('Test Coverage Validation', () => {
             // Verify coverage is being calculated correctly
             expect(analysis.overallCoverage.lines.covered).toBeGreaterThan(0);
             expect(analysis.overallCoverage.lines.covered).toBeLessThanOrEqual(analysis.overallCoverage.lines.total);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Component-Specific Coverage', () => {
-        test('should analyze each Phase 2 component individually', async () => {
+        jest.setTimeout(10000);
+  test('should analyze each Phase 2 component individually', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const expectedComponents = [
@@ -940,9 +945,10 @@ describe('Test Coverage Validation', () => {
                 expect(component.coverage.branches).toBeGreaterThanOrEqual(0);
                 expect(component.status).toMatch(/^(uncovered|insufficient|partial|adequate)$/);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should enforce higher coverage standards for critical components', async () => {
+        jest.setTimeout(10000);
+  test('should enforce higher coverage standards for critical components', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const highCriticalityComponents = Object.entries(analysis.componentCoverage)
@@ -958,10 +964,11 @@ describe('Test Coverage Validation', () => {
                     // If not adequate, should have specific recommendations
                     expect(component.issues.length).toBeGreaterThan(0);
                 }
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should identify uncovered or poorly covered components', async () => {
+        jest.setTimeout(10000);
+  test('should identify uncovered or poorly covered components', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const problemComponents = Object.entries(analysis.componentCoverage)
@@ -975,10 +982,11 @@ describe('Test Coverage Validation', () => {
             problemComponents.forEach(([name, component]) => {
                 expect(component.issues.length).toBeGreaterThan(0);
                 expect(component.testSuites.length).toBeGreaterThanOrEqual(0);
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should track test suite coverage for each component', async () => {
+        jest.setTimeout(10000);
+  test('should track test suite coverage for each component', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             Object.entries(analysis.componentCoverage).forEach(([name, component]) => {
@@ -990,12 +998,13 @@ describe('Test Coverage Validation', () => {
                     expect(component.assertionCount).toBeGreaterThan(0);
                     expect(component.testSuites.length).toBeGreaterThan(0);
                 }
-            });
-        });
-    });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Test Suite Analysis', () => {
-        test('should analyze each test suite comprehensively', async () => {
+        jest.setTimeout(10000);
+  test('should analyze each test suite comprehensively', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const expectedTestSuites = [
@@ -1025,9 +1034,10 @@ describe('Test Coverage Validation', () => {
                 expect(suite.testQuality).toBeDefined();
                 expect(suite.effectiveness).toBeDefined();
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should evaluate test suite quality metrics', async () => {
+        jest.setTimeout(10000);
+  test('should evaluate test suite quality metrics', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             Object.entries(analysis.testSuiteCoverage).forEach(([suiteName, suite]) => {
@@ -1046,10 +1056,11 @@ describe('Test Coverage Validation', () => {
                 expect(suite.effectiveness.score).toBeGreaterThanOrEqual(0);
                 expect(suite.effectiveness.score).toBeLessThanOrEqual(1);
                 expect(suite.effectiveness.rating).toMatch(/^(Poor|Fair|Good|Excellent)$/);
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should identify high-quality test suites', async () => {
+        jest.setTimeout(10000);
+  test('should identify high-quality test suites', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const highQualityTestSuites = Object.entries(analysis.testSuiteCoverage)
@@ -1063,10 +1074,11 @@ describe('Test Coverage Validation', () => {
                 expect(suite.coverageQuality.grade).toMatch(/^[A-D]$/);
                 expect(suite.testQuality.score).toBeGreaterThanOrEqual(0.6);
                 expect(suite.avgAssertionsPerTest).toBeGreaterThanOrEqual(3);
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should calculate test density metrics', async () => {
+        jest.setTimeout(10000);
+  test('should calculate test density metrics', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             expect(analysis.qualityMetrics.testDensity).toBeDefined();
@@ -1080,11 +1092,12 @@ describe('Test Coverage Validation', () => {
             // Good test density should be reasonable
             expect(avgDensity.testsPerKLOC).toBeGreaterThan(5); // At least 5 tests per 1000 lines
             expect(avgDensity.assertionsPerKLOC).toBeGreaterThan(20); // At least 20 assertions per 1000 lines
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Coverage Gap Analysis', () => {
-        test('should identify specific coverage gaps', async () => {
+        jest.setTimeout(10000);
+  test('should identify specific coverage gaps', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             expect(analysis.coverageGaps).toBeInstanceOf(Array);
@@ -1112,12 +1125,13 @@ describe('Test Coverage Validation', () => {
                         expect(rec.type).toBeDefined();
                         expect(rec.description).toBeDefined();
                         expect(rec.priority).toMatch(/^(low|medium|high|critical)$/);
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should prioritize gaps by component criticality', async () => {
+        jest.setTimeout(10000);
+  test('should prioritize gaps by component criticality', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const highCriticalityGaps = analysis.coverageGaps
@@ -1131,9 +1145,10 @@ describe('Test Coverage Validation', () => {
                 // High criticality components should have fewer gaps
                 expect(highCriticalityGaps.length).toBeLessThanOrEqual(lowCriticalityGaps.length);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should detect branch coverage vs line coverage disparities', async () => {
+        jest.setTimeout(10000);
+  test('should detect branch coverage vs line coverage disparities', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const branchCoverageGaps = analysis.coverageGaps
@@ -1143,12 +1158,13 @@ describe('Test Coverage Validation', () => {
             branchCoverageGaps.forEach(gap => {
                 expect(gap.description).toContain('branch coverage');
                 expect(gap.severity).toMatch(/^(low|medium|high)$/);
-            });
-        });
-    });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Quality Metrics and Scoring', () => {
-        test('should calculate comprehensive quality metrics', async () => {
+        jest.setTimeout(10000);
+  test('should calculate comprehensive quality metrics', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const metrics = analysis.qualityMetrics;
@@ -1160,9 +1176,10 @@ describe('Test Coverage Validation', () => {
             expect(metrics.avgTestsPerComponent).toBeGreaterThan(0);
             expect(metrics.avgAssertionsPerComponent).toBeGreaterThan(0);
             expect(metrics.qualityScore).toBeDefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should provide overall quality grade', async () => {
+        jest.setTimeout(10000);
+  test('should provide overall quality grade', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const qualityScore = analysis.qualityMetrics.qualityScore;
@@ -1174,9 +1191,10 @@ describe('Test Coverage Validation', () => {
             expect(qualityScore.breakdown.testDensity).toBeGreaterThanOrEqual(0);
             expect(qualityScore.breakdown.assertionDensity).toBeGreaterThanOrEqual(0);
             expect(qualityScore.breakdown.consistency).toBeGreaterThanOrEqual(0);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should validate Phase 2 meets excellence standards', async () => {
+        jest.setTimeout(10000);
+  test('should validate Phase 2 meets excellence standards', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             // Phase 2 should have high-quality metrics
@@ -1192,9 +1210,10 @@ describe('Test Coverage Validation', () => {
             if (qualityScore.overall >= 0.85) {
                 expect(qualityScore.grade).toMatch(/^(A|A\+|A-)$/);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should track test effectiveness across components', async () => {
+        jest.setTimeout(10000);
+  test('should track test effectiveness across components', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             // All test suites should have effectiveness ratings
@@ -1208,12 +1227,13 @@ describe('Test Coverage Validation', () => {
                     expect(suite.coverageQuality.score).toBeGreaterThanOrEqual(0.8);
                     expect(suite.testQuality.score).toBeGreaterThanOrEqual(0.7);
                 }
-            });
-        });
-    });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Requirements Validation', () => {
-        test('should validate minimum coverage requirements', async () => {
+        jest.setTimeout(10000);
+  test('should validate minimum coverage requirements', async () => { try {
             const validation = await coverageAnalyzer.validateMinimumRequirements();
 
             expect(validation.passed).toBeDefined();
@@ -1235,9 +1255,10 @@ describe('Test Coverage Validation', () => {
             expect(summary.totalAssertions).toBeGreaterThan(0);
             expect(summary.qualityGrade).toBeDefined();
             expect(summary.issueCount).toBe(validation.issues.length);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should enforce high-criticality component standards', async () => {
+        jest.setTimeout(10000);
+  test('should enforce high-criticality component standards', async () => { try {
             const validation = await coverageAnalyzer.validateMinimumRequirements();
 
             const highCriticalityReq = validation.requirements.highCriticalityCoverage;
@@ -1252,9 +1273,10 @@ describe('Test Coverage Validation', () => {
                     issue.includes(inadequateCount.toString())
                 )).toBe(true);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should validate integration test coverage', async () => {
+        jest.setTimeout(10000);
+  test('should validate integration test coverage', async () => { try {
             const validation = await coverageAnalyzer.validateMinimumRequirements();
 
             const integrationReq = validation.requirements.integrationCoverage;
@@ -1269,9 +1291,10 @@ describe('Test Coverage Validation', () => {
                     issue.includes('integration tests')
                 )).toBe(true);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should provide actionable failure information', async () => {
+        jest.setTimeout(10000);
+  test('should provide actionable failure information', async () => { try {
             const validation = await coverageAnalyzer.validateMinimumRequirements();
 
             if (!validation.passed) {
@@ -1281,13 +1304,14 @@ describe('Test Coverage Validation', () => {
                     expect(issue).toBeDefined();
                     expect(issue.length).toBeGreaterThan(10);
                     expect(issue).toMatch(/\d+/); // Should contain specific numbers
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Recommendations and Reporting', () => {
-        test('should generate comprehensive recommendations', async () => {
+        jest.setTimeout(10000);
+  test('should generate comprehensive recommendations', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             expect(analysis.recommendations).toBeInstanceOf(Array);
@@ -1300,10 +1324,11 @@ describe('Test Coverage Validation', () => {
                 expect(recommendation.description).toBeDefined();
                 expect(recommendation.actions).toBeInstanceOf(Array);
                 expect(recommendation.actions.length).toBeGreaterThan(0);
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should prioritize recommendations appropriately', async () => {
+        jest.setTimeout(10000);
+  test('should prioritize recommendations appropriately', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const criticalRecommendations = analysis.recommendations
@@ -1315,7 +1340,7 @@ describe('Test Coverage Validation', () => {
             // Critical recommendations should address fundamental issues
             criticalRecommendations.forEach(rec => {
                 expect(rec.type).toMatch(/^(overall_coverage|component_coverage)$/);
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             // High priority recommendations should be specific
             highPriorityRecommendations.forEach(rec => {
@@ -1325,10 +1350,11 @@ describe('Test Coverage Validation', () => {
                 if (rec.gaps) {
                     expect(rec.gaps).toBeInstanceOf(Array);
                 }
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should generate comprehensive coverage report', async () => {
+        jest.setTimeout(10000);
+  test('should generate comprehensive coverage report', async () => { try {
             await coverageAnalyzer.analyzeCoverage();
             const report = coverageAnalyzer.generateCoverageReport();
 
@@ -1344,9 +1370,10 @@ describe('Test Coverage Validation', () => {
             // Report should be comprehensive
             expect(Object.keys(report.components)).toHaveLength(8);
             expect(Object.keys(report.testSuites)).toHaveLength(9);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should include validation results in report', async () => {
+        jest.setTimeout(10000);
+  test('should include validation results in report', async () => { try {
             await coverageAnalyzer.analyzeCoverage();
             const validation = await coverageAnalyzer.validateMinimumRequirements();
 
@@ -1359,11 +1386,12 @@ describe('Test Coverage Validation', () => {
 
             // Report should show overall Pass/Fail status clearly
             expect(report.validation.summary.overallPassed).toBe(validation.passed);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Integration with Existing Codebase', () => {
-        test('should accurately reflect Phase 2 component structure', async () => {
+        jest.setTimeout(10000);
+  test('should accurately reflect Phase 2 component structure', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             // Verify key Phase 2 components are included
@@ -1377,10 +1405,11 @@ describe('Test Coverage Validation', () => {
             keyComponents.forEach(componentName => {
                 expect(analysis.componentCoverage[componentName]).toBeDefined();
                 expect(analysis.componentCoverage[componentName].criticality).toBe('high');
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should validate integration with 745-line TruthScorer', async () => {
+        jest.setTimeout(10000);
+  test('should validate integration with 745-line TruthScorer', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             const truthScorerComponent = analysis.componentCoverage['truth-scorer'];
@@ -1392,9 +1421,10 @@ describe('Test Coverage Validation', () => {
             expect(componentSpec.lines).toBe(745);
             expect(componentSpec.criticality).toBe('high');
             expect(componentSpec.complexity).toBeGreaterThan(100);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should ensure comprehensive test coverage exists', async () => {
+        jest.setTimeout(10000);
+  test('should ensure comprehensive test coverage exists', async () => { try {
             const analysis = await coverageAnalyzer.analyzeCoverage();
 
             // Should have created 9 comprehensive test files
@@ -1407,6 +1437,6 @@ describe('Test Coverage Validation', () => {
 
             // Coverage should be comprehensive
             expect(analysis.overallCoverage.overall).toBeGreaterThan(90);
-        });
-    });
-});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

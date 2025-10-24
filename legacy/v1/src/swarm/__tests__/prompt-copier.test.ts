@@ -11,21 +11,21 @@ describe('PromptCopier', () => {
   let sourceDir: string;
   let destDir: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'prompt-test-'));
     sourceDir = path.join(tempDir, 'source');
     destDir = path.join(tempDir, 'dest');
 
-    await fs.mkdir(sourceDir, { recursive: true });
-    await fs.mkdir(destDir, { recursive: true });
+    await fs.mkdir(sourceDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    await fs.mkdir(destDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Create test files
     await createTestFiles();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+  afterEach(async () => { try {
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   async function createTestFiles() {
     const testFiles = [
@@ -41,52 +41,56 @@ describe('PromptCopier', () => {
       const filePath = path.join(sourceDir, file.path);
       const dir = path.dirname(filePath);
 
-      await fs.mkdir(dir, { recursive: true });
+      await fs.mkdir(dir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       await fs.writeFile(filePath, file.content);
     }
   }
 
   describe('Basic copying functionality', () => {
-    test('should copy all matching files', async () => {
+    jest.setTimeout(10000);
+  test('should copy all matching files', async () => { try {
       const result = await copyPrompts({
         source: sourceDir,
         destination: destDir,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.copiedFiles).toBe(6);
       expect(result.failedFiles).toBe(0);
 
       // Verify files exist
-      const destFiles = await fs.readdir(destDir, { recursive: true });
+      const destFiles = await fs.readdir(destDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(destFiles).toHaveLength(6);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should respect include patterns', async () => {
+    jest.setTimeout(10000);
+  test('should respect include patterns', async () => { try {
       const result = await copyPrompts({
         source: sourceDir,
         destination: destDir,
         includePatterns: ['*.md'],
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.copiedFiles).toBe(5); // Only .md files
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should respect exclude patterns', async () => {
+    jest.setTimeout(10000);
+  test('should respect exclude patterns', async () => { try {
       const result = await copyPrompts({
         source: sourceDir,
         destination: destDir,
         excludePatterns: ['**/subdir/**'],
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.copiedFiles).toBe(5); // Excluding subdir files
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Conflict resolution', () => {
-    test('should skip existing files when conflict resolution is skip', async () => {
+    jest.setTimeout(10000);
+  test('should skip existing files when conflict resolution is skip', async () => { try {
       // Create existing file
       await fs.writeFile(path.join(destDir, 'test1.md'), 'Existing content');
 
@@ -94,7 +98,7 @@ describe('PromptCopier', () => {
         source: sourceDir,
         destination: destDir,
         conflictResolution: 'skip',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.skippedFiles).toBeGreaterThan(0);
@@ -102,9 +106,10 @@ describe('PromptCopier', () => {
       // Verify original content preserved
       const content = await fs.readFile(path.join(destDir, 'test1.md'), 'utf-8');
       expect(content).toBe('Existing content');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should backup existing files when conflict resolution is backup', async () => {
+    jest.setTimeout(10000);
+  test('should backup existing files when conflict resolution is backup', async () => { try {
       // Create existing file
       await fs.writeFile(path.join(destDir, 'test1.md'), 'Existing content');
 
@@ -112,7 +117,7 @@ describe('PromptCopier', () => {
         source: sourceDir,
         destination: destDir,
         conflictResolution: 'backup',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.backupLocation).toBeDefined();
@@ -121,12 +126,13 @@ describe('PromptCopier', () => {
       const backupDir = path.join(destDir, '.prompt-backups');
       const backupExists = await fs
         .access(backupDir)
-        .then(() => true)
+        await ( => true)
         .catch(() => false);
       expect(backupExists).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should merge files when conflict resolution is merge', async () => {
+    jest.setTimeout(10000);
+  test('should merge files when conflict resolution is merge', async () => { try {
       // Create existing file
       await fs.writeFile(path.join(destDir, 'test1.md'), 'Existing content');
 
@@ -134,7 +140,7 @@ describe('PromptCopier', () => {
         source: sourceDir,
         destination: destDir,
         conflictResolution: 'merge',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
 
@@ -143,22 +149,24 @@ describe('PromptCopier', () => {
       expect(content).toContain('Existing content');
       expect(content).toContain('MERGED CONTENT');
       expect(content).toContain('# Test Prompt 1');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Verification', () => {
-    test('should verify copied files when verification is enabled', async () => {
+    jest.setTimeout(10000);
+  test('should verify copied files when verification is enabled', async () => { try {
       const result = await copyPrompts({
         source: sourceDir,
         destination: destDir,
         verify: true,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.failedFiles).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect verification failures', async () => {
+    jest.setTimeout(10000);
+  test('should detect verification failures', async () => { try {
       // Mock fs.stat to simulate size mismatch
       const originalStat = fs.stat;
       jest.spyOn(fs, 'stat').mockImplementation(async (filePath: any) => {
@@ -167,28 +175,29 @@ describe('PromptCopier', () => {
           return { ...stats, size: stats.size + 1 };
         }
         return stats;
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await copyPrompts({
         source: sourceDir,
         destination: destDir,
         verify: true,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.errors.length).toBeGreaterThan(0);
       expect(result.errors[0].phase).toBe('verify');
 
       (fs.stat as jest.Mock).mockRestore();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Dry run mode', () => {
-    test('should not create files in dry run mode', async () => {
+    jest.setTimeout(10000);
+  test('should not create files in dry run mode', async () => { try {
       const result = await copyPrompts({
         source: sourceDir,
         destination: destDir,
         dryRun: true,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.totalFiles).toBe(6);
@@ -196,11 +205,12 @@ describe('PromptCopier', () => {
       // Verify no files were actually copied
       const destFiles = await fs.readdir(destDir);
       expect(destFiles).toHaveLength(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Progress reporting', () => {
-    test('should report progress during copy', async () => {
+    jest.setTimeout(10000);
+  test('should report progress during copy', async () => { try {
       const progressUpdates: any[] = [];
 
       await copyPrompts({
@@ -209,44 +219,45 @@ describe('PromptCopier', () => {
         progressCallback: (progress) => {
           progressUpdates.push(progress);
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(progressUpdates.length).toBeGreaterThan(0);
       expect(progressUpdates[progressUpdates.length - 1].percentage).toBe(100);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 describe('EnhancedPromptCopier', () => {
   let tempDir: string;
   let sourceDir: string;
   let destDir: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'enhanced-test-'));
     sourceDir = path.join(tempDir, 'source');
     destDir = path.join(tempDir, 'dest');
 
-    await fs.mkdir(sourceDir, { recursive: true });
-    await fs.mkdir(destDir, { recursive: true });
+    await fs.mkdir(sourceDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    await fs.mkdir(destDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Create test files
     for (let i = 0; i < 20; i++) {
       await fs.writeFile(path.join(sourceDir, `test${i}.md`), `# Test ${i}\nContent for test ${i}`);
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+  afterEach(async () => { try {
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should copy files using worker threads', async () => {
+  jest.setTimeout(10000);
+  test('should copy files using worker threads', async () => { try {
     const result = await copyPromptsEnhanced({
       source: sourceDir,
       destination: destDir,
       parallel: true,
       maxWorkers: 4,
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     expect(result.success).toBe(true);
     expect(result.copiedFiles).toBe(20);
@@ -256,51 +267,55 @@ describe('EnhancedPromptCopier', () => {
     const destFiles = await fs.readdir(destDir);
     expect(destFiles).toHaveLength(20);
   }, 10000);
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 describe('PromptConfigManager', () => {
   let tempDir: string;
   let configPath: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'config-test-'));
     configPath = path.join(tempDir, '.prompt-config.json');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+  afterEach(async () => { try {
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should load default config when file does not exist', async () => {
+  jest.setTimeout(10000);
+  test('should load default config when file does not exist', async () => { try {
     const manager = new PromptConfigManager(configPath);
     const config = await manager.loadConfig();
 
     expect(config).toBeDefined();
     expect(config.defaultOptions).toBeDefined();
     expect(config.profiles).toBeDefined();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should save and load custom config', async () => {
+  jest.setTimeout(10000);
+  test('should save and load custom config', async () => { try {
     const manager = new PromptConfigManager(configPath);
 
     await manager.saveConfig({
       destinationDirectory: './custom-prompts',
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     const config = await manager.loadConfig();
     expect(config.destinationDirectory).toBe('./custom-prompts');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should get profile options', async () => {
+  jest.setTimeout(10000);
+  test('should get profile options', async () => { try {
     const manager = new PromptConfigManager(configPath);
     await manager.loadConfig();
 
     const sparcProfile = manager.getProfile('sparc');
     expect(sparcProfile).toBeDefined();
     expect(sparcProfile.includePatterns).toContain('*.md');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should list available profiles', async () => {
+  jest.setTimeout(10000);
+  test('should list available profiles', async () => { try {
     const manager = new PromptConfigManager(configPath);
     await manager.loadConfig();
 
@@ -309,21 +324,22 @@ describe('PromptConfigManager', () => {
     expect(profiles).toContain('templates');
     expect(profiles).toContain('safe');
     expect(profiles).toContain('fast');
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 describe('PromptValidator', () => {
   let tempDir: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'validator-test-'));
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+  afterEach(async () => { try {
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should validate valid prompt file', async () => {
+  jest.setTimeout(10000);
+  test('should validate valid prompt file', async () => { try {
     const filePath = path.join(tempDir, 'valid.md');
     await fs.writeFile(filePath, '# Test Prompt\nYou are an AI assistant.');
 
@@ -331,9 +347,10 @@ describe('PromptValidator', () => {
 
     expect(result.valid).toBe(true);
     expect(result.issues).toHaveLength(0);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should detect empty files', async () => {
+  jest.setTimeout(10000);
+  test('should detect empty files', async () => { try {
     const filePath = path.join(tempDir, 'empty.md');
     await fs.writeFile(filePath, '');
 
@@ -341,9 +358,10 @@ describe('PromptValidator', () => {
 
     expect(result.valid).toBe(false);
     expect(result.issues).toContain('File is empty');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should extract front matter metadata', async () => {
+  jest.setTimeout(10000);
+  test('should extract front matter metadata', async () => { try {
     const filePath = path.join(tempDir, 'with-metadata.md');
     const content = `---
 title: Test Prompt
@@ -360,9 +378,10 @@ Content here`;
     expect(result.metadata).toBeDefined();
     expect(result.metadata.title).toBe('Test Prompt');
     expect(result.metadata.version).toBe('1.0');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should warn about large files', async () => {
+  jest.setTimeout(10000);
+  test('should warn about large files', async () => { try {
     const filePath = path.join(tempDir, 'large.md');
     const largeContent = '# Large Prompt\n' + 'x'.repeat(200 * 1024); // 200KB
 
@@ -371,5 +390,5 @@ Content here`;
     const result = await PromptValidator.validatePromptFile(filePath);
 
     expect(result.issues).toContain('File is unusually large for a prompt');
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

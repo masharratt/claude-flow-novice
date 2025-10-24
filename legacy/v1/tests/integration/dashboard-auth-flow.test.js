@@ -24,7 +24,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
     let adminUser;
     let testTokens;
 
-    beforeAll(async () => {
+    beforeAll(async () => { try {
         // Initialize services
         authService = new EnhancedAuthService({
             jwtAlgorithm: 'RS256',
@@ -69,7 +69,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
         adminUser = adminResult.user;
     });
 
-    afterAll(async () => {
+    afterAll(async () => { try {
         if (dashboardServer) {
             dashboardServer.close();
         }
@@ -84,7 +84,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
         }
     });
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         // Authenticate user before each test
         const authResult = await authService.authenticateUser({
             username: 'dashboarduser',
@@ -94,7 +94,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
     });
 
     describe('End-to-End Authentication Flow', () => {
-        it('should complete full authentication flow from login to dashboard access', async () => {
+        it('should complete full authentication flow from login to dashboard access', async () => { try {
             // Step 1: User login
             const loginResult = await authService.authenticateUser({
                 username: 'dashboarduser',
@@ -152,7 +152,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             expect(sessionExistsAfterLogout).toBe(0);
         });
 
-        it('should handle MFA flow in dashboard authentication', async () => {
+        it('should handle MFA flow in dashboard authentication', async () => { try {
             // Step 1: Setup MFA for user
             const mfaSetup = await authService.setupMFA(testUser.id, 'totp');
 
@@ -200,7 +200,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             await authService.storeUser(user);
         });
 
-        it('should enforce role-based access control in dashboard', async () => {
+        it('should enforce role-based access control in dashboard', async () => { try {
             // User with 'user' role
             const userTokens = await authService.generateTokenPair(testUser);
             const userValidation = await authService.validateToken(userTokens.accessToken);
@@ -221,7 +221,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             expect(hasAdminAccess(adminValidation.user.roles)).toBe(true);
         });
 
-        it('should handle session timeout gracefully', async () => {
+        it('should handle session timeout gracefully', async () => { try {
             // Create short-lived session
             const authResult = await authService.authenticateUser({
                 username: 'dashboarduser',
@@ -243,7 +243,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
     });
 
     describe('Memory→ACL→Encryption Integration', () => {
-        it('should integrate memory management with ACL and encryption', async () => {
+        it('should integrate memory management with ACL and encryption', async () => { try {
             // Step 1: Authenticate user
             const authResult = await authService.authenticateUser({
                 username: 'dashboarduser',
@@ -291,7 +291,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             expect(unauthorizedAccess).toBe(false);
         });
 
-        it('should handle multi-level ACL permissions', async () => {
+        it('should handle multi-level ACL permissions', async () => { try {
             const aclLevels = [
                 { level: 'public', canRead: true, canWrite: false },
                 { level: 'team', canRead: true, canWrite: true },
@@ -324,7 +324,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             }
         });
 
-        it('should validate encryption integrity with ACL', async () => {
+        it('should validate encryption integrity with ACL', async () => { try {
             const data = { userId: testUser.id, secret: 'confidential' };
             const encrypted = await encryptionService.encrypt(JSON.stringify(data));
 
@@ -359,7 +359,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
     });
 
     describe('Multi-Instance Cache Invalidation', () => {
-        it('should invalidate cache across multiple instances', async () => {
+        it('should invalidate cache across multiple instances', async () => { try {
             // Simulate multiple dashboard instances
             const instances = ['instance-1', 'instance-2', 'instance-3'];
 
@@ -401,7 +401,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             }
         });
 
-        it('should handle cache invalidation under load', async () => {
+        it('should handle cache invalidation under load', async () => { try {
             const numInstances = 10;
             const numUsers = 50;
 
@@ -451,7 +451,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             await redisClient.del(...remainingKeys);
         });
 
-        it('should handle concurrent cache invalidation requests', async () => {
+        it('should handle concurrent cache invalidation requests', async () => { try {
             // Setup caches
             const instances = Array.from({ length: 20 }, (_, i) => `instance-${i}`);
 
@@ -460,7 +460,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             }
 
             // Concurrent invalidation from multiple sources
-            const invalidationPromises = Array.from({ length: 100 }, async () => {
+            const invalidationPromises = Array.from({ length: 100 }, async () => { try {
                 const keysToInvalidate = await redisClient.keys('cache:instance-*:data');
                 return Promise.all(keysToInvalidate.map(key => redisClient.del(key)));
             });
@@ -472,7 +472,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             expect(remainingKeys.length).toBe(0);
         });
 
-        it('should use pub/sub for real-time cache invalidation', async () => {
+        it('should use pub/sub for real-time cache invalidation', async () => { try {
             const subscriber = redisClient.duplicate();
             await subscriber.connect();
 
@@ -500,7 +500,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
     });
 
     describe('Performance Under Load', () => {
-        it('should handle 1000 concurrent authentication requests', async () => {
+        it('should handle 1000 concurrent authentication requests', async () => { try {
             const numRequests = 1000;
             const startTime = Date.now();
 
@@ -522,7 +522,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             console.log(`Authenticated ${successCount}/${numRequests} requests in ${duration}ms`);
         });
 
-        it('should handle 500 concurrent token validations', async () => {
+        it('should handle 500 concurrent token validations', async () => { try {
             const numValidations = 500;
             const startTime = Date.now();
 
@@ -541,7 +541,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             console.log(`Validated ${validCount} tokens in ${duration}ms`);
         });
 
-        it('should handle rapid session creation and destruction', async () => {
+        it('should handle rapid session creation and destruction', async () => { try {
             const numCycles = 100;
             const startTime = Date.now();
 
@@ -563,7 +563,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
     });
 
     describe('Error Handling and Recovery', () => {
-        it('should handle Redis connection failure gracefully', async () => {
+        it('should handle Redis connection failure gracefully', async () => { try {
             // Simulate Redis disconnection
             const originalClient = authService.redisClient;
             authService.redisClient = null;
@@ -580,14 +580,14 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             authService.redisClient = originalClient;
         });
 
-        it('should handle encryption service failure', async () => {
+        it('should handle encryption service failure', async () => { try {
             // Test with invalid encrypted data
             await expect(
                 encryptionService.decrypt('invalid-data', 'invalid-iv', 'invalid-tag')
             ).rejects.toThrow();
         });
 
-        it('should handle malformed session data', async () => {
+        it('should handle malformed session data', async () => { try {
             // Store malformed session data
             await redisClient.set('session:malformed', 'not-json-data');
 
@@ -597,7 +597,7 @@ describe('Dashboard Authentication Flow - Integration Tests', () => {
             expect(session).toBeFalsy();
         });
 
-        it('should recover from concurrent token refresh conflicts', async () => {
+        it('should recover from concurrent token refresh conflicts', async () => { try {
             const refreshPromises = Array.from({ length: 10 }, () =>
                 authService.refreshToken(testTokens.refreshToken)
             );

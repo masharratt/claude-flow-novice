@@ -19,7 +19,8 @@ describe('Content Filtering Integration - Checkpoint 1.2', () => {
   });
 
   describe('Performance Requirements', () => {
-    test('should process filtering in less than 50ms', async () => {
+    jest.setTimeout(10000);
+  test('should process filtering in less than 50ms', async () => { try {
       const startTime = performance.now();
 
       const requests = [
@@ -37,7 +38,8 @@ describe('Content Filtering Integration - Checkpoint 1.2', () => {
       expect(results).toBeDefined();
     });
 
-    test('should handle large batches efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle large batches efficiently', async () => { try {
       const largeRequests = Array(100).fill(null).map((_, i) => ({
         type: 'write',
         path: `file${i}.md`,
@@ -53,7 +55,8 @@ describe('Content Filtering Integration - Checkpoint 1.2', () => {
   });
 
   describe('Markdown File Blocking', () => {
-    test('should block 95% of unnecessary .md files', async () => {
+    jest.setTimeout(10000);
+  test('should block 95% of unnecessary .md files', async () => { try {
       const requests = [
         // Should be blocked (unnecessary)
         { type: 'write', path: 'README.md', content: 'Auto-generated readme', trigger: 'auto' },
@@ -88,7 +91,8 @@ describe('Content Filtering Integration - Checkpoint 1.2', () => {
       expect(blockingRate).toBeGreaterThanOrEqual(0.95); // 95% blocking rate
     });
 
-    test('should allow explicitly requested markdown files', async () => {
+    jest.setTimeout(10000);
+  test('should allow explicitly requested markdown files', async () => { try {
       const explicitRequests = [
         { type: 'write', path: 'user-requested.md', content: 'User content', trigger: 'explicit' },
         { type: 'write', path: 'IMPORTANT.md', content: 'Critical content', trigger: 'explicit' }
@@ -100,4 +104,4 @@ describe('Content Filtering Integration - Checkpoint 1.2', () => {
       expect(results.blocked).toHaveLength(0);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

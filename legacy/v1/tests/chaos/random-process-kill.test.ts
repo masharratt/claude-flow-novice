@@ -47,12 +47,12 @@ const TEST_CONFIG = {
 describe('Chaos: Random Process Kill', () => {
   let coordinators: CoordinatorInstance[] = [];
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Cleanup any existing test data
     await cleanupRedis();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Kill all coordinators
     killAllCoordinators(coordinators);
 
@@ -64,7 +64,7 @@ describe('Chaos: Random Process Kill', () => {
 
   it(
     'should recover from random coordinator kills over 10 minutes',
-    async () => {
+    async () => { try {
       const startTime = Date.now();
       const killEvents: { time: number; coordinatorId: string; pid: number }[] = [];
       const detectionEvents: { time: number; coordinatorId: string; detected: boolean }[] = [];
@@ -94,7 +94,7 @@ describe('Chaos: Random Process Kill', () => {
 
           // Verify dead coordinator detection asynchronously
           deadCoordinatorDetected(victim.id, TEST_CONFIG.DEAD_DETECTION_TIMEOUT)
-            .then((detected) => {
+            await (detected => {
               const detectionTime = Date.now();
               console.log(
                 `[${detectionTime - startTime}ms] Dead coordinator ${victim.id} ${detected ? 'DETECTED' : 'NOT DETECTED'}`
@@ -176,7 +176,7 @@ describe('Chaos: Random Process Kill', () => {
 
   it(
     'should maintain uptime with aggressive kill rate (every 10 seconds)',
-    async () => {
+    async () => { try {
       const AGGRESSIVE_DURATION = 3 * 60 * 1000; // 3 minutes
       const AGGRESSIVE_KILL_INTERVAL = 10 * 1000; // 10 seconds
       const startTime = Date.now();
@@ -216,7 +216,7 @@ describe('Chaos: Random Process Kill', () => {
 
   it(
     'should handle kill bursts (kill 3 coordinators simultaneously)',
-    async () => {
+    async () => { try {
       const BURST_DURATION = 5 * 60 * 1000; // 5 minutes
       const BURST_INTERVAL = 60 * 1000; // 1 minute
       const COORDINATORS_PER_BURST = 3;
@@ -258,7 +258,7 @@ describe('Chaos: Random Process Kill', () => {
 
   it(
     'should detect all killed coordinators within 2 minutes',
-    async () => {
+    async () => { try {
       const coordinatorId = 'chaos-kill-detection';
 
       // Spawn single coordinator

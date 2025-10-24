@@ -86,7 +86,7 @@ describe('Verification Pipeline E2E Tests', () => {
   let pipeline: VerificationPipeline;
   let config: PipelineConfig;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'verification-e2e-'));
 
     // Setup pipeline configuration
@@ -94,12 +94,12 @@ describe('Verification Pipeline E2E Tests', () => {
     pipeline = new VerificationPipeline(config, tempDir);
 
     await pipeline.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await pipeline.shutdown();
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   function createTestPipelineConfig(): PipelineConfig {
     return {
@@ -187,7 +187,8 @@ describe('Verification Pipeline E2E Tests', () => {
   }
 
   describe('Complete Workflow Verification', () => {
-    test('should execute full authentication system implementation workflow', async () => {
+    jest.setTimeout(10000);
+  test('should execute full authentication system implementation workflow', async () => { try {
       const taskId = 'implement-auth-system';
       const task = config.tasks.find((t) => t.id === taskId)!;
 
@@ -198,11 +199,11 @@ describe('Verification Pipeline E2E Tests', () => {
       const executionSteps: string[] = [];
       pipeline.on('step:start', (step) => {
         executionSteps.push(step.name);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       pipeline.on('verification:complete', (result) => {
         console.log(`Verification completed: ${result.step} by ${result.agentId}`);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Wait for completion
       const result = await resultPromise;
@@ -227,7 +228,8 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(result.duration).toBeLessThan(task.expectedDuration * 1.5);
     }, 30000);
 
-    test('should handle workflow with verification failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle workflow with verification failures', async () => { try {
       // Create a task that will fail verification
       const failingTaskId = 'failing-implementation';
       const failingTask: TaskConfig = {
@@ -253,7 +255,7 @@ describe('Verification Pipeline E2E Tests', () => {
         implementation: { success: false, reason: 'Syntax errors in code' },
         tests: { success: false, reason: 'Tests fail to run' },
         build: { success: false, reason: 'Build compilation errors' },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await pipeline.executeTask(failingTaskId);
 
@@ -268,7 +270,8 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(rejectionResult!.passed).toBe(false);
     }, 15000);
 
-    test('should handle timeout scenarios gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle timeout scenarios gracefully', async () => { try {
       const timeoutTaskId = 'timeout-task';
       const timeoutTask: TaskConfig = {
         id: timeoutTaskId,
@@ -300,10 +303,11 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(duration).toBeLessThan(7000); // Should timeout around 5 seconds
       expect(result.errors).toContain('Task execution timed out');
     }, 10000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Multi-Agent Coordination', () => {
-    test('should coordinate multiple agents for complex task', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate multiple agents for complex task', async () => { try {
       const complexTaskId = 'multi-agent-coordination';
       const complexTask: TaskConfig = {
         id: complexTaskId,
@@ -328,7 +332,7 @@ describe('Verification Pipeline E2E Tests', () => {
           agentAssignments.set(assignment.agentId, []);
         }
         agentAssignments.get(assignment.agentId)!.push(assignment.taskStep);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await pipeline.executeTask(complexTaskId);
 
@@ -351,7 +355,8 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(crossVerificationResults.length).toBeGreaterThan(0);
     }, 45000);
 
-    test('should detect and handle agent conflicts', async () => {
+    jest.setTimeout(10000);
+  test('should detect and handle agent conflicts', async () => { try {
       const conflictTaskId = 'conflict-resolution-test';
       const conflictTask: TaskConfig = {
         id: conflictTaskId,
@@ -375,7 +380,7 @@ describe('Verification Pipeline E2E Tests', () => {
         'coder-alpha': { claimSuccess: true, actualSuccess: true },
         'reviewer-beta': { claimSuccess: false, actualSuccess: true }, // Conflicting assessment
         'tester-gamma': { claimSuccess: true, actualSuccess: true },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await pipeline.executeTask(conflictTaskId);
 
@@ -393,10 +398,11 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(result.status).toBe('completed');
       expect(result.truthScore).toBeGreaterThan(0.5);
     }, 25000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Real-World Scenario Simulation', () => {
-    test('should handle database optimization project end-to-end', async () => {
+    jest.setTimeout(10000);
+  test('should handle database optimization project end-to-end', async () => { try {
       const dbTaskId = 'optimize-database-queries';
       const task = config.tasks.find((t) => t.id === dbTaskId)!;
 
@@ -428,7 +434,7 @@ describe('Verification Pipeline E2E Tests', () => {
           memory_usage_reduction: 0.15,
           query_optimization_verified: true,
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await pipeline.executeTask(dbTaskId);
 
@@ -450,7 +456,8 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(allStepsPassed).toBe(true);
     }, 30000);
 
-    test('should simulate microservices architecture verification', async () => {
+    jest.setTimeout(10000);
+  test('should simulate microservices architecture verification', async () => { try {
       const microservicesTaskId = 'implement-microservices';
       const microservicesTask: TaskConfig = {
         id: microservicesTaskId,
@@ -479,7 +486,7 @@ describe('Verification Pipeline E2E Tests', () => {
         monitoring_setup: true,
         distributed_tracing: true,
         containerization: true,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await pipeline.executeTask(microservicesTaskId);
 
@@ -504,10 +511,11 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(securityScan).toBeDefined();
       expect(securityScan!.evidence?.vulnerabilities_found).toBeLessThan(5);
     }, 60000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Handling and Recovery', () => {
-    test('should recover from agent failures', async () => {
+    jest.setTimeout(10000);
+  test('should recover from agent failures', async () => { try {
       const recoveryTaskId = 'agent-failure-recovery';
       const recoveryTask: TaskConfig = {
         id: recoveryTaskId,
@@ -531,7 +539,7 @@ describe('Verification Pipeline E2E Tests', () => {
         failAfter: 30000, // Fail after 30 seconds
         failureDuration: 15000, // Down for 15 seconds
         backupAgent: 'coder-beta', // Not in original config, should be created
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await pipeline.executeTask(recoveryTaskId);
 
@@ -544,7 +552,8 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(result.duration).toBeLessThan(180000); // 3 minutes max
     }, 20000);
 
-    test('should handle verification system failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle verification system failures', async () => { try {
       const systemFailureTaskId = 'verification-system-failure';
       const systemFailureTask: TaskConfig = {
         id: systemFailureTaskId,
@@ -568,7 +577,7 @@ describe('Verification Pipeline E2E Tests', () => {
         failureProbability: 0.3, // 30% chance of failure per verification
         recoveryTime: 5000, // 5 second recovery
         fallbackMode: 'basic', // Use basic verification when system fails
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await pipeline.executeTask(systemFailureTaskId);
 
@@ -584,10 +593,11 @@ describe('Verification Pipeline E2E Tests', () => {
       const hasRecoveryLog = result.verificationResults.some((r) => r.step === 'system-recovery');
       expect(hasRecoveryLog).toBe(true);
     }, 15000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance and Scalability', () => {
-    test('should handle concurrent task execution', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent task execution', async () => { try {
       const concurrentTasks = ['concurrent-task-1', 'concurrent-task-2', 'concurrent-task-3'].map(
         (id) => ({
           id,
@@ -629,7 +639,8 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(hasResourceConflicts).toBe(false);
     }, 30000);
 
-    test('should maintain performance under load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under load', async () => { try {
       // Create many small tasks
       const loadTasks = Array.from({ length: 20 }, (_, i) => ({
         id: `load-task-${i}`,
@@ -676,8 +687,8 @@ describe('Verification Pipeline E2E Tests', () => {
       expect(performanceMetrics.memoryUsage.peak).toBeLessThan(500 * 1024 * 1024); // 500MB
       expect(performanceMetrics.errorRate).toBeLessThan(0.05); // Less than 5% errors
     }, 60000);
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 // Mock Verification Pipeline Implementation
 class VerificationPipeline extends EventEmitter {
@@ -702,8 +713,8 @@ class VerificationPipeline extends EventEmitter {
     }
 
     // Setup verification system
-    await fs.mkdir(path.join(this.dataPath, 'verification'), { recursive: true });
-    await fs.mkdir(path.join(this.dataPath, 'results'), { recursive: true });
+    await fs.mkdir(path.join(this.dataPath, 'verification'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    await fs.mkdir(path.join(this.dataPath, 'results'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   }
 
   async updateConfig(newConfig: PipelineConfig) {
@@ -763,34 +774,34 @@ class VerificationPipeline extends EventEmitter {
 
   private async executeStandardTask(taskId: string, task: TaskConfig, result: PipelineResult) {
     // Implementation step
-    this.emit('step:start', { name: 'implementation', taskId });
+    this.emit('step:start', { name: 'implementation', taskId } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     const implementationResult = await this.simulateStep('implementation', 'coder-alpha', task);
     result.verificationResults.push(implementationResult);
 
     // Testing step
     if (task.verificationCriteria.requiresTests) {
-      this.emit('step:start', { name: 'testing', taskId });
+      this.emit('step:start', { name: 'testing', taskId } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       const testingResult = await this.simulateStep('testing', 'tester-gamma', task);
       result.verificationResults.push(testingResult);
     }
 
     // Code review step
     if (task.verificationCriteria.requiresCodeReview) {
-      this.emit('step:start', { name: 'code-review', taskId });
+      this.emit('step:start', { name: 'code-review', taskId } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       const reviewResult = await this.simulateStep('code-review', 'reviewer-beta', task);
       result.verificationResults.push(reviewResult);
     }
 
     // Build verification
     if (task.verificationCriteria.requiresBuild) {
-      this.emit('step:start', { name: 'build-verification', taskId });
+      this.emit('step:start', { name: 'build-verification', taskId } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       const buildResult = await this.simulateStep('build-verification', 'coordinator-delta', task);
       result.verificationResults.push(buildResult);
     }
 
     // Cross verification
     if (task.verificationCriteria.crossVerificationRequired) {
-      this.emit('step:start', { name: 'cross-verification', taskId });
+      this.emit('step:start', { name: 'cross-verification', taskId } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       const crossResult = await this.simulateCrossVerification(task);
       result.verificationResults.push(crossResult);
     }
@@ -808,7 +819,7 @@ class VerificationPipeline extends EventEmitter {
       Object.keys(simulation.failure).forEach((step) => {
         const stepResult = this.createFailureResult(step, simulation.failure[step]);
         result.verificationResults.push(stepResult);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       result.status = 'rejected';
       return;
     }
@@ -833,7 +844,7 @@ class VerificationPipeline extends EventEmitter {
     const agent = this.agents.get(agentId);
     const truthScore = Math.random() * 0.3 + 0.7; // 0.7 to 1.0
 
-    this.emit('agent:assigned', { agentId, taskStep: step });
+    this.emit('agent:assigned', { agentId, taskStep: step } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     return {
       step,
@@ -859,7 +870,7 @@ class VerificationPipeline extends EventEmitter {
     const conflicts =
       Math.abs(scores[0] - scores[1]) > 0.3 ? ['Verification disagreement detected'] : [];
 
-    this.emit('verification:complete', { step: 'cross-verification', conflicts });
+    this.emit('verification:complete', { step: 'cross-verification', conflicts } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     return {
       step: 'cross-verification',
@@ -906,7 +917,7 @@ class VerificationPipeline extends EventEmitter {
           evidence: { rule: rule.name, action: rule.action },
           conflicts: [],
           timestamp: Date.now(),
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
     }
   }

@@ -19,7 +19,7 @@ let FeedbackInjectionSystem, CFNCircuitBreaker, CFNCircuitBreakerManager, CFNLoo
 process.env.CLAUDE_FLOW_ENV = 'test';
 
 // Load modules dynamically
-beforeAll(async () => {
+beforeAll(async () => { try {
   const feedbackModule = await import('../../src/cfn-loop/feedback-injection-system.js');
   FeedbackInjectionSystem = feedbackModule.FeedbackInjectionSystem;
 
@@ -38,7 +38,7 @@ beforeAll(async () => {
 
 describe('CVE-2025-001: Iteration Limit Validation', () => {
   describe('IterationTracker - Loop 2 Limits', () => {
-    it('should reject negative maxLoop2 values', async () => {
+    it('should reject negative maxLoop2 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -49,7 +49,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should reject zero maxLoop2 values', async () => {
+    it('should reject zero maxLoop2 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -60,7 +60,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should reject maxLoop2 > 100', async () => {
+    it('should reject maxLoop2 > 100', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -71,7 +71,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should reject NaN maxLoop2 values', async () => {
+    it('should reject NaN maxLoop2 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -82,7 +82,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should reject Infinity maxLoop2 values', async () => {
+    it('should reject Infinity maxLoop2 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -93,7 +93,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should accept valid maxLoop2 values (1-100)', async () => {
+    it('should accept valid maxLoop2 values (1-100)', async () => { try {
       const validValues = [1, 5, 10, 50, 100];
 
       for (const value of validValues) {
@@ -108,7 +108,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }
     });
 
-    it('should reject float maxLoop2 values', async () => {
+    it('should reject float maxLoop2 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -121,7 +121,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
   });
 
   describe('IterationTracker - Loop 3 Limits', () => {
-    it('should reject negative maxLoop3 values', async () => {
+    it('should reject negative maxLoop3 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -132,7 +132,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should reject zero maxLoop3 values', async () => {
+    it('should reject zero maxLoop3 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -143,7 +143,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should reject maxLoop3 > 100', async () => {
+    it('should reject maxLoop3 > 100', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -154,7 +154,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should reject NaN maxLoop3 values', async () => {
+    it('should reject NaN maxLoop3 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -165,7 +165,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should reject Infinity maxLoop3 values', async () => {
+    it('should reject Infinity maxLoop3 values', async () => { try {
       expect(() => {
         new IterationTracker({
           phaseId: 'test',
@@ -176,7 +176,7 @@ describe('CVE-2025-001: Iteration Limit Validation', () => {
       }).toThrow(/Must be.*integer between 1 and 100/i);
     });
 
-    it('should accept valid maxLoop3 values (1-100)', async () => {
+    it('should accept valid maxLoop3 values (1-100)', async () => { try {
       const validValues = [1, 10, 20, 75, 100];
 
       for (const value of validValues) {
@@ -422,7 +422,7 @@ describe('CVE-2025-002: Prompt Injection Prevention', () => {
   });
 
   describe('Feedback Injection Integration', () => {
-    it('should sanitize all feedback fields during capture', async () => {
+    it('should sanitize all feedback fields during capture', async () => { try {
       const maliciousFeedback = await feedbackSystem.captureFeedback({
         phaseId: 'test',
         iteration: 1,
@@ -528,7 +528,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
   });
 
   describe('LRU Eviction - Feedback History', () => {
-    it('should limit feedback history to 100 entries per phase', async () => {
+    it('should limit feedback history to 100 entries per phase', async () => { try {
       const phaseId = 'test-phase-lru';
 
       // Add 150 feedback entries
@@ -547,7 +547,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
       expect(history.length).toBeLessThanOrEqual(100);
     });
 
-    it('should keep most recent entries after eviction', async () => {
+    it('should keep most recent entries after eviction', async () => { try {
       const phaseId = 'test-phase-recent';
 
       // Add entries with unique iteration numbers
@@ -568,7 +568,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
       expect(history[history.length - 1].iteration).toBe(119);
     });
 
-    it('should handle multiple phases independently', async () => {
+    it('should handle multiple phases independently', async () => { try {
       const phase1 = 'phase-1';
       const phase2 = 'phase-2';
 
@@ -603,7 +603,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
   });
 
   describe('Issue Registry Size Limits', () => {
-    it('should limit issue registry to 100 entries per phase', async () => {
+    it('should limit issue registry to 100 entries per phase', async () => { try {
       const phaseId = 'test-registry-limit';
 
       // Create 150 unique issues
@@ -631,7 +631,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
       expect(registry.size).toBeLessThanOrEqual(100);
     });
 
-    it('should evict oldest issues when limit reached', async () => {
+    it('should evict oldest issues when limit reached', async () => { try {
       const phaseId = 'test-registry-eviction';
       const issues = [];
 
@@ -705,7 +705,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
   });
 
   describe('Manual Cleanup', () => {
-    it('should cleanup oversized feedback history', async () => {
+    it('should cleanup oversized feedback history', async () => { try {
       const phaseId = 'cleanup-test';
 
       // Manually add 150 entries to history
@@ -752,7 +752,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
   });
 
   describe('Memory Bounded Under Load', () => {
-    it('should maintain bounded memory with sustained load', async () => {
+    it('should maintain bounded memory with sustained load', async () => { try {
       const phases = ['phase-1', 'phase-2', 'phase-3'];
 
       // Simulate sustained load: 500 total operations
@@ -790,7 +790,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
   });
 
   describe('clearPhaseHistory', () => {
-    it('should clear both history and registry for a phase', async () => {
+    it('should clear both history and registry for a phase', async () => { try {
       const phaseId = 'clear-test';
 
       // Add some data
@@ -814,7 +814,7 @@ describe('CVE-2025-003: Memory Leak Prevention', () => {
   });
 
   describe('shutdown', () => {
-    it('should clear all memory structures', async () => {
+    it('should clear all memory structures', async () => { try {
       // Add data to multiple phases
       for (let i = 0; i < 5; i++) {
         await feedbackSystem.captureFeedback({
@@ -856,8 +856,8 @@ describe('Resource Exhaustion Protection', () => {
       breaker.reset();
     });
 
-    it('should open circuit after failure threshold', async () => {
-      const failingOperation = async () => {
+    it('should open circuit after failure threshold', async () => { try {
+      const failingOperation = async () => { try {
         throw new Error('Operation failed');
       };
 
@@ -875,8 +875,8 @@ describe('Resource Exhaustion Protection', () => {
       expect(state.failureCount).toBe(3);
     });
 
-    it('should reject requests when circuit is open', async () => {
-      const failingOperation = async () => {
+    it('should reject requests when circuit is open', async () => { try {
+      const failingOperation = async () => { try {
         throw new Error('Fail');
       };
 
@@ -896,8 +896,8 @@ describe('Resource Exhaustion Protection', () => {
       expect(state.rejectedRequests).toBe(1);
     });
 
-    it('should track timeout count separately', async () => {
-      const slowOperation = async () => {
+    it('should track timeout count separately', async () => { try {
+      const slowOperation = async () => { try {
         await new Promise(resolve => setTimeout(resolve, 2000));
         return 'done';
       };
@@ -912,8 +912,8 @@ describe('Resource Exhaustion Protection', () => {
       expect(state.timeoutCount).toBe(1);
     });
 
-    it('should transition to half-open after cooldown', async () => {
-      const failingOp = async () => { throw new Error('Fail'); };
+    it('should transition to half-open after cooldown', async () => { try {
+      const failingOp = async () => { try { throw new Error('Fail'); };
 
       // Open circuit
       for (let i = 0; i < 3; i++) {
@@ -942,7 +942,7 @@ describe('Resource Exhaustion Protection', () => {
       manager.shutdown();
     });
 
-    it('should create separate breakers per operation', async () => {
+    it('should create separate breakers per operation', async () => { try {
       await manager.execute('op1', async () => 'result1');
       await manager.execute('op2', async () => 'result2');
 
@@ -950,8 +950,8 @@ describe('Resource Exhaustion Protection', () => {
       expect(stats.totalBreakers).toBe(2);
     });
 
-    it('should isolate failures between breakers', async () => {
-      const failOp = async () => { throw new Error('Fail'); };
+    it('should isolate failures between breakers', async () => { try {
+      const failOp = async () => { try { throw new Error('Fail'); };
 
       // Fail op1 3 times
       for (let i = 0; i < 3; i++) {
@@ -970,12 +970,12 @@ describe('Resource Exhaustion Protection', () => {
       expect(state2.state).toBe('CLOSED');
     });
 
-    it('should track aggregate statistics', async () => {
+    it('should track aggregate statistics', async () => { try {
       await manager.execute('op1', async () => 'success');
       await manager.execute('op2', async () => 'success');
 
       try {
-        await manager.execute('op3', async () => { throw new Error('Fail'); });
+        await manager.execute('op3', async () => { try { throw new Error('Fail'); });
       } catch (e) {}
 
       const stats = manager.getStatistics();
@@ -984,9 +984,9 @@ describe('Resource Exhaustion Protection', () => {
       expect(stats.closedCircuits).toBeGreaterThanOrEqual(2);
     });
 
-    it('should reset all breakers', async () => {
+    it('should reset all breakers', async () => { try {
       // Create and fail multiple breakers
-      const failOp = async () => { throw new Error('Fail'); };
+      const failOp = async () => { try { throw new Error('Fail'); };
 
       for (let i = 0; i < 3; i++) {
         try {
@@ -1008,7 +1008,7 @@ describe('Resource Exhaustion Protection', () => {
   });
 
   describe('Timeout Enforcement', () => {
-    it('should enforce default 30-minute timeout', async () => {
+    it('should enforce default 30-minute timeout', async () => { try {
       const breaker = new CFNCircuitBreaker('timeout-test', {
         timeoutMs: 30 * 60 * 1000
       });
@@ -1019,10 +1019,10 @@ describe('Resource Exhaustion Protection', () => {
       breaker.reset();
     });
 
-    it('should enforce custom timeout per operation', async () => {
+    it('should enforce custom timeout per operation', async () => { try {
       const breaker = new CFNCircuitBreaker('custom-timeout');
 
-      const slowOp = async () => {
+      const slowOp = async () => { try {
         await new Promise(resolve => setTimeout(resolve, 1000));
         return 'done';
       };
@@ -1034,7 +1034,7 @@ describe('Resource Exhaustion Protection', () => {
       breaker.reset();
     });
 
-    it('should include timeout metadata in error', async () => {
+    it('should include timeout metadata in error', async () => { try {
       const breaker = new CFNCircuitBreaker('timeout-metadata');
 
       try {
@@ -1069,7 +1069,7 @@ describe('Resource Exhaustion Protection', () => {
 // ===== INTEGRATION TESTS =====
 
 describe('Security Integration Tests', () => {
-  it('should handle all CVE scenarios in single workflow', async () => {
+  it('should handle all CVE scenarios in single workflow', async () => { try {
     // CVE-2025-001: Valid iteration limits
     const orchestrator = new CFNLoopOrchestrator({
       phaseId: 'integration-test',
@@ -1120,7 +1120,7 @@ describe('Security Integration Tests', () => {
     await orchestrator.shutdown();
   });
 
-  it('should maintain security under concurrent operations', async () => {
+  it('should maintain security under concurrent operations', async () => { try {
     const feedbackSystem = new FeedbackInjectionSystem({ maxIterations: 10 });
     const manager = new CFNCircuitBreakerManager();
 

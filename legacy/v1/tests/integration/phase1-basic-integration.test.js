@@ -120,7 +120,7 @@ describe('Phase 1 Systems Integration (Basic)', () => {
       };
     });
 
-    it('should coordinate 10 agents with message passing', async () => {
+    it('should coordinate 10 agents with message passing', async () => { try {
       const testAgents = Array.from({ length: 10 }, (_, i) => ({
         id: `agent-${i + 1}`,
         role: i < 3 ? 'coordinator' : 'worker',
@@ -153,7 +153,7 @@ describe('Phase 1 Systems Integration (Basic)', () => {
       expect(messageBus.messages.length).toBe(10);
     });
 
-    it('should handle message bursts', async () => {
+    it('should handle message bursts', async () => { try {
       const agent = { id: 'agent-1', role: 'coordinator' };
       const burstSize = 50;
 
@@ -213,7 +213,7 @@ describe('Phase 1 Systems Integration (Basic)', () => {
           eventBus.emit('health:monitor:stopped', { timestamp: Date.now() });
         }),
 
-        performHealthCheck: createMockFn().mockImplementation(async () => {
+        performHealthCheck: createMockFn().mockImplementation(async () => { try {
           const systemHealth = {
             status: 'healthy',
             components: {
@@ -253,7 +253,7 @@ describe('Phase 1 Systems Integration (Basic)', () => {
       expect(stopCallIndex).toBeGreaterThan(-1);
     });
 
-    it('should perform health checks', async () => {
+    it('should perform health checks', async () => { try {
       const result = await healthCheck.performHealthCheck();
 
       expect(result).toBeDefined();
@@ -265,7 +265,7 @@ describe('Phase 1 Systems Integration (Basic)', () => {
       expect(completedCallIndex).toBeGreaterThan(-1);
     });
 
-    it('should detect health failures', async () => {
+    it('should detect health failures', async () => { try {
       let alertEmitted = false;
       eventBus.on.mockImplementation((event, handler) => {
         if (event === 'health:alert') {
@@ -425,13 +425,13 @@ describe('Phase 1 Systems Integration (Basic)', () => {
   });
 
   describe('Graceful Shutdown Integration', () => {
-    it('should cleanup message bus on shutdown', async () => {
+    it('should cleanup message bus on shutdown', async () => { try {
       const messageBus = {
         isShutdown: false,
         queues: new Map(),
         channels: new Map(),
 
-        shutdown: createMockFn().mockImplementation(async () => {
+        shutdown: createMockFn().mockImplementation(async () => { try {
           messageBus.isShutdown = true;
           // Simulate message persistence
           await Promise.resolve();
@@ -495,7 +495,7 @@ describe('Phase 1 Systems Integration (Basic)', () => {
   });
 
   describe('Performance Validation', () => {
-    it('should maintain acceptable latency for message operations', async () => {
+    it('should maintain acceptable latency for message operations', async () => { try {
       const latencies = [];
 
       for (let i = 0; i < 100; i++) {
@@ -516,7 +516,7 @@ describe('Phase 1 Systems Integration (Basic)', () => {
       expect(maxLatency).toBeLessThan(50); // Max < 50ms
     });
 
-    it('should handle 100 concurrent operations', async () => {
+    it('should handle 100 concurrent operations', async () => { try {
       const operations = Array.from({ length: 100 }, (_, i) =>
         Promise.resolve({ id: i, result: 'success' })
       );

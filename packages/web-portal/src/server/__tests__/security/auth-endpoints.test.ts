@@ -34,18 +34,18 @@ describe('Authentication Endpoints (MED-002)', () => {
     app.use(errorHandler);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await blacklistService.clearAll();
     await blacklistService.close();
     delete process.env.JWT_SECRET;
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     await blacklistService.clearAll();
   });
 
   describe('POST /api/auth/logout', () => {
-    it('should successfully logout and blacklist token', async () => {
+    it('should successfully logout and blacklist token', async () => { try {
       const tokenId = 'test-token-logout-1';
       const token = jwt.sign(
         {
@@ -71,7 +71,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(isBlacklisted).toBe(true);
     });
 
-    it('should fail when Authorization header is missing', async () => {
+    it('should fail when Authorization header is missing', async () => { try {
       const response = await request(app)
         .post('/api/auth/logout');
 
@@ -79,7 +79,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(response.body.error.code).toBe('UNAUTHORIZED');
     });
 
-    it('should fail when token has no jti claim', async () => {
+    it('should fail when token has no jti claim', async () => { try {
       const token = jwt.sign(
         {
           // Missing jti
@@ -98,7 +98,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(response.body.error.code).toBe('INVALID_TOKEN');
     });
 
-    it('should fail when token is malformed', async () => {
+    it('should fail when token is malformed', async () => { try {
       const response = await request(app)
         .post('/api/auth/logout')
         .set('Authorization', 'Bearer invalid-token');
@@ -107,7 +107,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(response.body.error.code).toBe('INVALID_TOKEN');
     });
 
-    it('should enforce rate limiting', async () => {
+    it('should enforce rate limiting', async () => { try {
       const token = jwt.sign(
         {
           jti: 'rate-limit-test',
@@ -134,7 +134,7 @@ describe('Authentication Endpoints (MED-002)', () => {
   });
 
   describe('POST /api/auth/refresh', () => {
-    it('should successfully refresh token and blacklist old token', async () => {
+    it('should successfully refresh token and blacklist old token', async () => { try {
       const oldTokenId = 'refresh-token-old';
       const refreshToken = jwt.sign(
         {
@@ -168,7 +168,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(newRefreshPayload.jti).toBeDefined();
     });
 
-    it('should fail when refreshToken is missing', async () => {
+    it('should fail when refreshToken is missing', async () => { try {
       const response = await request(app)
         .post('/api/auth/refresh')
         .send({});
@@ -177,7 +177,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(response.body.error.code).toBe('MISSING_REFRESH_TOKEN');
     });
 
-    it('should fail when refreshToken is invalid', async () => {
+    it('should fail when refreshToken is invalid', async () => { try {
       const response = await request(app)
         .post('/api/auth/refresh')
         .send({ refreshToken: 'invalid-token' });
@@ -186,7 +186,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(response.body.error.code).toBe('INVALID_REFRESH_TOKEN');
     });
 
-    it('should fail when refreshToken is expired', async () => {
+    it('should fail when refreshToken is expired', async () => { try {
       const expiredToken = jwt.sign(
         {
           jti: 'expired-refresh',
@@ -205,7 +205,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(response.body.error.code).toBe('INVALID_REFRESH_TOKEN');
     });
 
-    it('should fail when refreshToken is blacklisted', async () => {
+    it('should fail when refreshToken is blacklisted', async () => { try {
       const tokenId = 'blacklisted-refresh';
       const refreshToken = jwt.sign(
         {
@@ -229,7 +229,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(response.body.error.code).toBe('TOKEN_REVOKED');
     });
 
-    it('should preserve user information in new tokens', async () => {
+    it('should preserve user information in new tokens', async () => { try {
       const refreshToken = jwt.sign(
         {
           jti: 'preserve-user-info',
@@ -256,7 +256,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(newRefreshPayload.role).toBe('admin');
     });
 
-    it('should enforce rate limiting', async () => {
+    it('should enforce rate limiting', async () => { try {
       const refreshToken = jwt.sign(
         {
           jti: 'rate-limit-refresh',
@@ -283,7 +283,7 @@ describe('Authentication Endpoints (MED-002)', () => {
   });
 
   describe('Token Lifecycle', () => {
-    it('should complete full token lifecycle: login → use → refresh → logout', async () => {
+    it('should complete full token lifecycle: login → use → refresh → logout', async () => { try {
       // 1. Simulate login (generate initial tokens)
       const initialAccessTokenId = 'lifecycle-access-1';
       const initialRefreshTokenId = 'lifecycle-refresh-1';
@@ -330,7 +330,7 @@ describe('Authentication Endpoints (MED-002)', () => {
   });
 
   describe('Security Audit Logging', () => {
-    it('should log logout events for audit trail', async () => {
+    it('should log logout events for audit trail', async () => { try {
       const token = jwt.sign(
         {
           jti: 'audit-logout',
@@ -360,7 +360,7 @@ describe('Authentication Endpoints (MED-002)', () => {
       expect(auditLog).toBeDefined();
     });
 
-    it('should log token refresh events for audit trail', async () => {
+    it('should log token refresh events for audit trail', async () => { try {
       const refreshToken = jwt.sign(
         {
           jti: 'audit-refresh',

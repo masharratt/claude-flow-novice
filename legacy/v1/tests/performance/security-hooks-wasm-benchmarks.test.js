@@ -35,7 +35,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
   let benchmarkResults;
   let testFilePaths = [];
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     benchmarkResults = {
       safetyValidator: {
         target: { speedup: '3-5x', realistic: true },
@@ -57,7 +57,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
     console.log('📊 Using realistic performance targets (3-8x speedup range)');
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup test files
     for (const filePath of testFilePaths) {
       try {
@@ -122,7 +122,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
   }
 
   describe('Hook 1: safety-validator.js - 3-5x Speedup Target (ACTUAL RUNTIME)', () => {
-    it('should measure ACTUAL WASM vs JavaScript performance on 1000-line file', async () => {
+    it('should measure ACTUAL WASM vs JavaScript performance on 1000-line file', async () => { try {
       const testFile = await generateVulnerableFile(1000);
       const iterations = 10;
 
@@ -201,7 +201,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
       expect(speedup).toBeGreaterThanOrEqual(3);
     }, 60000);
 
-    it('should validate WASM provides measurable performance improvement', async () => {
+    it('should validate WASM provides measurable performance improvement', async () => { try {
       const testFile = await generateVulnerableFile(500);
 
       const validatorWasm = new SafetyValidator({ wasmEnabled: true });
@@ -230,7 +230,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
       expect(improvement).toBeGreaterThan(1.0);
     }, 30000);
 
-    it('should scale with file size', async () => {
+    it('should scale with file size', async () => { try {
       const fileSizes = [100, 1000, 5000, 10000];
       const speedups = [];
 
@@ -278,7 +278,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
       expect(avgLarge).toBeGreaterThanOrEqual(avgSmall * 0.8); // Allow some variance
     }, 120000);
 
-    it('should initialize WASM successfully', async () => {
+    it('should initialize WASM successfully', async () => { try {
       const validator = new SafetyValidator({ wasmEnabled: true });
 
       // Wait for WASM to initialize
@@ -293,7 +293,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
   });
 
   describe('Hook 2: pre-tool-validation.js - 4-6x Speedup Target (ACTUAL RUNTIME)', () => {
-    it('should measure ACTUAL WASM vs JavaScript performance on tool validations', async () => {
+    it('should measure ACTUAL WASM vs JavaScript performance on tool validations', async () => { try {
       const iterations = 50;
 
       const validatorWasm = new EnhancedPreToolValidator({ wasmEnabled: true });
@@ -378,7 +378,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
   });
 
   describe('Hook 3: pre-edit-security.js - 5-8x Speedup Target (ACTUAL RUNTIME)', () => {
-    it('should measure ACTUAL WASM vs JavaScript performance on file edits', async () => {
+    it('should measure ACTUAL WASM vs JavaScript performance on file edits', async () => { try {
       const testFile = await generateVulnerableFile(1000);
       const iterations = 50;
 
@@ -463,7 +463,7 @@ describe('Security Hooks WASM Benchmarks - ACTUAL RUNTIME VALIDATION', () => {
   });
 
   describe('Performance Report Generation', () => {
-    it('should generate comprehensive performance report with actual measurements', async () => {
+    it('should generate comprehensive performance report with actual measurements', async () => { try {
       // Calculate overall metrics
       const safetySpeedup = parseFloat(benchmarkResults.safetyValidator.actual.speedup) || 0;
       const preToolSpeedup = parseFloat(benchmarkResults.preToolValidation.actual.speedup) || 0;

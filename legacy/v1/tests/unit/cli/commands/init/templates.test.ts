@@ -206,4 +206,4 @@ describe("Template Generation Tests", () => {
       expect(content).toContain("memory export");
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

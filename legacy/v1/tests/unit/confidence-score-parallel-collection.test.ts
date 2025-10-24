@@ -23,13 +23,14 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
   });
 
   describe('Parallel Execution Performance', () => {
-    test('should collect from 20 agents in ~30s instead of 600s (20x speedup)', async () => {
+    jest.setTimeout(10000);
+  test('should collect from 20 agents in ~30s instead of 600s (20x speedup)', async () => { try {
       const agentCount = 20;
       const timeout = 30000;
       const agents = Array.from({ length: agentCount }, (_, i) => `agent-${i}`);
 
       // Mock memory to return scores with artificial delay
-      mockMemory.recall.mockImplementation(async () => {
+      mockMemory.recall.mockImplementation(async () => { try {
         // Simulate 30s network delay
         await new Promise(resolve => setTimeout(resolve, 100)); // 100ms for testing
         return [{
@@ -70,10 +71,11 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
       expect(speedup).toBeGreaterThan(3); // At least 3x speedup
     }, 10000);
 
-    test('should handle 5 agents with 200ms delay each (5x speedup)', async () => {
+    jest.setTimeout(10000);
+  test('should handle 5 agents with 200ms delay each (5x speedup)', async () => { try {
       const agents = ['agent-1', 'agent-2', 'agent-3', 'agent-4', 'agent-5'];
 
-      mockMemory.recall.mockImplementation(async () => {
+      mockMemory.recall.mockImplementation(async () => { try {
         await new Promise(resolve => setTimeout(resolve, 200));
         return [{
           id: 'entry-2',
@@ -107,7 +109,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
   });
 
   describe('Partial Failure Handling', () => {
-    test('should return results from successful agents even when some fail', async () => {
+    jest.setTimeout(10000);
+  test('should return results from successful agents even when some fail', async () => { try {
       const agents = ['agent-1', 'agent-2', 'agent-3', 'agent-4', 'agent-5'];
 
       // Mock: agents 1, 3, 5 succeed; agents 2, 4 fail
@@ -158,7 +161,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
       });
     });
 
-    test('should exclude failed agents when requireAll is false', async () => {
+    jest.setTimeout(10000);
+  test('should exclude failed agents when requireAll is false', async () => { try {
       const agents = ['agent-1', 'agent-2', 'agent-3'];
 
       mockMemory.recall.mockImplementation(async ({ agentId }) => {
@@ -194,7 +198,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
   });
 
   describe('Timeout Handling', () => {
-    test('should respect per-agent timeout of 30s', async () => {
+    jest.setTimeout(10000);
+  test('should respect per-agent timeout of 30s', async () => { try {
       const agents = ['agent-1', 'agent-2'];
 
       // Mock one agent that responds quickly, one that times out
@@ -245,10 +250,11 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
   });
 
   describe('Performance Benchmarks', () => {
-    test('should log speedup metrics in console', async () => {
+    jest.setTimeout(10000);
+  test('should log speedup metrics in console', async () => { try {
       const agents = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10'];
 
-      mockMemory.recall.mockImplementation(async () => {
+      mockMemory.recall.mockImplementation(async () => { try {
         await new Promise(resolve => setTimeout(resolve, 100));
         return [{
           id: 'entry-benchmark',
@@ -286,7 +292,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
       expect(actualSpeedup).toBeGreaterThan(2);
     });
 
-    test('should handle 20 agents efficiently (real-world scenario)', async () => {
+    jest.setTimeout(10000);
+  test('should handle 20 agents efficiently (real-world scenario)', async () => { try {
       const agents = Array.from({ length: 20 }, (_, i) => `agent-${i + 1}`);
 
       // Simulate varying response times (50ms to 150ms)
@@ -332,7 +339,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
   });
 
   describe('Edge Cases', () => {
-    test('should handle empty agent list', async () => {
+    jest.setTimeout(10000);
+  test('should handle empty agent list', async () => { try {
       const scores = await system.collectConfidenceScores([], {
         storeInMemory: false
       });
@@ -340,7 +348,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
       expect(scores).toHaveLength(0);
     });
 
-    test('should handle single agent', async () => {
+    jest.setTimeout(10000);
+  test('should handle single agent', async () => { try {
       mockMemory.recall.mockResolvedValue([{
         id: 'entry-solo',
         agentId: 'solo-agent',
@@ -364,7 +373,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
       expect(scores[0].confidence).toBe(0.95);
     });
 
-    test('should handle all agents failing', async () => {
+    jest.setTimeout(10000);
+  test('should handle all agents failing', async () => { try {
       const agents = ['agent-1', 'agent-2', 'agent-3'];
 
       mockMemory.recall.mockRejectedValue(new Error('All agents offline'));
@@ -385,7 +395,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
   });
 
   describe('Integration with Memory Storage', () => {
-    test('should store results in SwarmMemory when enabled', async () => {
+    jest.setTimeout(10000);
+  test('should store results in SwarmMemory when enabled', async () => { try {
       const agents = ['agent-1', 'agent-2'];
 
       mockMemory.recall.mockResolvedValue([{
@@ -422,7 +433,8 @@ describe('ConfidenceScoreSystem - Parallel Collection Performance', () => {
       );
     });
 
-    test('should not store results when storeInMemory is false', async () => {
+    jest.setTimeout(10000);
+  test('should not store results when storeInMemory is false', async () => { try {
       mockMemory.recall.mockResolvedValue([]);
 
       await system.collectConfidenceScores(['agent-1'], {

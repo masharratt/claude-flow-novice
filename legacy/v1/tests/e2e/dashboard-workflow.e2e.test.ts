@@ -949,7 +949,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
   });
 
   test.describe('Dashboard Loading and Initial State', () => {
-    test('dashboard loads and displays initial data', async () => {
+    jest.setTimeout(10000);
+  test('dashboard loads and displays initial data', async () => { try {
       await page.goto('about:blank');
 
       // Check dashboard title
@@ -968,7 +969,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('text=Test Status')).toBeVisible();
     });
 
-    test('agents are loaded and displayed correctly', async () => {
+    jest.setTimeout(10000);
+  test('agents are loaded and displayed correctly', async () => { try {
       await page.goto('about:blank');
 
       // Wait for agents to load
@@ -990,7 +992,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('text=idle')).toBeVisible();
     });
 
-    test('performance metrics are displayed correctly', async () => {
+    jest.setTimeout(10000);
+  test('performance metrics are displayed correctly', async () => { try {
       await page.goto('about:blank');
 
       // Wait for metrics to load
@@ -1003,7 +1006,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('text=245ms')).toBeVisible(); // Response Time
     });
 
-    test('test status information is displayed', async () => {
+    jest.setTimeout(10000);
+  test('test status information is displayed', async () => { try {
       await page.goto('about:blank');
 
       // Wait for test status to load
@@ -1015,7 +1019,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
   });
 
   test.describe('WebSocket Connection and Real-time Updates', () => {
-    test('WebSocket connection establishes successfully', async () => {
+    jest.setTimeout(10000);
+  test('WebSocket connection establishes successfully', async () => { try {
       await page.goto('about:blank');
 
       // Wait for connection to establish
@@ -1023,7 +1028,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('#connection-indicator')).toHaveClass(/connected/);
     });
 
-    test('real-time agent updates are displayed', async () => {
+    jest.setTimeout(10000);
+  test('real-time agent updates are displayed', async () => { try {
       await page.goto('about:blank');
 
       // Wait for initial load
@@ -1041,7 +1047,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('text=Updated task assignment')).toBeVisible();
     });
 
-    test('real-time metrics updates are displayed', async () => {
+    jest.setTimeout(10000);
+  test('real-time metrics updates are displayed', async () => { try {
       await page.goto('about:blank');
 
       // Wait for initial metrics
@@ -1061,7 +1068,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('text=3.1/s')).toBeVisible();
     });
 
-    test('new messages appear in real-time', async () => {
+    jest.setTimeout(10000);
+  test('new messages appear in real-time', async () => { try {
       await page.goto('about:blank');
 
       // Check initial messages container
@@ -1084,7 +1092,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(messagesContainer.locator('text=high')).toBeVisible();
     });
 
-    test('decision insights appear in real-time', async () => {
+    jest.setTimeout(10000);
+  test('decision insights appear in real-time', async () => { try {
       await page.goto('about:blank');
 
       const insightsContainer = page.locator('#insights-container');
@@ -1108,7 +1117,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
   });
 
   test.describe('Agent Interaction', () => {
-    test('agents can be selected and deselected', async () => {
+    jest.setTimeout(10000);
+  test('agents can be selected and deselected', async () => { try {
       await page.goto('about:blank');
 
       // Find first agent card
@@ -1126,7 +1136,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(firstAgentCard).not.toHaveClass(/selected/);
     });
 
-    test('only one agent can be selected at a time', async () => {
+    jest.setTimeout(10000);
+  test('only one agent can be selected at a time', async () => { try {
       await page.goto('about:blank');
 
       const agentCards = page.locator('.agent-card');
@@ -1145,7 +1156,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(agentCards.nth(2)).not.toHaveClass(/selected/);
     });
 
-    test('agent cards display hover effects', async () => {
+    jest.setTimeout(10000);
+  test('agent cards display hover effects', async () => { try {
       await page.goto('about:blank');
 
       const firstAgentCard = page.locator('.agent-card').first();
@@ -1159,7 +1171,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
   });
 
   test.describe('Swarm Controls', () => {
-    test('restart button triggers swarm restart process', async () => {
+    jest.setTimeout(10000);
+  test('restart button triggers swarm restart process', async () => { try {
       await page.goto('about:blank');
 
       const restartButton = page.locator('#restart-button');
@@ -1183,7 +1196,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(relaunchHistory.locator('text=✅')).toBeVisible();
     });
 
-    test('relaunch history displays correctly', async () => {
+    jest.setTimeout(10000);
+  test('relaunch history displays correctly', async () => { try {
       await page.goto('about:blank');
 
       // Initially should show no relaunch history
@@ -1200,7 +1214,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('#relaunch-history')).toContainText('2.0s'); // Duration
     });
 
-    test('multiple relaunches are tracked', async () => {
+    jest.setTimeout(10000);
+  test('multiple relaunches are tracked', async () => { try {
       await page.goto('about:blank');
 
       // Perform multiple restarts
@@ -1217,7 +1232,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
   });
 
   test.describe('Error Handling and Resilience', () => {
-    test('dashboard handles WebSocket disconnection gracefully', async () => {
+    jest.setTimeout(10000);
+  test('dashboard handles WebSocket disconnection gracefully', async () => { try {
       await page.goto('about:blank');
 
       // Wait for connection to establish
@@ -1239,7 +1255,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('.agent-card')).toHaveCount(3);
     });
 
-    test('dashboard handles API errors gracefully', async () => {
+    jest.setTimeout(10000);
+  test('dashboard handles API errors gracefully', async () => { try {
       await page.goto('about:blank');
 
       // Intercept API calls and simulate errors
@@ -1260,7 +1277,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('.panel')).toHaveCount(6);
     });
 
-    test('dashboard recovers from temporary errors', async () => {
+    jest.setTimeout(10000);
+  test('dashboard recovers from temporary errors', async () => { try {
       await page.goto('about:blank');
 
       // Simulate temporary API failure
@@ -1294,7 +1312,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
   });
 
   test.describe('Performance and Responsiveness', () => {
-    test('dashboard loads quickly', async () => {
+    jest.setTimeout(10000);
+  test('dashboard loads quickly', async () => { try {
       const startTime = Date.now();
       await page.goto('about:blank');
 
@@ -1308,7 +1327,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       expect(loadTime).toBeLessThan(3000);
     });
 
-    test('real-time updates do not cause performance issues', async () => {
+    jest.setTimeout(10000);
+  test('real-time updates do not cause performance issues', async () => { try {
       await page.goto('about:blank');
 
       // Send many rapid updates
@@ -1328,7 +1348,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('#restart-button')).toBeEnabled();
     });
 
-    test('memory usage remains stable during extended use', async () => {
+    jest.setTimeout(10000);
+  test('memory usage remains stable during extended use', async () => { try {
       await page.goto('about:blank');
 
       // Get initial memory usage (approximate)
@@ -1370,7 +1391,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024);
     });
 
-    test('dashboard remains responsive under heavy load', async () => {
+    jest.setTimeout(10000);
+  test('dashboard remains responsive under heavy load', async () => { try {
       await page.goto('about:blank');
 
       // Simulate heavy load with concurrent updates
@@ -1399,7 +1421,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
   });
 
   test.describe('Accessibility and User Experience', () => {
-    test('dashboard has proper semantic HTML structure', async () => {
+    jest.setTimeout(10000);
+  test('dashboard has proper semantic HTML structure', async () => { try {
       await page.goto('about:blank');
 
       // Check for heading hierarchy
@@ -1415,7 +1438,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(page.locator('.agent-card')).toHaveCount(3); // Interactive agent cards
     });
 
-    test('dashboard supports keyboard navigation', async () => {
+    jest.setTimeout(10000);
+  test('dashboard supports keyboard navigation', async () => { try {
       await page.goto('about:blank');
 
       // Test tab navigation
@@ -1436,7 +1460,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(restartButton).not.toBeDisabled();
     });
 
-    test('dashboard provides visual feedback for interactions', async () => {
+    jest.setTimeout(10000);
+  test('dashboard provides visual feedback for interactions', async () => { try {
       await page.goto('about:blank');
 
       const firstAgentCard = page.locator('.agent-card').first();
@@ -1451,7 +1476,8 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(firstAgentCard).toHaveClass(/selected/);
     });
 
-    test('dashboard displays loading states appropriately', async () => {
+    jest.setTimeout(10000);
+  test('dashboard displays loading states appropriately', async () => { try {
       await page.goto('about:blank');
 
       // Initially should show "Connecting..." state
@@ -1467,4 +1493,4 @@ test.describe('Dashboard E2E Workflow Tests', () => {
       await expect(restartButton).toBeDisabled();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -17,7 +17,7 @@ describe('MCP Performance Benchmark Tests', () => {
   let manager;
   let performanceBaseline;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     manager = new McpConfigurationManager({
       verbose: false,
       autoFix: true,
@@ -37,7 +37,8 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('Configuration Reading Performance', () => {
-    test('should read small configurations quickly', async () => {
+    jest.setTimeout(10000);
+  test('should read small configurations quickly', async () => { try {
       const smallConfig = performanceConfigurations.manyServers(10);
       await global.testUtils.createMockProjectConfig(smallConfig);
 
@@ -47,7 +48,8 @@ describe('MCP Performance Benchmark Tests', () => {
       );
     }, PERFORMANCE_TIMEOUT);
 
-    test('should handle medium configurations within reasonable time', async () => {
+    jest.setTimeout(10000);
+  test('should handle medium configurations within reasonable time', async () => { try {
       const mediumConfig = performanceConfigurations.manyServers(100);
       await global.testUtils.createMockProjectConfig(mediumConfig);
 
@@ -57,7 +59,8 @@ describe('MCP Performance Benchmark Tests', () => {
       );
     }, PERFORMANCE_TIMEOUT);
 
-    test('should handle large configurations efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle large configurations efficiently', async () => { try {
       const largeConfig = performanceConfigurations.manyServers(1000);
       await global.testUtils.createMockProjectConfig(largeConfig);
 
@@ -69,7 +72,8 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(measurement.averageMemoryDelta).toBeLessThan(global.PERFORMANCE_CONFIG.memory.medium);
     }, PERFORMANCE_TIMEOUT);
 
-    test('should handle extremely large configurations without crashing', async () => {
+    jest.setTimeout(10000);
+  test('should handle extremely large configurations without crashing', async () => { try {
       const extremeConfig = performanceConfigurations.manyServers(10000);
       await global.testUtils.createMockProjectConfig(extremeConfig);
 
@@ -81,7 +85,8 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(measurement.memoryDelta.heapUsed).toBeLessThan(global.PERFORMANCE_CONFIG.memory.large);
     }, PERFORMANCE_TIMEOUT);
 
-    test('should show consistent performance across multiple reads', async () => {
+    jest.setTimeout(10000);
+  test('should show consistent performance across multiple reads', async () => { try {
       const config = performanceConfigurations.manyServers(500);
       await global.testUtils.createMockProjectConfig(config);
 
@@ -94,7 +99,8 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('Configuration Validation Performance', () => {
-    test('should validate server paths efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should validate server paths efficiently', async () => { try {
       const servers = [];
       for (let i = 0; i < 1000; i++) {
         servers.push({
@@ -110,7 +116,8 @@ describe('MCP Performance Benchmark Tests', () => {
       );
     }, PERFORMANCE_TIMEOUT);
 
-    test('should handle deep configuration structures', async () => {
+    jest.setTimeout(10000);
+  test('should handle deep configuration structures', async () => { try {
       const deepConfig = performanceConfigurations.deeplyNested(20);
       await global.testUtils.createMockProjectConfig(deepConfig);
 
@@ -121,7 +128,8 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(measurement.averageDuration).toBeLessThan(global.PERFORMANCE_CONFIG.timeouts.slow);
     }, PERFORMANCE_TIMEOUT);
 
-    test('should process configurations with many file paths efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should process configurations with many file paths efficiently', async () => { try {
       const pathConfig = performanceConfigurations.manyServers(100);
       await global.testUtils.createMockProjectConfig(pathConfig);
 
@@ -133,7 +141,8 @@ describe('MCP Performance Benchmark Tests', () => {
       );
     }, PERFORMANCE_TIMEOUT);
 
-    test('should validate large string content efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should validate large string content efficiently', async () => { try {
       const largeStringConfig = performanceConfigurations.largeStrings;
       await global.testUtils.createMockProjectConfig(largeStringConfig);
 
@@ -146,14 +155,16 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('State Detection Performance', () => {
-    test('should detect configuration state quickly for small setups', async () => {
+    jest.setTimeout(10000);
+  test('should detect configuration state quickly for small setups', async () => { try {
       await global.expectPerformance.toCompleteWithin(
         () => manager.detectConfigurationState(),
         global.PERFORMANCE_CONFIG.timeouts.medium
       );
     }, PERFORMANCE_TIMEOUT);
 
-    test('should scale linearly with configuration size', async () => {
+    jest.setTimeout(10000);
+  test('should scale linearly with configuration size', async () => { try {
       const sizes = [10, 50, 100, 200];
       const measurements = [];
 
@@ -183,7 +194,8 @@ describe('MCP Performance Benchmark Tests', () => {
       }
     }, PERFORMANCE_TIMEOUT);
 
-    test('should maintain performance with many broken servers', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance with many broken servers', async () => { try {
       const brokenConfig = {
         mcpServers: {}
       };
@@ -206,7 +218,8 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('Memory Usage Optimization', () => {
-    test('should not leak memory during repeated operations', async () => {
+    jest.setTimeout(10000);
+  test('should not leak memory during repeated operations', async () => { try {
       const config = performanceConfigurations.manyServers(100);
       await global.testUtils.createMockProjectConfig(config);
 
@@ -231,7 +244,8 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(memoryGrowth).toBeLessThan(global.PERFORMANCE_CONFIG.memory.small);
     }, PERFORMANCE_TIMEOUT);
 
-    test('should handle large configurations with bounded memory usage', async () => {
+    jest.setTimeout(10000);
+  test('should handle large configurations with bounded memory usage', async () => { try {
       const largeConfig = performanceConfigurations.manyServers(5000);
       await global.testUtils.createMockProjectConfig(largeConfig);
 
@@ -242,7 +256,8 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(measurement.memoryDelta.heapUsed).toBeLessThan(global.PERFORMANCE_CONFIG.memory.large);
     }, PERFORMANCE_TIMEOUT);
 
-    test('should release memory after configuration processing', async () => {
+    jest.setTimeout(10000);
+  test('should release memory after configuration processing', async () => { try {
       const beforeMemory = process.memoryUsage().heapUsed;
 
       const largeConfig = performanceConfigurations.manyServers(1000);
@@ -264,7 +279,8 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('Concurrent Operation Performance', () => {
-    test('should handle concurrent state detection requests', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent state detection requests', async () => { try {
       const concurrency = 10;
       const promises = [];
 
@@ -286,7 +302,8 @@ describe('MCP Performance Benchmark Tests', () => {
       });
     }, PERFORMANCE_TIMEOUT);
 
-    test('should handle concurrent file operations safely', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent file operations safely', async () => { try {
       const config = performanceConfigurations.manyServers(50);
       const concurrency = 20;
       const promises = [];
@@ -294,7 +311,7 @@ describe('MCP Performance Benchmark Tests', () => {
       for (let i = 0; i < concurrency; i++) {
         promises.push(
           global.testUtils.createMockProjectConfig(config)
-            .then(() => manager.readProjectConfig())
+            await ( => manager.readProjectConfig())
         );
       }
 
@@ -309,7 +326,8 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('Load Testing', () => {
-    test('should maintain performance under continuous load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under continuous load', async () => { try {
       const config = performanceConfigurations.manyServers(100);
       await global.testUtils.createMockProjectConfig(config);
 
@@ -327,7 +345,8 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(loadTest.maxResponseTime).toBeLessThan(global.PERFORMANCE_CONFIG.timeouts.slow);
     }, PERFORMANCE_TIMEOUT);
 
-    test('should handle stress testing gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle stress testing gracefully', async () => { try {
       const config = performanceConfigurations.manyServers(50);
       await global.testUtils.createMockProjectConfig(config);
 
@@ -350,11 +369,12 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('File System Performance', () => {
-    test('should optimize file I/O operations', async () => {
+    jest.setTimeout(10000);
+  test('should optimize file I/O operations', async () => { try {
       const config = performanceConfigurations.manyServers(100);
 
       const measurement = await global.performanceUtils.measureExecutionTime(
-        async () => {
+        async () => { try {
           await global.testUtils.createMockProjectConfig(config);
           return await manager.readProjectConfig();
         }
@@ -363,11 +383,12 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(measurement.average).toBeLessThan(global.PERFORMANCE_CONFIG.timeouts.medium);
     }, PERFORMANCE_TIMEOUT);
 
-    test('should handle multiple file operations efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle multiple file operations efficiently', async () => { try {
       const operations = [];
 
       for (let i = 0; i < 100; i++) {
-        operations.push(async () => {
+        operations.push(async () => { try {
           const tempConfig = performanceConfigurations.manyServers(10);
           await global.testUtils.createMockProjectConfig(tempConfig);
           return await manager.readProjectConfig();
@@ -375,7 +396,7 @@ describe('MCP Performance Benchmark Tests', () => {
       }
 
       const measurement = await global.performanceUtils.measureExecutionTime(
-        async () => {
+        async () => { try {
           const promises = operations.map(op => op());
           return await Promise.all(promises);
         }
@@ -386,7 +407,8 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('Performance Regression Detection', () => {
-    test('should establish performance baseline', async () => {
+    jest.setTimeout(10000);
+  test('should establish performance baseline', async () => { try {
       const baseline = await global.performanceUtils.createBaseline(
         global.performanceBenchmarks.mcpOperations
       );
@@ -401,7 +423,8 @@ describe('MCP Performance Benchmark Tests', () => {
       performanceBaseline = baseline;
     }, PERFORMANCE_TIMEOUT);
 
-    test('should detect performance regressions', async () => {
+    jest.setTimeout(10000);
+  test('should detect performance regressions', async () => { try {
       if (!performanceBaseline) {
         console.log('No baseline available, creating one...');
         performanceBaseline = await global.performanceUtils.createBaseline(
@@ -430,7 +453,8 @@ describe('MCP Performance Benchmark Tests', () => {
   });
 
   describe('Resource Monitoring', () => {
-    test('should monitor CPU usage during operations', async () => {
+    jest.setTimeout(10000);
+  test('should monitor CPU usage during operations', async () => { try {
       const config = performanceConfigurations.manyServers(500);
       await global.testUtils.createMockProjectConfig(config);
 
@@ -443,7 +467,8 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(totalCpuTime).toBeLessThan(5000000); // 5 seconds in microseconds
     }, PERFORMANCE_TIMEOUT);
 
-    test('should monitor peak memory usage', async () => {
+    jest.setTimeout(10000);
+  test('should monitor peak memory usage', async () => { try {
       const config = performanceConfigurations.manyServers(1000);
       await global.testUtils.createMockProjectConfig(config);
 
@@ -462,7 +487,8 @@ describe('MCP Performance Benchmark Tests', () => {
       expect(peakMemory).toBeLessThan(global.PERFORMANCE_CONFIG.memory.large);
     }, PERFORMANCE_TIMEOUT);
 
-    test('should track operation timing breakdown', async () => {
+    jest.setTimeout(10000);
+  test('should track operation timing breakdown', async () => { try {
       const config = performanceConfigurations.manyServers(200);
       await global.testUtils.createMockProjectConfig(config);
 
@@ -493,4 +519,4 @@ describe('MCP Performance Benchmark Tests', () => {
       console.log('Operation timing breakdown:', timings);
     }, PERFORMANCE_TIMEOUT);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -90,7 +90,7 @@ function executeCLIText(args: string[]): string {
 }
 
 describe('Agent Lifecycle CLI Commands', () => {
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize Redis client for cleanup
     redisClient = new Redis({
       host: 'localhost',
@@ -109,7 +109,7 @@ describe('Agent Lifecycle CLI Commands', () => {
     }
   }, TEST_TIMEOUT);
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup Redis
     const keys = await redisClient.keys('cfn-loop:*');
     if (keys.length > 0) {
@@ -119,7 +119,7 @@ describe('Agent Lifecycle CLI Commands', () => {
     await redisClient.quit();
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test agent data before each test
     const keys = await redisClient.keys(`*${TEST_AGENT_ID}*`);
     if (keys.length > 0) {
@@ -410,7 +410,7 @@ describe('Agent Lifecycle CLI Commands', () => {
       expect(result.completed_at).toBeDefined();
     }, TEST_TIMEOUT);
 
-    it('should handle concurrent complete calls atomically (SEC-002 race condition prevention)', async () => {
+    it('should handle concurrent complete calls atomically (SEC-002 race condition prevention)', async () => { try {
       const agentId = `${TEST_AGENT_ID}-concurrent`;
 
       // Spawn test agent

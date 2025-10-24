@@ -101,7 +101,7 @@ describe('NPX Isolated Cache', () => {
   });
 
   describe('cleanup functionality', () => {
-    it('should track cache directories for cleanup', async () => {
+    it('should track cache directories for cleanup', async () => { try {
       const env = createIsolatedCache();
       const cacheDir = env.NPM_CONFIG_CACHE;
 
@@ -118,4 +118,4 @@ describe('NPX Isolated Cache', () => {
       expect(env.HOME || env.USERPROFILE).toBe(process.env.HOME || process.env.USERPROFILE);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

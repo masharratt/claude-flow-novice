@@ -32,7 +32,7 @@ describe('SystemIntegration', () => {
     mockEventBus = EventBus.getInstance() as jest.Mocked<EventBus>;
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean shutdown
     if (systemIntegration.isReady()) {
       await systemIntegration.shutdown();
@@ -40,7 +40,7 @@ describe('SystemIntegration', () => {
   });
 
   describe('Initialization', () => {
-    it('should initialize all components in correct order', async () => {
+    it('should initialize all components in correct order', async () => { try {
       const config: IntegrationConfig = {
         logLevel: 'info',
         environment: 'testing'
@@ -63,7 +63,7 @@ describe('SystemIntegration', () => {
       expect(status.components).toContain('mcp');
     });
 
-    it('should handle initialization errors gracefully', async () => {
+    it('should handle initialization errors gracefully', async () => { try {
       // Mock a component to fail initialization
       const mockOrchestrator = {
         initialize: jest.fn().mockRejectedValue(new Error('Orchestrator init failed'))
@@ -73,7 +73,7 @@ describe('SystemIntegration', () => {
       expect(systemIntegration.isReady()).toBe(false);
     });
 
-    it('should not reinitialize if already initialized', async () => {
+    it('should not reinitialize if already initialized', async () => { try {
       await systemIntegration.initialize();
       const firstInitTime = Date.now();
       
@@ -85,7 +85,7 @@ describe('SystemIntegration', () => {
   });
 
   describe('Component Management', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await systemIntegration.initialize();
     });
 
@@ -100,7 +100,7 @@ describe('SystemIntegration', () => {
       expect(nonExistent).toBeNull();
     });
 
-    it('should track component statuses', async () => {
+    it('should track component statuses', async () => { try {
       const health = await systemIntegration.getSystemHealth();
       
       expect(health.overall).toBe('healthy');
@@ -112,11 +112,11 @@ describe('SystemIntegration', () => {
   });
 
   describe('Health Monitoring', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await systemIntegration.initialize();
     });
 
-    it('should detect unhealthy components', async () => {
+    it('should detect unhealthy components', async () => { try {
       // Simulate component failure
       mockEventBus.emit('component:status', {
         component: 'test-component',
@@ -129,7 +129,7 @@ describe('SystemIntegration', () => {
       expect(health.metrics.unhealthyComponents).toBeGreaterThan(0);
     });
 
-    it('should detect warning components', async () => {
+    it('should detect warning components', async () => { try {
       // Simulate component warning
       mockEventBus.emit('component:status', {
         component: 'test-component',
@@ -142,7 +142,7 @@ describe('SystemIntegration', () => {
       expect(health.metrics.warningComponents).toBeGreaterThan(0);
     });
 
-    it('should calculate correct health metrics', async () => {
+    it('should calculate correct health metrics', async () => { try {
       const health = await systemIntegration.getSystemHealth();
       
       expect(health.metrics.totalComponents).toBe(
@@ -157,11 +157,11 @@ describe('SystemIntegration', () => {
   });
 
   describe('Event Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await systemIntegration.initialize();
     });
 
-    it('should handle system ready event', async () => {
+    it('should handle system ready event', async () => { try {
       const eventSpy = jest.spyOn(mockEventBus, 'emit');
       
       // Re-initialize to trigger ready event
@@ -207,7 +207,7 @@ describe('SystemIntegration', () => {
   });
 
   describe('Shutdown', () => {
-    it('should shutdown all components gracefully', async () => {
+    it('should shutdown all components gracefully', async () => { try {
       await systemIntegration.initialize();
       expect(systemIntegration.isReady()).toBe(true);
       
@@ -215,7 +215,7 @@ describe('SystemIntegration', () => {
       expect(systemIntegration.isReady()).toBe(false);
     });
 
-    it('should handle shutdown errors gracefully', async () => {
+    it('should handle shutdown errors gracefully', async () => { try {
       await systemIntegration.initialize();
       
       // Mock a component to fail shutdown
@@ -230,7 +230,7 @@ describe('SystemIntegration', () => {
   });
 
   describe('Configuration', () => {
-    it('should accept custom configuration', async () => {
+    it('should accept custom configuration', async () => { try {
       const config: IntegrationConfig = {
         logLevel: 'debug',
         environment: 'development',
@@ -277,4 +277,4 @@ describe('SystemIntegration', () => {
       expect(instance1).toBe(instance2);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

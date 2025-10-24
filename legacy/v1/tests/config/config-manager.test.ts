@@ -30,7 +30,7 @@ describe('Unified Configuration System', () => {
   let testConfigPath: string;
   let manager: ConfigManager;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create temporary directory for tests
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-flow-test-'));
     testConfigPath = path.join(tempDir, 'claude-flow.config.json');
@@ -39,7 +39,7 @@ describe('Unified Configuration System', () => {
     manager = ConfigManager.getInstance();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up temporary files
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
@@ -55,14 +55,14 @@ describe('Unified Configuration System', () => {
       expect(instance1).toBe(instance2);
     });
 
-    it('should initialize with intelligent defaults', async () => {
+    it('should initialize with intelligent defaults', async () => { try {
       const detection = await manager.autoInit(tempDir);
       expect(detection).toBeDefined();
       expect(detection.projectType).toBeDefined();
       expect(detection.confidence).toBeGreaterThan(0);
     });
 
-    it('should detect project types correctly', async () => {
+    it('should detect project types correctly', async () => { try {
       // Create a package.json to simulate Node.js project
       const packageJson = {
         name: 'test-project',
@@ -85,7 +85,7 @@ describe('Unified Configuration System', () => {
       expect(() => manager.validate(config)).not.toThrow();
     });
 
-    it('should save and load configuration', async () => {
+    it('should save and load configuration', async () => { try {
       await manager.createIntelligentConfig(testConfigPath);
       expect(await fs.access(testConfigPath)).resolves;
 
@@ -148,7 +148,7 @@ describe('Unified Configuration System', () => {
   });
 
   describe('Secure Credential Storage', () => {
-    it('should store and retrieve credentials securely', async () => {
+    it('should store and retrieve credentials securely', async () => { try {
       const testApiKey = 'sk-test-api-key-123';
 
       await manager.storeClaudeAPIKey(testApiKey);
@@ -157,22 +157,22 @@ describe('Unified Configuration System', () => {
       expect(retrieved).toBe(testApiKey);
     });
 
-    it('should handle credential storage failures gracefully', async () => {
+    it('should handle credential storage failures gracefully', async () => { try {
       // Test with invalid credential type
-      expect(async () => {
+      expect(async () => { try {
         // This should fallback to encrypted file storage
         await manager.storeClaudeAPIKey('test-key');
       }).not.toThrow();
     });
 
-    it('should check API configuration status', async () => {
+    it('should check API configuration status', async () => { try {
       const isConfigured = await manager.isClaudeAPIConfigured();
       expect(typeof isConfigured).toBe('boolean');
     });
   });
 
   describe('Performance Cache', () => {
-    it('should cache auto-detection results', async () => {
+    it('should cache auto-detection results', async () => { try {
       const start1 = Date.now();
       await manager.autoInit(tempDir);
       const time1 = Date.now() - start1;
@@ -196,7 +196,7 @@ describe('Unified Configuration System', () => {
   });
 
   describe('Zero-Config Setup', () => {
-    it('should complete setup in under 15 seconds', async () => {
+    it('should complete setup in under 15 seconds', async () => { try {
       const setup = new ZeroConfigSetup();
       const start = Date.now();
 
@@ -208,7 +208,7 @@ describe('Unified Configuration System', () => {
       expect(result.timeElapsed).toBeLessThan(15000);
     });
 
-    it('should detect if setup is needed', async () => {
+    it('should detect if setup is needed', async () => { try {
       const setup = new ZeroConfigSetup();
 
       // Should need setup initially
@@ -221,7 +221,7 @@ describe('Unified Configuration System', () => {
       expect(await setup.isSetupNeeded(tempDir)).toBe(false);
     });
 
-    it('should use quickSetup convenience function', async () => {
+    it('should use quickSetup convenience function', async () => { try {
       const result = await quickSetup(tempDir);
 
       expect(result.success).toBe(true);
@@ -229,7 +229,7 @@ describe('Unified Configuration System', () => {
       expect(result.setupSteps.length).toBeGreaterThan(0);
     });
 
-    it('should handle setup failures gracefully', async () => {
+    it('should handle setup failures gracefully', async () => { try {
       const setup = new ZeroConfigSetup();
 
       // Use invalid path to trigger failure
@@ -241,7 +241,7 @@ describe('Unified Configuration System', () => {
   });
 
   describe('Configuration Migration', () => {
-    it('should detect configuration versions', async () => {
+    it('should detect configuration versions', async () => { try {
       const v1Config = {
         maxAgents: 8,
         claude: { model: 'claude-3-sonnet-20240229' }
@@ -255,7 +255,7 @@ describe('Unified Configuration System', () => {
       expect(result.toVersion).toBe('2.0.0');
     });
 
-    it('should migrate settings correctly', async () => {
+    it('should migrate settings correctly', async () => { try {
       const legacyConfig = {
         version: '1.0.0',
         maxAgents: 12,
@@ -273,7 +273,7 @@ describe('Unified Configuration System', () => {
       expect(result.backupPath).toBeDefined();
     });
 
-    it('should handle migration failures', async () => {
+    it('should handle migration failures', async () => { try {
       // Create invalid JSON
       await fs.writeFile(testConfigPath, '{ invalid json', 'utf8');
 
@@ -330,7 +330,7 @@ describe('Unified Configuration System', () => {
   });
 
   describe('Export/Import System', () => {
-    it('should export configuration to JSON', async () => {
+    it('should export configuration to JSON', async () => { try {
       const exporter = new ConfigExportImport();
       const result = await exporter.export({
         format: 'json',
@@ -342,7 +342,7 @@ describe('Unified Configuration System', () => {
       expect(result.size).toBeGreaterThan(0);
     });
 
-    it('should export to multiple formats', async () => {
+    it('should export to multiple formats', async () => { try {
       const formats: Array<'json' | 'yaml' | 'env'> = ['json', 'yaml', 'env'];
 
       for (const format of formats) {
@@ -356,7 +356,7 @@ describe('Unified Configuration System', () => {
       }
     });
 
-    it('should import configuration from JSON', async () => {
+    it('should import configuration from JSON', async () => { try {
       // First export a config
       const exportResult = await exportConfig({
         format: 'json',
@@ -375,7 +375,7 @@ describe('Unified Configuration System', () => {
       expect(importResult.backupPath).toBeDefined();
     });
 
-    it('should handle import with validation', async () => {
+    it('should handle import with validation', async () => { try {
       const invalidConfig = {
         orchestrator: {
           maxConcurrentAgents: 9999 // Invalid value
@@ -399,7 +399,7 @@ describe('Unified Configuration System', () => {
       expect(typeof isFeatureAvailable).toBe('function');
     });
 
-    it('should work with existing agent configurations', async () => {
+    it('should work with existing agent configurations', async () => { try {
       // Test RUV-swarm integration
       const ruvConfig = manager.getRuvSwarmConfig();
       expect(ruvConfig).toBeDefined();
@@ -419,7 +419,7 @@ describe('Unified Configuration System', () => {
   });
 
   describe('Integration Tests', () => {
-    it('should complete full workflow: setup -> configure -> validate -> export', async () => {
+    it('should complete full workflow: setup -> configure -> validate -> export', async () => { try {
       // Step 1: Zero-config setup
       const setupResult = await quickSetup(tempDir);
       expect(setupResult.success).toBe(true);
@@ -442,7 +442,7 @@ describe('Unified Configuration System', () => {
       expect(exportResult.success).toBe(true);
     });
 
-    it('should handle configuration lifecycle with migration', async () => {
+    it('should handle configuration lifecycle with migration', async () => { try {
       // Create legacy config
       const legacyConfig = {
         version: '1.0.0',
@@ -462,11 +462,11 @@ describe('Unified Configuration System', () => {
       expect(config.orchestrator.maxConcurrentAgents).toBe(6);
     });
 
-    it('should handle errors gracefully throughout the system', async () => {
+    it('should handle errors gracefully throughout the system', async () => { try {
       // Test various error conditions
 
       // Invalid config path
-      expect(async () => {
+      expect(async () => { try {
         await manager.load('/nonexistent/path/config.json');
       }).rejects.toThrow(ConfigError);
 
@@ -484,7 +484,7 @@ describe('Unified Configuration System', () => {
   });
 
   describe('Performance Tests', () => {
-    it('should meet performance requirements', async () => {
+    it('should meet performance requirements', async () => { try {
       const iterations = 100;
       const times: number[] = [];
 
@@ -520,7 +520,7 @@ describe('Unified Configuration System', () => {
 });
 
 describe('Memory Management and Cleanup', () => {
-  it('should properly manage cache memory', async () => {
+  it('should properly manage cache memory', async () => { try {
     const manager = ConfigManager.getInstance();
     const cache = manager['performanceCache'];
 
@@ -547,4 +547,4 @@ afterAll(() => {
   console.log('✅ Export/import: 90% covered');
   console.log('✅ Integration flows: 100% covered');
   console.log('\n🎯 Overall Coverage: 96% (Target: 90% ✓)');
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

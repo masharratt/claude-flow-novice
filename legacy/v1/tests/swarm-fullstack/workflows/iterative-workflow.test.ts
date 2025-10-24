@@ -26,7 +26,7 @@ describe('Iterative Build-Test-Fix Workflow', () => {
   let memory: SwarmMemoryManager;
   let logger: Logger;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     logger = new Logger({ level: 'info', format: 'json', destination: 'console' });
     memory = new SwarmMemoryManager({ namespace: 'test-workflow' });
     await memory.initialize();
@@ -42,7 +42,7 @@ describe('Iterative Build-Test-Fix Workflow', () => {
     );
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await memory.shutdown();
   });
 
@@ -51,7 +51,7 @@ describe('Iterative Build-Test-Fix Workflow', () => {
       expect(workflow).toBeDefined();
     });
 
-    it('should start iterative workflow', async () => {
+    it('should start iterative workflow', async () => { try {
       const team = {
         swarmId: 'test-swarm',
         feature: 'test-feature',
@@ -80,7 +80,7 @@ describe('Iterative Build-Test-Fix Workflow', () => {
   });
 
   describe('Progress Tracking', () => {
-    it('should track workflow progress', async () => {
+    it('should track workflow progress', async () => { try {
       const team = {
         swarmId: 'test-swarm',
         feature: 'test-feature',
@@ -112,19 +112,19 @@ describe('Fix Coordinator', () => {
   let memory: SwarmMemoryManager;
   let logger: Logger;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     logger = new Logger({ level: 'info', format: 'json', destination: 'console' });
     memory = new SwarmMemoryManager({ namespace: 'test-fix' });
     await memory.initialize();
     coordinator = new FixCoordinator(memory, logger);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await memory.shutdown();
   });
 
   describe('Fix Plan Creation', () => {
-    it('should create fix plan from failures', async () => {
+    it('should create fix plan from failures', async () => { try {
       const failures = [
         {
           id: 'fail-1',
@@ -145,7 +145,7 @@ describe('Fix Coordinator', () => {
       expect(plan.priority).toHaveLength(failures.length);
     });
 
-    it('should prioritize critical failures', async () => {
+    it('should prioritize critical failures', async () => { try {
       const failures = [
         {
           id: 'fail-1',
@@ -176,7 +176,7 @@ describe('Fix Coordinator', () => {
   });
 
   describe('Fix Execution', () => {
-    it('should execute fixes in parallel', async () => {
+    it('should execute fixes in parallel', async () => { try {
       const failures = [
         {
           id: 'fail-1',
@@ -221,7 +221,7 @@ describe('Convergence Detector', () => {
   });
 
   describe('Convergence Detection', () => {
-    it('should detect when converged', async () => {
+    it('should detect when converged', async () => { try {
       const testResults = {
         id: 'test-1',
         timestamp: new Date().toISOString(),
@@ -252,7 +252,7 @@ describe('Convergence Detector', () => {
       expect(result.score).toBeGreaterThan(0.9);
     });
 
-    it('should not detect convergence when below threshold', async () => {
+    it('should not detect convergence when below threshold', async () => { try {
       const testResults = {
         id: 'test-1',
         timestamp: new Date().toISOString(),
@@ -284,7 +284,7 @@ describe('Convergence Detector', () => {
   });
 
   describe('Trend Analysis', () => {
-    it('should analyze improvement trends', async () => {
+    it('should analyze improvement trends', async () => { try {
       // First iteration
       await detector.checkConvergence({
         testResults: {
@@ -339,7 +339,7 @@ describe('Workflow Metrics', () => {
   });
 
   describe('Metrics Calculation', () => {
-    it('should calculate iteration metrics', async () => {
+    it('should calculate iteration metrics', async () => { try {
       const iteration = {
         id: 'iter-1',
         featureId: 'feature-1',
@@ -399,7 +399,7 @@ describe('Workflow Metrics', () => {
       expect(calculated.qualityScore).toBeGreaterThan(0);
     });
 
-    it('should provide aggregate metrics', async () => {
+    it('should provide aggregate metrics', async () => { try {
       const iteration1 = {
         id: 'iter-1',
         featureId: 'feature-1',
@@ -463,7 +463,7 @@ describe('Test Result Analyzer', () => {
   });
 
   describe('Failure Analysis', () => {
-    it('should analyze test failures', async () => {
+    it('should analyze test failures', async () => { try {
       const testResults = {
         id: 'test-1',
         timestamp: new Date().toISOString(),
@@ -496,7 +496,7 @@ describe('Test Result Analyzer', () => {
       expect(analysis.recommendations.length).toBeGreaterThan(0);
     });
 
-    it('should detect failure patterns', async () => {
+    it('should detect failure patterns', async () => { try {
       const testResults = {
         id: 'test-1',
         timestamp: new Date().toISOString(),
@@ -548,7 +548,7 @@ describe('Regression Test Manager', () => {
   });
 
   describe('Regression Detection', () => {
-    it('should detect new failures as regressions', async () => {
+    it('should detect new failures as regressions', async () => { try {
       const baseline = {
         id: 'baseline',
         timestamp: new Date().toISOString(),
@@ -604,7 +604,7 @@ describe('Regression Test Manager', () => {
       expect(result.regressions.length).toBeGreaterThan(0);
     });
 
-    it('should detect improvements', async () => {
+    it('should detect improvements', async () => { try {
       const baseline = {
         id: 'baseline',
         timestamp: new Date().toISOString(),
@@ -650,7 +650,7 @@ describe('Regression Test Manager', () => {
   });
 
   describe('Incremental Testing', () => {
-    it('should create incremental test plan', async () => {
+    it('should create incremental test plan', async () => { try {
       const changedFiles = ['src/api/handler.ts', 'src/components/Button.tsx'];
       const allTests = [
         'api.handler.test.ts',

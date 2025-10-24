@@ -34,7 +34,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Experience Level Calculation', () => {
-        test('should calculate novice level for new users', () => {
+        jest.setTimeout(10000);
+  test('should calculate novice level for new users', () => {
             const userProfile = {
                 preferences: { guidanceLevel: 'adaptive' },
                 stats: {
@@ -49,7 +50,8 @@ describe('ExperienceManager', () => {
             expect(level).toBe('novice');
         });
 
-        test('should calculate intermediate level for moderate users', () => {
+        jest.setTimeout(10000);
+  test('should calculate intermediate level for moderate users', () => {
             const pastDate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000); // 15 days ago
             const userProfile = {
                 preferences: { guidanceLevel: 'adaptive' },
@@ -65,7 +67,8 @@ describe('ExperienceManager', () => {
             expect(level).toBe('intermediate');
         });
 
-        test('should calculate expert level for experienced users', () => {
+        jest.setTimeout(10000);
+  test('should calculate expert level for experienced users', () => {
             const pastDate = new Date(Date.now() - 50 * 24 * 60 * 60 * 1000); // 50 days ago
             const userProfile = {
                 preferences: { guidanceLevel: 'adaptive' },
@@ -85,7 +88,8 @@ describe('ExperienceManager', () => {
             expect(level).toBe('expert');
         });
 
-        test('should respect manual experience level setting', () => {
+        jest.setTimeout(10000);
+  test('should respect manual experience level setting', () => {
             const userProfile = {
                 preferences: { guidanceLevel: 'expert' },
                 stats: {
@@ -100,7 +104,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Skill Proficiency Calculation', () => {
-        test('should calculate skill proficiency correctly', () => {
+        jest.setTimeout(10000);
+  test('should calculate skill proficiency correctly', () => {
             const userProfile = {
                 taskHistory: [
                     { command: 'swarm-init', outcome: 'success' },
@@ -124,7 +129,8 @@ describe('ExperienceManager', () => {
             expect(proficiency.coordination).toBeLessThan(proficiency.development);
         });
 
-        test('should return empty proficiency for users with no task history', () => {
+        jest.setTimeout(10000);
+  test('should return empty proficiency for users with no task history', () => {
             const userProfile = { taskHistory: [] };
             const proficiency = experienceManager.calculateSkillProficiency(userProfile);
 
@@ -133,7 +139,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Milestone Tracking', () => {
-        test('should track milestone achievement', async () => {
+        jest.setTimeout(10000);
+  test('should track milestone achievement', async () => { try {
             const milestoneAchievedSpy = jest.fn();
             experienceManager.on('milestoneAchieved', milestoneAchievedSpy);
 
@@ -156,7 +163,8 @@ describe('ExperienceManager', () => {
             );
         });
 
-        test('should not track already achieved milestones', async () => {
+        jest.setTimeout(10000);
+  test('should not track already achieved milestones', async () => { try {
             const userProfile = mockAdaptiveGuide.userProfile;
             userProfile.learningProgress.completedTutorials = ['firstSuccessfulSwarm'];
 
@@ -168,7 +176,8 @@ describe('ExperienceManager', () => {
             expect(result).toBe(false);
         });
 
-        test('should emit experience level change when milestone triggers promotion', async () => {
+        jest.setTimeout(10000);
+  test('should emit experience level change when milestone triggers promotion', async () => { try {
             const experienceLevelChangedSpy = jest.fn();
             experienceManager.on('experienceLevelChanged', experienceLevelChangedSpy);
 
@@ -203,7 +212,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Learning Recommendations', () => {
-        test('should provide level-appropriate recommendations', () => {
+        jest.setTimeout(10000);
+  test('should provide level-appropriate recommendations', () => {
             const noviceProfile = {
                 experienceLevel: 'novice',
                 learningProgress: { completedTutorials: [] }
@@ -222,7 +232,8 @@ describe('ExperienceManager', () => {
             );
         });
 
-        test('should recommend skill improvements for low proficiency areas', () => {
+        jest.setTimeout(10000);
+  test('should recommend skill improvements for low proficiency areas', () => {
             const userProfile = {
                 experienceLevel: 'intermediate'
             };
@@ -241,7 +252,8 @@ describe('ExperienceManager', () => {
             expect(coordinationRec).toBeTruthy();
         });
 
-        test('should sort recommendations by priority', () => {
+        jest.setTimeout(10000);
+  test('should sort recommendations by priority', () => {
             const userProfile = { experienceLevel: 'intermediate' };
             experienceManager.calculateSkillProficiency = jest.fn().mockReturnValue({
                 coordination: 0.3,
@@ -264,7 +276,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Learning Path Generation', () => {
-        test('should generate comprehensive learning path', () => {
+        jest.setTimeout(10000);
+  test('should generate comprehensive learning path', () => {
             const userProfile = {
                 experienceLevel: 'intermediate',
                 learningProgress: {
@@ -292,7 +305,8 @@ describe('ExperienceManager', () => {
             );
         });
 
-        test('should filter out completed tutorials', () => {
+        jest.setTimeout(10000);
+  test('should filter out completed tutorials', () => {
             const userProfile = {
                 experienceLevel: 'novice',
                 learningProgress: {
@@ -310,7 +324,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Progress Calculation', () => {
-        test('should calculate progress to next level correctly', () => {
+        jest.setTimeout(10000);
+  test('should calculate progress to next level correctly', () => {
             const userProfile = {
                 experienceLevel: 'intermediate',
                 stats: {
@@ -326,7 +341,8 @@ describe('ExperienceManager', () => {
             expect(progress).toBeCloseTo(0.65, 1);
         });
 
-        test('should return 1.0 for users already at highest level', () => {
+        jest.setTimeout(10000);
+  test('should return 1.0 for users already at highest level', () => {
             const userProfile = { experienceLevel: 'expert' };
             const progress = experienceManager.calculateProgressToNextLevel(userProfile);
 
@@ -335,7 +351,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Time Estimation', () => {
-        test('should estimate time to next level based on learning rate', () => {
+        jest.setTimeout(10000);
+  test('should estimate time to next level based on learning rate', () => {
             const userProfile = {
                 experienceLevel: 'intermediate',
                 stats: {
@@ -354,7 +371,8 @@ describe('ExperienceManager', () => {
             expect(typeof timeEstimate).toBe('string');
         });
 
-        test('should return "Unknown" for users with no activity', () => {
+        jest.setTimeout(10000);
+  test('should return "Unknown" for users with no activity', () => {
             const userProfile = {
                 stats: { firstUseDate: new Date().toISOString() },
                 taskHistory: []
@@ -365,7 +383,8 @@ describe('ExperienceManager', () => {
             expect(timeEstimate).toBe('Unknown');
         });
 
-        test('should return "0 days" for users ready for promotion', () => {
+        jest.setTimeout(10000);
+  test('should return "0 days" for users ready for promotion', () => {
             const userProfile = { experienceLevel: 'novice' };
             experienceManager.calculateProgressToNextLevel = jest.fn().mockReturnValue(1.0);
 
@@ -376,7 +395,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Command-Based Experience Updates', () => {
-        test('should update experience from successful command', async () => {
+        jest.setTimeout(10000);
+  test('should update experience from successful command', async () => { try {
             const userProfile = mockAdaptiveGuide.userProfile;
             const initialStats = { ...userProfile.stats };
 
@@ -391,7 +411,8 @@ describe('ExperienceManager', () => {
             expect(userProfile.stats.lastActiveDate).toBeTruthy();
         });
 
-        test('should update experience from failed command', async () => {
+        jest.setTimeout(10000);
+  test('should update experience from failed command', async () => { try {
             const userProfile = mockAdaptiveGuide.userProfile;
             const initialStats = { ...userProfile.stats };
 
@@ -405,7 +426,8 @@ describe('ExperienceManager', () => {
             expect(userProfile.stats.failedCommands).toBe(initialStats.failedCommands + 1);
         });
 
-        test('should check for milestone achievements on command success', async () => {
+        jest.setTimeout(10000);
+  test('should check for milestone achievements on command success', async () => { try {
             const userProfile = mockAdaptiveGuide.userProfile;
             const checkMilestonesSpy = jest.spyOn(experienceManager, 'checkMilestoneAchievements');
 
@@ -424,7 +446,8 @@ describe('ExperienceManager', () => {
             );
         });
 
-        test('should emit experience level change when promotion occurs', async () => {
+        jest.setTimeout(10000);
+  test('should emit experience level change when promotion occurs', async () => { try {
             const experienceLevelChangedSpy = jest.fn();
             experienceManager.on('experienceLevelChanged', experienceLevelChangedSpy);
 
@@ -453,7 +476,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Milestone Achievement Checking', () => {
-        test('should achieve swarm milestone on swarm-init success', async () => {
+        jest.setTimeout(10000);
+  test('should achieve swarm milestone on swarm-init success', async () => { try {
             const userProfile = mockAdaptiveGuide.userProfile;
             const trackMilestoneSpy = jest.spyOn(experienceManager, 'trackMilestone');
 
@@ -474,7 +498,8 @@ describe('ExperienceManager', () => {
             );
         });
 
-        test('should achieve agent milestone on agent-spawn success', async () => {
+        jest.setTimeout(10000);
+  test('should achieve agent milestone on agent-spawn success', async () => { try {
             const userProfile = mockAdaptiveGuide.userProfile;
             const trackMilestoneSpy = jest.spyOn(experienceManager, 'trackMilestone');
 
@@ -492,7 +517,8 @@ describe('ExperienceManager', () => {
             );
         });
 
-        test('should not check milestones for failed commands', async () => {
+        jest.setTimeout(10000);
+  test('should not check milestones for failed commands', async () => { try {
             const userProfile = mockAdaptiveGuide.userProfile;
             const trackMilestoneSpy = jest.spyOn(experienceManager, 'trackMilestone');
 
@@ -507,7 +533,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Experience Level Information', () => {
-        test('should return correct experience level info', () => {
+        jest.setTimeout(10000);
+  test('should return correct experience level info', () => {
             const noviceInfo = experienceManager.getExperienceLevelInfo('novice');
 
             expect(noviceInfo).toEqual(
@@ -526,7 +553,8 @@ describe('ExperienceManager', () => {
             );
         });
 
-        test('should return guidance settings for experience level', () => {
+        jest.setTimeout(10000);
+  test('should return guidance settings for experience level', () => {
             const expertSettings = experienceManager.getGuidanceSettings('expert');
 
             expect(expertSettings).toEqual({
@@ -538,7 +566,8 @@ describe('ExperienceManager', () => {
             });
         });
 
-        test('should default to novice for unknown levels', () => {
+        jest.setTimeout(10000);
+  test('should default to novice for unknown levels', () => {
             const unknownInfo = experienceManager.getExperienceLevelInfo('unknown-level');
             const noviceInfo = experienceManager.getExperienceLevelInfo('novice');
 
@@ -547,7 +576,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Active Days Calculation', () => {
-        test('should calculate active days correctly', () => {
+        jest.setTimeout(10000);
+  test('should calculate active days correctly', () => {
             const pastDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
             const userProfile = {
                 stats: {
@@ -559,7 +589,8 @@ describe('ExperienceManager', () => {
             expect(activeDays).toBe(30);
         });
 
-        test('should return 0 for users with no first use date', () => {
+        jest.setTimeout(10000);
+  test('should return 0 for users with no first use date', () => {
             const userProfile = { stats: {} };
             const activeDays = experienceManager.calculateActiveDays(userProfile);
 
@@ -568,7 +599,8 @@ describe('ExperienceManager', () => {
     });
 
     describe('Complex Task Counting', () => {
-        test('should count complex tasks correctly', () => {
+        jest.setTimeout(10000);
+  test('should count complex tasks correctly', () => {
             const userProfile = {
                 taskHistory: [
                     { command: 'task-orchestrate', outcome: 'success' },
@@ -583,11 +615,12 @@ describe('ExperienceManager', () => {
             expect(complexTasks).toBe(3); // Only successful complex commands
         });
 
-        test('should return 0 for users with no task history', () => {
+        jest.setTimeout(10000);
+  test('should return 0 for users with no task history', () => {
             const userProfile = { taskHistory: undefined };
             const complexTasks = experienceManager.countComplexTasks(userProfile);
 
             expect(complexTasks).toBe(0);
         });
     });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

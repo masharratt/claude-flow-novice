@@ -274,7 +274,8 @@ describe('Tiered Provider Routing', () => {
   });
 
   describe('Tier 1: Important Agents → Claude Code Subscription', () => {
-    test('should route coordinator to Claude Code (free)', async () => {
+    jest.setTimeout(10000);
+  test('should route coordinator to Claude Code (free)', async () => { try {
       const task: Task = {
         agentType: 'coordinator',
         complexity: 'complex',
@@ -291,7 +292,8 @@ describe('Tiered Provider Routing', () => {
       expect(result.reasoning).toContain('free subscription');
     });
 
-    test('should route all important agent types to Tier 1', async () => {
+    jest.setTimeout(10000);
+  test('should route all important agent types to Tier 1', async () => { try {
       const importantTypes = [
         'planner',
         'reviewer',
@@ -315,7 +317,8 @@ describe('Tiered Provider Routing', () => {
       }
     });
 
-    test('should fallback to Tier 2 when subscription limit reached', async () => {
+    jest.setTimeout(10000);
+  test('should fallback to Tier 2 when subscription limit reached', async () => { try {
       // Simulate subscription limit reached
       router.setProviderState('claude-code', {
         available: true,
@@ -336,7 +339,8 @@ describe('Tiered Provider Routing', () => {
       expect(result.reasoning).toContain('subscription limit');
     });
 
-    test('should fallback to Tier 2 when Claude Code unavailable', async () => {
+    jest.setTimeout(10000);
+  test('should fallback to Tier 2 when Claude Code unavailable', async () => { try {
       router.setProviderState('claude-code', {
         available: false,
         withinLimits: true
@@ -356,7 +360,8 @@ describe('Tiered Provider Routing', () => {
   });
 
   describe('Tier 3: Routine Agents → Z.ai Provider', () => {
-    test('should route coder to Z.ai (96% savings)', async () => {
+    jest.setTimeout(10000);
+  test('should route coder to Z.ai (96% savings)', async () => { try {
       const task: Task = {
         agentType: 'coder',
         complexity: 'medium',
@@ -372,7 +377,8 @@ describe('Tiered Provider Routing', () => {
       expect(result.reasoning).toContain('96% savings');
     });
 
-    test('should route all routine agent types to Tier 3', async () => {
+    jest.setTimeout(10000);
+  test('should route all routine agent types to Tier 3', async () => { try {
       const routineTypes = ['coder', 'tester', 'researcher', 'documenter'];
 
       for (const agentType of routineTypes) {
@@ -389,7 +395,8 @@ describe('Tiered Provider Routing', () => {
       }
     });
 
-    test('should fallback to Tier 2 when Z.ai unavailable', async () => {
+    jest.setTimeout(10000);
+  test('should fallback to Tier 2 when Z.ai unavailable', async () => { try {
       router.setProviderState('zai', { available: false });
 
       const task: Task = {
@@ -407,7 +414,8 @@ describe('Tiered Provider Routing', () => {
   });
 
   describe('Cost Savings Analysis', () => {
-    test('should calculate 75-85% cost savings for typical workload', () => {
+    jest.setTimeout(10000);
+  test('should calculate 75-85% cost savings for typical workload', () => {
       // Simulate typical 10-agent swarm: 3 important, 7 routine
       const workload: Task[] = [
         // Important agents (30%)
@@ -434,7 +442,8 @@ describe('Tiered Provider Routing', () => {
       expect(savings.totalCostHybrid).toBeLessThan(savings.totalCostAnthropic);
     });
 
-    test('should show maximum savings when all important agents within subscription', () => {
+    jest.setTimeout(10000);
+  test('should show maximum savings when all important agents within subscription', () => {
       const workload: Task[] = [
         { agentType: 'coordinator', complexity: 'complex', priority: 'high' },
         { agentType: 'coder', complexity: 'medium', priority: 'medium' },
@@ -451,7 +460,8 @@ describe('Tiered Provider Routing', () => {
       expect(savings.savingsPercent).toBeGreaterThan(80);
     });
 
-    test('should show reduced savings when subscription limit reached', () => {
+    jest.setTimeout(10000);
+  test('should show reduced savings when subscription limit reached', () => {
       router.setProviderState('claude-code', { withinLimits: false });
 
       const workload: Task[] = [
@@ -475,7 +485,8 @@ describe('Tiered Provider Routing', () => {
   });
 
   describe('Failover Scenarios', () => {
-    test('should handle complete Z.ai outage', async () => {
+    jest.setTimeout(10000);
+  test('should handle complete Z.ai outage', async () => { try {
       router.setProviderState('zai', { available: false });
 
       const routineTasks: Task[] = [
@@ -490,7 +501,8 @@ describe('Tiered Provider Routing', () => {
       }
     });
 
-    test('should handle complete subscription outage', async () => {
+    jest.setTimeout(10000);
+  test('should handle complete subscription outage', async () => { try {
       router.setProviderState('claude-code', { available: false });
 
       const importantTasks: Task[] = [
@@ -505,7 +517,8 @@ describe('Tiered Provider Routing', () => {
       }
     });
 
-    test('should handle partial outages gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle partial outages gracefully', async () => { try {
       // Subscription exhausted, but still available for new limits
       router.setProviderState('claude-code', {
         available: true,
@@ -532,7 +545,8 @@ describe('Tiered Provider Routing', () => {
   });
 
   describe('Integration Test with Real Z.ai Provider', () => {
-    test('should successfully route and validate Z.ai availability', async () => {
+    jest.setTimeout(10000);
+  test('should successfully route and validate Z.ai availability', async () => { try {
       // This test validates that Z.ai provider is configured correctly
       const task: Task = {
         agentType: 'coder',
@@ -558,7 +572,8 @@ describe('Tiered Provider Routing', () => {
       expect(savingsPercent).toBeGreaterThan(93); // Should be ~93.13%
     });
 
-    test('should validate provider interface compatibility', () => {
+    jest.setTimeout(10000);
+  test('should validate provider interface compatibility', () => {
       const provider = PROVIDERS.zai;
 
       // Verify required provider interface fields

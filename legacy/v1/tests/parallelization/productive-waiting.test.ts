@@ -284,7 +284,7 @@ describe('Dependency Waiting Productivity', () => {
 
   // ===== PRODUCTIVITY MEASUREMENT TEST =====
 
-  it('should complete 50%+ of productive work during wait', async () => {
+  it('should complete 50%+ of productive work during wait', async () => { try {
     const sprint = new SprintCoordinatorEnhanced(
       {
         id: 'sprint-dependent',
@@ -314,7 +314,7 @@ describe('Dependency Waiting Productivity', () => {
     });
 
     // Resolve dependency after 10 seconds
-    setTimeout(async () => {
+    setTimeout(async () => { try {
       await redis.set('signal:sprint:sprint-provider:interface_ready', '1');
     }, 10000);
 
@@ -343,7 +343,7 @@ describe('Dependency Waiting Productivity', () => {
 
   // ===== CONFLICT DETECTION TEST =====
 
-  it('should not conflict with dependency when resolved', async () => {
+  it('should not conflict with dependency when resolved', async () => { try {
     // Sprint 2 works on mocks while waiting for Sprint 1
     const sprint2 = new SprintCoordinatorEnhanced(
       {
@@ -392,7 +392,7 @@ describe('Dependency Waiting Productivity', () => {
 
   // ===== PRODUCTIVE WORK QUEUE PROCESSING TEST =====
 
-  it('should process productive work queue efficiently', async () => {
+  it('should process productive work queue efficiently', async () => { try {
     const sprint = new SprintCoordinatorEnhanced(
       {
         id: 'sprint-queue-test',
@@ -419,7 +419,7 @@ describe('Dependency Waiting Productivity', () => {
     });
 
     // Resolve dependency after 5 seconds
-    setTimeout(async () => {
+    setTimeout(async () => { try {
       await redis.set('signal:sprint:sprint-dep:interface_ready', '1');
     }, 5000);
 
@@ -438,7 +438,7 @@ describe('Dependency Waiting Productivity', () => {
 
   // ===== MOCK REPLACEMENT LOGIC TEST =====
 
-  it('should verify mock replacement logic', async () => {
+  it('should verify mock replacement logic', async () => { try {
     const sprint = new SprintCoordinatorEnhanced(
       {
         id: 'sprint-mock-replacement',
@@ -493,7 +493,7 @@ describe('Dependency Waiting Productivity', () => {
 
   // ===== TIMEOUT HANDLING TEST =====
 
-  it('should timeout if dependency never resolves', async () => {
+  it('should timeout if dependency never resolves', async () => { try {
     // Use shorter timeout for testing (3 seconds instead of 10 minutes)
     const sprint = new SprintCoordinatorEnhanced(
       {

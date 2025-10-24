@@ -80,7 +80,7 @@ describe('CLI Swarm Execution Interface', () => {
   });
 
   describe('Command Registry - Swarm Execution', () => {
-    it('should register swarm-exec command with correct configuration', async () => {
+    it('should register swarm-exec command with correct configuration', async () => { try {
       // Import after mocking
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
@@ -93,7 +93,7 @@ describe('CLI Swarm Execution Interface', () => {
       );
     });
 
-    it('should handle swarm-exec command execution with proper error handling', async () => {
+    it('should handle swarm-exec command execution with proper error handling', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
 
@@ -112,7 +112,7 @@ describe('CLI Swarm Execution Interface', () => {
       );
     });
 
-    it('should handle swarm-exec errors with verbose output', async () => {
+    it('should handle swarm-exec errors with verbose output', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
 
@@ -135,7 +135,7 @@ describe('CLI Swarm Execution Interface', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should handle swarm-exec errors without verbose output', async () => {
+    it('should handle swarm-exec errors without verbose output', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
 
@@ -160,7 +160,7 @@ describe('CLI Swarm Execution Interface', () => {
   });
 
   describe('Swarm Command Execution', () => {
-    it('should register swarm command with correct configuration', async () => {
+    it('should register swarm command with correct configuration', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmCommand = commandRegistry.get('swarm');
 
@@ -172,7 +172,7 @@ describe('CLI Swarm Execution Interface', () => {
       );
     });
 
-    it('should handle swarm command with strategy flag', async () => {
+    it('should handle swarm command with strategy flag', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmCommand = commandRegistry.get('swarm');
 
@@ -190,7 +190,7 @@ describe('CLI Swarm Execution Interface', () => {
   });
 
   describe('Command Registry Integration', () => {
-    it('should provide comprehensive command list including swarm commands', async () => {
+    it('should provide comprehensive command list including swarm commands', async () => { try {
       const { listCommands } = await import('../../cli/command-registry.js');
       const commands = listCommands();
 
@@ -204,7 +204,7 @@ describe('CLI Swarm Execution Interface', () => {
       expect(commands.some(cmd => cmd.name === 'hive-mind')).toBe(true);
     });
 
-    it('should validate command existence', async () => {
+    it('should validate command existence', async () => { try {
       const { hasCommand, getCommand } = await import('../../cli/command-registry.js');
 
       expect(hasCommand('swarm')).toBe(true);
@@ -216,7 +216,7 @@ describe('CLI Swarm Execution Interface', () => {
       expect(swarmCommand.description).toContain('Swarm-based AI agent coordination');
     });
 
-    it('should execute commands with proper error handling', async () => {
+    it('should execute commands with proper error handling', async () => { try {
       const { executeCommand } = await import('../../cli/command-registry.js');
 
       // Mock a successful command
@@ -234,7 +234,7 @@ describe('CLI Swarm Execution Interface', () => {
       expect(mockHandler).toHaveBeenCalledWith(['arg1'], { flag1: true });
     });
 
-    it('should handle command execution failures', async () => {
+    it('should handle command execution failures', async () => { try {
       const { executeCommand } = await import('../../cli/command-registry.js');
 
       const mockHandler = jest.fn().mockRejectedValue(new Error('Command failed'));
@@ -249,7 +249,7 @@ describe('CLI Swarm Execution Interface', () => {
         .rejects.toThrow("Command 'failing-swarm' failed: Command failed");
     });
 
-    it('should handle unknown commands', async () => {
+    it('should handle unknown commands', async () => { try {
       const { executeCommand } = await import('../../cli/command-registry.js');
 
       await expect(executeCommand('unknown-swarm', [], {}))
@@ -258,7 +258,7 @@ describe('CLI Swarm Execution Interface', () => {
   });
 
   describe('Swarm Command Help System', () => {
-    it('should display comprehensive help for swarm-exec command', async () => {
+    it('should display comprehensive help for swarm-exec command', async () => { try {
       const { showCommandHelp } = await import('../../cli/command-registry.js');
 
       // Mock console.log to capture output
@@ -282,7 +282,7 @@ describe('CLI Swarm Execution Interface', () => {
       consoleLogSpy.mockRestore();
     });
 
-    it('should display help for swarm command', async () => {
+    it('should display help for swarm command', async () => { try {
       const { showCommandHelp } = await import('../../cli/command-registry.js');
 
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
@@ -299,7 +299,7 @@ describe('CLI Swarm Execution Interface', () => {
       consoleLogSpy.mockRestore();
     });
 
-    it('should handle help for unknown commands', async () => {
+    it('should handle help for unknown commands', async () => { try {
       const { showCommandHelp } = await import('../../cli/command-registry.js');
 
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
@@ -313,7 +313,7 @@ describe('CLI Swarm Execution Interface', () => {
       consoleLogSpy.mockRestore();
     });
 
-    it('should show all commands with swarm commands included', async () => {
+    it('should show all commands with swarm commands included', async () => { try {
       const { showAllCommands } = await import('../../cli/command-registry.js');
 
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
@@ -333,7 +333,7 @@ describe('CLI Swarm Execution Interface', () => {
   });
 
   describe('Command Flag Parsing and Validation', () => {
-    it('should handle complex flag combinations for swarm commands', async () => {
+    it('should handle complex flag combinations for swarm commands', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
 
@@ -370,7 +370,7 @@ describe('CLI Swarm Execution Interface', () => {
       expect(mockArgValidator.parseFlags).toHaveBeenCalled();
     });
 
-    it('should validate swarm execution parameters', async () => {
+    it('should validate swarm execution parameters', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
 
@@ -389,7 +389,7 @@ describe('CLI Swarm Execution Interface', () => {
       expect(mockArgValidator.validateSwarmConfig).toHaveBeenCalledWith(flags);
     });
 
-    it('should reject invalid swarm configurations', async () => {
+    it('should reject invalid swarm configurations', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
 
@@ -411,7 +411,7 @@ describe('CLI Swarm Execution Interface', () => {
   });
 
   describe('Redis Integration for CLI Swarm Commands', () => {
-    it('should integrate Redis persistence for swarm state', async () => {
+    it('should integrate Redis persistence for swarm state', async () => { try {
       const { connectRedis, saveSwarmState } = await import('../../cli/utils/redis-client.js');
 
       // Mock Redis connection
@@ -437,7 +437,7 @@ describe('CLI Swarm Execution Interface', () => {
       expect(saveSwarmState).toHaveBeenCalledWith(client, swarmId, swarmState);
     });
 
-    it('should handle Redis connection failures gracefully', async () => {
+    it('should handle Redis connection failures gracefully', async () => { try {
       const { connectRedis } = await import('../../cli/utils/redis-client.js');
 
       connectRedis.mockRejectedValue(new Error('Redis connection failed'));
@@ -446,7 +446,7 @@ describe('CLI Swarm Execution Interface', () => {
         .rejects.toThrow('Redis connection failed');
     });
 
-    it('should load swarm state for recovery operations', async () => {
+    it('should load swarm state for recovery operations', async () => { try {
       const { loadSwarmState, connectRedis } = await import('../../cli/utils/redis-client.js');
 
       connectRedis.mockResolvedValue(mockRedisClient);
@@ -470,7 +470,7 @@ describe('CLI Swarm Execution Interface', () => {
   });
 
   describe('Command Performance and Resource Management', () => {
-    it('should track command execution performance', async () => {
+    it('should track command execution performance', async () => { try {
       const { executeCommand } = await import('../../cli/command-registry.js');
 
       // Mock performance tracking
@@ -493,7 +493,7 @@ describe('CLI Swarm Execution Interface', () => {
       expect(mockHandler).toHaveBeenCalled();
     });
 
-    it('should handle command timeouts gracefully', async () => {
+    it('should handle command timeouts gracefully', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
 
@@ -511,7 +511,7 @@ describe('CLI Swarm Execution Interface', () => {
         .rejects.toThrow('Command timeout');
     });
 
-    it('should handle concurrent command executions', async () => {
+    it('should handle concurrent command executions', async () => { try {
       const { executeCommand } = await import('../../cli/command-registry.js');
 
       const mockHandler1 = jest.fn().mockResolvedValue({ success: true, id: 1 });
@@ -543,7 +543,7 @@ describe('CLI Swarm Execution Interface', () => {
   });
 
   describe('Command Registry Security and Validation', () => {
-    it('should validate command registration parameters', async () => {
+    it('should validate command registration parameters', async () => { try {
       const { registerCommand, hasCommand } = await import('../../cli/command-registry.js');
 
       // Test valid command registration
@@ -566,7 +566,7 @@ describe('CLI Swarm Execution Interface', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    it('should sanitize command inputs', async () => {
+    it('should sanitize command inputs', async () => { try {
       const { commandRegistry } = await import('../../cli/command-registry.js');
       const swarmExecCommand = commandRegistry.get('swarm-exec');
 
@@ -590,7 +590,7 @@ describe('CLI Swarm Execution Interface', () => {
       }
     });
 
-    it('should handle malicious command attempts', async () => {
+    it('should handle malicious command attempts', async () => { try {
       const { executeCommand } = await import('../../cli/command-registry.js');
 
       // Test command injection attempt
@@ -600,4 +600,4 @@ describe('CLI Swarm Execution Interface', () => {
         .rejects.toThrow(`Unknown command: ${maliciousCommand}`);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

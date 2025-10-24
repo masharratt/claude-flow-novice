@@ -427,15 +427,15 @@ class HierarchicalCoordinationSystem extends EventEmitter {
 describe('Hierarchical Coordination System - Integration', () => {
   let system: HierarchicalCoordinationSystem;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     system = new HierarchicalCoordinationSystem();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await system.shutdown();
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Reset system for each test
     await system.shutdown();
     system = new HierarchicalCoordinationSystem();
@@ -446,7 +446,7 @@ describe('Hierarchical Coordination System - Integration', () => {
   // ============================================
 
   describe('Queen-Worker Lifecycle', () => {
-    it('should initialize hierarchical structure with queen and workers', async () => {
+    it('should initialize hierarchical structure with queen and workers', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning', 'coordination'],
         coordinatorCount: 3,
@@ -459,7 +459,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(metrics.hierarchyDepth).toBe(3);
     });
 
-    it('should delegate task from queen → coordinator → worker', async () => {
+    it('should delegate task from queen → coordinator → worker', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 2,
@@ -495,7 +495,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(hasCompletionEvent).toBe(true);
     });
 
-    it('should track agent workload throughout lifecycle', async () => {
+    it('should track agent workload throughout lifecycle', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 1,
@@ -537,7 +537,7 @@ describe('Hierarchical Coordination System - Integration', () => {
   // ============================================
 
   describe('Hierarchical Orchestration (8+ Agents)', () => {
-    it('should scale to 8+ agents in hierarchy', async () => {
+    it('should scale to 8+ agents in hierarchy', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 2,
@@ -550,7 +550,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(metrics.hierarchyDepth).toBe(3);
     });
 
-    it('should distribute tasks across hierarchy efficiently', async () => {
+    it('should distribute tasks across hierarchy efficiently', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 3,
@@ -579,7 +579,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(metrics.averageLoadPerAgent).toBeLessThan(5); // Distributed load
     });
 
-    it('should maintain performance with large hierarchy', async () => {
+    it('should maintain performance with large hierarchy', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 5,
@@ -608,7 +608,7 @@ describe('Hierarchical Coordination System - Integration', () => {
   // ============================================
 
   describe('Task Delegation and Load Balancing', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 2,
@@ -616,7 +616,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       });
     });
 
-    it('should balance load across coordinators', async () => {
+    it('should balance load across coordinators', async () => { try {
       // Submit tasks
       for (let i = 1; i <= 10; i++) {
         await system.submitTask(`Task ${i}`, {
@@ -632,7 +632,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(metrics.averageLoadPerAgent).toBeLessThan(3); // Reasonably balanced
     });
 
-    it('should trigger rebalancing when load imbalanced', async () => {
+    it('should trigger rebalancing when load imbalanced', async () => { try {
       const eventHandler = jest.fn();
       system.on('load:rebalanced', eventHandler);
 
@@ -659,7 +659,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(system.getSystemMetrics().totalAgents).toBeGreaterThan(0);
     });
 
-    it('should prioritize critical tasks', async () => {
+    it('should prioritize critical tasks', async () => { try {
       const criticalTaskId = await system.submitTask('Critical fix', {
         priority: 'critical',
         requiredCapabilities: ['execution'],
@@ -686,7 +686,7 @@ describe('Hierarchical Coordination System - Integration', () => {
   // ============================================
 
   describe('Consensus Validation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 2,
@@ -694,7 +694,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       });
     });
 
-    it('should validate completed tasks with consensus', async () => {
+    it('should validate completed tasks with consensus', async () => { try {
       const taskId = await system.submitTask('Task requiring consensus', {
         requiredCapabilities: ['execution'],
       });
@@ -707,7 +707,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(consensusReached).toBe(true); // High approval rate
     });
 
-    it('should emit consensus validation events', async () => {
+    it('should emit consensus validation events', async () => { try {
       const eventHandler = jest.fn();
 
       const taskId = await system.submitTask('Consensus task', {
@@ -727,7 +727,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(eventHandler.mock.calls[0][0]).toHaveProperty('approvalRate');
     });
 
-    it('should require 2/3 approval threshold', async () => {
+    it('should require 2/3 approval threshold', async () => { try {
       const taskId = await system.submitTask('Strict consensus', {
         requiredCapabilities: ['execution'],
       });
@@ -751,7 +751,7 @@ describe('Hierarchical Coordination System - Integration', () => {
   // ============================================
 
   describe('Failure Recovery', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 2,
@@ -759,7 +759,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       });
     });
 
-    it('should detect and recover from agent failures', async () => {
+    it('should detect and recover from agent failures', async () => { try {
       const eventHandler = jest.fn();
       system.on('agent:recovered', eventHandler);
 
@@ -785,7 +785,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       }
     });
 
-    it('should reassign tasks after agent recovery', async () => {
+    it('should reassign tasks after agent recovery', async () => { try {
       // Manually fail an agent
       const workers = Array.from(system['agents'].values())
         .filter(a => a.role === AgentRole.WORKER);
@@ -819,7 +819,7 @@ describe('Hierarchical Coordination System - Integration', () => {
   // ============================================
 
   describe('Performance Benchmarks', () => {
-    it('should achieve >10 tasks/sec throughput with 8+ agents', async () => {
+    it('should achieve >10 tasks/sec throughput with 8+ agents', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 3,
@@ -841,7 +841,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(metrics.taskThroughput).toBeGreaterThan(10); // >10 tasks/sec
     });
 
-    it('should handle hierarchical depth of 3+ levels efficiently', async () => {
+    it('should handle hierarchical depth of 3+ levels efficiently', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 4,
@@ -854,7 +854,7 @@ describe('Hierarchical Coordination System - Integration', () => {
       expect(metrics.totalAgents).toBeGreaterThan(15);
     });
 
-    it('should complete task lifecycle in <100ms average', async () => {
+    it('should complete task lifecycle in <100ms average', async () => { try {
       await system.initializeHierarchy({
         queenCapabilities: ['strategic-planning'],
         coordinatorCount: 2,

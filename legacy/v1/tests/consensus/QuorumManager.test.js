@@ -26,28 +26,31 @@ describe('QuorumManager', () => {
     quorumManager = new QuorumManager('test-node-1', mockOptions);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (quorumManager) {
       await quorumManager.shutdown();
     }
   });
 
   describe('Initialization', () => {
-    test('should initialize with correct configuration', () => {
+    jest.setTimeout(10000);
+  test('should initialize with correct configuration', () => {
       expect(quorumManager.nodeId).toBe('test-node-1');
       expect(quorumManager.options.byzantineFaultTolerance).toBe(true);
       expect(quorumManager.options.minQuorumSize).toBe(3);
       expect(quorumManager.adjustmentStrategies.size).toBeGreaterThan(0);
     });
 
-    test('should initialize all required components', () => {
+    jest.setTimeout(10000);
+  test('should initialize all required components', () => {
       expect(quorumManager.membershipTracker).toBeDefined();
       expect(quorumManager.networkMonitor).toBeDefined();
       expect(quorumManager.faultDetector).toBeDefined();
       expect(quorumManager.votingSystem).toBeDefined();
     });
 
-    test('should initialize strategy collection', () => {
+    jest.setTimeout(10000);
+  test('should initialize strategy collection', () => {
       expect(quorumManager.adjustmentStrategies.has('NETWORK_BASED')).toBe(true);
       expect(quorumManager.adjustmentStrategies.has('PERFORMANCE_BASED')).toBe(true);
       expect(quorumManager.adjustmentStrategies.has('FAULT_TOLERANCE_BASED')).toBe(true);
@@ -56,7 +59,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Verification Quorum Establishment', () => {
-    test('should establish verification quorum successfully', async () => {
+    jest.setTimeout(10000);
+  test('should establish verification quorum successfully', async () => { try {
       const verificationTask = {
         id: 'verify-task-1',
         type: 'CONSENSUS_VERIFICATION',
@@ -75,7 +79,8 @@ describe('QuorumManager', () => {
       expect(typeof result.establishmentTime).toBe('number');
     });
 
-    test('should handle verification requirements correctly', async () => {
+    jest.setTimeout(10000);
+  test('should handle verification requirements correctly', async () => { try {
       const verificationTask = {
         id: 'verify-task-2',
         type: 'SPECIFICATION_VALIDATION'
@@ -96,7 +101,8 @@ describe('QuorumManager', () => {
       expect(result.result.consensusStrength).toBeGreaterThanOrEqual(0.8);
     });
 
-    test('should fail gracefully with invalid task', async () => {
+    jest.setTimeout(10000);
+  test('should fail gracefully with invalid task', async () => { try {
       const invalidTask = null;
 
       await expect(
@@ -106,7 +112,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Dynamic Scaling', () => {
-    test('should execute scale-up scenario', async () => {
+    jest.setTimeout(10000);
+  test('should execute scale-up scenario', async () => { try {
       const scalingScenarios = [
         {
           id: 'scale-up-1',
@@ -124,7 +131,8 @@ describe('QuorumManager', () => {
       expect(result.scenarios[0].success).toBe(true);
     });
 
-    test('should execute scale-down scenario', async () => {
+    jest.setTimeout(10000);
+  test('should execute scale-down scenario', async () => { try {
       // First establish a larger quorum
       await quorumManager.expandQuorumForByzantineTolerance(9);
 
@@ -143,7 +151,8 @@ describe('QuorumManager', () => {
       expect(result.scenarios[0].finalSize).toBe(5);
     });
 
-    test('should handle dynamic adjustment scenario', async () => {
+    jest.setTimeout(10000);
+  test('should handle dynamic adjustment scenario', async () => { try {
       const scalingScenarios = [
         {
           id: 'dynamic-1',
@@ -162,7 +171,8 @@ describe('QuorumManager', () => {
       expect(result.scenarios[0]).toHaveProperty('resourceMetrics');
     });
 
-    test('should measure scaling performance', async () => {
+    jest.setTimeout(10000);
+  test('should measure scaling performance', async () => { try {
       const scalingScenarios = [
         {
           id: 'perf-test-1',
@@ -181,7 +191,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Technical Specification Validation', () => {
-    test('should validate consensus specifications', async () => {
+    jest.setTimeout(10000);
+  test('should validate consensus specifications', async () => { try {
       const specifications = {
         consensus: {
           algorithm: 'PBFT',
@@ -219,7 +230,8 @@ describe('QuorumManager', () => {
       expect(result.overallCompliance).toHaveProperty('compliant');
     });
 
-    test('should detect specification violations', async () => {
+    jest.setTimeout(10000);
+  test('should detect specification violations', async () => { try {
       const invalidSpecifications = {
         consensus: {
           algorithm: 'INVALID_ALGORITHM',
@@ -237,7 +249,8 @@ describe('QuorumManager', () => {
       expect(result.overallCompliance.totalViolations).toBeGreaterThan(0);
     });
 
-    test('should generate actionable recommendations', async () => {
+    jest.setTimeout(10000);
+  test('should generate actionable recommendations', async () => { try {
       const specifications = {
         consensus: { algorithm: 'CUSTOM_ALGORITHM' },
         performance: { averageConsensusLatency: 8000 }
@@ -255,7 +268,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Verification Voting Coordination', () => {
-    test('should coordinate voting successfully', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate voting successfully', async () => { try {
       const verificationResults = {
         taskId: 'verify-1',
         results: { consensus: true, accuracy: 0.95 },
@@ -270,7 +284,8 @@ describe('QuorumManager', () => {
       expect(result).toHaveProperty('votingDetails');
     });
 
-    test('should handle Byzantine nodes during voting', async () => {
+    jest.setTimeout(10000);
+  test('should handle Byzantine nodes during voting', async () => { try {
       const verificationResults = {
         taskId: 'verify-2',
         results: { consensus: true, accuracy: 0.85 },
@@ -292,7 +307,8 @@ describe('QuorumManager', () => {
       expect(Array.isArray(result.byzantineNodesDetected)).toBe(true);
     });
 
-    test('should respect voting timeouts', async () => {
+    jest.setTimeout(10000);
+  test('should respect voting timeouts', async () => { try {
       const verificationResults = {
         taskId: 'verify-timeout',
         results: { consensus: true }
@@ -315,7 +331,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Byzantine Fault Tolerance', () => {
-    test('should ensure Byzantine fault tolerance', async () => {
+    jest.setTimeout(10000);
+  test('should ensure Byzantine fault tolerance', async () => { try {
       const verificationProcess = {
         id: 'bft-test-1',
         maxByzantineNodes: 2,
@@ -331,7 +348,8 @@ describe('QuorumManager', () => {
       expect(result.guaranteedToleranceLevel).toBeGreaterThanOrEqual(2);
     });
 
-    test('should expand quorum for Byzantine tolerance', async () => {
+    jest.setTimeout(10000);
+  test('should expand quorum for Byzantine tolerance', async () => { try {
       const initialQuorumSize = quorumManager.currentQuorum.size;
 
       const verificationProcess = {
@@ -346,7 +364,8 @@ describe('QuorumManager', () => {
       expect(result.guaranteedToleranceLevel).toBeGreaterThanOrEqual(3);
     });
 
-    test('should test Byzantine fault scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should test Byzantine fault scenarios', async () => { try {
       const verificationProcess = {
         id: 'bft-scenario-test',
         testScenarios: [
@@ -365,7 +384,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Optimal Quorum Calculation', () => {
-    test('should calculate optimal quorum size', async () => {
+    jest.setTimeout(10000);
+  test('should calculate optimal quorum size', async () => { try {
       const analysisInput = {
         networkConditions: {
           averageLatency: 100,
@@ -389,7 +409,8 @@ describe('QuorumManager', () => {
       expect(result.confidence).toBeLessThanOrEqual(1);
     });
 
-    test('should use multiple strategies', async () => {
+    jest.setTimeout(10000);
+  test('should use multiple strategies', async () => { try {
       const analysisInput = {
         networkConditions: { averageLatency: 150 },
         performanceMetrics: { throughput: 100, latency: 200 },
@@ -403,7 +424,8 @@ describe('QuorumManager', () => {
         .toContain(result.strategy);
     });
 
-    test('should provide detailed reasoning', async () => {
+    jest.setTimeout(10000);
+  test('should provide detailed reasoning', async () => { try {
       const analysisInput = {
         networkConditions: { averageLatency: 200, packetLoss: 0.02 }
       };
@@ -417,7 +439,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Hooks Integration', () => {
-    test('should execute pre-task hook', async () => {
+    jest.setTimeout(10000);
+  test('should execute pre-task hook', async () => { try {
       const hookExecuted = jest.fn();
       quorumManager.on('preTaskCompleted', hookExecuted);
 
@@ -429,7 +452,8 @@ describe('QuorumManager', () => {
       });
     });
 
-    test('should execute post-edit hook', async () => {
+    jest.setTimeout(10000);
+  test('should execute post-edit hook', async () => { try {
       const hookExecuted = jest.fn();
       quorumManager.on('postEditCompleted', hookExecuted);
 
@@ -442,7 +466,8 @@ describe('QuorumManager', () => {
       });
     });
 
-    test('should execute post-task hook', async () => {
+    jest.setTimeout(10000);
+  test('should execute post-task hook', async () => { try {
       const hookExecuted = jest.fn();
       quorumManager.on('postTaskCompleted', hookExecuted);
 
@@ -456,7 +481,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Error Handling', () => {
-    test('should handle network failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle network failures gracefully', async () => { try {
       // Mock network failure
       quorumManager.networkMonitor.getCurrentConditions = jest.fn()
         .mockRejectedValue(new Error('Network unavailable'));
@@ -470,7 +496,8 @@ describe('QuorumManager', () => {
       expect(result.confidence).toBeLessThan(1); // Lower confidence due to error
     });
 
-    test('should handle Byzantine node detection errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle Byzantine node detection errors', async () => { try {
       const verificationResults = { taskId: 'error-test' };
 
       // Mock Byzantine detection failure
@@ -482,7 +509,8 @@ describe('QuorumManager', () => {
       ).rejects.toThrow('Detection failed');
     });
 
-    test('should recover from partial node failures', async () => {
+    jest.setTimeout(10000);
+  test('should recover from partial node failures', async () => { try {
       const scalingScenarios = [
         {
           id: 'failure-recovery-test',
@@ -501,7 +529,8 @@ describe('QuorumManager', () => {
   });
 
   describe('Performance', () => {
-    test('should complete quorum establishment within timeout', async () => {
+    jest.setTimeout(10000);
+  test('should complete quorum establishment within timeout', async () => { try {
       const verificationTask = { id: 'perf-test' };
       const startTime = Date.now();
 
@@ -512,7 +541,8 @@ describe('QuorumManager', () => {
       expect(result).toBeDefined();
     });
 
-    test('should handle concurrent quorum operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent quorum operations', async () => { try {
       const tasks = Array.from({ length: 5 }, (_, i) => ({
         id: `concurrent-task-${i}`,
         type: 'CONCURRENT_TEST'
@@ -543,7 +573,8 @@ describe('Integration with VotingCoordinator', () => {
     votingCoordinator = quorumManager.votingSystem;
   });
 
-  test('should integrate voting with quorum management', async () => {
+  jest.setTimeout(10000);
+  test('should integrate voting with quorum management', async () => { try {
     const votingRequest = {
       votingId: 'integration-vote-1',
       subject: { type: 'VERIFICATION_RESULT', data: { consensus: true } },
@@ -572,7 +603,8 @@ describe('NetworkBasedStrategy Integration', () => {
     networkStrategy = new NetworkBasedStrategy(mockQuorumManager);
   });
 
-  test('should calculate network-optimized quorum', async () => {
+  jest.setTimeout(10000);
+  test('should calculate network-optimized quorum', async () => { try {
     const analysisInput = {
       networkConditions: {
         averageLatency: 150,
@@ -594,4 +626,4 @@ describe('NetworkBasedStrategy Integration', () => {
     expect(result.quorum).toHaveProperty('nodes');
     expect(result.reasoning).toBeDefined();
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

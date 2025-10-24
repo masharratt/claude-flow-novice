@@ -21,7 +21,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
     let performanceBaseline;
     let allPhaseComponents;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         // Initialize Byzantine security for the entire system
         securityManager = new ByzantineSecurityManager({
             nodeId: 'unified-system-' + crypto.randomUUID(),
@@ -74,7 +74,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
     });
 
     describe('Phase Integration and Byzantine Security Validation', () => {
-        it('should integrate all 5 phases seamlessly with Byzantine consensus', async () => {
+        it('should integrate all 5 phases seamlessly with Byzantine consensus', async () => { try {
             // TDD: Write test FIRST - this should fail initially
             const integrationResult = await unifiedSystem.validateCompleteIntegration({
                 byzantineConsensusRequired: true,
@@ -100,7 +100,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
             expect(integrationResult.securityProperties.maliciousNodeDetection).to.be.true;
         });
 
-        it('should maintain data flow integrity across all phases with cryptographic verification', async () => {
+        it('should maintain data flow integrity across all phases with cryptographic verification', async () => { try {
             const testWorkflow = {
                 userId: 'integration-test-user',
                 projectType: 'full-stack-web-app',
@@ -154,7 +154,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
             expect(workflowExecution.cryptographicValidationPassed).to.be.true;
         });
 
-        it('should handle Phase 4 integration fixes and maintain system stability', async () => {
+        it('should handle Phase 4 integration fixes and maintain system stability', async () => { try {
             // Specifically test Phase 4 fixes for orchestrator and state coordination issues
             const phase4IntegrationTest = await unifiedSystem.testPhase4Integration({
                 orchestratorFixes: true,
@@ -181,7 +181,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
     });
 
     describe('End-to-End Performance Validation with 8-10x Improvement Target', () => {
-        it('should achieve minimum 8x performance improvement across all metrics', async () => {
+        it('should achieve minimum 8x performance improvement across all metrics', async () => { try {
             // Simulate realistic development workflow with performance measurement
             const developmentWorkflow = {
                 phases: ['analysis', 'design', 'implementation', 'testing', 'deployment'],
@@ -226,7 +226,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
             expect(performanceMeasurement.byzantineConsensusOnMetrics).to.be.true;
         });
 
-        it('should demonstrate performance scaling with increasing complexity', async () => {
+        it('should demonstrate performance scaling with increasing complexity', async () => { try {
             const complexityLevels = ['simple', 'medium', 'complex', 'enterprise'];
             const scalingResults = [];
 
@@ -272,7 +272,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
     });
 
     describe('User Satisfaction and Experience Validation', () => {
-        it('should achieve user satisfaction rating above 4.5/5.0', async () => {
+        it('should achieve user satisfaction rating above 4.5/5.0', async () => { try {
             // Simulate diverse user scenarios and measure satisfaction
             const userScenarios = [
                 {
@@ -339,7 +339,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
             expect(securitySatisfactionCorrelation).to.be.at.least(4.0);
         });
 
-        it('should provide consistent high-quality experience across different use cases', async () => {
+        it('should provide consistent high-quality experience across different use cases', async () => { try {
             const useCases = [
                 'new_project_setup',
                 'legacy_code_refactoring',
@@ -388,7 +388,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
     });
 
     describe('Byzantine Security and Fault Tolerance Under Load', () => {
-        it('should maintain Byzantine security under high load and malicious attacks', async () => {
+        it('should maintain Byzantine security under high load and malicious attacks', async () => { try {
             // Simulate high-load scenario with malicious nodes
             const loadTestScenario = {
                 concurrentOperations: 1000,
@@ -423,7 +423,7 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
     });
 
     describe('Cross-Phase Memory and State Management', () => {
-        it('should maintain consistent state and memory across all phases', async () => {
+        it('should maintain consistent state and memory across all phases', async () => { try {
             const stateManagementTest = await unifiedSystem.testCrossPhaseStateManagement({
                 byzantineVerification: true,
                 stateConsistencyChecks: true,
@@ -449,4 +449,4 @@ describe.skip('Complete System Integration - All Phases 1-5 TDD Tests (Pending F
         const squaredDifferences = numbers.map(num => Math.pow(num - mean, 2));
         return squaredDifferences.reduce((sum, diff) => sum + diff, 0) / numbers.length;
     }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

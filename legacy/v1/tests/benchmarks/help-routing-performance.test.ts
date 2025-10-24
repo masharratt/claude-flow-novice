@@ -166,7 +166,7 @@ describe('Help Routing Performance Benchmark', () => {
     }
   });
 
-  it('should route help request in <200ms end-to-end', async () => {
+  it('should route help request in <200ms end-to-end', async () => { try {
     const request: HelpRequest = {
       id: 'req-1',
       requesterId: 'agent-requester-1',
@@ -189,7 +189,7 @@ describe('Help Routing Performance Benchmark', () => {
     expect(result.totalLatencyMs).toBeLessThan(200);
   });
 
-  it('should maintain <200ms p95 across 100 routing requests', async () => {
+  it('should maintain <200ms p95 across 100 routing requests', async () => { try {
     const latencies: number[] = [];
     const stageLatencies = { matching: [], notification: [], acceptance: [], assignment: [] };
 
@@ -238,7 +238,7 @@ describe('Help Routing Performance Benchmark', () => {
     expect(p95Latency).toBeLessThan(200);
   });
 
-  it('should handle concurrent routing requests efficiently', async () => {
+  it('should handle concurrent routing requests efficiently', async () => { try {
     const requests: HelpRequest[] = [];
 
     for (let i = 0; i < 20; i++) {

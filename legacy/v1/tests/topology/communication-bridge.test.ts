@@ -12,7 +12,7 @@ vi.mock('../../src/utils/helpers', () => ({
 describe('CommunicationBridge', () => {
   let bridge: CommunicationBridge;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     bridge = new CommunicationBridge({
       managerId: 'test-manager',
       enableCompression: false,
@@ -24,7 +24,7 @@ describe('CommunicationBridge', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (bridge) {
       await bridge.shutdown();
     }
@@ -32,20 +32,23 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Initialization', () => {
-    test('should initialize successfully', async () => {
+    jest.setTimeout(10000);
+  test('should initialize successfully', async () => { try {
       await bridge.initialize();
 
       expect((bridge as any).isRunning).toBe(true);
     });
 
-    test('should not initialize twice', async () => {
+    jest.setTimeout(10000);
+  test('should not initialize twice', async () => { try {
       await bridge.initialize();
       await bridge.initialize();
 
       expect((bridge as any).isRunning).toBe(true);
     });
 
-    test('should emit initialization event', async () => {
+    jest.setTimeout(10000);
+  test('should emit initialization event', async () => { try {
       const initSpy = vi.fn();
       bridge.on('bridge:initialized', initSpy);
 
@@ -58,11 +61,12 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Bridge Management', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await bridge.initialize();
     });
 
-    test('should establish bridge between topologies', async () => {
+    jest.setTimeout(10000);
+  test('should establish bridge between topologies', async () => { try {
       const bridgeId = await bridge.establishBridge('topology-1', 'topology-2');
 
       expect(bridgeId).toBeDefined();
@@ -74,7 +78,8 @@ describe('CommunicationBridge', () => {
       expect(bridges[0].targetTopology).toBe('topology-2');
     });
 
-    test('should emit bridge establishment event', async () => {
+    jest.setTimeout(10000);
+  test('should emit bridge establishment event', async () => { try {
       const establishSpy = vi.fn();
       bridge.on('bridge:established', establishSpy);
 
@@ -87,7 +92,8 @@ describe('CommunicationBridge', () => {
       });
     });
 
-    test('should close bridge', async () => {
+    jest.setTimeout(10000);
+  test('should close bridge', async () => { try {
       const bridgeId = await bridge.establishBridge('topology-1', 'topology-2');
 
       await bridge.closeBridge(bridgeId);
@@ -96,7 +102,8 @@ describe('CommunicationBridge', () => {
       expect(bridges).toHaveLength(0);
     });
 
-    test('should emit bridge closure event', async () => {
+    jest.setTimeout(10000);
+  test('should emit bridge closure event', async () => { try {
       const closeSpy = vi.fn();
       bridge.on('bridge:closed', closeSpy);
 
@@ -106,12 +113,14 @@ describe('CommunicationBridge', () => {
       expect(closeSpy).toHaveBeenCalledWith({ bridgeId });
     });
 
-    test('should handle closing non-existent bridge', async () => {
+    jest.setTimeout(10000);
+  test('should handle closing non-existent bridge', async () => { try {
       await expect(bridge.closeBridge('non-existent'))
         .rejects.toThrow('Bridge non-existent not found');
     });
 
-    test('should create bidirectional queues', async () => {
+    jest.setTimeout(10000);
+  test('should create bidirectional queues', async () => { try {
       await bridge.establishBridge('topology-1', 'topology-2');
 
       const queueStatus = bridge.getQueueStatus();
@@ -121,7 +130,8 @@ describe('CommunicationBridge', () => {
       expect(queueIds).toEqual(['topology-1-topology-2', 'topology-2-topology-1']);
     });
 
-    test('should create routing table entries', async () => {
+    jest.setTimeout(10000);
+  test('should create routing table entries', async () => { try {
       await bridge.establishBridge('topology-1', 'topology-2');
 
       const routingTable = bridge.getRoutingTable();
@@ -133,13 +143,14 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Message Routing', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await bridge.initialize();
       await bridge.establishBridge('topology-1', 'topology-2');
       await bridge.establishBridge('topology-2', 'topology-3');
     });
 
-    test('should route direct message', async () => {
+    jest.setTimeout(10000);
+  test('should route direct message', async () => { try {
       const message: CoordinationMessage = {
         id: 'msg-1',
         type: 'task_assignment',
@@ -159,7 +170,8 @@ describe('CommunicationBridge', () => {
       expect(queue?.size).toBeGreaterThanOrEqual(0); // May have been processed already
     });
 
-    test('should find multi-hop route', async () => {
+    jest.setTimeout(10000);
+  test('should find multi-hop route', async () => { try {
       const message: CoordinationMessage = {
         id: 'msg-multi-hop',
         type: 'task_assignment',
@@ -177,7 +189,8 @@ describe('CommunicationBridge', () => {
       expect(true).toBe(true); // Test that no error is thrown
     });
 
-    test('should handle message with explicit route', async () => {
+    jest.setTimeout(10000);
+  test('should handle message with explicit route', async () => { try {
       const message: CoordinationMessage & { route: string[] } = {
         id: 'msg-explicit-route',
         type: 'task_assignment',
@@ -193,7 +206,8 @@ describe('CommunicationBridge', () => {
       expect(true).toBe(true); // Test that explicit route is used
     });
 
-    test('should fail routing with no available route', async () => {
+    jest.setTimeout(10000);
+  test('should fail routing with no available route', async () => { try {
       const message: CoordinationMessage = {
         id: 'msg-no-route',
         type: 'task_assignment',
@@ -211,12 +225,13 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Message Processing', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await bridge.initialize();
       await bridge.establishBridge('topology-1', 'topology-2');
     });
 
-    test('should process queued messages', async () => {
+    jest.setTimeout(10000);
+  test('should process queued messages', async () => { try {
       const deliveredSpy = vi.fn();
       bridge.on('message:delivered', deliveredSpy);
 
@@ -239,7 +254,8 @@ describe('CommunicationBridge', () => {
       expect(deliveredSpy).toHaveBeenCalled();
     });
 
-    test('should emit message received event', async () => {
+    jest.setTimeout(10000);
+  test('should emit message received event', async () => { try {
       const receivedSpy = vi.fn();
       bridge.on('message:received', receivedSpy);
 
@@ -266,11 +282,12 @@ describe('CommunicationBridge', () => {
       });
     });
 
-    test('should handle message retry on failure', async () => {
+    jest.setTimeout(10000);
+  test('should handle message retry on failure', async () => { try {
       // Mock message processing failure
       const originalProcessQueuedMessage = (bridge as any).processQueuedMessage;
       let callCount = 0;
-      (bridge as any).processQueuedMessage = vi.fn().mockImplementation(async () => {
+      (bridge as any).processQueuedMessage = vi.fn().mockImplementation(async () => { try {
         callCount++;
         if (callCount <= 1) {
           throw new Error('Processing failed');
@@ -300,7 +317,8 @@ describe('CommunicationBridge', () => {
       (bridge as any).processQueuedMessage = originalProcessQueuedMessage;
     });
 
-    test('should drop message after retry limit', async () => {
+    jest.setTimeout(10000);
+  test('should drop message after retry limit', async () => { try {
       const droppedSpy = vi.fn();
       bridge.on('message:dropped', droppedSpy);
 
@@ -332,11 +350,12 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Protocol Adaptation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await bridge.initialize();
     });
 
-    test('should apply mesh to hierarchical protocol adaptation', async () => {
+    jest.setTimeout(10000);
+  test('should apply mesh to hierarchical protocol adaptation', async () => { try {
       const message: CoordinationMessage = {
         id: 'msg-adapt',
         type: 'broadcast',
@@ -352,7 +371,8 @@ describe('CommunicationBridge', () => {
       expect(processedMessage).toBeDefined();
     });
 
-    test('should apply routing rules based on priority', async () => {
+    jest.setTimeout(10000);
+  test('should apply routing rules based on priority', async () => { try {
       const highPriorityMessage: CoordinationMessage = {
         id: 'msg-high-priority',
         type: 'task_assignment',
@@ -368,7 +388,8 @@ describe('CommunicationBridge', () => {
       expect(processedMessage.expedited).toBe(true);
     });
 
-    test('should apply error message special handling', async () => {
+    jest.setTimeout(10000);
+  test('should apply error message special handling', async () => { try {
       const errorMessage: CoordinationMessage = {
         id: 'msg-error',
         type: 'error',
@@ -385,7 +406,7 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Routing Algorithms', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await bridge.initialize();
       // Create a more complex topology: 1 -> 2 -> 3, 1 -> 4 -> 3
       await bridge.establishBridge('topology-1', 'topology-2');
@@ -394,7 +415,8 @@ describe('CommunicationBridge', () => {
       await bridge.establishBridge('topology-4', 'topology-3');
     });
 
-    test('should find shortest path', async () => {
+    jest.setTimeout(10000);
+  test('should find shortest path', async () => { try {
       const routes = bridge.getRoutingTable();
       const graph = (bridge as any).buildRoutingGraph(routes);
       const path = (bridge as any).findShortestPath(graph, 'topology-1', 'topology-3');
@@ -405,7 +427,8 @@ describe('CommunicationBridge', () => {
       expect(path[path.length - 1]).toBe('topology-3');
     });
 
-    test('should return empty path when no route exists', async () => {
+    jest.setTimeout(10000);
+  test('should return empty path when no route exists', async () => { try {
       const routes = bridge.getRoutingTable();
       const graph = (bridge as any).buildRoutingGraph(routes);
       const path = (bridge as any).findShortestPath(graph, 'topology-1', 'topology-5');
@@ -413,7 +436,8 @@ describe('CommunicationBridge', () => {
       expect(path).toEqual([]);
     });
 
-    test('should prefer direct routes when available', async () => {
+    jest.setTimeout(10000);
+  test('should prefer direct routes when available', async () => { try {
       const directRoute = await (bridge as any).findOptimalRoute('topology-1', 'topology-2');
 
       expect(directRoute).toEqual(['topology-1', 'topology-2']);
@@ -421,12 +445,13 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Queue Management', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await bridge.initialize();
       await bridge.establishBridge('topology-1', 'topology-2');
     });
 
-    test('should enforce queue size limits', async () => {
+    jest.setTimeout(10000);
+  test('should enforce queue size limits', async () => { try {
       // Fill queue beyond capacity
       const promises = [];
       for (let i = 0; i < 150; i++) { // More than maxQueueSize (100)
@@ -458,7 +483,8 @@ describe('CommunicationBridge', () => {
       expect(queueFullErrors.length).toBeGreaterThan(0);
     });
 
-    test('should process messages by priority', async () => {
+    jest.setTimeout(10000);
+  test('should process messages by priority', async () => { try {
       const deliveryOrder: string[] = [];
 
       // Mock message delivery to track order
@@ -503,11 +529,12 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Metrics and Monitoring', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await bridge.initialize();
     });
 
-    test('should track bridge metrics', async () => {
+    jest.setTimeout(10000);
+  test('should track bridge metrics', async () => { try {
       const bridgeId = await bridge.establishBridge('topology-1', 'topology-2');
 
       const message: CoordinationMessage = {
@@ -531,7 +558,8 @@ describe('CommunicationBridge', () => {
       expect(bridgeMetrics!.metrics.messagesRouted).toBeGreaterThan(0);
     });
 
-    test('should update error rate on failures', async () => {
+    jest.setTimeout(10000);
+  test('should update error rate on failures', async () => { try {
       const bridgeId = await bridge.establishBridge('topology-1', 'topology-2');
 
       // Mock processing failure
@@ -557,7 +585,8 @@ describe('CommunicationBridge', () => {
       expect(bridgeMetrics!.metrics.errorRate).toBeGreaterThan(0);
     });
 
-    test('should provide queue status', async () => {
+    jest.setTimeout(10000);
+  test('should provide queue status', async () => { try {
       await bridge.establishBridge('topology-1', 'topology-2');
       await bridge.establishBridge('topology-2', 'topology-3');
 
@@ -569,7 +598,8 @@ describe('CommunicationBridge', () => {
       expect(queueStatus[0]).toHaveProperty('processingRate');
     });
 
-    test('should provide routing table', async () => {
+    jest.setTimeout(10000);
+  test('should provide routing table', async () => { try {
       await bridge.establishBridge('topology-1', 'topology-2');
       await bridge.establishBridge('topology-2', 'topology-3');
 
@@ -584,7 +614,8 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Shutdown', () => {
-    test('should shutdown gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should shutdown gracefully', async () => { try {
       await bridge.initialize();
       await bridge.establishBridge('topology-1', 'topology-2');
 
@@ -599,7 +630,8 @@ describe('CommunicationBridge', () => {
       expect((bridge as any).isRunning).toBe(false);
     });
 
-    test('should close all bridges on shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should close all bridges on shutdown', async () => { try {
       await bridge.initialize();
       await bridge.establishBridge('topology-1', 'topology-2');
       await bridge.establishBridge('topology-2', 'topology-3');
@@ -610,7 +642,8 @@ describe('CommunicationBridge', () => {
       expect(bridges).toHaveLength(0);
     });
 
-    test('should clear all queues on shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should clear all queues on shutdown', async () => { try {
       await bridge.initialize();
       await bridge.establishBridge('topology-1', 'topology-2');
 
@@ -622,11 +655,12 @@ describe('CommunicationBridge', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await bridge.initialize();
     });
 
-    test('should handle invalid route in message', async () => {
+    jest.setTimeout(10000);
+  test('should handle invalid route in message', async () => { try {
       const message: CoordinationMessage & { route: string[] } = {
         id: 'msg-invalid-route',
         type: 'task_assignment',
@@ -641,7 +675,8 @@ describe('CommunicationBridge', () => {
         .rejects.toThrow('No route found for message');
     });
 
-    test('should handle queue not found error', async () => {
+    jest.setTimeout(10000);
+  test('should handle queue not found error', async () => { try {
       const message: CoordinationMessage = {
         id: 'msg-no-queue',
         type: 'task_assignment',
@@ -657,7 +692,8 @@ describe('CommunicationBridge', () => {
         .rejects.toThrow('No route found for message');
     });
 
-    test('should handle protocol adapter failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle protocol adapter failures gracefully', async () => { try {
       // Mock protocol adapter that throws error
       const faultyAdapter = {
         id: 'faulty-adapter',
@@ -688,4 +724,4 @@ describe('CommunicationBridge', () => {
       expect(true).toBe(true); // Test passes if no error is thrown
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

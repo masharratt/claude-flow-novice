@@ -76,7 +76,7 @@ describe('FrontendTestOrchestrator', () => {
       orchestrator = new FrontendTestOrchestrator({}, mockLogger);
     });
 
-    it('should execute unit tests successfully', async () => {
+    it('should execute unit tests successfully', async () => { try {
       const suite: TestSuite = {
         id: 'unit-1',
         name: 'Component Unit Tests',
@@ -98,7 +98,7 @@ describe('FrontendTestOrchestrator', () => {
       expect(result.coverage).toBeDefined();
     });
 
-    it('should handle unit test failures', async () => {
+    it('should handle unit test failures', async () => { try {
       const suite: TestSuite = {
         id: 'unit-2',
         name: 'Failing Unit Tests',
@@ -119,7 +119,7 @@ describe('FrontendTestOrchestrator', () => {
       expect(['passed', 'failed', 'error']).toContain(result.status);
     });
 
-    it('should track coverage metrics', async () => {
+    it('should track coverage metrics', async () => { try {
       const suite: TestSuite = {
         id: 'unit-3',
         name: 'Coverage Tests',
@@ -147,7 +147,7 @@ describe('FrontendTestOrchestrator', () => {
       orchestrator = new FrontendTestOrchestrator({}, mockLogger);
     });
 
-    it('should execute integration tests', async () => {
+    it('should execute integration tests', async () => { try {
       const suite: TestSuite = {
         id: 'integration-1',
         name: 'Component Integration Tests',
@@ -167,7 +167,7 @@ describe('FrontendTestOrchestrator', () => {
       expect(result.duration).toBeGreaterThan(0);
     });
 
-    it('should handle API integration tests', async () => {
+    it('should handle API integration tests', async () => { try {
       const suite: TestSuite = {
         id: 'integration-2',
         name: 'API Integration Tests',
@@ -203,7 +203,7 @@ describe('FrontendTestOrchestrator', () => {
       );
     });
 
-    it('should execute E2E tests', async () => {
+    it('should execute E2E tests', async () => { try {
       const suite: TestSuite = {
         id: 'e2e-1',
         name: 'User Journey E2E Tests',
@@ -222,7 +222,7 @@ describe('FrontendTestOrchestrator', () => {
       expect(result.type).toBe('e2e');
     });
 
-    it('should run tests across multiple browsers', async () => {
+    it('should run tests across multiple browsers', async () => { try {
       orchestrator = new FrontendTestOrchestrator(
         {
           e2e: {
@@ -270,7 +270,7 @@ describe('FrontendTestOrchestrator', () => {
       );
     });
 
-    it('should execute visual regression tests', async () => {
+    it('should execute visual regression tests', async () => { try {
       const suite: TestSuite = {
         id: 'visual-1',
         name: 'Component Visual Tests',
@@ -289,7 +289,7 @@ describe('FrontendTestOrchestrator', () => {
       expect(result.type).toBe('visual');
     });
 
-    it('should detect visual differences', async () => {
+    it('should detect visual differences', async () => { try {
       const suite: TestSuite = {
         id: 'visual-2',
         name: 'Changed Component Tests',
@@ -322,7 +322,7 @@ describe('FrontendTestOrchestrator', () => {
       );
     });
 
-    it('should execute accessibility tests', async () => {
+    it('should execute accessibility tests', async () => { try {
       const suite: TestSuite = {
         id: 'a11y-1',
         name: 'WCAG 2.1 AA Compliance Tests',
@@ -342,7 +342,7 @@ describe('FrontendTestOrchestrator', () => {
       expect(result.accessibility).toBeDefined();
     });
 
-    it('should detect accessibility violations', async () => {
+    it('should detect accessibility violations', async () => { try {
       const suite: TestSuite = {
         id: 'a11y-2',
         name: 'Accessibility Violation Tests',
@@ -367,7 +367,7 @@ describe('FrontendTestOrchestrator', () => {
       orchestrator = new FrontendTestOrchestrator({}, mockLogger);
     });
 
-    it('should execute complete test plan', async () => {
+    it('should execute complete test plan', async () => { try {
       const plan: TestExecutionPlan = {
         swarmId: 'swarm-123',
         feature: 'User Authentication',
@@ -428,7 +428,7 @@ describe('FrontendTestOrchestrator', () => {
       );
     });
 
-    it('should execute tests in parallel', async () => {
+    it('should execute tests in parallel', async () => { try {
       const plan: TestExecutionPlan = {
         swarmId: 'swarm-456',
         feature: 'Dashboard Components',
@@ -477,7 +477,7 @@ describe('FrontendTestOrchestrator', () => {
       expect(duration).toBeLessThan(100000);
     });
 
-    it('should retry failed tests', async () => {
+    it('should retry failed tests', async () => { try {
       const plan: TestExecutionPlan = {
         swarmId: 'swarm-789',
         feature: 'Flaky Feature',
@@ -517,7 +517,7 @@ describe('FrontendTestOrchestrator', () => {
       orchestrator = new FrontendTestOrchestrator({}, mockLogger);
     });
 
-    it('should track test progress', async () => {
+    it('should track test progress', async () => { try {
       const initialProgress = orchestrator.getTestProgress();
 
       expect(initialProgress.total).toBe(0);
@@ -527,7 +527,7 @@ describe('FrontendTestOrchestrator', () => {
       expect(initialProgress.status).toBe('idle');
     });
 
-    it('should provide test summary', async () => {
+    it('should provide test summary', async () => { try {
       const summary = orchestrator.getTestSummary();
 
       expect(summary).toBeDefined();
@@ -547,7 +547,7 @@ describe('FrontendTestOrchestrator', () => {
     it('should emit test-plan-started event', (done) => {
       orchestrator.on('test-plan-started', (event) => {
         expect(event.plan).toBeDefined();
-        done();
+        return;
       });
 
       const plan: TestExecutionPlan = {
@@ -566,7 +566,7 @@ describe('FrontendTestOrchestrator', () => {
       orchestrator.on('unit-tests-completed', (event) => {
         expect(event.suite).toBeDefined();
         expect(event.result).toBeDefined();
-        done();
+        return;
       });
 
       const suite: TestSuite = {
@@ -587,7 +587,7 @@ describe('FrontendTestOrchestrator', () => {
       orchestrator.on('test-results-ready', (message) => {
         expect(message.messageType).toBe('test-result');
         expect(message.swarmId).toBeDefined();
-        done();
+        return;
       });
 
       const plan: TestExecutionPlan = {
@@ -613,4 +613,4 @@ describe('FrontendTestOrchestrator', () => {
       orchestrator.executeTestPlan(plan);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

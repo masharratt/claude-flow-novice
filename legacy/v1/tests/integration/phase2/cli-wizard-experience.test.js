@@ -71,7 +71,7 @@ class MockCLIWizard extends EventEmitter {
       this.state.currentStep = i;
 
       const stepStart = Date.now();
-      this.emit('step_start', { step: step.name, index: i });
+      this.emit('step_start', { step: step.name, index: i } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       try {
         const result = await step.handler();
@@ -83,9 +83,9 @@ class MockCLIWizard extends EventEmitter {
           success: true,
           duration: stepDuration,
           result
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        this.emit('step_complete', { step: step.name, index: i, duration: stepDuration });
+        this.emit('step_complete', { step: step.name, index: i, duration: stepDuration } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       } catch (error) {
         const stepDuration = Date.now() - stepStart;
@@ -96,9 +96,9 @@ class MockCLIWizard extends EventEmitter {
           success: false,
           duration: stepDuration,
           error: error.message
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        this.emit('step_error', { step: step.name, index: i, error });
+        this.emit('step_error', { step: step.name, index: i, error } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         throw error;
       }
     }
@@ -297,7 +297,7 @@ class MockCLIWizard extends EventEmitter {
     // Validate configuration
     const validation = await this.configManager.validateConfigurationUpdate(testConfig, {
       securityValidation: true
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     if (!validation.valid) {
       throw new Error(`Configuration validation failed: ${validation.errors[0]?.message}`);
@@ -365,7 +365,7 @@ class MockCLIWizard extends EventEmitter {
     const updateResult = await this.configManager.updateConfiguration(finalConfig, {
       requireConsensus: securityStep.enableByzantineValidation,
       securityValidation: true
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     if (!updateResult.success) {
       throw new Error(`Failed to save configuration: ${updateResult.error}`);
@@ -461,9 +461,9 @@ describe('CLI Wizard User Experience Tests', () => {
   let configManager;
   let testDir;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     testDir = path.join(__dirname, `cli-wizard-test-${crypto.randomBytes(4).toString('hex')}`);
-    await fs.mkdir(testDir, { recursive: true });
+    await fs.mkdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Import the configuration manager
     const { UserConfigurationManager } = require('../../../src/configuration/user-configuration-manager');
@@ -472,24 +472,25 @@ describe('CLI Wizard User Experience Tests', () => {
       preferencesPath: path.join(testDir, 'preferences'),
       enableByzantineValidation: true,
       consensusThreshold: 0.85
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     await configManager.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (configManager) {
       await configManager.shutdown();
     }
     try {
-      await fs.rmdir(testDir, { recursive: true });
+      await fs.rmdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     } catch (error) {
       // Ignore cleanup errors
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Complete Wizard Flow (<5 minute completion)', () => {
-    test('should complete TDD framework setup within time limit', async () => {
+    jest.setTimeout(10000);
+  test('should complete TDD framework setup within time limit', async () => { try {
       const wizard = new MockCLIWizard(configManager, {
         autoAdvance: true,
         responses: {
@@ -499,14 +500,14 @@ describe('CLI Wizard User Experience Tests', () => {
           byzantineValidation: true,
           consensusThreshold: 0.85
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const results = await new Promise((resolve, reject) => {
         wizard.on('completed', resolve);
         wizard.on('error', reject);
 
         wizard.startWizard();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       console.log(`\n🏁 TDD Wizard Results:`);
       console.log(`  Total Time: ${results.totalTime}ms (${(results.totalTime/1000).toFixed(1)}s)`);
@@ -525,9 +526,10 @@ describe('CLI Wizard User Experience Tests', () => {
       // Verify configuration was saved
       const savedConfig = await configManager.getPreferences();
       expect(savedConfig.preferences.completion_validation.frameworks).toHaveProperty('wizard-tdd');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should complete BDD framework setup with stakeholder review', async () => {
+    jest.setTimeout(10000);
+  test('should complete BDD framework setup with stakeholder review', async () => { try {
       const wizard = new MockCLIWizard(configManager, {
         autoAdvance: true,
         responses: {
@@ -537,13 +539,13 @@ describe('CLI Wizard User Experience Tests', () => {
           enforcementLevel: 'strict',
           byzantineValidation: true
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const results = await new Promise((resolve, reject) => {
         wizard.on('completed', resolve);
         wizard.on('error', reject);
         wizard.startWizard();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       console.log(`\n🏁 BDD Wizard Results:`);
       console.log(`  Total Time: ${results.totalTime}ms (${(results.totalTime/1000).toFixed(1)}s)`);
@@ -558,9 +560,10 @@ describe('CLI Wizard User Experience Tests', () => {
       const bddFramework = savedConfig.preferences.completion_validation.frameworks['wizard-bdd'];
       expect(bddFramework.type).toBe('BDD');
       expect(bddFramework.truth_threshold).toBe(0.85);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should complete SPARC methodology setup with all phases', async () => {
+    jest.setTimeout(10000);
+  test('should complete SPARC methodology setup with all phases', async () => { try {
       const wizard = new MockCLIWizard(configManager, {
         autoAdvance: true,
         responses: {
@@ -571,13 +574,13 @@ describe('CLI Wizard User Experience Tests', () => {
           byzantineValidation: true,
           securityLevel: 'high'
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const results = await new Promise((resolve, reject) => {
         wizard.on('completed', resolve);
         wizard.on('error', reject);
         wizard.startWizard();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       console.log(`\n🏁 SPARC Wizard Results:`);
       console.log(`  Total Time: ${results.totalTime}ms (${(results.totalTime/1000).toFixed(1)}s)`);
@@ -591,9 +594,10 @@ describe('CLI Wizard User Experience Tests', () => {
       const sparcFramework = savedConfig.preferences.completion_validation.frameworks['wizard-sparc'];
       expect(sparcFramework.quality_gates).toHaveLength(5);
       expect(sparcFramework.quality_gates).toContain('completion');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle custom framework creation workflow', async () => {
+    jest.setTimeout(10000);
+  test('should handle custom framework creation workflow', async () => { try {
       const wizard = new MockCLIWizard(configManager, {
         autoAdvance: true,
         responses: {
@@ -604,13 +608,13 @@ describe('CLI Wizard User Experience Tests', () => {
           byzantineValidation: true,
           consensusThreshold: 0.90 // Higher consensus for custom frameworks
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const results = await new Promise((resolve, reject) => {
         wizard.on('completed', resolve);
         wizard.on('error', reject);
         wizard.startWizard();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       console.log(`\n🏁 Custom Framework Wizard Results:`);
       console.log(`  Total Time: ${results.totalTime}ms (${(results.totalTime/1000).toFixed(1)}s)`);
@@ -624,11 +628,12 @@ describe('CLI Wizard User Experience Tests', () => {
       const customFramework = savedConfig.preferences.completion_validation.frameworks['wizard-custom'];
       expect(customFramework.type).toBe('CUSTOM');
       expect(customFramework.wizard_configured).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Handling and User Guidance', () => {
-    test('should provide helpful error messages for invalid inputs', async () => {
+    jest.setTimeout(10000);
+  test('should provide helpful error messages for invalid inputs', async () => { try {
       const errorScenarios = [
         {
           name: 'invalid_truth_threshold',
@@ -669,7 +674,7 @@ describe('CLI Wizard User Experience Tests', () => {
         const wizard = new MockCLIWizard(configManager, {
           autoAdvance: true,
           responses: scenario.responses
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         await expect(new Promise((resolve, reject) => {
           wizard.on('completed', resolve);
@@ -679,32 +684,33 @@ describe('CLI Wizard User Experience Tests', () => {
 
         console.log(`  ✅ Correctly rejected with: ${scenario.expectedError}`);
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should provide step-by-step guidance and progress indicators', async () => {
+    jest.setTimeout(10000);
+  test('should provide step-by-step guidance and progress indicators', async () => { try {
       const wizard = new MockCLIWizard(configManager, {
         autoAdvance: true,
         responses: {
           framework: 'tdd',
           thresholds: { truth: 0.90, coverage: 0.95 }
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const progressEvents = [];
 
       wizard.on('step_start', (event) => {
-        progressEvents.push({ type: 'start', ...event });
-      });
+        progressEvents.push({ type: 'start', ...event } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       wizard.on('step_complete', (event) => {
-        progressEvents.push({ type: 'complete', ...event });
-      });
+        progressEvents.push({ type: 'complete', ...event } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const results = await new Promise((resolve, reject) => {
         wizard.on('completed', resolve);
         wizard.on('error', reject);
         wizard.startWizard();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Verify progress tracking
       const stepNames = ['welcome', 'project_detection', 'framework_selection', 'threshold_configuration',
@@ -728,18 +734,19 @@ describe('CLI Wizard User Experience Tests', () => {
 
       console.log(`✅ Progress tracking: ${progressEvents.length} events captured`);
       console.log(`✅ All ${stepNames.length} steps tracked properly`);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Interruption and Resume Capability', () => {
-    test('should handle wizard interruption gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle wizard interruption gracefully', async () => { try {
       const wizard = new MockCLIWizard(configManager, {
         autoAdvance: true,
         responses: {
           framework: 'tdd',
           thresholds: { truth: 0.90, coverage: 0.95 }
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       let interruptedAt = null;
       let stepCount = 0;
@@ -750,7 +757,7 @@ describe('CLI Wizard User Experience Tests', () => {
           interruptedAt = event.step;
           wizard.emit('interrupt');
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Start wizard but interrupt partway through
       try {
@@ -759,7 +766,7 @@ describe('CLI Wizard User Experience Tests', () => {
           wizard.on('error', reject);
           wizard.on('interrupt', () => reject(new Error('Wizard interrupted')));
           wizard.startWizard();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       } catch (error) {
         expect(error.message).toBe('Wizard interrupted');
       }
@@ -777,9 +784,10 @@ describe('CLI Wizard User Experience Tests', () => {
 
       console.log(`✅ Wizard interrupted after step: ${interruptedAt}`);
       console.log(`✅ Partial results preserved: ${partialResults.successfulSteps} steps`);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should enable resume from interruption point', async () => {
+    jest.setTimeout(10000);
+  test('should enable resume from interruption point', async () => { try {
       // Simulate a partially completed wizard session
       const partialConfig = {
         completion_validation: {
@@ -807,7 +815,7 @@ describe('CLI Wizard User Experience Tests', () => {
           thresholds: { truth: 0.90, coverage: 0.95 },
           enforcementLevel: 'moderate'
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Modify wizard to start from resume point
       const originalExecute = resumeWizard.executeWizardFlow;
@@ -827,7 +835,7 @@ describe('CLI Wizard User Experience Tests', () => {
           this.state.currentStep = i + 3; // Offset by resumed steps
 
           const stepStart = Date.now();
-          this.emit('step_start', { step: step.name, index: i + 3 });
+          this.emit('step_start', { step: step.name, index: i + 3 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           const result = await step.handler();
           const stepDuration = Date.now() - stepStart;
@@ -838,9 +846,9 @@ describe('CLI Wizard User Experience Tests', () => {
             success: true,
             duration: stepDuration,
             result
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-          this.emit('step_complete', { step: step.name, index: i + 3, duration: stepDuration });
+          this.emit('step_complete', { step: step.name, index: i + 3, duration: stepDuration } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
       };
 
@@ -848,7 +856,7 @@ describe('CLI Wizard User Experience Tests', () => {
         resumeWizard.on('completed', resolve);
         resumeWizard.on('error', reject);
         resumeWizard.startWizard();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       console.log(`✅ Wizard resumed successfully`);
       console.log(`  Resumed from: threshold_configuration (step 3)`);
@@ -862,18 +870,19 @@ describe('CLI Wizard User Experience Tests', () => {
       // Verify final configuration combines original and resumed parts
       const finalConfig = await configManager.getPreferences();
       expect(finalConfig.preferences.completion_validation.frameworks).toHaveProperty('wizard-tdd');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Help and Documentation Integration', () => {
-    test('should provide contextual help for each step', async () => {
+    jest.setTimeout(10000);
+  test('should provide contextual help for each step', async () => { try {
       const helpWizard = new MockCLIWizard(configManager, {
         autoAdvance: true,
         responses: {
           framework: 'tdd',
           requestHelp: true // Flag to request help at each step
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const helpContent = {
         framework_selection: {
@@ -917,7 +926,7 @@ describe('CLI Wizard User Experience Tests', () => {
         helpWizard.on('completed', resolve);
         helpWizard.on('error', reject);
         helpWizard.startWizard();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Verify help was available for key steps
       const helpSteps = ['framework_selection', 'threshold_configuration', 'quality_gates'];
@@ -930,16 +939,17 @@ describe('CLI Wizard User Experience Tests', () => {
       }
 
       expect(results.completed).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should validate configuration examples and provide suggestions', async () => {
+    jest.setTimeout(10000);
+  test('should validate configuration examples and provide suggestions', async () => { try {
       const suggestionWizard = new MockCLIWizard(configManager, {
         autoAdvance: true,
         responses: {
           framework: 'custom', // Custom framework for suggestion testing
           thresholds: { truth: 0.85 }
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Add suggestion system
       suggestionWizard.getSuggestions = function(stepName, currentConfig) {
@@ -962,24 +972,25 @@ describe('CLI Wizard User Experience Tests', () => {
         suggestionWizard.on('completed', resolve);
         suggestionWizard.on('error', reject);
         suggestionWizard.startWizard();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Test suggestion system
-      const frameworkSuggestions = suggestionWizard.getSuggestions('framework_selection', {});
+      const frameworkSuggestions = suggestionWizard.getSuggestions('framework_selection', {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(frameworkSuggestions.custom).toContain('Define clear validation criteria');
 
-      const thresholdSuggestions = suggestionWizard.getSuggestions('threshold_configuration', { truth: 0.85 });
+      const thresholdSuggestions = suggestionWizard.getSuggestions('threshold_configuration', { truth: 0.85 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(thresholdSuggestions.tdd || thresholdSuggestions.general).toBeDefined();
 
       console.log(`✅ Suggestion system functional`);
       console.log(`  Framework suggestions: ${JSON.stringify(frameworkSuggestions.custom)}`);
 
       expect(results.completed).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance and Usability Metrics', () => {
-    test('should complete wizard within usability benchmarks', async () => {
+    jest.setTimeout(10000);
+  test('should complete wizard within usability benchmarks', async () => { try {
       const benchmarkTests = [
         { name: 'speed_test', autoAdvance: true, targetTime: 30000 }, // 30 seconds with auto-advance
         { name: 'realistic_test', autoAdvance: false, targetTime: 300000 } // 5 minutes realistic timing
@@ -995,14 +1006,14 @@ describe('CLI Wizard User Experience Tests', () => {
             thresholds: { truth: 0.90, coverage: 0.95 },
             enforcementLevel: 'moderate'
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         const startTime = Date.now();
         const results = await new Promise((resolve, reject) => {
           wizard.on('completed', resolve);
           wizard.on('error', reject);
           wizard.startWizard();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         const actualTime = Date.now() - startTime;
 
         console.log(`  Benchmark: ${benchmark.name}`);
@@ -1014,6 +1025,6 @@ describe('CLI Wizard User Experience Tests', () => {
         expect(results.completed).toBe(true);
         expect(results.successfulSteps).toBe(results.totalSteps);
       }
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

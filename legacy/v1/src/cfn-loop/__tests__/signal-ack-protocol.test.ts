@@ -294,7 +294,7 @@ class SignalAckProtocol {
 describe('Signal ACK Protocol - Sprint 1.1', () => {
   let protocol: SignalAckProtocol;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     protocol = new SignalAckProtocol({
       signalTTL: 86400, // 24 hours
       ackTTL: 300, // 5 minutes
@@ -305,13 +305,13 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
     await protocol.cleanup();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await protocol.cleanup();
     await protocol.disconnect();
   });
 
   describe('Test Case 1: Signal sent → ACK received within 5 seconds', () => {
-    it('should deliver signal and receive ACK within 5 seconds', async () => {
+    it('should deliver signal and receive ACK within 5 seconds', async () => { try {
       const coordinatorId = 'coordinator-a';
       const signalPayload: SignalPayload = {
         signalType: 'complete',
@@ -321,7 +321,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       };
 
       // Simulate coordinator receiving signal and sending ACK in background
-      const ackPromise = (async () => {
+      const ackPromise = (async () => { try {
         await protocol.sleep(500); // Simulate 500ms processing delay
         await protocol.receiveSignalAndAck(coordinatorId, 'complete', 10);
       })();
@@ -339,7 +339,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       expect(result.ackPayload?.iteration).toBe(10);
     }, 10000);
 
-    it('should timeout if no ACK received within 5 seconds', async () => {
+    it('should timeout if no ACK received within 5 seconds', async () => { try {
       const coordinatorId = 'coordinator-b';
       const signalPayload: SignalPayload = {
         signalType: 'complete',
@@ -356,7 +356,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       expect(result.deliveryTime).toBeGreaterThanOrEqual(5000);
     }, 10000);
 
-    it('should include correct timestamp and iteration in ACK', async () => {
+    it('should include correct timestamp and iteration in ACK', async () => { try {
       const coordinatorId = 'coordinator-d';
       const signalPayload: SignalPayload = {
         signalType: 'complete',
@@ -365,7 +365,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
         iteration: 3,
       };
 
-      const ackPromise = (async () => {
+      const ackPromise = (async () => { try {
         await protocol.sleep(200);
         await protocol.receiveSignalAndAck(coordinatorId, 'complete', 15);
       })();
@@ -381,7 +381,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
   });
 
   describe('Test Case 2: Duplicate signal handling (idempotency)', () => {
-    it('should handle duplicate signal gracefully (same signal sent twice)', async () => {
+    it('should handle duplicate signal gracefully (same signal sent twice)', async () => { try {
       const coordinatorId = 'coordinator-e';
       const signalPayload: SignalPayload = {
         signalType: 'complete',
@@ -391,7 +391,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       };
 
       // Send signal first time
-      const ackPromise1 = (async () => {
+      const ackPromise1 = (async () => { try {
         await protocol.sleep(300);
         await protocol.receiveSignalAndAck(coordinatorId, 'complete', 12);
       })();
@@ -413,7 +413,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       expect(signalExists).not.toBeNull();
     }, 10000);
 
-    it('should overwrite previous signal with same key', async () => {
+    it('should overwrite previous signal with same key', async () => { try {
       const coordinatorId = 'coordinator-f';
 
       // Send first signal
@@ -444,7 +444,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
   });
 
   describe('Test Case 3: Signal persistence (sent before blocking starts)', () => {
-    it('should persist signal with 24-hour TTL', async () => {
+    it('should persist signal with 24-hour TTL', async () => { try {
       const coordinatorId = 'coordinator-g';
       const signalPayload: SignalPayload = {
         signalType: 'complete',
@@ -461,7 +461,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       expect(ttl).toBeLessThanOrEqual(86400);
     }, 10000);
 
-    it('should allow coordinator to see signal sent before blocking starts', async () => {
+    it('should allow coordinator to see signal sent before blocking starts', async () => { try {
       const coordinatorId = 'coordinator-h';
 
       // Send signal BEFORE coordinator enters blocking
@@ -487,7 +487,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
   });
 
   describe('Test Case 4: ACK includes correct metadata', () => {
-    it('should include timestamp, iteration, and processing time in ACK', async () => {
+    it('should include timestamp, iteration, and processing time in ACK', async () => { try {
       const coordinatorId = 'coordinator-i';
       const signalPayload: SignalPayload = {
         signalType: 'complete',
@@ -496,7 +496,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
         iteration: 6,
       };
 
-      const ackPromise = (async () => {
+      const ackPromise = (async () => { try {
         await protocol.sleep(400);
         await protocol.receiveSignalAndAck(coordinatorId, 'complete', 20);
       })();
@@ -513,7 +513,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
   });
 
   describe('Test Case 5: Signal TTL verification (24 hours)', () => {
-    it('should set signal TTL to 24 hours (86400 seconds)', async () => {
+    it('should set signal TTL to 24 hours (86400 seconds)', async () => { try {
       const coordinatorId = 'coordinator-j';
       const signalPayload: SignalPayload = {
         signalType: 'complete',
@@ -530,7 +530,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       expect(ttl).toBeLessThanOrEqual(86400);
     }, 10000);
 
-    it('should set ACK TTL to 5 minutes (300 seconds)', async () => {
+    it('should set ACK TTL to 5 minutes (300 seconds)', async () => { try {
       const coordinatorId = 'coordinator-k';
       const signalPayload: SignalPayload = {
         signalType: 'complete',
@@ -538,7 +538,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
         sender: 'coordinator-c',
       };
 
-      const ackPromise = (async () => {
+      const ackPromise = (async () => { try {
         await protocol.sleep(200);
         const ackKey = await protocol.receiveSignalAndAck(coordinatorId, 'complete', 25);
 
@@ -554,7 +554,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
   });
 
   describe('Integration Test: Full signal → ACK → unblock flow', () => {
-    it('should complete full signal delivery and acknowledgment flow', async () => {
+    it('should complete full signal delivery and acknowledgment flow', async () => { try {
       const coordinatorA = 'coordinator-a';
       const coordinatorB = 'coordinator-b';
       const coordinatorC = 'coordinator-c';
@@ -577,12 +577,12 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       };
 
       // Step 2: Coordinators A and B receive and ACK in parallel
-      const ackAPromise = (async () => {
+      const ackAPromise = (async () => { try {
         await protocol.sleep(300);
         await protocol.receiveSignalAndAck(coordinatorA, 'complete', 5);
       })();
 
-      const ackBPromise = (async () => {
+      const ackBPromise = (async () => { try {
         await protocol.sleep(350);
         await protocol.receiveSignalAndAck(coordinatorB, 'complete', 7);
       })();
@@ -616,7 +616,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       expect(signalB?.metadata?.confidence).toBe(0.85);
     }, 15000);
 
-    it('should handle partial ACK failures gracefully', async () => {
+    it('should handle partial ACK failures gracefully', async () => { try {
       const coordinatorA = 'coordinator-l';
       const coordinatorB = 'coordinator-m';
       const coordinatorC = 'coordinator-n';
@@ -634,7 +634,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       };
 
       // Only coordinator A sends ACK, B does not
-      const ackAPromise = (async () => {
+      const ackAPromise = (async () => { try {
         await protocol.sleep(400);
         await protocol.receiveSignalAndAck(coordinatorA, 'complete', 12);
       })();
@@ -655,7 +655,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle Redis connection failures', async () => {
+    it('should handle Redis connection failures', async () => { try {
       // Create protocol with invalid Redis config
       const invalidProtocol = new SignalAckProtocol({
         redisHost: 'invalid-host',
@@ -677,7 +677,7 @@ describe('Signal ACK Protocol - Sprint 1.1', () => {
       await invalidProtocol.disconnect();
     }, 10000);
 
-    it('should throw error when receiving signal that does not exist', async () => {
+    it('should throw error when receiving signal that does not exist', async () => { try {
       const coordinatorId = 'coordinator-nonexistent';
 
       await expect(

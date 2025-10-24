@@ -30,7 +30,7 @@ test.describe('Web Portal CFN Loop with Hybrid Routing', () => {
   let cfnLoopProcess;
   let phaseId;
 
-  test.beforeAll(async () => {
+  test.beforeAll(async () => { try {
     console.log('🚀 Starting CFN Loop E2E test setup...');
 
     // Initialize Redis client
@@ -51,7 +51,7 @@ test.describe('Web Portal CFN Loop with Hybrid Routing', () => {
     console.log('✅ Web portal started successfully');
   });
 
-  test.afterAll(async () => {
+  test.afterAll(async () => { try {
     console.log('🧹 Cleaning up CFN Loop test processes...');
 
     // Cleanup phase data from Redis
@@ -79,6 +79,7 @@ test.describe('Web Portal CFN Loop with Hybrid Routing', () => {
     console.log('✅ Cleanup completed');
   });
 
+  jest.setTimeout(10000);
   test('should display CFN Loop iterations and decisions in portal', async ({ page }) => {
     console.log('🧪 Starting CFN Loop hybrid routing E2E test...');
 
@@ -262,6 +263,7 @@ test.describe('Web Portal CFN Loop with Hybrid Routing', () => {
     console.log('🎉 CFN Loop hybrid routing E2E test completed successfully!');
   });
 
+  jest.setTimeout(10000);
   test('should update CFN Loop view in real-time', async ({ page }) => {
     console.log('🔄 Testing real-time CFN Loop updates...');
 

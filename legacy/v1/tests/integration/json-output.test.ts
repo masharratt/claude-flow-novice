@@ -15,7 +15,7 @@ describe('JSON Output Functionality', () => {
   let aggregator: SwarmJsonOutputAggregator;
   let coordinator: SwarmCoordinator;
   
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create temporary directory for test files
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'claude-flow-json-test-'));
     
@@ -39,7 +39,7 @@ describe('JSON Output Functionality', () => {
     coordinator.enableJsonOutput('Test objective for JSON output');
   });
   
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up temporary directory
     await fs.rmdir(tempDir, { recursive: true });
   });
@@ -171,7 +171,7 @@ describe('JSON Output Functionality', () => {
       expect(parsed.summary.successRate).toBeCloseTo(0.667, 2);
     });
 
-    it('should save output to file', async () => {
+    it('should save output to file', async () => { try {
       const filePath = path.join(tempDir, 'test-output.json');
       
       aggregator.addInsight('This is a test insight');
@@ -197,7 +197,7 @@ describe('JSON Output Functionality', () => {
       expect(parsed.objective).toBe('Test objective for JSON output');
     });
 
-    it('should track agents and tasks when JSON output is enabled', async () => {
+    it('should track agents and tasks when JSON output is enabled', async () => { try {
       // Create an agent through coordinator
       const agentId = await coordinator.registerAgent('test-agent', 'researcher');
       
@@ -212,7 +212,7 @@ describe('JSON Output Functionality', () => {
       expect(parsed.tasks.length).toBeGreaterThan(0);
     });
 
-    it('should save JSON output to file through coordinator', async () => {
+    it('should save JSON output to file through coordinator', async () => { try {
       const filePath = path.join(tempDir, 'coordinator-output.json');
       
       // Add some test data
@@ -249,4 +249,4 @@ describe('JSON Output Functionality', () => {
       expect(noInteractive).toBe(true);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

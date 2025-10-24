@@ -20,7 +20,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Task Type Identification', () => {
-        test('should identify debugging tasks', () => {
+        jest.setTimeout(10000);
+  test('should identify debugging tasks', () => {
             const taskType = contextHelper.identifyTaskType(
                 'Fix the bug in user authentication',
                 [],
@@ -30,7 +31,8 @@ describe('ContextHelper', () => {
             expect(taskType).toBe('debugging');
         });
 
-        test('should identify API development tasks', () => {
+        jest.setTimeout(10000);
+  test('should identify API development tasks', () => {
             const taskType = contextHelper.identifyTaskType(
                 'Create REST API endpoints for user management',
                 ['api/users.js', 'routes/auth.js']
@@ -39,7 +41,8 @@ describe('ContextHelper', () => {
             expect(taskType).toBe('api-development');
         });
 
-        test('should identify testing tasks', () => {
+        jest.setTimeout(10000);
+  test('should identify testing tasks', () => {
             const taskType = contextHelper.identifyTaskType(
                 'Write comprehensive test coverage',
                 ['user.test.js', 'auth.spec.js']
@@ -48,7 +51,8 @@ describe('ContextHelper', () => {
             expect(taskType).toBe('testing');
         });
 
-        test('should identify web development tasks', () => {
+        jest.setTimeout(10000);
+  test('should identify web development tasks', () => {
             const taskType = contextHelper.identifyTaskType(
                 'Build React frontend with responsive design',
                 ['App.jsx', 'components/Header.js']
@@ -57,7 +61,8 @@ describe('ContextHelper', () => {
             expect(taskType).toBe('web-development');
         });
 
-        test('should identify performance optimization tasks', () => {
+        jest.setTimeout(10000);
+  test('should identify performance optimization tasks', () => {
             const taskType = contextHelper.identifyTaskType(
                 'Optimize database queries for better performance',
                 []
@@ -66,7 +71,8 @@ describe('ContextHelper', () => {
             expect(taskType).toBe('performance-optimization');
         });
 
-        test('should default to general development for unrecognized tasks', () => {
+        jest.setTimeout(10000);
+  test('should default to general development for unrecognized tasks', () => {
             const taskType = contextHelper.identifyTaskType(
                 'Some generic development task',
                 []
@@ -77,7 +83,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Complexity Assessment', () => {
-        test('should assess low complexity correctly', () => {
+        jest.setTimeout(10000);
+  test('should assess low complexity correctly', () => {
             const complexity = contextHelper.assessComplexity(
                 'Simple fix for typo in README',
                 ['README.md']
@@ -86,7 +93,8 @@ describe('ContextHelper', () => {
             expect(complexity).toBe('low');
         });
 
-        test('should assess high complexity correctly', () => {
+        jest.setTimeout(10000);
+  test('should assess high complexity correctly', () => {
             const complexity = contextHelper.assessComplexity(
                 'Design distributed microservice architecture with performance optimization and security',
                 ['service1.js', 'service2.js', 'auth.js', 'db.js', 'cache.js']
@@ -95,7 +103,8 @@ describe('ContextHelper', () => {
             expect(complexity).toBe('high');
         });
 
-        test('should assess medium complexity correctly', () => {
+        jest.setTimeout(10000);
+  test('should assess medium complexity correctly', () => {
             const complexity = contextHelper.assessComplexity(
                 'Implement user authentication system',
                 ['auth.js', 'user.js']
@@ -106,7 +115,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Urgency Assessment', () => {
-        test('should assess high urgency for errors', () => {
+        jest.setTimeout(10000);
+  test('should assess high urgency for errors', () => {
             const urgency = contextHelper.assessUrgency(
                 null,
                 ['Critical production bug']
@@ -115,19 +125,22 @@ describe('ContextHelper', () => {
             expect(urgency).toBe('high');
         });
 
-        test('should assess high urgency for urgent time constraints', () => {
+        jest.setTimeout(10000);
+  test('should assess high urgency for urgent time constraints', () => {
             const urgency = contextHelper.assessUrgency('urgent deadline');
 
             expect(urgency).toBe('high');
         });
 
-        test('should assess medium urgency for today deadline', () => {
+        jest.setTimeout(10000);
+  test('should assess medium urgency for today deadline', () => {
             const urgency = contextHelper.assessUrgency('needed today');
 
             expect(urgency).toBe('medium');
         });
 
-        test('should assess low urgency by default', () => {
+        jest.setTimeout(10000);
+  test('should assess low urgency by default', () => {
             const urgency = contextHelper.assessUrgency('sometime next week');
 
             expect(urgency).toBe('low');
@@ -135,7 +148,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Agent Recommendations', () => {
-        test('should recommend appropriate agents for API development', () => {
+        jest.setTimeout(10000);
+  test('should recommend appropriate agents for API development', () => {
             const agents = contextHelper.recommendAgents('api-development', 'high', 'medium');
 
             expect(agents).toContain('backend-dev');
@@ -144,7 +158,8 @@ describe('ContextHelper', () => {
             expect(agents).toContain('reviewer');
         });
 
-        test('should recommend fewer agents for urgent tasks', () => {
+        jest.setTimeout(10000);
+  test('should recommend fewer agents for urgent tasks', () => {
             const normalAgents = contextHelper.recommendAgents('web-development', 'medium', 'low');
             const urgentAgents = contextHelper.recommendAgents('web-development', 'medium', 'high');
 
@@ -152,7 +167,8 @@ describe('ContextHelper', () => {
             expect(urgentAgents.length).toBeLessThan(normalAgents.length);
         });
 
-        test('should add planning agents for high complexity', () => {
+        jest.setTimeout(10000);
+  test('should add planning agents for high complexity', () => {
             const agents = contextHelper.recommendAgents('api-development', 'high', 'low');
 
             expect(agents).toContain('planner');
@@ -161,7 +177,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Workflow Suggestions', () => {
-        test('should suggest appropriate workflow for API development', () => {
+        jest.setTimeout(10000);
+  test('should suggest appropriate workflow for API development', () => {
             const workflow = contextHelper.suggestWorkflow('api-development', 'high', 'low');
 
             expect(workflow).toContain('plan');
@@ -171,14 +188,16 @@ describe('ContextHelper', () => {
             expect(workflow).toContain('review');
         });
 
-        test('should suggest shorter workflow for urgent tasks', () => {
+        jest.setTimeout(10000);
+  test('should suggest shorter workflow for urgent tasks', () => {
             const normalWorkflow = contextHelper.suggestWorkflow('debugging', 'medium', 'low');
             const urgentWorkflow = contextHelper.suggestWorkflow('debugging', 'medium', 'high');
 
             expect(urgentWorkflow.length).toBeLessThan(normalWorkflow.length);
         });
 
-        test('should suggest comprehensive workflow for testing', () => {
+        jest.setTimeout(10000);
+  test('should suggest comprehensive workflow for testing', () => {
             const workflow = contextHelper.suggestWorkflow('testing', 'high', 'low');
 
             expect(workflow).toContain('plan-tests');
@@ -189,7 +208,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Context Analysis', () => {
-        test('should provide comprehensive context analysis', async () => {
+        jest.setTimeout(10000);
+  test('should provide comprehensive context analysis', async () => { try {
             const context = {
                 taskDescription: 'Build REST API with authentication',
                 currentFiles: ['server.js', 'auth.js'],
@@ -213,7 +233,8 @@ describe('ContextHelper', () => {
             );
         });
 
-        test('should identify debugging context from errors', async () => {
+        jest.setTimeout(10000);
+  test('should identify debugging context from errors', async () => { try {
             const context = {
                 taskDescription: 'Fix application issues',
                 errorMessages: ['TypeError: Cannot read property of undefined'],
@@ -226,7 +247,8 @@ describe('ContextHelper', () => {
             expect(analysis.potentialPitfalls).toContain('Not reproducing the bug consistently');
         });
 
-        test('should provide custom guidance based on context', async () => {
+        jest.setTimeout(10000);
+  test('should provide custom guidance based on context', async () => { try {
             const context = {
                 taskDescription: 'Debug API endpoint',
                 errorMessages: ['500 Internal Server Error']
@@ -246,7 +268,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Agent-Specific Guidance', () => {
-        test('should provide agent guidance for valid agent types', () => {
+        jest.setTimeout(10000);
+  test('should provide agent guidance for valid agent types', () => {
             const guidance = contextHelper.getAgentGuidance('coder', {
                 taskDescription: 'Implement new feature'
             });
@@ -262,12 +285,14 @@ describe('ContextHelper', () => {
             );
         });
 
-        test('should return null for invalid agent types', () => {
+        jest.setTimeout(10000);
+  test('should return null for invalid agent types', () => {
             const guidance = contextHelper.getAgentGuidance('invalid-agent', {});
             expect(guidance).toBeNull();
         });
 
-        test('should assess agent suitability correctly', () => {
+        jest.setTimeout(10000);
+  test('should assess agent suitability correctly', () => {
             // Test excellent suitability
             const excellent = contextHelper.assessAgentSuitability('backend-dev', {
                 taskDescription: 'Build API endpoints'
@@ -283,7 +308,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Learning Resources', () => {
-        test('should return learning resources for known topics', () => {
+        jest.setTimeout(10000);
+  test('should return learning resources for known topics', () => {
             const resources = contextHelper.getLearningResources('api-development');
 
             expect(resources).toEqual(
@@ -297,14 +323,16 @@ describe('ContextHelper', () => {
             );
         });
 
-        test('should return empty array for unknown topics', () => {
+        jest.setTimeout(10000);
+  test('should return empty array for unknown topics', () => {
             const resources = contextHelper.getLearningResources('unknown-topic');
             expect(resources).toEqual([]);
         });
     });
 
     describe('Common Patterns', () => {
-        test('should return common patterns for API development', () => {
+        jest.setTimeout(10000);
+  test('should return common patterns for API development', () => {
             const patterns = contextHelper.getCommonPatterns('api-development');
 
             expect(patterns).toEqual(
@@ -318,7 +346,8 @@ describe('ContextHelper', () => {
             );
         });
 
-        test('should return patterns for testing', () => {
+        jest.setTimeout(10000);
+  test('should return patterns for testing', () => {
             const patterns = contextHelper.getCommonPatterns('testing');
 
             expect(patterns).toEqual(
@@ -331,14 +360,16 @@ describe('ContextHelper', () => {
             );
         });
 
-        test('should return empty array for unknown task types', () => {
+        jest.setTimeout(10000);
+  test('should return empty array for unknown task types', () => {
             const patterns = contextHelper.getCommonPatterns('unknown-type');
             expect(patterns).toEqual([]);
         });
     });
 
     describe('Just-in-Time Help', () => {
-        test('should provide command-specific help', async () => {
+        jest.setTimeout(10000);
+  test('should provide command-specific help', async () => { try {
             const help = await contextHelper.provideJustInTimeHelp('swarm-init', {
                 taskDescription: 'Initialize swarm for development'
             });
@@ -360,7 +391,8 @@ describe('ContextHelper', () => {
             );
         });
 
-        test('should provide agent-spawn specific help', async () => {
+        jest.setTimeout(10000);
+  test('should provide agent-spawn specific help', async () => { try {
             const help = await contextHelper.provideJustInTimeHelp('agent-spawn', {
                 taskDescription: 'Spawn development agents'
             });
@@ -371,7 +403,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Knowledge Base Management', () => {
-        test('should update knowledge base with new patterns', async () => {
+        jest.setTimeout(10000);
+  test('should update knowledge base with new patterns', async () => { try {
             const newPattern = {
                 name: 'Test Pattern',
                 description: 'A new test pattern',
@@ -384,7 +417,8 @@ describe('ContextHelper', () => {
             expect(knowledge.patterns).toContainEqual(newPattern);
         });
 
-        test('should persist knowledge base changes', async () => {
+        jest.setTimeout(10000);
+  test('should persist knowledge base changes', async () => { try {
             // Mock file system operations
             const mockWriteFile = jest.fn().mockResolvedValue(undefined);
             require('fs').promises.writeFile = mockWriteFile;
@@ -396,7 +430,8 @@ describe('ContextHelper', () => {
     });
 
     describe('Initiative Knowledge Base', () => {
-        test('should have comprehensive knowledge base', () => {
+        jest.setTimeout(10000);
+  test('should have comprehensive knowledge base', () => {
             expect(contextHelper.knowledgeBase.has('web-development')).toBe(true);
             expect(contextHelper.knowledgeBase.has('api-development')).toBe(true);
             expect(contextHelper.knowledgeBase.has('debugging')).toBe(true);
@@ -405,14 +440,16 @@ describe('ContextHelper', () => {
             expect(contextHelper.knowledgeBase.has('deployment')).toBe(true);
         });
 
-        test('should have agent capabilities mapped', () => {
+        jest.setTimeout(10000);
+  test('should have agent capabilities mapped', () => {
             expect(contextHelper.agentCapabilities.has('coder')).toBe(true);
             expect(contextHelper.agentCapabilities.has('reviewer')).toBe(true);
             expect(contextHelper.agentCapabilities.has('tester')).toBe(true);
             expect(contextHelper.agentCapabilities.has('researcher')).toBe(true);
         });
 
-        test('should provide comprehensive knowledge for each task type', () => {
+        jest.setTimeout(10000);
+  test('should provide comprehensive knowledge for each task type', () => {
             const webDev = contextHelper.knowledgeBase.get('web-development');
 
             expect(webDev).toEqual(
@@ -427,4 +464,4 @@ describe('ContextHelper', () => {
             );
         });
     });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

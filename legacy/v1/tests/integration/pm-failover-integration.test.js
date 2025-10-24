@@ -20,7 +20,7 @@ describe('PM Failover Integration Tests', () => {
   let logger;
   let testDbPath;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Setup test database
     testDbPath = path.join(__dirname, '../../test-pm-failover.db');
     if (fs.existsSync(testDbPath)) {
@@ -60,7 +60,7 @@ describe('PM Failover Integration Tests', () => {
     );
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (failoverManager) {
       await failoverManager.shutdown();
     }
@@ -74,7 +74,7 @@ describe('PM Failover Integration Tests', () => {
     }
   });
 
-  it('should detect PM failure and promote worker', async () => {
+  it('should detect PM failure and promote worker', async () => { try {
     await failoverManager.initialize();
 
     // Create mock PM and workers
@@ -109,7 +109,7 @@ describe('PM Failover Integration Tests', () => {
     expect(promotedWorker.capabilities.has('coordination')).toBe(true);
   }, 10000);
 
-  it('should handle PM failover with task redistribution', async () => {
+  it('should handle PM failover with task redistribution', async () => { try {
     await failoverManager.initialize();
 
     const mockPM = createMockAgent('pm-1', 'coordinator', 0);
@@ -141,7 +141,7 @@ describe('PM Failover Integration Tests', () => {
     expect(redistributedTasks).toBeGreaterThan(0);
   }, 10000);
 
-  it('should update worker parent references after promotion', async () => {
+  it('should update worker parent references after promotion', async () => { try {
     await failoverManager.initialize();
 
     const mockPM = createMockAgent('pm-1', 'coordinator', 0);
@@ -165,7 +165,7 @@ describe('PM Failover Integration Tests', () => {
     }
   }, 10000);
 
-  it('should store failover events in memory', async () => {
+  it('should store failover events in memory', async () => { try {
     await failoverManager.initialize();
 
     const mockPM = createMockAgent('pm-1', 'coordinator', 0);

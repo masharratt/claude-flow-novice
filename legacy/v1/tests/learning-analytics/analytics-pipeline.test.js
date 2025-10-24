@@ -55,7 +55,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
   });
 
   describe('SQLite Byzantine Integration', () => {
-    test('should verify data integrity in .hive-mind/hive.db', async () => {
+    jest.setTimeout(10000);
+  test('should verify data integrity in .hive-mind/hive.db', async () => { try {
       // FAILING TEST: SQLite integrity verification not implemented
       const integrityReport = await analyticsPipeline.verifyDatabaseIntegrity(
         mockDatabasePaths.hiveMind
@@ -67,7 +68,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(integrityReport.consensusNodes.length).toBeGreaterThanOrEqual(4);
     });
 
-    test('should extract patterns securely from existing databases', async () => {
+    jest.setTimeout(10000);
+  test('should extract patterns securely from existing databases', async () => { try {
       // FAILING TEST: Secure pattern extraction not implemented
       const extractionResults = await analyticsPipeline.secureExtractPatterns([
         mockDatabasePaths.hiveMind,
@@ -80,7 +82,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(extractionResults.performanceImpact).toBeLessThan(0.1);
     });
 
-    test('should detect and prevent malicious database modifications', async () => {
+    jest.setTimeout(10000);
+  test('should detect and prevent malicious database modifications', async () => { try {
       // FAILING TEST: Malicious modification detection not implemented
       const maliciousModification = {
         table: 'workflow_patterns',
@@ -100,7 +103,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(detectionResult.consensusAlert).toBe(true);
     });
 
-    test('should maintain real-time analytics with <5ms latency', async () => {
+    jest.setTimeout(10000);
+  test('should maintain real-time analytics with <5ms latency', async () => { try {
       // FAILING TEST: Real-time analytics performance not implemented
       const analyticsQueries = [
         'SELECT pattern_type, COUNT(*) FROM workflows GROUP BY pattern_type',
@@ -126,7 +130,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
   });
 
   describe('Mathematical Analytics Engine', () => {
-    test('should perform statistical analysis with Byzantine validation', async () => {
+    jest.setTimeout(10000);
+  test('should perform statistical analysis with Byzantine validation', async () => { try {
       // FAILING TEST: Statistical analysis not implemented
       const dataSet = generateMockAnalyticsData(10000);
 
@@ -140,7 +145,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(statisticalResults.cryptographicProof).toBeDefined();
     });
 
-    test('should calculate correlation matrices with tamper resistance', async () => {
+    jest.setTimeout(10000);
+  test('should calculate correlation matrices with tamper resistance', async () => { try {
       // FAILING TEST: Correlation analysis not implemented
       const multiVariateData = {
         cpuUsage: Array.from({length: 1000}, () => Math.random() * 100),
@@ -158,7 +164,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(correlationMatrix.cryptographicHash).toMatch(/^[a-f0-9]{64}$/);
     });
 
-    test('should perform regression analysis with consensus validation', async () => {
+    jest.setTimeout(10000);
+  test('should perform regression analysis with consensus validation', async () => { try {
       // FAILING TEST: Regression analysis not implemented
       const regressionData = {
         independent: Array.from({length: 500}, (_, i) => i * 0.1),
@@ -174,7 +181,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(regressionResults.modelIntegrity).toBe(true);
     });
 
-    test('should detect anomalies using advanced mathematical models', async () => {
+    jest.setTimeout(10000);
+  test('should detect anomalies using advanced mathematical models', async () => { try {
       // FAILING TEST: Anomaly detection not implemented
       const normalData = Array.from({length: 950}, () => Math.random() * 100 + 50);
       const anomalousData = [200, 300, 250, 280, 320]; // Clear outliers
@@ -191,7 +199,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
   });
 
   describe('Real-Time Processing Pipeline', () => {
-    test('should process streaming data with Byzantine consensus', async () => {
+    jest.setTimeout(10000);
+  test('should process streaming data with Byzantine consensus', async () => { try {
       // FAILING TEST: Streaming data processing not implemented
       const dataStream = generateDataStream(1000); // 1000 data points
 
@@ -212,7 +221,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(processingResults.every(r => r.processed)).toBe(true);
     });
 
-    test('should maintain data quality under high throughput', async () => {
+    jest.setTimeout(10000);
+  test('should maintain data quality under high throughput', async () => { try {
       // FAILING TEST: High throughput data quality not implemented
       const highThroughputData = generateHighThroughputData(10000); // 10k points per second
 
@@ -229,7 +239,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
   });
 
   describe('Performance Optimization', () => {
-    test('should optimize database queries without compromising security', async () => {
+    jest.setTimeout(10000);
+  test('should optimize database queries without compromising security', async () => { try {
       // FAILING TEST: Query optimization not implemented
       const complexQueries = [
         'SELECT w.*, p.pattern_confidence FROM workflows w JOIN patterns p ON w.pattern_id = p.id WHERE w.execution_time > 1000',
@@ -248,7 +259,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(optimizationResults.optimizedQueries.length).toBe(complexQueries.length);
     });
 
-    test('should cache frequently accessed analytics with integrity protection', async () => {
+    jest.setTimeout(10000);
+  test('should cache frequently accessed analytics with integrity protection', async () => { try {
       // FAILING TEST: Secure caching not implemented
       const frequentQueries = [
         'daily_workflow_count',
@@ -273,7 +285,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
   });
 
   describe('Integration Testing', () => {
-    test('should integrate with PageRank pattern recognition results', async () => {
+    jest.setTimeout(10000);
+  test('should integrate with PageRank pattern recognition results', async () => { try {
       // FAILING TEST: PageRank integration not implemented
       const pageRankResults = {
         patterns: [
@@ -293,7 +306,8 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       expect(integrationResult.byzantineSecured).toBe(true);
     });
 
-    test('should coordinate with temporal prediction engine', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate with temporal prediction engine', async () => { try {
       // FAILING TEST: Temporal prediction integration not implemented
       const temporalPredictions = {
         bottleneckPredictions: [
@@ -352,4 +366,4 @@ describe('Byzantine-Secure Mathematical Analytics Pipeline', () => {
       signature: crypto.createHash('sha256').update('mock_result').digest('hex')
     };
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

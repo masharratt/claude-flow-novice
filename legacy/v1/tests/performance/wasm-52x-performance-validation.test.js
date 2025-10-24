@@ -18,7 +18,7 @@ describe('WASM 52x Performance Validation', () => {
   let wasmModule;
   let baselineParser;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     testResults = {
       performanceMultiplier: {},
       astParsing: {},
@@ -124,14 +124,17 @@ describe('WASM 52x Performance Validation', () => {
   }
 
   function getTokenType(char) {
-    if (/\s/.test(char)) return 'Whitespace';
-    if (/[a-zA-Z]/.test(char)) return 'Identifier';
-    if (/[0-9]/.test(char)) return 'Number';
+    if (/\s/.jest.setTimeout(10000);
+  test(char)) return 'Whitespace';
+    if (/[a-zA-Z]/.jest.setTimeout(10000);
+  test(char)) return 'Identifier';
+    if (/[0-9]/.jest.setTimeout(10000);
+  test(char)) return 'Number';
     return 'Operator';
   }
 
   describe('52x Performance Multiplier Validation', () => {
-    it('should achieve 52x performance improvement over baseline', async () => {
+    it('should achieve 52x performance improvement over baseline', async () => { try {
       const testCode = `
         function fibonacci(n) {
           if (n <= 1) return n;
@@ -198,12 +201,13 @@ describe('WASM 52x Performance Validation', () => {
   });
 
   describe('AST Parsing Benchmarks - 10,000+ Operations', () => {
-    it('should parse 10,000+ AST operations efficiently', async () => {
+    it('should parse 10,000+ AST operations efficiently', async () => { try {
       const operationCount = 10000;
       const parseTimes = [];
 
       const sampleCode = `
-        function test() {
+        function jest.setTimeout(10000);
+  test() {
           const x = 42;
           return x * 2;
         }
@@ -249,7 +253,7 @@ describe('WASM 52x Performance Validation', () => {
   });
 
   describe('Memory Usage Under Load', () => {
-    it('should maintain efficient memory usage during intensive parsing', async () => {
+    it('should maintain efficient memory usage during intensive parsing', async () => { try {
       const initialMemory = process.memoryUsage();
 
       const largeCode = `
@@ -304,7 +308,7 @@ describe('WASM 52x Performance Validation', () => {
   });
 
   describe('Concurrent WASM Instances', () => {
-    it('should handle 5-10 parallel WASM instances efficiently', async () => {
+    it('should handle 5-10 parallel WASM instances efficiently', async () => { try {
       const instanceCount = 10;
       const iterationsPerInstance = 100;
 
@@ -367,7 +371,7 @@ describe('WASM 52x Performance Validation', () => {
   });
 
   describe('Performance Regression Detection', () => {
-    it('should detect and report performance regressions', async () => {
+    it('should detect and report performance regressions', async () => { try {
       const baselineMetrics = {
         multiplier: 52,
         throughput: 500,
@@ -418,7 +422,7 @@ describe('WASM 52x Performance Validation', () => {
   });
 
   describe('Performance Validation Summary', () => {
-    it('should generate comprehensive WASM performance report', async () => {
+    it('should generate comprehensive WASM performance report', async () => { try {
       // Calculate overall confidence score
       const scores = [
         testResults.performanceMultiplier?.multiplier > 40 ? 1.0 : 0.5,

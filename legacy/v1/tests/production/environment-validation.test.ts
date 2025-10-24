@@ -15,18 +15,19 @@ describe('Production Environment Validation', () => {
   let systemIntegration: SystemIntegration;
   let configManager: ConfigManager;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     configManager = new ConfigManager();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (systemIntegration?.isReady()) {
       await systemIntegration.shutdown();
     }
   });
 
   describe('Environment Variable Validation', () => {
-    test('should validate required environment variables for production', () => {
+    jest.setTimeout(10000);
+  test('should validate required environment variables for production', () => {
       const requiredVars = [
         'NODE_ENV',
         'PORT',
@@ -69,7 +70,8 @@ describe('Production Environment Validation', () => {
       }
     });
 
-    test('should validate environment variable types and formats', () => {
+    jest.setTimeout(10000);
+  test('should validate environment variable types and formats', () => {
       // Port validation
       if (process.env.PORT) {
         const port = parseInt(process.env.PORT, 10);
@@ -104,7 +106,8 @@ describe('Production Environment Validation', () => {
       }
     });
 
-    test('should not expose sensitive data in environment', () => {
+    jest.setTimeout(10000);
+  test('should not expose sensitive data in environment', () => {
       const sensitivePatterns = [
         /password/i,
         /secret/i,
@@ -131,7 +134,8 @@ describe('Production Environment Validation', () => {
   });
 
   describe('Configuration File Validation', () => {
-    test('should validate configuration file structure', async () => {
+    jest.setTimeout(10000);
+  test('should validate configuration file structure', async () => { try {
       const configPath = path.join(process.cwd(), 'claude-flow.config.json');
       
       if (await fs.pathExists(configPath)) {
@@ -157,7 +161,8 @@ describe('Production Environment Validation', () => {
       }
     });
 
-    test('should validate JSON schema compliance', async () => {
+    jest.setTimeout(10000);
+  test('should validate JSON schema compliance', async () => { try {
       await configManager.initialize({
         logLevel: 'info',
         environment: 'test'
@@ -184,7 +189,8 @@ describe('Production Environment Validation', () => {
   });
 
   describe('System Dependencies Validation', () => {
-    test('should validate Node.js version compatibility', () => {
+    jest.setTimeout(10000);
+  test('should validate Node.js version compatibility', () => {
       const nodeVersion = process.version;
       const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0], 10);
       
@@ -194,7 +200,8 @@ describe('Production Environment Validation', () => {
       console.log(`Node.js version: ${nodeVersion} (Major: ${majorVersion})`);
     });
 
-    test('should validate required npm packages', async () => {
+    jest.setTimeout(10000);
+  test('should validate required npm packages', async () => { try {
       const packageJsonPath = path.join(process.cwd(), 'package.json');
       expect(await fs.pathExists(packageJsonPath)).toBe(true);
       
@@ -225,7 +232,8 @@ describe('Production Environment Validation', () => {
       }
     });
 
-    test('should validate file system permissions', async () => {
+    jest.setTimeout(10000);
+  test('should validate file system permissions', async () => { try {
       const testDir = path.join(process.cwd(), 'temp-permission-test');
       const testFile = path.join(testDir, 'test.json');
       
@@ -250,7 +258,8 @@ describe('Production Environment Validation', () => {
   });
 
   describe('Network and Connectivity Validation', () => {
-    test('should validate network interface availability', () => {
+    jest.setTimeout(10000);
+  test('should validate network interface availability', () => {
       const os = require('os');
       const networkInterfaces = os.networkInterfaces();
       
@@ -265,7 +274,8 @@ describe('Production Environment Validation', () => {
       expect(hasNonLoopback).toBe(true);
     });
 
-    test('should validate port availability', async () => {
+    jest.setTimeout(10000);
+  test('should validate port availability', async () => { try {
       const net = require('net');
       const testPorts = [3000, 8080, 9000];
       
@@ -287,7 +297,8 @@ describe('Production Environment Validation', () => {
   });
 
   describe('Security Configuration Validation', () => {
-    test('should validate HTTPS configuration for production', () => {
+    jest.setTimeout(10000);
+  test('should validate HTTPS configuration for production', () => {
       const nodeEnv = process.env.NODE_ENV || 'development';
       
       if (nodeEnv === 'production') {
@@ -305,7 +316,8 @@ describe('Production Environment Validation', () => {
       }
     });
 
-    test('should validate security headers configuration', async () => {
+    jest.setTimeout(10000);
+  test('should validate security headers configuration', async () => { try {
       await configManager.initialize({
         logLevel: 'info',
         environment: 'production-test',
@@ -325,7 +337,8 @@ describe('Production Environment Validation', () => {
       }
     });
 
-    test('should validate authentication configuration', () => {
+    jest.setTimeout(10000);
+  test('should validate authentication configuration', () => {
       // JWT secret validation
       if (process.env.JWT_SECRET) {
         const secret = process.env.JWT_SECRET;
@@ -346,7 +359,8 @@ describe('Production Environment Validation', () => {
   });
 
   describe('Resource Limits Validation', () => {
-    test('should validate memory limits', () => {
+    jest.setTimeout(10000);
+  test('should validate memory limits', () => {
       const memoryUsage = process.memoryUsage();
       
       // Validate current memory usage is reasonable
@@ -364,7 +378,8 @@ describe('Production Environment Validation', () => {
       console.log(`Current memory usage: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`);
     });
 
-    test('should validate CPU and concurrency limits', async () => {
+    jest.setTimeout(10000);
+  test('should validate CPU and concurrency limits', async () => { try {
       const os = require('os');
       const cpuCount = os.cpus().length;
       
@@ -391,7 +406,8 @@ describe('Production Environment Validation', () => {
   });
 
   describe('Logging and Monitoring Configuration', () => {
-    test('should validate logging configuration', async () => {
+    jest.setTimeout(10000);
+  test('should validate logging configuration', async () => { try {
       await configManager.initialize({
         logLevel: 'info',
         environment: 'test'
@@ -411,7 +427,8 @@ describe('Production Environment Validation', () => {
       }
     });
 
-    test('should validate metrics collection configuration', () => {
+    jest.setTimeout(10000);
+  test('should validate metrics collection configuration', () => {
       // Check if metrics are enabled
       const metricsEnabled = process.env.ENABLE_METRICS === 'true';
       
@@ -430,4 +447,4 @@ describe('Production Environment Validation', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

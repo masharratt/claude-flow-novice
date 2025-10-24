@@ -24,7 +24,7 @@ describe('Phase 6: Core Integration Testing', () => {
   const TEST_MEMORY_KEY = 'swarm/phase6/integration-tester';
   const REDIS_CHANNEL = 'swarm:phase-6:integration';
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize test environment
     testEnvironment = new TestEnvironment({
       redis: {
@@ -45,13 +45,13 @@ describe('Phase 6: Core Integration Testing', () => {
     console.log('✅ Phase 6 Integration Test Environment Ready');
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (testEnvironment) {
       await testEnvironment.cleanup();
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     if (redisClient) {
       await redisClient.flushDb();
     }
@@ -59,7 +59,7 @@ describe('Phase 6: Core Integration Testing', () => {
   });
 
   describe('Redis Coordination Infrastructure', () => {
-    it('should establish Redis connection and validate basic operations', async () => {
+    it('should establish Redis connection and validate basic operations', async () => { try {
       // Test Redis connectivity
       const pong = await redisClient.ping();
       expect(pong).toBe('PONG');
@@ -89,7 +89,7 @@ describe('Phase 6: Core Integration Testing', () => {
       await subscriber.quit();
     });
 
-    it('should initialize memory manager with proper namespace isolation', async () => {
+    it('should initialize memory manager with proper namespace isolation', async () => { try {
       // Test memory storage with namespace isolation
       const testData = { phase: 6, test: 'memory-isolation' };
       await memoryManager.store('test-namespace', 'test-key', testData);
@@ -110,7 +110,7 @@ describe('Phase 6: Core Integration Testing', () => {
   });
 
   describe('Swarm Lifecycle Management', () => {
-    it('should complete full swarm lifecycle: init -> execute -> monitor -> terminate', async () => {
+    it('should complete full swarm lifecycle: init -> execute -> monitor -> terminate', async () => { try {
       const swarmId = 'lifecycle-test-swarm';
       const startTime = Date.now();
 
@@ -185,7 +185,7 @@ describe('Phase 6: Core Integration Testing', () => {
       expect(finalTermination.finalResults.successRate).toBe(1.0);
     });
 
-    it('should handle swarm recovery scenarios', async () => {
+    it('should handle swarm recovery scenarios', async () => { try {
       const swarmId = 'recovery-test-swarm';
 
       // Simulate interrupted swarm
@@ -220,7 +220,7 @@ describe('Phase 6: Core Integration Testing', () => {
   });
 
   describe('Cross-Phase Compatibility Validation', () => {
-    it('should validate data flow across all completed phases', async () => {
+    it('should validate data flow across all completed phases', async () => { try {
       // Phase 0: MCP-Less Foundation
       const phase0Data = {
         foundation: 'MCP-less',
@@ -327,7 +327,7 @@ describe('Phase 6: Core Integration Testing', () => {
       expect(allPhasesValid).toBe(true);
     });
 
-    it('should validate consensus thresholds across all phases', async () => {
+    it('should validate consensus thresholds across all phases', async () => { try {
       const consensusThresholds = {
         'phase-0': { required: 0.90, actual: 0.94 },
         'phase-1': { required: 0.90, actual: 0.92 },
@@ -356,7 +356,7 @@ describe('Phase 6: Core Integration Testing', () => {
   });
 
   describe('Performance and Load Testing', () => {
-    it('should handle concurrent Redis operations', async () => {
+    it('should handle concurrent Redis operations', async () => { try {
       const concurrentOperations = 50;
       const startTime = Date.now();
 
@@ -393,7 +393,7 @@ describe('Phase 6: Core Integration Testing', () => {
       });
     });
 
-    it('should validate memory usage and cleanup', async () => {
+    it('should validate memory usage and cleanup', async () => { try {
       const initialMemory = process.memoryUsage();
 
       // Store test data
@@ -420,7 +420,7 @@ describe('Phase 6: Core Integration Testing', () => {
   });
 
   describe('Security and Compliance Testing', () => {
-    it('should validate GDPR compliance and data sovereignty', async () => {
+    it('should validate GDPR compliance and data sovereignty', async () => { try {
       // Test GDPR compliance validation
       const gdprConfig = {
         region: 'EU',
@@ -456,7 +456,7 @@ describe('Phase 6: Core Integration Testing', () => {
       expect(retrievedUserData.consentGiven).toBe(true);
     });
 
-    it('should validate security controls and audit logging', async () => {
+    it('should validate security controls and audit logging', async () => { try {
       // Test security configuration
       const securityConfig = {
         encryption: 'AES-256-GCM',
@@ -509,7 +509,7 @@ describe('Phase 6: Core Integration Testing', () => {
   });
 
   describe('Integration Test Results and Reporting', () => {
-    it('should generate comprehensive test results with required metrics', async () => {
+    it('should generate comprehensive test results with required metrics', async () => { try {
       // Test results from all phases
       const testResults = {
         phase0: {
@@ -627,7 +627,7 @@ describe('Phase 6: Core Integration Testing', () => {
   });
 
   describe('Redis Pub/Sub Communication', () => {
-    it('should validate Redis pub/sub communication for swarm coordination', async () => {
+    it('should validate Redis pub/sub communication for swarm coordination', async () => { try {
       const testChannel = 'swarm:phase-6:test-communication';
       let messagesReceived = [];
 
@@ -659,7 +659,7 @@ describe('Phase 6: Core Integration Testing', () => {
       await subscriber.quit();
     });
 
-    it('should publish integration test completion to Redis channel', async () => {
+    it('should publish integration test completion to Redis channel', async () => { try {
       const completionMessage = {
         swarmId: TEST_SWARM_ID,
         phase: 6,
@@ -686,4 +686,4 @@ describe('Phase 6: Core Integration Testing', () => {
       expect(storedCompletion.results.successRate).toBe(1.0);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

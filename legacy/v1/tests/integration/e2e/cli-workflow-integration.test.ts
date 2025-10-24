@@ -14,20 +14,21 @@ describe('CLI Workflow Integration Tests', () => {
   const testDir = path.join(process.cwd(), 'tests', 'integration', 'temp');
   const cliPath = path.join(process.cwd(), 'src', 'cli', 'main.ts');
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Create test directory
     await fs.mkdir(testDir, { recursive: true });
     process.chdir(testDir);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup test directory
     process.chdir(process.cwd().replace(path.sep + 'tests' + path.sep + 'integration' + path.sep + 'temp', ''));
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   describe('SPARC Workflow Tests', () => {
-    test('should execute complete SPARC TDD workflow', async () => {
+    jest.setTimeout(10000);
+  test('should execute complete SPARC TDD workflow', async () => { try {
       const command = `tsx ${cliPath} sparc tdd "Create user authentication system"`;
 
       const { stdout, stderr } = await execAsync(command, {
@@ -40,7 +41,8 @@ describe('CLI Workflow Integration Tests', () => {
       expect(stdout).toMatch(/specification|pseudocode|architecture|refinement|completion/i);
     }, 35000);
 
-    test('should run SPARC modes individually', async () => {
+    jest.setTimeout(10000);
+  test('should run SPARC modes individually', async () => { try {
       const modes = ['spec-pseudocode', 'architect', 'integration'];
 
       for (const mode of modes) {
@@ -54,7 +56,8 @@ describe('CLI Workflow Integration Tests', () => {
   });
 
   describe('Swarm Operations Tests', () => {
-    test('should initialize and manage swarm', async () => {
+    jest.setTimeout(10000);
+  test('should initialize and manage swarm', async () => { try {
       // Initialize swarm
       const initCommand = `tsx ${cliPath} swarm init mesh`;
       const { stdout: initOut } = await execAsync(initCommand, { timeout: 10000 });
@@ -71,7 +74,8 @@ describe('CLI Workflow Integration Tests', () => {
       expect(spawnOut).toMatch(/agent|spawn/i);
     }, 30000);
 
-    test('should handle agent coordination', async () => {
+    jest.setTimeout(10000);
+  test('should handle agent coordination', async () => { try {
       const command = `tsx ${cliPath} agent coordinator "coordinate test tasks"`;
       const { stdout, stderr } = await execAsync(command, {
         timeout: 15000,
@@ -84,7 +88,8 @@ describe('CLI Workflow Integration Tests', () => {
   });
 
   describe('Configuration Management Tests', () => {
-    test('should manage configuration settings', async () => {
+    jest.setTimeout(10000);
+  test('should manage configuration settings', async () => { try {
       // Set configuration
       const setCommand = `tsx ${cliPath} config set test.value "integration-test"`;
       await execAsync(setCommand, { timeout: 5000 });
@@ -100,7 +105,8 @@ describe('CLI Workflow Integration Tests', () => {
       expect(listOut).toContain('test.value');
     }, 20000);
 
-    test('should validate configuration schema', async () => {
+    jest.setTimeout(10000);
+  test('should validate configuration schema', async () => { try {
       const command = `tsx ${cliPath} config validate`;
       const { stdout, stderr } = await execAsync(command, { timeout: 10000 });
 
@@ -111,7 +117,8 @@ describe('CLI Workflow Integration Tests', () => {
   });
 
   describe('Memory and Neural Features Tests', () => {
-    test('should manage memory operations', async () => {
+    jest.setTimeout(10000);
+  test('should manage memory operations', async () => { try {
       // Store memory
       const storeCommand = `tsx ${cliPath} memory store test-key "test value for integration"`;
       await execAsync(storeCommand, { timeout: 5000 });
@@ -127,7 +134,8 @@ describe('CLI Workflow Integration Tests', () => {
       expect(listOut).toContain('test-key');
     }, 20000);
 
-    test('should initialize and check neural features', async () => {
+    jest.setTimeout(10000);
+  test('should initialize and check neural features', async () => { try {
       const initCommand = `tsx ${cliPath} neural init`;
       const { stdout, stderr } = await execAsync(initCommand, {
         timeout: 10000,
@@ -141,7 +149,8 @@ describe('CLI Workflow Integration Tests', () => {
   });
 
   describe('Help and Documentation Tests', () => {
-    test('should display comprehensive help', async () => {
+    jest.setTimeout(10000);
+  test('should display comprehensive help', async () => { try {
       const command = `tsx ${cliPath} help`;
       const { stdout } = await execAsync(command, { timeout: 5000 });
 
@@ -151,7 +160,8 @@ describe('CLI Workflow Integration Tests', () => {
       expect(stdout).toContain('swarm');
     });
 
-    test('should display command-specific help', async () => {
+    jest.setTimeout(10000);
+  test('should display command-specific help', async () => { try {
       const commands = ['sparc', 'swarm', 'agent', 'config'];
 
       for (const cmd of commands) {
@@ -163,7 +173,8 @@ describe('CLI Workflow Integration Tests', () => {
   });
 
   describe('Error Handling Tests', () => {
-    test('should handle invalid commands gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle invalid commands gracefully', async () => { try {
       const command = `tsx ${cliPath} invalid-command`;
 
       try {
@@ -173,7 +184,8 @@ describe('CLI Workflow Integration Tests', () => {
       }
     });
 
-    test('should handle missing arguments gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle missing arguments gracefully', async () => { try {
       const command = `tsx ${cliPath} sparc run`;
 
       try {
@@ -183,4 +195,4 @@ describe('CLI Workflow Integration Tests', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -5,7 +5,7 @@ describe('Task Command Argument Parsing', () => {
   let consoleLogSpy;
   let taskCommand;
   
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
     
     // Mock utils before importing
@@ -26,7 +26,7 @@ describe('Task Command Argument Parsing', () => {
   });
 
   describe('create command', () => {
-    it('should parse simple quoted description correctly', async () => {
+    it('should parse simple quoted description correctly', async () => { try {
       const args = ['create', 'research', '"Market analysis"'];
       await taskCommand(args, {});
       
@@ -34,70 +34,70 @@ describe('Task Command Argument Parsing', () => {
       expect(consoleLogSpy).toHaveBeenCalledWith('📋 Description: Market analysis');
     });
 
-    it('should parse description with spaces in quotes', async () => {
+    it('should parse description with spaces in quotes', async () => { try {
       const args = ['create', 'code', '"Implement user authentication system"'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('📋 Description: Implement user authentication system');
     });
 
-    it('should parse single-quoted descriptions', async () => {
+    it('should parse single-quoted descriptions', async () => { try {
       const args = ['create', 'analysis', "'Data processing pipeline'"];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('📋 Description: Data processing pipeline');
     });
 
-    it('should handle quotes within description', async () => {
+    it('should handle quotes within description', async () => { try {
       const args = ['create', 'research', '"Analyze "best practices" for API design"'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('📋 Description: Analyze "best practices" for API design');
     });
 
-    it('should parse priority flag correctly', async () => {
+    it('should parse priority flag correctly', async () => { try {
       const args = ['create', 'code', '"Build API"', '--priority', '8'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('⚡ Priority: 8/10');
     });
 
-    it('should use default priority when not specified', async () => {
+    it('should use default priority when not specified', async () => { try {
       const args = ['create', 'code', '"Build API"'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('⚡ Priority: 5/10');
     });
 
-    it('should handle unquoted multi-word descriptions', async () => {
+    it('should handle unquoted multi-word descriptions', async () => { try {
       const args = ['create', 'general', 'Quick', 'task', 'description'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('📋 Description: Quick task description');
     });
 
-    it('should error when type is missing', async () => {
+    it('should error when type is missing', async () => { try {
       const args = ['create'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('❌ Usage: task create <type> "<description>"');
     });
 
-    it('should error when description is missing', async () => {
+    it('should error when description is missing', async () => { try {
       const args = ['create', 'research'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('❌ Usage: task create <type> "<description>"');
     });
 
-    it('should handle edge case of empty quotes', async () => {
+    it('should handle edge case of empty quotes', async () => { try {
       const args = ['create', 'research', '""'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('❌ Usage: task create <type> "<description>"');
     });
 
-    it('should handle mismatched quotes gracefully', async () => {
+    it('should handle mismatched quotes gracefully', async () => { try {
       const args = ['create', 'code', '"Unclosed quote'];
       await taskCommand(args, {});
       
@@ -106,28 +106,28 @@ describe('Task Command Argument Parsing', () => {
   });
 
   describe('list command', () => {
-    it('should parse filter flag correctly', async () => {
+    it('should parse filter flag correctly', async () => { try {
       const args = ['list', '--filter', 'running'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('📊 Filtered by status: running');
     });
 
-    it('should parse verbose flag', async () => {
+    it('should parse verbose flag', async () => { try {
       const args = ['list', '--verbose'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('To create tasks:'));
     });
 
-    it('should parse short verbose flag', async () => {
+    it('should parse short verbose flag', async () => { try {
       const args = ['list', '-v'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('To create tasks:'));
     });
 
-    it('should handle multiple flags', async () => {
+    it('should handle multiple flags', async () => { try {
       const args = ['list', '--filter', 'completed', '--verbose'];
       await taskCommand(args, {});
       
@@ -137,21 +137,21 @@ describe('Task Command Argument Parsing', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle special characters in description', async () => {
+    it('should handle special characters in description', async () => { try {
       const args = ['create', 'code', '"Implement feature #123 @high-priority"'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('📋 Description: Implement feature #123 @high-priority');
     });
 
-    it('should handle unicode in description', async () => {
+    it('should handle unicode in description', async () => { try {
       const args = ['create', 'research', '"研究 AI 技术 🚀"'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('📋 Description: 研究 AI 技术 🚀');
     });
 
-    it('should handle very long descriptions', async () => {
+    it('should handle very long descriptions', async () => { try {
       const longDesc = 'A'.repeat(200);
       const args = ['create', 'analysis', `"${longDesc}"`];
       await taskCommand(args, {});
@@ -159,11 +159,11 @@ describe('Task Command Argument Parsing', () => {
       expect(consoleLogSpy).toHaveBeenCalledWith(`📋 Description: ${longDesc}`);
     });
 
-    it('should handle command injection attempts safely', async () => {
+    it('should handle command injection attempts safely', async () => { try {
       const args = ['create', 'code', '"Test; rm -rf /"'];
       await taskCommand(args, {});
       
       expect(consoleLogSpy).toHaveBeenCalledWith('📋 Description: Test; rm -rf /');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

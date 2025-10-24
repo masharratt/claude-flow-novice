@@ -44,7 +44,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
     orchestrator = createCFNLoopOrchestrator(config);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup
     await orchestrator.shutdown();
     delete process.env.CLAUDE_FLOW_ENV;
@@ -75,7 +75,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
   });
 
   describe('Phase Execution', () => {
-    it('should execute complete phase successfully', async () => {
+    it('should execute complete phase successfully', async () => { try {
       const task = 'Implement test feature';
 
       const result: PhaseResult = await orchestrator.executePhase(task);
@@ -90,7 +90,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       expect(result.timestamp).toBeGreaterThan(0);
     }, 10000); // 10s timeout
 
-    it('should track phase statistics', async () => {
+    it('should track phase statistics', async () => { try {
       const task = 'Implement statistics tracking';
 
       await orchestrator.executePhase(task);
@@ -104,7 +104,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       expect(stats.finalConsensusScore).toBeGreaterThanOrEqual(0);
     }, 10000);
 
-    it('should handle empty task gracefully', async () => {
+    it('should handle empty task gracefully', async () => { try {
       const task = '';
 
       const result = await orchestrator.executePhase(task);
@@ -115,7 +115,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
   });
 
   describe('Loop 3 Execution (Primary Swarm)', () => {
-    it('should execute primary swarm with agent instructions', async () => {
+    it('should execute primary swarm with agent instructions', async () => { try {
       const agentInstructions = [
         'Implement feature A',
         'Test feature A',
@@ -132,7 +132,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       expect(responses[0].timestamp).toBeGreaterThan(0);
     });
 
-    it('should collect confidence scores from responses', async () => {
+    it('should collect confidence scores from responses', async () => { try {
       const mockResponses: AgentResponse[] = [
         {
           agentId: 'agent-1',
@@ -162,7 +162,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       expect(confidenceScores[1].confidence).toBe(0.90);
     });
 
-    it('should handle agents with missing confidence scores', async () => {
+    it('should handle agents with missing confidence scores', async () => { try {
       const mockResponses: AgentResponse[] = [
         {
           agentId: 'agent-incomplete',
@@ -183,7 +183,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
   });
 
   describe('Loop 2 Execution (Consensus Validation)', () => {
-    it('should execute consensus validation with mock validators', async () => {
+    it('should execute consensus validation with mock validators', async () => { try {
       const mockResponses: AgentResponse[] = [
         {
           agentId: 'primary-1',
@@ -207,7 +207,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       expect(consensusResult.timestamp).toBeGreaterThan(0);
     });
 
-    it('should track consensus swarm executions in statistics', async () => {
+    it('should track consensus swarm executions in statistics', async () => { try {
       const mockResponses: AgentResponse[] = [
         {
           agentId: 'agent-1',
@@ -228,7 +228,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
   });
 
   describe('Feedback Injection and Retry', () => {
-    it('should handle consensus failure with feedback capture', async () => {
+    it('should handle consensus failure with feedback capture', async () => { try {
       // This test would require mocking consensus failure
       // For now, we test the handleFailure method directly
 
@@ -259,7 +259,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       expect(retryStrategy.reason).toBeDefined();
     });
 
-    it('should stop retrying after max Loop 2 iterations', async () => {
+    it('should stop retrying after max Loop 2 iterations', async () => { try {
       // Create orchestrator with very low max iterations
       const lowIterConfig: CFNLoopConfig = {
         ...config,
@@ -324,7 +324,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       noCbOrchestrator.shutdown();
     });
 
-    it('should track circuit breaker trips in statistics', async () => {
+    it('should track circuit breaker trips in statistics', async () => { try {
       // This would require simulating circuit breaker failure
       // For now, we just verify the statistic exists
       const stats = orchestrator.getStatistics();
@@ -333,7 +333,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
   });
 
   describe('Iteration Tracking', () => {
-    it('should track Loop 2 and Loop 3 iterations separately', async () => {
+    it('should track Loop 2 and Loop 3 iterations separately', async () => { try {
       const task = 'Track iteration counts';
 
       const result = await orchestrator.executePhase(task);
@@ -342,7 +342,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       expect(result.totalLoop3Iterations).toBeGreaterThanOrEqual(1);
     }, 10000);
 
-    it('should reset Loop 3 on confidence gate pass', async () => {
+    it('should reset Loop 3 on confidence gate pass', async () => { try {
       // This is tested implicitly in phase execution
       // Loop 3 should reset when confidence gate passes
       const task = 'Test Loop 3 reset';
@@ -357,7 +357,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
   });
 
   describe('Statistics and Metrics', () => {
-    it('should track all required statistics', async () => {
+    it('should track all required statistics', async () => { try {
       const task = 'Generate comprehensive statistics';
 
       await orchestrator.executePhase(task);
@@ -376,7 +376,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
       expect(stats.timeouts).toBeGreaterThanOrEqual(0);
     }, 10000);
 
-    it('should increment gate passes on success', async () => {
+    it('should increment gate passes on success', async () => { try {
       const task = 'Test gate pass tracking';
 
       const initialStats = orchestrator.getStatistics();
@@ -390,16 +390,16 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle orchestrator shutdown gracefully', async () => {
+    it('should handle orchestrator shutdown gracefully', async () => { try {
       await expect(orchestrator.shutdown()).resolves.not.toThrow();
     });
 
-    it('should handle multiple shutdown calls', async () => {
+    it('should handle multiple shutdown calls', async () => { try {
       await orchestrator.shutdown();
       await expect(orchestrator.shutdown()).resolves.not.toThrow();
     });
 
-    it('should handle phase execution after shutdown', async () => {
+    it('should handle phase execution after shutdown', async () => { try {
       await orchestrator.shutdown();
 
       // Create new orchestrator for this test
@@ -469,7 +469,7 @@ describe('CFNLoopOrchestrator - Integration Tests', () => {
   });
 
   describe('Event Emission', () => {
-    it('should emit events during phase execution', async () => {
+    it('should emit events during phase execution', async () => { try {
       const events: string[] = [];
 
       orchestrator.on('circuit:state-change', () => {

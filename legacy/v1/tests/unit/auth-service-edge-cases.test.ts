@@ -42,7 +42,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
   });
 
   describe('Expired Token Edge Cases', () => {
-    it('should reject token with expired timestamp', async () => {
+    it('should reject token with expired timestamp', async () => { try {
       // Arrange - Create short-lived token
       const shortConfig: AuthConfig = {
         jwtSecret: 'test-secret',
@@ -64,7 +64,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       await expect(shortAuth.verifyJWT(authResult.token)).rejects.toThrow();
     });
 
-    it('should handle token with future iat (issued at)', async () => {
+    it('should handle token with future iat (issued at)', async () => { try {
       // This tests clock skew scenarios
       const user = await authService.createUser({
         email: 'future@example.com',
@@ -80,7 +80,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
   });
 
   describe('Malformed JWT Edge Cases', () => {
-    it('should reject JWT with missing signature', async () => {
+    it('should reject JWT with missing signature', async () => { try {
       // Arrange
       const malformedToken = 'header.payload'; // Missing signature
 
@@ -88,7 +88,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       await expect(authService.verifyJWT(malformedToken)).rejects.toThrow('Invalid token format');
     });
 
-    it('should reject JWT with too many parts', async () => {
+    it('should reject JWT with too many parts', async () => { try {
       // Arrange
       const malformedToken = 'header.payload.signature.extra'; // Too many parts
 
@@ -96,7 +96,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       await expect(authService.verifyJWT(malformedToken)).rejects.toThrow('Invalid token format');
     });
 
-    it('should reject JWT with invalid base64url encoding', async () => {
+    it('should reject JWT with invalid base64url encoding', async () => { try {
       // Arrange
       const malformedToken = 'invalid!!!.base64!!!.encoding!!!';
 
@@ -104,7 +104,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       await expect(authService.verifyJWT(malformedToken)).rejects.toThrow();
     });
 
-    it('should reject JWT with empty payload', async () => {
+    it('should reject JWT with empty payload', async () => { try {
       // Arrange
       const emptyPayload = Buffer.from('{}').toString('base64url');
       const header = Buffer.from('{"alg":"HS256","typ":"JWT"}').toString('base64url');
@@ -114,7 +114,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       await expect(authService.verifyJWT(token)).rejects.toThrow();
     });
 
-    it('should reject JWT with null payload', async () => {
+    it('should reject JWT with null payload', async () => { try {
       // Arrange
       const nullPayload = Buffer.from('null').toString('base64url');
       const header = Buffer.from('{"alg":"HS256","typ":"JWT"}').toString('base64url');
@@ -126,7 +126,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
   });
 
   describe('Missing Header Edge Cases', () => {
-    it('should handle missing userId in JWT payload', async () => {
+    it('should handle missing userId in JWT payload', async () => { try {
       // This is tested by attempting to verify a token with tampered payload
       const user = await authService.createUser({
         email: 'missing@example.com',
@@ -140,7 +140,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(result.user.id).toBeDefined();
     });
 
-    it('should handle missing sessionId in JWT payload', async () => {
+    it('should handle missing sessionId in JWT payload', async () => { try {
       const user = await authService.createUser({
         email: 'nosession@example.com',
         password: 'password',
@@ -155,7 +155,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
   });
 
   describe('Race Condition Edge Cases', () => {
-    it('should handle concurrent user creation with same email', async () => {
+    it('should handle concurrent user creation with same email', async () => { try {
       // Act - Attempt to create same user concurrently
       const promises = Array.from({ length: 5 }, () =>
         authService.createUser({
@@ -178,7 +178,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       });
     });
 
-    it('should handle concurrent authentication attempts', async () => {
+    it('should handle concurrent authentication attempts', async () => { try {
       // Arrange
       const user = await authService.createUser({
         email: 'concurrent-auth@example.com',
@@ -200,7 +200,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(uniqueSessionIds.size).toBe(10); // All sessions should be unique
     });
 
-    it('should handle concurrent API key creation', async () => {
+    it('should handle concurrent API key creation', async () => { try {
       // Arrange
       const user = await authService.createUser({
         email: 'concurrent-key@example.com',
@@ -224,7 +224,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(uniqueKeys.size).toBe(5);
     });
 
-    it('should handle concurrent session invalidation', async () => {
+    it('should handle concurrent session invalidation', async () => { try {
       // Arrange
       const user = await authService.createUser({
         email: 'concurrent-invalidate@example.com',
@@ -246,7 +246,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
   });
 
   describe('Performance and Caching Edge Cases', () => {
-    it('should handle rapid sequential authentication requests', async () => {
+    it('should handle rapid sequential authentication requests', async () => { try {
       // Arrange
       const user = await authService.createUser({
         email: 'rapid@example.com',
@@ -265,7 +265,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(duration).toBeLessThan(2000);
     });
 
-    it('should handle rapid JWT verifications', async () => {
+    it('should handle rapid JWT verifications', async () => { try {
       // Arrange
       const user = await authService.createUser({
         email: 'rapid-verify@example.com',
@@ -285,7 +285,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(duration).toBeLessThan(500);
     });
 
-    it('should handle session cleanup with many expired sessions', async () => {
+    it('should handle session cleanup with many expired sessions', async () => { try {
       // Arrange - Create many short-lived sessions
       const shortConfig: AuthConfig = {
         jwtSecret: 'test-secret',
@@ -324,7 +324,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
   });
 
   describe('Error Scenario Edge Cases', () => {
-    it('should handle password hashing failure gracefully', async () => {
+    it('should handle password hashing failure gracefully', async () => { try {
       // This tests the password hashing path - normal creation should work
       const user = await authService.createUser({
         email: 'hash@example.com',
@@ -336,7 +336,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(user.passwordHash).toBeDefined();
     });
 
-    it('should handle API key generation collision (extremely rare)', async () => {
+    it('should handle API key generation collision (extremely rare)', async () => { try {
       // Arrange
       const user = await authService.createUser({
         email: 'collision@example.com',
@@ -359,7 +359,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(uniqueKeys.size).toBe(100);
     });
 
-    it('should handle very long email addresses', async () => {
+    it('should handle very long email addresses', async () => { try {
       // Arrange
       const longEmail = 'a'.repeat(240) + '@example.com'; // 254 characters (max email length)
 
@@ -378,7 +378,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(authResult.user.email).toBe(longEmail);
     });
 
-    it('should handle very long passwords', async () => {
+    it('should handle very long passwords', async () => { try {
       // Arrange
       const longPassword = 'P'.repeat(1000); // Very long password
 
@@ -394,7 +394,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(authResult.user.id).toBe(user.id);
     });
 
-    it('should handle special characters in passwords', async () => {
+    it('should handle special characters in passwords', async () => { try {
       // Arrange
       const specialPassword = '!@#$%^&*()_+-=[]{}|;:\'",.<>?/~`';
 
@@ -410,7 +410,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       expect(authResult.user.id).toBe(user.id);
     });
 
-    it('should handle Unicode characters in names', async () => {
+    it('should handle Unicode characters in names', async () => { try {
       // Arrange
       const unicodeName = '用户名 👤 🔐';
 
@@ -427,7 +427,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
   });
 
   describe('Boundary Condition Edge Cases', () => {
-    it('should handle exactly max login attempts', async () => {
+    it('should handle exactly max login attempts', async () => { try {
       // Arrange
       const user = await authService.createUser({
         email: 'boundary@example.com',
@@ -450,7 +450,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       ).rejects.toThrow('Too many failed login attempts');
     });
 
-    it('should handle session expiration at exact boundary', async () => {
+    it('should handle session expiration at exact boundary', async () => { try {
       // Arrange - Very short session
       const shortConfig: AuthConfig = {
         jwtSecret: 'test-secret',
@@ -471,7 +471,7 @@ describe('AuthService Edge Cases Unit Tests', () => {
       await expect(shortAuth.verifyJWT(authResult.token)).rejects.toThrow();
     });
 
-    it('should handle zero permissions user', async () => {
+    it('should handle zero permissions user', async () => { try {
       // This scenario tests the service role which has minimal permissions
       const user = await authService.createUser({
         email: 'noperm@example.com',

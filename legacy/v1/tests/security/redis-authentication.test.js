@@ -293,7 +293,7 @@ describe('Redis Authentication Integration (requires Redis server)', () => {
   }
 
   describe('Successful Authentication', () => {
-    it('should connect with valid password', async () => {
+    it('should connect with valid password', async () => { try {
       const client = new Redis({
         host: 'localhost',
         port: 6379,
@@ -312,7 +312,7 @@ describe('Redis Authentication Integration (requires Redis server)', () => {
   });
 
   describe('Failed Authentication', () => {
-    it('should reject connection with invalid password', async () => {
+    it('should reject connection with invalid password', async () => { try {
       const client = new Redis({
         host: 'localhost',
         port: 6379,
@@ -331,7 +331,7 @@ describe('Redis Authentication Integration (requires Redis server)', () => {
       }
     });
 
-    it('should reject connection with no password when auth required', async () => {
+    it('should reject connection with no password when auth required', async () => { try {
       const client = new Redis({
         host: 'localhost',
         port: 6379,

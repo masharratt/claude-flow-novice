@@ -16,7 +16,7 @@ const mockTransparencyService = transparencyService as jest.Mocked<typeof transp
 describe('Agents API - Hybrid Endpoint', () => {
   let app: express.Application;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize mock data
     mockTransparencyService.getAgentHierarchy.mockResolvedValue([
       {
@@ -49,14 +49,14 @@ describe('Agents API - Hybrid Endpoint', () => {
     app = express();
     app.use(express.json());
     app.use('/api/agents', agentsRouter);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   beforeEach(() => {
     jest.clearAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('GET /api/agents/hybrid', () => {
-    it('should return hybrid workers with metadata', async () => {
+    it('should return hybrid workers with metadata', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid')
         .expect(200);
@@ -86,27 +86,27 @@ describe('Agents API - Hybrid Endpoint', () => {
       expect(typeof metadata.confidence).toBe('number');
       expect(metadata.confidence).toBeGreaterThanOrEqual(0);
       expect(metadata.confidence).toBeLessThanOrEqual(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should filter by status', async () => {
+    it('should filter by status', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid?status=active')
         .expect(200);
 
       expect(response.body.data.every((worker: any) => worker.state === 'active')).toBe(true);
       expect(response.body.meta.filters.status).toBe('active');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should filter by provider', async () => {
+    it('should filter by provider', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid?provider=openai')
         .expect(200);
 
       expect(response.body.data.every((worker: any) => worker.metadata.provider === 'openai')).toBe(true);
       expect(response.body.meta.filters.provider).toBe('openai');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should filter by confidence range', async () => {
+    it('should filter by confidence range', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid?confidence_min=0.8&confidence_max=0.9')
         .expect(200);
@@ -114,21 +114,21 @@ describe('Agents API - Hybrid Endpoint', () => {
       response.body.data.forEach((worker: any) => {
         expect(worker.metadata.confidence).toBeGreaterThanOrEqual(0.8);
         expect(worker.metadata.confidence).toBeLessThanOrEqual(0.9);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(response.body.meta.filters.confidence_min).toBe(0.8);
       expect(response.body.meta.filters.confidence_max).toBe(0.9);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject invalid confidence range', async () => {
+    it('should reject invalid confidence range', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid?confidence_min=0.9&confidence_max=0.8')
         .expect(400);
 
       expect(response.body).toHaveProperty('error');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should paginate results', async () => {
+    it('should paginate results', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid?page=1&limit=1')
         .expect(200);
@@ -137,17 +137,17 @@ describe('Agents API - Hybrid Endpoint', () => {
       expect(response.body.meta.pagination.page).toBe(1);
       expect(response.body.meta.pagination.limit).toBe(1);
       expect(response.body.meta.pagination.total).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should limit page size to maximum', async () => {
+    it('should limit page size to maximum', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid?limit=200')
         .expect(200);
 
       expect(response.body.meta.pagination.limit).toBe(100); // Should be capped at 100
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should return statistics', async () => {
+    it('should return statistics', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid')
         .expect(200);
@@ -157,17 +157,17 @@ describe('Agents API - Hybrid Endpoint', () => {
       expect(response.body.meta.statistics).toHaveProperty('averageConfidence');
       expect(response.body.meta.statistics).toHaveProperty('totalTokens');
       expect(response.body.meta.statistics).toHaveProperty('totalCost');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should set cache headers', async () => {
+    it('should set cache headers', async () => { try {
       const response = await request(app)
         .get('/api/agents/hybrid')
         .expect(200);
 
       expect(response.headers['cache-control']).toBe('public, max-age=30');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle service errors gracefully', async () => {
+    it('should handle service errors gracefully', async () => { try {
       mockTransparencyService.getAgentHierarchy.mockRejectedValue(new Error('Service error'));
 
       const response = await request(app)
@@ -176,6 +176,6 @@ describe('Agents API - Hybrid Endpoint', () => {
 
       expect(response.body).toHaveProperty('error');
       expect(response.body.error.code).toBe('HYBRID_AGENTS_ERROR');
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

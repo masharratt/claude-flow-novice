@@ -36,7 +36,7 @@ describe('Phase 1 Systems Integration', () => {
     status: 'active',
   }));
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize core components
     eventBus = new EventBus();
     logger = new Logger({
@@ -83,7 +83,7 @@ describe('Phase 1 Systems Integration', () => {
     await messageBus.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup
     healthCheck.stop();
     await messageBus.shutdown();
@@ -92,7 +92,7 @@ describe('Phase 1 Systems Integration', () => {
   });
 
   describe('Scenario 1: 10-Agent Coordination with All Systems Active', () => {
-    it('should coordinate 10 agents with message bus, health checks, and rate limiting', async () => {
+    it('should coordinate 10 agents with message bus, health checks, and rate limiting', async () => { try {
       // Start health monitoring
       healthCheck.start();
       expect(healthCheck.isMonitoring()).toBe(true);
@@ -165,7 +165,7 @@ describe('Phase 1 Systems Integration', () => {
       messageBus.off('message:sent', messageListener);
     });
 
-    it('should handle concurrent message bursts with rate limiting', async () => {
+    it('should handle concurrent message bursts with rate limiting', async () => { try {
       const channelId = await messageBus.createChannel('burst-test', 'broadcast');
       await Promise.all(testAgents.map((agent) => messageBus.joinChannel(channelId, agent)));
 
@@ -176,7 +176,7 @@ describe('Phase 1 Systems Integration', () => {
       for (let i = 0; i < burstSize; i++) {
         const agent = testAgents[i % testAgents.length];
 
-        const sendPromise = (async () => {
+        const sendPromise = (async () => { try {
           try {
             rateLimiter.checkTaskDelegation();
             await messageBus.sendMessage(
@@ -208,7 +208,7 @@ describe('Phase 1 Systems Integration', () => {
   });
 
   describe('Scenario 2: Health Failure Propagation', () => {
-    it('should detect and propagate health failures across agents', async () => {
+    it('should detect and propagate health failures across agents', async () => { try {
       healthCheck.start();
 
       // Track health alerts
@@ -245,7 +245,7 @@ describe('Phase 1 Systems Integration', () => {
       eventBus.off('health:alert', alertListener);
     });
 
-    it('should recover from transient health issues', async () => {
+    it('should recover from transient health issues', async () => { try {
       healthCheck.start();
 
       // Emit unhealthy status
@@ -272,7 +272,7 @@ describe('Phase 1 Systems Integration', () => {
   });
 
   describe('Scenario 3: Inbox Overflow -> Backpressure', () => {
-    it('should apply backpressure when queue reaches capacity', async () => {
+    it('should apply backpressure when queue reaches capacity', async () => { try {
       const queueId = await messageBus.createQueue('overflow-test', 'fifo', {
         maxSize: 10, // Small queue to trigger overflow
         persistent: false,
@@ -337,7 +337,7 @@ describe('Phase 1 Systems Integration', () => {
       expect(queue!.messages.length).toBe(10);
     });
 
-    it('should handle rate limiting under sustained load', async () => {
+    it('should handle rate limiting under sustained load', async () => { try {
       // Attempt rapid worker spawns beyond limit
       let successCount = 0;
       let rateLimitErrors = 0;
@@ -364,7 +364,7 @@ describe('Phase 1 Systems Integration', () => {
   });
 
   describe('Scenario 4: Graceful Shutdown Under Load', () => {
-    it('should drain message queues before shutdown', async () => {
+    it('should drain message queues before shutdown', async () => { try {
       const queueId = await messageBus.createQueue('shutdown-test', 'fifo', {
         maxSize: 50,
         persistent: true,
@@ -407,7 +407,7 @@ describe('Phase 1 Systems Integration', () => {
       expect(messageBus).toBeDefined();
     });
 
-    it('should cleanup resources on destroy', async () => {
+    it('should cleanup resources on destroy', async () => { try {
       // Track event listener cleanup
       const initialListenerCount = messageBus.listenerCount('message:sent');
 
@@ -424,7 +424,7 @@ describe('Phase 1 Systems Integration', () => {
       expect(finalListenerCount).toBe(0);
     });
 
-    it('should handle shutdown with active health checks', async () => {
+    it('should handle shutdown with active health checks', async () => { try {
       healthCheck.start();
       expect(healthCheck.isMonitoring()).toBe(true);
 
@@ -444,7 +444,7 @@ describe('Phase 1 Systems Integration', () => {
   });
 
   describe('Performance Validation', () => {
-    it('should maintain acceptable latency under load', async () => {
+    it('should maintain acceptable latency under load', async () => { try {
       const channelId = await messageBus.createChannel('perf-test', 'broadcast');
       await Promise.all(testAgents.map((agent) => messageBus.joinChannel(channelId, agent)));
 
@@ -477,7 +477,7 @@ describe('Phase 1 Systems Integration', () => {
       expect(p95Latency).toBeLessThan(100); // P95 < 100ms
     });
 
-    it('should track metrics accurately', async () => {
+    it('should track metrics accurately', async () => { try {
       const channelId = await messageBus.createChannel('metrics-test', 'broadcast');
       await messageBus.joinChannel(channelId, testAgents[0]);
 
@@ -499,7 +499,7 @@ describe('Phase 1 Systems Integration', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle shutdown state gracefully', async () => {
+    it('should handle shutdown state gracefully', async () => { try {
       await messageBus.shutdown();
 
       // Operations after shutdown should throw
@@ -510,7 +510,7 @@ describe('Phase 1 Systems Integration', () => {
       await expect(messageBus.createChannel('test', 'broadcast')).rejects.toThrow(/shutdown/i);
     });
 
-    it('should validate message size limits', async () => {
+    it('should validate message size limits', async () => { try {
       const largeContent = 'x'.repeat(2 * 1024 * 1024); // 2MB, exceeds 1MB limit
 
       await expect(

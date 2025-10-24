@@ -32,7 +32,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
     });
 
     describe('Language Detection with Anti-Spoofing', () => {
-        it('should detect JavaScript with 98% accuracy and resist spoofing attacks', async () => {
+        it('should detect JavaScript with 98% accuracy and resist spoofing attacks', async () => { try {
             // TDD: Write test FIRST - this should fail initially
             const jsCode = `
                 function fibonacci(n) {
@@ -62,7 +62,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
             expect(detectionResult.securityHash).to.match(/^[a-f0-9]{64}$/);
         });
 
-        it('should detect TypeScript with framework identification and resist framework spoofing', async () => {
+        it('should detect TypeScript with framework identification and resist framework spoofing', async () => { try {
             const tsReactCode = `
                 import React, { useState, useEffect } from 'react';
 
@@ -93,7 +93,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
             expect(detectionResult.byzantineConsensus).to.be.true;
         });
 
-        it('should detect Python with ML framework detection and prevent malicious suggestions', async () => {
+        it('should detect Python with ML framework detection and prevent malicious suggestions', async () => { try {
             const pythonMLCode = `
                 import torch
                 import torch.nn as nn
@@ -132,7 +132,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
     });
 
     describe('Hook Selection with Byzantine Consensus', () => {
-        it('should select appropriate hooks with 95% success rate and consensus validation', async () => {
+        it('should select appropriate hooks with 95% success rate and consensus validation', async () => { try {
             const contextData = {
                 language: 'javascript',
                 framework: 'express',
@@ -160,7 +160,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
             });
         });
 
-        it('should handle Byzantine failures during hook selection gracefully', async () => {
+        it('should handle Byzantine failures during hook selection gracefully', async () => { try {
             // Simulate Byzantine failures
             const faultyNetwork = {
                 ...byzantineNetwork,
@@ -192,7 +192,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
     });
 
     describe('Real-Time Context Adaptation with Security', () => {
-        it('should adapt context detection in real-time with Byzantine protection', async () => {
+        it('should adapt context detection in real-time with Byzantine protection', async () => { try {
             const adaptiveContext = await smartHooks.createAdaptiveContext({
                 initialLanguage: 'javascript',
                 monitoringEnabled: true,
@@ -227,7 +227,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
     });
 
     describe('Performance and Accuracy Metrics', () => {
-        it('should maintain 98% detection accuracy across multiple languages and frameworks', async () => {
+        it('should maintain 98% detection accuracy across multiple languages and frameworks', async () => { try {
             const testCases = [
                 { code: 'package main\nimport "fmt"\nfunc main() { fmt.Println("Hello") }', expected: 'go' },
                 { code: 'fn main() { println!("Hello, world!"); }', expected: 'rust' },
@@ -266,7 +266,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
             });
         });
 
-        it('should achieve 95% hook selection success rate with performance tracking', async () => {
+        it('should achieve 95% hook selection success rate with performance tracking', async () => { try {
             const selectionTestCases = 20;
             let successfulSelections = 0;
             const performanceMetrics = [];
@@ -310,7 +310,7 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
     });
 
     describe('Integration with Previous Phases', () => {
-        it('should integrate with Phase 1-4 systems maintaining Byzantine security', async () => {
+        it('should integrate with Phase 1-4 systems maintaining Byzantine security', async () => { try {
             // Simulate integration with all previous phases
             const phase1PersonalizationData = { userId: 'test-user', preferences: { language: 'javascript' } };
             const phase2ResourceData = { memoryUsage: 0.7, cpuUsage: 0.5 };
@@ -338,4 +338,4 @@ describe('Context-Aware Smart Hooks - Phase 5.1 TDD Tests with Byzantine Securit
             expect(integratedContext.securityMetrics.phase5Secured).to.be.true;
         });
     });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

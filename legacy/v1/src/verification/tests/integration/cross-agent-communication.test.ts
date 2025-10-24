@@ -60,7 +60,7 @@ describe('Cross-Agent Communication Verification', () => {
   let verificationSystem: CrossAgentVerificationSystem;
   let tempDir: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Setup test environment
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cross-agent-test-'));
 
@@ -73,12 +73,12 @@ describe('Cross-Agent Communication Verification', () => {
 
     // Initialize verification system
     await verificationSystem.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+  afterEach(async () => { try {
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     communicationBus.removeAllListeners();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   async function createMockAgents() {
     const agentConfigs = [
@@ -100,7 +100,7 @@ describe('Cross-Agent Communication Verification', () => {
       communicationBus.on(`message:${config.id}`, (message: AgentMessage) => {
         agent.messageHistory.push(message);
         agent.emit('message:received', message);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
   }
 
@@ -145,7 +145,7 @@ describe('Cross-Agent Communication Verification', () => {
         communicationBus.emit('verification:complete', result);
         return result;
       },
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     return agent;
   }
@@ -181,7 +181,8 @@ describe('Cross-Agent Communication Verification', () => {
   }
 
   describe('Message Integrity Verification', () => {
-    test('should verify message integrity through hash validation', async () => {
+    jest.setTimeout(10000);
+  test('should verify message integrity through hash validation', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
 
@@ -192,7 +193,7 @@ describe('Cross-Agent Communication Verification', () => {
         files_created: 5,
         tests_added: 12,
         claimed_success: true,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Wait for message to be delivered
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -201,16 +202,17 @@ describe('Cross-Agent Communication Verification', () => {
       expect(reviewer.messageHistory).toHaveLength(1);
       expect(reviewer.messageHistory[0].hash).toBe(message.hash);
       expect(reviewer.messageHistory[0].content).toEqual(message.content);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect message tampering through hash mismatch', async () => {
+    jest.setTimeout(10000);
+  test('should detect message tampering through hash mismatch', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
 
       const message = coder.sendMessage(reviewer.id, 'result', {
         task: 'implement-feature',
         status: 'completed',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Simulate message tampering
       const tamperedMessage = { ...message };
@@ -219,9 +221,10 @@ describe('Cross-Agent Communication Verification', () => {
 
       const expectedHash = generateMessageHash(tamperedMessage.content);
       expect(expectedHash).not.toBe(tamperedMessage.hash);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should track message delivery and acknowledgment', async () => {
+    jest.setTimeout(10000);
+  test('should track message delivery and acknowledgment', async () => { try {
       const coordinator = mockAgents.get('coordinator-001')!;
       const tester = mockAgents.get('tester-001')!;
 
@@ -232,32 +235,33 @@ describe('Cross-Agent Communication Verification', () => {
         if (message.from === coordinator.id && message.to === tester.id) {
           messageDelivered = true;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Tester acknowledges receipt
       tester.on('message:received', (message) => {
         tester.sendMessage(message.from, 'acknowledgment', {
           messageId: message.id,
           received: true,
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         acknowledgmentReceived = true;
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Send message
       coordinator.sendMessage(tester.id, 'task', {
         task: 'run-performance-tests',
         timeout: 300000,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await new Promise((resolve) => setTimeout(resolve, 20));
 
       expect(messageDelivered).toBe(true);
       expect(acknowledgmentReceived).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Communication Protocol Validation', () => {
-    test('should validate message format and required fields', async () => {
+    jest.setTimeout(10000);
+  test('should validate message format and required fields', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
 
@@ -270,7 +274,7 @@ describe('Cross-Agent Communication Verification', () => {
           lines_added: 150,
           tests_added: 8,
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Validate message structure
       expect(validMessage.id).toBeDefined();
@@ -280,9 +284,10 @@ describe('Cross-Agent Communication Verification', () => {
       expect(validMessage.content).toBeDefined();
       expect(validMessage.timestamp).toBeGreaterThan(0);
       expect(validMessage.hash).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should validate agent capability permissions', async () => {
+    jest.setTimeout(10000);
+  test('should validate agent capability permissions', async () => { try {
       const agents = Array.from(mockAgents.values());
 
       // Test that each agent only performs actions within their capabilities
@@ -301,9 +306,10 @@ describe('Cross-Agent Communication Verification', () => {
           expect(() => agent.sendMessage('test', 'result', { tests_passed: 10 })).not.toThrow();
         }
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should enforce message routing rules', async () => {
+    jest.setTimeout(10000);
+  test('should enforce message routing rules', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const tester = mockAgents.get('tester-001')!;
       const coordinator = mockAgents.get('coordinator-001')!;
@@ -311,13 +317,13 @@ describe('Cross-Agent Communication Verification', () => {
       // Implementation results should go to reviewer first
       const implementationMessage = coder.sendMessage('reviewer-001', 'result', {
         implementation: 'completed',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Test results should go to coordinator
       const testMessage = tester.sendMessage(coordinator.id, 'result', {
         tests_passed: 15,
         tests_failed: 2,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
@@ -328,11 +334,12 @@ describe('Cross-Agent Communication Verification', () => {
 
       expect(coordinator.messageHistory).toHaveLength(1);
       expect(coordinator.messageHistory[0].from).toBe(tester.id);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Agent Response Verification', () => {
-    test('should verify agent claims against actual evidence', async () => {
+    jest.setTimeout(10000);
+  test('should verify agent claims against actual evidence', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
 
@@ -343,7 +350,7 @@ describe('Cross-Agent Communication Verification', () => {
         claimed_success: true,
         files_created: 4,
         tests_added: 10,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Reviewer verifies with evidence
       const evidence = {
@@ -360,9 +367,10 @@ describe('Cross-Agent Communication Verification', () => {
       expect(verification.truthScore).toBeGreaterThan(0.8);
       expect(verification.conflicts).toHaveLength(0);
       expect(verification.verifiedBy).toBe(reviewer.id);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect false claims in agent responses', async () => {
+    jest.setTimeout(10000);
+  test('should detect false claims in agent responses', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
 
@@ -373,7 +381,7 @@ describe('Cross-Agent Communication Verification', () => {
         claimed_success: true,
         bugs_fixed: 5,
         test_count: 20,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Evidence contradicts claims
       const evidence = {
@@ -390,9 +398,10 @@ describe('Cross-Agent Communication Verification', () => {
       expect(verification.conflicts.length).toBeGreaterThan(0);
       expect(verification.conflicts).toContain('Claimed success but evidence shows failure');
       expect(verification.conflicts).toContain('Test count mismatch: claimed 20, actual 15');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should track agent reliability over time', async () => {
+    jest.setTimeout(10000);
+  test('should track agent reliability over time', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
 
@@ -410,7 +419,7 @@ describe('Cross-Agent Communication Verification', () => {
         const message = coder.sendMessage(reviewer.id, 'result', {
           task: `task-${i}`,
           claimed_success: scenario.claimed,
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         const evidence = {
           actual_success: scenario.actual,
@@ -428,11 +437,12 @@ describe('Cross-Agent Communication Verification', () => {
       expect(verifications).toHaveLength(5);
       expect(avgTruthScore).toBeGreaterThan(0.6);
       expect(avgTruthScore).toBeLessThan(0.9);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Cross-Verification Between Agents', () => {
-    test('should enable multiple agents to verify same claim', async () => {
+    jest.setTimeout(10000);
+  test('should enable multiple agents to verify same claim', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
       const tester = mockAgents.get('tester-001')!;
@@ -442,7 +452,7 @@ describe('Cross-Agent Communication Verification', () => {
         task: 'implement-payment-flow',
         status: 'completed',
         claimed_success: true,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Send copy to tester for independent verification
       const testMessage = { ...claimMessage, to: tester.id };
@@ -474,9 +484,10 @@ describe('Cross-Agent Communication Verification', () => {
         reviewerVerification.truthScore - testerVerification.truthScore,
       );
       expect(scoreDifference).toBeLessThan(0.2); // Should be reasonably consistent
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect conflicting verifications between agents', async () => {
+    jest.setTimeout(10000);
+  test('should detect conflicting verifications between agents', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
       const tester = mockAgents.get('tester-001')!;
@@ -485,7 +496,7 @@ describe('Cross-Agent Communication Verification', () => {
         task: 'optimize-performance',
         claimed_success: true,
         performance_improvement: '50%',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Send to tester
       const testMessage = { ...claimMessage, to: tester.id };
@@ -517,9 +528,10 @@ describe('Cross-Agent Communication Verification', () => {
 
       expect(reviewerVerification.conflicts).toHaveLength(0);
       expect(testerVerification.conflicts.length).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should aggregate cross-verification results', async () => {
+    jest.setTimeout(10000);
+  test('should aggregate cross-verification results', async () => { try {
       const report = await verificationSystem.generateCrossVerificationReport();
 
       expect(report).toBeDefined();
@@ -528,11 +540,12 @@ describe('Cross-Agent Communication Verification', () => {
       expect(report.conflictingClaims).toBeGreaterThanOrEqual(0);
       expect(report.communicationIntegrity).toBeGreaterThanOrEqual(0);
       expect(report.communicationIntegrity).toBeLessThanOrEqual(1);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Communication Pattern Analysis', () => {
-    test('should analyze communication patterns for anomalies', async () => {
+    jest.setTimeout(10000);
+  test('should analyze communication patterns for anomalies', async () => { try {
       const agents = Array.from(mockAgents.values());
 
       // Simulate normal communication pattern
@@ -543,7 +556,7 @@ describe('Cross-Agent Communication Verification', () => {
         sender.sendMessage(receiver.id, 'status', {
           update: `Status update ${i}`,
           timestamp: Date.now() + i * 1000,
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -555,9 +568,10 @@ describe('Cross-Agent Communication Verification', () => {
       expect(patterns.averageResponseTime).toBeGreaterThan(0);
       expect(patterns.communicationGraph).toBeDefined();
       expect(patterns.anomalies).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect spam or flooding attacks', async () => {
+    jest.setTimeout(10000);
+  test('should detect spam or flooding attacks', async () => { try {
       const coder = mockAgents.get('coder-001')!;
       const reviewer = mockAgents.get('reviewer-001')!;
 
@@ -584,11 +598,12 @@ describe('Cross-Agent Communication Verification', () => {
       const anomalyReport = await verificationSystem.detectAnomalies();
       expect(anomalyReport.highVolumeDetected).toBe(true);
       expect(anomalyReport.suspiciousAgents).toContain(coder.id);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Evidence Validation', () => {
-    test('should validate evidence quality and completeness', async () => {
+    jest.setTimeout(10000);
+  test('should validate evidence quality and completeness', async () => { try {
       const reviewer = mockAgents.get('reviewer-001')!;
 
       const message: AgentMessage = {
@@ -621,9 +636,10 @@ describe('Cross-Agent Communication Verification', () => {
 
       const incompleteVerification = reviewer.verifyMessage(message, incompleteEvidence);
       expect(incompleteVerification.truthScore).toBeLessThan(completeVerification.truthScore);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect fabricated or inconsistent evidence', async () => {
+    jest.setTimeout(10000);
+  test('should detect fabricated or inconsistent evidence', async () => { try {
       const reviewer = mockAgents.get('reviewer-001')!;
 
       const message: AgentMessage = {
@@ -655,9 +671,9 @@ describe('Cross-Agent Communication Verification', () => {
       // Should detect inconsistency between claimed improvement and actual metrics
       expect(verification.conflicts.length).toBeGreaterThan(0);
       expect(verification.truthScore).toBeLessThan(0.6);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 // Mock Cross-Agent Verification System
 class CrossAgentVerificationSystem {
@@ -675,14 +691,14 @@ class CrossAgentVerificationSystem {
     // Setup event listeners
     this.communicationBus.on('message:sent', (message: AgentMessage) => {
       this.messageHistory.push(message);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     this.communicationBus.on('verification:complete', (result: VerificationResult) => {
       this.verificationHistory.push(result);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Create data directory
-    await fs.mkdir(this.dataPath, { recursive: true });
+    await fs.mkdir(this.dataPath, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   }
 
   async generateCrossVerificationReport(): Promise<CrossVerificationReport> {
@@ -732,7 +748,7 @@ class CrossAgentVerificationSystem {
     const messageCounts = new Map<string, number>();
     recentMessages.forEach((m) => {
       messageCounts.set(m.from, (messageCounts.get(m.from) || 0) + 1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     const suspiciousAgents = Array.from(messageCounts.entries())
       .filter(([agent, count]) => count > highVolumeThreshold)

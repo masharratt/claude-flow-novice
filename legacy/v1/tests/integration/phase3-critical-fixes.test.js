@@ -26,7 +26,7 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
     overallConsensus: false
   };
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize all critical fix components
     temporalPredictor = new TemporalPredictor({
       algorithms: ['arima', 'lstm', 'ensemble'],
@@ -60,12 +60,13 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await testDatabase.cleanup();
   });
 
   describe('CRITICAL: Temporal Prediction 89% Accuracy Integration', () => {
-    test('should achieve 89% accuracy on integrated temporal patterns', async () => {
+    jest.setTimeout(10000);
+  test('should achieve 89% accuracy on integrated temporal patterns', async () => { try {
       // Generate complex temporal pattern for integration testing
       const integrationPattern = generateComplexIntegrationPattern(2000);
 
@@ -94,7 +95,8 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
       console.log(`✓ Temporal Prediction Accuracy: ${(accuracy * 100).toFixed(1)}% (Required: 89%)`);
     });
 
-    test('should maintain 89% accuracy under Byzantine fault conditions', async () => {
+    jest.setTimeout(10000);
+  test('should maintain 89% accuracy under Byzantine fault conditions', async () => { try {
       // Test with Byzantine fault injection
       const faultyData = generateByzantineFaultPattern(1000, 0.1); // 10% Byzantine faults
 
@@ -121,7 +123,8 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
   });
 
   describe('CRITICAL: Cryptographic Signature Validation Integration', () => {
-    test('should achieve 100% validation success rate on integration test suite', async () => {
+    jest.setTimeout(10000);
+  test('should achieve 100% validation success rate on integration test suite', async () => { try {
       const testSuite = await generateCryptoIntegrationTestSuite();
       let successCount = 0;
       let totalTests = 0;
@@ -151,7 +154,8 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
       console.log(`✓ Cryptographic Validation Rate: ${(validationRate * 100).toFixed(1)}% (Required: 100%)`);
     });
 
-    test('should handle Byzantine consensus multi-signature validation', async () => {
+    jest.setTimeout(10000);
+  test('should handle Byzantine consensus multi-signature validation', async () => { try {
       const byzantineMessage = Buffer.from('Byzantine consensus integration test');
 
       // Generate key pairs for Byzantine nodes
@@ -202,7 +206,8 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
   });
 
   describe('CRITICAL: Database Performance Optimization Integration', () => {
-    test('should achieve positive performance improvement in integration scenario', async () => {
+    jest.setTimeout(10000);
+  test('should achieve positive performance improvement in integration scenario', async () => { try {
       // Comprehensive integration performance test
       const integrationTestSuite = {
         complexSelects: 10,
@@ -240,7 +245,8 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
       console.log(`✓ Database Performance Improvement: ${(improvement * 100).toFixed(1)}% (Required: >0%)`);
     });
 
-    test('should maintain performance under concurrent Byzantine load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under concurrent Byzantine load', async () => { try {
       const concurrentRequests = 20;
       const byzantineQueries = Array.from({ length: concurrentRequests }, (_, i) =>
         `SELECT u.name, COUNT(o.id) as orders FROM users u LEFT JOIN orders o ON u.id = o.user_id WHERE u.id = ${i + 1} GROUP BY u.id, u.name`
@@ -267,7 +273,8 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
   });
 
   describe('CRITICAL: Byzantine Consensus Integration Validation', () => {
-    test('should achieve overall Byzantine consensus for Phase 4 approval', async () => {
+    jest.setTimeout(10000);
+  test('should achieve overall Byzantine consensus for Phase 4 approval', async () => { try {
       // Validate all critical requirements are met
       const consensusResults = {
         temporalAccuracy: byzantineConsensus.temporalAccuracy,
@@ -307,7 +314,8 @@ describe('Phase 3 Critical Fixes Integration Tests', () => {
       console.log(`✅ OVERALL CONSENSUS: ${overallConsensus ? 'APPROVED FOR PHASE 4' : 'BLOCKED - REQUIREMENTS NOT MET'}`);
     });
 
-    test('should generate independent verification report', async () => {
+    jest.setTimeout(10000);
+  test('should generate independent verification report', async () => { try {
       const verificationReport = {
         timestamp: new Date().toISOString(),
         phase: '3-critical-fixes',

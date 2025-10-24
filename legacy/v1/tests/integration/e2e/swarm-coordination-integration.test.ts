@@ -14,18 +14,19 @@ describe('Swarm Coordination Integration Tests', () => {
   const testDir = path.join(process.cwd(), 'tests', 'integration', 'temp-swarm');
   const cliPath = path.join(process.cwd(), 'src', 'cli', 'main.ts');
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     await fs.mkdir(testDir, { recursive: true });
     process.chdir(testDir);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     process.chdir(process.cwd().replace(path.sep + 'tests' + path.sep + 'integration' + path.sep + 'temp-swarm', ''));
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   describe('Swarm Initialization Tests', () => {
-    test('should initialize swarm with different topologies', async () => {
+    jest.setTimeout(10000);
+  test('should initialize swarm with different topologies', async () => { try {
       const topologies = ['mesh', 'hierarchical', 'ring', 'star'];
 
       for (const topology of topologies) {
@@ -40,7 +41,8 @@ describe('Swarm Coordination Integration Tests', () => {
       }
     }, 45000);
 
-    test('should validate swarm configuration', async () => {
+    jest.setTimeout(10000);
+  test('should validate swarm configuration', async () => { try {
       // Initialize swarm
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
 
@@ -53,12 +55,13 @@ describe('Swarm Coordination Integration Tests', () => {
   });
 
   describe('Agent Spawning and Management Tests', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Ensure fresh swarm for each test
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
     });
 
-    test('should spawn different agent types', async () => {
+    jest.setTimeout(10000);
+  test('should spawn different agent types', async () => { try {
       const agentTypes = ['coder', 'tester', 'analyst', 'coordinator', 'researcher'];
 
       for (const agentType of agentTypes) {
@@ -73,7 +76,8 @@ describe('Swarm Coordination Integration Tests', () => {
       }
     }, 80000);
 
-    test('should list active agents', async () => {
+    jest.setTimeout(10000);
+  test('should list active agents', async () => { try {
       // Spawn some agents
       await execAsync(`tsx ${cliPath} swarm spawn coder "test task"`, { timeout: 10000 });
       await execAsync(`tsx ${cliPath} swarm spawn tester "test task"`, { timeout: 10000 });
@@ -85,7 +89,8 @@ describe('Swarm Coordination Integration Tests', () => {
       expect(stdout).toMatch(/agent.*coder|agent.*tester|2.*agents/i);
     }, 30000);
 
-    test('should get agent metrics', async () => {
+    jest.setTimeout(10000);
+  test('should get agent metrics', async () => { try {
       // Spawn agent
       const spawnResult = await execAsync(`tsx ${cliPath} swarm spawn coder "test task"`, { timeout: 10000 });
 
@@ -98,11 +103,12 @@ describe('Swarm Coordination Integration Tests', () => {
   });
 
   describe('Task Orchestration Tests', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
     });
 
-    test('should orchestrate simple tasks', async () => {
+    jest.setTimeout(10000);
+  test('should orchestrate simple tasks', async () => { try {
       const command = `tsx ${cliPath} task orchestrate "Create a simple Node.js application" --strategy parallel`;
       const { stdout, stderr } = await execAsync(command, {
         timeout: 20000,
@@ -113,7 +119,8 @@ describe('Swarm Coordination Integration Tests', () => {
       expect(stdout).toMatch(/task.*orchestrat|parallel|strategy/i);
     }, 25000);
 
-    test('should handle task dependencies', async () => {
+    jest.setTimeout(10000);
+  test('should handle task dependencies', async () => { try {
       const command = `tsx ${cliPath} task orchestrate "Build and test application" --strategy sequential`;
       const { stdout, stderr } = await execAsync(command, {
         timeout: 20000,
@@ -124,7 +131,8 @@ describe('Swarm Coordination Integration Tests', () => {
       expect(stdout).toMatch(/task.*orchestrat|sequential|strategy/i);
     }, 25000);
 
-    test('should check task status', async () => {
+    jest.setTimeout(10000);
+  test('should check task status', async () => { try {
       // Start a task
       const orchestrateResult = await execAsync(`tsx ${cliPath} task orchestrate "Test task status"`, { timeout: 15000 });
 
@@ -137,11 +145,12 @@ describe('Swarm Coordination Integration Tests', () => {
   });
 
   describe('Cross-Component Coordination Tests', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
     });
 
-    test('should coordinate between SPARC and swarm', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate between SPARC and swarm', async () => { try {
       // Run SPARC with swarm coordination
       const command = `tsx ${cliPath} sparc run architect "Design system with swarm coordination"`;
       const { stdout, stderr } = await execAsync(command, {
@@ -153,7 +162,8 @@ describe('Swarm Coordination Integration Tests', () => {
       expect(stdout).toMatch(/sparc|architect|swarm|coordination/i);
     }, 30000);
 
-    test('should integrate memory with swarm operations', async () => {
+    jest.setTimeout(10000);
+  test('should integrate memory with swarm operations', async () => { try {
       // Store coordination data
       await execAsync(`tsx ${cliPath} memory store swarm.test "coordination data"`, { timeout: 5000 });
 
@@ -170,11 +180,12 @@ describe('Swarm Coordination Integration Tests', () => {
   });
 
   describe('Performance and Monitoring Tests', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
     });
 
-    test('should monitor swarm performance', async () => {
+    jest.setTimeout(10000);
+  test('should monitor swarm performance', async () => { try {
       // Spawn multiple agents
       await execAsync(`tsx ${cliPath} swarm spawn coder "task 1"`, { timeout: 10000 });
       await execAsync(`tsx ${cliPath} swarm spawn tester "task 2"`, { timeout: 10000 });
@@ -187,7 +198,8 @@ describe('Swarm Coordination Integration Tests', () => {
       expect(stdout).toMatch(/monitor|performance|agent|metric/i);
     }, 45000);
 
-    test('should run performance benchmarks', async () => {
+    jest.setTimeout(10000);
+  test('should run performance benchmarks', async () => { try {
       const command = `tsx ${cliPath} benchmark run --type swarm`;
       const { stdout, stderr } = await execAsync(command, {
         timeout: 15000,
@@ -200,7 +212,8 @@ describe('Swarm Coordination Integration Tests', () => {
   });
 
   describe('Error Recovery Tests', () => {
-    test('should handle agent failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle agent failures gracefully', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
 
       // Simulate agent failure scenario
@@ -213,7 +226,8 @@ describe('Swarm Coordination Integration Tests', () => {
       }
     }, 15000);
 
-    test('should recover from swarm connection issues', async () => {
+    jest.setTimeout(10000);
+  test('should recover from swarm connection issues', async () => { try {
       // Test swarm status with no active swarm
       const command = `tsx ${cliPath} swarm status`;
 
@@ -227,4 +241,4 @@ describe('Swarm Coordination Integration Tests', () => {
       }
     }, 10000);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

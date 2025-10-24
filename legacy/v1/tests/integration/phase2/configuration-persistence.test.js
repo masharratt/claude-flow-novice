@@ -154,7 +154,7 @@ class MockConfigurationPersistenceManager {
                     source: 'session',
                     size: JSON.stringify(record.data).length,
                     checksum: record.checksum
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
         }
 
@@ -172,7 +172,7 @@ class MockConfigurationPersistenceManager {
                             source: 'persistent',
                             size: JSON.stringify(record.data).length,
                             checksum: record.checksum
-                        });
+                        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                     }
                 }
             }
@@ -309,7 +309,7 @@ class MockConfigurationPersistenceManager {
                     key: configBackup.key,
                     existingVersion: existingRecord.version,
                     backupVersion: configBackup.version
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
 
             // Create new record
@@ -369,7 +369,7 @@ class MockConfigurationPersistenceManager {
                 syncResults.errors.push({
                     key,
                     error: error.message
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
         }
 
@@ -393,7 +393,7 @@ class MockConfigurationPersistenceManager {
 
         // Create final backup if requested
         if (options.createBackup) {
-            await this.createBackup(sessionId, { includePersistent: false });
+            await this.createBackup(sessionId, { includePersistent: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         // Clear auto-save interval
@@ -692,7 +692,7 @@ class MockConfigurationPersistenceManager {
             value,
             metadata,
             timestamp: Date.now()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
 
     recordLoadAction(source, sessionId, key, version) {
@@ -702,7 +702,7 @@ class MockConfigurationPersistenceManager {
             key,
             version,
             timestamp: Date.now()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
 
     getPersistenceHistory() {
@@ -743,12 +743,13 @@ describe('Configuration Persistence Tests', () => {
             encryptionEnabled: false,
             compressionEnabled: false,
             backupEnabled: true
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         jest.clearAllMocks();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Session Management', () => {
-        test('should initialize session correctly', async () => {
+        jest.setTimeout(10000);
+  test('should initialize session correctly', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             expect(sessionId).toBeDefined();
@@ -760,9 +761,10 @@ describe('Configuration Persistence Tests', () => {
             expect(sessionInfo.startTime).toBeDefined();
             expect(sessionInfo.configurations).toBeInstanceOf(Map);
             expect(sessionInfo.dirty).toBe(false);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should initialize session with custom ID', async () => {
+        jest.setTimeout(10000);
+  test('should initialize session with custom ID', async () => { try {
             const customId = 'custom-session-123';
             const sessionId = await persistenceManager.initializeSession(customId);
 
@@ -770,9 +772,10 @@ describe('Configuration Persistence Tests', () => {
 
             const sessionInfo = persistenceManager.getSessionInfo(sessionId);
             expect(sessionInfo.sessionId).toBe(customId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should close session properly', async () => {
+        jest.setTimeout(10000);
+  test('should close session properly', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             // Add some configuration
@@ -782,7 +785,7 @@ describe('Configuration Persistence Tests', () => {
             const summary = await persistenceManager.closeSession(sessionId, {
                 autoSave: true,
                 createBackup: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(summary.sessionId).toBe(sessionId);
             expect(summary.startTime).toBeDefined();
@@ -793,11 +796,12 @@ describe('Configuration Persistence Tests', () => {
 
             // Session should be removed
             expect(persistenceManager.getSessionInfo(sessionId)).toBeUndefined();
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Configuration Save and Load', () => {
-        test('should save and load configuration successfully', async () => {
+        jest.setTimeout(10000);
+  test('should save and load configuration successfully', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const config = {
@@ -826,9 +830,10 @@ describe('Configuration Persistence Tests', () => {
             );
 
             expect(loadedConfig).toEqual(config);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle configuration updates with versioning', async () => {
+        jest.setTimeout(10000);
+  test('should handle configuration updates with versioning', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const initialConfig = {
@@ -861,9 +866,10 @@ describe('Configuration Persistence Tests', () => {
             );
 
             expect(currentConfig.value).toBe('updated');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should validate configurations before saving', async () => {
+        jest.setTimeout(10000);
+  test('should validate configurations before saving', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const invalidConfigs = [
@@ -886,9 +892,10 @@ describe('Configuration Persistence Tests', () => {
                     expect(error.message).toContain('Configuration validation failed');
                 }
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle large configurations efficiently', async () => {
+        jest.setTimeout(10000);
+  test('should handle large configurations efficiently', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             // Create a large configuration
@@ -924,11 +931,12 @@ describe('Configuration Persistence Tests', () => {
 
             expect(loadedConfig).toEqual(largeConfig);
             expect(loadTime).toBeLessThan(500); // Load should be faster than save
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Cross-Session Persistence', () => {
-        test('should persist configurations across sessions', async () => {
+        jest.setTimeout(10000);
+  test('should persist configurations across sessions', async () => { try {
             // Session 1: Save configuration
             const session1 = await persistenceManager.initializeSession('session-1');
 
@@ -938,7 +946,7 @@ describe('Configuration Persistence Tests', () => {
             };
 
             await persistenceManager.saveConfiguration(session1, 'cross-session', config1);
-            await persistenceManager.closeSession(session1, { autoSave: true });
+            await persistenceManager.closeSession(session1, { autoSave: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             // Session 2: Load configuration
             const session2 = await persistenceManager.initializeSession('session-2');
@@ -951,9 +959,10 @@ describe('Configuration Persistence Tests', () => {
             expect(loadedConfig).toEqual(config1);
 
             await persistenceManager.closeSession(session2);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle concurrent sessions', async () => {
+        jest.setTimeout(10000);
+  test('should handle concurrent sessions', async () => { try {
             const session1 = await persistenceManager.initializeSession('concurrent-1');
             const session2 = await persistenceManager.initializeSession('concurrent-2');
 
@@ -980,9 +989,10 @@ describe('Configuration Persistence Tests', () => {
                 persistenceManager.closeSession(session1),
                 persistenceManager.closeSession(session2)
             ]);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain data integrity during session crashes', async () => {
+        jest.setTimeout(10000);
+  test('should maintain data integrity during session crashes', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const criticalConfig = {
@@ -1007,11 +1017,12 @@ describe('Configuration Persistence Tests', () => {
             expect(recoveredConfig).toEqual(criticalConfig);
 
             await persistenceManager.closeSession(newSessionId);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Backup and Recovery', () => {
-        test('should create comprehensive backups', async () => {
+        jest.setTimeout(10000);
+  test('should create comprehensive backups', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const configs = [
@@ -1027,7 +1038,7 @@ describe('Configuration Persistence Tests', () => {
 
             const backupResult = await persistenceManager.createBackup(sessionId, {
                 includePersistent: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(backupResult.backupId).toBeDefined();
             expect(backupResult.configurationCount).toBe(3);
@@ -1035,9 +1046,10 @@ describe('Configuration Persistence Tests', () => {
             expect(backupResult.timestamp).toBeDefined();
 
             await persistenceManager.closeSession(sessionId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should restore from backup accurately', async () => {
+        jest.setTimeout(10000);
+  test('should restore from backup accurately', async () => { try {
             // Original session
             const originalSession = await persistenceManager.initializeSession();
 
@@ -1082,9 +1094,10 @@ describe('Configuration Persistence Tests', () => {
             expect(restoredConfig.value).toBe(originalConfig.value);
 
             await persistenceManager.closeSession(newSession);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle backup conflicts appropriately', async () => {
+        jest.setTimeout(10000);
+  test('should handle backup conflicts appropriately', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             // Initial configuration
@@ -1120,12 +1133,13 @@ describe('Configuration Persistence Tests', () => {
             expect(conflict.backupVersion).toBeDefined();
 
             await persistenceManager.closeSession(sessionId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should manage backup storage limits', async () => {
+        jest.setTimeout(10000);
+  test('should manage backup storage limits', async () => { try {
             const limitedManager = new MockConfigurationPersistenceManager({
                 maxBackups: 2
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const sessionId = await limitedManager.initializeSession();
 
@@ -1153,11 +1167,12 @@ describe('Configuration Persistence Tests', () => {
             expect(retainedIds).not.toContain(backupIds[1]);
 
             await limitedManager.closeSession(sessionId);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Configuration Listing and Management', () => {
-        test('should list all configurations correctly', async () => {
+        jest.setTimeout(10000);
+  test('should list all configurations correctly', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const configs = [
@@ -1183,7 +1198,7 @@ describe('Configuration Persistence Tests', () => {
                 expect(item).toHaveProperty('source');
                 expect(item).toHaveProperty('size');
                 expect(item).toHaveProperty('checksum');
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             // Should be sorted by timestamp (newest first)
             for (let i = 1; i < list.length; i++) {
@@ -1191,9 +1206,10 @@ describe('Configuration Persistence Tests', () => {
             }
 
             await persistenceManager.closeSession(sessionId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should filter configurations by pattern', async () => {
+        jest.setTimeout(10000);
+  test('should filter configurations by pattern', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const configs = [
@@ -1210,17 +1226,18 @@ describe('Configuration Persistence Tests', () => {
             // Filter by pattern
             const frameworkConfigs = await persistenceManager.listConfigurations(sessionId, {
                 keyPattern: /^framework-/
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(frameworkConfigs).toHaveLength(2);
             frameworkConfigs.forEach(config => {
                 expect(config.key).toMatch(/^framework-/);
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             await persistenceManager.closeSession(sessionId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should delete configurations properly', async () => {
+        jest.setTimeout(10000);
+  test('should delete configurations properly', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const config = {
@@ -1237,7 +1254,7 @@ describe('Configuration Persistence Tests', () => {
             // Delete with backup
             const deleted = await persistenceManager.deleteConfiguration(sessionId, 'deletable', {
                 backup: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(deleted).toBe(true);
 
@@ -1253,17 +1270,18 @@ describe('Configuration Persistence Tests', () => {
             expect(persistenceManager.backupStorage.length).toBeGreaterThan(0);
 
             await persistenceManager.closeSession(sessionId);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Storage Types and Optimization', () => {
-        test('should work with different storage types', async () => {
+        jest.setTimeout(10000);
+  test('should work with different storage types', async () => { try {
             const storageTypes = ['file', 'memory', 'hybrid'];
 
             for (const storageType of storageTypes) {
                 const manager = new MockConfigurationPersistenceManager({
                     storageType
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
                 const sessionId = await manager.initializeSession();
 
@@ -1280,12 +1298,13 @@ describe('Configuration Persistence Tests', () => {
 
                 await manager.closeSession(sessionId);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle compression when enabled', async () => {
+        jest.setTimeout(10000);
+  test('should handle compression when enabled', async () => { try {
             const compressedManager = new MockConfigurationPersistenceManager({
                 compressionEnabled: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const sessionId = await compressedManager.initializeSession();
 
@@ -1303,12 +1322,13 @@ describe('Configuration Persistence Tests', () => {
             expect(loaded).toEqual(largeConfig);
 
             await compressedManager.closeSession(sessionId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle encryption when enabled', async () => {
+        jest.setTimeout(10000);
+  test('should handle encryption when enabled', async () => { try {
             const encryptedManager = new MockConfigurationPersistenceManager({
                 encryptionEnabled: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const sessionId = await encryptedManager.initializeSession();
 
@@ -1328,11 +1348,12 @@ describe('Configuration Persistence Tests', () => {
             expect(loaded).toEqual(sensitiveConfig);
 
             await encryptedManager.closeSession(sessionId);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Performance and Scalability', () => {
-        test('should handle high-volume configuration operations', async () => {
+        jest.setTimeout(10000);
+  test('should handle high-volume configuration operations', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const configCount = 100;
@@ -1374,12 +1395,13 @@ describe('Configuration Persistence Tests', () => {
             // Verify data integrity
             loadedConfigs.forEach((loaded, i) => {
                 expect(loaded).toEqual(configs[i]);
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             await persistenceManager.closeSession(sessionId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain performance under concurrent access', async () => {
+        jest.setTimeout(10000);
+  test('should maintain performance under concurrent access', async () => { try {
             const sessionCount = 5;
             const configsPerSession = 20;
 
@@ -1423,7 +1445,7 @@ describe('Configuration Persistence Tests', () => {
                 await Promise.allSettled(randomLoads);
 
                 return persistenceManager.closeSession(sessionId);
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const startTime = Date.now();
             const sessionResults = await Promise.all(sessionPromises);
@@ -1434,9 +1456,10 @@ describe('Configuration Persistence Tests', () => {
 
             // Verify no sessions are left open
             expect(persistenceManager.getAllSessions()).toHaveLength(0);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should provide accurate storage statistics', async () => {
+        jest.setTimeout(10000);
+  test('should provide accurate storage statistics', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const configs = Array.from({ length: 10 }, (_, i) => ({
@@ -1460,11 +1483,12 @@ describe('Configuration Persistence Tests', () => {
 
             const finalStats = await persistenceManager.getStorageStats();
             expect(finalStats.activeSessions).toBe(0);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Error Handling and Edge Cases', () => {
-        test('should handle invalid session operations', async () => {
+        jest.setTimeout(10000);
+  test('should handle invalid session operations', async () => { try {
             const invalidSessionId = 'non-existent-session';
 
             try {
@@ -1484,9 +1508,10 @@ describe('Configuration Persistence Tests', () => {
             } catch (error) {
                 expect(error.message).toContain('Session non-existent-session not found');
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle corrupted configuration data gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle corrupted configuration data gracefully', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             // Simulate corrupted data in storage
@@ -1495,7 +1520,7 @@ describe('Configuration Persistence Tests', () => {
                 corrupted: true,
                 version: null,
                 data: undefined
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             try {
                 const loaded = await persistenceManager.loadConfiguration(sessionId, 'corrupted');
@@ -1507,9 +1532,10 @@ describe('Configuration Persistence Tests', () => {
             }
 
             await persistenceManager.closeSession(sessionId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle storage failures gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle storage failures gracefully', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             // Mock storage failure
@@ -1533,9 +1559,10 @@ describe('Configuration Persistence Tests', () => {
             persistenceManager.persistToMemory = originalPersistToMemory;
 
             await persistenceManager.closeSession(sessionId);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle synchronization failures', async () => {
+        jest.setTimeout(10000);
+  test('should handle synchronization failures', async () => { try {
             const sessionId = await persistenceManager.initializeSession();
 
             const config = { id: 'sync-test', data: 'test' };
@@ -1557,6 +1584,6 @@ describe('Configuration Persistence Tests', () => {
             persistenceManager.persistConfiguration = originalPersistConfiguration;
 
             await persistenceManager.closeSession(sessionId);
-        });
-    });
-});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

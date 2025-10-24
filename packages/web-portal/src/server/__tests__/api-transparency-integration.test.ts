@@ -16,7 +16,7 @@ import { errorHandler } from '../middleware/error-handler.js';
 describe('REST API TransparencySystem Integration', () => {
   let app: express.Application;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize TransparencyService
     await transparencyService.initialize();
 
@@ -33,12 +33,12 @@ describe('REST API TransparencySystem Integration', () => {
     app.use(errorHandler);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup
   });
 
   describe('GET /api/agents/hierarchy', () => {
-    it('should return agent hierarchy', async () => {
+    it('should return agent hierarchy', async () => { try {
       const response = await request(app).get('/api/agents/hierarchy');
 
       expect(response.status).toBe(200);
@@ -46,14 +46,14 @@ describe('REST API TransparencySystem Integration', () => {
       expect(Array.isArray(response.body.data)).toBe(true);
     });
 
-    it('should return cache headers (30 seconds)', async () => {
+    it('should return cache headers (30 seconds)', async () => { try {
       const response = await request(app).get('/api/agents/hierarchy');
 
       expect(response.status).toBe(200);
       expect(response.headers['cache-control']).toContain('max-age=30');
     });
 
-    it('should filter by status', async () => {
+    it('should filter by status', async () => { try {
       const response = await request(app)
         .get('/api/agents/hierarchy')
         .query({ status: 'active' });
@@ -67,7 +67,7 @@ describe('REST API TransparencySystem Integration', () => {
       });
     });
 
-    it('should filter by type', async () => {
+    it('should filter by type', async () => { try {
       const response = await request(app)
         .get('/api/agents/hierarchy')
         .query({ type: 'coder' });
@@ -81,7 +81,7 @@ describe('REST API TransparencySystem Integration', () => {
       });
     });
 
-    it('should handle invalid query parameters', async () => {
+    it('should handle invalid query parameters', async () => { try {
       const response = await request(app)
         .get('/api/agents/hierarchy')
         .query({ invalidParam: 'value' });
@@ -92,7 +92,7 @@ describe('REST API TransparencySystem Integration', () => {
   });
 
   describe('GET /api/agents/:id/status', () => {
-    it('should return agent status for valid agentId', async () => {
+    it('should return agent status for valid agentId', async () => { try {
       // First get hierarchy to find a valid agentId
       const hierarchyResponse = await request(app).get(
         '/api/agents/hierarchy'
@@ -112,7 +112,7 @@ describe('REST API TransparencySystem Integration', () => {
       }
     });
 
-    it('should return no-cache headers (real-time)', async () => {
+    it('should return no-cache headers (real-time)', async () => { try {
       const hierarchyResponse = await request(app).get(
         '/api/agents/hierarchy'
       );
@@ -129,7 +129,7 @@ describe('REST API TransparencySystem Integration', () => {
       }
     });
 
-    it('should return 404 for non-existent agent', async () => {
+    it('should return 404 for non-existent agent', async () => { try {
       const response = await request(app).get(
         '/api/agents/non-existent-agent/status'
       );
@@ -139,7 +139,7 @@ describe('REST API TransparencySystem Integration', () => {
       expect(response.body.error.code).toBe('AGENT_NOT_FOUND');
     });
 
-    it('should validate agentId parameter', async () => {
+    it('should validate agentId parameter', async () => { try {
       const response = await request(app).get('/api/agents//status');
 
       // Should return 404 (invalid route)
@@ -148,7 +148,7 @@ describe('REST API TransparencySystem Integration', () => {
   });
 
   describe('POST /api/agents/:id/intervene', () => {
-    it('should accept valid intervention request', async () => {
+    it('should accept valid intervention request', async () => { try {
       const hierarchyResponse = await request(app).get(
         '/api/agents/hierarchy'
       );
@@ -170,7 +170,7 @@ describe('REST API TransparencySystem Integration', () => {
       }
     });
 
-    it('should validate intervention action', async () => {
+    it('should validate intervention action', async () => { try {
       const response = await request(app)
         .post('/api/agents/agent-1/intervene')
         .send({
@@ -182,7 +182,7 @@ describe('REST API TransparencySystem Integration', () => {
       expect(response.status).toBe(400);
     });
 
-    it('should require reason field', async () => {
+    it('should require reason field', async () => { try {
       const response = await request(app)
         .post('/api/agents/agent-1/intervene')
         .send({
@@ -193,7 +193,7 @@ describe('REST API TransparencySystem Integration', () => {
       expect(response.status).toBe(400);
     });
 
-    it('should return 404 for non-existent agent', async () => {
+    it('should return 404 for non-existent agent', async () => { try {
       const response = await request(app)
         .post('/api/agents/non-existent-agent/intervene')
         .send({
@@ -206,7 +206,7 @@ describe('REST API TransparencySystem Integration', () => {
   });
 
   describe('GET /api/metrics', () => {
-    it('should return system metrics', async () => {
+    it('should return system metrics', async () => { try {
       const response = await request(app).get('/api/metrics');
 
       expect(response.status).toBe(200);
@@ -217,14 +217,14 @@ describe('REST API TransparencySystem Integration', () => {
       expect(response.body.data.agentsByType).toBeDefined();
     });
 
-    it('should return cache headers (10 seconds)', async () => {
+    it('should return cache headers (10 seconds)', async () => { try {
       const response = await request(app).get('/api/metrics');
 
       expect(response.status).toBe(200);
       expect(response.headers['cache-control']).toContain('max-age=10');
     });
 
-    it('should return consistent metrics structure', async () => {
+    it('should return consistent metrics structure', async () => { try {
       const response = await request(app).get('/api/metrics');
 
       expect(response.status).toBe(200);
@@ -241,7 +241,7 @@ describe('REST API TransparencySystem Integration', () => {
   });
 
   describe('GET /api/events', () => {
-    it('should return paginated events', async () => {
+    it('should return paginated events', async () => { try {
       const response = await request(app).get('/api/events').query({
         page: 1,
         limit: 50,
@@ -255,7 +255,7 @@ describe('REST API TransparencySystem Integration', () => {
       expect(response.body.pagination.limit).toBe(50);
     });
 
-    it('should filter events by type', async () => {
+    it('should filter events by type', async () => { try {
       const response = await request(app).get('/api/events').query({
         page: 1,
         limit: 50,
@@ -268,7 +268,7 @@ describe('REST API TransparencySystem Integration', () => {
       });
     });
 
-    it('should filter events by severity', async () => {
+    it('should filter events by severity', async () => { try {
       const response = await request(app).get('/api/events').query({
         page: 1,
         limit: 50,
@@ -280,7 +280,7 @@ describe('REST API TransparencySystem Integration', () => {
       // (if any events match the filter)
     });
 
-    it('should filter events by agentId', async () => {
+    it('should filter events by agentId', async () => { try {
       const hierarchyResponse = await request(app).get(
         '/api/agents/hierarchy'
       );
@@ -301,7 +301,7 @@ describe('REST API TransparencySystem Integration', () => {
       }
     });
 
-    it('should handle pagination correctly', async () => {
+    it('should handle pagination correctly', async () => { try {
       const response1 = await request(app).get('/api/events').query({
         page: 1,
         limit: 10,
@@ -323,7 +323,7 @@ describe('REST API TransparencySystem Integration', () => {
       }
     });
 
-    it('should respect limit parameter', async () => {
+    it('should respect limit parameter', async () => { try {
       const response = await request(app).get('/api/events').query({
         page: 1,
         limit: 5,
@@ -333,7 +333,7 @@ describe('REST API TransparencySystem Integration', () => {
       expect(response.body.data.length).toBeLessThanOrEqual(5);
     });
 
-    it('should validate query parameters', async () => {
+    it('should validate query parameters', async () => { try {
       const response = await request(app).get('/api/events').query({
         page: -1,
         limit: -10,
@@ -345,13 +345,13 @@ describe('REST API TransparencySystem Integration', () => {
   });
 
   describe('error handling', () => {
-    it('should return 503 if TransparencySystem unavailable', async () => {
+    it('should return 503 if TransparencySystem unavailable', async () => { try {
       // This would require mocking TransparencySystem failure
       // For now, we test that the error handler is properly configured
       expect(errorHandler).toBeDefined();
     });
 
-    it('should return proper error format', async () => {
+    it('should return proper error format', async () => { try {
       const response = await request(app).get(
         '/api/agents/invalid-agent/status'
       );
@@ -364,7 +364,7 @@ describe('REST API TransparencySystem Integration', () => {
   });
 
   describe('performance', () => {
-    it('should handle multiple concurrent requests', async () => {
+    it('should handle multiple concurrent requests', async () => { try {
       const requests = Array.from({ length: 10 }, () =>
         request(app).get('/api/metrics')
       );
@@ -376,7 +376,7 @@ describe('REST API TransparencySystem Integration', () => {
       });
     });
 
-    it('should leverage caching for repeated requests', async () => {
+    it('should leverage caching for repeated requests', async () => { try {
       const start = Date.now();
 
       // First request (cache miss)

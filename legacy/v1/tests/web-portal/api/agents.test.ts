@@ -14,7 +14,7 @@ import { transparencyService } from '../../../packages/web-portal/src/server/ser
 describe('Agent API Endpoints', () => {
   let app: Express;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize test app
     app = express();
     app.use(express.json());
@@ -25,12 +25,12 @@ describe('Agent API Endpoints', () => {
     await transparencyService.initialize();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup
   });
 
   describe('GET /api/agents/hierarchy', () => {
-    it('should return agent hierarchy without filters', async () => {
+    it('should return agent hierarchy without filters', async () => { try {
       const response = await request(app).get('/api/agents/hierarchy').expect(200);
 
       expect(response.body).toHaveProperty('data');
@@ -38,7 +38,7 @@ describe('Agent API Endpoints', () => {
       expect(response.headers['cache-control']).toContain('max-age=30');
     });
 
-    it('should filter by status', async () => {
+    it('should filter by status', async () => { try {
       const response = await request(app)
         .get('/api/agents/hierarchy?status=active')
         .expect(200);
@@ -47,7 +47,7 @@ describe('Agent API Endpoints', () => {
       expect(Array.isArray(response.body.data)).toBe(true);
     });
 
-    it('should filter by type', async () => {
+    it('should filter by type', async () => { try {
       const response = await request(app)
         .get('/api/agents/hierarchy?type=coder')
         .expect(200);
@@ -56,7 +56,7 @@ describe('Agent API Endpoints', () => {
       expect(Array.isArray(response.body.data)).toBe(true);
     });
 
-    it('should reject invalid status', async () => {
+    it('should reject invalid status', async () => { try {
       const response = await request(app)
         .get('/api/agents/hierarchy?status=invalid')
         .expect(400);
@@ -67,7 +67,7 @@ describe('Agent API Endpoints', () => {
   });
 
   describe('GET /api/agents/:id/status', () => {
-    it('should return 404 for non-existent agent', async () => {
+    it('should return 404 for non-existent agent', async () => { try {
       const response = await request(app)
         .get('/api/agents/non-existent-id/status')
         .expect(404);
@@ -76,7 +76,7 @@ describe('Agent API Endpoints', () => {
       expect(response.body.error.code).toBe('AGENT_NOT_FOUND');
     });
 
-    it('should have no-cache headers for real-time data', async () => {
+    it('should have no-cache headers for real-time data', async () => { try {
       // This will fail with 404, but we're testing headers
       const response = await request(app).get('/api/agents/test-id/status');
 
@@ -86,14 +86,14 @@ describe('Agent API Endpoints', () => {
       }
     });
 
-    it('should validate agent ID parameter', async () => {
+    it('should validate agent ID parameter', async () => { try {
       const response = await request(app).get('/api/agents//status').expect(404);
       // Express routing will catch empty param as 404
     });
   });
 
   describe('POST /api/agents/:id/intervene', () => {
-    it('should reject request without body', async () => {
+    it('should reject request without body', async () => { try {
       const response = await request(app)
         .post('/api/agents/test-id/intervene')
         .send({})
@@ -103,7 +103,7 @@ describe('Agent API Endpoints', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should reject invalid action', async () => {
+    it('should reject invalid action', async () => { try {
       const response = await request(app)
         .post('/api/agents/test-id/intervene')
         .send({
@@ -116,7 +116,7 @@ describe('Agent API Endpoints', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should reject reason exceeding 500 chars', async () => {
+    it('should reject reason exceeding 500 chars', async () => { try {
       const longReason = 'a'.repeat(501);
       const response = await request(app)
         .post('/api/agents/test-id/intervene')
@@ -130,7 +130,7 @@ describe('Agent API Endpoints', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should accept valid intervention request (read-only mode)', async () => {
+    it('should accept valid intervention request (read-only mode)', async () => { try {
       const response = await request(app)
         .post('/api/agents/test-id/intervene')
         .send({
@@ -147,7 +147,7 @@ describe('Agent API Endpoints', () => {
       }
     });
 
-    it('should handle all valid actions', async () => {
+    it('should handle all valid actions', async () => { try {
       const actions = ['pause', 'resume', 'terminate', 'restart'];
 
       for (const action of actions) {

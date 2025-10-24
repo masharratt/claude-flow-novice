@@ -24,7 +24,7 @@ import {
 describe('BlockingCoordinationSignals', () => {
   let signals: BlockingCoordinationSignals;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize with test configuration
     signals = new BlockingCoordinationSignals({
       redisHost: process.env.REDIS_HOST || 'localhost',
@@ -38,12 +38,12 @@ describe('BlockingCoordinationSignals', () => {
     await signals.connect();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await signals.disconnect();
   });
 
   describe('Signal Delivery', () => {
-    it('should send signal via Redis SETEX with 24h TTL', async () => {
+    it('should send signal via Redis SETEX with 24h TTL', async () => { try {
       const result = await signals.sendSignal(
         'coordinator-a',
         'coordinator-b',
@@ -59,7 +59,7 @@ describe('BlockingCoordinationSignals', () => {
       expect(result.timestamp).toBeGreaterThan(0);
     });
 
-    it('should store signal with correct key format: blocking:signal:{coordinatorId}', async () => {
+    it('should store signal with correct key format: blocking:signal:{coordinatorId}', async () => { try {
       const coordinatorId = 'test-coordinator-123';
 
       const result = await signals.sendSignal(
@@ -76,7 +76,7 @@ describe('BlockingCoordinationSignals', () => {
       expect(exists).toBe(true);
     });
 
-    it('should include all required fields in signal payload', async () => {
+    it('should include all required fields in signal payload', async () => { try {
       await signals.sendSignal(
         'coordinator-a',
         'coordinator-b',
@@ -101,7 +101,7 @@ describe('BlockingCoordinationSignals', () => {
       }
     });
 
-    it('should send signal without optional payload', async () => {
+    it('should send signal without optional payload', async () => { try {
       await signals.sendSignal(
         'coordinator-a',
         'coordinator-b',
@@ -117,7 +117,7 @@ describe('BlockingCoordinationSignals', () => {
   });
 
   describe('Signal Persistence', () => {
-    it('should persist signal with 24h TTL', async () => {
+    it('should persist signal with 24h TTL', async () => { try {
       const coordinatorId = 'test-persistence';
 
       await signals.sendSignal(
@@ -133,7 +133,7 @@ describe('BlockingCoordinationSignals', () => {
       expect(ttl).toBeLessThanOrEqual(86400);
     });
 
-    it('should retrieve signal correctly', async () => {
+    it('should retrieve signal correctly', async () => { try {
       const coordinatorId = 'test-retrieve';
 
       await signals.sendSignal(
@@ -155,14 +155,14 @@ describe('BlockingCoordinationSignals', () => {
       expect(result.signal?.payload).toEqual({ status: 'in-progress' });
     });
 
-    it('should return null for non-existent signal', async () => {
+    it('should return null for non-existent signal', async () => { try {
       const result = await signals.receiveSignal('non-existent-coordinator');
 
       expect(result.exists).toBe(false);
       expect(result.signal).toBeNull();
     });
 
-    it('should delete signal after processing', async () => {
+    it('should delete signal after processing', async () => { try {
       const coordinatorId = 'test-delete';
 
       await signals.sendSignal(
@@ -187,7 +187,7 @@ describe('BlockingCoordinationSignals', () => {
   });
 
   describe('Idempotency', () => {
-    it('should detect duplicate signals', async () => {
+    it('should detect duplicate signals', async () => { try {
       const coordinatorId = 'test-idempotency';
 
       // Send first signal
@@ -219,7 +219,7 @@ describe('BlockingCoordinationSignals', () => {
       // isDuplicate depends on messageId which includes timestamp, so this won't be a duplicate
     });
 
-    it('should handle multiple signals to same coordinator', async () => {
+    it('should handle multiple signals to same coordinator', async () => { try {
       const coordinatorId = 'test-multiple';
 
       // Send first signal
@@ -249,7 +249,7 @@ describe('BlockingCoordinationSignals', () => {
       expect(received.signal?.iteration).toBe(2);
     });
 
-    it('should track duplicate detection in statistics', async () => {
+    it('should track duplicate detection in statistics', async () => { try {
       signals.resetStatistics();
 
       const coordinatorId = 'test-stats';
@@ -269,7 +269,7 @@ describe('BlockingCoordinationSignals', () => {
   });
 
   describe('Signal Types', () => {
-    it('should handle COMPLETION signal', async () => {
+    it('should handle COMPLETION signal', async () => { try {
       await signals.sendSignal(
         'coordinator-c',
         'coordinator-a',
@@ -283,7 +283,7 @@ describe('BlockingCoordinationSignals', () => {
       expect(received.signal?.payload).toEqual({ allReviewsPassed: true });
     });
 
-    it('should handle RETRY_REQUEST signal', async () => {
+    it('should handle RETRY_REQUEST signal', async () => { try {
       await signals.sendSignal(
         'coordinator-c',
         'coordinator-a',
@@ -302,7 +302,7 @@ describe('BlockingCoordinationSignals', () => {
       expect(received.signal?.payload?.file).toBe('auth.ts');
     });
 
-    it('should handle HEARTBEAT signal', async () => {
+    it('should handle HEARTBEAT signal', async () => { try {
       await signals.sendSignal(
         'coordinator-a',
         'coordinator-monitor',
@@ -314,7 +314,7 @@ describe('BlockingCoordinationSignals', () => {
       expect(received.signal?.type).toBe(SignalType.HEARTBEAT);
     });
 
-    it('should handle ERROR signal', async () => {
+    it('should handle ERROR signal', async () => { try {
       await signals.sendSignal(
         'coordinator-a',
         'coordinator-master',
@@ -330,7 +330,7 @@ describe('BlockingCoordinationSignals', () => {
   });
 
   describe('Statistics', () => {
-    it('should track signals sent and received', async () => {
+    it('should track signals sent and received', async () => { try {
       signals.resetStatistics();
 
       await signals.sendSignal('sender-1', 'receiver-1', SignalType.COMPLETION, 1);
@@ -345,7 +345,7 @@ describe('BlockingCoordinationSignals', () => {
       expect(stats.signalsReceived).toBe(2); // Only existing signals count
     });
 
-    it('should reset statistics', async () => {
+    it('should reset statistics', async () => { try {
       await signals.sendSignal('sender-1', 'receiver-1', SignalType.COMPLETION, 1);
       await signals.receiveSignal('receiver-1');
 
@@ -360,7 +360,7 @@ describe('BlockingCoordinationSignals', () => {
   });
 
   describe('Error Handling', () => {
-    it('should throw error when sending signal without connection', async () => {
+    it('should throw error when sending signal without connection', async () => { try {
       const disconnectedSignals = new BlockingCoordinationSignals();
 
       await expect(
@@ -368,7 +368,7 @@ describe('BlockingCoordinationSignals', () => {
       ).rejects.toThrow('Redis client not connected');
     });
 
-    it('should throw error when receiving signal without connection', async () => {
+    it('should throw error when receiving signal without connection', async () => { try {
       const disconnectedSignals = new BlockingCoordinationSignals();
 
       await expect(
@@ -376,19 +376,19 @@ describe('BlockingCoordinationSignals', () => {
       ).rejects.toThrow('Redis client not connected');
     });
 
-    it('should handle delete of non-existent signal gracefully', async () => {
+    it('should handle delete of non-existent signal gracefully', async () => { try {
       const deleted = await signals.deleteSignal('non-existent');
       expect(deleted).toBe(false);
     });
 
-    it('should return -2 TTL for non-existent signal', async () => {
+    it('should return -2 TTL for non-existent signal', async () => { try {
       const ttl = await signals.getSignalTTL('non-existent');
       expect(ttl).toBe(-2);
     });
   });
 
   describe('Integration Scenario: Blocking Coordination', () => {
-    it('should handle complete blocking coordination flow', async () => {
+    it('should handle complete blocking coordination flow', async () => { try {
       // Scenario: Coordinator-A finishes, waits for Coordinator-C validation
 
       // Step 1: Coordinator-C detects failure, sends retry request

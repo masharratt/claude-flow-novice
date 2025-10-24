@@ -4,7 +4,7 @@ const app = require('../src/server');
 
 describe('Products API Tests', () => {
   describe('GET /api/v1/products', () => {
-    it('should get all products', async () => {
+    it('should get all products', async () => { try {
       const response = await request(app)
         .get('/api/v1/products')
         .expect(200);
@@ -15,7 +15,7 @@ describe('Products API Tests', () => {
       expect(response.body.data.length).toBeGreaterThan(0);
     });
 
-    it('should filter by category', async () => {
+    it('should filter by category', async () => { try {
       const response = await request(app)
         .get('/api/v1/products?category=Electronics')
         .expect(200);
@@ -26,7 +26,7 @@ describe('Products API Tests', () => {
       });
     });
 
-    it('should filter by price range', async () => {
+    it('should filter by price range', async () => { try {
       const response = await request(app)
         .get('/api/v1/products?minPrice=50&maxPrice=100')
         .expect(200);
@@ -40,7 +40,7 @@ describe('Products API Tests', () => {
   });
 
   describe('GET /api/v1/products/:id', () => {
-    it('should get product by id', async () => {
+    it('should get product by id', async () => { try {
       const response = await request(app)
         .get('/api/v1/products/1')
         .expect(200);
@@ -52,7 +52,7 @@ describe('Products API Tests', () => {
       expect(response.body.data).toHaveProperty('category');
     });
 
-    it('should return 404 for non-existent product', async () => {
+    it('should return 404 for non-existent product', async () => { try {
       const response = await request(app)
         .get('/api/v1/products/9999')
         .expect(404);
@@ -63,7 +63,7 @@ describe('Products API Tests', () => {
   });
 
   describe('POST /api/v1/products', () => {
-    it('should create a new product', async () => {
+    it('should create a new product', async () => { try {
       const newProduct = {
         name: 'Test Product',
         price: 49.99,
@@ -84,7 +84,7 @@ describe('Products API Tests', () => {
       expect(response.body.data.price).toBe(newProduct.price);
     });
 
-    it('should validate required fields', async () => {
+    it('should validate required fields', async () => { try {
       const response = await request(app)
         .post('/api/v1/products')
         .send({ name: 'Test' }) // Missing price and category
@@ -94,7 +94,7 @@ describe('Products API Tests', () => {
       expect(Array.isArray(response.body.errors)).toBe(true);
     });
 
-    it('should validate price is positive', async () => {
+    it('should validate price is positive', async () => { try {
       const response = await request(app)
         .post('/api/v1/products')
         .send({ 
@@ -110,7 +110,7 @@ describe('Products API Tests', () => {
   });
 
   describe('PUT /api/v1/products/:id', () => {
-    it('should update product', async () => {
+    it('should update product', async () => { try {
       const updateData = {
         name: 'Updated Product',
         price: 149.99,
@@ -129,7 +129,7 @@ describe('Products API Tests', () => {
       expect(response.body.data.price).toBe(updateData.price);
     });
 
-    it('should return 404 for non-existent product', async () => {
+    it('should return 404 for non-existent product', async () => { try {
       const response = await request(app)
         .put('/api/v1/products/9999')
         .send({ 
@@ -145,7 +145,7 @@ describe('Products API Tests', () => {
   });
 
   describe('DELETE /api/v1/products/:id', () => {
-    it('should delete product', async () => {
+    it('should delete product', async () => { try {
       // First create a product to delete
       const createResponse = await request(app)
         .post('/api/v1/products')
@@ -171,7 +171,7 @@ describe('Products API Tests', () => {
         .expect(404);
     });
 
-    it('should return 404 for non-existent product', async () => {
+    it('should return 404 for non-existent product', async () => { try {
       const response = await request(app)
         .delete('/api/v1/products/9999')
         .expect(404);
@@ -180,4 +180,4 @@ describe('Products API Tests', () => {
       expect(response.body.message).toBe('Product not found');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

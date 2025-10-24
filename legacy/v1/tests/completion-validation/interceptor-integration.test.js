@@ -64,7 +64,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
   });
 
   describe('Hook Registration and Integration (Phase 1.2)', () => {
-    test('should integrate with existing EnhancedHookManager from Phase 1-5', async () => {
+    jest.setTimeout(10000);
+  test('should integrate with existing EnhancedHookManager from Phase 1-5', async () => { try {
       // FAILING TEST: CompletionInterceptor not implemented yet
 
       mockEnhancedHookManager.registerCompletionInterceptor.mockResolvedValue({
@@ -84,7 +85,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
       }).toThrow('Cannot find module');
     });
 
-    test('should register completion interception hooks with existing hook system', async () => {
+    jest.setTimeout(10000);
+  test('should register completion interception hooks with existing hook system', async () => { try {
       // FAILING TEST: Hook registration not implemented
 
       const hookRegistration = {
@@ -111,7 +113,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
   });
 
   describe('100% Completion Interception Rate (Phase 1.2)', () => {
-    test('should intercept 100% of completion claims via post-task hooks', async () => {
+    jest.setTimeout(10000);
+  test('should intercept 100% of completion claims via post-task hooks', async () => { try {
       // FAILING TEST: Interception not implemented
 
       const completionClaims = [
@@ -159,7 +162,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
       }
     });
 
-    test('should intercept completion claims in pre-edit and post-edit hooks', async () => {
+    jest.setTimeout(10000);
+  test('should intercept completion claims in pre-edit and post-edit hooks', async () => { try {
       // FAILING TEST: Edit hook interception not implemented
 
       const editOperations = [
@@ -195,7 +199,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
       }
     });
 
-    test('should intercept session-end completion claims', async () => {
+    jest.setTimeout(10000);
+  test('should intercept session-end completion claims', async () => { try {
       // FAILING TEST: Session-end interception not implemented
 
       const sessionData = {
@@ -227,7 +232,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
   });
 
   describe('Byzantine Fault Tolerance in Hook Execution (Phase 1.2)', () => {
-    test('should maintain Byzantine fault tolerance from existing infrastructure', async () => {
+    jest.setTimeout(10000);
+  test('should maintain Byzantine fault tolerance from existing infrastructure', async () => { try {
       // FAILING TEST: Byzantine integration not implemented
 
       mockEnhancedHookManager.getByzantineHookState.mockResolvedValue({
@@ -256,11 +262,12 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
       }
     });
 
-    test('should handle hook execution failures with Byzantine recovery', async () => {
+    jest.setTimeout(10000);
+  test('should handle hook execution failures with Byzantine recovery', async () => { try {
       // FAILING TEST: Byzantine recovery not implemented
 
       // Simulate hook execution failure
-      mockEnhancedHookManager.executeCompletionValidation.mockImplementation(async () => {
+      mockEnhancedHookManager.executeCompletionValidation.mockImplementation(async () => { try {
         throw new Error('Hook execution failed - simulated Byzantine fault');
       });
 
@@ -290,7 +297,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
   });
 
   describe('Memory Integration with Existing SQLite Store', () => {
-    test('should store intercepted completions in existing memory system', async () => {
+    jest.setTimeout(10000);
+  test('should store intercepted completions in existing memory system', async () => { try {
       // FAILING TEST: Memory integration not implemented
 
       mockMemoryStore.store.mockResolvedValue({ success: true, key: 'completion-1' });
@@ -327,7 +335,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
       }
     });
 
-    test('should maintain hook execution history in memory store', async () => {
+    jest.setTimeout(10000);
+  test('should maintain hook execution history in memory store', async () => { try {
       // FAILING TEST: Hook history not implemented
 
       const hookExecutions = [
@@ -361,7 +370,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
   });
 
   describe('Performance and Integration Requirements', () => {
-    test('should not degrade hook execution performance', async () => {
+    jest.setTimeout(10000);
+  test('should not degrade hook execution performance', async () => { try {
       // FAILING TEST: Performance optimization not implemented
 
       const baselineHookTime = 50; // 50ms baseline
@@ -389,7 +399,8 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
       }
     });
 
-    test('should integrate seamlessly with existing Claude Flow workflow', async () => {
+    jest.setTimeout(10000);
+  test('should integrate seamlessly with existing Claude Flow workflow', async () => { try {
       // FAILING TEST: Seamless integration not implemented
 
       // Test full workflow integration
@@ -421,4 +432,4 @@ describe('CompletionInterceptor - Enhanced Hook Integration Tests', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -358,7 +358,7 @@ function detectResourceConflicts(sprints: BenchmarkSprint[]): ResourceConflict[]
 describe('Sprint Parallelization Performance Benchmarks', () => {
   let redisClient: RedisClientType;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Connect to Redis with error handling
     try {
       redisClient = await connectRedisClient();
@@ -376,7 +376,7 @@ describe('Sprint Parallelization Performance Benchmarks', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup Redis connection
     if (redisClient && redisClient.isOpen) {
       try {
@@ -390,7 +390,7 @@ describe('Sprint Parallelization Performance Benchmarks', () => {
 
   // ===== TEST 1: 3 INDEPENDENT SPRINTS =====
 
-  it('should execute 3 independent sprints in <40min (46.7% faster)', { timeout: 30000 }, async () => {
+  it('should execute 3 independent sprints in <40min (46.7% faster)', { timeout: 30000 }, async () => { try {
     const coordinator = new SprintExecutionCoordinator(redisClient);
 
     // Define 3 independent sprints (no dependencies)
@@ -452,7 +452,7 @@ describe('Sprint Parallelization Performance Benchmarks', () => {
 
   // ===== TEST 2: 5 MIXED SPRINTS WITH DEPENDENCIES =====
 
-  it('should execute 5 mixed sprints in <60min (52% faster)', { timeout: 30000 }, async () => {
+  it('should execute 5 mixed sprints in <60min (52% faster)', { timeout: 30000 }, async () => { try {
     const coordinator = new SprintExecutionCoordinator(redisClient);
 
     // Define 5 sprints with mixed dependencies
@@ -536,7 +536,7 @@ describe('Sprint Parallelization Performance Benchmarks', () => {
 
   // ===== TEST 3: 10 SPRINTS MAX SCALE =====
 
-  it('should execute 10 sprints in <100min (60% faster)', { timeout: 30000 }, async () => {
+  it('should execute 10 sprints in <100min (60% faster)', { timeout: 30000 }, async () => { try {
     const coordinator = new SprintExecutionCoordinator(redisClient);
 
     // Define 10 sprints with dependency graph
@@ -655,7 +655,7 @@ describe('Sprint Parallelization Performance Benchmarks', () => {
 
   // ===== TEST 4: COORDINATION OVERHEAD ANALYSIS =====
 
-  it('should maintain low coordination overhead at scale', { timeout: 30000 }, async () => {
+  it('should maintain low coordination overhead at scale', { timeout: 30000 }, async () => { try {
     const coordinator = new SprintExecutionCoordinator(redisClient);
 
     // Create 10 sprints with varying dependency patterns
@@ -691,7 +691,7 @@ describe('Sprint Parallelization Performance Benchmarks', () => {
 
   // ===== TEST 5: RESOURCE CONFLICT DETECTION =====
 
-  it('should detect resource conflicts in parallel execution', async () => {
+  it('should detect resource conflicts in parallel execution', async () => { try {
     // Create sprints that would conflict on same port
     const sprints: BenchmarkSprint[] = [
       {

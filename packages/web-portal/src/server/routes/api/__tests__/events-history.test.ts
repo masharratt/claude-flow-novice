@@ -26,7 +26,7 @@ describe('Events History API Routes', () => {
   let app: Express;
   const testDbPath = join(process.cwd(), 'data', 'events.db');
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test database
     if (existsSync(testDbPath)) {
       unlinkSync(testDbPath);
@@ -68,7 +68,7 @@ describe('Events History API Routes', () => {
     await eventStoreService.storeEvents(events);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await eventStoreService.close();
     if (existsSync(testDbPath)) {
       unlinkSync(testDbPath);
@@ -76,7 +76,7 @@ describe('Events History API Routes', () => {
   });
 
   describe('GET /api/events-history', () => {
-    it('should query all events with default pagination', async () => {
+    it('should query all events with default pagination', async () => { try {
       const response = await request(app)
         .get('/api/events-history')
         .expect(200);
@@ -91,7 +91,7 @@ describe('Events History API Routes', () => {
       });
     });
 
-    it('should filter events by swarmId', async () => {
+    it('should filter events by swarmId', async () => { try {
       const response = await request(app)
         .get('/api/events-history?swarmId=swarm-1')
         .expect(200);
@@ -101,7 +101,7 @@ describe('Events History API Routes', () => {
       expect(response.body.data.every((e: any) => e.phaseId === 'swarm-1')).toBe(true);
     });
 
-    it('should filter events by agentId', async () => {
+    it('should filter events by agentId', async () => { try {
       const response = await request(app)
         .get('/api/events-history?agentId=agent-1')
         .expect(200);
@@ -111,7 +111,7 @@ describe('Events History API Routes', () => {
       expect(response.body.data[0].agentId).toBe('agent-1');
     });
 
-    it('should filter events by eventType', async () => {
+    it('should filter events by eventType', async () => { try {
       const response = await request(app)
         .get('/api/events-history?eventType=swarm_agent_spawned')
         .expect(200);
@@ -120,7 +120,7 @@ describe('Events History API Routes', () => {
       expect(response.body.data.length).toBe(2);
     });
 
-    it('should filter events by date range', async () => {
+    it('should filter events by date range', async () => { try {
       const response = await request(app)
         .get('/api/events-history?startTime=2024-01-01T10:30:00Z&endTime=2024-01-01T12:30:00Z')
         .expect(200);
@@ -129,7 +129,7 @@ describe('Events History API Routes', () => {
       expect(response.body.data.length).toBe(2);
     });
 
-    it('should apply custom pagination', async () => {
+    it('should apply custom pagination', async () => { try {
       const response = await request(app)
         .get('/api/events-history?limit=2&offset=1')
         .expect(200);
@@ -140,7 +140,7 @@ describe('Events History API Routes', () => {
       expect(response.body.pagination.offset).toBe(1);
     });
 
-    it('should enforce maximum limit of 1000', async () => {
+    it('should enforce maximum limit of 1000', async () => { try {
       const response = await request(app)
         .get('/api/events-history?limit=5000')
         .expect(200);
@@ -148,7 +148,7 @@ describe('Events History API Routes', () => {
       expect(response.body.pagination.limit).toBe(1000);
     });
 
-    it('should return 400 for invalid date format', async () => {
+    it('should return 400 for invalid date format', async () => { try {
       const response = await request(app)
         .get('/api/events-history?startTime=invalid-date')
         .expect(400);
@@ -156,7 +156,7 @@ describe('Events History API Routes', () => {
       expect(response.body.error).toBe('Invalid startTime format');
     });
 
-    it('should include performance metrics', async () => {
+    it('should include performance metrics', async () => { try {
       const response = await request(app)
         .get('/api/events-history')
         .expect(200);
@@ -167,7 +167,7 @@ describe('Events History API Routes', () => {
   });
 
   describe('GET /api/events-history/swarm/:swarmId', () => {
-    it('should get events for specific swarm', async () => {
+    it('should get events for specific swarm', async () => { try {
       const response = await request(app)
         .get('/api/events-history/swarm/swarm-1')
         .expect(200);
@@ -179,7 +179,7 @@ describe('Events History API Routes', () => {
       expect(response.body.total).toBeGreaterThanOrEqual(2);
     });
 
-    it('should apply limit parameter', async () => {
+    it('should apply limit parameter', async () => { try {
       const response = await request(app)
         .get('/api/events-history/swarm/swarm-1?limit=1')
         .expect(200);
@@ -187,7 +187,7 @@ describe('Events History API Routes', () => {
       expect(response.body.data.length).toBe(1);
     });
 
-    it('should return empty array for non-existent swarm', async () => {
+    it('should return empty array for non-existent swarm', async () => { try {
       const response = await request(app)
         .get('/api/events-history/swarm/non-existent')
         .expect(200);
@@ -198,7 +198,7 @@ describe('Events History API Routes', () => {
   });
 
   describe('GET /api/events-history/agent/:agentId', () => {
-    it('should get events for specific agent', async () => {
+    it('should get events for specific agent', async () => { try {
       const response = await request(app)
         .get('/api/events-history/agent/agent-1')
         .expect(200);
@@ -209,7 +209,7 @@ describe('Events History API Routes', () => {
       expect(response.body.data[0].agentId).toBe('agent-1');
     });
 
-    it('should apply limit parameter', async () => {
+    it('should apply limit parameter', async () => { try {
       const response = await request(app)
         .get('/api/events-history/agent/agent-1?limit=50')
         .expect(200);
@@ -219,7 +219,7 @@ describe('Events History API Routes', () => {
   });
 
   describe('GET /api/events-history/statistics/swarm/:swarmId', () => {
-    it('should return statistics for swarm', async () => {
+    it('should return statistics for swarm', async () => { try {
       const response = await request(app)
         .get('/api/events-history/statistics/swarm/swarm-1')
         .expect(200);
@@ -234,7 +234,7 @@ describe('Events History API Routes', () => {
       expect(response.body.statistics.endTime).toBeDefined();
     });
 
-    it('should include events over time', async () => {
+    it('should include events over time', async () => { try {
       const response = await request(app)
         .get('/api/events-history/statistics/swarm/swarm-1')
         .expect(200);
@@ -242,7 +242,7 @@ describe('Events History API Routes', () => {
       expect(response.body.statistics.eventsOverTime).toBeInstanceOf(Array);
     });
 
-    it('should return zero statistics for non-existent swarm', async () => {
+    it('should return zero statistics for non-existent swarm', async () => { try {
       const response = await request(app)
         .get('/api/events-history/statistics/swarm/non-existent')
         .expect(200);
@@ -253,7 +253,7 @@ describe('Events History API Routes', () => {
   });
 
   describe('GET /api/events-history/recent', () => {
-    it('should get recent events', async () => {
+    it('should get recent events', async () => { try {
       const response = await request(app)
         .get('/api/events-history/recent')
         .expect(200);
@@ -263,7 +263,7 @@ describe('Events History API Routes', () => {
       expect(response.body.count).toBeGreaterThanOrEqual(3);
     });
 
-    it('should apply limit parameter', async () => {
+    it('should apply limit parameter', async () => { try {
       const response = await request(app)
         .get('/api/events-history/recent?limit=2')
         .expect(200);
@@ -271,7 +271,7 @@ describe('Events History API Routes', () => {
       expect(response.body.data.length).toBeLessThanOrEqual(2);
     });
 
-    it('should enforce maximum limit of 500', async () => {
+    it('should enforce maximum limit of 500', async () => { try {
       const response = await request(app)
         .get('/api/events-history/recent?limit=1000')
         .expect(200);
@@ -282,7 +282,7 @@ describe('Events History API Routes', () => {
   });
 
   describe('DELETE /api/events-history/cleanup', () => {
-    it('should trigger manual cleanup', async () => {
+    it('should trigger manual cleanup', async () => { try {
       const response = await request(app)
         .delete('/api/events-history/cleanup')
         .expect(200);
@@ -292,7 +292,7 @@ describe('Events History API Routes', () => {
       expect(typeof response.body.deletedCount).toBe('number');
     });
 
-    it('should return message about cleanup', async () => {
+    it('should return message about cleanup', async () => { try {
       const response = await request(app)
         .delete('/api/events-history/cleanup')
         .expect(200);
@@ -302,7 +302,7 @@ describe('Events History API Routes', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle database errors gracefully', async () => {
+    it('should handle database errors gracefully', async () => { try {
       // Close database to simulate error
       await eventStoreService.close();
 
@@ -316,7 +316,7 @@ describe('Events History API Routes', () => {
   });
 
   describe('Performance', () => {
-    it('should handle queries efficiently', async () => {
+    it('should handle queries efficiently', async () => { try {
       const startTime = Date.now();
 
       const response = await request(app)

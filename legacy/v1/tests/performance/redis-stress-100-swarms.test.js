@@ -19,7 +19,7 @@ describe('Redis Coordination Stress Test - 100 Concurrent Swarms', () => {
   let subscribers = [];
   let testResults;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     testResults = {
       swarmCreation: {},
       messagePassing: {},
@@ -29,7 +29,7 @@ describe('Redis Coordination Stress Test - 100 Concurrent Swarms', () => {
     };
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup all Redis connections
     for (const client of [...redisClients, ...publishers, ...subscribers]) {
       try {
@@ -41,7 +41,7 @@ describe('Redis Coordination Stress Test - 100 Concurrent Swarms', () => {
   });
 
   describe('100 Concurrent Swarm Creation', () => {
-    it('should create and initialize 100 concurrent swarms', async () => {
+    it('should create and initialize 100 concurrent swarms', async () => { try {
       const startTime = performance.now();
       const swarmCount = 100;
       const swarms = [];
@@ -52,7 +52,7 @@ describe('Redis Coordination Stress Test - 100 Concurrent Swarms', () => {
       for (let i = 0; i < swarmCount; i++) {
         const swarmId = `stress-test-swarm-${i}-${crypto.randomBytes(4).toString('hex')}`;
 
-        const promise = (async () => {
+        const promise = (async () => { try {
           const swarmStart = performance.now();
 
           // Create Redis clients for this swarm
@@ -133,7 +133,7 @@ describe('Redis Coordination Stress Test - 100 Concurrent Swarms', () => {
   });
 
   describe('Multi-Swarm Message Passing', () => {
-    it('should handle >10,000 messages/sec across swarms', async () => {
+    it('should handle >10,000 messages/sec across swarms', async () => { try {
       const messageCount = 10000;
       const messagesPerSwarm = Math.floor(messageCount / publishers.length);
 
@@ -213,7 +213,7 @@ describe('Redis Coordination Stress Test - 100 Concurrent Swarms', () => {
   });
 
   describe('Leader Election Under Load', () => {
-    it('should elect leaders for all swarms under concurrent load', async () => {
+    it('should elect leaders for all swarms under concurrent load', async () => { try {
       const startTime = performance.now();
       const leaderElections = [];
 
@@ -270,7 +270,7 @@ describe('Redis Coordination Stress Test - 100 Concurrent Swarms', () => {
   });
 
   describe('State Persistence and Recovery', () => {
-    it('should persist and recover state for all swarms', async () => {
+    it('should persist and recover state for all swarms', async () => { try {
       const startTime = performance.now();
       const recoveryResults = [];
 
@@ -346,7 +346,7 @@ describe('Redis Coordination Stress Test - 100 Concurrent Swarms', () => {
   });
 
   describe('Performance Validation Summary', () => {
-    it('should generate comprehensive Redis stress test report', async () => {
+    it('should generate comprehensive Redis stress test report', async () => { try {
       // Calculate overall confidence score
       const scores = [
         testResults.swarmCreation?.totalSwarms === 100 ? 1.0 : 0.5,

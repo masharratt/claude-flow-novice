@@ -109,19 +109,19 @@ describe('Component Unit Tests', () => {
       expect(configManager1).toBe(configManager2);
     });
 
-    it('should load default configuration', async () => {
+    it('should load default configuration', async () => { try {
       await configManager.load();
       expect(configManager.get('agents.maxAgents')).toBeDefined();
     });
 
-    it('should get and set configuration values', async () => {
+    it('should get and set configuration values', async () => { try {
       await configManager.load();
       
       configManager.set('test.value', 'test');
       expect(configManager.get('test.value')).toBe('test');
     });
 
-    it('should handle nested configuration paths', async () => {
+    it('should handle nested configuration paths', async () => { try {
       await configManager.load();
       
       configManager.set('nested.deep.value', 'deep');
@@ -132,12 +132,12 @@ describe('Component Unit Tests', () => {
   describe('MemoryManager', () => {
     let memoryManager: MemoryManager;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       memoryManager = new MemoryManager();
       await memoryManager.initialize();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await memoryManager.shutdown();
     });
 
@@ -145,7 +145,7 @@ describe('Component Unit Tests', () => {
       expect(memoryManager).toBeDefined();
     });
 
-    it('should store and retrieve data', async () => {
+    it('should store and retrieve data', async () => { try {
       const testData = { test: 'value' };
       await memoryManager.set('test-key', testData);
       
@@ -153,12 +153,12 @@ describe('Component Unit Tests', () => {
       expect(retrieved).toEqual(testData);
     });
 
-    it('should handle non-existent keys', async () => {
+    it('should handle non-existent keys', async () => { try {
       const result = await memoryManager.get('non-existent');
       expect(result).toBeNull();
     });
 
-    it('should delete data', async () => {
+    it('should delete data', async () => { try {
       await memoryManager.set('delete-test', 'value');
       await memoryManager.delete('delete-test');
       
@@ -166,7 +166,7 @@ describe('Component Unit Tests', () => {
       expect(result).toBeNull();
     });
 
-    it('should list keys with pattern', async () => {
+    it('should list keys with pattern', async () => { try {
       await memoryManager.set('pattern:1', 'value1');
       await memoryManager.set('pattern:2', 'value2');
       await memoryManager.set('other:1', 'value3');
@@ -181,12 +181,12 @@ describe('Component Unit Tests', () => {
   describe('AgentManager', () => {
     let agentManager: AgentManager;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       agentManager = new AgentManager(eventBus, logger);
       await agentManager.initialize();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await agentManager.shutdown();
     });
 
@@ -194,7 +194,7 @@ describe('Component Unit Tests', () => {
       expect(agentManager).toBeDefined();
     });
 
-    it('should spawn agents', async () => {
+    it('should spawn agents', async () => { try {
       const agentId = await agentManager.spawnAgent('researcher', {
         name: 'Test Researcher',
         capabilities: ['research', 'analysis']
@@ -204,7 +204,7 @@ describe('Component Unit Tests', () => {
       expect(typeof agentId).toBe('string');
     });
 
-    it('should list active agents', async () => {
+    it('should list active agents', async () => { try {
       await agentManager.spawnAgent('researcher', { name: 'Agent 1' });
       await agentManager.spawnAgent('coder', { name: 'Agent 2' });
       
@@ -212,7 +212,7 @@ describe('Component Unit Tests', () => {
       expect(agents.length).toBe(2);
     });
 
-    it('should get agent by id', async () => {
+    it('should get agent by id', async () => { try {
       const agentId = await agentManager.spawnAgent('researcher', { name: 'Test Agent' });
       
       const agent = await agentManager.getAgent(agentId);
@@ -220,7 +220,7 @@ describe('Component Unit Tests', () => {
       expect(agent.id).toBe(agentId);
     });
 
-    it('should terminate agents', async () => {
+    it('should terminate agents', async () => { try {
       const agentId = await agentManager.spawnAgent('researcher', { name: 'Test Agent' });
       
       await agentManager.terminateAgent(agentId);
@@ -229,7 +229,7 @@ describe('Component Unit Tests', () => {
       expect(agent).toBeNull();
     });
 
-    it('should handle agent communication', async () => {
+    it('should handle agent communication', async () => { try {
       const agentId1 = await agentManager.spawnAgent('researcher', { name: 'Agent 1' });
       const agentId2 = await agentManager.spawnAgent('coder', { name: 'Agent 2' });
       
@@ -249,7 +249,7 @@ describe('Component Unit Tests', () => {
     let orchestrator: Orchestrator;
     let configManager: ConfigManager;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       configManager = ConfigManager.getInstance();
       await configManager.load();
       
@@ -257,7 +257,7 @@ describe('Component Unit Tests', () => {
       await orchestrator.initialize();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await orchestrator.shutdown();
     });
 
@@ -265,7 +265,7 @@ describe('Component Unit Tests', () => {
       expect(orchestrator).toBeDefined();
     });
 
-    it('should handle task submission', async () => {
+    it('should handle task submission', async () => { try {
       const task = {
         id: 'test-task',
         type: 'research',
@@ -277,7 +277,7 @@ describe('Component Unit Tests', () => {
       expect(result).toBeDefined();
     });
 
-    it('should get orchestrator status', async () => {
+    it('should get orchestrator status', async () => { try {
       const status = await orchestrator.getStatus();
       
       expect(status).toBeDefined();
@@ -286,7 +286,7 @@ describe('Component Unit Tests', () => {
       expect(status.queuedTasks).toBeDefined();
     });
 
-    it('should handle multiple concurrent tasks', async () => {
+    it('should handle multiple concurrent tasks', async () => { try {
       const tasks = [
         { id: 'task1', type: 'research', objective: 'Objective 1' },
         { id: 'task2', type: 'analysis', objective: 'Objective 2' },
@@ -304,7 +304,7 @@ describe('Component Unit Tests', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle initialization errors', async () => {
+    it('should handle initialization errors', async () => { try {
       // Mock a component to throw during initialization
       const mockComponent = {
         initialize: jest.fn().mockRejectedValue(new Error('Init failed'))
@@ -322,7 +322,7 @@ describe('Component Unit Tests', () => {
       expect(errorHandler).toHaveBeenCalled();
     });
 
-    it('should handle network errors', async () => {
+    it('should handle network errors', async () => { try {
       // Simulate network failure
       const mockNetworkOperation = jest.fn().mockRejectedValue(new Error('Network error'));
       
@@ -349,7 +349,7 @@ describe('Component Unit Tests', () => {
       expect(duration).toBeLessThan(1000); // Should complete in under 1 second
     });
 
-    it('should handle memory efficiently', async () => {
+    it('should handle memory efficiently', async () => { try {
       const memoryManager = new MemoryManager();
       await memoryManager.initialize();
       
@@ -368,4 +368,4 @@ describe('Component Unit Tests', () => {
       await memoryManager.shutdown();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

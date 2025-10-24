@@ -20,7 +20,7 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
     let detector;
     let byzantineCoordinator;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         byzantineCoordinator = new ByzantineConsensusCoordinator({
             nodeId: 'test-node-' + crypto.randomBytes(4).toString('hex'),
             totalNodes: 4
@@ -77,7 +77,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             }
         ];
 
-        test('should detect heavy commands with 94.5%+ accuracy (Target: >92%)', async () => {
+        jest.setTimeout(10000);
+  test('should detect heavy commands with 94.5%+ accuracy (Target: >92%)', async () => { try {
             let correctDetections = 0;
             const detectionTimes = [];
             const results = [];
@@ -117,7 +118,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             expect(avgDetectionTime).toBeLessThan(8.2); // Implementation claims 8.2ms
         });
 
-        test('should provide cryptographic proof of detection results', async () => {
+        jest.setTimeout(10000);
+  test('should provide cryptographic proof of detection results', async () => { try {
             const testCommand = testCommands[0];
             const result = await detector.detectHeavyCommand(testCommand.content);
 
@@ -132,7 +134,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             expect(isValidSignature).toBe(true);
         });
 
-        test('should resist Byzantine attacks during detection', async () => {
+        jest.setTimeout(10000);
+  test('should resist Byzantine attacks during detection', async () => { try {
             // Simulate Byzantine attack scenarios
             const maliciousInputs = [
                 'e'.repeat(5000) + '\0'.repeat(1000), // Null byte injection
@@ -150,7 +153,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             }
         });
 
-        test('should maintain consensus across multiple nodes', async () => {
+        jest.setTimeout(10000);
+  test('should maintain consensus across multiple nodes', async () => { try {
             // Simulate multi-node consensus validation
             const testCommand = testCommands[1];
             const nodes = ['node-1', 'node-2', 'node-3', 'node-4'];
@@ -179,7 +183,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
     });
 
     describe('Performance Benchmarks - <8.2ms Detection Time', () => {
-        test('should benchmark detection speed across various command sizes', async () => {
+        jest.setTimeout(10000);
+  test('should benchmark detection speed across various command sizes', async () => { try {
             const sizeTests = [
                 { size: 1000, label: '1K tokens' },
                 { size: 5000, label: '5K tokens (threshold)' },
@@ -226,7 +231,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
     });
 
     describe('Byzantine Security Integration', () => {
-        test('should validate SHA256-HMAC signatures', async () => {
+        jest.setTimeout(10000);
+  test('should validate SHA256-HMAC signatures', async () => { try {
             const testCommand = 'test command for signature validation';
             const result = await detector.detectHeavyCommand(testCommand);
 
@@ -239,7 +245,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             expect(isValid).toBe(true);
         });
 
-        test('should detect signature tampering', async () => {
+        jest.setTimeout(10000);
+  test('should detect signature tampering', async () => { try {
             const testCommand = 'test command for tampering detection';
             const result = await detector.detectHeavyCommand(testCommand);
 

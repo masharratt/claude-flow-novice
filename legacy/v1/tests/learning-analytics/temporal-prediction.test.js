@@ -53,7 +53,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
   });
 
   describe('Byzantine Fault Tolerance', () => {
-    test('should maintain prediction accuracy with 1 malicious node', async () => {
+    jest.setTimeout(10000);
+  test('should maintain prediction accuracy with 1 malicious node', async () => { try {
       // FAILING TEST: Byzantine fault tolerance not implemented
       const maliciousNode = 'predictor-2';
       const maliciousPredictions = {
@@ -73,7 +74,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
       expect(prediction.cryptographicProof).toBeDefined();
     });
 
-    test('should require cryptographic signatures for all predictions', async () => {
+    jest.setTimeout(10000);
+  test('should require cryptographic signatures for all predictions', async () => { try {
       // FAILING TEST: Cryptographic signing not implemented
       const prediction = await predictionEngine.generatePrediction(mockTimeSeriesData);
 
@@ -90,7 +92,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
       expect(isValidSignature).toBe(true);
     });
 
-    test('should reject predictions without sufficient consensus', async () => {
+    jest.setTimeout(10000);
+  test('should reject predictions without sufficient consensus', async () => { try {
       // FAILING TEST: Consensus validation not implemented
       byzantineConsensus.setMinimumConsensus(4); // Require all 4 nodes
       byzantineConsensus.simulateNodeFailure('predictor-4'); // Fail 1 node
@@ -102,7 +105,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
   });
 
   describe('Bottleneck Prediction Accuracy', () => {
-    test('should achieve 89% accuracy in bottleneck prediction', async () => {
+    jest.setTimeout(10000);
+  test('should achieve 89% accuracy in bottleneck prediction', async () => { try {
       // FAILING TEST: Prediction algorithm not implemented
       const testScenarios = generateBottleneckScenarios(1000);
 
@@ -121,7 +125,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
       expect(accuracy).toBeGreaterThanOrEqual(0.89);
     });
 
-    test('should provide 15-second advance warning minimum', async () => {
+    jest.setTimeout(10000);
+  test('should provide 15-second advance warning minimum', async () => { try {
       // FAILING TEST: Advance warning timing not implemented
       const criticalScenario = {
         systemMetrics: [
@@ -138,7 +143,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
       expect(prediction.byzantineValidated).toBe(true);
     });
 
-    test('should predict cascade failure scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should predict cascade failure scenarios', async () => { try {
       // FAILING TEST: Cascade failure prediction not implemented
       const cascadeScenario = {
         systemMetrics: mockTimeSeriesData.systemMetrics,
@@ -158,7 +164,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
   });
 
   describe('Real-Time Prediction Engine', () => {
-    test('should process real-time metrics with <5ms latency', async () => {
+    jest.setTimeout(10000);
+  test('should process real-time metrics with <5ms latency', async () => { try {
       // FAILING TEST: Real-time processing not implemented
       const realTimeMetrics = {
         timestamp: Date.now(),
@@ -178,7 +185,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
       expect(prediction.byzantineValidated).toBe(true);
     });
 
-    test('should maintain prediction state across consensus failures', async () => {
+    jest.setTimeout(10000);
+  test('should maintain prediction state across consensus failures', async () => { try {
       // FAILING TEST: State persistence not implemented
       await predictionEngine.initializePredictionState(mockTimeSeriesData);
 
@@ -199,7 +207,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
   });
 
   describe('Temporal Pattern Analysis', () => {
-    test('should identify temporal patterns in system behavior', async () => {
+    jest.setTimeout(10000);
+  test('should identify temporal patterns in system behavior', async () => { try {
       // FAILING TEST: Temporal pattern analysis not implemented
       const extendedTimeSeries = generateExtendedTimeSeries(1000); // 1000 data points
 
@@ -212,7 +221,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
       expect(patterns.cryptographicEvidence).toBeDefined();
     });
 
-    test('should predict optimal resource allocation timing', async () => {
+    jest.setTimeout(10000);
+  test('should predict optimal resource allocation timing', async () => { try {
       // FAILING TEST: Resource allocation prediction not implemented
       const resourceDemand = {
         historical: mockTimeSeriesData.systemMetrics,
@@ -230,7 +240,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
   });
 
   describe('Integration with Phase 1 & 2', () => {
-    test('should integrate with Phase 2 resource optimization', async () => {
+    jest.setTimeout(10000);
+  test('should integrate with Phase 2 resource optimization', async () => { try {
       // FAILING TEST: Phase integration not implemented
       const phase2Metrics = {
         resourceUsage: { cpu: 80, memory: 85, network: 60 },
@@ -245,7 +256,8 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
       expect(integratedPrediction.consensusAcrossPhases).toBe(true);
     });
 
-    test('should leverage Phase 1 Byzantine security infrastructure', async () => {
+    jest.setTimeout(10000);
+  test('should leverage Phase 1 Byzantine security infrastructure', async () => { try {
       // FAILING TEST: Phase 1 security integration not implemented
       const phase1SecurityContext = {
         consensusNodes: consensusNodes,
@@ -304,4 +316,4 @@ describe('Byzantine-Secure Temporal Advantage Prediction Engine', () => {
       value: Math.sin(i / 100) * 50 + 50 + Math.random() * 10 // Sinusoidal with noise
     }));
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

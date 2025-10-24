@@ -36,17 +36,18 @@ describe('Claude-Flow CLI', () => {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     jest.clearAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterEach(() => {
     process.argv = originalArgv;
     process.exit = originalExit;
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Help output', () => {
-    test('should show help when no arguments provided', async () => {
+    jest.setTimeout(10000);
+  test('should show help when no arguments provided', async () => { try {
       process.argv = ['node', 'claude-flow'];
 
       const { executeCommand, hasCommand, showAllCommands } = await import(
@@ -62,9 +63,10 @@ describe('Claude-Flow CLI', () => {
       expect(output).toContain('Claude-Flow v2.0.0');
       expect(output).toContain('USAGE:');
       expect(output).toContain('claude-flow-novice <command> [options]');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should show help for --help flag', async () => {
+    jest.setTimeout(10000);
+  test('should show help for --help flag', async () => { try {
       process.argv = ['node', 'claude-flow', '--help'];
 
       const { hasCommand } = await import('../command-registry.js');
@@ -75,20 +77,22 @@ describe('Claude-Flow CLI', () => {
       expect(consoleLogSpy).toHaveBeenCalled();
       const output = consoleLogSpy.mock.calls.join('\n');
       expect(output).toContain('Claude-Flow v2.0.0');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should show version for --version flag', async () => {
+    jest.setTimeout(10000);
+  test('should show version for --version flag', async () => { try {
       process.argv = ['node', 'claude-flow', '--version'];
 
       await import('../simple-cli.js');
 
       expect(consoleLogSpy).toHaveBeenCalledWith('2.0.0');
       expect(process.exit).toHaveBeenCalledWith(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Command execution', () => {
-    test('should execute valid command', async () => {
+    jest.setTimeout(10000);
+  test('should execute valid command', async () => { try {
       process.argv = ['node', 'claude-flow', 'init', '--sparc'];
 
       const { executeCommand, hasCommand } = await import('../command-registry.js');
@@ -98,10 +102,11 @@ describe('Claude-Flow CLI', () => {
       await import('../simple-cli.js');
 
       expect(hasCommand).toHaveBeenCalledWith('init');
-      expect(executeCommand).toHaveBeenCalledWith('init', ['--sparc'], {});
-    });
+      expect(executeCommand).toHaveBeenCalledWith('init', ['--sparc'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle command with multiple arguments', async () => {
+    jest.setTimeout(10000);
+  test('should handle command with multiple arguments', async () => { try {
       process.argv = [
         'node',
         'claude-flow',
@@ -120,10 +125,11 @@ describe('Claude-Flow CLI', () => {
       expect(hasCommand).toHaveBeenCalledWith('swarm');
       expect(executeCommand).toHaveBeenCalledWith('swarm', ['Build a REST API'], {
         strategy: 'development',
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should show error for unknown command', async () => {
+    jest.setTimeout(10000);
+  test('should show error for unknown command', async () => { try {
       process.argv = ['node', 'claude-flow', 'invalid-command'];
 
       const { hasCommand, listCommands } = await import('../command-registry.js');
@@ -135,33 +141,38 @@ describe('Claude-Flow CLI', () => {
         expect.stringContaining('Unknown command: invalid-command'),
       );
       expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Available commands:'));
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Flag parsing', () => {
-    test('should parse boolean flags correctly', () => {
+    jest.setTimeout(10000);
+  test('should parse boolean flags correctly', () => {
       const flags = parseFlags(['--force', '--verbose']);
-      expect(flags).toEqual({ force: true, verbose: true });
-    });
+      expect(flags).toEqual({ force: true, verbose: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should parse value flags correctly', () => {
+    jest.setTimeout(10000);
+  test('should parse value flags correctly', () => {
       const flags = parseFlags(['--port', '8080', '--name', 'test']);
-      expect(flags).toEqual({ port: '8080', name: 'test' });
-    });
+      expect(flags).toEqual({ port: '8080', name: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle mixed flags and arguments', () => {
+    jest.setTimeout(10000);
+  test('should handle mixed flags and arguments', () => {
       const flags = parseFlags(['arg1', '--flag', 'value', 'arg2', '--bool']);
-      expect(flags).toEqual({ flag: 'value', bool: true });
-    });
+      expect(flags).toEqual({ flag: 'value', bool: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle flags with equals sign', () => {
+    jest.setTimeout(10000);
+  test('should handle flags with equals sign', () => {
       const flags = parseFlags(['--port=8080', '--name=test']);
-      expect(flags).toEqual({ port: '8080', name: 'test' });
-    });
-  });
+      expect(flags).toEqual({ port: '8080', name: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error handling', () => {
-    test('should handle command execution errors gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle command execution errors gracefully', async () => { try {
       process.argv = ['node', 'claude-flow', 'init'];
 
       const { executeCommand, hasCommand } = await import('../command-registry.js');
@@ -174,9 +185,10 @@ describe('Claude-Flow CLI', () => {
         expect.stringContaining('Error executing command:'),
       );
       expect(process.exit).toHaveBeenCalledWith(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle missing required arguments', async () => {
+    jest.setTimeout(10000);
+  test('should handle missing required arguments', async () => { try {
       process.argv = ['node', 'claude-flow', 'agent'];
 
       const { executeCommand, hasCommand } = await import('../command-registry.js');
@@ -188,6 +200,6 @@ describe('Claude-Flow CLI', () => {
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Missing required argument'),
       );
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -417,7 +417,7 @@ Test epic for configuration generation.
   });
 
   describe('CLI Utilities', () => {
-    it('should generate config via CLI utility', async () => {
+    it('should generate config via CLI utility', async () => { try {
       const overviewContent = `# CLI Test Epic
 
 **Epic ID**: \`cli-test\`
@@ -449,7 +449,7 @@ Test epic for configuration generation.
       expect(config.epicId).toBe('cli-test');
     });
 
-    it('should validate epic via CLI utility', async () => {
+    it('should validate epic via CLI utility', async () => { try {
       const overviewContent = `# Validation Test Epic
 
 **Epic ID**: \`validation-test\`

@@ -9,7 +9,7 @@ import { Command } from '@cliffy/command';
 describe('Start Command Integration', () => {
   let testDir: string;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Create test directory
     testDir = await Deno.makeTempDir({ prefix: 'claude-flow-test-' });
     Deno.chdir(testDir);
@@ -42,7 +42,7 @@ describe('Start Command Integration', () => {
     await Deno.writeTextFile('claude-flow.config.json', JSON.stringify(config, null, 2));
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup
     try {
       await Deno.remove(testDir, { recursive: true });
@@ -77,7 +77,7 @@ describe('Start Command Integration', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize process manager without errors', async () => {
+    it('should initialize process manager without errors', async () => { try {
       // Test that the command can be parsed without executing
       const command = new Command()
         .command('start', startCommand);
@@ -87,4 +87,4 @@ describe('Start Command Integration', () => {
       expect(help.includes('start')).toBe(true);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

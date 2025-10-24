@@ -104,13 +104,13 @@ describe('Phase 2 Interactive Observation System', () => {
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Reset test data before each test
     await redis.flushDb();
   });
 
   describe('Agent State Management', () => {
-    it('should create and update agent state', async () => {
+    it('should create and update agent state', async () => { try {
       const startTime = Date.now();
 
       // Create agent state
@@ -131,7 +131,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(state.resources.cpu).to.equal(0.2);
     });
 
-    it('should handle heartbeat updates', async () => {
+    it('should handle heartbeat updates', async () => { try {
       // Create agent
       await observationSystem.stateManager.createAgentState(testAgentId);
 
@@ -149,7 +149,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(state.resources.cpu).to.equal(0.5);
     });
 
-    it('should aggregate agent states correctly', async () => {
+    it('should aggregate agent states correctly', async () => { try {
       // Create multiple agents
       const agents = ['agent-1', 'agent-2', 'agent-3'];
       for (const agentId of agents) {
@@ -164,7 +164,7 @@ describe('Phase 2 Interactive Observation System', () => {
   });
 
   describe('Real-Time Response System', () => {
-    it('should create and manage response channels', async () => {
+    it('should create and manage response channels', async () => { try {
       const startTime = Date.now();
 
       const channelId = await observationSystem.responseSystem.createResponseChannel(
@@ -184,7 +184,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(channelStatus.isActive).to.be.true;
     });
 
-    it('should handle query execution with timeout', async () => {
+    it('should handle query execution with timeout', async () => { try {
       const queryData = { test: 'data' };
 
       try {
@@ -202,7 +202,7 @@ describe('Phase 2 Interactive Observation System', () => {
       }
     });
 
-    it('should provide accurate metrics', async () => {
+    it('should provide accurate metrics', async () => { try {
       const metrics = observationSystem.responseSystem.getMetrics();
       expect(metrics).to.have.property('totalChannels');
       expect(metrics).to.have.property('activeChannels');
@@ -212,7 +212,7 @@ describe('Phase 2 Interactive Observation System', () => {
   });
 
   describe('Agent Observation API', () => {
-    it('should query agent state efficiently', async () => {
+    it('should query agent state efficiently', async () => { try {
       // Setup test agent
       await observationSystem.stateManager.createAgentState(testAgentId, 'busy', {
         cpu: 0.8,
@@ -230,7 +230,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(state.resources.cpu).to.equal(0.8);
     });
 
-    it('should query agents by status', async () => {
+    it('should query agents by status', async () => { try {
       // Create agents with different statuses
       await observationSystem.stateManager.createAgentState('agent-idle-1', 'idle');
       await observationSystem.stateManager.createAgentState('agent-idle-2', 'idle');
@@ -243,7 +243,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(busyAgents).to.have.length(1);
     });
 
-    it('should provide swarm overview', async () => {
+    it('should provide swarm overview', async () => { try {
       // Create test agents
       await observationSystem.stateManager.createAgentState('agent-1', 'active');
       await observationSystem.stateManager.createAgentState('agent-2', 'active');
@@ -255,7 +255,7 @@ describe('Phase 2 Interactive Observation System', () => {
   });
 
   describe('Transparency Middleware', () => {
-    it('should process agent activities efficiently', async () => {
+    it('should process agent activities efficiently', async () => { try {
       const activity = TransparencyUtils.createActivityFromAgent(
         testAgentId,
         'test_action',
@@ -269,7 +269,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(processingTime).to.be.below(100); // Should be very fast
     });
 
-    it('should filter messages based on level', async () => {
+    it('should filter messages based on level', async () => { try {
       // Test with minimal level
       observationSystem.updateTransparencyConfig({ level: 'minimal' });
 
@@ -285,7 +285,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(metrics.totalMessagesGenerated).to.be.a('number');
     });
 
-    it('should monitor performance overhead', async () => {
+    it('should monitor performance overhead', async () => { try {
       const initialMetrics = observationSystem.transparency.getMetrics();
 
       // Process several activities
@@ -307,7 +307,7 @@ describe('Phase 2 Interactive Observation System', () => {
   });
 
   describe('System Integration', () => {
-    it('should provide comprehensive system health check', async () => {
+    it('should provide comprehensive system health check', async () => { try {
       const health = await observationSystem.healthCheck();
 
       expect(health).to.have.property('overall');
@@ -320,7 +320,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(['healthy', 'degraded', 'unhealthy']).to.include(health.overall.systemHealth);
     });
 
-    it('should collect and report metrics', async () => {
+    it('should collect and report metrics', async () => { try {
       // Wait for metrics collection
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -338,7 +338,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(systemStatus.components).to.have.property('transparency');
     });
 
-    it('should handle concurrent operations efficiently', async () => {
+    it('should handle concurrent operations efficiently', async () => { try {
       const startTime = Date.now();
       const promises = [];
 
@@ -368,7 +368,7 @@ describe('Phase 2 Interactive Observation System', () => {
       expect(aggregation.totalAgents).to.be.at.least(20);
     });
 
-    it('should maintain sub-500ms response times under load', async () => {
+    it('should maintain sub-500ms response times under load', async () => { try {
       const responseTimes = [];
       const iterations = 10;
 
@@ -399,7 +399,7 @@ describe('Phase 2 Interactive Observation System', () => {
   });
 
   describe('Performance Requirements Validation', () => {
-    it('should validate sub-500ms response time requirement', async () => {
+    it('should validate sub-500ms response time requirement', async () => { try {
       const testOperations = [
         () => observationSystem.stateManager.createAgentState('perf-test-1', 'active'),
         () => observationSystem.getAgentState('perf-test-1'),
@@ -423,7 +423,7 @@ describe('Phase 2 Interactive Observation System', () => {
       console.log(`✅ Response time validation passed: ${averageTime.toFixed(2)}ms average`);
     });
 
-    it('should validate <5% performance overhead requirement', async () => {
+    it('should validate <5% performance overhead requirement', async () => { try {
       // Measure baseline performance (without transparency)
       const baselineStart = Date.now();
       for (let i = 0; i < 50; i++) {
@@ -455,4 +455,4 @@ describe('Phase 2 Interactive Observation System', () => {
       console.log(`✅ Performance overhead validation passed: ${overheadPercentage.toFixed(2)}%`);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

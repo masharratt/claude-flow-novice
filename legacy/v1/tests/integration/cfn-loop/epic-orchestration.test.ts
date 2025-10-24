@@ -181,13 +181,13 @@ describe('Epic Orchestration - Integration Tests', () => {
     orchestrator = createPhaseOrchestrator(config);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await orchestrator.shutdown();
     delete process.env.CLAUDE_FLOW_ENV;
   });
 
   describe('Full Epic Execution', () => {
-    it('should execute complete epic with all phases and sprints', async () => {
+    it('should execute complete epic with all phases and sprints', async () => { try {
       await orchestrator.initialize();
 
       const result: PhaseOrchestratorResult = await orchestrator.executeAllPhases(
@@ -203,7 +203,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       expect(result.timestamp).toBeGreaterThan(0);
     }, 180000); // 3 minutes timeout for full epic
 
-    it('should execute phases in correct topological order', async () => {
+    it('should execute phases in correct topological order', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Test topological ordering');
@@ -222,7 +222,7 @@ describe('Epic Orchestration - Integration Tests', () => {
   });
 
   describe('Multi-Phase Coordination', () => {
-    it('should coordinate sprint execution across phases', async () => {
+    it('should coordinate sprint execution across phases', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Multi-phase coordination test');
@@ -240,7 +240,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       }
     }, 180000);
 
-    it('should resolve cross-phase sprint dependencies', async () => {
+    it('should resolve cross-phase sprint dependencies', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Cross-phase dependency test');
@@ -252,7 +252,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       expect(result.completedPhases).toHaveLength(3);
     }, 180000);
 
-    it('should handle complex dependency graph', async () => {
+    it('should handle complex dependency graph', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Complex dependency graph test');
@@ -277,7 +277,7 @@ describe('Epic Orchestration - Integration Tests', () => {
   });
 
   describe('Progress Tracking', () => {
-    it('should track epic progress during execution', async () => {
+    it('should track epic progress during execution', async () => { try {
       await orchestrator.initialize();
 
       const initialStats = orchestrator.getStatistics();
@@ -291,7 +291,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       expect(finalStats.inProgress).toBe(0);
     }, 180000);
 
-    it('should emit progress events during execution', async () => {
+    it('should emit progress events during execution', async () => { try {
       const events: string[] = [];
 
       orchestrator.on('phase:complete', (data: any) => {
@@ -307,7 +307,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       expect(events).toContain('phase:phase-3');
     }, 180000);
 
-    it('should calculate cumulative duration', async () => {
+    it('should calculate cumulative duration', async () => { try {
       await orchestrator.initialize();
 
       const startTime = Date.now();
@@ -323,7 +323,7 @@ describe('Epic Orchestration - Integration Tests', () => {
   });
 
   describe('Epic-Level Validation', () => {
-    it('should aggregate phase validation results', async () => {
+    it('should aggregate phase validation results', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Aggregate validation test');
@@ -337,7 +337,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       }
     }, 180000);
 
-    it('should enforce epic-level quality standards', async () => {
+    it('should enforce epic-level quality standards', async () => { try {
       const highQualityConfig: PhaseOrchestratorConfig = {
         phases: config.phases.map(p => ({
           ...p,
@@ -363,7 +363,7 @@ describe('Epic Orchestration - Integration Tests', () => {
   });
 
   describe('Statistics Aggregation', () => {
-    it('should aggregate statistics across all phases', async () => {
+    it('should aggregate statistics across all phases', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Statistics aggregation test');
@@ -386,7 +386,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       expect(result.totalDuration).toBeGreaterThanOrEqual(totalPhaseDuration);
     }, 180000);
 
-    it('should track confidence scores across epic', async () => {
+    it('should track confidence scores across epic', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Confidence tracking test');
@@ -407,7 +407,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       });
     }, 180000);
 
-    it('should calculate average epic consensus', async () => {
+    it('should calculate average epic consensus', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Epic consensus test');
@@ -427,7 +427,7 @@ describe('Epic Orchestration - Integration Tests', () => {
   });
 
   describe('Epic Failure Scenarios', () => {
-    it('should handle early phase failure', async () => {
+    it('should handle early phase failure', async () => { try {
       const failEarlyConfig: PhaseOrchestratorConfig = {
         phases: [
           {
@@ -456,7 +456,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       await failEarlyOrchestrator.shutdown();
     }, 180000);
 
-    it('should continue on non-critical phase failure', async () => {
+    it('should continue on non-critical phase failure', async () => { try {
       // Create independent phases (no dependencies)
       const independentPhases: Phase[] = [
         {
@@ -492,7 +492,7 @@ describe('Epic Orchestration - Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle orchestrator shutdown during execution', async () => {
+    it('should handle orchestrator shutdown during execution', async () => { try {
       await orchestrator.initialize();
 
       // Start execution (don't await)
@@ -505,7 +505,7 @@ describe('Epic Orchestration - Integration Tests', () => {
       await expect(executionPromise).resolves.toBeDefined();
     }, 30000);
 
-    it('should handle empty epic', async () => {
+    it('should handle empty epic', async () => { try {
       const emptyConfig: PhaseOrchestratorConfig = {
         phases: [],
       };

@@ -84,7 +84,7 @@ describe('Coordinator Death with SQLite Recovery (Chaos)', () => {
   let db: Database.Database;
   let recovery: CoordinatorRecovery;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     redis = new Redis(REDIS_CONFIG);
     await new Promise<void>((resolve, reject) => {
       redis.once('ready', resolve);
@@ -109,7 +109,7 @@ describe('Coordinator Death with SQLite Recovery (Chaos)', () => {
     recovery = new CoordinatorRecovery(redis, db);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     db.close();
     await redis.quit();
     try {
@@ -119,7 +119,7 @@ describe('Coordinator Death with SQLite Recovery (Chaos)', () => {
     }
   });
 
-  it('should detect dead coordinator and recover work from SQLite', async () => {
+  it('should detect dead coordinator and recover work from SQLite', async () => { try {
     const deadCoordinator = 'coordinator-dead';
     const newCoordinator = 'coordinator-backup';
 
@@ -149,7 +149,7 @@ describe('Coordinator Death with SQLite Recovery (Chaos)', () => {
     expect(resumedWork.agents).toEqual(['agent-1', 'agent-2', 'agent-3']);
   }, 30000);
 
-  it('should preserve work state across coordinator death', async () => {
+  it('should preserve work state across coordinator death', async () => { try {
     const coordinator1 = 'coordinator-primary';
     const coordinator2 = 'coordinator-secondary';
 

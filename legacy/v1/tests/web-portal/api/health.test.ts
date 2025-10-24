@@ -14,7 +14,7 @@ import { transparencyService } from '../../../packages/web-portal/src/server/ser
 describe('Health API Endpoint', () => {
   let app: Express;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     app = express();
     app.use(express.json());
     app.use('/api/health', healthRouter);
@@ -24,7 +24,7 @@ describe('Health API Endpoint', () => {
   });
 
   describe('GET /api/health', () => {
-    it('should return health status', async () => {
+    it('should return health status', async () => { try {
       const response = await request(app).get('/api/health');
 
       // Should be 200 (healthy/degraded) or 503 (unhealthy)
@@ -36,28 +36,28 @@ describe('Health API Endpoint', () => {
       expect(response.body).toHaveProperty('services');
     });
 
-    it('should return valid status values', async () => {
+    it('should return valid status values', async () => { try {
       const response = await request(app).get('/api/health');
 
       const validStatuses = ['healthy', 'degraded', 'unhealthy'];
       expect(validStatuses).toContain(response.body.status);
     });
 
-    it('should return uptime as number', async () => {
+    it('should return uptime as number', async () => { try {
       const response = await request(app).get('/api/health');
 
       expect(typeof response.body.uptime).toBe('number');
       expect(response.body.uptime).toBeGreaterThanOrEqual(0);
     });
 
-    it('should return version string', async () => {
+    it('should return version string', async () => { try {
       const response = await request(app).get('/api/health');
 
       expect(typeof response.body.version).toBe('string');
       expect(response.body.version.length).toBeGreaterThan(0);
     });
 
-    it('should return service statuses', async () => {
+    it('should return service statuses', async () => { try {
       const response = await request(app).get('/api/health');
 
       const { services } = response.body;
@@ -71,7 +71,7 @@ describe('Health API Endpoint', () => {
       expect(validServiceStatuses).toContain(services.redis);
     });
 
-    it('should return 200 for healthy status', async () => {
+    it('should return 200 for healthy status', async () => { try {
       const response = await request(app).get('/api/health');
 
       if (response.body.status === 'healthy') {
@@ -79,7 +79,7 @@ describe('Health API Endpoint', () => {
       }
     });
 
-    it('should return 503 for unhealthy status', async () => {
+    it('should return 503 for unhealthy status', async () => { try {
       const response = await request(app).get('/api/health');
 
       if (response.body.status === 'unhealthy') {
@@ -87,7 +87,7 @@ describe('Health API Endpoint', () => {
       }
     });
 
-    it('should not require authentication', async () => {
+    it('should not require authentication', async () => { try {
       // Health endpoint should work without auth headers
       const response = await request(app).get('/api/health');
 

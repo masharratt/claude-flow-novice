@@ -20,7 +20,7 @@ describe('Fleet Manager 1000+ Agent Load Test', () => {
   let redisClient;
   let testResults;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize Redis connection
     redisClient = createClient({ host: 'localhost', port: 6379 });
     await redisClient.connect().catch(() => {
@@ -36,14 +36,14 @@ describe('Fleet Manager 1000+ Agent Load Test', () => {
     };
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (fleetCommander) await fleetCommander.shutdown();
     if (autoScalingManager) await autoScalingManager.shutdown();
     if (redisClient) await redisClient.quit();
   });
 
   describe('1000 Agent Spawning and Coordination', () => {
-    it('should spawn 1000 agents with <100ms average allocation latency', async () => {
+    it('should spawn 1000 agents with <100ms average allocation latency', async () => { try {
       const startTime = performance.now();
 
       // Initialize fleet commander with high capacity
@@ -142,7 +142,7 @@ describe('Fleet Manager 1000+ Agent Load Test', () => {
   });
 
   describe('Agent Allocation Performance', () => {
-    it('should allocate agents with <100ms latency under load', async () => {
+    it('should allocate agents with <100ms latency under load', async () => { try {
       const allocationCount = 100;
       const allocationLatencies = [];
 
@@ -191,7 +191,7 @@ describe('Fleet Manager 1000+ Agent Load Test', () => {
   });
 
   describe('Auto-Scaling Behavior', () => {
-    it('should auto-scale based on load with predictive algorithms', async () => {
+    it('should auto-scale based on load with predictive algorithms', async () => { try {
       autoScalingManager = new AutoScalingManager({
         redis: { host: 'localhost', port: 6379 },
         limits: {
@@ -242,7 +242,7 @@ describe('Fleet Manager 1000+ Agent Load Test', () => {
   });
 
   describe('Resource Cleanup and Efficiency', () => {
-    it('should cleanup resources efficiently when scaling down', async () => {
+    it('should cleanup resources efficiently when scaling down', async () => { try {
       const initialStatus = await fleetCommander.getFleetStatus();
       const initialAgentCount = initialStatus.agents.total;
 
@@ -280,7 +280,7 @@ describe('Fleet Manager 1000+ Agent Load Test', () => {
   });
 
   describe('Performance Validation Summary', () => {
-    it('should generate comprehensive performance report', async () => {
+    it('should generate comprehensive performance report', async () => { try {
       const report = {
         timestamp: new Date().toISOString(),
         testSuite: 'Fleet Manager 1000+ Agent Load Test',

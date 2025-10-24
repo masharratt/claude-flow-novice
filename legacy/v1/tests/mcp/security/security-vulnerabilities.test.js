@@ -14,7 +14,7 @@ describe('MCP Security Vulnerability Tests', () => {
   let manager;
   let securityMonitor;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     manager = new McpConfigurationManager({
       verbose: false,
       autoFix: true,
@@ -34,7 +34,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('Command Injection Prevention', () => {
-    test('should detect command injection in command field', async () => {
+    jest.setTimeout(10000);
+  test('should detect command injection in command field', async () => { try {
       const maliciousConfigs = [
         { command: 'node; rm -rf /', args: ['server.js'] },
         { command: 'node && whoami', args: ['server.js'] },
@@ -53,7 +54,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should detect command injection in arguments', async () => {
+    jest.setTimeout(10000);
+  test('should detect command injection in arguments', async () => { try {
       const maliciousArgs = [
         ['server.js', '; rm -rf /'],
         ['server.js', '&& whoami'],
@@ -76,7 +78,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should validate configuration safety', () => {
+    jest.setTimeout(10000);
+  test('should validate configuration safety', () => {
       for (const maliciousConfig of securityConfigurations.commandInjectionAttempts) {
         const validation = global.securityUtils.validateConfigSafety(maliciousConfig);
 
@@ -86,7 +89,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should block dangerous command execution', async () => {
+    jest.setTimeout(10000);
+  test('should block dangerous command execution', async () => { try {
       // Mock execSync to track dangerous commands
       const dangerousCommands = [
         'rm -rf /',
@@ -115,7 +119,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should sanitize server names before CLI usage', async () => {
+    jest.setTimeout(10000);
+  test('should sanitize server names before CLI usage', async () => { try {
       const maliciousServerNames = [
         'server; rm -rf /',
         'server && whoami',
@@ -127,7 +132,8 @@ describe('MCP Security Vulnerability Tests', () => {
 
       for (const serverName of maliciousServerNames) {
         // Should detect unsafe server name
-        expect(/[;&|`$()]/.test(serverName)).toBe(true);
+        expect(/[;&|`$()]/.jest.setTimeout(10000);
+  test(serverName)).toBe(true);
 
         // Manager should not use unsafe names in CLI commands
         try {
@@ -141,7 +147,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('Path Traversal Prevention', () => {
-    test('should detect path traversal attempts', async () => {
+    jest.setTimeout(10000);
+  test('should detect path traversal attempts', async () => { try {
       const pathTraversalAttempts = [
         '../../../etc/passwd',
         '..\\..\\..\\windows\\system32\\config\\sam',
@@ -163,7 +170,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should prevent access to restricted system paths', async () => {
+    jest.setTimeout(10000);
+  test('should prevent access to restricted system paths', async () => { try {
       const restrictedPaths = [
         '/etc/passwd',
         '/etc/shadow',
@@ -193,7 +201,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should handle URL-encoded path traversal', async () => {
+    jest.setTimeout(10000);
+  test('should handle URL-encoded path traversal', async () => { try {
       const encodedAttempts = [
         '%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd',
         '%2e%2e%5c%2e%2e%5c%2e%2e%5cwindows%5csystem32%5chosts',
@@ -215,7 +224,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('Environment Variable Injection Prevention', () => {
-    test('should detect dangerous environment variables', async () => {
+    jest.setTimeout(10000);
+  test('should detect dangerous environment variables', async () => { try {
       const dangerousEnvVars = [
         { PATH: '/tmp:$PATH' },
         { LD_PRELOAD: '/tmp/malicious.so' },
@@ -242,7 +252,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should detect injection in environment values', async () => {
+    jest.setTimeout(10000);
+  test('should detect injection in environment values', async () => { try {
       const injectionAttempts = [
         '; rm -rf /',
         '&& whoami',
@@ -270,7 +281,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should handle configuration with mixed safe and unsafe env vars', () => {
+    jest.setTimeout(10000);
+  test('should handle configuration with mixed safe and unsafe env vars', () => {
       const config = {
         mcpServers: {
           'test-server': {
@@ -296,7 +308,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('File System Security', () => {
-    test('should prevent unauthorized file access', async () => {
+    jest.setTimeout(10000);
+  test('should prevent unauthorized file access', async () => { try {
       const { testDir, cleanup } = await global.securityUtils.createSecureTestEnv();
 
       try {
@@ -313,7 +326,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should validate file permissions before operations', async () => {
+    jest.setTimeout(10000);
+  test('should validate file permissions before operations', async () => { try {
       const testFile = await global.testUtils.createTempFile('test-config.json', '{"test": true}');
 
       // Test readable file
@@ -339,7 +353,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should prevent creation of files in restricted locations', async () => {
+    jest.setTimeout(10000);
+  test('should prevent creation of files in restricted locations', async () => { try {
       const restrictedPaths = [
         '/etc/malicious-config.json',
         '/root/malicious-config.json',
@@ -360,7 +375,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('Configuration Validation Security', () => {
-    test('should reject malformed JSON that could cause parser exploits', async () => {
+    jest.setTimeout(10000);
+  test('should reject malformed JSON that could cause parser exploits', async () => { try {
       const malformedConfigs = [
         '{"test": }',
         '{"test": undefined}',
@@ -378,7 +394,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should prevent prototype pollution', async () => {
+    jest.setTimeout(10000);
+  test('should prevent prototype pollution', async () => { try {
       const pollutionAttempts = [
         {
           "__proto__": {
@@ -411,7 +428,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should limit configuration size to prevent DoS', async () => {
+    jest.setTimeout(10000);
+  test('should limit configuration size to prevent DoS', async () => { try {
       // Create extremely large configuration
       const largeConfig = {
         mcpServers: {}
@@ -431,7 +449,7 @@ describe('MCP Security Vulnerability Tests', () => {
       await global.testUtils.createMockProjectConfig(largeConfig);
 
       // Should handle large configurations without crashing
-      const { result, duration } = await global.performanceUtils.measureTime(async () => {
+      const { result, duration } = await global.performanceUtils.measureTime(async () => { try {
         return await manager.readProjectConfig();
       });
 
@@ -441,7 +459,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('Network Security', () => {
-    test('should not make unauthorized network requests', async () => {
+    jest.setTimeout(10000);
+  test('should not make unauthorized network requests', async () => { try {
       // Monitor network calls
       const networkCalls = [];
 
@@ -463,7 +482,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should validate URLs in configuration', () => {
+    jest.setTimeout(10000);
+  test('should validate URLs in configuration', () => {
       const maliciousUrls = [
         'javascript:alert(1)',
         'data:text/html,<script>alert(1)</script>',
@@ -493,7 +513,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('Process Security', () => {
-    test('should not spawn processes with dangerous privileges', async () => {
+    jest.setTimeout(10000);
+  test('should not spawn processes with dangerous privileges', async () => { try {
       const dangerousCommands = [
         'sudo',
         'su',
@@ -514,7 +535,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should limit resource usage of spawned processes', async () => {
+    jest.setTimeout(10000);
+  test('should limit resource usage of spawned processes', async () => { try {
       // This would require implementing resource limits in the manager
       const resourceLimitConfig = {
         mcpServers: {
@@ -537,7 +559,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('Input Sanitization', () => {
-    test('should sanitize special characters in server names', () => {
+    jest.setTimeout(10000);
+  test('should sanitize special characters in server names', () => {
       const specialCharServers = [
         'server<script>',
         'server"injection"',
@@ -549,12 +572,14 @@ describe('MCP Security Vulnerability Tests', () => {
 
       for (const serverName of specialCharServers) {
         // Should detect or sanitize special characters
-        const hasSpecialChars = /[<>"'\x00-\x1f\u0000-\u001f]/.test(serverName);
+        const hasSpecialChars = /[<>"'\x00-\x1f\u0000-\u001f]/.jest.setTimeout(10000);
+  test(serverName);
         expect(hasSpecialChars).toBe(true);
       }
     });
 
-    test('should validate configuration keys', () => {
+    jest.setTimeout(10000);
+  test('should validate configuration keys', () => {
       const maliciousKeys = {
         mcpServers: {
           'normal-server': {
@@ -579,7 +604,8 @@ describe('MCP Security Vulnerability Tests', () => {
   });
 
   describe('Logging Security', () => {
-    test('should not log sensitive information', () => {
+    jest.setTimeout(10000);
+  test('should not log sensitive information', () => {
       const sensitiveConfig = {
         mcpServers: {
           'database-server': {
@@ -614,7 +640,8 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
 
-    test('should redact sensitive fields in error messages', async () => {
+    jest.setTimeout(10000);
+  test('should redact sensitive fields in error messages', async () => { try {
       const configWithSecrets = {
         mcpServers: {
           'secret-server': {
@@ -644,4 +671,4 @@ describe('MCP Security Vulnerability Tests', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

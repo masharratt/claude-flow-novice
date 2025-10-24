@@ -225,7 +225,7 @@ class MockErrorProneSystem {
             if (sanitized[key]) {
                 sanitized[key] = '[REDACTED]';
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         return sanitized;
     }
@@ -268,7 +268,7 @@ class MockErrorProneSystem {
             if (component.reset) {
                 component.reset();
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
 }
 
@@ -607,12 +607,13 @@ describe('Error Handling and Edge Cases Tests', () => {
             maxRetries: 3,
             circuitBreakerThreshold: 3,
             enableGracefulDegradation: true
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         jest.clearAllMocks();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Basic Error Handling', () => {
-        test('should handle null and undefined inputs gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle null and undefined inputs gracefully', async () => { try {
             const nullInputs = [null, undefined, '', 0, false];
 
             for (const input of nullInputs) {
@@ -628,9 +629,10 @@ describe('Error Handling and Edge Cases Tests', () => {
                     expect(error.operationType).toBe('validate_config');
                 }
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle malformed data structures', async () => {
+        jest.setTimeout(10000);
+  test('should handle malformed data structures', async () => { try {
             const malformedData = EdgeCaseDataGenerator.generateMalformedData();
 
             for (const [key, data] of Object.entries(malformedData)) {
@@ -652,9 +654,10 @@ describe('Error Handling and Edge Cases Tests', () => {
                     expect(error.operationType).toBe('persist_data');
                 }
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle resource exhaustion gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle resource exhaustion gracefully', async () => { try {
             const resourceData = EdgeCaseDataGenerator.generateResourceExhaustionData();
 
             // Test memory-intensive operations
@@ -662,7 +665,7 @@ describe('Error Handling and Edge Cases Tests', () => {
                 await errorProneSystem.executeOperation('persist_data', {
                     data: resourceData.memoryBomb,
                     size: 1000000000 // 1GB
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             } catch (error) {
                 expect(error.message).toContain('size exceeds maximum');
             }
@@ -673,9 +676,10 @@ describe('Error Handling and Edge Cases Tests', () => {
             } catch (error) {
                 expect(error).toBeDefined();
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle invalid file system operations', async () => {
+        jest.setTimeout(10000);
+  test('should handle invalid file system operations', async () => { try {
             const invalidPaths = [
                 '/non/existent/path',
                 '/permission-denied/project',
@@ -697,38 +701,41 @@ describe('Error Handling and Edge Cases Tests', () => {
                     expect(error.message).toBeDefined();
                 }
             }
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Component-Specific Error Handling', () => {
-        test('should handle TruthScorer failures with fallback', async () => {
+        jest.setTimeout(10000);
+  test('should handle TruthScorer failures with fallback', async () => { try {
             errorProneSystem.components.truthScorer.setFailureMode('always_fail');
 
             const result = await errorProneSystem.executeOperation('score_completion', {
                 id: 'test-completion',
                 files: { 'test.js': 'console.log("test");' }
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(result.fallback).toBe(true);
             expect(result.finalScore.overall).toBe(0.5);
             expect(result.passed).toBe(false);
             expect(result.originalError).toContain('permanent failure');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle config manager validation errors', async () => {
+        jest.setTimeout(10000);
+  test('should handle config manager validation errors', async () => { try {
             errorProneSystem.components.configManager.corruptConfig('test-config');
 
             const result = await errorProneSystem.executeOperation('validate_config', {
                 id: 'test-config',
                 data: 'test data'
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(result.fallback).toBe(true);
             expect(result.valid).toBe(true); // Fallback assumes valid
             expect(result.originalError).toContain('corrupted');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle framework detection network errors', async () => {
+        jest.setTimeout(10000);
+  test('should handle framework detection network errors', async () => { try {
             errorProneSystem.components.frameworkDetector.simulateNetworkIssues(true);
 
             const result = await errorProneSystem.executeOperation('detect_framework', '/valid/path');
@@ -737,38 +744,41 @@ describe('Error Handling and Edge Cases Tests', () => {
             expect(result.detectedFrameworks).toEqual([]);
             expect(result.confidence).toBe(0.1);
             expect(result.originalError).toContain('Network error');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle Byzantine validator consensus failures', async () => {
+        jest.setTimeout(10000);
+  test('should handle Byzantine validator consensus failures', async () => { try {
             errorProneSystem.components.byzantineValidator.simulateNodeFailures(5);
 
             const result = await errorProneSystem.executeOperation('byzantine_consensus', {
                 type: 'framework_addition',
                 framework: { id: 'test' }
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(result.fallback).toBe(true);
             expect(result.consensusReached).toBe(false);
             expect(result.approved).toBe(false);
             expect(result.originalError).toContain('Too many node failures');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle persistence manager disk full errors', async () => {
+        jest.setTimeout(10000);
+  test('should handle persistence manager disk full errors', async () => { try {
             errorProneSystem.components.persistenceManager.simulateDiskFull(true);
 
             const result = await errorProneSystem.executeOperation('persist_data', {
                 id: 'test-data',
                 content: 'test content'
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(result.fallback).toBe(true);
             expect(result.location).toBe('memory');
             expect(result.originalError).toContain('no space left');
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Circuit Breaker Functionality', () => {
-        test('should open circuit breaker after consecutive failures', async () => {
+        jest.setTimeout(10000);
+  test('should open circuit breaker after consecutive failures', async () => { try {
             // Force multiple consecutive failures
             errorProneSystem.config.failureRate = 1.0; // 100% failure rate
 
@@ -777,7 +787,7 @@ describe('Error Handling and Edge Cases Tests', () => {
             // Execute operations until circuit breaker opens
             for (let i = 0; i < 5; i++) {
                 try {
-                    await errorProneSystem.executeOperation('score_completion', { id: `test-${i}` });
+                    await errorProneSystem.executeOperation('score_completion', { id: `test-${i}` } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 } catch (error) {
                     if (error.message.includes('Circuit breaker is open')) {
                         circuitBreakerTriggered = true;
@@ -791,16 +801,17 @@ describe('Error Handling and Edge Cases Tests', () => {
             const health = errorProneSystem.getSystemHealth();
             expect(health.status).toBe('degraded');
             expect(health.circuitBreakerOpen).toBe(true);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should close circuit breaker after recovery period', async () => {
+        jest.setTimeout(10000);
+  test('should close circuit breaker after recovery period', async () => { try {
             // Trigger circuit breaker
             errorProneSystem.config.failureRate = 1.0;
             errorProneSystem.config.recoveryTime = 100; // 100ms recovery time
 
             try {
                 for (let i = 0; i < 4; i++) {
-                    await errorProneSystem.executeOperation('score_completion', { id: `test-${i}` });
+                    await errorProneSystem.executeOperation('score_completion', { id: `test-${i}` } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             } catch (error) {
                 // Expected to fail and open circuit breaker
@@ -815,19 +826,20 @@ describe('Error Handling and Edge Cases Tests', () => {
             errorProneSystem.config.failureRate = 0.0;
 
             // Next operation should close the circuit breaker
-            const result = await errorProneSystem.executeOperation('score_completion', { id: 'recovery-test' });
+            const result = await errorProneSystem.executeOperation('score_completion', { id: 'recovery-test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(result).toBeDefined();
             expect(errorProneSystem.state.circuitBreakerOpen).toBe(false);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should track error history for circuit breaker decisions', async () => {
+        jest.setTimeout(10000);
+  test('should track error history for circuit breaker decisions', async () => { try {
             errorProneSystem.config.failureRate = 0.8; // High failure rate
 
             // Execute multiple operations
             for (let i = 0; i < 10; i++) {
                 try {
-                    await errorProneSystem.executeOperation('validate_config', { id: `test-${i}` });
+                    await errorProneSystem.executeOperation('validate_config', { id: `test-${i}` } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 } catch (error) {
                     // Expected failures
                 }
@@ -842,18 +854,19 @@ describe('Error Handling and Edge Cases Tests', () => {
                 expect(error.error).toBeDefined();
                 expect(error.timestamp).toBeDefined();
                 expect(error.consecutiveFailures).toBeDefined();
-            });
-        });
-    });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Graceful Degradation', () => {
-        test('should provide fallback results when components fail', async () => {
+        jest.setTimeout(10000);
+  test('should provide fallback results when components fail', async () => { try {
             // Disable graceful degradation first to verify it works when enabled
             errorProneSystem.config.enableGracefulDegradation = false;
             errorProneSystem.config.failureRate = 1.0;
 
             try {
-                await errorProneSystem.executeOperation('score_completion', { id: 'test' });
+                await errorProneSystem.executeOperation('score_completion', { id: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 fail('Should have thrown error without graceful degradation');
             } catch (error) {
                 expect(error.message).toContain('Operation failed');
@@ -862,13 +875,14 @@ describe('Error Handling and Edge Cases Tests', () => {
             // Enable graceful degradation
             errorProneSystem.config.enableGracefulDegradation = true;
 
-            const result = await errorProneSystem.executeOperation('score_completion', { id: 'test' });
+            const result = await errorProneSystem.executeOperation('score_completion', { id: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(result.fallback).toBe(true);
             expect(result.finalScore).toBeDefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain service availability during partial failures', async () => {
+        jest.setTimeout(10000);
+  test('should maintain service availability during partial failures', async () => { try {
             // Simulate partial system failure
             errorProneSystem.components.truthScorer.setFailureMode('always_fail');
             errorProneSystem.components.frameworkDetector.simulateNetworkIssues(true);
@@ -897,14 +911,15 @@ describe('Error Handling and Edge Cases Tests', () => {
                     // Operation failed - check it's not a critical failure
                     console.log(`Operation ${operationType} failed:`, result.reason.message);
                 }
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             // System should still be operational
             const health = errorProneSystem.getSystemHealth();
             expect(health.status).toBeDefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should escalate critical failures appropriately', async () => {
+        jest.setTimeout(10000);
+  test('should escalate critical failures appropriately', async () => { try {
             // Simulate critical system failure
             errorProneSystem.config.enableGracefulDegradation = false;
 
@@ -923,7 +938,7 @@ describe('Error Handling and Edge Cases Tests', () => {
                 await errorProneSystem.executeOperation('byzantine_consensus', {
                     type: 'critical_operation',
                     data: 'critical data'
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             } catch (error) {
                 criticalFailureDetected = true;
                 expect(error.message).toBeDefined();
@@ -931,11 +946,12 @@ describe('Error Handling and Edge Cases Tests', () => {
             }
 
             expect(criticalFailureDetected).toBe(true);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Concurrency and Race Condition Handling', () => {
-        test('should handle concurrent operations safely', async () => {
+        jest.setTimeout(10000);
+  test('should handle concurrent operations safely', async () => { try {
             const concurrentData = EdgeCaseDataGenerator.generateConcurrencyTestData(50);
 
             // Execute operations concurrently
@@ -955,18 +971,19 @@ describe('Error Handling and Edge Cases Tests', () => {
             // System should remain stable
             const health = errorProneSystem.getSystemHealth();
             expect(health.operationCount).toBe(concurrentData.length);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle race conditions in state management', async () => {
+        jest.setTimeout(10000);
+  test('should handle race conditions in state management', async () => { try {
             // Simulate concurrent state modifications
             const stateModificationPromises = Array.from({ length: 20 }, async (_, i) => {
                 try {
                     errorProneSystem.config.failureRate = Math.random();
-                    return await errorProneSystem.executeOperation('persist_data', { id: `race-${i}` });
+                    return await errorProneSystem.executeOperation('persist_data', { id: `race-${i}` } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 } catch (error) {
                     return { error: error.message, id: `race-${i}` };
                 }
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const results = await Promise.all(stateModificationPromises);
 
@@ -977,9 +994,10 @@ describe('Error Handling and Edge Cases Tests', () => {
 
             // All operations should have completed (successfully or with errors)
             expect(results).toHaveLength(20);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should prevent resource leaks during concurrent failures', async () => {
+        jest.setTimeout(10000);
+  test('should prevent resource leaks during concurrent failures', async () => { try {
             const initialHealth = errorProneSystem.getSystemHealth();
 
             // Create concurrent operations with high failure rate
@@ -1008,14 +1026,15 @@ describe('Error Handling and Edge Cases Tests', () => {
             const testOperation = await errorProneSystem.executeOperation('validate_config', {
                 id: 'post-load-test',
                 simple: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(testOperation).toBeDefined();
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Edge Case Data Handling', () => {
-        test('should handle extremely large inputs', async () => {
+        jest.setTimeout(10000);
+  test('should handle extremely large inputs', async () => { try {
             const largeInputs = [
                 { data: 'x'.repeat(1000000) }, // 1MB string
                 { array: Array(100000).fill('item') }, // Large array
@@ -1036,9 +1055,10 @@ describe('Error Handling and Edge Cases Tests', () => {
                     expect(error.message).toBeDefined();
                 }
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle special characters and encoding issues', async () => {
+        jest.setTimeout(10000);
+  test('should handle special characters and encoding issues', async () => { try {
             const specialInputs = [
                 { text: '\u0000\u0001\u0002\uFFFF' }, // Control characters
                 { unicode: '🚀🌟💻🔥⚡' }, // Emojis
@@ -1055,9 +1075,10 @@ describe('Error Handling and Edge Cases Tests', () => {
                     expect(error.message).toBeDefined();
                 }
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle boundary value conditions', async () => {
+        jest.setTimeout(10000);
+  test('should handle boundary value conditions', async () => { try {
             const boundaryValues = [
                 { number: Number.MAX_SAFE_INTEGER },
                 { number: Number.MIN_SAFE_INTEGER },
@@ -1078,9 +1099,10 @@ describe('Error Handling and Edge Cases Tests', () => {
                     expect(error.message).toBeDefined();
                 }
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should sanitize sensitive data in error logs', async () => {
+        jest.setTimeout(10000);
+  test('should sanitize sensitive data in error logs', async () => { try {
             const sensitiveData = {
                 id: 'sensitive-test',
                 password: 'super-secret-password',
@@ -1104,11 +1126,12 @@ describe('Error Handling and Edge Cases Tests', () => {
                 expect(lastError.payload.token).toBe('[REDACTED]');
                 expect(lastError.payload.id).toBe('sensitive-test'); // Non-sensitive data preserved
             }
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Recovery and Resilience', () => {
-        test('should recover from transient failures', async () => {
+        jest.setTimeout(10000);
+  test('should recover from transient failures', async () => { try {
             // Simulate transient network issues
             errorProneSystem.components.frameworkDetector.simulateNetworkIssues(true);
 
@@ -1124,13 +1147,14 @@ describe('Error Handling and Edge Cases Tests', () => {
             const result = await errorProneSystem.executeOperation('detect_framework', '/test/path');
             expect(result.detectedFrameworks).toBeDefined();
             expect(result.confidence).toBeGreaterThan(0);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain system stability after component reset', async () => {
+        jest.setTimeout(10000);
+  test('should maintain system stability after component reset', async () => { try {
             // Run operations to build up system state
             for (let i = 0; i < 10; i++) {
                 try {
-                    await errorProneSystem.executeOperation('validate_config', { id: `test-${i}` });
+                    await errorProneSystem.executeOperation('validate_config', { id: `test-${i}` } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 } catch (error) {
                     // Expected failures
                 }
@@ -1151,12 +1175,13 @@ describe('Error Handling and Edge Cases Tests', () => {
             const result = await errorProneSystem.executeOperation('validate_config', {
                 id: 'post-reset-test',
                 valid: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(result).toBeDefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should provide comprehensive error diagnostics', async () => {
+        jest.setTimeout(10000);
+  test('should provide comprehensive error diagnostics', async () => { try {
             // Generate various types of errors
             const errorScenarios = [
                 ['score_completion', null],
@@ -1186,12 +1211,13 @@ describe('Error Handling and Edge Cases Tests', () => {
                 expect(error.error).toBeDefined();
                 expect(error.timestamp).toBeDefined();
                 expect(error.consecutiveFailures).toBeDefined();
-            });
-        });
-    });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('System Health Monitoring', () => {
-        test('should provide accurate system health metrics', async () => {
+        jest.setTimeout(10000);
+  test('should provide accurate system health metrics', async () => { try {
             // Execute mixed operations
             const operations = [
                 ['score_completion', { id: 'health-1' }],
@@ -1221,9 +1247,10 @@ describe('Error Handling and Edge Cases Tests', () => {
             if (health.status === 'degraded') {
                 expect(health.circuitBreakerOpen).toBe(true);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should track error patterns over time', async () => {
+        jest.setTimeout(10000);
+  test('should track error patterns over time', async () => { try {
             errorProneSystem.config.failureRate = 0.5; // 50% failure rate
 
             // Execute operations over time
@@ -1232,7 +1259,7 @@ describe('Error Handling and Edge Cases Tests', () => {
                     try {
                         await errorProneSystem.executeOperation('validate_config', {
                             id: `batch-${batch}-${i}`
-                        });
+                        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                     } catch (error) {
                         // Expected failures
                     }
@@ -1253,6 +1280,6 @@ describe('Error Handling and Edge Cases Tests', () => {
             for (let i = 1; i < timestamps.length; i++) {
                 expect(timestamps[i]).toBeGreaterThanOrEqual(timestamps[i - 1]);
             }
-        });
-    });
-});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

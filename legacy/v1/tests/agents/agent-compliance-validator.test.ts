@@ -284,7 +284,8 @@ function parseAgentFile(filePath: string): AgentFile {
  */
 function categorizeAgent(relativePath: string): AgentCategory {
   for (const [pattern, category] of AGENT_CATEGORY_PATTERNS) {
-    if (pattern.test(relativePath)) {
+    if (pattern.jest.setTimeout(10000);
+  test(relativePath)) {
       return category;
     }
   }

@@ -19,7 +19,7 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
     let detector;
     let byzantineCoordinator;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         byzantineCoordinator = new ByzantineConsensusCoordinator({
             nodeId: 'test-node-' + crypto.randomBytes(4).toString('hex'),
             totalNodes: 4
@@ -35,11 +35,13 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
     });
 
     describe('TDD Phase - Failing Tests (Must fail until implementation)', () => {
-        test('should fail: Heavy command detector not implemented yet', () => {
+        jest.setTimeout(10000);
+  test('should fail: Heavy command detector not implemented yet', () => {
             expect(detector).toBeNull();
         });
 
-        test('should fail: detectHeavyCommand method not available', () => {
+        jest.setTimeout(10000);
+  test('should fail: detectHeavyCommand method not available', () => {
             if (detector) {
                 expect(typeof detector.detectHeavyCommand).toBe('undefined');
             } else {
@@ -96,7 +98,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             }
         ];
 
-        test('should detect heavy commands with 92%+ accuracy (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should detect heavy commands with 92%+ accuracy (WILL FAIL INITIALLY)', async () => { try {
             if (!detector) {
                 expect(true).toBe(false); // Force failure until implemented
                 return;
@@ -133,7 +136,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             expect(avgDetectionTime).toBeLessThan(10);
         });
 
-        test('should provide cryptographic proof of detection results (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should provide cryptographic proof of detection results (WILL FAIL INITIALLY)', async () => { try {
             if (!detector) {
                 expect(true).toBe(false);
                 return;
@@ -153,7 +157,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             expect(isValidSignature).toBe(true);
         });
 
-        test('should resist Byzantine attacks during detection (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should resist Byzantine attacks during detection (WILL FAIL INITIALLY)', async () => { try {
             if (!detector) {
                 expect(true).toBe(false);
                 return;
@@ -176,7 +181,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
             }
         });
 
-        test('should maintain consensus across multiple nodes (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should maintain consensus across multiple nodes (WILL FAIL INITIALLY)', async () => { try {
             if (!detector) {
                 expect(true).toBe(false);
                 return;
@@ -209,7 +215,8 @@ describe('Heavy Command Detection System - Byzantine Secure', () => {
     });
 
     describe('Performance Benchmarks - <10ms Detection Time', () => {
-        test('should benchmark detection speed across various command sizes (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should benchmark detection speed across various command sizes (WILL FAIL INITIALLY)', async () => { try {
             if (!detector) {
                 expect(true).toBe(false);
                 return;

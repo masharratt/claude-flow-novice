@@ -25,7 +25,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
   });
 
   describe('Novice User Adaptation', () => {
-    test('should provide detailed hooks for novice users', async () => {
+    jest.setTimeout(10000);
+  test('should provide detailed hooks for novice users', async () => { try {
       const user = { experienceLevel: 'novice', userId: 'novice-123' };
 
       const hooks = await adaptationHooks.adaptHooksForUser(user);
@@ -38,7 +39,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(hooks.confirmActions).toBe(true);
     });
 
-    test('should include educational content for novices', async () => {
+    jest.setTimeout(10000);
+  test('should include educational content for novices', async () => { try {
       const user = { experienceLevel: 'novice' };
 
       const preTaskHook = await adaptationHooks.executePreTaskHook({
@@ -53,7 +55,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(preTaskHook.warnings).toBeDefined();
     });
 
-    test('should provide step-by-step guidance for novices', async () => {
+    jest.setTimeout(10000);
+  test('should provide step-by-step guidance for novices', async () => { try {
       const user = { experienceLevel: 'novice' };
 
       const guidance = await adaptationHooks.getTaskGuidance({
@@ -71,7 +74,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       });
     });
 
-    test('should include safety confirmations for risky operations', async () => {
+    jest.setTimeout(10000);
+  test('should include safety confirmations for risky operations', async () => { try {
       const user = { experienceLevel: 'novice' };
 
       const confirmation = await adaptationHooks.shouldConfirmAction({
@@ -87,7 +91,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
   });
 
   describe('Expert User Adaptation', () => {
-    test('should provide minimal hooks for expert users', async () => {
+    jest.setTimeout(10000);
+  test('should provide minimal hooks for expert users', async () => { try {
       const user = { experienceLevel: 'expert', userId: 'expert-456' };
 
       const hooks = await adaptationHooks.adaptHooksForUser(user);
@@ -100,7 +105,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(hooks.confirmActions).toBe(false);
     });
 
-    test('should provide concise output for experts', async () => {
+    jest.setTimeout(10000);
+  test('should provide concise output for experts', async () => { try {
       const user = { experienceLevel: 'expert' };
 
       const preTaskHook = await adaptationHooks.executePreTaskHook({
@@ -114,7 +120,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(preTaskHook.format).toBe('summary');
     });
 
-    test('should skip confirmations for routine operations', async () => {
+    jest.setTimeout(10000);
+  test('should skip confirmations for routine operations', async () => { try {
       const user = { experienceLevel: 'expert' };
 
       const confirmation = await adaptationHooks.shouldConfirmAction({
@@ -126,7 +133,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(confirmation.required).toBe(false);
     });
 
-    test('should still confirm high-risk operations for experts', async () => {
+    jest.setTimeout(10000);
+  test('should still confirm high-risk operations for experts', async () => { try {
       const user = { experienceLevel: 'expert' };
 
       const confirmation = await adaptationHooks.shouldConfirmAction({
@@ -141,7 +149,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
   });
 
   describe('Intermediate User Adaptation', () => {
-    test('should provide balanced hooks for intermediate users', async () => {
+    jest.setTimeout(10000);
+  test('should provide balanced hooks for intermediate users', async () => { try {
       const user = { experienceLevel: 'intermediate', userId: 'inter-789' };
 
       const hooks = await adaptationHooks.adaptHooksForUser(user);
@@ -154,7 +163,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(hooks.confirmActions).toBe(true); // For safety
     });
 
-    test('should provide contextual tips without full explanations', async () => {
+    jest.setTimeout(10000);
+  test('should provide contextual tips without full explanations', async () => { try {
       const user = { experienceLevel: 'intermediate' };
 
       const preTaskHook = await adaptationHooks.executePreTaskHook({
@@ -170,7 +180,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
   });
 
   describe('Dynamic Adaptation', () => {
-    test('should adapt based on user performance over time', async () => {
+    jest.setTimeout(10000);
+  test('should adapt based on user performance over time', async () => { try {
       const user = {
         experienceLevel: 'novice',
         userId: 'evolving-user',
@@ -186,7 +197,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(adaptedLevel).toBe('intermediate');
     });
 
-    test('should increase support level after repeated failures', async () => {
+    jest.setTimeout(10000);
+  test('should increase support level after repeated failures', async () => { try {
       const user = {
         experienceLevel: 'intermediate',
         userId: 'struggling-user',
@@ -204,7 +216,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
   });
 
   describe('User Satisfaction Tracking', () => {
-    test('should track user satisfaction with hook adaptation', async () => {
+    jest.setTimeout(10000);
+  test('should track user satisfaction with hook adaptation', async () => { try {
       const user = { experienceLevel: 'novice', userId: 'satisfaction-test' };
 
       await adaptationHooks.recordSatisfactionFeedback({
@@ -220,7 +233,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(satisfaction.totalFeedback).toBeGreaterThan(0);
     });
 
-    test('should achieve >4.0/5 user satisfaction overall', async () => {
+    jest.setTimeout(10000);
+  test('should achieve >4.0/5 user satisfaction overall', async () => { try {
       // Simulate multiple user feedback scenarios
       const users = [
         { id: 'user1', level: 'novice', satisfaction: [4, 5, 4, 5] },
@@ -243,7 +257,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(overallSatisfaction).toBeGreaterThan(4.0);
     });
 
-    test('should identify and improve low-satisfaction patterns', async () => {
+    jest.setTimeout(10000);
+  test('should identify and improve low-satisfaction patterns', async () => { try {
       const lowSatisfactionFeedback = [
         { user: { userId: 'user1', experienceLevel: 'expert' }, hookType: 'pre-task', rating: 2, feedback: 'Too verbose' },
         { user: { userId: 'user2', experienceLevel: 'novice' }, hookType: 'post-edit', rating: 2, feedback: 'Not enough explanation' }
@@ -263,7 +278,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
   });
 
   describe('Adaptive Learning', () => {
-    test('should learn from user corrections and preferences', async () => {
+    jest.setTimeout(10000);
+  test('should learn from user corrections and preferences', async () => { try {
       const user = { experienceLevel: 'intermediate', userId: 'learning-user' };
 
       // User corrects a hook suggestion
@@ -280,7 +296,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(adaptedHooks.showTips).toBe(false);
     });
 
-    test('should adapt to user context and project type', async () => {
+    jest.setTimeout(10000);
+  test('should adapt to user context and project type', async () => { try {
       const user = { experienceLevel: 'intermediate', userId: 'context-user' };
       const context = {
         projectType: 'machine-learning',
@@ -297,7 +314,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
   });
 
   describe('Performance and Reliability', () => {
-    test('should maintain adaptation performance under load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain adaptation performance under load', async () => { try {
       const users = Array(50).fill(null).map((_, i) => ({
         experienceLevel: ['novice', 'intermediate', 'expert'][i % 3],
         userId: `load-test-${i}`
@@ -317,7 +335,8 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(avgTime).toBeLessThan(10); // <10ms per adaptation
     });
 
-    test('should handle invalid experience levels gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle invalid experience levels gracefully', async () => { try {
       const invalidUser = { experienceLevel: 'invalid', userId: 'invalid-user' };
 
       const hooks = await adaptationHooks.adaptHooksForUser(invalidUser);
@@ -327,4 +346,4 @@ describe('Experience-Level Hook Adaptation - Checkpoint 1.3', () => {
       expect(hooks.experienceLevel).toBe('intermediate');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

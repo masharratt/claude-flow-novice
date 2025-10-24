@@ -16,7 +16,7 @@ describe('Product Endpoints', () => {
     server = app;
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clear data
     await User.deleteMany({});
     await Product.deleteMany({});
@@ -75,7 +75,7 @@ describe('Product Endpoints', () => {
   });
 
   describe('GET /api/products', () => {
-    it('should get all products with pagination', async () => {
+    it('should get all products with pagination', async () => { try {
       const response = await request(server)
         .get('/api/products')
         .query({ page: 1, limit: 10 })
@@ -91,7 +91,7 @@ describe('Product Endpoints', () => {
       });
     });
 
-    it('should filter products by category', async () => {
+    it('should filter products by category', async () => { try {
       // Add a product in different category
       await Product.create({
         name: 'Book',
@@ -110,7 +110,7 @@ describe('Product Endpoints', () => {
       expect(response.body.data.every(p => p.category === 'Electronics')).toBe(true);
     });
 
-    it('should filter products by price range', async () => {
+    it('should filter products by price range', async () => { try {
       const response = await request(server)
         .get('/api/products')
         .query({ minPrice: 50, maxPrice: 100 })
@@ -120,7 +120,7 @@ describe('Product Endpoints', () => {
       expect(response.body.data[0].name).toBe('Keyboard');
     });
 
-    it('should search products by name', async () => {
+    it('should search products by name', async () => { try {
       const response = await request(server)
         .get('/api/products')
         .query({ search: 'lap' })
@@ -130,7 +130,7 @@ describe('Product Endpoints', () => {
       expect(response.body.data[0].name).toBe('Laptop');
     });
 
-    it('should sort products', async () => {
+    it('should sort products', async () => { try {
       const response = await request(server)
         .get('/api/products')
         .query({ sort: '-price' })
@@ -140,7 +140,7 @@ describe('Product Endpoints', () => {
       expect(response.body.data[response.body.data.length - 1].name).toBe('Mouse');
     });
 
-    it('should only return active products to non-admin users', async () => {
+    it('should only return active products to non-admin users', async () => { try {
       // Create inactive product
       await Product.create({
         name: 'Inactive Product',
@@ -163,11 +163,11 @@ describe('Product Endpoints', () => {
   describe('GET /api/products/:id', () => {
     let testProduct;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testProduct = await Product.findOne({ name: 'Laptop' });
     });
 
-    it('should get product by ID', async () => {
+    it('should get product by ID', async () => { try {
       const response = await request(server)
         .get(`/api/products/${testProduct._id}`)
         .expect(200);
@@ -180,7 +180,7 @@ describe('Product Endpoints', () => {
       });
     });
 
-    it('should return 404 for non-existent product', async () => {
+    it('should return 404 for non-existent product', async () => { try {
       const fakeId = '507f1f77bcf86cd799439999';
       const response = await request(server)
         .get(`/api/products/${fakeId}`)
@@ -190,7 +190,7 @@ describe('Product Endpoints', () => {
       expect(response.body.message).toContain('not found');
     });
 
-    it('should return 400 for invalid ID format', async () => {
+    it('should return 400 for invalid ID format', async () => { try {
       const response = await request(server)
         .get('/api/products/invalid-id')
         .expect(400);
@@ -214,7 +214,7 @@ describe('Product Endpoints', () => {
       },
     };
 
-    it('should create product as admin', async () => {
+    it('should create product as admin', async () => { try {
       const response = await request(server)
         .post('/api/products')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -233,7 +233,7 @@ describe('Product Endpoints', () => {
       expect(product).toBeTruthy();
     });
 
-    it('should not create product as normal user', async () => {
+    it('should not create product as normal user', async () => { try {
       const response = await request(server)
         .post('/api/products')
         .set('Authorization', `Bearer ${userToken}`)
@@ -244,14 +244,14 @@ describe('Product Endpoints', () => {
       expect(response.body.message).toContain('permission');
     });
 
-    it('should not create product without authentication', async () => {
+    it('should not create product without authentication', async () => { try {
       await request(server)
         .post('/api/products')
         .send(newProductData)
         .expect(401);
     });
 
-    it('should validate required fields', async () => {
+    it('should validate required fields', async () => { try {
       const response = await request(server)
         .post('/api/products')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -272,7 +272,7 @@ describe('Product Endpoints', () => {
       );
     });
 
-    it('should not create product with duplicate SKU', async () => {
+    it('should not create product with duplicate SKU', async () => { try {
       const response = await request(server)
         .post('/api/products')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -290,11 +290,11 @@ describe('Product Endpoints', () => {
   describe('PUT /api/products/:id', () => {
     let testProduct;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testProduct = await Product.findOne({ name: 'Laptop' });
     });
 
-    it('should update product as admin', async () => {
+    it('should update product as admin', async () => { try {
       const updateData = {
         name: 'Updated Laptop',
         price: 899.99,
@@ -316,7 +316,7 @@ describe('Product Endpoints', () => {
       expect(updated.price).toBe(updateData.price);
     });
 
-    it('should not update product as normal user', async () => {
+    it('should not update product as normal user', async () => { try {
       await request(server)
         .put(`/api/products/${testProduct._id}`)
         .set('Authorization', `Bearer ${userToken}`)
@@ -324,7 +324,7 @@ describe('Product Endpoints', () => {
         .expect(403);
     });
 
-    it('should validate update data', async () => {
+    it('should validate update data', async () => { try {
       const response = await request(server)
         .put(`/api/products/${testProduct._id}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -338,11 +338,11 @@ describe('Product Endpoints', () => {
   describe('DELETE /api/products/:id', () => {
     let testProduct;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testProduct = await Product.findOne({ name: 'Mouse' });
     });
 
-    it('should delete product as admin', async () => {
+    it('should delete product as admin', async () => { try {
       const response = await request(server)
         .delete(`/api/products/${testProduct._id}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -355,7 +355,7 @@ describe('Product Endpoints', () => {
       expect(deleted).toBeNull();
     });
 
-    it('should not delete product as normal user', async () => {
+    it('should not delete product as normal user', async () => { try {
       await request(server)
         .delete(`/api/products/${testProduct._id}`)
         .set('Authorization', `Bearer ${userToken}`)
@@ -366,12 +366,12 @@ describe('Product Endpoints', () => {
   describe('Product Reviews', () => {
     let testProduct;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testProduct = await Product.findOne({ name: 'Laptop' });
     });
 
     describe('POST /api/products/:id/reviews', () => {
-      it('should add review as authenticated user', async () => {
+      it('should add review as authenticated user', async () => { try {
         const reviewData = {
           rating: 5,
           title: 'Excellent product!',
@@ -394,14 +394,14 @@ describe('Product Endpoints', () => {
         });
       });
 
-      it('should not add review without authentication', async () => {
+      it('should not add review without authentication', async () => { try {
         await request(server)
           .post(`/api/products/${testProduct._id}/reviews`)
           .send({ rating: 5, comment: 'Great!' })
           .expect(401);
       });
 
-      it('should validate review data', async () => {
+      it('should validate review data', async () => { try {
         const response = await request(server)
           .post(`/api/products/${testProduct._id}/reviews`)
           .set('Authorization', `Bearer ${userToken}`)
@@ -411,7 +411,7 @@ describe('Product Endpoints', () => {
         expect(response.body.errors).toBeDefined();
       });
 
-      it('should not allow duplicate reviews from same user', async () => {
+      it('should not allow duplicate reviews from same user', async () => { try {
         // Add first review
         await request(server)
           .post(`/api/products/${testProduct._id}/reviews`)
@@ -431,7 +431,7 @@ describe('Product Endpoints', () => {
     });
 
     describe('PUT /api/products/:id/reviews', () => {
-      beforeEach(async () => {
+      beforeEach(async () => { try {
         // Add a review
         testProduct.reviews.push({
           user: normalUser._id,
@@ -442,7 +442,7 @@ describe('Product Endpoints', () => {
         await testProduct.save();
       });
 
-      it('should update own review', async () => {
+      it('should update own review', async () => { try {
         const updateData = {
           rating: 5,
           title: 'Updated: Excellent product',
@@ -462,7 +462,7 @@ describe('Product Endpoints', () => {
         expect(userReview).toMatchObject(updateData);
       });
 
-      it('should not update non-existent review', async () => {
+      it('should not update non-existent review', async () => { try {
         const response = await request(server)
           .put(`/api/products/${testProduct._id}/reviews`)
           .set('Authorization', `Bearer ${adminToken}`) // Admin hasn't reviewed
@@ -474,7 +474,7 @@ describe('Product Endpoints', () => {
     });
 
     describe('DELETE /api/products/:id/reviews', () => {
-      beforeEach(async () => {
+      beforeEach(async () => { try {
         // Add a review
         testProduct.reviews.push({
           user: normalUser._id,
@@ -484,7 +484,7 @@ describe('Product Endpoints', () => {
         await testProduct.save();
       });
 
-      it('should delete own review', async () => {
+      it('should delete own review', async () => { try {
         const response = await request(server)
           .delete(`/api/products/${testProduct._id}/reviews`)
           .set('Authorization', `Bearer ${userToken}`)
@@ -499,12 +499,12 @@ describe('Product Endpoints', () => {
   describe('Inventory Management', () => {
     let testProduct;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testProduct = await Product.findOne({ name: 'Mouse' });
     });
 
     describe('PUT /api/products/:id/inventory', () => {
-      it('should update inventory as admin', async () => {
+      it('should update inventory as admin', async () => { try {
         const response = await request(server)
           .put(`/api/products/${testProduct._id}/inventory`)
           .set('Authorization', `Bearer ${adminToken}`)
@@ -515,7 +515,7 @@ describe('Product Endpoints', () => {
         expect(response.body.data.stock).toBe(100);
       });
 
-      it('should increment inventory', async () => {
+      it('should increment inventory', async () => { try {
         const initialStock = testProduct.stock;
 
         const response = await request(server)
@@ -527,7 +527,7 @@ describe('Product Endpoints', () => {
         expect(response.body.data.stock).toBe(initialStock + 10);
       });
 
-      it('should decrement inventory', async () => {
+      it('should decrement inventory', async () => { try {
         const initialStock = testProduct.stock;
 
         const response = await request(server)
@@ -539,7 +539,7 @@ describe('Product Endpoints', () => {
         expect(response.body.data.stock).toBe(initialStock - 5);
       });
 
-      it('should not allow negative inventory', async () => {
+      it('should not allow negative inventory', async () => { try {
         const response = await request(server)
           .put(`/api/products/${testProduct._id}/inventory`)
           .set('Authorization', `Bearer ${adminToken}`)
@@ -551,7 +551,7 @@ describe('Product Endpoints', () => {
     });
 
     describe('GET /api/products/inventory/report', () => {
-      it('should get inventory report as admin', async () => {
+      it('should get inventory report as admin', async () => { try {
         const response = await request(server)
           .get('/api/products/inventory/report')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -566,7 +566,7 @@ describe('Product Endpoints', () => {
         });
       });
 
-      it('should not get inventory report as normal user', async () => {
+      it('should not get inventory report as normal user', async () => { try {
         await request(server)
           .get('/api/products/inventory/report')
           .set('Authorization', `Bearer ${userToken}`)
@@ -577,7 +577,7 @@ describe('Product Endpoints', () => {
 
   describe('Special Product Endpoints', () => {
     describe('GET /api/products/featured', () => {
-      it('should get featured products', async () => {
+      it('should get featured products', async () => { try {
         const response = await request(server)
           .get('/api/products/featured')
           .expect(200);
@@ -589,7 +589,7 @@ describe('Product Endpoints', () => {
     });
 
     describe('GET /api/products/popular', () => {
-      it('should get popular products', async () => {
+      it('should get popular products', async () => { try {
         const response = await request(server)
           .get('/api/products/popular')
           .expect(200);
@@ -600,7 +600,7 @@ describe('Product Endpoints', () => {
     });
 
     describe('GET /api/products/categories/list', () => {
-      it('should get all categories', async () => {
+      it('should get all categories', async () => { try {
         // Add products in different categories
         await Product.create([
           { name: 'Book', price: 19.99, category: 'Books', sku: 'BOK001' },
@@ -618,4 +618,4 @@ describe('Product Endpoints', () => {
       });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

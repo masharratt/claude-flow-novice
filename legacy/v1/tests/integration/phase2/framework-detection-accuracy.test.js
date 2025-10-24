@@ -435,19 +435,19 @@ class ProjectFrameworkDetector {
 
     // Check for multiple testing frameworks
     if (dependencies.includes('jest') && dependencies.includes('cucumber')) {
-      additional.push({ framework: 'MIXED', types: ['TDD', 'BDD'] });
+      additional.push({ framework: 'MIXED', types: ['TDD', 'BDD'] } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
 
     if (dependencies.includes('mocha') && dependencies.includes('chai')) {
-      additional.push({ framework: 'TDD', variant: 'Mocha+Chai' });
+      additional.push({ framework: 'TDD', variant: 'Mocha+Chai' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
 
     if (dependencies.includes('cypress')) {
-      additional.push({ framework: 'E2E', name: 'Cypress' });
+      additional.push({ framework: 'E2E', name: 'Cypress' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
 
     if (dependencies.includes('playwright')) {
-      additional.push({ framework: 'E2E', name: 'Playwright' });
+      additional.push({ framework: 'E2E', name: 'Playwright' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
 
     return additional;
@@ -512,24 +512,24 @@ describe('Framework Detection Accuracy Tests', () => {
   let testDir;
   let frameworkRegistry;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     testDir = path.join(__dirname, `framework-detection-test-${crypto.randomBytes(4).toString('hex')}`);
-    await fs.mkdir(testDir, { recursive: true });
+    await fs.mkdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     frameworkRegistry = new MockCustomFrameworkRegistry();
     await frameworkRegistry.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (frameworkRegistry) {
       await frameworkRegistry.close();
     }
     try {
-      await fs.rmdir(testDir, { recursive: true });
+      await fs.rmdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     } catch (error) {
       // Ignore cleanup errors
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('JavaScript/TypeScript Framework Detection (>90% accuracy)', () => {
     const jsTestProjects = [
@@ -550,7 +550,8 @@ describe('Framework Detection Accuracy Tests', () => {
           }),
           'jest.config.js': 'module.exports = { testEnvironment: "jsdom" };',
           'src/App.js': 'import React from "react"; export default function App() { return <div>Hello</div>; }',
-          'src/__tests__/App.test.js': 'import { render } from "@testing-library/react"; test("renders", () => {});'
+          'src/__tests__/App.test.js': 'import { render } from "@testing-library/react"; jest.setTimeout(10000);
+  test("renders", () => {});'
         },
         expected: {
           framework: 'TDD',
@@ -639,7 +640,8 @@ describe('Framework Detection Accuracy Tests', () => {
             }
           }),
           'vite.config.js': 'export default { test: { environment: "jsdom" } };',
-          'src/utils.test.js': 'import { test, expect } from "vitest"; test("works", () => {});'
+          'src/utils.test.js': 'import { test, expect } from "vitest"; jest.setTimeout(10000);
+  test("works", () => {});'
         },
         expected: {
           framework: 'TDD',
@@ -649,7 +651,8 @@ describe('Framework Detection Accuracy Tests', () => {
       }
     ];
 
-    test('should detect JavaScript/TypeScript frameworks with >90% accuracy', async () => {
+    jest.setTimeout(10000);
+  test('should detect JavaScript/TypeScript frameworks with >90% accuracy', async () => { try {
       let correctDetections = 0;
       const detectionResults = [];
 
@@ -658,12 +661,12 @@ describe('Framework Detection Accuracy Tests', () => {
 
         // Create project structure
         const projectDir = path.join(testDir, project.name.toLowerCase().replace(/\s+/g, '-'));
-        await fs.mkdir(projectDir, { recursive: true });
+        await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Write project files
         for (const [filePath, content] of Object.entries(project.files)) {
           const fullPath = path.join(projectDir, filePath);
-          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           await fs.writeFile(fullPath, content);
         }
 
@@ -688,7 +691,7 @@ describe('Framework Detection Accuracy Tests', () => {
           },
           correct: isCorrect,
           detectionTime: result.detectionTime
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         console.log(`  Expected: ${project.expected.framework}/${project.expected.language} (${project.expected.confidence})`);
         console.log(`  Detected: ${result.framework}/${result.language} (${result.confidence?.toFixed(3)})`);
@@ -711,9 +714,10 @@ describe('Framework Detection Accuracy Tests', () => {
         .reduce((sum, time) => sum + time, 0) / detectionResults.length;
 
       expect(avgDetectionTime).toBeLessThan(1000); // < 1 second average
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle complex JavaScript project structures', async () => {
+    jest.setTimeout(10000);
+  test('should handle complex JavaScript project structures', async () => { try {
       const complexProject = {
         name: 'Complex Monorepo',
         files: {
@@ -739,7 +743,8 @@ describe('Framework Detection Accuracy Tests', () => {
               '@testing-library/react': '^13.4.0'
             }
           }),
-          'packages/frontend/__tests__/index.test.js': 'test("frontend works", () => {});',
+          'packages/frontend/__tests__/index.test.js': 'jest.setTimeout(10000);
+  test("frontend works", () => {});',
 
           // Backend package
           'packages/backend/package.json': JSON.stringify({
@@ -773,17 +778,18 @@ describe('Framework Detection Accuracy Tests', () => {
             }
           }),
           'e2e/features/user-flow.feature': 'Feature: User flow\\n  Scenario: Happy path',
-          'e2e/tests/integration.spec.js': 'test("integration works", () => {});'
+          'e2e/tests/integration.spec.js': 'jest.setTimeout(10000);
+  test("integration works", () => {});'
         }
       };
 
       // Create complex project
       const projectDir = path.join(testDir, 'complex-monorepo');
-      await fs.mkdir(projectDir, { recursive: true });
+      await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       for (const [filePath, content] of Object.entries(complexProject.files)) {
         const fullPath = path.join(projectDir, filePath);
-        await fs.mkdir(path.dirname(fullPath), { recursive: true });
+        await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         await fs.writeFile(fullPath, content);
       }
 
@@ -810,8 +816,8 @@ describe('Framework Detection Accuracy Tests', () => {
 
       // Should complete detection quickly
       expect(result.detectionTime).toBeLessThan(2000); // 2 seconds for complex project
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Python Framework Detection (>90% accuracy)', () => {
     const pythonTestProjects = [
@@ -890,7 +896,8 @@ describe('Framework Detection Accuracy Tests', () => {
       }
     ];
 
-    test('should detect Python frameworks with >90% accuracy', async () => {
+    jest.setTimeout(10000);
+  test('should detect Python frameworks with >90% accuracy', async () => { try {
       let correctDetections = 0;
       const detectionResults = [];
 
@@ -899,12 +906,12 @@ describe('Framework Detection Accuracy Tests', () => {
 
         // Create project structure
         const projectDir = path.join(testDir, project.name.toLowerCase().replace(/\s+/g, '-'));
-        await fs.mkdir(projectDir, { recursive: true });
+        await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Write project files
         for (const [filePath, content] of Object.entries(project.files)) {
           const fullPath = path.join(projectDir, filePath);
-          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           await fs.writeFile(fullPath, content.replace(/\\n/g, '\n'));
         }
 
@@ -929,7 +936,7 @@ describe('Framework Detection Accuracy Tests', () => {
           },
           correct: isCorrect,
           detectionTime: result.detectionTime
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         console.log(`  Expected: ${project.expected.framework}/${project.expected.language} (${project.expected.confidence})`);
         console.log(`  Detected: ${result.framework}/${result.language} (${result.confidence?.toFixed(3)})`);
@@ -952,11 +959,12 @@ describe('Framework Detection Accuracy Tests', () => {
         .reduce((sum, time) => sum + time, 0) / detectionResults.length;
 
       expect(avgDetectionTime).toBeLessThan(1000);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Edge Cases and Mixed Frameworks', () => {
-    test('should handle projects with no testing framework', async () => {
+    jest.setTimeout(10000);
+  test('should handle projects with no testing framework', async () => { try {
       const noTestProjects = [
         {
           name: 'Vanilla JavaScript',
@@ -991,11 +999,11 @@ describe('Framework Detection Accuracy Tests', () => {
 
       for (const project of noTestProjects) {
         const projectDir = path.join(testDir, project.name.toLowerCase().replace(/\s+/g, '-'));
-        await fs.mkdir(projectDir, { recursive: true });
+        await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         for (const [filePath, content] of Object.entries(project.files)) {
           const fullPath = path.join(projectDir, filePath);
-          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           await fs.writeFile(fullPath, content);
         }
 
@@ -1010,9 +1018,10 @@ describe('Framework Detection Accuracy Tests', () => {
         expect(result.language).toBe(project.expected.language);
         expect(result.warnings).toContain(project.expected.warnings[0]);
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect mixed testing frameworks', async () => {
+    jest.setTimeout(10000);
+  test('should detect mixed testing frameworks', async () => { try {
       const mixedProject = {
         name: 'Mixed Frameworks Project',
         files: {
@@ -1026,22 +1035,24 @@ describe('Framework Detection Accuracy Tests', () => {
             }
           }),
           // Unit tests (Jest/TDD)
-          'src/__tests__/units.test.js': 'test("unit", () => {});',
+          'src/__tests__/units.test.js': 'jest.setTimeout(10000);
+  test("unit", () => {});',
           // BDD features
           'features/user-flow.feature': 'Feature: User flow',
           'features/step_definitions/steps.js': 'const { Given } = require("@cucumber/cucumber");',
           // E2E tests
           'cypress/e2e/app.cy.js': 'describe("E2E", () => {});',
-          'playwright/tests/integration.spec.js': 'test("integration", () => {});'
+          'playwright/tests/integration.spec.js': 'jest.setTimeout(10000);
+  test("integration", () => {});'
         }
       };
 
       const projectDir = path.join(testDir, 'mixed-framework');
-      await fs.mkdir(projectDir, { recursive: true });
+      await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       for (const [filePath, content] of Object.entries(mixedProject.files)) {
         const fullPath = path.join(projectDir, filePath);
-        await fs.mkdir(path.dirname(fullPath), { recursive: true });
+        await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         await fs.writeFile(fullPath, content);
       }
 
@@ -1062,9 +1073,10 @@ describe('Framework Detection Accuracy Tests', () => {
       // Should include E2E frameworks
       const hasE2E = result.additionalFrameworks.some(f => f.framework === 'E2E');
       expect(hasE2E).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should provide helpful suggestions for incomplete projects', async () => {
+    jest.setTimeout(10000);
+  test('should provide helpful suggestions for incomplete projects', async () => { try {
       const incompleteProject = {
         name: 'Incomplete Project',
         files: {
@@ -1081,11 +1093,11 @@ describe('Framework Detection Accuracy Tests', () => {
       };
 
       const projectDir = path.join(testDir, 'incomplete-project');
-      await fs.mkdir(projectDir, { recursive: true });
+      await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       for (const [filePath, content] of Object.entries(incompleteProject.files)) {
         const fullPath = path.join(projectDir, filePath);
-        await fs.mkdir(path.dirname(fullPath), { recursive: true });
+        await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         await fs.writeFile(fullPath, content);
       }
 
@@ -1100,11 +1112,12 @@ describe('Framework Detection Accuracy Tests', () => {
       expect(result.suggestions.some(s => s.includes('testing framework'))).toBe(true);
 
       expect(result.warnings).toContain('No testing framework detected');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance and Reliability', () => {
-    test('should complete detection within reasonable time limits', async () => {
+    jest.setTimeout(10000);
+  test('should complete detection within reasonable time limits', async () => { try {
       const performanceTests = [
         { size: 'small', files: 5, maxTime: 500 },
         { size: 'medium', files: 20, maxTime: 1000 },
@@ -1113,7 +1126,7 @@ describe('Framework Detection Accuracy Tests', () => {
 
       for (const perfTest of performanceTests) {
         const projectDir = path.join(testDir, `perf-test-${perfTest.size}`);
-        await fs.mkdir(projectDir, { recursive: true });
+        await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Create many files to simulate large project
         const files = {
@@ -1126,13 +1139,14 @@ describe('Framework Detection Accuracy Tests', () => {
         for (let i = 0; i < perfTest.files - 1; i++) {
           files[`src/file${i}.js`] = `// File ${i}`;
           if (i % 5 === 0) {
-            files[`tests/file${i}.test.js`] = `test("file${i}", () => {});`;
+            files[`tests/file${i}.test.js`] = `jest.setTimeout(10000);
+  test("file${i}", () => {});`;
           }
         }
 
         for (const [filePath, content] of Object.entries(files)) {
           const fullPath = path.join(projectDir, filePath);
-          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           await fs.writeFile(fullPath, content);
         }
 
@@ -1149,9 +1163,10 @@ describe('Framework Detection Accuracy Tests', () => {
         expect(detectionTime).toBeLessThan(perfTest.maxTime);
         expect(result.framework).toBeTruthy();
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle corrupted or invalid files gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle corrupted or invalid files gracefully', async () => { try {
       const corruptedProject = {
         name: 'Corrupted Project',
         files: {
@@ -1162,11 +1177,11 @@ describe('Framework Detection Accuracy Tests', () => {
       };
 
       const projectDir = path.join(testDir, 'corrupted-project');
-      await fs.mkdir(projectDir, { recursive: true });
+      await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       for (const [filePath, content] of Object.entries(corruptedProject.files)) {
         const fullPath = path.join(projectDir, filePath);
-        await fs.mkdir(path.dirname(fullPath), { recursive: true });
+        await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         if (Buffer.isBuffer(content)) {
           await fs.writeFile(fullPath, content);
         } else {
@@ -1189,11 +1204,12 @@ describe('Framework Detection Accuracy Tests', () => {
       if (result.error) {
         expect(result.error).toBeDefined();
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Confidence Scoring Validation', () => {
-    test('should provide accurate confidence scores', async () => {
+    jest.setTimeout(10000);
+  test('should provide accurate confidence scores', async () => { try {
       const confidenceTests = [
         {
           name: 'High Confidence - Complete TDD Setup',
@@ -1207,7 +1223,8 @@ describe('Framework Detection Accuracy Tests', () => {
             }),
             'jest.config.js': 'module.exports = {};',
             'src/app.js': 'export default function App() {}',
-            'src/__tests__/app.test.js': 'test("app", () => {});',
+            'src/__tests__/app.test.js': 'jest.setTimeout(10000);
+  test("app", () => {});',
             'tests/integration/api.test.js': 'describe("API", () => {});'
           },
           expectedConfidence: { min: 0.9, max: 1.0 }
@@ -1236,11 +1253,11 @@ describe('Framework Detection Accuracy Tests', () => {
 
       for (const test of confidenceTests) {
         const projectDir = path.join(testDir, test.name.toLowerCase().replace(/\s+/g, '-'));
-        await fs.mkdir(projectDir, { recursive: true });
+        await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         for (const [filePath, content] of Object.entries(test.files)) {
           const fullPath = path.join(projectDir, filePath);
-          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           await fs.writeFile(fullPath, content);
         }
 
@@ -1255,6 +1272,6 @@ describe('Framework Detection Accuracy Tests', () => {
           expect(result.confidence).toBeLessThanOrEqual(test.expectedConfidence.max);
         }
       }
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

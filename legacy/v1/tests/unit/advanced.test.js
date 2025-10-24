@@ -3,16 +3,18 @@ const QuickTest = require('./quick-test');
 const qt = new QuickTest();
 
 // Test complex scenarios
-qt.test('Promise chain', async () => {
+qt.jest.setTimeout(10000);
+  test('Promise chain', async () => { try {
   const result = await Promise.resolve(1)
-    .then(x => x + 1)
-    .then(x => x * 2)
-    .then(x => x - 1);
+    await x => x + 1
+    await x => x * 2
+    await x => x - 1;
   
   qt.assertEqual(result, 3);
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-qt.test('Array methods', () => {
+qt.jest.setTimeout(10000);
+  test('Array methods', () => {
   const numbers = [1, 2, 3, 4, 5];
   
   // Map
@@ -30,9 +32,10 @@ qt.test('Array methods', () => {
   // Reduce
   const sum = numbers.reduce((acc, x) => acc + x, 0);
   qt.assertEqual(sum, 15);
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-qt.test('Object manipulation', () => {
+qt.jest.setTimeout(10000);
+  test('Object manipulation', () => {
   const user = {
     name: 'John',
     age: 30,
@@ -50,9 +53,10 @@ qt.test('Object manipulation', () => {
   const updatedUser = { ...user, age: 31 };
   qt.assertEqual(updatedUser.age, 31);
   qt.assertEqual(updatedUser.name, 'John');
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-qt.test('Error scenarios', () => {
+qt.jest.setTimeout(10000);
+  test('Error scenarios', () => {
   function validateAge(age) {
     if (typeof age !== 'number') {
       throw new Error('Age must be a number');
@@ -66,9 +70,10 @@ qt.test('Error scenarios', () => {
   qt.assertEqual(validateAge(25), 25);
   qt.assertThrows(() => validateAge('25'), 'Should throw for string');
   qt.assertThrows(() => validateAge(-5), 'Should throw for negative');
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-qt.test('Timeout simulation', async () => {
+qt.jest.setTimeout(10000);
+  test('Timeout simulation', async () => { try {
   function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
@@ -78,9 +83,10 @@ qt.test('Timeout simulation', async () => {
   const end = Date.now();
   
   qt.assert(end - start >= 10, 'Should wait at least 10ms');
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-qt.test('Complex data structures', () => {
+qt.jest.setTimeout(10000);
+  test('Complex data structures', () => {
   const matrix = [
     [1, 2, 3],
     [4, 5, 6],
@@ -96,6 +102,6 @@ qt.test('Complex data structures', () => {
   qt.assertEqual(flattened.length, 9);
   qt.assertEqual(flattened[0], 1);
   qt.assertEqual(flattened[8], 9);
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 module.exports = qt;

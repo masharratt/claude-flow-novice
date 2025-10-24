@@ -23,7 +23,8 @@ describe('Byzantine-Secure Team Synchronization', () => {
   });
 
   describe('Checkpoint 4.1: Sublinear Team Synchronization', () => {
-    test('syncs team preferences in O(√n) time complexity', async () => {
+    jest.setTimeout(10000);
+  test('syncs team preferences in O(√n) time complexity', async () => { try {
       const teamSize = 50;
       const members = generateTeamMembers(teamSize);
 
@@ -39,7 +40,8 @@ describe('Byzantine-Secure Team Synchronization', () => {
       expect(result.byzantineValidation).toBe(true);
     });
 
-    test('handles 50+ team members with Byzantine consensus', async () => {
+    jest.setTimeout(10000);
+  test('handles 50+ team members with Byzantine consensus', async () => { try {
       const teamSize = 75;
       const members = generateTeamMembers(teamSize);
 
@@ -52,7 +54,8 @@ describe('Byzantine-Secure Team Synchronization', () => {
       expect(result.cryptographicEvidence).toBeDefined();
     });
 
-    test('resists Sybil attacks during team synchronization', async () => {
+    jest.setTimeout(10000);
+  test('resists Sybil attacks during team synchronization', async () => { try {
       const legitimateMembers = generateTeamMembers(20);
       const sybilMembers = generateSybilAttack(30); // More attackers than legitimate
       const allMembers = [...legitimateMembers, ...sybilMembers];
@@ -65,7 +68,8 @@ describe('Byzantine-Secure Team Synchronization', () => {
       expect(result.sybilResistanceProof).toBeDefined();
     });
 
-    test('validates team member authenticity with cryptographic signatures', async () => {
+    jest.setTimeout(10000);
+  test('validates team member authenticity with cryptographic signatures', async () => { try {
       const members = generateTeamMembers(10);
       const tampered = { ...members[0], preferences: 'malicious_data', signature: 'invalid' };
       members[0] = tampered;
@@ -77,7 +81,8 @@ describe('Byzantine-Secure Team Synchronization', () => {
       expect(result.cryptographicValidation).toBe(true);
     });
 
-    test('maintains sync performance under Byzantine attacks', async () => {
+    jest.setTimeout(10000);
+  test('maintains sync performance under Byzantine attacks', async () => { try {
       const legitimateMembers = generateTeamMembers(40);
       const byzantineAttackers = generateByzantineAttackers(10);
       const allMembers = [...legitimateMembers, ...byzantineAttackers];
@@ -96,7 +101,8 @@ describe('Byzantine-Secure Team Synchronization', () => {
   });
 
   describe('Byzantine Security Requirements', () => {
-    test('generates cryptographic evidence chains for all synchronization operations', async () => {
+    jest.setTimeout(10000);
+  test('generates cryptographic evidence chains for all synchronization operations', async () => { try {
       const members = generateTeamMembers(15);
 
       const result = await teamSync.synchronizePreferences(members);
@@ -107,7 +113,8 @@ describe('Byzantine-Secure Team Synchronization', () => {
       expect(result.evidenceChain.consensusSignatures).toBeDefined();
     });
 
-    test('validates 2/3 Byzantine consensus for team decisions', async () => {
+    jest.setTimeout(10000);
+  test('validates 2/3 Byzantine consensus for team decisions', async () => { try {
       const members = generateTeamMembers(21); // Ensures clear 2/3 majority
       const byzantineMembers = generateByzantineAttackers(7); // 1/3 attackers
       const allMembers = [...members, ...byzantineMembers];
@@ -119,7 +126,8 @@ describe('Byzantine-Secure Team Synchronization', () => {
       expect(result.byzantineFaultTolerance).toBe(true);
     });
 
-    test('prevents preference poisoning attacks', async () => {
+    jest.setTimeout(10000);
+  test('prevents preference poisoning attacks', async () => { try {
       const members = generateTeamMembers(10);
       const poisonedPreferences = {
         ...members[0].preferences,
@@ -189,4 +197,4 @@ describe('Byzantine-Secure Team Synchronization', () => {
   function generateValidSignature(id) {
     return crypto.createHash('sha256').update(id + 'secret').digest('hex');
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

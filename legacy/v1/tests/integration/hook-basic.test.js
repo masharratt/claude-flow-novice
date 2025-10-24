@@ -53,4 +53,4 @@ describe('Hook Basic Tests', () => {
     expect(isDangerous('echo hello')).toBe(false);
     expect(isDangerous('format c:')).toBe(true);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

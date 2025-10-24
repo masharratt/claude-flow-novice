@@ -11,7 +11,7 @@ describe('Experimental Features Management - Checkpoint 1.4', () => {
   let configManager;
   let featureFlagManager;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Import modules dynamically to handle ES modules
     try {
       const configModule = await import('../src/config/config-manager.js');
@@ -43,7 +43,7 @@ describe('Experimental Features Management - Checkpoint 1.4', () => {
   });
 
   describe('1. NOVICE PROTECTION - Experimental Features Hidden', () => {
-    it('should hide all experimental features for novice users', async () => {
+    it('should hide all experimental features for novice users', async () => { try {
       // Set novice experience level
       if (configManager.setExperienceLevel) {
         configManager.setExperienceLevel('novice');
@@ -78,7 +78,7 @@ describe('Experimental Features Management - Checkpoint 1.4', () => {
       expect(features.customWorkflows).toBe(false);
     });
 
-    it('should not expose experimental agents to novice users', async () => {
+    it('should not expose experimental agents to novice users', async () => { try {
       const agentDirectories = [
         '/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/neural',
         '/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/consensus',
@@ -107,7 +107,7 @@ describe('Experimental Features Management - Checkpoint 1.4', () => {
       }
     });
 
-    it('should provide safe default configuration for novices', async () => {
+    it('should provide safe default configuration for novices', async () => { try {
       if (configManager.autoInit) {
         configManager.autoInit.mockResolvedValue({
           projectType: 'web-app',
@@ -144,7 +144,7 @@ describe('Experimental Features Management - Checkpoint 1.4', () => {
       });
     });
 
-    it('should handle experimental feature queries gracefully', async () => {
+    it('should handle experimental feature queries gracefully', async () => { try {
       if (featureFlagManager.isEnabled) {
         featureFlagManager.isEnabled
           .mockResolvedValueOnce(false) // byzantine-consensus
@@ -228,7 +228,7 @@ describe('Experimental Features Management - Checkpoint 1.4', () => {
   });
 
   describe('4. SAFETY MECHANISMS - Warnings and Consent', () => {
-    it('should warn users about experimental feature risks', async () => {
+    it('should warn users about experimental feature risks', async () => { try {
       const experimentalWarnings = [
         'This feature is experimental and may be unstable',
         'Byzantine consensus requires advanced understanding',
@@ -300,7 +300,7 @@ describe('Experimental Features Management - Checkpoint 1.4', () => {
   });
 
   describe('6. ROLLBACK CAPABILITY - Safe Disabling', () => {
-    it('should safely disable experimental features', async () => {
+    it('should safely disable experimental features', async () => { try {
       const experimentalFeatures = [
         'byzantine-consensus',
         'neural-networks',
@@ -323,7 +323,7 @@ describe('Experimental Features Management - Checkpoint 1.4', () => {
       }
     });
 
-    it('should support emergency rollback for problematic features', async () => {
+    it('should support emergency rollback for problematic features', async () => { try {
       const emergencyRollback = async (feature, reason) => {
         if (featureFlagManager.rollback) {
           featureFlagManager.rollback.mockResolvedValue(undefined);

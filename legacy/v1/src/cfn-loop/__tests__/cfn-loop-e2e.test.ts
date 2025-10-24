@@ -23,14 +23,14 @@ import type { CFNLoopConfig, AgentResponse, PhaseResult } from '../cfn-loop-orch
 describe('CFN Loop End-to-End Tests', () => {
   let orchestrator: CFNLoopOrchestrator;
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (orchestrator) {
       await orchestrator.shutdown();
     }
   });
 
   describe('Complete CFN Loop Execution', () => {
-    it('should execute full Loop 3 → Gate → Byzantine Loop 2 → Success', async () => {
+    it('should execute full Loop 3 → Gate → Byzantine Loop 2 → Success', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'auth-system',
         swarmId: 'auth-swarm-1',
@@ -127,7 +127,7 @@ describe('CFN Loop End-to-End Tests', () => {
       expect(result.statistics.averageConfidenceScore).toBeGreaterThanOrEqual(0.75);
     });
 
-    it('should handle multiple Loop 2 iterations with feedback injection', async () => {
+    it('should handle multiple Loop 2 iterations with feedback injection', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'payment-system',
         swarmId: 'payment-swarm-1',
@@ -151,7 +151,7 @@ describe('CFN Loop End-to-End Tests', () => {
       ] as AgentResponse[]);
 
       let loop2Iteration = 0;
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         loop2Iteration++;
 
         if (loop2Iteration === 1) {
@@ -210,7 +210,7 @@ describe('CFN Loop End-to-End Tests', () => {
       expect(result.statistics.feedbackInjections).toBeGreaterThan(0);
     });
 
-    it('should track malicious agents across multiple iterations', async () => {
+    it('should track malicious agents across multiple iterations', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'data-validation',
         swarmId: 'validation-swarm-1',
@@ -237,7 +237,7 @@ describe('CFN Loop End-to-End Tests', () => {
       const maliciousAgentsList: string[] = [];
       let loop2Iteration = 0;
 
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         loop2Iteration++;
 
         if (loop2Iteration === 1) {
@@ -281,7 +281,7 @@ describe('CFN Loop End-to-End Tests', () => {
   });
 
   describe('Performance Testing', () => {
-    it('should complete CFN Loop within reasonable time', async () => {
+    it('should complete CFN Loop within reasonable time', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'performance-test',
         swarmId: 'perf-swarm-1',
@@ -324,7 +324,7 @@ describe('CFN Loop End-to-End Tests', () => {
       expect(result.statistics.totalDuration).toBeLessThan(10000);
     });
 
-    it('should handle 7 validators efficiently (max mesh size)', async () => {
+    it('should handle 7 validators efficiently (max mesh size)', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'large-validation',
         swarmId: 'large-swarm-1',
@@ -373,7 +373,7 @@ describe('CFN Loop End-to-End Tests', () => {
   });
 
   describe('Error Handling and Resilience', () => {
-    it('should handle validator spawn failures gracefully', async () => {
+    it('should handle validator spawn failures gracefully', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'error-handling',
         swarmId: 'error-swarm-1',
@@ -397,7 +397,7 @@ describe('CFN Loop End-to-End Tests', () => {
       ] as AgentResponse[]);
 
       let consensusCallCount = 0;
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         consensusCallCount++;
 
         if (consensusCallCount === 1) {
@@ -423,7 +423,7 @@ describe('CFN Loop End-to-End Tests', () => {
       expect(result.totalLoop2Iterations).toBeGreaterThan(1);
     });
 
-    it('should recover from Byzantine consensus failures', async () => {
+    it('should recover from Byzantine consensus failures', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'byzantine-recovery',
         swarmId: 'recovery-swarm-1',
@@ -447,7 +447,7 @@ describe('CFN Loop End-to-End Tests', () => {
       ] as AgentResponse[]);
 
       let consensusCallCount = 0;
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         consensusCallCount++;
 
         if (consensusCallCount === 1) {
@@ -473,7 +473,7 @@ describe('CFN Loop End-to-End Tests', () => {
       expect(consensusCallCount).toBe(2);
     });
 
-    it('should handle circuit breaker activation', async () => {
+    it('should handle circuit breaker activation', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'circuit-breaker-test',
         swarmId: 'cb-swarm-1',
@@ -489,7 +489,7 @@ describe('CFN Loop End-to-End Tests', () => {
       orchestrator = new CFNLoopOrchestrator(config);
 
       // Simulate timeout scenario
-      jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockImplementation(async () => { try {
         await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds (exceeds timeout)
         return [];
       });
@@ -506,7 +506,7 @@ describe('CFN Loop End-to-End Tests', () => {
   });
 
   describe('Memory and State Management', () => {
-    it('should persist and recover swarm state', async () => {
+    it('should persist and recover swarm state', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'memory-persistence',
         swarmId: 'memory-swarm-1',
@@ -546,7 +546,7 @@ describe('CFN Loop End-to-End Tests', () => {
       // Memory persistence should be enabled
     });
 
-    it('should track phase statistics accurately', async () => {
+    it('should track phase statistics accurately', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'statistics-test',
         swarmId: 'stats-swarm-1',

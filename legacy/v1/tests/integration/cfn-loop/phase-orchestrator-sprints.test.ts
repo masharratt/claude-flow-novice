@@ -119,17 +119,17 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
     orchestrator = createPhaseOrchestrator(config);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await orchestrator.shutdown();
     delete process.env.CLAUDE_FLOW_ENV;
   });
 
   describe('Initialization', () => {
-    it('should initialize with phase and sprint configuration', async () => {
+    it('should initialize with phase and sprint configuration', async () => { try {
       await expect(orchestrator.initialize()).resolves.not.toThrow();
     });
 
-    it('should detect cycles in phase dependencies', async () => {
+    it('should detect cycles in phase dependencies', async () => { try {
       const cyclicPhases: Phase[] = [
         {
           id: 'phase-a',
@@ -166,7 +166,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       cyclicOrchestrator.shutdown();
     });
 
-    it('should compute topological order of phases', async () => {
+    it('should compute topological order of phases', async () => { try {
       await orchestrator.initialize();
 
       // Phase-1 should come before Phase-2 due to dependency
@@ -176,7 +176,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
   });
 
   describe('Single Phase with Sprints', () => {
-    it('should execute phase with multiple sprints', async () => {
+    it('should execute phase with multiple sprints', async () => { try {
       const singlePhaseConfig: PhaseOrchestratorConfig = {
         phases: [config.phases[0]], // Only phase-1
         maxPhaseRetries: 3,
@@ -199,7 +199,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       await singlePhaseOrchestrator.shutdown();
     }, 60000);
 
-    it('should track sprint execution within phase', async () => {
+    it('should track sprint execution within phase', async () => { try {
       const singlePhaseConfig: PhaseOrchestratorConfig = {
         phases: [config.phases[0]],
         maxPhaseRetries: 3,
@@ -219,7 +219,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
   });
 
   describe('Multi-Phase Execution', () => {
-    it('should execute phases in dependency order', async () => {
+    it('should execute phases in dependency order', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Implement auth system');
@@ -231,7 +231,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       await orchestrator.shutdown();
     }, 90000);
 
-    it('should wait for phase dependencies before execution', async () => {
+    it('should wait for phase dependencies before execution', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Test dependency resolution');
@@ -247,7 +247,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       expect(phase1Result!.timestamp).toBeLessThanOrEqual(phase2Result!.timestamp);
     }, 90000);
 
-    it('should handle phase failure and skip dependent phases', async () => {
+    it('should handle phase failure and skip dependent phases', async () => { try {
       // Create configuration where phase-1 is likely to fail
       const failConfig: PhaseOrchestratorConfig = {
         phases: [
@@ -277,7 +277,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
   });
 
   describe('Cross-Phase Sprint Dependencies', () => {
-    it('should resolve cross-phase sprint dependencies', async () => {
+    it('should resolve cross-phase sprint dependencies', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Test cross-phase dependencies');
@@ -288,7 +288,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       expect(result.completedPhases).toContain('phase-2');
     }, 90000);
 
-    it('should track cross-phase dependency results', async () => {
+    it('should track cross-phase dependency results', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Track cross-phase results');
@@ -302,7 +302,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
   });
 
   describe('Phase Completion Validation', () => {
-    it('should validate phase completion criteria', async () => {
+    it('should validate phase completion criteria', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Validate completion criteria');
@@ -316,7 +316,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       expect(phase1Result!.consensusResult.consensusScore).toBeLessThanOrEqual(1);
     }, 90000);
 
-    it('should enforce minimum consensus threshold', async () => {
+    it('should enforce minimum consensus threshold', async () => { try {
       const highConsensusConfig: PhaseOrchestratorConfig = {
         phases: [
           {
@@ -353,7 +353,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       expect(stats.inProgress).toBe(2);
     });
 
-    it('should update statistics during execution', async () => {
+    it('should update statistics during execution', async () => { try {
       await orchestrator.initialize();
 
       const beforeStats = orchestrator.getStatistics();
@@ -365,7 +365,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       expect(afterStats.completedPhases).toBeGreaterThan(0);
     }, 90000);
 
-    it('should calculate total duration', async () => {
+    it('should calculate total duration', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Duration test');
@@ -378,7 +378,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
   });
 
   describe('Phase Continuation Prompts', () => {
-    it('should generate continuation prompt after phase completion', async () => {
+    it('should generate continuation prompt after phase completion', async () => { try {
       await orchestrator.initialize();
 
       const result = await orchestrator.executeAllPhases('Continuation prompt test');
@@ -388,7 +388,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       expect(result.phaseResults.size).toBeGreaterThan(0);
     }, 90000);
 
-    it('should provide next phase information in continuation', async () => {
+    it('should provide next phase information in continuation', async () => { try {
       const singlePhaseConfig: PhaseOrchestratorConfig = {
         phases: [config.phases[0]],
         maxPhaseRetries: 3,
@@ -407,11 +407,11 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle orchestrator shutdown gracefully', async () => {
+    it('should handle orchestrator shutdown gracefully', async () => { try {
       await expect(orchestrator.shutdown()).resolves.not.toThrow();
     });
 
-    it('should handle empty phase list', async () => {
+    it('should handle empty phase list', async () => { try {
       const emptyConfig: PhaseOrchestratorConfig = {
         phases: [],
       };
@@ -427,7 +427,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       await emptyOrchestrator.shutdown();
     });
 
-    it('should handle phases with no sprints', async () => {
+    it('should handle phases with no sprints', async () => { try {
       const noSprintsPhase: Phase = {
         id: 'phase-no-sprints',
         order: 0,
@@ -459,7 +459,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
   });
 
   describe('Phase Retry Logic', () => {
-    it('should retry phase on validation failure', async () => {
+    it('should retry phase on validation failure', async () => { try {
       const retryConfig: PhaseOrchestratorConfig = {
         phases: [config.phases[0]],
         maxPhaseRetries: 2, // Allow 2 retries
@@ -477,7 +477,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
       await retryOrchestrator.shutdown();
     }, 60000);
 
-    it('should abort after max phase retries', async () => {
+    it('should abort after max phase retries', async () => { try {
       const maxRetryConfig: PhaseOrchestratorConfig = {
         phases: [
           {
@@ -505,7 +505,7 @@ describe('PhaseOrchestrator with Sprints - Integration Tests', () => {
   });
 
   describe('Event Emission', () => {
-    it('should emit phase completion events', async () => {
+    it('should emit phase completion events', async () => { try {
       const events: string[] = [];
 
       orchestrator.on('phase:complete', () => events.push('phase:complete'));

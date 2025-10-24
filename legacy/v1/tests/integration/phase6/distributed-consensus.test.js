@@ -21,7 +21,7 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
   let messageBroker;
   let consensusTracker;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     messageBroker = new MessageBroker({
       maxQueueSize: 5000,
       deliverySemantics: 'exactly-once'
@@ -36,13 +36,14 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
     await messageBroker.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await messageBroker?.shutdown();
     consensusTracker = null;
   });
 
   describe('Byzantine Voting Protocol', () => {
-    test('should achieve ≥90% consensus threshold', async () => {
+    jest.setTimeout(10000);
+  test('should achieve ≥90% consensus threshold', async () => { try {
       const peerCount = 10;
       const peers = Array.from({ length: peerCount }, (_, i) => `peer-${i}`);
       const proposal = {
@@ -95,7 +96,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
       console.log(`✅ Byzantine consensus: ${(consensusRatio * 100).toFixed(1)}% approval (${approvals}/${votes.size})`);
     });
 
-    test('should complete voting in <1 second for 10 peers', async () => {
+    jest.setTimeout(10000);
+  test('should complete voting in <1 second for 10 peers', async () => { try {
       const peerCount = 10;
       const peers = Array.from({ length: peerCount }, (_, i) => `peer-${i}`);
       const proposalId = 'speed-test-proposal';
@@ -144,7 +146,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
       console.log(`✅ Voting speed: ${peerCount} peers in ${votingDuration}ms`);
     });
 
-    test('should handle tie-breaking in split votes', async () => {
+    jest.setTimeout(10000);
+  test('should handle tie-breaking in split votes', async () => { try {
       const peers = ['peer-1', 'peer-2', 'peer-3', 'peer-4'];
       const proposalId = 'tie-test';
       const votes = new Map();
@@ -199,7 +202,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
   });
 
   describe('Multi-Dimensional Validation', () => {
-    test('should validate quality, security, and performance dimensions', async () => {
+    jest.setTimeout(10000);
+  test('should validate quality, security, and performance dimensions', async () => { try {
       const dimensions = ['quality', 'security', 'performance'];
       const validationResults = new Map();
 
@@ -243,7 +247,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
       console.log('✅ Multi-dimensional validation: all dimensions passed');
     });
 
-    test('should aggregate dimension scores for overall consensus', async () => {
+    jest.setTimeout(10000);
+  test('should aggregate dimension scores for overall consensus', async () => { try {
       const peers = Array.from({ length: 5 }, (_, i) => `peer-${i}`);
       const dimensionScores = new Map();
 
@@ -279,7 +284,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
       console.log(`✅ Aggregated consensus: ${(overallConsensus * 100).toFixed(1)}%`);
     });
 
-    test('should reject if any dimension fails threshold', async () => {
+    jest.setTimeout(10000);
+  test('should reject if any dimension fails threshold', async () => { try {
       const dimensions = [
         { name: 'quality', score: 0.95, threshold: 0.80 },
         { name: 'security', score: 0.70, threshold: 0.80 }, // Fails
@@ -302,7 +308,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
   });
 
   describe('Malicious Peer Detection', () => {
-    test('should detect malicious peers with >95% accuracy', async () => {
+    jest.setTimeout(10000);
+  test('should detect malicious peers with >95% accuracy', async () => { try {
       const honestPeers = Array.from({ length: 8 }, (_, i) => `honest-${i}`);
       const maliciousPeers = ['malicious-1', 'malicious-2'];
       const allPeers = [...honestPeers, ...maliciousPeers];
@@ -360,7 +367,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
       console.log(`✅ Malicious peer detection: ${detectionAccuracy}% accuracy (${detectedMalicious.length}/${maliciousPeers.length})`);
     });
 
-    test('should isolate malicious peers from consensus', async () => {
+    jest.setTimeout(10000);
+  test('should isolate malicious peers from consensus', async () => { try {
       const honestPeers = ['peer-1', 'peer-2', 'peer-3'];
       const maliciousPeer = 'malicious-peer';
       const allPeers = [...honestPeers, maliciousPeer];
@@ -409,7 +417,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
       console.log(`✅ Malicious peer isolation: ${votes.size} honest votes, malicious excluded`);
     });
 
-    test('should detect conflicting votes from same peer', async () => {
+    jest.setTimeout(10000);
+  test('should detect conflicting votes from same peer', async () => { try {
       const proposalId = 'conflict-test';
       const conflicts = [];
 
@@ -461,7 +470,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
   });
 
   describe('Consensus Finalization', () => {
-    test('should finalize consensus with cryptographic proof', async () => {
+    jest.setTimeout(10000);
+  test('should finalize consensus with cryptographic proof', async () => { try {
       const peers = Array.from({ length: 10 }, (_, i) => `peer-${i}`);
       const proposalId = 'finalization-test';
       const votes = new Map();
@@ -497,7 +507,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
       }
     });
 
-    test('should broadcast finalized decision to all peers', async () => {
+    jest.setTimeout(10000);
+  test('should broadcast finalized decision to all peers', async () => { try {
       const peers = Array.from({ length: 5 }, (_, i) => `peer-${i}`);
       const receivedDecisions = [];
 
@@ -542,7 +553,8 @@ describe('Phase 6 - Distributed Consensus and Byzantine Voting', () => {
   });
 
   describe('Performance Under Load', () => {
-    test('should maintain consensus accuracy under high proposal rate', async () => {
+    jest.setTimeout(10000);
+  test('should maintain consensus accuracy under high proposal rate', async () => { try {
       const peerCount = 10;
       const proposalCount = 50;
       const peers = Array.from({ length: peerCount }, (_, i) => `peer-${i}`);

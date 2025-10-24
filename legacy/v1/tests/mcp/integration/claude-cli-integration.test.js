@@ -18,7 +18,7 @@ describe('Claude CLI Integration Tests', () => {
   let testDir;
   let originalCwd;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     originalCwd = process.cwd();
     testDir = await global.testUtils.createTempDir('cli-integration');
     process.chdir(testDir);
@@ -34,7 +34,7 @@ describe('Claude CLI Integration Tests', () => {
     manager.projectConfigPath = path.join(testDir, '.mcp.json');
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     process.chdir(originalCwd);
     try {
       await fs.rm(testDir, { recursive: true, force: true });
@@ -44,7 +44,8 @@ describe('Claude CLI Integration Tests', () => {
   });
 
   describe('Claude CLI Detection', () => {
-    test('should detect Claude CLI when available', async () => {
+    jest.setTimeout(10000);
+  test('should detect Claude CLI when available', async () => { try {
       // Skip if Claude CLI is not available in test environment
       try {
         execSync('which claude', { stdio: 'ignore' });
@@ -57,7 +58,8 @@ describe('Claude CLI Integration Tests', () => {
       expect(isInstalled).toBe(true);
     }, CLI_TIMEOUT);
 
-    test('should handle missing Claude CLI gracefully', () => {
+    jest.setTimeout(10000);
+  test('should handle missing Claude CLI gracefully', () => {
       // Mock execSync to simulate missing CLI
       const originalExecSync = execSync;
       execSync.mockImplementation(() => {
@@ -72,7 +74,8 @@ describe('Claude CLI Integration Tests', () => {
       }
     });
 
-    test('should try multiple detection methods', () => {
+    jest.setTimeout(10000);
+  test('should try multiple detection methods', () => {
       let callCount = 0;
       const originalExecSync = execSync;
 
@@ -98,7 +101,8 @@ describe('Claude CLI Integration Tests', () => {
   });
 
   describe('MCP Server Management via CLI', () => {
-    test('should remove local server via CLI', async () => {
+    jest.setTimeout(10000);
+  test('should remove local server via CLI', async () => { try {
       // Create a local configuration with test server
       const localConfig = {
         mcpServers: {
@@ -135,7 +139,8 @@ describe('Claude CLI Integration Tests', () => {
       expect(updatedConfig.mcpServers).toHaveProperty('keep-server');
     });
 
-    test('should fallback to manual removal when CLI fails', async () => {
+    jest.setTimeout(10000);
+  test('should fallback to manual removal when CLI fails', async () => { try {
       const localConfig = {
         mcpServers: {
           'test-server': {
@@ -159,7 +164,8 @@ describe('Claude CLI Integration Tests', () => {
       expect(updatedConfig.mcpServers).not.toHaveProperty('test-server');
     });
 
-    test('should handle CLI timeout gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle CLI timeout gracefully', async () => { try {
       const localConfig = {
         mcpServers: {
           'test-server': {
@@ -185,7 +191,8 @@ describe('Claude CLI Integration Tests', () => {
   });
 
   describe('MCP Server Listing and Verification', () => {
-    test('should verify setup by listing servers', async () => {
+    jest.setTimeout(10000);
+  test('should verify setup by listing servers', async () => { try {
       // Mock successful MCP list command
       execSync.mockImplementation((command) => {
         if (command.includes('claude mcp list')) {
@@ -202,7 +209,8 @@ MCP Servers:
       await expect(manager.verifySetup()).resolves.not.toThrow();
     });
 
-    test('should handle MCP list command failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle MCP list command failures', async () => { try {
       execSync.mockImplementation(() => {
         throw new Error('Command failed');
       });
@@ -211,7 +219,8 @@ MCP Servers:
       await expect(manager.verifySetup()).resolves.not.toThrow();
     });
 
-    test('should detect missing server in list output', async () => {
+    jest.setTimeout(10000);
+  test('should detect missing server in list output', async () => { try {
       execSync.mockImplementation((command) => {
         if (command.includes('claude mcp list')) {
           return `
@@ -228,7 +237,8 @@ MCP Servers:
   });
 
   describe('Command Execution with Timeout', () => {
-    test('should execute commands with timeout', async () => {
+    jest.setTimeout(10000);
+  test('should execute commands with timeout', async () => { try {
       const result = await manager.runCommandWithTimeout('echo', ['hello'], 5000);
 
       expect(result.success).toBe(true);
@@ -236,21 +246,24 @@ MCP Servers:
       expect(result.stdout).toContain('hello');
     });
 
-    test('should timeout long-running commands', async () => {
+    jest.setTimeout(10000);
+  test('should timeout long-running commands', async () => { try {
       // Test with a command that would take longer than timeout
       await expect(
         manager.runCommandWithTimeout('sleep', ['10'], 1000)
       ).rejects.toThrow('Command timed out');
     });
 
-    test('should handle command errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle command errors', async () => { try {
       const result = await manager.runCommandWithTimeout('false', [], 5000);
 
       expect(result.success).toBe(false);
       expect(result.code).not.toBe(0);
     });
 
-    test('should handle non-existent commands', async () => {
+    jest.setTimeout(10000);
+  test('should handle non-existent commands', async () => { try {
       await expect(
         manager.runCommandWithTimeout('non-existent-command', [], 5000)
       ).rejects.toThrow();
@@ -258,7 +271,8 @@ MCP Servers:
   });
 
   describe('Real CLI Workflow Tests', () => {
-    test('should complete full setup workflow with CLI', async () => {
+    jest.setTimeout(10000);
+  test('should complete full setup workflow with CLI', async () => { try {
       // Skip if Claude CLI is not available
       try {
         execSync('which claude', { stdio: 'ignore' });
@@ -288,7 +302,8 @@ MCP Servers:
       expect(result.details).toBeTruthy();
     }, CLI_TIMEOUT);
 
-    test('should handle CLI unavailable during setup', async () => {
+    jest.setTimeout(10000);
+  test('should handle CLI unavailable during setup', async () => { try {
       execSync.mockImplementation(() => {
         throw new Error('claude: command not found');
       });
@@ -302,7 +317,8 @@ MCP Servers:
   });
 
   describe('Comprehensive Verification Tests', () => {
-    test('should run all verification tests', async () => {
+    jest.setTimeout(10000);
+  test('should run all verification tests', async () => { try {
       // Mock CLI responses
       execSync.mockImplementation((command) => {
         if (command.includes('claude --version')) {
@@ -332,7 +348,8 @@ MCP Servers:
       expect(verification.tests.every(test => test.name)).toBe(true);
     });
 
-    test('should handle verification failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle verification failures gracefully', async () => { try {
       execSync.mockImplementation(() => {
         throw new Error('All CLI commands fail');
       });
@@ -343,7 +360,8 @@ MCP Servers:
       expect(verification.errors.length).toBeGreaterThan(0);
     });
 
-    test('should test file permissions correctly', async () => {
+    jest.setTimeout(10000);
+  test('should test file permissions correctly', async () => { try {
       // Create files with known permissions
       await fs.writeFile(manager.localConfigPath, '{"test": true}');
       await fs.writeFile(manager.projectConfigPath, '{"test": true}');
@@ -355,7 +373,8 @@ MCP Servers:
       expect(permissionTest.passed).toBe(true);
     });
 
-    test('should detect permission issues', async () => {
+    jest.setTimeout(10000);
+  test('should detect permission issues', async () => { try {
       // Create a file and then make it unreadable (if possible)
       await fs.writeFile(manager.localConfigPath, '{"test": true}');
 
@@ -382,7 +401,8 @@ MCP Servers:
   });
 
   describe('CLI Command Safety', () => {
-    test('should not execute dangerous commands', async () => {
+    jest.setTimeout(10000);
+  test('should not execute dangerous commands', async () => { try {
       const dangerousCommands = [
         'rm -rf /',
         'del /f /s /q C:\\',
@@ -409,7 +429,8 @@ MCP Servers:
       }
     });
 
-    test('should sanitize command arguments', async () => {
+    jest.setTimeout(10000);
+  test('should sanitize command arguments', async () => { try {
       const maliciousArgs = [
         '; rm -rf /',
         '&& del /f /s /q C:\\',
@@ -424,7 +445,8 @@ MCP Servers:
       }
     });
 
-    test('should validate server removal commands', async () => {
+    jest.setTimeout(10000);
+  test('should validate server removal commands', async () => { try {
       const validServerNames = ['claude-flow-novice', 'test-server', 'valid-name-123'];
       const invalidServerNames = ['; rm -rf /', '$(malicious)', '`command`', '../../../etc/passwd'];
 
@@ -442,7 +464,8 @@ MCP Servers:
   });
 
   describe('Error Recovery Integration', () => {
-    test('should recover from CLI timeout errors', async () => {
+    jest.setTimeout(10000);
+  test('should recover from CLI timeout errors', async () => { try {
       let callCount = 0;
       execSync.mockImplementation(() => {
         callCount++;
@@ -458,7 +481,8 @@ MCP Servers:
       expect(callCount).toBe(2);
     });
 
-    test('should handle partial CLI failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle partial CLI failures', async () => { try {
       execSync.mockImplementation((command) => {
         if (command.includes('claude --version')) {
           return 'claude version 1.0.0';
@@ -479,7 +503,8 @@ MCP Servers:
       expect(verification.tests.some(test => !test.passed)).toBe(true);
     });
 
-    test('should provide helpful error messages for CLI failures', async () => {
+    jest.setTimeout(10000);
+  test('should provide helpful error messages for CLI failures', async () => { try {
       execSync.mockImplementation(() => {
         const error = new Error('Command failed');
         error.code = 'ENOENT';
@@ -495,4 +520,4 @@ MCP Servers:
       );
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

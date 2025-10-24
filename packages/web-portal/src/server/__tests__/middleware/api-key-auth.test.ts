@@ -45,7 +45,7 @@ describe('API Key Authentication Middleware', () => {
   });
 
   describe('authenticateAPIKey', () => {
-    it('should authenticate valid API key', async () => {
+    it('should authenticate valid API key', async () => { try {
       const req = createMockRequest(validAPIKey) as Request;
       const res = createMockResponse() as Response;
       const next = createMockNext();
@@ -58,7 +58,7 @@ describe('API Key Authentication Middleware', () => {
       expect(next).toHaveBeenCalledWith();
     });
 
-    it('should reject missing X-API-Key header', async () => {
+    it('should reject missing X-API-Key header', async () => { try {
       const req = createMockRequest() as Request;
       const res = createMockResponse() as Response;
       const next = createMockNext();
@@ -74,7 +74,7 @@ describe('API Key Authentication Middleware', () => {
       );
     });
 
-    it('should reject invalid API key format', async () => {
+    it('should reject invalid API key format', async () => { try {
       const req = createMockRequest('short-key') as Request;
       const res = createMockResponse() as Response;
       const next = createMockNext();
@@ -90,7 +90,7 @@ describe('API Key Authentication Middleware', () => {
       );
     });
 
-    it('should reject invalid API key (not found)', async () => {
+    it('should reject invalid API key (not found)', async () => { try {
       const invalidKey = generateAPIKey();
       const req = createMockRequest(invalidKey) as Request;
       const res = createMockResponse() as Response;
@@ -107,7 +107,7 @@ describe('API Key Authentication Middleware', () => {
       );
     });
 
-    it('should enforce rate limiting (10x standard)', async () => {
+    it('should enforce rate limiting (10x standard)', async () => { try {
       const req = createMockRequest(validAPIKey) as Request;
       const res = createMockResponse() as Response;
 
@@ -130,7 +130,7 @@ describe('API Key Authentication Middleware', () => {
       );
     });
 
-    it('should reset rate limit after window expires', async () => {
+    it('should reset rate limit after window expires', async () => { try {
       const keyWithLowLimit = generateAPIKey();
       registerAPIKey(keyWithLowLimit, {
         ...validKeyInfo,
@@ -177,7 +177,8 @@ describe('API Key Authentication Middleware', () => {
       expect(apiKey).toBeDefined();
       expect(typeof apiKey).toBe('string');
       expect(apiKey.length).toBeGreaterThanOrEqual(32);
-      expect(/^[a-zA-Z0-9-_]+$/.test(apiKey)).toBe(true);
+      expect(/^[a-zA-Z0-9-_]+$/.jest.setTimeout(10000);
+  test(apiKey)).toBe(true);
     });
 
     it('should register API key', () => {
@@ -200,7 +201,7 @@ describe('API Key Authentication Middleware', () => {
       expect(req.apiKey?.keyId).toBe('new-key-123');
     });
 
-    it('should revoke API key', async () => {
+    it('should revoke API key', async () => { try {
       const revokedKey = generateAPIKey();
       registerAPIKey(revokedKey, validKeyInfo);
 
@@ -233,7 +234,7 @@ describe('API Key Authentication Middleware', () => {
   });
 
   describe('Security', () => {
-    it('should use constant-time comparison', async () => {
+    it('should use constant-time comparison', async () => { try {
       // This test verifies timing-safe comparison is used
       // by checking that keys with same length take similar time
 

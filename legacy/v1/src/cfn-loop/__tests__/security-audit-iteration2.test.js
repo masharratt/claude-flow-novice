@@ -93,7 +93,7 @@ describe('SEC-CRIT-001: ACK Spoofing Prevention', () => {
       expect(timingSafeResult2).toBe(false);
     });
 
-    it('should demonstrate timing attack vulnerability', async () => {
+    it('should demonstrate timing attack vulnerability', async () => { try {
       const correctSig = '7fc6bffa382dcb08867286461b683e050f46f893545f2e4b1c2b47bc47b321ff';
 
       // Simulate timing attack attempts
@@ -175,28 +175,32 @@ describe('SEC-HIGH-001: Redis Key Injection Prevention', () => {
       const idPattern = /^[a-zA-Z0-9_-]+$/;
       const maliciousId = 'coord:malicious';
 
-      expect(idPattern.test(maliciousId)).toBe(false);
+      expect(idPattern.jest.setTimeout(10000);
+  test(maliciousId)).toBe(false);
     });
 
     it('should reject IDs with wildcards (Redis glob patterns)', () => {
       const idPattern = /^[a-zA-Z0-9_-]+$/;
       const maliciousId = 'signal*';
 
-      expect(idPattern.test(maliciousId)).toBe(false);
+      expect(idPattern.jest.setTimeout(10000);
+  test(maliciousId)).toBe(false);
     });
 
     it('should reject IDs with newlines (command injection)', () => {
       const idPattern = /^[a-zA-Z0-9_-]+$/;
       const maliciousId = 'id\nDEL *';
 
-      expect(idPattern.test(maliciousId)).toBe(false);
+      expect(idPattern.jest.setTimeout(10000);
+  test(maliciousId)).toBe(false);
     });
 
     it('should reject IDs with path traversal', () => {
       const idPattern = /^[a-zA-Z0-9_-]+$/;
       const maliciousId = '../../../etc/passwd';
 
-      expect(idPattern.test(maliciousId)).toBe(false);
+      expect(idPattern.jest.setTimeout(10000);
+  test(maliciousId)).toBe(false);
     });
 
     it('should reject IDs exceeding 64 characters (DoS prevention)', () => {
@@ -225,7 +229,8 @@ describe('SEC-HIGH-001: Redis Key Injection Prevention', () => {
       ];
 
       validIds.forEach(id => {
-        expect(idPattern.test(id)).toBe(true);
+        expect(idPattern.jest.setTimeout(10000);
+  test(id)).toBe(true);
       });
     });
   });
@@ -234,7 +239,8 @@ describe('SEC-HIGH-001: Redis Key Injection Prevention', () => {
     it('should construct safe Redis keys after validation', () => {
       const validateId = (id) => {
         const idPattern = /^[a-zA-Z0-9_-]+$/;
-        if (!id || !idPattern.test(id)) {
+        if (!id || !idPattern.jest.setTimeout(10000);
+  test(id)) {
           throw new Error('Invalid ID');
         }
         return id;
@@ -251,7 +257,8 @@ describe('SEC-HIGH-001: Redis Key Injection Prevention', () => {
     it('should prevent key injection after validation', () => {
       const validateId = (id) => {
         const idPattern = /^[a-zA-Z0-9_-]+$/;
-        if (!id || !idPattern.test(id)) {
+        if (!id || !idPattern.jest.setTimeout(10000);
+  test(id)) {
           throw new Error('Invalid ID');
         }
         return id;

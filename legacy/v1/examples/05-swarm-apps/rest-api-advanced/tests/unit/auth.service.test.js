@@ -75,7 +75,7 @@ describe('AuthService', () => {
   });
 
   describe('generateRefreshToken', () => {
-    it('should create and return a refresh token', async () => {
+    it('should create and return a refresh token', async () => { try {
       const userId = '123456';
       const deviceInfo = { device: 'mobile', browser: 'Chrome' };
       const mockTokenDoc = { token: 'refresh-token-123' };
@@ -88,7 +88,7 @@ describe('AuthService', () => {
       expect(token).toBe('refresh-token-123');
     });
 
-    it('should work without device info', async () => {
+    it('should work without device info', async () => { try {
       const userId = '123456';
       const mockTokenDoc = { token: 'refresh-token-123' };
 
@@ -102,7 +102,7 @@ describe('AuthService', () => {
   });
 
   describe('refreshAccessToken', () => {
-    it('should refresh access token with valid refresh token', async () => {
+    it('should refresh access token with valid refresh token', async () => { try {
       const refreshToken = 'valid-refresh-token';
       const mockUser = {
         _id: '123456',
@@ -135,7 +135,7 @@ describe('AuthService', () => {
       expect(result.user).toBe(mockUser);
     });
 
-    it('should rotate refresh token when enabled', async () => {
+    it('should rotate refresh token when enabled', async () => { try {
       process.env.ROTATE_REFRESH_TOKENS = 'true';
       const refreshToken = 'old-refresh-token';
       const mockUser = {
@@ -165,7 +165,7 @@ describe('AuthService', () => {
       expect(result.refreshToken).toBe('new-refresh-token');
     });
 
-    it('should throw error for invalid refresh token', async () => {
+    it('should throw error for invalid refresh token', async () => { try {
       const refreshToken = 'invalid-refresh-token';
 
       Token.findOne.mockReturnValue({
@@ -177,7 +177,7 @@ describe('AuthService', () => {
         .toThrow(new ApiError('Invalid or expired refresh token', 401));
     });
 
-    it('should throw error for inactive user', async () => {
+    it('should throw error for inactive user', async () => { try {
       const refreshToken = 'valid-refresh-token';
       const mockUser = {
         _id: '123456',
@@ -201,7 +201,7 @@ describe('AuthService', () => {
   });
 
   describe('blacklistToken', () => {
-    it('should blacklist token in Redis', async () => {
+    it('should blacklist token in Redis', async () => { try {
       const token = 'jwt-token';
       const mockRedis = {
         setex: jest.fn().mockResolvedValue('OK'),
@@ -218,7 +218,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('should use provided TTL', async () => {
+    it('should use provided TTL', async () => { try {
       const token = 'jwt-token';
       const ttl = 1800; // 30 minutes
       const mockRedis = {
@@ -235,14 +235,14 @@ describe('AuthService', () => {
       );
     });
 
-    it('should handle Redis not available', async () => {
+    it('should handle Redis not available', async () => { try {
       const token = 'jwt-token';
       getRedisClient.mockReturnValue(null);
 
       await expect(authService.blacklistToken(token)).resolves.not.toThrow();
     });
 
-    it('should handle Redis errors gracefully', async () => {
+    it('should handle Redis errors gracefully', async () => { try {
       const token = 'jwt-token';
       const mockRedis = {
         setex: jest.fn().mockRejectedValue(new Error('Redis error')),
@@ -368,7 +368,7 @@ describe('AuthService', () => {
   });
 
   describe('sendVerificationEmail', () => {
-    it('should prepare verification email', async () => {
+    it('should prepare verification email', async () => { try {
       const user = {
         email: 'test@example.com',
         name: 'Test User',
@@ -385,7 +385,7 @@ describe('AuthService', () => {
   });
 
   describe('sendPasswordResetEmail', () => {
-    it('should prepare password reset email', async () => {
+    it('should prepare password reset email', async () => { try {
       const user = {
         email: 'test@example.com',
         name: 'Test User',
@@ -400,4 +400,4 @@ describe('AuthService', () => {
       expect(emailData.body).toContain(`${process.env.API_URL}/reset-password?token=${token}`);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -120,7 +120,7 @@ describe('Blocking Coordination Deadlocks', () => {
   let coord1: BlockingCoordinationManager;
   let coord2: BlockingCoordinationManager;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis client
     redis = new Redis(REDIS_CONFIG);
 
@@ -131,7 +131,7 @@ describe('Blocking Coordination Deadlocks', () => {
     process.env.BLOCKING_COORDINATION_SECRET = 'test-secret-deadlock-prevention-123';
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup coordinators
     if (coord1) {
       await coord1.cleanup();
@@ -150,7 +150,7 @@ describe('Blocking Coordination Deadlocks', () => {
   });
 
   describe('Circular Dependency Timeout', () => {
-    it('should timeout circular dependencies within 35s (30s timeout + 5s buffer)', async () => {
+    it('should timeout circular dependencies within 35s (30s timeout + 5s buffer)', async () => { try {
       // Sprint 1 waits for Sprint 2
       coord1 = new BlockingCoordinationManager({
         coordinatorId: 'sprint-1',
@@ -200,7 +200,7 @@ describe('Blocking Coordination Deadlocks', () => {
       console.log(`   Sprint-2 ACKs: ${result2.status === 'fulfilled' ? result2.value.size : 'error'}`);
     }, TEST_TIMEOUT + TIMEOUT_BUFFER + 5000); // Test timeout: 40s (30s + 5s + 5s extra)
 
-    it('should not deadlock forever - timeout mechanism must work', async () => {
+    it('should not deadlock forever - timeout mechanism must work', async () => { try {
       coord1 = new BlockingCoordinationManager({
         coordinatorId: 'sprint-a',
         redisClient: redis,
@@ -239,7 +239,7 @@ describe('Blocking Coordination Deadlocks', () => {
   });
 
   describe('Dependency Cycle Detection', () => {
-    it('should detect and break 3-way circular dependency', async () => {
+    it('should detect and break 3-way circular dependency', async () => { try {
       const dependencyGraph = new DependencyAnalyzer();
 
       // Create 3-way circular dependency:
@@ -260,7 +260,7 @@ describe('Blocking Coordination Deadlocks', () => {
       console.log('✅ 3-way circular dependency correctly detected');
     });
 
-    it('should detect 2-way circular dependency', async () => {
+    it('should detect 2-way circular dependency', async () => { try {
       const dependencyGraph = new DependencyAnalyzer();
 
       // Create 2-way circular dependency:
@@ -279,7 +279,7 @@ describe('Blocking Coordination Deadlocks', () => {
       console.log('✅ 2-way circular dependency correctly detected');
     });
 
-    it('should detect self-referencing dependency', async () => {
+    it('should detect self-referencing dependency', async () => { try {
       const dependencyGraph = new DependencyAnalyzer();
 
       // Sprint depends on itself
@@ -295,7 +295,7 @@ describe('Blocking Coordination Deadlocks', () => {
       console.log('✅ Self-referencing dependency correctly detected');
     });
 
-    it('should allow valid dependency chain (no cycles)', async () => {
+    it('should allow valid dependency chain (no cycles)', async () => { try {
       const dependencyGraph = new DependencyAnalyzer();
 
       // Valid dependency chain:
@@ -316,7 +316,7 @@ describe('Blocking Coordination Deadlocks', () => {
       console.log('✅ Valid dependency chain accepted');
     });
 
-    it('should allow parallel sprints with no dependencies', async () => {
+    it('should allow parallel sprints with no dependencies', async () => { try {
       const dependencyGraph = new DependencyAnalyzer();
 
       // Multiple independent sprints
@@ -336,7 +336,7 @@ describe('Blocking Coordination Deadlocks', () => {
   });
 
   describe('Graceful Timeout Behavior', () => {
-    it('should return empty ACK set on timeout (not throw error)', async () => {
+    it('should return empty ACK set on timeout (not throw error)', async () => { try {
       coord1 = new BlockingCoordinationManager({
         coordinatorId: 'timeout-test',
         redisClient: redis,
@@ -355,7 +355,7 @@ describe('Blocking Coordination Deadlocks', () => {
       console.log('✅ Timeout returns empty ACK set gracefully');
     });
 
-    it('should allow coordinator to continue after timeout', async () => {
+    it('should allow coordinator to continue after timeout', async () => { try {
       coord1 = new BlockingCoordinationManager({
         coordinatorId: 'continue-test',
         redisClient: redis,
@@ -378,7 +378,7 @@ describe('Blocking Coordination Deadlocks', () => {
   });
 
   describe('Timeout Edge Cases', () => {
-    it('should handle zero timeout gracefully', async () => {
+    it('should handle zero timeout gracefully', async () => { try {
       coord1 = new BlockingCoordinationManager({
         coordinatorId: 'zero-timeout-test',
         redisClient: redis,
@@ -392,7 +392,7 @@ describe('Blocking Coordination Deadlocks', () => {
       expect(acks.size).toBe(0);
     });
 
-    it('should handle very large timeout without overflow', async () => {
+    it('should handle very large timeout without overflow', async () => { try {
       coord1 = new BlockingCoordinationManager({
         coordinatorId: 'large-timeout-test',
         redisClient: redis,
@@ -406,7 +406,7 @@ describe('Blocking Coordination Deadlocks', () => {
       // Use Promise.race to avoid actually waiting
       const result = await Promise.race([
         coord1.waitForAcks(['coordinator-y'], 'signal-large', largeTimeout),
-        sleep(100).then(() => 'timeout-check'),
+        sleep(100)await ( => 'timeout-check'),
       ]);
 
       // Should not crash with overflow

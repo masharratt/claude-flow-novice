@@ -110,4 +110,4 @@ describe('SwarmUI Display Formatting', () => {
     expect(result).toContain('    "value": 123,');
     expect(result).toContain('    "array": [');
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

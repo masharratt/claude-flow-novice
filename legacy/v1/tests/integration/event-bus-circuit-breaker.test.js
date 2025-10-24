@@ -43,7 +43,7 @@ const testResults = {
 describe('Event Bus Circuit Breaker Integration', () => {
   let eventBus;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create fresh event bus with short recovery timeout for testing
     eventBus = new QEEventBus({
       throughputTarget: 10000,
@@ -58,7 +58,7 @@ describe('Event Bus Circuit Breaker Integration', () => {
     await eventBus.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (eventBus) {
       // Clear priority queues to avoid shutdown errors with open circuit
       eventBus.priorityQueues.forEach(queue => queue.length = 0);
@@ -69,7 +69,7 @@ describe('Event Bus Circuit Breaker Integration', () => {
   });
 
   describe('Test 1: Normal Operation (CLOSED state)', () => {
-    it('should process events normally when circuit is CLOSED', async () => {
+    it('should process events normally when circuit is CLOSED', async () => { try {
       const result = {
         eventsProcessed: 0,
         state: null,
@@ -124,7 +124,7 @@ describe('Event Bus Circuit Breaker Integration', () => {
   });
 
   describe('Test 2: Circuit Opens After 5 Failures', () => {
-    it('should open circuit after 5 consecutive failures', async () => {
+    it('should open circuit after 5 consecutive failures', async () => { try {
       const result = {
         failuresTriggered: 0,
         state: null,
@@ -179,7 +179,7 @@ describe('Event Bus Circuit Breaker Integration', () => {
   });
 
   describe('Test 3: Open Circuit Rejects Events', () => {
-    it('should reject events when circuit is OPEN', async () => {
+    it('should reject events when circuit is OPEN', async () => { try {
       const result = {
         eventsRejected: 0,
         state: null,
@@ -254,7 +254,7 @@ describe('Event Bus Circuit Breaker Integration', () => {
   });
 
   describe('Test 4: Priority 8-9 Bypass Circuit', () => {
-    it('should allow priority 8-9 events to bypass OPEN circuit', async () => {
+    it('should allow priority 8-9 events to bypass OPEN circuit', async () => { try {
       const result = {
         bypassEvents: 0,
         state: null,
@@ -333,7 +333,7 @@ describe('Event Bus Circuit Breaker Integration', () => {
   });
 
   describe('Test 5: Half-Open Recovery', () => {
-    it('should transition to HALF-OPEN after timeout, then CLOSED after 3 successes', async () => {
+    it('should transition to HALF-OPEN after timeout, then CLOSED after 3 successes', async () => { try {
       const result = {
         states: [],
         recoveryAttempts: 0,
@@ -411,7 +411,7 @@ describe('Event Bus Circuit Breaker Integration', () => {
   });
 
   describe('Test 6: Half-Open Failure Re-Opens Circuit', () => {
-    it('should immediately re-open circuit on failure in HALF-OPEN state', async () => {
+    it('should immediately re-open circuit on failure in HALF-OPEN state', async () => { try {
       const result = {
         states: [],
         circuitOpens: 0,

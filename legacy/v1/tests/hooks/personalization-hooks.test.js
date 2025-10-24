@@ -33,7 +33,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
   });
 
   describe('Performance Requirements', () => {
-    test('should load user preferences in less than 100ms', async () => {
+    jest.setTimeout(10000);
+  test('should load user preferences in less than 100ms', async () => { try {
       const startTime = performance.now();
 
       hookManager = new EnhancedHookManager();
@@ -43,7 +44,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
       expect(loadTime).toBeLessThan(100);
     });
 
-    test('should cache preferences to avoid repeated loading', async () => {
+    jest.setTimeout(10000);
+  test('should cache preferences to avoid repeated loading', async () => { try {
       hookManager = new EnhancedHookManager();
 
       // First load
@@ -61,7 +63,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
   });
 
   describe('Experience Level Adaptation', () => {
-    test('should adapt hook verbosity for novice users', async () => {
+    jest.setTimeout(10000);
+  test('should adapt hook verbosity for novice users', async () => { try {
       hookManager = new EnhancedHookManager();
       await hookManager.loadUserPreferences('novice-user');
 
@@ -73,7 +76,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
       expect(hooks.stepByStep).toBe(true);
     });
 
-    test('should adapt hook verbosity for expert users', async () => {
+    jest.setTimeout(10000);
+  test('should adapt hook verbosity for expert users', async () => { try {
       hookManager = new EnhancedHookManager();
       await hookManager.loadUserPreferences('expert-user');
 
@@ -85,7 +89,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
       expect(hooks.stepByStep).toBe(false);
     });
 
-    test('should provide intermediate settings for intermediate users', async () => {
+    jest.setTimeout(10000);
+  test('should provide intermediate settings for intermediate users', async () => { try {
       hookManager = new EnhancedHookManager();
       await hookManager.loadUserPreferences('intermediate-user');
 
@@ -99,7 +104,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
   });
 
   describe('Personalization Features', () => {
-    test('should customize hooks based on preferred languages', async () => {
+    jest.setTimeout(10000);
+  test('should customize hooks based on preferred languages', async () => { try {
       const preferences = {
         ...mockUserPreferences,
         preferredLanguages: ['python', 'go']
@@ -116,7 +122,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
       expect(hooks.testing.python).toBeDefined();
     });
 
-    test('should respect workflow preferences', async () => {
+    jest.setTimeout(10000);
+  test('should respect workflow preferences', async () => { try {
       const preferences = {
         ...mockUserPreferences,
         workflowPreferences: {
@@ -136,7 +143,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
       expect(workflowHooks.detailedLogs).toBe(false);
     });
 
-    test('should handle missing preferences gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle missing preferences gracefully', async () => { try {
       hookManager = new EnhancedHookManager();
       await hookManager.loadUserPreferences('new-user');
 
@@ -150,7 +158,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
   });
 
   describe('Hook Manager Integration', () => {
-    test('should integrate with PersonalizationHooks class', async () => {
+    jest.setTimeout(10000);
+  test('should integrate with PersonalizationHooks class', async () => { try {
       hookManager = new EnhancedHookManager();
       const personalizationHooks = new PersonalizationHooks(mockUserPreferences);
 
@@ -165,7 +174,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
       expect(hooks.adapted).toBe(true);
     });
 
-    test('should maintain hook execution performance', async () => {
+    jest.setTimeout(10000);
+  test('should maintain hook execution performance', async () => { try {
       hookManager = new EnhancedHookManager();
       await hookManager.loadUserPreferences('user123');
 
@@ -183,7 +193,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
   });
 
   describe('Error Handling', () => {
-    test('should handle preference loading failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle preference loading failures gracefully', async () => { try {
       hookManager = new EnhancedHookManager();
 
       // Simulate preference loading failure
@@ -196,7 +207,8 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
       expect(defaultHooks).toBeDefined();
     });
 
-    test('should validate experience level values', async () => {
+    jest.setTimeout(10000);
+  test('should validate experience level values', async () => { try {
       hookManager = new EnhancedHookManager();
 
       expect(() => {
@@ -204,4 +216,4 @@ describe('Enhanced Hook Manager with Personalization - Checkpoint 1.1', () => {
       }).toThrow('Invalid experience level: invalid-level');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

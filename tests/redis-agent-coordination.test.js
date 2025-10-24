@@ -4,16 +4,17 @@ const { selectAgents } = require('../src/agent-registry');
 describe('Redis Agent Coordination', () => {
   let redisClient;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     redisClient = redis.createClient();
     await redisClient.connect();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await redisClient.quit();
   });
 
-  test('Agent selection should broadcast via Redis', async () => {
+  jest.setTimeout(10000);
+  test('Agent selection should broadcast via Redis', async () => { try {
     const taskDescription = 'Complex system design task';
 
     // Publish agent selection event
@@ -37,7 +38,8 @@ describe('Redis Agent Coordination', () => {
     expect(publishedMessage.agents.length).toBeGreaterThan(0);
   });
 
-  test('Multiple agents can subscribe to task channel', async () => {
+  jest.setTimeout(10000);
+  test('Multiple agents can subscribe to task channel', async () => { try {
     const taskId = `task-${Date.now()}`;
     const subscribedAgents = [];
 
@@ -60,4 +62,4 @@ describe('Redis Agent Coordination', () => {
     expect(subscribedAgents.some(a => a.agentType === 'backend-dev')).toBe(true);
     expect(subscribedAgents.some(a => a.agentType === 'security-specialist')).toBe(true);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

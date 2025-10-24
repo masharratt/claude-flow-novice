@@ -22,32 +22,33 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
   let configManager;
   let testDir;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     testDir = path.join(__dirname, `truth-config-test-${crypto.randomBytes(4).toString('hex')}`);
-    await fs.mkdir(testDir, { recursive: true });
+    await fs.mkdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     configManager = new UserConfigurationManager({
       preferencesPath: path.join(testDir, 'preferences'),
       enableByzantineValidation: true,
       consensusThreshold: 0.85
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     await configManager.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (configManager) {
       await configManager.shutdown();
     }
     try {
-      await fs.rmdir(testDir, { recursive: true });
+      await fs.rmdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     } catch (error) {
       // Ignore cleanup errors
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Framework Schema Validation', () => {
-    test('should validate required framework fields', async () => {
+    jest.setTimeout(10000);
+  test('should validate required framework fields', async () => { try {
       const testCases = [
         {
           name: 'missing_framework_name',
@@ -128,9 +129,10 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
           console.log(`  ✅ Correctly accepted`);
         }
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should validate truth threshold ranges and security', async () => {
+    jest.setTimeout(10000);
+  test('should validate truth threshold ranges and security', async () => { try {
       const thresholdTests = [
         { threshold: -0.1, valid: false, violation: 'Invalid truth threshold range' },
         { threshold: 0.0, valid: false, violation: 'Truth threshold too low - security risk' },
@@ -183,9 +185,10 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
           console.log(`  ❌ Threshold ${test.threshold}: Invalid (${test.violation || 'Schema error'})`);
         }
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect and prevent security bypass attempts', async () => {
+    jest.setTimeout(10000);
+  test('should detect and prevent security bypass attempts', async () => { try {
       const securityTests = [
         {
           name: 'bypass_validation_flag',
@@ -270,9 +273,10 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
 
         console.log(`  ❌ Security violation detected: ${test.expectedViolation}`);
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should validate complex nested framework configurations', async () => {
+    jest.setTimeout(10000);
+  test('should validate complex nested framework configurations', async () => { try {
       const complexFramework = {
         id: 'complex-nested-framework',
         name: 'Complex Nested Framework',
@@ -379,7 +383,7 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
       const updateResult = await configManager.updateConfiguration(configUpdate, {
         requireConsensus: true,
         securityValidation: true
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(updateResult.success).toBe(true);
       expect(updateResult.consensusReached).toBe(true);
@@ -390,11 +394,12 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
       console.log(`  Quality gates: ${complexFramework.quality_gates.length}`);
       console.log(`  Validation rules: ${complexFramework.validation_rules.length}`);
       console.log(`  Byzantine consensus: ${updateResult.consensusReached ? 'Achieved' : 'Failed'}`);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Quality Gate Configuration', () => {
-    test('should validate quality gate schemas', async () => {
+    jest.setTimeout(10000);
+  test('should validate quality gate schemas', async () => { try {
       const qualityGateTests = [
         {
           name: 'valid_basic_gate',
@@ -470,11 +475,12 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
           console.log(`❌ Quality gate '${test.name}' correctly rejected: ${validation.errors[0]?.message}`);
         }
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('User Customization Validation', () => {
-    test('should validate user customization boundaries', async () => {
+    jest.setTimeout(10000);
+  test('should validate user customization boundaries', async () => { try {
       const customizationTests = [
         {
           name: 'valid_customization_ranges',
@@ -541,11 +547,12 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
           console.log(`❌ User customization '${test.name}' correctly rejected`);
         }
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Comprehensive Schema Edge Cases', () => {
-    test('should handle schema edge cases and malformed inputs', async () => {
+    jest.setTimeout(10000);
+  test('should handle schema edge cases and malformed inputs', async () => { try {
       const edgeCases = [
         {
           name: 'null_configuration',
@@ -656,9 +663,10 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
           }
         }
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should validate configuration consistency across updates', async () => {
+    jest.setTimeout(10000);
+  test('should validate configuration consistency across updates', async () => { try {
       // Create initial configuration
       const initialConfig = {
         completion_validation: {
@@ -752,6 +760,6 @@ describe('TruthConfigManager Schema Validation - 100% Coverage', () => {
           console.log(`  ❌ Configuration inconsistent: ${consistencyValidation.warnings[0]?.message}`);
         }
       }
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

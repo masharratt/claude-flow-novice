@@ -7,4 +7,4 @@ describe('Incremental Updates', () => {
       expect(true).toBe(true);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

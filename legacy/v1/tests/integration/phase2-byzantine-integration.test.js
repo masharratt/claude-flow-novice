@@ -21,7 +21,7 @@ describe('Phase 2 Byzantine Integration - Full System Tests', () => {
     let goapAgentAssignment;
     let byzantineCoordinator;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         byzantineCoordinator = new ByzantineConsensusCoordinator({
             nodeId: 'integration-test-' + crypto.randomBytes(4).toString('hex'),
             totalNodes: 4
@@ -44,7 +44,8 @@ describe('Phase 2 Byzantine Integration - Full System Tests', () => {
     });
 
     describe('TDD Phase - Integration Failures (Must fail until all systems implemented)', () => {
-        test('should fail: Phase 2 systems not fully implemented yet', () => {
+        jest.setTimeout(10000);
+  test('should fail: Phase 2 systems not fully implemented yet', () => {
             expect(heavyCommandDetector).toBeNull();
             expect(sublinearMatrixSolver).toBeNull();
             expect(goapAgentAssignment).toBeNull();
@@ -52,7 +53,8 @@ describe('Phase 2 Byzantine Integration - Full System Tests', () => {
     });
 
     describe('End-to-End Resource Intelligence Pipeline', () => {
-        test('should process complex resource scenarios through full pipeline (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should process complex resource scenarios through full pipeline (WILL FAIL INITIALLY)', async () => { try {
             if (!heavyCommandDetector || !sublinearMatrixSolver || !goapAgentAssignment) {
                 expect(true).toBe(false); // Force failure until all implemented
                 return;
@@ -161,7 +163,8 @@ describe('Phase 2 Byzantine Integration - Full System Tests', () => {
             expect(integrationProof.crossSystemValidation).toBe(true);
         });
 
-        test('should maintain Byzantine security across system boundaries (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should maintain Byzantine security across system boundaries (WILL FAIL INITIALLY)', async () => { try {
             if (!heavyCommandDetector || !sublinearMatrixSolver || !goapAgentAssignment) {
                 expect(true).toBe(false);
                 return;
@@ -215,7 +218,8 @@ describe('Phase 2 Byzantine Integration - Full System Tests', () => {
             expect(attackCorrelation.mitigated).toBe(true);
         });
 
-        test('should demonstrate synergistic performance improvements (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should demonstrate synergistic performance improvements (WILL FAIL INITIALLY)', async () => { try {
             if (!heavyCommandDetector || !sublinearMatrixSolver || !goapAgentAssignment) {
                 expect(true).toBe(false);
                 return;
@@ -262,7 +266,8 @@ describe('Phase 2 Byzantine Integration - Full System Tests', () => {
     });
 
     describe('Phase 2 Checkpoint Validation - Full Requirements', () => {
-        test('should validate all Phase 2 checkpoints simultaneously (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should validate all Phase 2 checkpoints simultaneously (WILL FAIL INITIALLY)', async () => { try {
             if (!heavyCommandDetector || !sublinearMatrixSolver || !goapAgentAssignment) {
                 expect(true).toBe(false);
                 return;

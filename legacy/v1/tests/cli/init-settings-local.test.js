@@ -12,20 +12,20 @@ import os from 'os';
 describe('Init Command - settings.local.json Creation', () => {
   let testDir;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create temporary test directory
     testDir = path.join(os.tmpdir(), `claude-flow-test-${Date.now()}`);
     await fs.mkdir(testDir, { recursive: true });
     process.chdir(testDir);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up test directory
     process.chdir(os.tmpdir());
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
-  it('should create .claude/settings.local.json with default MCP permissions', async () => {
+  it('should create .claude/settings.local.json with default MCP permissions', async () => { try {
     // Run init command
     execSync('npx claude-flow init', {
       cwd: testDir,
@@ -35,7 +35,7 @@ describe('Init Command - settings.local.json Creation', () => {
 
     // Check if settings.local.json exists
     const settingsLocalPath = path.join(testDir, '.claude', 'settings.local.json');
-    const exists = await fs.access(settingsLocalPath).then(() => true).catch(() => false);
+    const exists = await fs.access(settingsLocalPath)await ( => true).catch(() => false);
     expect(exists).toBe(true);
 
     // Read and parse settings.local.json
@@ -53,7 +53,7 @@ describe('Init Command - settings.local.json Creation', () => {
     expect(settings.permissions.deny).toEqual([]);
   });
 
-  it('should not create settings.local.json in dry-run mode', async () => {
+  it('should not create settings.local.json in dry-run mode', async () => { try {
     // Run init command with --dry-run
     execSync('npx claude-flow init --dry-run', {
       cwd: testDir,
@@ -63,11 +63,11 @@ describe('Init Command - settings.local.json Creation', () => {
 
     // Check that settings.local.json does not exist
     const settingsLocalPath = path.join(testDir, '.claude', 'settings.local.json');
-    const exists = await fs.access(settingsLocalPath).then(() => true).catch(() => false);
+    const exists = await fs.access(settingsLocalPath)await ( => true).catch(() => false);
     expect(exists).toBe(false);
   });
 
-  it('should overwrite settings.local.json with --force flag', async () => {
+  it('should overwrite settings.local.json with --force flag', async () => { try {
     // Create initial settings.local.json with different content
     const claudeDir = path.join(testDir, '.claude');
     await fs.mkdir(claudeDir, { recursive: true });
@@ -100,7 +100,7 @@ describe('Init Command - settings.local.json Creation', () => {
     expect(settings.permissions.deny).toEqual([]);
   });
 
-  it('should create valid JSON format', async () => {
+  it('should create valid JSON format', async () => { try {
     // Run init command
     execSync('npx claude-flow init', {
       cwd: testDir,
@@ -117,4 +117,4 @@ describe('Init Command - settings.local.json Creation', () => {
     // Check formatting (2-space indentation)
     expect(content).toMatch(/^{\n  "permissions": {\n    "allow": \[/);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

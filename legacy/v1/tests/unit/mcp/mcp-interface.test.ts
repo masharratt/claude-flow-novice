@@ -33,7 +33,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
   let mockLogger: Logger;
   let eventBus: EventBus;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     setupTestEnv();
     tempDir = await FileSystemTestUtils.createTempDir('mcp-test-');
     fakeTime = new FakeTime();
@@ -49,7 +49,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
     eventBus = EventBus.getInstance(false);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     fakeTime.restore();
     await FileSystemTestUtils.cleanup([tempDir]);
     await cleanupTestEnv();
@@ -189,7 +189,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       stdioTransport = new StdioTransport(mockLogger);
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (stdioTransport) {
         await stdioTransport.stop();
       }
@@ -199,7 +199,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       expect(stdioTransport).toBeDefined();
     });
 
-    it('should handle stdio start and stop', async () => {
+    it('should handle stdio start and stop', async () => { try {
       // Since we can't actually test stdin/stdout in tests, we'll just verify the methods exist
       expect(typeof stdioTransport.start).toBe('function');
       expect(typeof stdioTransport.stop).toBe('function');
@@ -212,18 +212,18 @@ describe('MCP Interface - Comprehensive Tests', () => {
     let httpTransport: HttpTransport;
     let mockServer: any;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create a simple HTTP server for testing
       mockServer = {
         port: TEST_CONFIG.mocks.mcp_server_port,
         responses: new Map(),
         
-        start: async () => {
+        start: async () => { try {
           // Mock HTTP server implementation
           mockServer.running = true;
         },
         
-        stop: async () => {
+        stop: async () => { try {
           mockServer.running = false;
         },
         
@@ -243,7 +243,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       await mockServer.start();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (httpTransport) {
         await httpTransport.stop();
       }
@@ -256,7 +256,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       expect(httpTransport).toBeDefined();
     });
 
-    it('should handle HTTP start and stop', async () => {
+    it('should handle HTTP start and stop', async () => { try {
       expect(typeof httpTransport.start).toBe('function');
       expect(typeof httpTransport.stop).toBe('function');
       expect(typeof httpTransport.connect).toBe('function');
@@ -267,7 +267,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
   describe('MCP Server Implementation', () => {
     let mcpServer: MCPServer;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const config = {
         transport: 'stdio' as const,
         host: 'localhost',
@@ -288,7 +288,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       mcpServer = new MCPServer(config, eventBus, mockLogger);
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (mcpServer) {
         await mcpServer.stop();
       }
@@ -337,7 +337,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
     let mcpClient: MCPClient;
     let mockTransport: any;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create a mock transport
       mockTransport = {
         connect: () => Promise.resolve(),
@@ -360,13 +360,13 @@ describe('MCP Interface - Comprehensive Tests', () => {
       });
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (mcpClient && mcpClient.isConnected()) {
         await mcpClient.disconnect();
       }
     });
 
-    it('should connect and disconnect correctly', async () => {
+    it('should connect and disconnect correctly', async () => { try {
       await mcpClient.connect();
       expect(mcpClient.isConnected()).toBe(true);
       
@@ -374,7 +374,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       expect(mcpClient.isConnected()).toBe(false);
     });
 
-    it('should send requests correctly', async () => {
+    it('should send requests correctly', async () => { try {
       await mcpClient.connect();
       
       const result = await mcpClient.request('test_method', { param: 'value' });
@@ -407,7 +407,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       sessionManager = new SessionManager(config, mockLogger);
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (sessionManager) {
         // Session manager doesn't have stop method, cleanup is automatic
       }
@@ -439,7 +439,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       loadBalancer = new LoadBalancer(config, mockLogger);
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (loadBalancer) {
         // Load balancer cleanup
       }
@@ -464,7 +464,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       authManager = new AuthManager(config, mockLogger);
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (authManager) {
         // Cleanup if needed
       }
@@ -476,7 +476,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
   });
 
   describe('Error Handling and Recovery', () => {
-    it('should handle transport failures gracefully', async () => {
+    it('should handle transport failures gracefully', async () => { try {
       const faultyTransport = {
         connect: () => Promise.reject(new Error('Connection failed')),
         disconnect: () => Promise.resolve(),
@@ -499,7 +499,7 @@ describe('MCP Interface - Comprehensive Tests', () => {
       );
     });
 
-    it('should handle malformed messages correctly', async () => {
+    it('should handle malformed messages correctly', async () => { try {
       const errorScenarios = generateErrorScenarios();
       
       for (const scenario of errorScenarios) {

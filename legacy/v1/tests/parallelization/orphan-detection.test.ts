@@ -115,7 +115,7 @@ async function spawnAgent(
 
   // Start heartbeat if enabled
   if (enableHeartbeat) {
-    agent.heartbeatInterval = setInterval(async () => {
+    agent.heartbeatInterval = setInterval(async () => { try {
       if (agent.stopped) return;
 
       try {
@@ -355,7 +355,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
   let memoryTracker: MemoryTracker;
   let spawnedAgents: AgentInstance[] = [];
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create Redis connection
     redis = new Redis(DEFAULT_REDIS_CONFIG);
     await redis.ping();
@@ -373,7 +373,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
     spawnedAgents = [];
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Stop all agent heartbeats
     for (const agent of spawnedAgents) {
       stopAgentHeartbeat(agent);
@@ -391,7 +391,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
   });
 
   describe('Orphan Cleanup', () => {
-    it('should cleanup all orphans within 3 minutes', async () => {
+    it('should cleanup all orphans within 3 minutes', async () => { try {
       // Spawn 20 agents
       const agentCount = 20;
       const agents: AgentInstance[] = [];
@@ -452,7 +452,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
       expect(memoryGrowth).toBeLessThan(TEST_CONFIG.MEMORY_TOLERANCE);
     }, 5 * 60 * 1000); // 5 minute test timeout
 
-    it('should detect orphans without cleanup', async () => {
+    it('should detect orphans without cleanup', async () => { try {
       // Spawn agents without heartbeat intervals
       const agents: AgentInstance[] = [];
       const spawnTime = Date.now();
@@ -490,7 +490,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
   });
 
   describe('Memory Leak Detection', () => {
-    it('should detect memory leak with 100MB growth threshold', async () => {
+    it('should detect memory leak with 100MB growth threshold', async () => { try {
       // Record baseline
       const baseline = await memoryTracker.setBaseline();
 
@@ -525,7 +525,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
       }
     }, 60000);
 
-    it('should not detect leak under threshold', async () => {
+    it('should not detect leak under threshold', async () => { try {
       // Record baseline
       await memoryTracker.setBaseline();
 
@@ -552,7 +552,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
   });
 
   describe('Long-Running Epic Stability', () => {
-    it('should maintain stable memory over 10 sequential epics', async () => {
+    it('should maintain stable memory over 10 sequential epics', async () => { try {
       const memoryReadings: number[] = [];
       const epicCount = 10;
 
@@ -604,7 +604,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
       expect(totalGrowth).toBeLessThan(50 * 1024 * 1024); // 50MB total
     }, 5 * 60 * 1000); // 5 minute test timeout
 
-    it('should cleanup orphans between epics', async () => {
+    it('should cleanup orphans between epics', async () => { try {
       const epicCount = 3;
 
       for (let epicNum = 0; epicNum < epicCount; epicNum++) {
@@ -635,7 +635,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
   });
 
   describe('Orphan Detector Edge Cases', () => {
-    it('should handle no orphans gracefully', async () => {
+    it('should handle no orphans gracefully', async () => { try {
       // Spawn agents with active heartbeats
       for (let i = 0; i < 5; i++) {
         const agent = await spawnAgent(redis, `healthy-agent-${i}`, true);
@@ -650,7 +650,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
       expect(result.orphanIds).toHaveLength(0);
     });
 
-    it('should handle agents without heartbeat keys', async () => {
+    it('should handle agents without heartbeat keys', async () => { try {
       // Create agent without heartbeat
       await redis.hset('agent:no-heartbeat', {
         id: 'no-heartbeat',
@@ -666,7 +666,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
   });
 
   describe('Memory Tracker Edge Cases', () => {
-    it('should throw error if baseline not set', async () => {
+    it('should throw error if baseline not set', async () => { try {
       const tracker = new MemoryTracker(redis);
 
       await expect(tracker.checkForMemoryLeak()).rejects.toThrow(
@@ -674,7 +674,7 @@ describe('Orphan Detection and Memory Leak Prevention', () => {
       );
     });
 
-    it('should handle memory fluctuations', async () => {
+    it('should handle memory fluctuations', async () => { try {
       // Set baseline
       await memoryTracker.setBaseline();
 

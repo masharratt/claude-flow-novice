@@ -4,7 +4,7 @@ const app = require('../src/server');
 
 describe('Users API Tests', () => {
   describe('GET /api/v1/users', () => {
-    it('should get all users', async () => {
+    it('should get all users', async () => { try {
       const response = await request(app)
         .get('/api/v1/users')
         .expect(200);
@@ -15,7 +15,7 @@ describe('Users API Tests', () => {
       expect(response.body.data.length).toBeGreaterThan(0);
     });
 
-    it('should support pagination', async () => {
+    it('should support pagination', async () => { try {
       const response = await request(app)
         .get('/api/v1/users?page=1&limit=2')
         .expect(200);
@@ -27,7 +27,7 @@ describe('Users API Tests', () => {
   });
 
   describe('GET /api/v1/users/:id', () => {
-    it('should get user by id', async () => {
+    it('should get user by id', async () => { try {
       const response = await request(app)
         .get('/api/v1/users/1')
         .expect(200);
@@ -38,7 +38,7 @@ describe('Users API Tests', () => {
       expect(response.body.data).toHaveProperty('email');
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it('should return 404 for non-existent user', async () => { try {
       const response = await request(app)
         .get('/api/v1/users/9999')
         .expect(404);
@@ -49,7 +49,7 @@ describe('Users API Tests', () => {
   });
 
   describe('POST /api/v1/users', () => {
-    it('should create a new user', async () => {
+    it('should create a new user', async () => { try {
       const newUser = {
         name: 'Test User',
         email: 'test@example.com',
@@ -68,7 +68,7 @@ describe('Users API Tests', () => {
       expect(response.body.data.email).toBe(newUser.email);
     });
 
-    it('should validate required fields', async () => {
+    it('should validate required fields', async () => { try {
       const response = await request(app)
         .post('/api/v1/users')
         .send({ name: 'Test' }) // Missing email
@@ -78,7 +78,7 @@ describe('Users API Tests', () => {
       expect(Array.isArray(response.body.errors)).toBe(true);
     });
 
-    it('should validate email format', async () => {
+    it('should validate email format', async () => { try {
       const response = await request(app)
         .post('/api/v1/users')
         .send({ name: 'Test', email: 'invalid-email' })
@@ -90,7 +90,7 @@ describe('Users API Tests', () => {
   });
 
   describe('PUT /api/v1/users/:id', () => {
-    it('should update user', async () => {
+    it('should update user', async () => { try {
       const updateData = {
         name: 'Updated Name',
         email: 'updated@example.com',
@@ -107,7 +107,7 @@ describe('Users API Tests', () => {
       expect(response.body.data.name).toBe(updateData.name);
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it('should return 404 for non-existent user', async () => { try {
       const response = await request(app)
         .put('/api/v1/users/9999')
         .send({ name: 'Test', email: 'test@example.com' })
@@ -119,7 +119,7 @@ describe('Users API Tests', () => {
   });
 
   describe('DELETE /api/v1/users/:id', () => {
-    it('should delete user', async () => {
+    it('should delete user', async () => { try {
       // First create a user to delete
       const createResponse = await request(app)
         .post('/api/v1/users')
@@ -141,7 +141,7 @@ describe('Users API Tests', () => {
         .expect(404);
     });
 
-    it('should return 404 for non-existent user', async () => {
+    it('should return 404 for non-existent user', async () => { try {
       const response = await request(app)
         .delete('/api/v1/users/9999')
         .expect(404);
@@ -150,4 +150,4 @@ describe('Users API Tests', () => {
       expect(response.body.message).toBe('User not found');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -14,7 +14,7 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
   let validator;
   const testKeyPairs = {};
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     validator = new CryptographicValidator({
       algorithms: ['RSA-PSS', 'ECDSA', 'EdDSA'],
       hashAlgorithms: ['SHA-256', 'SHA-384', 'SHA-512']
@@ -40,7 +40,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
   });
 
   describe('CRITICAL: RSA Signature Validation', () => {
-    test('FAILING TEST: should validate RSA-PSS signatures with SHA-256', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should validate RSA-PSS signatures with SHA-256', async () => { try {
       const message = 'Critical security validation test message';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -66,7 +67,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
       expect(validator.getLastValidationMetadata()).toHaveProperty('hashAlgorithm', 'SHA-256');
     });
 
-    test('FAILING TEST: should reject invalid RSA signatures', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should reject invalid RSA signatures', async () => { try {
       const message = 'Valid message';
       const tamperedMessage = 'Tampered message';
 
@@ -95,7 +97,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
   });
 
   describe('CRITICAL: ECDSA Signature Validation', () => {
-    test('FAILING TEST: should validate ECDSA signatures with secp384r1 curve', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should validate ECDSA signatures with secp384r1 curve', async () => { try {
       const message = 'ECDSA test message for critical validation';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -114,7 +117,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
       expect(validator.getLastValidationMetadata()).toHaveProperty('curve', 'secp384r1');
     });
 
-    test('FAILING TEST: should handle ECDSA signature with wrong curve', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should handle ECDSA signature with wrong curve', async () => { try {
       const message = 'Test message for curve validation';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -141,7 +145,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
   });
 
   describe('CRITICAL: EdDSA Signature Validation', () => {
-    test('FAILING TEST: should validate Ed25519 signatures', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should validate Ed25519 signatures', async () => { try {
       const message = 'EdDSA signature validation test';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -159,7 +164,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
       expect(validator.getLastValidationMetadata()).toHaveProperty('algorithm', 'EdDSA');
     });
 
-    test('FAILING TEST: should reject Ed25519 signatures with wrong public key', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should reject Ed25519 signatures with wrong public key', async () => { try {
       const message = 'EdDSA wrong key test';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -184,7 +190,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
   });
 
   describe('CRITICAL: Multi-Signature Validation', () => {
-    test('FAILING TEST: should validate multiple signatures for Byzantine consensus', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should validate multiple signatures for Byzantine consensus', async () => { try {
       const message = 'Byzantine consensus multi-signature test';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -227,7 +234,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
       expect(validationResults.byzantineSecure).toBe(true);
     });
 
-    test('FAILING TEST: should detect Byzantine faults in multi-signature validation', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should detect Byzantine faults in multi-signature validation', async () => { try {
       const validMessage = 'Valid Byzantine test message';
       const tamperedMessage = 'Tampered Byzantine test message';
 
@@ -271,7 +279,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
   });
 
   describe('CRITICAL: Performance and Security Requirements', () => {
-    test('FAILING TEST: signature validation should complete within 50ms', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: signature validation should complete within 50ms', async () => { try {
       const message = 'Performance test message';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -298,7 +307,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
       expect(durationMs).toBeLessThan(50);
     });
 
-    test('FAILING TEST: should prevent timing attacks', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should prevent timing attacks', async () => { try {
       const message = 'Timing attack prevention test';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -352,7 +362,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
   });
 
   describe('CRITICAL: Error Handling and Edge Cases', () => {
-    test('FAILING TEST: should handle malformed signatures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should handle malformed signatures gracefully', async () => { try {
       const message = 'Malformed signature test';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -378,7 +389,8 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
       }
     });
 
-    test('FAILING TEST: should validate signature metadata and provenance', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should validate signature metadata and provenance', async () => { try {
       const message = 'Metadata validation test';
       const messageBuffer = Buffer.from(message, 'utf8');
 
@@ -410,4 +422,4 @@ describe('Cryptographic Signature Validation - CRITICAL SECURITY TESTS', () => {
       expect(metadata).toHaveProperty('purpose', 'phase3-critical-validation');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

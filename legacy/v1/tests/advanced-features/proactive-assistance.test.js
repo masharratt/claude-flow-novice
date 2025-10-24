@@ -34,12 +34,13 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
     });
 
     describe('Predictable Failure Prevention with Byzantine Security', () => {
-        it('should prevent 80% of predictable failures with malicious suggestion protection', async () => {
+        it('should prevent 80% of predictable failures with malicious suggestion protection', async () => { try {
             // TDD: Write test FIRST - this should fail initially
             const potentialFailureScenarios = [
                 {
                     type: 'syntax_error',
-                    code: 'function test() { console.log("missing bracket"',
+                    code: 'function jest.setTimeout(10000);
+  test() { console.log("missing bracket"',
                     severity: 'high',
                     predictability: 0.95
                 },
@@ -51,7 +52,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
                 },
                 {
                     type: 'async_race_condition',
-                    code: 'let result; fetch("/api").then(r => result = r); return result;',
+                    code: 'let result; fetch("/api")await r => result = r; return result;',
                     severity: 'high',
                     predictability: 0.72
                 },
@@ -106,7 +107,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
                 });
         });
 
-        it('should provide contextual failure prevention suggestions with user trust validation', async () => {
+        it('should provide contextual failure prevention suggestions with user trust validation', async () => { try {
             const codeContext = {
                 language: 'javascript',
                 framework: 'react',
@@ -116,7 +117,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
                     const [user, setUser] = useState();
 
                     useEffect(() => {
-                        fetchUser().then(setUser);
+                        fetchUser()await setUser;
                     }, []); // Missing dependency
 
                     return <div>{user.name}</div>; // Potential null reference
@@ -147,7 +148,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
             expect(suggestionTypes).to.include('null_safety');
         });
 
-        it('should handle malicious suggestion attacks and maintain user trust', async () => {
+        it('should handle malicious suggestion attacks and maintain user trust', async () => { try {
             // Simulate malicious suggestion injection
             const maliciousSuggestions = [
                 {
@@ -203,7 +204,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
     });
 
     describe('User Acceptance and Satisfaction Tracking', () => {
-        it('should achieve 70% suggestion acceptance rate with trust building', async () => {
+        it('should achieve 70% suggestion acceptance rate with trust building', async () => { try {
             const suggestionScenarios = Array.from({length: 20}, (_, i) => ({
                 id: `suggestion-${i}`,
                 context: {
@@ -259,7 +260,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
             expect(trustProgression[trustProgression.length - 1]).to.be.at.least(trustProgression[0]);
         });
 
-        it('should adapt suggestions based on user feedback and maintain Byzantine consensus', async () => {
+        it('should adapt suggestions based on user feedback and maintain Byzantine consensus', async () => { try {
             const initialSuggestion = {
                 type: 'code_optimization',
                 description: 'Use arrow function for better performance',
@@ -304,7 +305,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
     });
 
     describe('Real-time Proactive Monitoring', () => {
-        it('should monitor code changes in real-time and provide immediate assistance', async () => {
+        it('should monitor code changes in real-time and provide immediate assistance', async () => { try {
             const monitoringSession = await proactiveSystem.startMonitoringSession({
                 sessionId: 'test-session-' + Date.now(),
                 byzantineProtection: true,
@@ -316,7 +317,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
                     timestamp: Date.now(),
                     file: 'src/api.js',
                     change: 'added function without error handling',
-                    code: 'function fetchData(url) { return fetch(url).then(r => r.json()); }'
+                    code: 'function fetchData(url) { return fetch(url)await r => r.json(); }'
                 },
                 {
                     timestamp: Date.now() + 1000,
@@ -357,7 +358,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
             });
         });
 
-        it('should prioritize assistance based on severity and user context', async () => {
+        it('should prioritize assistance based on severity and user context', async () => { try {
             const priorityScenarios = [
                 {
                     severity: 'critical',
@@ -416,7 +417,7 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
     });
 
     describe('Integration with Context-Aware Smart Hooks', () => {
-        it('should work seamlessly with context detection for enhanced assistance', async () => {
+        it('should work seamlessly with context detection for enhanced assistance', async () => { try {
             // Simulate integration with Phase 5.1 Context-Aware Smart Hooks
             const contextData = {
                 language: 'typescript',
@@ -468,4 +469,4 @@ describe('Proactive Assistance System - Phase 5.2 TDD Tests with Byzantine Secur
             feedback: accepted ? 'helpful' : 'not_applicable'
         };
     }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

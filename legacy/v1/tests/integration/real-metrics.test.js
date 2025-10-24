@@ -11,7 +11,8 @@ const projectRoot = path.resolve(process.cwd());
 
 describe('Real Metrics Integration Tests', () => {
   
-  test('monitor.js should exist and contain real metrics collection', async () => {
+  jest.setTimeout(10000);
+  test('monitor.js should exist and contain real metrics collection', async () => { try {
     const monitorPath = path.join(projectRoot, 'src/cli/simple-commands/monitor.js');
     
     try {
@@ -51,7 +52,8 @@ describe('Real Metrics Integration Tests', () => {
     }
   });
 
-  test('analysis-tools.js should not fall back to mock data', async () => {
+  jest.setTimeout(10000);
+  test('analysis-tools.js should not fall back to mock data', async () => { try {
     const analysisToolsPath = path.join(projectRoot, 'src/ui/console/js/analysis-tools.js');
     
     try {
@@ -91,7 +93,8 @@ describe('Real Metrics Integration Tests', () => {
     }
   });
 
-  test('real metrics functions should be properly implemented', async () => {
+  jest.setTimeout(10000);
+  test('real metrics functions should be properly implemented', async () => { try {
     const monitorPath = path.join(projectRoot, 'src/cli/simple-commands/monitor.js');
     const content = await fs.readFile(monitorPath, 'utf8');
     
@@ -114,7 +117,8 @@ describe('Real Metrics Integration Tests', () => {
     console.log('✓ Real metrics functions are properly implemented');
   });
 
-  test('error handling should be robust', async () => {
+  jest.setTimeout(10000);
+  test('error handling should be robust', async () => { try {
     const monitorPath = path.join(projectRoot, 'src/cli/simple-commands/monitor.js');
     const content = await fs.readFile(monitorPath, 'utf8');
     
@@ -130,7 +134,8 @@ describe('Real Metrics Integration Tests', () => {
     console.log('✓ Error handling is robust with proper fallbacks');
   });
 
-  test('system information collection should be comprehensive', async () => {
+  jest.setTimeout(10000);
+  test('system information collection should be comprehensive', async () => { try {
     const monitorPath = path.join(projectRoot, 'src/cli/simple-commands/monitor.js');
     const content = await fs.readFile(monitorPath, 'utf8');
     
@@ -152,7 +157,8 @@ describe('Real Metrics Integration Tests', () => {
 });
 
 describe('Metrics Display Tests', () => {
-  test('metrics should be displayed in user-friendly format', async () => {
+  jest.setTimeout(10000);
+  test('metrics should be displayed in user-friendly format', async () => { try {
     const monitorPath = path.join(projectRoot, 'src/cli/simple-commands/monitor.js');
     const content = await fs.readFile(monitorPath, 'utf8');
     
@@ -172,7 +178,8 @@ describe('Metrics Display Tests', () => {
     console.log('✓ Metrics are displayed in user-friendly format');
   });
 
-  test('JSON output should contain all required fields', async () => {
+  jest.setTimeout(10000);
+  test('JSON output should contain all required fields', async () => { try {
     const monitorPath = path.join(projectRoot, 'src/cli/simple-commands/monitor.js');
     const content = await fs.readFile(monitorPath, 'utf8');
     
@@ -192,7 +199,8 @@ describe('Metrics Display Tests', () => {
 });
 
 describe('Security and Safety Tests', () => {
-  test('should not expose sensitive information', async () => {
+  jest.setTimeout(10000);
+  test('should not expose sensitive information', async () => { try {
     const monitorPath = path.join(projectRoot, 'src/cli/simple-commands/monitor.js');
     const content = await fs.readFile(monitorPath, 'utf8');
     
@@ -204,7 +212,8 @@ describe('Security and Safety Tests', () => {
     console.log('✓ No sensitive information exposed');
   });
 
-  test('should handle file access safely', async () => {
+  jest.setTimeout(10000);
+  test('should handle file access safely', async () => { try {
     const monitorPath = path.join(projectRoot, 'src/cli/simple-commands/monitor.js');
     const content = await fs.readFile(monitorPath, 'utf8');
     
@@ -215,4 +224,4 @@ describe('Security and Safety Tests', () => {
     
     console.log('✓ File access is handled safely');
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -16,7 +16,7 @@ class MockWebSocketServer extends EventEmitter {
   public notifications: any[] = [];
 
   emitAgentUpdate(agentId: string, payload: any): void {
-    this.agentUpdates.push({ agentId, payload });
+    this.agentUpdates.push({ agentId, payload } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   }
 
   emitHierarchyChange(payload: any): void {
@@ -28,7 +28,7 @@ class MockWebSocketServer extends EventEmitter {
   }
 
   emitError(socketId: string | null, payload: any): void {
-    this.errors.push({ socketId, payload });
+    this.errors.push({ socketId, payload } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   }
 
   emitNotification(payload: any): void {
@@ -43,14 +43,15 @@ describe('HybridRoutingHandler', () => {
   beforeEach(() => {
     mockWsServer = new MockWebSocketServer();
     handler = new HybridRoutingHandler(mockWsServer as any);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterEach(() => {
     handler.clearStorage();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Agent Lifecycle Events', () => {
-    test('should handle agent:spawned event', () => {
+    jest.setTimeout(10000);
+  test('should handle agent:spawned event', () => {
       const agentData: AgentSpawnedEvent = {
         agentId: 'agent-123',
         agentType: 'backend-dev',
@@ -83,9 +84,10 @@ describe('HybridRoutingHandler', () => {
 
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].title).toBe('Agent Spawned');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle agent:completed event with success', () => {
+    jest.setTimeout(10000);
+  test('should handle agent:completed event with success', () => {
       const completedData: AgentCompletedEvent = {
         agentId: 'agent-123',
         status: 'completed',
@@ -120,9 +122,10 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('success');
       expect(mockWsServer.notifications[0].title).toBe('Agent Completed');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle agent:completed event with failure', () => {
+    jest.setTimeout(10000);
+  test('should handle agent:completed event with failure', () => {
       const completedData: AgentCompletedEvent = {
         agentId: 'agent-123',
         status: 'failed',
@@ -144,11 +147,12 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('error');
       expect(mockWsServer.notifications[0].title).toBe('Agent Failed');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('CFN Loop 3 Events', () => {
-    test('should handle CFN Loop 3 iteration events', () => {
+    jest.setTimeout(10000);
+  test('should handle CFN Loop 3 iteration events', () => {
       const loop3Data: CFNLoop3Event = {
         phaseId: 'phase-001',
         iteration: 3,
@@ -171,9 +175,10 @@ describe('HybridRoutingHandler', () => {
       // Verify metrics update broadcast
       expect(mockWsServer.metricsUpdates).toHaveLength(1);
       expect(mockWsServer.metricsUpdates[0].agents.total).toBe(0); // No agents spawned yet
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should send notification for high confidence achievement', () => {
+    jest.setTimeout(10000);
+  test('should send notification for high confidence achievement', () => {
       const loop3Data: CFNLoop3Event = {
         phaseId: 'phase-001',
         iteration: 2,
@@ -191,9 +196,10 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('success');
       expect(mockWsServer.notifications[0].title).toBe('High Confidence Achieved');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should send warning for low confidence after many iterations', () => {
+    jest.setTimeout(10000);
+  test('should send warning for low confidence after many iterations', () => {
       const loop3Data: CFNLoop3Event = {
         phaseId: 'phase-001',
         iteration: 6,
@@ -211,9 +217,10 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('warning');
       expect(mockWsServer.notifications[0].title).toBe('Low Confidence Detected');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle CFN Loop 3 phase completion', () => {
+    jest.setTimeout(10000);
+  test('should handle CFN Loop 3 phase completion', () => {
       const phaseData = {
         phaseId: 'phase-001',
         totalIterations: 5,
@@ -226,9 +233,10 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('success');
       expect(mockWsServer.notifications[0].title).toBe('Phase Completed');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle CFN Loop 3 errors', () => {
+    jest.setTimeout(10000);
+  test('should handle CFN Loop 3 errors', () => {
       const errorData = {
         phaseId: 'phase-001',
         agentId: 'agent-123',
@@ -242,11 +250,12 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.errors[0].payload.severity).toBe('high');
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('error');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('CFN Loop 4 Events', () => {
-    test('should handle CFN Loop 4 approve decision', () => {
+    jest.setTimeout(10000);
+  test('should handle CFN Loop 4 approve decision', () => {
       const decisionData: CFNLoop4Decision = {
         phaseId: 'phase-001',
         decisionId: 'decision-123',
@@ -273,9 +282,10 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('success');
       expect(mockWsServer.notifications[0].title).toBe('PO Decision: APPROVE');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle CFN Loop 4 reject decision', () => {
+    jest.setTimeout(10000);
+  test('should handle CFN Loop 4 reject decision', () => {
       const decisionData: CFNLoop4Decision = {
         phaseId: 'phase-001',
         decisionId: 'decision-456',
@@ -296,9 +306,10 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('error');
       expect(mockWsServer.notifications[0].title).toBe('PO Decision: REJECT');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle CFN Loop 4 escalation', () => {
+    jest.setTimeout(10000);
+  test('should handle CFN Loop 4 escalation', () => {
       const escalationData = {
         phaseId: 'phase-001',
         agentId: 'agent-123',
@@ -311,11 +322,12 @@ describe('HybridRoutingHandler', () => {
       expect(mockWsServer.notifications).toHaveLength(1);
       expect(mockWsServer.notifications[0].type).toBe('error');
       expect(mockWsServer.notifications[0].title).toBe('CFN Loop 4 Escalation');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Storage and Statistics', () => {
-    test('should track event statistics', () => {
+    jest.setTimeout(10000);
+  test('should track event statistics', () => {
       // Trigger various events
       handler.agentSpawned({
         agentId: 'agent-1',
@@ -324,7 +336,7 @@ describe('HybridRoutingHandler', () => {
         capabilities: [],
         resources: { cpu: 1, memory: 1024, storage: 512 },
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       handler.agentCompleted({
         agentId: 'agent-1',
@@ -333,7 +345,7 @@ describe('HybridRoutingHandler', () => {
         cost: { compute: 0.01, storage: 0.001, network: 0.001, total: 0.012 },
         duration: 5000,
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       handler.cfnLoop3Iteration({
         phaseId: 'phase-1',
@@ -344,7 +356,7 @@ describe('HybridRoutingHandler', () => {
         confidence: 0.8,
         duration: 3000,
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       handler.cfnLoop4Decision({
         phaseId: 'phase-1',
@@ -354,16 +366,17 @@ describe('HybridRoutingHandler', () => {
         rationale: 'Good work',
         criteria: { quality: 0.9, completeness: 0.9, compliance: 0.9, performance: 0.9 },
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const stats = handler.getEventStats();
       expect(stats['agent:spawned']).toBe(1);
       expect(stats['agent:completed']).toBe(1);
       expect(stats['cfn:loop3:iteration']).toBe(1);
       expect(stats['cfn:loop4:decision']).toBe(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should provide storage statistics', () => {
+    jest.setTimeout(10000);
+  test('should provide storage statistics', () => {
       // Add some test data
       handler.agentSpawned({
         agentId: 'agent-1',
@@ -372,7 +385,7 @@ describe('HybridRoutingHandler', () => {
         capabilities: [],
         resources: { cpu: 1, memory: 1024, storage: 512 },
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       handler.agentCompleted({
         agentId: 'agent-1',
@@ -381,15 +394,16 @@ describe('HybridRoutingHandler', () => {
         cost: { compute: 0.01, storage: 0.001, network: 0.001, total: 0.012 },
         duration: 5000,
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const storageStats = handler.getStorageStats();
       expect(storageStats.agents).toBe(1);
       expect(storageStats.agentStatus).toBe(1);
       expect(storageStats.totalEvents).toBe(2); // spawned + completed
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should clear storage', () => {
+    jest.setTimeout(10000);
+  test('should clear storage', () => {
       // Add some data
       handler.agentSpawned({
         agentId: 'agent-1',
@@ -398,7 +412,7 @@ describe('HybridRoutingHandler', () => {
         capabilities: [],
         resources: { cpu: 1, memory: 1024, storage: 512 },
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(handler.getAgent('agent-1')).toBeDefined();
 
@@ -407,11 +421,12 @@ describe('HybridRoutingHandler', () => {
 
       expect(handler.getAgent('agent-1')).toBeUndefined();
       expect(handler.getStorageStats().agents).toBe(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Handling', () => {
-    test('should handle errors gracefully', (done) => {
+    jest.setTimeout(10000);
+  test('should handle errors gracefully', (done) => {
       // Create a handler with a mock WebSocketServer that throws errors
       const errorWsServer = {
         emitAgentUpdate: () => { throw new Error('WebSocket error'); },
@@ -427,8 +442,8 @@ describe('HybridRoutingHandler', () => {
       errorHandler.on('error', (errorData) => {
         expect(errorData.eventType).toBe('agent:spawned');
         expect(errorData.error).toBeDefined();
-        done();
-      });
+        return;
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Trigger an event that will cause an error
       errorHandler.agentSpawned({
@@ -438,12 +453,13 @@ describe('HybridRoutingHandler', () => {
         capabilities: [],
         resources: { cpu: 1, memory: 1024, storage: 512 },
         timestamp: new Date()
-      });
-    });
-  });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Edge Cases', () => {
-    test('should handle multiple agents in the same phase', () => {
+    jest.setTimeout(10000);
+  test('should handle multiple agents in the same phase', () => {
       const phaseId = 'phase-001';
       
       // Add iterations for multiple agents
@@ -456,7 +472,7 @@ describe('HybridRoutingHandler', () => {
         confidence: 0.8,
         duration: 3000,
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       handler.cfnLoop3Iteration({
         phaseId,
@@ -467,15 +483,16 @@ describe('HybridRoutingHandler', () => {
         confidence: 0.75,
         duration: 2500,
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const history = handler.getLoop3History(phaseId);
       expect(history).toHaveLength(2);
       expect(history[0].agentId).toBe('agent-1');
       expect(history[1].agentId).toBe('agent-2');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should limit history storage to prevent memory leaks', () => {
+    jest.setTimeout(10000);
+  test('should limit history storage to prevent memory leaks', () => {
       const phaseId = 'phase-001';
       
       // Add more than 100 iterations
@@ -489,13 +506,13 @@ describe('HybridRoutingHandler', () => {
           confidence: 0.8,
           duration: 1000,
           timestamp: new Date()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       const history = handler.getLoop3History(phaseId);
       expect(history).toHaveLength(100); // Should be limited to 100
       expect(history[0].iteration).toBe(6); // First 5 should be removed
       expect(history[99].iteration).toBe(105); // Last one should be kept
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

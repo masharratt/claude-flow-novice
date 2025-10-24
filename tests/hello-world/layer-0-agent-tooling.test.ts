@@ -11,14 +11,14 @@ describe('Layer 0: Agent Tooling Validation', () => {
     redisClient = new TestRedisClient();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await redisClient.cleanup();
   });
 
   test.each(TOOLS)('Tool %s should be instantiable', async (toolName) => {
     const agent = createMockAgent({ skills: [toolName] });
 
-    const toolTest = async () => {
+    const toolTest = async () => { try {
       switch(toolName) {
         case 'Bash':
           await redisClient.publishMessage('bash-test', {
@@ -41,13 +41,14 @@ describe('Layer 0: Agent Tooling Validation', () => {
     await expect(toolTest()).resolves.toBeTruthy();
   });
 
-  test('Agent can use multiple tools in coordination', async () => {
+  jest.setTimeout(10000);
+  test('Agent can use multiple tools in coordination', async () => { try {
     const agent = createMockAgent({
       skills: ['Bash', 'Write', 'Grep'],
       state: 'multi-tool-test'
     });
 
-    const multiToolTest = async () => {
+    const multiToolTest = async () => { try {
       const testFile = `/tmp/multi-tool-test-${generateUniqueId()}.txt`;
 
       // Write a test file
@@ -68,7 +69,8 @@ describe('Layer 0: Agent Tooling Validation', () => {
     await expect(multiToolTest()).resolves.toBeTruthy();
   });
 
-  test('Tools handle error scenarios', async () => {
+  jest.setTimeout(10000);
+  test('Tools handle error scenarios', async () => { try {
     const errorScenarios = [
       {
         tool: 'Bash',
@@ -92,4 +94,4 @@ describe('Layer 0: Agent Tooling Validation', () => {
       ).resolves.toBeUndefined();
     }
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

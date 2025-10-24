@@ -67,7 +67,7 @@ describe('Redis Client Production Tests', () => {
     ...overrides
   });
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Configure Redis connection for testing
     testConfig = {
       host: process.env.REDIS_TEST_HOST || 'localhost',
@@ -81,13 +81,13 @@ describe('Redis Client Production Tests', () => {
     redisClient = await connectRedis(testConfig);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (redisClient) {
       await redisClient.quit();
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test data before each test
     const testKeys = await redisClient.keys('test-swarm-*');
     if (testKeys.length > 0) {
@@ -95,20 +95,20 @@ describe('Redis Client Production Tests', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Additional cleanup after each test
     jest.clearAllMocks();
   });
 
   describe('Connection Management', () => {
-    it('should establish connection with default configuration', async () => {
+    it('should establish connection with default configuration', async () => { try {
       const client = await connectRedis();
       expect(client).toBeDefined();
       expect(client.isOpen).toBe(true);
       await client.quit();
     });
 
-    it('should establish connection with custom configuration', async () => {
+    it('should establish connection with custom configuration', async () => { try {
       const customConfig = {
         host: testConfig.host,
         port: testConfig.port,
@@ -122,7 +122,7 @@ describe('Redis Client Production Tests', () => {
       await client.quit();
     });
 
-    it('should handle connection failures gracefully', async () => {
+    it('should handle connection failures gracefully', async () => { try {
       const invalidConfig = {
         host: 'invalid-host-that-does-not-exist',
         port: 9999,
@@ -132,7 +132,7 @@ describe('Redis Client Production Tests', () => {
       await expect(connectRedis(invalidConfig)).rejects.toThrow('Failed to connect to Redis');
     });
 
-    it('should reconnect after connection loss', async () => {
+    it('should reconnect after connection loss', async () => { try {
       const client = await connectRedis(testConfig);
 
       // Simulate connection loss
@@ -147,7 +147,7 @@ describe('Redis Client Production Tests', () => {
   });
 
   describe('State Persistence and Retrieval', () => {
-    it('should save and retrieve swarm state with data integrity', async () => {
+    it('should save and retrieve swarm state with data integrity', async () => { try {
       const originalState = generateTestSwarmState();
 
       // Save state
@@ -165,13 +165,13 @@ describe('Redis Client Production Tests', () => {
       expect(retrievedState.lastUpdated).toBeGreaterThan(originalState.startTime);
     });
 
-    it('should handle non-existent swarm state gracefully', async () => {
+    it('should handle non-existent swarm state gracefully', async () => { try {
       const nonExistentId = 'non-existent-swarm-id';
       const result = await loadSwarmState(redisClient, nonExistentId);
       expect(result).toBeNull();
     });
 
-    it('should save large swarm states (>1MB) efficiently', async () => {
+    it('should save large swarm states (>1MB) efficiently', async () => { try {
       // Generate large swarm state
       const largeState = generateTestSwarmState({
         agents: Array.from({ length: 1000 }, (_, i) => ({
@@ -218,7 +218,7 @@ describe('Redis Client Production Tests', () => {
       expect(retrievedState.tasks).toHaveLength(2000);
     });
 
-    it('should handle corrupted data gracefully', async () => {
+    it('should handle corrupted data gracefully', async () => { try {
       const swarmId = 'corrupted-test-swarm';
 
       // Save invalid JSON data directly to Redis
@@ -230,7 +230,7 @@ describe('Redis Client Production Tests', () => {
   });
 
   describe('TTL Management and Cleanup', () => {
-    it('should set appropriate TTL for swarm states', async () => {
+    it('should set appropriate TTL for swarm states', async () => { try {
       const testState = generateTestSwarmState();
 
       await saveSwarmState(redisClient, testState.id, testState);
@@ -241,7 +241,7 @@ describe('Redis Client Production Tests', () => {
       expect(ttl).toBeLessThanOrEqual(86400);
     });
 
-    it('should cleanup expired swarms efficiently', async () => {
+    it('should cleanup expired swarms efficiently', async () => { try {
       // Create swarms with different ages
       const oldSwarm1 = generateTestSwarmState({
         id: 'old-swarm-1',
@@ -280,7 +280,7 @@ describe('Redis Client Production Tests', () => {
       expect(old2Exists).toBeNull();
     });
 
-    it('should handle terminal status cleanup', async () => {
+    it('should handle terminal status cleanup', async () => { try {
       const completedSwarm = generateTestSwarmState({
         id: 'completed-swarm',
         status: 'completed',
@@ -313,7 +313,7 @@ describe('Redis Client Production Tests', () => {
   });
 
   describe('Concurrent Operations (1000+ Agents)', () => {
-    it('should handle concurrent state updates for 1000+ agents', async () => {
+    it('should handle concurrent state updates for 1000+ agents', async () => { try {
       const baseSwarmId = `concurrent-test-${Date.now()}`;
       const numAgents = 1000;
       const concurrentOperations = [];
@@ -361,7 +361,7 @@ describe('Redis Client Production Tests', () => {
       }
     });
 
-    it('should handle batch operations efficiently', async () => {
+    it('should handle batch operations efficiently', async () => { try {
       const swarmId = `batch-test-${Date.now()}`;
       const batchSize = 100;
       const numBatches = 10;
@@ -413,14 +413,14 @@ describe('Redis Client Production Tests', () => {
       expect(avgTimePerOp).toBeLessThan(2); // Less than 2ms per operation
     });
 
-    it('should maintain performance under high load', async () => {
+    it('should maintain performance under high load', async () => { try {
       const numOperations = 1500; // Above 1000 threshold
       const operations = [];
       const latencies = [];
 
       // Create mixed operations
       for (let i = 0; i < numOperations; i++) {
-        const operation = async () => {
+        const operation = async () => { try {
           const start = performance.now();
 
           if (i % 3 === 0) {
@@ -459,7 +459,7 @@ describe('Redis Client Production Tests', () => {
   });
 
   describe('Error Handling and Recovery', () => {
-    it('should handle Redis connection failures gracefully', async () => {
+    it('should handle Redis connection failures gracefully', async () => { try {
       // Create a client that will fail
       const failingClient = createClient({
         host: 'invalid-host',
@@ -474,7 +474,7 @@ describe('Redis Client Production Tests', () => {
         .rejects.toThrow();
     });
 
-    it('should validate swarm state data', async () => {
+    it('should validate swarm state data', async () => { try {
       const invalidStates = [
         null,
         undefined,
@@ -490,7 +490,7 @@ describe('Redis Client Production Tests', () => {
       }
     });
 
-    it('should handle memory pressure scenarios', async () => {
+    it('should handle memory pressure scenarios', async () => { try {
       // Generate a very large swarm state to test memory handling
       const hugeState = generateTestSwarmState({
         agents: Array.from({ length: 5000 }, (_, i) => ({
@@ -511,7 +511,7 @@ describe('Redis Client Production Tests', () => {
   });
 
   describe('Performance Benchmarks', () => {
-    it('should meet write performance threshold (<50ms)', async () => {
+    it('should meet write performance threshold (<50ms)', async () => { try {
       const testState = generateTestSwarmState();
       const iterations = 100;
       const latencies = [];
@@ -531,7 +531,7 @@ describe('Redis Client Production Tests', () => {
       expect(p95Latency).toBeLessThan(100); // P95 < 100ms
     });
 
-    it('should meet read performance threshold (<25ms)', async () => {
+    it('should meet read performance threshold (<25ms)', async () => { try {
       const testStates = Array.from({ length: 100 }, (_, i) =>
         generateTestSwarmState({ id: `perf-read-${i}` })
       );
@@ -557,7 +557,7 @@ describe('Redis Client Production Tests', () => {
       expect(p95Latency).toBeLessThan(50); // P95 < 50ms
     });
 
-    it('should maintain throughput (>1000 ops/sec)', async () => {
+    it('should maintain throughput (>1000 ops/sec)', async () => { try {
       const numOperations = 1000;
       const operations = [];
 
@@ -583,7 +583,7 @@ describe('Redis Client Production Tests', () => {
   });
 
   describe('Health Monitoring and Diagnostics', () => {
-    it('should provide accurate health status', async () => {
+    it('should provide accurate health status', async () => { try {
       const healthStatus = await checkRedisHealth(redisClient);
 
       expect(healthStatus).toHaveProperty('status', 'healthy');
@@ -592,7 +592,7 @@ describe('Redis Client Production Tests', () => {
       expect(healthStatus.responseTime).toBeLessThan(100);
     });
 
-    it('should provide comprehensive swarm metrics', async () => {
+    it('should provide comprehensive swarm metrics', async () => { try {
       // Create test swarms with different statuses
       const testSwarms = [
         generateTestSwarmState({ id: 'metrics-active-1', status: 'running' }),
@@ -619,7 +619,7 @@ describe('Redis Client Production Tests', () => {
       expect(metrics.active).toBeGreaterThanOrEqual(2);
     });
 
-    it('should handle backup and restore operations', async () => {
+    it('should handle backup and restore operations', async () => { try {
       const testSwarms = [
         generateTestSwarmState({ id: 'backup-test-1' }),
         generateTestSwarmState({ id: 'backup-test-2' })
@@ -658,7 +658,7 @@ describe('Redis Client Production Tests', () => {
   });
 
   describe('Integration with Other Components', () => {
-    it('should integrate with CLI swarm operations', async () => {
+    it('should integrate with CLI swarm operations', async () => { try {
       // Simulate CLI swarm state
       const cliSwarmState = generateTestSwarmState({
         id: 'cli-integration-test',
@@ -699,7 +699,7 @@ describe('Redis Client Production Tests', () => {
       expect(cliSwarm.metadata.cliFlags).toBeDefined();
     });
 
-    it('should handle recovery scenarios', async () => {
+    it('should handle recovery scenarios', async () => { try {
       const recoverySwarm = generateTestSwarmState({
         id: 'recovery-test',
         status: 'interrupted',
@@ -733,7 +733,7 @@ describe('Redis Client Production Tests', () => {
   });
 
   describe('Edge Cases and Boundary Conditions', () => {
-    it('should handle empty and null values gracefully', async () => {
+    it('should handle empty and null values gracefully', async () => { try {
       const edgeCaseState = generateTestSwarmState({
         agents: [],
         tasks: [],
@@ -754,7 +754,7 @@ describe('Redis Client Production Tests', () => {
       expect(retrieved.metadata.nullField).toBeNull();
     });
 
-    it('should handle extremely long identifiers', async () => {
+    it('should handle extremely long identifiers', async () => { try {
       const longId = 'a'.repeat(1000);
       const longState = generateTestSwarmState({
         id: longId,
@@ -769,7 +769,7 @@ describe('Redis Client Production Tests', () => {
       expect(retrieved.objective).toBe(longState.objective);
     });
 
-    it('should handle special characters in data', async () => {
+    it('should handle special characters in data', async () => { try {
       const specialState = generateTestSwarmState({
         objective: 'Test with special chars: \n\t\r"\'\\{}[]()<>@#$%^&*',
         agents: [{
@@ -788,4 +788,4 @@ describe('Redis Client Production Tests', () => {
       expect(retrieved.agents[0].specialData).toBe(specialState.agents[0].specialData);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

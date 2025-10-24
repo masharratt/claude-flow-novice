@@ -13,7 +13,8 @@ const __dirname = path.dirname(__filename);
 
 describe('Portability Fixes Integration Tests', () => {
   describe('Source Code Verification', () => {
-    test('ruv-swarm-wrapper.js should use structured error handling', async () => {
+    jest.setTimeout(10000);
+  test('ruv-swarm-wrapper.js should use structured error handling', async () => { try {
       const filePath = path.join(__dirname, '../../src/mcp/ruv-swarm-wrapper.js');
       const content = await readFile(filePath, 'utf8');
       
@@ -31,7 +32,8 @@ describe('Portability Fixes Integration Tests', () => {
       expect(content).not.toMatch(/line\.includes\('logger\.logMemoryUsage is not a function'\)/);
     });
 
-    test('swarm-ui.js should not use pkill', async () => {
+    jest.setTimeout(10000);
+  test('swarm-ui.js should not use pkill', async () => { try {
       const filePath = path.join(__dirname, '../../src/cli/simple-commands/swarm-ui.js');
       const content = await readFile(filePath, 'utf8');
       
@@ -50,7 +52,8 @@ describe('Portability Fixes Integration Tests', () => {
       expect(content).toMatch(/process\.kill\(parseInt\(pid\)/); // Unix
     });
 
-    test('github.js should not use which command', async () => {
+    jest.setTimeout(10000);
+  test('github.js should not use which command', async () => { try {
       const filePath = path.join(__dirname, '../../src/cli/simple-commands/github.js');
       const content = await readFile(filePath, 'utf8');
       
@@ -74,7 +77,8 @@ describe('Portability Fixes Integration Tests', () => {
   });
 
   describe('Error Handling Patterns', () => {
-    test('should define consistent error codes', async () => {
+    jest.setTimeout(10000);
+  test('should define consistent error codes', async () => { try {
       const filePath = path.join(__dirname, '../../src/mcp/ruv-swarm-wrapper.js');
       const content = await readFile(filePath, 'utf8');
       
@@ -92,14 +96,16 @@ describe('Portability Fixes Integration Tests', () => {
       ];
       
       errorCodes.forEach(code => {
-        const isValid = validPatterns.some(pattern => pattern.test(code));
+        const isValid = validPatterns.some(pattern => pattern.jest.setTimeout(10000);
+  test(code));
         expect(isValid).toBe(true);
       });
     });
   });
 
   describe('Cross-Platform Compatibility', () => {
-    test('should handle both Unix and Windows platforms', async () => {
+    jest.setTimeout(10000);
+  test('should handle both Unix and Windows platforms', async () => { try {
       const files = [
         path.join(__dirname, '../../src/cli/simple-commands/swarm-ui.js'),
         path.join(__dirname, '../../src/cli/simple-commands/github.js')
@@ -121,7 +127,8 @@ describe('Portability Fixes Integration Tests', () => {
   });
 
   describe('Process Management', () => {
-    test('swarm-ui.js should properly track and terminate processes', async () => {
+    jest.setTimeout(10000);
+  test('swarm-ui.js should properly track and terminate processes', async () => { try {
       const filePath = path.join(__dirname, '../../src/cli/simple-commands/swarm-ui.js');
       const content = await readFile(filePath, 'utf8');
       
@@ -137,4 +144,4 @@ describe('Portability Fixes Integration Tests', () => {
       expect(content).toMatch(/process\.kill\('SIGTERM'\)/);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

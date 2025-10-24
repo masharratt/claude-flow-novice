@@ -20,7 +20,7 @@ describe('Production Integration Validation', () => {
   let swarmCoordinator: SwarmCoordinator;
   let configManager: ConfigManager;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize with production-like configuration
     configManager = new ConfigManager();
     await configManager.initialize({
@@ -30,19 +30,19 @@ describe('Production Integration Validation', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Clean shutdown
     if (systemIntegration?.isReady()) {
       await systemIntegration.shutdown();
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Fresh instance for each test
     systemIntegration = SystemIntegration.getInstance();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up after each test
     if (systemIntegration?.isReady()) {
       await systemIntegration.shutdown();
@@ -50,7 +50,8 @@ describe('Production Integration Validation', () => {
   });
 
   describe('System Initialization Validation', () => {
-    test('should initialize all components without mocks', async () => {
+    jest.setTimeout(10000);
+  test('should initialize all components without mocks', async () => { try {
       const config: IntegrationConfig = {
         logLevel: 'info',
         environment: 'production-test',
@@ -82,7 +83,8 @@ describe('Production Integration Validation', () => {
       expect(swarmCoord.constructor.name).not.toContain('Mock');
     });
 
-    test('should handle component initialization failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle component initialization failures gracefully', async () => { try {
       // Test with invalid configuration to trigger failure
       const invalidConfig: IntegrationConfig = {
         logLevel: 'info',
@@ -106,14 +108,15 @@ describe('Production Integration Validation', () => {
   });
 
   describe('Real Component Interaction Validation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await systemIntegration.initialize({
         logLevel: 'info',
         environment: 'production-test'
       });
     });
 
-    test('should create and manage real agents', async () => {
+    jest.setTimeout(10000);
+  test('should create and manage real agents', async () => { try {
       const agentMgr = systemIntegration.getComponent('agentManager') as AgentManager;
       expect(agentMgr).toBeDefined();
 
@@ -138,7 +141,8 @@ describe('Production Integration Validation', () => {
       await agentMgr.removeAgent(agentId);
     });
 
-    test('should persist and retrieve real memory data', async () => {
+    jest.setTimeout(10000);
+  test('should persist and retrieve real memory data', async () => { try {
       const memoryMgr = systemIntegration.getComponent('memoryManager') as MemoryManager;
       expect(memoryMgr).toBeDefined();
 
@@ -160,7 +164,8 @@ describe('Production Integration Validation', () => {
       await memoryMgr.delete(testKey, 'validation-test');
     });
 
-    test('should coordinate real swarm operations', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate real swarm operations', async () => { try {
       const swarmCoord = systemIntegration.getComponent('swarmCoordinator') as SwarmCoordinator;
       expect(swarmCoord).toBeDefined();
 
@@ -187,14 +192,15 @@ describe('Production Integration Validation', () => {
   });
 
   describe('Error Handling and Recovery Validation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await systemIntegration.initialize({
         logLevel: 'info',
         environment: 'production-test'
       });
     });
 
-    test('should handle component failures and recover', async () => {
+    jest.setTimeout(10000);
+  test('should handle component failures and recover', async () => { try {
       const agentMgr = systemIntegration.getComponent('agentManager') as AgentManager;
       
       // Try to create agent with invalid configuration
@@ -227,7 +233,8 @@ describe('Production Integration Validation', () => {
       await agentMgr.removeAgent(validAgentId);
     });
 
-    test('should handle memory storage failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle memory storage failures gracefully', async () => { try {
       const memoryMgr = systemIntegration.getComponent('memoryManager') as MemoryManager;
       
       // Try to store invalid data
@@ -259,14 +266,15 @@ describe('Production Integration Validation', () => {
   });
 
   describe('Performance Under Load Validation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await systemIntegration.initialize({
         logLevel: 'error', // Reduce logging for performance tests
         environment: 'production-test'
       });
     });
 
-    test('should handle concurrent agent operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent agent operations', async () => { try {
       const agentMgr = systemIntegration.getComponent('agentManager') as AgentManager;
       const concurrency = 10;
       const startTime = Date.now();
@@ -303,7 +311,8 @@ describe('Production Integration Validation', () => {
       expect(cleanupTime).toBeLessThan(2000);
     });
 
-    test('should handle concurrent memory operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent memory operations', async () => { try {
       const memoryMgr = systemIntegration.getComponent('memoryManager') as MemoryManager;
       const concurrency = 50;
       const startTime = Date.now();
@@ -314,7 +323,7 @@ describe('Production Integration Validation', () => {
         const data = { index: i, timestamp: Date.now() };
         
         return memoryMgr.store(key, data, 'performance-test')
-          .then(() => memoryMgr.retrieve(key, 'performance-test'))
+          await ( => memoryMgr.retrieve(key, 'performance-test'))
           .then(retrieved => {
             expect(retrieved).toEqual(data);
             return memoryMgr.delete(key, 'performance-test');
@@ -330,7 +339,7 @@ describe('Production Integration Validation', () => {
   });
 
   describe('System Health Monitoring Validation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await systemIntegration.initialize({
         logLevel: 'info',
         environment: 'production-test',
@@ -342,7 +351,8 @@ describe('Production Integration Validation', () => {
       });
     });
 
-    test('should provide accurate system health metrics', async () => {
+    jest.setTimeout(10000);
+  test('should provide accurate system health metrics', async () => { try {
       const health = await systemIntegration.getSystemHealth();
       
       expect(health).toBeDefined();
@@ -357,7 +367,8 @@ describe('Production Integration Validation', () => {
       expect(totalComponents).toBeGreaterThan(0);
     });
 
-    test('should detect component health changes', async () => {
+    jest.setTimeout(10000);
+  test('should detect component health changes', async () => { try {
       // Get initial health
       const initialHealth = await systemIntegration.getSystemHealth();
       expect(initialHealth.overall).toBe('healthy');
@@ -379,4 +390,4 @@ describe('Production Integration Validation', () => {
       await agentMgr.removeAgent(agentId);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

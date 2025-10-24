@@ -27,7 +27,7 @@ describe('State Manager WASM Integration', () => {
     confidence: 0
   };
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     console.log('\n🚀 State Manager WASM Integration Tests Starting...');
   });
 
@@ -49,7 +49,7 @@ describe('State Manager WASM Integration', () => {
     console.log(`  Overall Confidence: ${(testResults.confidence * 100).toFixed(1)}%`);
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create mock Redis instance
     testRedis = new Redis();
 
@@ -66,7 +66,7 @@ describe('State Manager WASM Integration', () => {
     await stateManager.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup state manager
     if (stateManager) {
       try {
@@ -83,7 +83,7 @@ describe('State Manager WASM Integration', () => {
   });
 
   describe('1. WASM Snapshot Creation/Restoration', () => {
-    it('should create snapshots using WASM serialization', async () => {
+    it('should create snapshots using WASM serialization', async () => { try {
       const result = {
         wasmEnabled: false,
         snapshotCreated: false,
@@ -169,7 +169,7 @@ describe('State Manager WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 20000);
 
-    it('should create multiple snapshots efficiently', async () => {
+    it('should create multiple snapshots efficiently', async () => { try {
       const swarmId = 'test-swarm-2';
 
       const testState = {
@@ -206,7 +206,7 @@ describe('State Manager WASM Integration', () => {
   });
 
   describe('2. Compression Pipeline Integration', () => {
-    it('should use WASM compression for state serialization', async () => {
+    it('should use WASM compression for state serialization', async () => { try {
       const result = {
         compressionEnabled: false,
         originalSize: 0,
@@ -280,7 +280,7 @@ describe('State Manager WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 20000);
 
-    it('should handle compression pipeline errors gracefully', async () => {
+    it('should handle compression pipeline errors gracefully', async () => { try {
       const swarmId = 'test-swarm-4';
 
       // Create state with edge cases
@@ -316,7 +316,7 @@ describe('State Manager WASM Integration', () => {
   });
 
   describe('3. Large State Handling (100KB+)', () => {
-    it('should handle 100KB+ states with WASM acceleration', async () => {
+    it('should handle 100KB+ states with WASM acceleration', async () => { try {
       const result = {
         stateSize: 0,
         serializationTime: 0,
@@ -412,7 +412,7 @@ describe('State Manager WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 30000);
 
-    it('should scale efficiently with state size', async () => {
+    it('should scale efficiently with state size', async () => { try {
       const stateSizes = [10, 50, 100, 200]; // KB targets
       const scalabilityData = [];
 
@@ -464,7 +464,7 @@ describe('State Manager WASM Integration', () => {
   });
 
   describe('4. Fallback Behavior', () => {
-    it('should fallback to JavaScript when WASM fails', async () => {
+    it('should fallback to JavaScript when WASM fails', async () => { try {
       const result = {
         fallbackTriggered: false,
         functionalityPreserved: false,
@@ -509,7 +509,7 @@ describe('State Manager WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 15000);
 
-    it('should maintain statistics in fallback mode', async () => {
+    it('should maintain statistics in fallback mode', async () => { try {
       const swarmId = 'test-swarm-7';
 
       // Perform multiple operations

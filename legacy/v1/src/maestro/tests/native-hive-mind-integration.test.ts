@@ -30,13 +30,13 @@ describe('Native Hive Mind Integration Tests', () => {
   let tempDir: string;
   let config: MaestroSwarmConfig;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Setup test environment
     tempDir = await mkdtemp(join(tmpdir(), 'maestro-test-'));
 
     // Initialize core components
     eventBus = new EventBus();
-    logger = new Logger({ level: 'debug' });
+    logger = new Logger({ level: 'debug' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Configure test swarm
     config = {
@@ -58,37 +58,37 @@ describe('Native Hive Mind Integration Tests', () => {
       specsDirectory: join(tempDir, 'specs'),
       steeringDirectory: join(tempDir, 'steering'),
     };
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup
     if (swarmCoordinator) {
       await swarmCoordinator.shutdown();
     }
-    await rm(tempDir, { recursive: true, force: true });
-  });
+    await rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create fresh coordinator for each test
     swarmCoordinator = new MaestroSwarmCoordinator(config, eventBus, logger);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (swarmCoordinator) {
       await swarmCoordinator.shutdown();
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Swarm Initialization', () => {
-    it('should initialize native hive mind with specs-driven topology', async () => {
+    it('should initialize native hive mind with specs-driven topology', async () => { try {
       const swarmId = await swarmCoordinator.initialize();
 
       expect(swarmId).toBeDefined();
       expect(typeof swarmId).toBe('string');
       expect(swarmId).toMatch(/^swarm_/);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should spawn 8 specialized agents with correct types', async () => {
+    it('should spawn 8 specialized agents with correct types', async () => { try {
       await swarmCoordinator.initialize();
 
       // Verify swarm status contains all expected agent types
@@ -113,9 +113,9 @@ describe('Native Hive Mind Integration Tests', () => {
       expect(agentTypes.filter((t) => t === 'implementation_coder')).toHaveLength(2);
       expect(agentTypes.filter((t) => t === 'quality_reviewer')).toHaveLength(1);
       expect(agentTypes.filter((t) => t === 'steering_documenter')).toHaveLength(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should initialize steering documents in swarm memory', async () => {
+    it('should initialize steering documents in swarm memory', async () => { try {
       await swarmCoordinator.initialize();
 
       const hiveMind = (swarmCoordinator as any).hiveMind;
@@ -131,15 +131,15 @@ describe('Native Hive Mind Integration Tests', () => {
       expect(techSteering.domain).toBe('tech');
       expect(workflowSteering).toBeDefined();
       expect(workflowSteering.domain).toBe('workflow');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Specs-Driven Workflow', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await swarmCoordinator.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should create specification using requirements_analyst agent', async () => {
+    it('should create specification using requirements_analyst agent', async () => { try {
       const featureName = 'test-auth-feature';
       const initialRequest = 'Create user authentication system with JWT tokens';
 
@@ -157,7 +157,7 @@ describe('Native Hive Mind Integration Tests', () => {
       await expect(access(requirementsPath)).resolves.not.toThrow();
     }, 30000);
 
-    it('should generate design using parallel design_architect agents with consensus', async () => {
+    it('should generate design using parallel design_architect agents with consensus', async () => { try {
       const featureName = 'test-design-feature';
 
       // First create spec
@@ -178,7 +178,7 @@ describe('Native Hive Mind Integration Tests', () => {
       await expect(access(designPath)).resolves.not.toThrow();
     }, 60000);
 
-    it('should generate tasks using task_planner agent', async () => {
+    it('should generate tasks using task_planner agent', async () => { try {
       const featureName = 'test-tasks-feature';
 
       // Setup: create spec and design
@@ -197,7 +197,7 @@ describe('Native Hive Mind Integration Tests', () => {
       await expect(access(tasksPath)).resolves.not.toThrow();
     }, 90000);
 
-    it('should implement tasks using implementation_coder agents', async () => {
+    it('should implement tasks using implementation_coder agents', async () => { try {
       const featureName = 'test-implementation-feature';
 
       // Setup complete workflow
@@ -213,14 +213,14 @@ describe('Native Hive Mind Integration Tests', () => {
       expect(workflowState!.currentPhase).toBe('Task Execution');
       expect(workflowState!.currentTaskIndex).toBe(1);
     }, 120000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Consensus Validation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await swarmCoordinator.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should use consensus for phase approval when enabled', async () => {
+    it('should use consensus for phase approval when enabled', async () => { try {
       const featureName = 'test-consensus-feature';
 
       await swarmCoordinator.createSpec(featureName, 'Test consensus validation');
@@ -233,15 +233,15 @@ describe('Native Hive Mind Integration Tests', () => {
       jest.spyOn(consensusEngine, 'getProposalStatus').mockResolvedValue({
         status: 'achieved',
         currentRatio: 0.75,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await swarmCoordinator.approvePhase(featureName);
 
       expect(consensusEngine.createProposal).toHaveBeenCalled();
       expect(consensusEngine.getProposalStatus).toHaveBeenCalled();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle consensus failure gracefully', async () => {
+    it('should handle consensus failure gracefully', async () => { try {
       const featureName = 'test-consensus-failure';
 
       await swarmCoordinator.createSpec(featureName, 'Test consensus failure handling');
@@ -254,20 +254,20 @@ describe('Native Hive Mind Integration Tests', () => {
       jest.spyOn(consensusEngine, 'getProposalStatus').mockResolvedValue({
         status: 'failed',
         currentRatio: 0.4,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await expect(swarmCoordinator.approvePhase(featureName)).rejects.toThrow(
         'Phase approval consensus failed',
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Steering Integration', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await swarmCoordinator.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should create steering documents in swarm memory', async () => {
+    it('should create steering documents in swarm memory', async () => { try {
       const domain = 'custom-steering';
       const content = 'Custom steering guidelines for testing';
 
@@ -280,9 +280,9 @@ describe('Native Hive Mind Integration Tests', () => {
       expect(storedDoc.content).toBe(content);
       expect(storedDoc.domain).toBe(domain);
       expect(storedDoc.maintainer).toBe('steering_documenter');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should broadcast steering updates to all agents', async () => {
+    it('should broadcast steering updates to all agents', async () => { try {
       const domain = 'broadcast-test';
       const content = 'Test broadcast content';
 
@@ -295,25 +295,25 @@ describe('Native Hive Mind Integration Tests', () => {
         type: 'steering_update',
         domain,
         content: expect.stringContaining('Test broadcast content'),
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should retrieve steering context for agents', async () => {
+    it('should retrieve steering context for agents', async () => { try {
       await swarmCoordinator.createSteeringDocument('test-context', 'Context for testing');
 
       const steeringContext = await (swarmCoordinator as any).getSteeringContext();
 
       expect(steeringContext).toContain('test-context');
       expect(steeringContext).toContain('Context for testing');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance and Error Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await swarmCoordinator.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle agent spawning limits gracefully', async () => {
+    it('should handle agent spawning limits gracefully', async () => { try {
       // Test with reduced agent limit
       const limitedConfig = {
         ...config,
@@ -330,9 +330,9 @@ describe('Native Hive Mind Integration Tests', () => {
       expect(hiveMind.agents.size).toBeLessThanOrEqual(4);
 
       await limitedCoordinator.shutdown();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should timeout on task completion properly', async () => {
+    it('should timeout on task completion properly', async () => { try {
       const featureName = 'timeout-test';
 
       // Mock task that never completes
@@ -341,29 +341,29 @@ describe('Native Hive Mind Integration Tests', () => {
         id: 'test-task',
         status: 'in_progress',
         result: null,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await expect(
         (swarmCoordinator as any).waitForTaskCompletion('test-task', 1000),
       ).rejects.toThrow('Task timeout');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle swarm shutdown gracefully', async () => {
+    it('should handle swarm shutdown gracefully', async () => { try {
       const hiveMind = (swarmCoordinator as any).hiveMind;
       const shutdownSpy = jest.spyOn(hiveMind, 'shutdown');
 
       await swarmCoordinator.shutdown();
 
       expect(shutdownSpy).toHaveBeenCalled();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Event Integration', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await swarmCoordinator.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should emit maestro events through event bus', async () => {
+    it('should emit maestro events through event bus', async () => { try {
       const specCreatedSpy = jest.fn();
       eventBus.on('maestro:spec_created', specCreatedSpy);
 
@@ -371,10 +371,10 @@ describe('Native Hive Mind Integration Tests', () => {
 
       expect(specCreatedSpy).toHaveBeenCalledWith({
         featureName: 'event-test',
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle event-driven workflow progression', async () => {
+    it('should handle event-driven workflow progression', async () => { try {
       const phaseApprovedSpy = jest.fn();
       eventBus.on('maestro:phase_approved', phaseApprovedSpy);
 
@@ -388,17 +388,17 @@ describe('Native Hive Mind Integration Tests', () => {
       jest.spyOn(consensusEngine, 'getProposalStatus').mockResolvedValue({
         status: 'achieved',
         currentRatio: 0.8,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await swarmCoordinator.approvePhase(featureName);
 
       expect(phaseApprovedSpy).toHaveBeenCalledWith({
         featureName,
         nextPhase: 'Research & Design',
-      });
-    });
-  });
-});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 /**
  * Performance Benchmarks
@@ -411,7 +411,7 @@ describe('Performance Benchmarks', () => {
   let logger: Logger;
   let tempDir: string;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     tempDir = await mkdtemp(join(tmpdir(), 'maestro-perf-'));
     eventBus = new EventBus();
     logger = new Logger({ level: 'warn' }); // Reduce logging for performance tests
@@ -438,14 +438,14 @@ describe('Performance Benchmarks', () => {
 
     coordinator = new MaestroSwarmCoordinator(config, eventBus, logger);
     await coordinator.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await coordinator.shutdown();
-    await rm(tempDir, { recursive: true, force: true });
-  });
+    await rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  it('should initialize swarm within performance target (< 5 seconds)', async () => {
+  it('should initialize swarm within performance target (< 5 seconds)', async () => { try {
     const startTime = Date.now();
 
     const testCoordinator = new MaestroSwarmCoordinator(
@@ -460,18 +460,18 @@ describe('Performance Benchmarks', () => {
     expect(duration).toBeLessThan(5000);
 
     await testCoordinator.shutdown();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  it('should create specs within performance target (< 2 minutes)', async () => {
+  it('should create specs within performance target (< 2 minutes)', async () => { try {
     const startTime = Date.now();
 
     await coordinator.createSpec('perf-test-spec', 'Performance test specification');
 
     const duration = Date.now() - startTime;
     expect(duration).toBeLessThan(120000); // 2 minutes
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  it('should handle multiple concurrent spec creations efficiently', async () => {
+  it('should handle multiple concurrent spec creations efficiently', async () => { try {
     const startTime = Date.now();
     const concurrentSpecs = 3;
 
@@ -487,4 +487,4 @@ describe('Performance Benchmarks', () => {
     // Should be more efficient than sequential execution
     expect(avgTimePerSpec).toBeLessThan(90000); // < 1.5 minutes per spec on average
   }, 300000);
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

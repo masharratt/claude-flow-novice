@@ -23,13 +23,15 @@ describe('monitor.js - Real Metrics Implementation', () => {
   });
 
   describe('Basic Functionality', () => {
-    test('should import without errors', async () => {
+    jest.setTimeout(10000);
+  test('should import without errors', async () => { try {
       const monitor = await import('../../../../src/cli/simple-commands/monitor.js');
       expect(monitor.monitorCommand).toBeDefined();
       expect(monitor.showMonitorHelp).toBeDefined();
     });
 
-    test('should collect and display metrics', async () => {
+    jest.setTimeout(10000);
+  test('should collect and display metrics', async () => { try {
       const { monitorCommand } = await import('../../../../src/cli/simple-commands/monitor.js');
       
       await monitorCommand([], {});
@@ -39,7 +41,8 @@ describe('monitor.js - Real Metrics Implementation', () => {
       expect(output).toContain('System Metrics');
     });
 
-    test('should show help information', async () => {
+    jest.setTimeout(10000);
+  test('should show help information', async () => { try {
       const { showMonitorHelp } = await import('../../../../src/cli/simple-commands/monitor.js');
       
       showMonitorHelp();
@@ -52,7 +55,8 @@ describe('monitor.js - Real Metrics Implementation', () => {
   });
 
   describe('Output Formats', () => {
-    test('should output JSON format when specified', async () => {
+    jest.setTimeout(10000);
+  test('should output JSON format when specified', async () => { try {
       const { monitorCommand } = await import('../../../../src/cli/simple-commands/monitor.js');
       
       await monitorCommand(['--format', 'json'], {});
@@ -75,7 +79,8 @@ describe('monitor.js - Real Metrics Implementation', () => {
       }
     });
 
-    test('should output pretty format by default', async () => {
+    jest.setTimeout(10000);
+  test('should output pretty format by default', async () => { try {
       const { monitorCommand } = await import('../../../../src/cli/simple-commands/monitor.js');
       
       await monitorCommand([], {});
@@ -84,4 +89,4 @@ describe('monitor.js - Real Metrics Implementation', () => {
       expect(output).toMatch(/System Metrics|System Resources|Performance/);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

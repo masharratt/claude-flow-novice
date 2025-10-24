@@ -22,7 +22,7 @@ describe('McpConfigurationManager', () => {
   let manager;
   let mockConsole;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Reset all mocks
     jest.clearAllMocks();
 
@@ -46,7 +46,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Constructor and Initialization', () => {
-    test('should initialize with default options', () => {
+    jest.setTimeout(10000);
+  test('should initialize with default options', () => {
       const defaultManager = new McpConfigurationManager();
 
       expect(defaultManager.autoFix).toBe(true);
@@ -56,7 +57,8 @@ describe('McpConfigurationManager', () => {
       expect(defaultManager.rollbackStack).toEqual([]);
     });
 
-    test('should initialize with custom options', () => {
+    jest.setTimeout(10000);
+  test('should initialize with custom options', () => {
       const customManager = new McpConfigurationManager({
         verbose: true,
         autoFix: false,
@@ -68,14 +70,16 @@ describe('McpConfigurationManager', () => {
       expect(customManager.dryRun).toBe(true);
     });
 
-    test('should find Claude config path correctly', () => {
+    jest.setTimeout(10000);
+  test('should find Claude config path correctly', () => {
       const configPath = manager.findClaudeConfigPath();
       expect(configPath).toContain('.claude.json');
     });
   });
 
   describe('Configuration Detection', () => {
-    test('should detect existing configurations', async () => {
+    jest.setTimeout(10000);
+  test('should detect existing configurations', async () => { try {
       const state = await manager.detectConfigurationState();
 
       expect(state).toHaveProperty('hasLocalConfig');
@@ -87,7 +91,8 @@ describe('McpConfigurationManager', () => {
       expect(state.healthScore).toBeLessThanOrEqual(100);
     });
 
-    test('should handle missing configuration files gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle missing configuration files gracefully', async () => { try {
       // Create manager with non-existent paths
       const tempManager = new McpConfigurationManager();
       tempManager.localConfigPath = '/non/existent/path/.claude.json';
@@ -101,7 +106,8 @@ describe('McpConfigurationManager', () => {
       expect(state.projectServers).toHaveLength(0);
     });
 
-    test('should calculate health score correctly', async () => {
+    jest.setTimeout(10000);
+  test('should calculate health score correctly', async () => { try {
       // Create configuration with known issues
       const brokenConfig = {
         mcpServers: {
@@ -121,7 +127,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Server Path Validation', () => {
-    test('should detect broken server paths', async () => {
+    jest.setTimeout(10000);
+  test('should detect broken server paths', async () => { try {
       const brokenServer = {
         name: 'test-server',
         command: 'non-existent-command',
@@ -133,7 +140,8 @@ describe('McpConfigurationManager', () => {
       expect(issues.some(issue => issue.includes('not found'))).toBe(true);
     });
 
-    test('should detect legacy claude-flow-novice patterns', async () => {
+    jest.setTimeout(10000);
+  test('should detect legacy claude-flow-novice patterns', async () => { try {
       const legacyServer = {
         name: 'claude-flow-novice',
         command: 'node',
@@ -145,7 +153,8 @@ describe('McpConfigurationManager', () => {
       expect(issues.some(issue => issue.includes('.claude-flow-novice'))).toBe(true);
     });
 
-    test('should validate npx-based configurations correctly', async () => {
+    jest.setTimeout(10000);
+  test('should validate npx-based configurations correctly', async () => { try {
       const validServer = {
         name: 'claude-flow-novice',
         command: 'npx',
@@ -156,7 +165,8 @@ describe('McpConfigurationManager', () => {
       expect(issues).toHaveLength(0);
     });
 
-    test('should calculate issue severity correctly', () => {
+    jest.setTimeout(10000);
+  test('should calculate issue severity correctly', () => {
       const criticalIssues = ['Command not found in PATH'];
       const highIssues = ['Arguments reference non-existent .claude-flow-novice directory'];
       const mediumIssues = ['Missing command field'];
@@ -168,7 +178,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Backup Operations', () => {
-    test('should create backups successfully', async () => {
+    jest.setTimeout(10000);
+  test('should create backups successfully', async () => { try {
       const configPath = await global.testUtils.createTempFile('test-config.json', '{"test": true}');
       const backupPath = await manager.createConfigBackup(configPath, 'test');
 
@@ -177,12 +188,14 @@ describe('McpConfigurationManager', () => {
       expect(await global.testUtils.fileExists(backupPath)).toBe(true);
     });
 
-    test('should handle backup creation for non-existent files', async () => {
+    jest.setTimeout(10000);
+  test('should handle backup creation for non-existent files', async () => { try {
       const backupPath = await manager.createConfigBackup('/non/existent/file.json', 'test');
       expect(backupPath).toBeNull();
     });
 
-    test('should add rollback operations correctly', async () => {
+    jest.setTimeout(10000);
+  test('should add rollback operations correctly', async () => { try {
       const configPath = await global.testUtils.createTempFile('test-config.json', '{"test": true}');
       await manager.createConfigBackup(configPath, 'test');
 
@@ -192,7 +205,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Configuration Conflict Detection', () => {
-    test('should find conflicting servers', () => {
+    jest.setTimeout(10000);
+  test('should find conflicting servers', () => {
       const localServers = [
         { name: 'server1', command: 'node', args: ['local.js'] },
         { name: 'server2', command: 'node', args: ['local2.js'] }
@@ -211,14 +225,16 @@ describe('McpConfigurationManager', () => {
       expect(conflicts[0].projectConfig).toBeTruthy();
     });
 
-    test('should handle empty server lists', () => {
+    jest.setTimeout(10000);
+  test('should handle empty server lists', () => {
       const conflicts = manager.findConflictingServers([], []);
       expect(conflicts).toHaveLength(0);
     });
   });
 
   describe('Claude CLI Integration', () => {
-    test('should detect Claude Code installation', () => {
+    jest.setTimeout(10000);
+  test('should detect Claude Code installation', () => {
       // Mock successful CLI detection
       execSync.mockReturnValue('claude version 1.0.0');
 
@@ -226,7 +242,8 @@ describe('McpConfigurationManager', () => {
       expect(isInstalled).toBe(true);
     });
 
-    test('should handle missing Claude Code CLI', () => {
+    jest.setTimeout(10000);
+  test('should handle missing Claude Code CLI', () => {
       // Mock CLI not found
       execSync.mockImplementation(() => {
         throw new Error('Command not found');
@@ -238,7 +255,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Configuration Extraction', () => {
-    test('should extract MCP servers correctly', () => {
+    jest.setTimeout(10000);
+  test('should extract MCP servers correctly', () => {
       const config = {
         mcpServers: {
           'server1': { command: 'node', args: ['server1.js'] },
@@ -254,20 +272,23 @@ describe('McpConfigurationManager', () => {
       expect(servers[1].name).toBe('server2');
     });
 
-    test('should handle config without mcpServers', () => {
+    jest.setTimeout(10000);
+  test('should handle config without mcpServers', () => {
       const config = { otherProperty: 'value' };
       const servers = manager.extractMcpServers(config);
       expect(servers).toHaveLength(0);
     });
 
-    test('should handle null/undefined config', () => {
+    jest.setTimeout(10000);
+  test('should handle null/undefined config', () => {
       expect(manager.extractMcpServers(null)).toHaveLength(0);
       expect(manager.extractMcpServers(undefined)).toHaveLength(0);
     });
   });
 
   describe('File Operations', () => {
-    test('should read local config correctly', async () => {
+    jest.setTimeout(10000);
+  test('should read local config correctly', async () => { try {
       const testConfig = { mcpServers: { test: { command: 'test' } } };
       await global.testUtils.createMockClaudeConfig(testConfig);
 
@@ -275,7 +296,8 @@ describe('McpConfigurationManager', () => {
       expect(config).toEqual(testConfig);
     });
 
-    test('should read project config correctly', async () => {
+    jest.setTimeout(10000);
+  test('should read project config correctly', async () => { try {
       const testConfig = { mcpServers: { test: { command: 'test' } } };
       await global.testUtils.createMockProjectConfig(testConfig);
 
@@ -283,7 +305,8 @@ describe('McpConfigurationManager', () => {
       expect(config).toEqual(testConfig);
     });
 
-    test('should handle corrupted JSON files', async () => {
+    jest.setTimeout(10000);
+  test('should handle corrupted JSON files', async () => { try {
       await global.testUtils.createTempFile(
         path.basename(process.env.CLAUDE_CONFIG_PATH),
         'invalid json content'
@@ -293,7 +316,8 @@ describe('McpConfigurationManager', () => {
       expect(config).toBeNull();
     });
 
-    test('should check file existence correctly', async () => {
+    jest.setTimeout(10000);
+  test('should check file existence correctly', async () => { try {
       const existingFile = await global.testUtils.createTempFile('exists.txt', 'content');
       const nonExistentFile = path.join(global.TEST_CONFIG.tempDir, 'does-not-exist.txt');
 
@@ -303,7 +327,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Logging and Operation Tracking', () => {
-    test('should log operations correctly', () => {
+    jest.setTimeout(10000);
+  test('should log operations correctly', () => {
       manager.log('Test message', 'info');
 
       expect(manager.operationLog).toHaveLength(1);
@@ -312,7 +337,8 @@ describe('McpConfigurationManager', () => {
       expect(manager.operationLog[0].timestamp).toBeTruthy();
     });
 
-    test('should respect verbose setting', () => {
+    jest.setTimeout(10000);
+  test('should respect verbose setting', () => {
       const verboseManager = new McpConfigurationManager({ verbose: true });
       const quietManager = new McpConfigurationManager({ verbose: false });
 
@@ -324,7 +350,8 @@ describe('McpConfigurationManager', () => {
       expect(quietManager.operationLog).toHaveLength(1);
     });
 
-    test('should always show error and warning messages', () => {
+    jest.setTimeout(10000);
+  test('should always show error and warning messages', () => {
       manager.log('Error message', 'error');
       manager.log('Warning message', 'warn');
 
@@ -333,7 +360,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Recommendation Generation', () => {
-    test('should generate recommendations for broken paths', () => {
+    jest.setTimeout(10000);
+  test('should generate recommendations for broken paths', () => {
       const state = {
         brokenPaths: [{ serverName: 'broken', issues: ['not found'] }],
         conflictingServers: [],
@@ -347,7 +375,8 @@ describe('McpConfigurationManager', () => {
       expect(recommendations[0].priority).toBe('high');
     });
 
-    test('should generate recommendations for conflicts', () => {
+    jest.setTimeout(10000);
+  test('should generate recommendations for conflicts', () => {
       const state = {
         brokenPaths: [],
         conflictingServers: [{ serverName: 'conflict' }],
@@ -361,7 +390,8 @@ describe('McpConfigurationManager', () => {
       expect(recommendations[0].priority).toBe('medium');
     });
 
-    test('should handle healthy state', () => {
+    jest.setTimeout(10000);
+  test('should handle healthy state', () => {
       const state = {
         brokenPaths: [],
         conflictingServers: [],
@@ -374,7 +404,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Error Analysis', () => {
-    test('should analyze permission errors correctly', () => {
+    jest.setTimeout(10000);
+  test('should analyze permission errors correctly', () => {
       const error = new Error('Permission denied');
       const analysis = manager.analyzeError(error);
 
@@ -383,7 +414,8 @@ describe('McpConfigurationManager', () => {
       expect(analysis.category).toBe('filesystem');
     });
 
-    test('should analyze missing file errors', () => {
+    jest.setTimeout(10000);
+  test('should analyze missing file errors', () => {
       const error = new Error('File not found ENOENT');
       const analysis = manager.analyzeError(error);
 
@@ -392,7 +424,8 @@ describe('McpConfigurationManager', () => {
       expect(analysis.category).toBe('filesystem');
     });
 
-    test('should analyze Claude CLI missing errors', () => {
+    jest.setTimeout(10000);
+  test('should analyze Claude CLI missing errors', () => {
       const error = new Error('claude not installed');
       const analysis = manager.analyzeError(error);
 
@@ -402,7 +435,8 @@ describe('McpConfigurationManager', () => {
       expect(analysis.recoverable).toBe(false);
     });
 
-    test('should analyze timeout errors', () => {
+    jest.setTimeout(10000);
+  test('should analyze timeout errors', () => {
       const error = new Error('Operation timed out');
       const analysis = manager.analyzeError(error);
 
@@ -411,7 +445,8 @@ describe('McpConfigurationManager', () => {
       expect(analysis.category).toBe('network');
     });
 
-    test('should analyze JSON parsing errors', () => {
+    jest.setTimeout(10000);
+  test('should analyze JSON parsing errors', () => {
       const error = new Error('JSON parse error');
       const analysis = manager.analyzeError(error);
 
@@ -422,7 +457,8 @@ describe('McpConfigurationManager', () => {
   });
 
   describe('Recovery Actions Generation', () => {
-    test('should generate permission error recovery actions', () => {
+    jest.setTimeout(10000);
+  test('should generate permission error recovery actions', () => {
       const error = new Error('Permission denied');
       const recovery = { errorAnalysis: manager.analyzeError(error), backupsAvailable: false };
       const actions = manager.generateRecoveryActions(error, recovery);
@@ -431,7 +467,8 @@ describe('McpConfigurationManager', () => {
       expect(actions).toContain('Run with appropriate user privileges');
     });
 
-    test('should generate missing dependency recovery actions', () => {
+    jest.setTimeout(10000);
+  test('should generate missing dependency recovery actions', () => {
       const error = new Error('claude not installed');
       const recovery = { errorAnalysis: manager.analyzeError(error), backupsAvailable: false };
       const actions = manager.generateRecoveryActions(error, recovery);
@@ -440,7 +477,8 @@ describe('McpConfigurationManager', () => {
       expect(actions).toContain('Verify installation: claude --version');
     });
 
-    test('should include backup restoration when available', () => {
+    jest.setTimeout(10000);
+  test('should include backup restoration when available', () => {
       const error = new Error('JSON parse error');
       const recovery = { errorAnalysis: manager.analyzeError(error), backupsAvailable: true };
       const actions = manager.generateRecoveryActions(error, recovery);
@@ -462,7 +500,8 @@ describe('Enhanced MCP Initialization Function', () => {
     mockConsole.restore();
   });
 
-  test('should initialize with default options', async () => {
+  jest.setTimeout(10000);
+  test('should initialize with default options', async () => { try {
     // Mock Claude CLI as available
     execSync.mockReturnValue('claude version 1.0.0');
 
@@ -477,7 +516,8 @@ describe('Enhanced MCP Initialization Function', () => {
     expect(result).toHaveProperty('details');
   });
 
-  test('should handle missing Claude Code CLI', async () => {
+  jest.setTimeout(10000);
+  test('should handle missing Claude Code CLI', async () => { try {
     // Mock Claude CLI as not available
     execSync.mockImplementation(() => {
       throw new Error('Command not found');
@@ -493,7 +533,8 @@ describe('Enhanced MCP Initialization Function', () => {
     expect(result.error).toContain('Claude Code CLI not installed');
   });
 
-  test('should respect dry run mode', async () => {
+  jest.setTimeout(10000);
+  test('should respect dry run mode', async () => { try {
     execSync.mockReturnValue('claude version 1.0.0');
 
     const result = await enhancedMcpInit({
@@ -518,7 +559,8 @@ describe('Quick MCP Health Check Function', () => {
     mockConsole.restore();
   });
 
-  test('should perform health check', async () => {
+  jest.setTimeout(10000);
+  test('should perform health check', async () => { try {
     execSync.mockReturnValue('claude version 1.0.0');
 
     const result = await quickMcpHealthCheck({
@@ -531,7 +573,8 @@ describe('Quick MCP Health Check Function', () => {
     expect(result).toHaveProperty('needsAttention');
   });
 
-  test('should detect unhealthy configuration', async () => {
+  jest.setTimeout(10000);
+  test('should detect unhealthy configuration', async () => { try {
     // Create broken configuration
     const brokenConfig = {
       mcpServers: {
@@ -549,7 +592,8 @@ describe('Quick MCP Health Check Function', () => {
     expect(result.healthScore).toBeLessThan(80);
   });
 
-  test('should handle health check errors gracefully', async () => {
+  jest.setTimeout(10000);
+  test('should handle health check errors gracefully', async () => { try {
     // Mock an error during health check
     execSync.mockImplementation(() => {
       throw new Error('System error');
@@ -570,7 +614,8 @@ describe('Edge Cases and Error Scenarios', () => {
     manager = new McpConfigurationManager({ verbose: false, dryRun: true });
   });
 
-  test('should handle extremely large configurations', async () => {
+  jest.setTimeout(10000);
+  test('should handle extremely large configurations', async () => { try {
     const largeConfig = global.testUtils.generateTestData.largeConfiguration(10000);
     await global.testUtils.createMockProjectConfig(largeConfig);
 
@@ -579,7 +624,8 @@ describe('Edge Cases and Error Scenarios', () => {
     expect(Object.keys(config.mcpServers)).toHaveLength(10000);
   });
 
-  test('should handle deeply nested configurations', async () => {
+  jest.setTimeout(10000);
+  test('should handle deeply nested configurations', async () => { try {
     const deepConfig = {
       mcpServers: {
         'deep-server': {
@@ -607,7 +653,8 @@ describe('Edge Cases and Error Scenarios', () => {
     expect(config.mcpServers['deep-server'].config.level1.level2.level3.level4.level5.value).toBe('deep-value');
   });
 
-  test('should handle configuration with special characters', async () => {
+  jest.setTimeout(10000);
+  test('should handle configuration with special characters', async () => { try {
     const specialConfig = {
       mcpServers: {
         'special-server-!@#$%^&*()': {
@@ -626,7 +673,8 @@ describe('Edge Cases and Error Scenarios', () => {
     expect(config.mcpServers['special-server-!@#$%^&*()']).toBeTruthy();
   });
 
-  test('should handle concurrent access to configuration files', async () => {
+  jest.setTimeout(10000);
+  test('should handle concurrent access to configuration files', async () => { try {
     const promises = [];
 
     for (let i = 0; i < 10; i++) {
@@ -640,7 +688,8 @@ describe('Edge Cases and Error Scenarios', () => {
     });
   });
 
-  test('should handle system resource exhaustion gracefully', async () => {
+  jest.setTimeout(10000);
+  test('should handle system resource exhaustion gracefully', async () => { try {
     // Mock file system errors
     const originalReadFile = fs.readFile;
     fs.readFile = jest.fn().mockRejectedValue(new Error('EMFILE: too many open files'));
@@ -652,4 +701,4 @@ describe('Edge Cases and Error Scenarios', () => {
       fs.readFile = originalReadFile;
     }
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

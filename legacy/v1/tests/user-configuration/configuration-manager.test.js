@@ -744,4 +744,4 @@ describe('Phase 2: User Configuration System - Byzantine Security', function() {
       expect(overallAccuracy).to.be.at.least(0.85);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

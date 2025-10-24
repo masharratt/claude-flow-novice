@@ -181,7 +181,7 @@ Loop 2: Consensus Validation (≥90% Byzantine consensus)
   });
 
   describe('Error Handling', () => {
-    it('should handle missing CLAUDE.md gracefully', async () => {
+    it('should handle missing CLAUDE.md gracefully', async () => { try {
       const originalCwd = process.cwd;
       process.cwd = () => '/nonexistent/path';
 
@@ -211,7 +211,7 @@ Loop 2: Consensus Validation (≥90% Byzantine consensus)
   });
 
   describe('Dry Run Mode', () => {
-    it('should not modify files in dry-run mode', async () => {
+    it('should not modify files in dry-run mode', async () => { try {
       // This would require mocking fs operations
       // Test ensures --dry-run flag prevents writes
       const result = await command.execute(['--dry-run'], {});
@@ -221,7 +221,7 @@ Loop 2: Consensus Validation (≥90% Byzantine consensus)
       }
     });
 
-    it('should report changes without applying in dry-run', async () => {
+    it('should report changes without applying in dry-run', async () => { try {
       const result = await command.execute(['--dry-run'], {});
 
       if (result.success) {

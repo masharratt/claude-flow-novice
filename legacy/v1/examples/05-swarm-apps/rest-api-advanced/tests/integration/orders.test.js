@@ -18,7 +18,7 @@ describe('Order Endpoints', () => {
     server = app;
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clear data
     await User.deleteMany({});
     await Product.deleteMany({});
@@ -105,7 +105,7 @@ describe('Order Endpoints', () => {
       validOrderData.items[1].product = testProducts[1]._id.toString();
     });
 
-    it('should create order as authenticated user', async () => {
+    it('should create order as authenticated user', async () => { try {
       const response = await request(server)
         .post('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -133,14 +133,14 @@ describe('Order Endpoints', () => {
       expect(product2.stock).toBe(29); // 30 - 1
     });
 
-    it('should not create order without authentication', async () => {
+    it('should not create order without authentication', async () => { try {
       await request(server)
         .post('/api/orders')
         .send(validOrderData)
         .expect(401);
     });
 
-    it('should validate required fields', async () => {
+    it('should validate required fields', async () => { try {
       const response = await request(server)
         .post('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -159,7 +159,7 @@ describe('Order Endpoints', () => {
       );
     });
 
-    it('should validate order items', async () => {
+    it('should validate order items', async () => { try {
       const response = await request(server)
         .post('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -177,7 +177,7 @@ describe('Order Endpoints', () => {
       expect(response.body.errors).toBeDefined();
     });
 
-    it('should not create order with out-of-stock product', async () => {
+    it('should not create order with out-of-stock product', async () => { try {
       const response = await request(server)
         .post('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -196,7 +196,7 @@ describe('Order Endpoints', () => {
       expect(response.body.message).toContain('out of stock');
     });
 
-    it('should not create order with insufficient stock', async () => {
+    it('should not create order with insufficient stock', async () => { try {
       const response = await request(server)
         .post('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -215,7 +215,7 @@ describe('Order Endpoints', () => {
       expect(response.body.message).toContain('Insufficient stock');
     });
 
-    it('should apply tax and shipping calculations', async () => {
+    it('should apply tax and shipping calculations', async () => { try {
       const response = await request(server)
         .post('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -232,7 +232,7 @@ describe('Order Endpoints', () => {
   describe('GET /api/orders', () => {
     let userOrders;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create some orders for the user
       userOrders = await Order.create([
         {
@@ -321,7 +321,7 @@ describe('Order Endpoints', () => {
       });
     });
 
-    it('should get user orders with pagination', async () => {
+    it('should get user orders with pagination', async () => { try {
       const response = await request(server)
         .get('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -339,7 +339,7 @@ describe('Order Endpoints', () => {
       });
     });
 
-    it('should filter orders by status', async () => {
+    it('should filter orders by status', async () => { try {
       const response = await request(server)
         .get('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -350,7 +350,7 @@ describe('Order Endpoints', () => {
       expect(response.body.data[0].status).toBe('delivered');
     });
 
-    it('should sort orders', async () => {
+    it('should sort orders', async () => { try {
       const response = await request(server)
         .get('/api/orders')
         .set('Authorization', `Bearer ${userToken}`)
@@ -361,7 +361,7 @@ describe('Order Endpoints', () => {
       expect(response.body.data[1].orderNumber).toBe('ORD-2024-0001');
     });
 
-    it('should not get orders without authentication', async () => {
+    it('should not get orders without authentication', async () => { try {
       await request(server)
         .get('/api/orders')
         .expect(401);
@@ -372,7 +372,7 @@ describe('Order Endpoints', () => {
     let userOrder;
     let adminOrder;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       userOrder = await Order.create({
         user: normalUser._id,
         orderNumber: 'ORD-2024-0001',
@@ -430,7 +430,7 @@ describe('Order Endpoints', () => {
       });
     });
 
-    it('should get own order details', async () => {
+    it('should get own order details', async () => { try {
       const response = await request(server)
         .get(`/api/orders/${userOrder._id}`)
         .set('Authorization', `Bearer ${userToken}`)
@@ -444,7 +444,7 @@ describe('Order Endpoints', () => {
       });
     });
 
-    it('should not get other user order', async () => {
+    it('should not get other user order', async () => { try {
       const response = await request(server)
         .get(`/api/orders/${adminOrder._id}`)
         .set('Authorization', `Bearer ${userToken}`)
@@ -454,7 +454,7 @@ describe('Order Endpoints', () => {
       expect(response.body.message).toContain('Access denied');
     });
 
-    it('should get any order as admin', async () => {
+    it('should get any order as admin', async () => { try {
       const response = await request(server)
         .get(`/api/orders/${userOrder._id}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -464,7 +464,7 @@ describe('Order Endpoints', () => {
       expect(response.body.data.orderNumber).toBe('ORD-2024-0001');
     });
 
-    it('should return 404 for non-existent order', async () => {
+    it('should return 404 for non-existent order', async () => { try {
       const fakeId = '507f1f77bcf86cd799439999';
       const response = await request(server)
         .get(`/api/orders/${fakeId}`)
@@ -479,7 +479,7 @@ describe('Order Endpoints', () => {
   describe('DELETE /api/orders/:id (Cancel Order)', () => {
     let userOrder;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       userOrder = await Order.create({
         user: normalUser._id,
         orderNumber: 'ORD-2024-0001',
@@ -512,7 +512,7 @@ describe('Order Endpoints', () => {
       await Product.findByIdAndUpdate(testProducts[0]._id, { $inc: { stock: -2 } });
     });
 
-    it('should cancel pending order', async () => {
+    it('should cancel pending order', async () => { try {
       const response = await request(server)
         .delete(`/api/orders/${userOrder._id}`)
         .set('Authorization', `Bearer ${userToken}`)
@@ -530,7 +530,7 @@ describe('Order Endpoints', () => {
       expect(product.stock).toBe(50); // Original stock restored
     });
 
-    it('should not cancel shipped order', async () => {
+    it('should not cancel shipped order', async () => { try {
       // Update order to shipped status
       userOrder.status = 'shipped';
       await userOrder.save();
@@ -544,7 +544,7 @@ describe('Order Endpoints', () => {
       expect(response.body.message).toContain('cannot be cancelled');
     });
 
-    it('should not cancel other user order', async () => {
+    it('should not cancel other user order', async () => { try {
       const response = await request(server)
         .delete(`/api/orders/${userOrder._id}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -557,7 +557,7 @@ describe('Order Endpoints', () => {
   describe('Admin Order Management', () => {
     let testOrder;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testOrder = await Order.create({
         user: normalUser._id,
         orderNumber: 'ORD-2024-0001',
@@ -588,7 +588,7 @@ describe('Order Endpoints', () => {
     });
 
     describe('GET /api/orders/admin/all', () => {
-      it('should get all orders as admin', async () => {
+      it('should get all orders as admin', async () => { try {
         // Create additional order
         await Order.create({
           user: adminUser._id,
@@ -629,7 +629,7 @@ describe('Order Endpoints', () => {
         expect(response.body.meta.total).toBe(2);
       });
 
-      it('should filter orders by date range', async () => {
+      it('should filter orders by date range', async () => { try {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const tomorrow = new Date();
@@ -648,7 +648,7 @@ describe('Order Endpoints', () => {
         expect(response.body.data.length).toBeGreaterThan(0);
       });
 
-      it('should not access admin orders as normal user', async () => {
+      it('should not access admin orders as normal user', async () => { try {
         await request(server)
           .get('/api/orders/admin/all')
           .set('Authorization', `Bearer ${userToken}`)
@@ -657,7 +657,7 @@ describe('Order Endpoints', () => {
     });
 
     describe('PUT /api/orders/:id/status', () => {
-      it('should update order status as admin', async () => {
+      it('should update order status as admin', async () => { try {
         const response = await request(server)
           .put(`/api/orders/${testOrder._id}/status`)
           .set('Authorization', `Bearer ${adminToken}`)
@@ -676,7 +676,7 @@ describe('Order Endpoints', () => {
         });
       });
 
-      it('should validate status transition', async () => {
+      it('should validate status transition', async () => { try {
         // Update to delivered
         testOrder.status = 'delivered';
         await testOrder.save();
@@ -692,7 +692,7 @@ describe('Order Endpoints', () => {
         expect(response.body.message).toContain('Invalid status transition');
       });
 
-      it('should not update status as normal user', async () => {
+      it('should not update status as normal user', async () => { try {
         await request(server)
           .put(`/api/orders/${testOrder._id}/status`)
           .set('Authorization', `Bearer ${userToken}`)
@@ -702,7 +702,7 @@ describe('Order Endpoints', () => {
     });
 
     describe('POST /api/orders/:id/tracking', () => {
-      it('should add tracking information as admin', async () => {
+      it('should add tracking information as admin', async () => { try {
         const trackingData = {
           carrier: 'FedEx',
           trackingNumber: 'FDX123456789',
@@ -719,7 +719,7 @@ describe('Order Endpoints', () => {
         expect(response.body.data.tracking).toMatchObject(trackingData);
       });
 
-      it('should validate tracking data', async () => {
+      it('should validate tracking data', async () => { try {
         const response = await request(server)
           .post(`/api/orders/${testOrder._id}/tracking`)
           .set('Authorization', `Bearer ${adminToken}`)
@@ -734,7 +734,7 @@ describe('Order Endpoints', () => {
     });
 
     describe('POST /api/orders/:id/refund', () => {
-      it('should process refund as admin', async () => {
+      it('should process refund as admin', async () => { try {
         const refundData = {
           amount: 50.00,
           reason: 'Product defect',
@@ -755,7 +755,7 @@ describe('Order Endpoints', () => {
         });
       });
 
-      it('should not refund more than order total', async () => {
+      it('should not refund more than order total', async () => { try {
         const response = await request(server)
           .post(`/api/orders/${testOrder._id}/refund`)
           .set('Authorization', `Bearer ${adminToken}`)
@@ -772,7 +772,7 @@ describe('Order Endpoints', () => {
   });
 
   describe('Order Statistics and Reports', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create multiple orders for statistics
       const orderData = [
         {
@@ -827,7 +827,7 @@ describe('Order Endpoints', () => {
     });
 
     describe('GET /api/orders/statistics/summary', () => {
-      it('should get order statistics', async () => {
+      it('should get order statistics', async () => { try {
         const response = await request(server)
           .get('/api/orders/statistics/summary')
           .set('Authorization', `Bearer ${userToken}`)
@@ -843,7 +843,7 @@ describe('Order Endpoints', () => {
         });
       });
 
-      it('should filter statistics by period', async () => {
+      it('should filter statistics by period', async () => { try {
         const weekResponse = await request(server)
           .get('/api/orders/statistics/summary')
           .set('Authorization', `Bearer ${userToken}`)
@@ -863,7 +863,7 @@ describe('Order Endpoints', () => {
     });
 
     describe('GET /api/orders/reports/sales', () => {
-      it('should get sales report as admin', async () => {
+      it('should get sales report as admin', async () => { try {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
         const endDate = new Date();
@@ -891,7 +891,7 @@ describe('Order Endpoints', () => {
         });
       });
 
-      it('should not get sales report as normal user', async () => {
+      it('should not get sales report as normal user', async () => { try {
         await request(server)
           .get('/api/orders/reports/sales')
           .set('Authorization', `Bearer ${userToken}`)
@@ -906,7 +906,7 @@ describe('Order Endpoints', () => {
     describe('GET /api/orders/:id/invoice', () => {
       let testOrder;
 
-      beforeEach(async () => {
+      beforeEach(async () => { try {
         testOrder = await Order.create({
           user: normalUser._id,
           orderNumber: 'ORD-2024-INV001',
@@ -936,7 +936,7 @@ describe('Order Endpoints', () => {
         });
       });
 
-      it('should get order invoice', async () => {
+      it('should get order invoice', async () => { try {
         const response = await request(server)
           .get(`/api/orders/${testOrder._id}/invoice`)
           .set('Authorization', `Bearer ${userToken}`)
@@ -952,7 +952,7 @@ describe('Order Endpoints', () => {
         });
       });
 
-      it('should not get invoice for other user order', async () => {
+      it('should not get invoice for other user order', async () => { try {
         const adminOrder = await Order.create({
           user: adminUser._id,
           orderNumber: 'ORD-2024-ADM001',
@@ -988,4 +988,4 @@ describe('Order Endpoints', () => {
       });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

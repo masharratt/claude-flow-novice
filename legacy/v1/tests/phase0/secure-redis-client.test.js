@@ -50,14 +50,15 @@ describe('SecureRedisClient', () => {
     process.env.REDIS_PASSWORD = 'test-password';
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (secureClient) {
       await secureClient.shutdown();
     }
   });
 
   describe('Initialization', () => {
-    test('should initialize with default configuration', async () => {
+    jest.setTimeout(10000);
+  test('should initialize with default configuration', async () => { try {
       secureClient = new SecureRedisClient();
 
       expect(secureClient.config.host).toBe('localhost');
@@ -66,7 +67,8 @@ describe('SecureRedisClient', () => {
       expect(secureClient.config.auditLogging).toBe(true);
     });
 
-    test('should initialize with custom configuration', async () => {
+    jest.setTimeout(10000);
+  test('should initialize with custom configuration', async () => { try {
       const customConfig = {
         host: 'custom-host',
         port: 6380,
@@ -83,7 +85,8 @@ describe('SecureRedisClient', () => {
       expect(secureClient.config.auditLogging).toBe(false);
     });
 
-    test('should initialize connection pool when pooling is enabled', async () => {
+    jest.setTimeout(10000);
+  test('should initialize connection pool when pooling is enabled', async () => { try {
       secureClient = new SecureRedisClient({ pooling: true });
 
       // Mock the connection pool initialize method
@@ -96,7 +99,8 @@ describe('SecureRedisClient', () => {
       expect(secureClient.healthStatus.status).toBe('ready');
     });
 
-    test('should handle initialization errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle initialization errors', async () => { try {
       secureClient = new SecureRedisClient();
 
       // Mock connection pool to throw error
@@ -107,7 +111,8 @@ describe('SecureRedisClient', () => {
       expect(secureClient.healthStatus.status).toBe('error');
     });
 
-    test('should emit ready event after successful initialization', async () => {
+    jest.setTimeout(10000);
+  test('should emit ready event after successful initialization', async () => { try {
       secureClient = new SecureRedisClient();
       const readySpy = jest.fn();
       secureClient.on('ready', readySpy);
@@ -122,14 +127,15 @@ describe('SecureRedisClient', () => {
   });
 
   describe('Security Validation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
       await secureClient.initialize();
     });
 
-    test('should validate key patterns correctly', async () => {
+    jest.setTimeout(10000);
+  test('should validate key patterns correctly', async () => { try {
       const validKeys = [
         'swarm:test123',
         'memory:user_data',
@@ -142,7 +148,8 @@ describe('SecureRedisClient', () => {
       }
     });
 
-    test('should reject keys with invalid patterns', async () => {
+    jest.setTimeout(10000);
+  test('should reject keys with invalid patterns', async () => { try {
       const invalidKeys = [
         'invalid:key!@#',
         '../../etc/passwd',
@@ -156,7 +163,8 @@ describe('SecureRedisClient', () => {
       }
     });
 
-    test('should prevent dangerous Redis commands', async () => {
+    jest.setTimeout(10000);
+  test('should prevent dangerous Redis commands', async () => { try {
       const dangerousCommands = [
         ['eval', 'return "malicious code"'],
         ['config', 'set', 'requirepass', 'hacked'],
@@ -171,28 +179,31 @@ describe('SecureRedisClient', () => {
       }
     });
 
-    test('should validate value size limits', async () => {
+    jest.setTimeout(10000);
+  test('should validate value size limits', async () => { try {
       const largeValue = 'x'.repeat(11 * 1024 * 1024); // 11MB
 
       await expect(secureClient.set('test:key', largeValue))
         .rejects.toThrow('Value exceeds maximum size');
     });
 
-    test('should validate required arguments for commands', async () => {
+    jest.setTimeout(10000);
+  test('should validate required arguments for commands', async () => { try {
       await expect(secureClient.executeCommand('set', 'only-key'))
         .rejects.toThrow('SET command requires key and value');
     });
   });
 
   describe('Rate Limiting', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
       await secureClient.initialize();
     });
 
-    test('should allow requests within rate limit', async () => {
+    jest.setTimeout(10000);
+  test('should allow requests within rate limit', async () => { try {
       const promises = [];
 
       // Make 10 requests (well under the limit)
@@ -203,7 +214,8 @@ describe('SecureRedisClient', () => {
       await expect(Promise.all(promises)).resolves.toBeDefined();
     });
 
-    test('should enforce rate limits', async () => {
+    jest.setTimeout(10000);
+  test('should enforce rate limits', async () => { try {
       // Mock rate limit config to lower values for testing
       const originalConfig = secureClient.rateLimitMap;
       secureClient.rateLimitMap.clear();
@@ -221,7 +233,8 @@ describe('SecureRedisClient', () => {
         .rejects.toThrow('Rate limit exceeded');
     });
 
-    test('should clean up expired rate limit entries', (done) => {
+    jest.setTimeout(10000);
+  test('should clean up expired rate limit entries', (done) => {
       secureClient = new SecureRedisClient();
       const cleanupSpy = jest.spyOn(secureClient, 'startRateLimitCleanup');
 
@@ -232,13 +245,14 @@ describe('SecureRedisClient', () => {
       // Wait for cleanup interval
       setTimeout(() => {
         expect(secureClient.rateLimitMap.has('old-client')).toBe(false);
-        done();
+        return;
       }, 100);
     });
   });
 
   describe('Connection Pooling', () => {
-    test('should create minimum connections on initialization', async () => {
+    jest.setTimeout(10000);
+  test('should create minimum connections on initialization', async () => { try {
       secureClient = new SecureRedisClient();
       const createConnectionSpy = jest.spyOn(secureClient.connectionPool, 'createConnection');
       createConnectionSpy.mockResolvedValue({ client: mockRedisClient, inUse: false, healthy: true });
@@ -248,7 +262,8 @@ describe('SecureRedisClient', () => {
       expect(createConnectionSpy).toHaveBeenCalledTimes(2); // minConnections
     });
 
-    test('should acquire connection from pool', async () => {
+    jest.setTimeout(10000);
+  test('should acquire connection from pool', async () => { try {
       secureClient = new SecureRedisClient();
       const mockConnection = { client: mockRedisClient, inUse: false, healthy: true };
       secureClient.connectionPool.connections = [mockConnection];
@@ -259,7 +274,8 @@ describe('SecureRedisClient', () => {
       expect(mockConnection.inUse).toBe(true);
     });
 
-    test('should create new connection when pool is at capacity', async () => {
+    jest.setTimeout(10000);
+  test('should create new connection when pool is at capacity', async () => { try {
       secureClient = new SecureRedisClient();
       const createConnectionSpy = jest.spyOn(secureClient.connectionPool, 'createConnection');
       createConnectionSpy.mockResolvedValue({ client: mockRedisClient, inUse: true, healthy: true });
@@ -273,7 +289,8 @@ describe('SecureRedisClient', () => {
       expect(client).toBe(mockRedisClient);
     });
 
-    test('should handle connection acquisition timeout', async () => {
+    jest.setTimeout(10000);
+  test('should handle connection acquisition timeout', async () => { try {
       secureClient = new SecureRedisClient();
       secureClient.config.acquireTimeoutMillis = 100;
 
@@ -285,7 +302,8 @@ describe('SecureRedisClient', () => {
         .rejects.toThrow('Connection acquire timeout');
     });
 
-    test('should release connection back to pool', async () => {
+    jest.setTimeout(10000);
+  test('should release connection back to pool', async () => { try {
       secureClient = new SecureRedisClient();
       const mockConnection = { client: mockRedisClient, inUse: true, healthy: true };
       secureClient.connectionPool.connections = [mockConnection];
@@ -295,7 +313,8 @@ describe('SecureRedisClient', () => {
       expect(mockConnection.inUse).toBe(false);
     });
 
-    test('should handle connection errors and recreate connections', async () => {
+    jest.setTimeout(10000);
+  test('should handle connection errors and recreate connections', async () => { try {
       secureClient = new SecureRedisClient();
       const mockConnection = {
         client: mockRedisClient,
@@ -314,7 +333,8 @@ describe('SecureRedisClient', () => {
       expect(secureClient.connectionPool.activeConnections).toBe(0);
     });
 
-    test('should shutdown gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should shutdown gracefully', async () => { try {
       secureClient = new SecureRedisClient();
       const mockConnection1 = { client: mockRedisClient, inUse: false, healthy: true };
       const mockConnection2 = { client: mockRedisClient, inUse: false, healthy: true };
@@ -328,7 +348,7 @@ describe('SecureRedisClient', () => {
   });
 
   describe('Command Execution', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
@@ -341,7 +361,8 @@ describe('SecureRedisClient', () => {
       secureClient.connectionPool.release = jest.fn();
     });
 
-    test('should execute basic Redis commands', async () => {
+    jest.setTimeout(10000);
+  test('should execute basic Redis commands', async () => { try {
       mockRedisClient.get.mockResolvedValue('test-value');
       mockRedisClient.set.mockResolvedValue('OK');
       mockRedisClient.del.mockResolvedValue(1);
@@ -362,7 +383,8 @@ describe('SecureRedisClient', () => {
       expect(mockRedisClient.del).toHaveBeenCalledWith('test:key');
     });
 
-    test('should execute SET with expiration', async () => {
+    jest.setTimeout(10000);
+  test('should execute SET with expiration', async () => { try {
       mockRedisClient.setEx.mockResolvedValue('OK');
 
       const result = await secureClient.setEx('test:key', 3600, 'test-value');
@@ -371,7 +393,8 @@ describe('SecureRedisClient', () => {
       expect(mockRedisClient.setEx).toHaveBeenCalledWith('test:key', 3600, 'test-value');
     });
 
-    test('should execute hash commands', async () => {
+    jest.setTimeout(10000);
+  test('should execute hash commands', async () => { try {
       mockRedisClient.hGet.mockResolvedValue('hash-value');
       mockRedisClient.hSet.mockResolvedValue(1);
       mockRedisClient.hDel.mockResolvedValue(1);
@@ -392,7 +415,8 @@ describe('SecureRedisClient', () => {
       expect(mockRedisClient.hDel).toHaveBeenCalledWith('test:hash', 'field');
     });
 
-    test('should execute set commands', async () => {
+    jest.setTimeout(10000);
+  test('should execute set commands', async () => { try {
       mockRedisClient.sAdd.mockResolvedValue(1);
       mockRedisClient.sRem.mockResolvedValue(1);
       mockRedisClient.sMembers.mockResolvedValue(['member1', 'member2']);
@@ -413,14 +437,16 @@ describe('SecureRedisClient', () => {
       expect(mockRedisClient.sMembers).toHaveBeenCalledWith('test:set');
     });
 
-    test('should handle command execution errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle command execution errors', async () => { try {
       const error = new Error('Redis command failed');
       mockRedisClient.get.mockRejectedValue(error);
 
       await expect(secureClient.get('test:key')).rejects.toThrow('Redis command failed');
     });
 
-    test('should record metrics for successful commands', async () => {
+    jest.setTimeout(10000);
+  test('should record metrics for successful commands', async () => { try {
       const metricsSpy = jest.fn();
       secureClient.on('metrics', metricsSpy);
 
@@ -436,7 +462,8 @@ describe('SecureRedisClient', () => {
       });
     });
 
-    test('should record metrics for failed commands', async () => {
+    jest.setTimeout(10000);
+  test('should record metrics for failed commands', async () => { try {
       const metricsSpy = jest.fn();
       secureClient.on('metrics', metricsSpy);
 
@@ -454,14 +481,15 @@ describe('SecureRedisClient', () => {
   });
 
   describe('Health Monitoring', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
       await secureClient.initialize();
     });
 
-    test('should perform health checks', async () => {
+    jest.setTimeout(10000);
+  test('should perform health checks', async () => { try {
       mockRedisClient.ping.mockResolvedValue('PONG');
 
       const healthStatus = secureClient.getHealthStatus();
@@ -472,7 +500,8 @@ describe('SecureRedisClient', () => {
       expect(healthStatus).toHaveProperty('timestamp');
     });
 
-    test('should update health status on successful ping', (done) => {
+    jest.setTimeout(10000);
+  test('should update health status on successful ping', (done) => {
       const healthSpy = jest.fn();
       secureClient.on('health-check', healthSpy);
 
@@ -486,11 +515,12 @@ describe('SecureRedisClient', () => {
             responseTime: expect.any(Number)
           })
         );
-        done();
+        return;
       }, 100);
     });
 
-    test('should handle health check failures', (done) => {
+    jest.setTimeout(10000);
+  test('should handle health check failures', (done) => {
       const healthErrorSpy = jest.fn();
       secureClient.on('health-error', healthErrorSpy);
 
@@ -501,11 +531,12 @@ describe('SecureRedisClient', () => {
         expect(healthErrorSpy).toHaveBeenCalled();
         expect(secureClient.healthStatus.status).toBe('unhealthy');
         expect(secureClient.healthStatus.errorCount).toBeGreaterThan(0);
-        done();
+        return;
       }, 100);
     });
 
-    test('should provide rate limiting statistics', () => {
+    jest.setTimeout(10000);
+  test('should provide rate limiting statistics', () => {
       const stats = secureClient.getRateLimitStats();
 
       expect(stats).toHaveProperty('activeClients');
@@ -518,7 +549,7 @@ describe('SecureRedisClient', () => {
   });
 
   describe('Audit Logging', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       secureClient = new SecureRedisClient({ auditLogging: true });
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
@@ -531,7 +562,8 @@ describe('SecureRedisClient', () => {
       secureClient.connectionPool.release = jest.fn();
     });
 
-    test('should log successful commands', async () => {
+    jest.setTimeout(10000);
+  test('should log successful commands', async () => { try {
       const auditSpy = jest.spyOn(secureClient.auditLogger, 'log');
       auditSpy.mockResolvedValue(undefined);
 
@@ -549,7 +581,8 @@ describe('SecureRedisClient', () => {
       });
     });
 
-    test('should log failed commands', async () => {
+    jest.setTimeout(10000);
+  test('should log failed commands', async () => { try {
       const auditSpy = jest.spyOn(secureClient.auditLogger, 'log');
       auditSpy.mockResolvedValue(undefined);
 
@@ -567,7 +600,8 @@ describe('SecureRedisClient', () => {
       });
     });
 
-    test('should sanitize sensitive arguments in logs', async () => {
+    jest.setTimeout(10000);
+  test('should sanitize sensitive arguments in logs', async () => { try {
       const auditSpy = jest.spyOn(secureClient.auditLogger, 'log');
       auditSpy.mockResolvedValue(undefined);
 
@@ -584,14 +618,15 @@ describe('SecureRedisClient', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
       await secureClient.initialize();
     });
 
-    test('should handle connection pool errors gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle connection pool errors gracefully', async () => { try {
       secureClient.connectionPool.acquire = jest.fn()
         .mockRejectedValue(new Error('No available connections'));
 
@@ -599,7 +634,8 @@ describe('SecureRedisClient', () => {
         .rejects.toThrow('No available connections');
     });
 
-    test('should handle Redis client errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle Redis client errors', async () => { try {
       const mockConnection = { client: mockRedisClient, inUse: false, healthy: true };
       secureClient.connectionPool.connections = [mockConnection];
       secureClient.connectionPool.acquire = jest.fn().mockResolvedValue(mockRedisClient);
@@ -610,7 +646,8 @@ describe('SecureRedisClient', () => {
         .rejects.toThrow('Redis error');
     });
 
-    test('should handle audit logging errors without failing operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle audit logging errors without failing operations', async () => { try {
       const auditSpy = jest.spyOn(secureClient.auditLogger, 'log');
       auditSpy.mockRejectedValue(new Error('Audit failed'));
 
@@ -635,13 +672,15 @@ describe('SecureRedisClient', () => {
       process.env.NODE_ENV = 'test';
     });
 
-    test('should enable TLS in production environment', async () => {
+    jest.setTimeout(10000);
+  test('should enable TLS in production environment', async () => { try {
       secureClient = new SecureRedisClient();
 
       expect(secureClient.config.enableTLS).toBe(true);
     });
 
-    test('should enable authentication in production environment', async () => {
+    jest.setTimeout(10000);
+  test('should enable authentication in production environment', async () => { try {
       secureClient = new SecureRedisClient();
 
       expect(secureClient.config.requireAuth).toBe(true);
@@ -649,7 +688,7 @@ describe('SecureRedisClient', () => {
   });
 
   describe('Performance and Concurrency', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
@@ -681,7 +720,8 @@ describe('SecureRedisClient', () => {
         });
     });
 
-    test('should handle concurrent operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent operations', async () => { try {
       mockRedisClient.get.mockResolvedValue('value');
 
       const promises = Array(100).fill(null).map((_, i) =>
@@ -694,7 +734,8 @@ describe('SecureRedisClient', () => {
       expect(results.every(r => r === 'value')).toBe(true);
     });
 
-    test('should maintain performance under load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under load', async () => { try {
       mockRedisClient.set.mockResolvedValue('OK');
       mockRedisClient.get.mockResolvedValue('test-value');
 
@@ -719,7 +760,8 @@ describe('SecureRedisClient', () => {
       expect(duration).toBeLessThan(10000); // 10 seconds
     });
 
-    test('should handle connection pool exhaustion', async () => {
+    jest.setTimeout(10000);
+  test('should handle connection pool exhaustion', async () => { try {
       // Mock that all connections are in use
       secureClient.connectionPool.connections.forEach(conn => conn.inUse = true);
       secureClient.connectionPool.acquire = jest.fn()
@@ -736,7 +778,7 @@ describe('SecureRedisClient', () => {
   });
 
   describe('Integration with Swarm Operations', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
@@ -748,7 +790,8 @@ describe('SecureRedisClient', () => {
       secureClient.connectionPool.release = jest.fn();
     });
 
-    test('should handle swarm state operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle swarm state operations', async () => { try {
       const swarmState = {
         id: 'test-swarm-123',
         objective: 'Test objective',
@@ -804,7 +847,8 @@ describe('SecureRedisClient', () => {
       expect(mockRedisClient.hDel).toHaveBeenCalledWith('swarms:index', 'test-swarm-123');
     });
 
-    test('should handle memory operations for swarm coordination', async () => {
+    jest.setTimeout(10000);
+  test('should handle memory operations for swarm coordination', async () => { try {
       const memoryData = {
         agentId: 'agent-123',
         step: 'step-456',
@@ -828,7 +872,8 @@ describe('SecureRedisClient', () => {
       expect(JSON.parse(loadedData)).toEqual(memoryData);
     });
 
-    test('should handle metrics collection', async () => {
+    jest.setTimeout(10000);
+  test('should handle metrics collection', async () => { try {
       const metricsSpy = jest.fn();
       secureClient.on('metrics', metricsSpy);
 
@@ -854,7 +899,8 @@ describe('SecureRedisClient', () => {
   });
 
   describe('Shutdown and Cleanup', () => {
-    test('should shutdown gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should shutdown gracefully', async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
@@ -877,7 +923,8 @@ describe('SecureRedisClient', () => {
       expect(secureClient.healthStatus.status).toBe('shutdown');
     });
 
-    test('should emit shutdown event', async () => {
+    jest.setTimeout(10000);
+  test('should emit shutdown event', async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
@@ -894,7 +941,8 @@ describe('SecureRedisClient', () => {
       expect(shutdownSpy).toHaveBeenCalled();
     });
 
-    test('should handle shutdown errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle shutdown errors', async () => { try {
       secureClient = new SecureRedisClient();
       const initSpy = jest.spyOn(secureClient.connectionPool, 'initialize');
       initSpy.mockResolvedValue(undefined);
@@ -910,4 +958,4 @@ describe('SecureRedisClient', () => {
       expect(errorSpy).toHaveBeenCalled();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

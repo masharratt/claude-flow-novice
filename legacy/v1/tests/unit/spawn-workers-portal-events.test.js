@@ -59,7 +59,7 @@ global.fetch = vi.fn().mockResolvedValue({
 describe('spawn-workers.js - Socket.IO Portal Events', () => {
   let spawner;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     vi.clearAllMocks();
 
     // Set required environment variables
@@ -81,14 +81,14 @@ describe('spawn-workers.js - Socket.IO Portal Events', () => {
     spawner.socketAvailable = true;
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (spawner) {
       await spawner.cleanup();
     }
   });
 
   describe('Socket.IO Connection', () => {
-    it('should initialize Socket.IO client with correct config', async () => {
+    it('should initialize Socket.IO client with correct config', async () => { try {
       const { io } = await import('socket.io-client');
 
       expect(io).toHaveBeenCalledWith('http://localhost:3000', expect.objectContaining({
@@ -107,14 +107,14 @@ describe('spawn-workers.js - Socket.IO Portal Events', () => {
       expect(mockSocket.on).toHaveBeenCalledWith('disconnect', expect.any(Function));
     });
 
-    it('should set socketAvailable to true on connect', async () => {
+    it('should set socketAvailable to true on connect', async () => { try {
       const connectHandler = mockSocket.on.mock.calls.find(call => call[0] === 'connect')[1];
       connectHandler();
 
       expect(spawner.socketAvailable).toBe(true);
     });
 
-    it('should set socketAvailable to false on connect_error', async () => {
+    it('should set socketAvailable to false on connect_error', async () => { try {
       const errorHandler = mockSocket.on.mock.calls.find(call => call[0] === 'connect_error')[1];
       errorHandler(new Error('Connection failed'));
 
@@ -123,7 +123,7 @@ describe('spawn-workers.js - Socket.IO Portal Events', () => {
   });
 
   describe('agent:spawned Event', () => {
-    it('should emit agent:spawned with correct payload', async () => {
+    it('should emit agent:spawned with correct payload', async () => { try {
       spawner.emitPortalEvent('agent:spawned', {
         agentId: 'hybrid-worker-1',
         workerId: 1,
@@ -333,7 +333,7 @@ describe('spawn-workers.js - Socket.IO Portal Events', () => {
   });
 
   describe('Graceful Degradation', () => {
-    it('should continue when Socket.IO unavailable', async () => {
+    it('should continue when Socket.IO unavailable', async () => { try {
       const spawnerNoPortal = new HybridWorkerSpawner({
         task: 'Test task',
         maxAgents: 1,
@@ -361,7 +361,7 @@ describe('spawn-workers.js - Socket.IO Portal Events', () => {
       }).not.toThrow();
     });
 
-    it('should cleanup Socket.IO on spawner cleanup', async () => {
+    it('should cleanup Socket.IO on spawner cleanup', async () => { try {
       await spawner.cleanup();
 
       expect(mockSocket.disconnect).toHaveBeenCalled();

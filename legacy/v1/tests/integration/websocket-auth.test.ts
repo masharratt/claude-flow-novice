@@ -115,7 +115,7 @@ describe('WebSocket Authentication Integration Tests', () => {
       const waitPromise = new Promise(resolve => setTimeout(resolve, 10));
 
       // Act & Assert
-      return waitPromise.then(() => {
+      return waitPromiseawait ( => {
         mockSocket.handshake.auth.token = token;
         const result = authenticateWebSocket(mockSocket, testConfig);
         expect(result).toBe(false);

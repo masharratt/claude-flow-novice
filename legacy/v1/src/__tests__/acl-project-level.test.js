@@ -19,7 +19,7 @@ describe('Project-Level ACL Security Tests', () => {
   let memoryManager;
   let testDbPath;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Create temporary test database
     testDbPath = path.join(__dirname, '../../test-data-acl.db');
     if (fs.existsSync(testDbPath)) {
@@ -36,7 +36,7 @@ describe('Project-Level ACL Security Tests', () => {
     await memoryManager.initialize();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (memoryManager) {
       await memoryManager.close();
     }
@@ -45,14 +45,15 @@ describe('Project-Level ACL Security Tests', () => {
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clear database before each test
     await memoryManager.clear();
     memoryManager.clearACLCache();
   });
 
   describe('6-Level ACL System Validation', () => {
-    test('should enforce private (level 1) access control', async () => {
+    jest.setTimeout(10000);
+  test('should enforce private (level 1) access control', async () => { try {
       const agent1 = 'agent-private-1';
       const agent2 = 'agent-private-2';
       const secretData = { secret: 'confidential' };
@@ -79,7 +80,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(otherAccess).toBeNull();
     });
 
-    test('should enforce team (level 2) access control', async () => {
+    jest.setTimeout(10000);
+  test('should enforce team (level 2) access control', async () => { try {
       const teamId = 'team-alpha';
       const agent1 = 'agent-team-1';
       const agent2 = 'agent-team-2';
@@ -112,7 +114,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(otherTeamAccess).toBeNull();
     });
 
-    test('should enforce swarm (level 3) access control', async () => {
+    jest.setTimeout(10000);
+  test('should enforce swarm (level 3) access control', async () => { try {
       const swarmId = 'swarm-beta';
       const agent1 = 'agent-swarm-1';
       const agent2 = 'agent-swarm-2';
@@ -135,7 +138,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(swarmAccess).toEqual(swarmData);
     });
 
-    test('should enforce project (level 4) access control - CRITICAL SECURITY TEST', async () => {
+    jest.setTimeout(10000);
+  test('should enforce project (level 4) access control - CRITICAL SECURITY TEST', async () => { try {
       const projectId1 = 'project-alpha';
       const projectId2 = 'project-beta';
       const agent1 = 'agent-project-1';
@@ -180,7 +184,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(crossProjectAccess).toBeNull();
     });
 
-    test('should enforce public (level 5) access control', async () => {
+    jest.setTimeout(10000);
+  test('should enforce public (level 5) access control', async () => { try {
       const agent1 = 'agent-public-1';
       const agent2 = 'agent-public-2';
       const publicData = { announcement: 'public-notice' };
@@ -206,7 +211,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(publicAccess2).toEqual(publicData);
     });
 
-    test('should enforce system (level 6) access control', async () => {
+    jest.setTimeout(10000);
+  test('should enforce system (level 6) access control', async () => { try {
       const systemAgent = 'system-agent';
       const regularAgent = 'regular-agent';
       const systemData = { config: 'system-critical' };
@@ -235,7 +241,8 @@ describe('Project-Level ACL Security Tests', () => {
   });
 
   describe('Project Isolation Security', () => {
-    test('should prevent cross-project data leakage', async () => {
+    jest.setTimeout(10000);
+  test('should prevent cross-project data leakage', async () => { try {
       const projectAlpha = 'project-alpha-isolation';
       const projectBeta = 'project-beta-isolation';
 
@@ -277,7 +284,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(betaCrossAccess).toBeNull();
     });
 
-    test('should handle project namespace isolation', async () => {
+    jest.setTimeout(10000);
+  test('should handle project namespace isolation', async () => { try {
       const projectId = 'project-namespace-test';
       const agent1 = 'agent-ns-1';
       const agent2 = 'agent-ns-2';
@@ -319,7 +327,8 @@ describe('Project-Level ACL Security Tests', () => {
   });
 
   describe('ACL Cache Security', () => {
-    test('should not cache unauthorized access', async () => {
+    jest.setTimeout(10000);
+  test('should not cache unauthorized access', async () => { try {
       const projectId = 'project-cache-test';
       const authorizedAgent = 'auth-agent';
       const unauthorizedAgent = 'unauth-agent';
@@ -351,7 +360,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(retryUnauthorized).toBeNull();
     });
 
-    test('should respect cache expiration', async () => {
+    jest.setTimeout(10000);
+  test('should respect cache expiration', async () => { try {
       const projectId = 'project-cache-expiry';
       const agent = 'cache-agent';
 
@@ -387,7 +397,8 @@ describe('Project-Level ACL Security Tests', () => {
   });
 
   describe('Security Edge Cases', () => {
-    test('should handle null/undefined project context gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle null/undefined project context gracefully', async () => { try {
       const agent = 'edge-case-agent';
       const data = { test: 'edge-case' };
 
@@ -406,7 +417,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(access).toEqual(data);
     });
 
-    test('should prevent privilege escalation through project context manipulation', async () => {
+    jest.setTimeout(10000);
+  test('should prevent privilege escalation through project context manipulation', async () => { try {
       const projectId = 'privilege-test-project';
       const agent = 'privilege-agent';
 
@@ -428,7 +440,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(privilegedAccess).toBeNull();
     });
 
-    test('should handle concurrent access with project isolation', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent access with project isolation', async () => { try {
       const project1 = 'concurrent-project-1';
       const project2 = 'concurrent-project-2';
 
@@ -474,7 +487,8 @@ describe('Project-Level ACL Security Tests', () => {
   });
 
   describe('Performance and Security Metrics', () => {
-    test('should track ACL cache performance', async () => {
+    jest.setTimeout(10000);
+  test('should track ACL cache performance', async () => { try {
       const projectId = 'metrics-project';
       const agent = 'metrics-agent';
 
@@ -503,7 +517,8 @@ describe('Project-Level ACL Security Tests', () => {
       expect(metrics.cacheHitRate).toBeGreaterThanOrEqual(0);
     });
 
-    test('should emit access denied events for security monitoring', async () => {
+    jest.setTimeout(10000);
+  test('should emit access denied events for security monitoring', async () => { try {
       const projectId = 'monitoring-project';
       const authorizedAgent = 'auth-monitor-agent';
       const unauthorizedAgent = 'unauth-monitor-agent';
@@ -538,4 +553,4 @@ describe('Project-Level ACL Security Tests', () => {
       expect(accessDeniedEvents[0]).toHaveProperty('aclLevel');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

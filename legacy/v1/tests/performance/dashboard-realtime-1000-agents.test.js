@@ -23,7 +23,7 @@ describe('Dashboard Real-Time Performance Test - 1000+ Agents', () => {
   const PORT = 3456;
   const AGENT_COUNT = 1000;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     testResults = {
       websocketLatency: {},
       httpPollingLatency: {},
@@ -51,7 +51,7 @@ describe('Dashboard Real-Time Performance Test - 1000+ Agents', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup clients
     for (const client of clients) {
       client.close();
@@ -111,7 +111,7 @@ describe('Dashboard Real-Time Performance Test - 1000+ Agents', () => {
   }
 
   describe('WebSocket Latency with 1000 Connections', () => {
-    it('should maintain <100ms WebSocket latency with 1000 concurrent connections', async () => {
+    it('should maintain <100ms WebSocket latency with 1000 concurrent connections', async () => { try {
       const connectionLatencies = [];
       const messageLatencies = [];
 
@@ -189,7 +189,7 @@ describe('Dashboard Real-Time Performance Test - 1000+ Agents', () => {
   });
 
   describe('HTTP Polling Fallback Performance', () => {
-    it('should handle HTTP polling with <1s refresh rate', async () => {
+    it('should handle HTTP polling with <1s refresh rate', async () => { try {
       const pollingClients = [];
       const pollingLatencies = [];
 
@@ -255,7 +255,7 @@ describe('Dashboard Real-Time Performance Test - 1000+ Agents', () => {
   });
 
   describe('Real-Time Metric Updates', () => {
-    it('should process 1000+ agent metric updates within 1s', async () => {
+    it('should process 1000+ agent metric updates within 1s', async () => { try {
       const updateStart = performance.now();
       const updateLatencies = [];
 
@@ -335,7 +335,7 @@ describe('Dashboard Real-Time Performance Test - 1000+ Agents', () => {
   });
 
   describe('Connection Stability and Recovery', () => {
-    it('should maintain stable connections and recover from disruptions', async () => {
+    it('should maintain stable connections and recover from disruptions', async () => { try {
       const disconnectionEvents = [];
       const reconnectionEvents = [];
 
@@ -392,7 +392,7 @@ describe('Dashboard Real-Time Performance Test - 1000+ Agents', () => {
   });
 
   describe('Memory Usage Optimization', () => {
-    it('should maintain reasonable memory usage with 1000 connections', async () => {
+    it('should maintain reasonable memory usage with 1000 connections', async () => { try {
       const initialMemory = process.memoryUsage();
 
       // Wait for memory stabilization
@@ -430,7 +430,7 @@ describe('Dashboard Real-Time Performance Test - 1000+ Agents', () => {
   });
 
   describe('Performance Validation Summary', () => {
-    it('should generate comprehensive dashboard performance report', async () => {
+    it('should generate comprehensive dashboard performance report', async () => { try {
       // Calculate overall confidence score
       const scores = [
         testResults.websocketLatency?.avgMessageLatency < 100 ? 1.0 : 0.7,

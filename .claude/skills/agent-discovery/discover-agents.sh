@@ -1,169 +1,87 @@
 #!/usr/bin/env bash
-# Agent Discovery - Recursively scans .claude/agents/ and builds JSON registry
-
 set -euo pipefail
 
-AGENTS_DIR="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents"
+# Logging function
+log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >&2
+}
+
+# Error handler
+handle_error() {
+    log "ERROR: An error occurred in line $1"
+    log "Last command failed: $BASH_COMMAND"
+    exit 1
+}
+
+# Trap errors
+trap 'handle_error $LINENO' ERR
+
+# Path to Python script
+PYTHON_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/agent-discovery/discover-agents.py"
+
+# Output file
 OUTPUT_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/agent-discovery/agents-registry.json"
 
-# Detailed debug logging
-echo "Current working directory: $(pwd)"
-echo "Scanning agents in directory: $AGENTS_DIR"
+# Logging file
+LOG_FILE="/tmp/agent-discovery.log"
 
-# Remove old registry if exists
-[[ -f "$OUTPUT_FILE" ]] && rm "$OUTPUT_FILE"
+log "Starting agent discovery process"
 
-# Helper function to clean Windows line endings and parse frontmatter
-parse_frontmatter() {
-    local file="$1"
-    echo "DEBUG: Parsing frontmatter for $file"
-
-    # Use verbose sed to see what's happening
-    local content=$(sed -e 's/\r//g' "$file")
-    local frontmatter=$(echo "$content" | awk '
-    BEGIN {
-        frontmatter = "";
-        in_frontmatter = 0;
-        print "Starting frontmatter parsing" > "/dev/stderr";
-    }
-    /^---$/ {
-        in_frontmatter++;
-        print "Found frontmatter delimiter, current state: " in_frontmatter > "/dev/stderr";
-        if (in_frontmatter == 2) {
-            print "Exiting on second delimiter" > "/dev/stderr";
-            exit;
-        }
-        next;
-    }
-    in_frontmatter == 1 {
-        frontmatter = frontmatter $0 "\n";
-        print "Collecting frontmatter line: " $0 > "/dev/stderr";
-    }
-    END {
-        print "Collected frontmatter:\n" frontmatter > "/dev/stderr";
-        print frontmatter;
-    }
-    ')
-
-    echo "$frontmatter"
-}
-
-# Function to generate agent entry
-generate_agent_entry() {
-    local agent_file="$1"
-    local frontmatter="$2"
-
-    # Robust field extraction
-    local name=$(echo "$frontmatter" | grep -m1 "^name:" | sed 's/^name:[ ]*//' | xargs)
-    local description=$(echo "$frontmatter" | grep -m1 "^description:" | sed 's/^description:[ ]*//' | xargs)
-    local type=$(echo "$frontmatter" | grep -m1 "^type:" | sed 's/^type:[ ]*//' | xargs)
-    local keywords=$(echo "$frontmatter" | grep -m1 "^keywords:" | sed -E 's/^keywords:[ ]*\[?|\]?$//' | tr -d ' ' | tr ',' '\n')
-
-    # Fallback description
-    [[ -z "$description" ]] && description=$(head -n1 "$agent_file" | sed 's/^# //')
-
-    # Default type
-    type=${type:-specialist}
-
-    # Determine loop
-    local loop=""
-    case "$type" in
-        backend-dev|frontend-dev|coder|developer|api-designer|devops|security-specialist)
-            loop="loop3"
-            ;;
-        reviewer|tester|validator|auditor)
-            loop="loop2"
-            ;;
-        coordinator|strategic)
-            loop="coordinator"
-            ;;
-        *)
-            loop="strategic"
-            ;;
-    esac
-
-    # JSON escaping
-    local name_escaped=$(printf '%s' "$name" | sed 's/"/\\"/g')
-    local description_escaped=$(printf '%s' "$description" | sed 's/"/\\"/g')
-    local type_escaped=$(printf '%s' "$type" | sed 's/"/\\"/g')
-    local loop_escaped=$(printf '%s' "$loop" | sed 's/"/\\"/g')
-
-    # Create keywords JSON
-    local keywords_json="[]"
-    if [[ -n "$keywords" ]]; then
-        keywords_json="["
-        while read -r keyword; do
-            [[ -n "$keyword" ]] && keywords_json+="\"$keyword\","
-        done <<< "$keywords"
-        keywords_json="${keywords_json%,}]"
-    fi
-
-    # Build and echo agent entry
-    echo "{\"name\":\"$name_escaped\",\"description\":\"$description_escaped\",\"type\":\"$type_escaped\",\"loop\":\"$loop_escaped\",\"keywords\":$keywords_json,\"file\":\"$agent_file\"}"
-}
-
-# Collect agent entries
-agents_json=""
-total_agents=0
-
-# Process agent files recursively
-mapfile -t agent_files < <(find "$AGENTS_DIR" -type f -name "*.md")
-
-echo "Total files found: ${#agent_files[@]}"
-
-for agent_file in "${agent_files[@]}"; do
-    # Skip documentation files and hidden directories
-    basename=$(basename "$agent_file")
-    if [[ "$basename" =~ ^(AGENT_LIFECYCLE|CLAUDE|README|README-VALIDATION|index.md)$ ]] || [[ "$agent_file" == *"/.git/"* ]]; then
-        echo "Skipping doc file or git file: $agent_file"
-        continue
-    fi
-
-    echo "Parsing file: $agent_file"
-
-    # Parse frontmatter
-    frontmatter=$(parse_frontmatter "$agent_file")
-
-    if [[ -z "$frontmatter" ]]; then
-        echo "WARN: No frontmatter found in $agent_file"
-        continue
-    fi
-
-    # Extract name and verify
-    name=$(echo "$frontmatter" | grep -m1 "^name:" | sed 's/^name:[ ]*//' | xargs)
-    if [[ -z "$name" ]]; then
-        echo "WARN: No name found in $agent_file"
-        continue
-    fi
-
-    # Generate agent entry
-    agent_entry=$(generate_agent_entry "$agent_file" "$frontmatter")
-
-    # Append to list
-    [[ -n "$agents_json" ]] && agents_json+=","
-    agents_json+="$agent_entry"
-    ((total_agents++))
-
-    echo "Processed agent: $name"
-done
-
-echo "Processed total agents: $total_agents"
-
-# Generate final JSON manually
-final_json="{\n  \"agents\": [$agents_json],\n  \"last_updated\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\",\n  \"total_agents\": $total_agents\n}"
-
-# Ensure directory exists
-mkdir -p "$(dirname "$OUTPUT_FILE")"
-
-# Write to file
-printf "$final_json" > "$OUTPUT_FILE"
-
-# Verify file write
-if [[ -f "$OUTPUT_FILE" ]]; then
-    echo "Agent registry generated: $OUTPUT_FILE"
-    echo "Total agents discovered: $total_agents"
-    cat "$OUTPUT_FILE"
-else
-    echo "ERROR: Failed to generate agent registry file"
+# Check Python is available
+if ! command -v python3 &> /dev/null; then
+    log "ERROR: Python3 is not installed"
     exit 1
 fi
+
+# Ensure we have required packages
+log "Installing required Python packages"
+
+# Try multiple methods to install PyYAML
+install_methods=(
+    "python3 -m pip install --user --break-system-packages pyyaml"
+    "python3 -m venv /tmp/pyenv && /tmp/pyenv/bin/pip install pyyaml"
+    "pip3 install --user pyyaml"
+    "pip install --user pyyaml"
+)
+
+installed=false
+for method in "${install_methods[@]}"; do
+    log "Trying installation method: $method"
+    if $method; then
+        installed=true
+        break
+    fi
+done
+
+if [ "$installed" = false ]; then
+    log "ERROR: Could not install PyYAML"
+    exit 1
+fi
+
+# Run Python discovery script with logging
+log "Running discovery script"
+python3 "$PYTHON_SCRIPT" 2>&1 | tee "$LOG_FILE"
+
+# Check script succeeded
+if [ ! -f "$OUTPUT_FILE" ]; then
+    log "ERROR: Output file was not generated"
+    exit 1
+fi
+
+# Optional: Run jq to validate JSON (if jq is available)
+if command -v jq &> /dev/null; then
+    log "Validating JSON output"
+    if jq '.' "$OUTPUT_FILE" > /dev/null 2>&1; then
+        log "✅ JSON is valid"
+    else
+        log "❌ Invalid JSON"
+        exit 1
+    fi
+fi
+
+# Show total agents
+total_agents=$(jq '.total_agents' "$OUTPUT_FILE" 2>/dev/null || echo 0)
+log "Total agents discovered: $total_agents"
+
+# Final success log
+log "Agent discovery completed successfully"

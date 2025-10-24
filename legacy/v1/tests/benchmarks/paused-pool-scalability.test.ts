@@ -200,7 +200,7 @@ describe('Paused Pool Scalability Benchmark', () => {
     expect(p95Latency).toBeLessThan(50);
   });
 
-  it('should handle concurrent pause/resume operations at scale', async () => {
+  it('should handle concurrent pause/resume operations at scale', async () => { try {
     // Concurrent pause operations
     const pausePromises = [];
     for (let i = 1; i <= 80; i++) {

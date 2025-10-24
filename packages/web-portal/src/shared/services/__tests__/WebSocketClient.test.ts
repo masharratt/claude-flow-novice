@@ -114,7 +114,7 @@ describe('WebSocketClient', () => {
   });
 
   describe('Reconnection Logic', () => {
-    it('should attempt reconnection with exponential backoff', async () => {
+    it('should attempt reconnection with exponential backoff', async () => { try {
       vi.useFakeTimers();
 
       client = new WebSocketClient({

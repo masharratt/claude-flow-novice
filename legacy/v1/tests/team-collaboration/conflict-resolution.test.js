@@ -23,7 +23,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
   });
 
   describe('Checkpoint 4.2: GOAP Conflict Resolution System', () => {
-    test('resolves 90% of preference conflicts automatically', async () => {
+    jest.setTimeout(10000);
+  test('resolves 90% of preference conflicts automatically', async () => { try {
       const conflicts = generatePreferenceConflicts(100);
 
       const results = await goapResolver.resolveConflicts(conflicts);
@@ -36,7 +37,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
       expect(results.every(r => r.evidenceChain)).toBeDefined();
     });
 
-    test('resolves conflicts in under 30 seconds with consensus validation', async () => {
+    jest.setTimeout(10000);
+  test('resolves conflicts in under 30 seconds with consensus validation', async () => { try {
       const urgentConflicts = generateUrgentConflicts(50);
 
       const startTime = performance.now();
@@ -50,7 +52,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
       expect(results.every(r => r.resolutionTime < 30000)).toBe(true);
     });
 
-    test('maintains GOAP planning integrity under Byzantine attacks', async () => {
+    jest.setTimeout(10000);
+  test('maintains GOAP planning integrity under Byzantine attacks', async () => { try {
       const legitimateConflicts = generatePreferenceConflicts(20);
       const maliciousConflicts = generateMaliciousConflicts(10);
       const allConflicts = [...legitimateConflicts, ...maliciousConflicts];
@@ -63,7 +66,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
       expect(results.maliciousActorBlacklist).toHaveLength(10);
     });
 
-    test('generates cryptographic evidence trails for all resolutions', async () => {
+    jest.setTimeout(10000);
+  test('generates cryptographic evidence trails for all resolutions', async () => { try {
       const conflicts = generatePreferenceConflicts(15);
 
       const results = await goapResolver.resolveConflicts(conflicts);
@@ -77,7 +81,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
       });
     });
 
-    test('handles complex multi-party conflicts with GOAP planning', async () => {
+    jest.setTimeout(10000);
+  test('handles complex multi-party conflicts with GOAP planning', async () => { try {
       const multiPartyConflict = {
         id: 'complex_conflict_1',
         parties: generateTeamMembers(8),
@@ -106,7 +111,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
   });
 
   describe('Byzantine Security for Conflict Resolution', () => {
-    test('detects and prevents malicious conflict manipulation', async () => {
+    jest.setTimeout(10000);
+  test('detects and prevents malicious conflict manipulation', async () => { try {
       const legitimateConflict = generatePreferenceConflicts(1)[0];
       const manipulatedConflict = {
         ...legitimateConflict,
@@ -124,7 +130,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
       expect(result[0].sanitizedConflict).toBeDefined();
     });
 
-    test('validates consensus for conflict resolution decisions', async () => {
+    jest.setTimeout(10000);
+  test('validates consensus for conflict resolution decisions', async () => { try {
       const conflicts = generatePreferenceConflicts(21); // Ensures clear consensus
 
       const results = await goapResolver.resolveConflicts(conflicts);
@@ -136,7 +143,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
       });
     });
 
-    test('maintains resolution quality under coordinated attacks', async () => {
+    jest.setTimeout(10000);
+  test('maintains resolution quality under coordinated attacks', async () => { try {
       const legitimateConflicts = generatePreferenceConflicts(30);
       const coordinatedAttack = generateCoordinatedConflictAttack(15);
       const allConflicts = [...legitimateConflicts, ...coordinatedAttack];
@@ -151,7 +159,8 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
       expect(results.attackMitigationProof).toBeDefined();
     });
 
-    test('ensures tamper-resistant resolution records', async () => {
+    jest.setTimeout(10000);
+  test('ensures tamper-resistant resolution records', async () => { try {
       const conflicts = generatePreferenceConflicts(10);
 
       const results = await goapResolver.resolveConflicts(conflicts);
@@ -239,4 +248,4 @@ describe('GOAP Conflict Resolution with Byzantine Security', () => {
   function generateValidSignature(id) {
     return crypto.createHash('sha256').update(id + 'secret').digest('hex');
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

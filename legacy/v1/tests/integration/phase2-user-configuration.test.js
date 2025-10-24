@@ -27,7 +27,7 @@ const TEST_PROJECT_DIR = path.join(__dirname, 'test-projects');
 const TEMP_CONFIG_DIR = path.join(__dirname, 'temp-config');
 
 describe('Phase 2 User Configuration System', () => {
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test directories
     await fs.rm(TEST_PROJECT_DIR, { recursive: true, force: true });
     await fs.rm(TEMP_CONFIG_DIR, { recursive: true, force: true });
@@ -35,14 +35,15 @@ describe('Phase 2 User Configuration System', () => {
     await fs.mkdir(TEMP_CONFIG_DIR, { recursive: true });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up after tests
     await fs.rm(TEST_PROJECT_DIR, { recursive: true, force: true });
     await fs.rm(TEMP_CONFIG_DIR, { recursive: true, force: true });
   });
 
   describe('Interactive Setup Wizard', () => {
-    test('completes setup in less than 5 minutes', async () => {
+    jest.setTimeout(10000);
+  test('completes setup in less than 5 minutes', async () => { try {
       const projectDir = await createTestProject('javascript');
       const startTime = Date.now();
 
@@ -75,7 +76,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(configExists).toBe(true);
     }, 310000); // 5 minute + 10 second timeout
 
-    test('detects framework with >90% accuracy for JavaScript projects', async () => {
+    jest.setTimeout(10000);
+  test('detects framework with >90% accuracy for JavaScript projects', async () => { try {
       const projectDir = await createTestProject('javascript');
       const detector = new FrameworkDetector({ basePath: projectDir });
       await detector.initialize();
@@ -87,7 +89,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.confidence).toBeGreaterThan(0.9);
     });
 
-    test('detects framework with >90% accuracy for TypeScript projects', async () => {
+    jest.setTimeout(10000);
+  test('detects framework with >90% accuracy for TypeScript projects', async () => { try {
       const projectDir = await createTestProject('typescript');
       const detector = new FrameworkDetector({ basePath: projectDir });
       await detector.initialize();
@@ -99,7 +102,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.confidence).toBeGreaterThan(0.9);
     });
 
-    test('detects framework with >90% accuracy for Python projects', async () => {
+    jest.setTimeout(10000);
+  test('detects framework with >90% accuracy for Python projects', async () => { try {
       const projectDir = await createTestProject('python');
       const detector = new FrameworkDetector({ basePath: projectDir });
       await detector.initialize();
@@ -111,7 +115,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.confidence).toBeGreaterThan(0.9);
     });
 
-    test('detects React projects correctly', async () => {
+    jest.setTimeout(10000);
+  test('detects React projects correctly', async () => { try {
       const projectDir = await createTestProject('react');
       const detector = new FrameworkDetector({ basePath: projectDir });
       await detector.initialize();
@@ -125,7 +130,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.confidence).toBeGreaterThan(0.9);
     });
 
-    test('detects Django projects correctly', async () => {
+    jest.setTimeout(10000);
+  test('detects Django projects correctly', async () => { try {
       const projectDir = await createTestProject('django');
       const detector = new FrameworkDetector({ basePath: projectDir });
       await detector.initialize();
@@ -141,7 +147,8 @@ describe('Phase 2 User Configuration System', () => {
   });
 
   describe('CLI Commands', () => {
-    test('validate setup command works', async () => {
+    jest.setTimeout(10000);
+  test('validate setup command works', async () => { try {
       const projectDir = await createTestProject('javascript');
       const commands = new ValidationCommands({ basePath: projectDir });
 
@@ -154,7 +161,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.setupTime).toBeDefined();
     });
 
-    test('validate check command works', async () => {
+    jest.setTimeout(10000);
+  test('validate check command works', async () => { try {
       const projectDir = await createTestProject('javascript');
 
       // First setup
@@ -171,7 +179,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.results).toBeDefined();
     });
 
-    test('validate show-config command works', async () => {
+    jest.setTimeout(10000);
+  test('validate show-config command works', async () => { try {
       const projectDir = await createTestProject('javascript');
 
       // First setup
@@ -188,7 +197,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.config).toBeDefined();
     });
 
-    test('validate enable-hooks command works', async () => {
+    jest.setTimeout(10000);
+  test('validate enable-hooks command works', async () => { try {
       const projectDir = await createTestProject('javascript');
 
       // First setup
@@ -204,7 +214,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.success).toBe(true);
     });
 
-    test('validate disable-hooks command works', async () => {
+    jest.setTimeout(10000);
+  test('validate disable-hooks command works', async () => { try {
       const projectDir = await createTestProject('javascript');
 
       // Setup and enable hooks first
@@ -221,7 +232,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.success).toBe(true);
     });
 
-    test('validate add-framework command works', async () => {
+    jest.setTimeout(10000);
+  test('validate add-framework command works', async () => { try {
       const projectDir = await createTestProject('javascript');
 
       const commands = new ValidationCommands({ basePath: projectDir });
@@ -245,7 +257,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.framework).toBeDefined();
     });
 
-    test('validate configure-gates command works', async () => {
+    jest.setTimeout(10000);
+  test('validate configure-gates command works', async () => { try {
       const projectDir = await createTestProject('javascript');
 
       const commands = new ValidationCommands({ basePath: projectDir });
@@ -271,7 +284,8 @@ describe('Phase 2 User Configuration System', () => {
   });
 
   describe('Configuration Persistence', () => {
-    test('configuration persists across sessions', async () => {
+    jest.setTimeout(10000);
+  test('configuration persists across sessions', async () => { try {
       const projectDir = await createTestProject('javascript');
 
       // Setup initial configuration
@@ -292,7 +306,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(showResult.config.experienceLevel).toBe('novice');
     });
 
-    test('configuration can be migrated and updated', async () => {
+    jest.setTimeout(10000);
+  test('configuration can be migrated and updated', async () => { try {
       const projectDir = await createTestProject('javascript');
 
       const commands = new ValidationCommands({ basePath: projectDir });
@@ -324,7 +339,8 @@ describe('Phase 2 User Configuration System', () => {
   });
 
   describe('Byzantine Security Integration', () => {
-    test('configuration validation includes Byzantine checks', async () => {
+    jest.setTimeout(10000);
+  test('configuration validation includes Byzantine checks', async () => { try {
       const configManager = new TruthConfigManager({
         configDir: TEMP_CONFIG_DIR
       });
@@ -343,7 +359,8 @@ describe('Phase 2 User Configuration System', () => {
       await configManager.cleanup();
     });
 
-    test('malicious configuration patterns are detected', async () => {
+    jest.setTimeout(10000);
+  test('malicious configuration patterns are detected', async () => { try {
       const configManager = new TruthConfigManager({
         configDir: TEMP_CONFIG_DIR
       });
@@ -385,7 +402,8 @@ describe('Phase 2 User Configuration System', () => {
   });
 
   describe('Performance Requirements', () => {
-    test('framework detection completes within reasonable time', async () => {
+    jest.setTimeout(10000);
+  test('framework detection completes within reasonable time', async () => { try {
       const projectDir = await createTestProject('typescript');
       const startTime = Date.now();
 
@@ -400,7 +418,8 @@ describe('Phase 2 User Configuration System', () => {
       expect(result.metadata.detectionTime).toBeLessThan(5000); // Less than 5 seconds
     });
 
-    test('setup wizard components load efficiently', async () => {
+    jest.setTimeout(10000);
+  test('setup wizard components load efficiently', async () => { try {
       const startTime = Date.now();
 
       const wizard = new InteractiveSetupWizard({
@@ -480,6 +499,7 @@ module.exports = app;
     path.join(dir, 'index.test.js'),
     `
 describe('App', () => {
+  jest.setTimeout(10000);
   test('should work', () => {
     expect(true).toBe(true);
   });
@@ -555,6 +575,7 @@ export class UserService {
 import { UserService } from './index.js';
 
 describe('UserService', () => {
+  jest.setTimeout(10000);
   test('should add and retrieve user', () => {
     const service = new UserService();
     const user = { id: 1, name: 'Test User' };

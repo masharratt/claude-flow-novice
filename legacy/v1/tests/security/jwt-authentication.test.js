@@ -17,7 +17,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
     let validTokens;
     let testKeys;
 
-    beforeAll(async () => {
+    beforeAll(async () => { try {
         // Initialize auth service with test configuration
         authService = new EnhancedAuthService({
             jwtAlgorithm: 'RS256',
@@ -45,14 +45,14 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
         testUser = registrationResult.user;
     });
 
-    afterAll(async () => {
+    afterAll(async () => { try {
         // Cleanup
         if (authService.redisClient) {
             await authService.redisClient.quit();
         }
     });
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         // Generate fresh tokens for each test
         const authResult = await authService.authenticateUser({
             username: 'testuser',
@@ -65,7 +65,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
     });
 
     describe('Token Generation', () => {
-        it('should generate valid access token with correct claims', async () => {
+        it('should generate valid access token with correct claims', async () => { try {
             expect(validTokens).toBeDefined();
             expect(validTokens.accessToken).toBeDefined();
             expect(typeof validTokens.accessToken).toBe('string');
@@ -81,7 +81,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             });
         });
 
-        it('should generate valid refresh token with correct claims', async () => {
+        it('should generate valid refresh token with correct claims', async () => { try {
             expect(validTokens.refreshToken).toBeDefined();
             expect(typeof validTokens.refreshToken).toBe('string');
 
@@ -94,7 +94,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             });
         });
 
-        it('should include unique JTI for each token', async () => {
+        it('should include unique JTI for each token', async () => { try {
             const token1 = await authService.generateTokenPair(testUser);
             const token2 = await authService.generateTokenPair(testUser);
 
@@ -106,7 +106,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(decoded1.jti).not.toBe(decoded2.jti);
         });
 
-        it('should set correct expiration times', async () => {
+        it('should set correct expiration times', async () => { try {
             const decoded = jwt.decode(validTokens.accessToken);
             const refreshDecoded = jwt.decode(validTokens.refreshToken);
 
@@ -119,7 +119,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(refreshDecoded.exp - refreshDecoded.iat).toBe(604800);
         });
 
-        it('should include user roles and permissions in access token', async () => {
+        it('should include user roles and permissions in access token', async () => { try {
             const decoded = jwt.decode(validTokens.accessToken);
 
             expect(decoded.roles).toBeDefined();
@@ -128,7 +128,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(Array.isArray(decoded.permissions)).toBe(true);
         });
 
-        it('should sign tokens with RS256 algorithm', async () => {
+        it('should sign tokens with RS256 algorithm', async () => { try {
             const decodedHeader = jwt.decode(validTokens.accessToken, { complete: true });
 
             expect(decodedHeader.header.alg).toBe('RS256');
@@ -137,7 +137,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
     });
 
     describe('Token Validation', () => {
-        it('should validate valid access token successfully', async () => {
+        it('should validate valid access token successfully', async () => { try {
             const result = await authService.validateToken(validTokens.accessToken);
 
             expect(result.valid).toBe(true);
@@ -146,7 +146,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.type).toBe('access');
         });
 
-        it('should reject token with invalid signature', async () => {
+        it('should reject token with invalid signature', async () => { try {
             // Create token with different key
             const { privateKey } = crypto.generateKeyPairSync('rsa', {
                 modulusLength: 2048,
@@ -166,7 +166,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.error).toBeDefined();
         });
 
-        it('should reject expired token', async () => {
+        it('should reject expired token', async () => { try {
             // Create expired token
             const now = Math.floor(Date.now() / 1000);
             const expiredToken = jwt.sign(
@@ -188,7 +188,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.error).toContain('expired');
         });
 
-        it('should reject token with tampered payload', async () => {
+        it('should reject token with tampered payload', async () => { try {
             const parts = validTokens.accessToken.split('.');
             const tamperedPayload = Buffer.from(JSON.stringify({
                 sub: 'hacker-id',
@@ -202,7 +202,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.valid).toBe(false);
         });
 
-        it('should reject token with wrong issuer', async () => {
+        it('should reject token with wrong issuer', async () => { try {
             const wrongIssuerToken = jwt.sign(
                 {
                     sub: testUser.id,
@@ -219,7 +219,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.valid).toBe(false);
         });
 
-        it('should reject token with wrong audience', async () => {
+        it('should reject token with wrong audience', async () => { try {
             const wrongAudienceToken = jwt.sign(
                 {
                     sub: testUser.id,
@@ -236,7 +236,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.valid).toBe(false);
         });
 
-        it('should reject malformed token', async () => {
+        it('should reject malformed token', async () => { try {
             const malformedTokens = [
                 'not.a.token',
                 'only-one-part',
@@ -253,7 +253,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             }
         });
 
-        it('should validate token with clock tolerance', async () => {
+        it('should validate token with clock tolerance', async () => { try {
             // Token that just expired but within clock tolerance
             const now = Math.floor(Date.now() / 1000);
             const almostExpiredToken = jwt.sign(
@@ -276,7 +276,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.valid).toBe(true);
         });
 
-        it('should reject token for inactive user', async () => {
+        it('should reject token for inactive user', async () => { try {
             // Create inactive user
             const inactiveUser = await authService.registerUser({
                 username: 'inactiveuser',
@@ -303,7 +303,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
     });
 
     describe('Token Refresh', () => {
-        it('should refresh token successfully', async () => {
+        it('should refresh token successfully', async () => { try {
             const newTokens = await authService.refreshToken(validTokens.refreshToken);
 
             expect(newTokens).toBeDefined();
@@ -313,12 +313,12 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(newTokens.refreshToken).not.toBe(validTokens.refreshToken);
         });
 
-        it('should reject refresh with access token', async () => {
+        it('should reject refresh with access token', async () => { try {
             await expect(authService.refreshToken(validTokens.accessToken))
                 .rejects.toThrow('Invalid token type');
         });
 
-        it('should reject expired refresh token', async () => {
+        it('should reject expired refresh token', async () => { try {
             const now = Math.floor(Date.now() / 1000);
             const expiredRefreshToken = jwt.sign(
                 {
@@ -337,7 +337,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
                 .rejects.toThrow();
         });
 
-        it('should blacklist old refresh token after successful refresh', async () => {
+        it('should blacklist old refresh token after successful refresh', async () => { try {
             const oldRefreshToken = validTokens.refreshToken;
 
             await authService.refreshToken(oldRefreshToken);
@@ -347,14 +347,14 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
                 .rejects.toThrow('revoked');
         });
 
-        it('should reject refresh token after user logout', async () => {
+        it('should reject refresh token after user logout', async () => { try {
             await authService.logout(testUser.id, null, true);
 
             await expect(authService.refreshToken(validTokens.refreshToken))
                 .rejects.toThrow();
         });
 
-        it('should preserve scope in refreshed token', async () => {
+        it('should preserve scope in refreshed token', async () => { try {
             const scopedTokens = await authService.generateTokenPair(
                 testUser,
                 null,
@@ -367,7 +367,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(decoded.scope).toBe('read:users write:users');
         });
 
-        it('should reject refresh for inactive user', async () => {
+        it('should reject refresh for inactive user', async () => { try {
             const user = await authService.getUserById(testUser.id);
             user.status = 'suspended';
             await authService.storeUser(user);
@@ -382,7 +382,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
     });
 
     describe('Token Revocation', () => {
-        it('should blacklist token successfully', async () => {
+        it('should blacklist token successfully', async () => { try {
             await authService.blacklistToken(validTokens.accessToken);
 
             const result = await authService.validateToken(validTokens.accessToken);
@@ -391,7 +391,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.error).toContain('revoked');
         });
 
-        it('should check if token is blacklisted', async () => {
+        it('should check if token is blacklisted', async () => { try {
             const isBlacklisted1 = await authService.isTokenBlacklisted(validTokens.accessToken);
             expect(isBlacklisted1).toBe(false);
 
@@ -401,7 +401,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(isBlacklisted2).toBe(true);
         });
 
-        it('should revoke all tokens on logout', async () => {
+        it('should revoke all tokens on logout', async () => { try {
             const authResult = await authService.authenticateUser({
                 username: 'testuser',
                 password: 'SecurePass123!'
@@ -421,7 +421,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
     });
 
     describe('Security Edge Cases', () => {
-        it('should handle None algorithm attack', async () => {
+        it('should handle None algorithm attack', async () => { try {
             const noneAlgToken = jwt.sign(
                 {
                     sub: testUser.id,
@@ -437,7 +437,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.valid).toBe(false);
         });
 
-        it('should reject token with null signature', async () => {
+        it('should reject token with null signature', async () => { try {
             const parts = validTokens.accessToken.split('.');
             const nullSigToken = `${parts[0]}.${parts[1]}.`;
 
@@ -445,7 +445,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.valid).toBe(false);
         });
 
-        it('should handle extremely long tokens', async () => {
+        it('should handle extremely long tokens', async () => { try {
             const longPayload = {
                 sub: testUser.id,
                 type: 'access',
@@ -465,7 +465,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(typeof result.valid).toBe('boolean');
         });
 
-        it('should handle concurrent token validation', async () => {
+        it('should handle concurrent token validation', async () => { try {
             const validationPromises = Array(100).fill(null).map(() =>
                 authService.validateToken(validTokens.accessToken)
             );
@@ -478,7 +478,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             });
         });
 
-        it('should reject token with future iat claim', async () => {
+        it('should reject token with future iat claim', async () => { try {
             const now = Math.floor(Date.now() / 1000);
             const futureToken = jwt.sign(
                 {
@@ -498,7 +498,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(typeof result.valid).toBe('boolean');
         });
 
-        it('should handle token with missing required claims', async () => {
+        it('should handle token with missing required claims', async () => { try {
             const invalidClaims = [
                 { type: 'access', iss: 'test-issuer' }, // Missing sub
                 { sub: testUser.id, iss: 'test-issuer' }, // Missing type
@@ -517,7 +517,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             }
         });
 
-        it('should handle SQL injection attempts in token claims', async () => {
+        it('should handle SQL injection attempts in token claims', async () => { try {
             const sqlInjectionToken = jwt.sign(
                 {
                     sub: "'; DROP TABLE users; --",
@@ -534,7 +534,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.valid).toBe(false);
         });
 
-        it('should handle XSS attempts in token claims', async () => {
+        it('should handle XSS attempts in token claims', async () => { try {
             const xssToken = jwt.sign(
                 {
                     sub: testUser.id,
@@ -554,7 +554,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
     });
 
     describe('Performance Tests', () => {
-        it('should generate 1000 tokens within reasonable time', async () => {
+        it('should generate 1000 tokens within reasonable time', async () => { try {
             const startTime = Date.now();
 
             const promises = Array(1000).fill(null).map(() =>
@@ -568,7 +568,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(duration).toBeLessThan(10000); // Less than 10 seconds
         });
 
-        it('should validate 1000 tokens within reasonable time', async () => {
+        it('should validate 1000 tokens within reasonable time', async () => { try {
             const startTime = Date.now();
 
             const promises = Array(1000).fill(null).map(() =>
@@ -584,7 +584,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
     });
 
     describe('Session Integration', () => {
-        it('should validate token with valid session', async () => {
+        it('should validate token with valid session', async () => { try {
             const authResult = await authService.authenticateUser({
                 username: 'testuser',
                 password: 'SecurePass123!'
@@ -596,7 +596,7 @@ describe('JWT Authentication - Comprehensive Test Suite', () => {
             expect(result.sessionId).toBeDefined();
         });
 
-        it('should reject token with expired session', async () => {
+        it('should reject token with expired session', async () => { try {
             const authResult = await authService.authenticateUser({
                 username: 'testuser',
                 password: 'SecurePass123!'

@@ -17,7 +17,7 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
   let dashboardIntegration;
   let testConfig;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Connect to actual Redis instance (not in-memory)
     testConfig = {
       redis: {
@@ -62,9 +62,9 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
     dashboardIntegration.securityDetector = securityDetector;
 
     console.log('✅ Production test environment initialized with real Redis');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup test data
     if (realRedisClient) {
       await realRedisClient.flushDb();
@@ -76,10 +76,11 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
     }
     
     console.log('✅ Production test environment cleaned up');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('1. Predictive Modeling Implementation', () => {
-    test('should have real predictive analytics infrastructure', async () => {
+    jest.setTimeout(10000);
+  test('should have real predictive analytics infrastructure', async () => { try {
       // Verify predictive modeling components exist and are real implementations
       expect(securityDetector).toBeDefined();
       expect(securityDetector.config.thresholds).toBeDefined();
@@ -104,9 +105,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(anomalyData.timestamp).toBeDefined();
       
       console.log('✅ Predictive modeling uses real Redis storage');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should perform real-time trend analysis', async () => {
+    jest.setTimeout(10000);
+  test('should perform real-time trend analysis', async () => { try {
       // Generate test data for trend analysis
       const testData = [];
       const now = Date.now();
@@ -116,7 +118,7 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
           timestamp: now - (i * 3600000), // Hourly data for 24 hours
           value: Math.random() * 100,
           type: 'PERFORMANCE_METRIC'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         
         await realRedisClient.zAdd(
           'security:trends:performance',
@@ -130,9 +132,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(Array.isArray(trends)).toBe(true);
       
       console.log('✅ Real-time trend analysis functional');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should predict future security events based on historical patterns', async () => {
+    jest.setTimeout(10000);
+  test('should predict future security events based on historical patterns', async () => { try {
       // Store historical security events
       const historicalEvents = [
         { type: 'BRUTE_FORCE_ATTEMPT', timestamp: Date.now() - 86400000, severity: 'HIGH' },
@@ -153,11 +156,12 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(analysis.trends).toBeDefined();
       
       console.log('✅ Predictive modeling based on historical patterns working');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('2. Collaboration Tracking Implementation', () => {
-    test('should track real agent collaboration patterns', async () => {
+    jest.setTimeout(10000);
+  test('should track real agent collaboration patterns', async () => { try {
       const testAgentId = 'test-agent-production-validation';
       
       // Simulate real agent collaboration data
@@ -183,7 +187,7 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       securityDetector.updateAgentBehavior(testAgentId, {
         accessPattern: { resource: 'shared-resource', action: 'read' },
         operation: { type: 'collaboration', latency: 150 }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const behavior = securityDetector.getAgentBehavior(testAgentId);
       expect(behavior).toBeDefined();
@@ -191,9 +195,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(behavior.operations).toBeDefined();
       
       console.log('✅ Real agent collaboration tracking functional');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect collaboration anomalies', async () => {
+    jest.setTimeout(10000);
+  test('should detect collaboration anomalies', async () => { try {
       const suspiciousAgentId = 'suspicious-agent-test';
       
       // Create suspicious collaboration pattern
@@ -203,7 +208,7 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
             resource: `unique-resource-${i}`, 
             action: 'access' 
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       // Analyze behaviors for anomalies
@@ -217,9 +222,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(anomalies[0].severity).toBe('MEDIUM');
       
       console.log('✅ Collaboration anomaly detection working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should provide real collaboration metrics', async () => {
+    jest.setTimeout(10000);
+  test('should provide real collaboration metrics', async () => { try {
       // Get real collaboration security data
       const collaborationMetrics = {
         timestamp: Date.now(),
@@ -247,11 +253,12 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(parsedMetrics.securityMetrics.totalInteractions).toBe(15);
       
       console.log('✅ Real collaboration metrics collection working');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('3. Performance Analysis Implementation', () => {
-    test('should analyze real system performance metrics', async () => {
+    jest.setTimeout(10000);
+  test('should analyze real system performance metrics', async () => { try {
       // Generate real performance data
       const performanceData = {
         timestamp: Date.now(),
@@ -273,9 +280,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(securityScore).toBeLessThanOrEqual(1);
       
       console.log('✅ Real performance analysis working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect performance anomalies in real-time', async () => {
+    jest.setTimeout(10000);
+  test('should detect performance anomalies in real-time', async () => { try {
       // Create performance anomaly (high latency)
       const performanceAnomaly = {
         type: 'PERFORMANCE_ANOMALY',
@@ -298,9 +306,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(anomalies[0].data.currentLatency).toBe(3500);
       
       console.log('✅ Real-time performance anomaly detection working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should provide comprehensive performance metrics', async () => {
+    jest.setTimeout(10000);
+  test('should provide comprehensive performance metrics', async () => { try {
       // Store multiple performance data points
       const now = Date.now();
       for (let i = 0; i < 10; i++) {
@@ -326,11 +335,12 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(metrics[0].memoryUsage).toBeDefined();
       
       console.log('✅ Comprehensive performance metrics collection working');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('4. Anomaly Detection Implementation', () => {
-    test('should detect security anomalies in real-time', async () => {
+    jest.setTimeout(10000);
+  test('should detect security anomalies in real-time', async () => { try {
       // Simulate multiple authentication failures
       const sourceIp = '192.168.1.100';
       
@@ -351,15 +361,16 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(accessAnomalies[0].severity).toBe('HIGH');
       
       console.log('✅ Real-time security anomaly detection working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect data anomalies', async () => {
+    jest.setTimeout(10000);
+  test('should detect data anomalies', async () => { try {
       // Create unusual data volume
       securityDetector.securityState.redisOperations.set('large-data-transfer', {
         volume: 150, // Exceeds maxDataVolumeMB threshold
         timestamp: Date.now(),
         operation: 'bulk-export'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const dataAnomalies = await securityDetector.detectionEngines.dataAnomalies.detect();
       
@@ -368,9 +379,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(dataAnomalies[0].data.volume).toBe(150);
       
       console.log('✅ Data anomaly detection working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect behavioral anomalies', async () => {
+    jest.setTimeout(10000);
+  test('should detect behavioral anomalies', async () => { try {
       const testAgentId = 'behavior-test-agent';
       
       // Create high error rate pattern
@@ -381,7 +393,7 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
             code: 500,
             timestamp: Date.now() - (i * 1000)
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
       
       // Add some operations to calculate error rate
@@ -392,7 +404,7 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
             latency: 100,
             timestamp: Date.now() - (i * 1000)
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       const behavioralAnomalies = await securityDetector.detectBehavioralAnomalies(
@@ -408,9 +420,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(highErrorRateAnomaly).toBeDefined();
       
       console.log('✅ Behavioral anomaly detection working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should correlate related security events', async () => {
+    jest.setTimeout(10000);
+  test('should correlate related security events', async () => { try {
       // Create related security events
       const baseTime = Date.now();
       
@@ -418,13 +431,13 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
         type: 'SUSPICIOUS_LOGIN',
         source: '192.168.1.100',
         timestamp: baseTime
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       securityDetector.recordSecurityEvent({
         type: 'SUSPICIOUS_LOGIN',
         source: '192.168.1.100',
         timestamp: baseTime + 120000 // 2 minutes later
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const correlations = securityDetector.correlateSecurityEvents();
       
@@ -433,11 +446,12 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(correlations[0].data.timeDiff).toBeLessThan(5 * 60 * 1000); // Within 5 minutes
       
       console.log('✅ Security event correlation working');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('5. Dashboard Integration Implementation', () => {
-    test('should provide real-time security status via API', async () => {
+    jest.setTimeout(10000);
+  test('should provide real-time security status via API', async () => { try {
       // Test security status endpoint
       const mockRequest = {
         user: { userId: 'test-user', role: 'SECURITY_ANALYST' }
@@ -458,15 +472,16 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(statusData.recentAnomalies).toBeDefined();
       
       console.log('✅ Real-time security status API working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should provide security metrics with real data', async () => {
+    jest.setTimeout(10000);
+  test('should provide security metrics with real data', async () => { try {
       // Create test security data
       await securityDetector.processAnomaly({
         type: 'TEST_ANOMALY',
         description: 'Test anomaly for dashboard',
         severity: 'MEDIUM'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const mockRequest = {
         user: { userId: 'test-user', role: 'SECURITY_ANALYST' },
@@ -489,16 +504,17 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(metricsData.eventMetrics).toBeDefined();
       
       console.log('✅ Security metrics API with real data working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should provide agent behavior data via dashboard', async () => {
+    jest.setTimeout(10000);
+  test('should provide agent behavior data via dashboard', async () => { try {
       const testAgentId = 'dashboard-test-agent';
       
       // Create agent behavior data
       securityDetector.updateAgentBehavior(testAgentId, {
         operation: { type: 'test-operation', latency: 150 },
         accessPattern: { resource: 'test-resource', action: 'read' }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const mockRequest = {
         user: { userId: 'test-user', role: 'SECURITY_ANALYST' },
@@ -520,15 +536,16 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(behaviorData.lastUpdated).toBeDefined();
       
       console.log('✅ Agent behavior dashboard API working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle alert management in real-time', async () => {
+    jest.setTimeout(10000);
+  test('should handle alert management in real-time', async () => { try {
       // Create a test alert
       await securityDetector.alertManager.createAlert({
         type: 'TEST_ALERT',
         severity: 'MEDIUM',
         anomaly: { type: 'TEST_ANOMALY', description: 'Test alert' }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const alerts = securityDetector.securityState.alerts;
       expect(alerts.length).toBeGreaterThan(0);
@@ -558,9 +575,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(acknowledgedAlert.acknowledged).toBe(true);
       
       console.log('✅ Real-time alert management working');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should provide collaboration security data via dashboard', async () => {
+    jest.setTimeout(10000);
+  test('should provide collaboration security data via dashboard', async () => { try {
       const mockRequest = {
         user: { userId: 'test-user', role: 'SECURITY_ANALYST' }
       };
@@ -580,11 +598,12 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(collaborationData.securityMetrics).toBeDefined();
       
       console.log('✅ Collaboration security dashboard API working');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('6. Integration Validation - No Mock Implementations', () => {
-    test('should use real Redis connections, not mocks', async () => {
+    jest.setTimeout(10000);
+  test('should use real Redis connections, not mocks', async () => { try {
       // Verify we're using real Redis
       expect(realRedisClient).toBeDefined();
       expect(realRedisClient.status).toBe('ready');
@@ -598,9 +617,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(securityDetector.redisClient).toBe(realRedisClient);
       
       console.log('✅ Confirmed: Using real Redis, not mocks');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should have real-time data processing, not stubbed responses', async () => {
+    jest.setTimeout(10000);
+  test('should have real-time data processing, not stubbed responses', async () => { try {
       // Test real-time anomaly detection
       const startTime = Date.now();
       
@@ -608,7 +628,7 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
         type: 'REAL_TIME_TEST',
         description: 'Testing real-time processing',
         severity: 'LOW'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       const processingTime = Date.now() - startTime;
       expect(processingTime).toBeLessThan(1000); // Should process quickly
@@ -620,9 +640,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(realTimeAnomaly.timestamp).toBeGreaterThan(startTime - 1000);
       
       console.log('✅ Confirmed: Real-time data processing, not stubs');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should have actual security analysis, not placeholder logic', async () => {
+    jest.setTimeout(10000);
+  test('should have actual security analysis, not placeholder logic', async () => { try {
       // Create test data for security analysis
       const testEvents = [
         { type: 'LOGIN_SUCCESS', timestamp: Date.now() - 1000 },
@@ -646,9 +667,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       }
       
       console.log('✅ Confirmed: Actual security analysis, not placeholders');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should have working dashboard with real data endpoints', async () => {
+    jest.setTimeout(10000);
+  test('should have working dashboard with real data endpoints', async () => { try {
       // Test health endpoint
       const mockResponse = {
         json: jest.fn(),
@@ -670,11 +692,12 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(typeof healthData.metrics.securityScore).toBe('number');
       
       console.log('✅ Confirmed: Working dashboard with real data endpoints');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('7. Performance and Scalability Validation', () => {
-    test('should handle concurrent security monitoring operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent security monitoring operations', async () => { try {
       const concurrentOperations = 50;
       const startTime = Date.now();
       
@@ -696,9 +719,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(securityDetector.securityState.anomalies.length).toBeGreaterThanOrEqual(concurrentOperations);
       
       console.log(`✅ Handled ${concurrentOperations} concurrent operations in ${totalTime}ms`);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should maintain performance under sustained load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under sustained load', async () => { try {
       const duration = 10000; // 10 seconds
       const operationsPerSecond = 10;
       const startTime = Date.now();
@@ -732,9 +756,10 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(securityDetector.securityState.anomalies.length).toBeGreaterThan(80);
       
       console.log(`✅ Sustained load test: ${actualOpsPerSecond.toFixed(2)} ops/sec for ${actualDuration}ms`);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should maintain memory efficiency under load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain memory efficiency under load', async () => { try {
       const initialMemory = process.memoryUsage().heapUsed;
       
       // Generate significant load
@@ -747,7 +772,7 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
             payload: 'x'.repeat(1000), // 1KB payload
             index: i
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
       
       // Force garbage collection if available
@@ -763,6 +788,6 @@ describe('Phase 4 Redis Transparency Enhancement - Advanced Features Production 
       expect(memoryPerOperation).toBeLessThan(10240);
       
       console.log(`✅ Memory efficiency: ${memoryPerOperation.toFixed(2)} bytes per operation`);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

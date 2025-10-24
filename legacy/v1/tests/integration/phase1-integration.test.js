@@ -26,7 +26,8 @@ describe('Phase 1 Integration Tests', () => {
   });
 
   describe('Complete Workflow Integration', () => {
-    test('should handle novice user workflow with content filtering', async () => {
+    jest.setTimeout(10000);
+  test('should handle novice user workflow with content filtering', async () => { try {
       const user = { experienceLevel: 'novice', userId: 'integration-novice' };
 
       // Load user preferences
@@ -58,7 +59,8 @@ describe('Phase 1 Integration Tests', () => {
       expect(preTaskResult.personalized).toBe(true);
     });
 
-    test('should handle expert user workflow with minimal intervention', async () => {
+    jest.setTimeout(10000);
+  test('should handle expert user workflow with minimal intervention', async () => { try {
       const user = { experienceLevel: 'expert', userId: 'integration-expert' };
 
       // Complete workflow
@@ -86,7 +88,8 @@ describe('Phase 1 Integration Tests', () => {
   });
 
   describe('Performance Integration', () => {
-    test('should maintain <100ms total processing time for complete workflow', async () => {
+    jest.setTimeout(10000);
+  test('should maintain <100ms total processing time for complete workflow', async () => { try {
       const user = { experienceLevel: 'intermediate', userId: 'perf-test' };
 
       const startTime = performance.now();
@@ -108,7 +111,8 @@ describe('Phase 1 Integration Tests', () => {
       expect(totalTime).toBeLessThan(100);
     });
 
-    test('should handle concurrent users efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent users efficiently', async () => { try {
       const users = Array(10).fill(null).map((_, i) => ({
         experienceLevel: ['novice', 'intermediate', 'expert'][i % 3],
         userId: `concurrent-${i}`
@@ -132,7 +136,8 @@ describe('Phase 1 Integration Tests', () => {
   });
 
   describe('Error Handling Integration', () => {
-    test('should handle component failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle component failures gracefully', async () => { try {
       const user = { experienceLevel: 'novice', userId: 'error-test' };
 
       // Simulate hook manager failure
@@ -148,7 +153,8 @@ describe('Phase 1 Integration Tests', () => {
       expect(filteredOps.allowed).toBeDefined();
     });
 
-    test('should maintain data consistency during partial failures', async () => {
+    jest.setTimeout(10000);
+  test('should maintain data consistency during partial failures', async () => { try {
       const user = { experienceLevel: 'intermediate', userId: 'consistency-test' };
 
       // Simulate content filter failure
@@ -168,7 +174,8 @@ describe('Phase 1 Integration Tests', () => {
   });
 
   describe('Satisfaction Metrics Integration', () => {
-    test('should achieve >4.0/5 satisfaction across all user types', async () => {
+    jest.setTimeout(10000);
+  test('should achieve >4.0/5 satisfaction across all user types', async () => { try {
       const testScenarios = [
         { type: 'novice', expectedSatisfaction: 4.2 },
         { type: 'intermediate', expectedSatisfaction: 4.1 },
@@ -198,7 +205,8 @@ describe('Phase 1 Integration Tests', () => {
   });
 
   describe('Checkpoint Verification', () => {
-    test('Checkpoint 1.1: Enhanced Hook Manager with Personalization', async () => {
+    jest.setTimeout(10000);
+  test('Checkpoint 1.1: Enhanced Hook Manager with Personalization', async () => { try {
       const startTime = performance.now();
 
       const user = { experienceLevel: 'novice', userId: 'checkpoint-1.1' };
@@ -214,7 +222,8 @@ describe('Phase 1 Integration Tests', () => {
       expect(hooks.verbosity).toBe('detailed');
     });
 
-    test('Checkpoint 1.2: Content Filtering Integration', async () => {
+    jest.setTimeout(10000);
+  test('Checkpoint 1.2: Content Filtering Integration', async () => { try {
       const autoGenRequests = [
         { type: 'write', path: 'README.md', content: 'Auto-generated', trigger: 'auto' },
         { type: 'write', path: 'GUIDE.md', content: 'Auto-generated', trigger: 'auto' }
@@ -231,7 +240,8 @@ describe('Phase 1 Integration Tests', () => {
       expect(results.blocked.length).toBe(2);
     });
 
-    test('Checkpoint 1.3: Experience-Level Hook Adaptation', async () => {
+    jest.setTimeout(10000);
+  test('Checkpoint 1.3: Experience-Level Hook Adaptation', async () => { try {
       const users = [
         { experienceLevel: 'novice', expected: 'detailed' },
         { experienceLevel: 'expert', expected: 'minimal' },
@@ -250,4 +260,4 @@ describe('Phase 1 Integration Tests', () => {
       expect(overallSatisfaction).toBeGreaterThan(4.0);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

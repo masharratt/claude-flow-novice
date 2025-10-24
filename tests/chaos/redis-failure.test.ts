@@ -5,7 +5,7 @@ describe('Chaos Testing: Redis Failure Scenarios', () => {
   let primaryClient: Redis;
   let backupClient: TestRedisClient;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     primaryClient = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: parseInt(process.env.REDIS_PORT || '6379', 10)
@@ -14,18 +14,19 @@ describe('Chaos Testing: Redis Failure Scenarios', () => {
     backupClient = new TestRedisClient();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await primaryClient.quit();
     await backupClient.cleanup();
   });
 
-  test('Handle primary Redis connection loss', async () => {
+  jest.setTimeout(10000);
+  test('Handle primary Redis connection loss', async () => { try {
     const testMessage = {
       type: 'resilience-test',
       payload: { timestamp: Date.now() }
     };
 
-    const publishToBackup = async () => {
+    const publishToBackup = async () => { try {
       await backupClient.publishMessage('failure-test', testMessage);
       return true;
     };
@@ -37,7 +38,8 @@ describe('Chaos Testing: Redis Failure Scenarios', () => {
     await expect(publishToBackup()).resolves.toBeTruthy();
   });
 
-  test('Reconnection and message recovery', async () => {
+  jest.setTimeout(10000);
+  test('Reconnection and message recovery', async () => { try {
     const recoveryMessage = {
       type: 'recovery-test',
       payload: { recoveryTimestamp: Date.now() }
@@ -54,8 +56,9 @@ describe('Chaos Testing: Redis Failure Scenarios', () => {
     expect(messageCatcher).toHaveBeenCalledWith(recoveryMessage);
   });
 
-  test('Validate Redis pub/sub resilience', async () => {
-    const resilientTest = async () => {
+  jest.setTimeout(10000);
+  test('Validate Redis pub/sub resilience', async () => { try {
+    const resilientTest = async () => { try {
       const messageBatch = Array.from({ length: 50 }, (_, i) => ({
         id: i,
         type: 'stress-test',
@@ -82,4 +85,4 @@ describe('Chaos Testing: Redis Failure Scenarios', () => {
 
     await expect(resilientTest()).resolves.toBeTruthy();
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

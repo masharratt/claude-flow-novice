@@ -229,7 +229,7 @@ class MockByzantineValidator {
                         severity: 'high',
                         pattern,
                         description: 'Potentially dangerous code execution pattern'
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             }
         }
@@ -243,7 +243,7 @@ class MockByzantineValidator {
                         severity: 'high',
                         pattern: filePattern,
                         description: 'Potential directory traversal vulnerability'
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             }
         }
@@ -254,7 +254,7 @@ class MockByzantineValidator {
                 type: 'network_access',
                 severity: 'medium',
                 description: 'Framework requires network access'
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         return {
@@ -289,7 +289,7 @@ class MockByzantineValidator {
                         nodeId: node.id,
                         inconsistencyScore,
                         reason: 'Inconsistent voting pattern detected'
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             }
         }
@@ -338,7 +338,7 @@ class MockByzantineValidator {
                 nodeId: node.id,
                 signature,
                 timestamp: Date.now()
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         return signatures;
@@ -377,7 +377,7 @@ class MockCustomFrameworkRegistry {
             submitterId,
             status: 'pending',
             submissionTime: Date.now()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Perform Byzantine validation
         const validationResult = await this.validator.validateFrameworkAddition(frameworkSpec, submitterId);
@@ -395,7 +395,7 @@ class MockCustomFrameworkRegistry {
                 addedAt: Date.now(),
                 validationId: validationResult.validationId,
                 signatures: validationResult.signatures
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         return {
@@ -433,10 +433,11 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
     beforeEach(() => {
         registry = new MockCustomFrameworkRegistry();
         jest.clearAllMocks();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Byzantine Consensus Validation', () => {
-        test('should achieve consensus with honest majority', async () => {
+        jest.setTimeout(10000);
+  test('should achieve consensus with honest majority', async () => { try {
             const frameworkSpec = {
                 id: 'test-framework-consensus',
                 name: 'Consensus Test Framework',
@@ -457,9 +458,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             expect(result.validationResult.consensus.approvalVotes).toBeGreaterThan(
                 result.validationResult.consensus.requiredApprovals - 1
             );
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should reject framework when consensus not reached', async () => {
+        jest.setTimeout(10000);
+  test('should reject framework when consensus not reached', async () => { try {
             const poorFrameworkSpec = {
                 id: 'poor-framework',
                 name: 'P',  // Too short name
@@ -475,9 +477,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             expect(result.validationResult.consensus.approvalVotes).toBeLessThan(
                 result.validationResult.consensus.requiredApprovals
             );
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should tolerate Byzantine node failures', async () => {
+        jest.setTimeout(10000);
+  test('should tolerate Byzantine node failures', async () => { try {
             const frameworkSpec = {
                 id: 'byzantine-tolerance-test',
                 name: 'Byzantine Tolerance Test Framework',
@@ -498,9 +501,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             // Should succeed in majority of cases despite Byzantine nodes
             const successCount = results.filter(r => r.approved).length;
             expect(successCount).toBeGreaterThan(2); // At least 3 out of 5 should succeed
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should detect Byzantine behavior patterns', async () => {
+        jest.setTimeout(10000);
+  test('should detect Byzantine behavior patterns', async () => { try {
             // Simulate multiple validations to build pattern history
             const frameworks = [
                 {
@@ -538,11 +542,12 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             expect(byzantineStatus).toHaveProperty('byzantineFaultDetected');
             expect(byzantineStatus).toHaveProperty('faultToleranceStatus');
             expect(byzantineStatus.networkHealth).toBeGreaterThan(0);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Cryptographic Validation', () => {
-        test('should validate framework integrity with cryptographic hash', async () => {
+        jest.setTimeout(10000);
+  test('should validate framework integrity with cryptographic hash', async () => { try {
             const frameworkSpec = {
                 id: 'crypto-test-framework',
                 name: 'Cryptographic Test Framework',
@@ -557,9 +562,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             expect(result.validationResult.integrity.signature).toBeDefined();
             expect(result.validationResult.integrity.verified).toBe(true);
             expect(result.validationResult.integrity.algorithm).toBe('SHA-256-RSA');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should generate distributed signatures for approved frameworks', async () => {
+        jest.setTimeout(10000);
+  test('should generate distributed signatures for approved frameworks', async () => { try {
             const frameworkSpec = {
                 id: 'signature-test-framework',
                 name: 'Signature Test Framework',
@@ -583,11 +589,12 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
                     expect(signature.signature).toMatch(/^rsa-/);
                 }
             }
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Security Threat Analysis', () => {
-        test('should detect dangerous code patterns', async () => {
+        jest.setTimeout(10000);
+  test('should detect dangerous code patterns', async () => { try {
             const maliciousFrameworkSpec = {
                 id: 'malicious-framework',
                 name: 'Malicious Framework',
@@ -602,9 +609,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             expect(result.validationResult.security.threatCount).toBeGreaterThan(0);
             expect(result.validationResult.security.riskLevel).toBe('high');
             expect(result.validationResult.security.approved).toBe(false);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should detect directory traversal attempts', async () => {
+        jest.setTimeout(10000);
+  test('should detect directory traversal attempts', async () => { try {
             const traversalFrameworkSpec = {
                 id: 'traversal-framework',
                 name: 'Traversal Framework',
@@ -624,9 +632,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
                     })
                 ])
             );
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should approve secure frameworks', async () => {
+        jest.setTimeout(10000);
+  test('should approve secure frameworks', async () => { try {
             const secureFrameworkSpec = {
                 id: 'secure-framework',
                 name: 'Secure Framework',
@@ -647,9 +656,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             expect(result.validationResult.security.riskLevel).toBe('low');
             expect(result.validationResult.security.approved).toBe(true);
             expect(result.validationResult.security.threatCount).toBe(0);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle network access security considerations', async () => {
+        jest.setTimeout(10000);
+  test('should handle network access security considerations', async () => { try {
             const networkFrameworkSpec = {
                 id: 'network-framework',
                 name: 'Network Framework',
@@ -670,11 +680,12 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
                 ])
             );
             expect(result.validationResult.security.riskLevel).toBe('medium');
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Framework Registry Integration', () => {
-        test('should store approved frameworks with validation metadata', async () => {
+        jest.setTimeout(10000);
+  test('should store approved frameworks with validation metadata', async () => { try {
             const frameworkSpec = {
                 id: 'registry-test-framework',
                 name: 'Registry Test Framework',
@@ -696,9 +707,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
                 expect(storedFramework.validationId).toBe(result.validationResult.validationId);
                 expect(storedFramework.signatures).toBeDefined();
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should not store rejected frameworks', async () => {
+        jest.setTimeout(10000);
+  test('should not store rejected frameworks', async () => { try {
             const badFrameworkSpec = {
                 id: 'rejected-framework',
                 name: 'Bad',
@@ -711,9 +723,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
 
             expect(result.approved).toBe(false);
             expect(registry.getFramework(badFrameworkSpec.id)).toBeUndefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should track pending additions with complete metadata', async () => {
+        jest.setTimeout(10000);
+  test('should track pending additions with complete metadata', async () => { try {
             const frameworkSpec = {
                 id: 'pending-test-framework',
                 name: 'Pending Test Framework',
@@ -731,11 +744,12 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             expect(pendingAddition.status).toMatch(/^(approved|rejected)$/);
             expect(pendingAddition.submissionTime).toBeDefined();
             expect(pendingAddition.validationResult).toBeDefined();
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Performance Under Adversarial Conditions', () => {
-        test('should handle concurrent malicious submissions', async () => {
+        jest.setTimeout(10000);
+  test('should handle concurrent malicious submissions', async () => { try {
             const maliciousSpecs = Array.from({ length: 5 }, (_, i) => ({
                 id: `malicious-${i}`,
                 name: `Malicious Framework ${i}`,
@@ -755,7 +769,7 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             // All should be rejected
             results.forEach(result => {
                 expect(result.approved).toBe(false);
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             // Should complete within reasonable time despite adversarial load
             expect(endTime - startTime).toBeLessThan(5000); // 5 seconds max
@@ -763,9 +777,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             // Byzantine system should remain healthy
             const byzantineStatus = await registry.getByzantineStatus();
             expect(byzantineStatus.faultToleranceStatus).toMatch(/^(healthy|compromised)$/);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain consensus accuracy under load', async () => {
+        jest.setTimeout(10000);
+  test('should maintain consensus accuracy under load', async () => { try {
             const testSpecs = Array.from({ length: 10 }, (_, i) => ({
                 id: `load-test-${i}`,
                 name: `Load Test Framework ${i}`,
@@ -790,10 +805,11 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
                 expect(result.validationResult.consensus).toBeDefined();
                 expect(result.validationResult.consensus.totalNodes).toBeGreaterThan(0);
                 expect(result.validationResult.consensus.faultTolerance).toBeDefined();
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should recover from Byzantine node compromise', async () => {
+        jest.setTimeout(10000);
+  test('should recover from Byzantine node compromise', async () => { try {
             // First, establish baseline with healthy network
             const healthySpec = {
                 id: 'health-baseline',
@@ -826,11 +842,12 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
 
             // Even with detected Byzantine behavior, fault tolerance should work
             expect(byzantineStatus.faultToleranceStatus).toBeDefined();
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Validation History and Audit Trail', () => {
-        test('should maintain complete audit trail', async () => {
+        jest.setTimeout(10000);
+  test('should maintain complete audit trail', async () => { try {
             const frameworkSpec = {
                 id: 'audit-test-framework',
                 name: 'Audit Test Framework',
@@ -855,9 +872,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             expect(auditEntry.security).toBeDefined();
             expect(auditEntry.byzantine).toBeDefined();
             expect(auditEntry.signatures).toBeDefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should track validation timing metrics', async () => {
+        jest.setTimeout(10000);
+  test('should track validation timing metrics', async () => { try {
             const frameworkSpec = {
                 id: 'timing-test-framework',
                 name: 'Timing Test Framework',
@@ -875,11 +893,12 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             const duration = result.validationResult.endTime - result.validationResult.startTime;
             expect(duration).toBeGreaterThan(0);
             expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Edge Cases and Error Handling', () => {
-        test('should handle malformed framework specifications', async () => {
+        jest.setTimeout(10000);
+  test('should handle malformed framework specifications', async () => { try {
             const malformedSpecs = [
                 null,
                 undefined,
@@ -902,9 +921,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
                     expect(error).toBeDefined();
                 }
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle network partition scenarios', async () => {
+        jest.setTimeout(10000);
+  test('should handle network partition scenarios', async () => { try {
             // Simulate reduced node availability
             const originalNodeCount = registry.validator.nodeCount;
             registry.validator.nodeCount = 3; // Minimum viable network
@@ -926,9 +946,10 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
 
             // Restore original configuration
             registry.validator.nodeCount = originalNodeCount;
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should validate framework ID uniqueness', async () => {
+        jest.setTimeout(10000);
+  test('should validate framework ID uniqueness', async () => { try {
             const frameworkSpec1 = {
                 id: 'unique-test-framework',
                 name: 'First Framework',
@@ -952,6 +973,6 @@ describe('Custom Framework Addition with Byzantine Validation', () => {
             if (result1.approved) {
                 expect(result2.approved).toBe(false);
             }
-        });
-    });
-});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

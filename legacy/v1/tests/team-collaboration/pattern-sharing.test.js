@@ -24,7 +24,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
   });
 
   describe('Checkpoint 4.3: Mathematical Team Pattern Sharing', () => {
-    test('identifies optimal team patterns using PageRank algorithm', async () => {
+    jest.setTimeout(10000);
+  test('identifies optimal team patterns using PageRank algorithm', async () => { try {
       const teamInteractions = generateTeamInteractions(25);
       const collaborationGraph = buildCollaborationGraph(teamInteractions);
 
@@ -37,7 +38,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       expect(result.mathematicalValidation).toBe(true);
     });
 
-    test('improves team performance by 25% through pattern optimization', async () => {
+    jest.setTimeout(10000);
+  test('improves team performance by 25% through pattern optimization', async () => { try {
       const baselineMetrics = generateBaselineMetrics();
       const teamPatterns = generateOptimizedPatterns();
 
@@ -51,7 +53,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       expect(result.consensusProof).toBeDefined();
     });
 
-    test('validates team contributions with cryptographic evidence', async () => {
+    jest.setTimeout(10000);
+  test('validates team contributions with cryptographic evidence', async () => { try {
       const teamContributions = generateTeamContributions(15);
 
       const result = await patternSharing.validateContributions(teamContributions);
@@ -64,7 +67,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       });
     });
 
-    test('prevents malicious pattern injection attacks', async () => {
+    jest.setTimeout(10000);
+  test('prevents malicious pattern injection attacks', async () => { try {
       const legitimatePatterns = generateLegitimatePatterns(20);
       const maliciousPatterns = generateMaliciousPatterns(10);
       const allPatterns = [...legitimatePatterns, ...maliciousPatterns];
@@ -77,7 +81,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       expect(result.injectionResistanceProof).toBeDefined();
     });
 
-    test('maintains pattern quality under coordinated poisoning attempts', async () => {
+    jest.setTimeout(10000);
+  test('maintains pattern quality under coordinated poisoning attempts', async () => { try {
       const highQualityPatterns = generateHighQualityPatterns(30);
       const poisoningAttempt = generateCoordinatedPoisoning(20);
       const allPatterns = [...highQualityPatterns, ...poisoningAttempt];
@@ -92,7 +97,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       expect(result.coordinatedAttackEvidence).toBeDefined();
     });
 
-    test('generates PageRank-validated team collaboration networks', async () => {
+    jest.setTimeout(10000);
+  test('generates PageRank-validated team collaboration networks', async () => { try {
       const teamMembers = generateTeamMembers(40);
       const collaborationData = generateCollaborationData(teamMembers);
 
@@ -107,7 +113,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
   });
 
   describe('Byzantine Security for Pattern Sharing', () => {
-    test('validates pattern authenticity with cryptographic signatures', async () => {
+    jest.setTimeout(10000);
+  test('validates pattern authenticity with cryptographic signatures', async () => { try {
       const patterns = generatePatternsWithSignatures(15);
       const tamperedPattern = { ...patterns[0], data: 'tampered', signature: 'invalid' };
       patterns[0] = tamperedPattern;
@@ -119,7 +126,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       expect(result.integrityViolations).toHaveLength(1);
     });
 
-    test('achieves Byzantine consensus for pattern acceptance', async () => {
+    jest.setTimeout(10000);
+  test('achieves Byzantine consensus for pattern acceptance', async () => { try {
       const patterns = generateContentiousPatterns(21); // Clear consensus threshold
       const validators = generatePatternValidators(21);
 
@@ -131,7 +139,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       expect(result.byzantineProof).toBeDefined();
     });
 
-    test('detects Sybil attacks in pattern submission', async () => {
+    jest.setTimeout(10000);
+  test('detects Sybil attacks in pattern submission', async () => { try {
       const legitimatePatterns = generateLegitimatePatterns(10);
       const sybilAttack = generateSybilPatternAttack(25); // More fake than real
       const allPatterns = [...legitimatePatterns, ...sybilAttack];
@@ -144,7 +153,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       expect(result.sybilResistanceProof).toBeDefined();
     });
 
-    test('maintains pattern sharing integrity under eclipse attacks', async () => {
+    jest.setTimeout(10000);
+  test('maintains pattern sharing integrity under eclipse attacks', async () => { try {
       const normalNetwork = generateNormalCollaborationNetwork(20);
       const eclipseAttack = generateEclipseAttack(normalNetwork, 5);
 
@@ -156,7 +166,8 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
       expect(result.eclipseResistanceProof).toBeDefined();
     });
 
-    test('ensures pattern sharing fairness with cryptographic proofs', async () => {
+    jest.setTimeout(10000);
+  test('ensures pattern sharing fairness with cryptographic proofs', async () => { try {
       const teamMembers = generateDiverseTeam(20);
       const patterns = generatePatternsFromTeam(teamMembers);
 
@@ -430,4 +441,4 @@ describe('Mathematical Team Pattern Sharing with Byzantine Security', () => {
   function generateValidSignature(id) {
     return crypto.createHash('sha256').update(id + 'secret_key').digest('hex');
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

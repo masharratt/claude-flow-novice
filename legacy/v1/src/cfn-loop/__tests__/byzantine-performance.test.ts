@@ -109,7 +109,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
   });
 
   describe('Latency Benchmarks', () => {
-    it('should measure Byzantine vs Simple consensus latency (4 validators)', async () => {
+    it('should measure Byzantine vs Simple consensus latency (4 validators)', async () => { try {
       const votes = ValidatorVoteFactory.createUnanimousPassVotes(4);
 
       // Warmup
@@ -150,7 +150,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
       expect(simpleAvg).toBeLessThan(10); // Simple should be very fast
     });
 
-    it('should measure consensus latency with malicious detection', async () => {
+    it('should measure consensus latency with malicious detection', async () => { try {
       const votes = ValidatorVoteFactory.createVotesWithOneMalicious(4);
 
       const { result, durationMs } = await measureExecutionTime(() =>
@@ -167,7 +167,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
   });
 
   describe('Scalability Benchmarks', () => {
-    it('should compare 4 validators vs 7 validators (max mesh size)', async () => {
+    it('should compare 4 validators vs 7 validators (max mesh size)', async () => { try {
       const votes4 = ValidatorVoteFactory.createUnanimousPassVotes(4);
       const votes7 = ValidatorVoteFactory.createUnanimousPassVotes(7);
 
@@ -193,7 +193,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
       expect(avg7 / avg4).toBeLessThan(2.0); // Should scale sub-linearly
     });
 
-    it('should measure throughput (consensus/second)', async () => {
+    it('should measure throughput (consensus/second)', async () => { try {
       const votes = ValidatorVoteFactory.createUnanimousPassVotes(4);
       const durationMs = 1000; // 1 second
 
@@ -216,7 +216,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
   });
 
   describe('Malicious Detection Accuracy', () => {
-    it('should measure precision and recall for malicious agent detection', async () => {
+    it('should measure precision and recall for malicious agent detection', async () => { try {
       const testCases = [
         { votes: ValidatorVoteFactory.createUnanimousPassVotes(4), expectedMalicious: 0 },
         { votes: ValidatorVoteFactory.createVotesWithOneMalicious(4), expectedMalicious: 1 },
@@ -256,7 +256,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
       expect(recall).toBeGreaterThan(0.8); // > 80% recall
     });
 
-    it('should measure false positive rate with high confidence votes', async () => {
+    it('should measure false positive rate with high confidence votes', async () => { try {
       const iterations = 100;
       let falsePositives = 0;
 
@@ -280,11 +280,11 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
   });
 
   describe('Concurrent Execution', () => {
-    it('should handle concurrent consensus execution', async () => {
+    it('should handle concurrent consensus execution', async () => { try {
       const concurrentExecutions = 50;
       const votes = ValidatorVoteFactory.createUnanimousPassVotes(4);
 
-      const { durationMs } = await measureExecutionTime(async () => {
+      const { durationMs } = await measureExecutionTime(async () => { try {
         await Promise.all(
           Array.from({ length: concurrentExecutions }, () => byzantineAdapter.executeConsensus(votes))
         );
@@ -302,7 +302,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
   });
 
   describe('Memory Usage', () => {
-    it('should measure memory usage for Byzantine consensus', async () => {
+    it('should measure memory usage for Byzantine consensus', async () => { try {
       const votes = ValidatorVoteFactory.createUnanimousPassVotes(4);
 
       // Force garbage collection if available
@@ -335,7 +335,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
   });
 
   describe('Edge Cases Performance', () => {
-    it('should handle minimum validators efficiently', async () => {
+    it('should handle minimum validators efficiently', async () => { try {
       const votes = ValidatorVoteFactory.createUnanimousPassVotes(4); // Minimum required
 
       const { result, durationMs } = await measureExecutionTime(() =>
@@ -346,7 +346,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
       expect(result.consensusAchieved).toBe(true);
     });
 
-    it('should handle maximum malicious ratio efficiently', async () => {
+    it('should handle maximum malicious ratio efficiently', async () => { try {
       // 33% malicious (at threshold)
       const votes = [
         ...ValidatorVoteFactory.createUnanimousPassVotes(2),
@@ -366,7 +366,7 @@ describe('Byzantine Consensus Performance Benchmarks', () => {
   });
 
   describe('Comparison Summary', () => {
-    it('should generate comprehensive performance comparison', async () => {
+    it('should generate comprehensive performance comparison', async () => { try {
       const metrics = {
         byzantine: {
           avg4: 0,

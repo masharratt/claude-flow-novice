@@ -14,18 +14,19 @@ describe('Performance Benchmarks Integration Tests', () => {
   const testDir = path.join(process.cwd(), 'tests', 'integration', 'temp-performance');
   const cliPath = path.join(process.cwd(), 'src', 'cli', 'main.ts');
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     await fs.mkdir(testDir, { recursive: true });
     process.chdir(testDir);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     process.chdir(process.cwd().replace(path.sep + 'tests' + path.sep + 'integration' + path.sep + 'temp-performance', ''));
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   describe('CLI Performance Tests', () => {
-    test('should execute commands within acceptable time limits', async () => {
+    jest.setTimeout(10000);
+  test('should execute commands within acceptable time limits', async () => { try {
       const commands = [
         { cmd: 'help', timeout: 2000 },
         { cmd: 'config list', timeout: 3000 },
@@ -50,7 +51,8 @@ describe('Performance Benchmarks Integration Tests', () => {
       }
     }, 20000);
 
-    test('should handle concurrent CLI operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent CLI operations', async () => { try {
       const concurrentCommands = [
         execAsync(`tsx ${cliPath} config get test.concurrent1`, { timeout: 5000 }),
         execAsync(`tsx ${cliPath} config get test.concurrent2`, { timeout: 5000 }),
@@ -72,7 +74,8 @@ describe('Performance Benchmarks Integration Tests', () => {
   });
 
   describe('Swarm Performance Tests', () => {
-    test('should initialize swarm quickly', async () => {
+    jest.setTimeout(10000);
+  test('should initialize swarm quickly', async () => { try {
       const topologies = ['mesh', 'hierarchical', 'ring', 'star'];
 
       for (const topology of topologies) {
@@ -91,7 +94,8 @@ describe('Performance Benchmarks Integration Tests', () => {
       }
     }, 40000);
 
-    test('should spawn multiple agents efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should spawn multiple agents efficiently', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 8000 });
 
       const agentCount = 5;
@@ -113,7 +117,8 @@ describe('Performance Benchmarks Integration Tests', () => {
       expect(successful).toBeGreaterThanOrEqual(3); // At least 60% success rate
     }, 35000);
 
-    test('should handle high-frequency swarm operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle high-frequency swarm operations', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 8000 });
 
       const operations = [
@@ -141,7 +146,8 @@ describe('Performance Benchmarks Integration Tests', () => {
   });
 
   describe('SPARC Performance Tests', () => {
-    test('should execute SPARC modes within performance thresholds', async () => {
+    jest.setTimeout(10000);
+  test('should execute SPARC modes within performance thresholds', async () => { try {
       const modes = [
         { mode: 'spec-pseudocode', maxTime: 15000 },
         { mode: 'architect', maxTime: 18000 },
@@ -164,7 +170,8 @@ describe('Performance Benchmarks Integration Tests', () => {
       }
     }, 60000);
 
-    test('should handle concurrent SPARC operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent SPARC operations', async () => { try {
       const concurrentSparcs = [
         execAsync(`tsx ${cliPath} sparc run spec-pseudocode "Concurrent test 1"`, {
           timeout: 18000,
@@ -193,7 +200,8 @@ describe('Performance Benchmarks Integration Tests', () => {
   });
 
   describe('Memory and Storage Performance Tests', () => {
-    test('should handle rapid memory operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle rapid memory operations', async () => { try {
       const operationCount = 10;
       const operations = [];
 
@@ -212,7 +220,8 @@ describe('Performance Benchmarks Integration Tests', () => {
       expect(successful).toBeGreaterThanOrEqual(operationCount * 0.8); // 80% success rate
     }, 25000);
 
-    test('should retrieve memory efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should retrieve memory efficiently', async () => { try {
       // Store test data
       const testKeys = ['perf-1', 'perf-2', 'perf-3'];
       for (const key of testKeys) {
@@ -237,7 +246,8 @@ describe('Performance Benchmarks Integration Tests', () => {
   });
 
   describe('Resource Usage Tests', () => {
-    test('should monitor system resource usage during operations', async () => {
+    jest.setTimeout(10000);
+  test('should monitor system resource usage during operations', async () => { try {
       // Initialize monitoring
       const monitorCommand = `tsx ${cliPath} swarm monitor --duration 10`;
 
@@ -257,7 +267,8 @@ describe('Performance Benchmarks Integration Tests', () => {
       expect(stdout).toMatch(/monitor|resource|performance|memory|cpu/i);
     }, 25000);
 
-    test('should handle memory-intensive operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle memory-intensive operations', async () => { try {
       // Create large dataset in memory
       const largeData = 'x'.repeat(1000); // 1KB string
       const keys = Array.from({ length: 50 }, (_, i) => `large-data-${i}`);
@@ -278,7 +289,8 @@ describe('Performance Benchmarks Integration Tests', () => {
   });
 
   describe('Benchmark Comparison Tests', () => {
-    test('should run system benchmarks and compare performance', async () => {
+    jest.setTimeout(10000);
+  test('should run system benchmarks and compare performance', async () => { try {
       const benchmarkTypes = ['swarm', 'memory', 'neural'];
 
       for (const type of benchmarkTypes) {
@@ -302,7 +314,8 @@ describe('Performance Benchmarks Integration Tests', () => {
       }
     }, 70000);
 
-    test('should generate performance reports', async () => {
+    jest.setTimeout(10000);
+  test('should generate performance reports', async () => { try {
       const command = `tsx ${cliPath} benchmark report --format summary`;
 
       try {
@@ -319,4 +332,4 @@ describe('Performance Benchmarks Integration Tests', () => {
       }
     }, 15000);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

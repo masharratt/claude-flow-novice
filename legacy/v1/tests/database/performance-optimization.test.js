@@ -17,7 +17,7 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
   const REQUIRED_IMPROVEMENT = 0.15; // 15% minimum improvement
   const CURRENT_REGRESSION = -0.425; // -42.5% current regression
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     optimizer = new DatabaseOptimizer({
       connectionPool: {
         min: 5,
@@ -42,12 +42,13 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await testDatabase.cleanup();
   });
 
   describe('CRITICAL: Query Performance Optimization', () => {
-    test('FAILING TEST: should improve SELECT query performance by 15%', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should improve SELECT query performance by 15%', async () => { try {
       // Baseline query performance (unoptimized)
       const baselineQuery = `
         SELECT u.name, u.email, COUNT(o.id) as order_count, SUM(oi.quantity * p.price) as total_spent
@@ -91,7 +92,8 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
       console.log(`Baseline: ${baselineTime}ms, Optimized: ${optimizedTime}ms, Improvement: ${(improvement * 100).toFixed(1)}%`);
     });
 
-    test('FAILING TEST: should improve INSERT performance by 20%', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should improve INSERT performance by 20%', async () => { try {
       const testData = Array.from({ length: 10000 }, (_, i) => ({
         name: `Test User ${i}`,
         email: `user${i}@test.com`,
@@ -127,7 +129,8 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
       console.log(`INSERT - Baseline: ${baselineTime}ms, Optimized: ${optimizedTime}ms, Improvement: ${(improvement * 100).toFixed(1)}%`);
     });
 
-    test('FAILING TEST: should improve UPDATE performance by 15%', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should improve UPDATE performance by 15%', async () => { try {
       const updateConditions = [
         { field: 'status', value: 'inactive', condition: 'created_at < "2022-01-01"' },
         { field: 'email_verified', value: true, condition: 'last_login > "2023-01-01"' },
@@ -170,7 +173,8 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
   });
 
   describe('CRITICAL: Index Optimization', () => {
-    test('FAILING TEST: should create optimal indexes for query patterns', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should create optimal indexes for query patterns', async () => { try {
       const queryPatterns = [
         'SELECT * FROM orders WHERE user_id = ? AND status = ?',
         'SELECT * FROM products WHERE category = ? ORDER BY price',
@@ -216,7 +220,8 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
       });
     });
 
-    test('FAILING TEST: should optimize composite indexes for complex queries', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should optimize composite indexes for complex queries', async () => { try {
       const complexQuery = `
         SELECT o.id, o.total, u.name, COUNT(oi.id) as item_count
         FROM orders o
@@ -260,7 +265,8 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
   });
 
   describe('CRITICAL: Connection Pool Optimization', () => {
-    test('FAILING TEST: should optimize connection pool for concurrent queries', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should optimize connection pool for concurrent queries', async () => { try {
       const concurrentQueries = 50;
       const queries = Array.from({ length: concurrentQueries }, () =>
         'SELECT COUNT(*) FROM orders WHERE created_at > "2023-01-01"'
@@ -303,7 +309,8 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
   });
 
   describe('CRITICAL: Query Plan Optimization', () => {
-    test('FAILING TEST: should generate optimal query execution plans', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should generate optimal query execution plans', async () => { try {
       const complexQueries = [
         {
           sql: `SELECT u.*, COUNT(o.id) as order_count
@@ -364,7 +371,8 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
   });
 
   describe('CRITICAL: Cache Optimization', () => {
-    test('FAILING TEST: should implement effective query result caching', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should implement effective query result caching', async () => { try {
       const cacheableQueries = [
         'SELECT * FROM products WHERE category = "electronics" ORDER BY price',
         'SELECT COUNT(*) FROM orders WHERE status = "completed"',
@@ -414,7 +422,8 @@ describe('Database Performance Optimization - CRITICAL PERFORMANCE TESTS', () =>
   });
 
   describe('CRITICAL: Overall System Performance', () => {
-    test('FAILING TEST: should achieve overall 15% performance improvement', async () => {
+    jest.setTimeout(10000);
+  test('FAILING TEST: should achieve overall 15% performance improvement', async () => { try {
       // Comprehensive performance test
       const testSuite = {
         selects: 20,

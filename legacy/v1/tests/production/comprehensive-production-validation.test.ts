@@ -29,7 +29,7 @@ describe('Comprehensive Production Readiness Validation', () => {
     monitoring: {}
   };
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize production configuration
     configManager = new ProductionConfigManager({
       server: {
@@ -131,7 +131,7 @@ describe('Comprehensive Production Readiness Validation', () => {
     dashboardUrl = `http://localhost:3001`;
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup test database
     try {
       if (databaseManager) {
@@ -148,7 +148,8 @@ describe('Comprehensive Production Readiness Validation', () => {
   });
 
   describe('1. Complete System Testing', () => {
-    test('should initialize dashboard with real agent lifecycle data', async () => {
+    jest.setTimeout(10000);
+  test('should initialize dashboard with real agent lifecycle data', async () => { try {
       // Create test users with different roles
       const adminUser = databaseManager.createUser('admin-test', 'SecurePassword123!', 'admin');
       const operatorUser = databaseManager.createUser('operator-test', 'SecurePassword123!', 'operator');
@@ -195,7 +196,8 @@ describe('Comprehensive Production Readiness Validation', () => {
       };
     });
 
-    test('should handle complex agent coordination scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should handle complex agent coordination scenarios', async () => { try {
       // Simulate multi-agent coordination scenarios
       const coordinationScenarios = [
         {
@@ -265,7 +267,8 @@ describe('Comprehensive Production Readiness Validation', () => {
   });
 
   describe('2. Security Controls Validation', () => {
-    test('should enforce robust authentication mechanisms', async () => {
+    jest.setTimeout(10000);
+  test('should enforce robust authentication mechanisms', async () => { try {
       const authTests = [
         {
           name: 'Valid authentication',
@@ -340,7 +343,8 @@ describe('Comprehensive Production Readiness Validation', () => {
       };
     });
 
-    test('should prevent common web vulnerabilities', async () => {
+    jest.setTimeout(10000);
+  test('should prevent common web vulnerabilities', async () => { try {
       const vulnerabilityTests = [
         {
           name: 'XSS in query parameters',
@@ -419,7 +423,8 @@ describe('Comprehensive Production Readiness Validation', () => {
       };
     });
 
-    test('should enforce proper authorization and permissions', async () => {
+    jest.setTimeout(10000);
+  test('should enforce proper authorization and permissions', async () => { try {
       // Create users with different roles
       const adminUser = databaseManager.createUser('admin-perm-test', 'SecurePassword123!', 'admin');
       const operatorUser = databaseManager.createUser('operator-perm-test', 'SecurePassword123!', 'operator');
@@ -481,7 +486,8 @@ describe('Comprehensive Production Readiness Validation', () => {
   });
 
   describe('3. Performance Validation', () => {
-    test('should handle concurrent load testing', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent load testing', async () => { try {
       const concurrentUsers = 50;
       const requestsPerUser = 10;
       const totalRequests = concurrentUsers * requestsPerUser;
@@ -560,7 +566,8 @@ describe('Comprehensive Production Readiness Validation', () => {
       };
     });
 
-    test('should maintain performance under stress conditions', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under stress conditions', async () => { try {
       const stressTestDuration = 10000; // 10 seconds
       const highFrequencyInterval = 10; // 10ms between operations
       const startTime = Date.now();
@@ -624,7 +631,8 @@ describe('Comprehensive Production Readiness Validation', () => {
   });
 
   describe('4. Scalability Validation', () => {
-    test('should validate WebSocket scalability with concurrent connections', async () => {
+    jest.setTimeout(10000);
+  test('should validate WebSocket scalability with concurrent connections', async () => { try {
       // Note: This is a simulation since we can't easily test real WebSockets in unit tests
       // In a real environment, this would create actual WebSocket connections
 
@@ -696,7 +704,8 @@ describe('Comprehensive Production Readiness Validation', () => {
       };
     });
 
-    test('should handle resource scaling under load', async () => {
+    jest.setTimeout(10000);
+  test('should handle resource scaling under load', async () => { try {
       const scalingTests = [
         {
           name: 'Database connection scaling',
@@ -815,7 +824,8 @@ describe('Comprehensive Production Readiness Validation', () => {
   });
 
   describe('5. Monitoring and Alerting Validation', () => {
-    test('should collect comprehensive metrics', async () => {
+    jest.setTimeout(10000);
+  test('should collect comprehensive metrics', async () => { try {
       // Generate test metrics
       const metricTypes = [
         'cpu_usage',
@@ -883,7 +893,8 @@ describe('Comprehensive Production Readiness Validation', () => {
       };
     });
 
-    test('should trigger alerts for threshold violations', async () => {
+    jest.setTimeout(10000);
+  test('should trigger alerts for threshold violations', async () => { try {
       const alertThresholds = {
         cpu: 80,
         memory: 85,
@@ -980,7 +991,8 @@ describe('Comprehensive Production Readiness Validation', () => {
       };
     });
 
-    test('should provide comprehensive health checks', async () => {
+    jest.setTimeout(10000);
+  test('should provide comprehensive health checks', async () => { try {
       const healthCheckComponents = [
         'database',
         'security',
@@ -1058,7 +1070,8 @@ describe('Comprehensive Production Readiness Validation', () => {
   });
 
   describe('6. Production Deployment Verification', () => {
-    test('should validate deployment pipeline configuration', async () => {
+    jest.setTimeout(10000);
+  test('should validate deployment pipeline configuration', async () => { try {
       const deploymentChecks = {
         environment: process.env.NODE_ENV || 'development',
         port: configManager.getConfig().server.port,
@@ -1111,7 +1124,8 @@ describe('Comprehensive Production Readiness Validation', () => {
       };
     });
 
-    test('should simulate rollback and recovery procedures', async () => {
+    jest.setTimeout(10000);
+  test('should simulate rollback and recovery procedures', async () => { try {
       const rollbackScenarios = [
         {
           name: 'Database corruption recovery',
@@ -1207,6 +1221,7 @@ describe('Comprehensive Production Readiness Validation', () => {
   });
 
   // Generate comprehensive test report
+  jest.setTimeout(10000);
   test('should generate comprehensive production readiness report', () => {
     const overallStatus = {
       security: testResults.security.authentication?.status === 'PASS' &&

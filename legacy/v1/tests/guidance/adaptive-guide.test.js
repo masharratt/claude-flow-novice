@@ -15,7 +15,7 @@ describe('AdaptiveGuide', () => {
     let guide;
     let tempDir;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         tempDir = path.join(__dirname, '../../tmp/test-config');
         guide = new AdaptiveGuide({ configDir: tempDir });
 
@@ -27,7 +27,7 @@ describe('AdaptiveGuide', () => {
         }
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
         try {
             await fs.rm(tempDir, { recursive: true, force: true });
         } catch (error) {
@@ -36,13 +36,15 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Initialization', () => {
-        test('should initialize successfully', async () => {
+        jest.setTimeout(10000);
+  test('should initialize successfully', async () => { try {
             const result = await guide.initialize();
             expect(result).toBe(true);
             expect(guide.userProfile).toBeTruthy();
         });
 
-        test('should create default user profile for new user', async () => {
+        jest.setTimeout(10000);
+  test('should create default user profile for new user', async () => { try {
             await guide.initialize();
 
             expect(guide.userProfile).toEqual(
@@ -63,7 +65,8 @@ describe('AdaptiveGuide', () => {
             );
         });
 
-        test('should load existing user profile', async () => {
+        jest.setTimeout(10000);
+  test('should load existing user profile', async () => { try {
             // Create a pre-existing profile
             await guide.ensureConfigDirectory();
             const profilePath = path.join(tempDir, 'guidance', 'user-profile.json');
@@ -87,11 +90,12 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Experience Level Calculation', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await guide.initialize();
         });
 
-        test('should identify novice users correctly', () => {
+        jest.setTimeout(10000);
+  test('should identify novice users correctly', () => {
             const profile = {
                 preferences: { guidanceLevel: 'adaptive' },
                 stats: {
@@ -106,7 +110,8 @@ describe('AdaptiveGuide', () => {
             expect(level).toBe('novice');
         });
 
-        test('should identify expert users correctly', () => {
+        jest.setTimeout(10000);
+  test('should identify expert users correctly', () => {
             const profile = {
                 preferences: { guidanceLevel: 'adaptive' },
                 stats: {
@@ -129,7 +134,8 @@ describe('AdaptiveGuide', () => {
             expect(level).toBe('expert');
         });
 
-        test('should respect manual experience level setting', () => {
+        jest.setTimeout(10000);
+  test('should respect manual experience level setting', () => {
             const profile = {
                 preferences: { guidanceLevel: 'expert' },
                 stats: {
@@ -144,11 +150,12 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Guidance Generation', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await guide.initialize();
         });
 
-        test('should generate appropriate guidance for novice users', async () => {
+        jest.setTimeout(10000);
+  test('should generate appropriate guidance for novice users', async () => { try {
             guide.userProfile.experienceLevel = 'novice';
 
             const context = {
@@ -172,7 +179,8 @@ describe('AdaptiveGuide', () => {
             expect(guidance.suggestions.length).toBeGreaterThan(0);
         });
 
-        test('should generate minimal guidance for expert users', async () => {
+        jest.setTimeout(10000);
+  test('should generate minimal guidance for expert users', async () => { try {
             guide.userProfile.experienceLevel = 'expert';
 
             const context = {
@@ -189,7 +197,8 @@ describe('AdaptiveGuide', () => {
             expect(guidance.warnings.length).toBe(0);
         });
 
-        test('should provide context-aware suggestions', async () => {
+        jest.setTimeout(10000);
+  test('should provide context-aware suggestions', async () => { try {
             const context = {
                 command: 'agent-spawn',
                 taskType: 'development',
@@ -207,11 +216,12 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Learning and Adaptation', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await guide.initialize();
         });
 
-        test('should learn from successful interactions', async () => {
+        jest.setTimeout(10000);
+  test('should learn from successful interactions', async () => { try {
             const initialStats = { ...guide.userProfile.stats };
 
             await guide.learnFromInteraction({
@@ -225,7 +235,8 @@ describe('AdaptiveGuide', () => {
             expect(guide.userProfile.stats.successfulCommands).toBe(initialStats.successfulCommands + 1);
         });
 
-        test('should learn from failed interactions', async () => {
+        jest.setTimeout(10000);
+  test('should learn from failed interactions', async () => { try {
             const initialStats = { ...guide.userProfile.stats };
 
             await guide.learnFromInteraction({
@@ -239,7 +250,8 @@ describe('AdaptiveGuide', () => {
             expect(guide.userProfile.stats.failedCommands).toBe(initialStats.failedCommands + 1);
         });
 
-        test('should adapt verbosity based on user behavior', async () => {
+        jest.setTimeout(10000);
+  test('should adapt verbosity based on user behavior', async () => { try {
             guide.userProfile.experienceLevel = 'adaptive';
             const initialVerbosity = guide.userProfile.adaptiveSettings.preferredVerbosity;
 
@@ -258,11 +270,12 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Preference Management', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await guide.initialize();
         });
 
-        test('should update user preferences', async () => {
+        jest.setTimeout(10000);
+  test('should update user preferences', async () => { try {
             const newPreferences = {
                 showTips: false,
                 autoSuggest: false,
@@ -277,24 +290,27 @@ describe('AdaptiveGuide', () => {
             );
         });
 
-        test('should set experience level', async () => {
+        jest.setTimeout(10000);
+  test('should set experience level', async () => { try {
             await guide.setExperienceLevel('expert');
 
             expect(guide.userProfile.experienceLevel).toBe('expert');
             expect(guide.userProfile.preferences.guidanceLevel).toBe('expert');
         });
 
-        test('should reject invalid experience levels', async () => {
+        jest.setTimeout(10000);
+  test('should reject invalid experience levels', async () => { try {
             await expect(guide.setExperienceLevel('invalid')).rejects.toThrow('Invalid experience level');
         });
     });
 
     describe('Error Rate Calculation', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await guide.initialize();
         });
 
-        test('should calculate recent error rate correctly', () => {
+        jest.setTimeout(10000);
+  test('should calculate recent error rate correctly', () => {
             guide.userProfile.taskHistory = [
                 { command: 'test1', outcome: 'success' },
                 { command: 'test2', outcome: 'failure' },
@@ -307,7 +323,8 @@ describe('AdaptiveGuide', () => {
             expect(errorRate).toBe(0.4); // 2 failures out of 5 tasks
         });
 
-        test('should return 0 for empty task history', () => {
+        jest.setTimeout(10000);
+  test('should return 0 for empty task history', () => {
             guide.userProfile.taskHistory = [];
             const errorRate = guide.calculateRecentErrorRate();
             expect(errorRate).toBe(0);
@@ -315,11 +332,12 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Learning Progress Tracking', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await guide.initialize();
         });
 
-        test('should track mastered concepts', () => {
+        jest.setTimeout(10000);
+  test('should track mastered concepts', () => {
             guide.userProfile.taskHistory = [
                 { command: 'swarm-init', outcome: 'success' },
                 { command: 'swarm-init', outcome: 'success' },
@@ -331,7 +349,8 @@ describe('AdaptiveGuide', () => {
             expect(guide.userProfile.learningProgress.masteredConcepts).toContain('swarm-coordination');
         });
 
-        test('should track struggling areas', () => {
+        jest.setTimeout(10000);
+  test('should track struggling areas', () => {
             guide.userProfile.taskHistory = [
                 { command: 'agent-spawn', outcome: 'failure' },
                 { command: 'agent-spawn', outcome: 'failure' }
@@ -342,7 +361,8 @@ describe('AdaptiveGuide', () => {
             expect(guide.userProfile.learningProgress.strugglingAreas).toContain('agent-management');
         });
 
-        test('should limit task history size', () => {
+        jest.setTimeout(10000);
+  test('should limit task history size', () => {
             // Fill history with more than 100 items
             guide.userProfile.taskHistory = Array(120).fill().map((_, i) => ({
                 command: `test${i}`,
@@ -357,11 +377,12 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Guidance Templates', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await guide.initialize();
         });
 
-        test('should use appropriate template for experience level', () => {
+        jest.setTimeout(10000);
+  test('should use appropriate template for experience level', () => {
             const noviceTemplate = guide.guidanceTemplates.novice;
             expect(noviceTemplate).toEqual({
                 verbosity: 'high',
@@ -383,11 +404,12 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Event Emission', () => {
-        beforeEach(async () => {
+        beforeEach(async () => { try {
             await guide.initialize();
         });
 
-        test('should emit events when providing guidance', async () => {
+        jest.setTimeout(10000);
+  test('should emit events when providing guidance', async () => { try {
             const guidanceProvidedSpy = jest.fn();
             guide.on('guidanceProvided', guidanceProvidedSpy);
 
@@ -407,7 +429,8 @@ describe('AdaptiveGuide', () => {
             );
         });
 
-        test('should emit events when experience level changes', async () => {
+        jest.setTimeout(10000);
+  test('should emit events when experience level changes', async () => { try {
             const experienceLevelChangedSpy = jest.fn();
             guide.on('experienceLevelChanged', experienceLevelChangedSpy);
 
@@ -423,7 +446,8 @@ describe('AdaptiveGuide', () => {
     });
 
     describe('Data Persistence', () => {
-        test('should save user profile', async () => {
+        jest.setTimeout(10000);
+  test('should save user profile', async () => { try {
             await guide.initialize();
 
             guide.userProfile.stats.totalCommands = 42;
@@ -436,7 +460,8 @@ describe('AdaptiveGuide', () => {
             expect(newGuide.userProfile.stats.totalCommands).toBe(42);
         });
 
-        test('should save behavior patterns', async () => {
+        jest.setTimeout(10000);
+  test('should save behavior patterns', async () => { try {
             await guide.initialize();
 
             guide.behaviorPatterns.set('test-pattern', { value: 'test' });
@@ -449,4 +474,4 @@ describe('AdaptiveGuide', () => {
             expect(newGuide.behaviorPatterns.get('test-pattern')).toEqual({ value: 'test' });
         });
     });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

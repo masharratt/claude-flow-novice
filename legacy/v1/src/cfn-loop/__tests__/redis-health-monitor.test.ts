@@ -314,7 +314,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
   let redis: Redis;
   let healthMonitor: RedisHealthMonitor;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis client
     redis = new Redis(REDIS_CONFIG);
 
@@ -339,7 +339,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
     await cleanupRedis(redis);
   }, TEST_TIMEOUT);
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Stop monitoring if running
     if (healthMonitor) {
       healthMonitor.stopMonitoring();
@@ -356,7 +356,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
   // ===== HEALTH CHECK DETECTION TESTS =====
 
   describe('Health Check Detection', () => {
-    it('should detect healthy connection when PING succeeds', async () => {
+    it('should detect healthy connection when PING succeeds', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const result = await healthMonitor.performHealthCheck();
@@ -369,7 +369,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(metrics.healthCheckFailures).toBe(0);
     });
 
-    it('should detect connection loss when PING fails within 5s timeout', async () => {
+    it('should detect connection loss when PING fails within 5s timeout', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       // Set up failure listener
@@ -398,7 +398,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(metrics.healthCheckFailures).toBeGreaterThan(0);
     }, TEST_TIMEOUT);
 
-    it('should restore health when connection recovers and PING succeeds', async () => {
+    it('should restore health when connection recovers and PING succeeds', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       // Disconnect
@@ -424,7 +424,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
   // ===== AUTO-RECONNECT TESTS =====
 
   describe('Auto-Reconnect', () => {
-    it('should attempt reconnect with 1s delay on first attempt', async () => {
+    it('should attempt reconnect with 1s delay on first attempt', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const reconnectEvents: any[] = [];
@@ -447,7 +447,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(reconnectEvents[0].delay).toBe(1000); // 1 second
     }, TEST_TIMEOUT);
 
-    it('should attempt reconnect with 2s delay on second attempt', async () => {
+    it('should attempt reconnect with 2s delay on second attempt', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const reconnectEvents: any[] = [];
@@ -469,7 +469,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(secondAttempt.delay).toBe(2000); // 2 seconds
     }, TEST_TIMEOUT);
 
-    it('should attempt reconnect with 4s delay on third attempt', async () => {
+    it('should attempt reconnect with 4s delay on third attempt', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const reconnectEvents: any[] = [];
@@ -495,7 +495,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(thirdAttempt.delay).toBe(4000); // 4 seconds
     }, TEST_TIMEOUT);
 
-    it('should emit redis:failed after 3 max attempts', async () => {
+    it('should emit redis:failed after 3 max attempts', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const failedEvents: any[] = [];
@@ -521,7 +521,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
   // ===== EVENT EMISSION TESTS =====
 
   describe('Event Emission', () => {
-    it('should emit redis:connected on initial connection', async () => {
+    it('should emit redis:connected on initial connection', async () => { try {
       const connectedEvents: any[] = [];
 
       // Create new Redis instance to capture initial connection
@@ -546,7 +546,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       await newRedis.quit();
     }, TEST_TIMEOUT);
 
-    it('should emit redis:disconnected on connection loss', async () => {
+    it('should emit redis:disconnected on connection loss', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const disconnectedEvents: any[] = [];
@@ -562,7 +562,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(disconnectedEvents[0].timestamp).toBeGreaterThan(0);
     }, TEST_TIMEOUT);
 
-    it('should emit redis:reconnecting during reconnect attempts', async () => {
+    it('should emit redis:reconnecting during reconnect attempts', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const reconnectingEvents: any[] = [];
@@ -581,7 +581,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(reconnectingEvents[0].delay).toBeGreaterThan(0);
     }, TEST_TIMEOUT);
 
-    it('should emit redis:reconnected on successful reconnect', async () => {
+    it('should emit redis:reconnected on successful reconnect', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const reconnectedEvents: any[] = [];
@@ -607,7 +607,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
   // ===== GRACEFUL DEGRADATION TESTS =====
 
   describe('Graceful Degradation', () => {
-    it('should fail operations gracefully when Redis is down (no crash)', async () => {
+    it('should fail operations gracefully when Redis is down (no crash)', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       // Disconnect Redis
@@ -631,7 +631,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(metrics).toBeDefined();
     }, TEST_TIMEOUT);
 
-    it('should continue tracking metrics during disconnection', async () => {
+    it('should continue tracking metrics during disconnection', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       // Perform health check while connected
@@ -657,7 +657,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
   // ===== MONITORING LIFECYCLE TESTS =====
 
   describe('Monitoring Lifecycle', () => {
-    it('should start and stop monitoring', async () => {
+    it('should start and stop monitoring', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       const startEvents: any[] = [];
@@ -685,7 +685,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(stopEvents.length).toBe(1);
     });
 
-    it('should perform periodic health checks when monitoring', async () => {
+    it('should perform periodic health checks when monitoring', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       healthMonitor.resetMetrics();
@@ -706,7 +706,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
   // ===== METRICS TESTS =====
 
   describe('Metrics Tracking', () => {
-    it('should track health check metrics', async () => {
+    it('should track health check metrics', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
       healthMonitor.resetMetrics();
 
@@ -719,7 +719,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(metrics.healthCheckFailures).toBe(0);
     });
 
-    it('should track reconnection metrics', async () => {
+    it('should track reconnection metrics', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
       healthMonitor.resetMetrics();
 
@@ -734,7 +734,7 @@ describe('Redis Health Monitor - Sprint 1.3', () => {
       expect(metrics.reconnectAttempts).toBeGreaterThan(0);
     }, TEST_TIMEOUT);
 
-    it('should reset metrics', async () => {
+    it('should reset metrics', async () => { try {
       healthMonitor = new RedisHealthMonitor(redis);
 
       await healthMonitor.performHealthCheck();

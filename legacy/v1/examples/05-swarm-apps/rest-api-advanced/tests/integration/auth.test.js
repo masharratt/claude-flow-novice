@@ -12,14 +12,14 @@ describe('Auth Endpoints', () => {
     server = app;
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clear users and tokens before each test
     await User.deleteMany({});
     await Token.deleteMany({});
   });
 
   describe('POST /api/auth/register', () => {
-    it('should register a new user successfully', async () => {
+    it('should register a new user successfully', async () => { try {
       const userData = {
         email: 'test@example.com',
         password: 'Password123!',
@@ -47,7 +47,7 @@ describe('Auth Endpoints', () => {
       expect(user.isEmailVerified).toBe(false);
     });
 
-    it('should not register user with existing email', async () => {
+    it('should not register user with existing email', async () => { try {
       // Create existing user
       await User.create({
         email: 'existing@example.com',
@@ -68,7 +68,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.message).toContain('already exists');
     });
 
-    it('should validate required fields', async () => {
+    it('should validate required fields', async () => { try {
       const response = await request(server)
         .post('/api/auth/register')
         .send({
@@ -86,7 +86,7 @@ describe('Auth Endpoints', () => {
       );
     });
 
-    it('should validate email format', async () => {
+    it('should validate email format', async () => { try {
       const response = await request(server)
         .post('/api/auth/register')
         .send({
@@ -104,7 +104,7 @@ describe('Auth Endpoints', () => {
       );
     });
 
-    it('should validate password strength', async () => {
+    it('should validate password strength', async () => { try {
       const response = await request(server)
         .post('/api/auth/register')
         .send({
@@ -126,7 +126,7 @@ describe('Auth Endpoints', () => {
   describe('POST /api/auth/login', () => {
     let testUser;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create a test user
       testUser = await User.create({
         email: 'test@example.com',
@@ -136,7 +136,7 @@ describe('Auth Endpoints', () => {
       });
     });
 
-    it('should login with valid credentials', async () => {
+    it('should login with valid credentials', async () => { try {
       const response = await request(server)
         .post('/api/auth/login')
         .send({
@@ -154,7 +154,7 @@ describe('Auth Endpoints', () => {
       });
     });
 
-    it('should not login with invalid password', async () => {
+    it('should not login with invalid password', async () => { try {
       const response = await request(server)
         .post('/api/auth/login')
         .send({
@@ -167,7 +167,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.message).toContain('Invalid credentials');
     });
 
-    it('should not login with non-existent email', async () => {
+    it('should not login with non-existent email', async () => { try {
       const response = await request(server)
         .post('/api/auth/login')
         .send({
@@ -180,7 +180,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.message).toContain('Invalid credentials');
     });
 
-    it('should not login inactive user', async () => {
+    it('should not login inactive user', async () => { try {
       // Deactivate user
       testUser.isActive = false;
       await testUser.save();
@@ -197,7 +197,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.message).toContain('deactivated');
     });
 
-    it('should track login attempts', async () => {
+    it('should track login attempts', async () => { try {
       // Make multiple failed attempts
       for (let i = 0; i < 3; i++) {
         await request(server)
@@ -217,7 +217,7 @@ describe('Auth Endpoints', () => {
     let authToken;
     let testUser;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create and login a test user
       testUser = await User.create({
         email: 'test@example.com',
@@ -229,7 +229,7 @@ describe('Auth Endpoints', () => {
       authToken = authService.generateAccessToken(testUser);
     });
 
-    it('should get current user with valid token', async () => {
+    it('should get current user with valid token', async () => { try {
       const response = await request(server)
         .get('/api/auth/me')
         .set('Authorization', `Bearer ${authToken}`)
@@ -242,7 +242,7 @@ describe('Auth Endpoints', () => {
       });
     });
 
-    it('should not get user without token', async () => {
+    it('should not get user without token', async () => { try {
       const response = await request(server)
         .get('/api/auth/me')
         .expect(401);
@@ -251,7 +251,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.message).toContain('Authentication required');
     });
 
-    it('should not get user with invalid token', async () => {
+    it('should not get user with invalid token', async () => { try {
       const response = await request(server)
         .get('/api/auth/me')
         .set('Authorization', 'Bearer invalid-token')
@@ -265,7 +265,7 @@ describe('Auth Endpoints', () => {
     let authToken;
     let testUser;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testUser = await User.create({
         email: 'test@example.com',
         password: 'Password123!',
@@ -275,7 +275,7 @@ describe('Auth Endpoints', () => {
       authToken = authService.generateAccessToken(testUser);
     });
 
-    it('should logout successfully', async () => {
+    it('should logout successfully', async () => { try {
       const response = await request(server)
         .post('/api/auth/logout')
         .set('Authorization', `Bearer ${authToken}`)
@@ -285,7 +285,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.message).toContain('Logged out successfully');
     });
 
-    it('should require authentication for logout', async () => {
+    it('should require authentication for logout', async () => { try {
       await request(server)
         .post('/api/auth/logout')
         .expect(401);
@@ -296,7 +296,7 @@ describe('Auth Endpoints', () => {
     let testUser;
     let refreshToken;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testUser = await User.create({
         email: 'test@example.com',
         password: 'Password123!',
@@ -306,7 +306,7 @@ describe('Auth Endpoints', () => {
       refreshToken = await authService.generateRefreshToken(testUser._id);
     });
 
-    it('should refresh access token', async () => {
+    it('should refresh access token', async () => { try {
       const response = await request(server)
         .post('/api/auth/refresh')
         .send({ refreshToken })
@@ -317,7 +317,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.refreshToken).toBeDefined();
     });
 
-    it('should not refresh with invalid token', async () => {
+    it('should not refresh with invalid token', async () => { try {
       const response = await request(server)
         .post('/api/auth/refresh')
         .send({ refreshToken: 'invalid-refresh-token' })
@@ -327,7 +327,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.message).toContain('Invalid');
     });
 
-    it('should not refresh with used token', async () => {
+    it('should not refresh with used token', async () => { try {
       // Mark token as used
       await Token.updateOne(
         { token: refreshToken },
@@ -346,7 +346,7 @@ describe('Auth Endpoints', () => {
   describe('POST /api/auth/forgot-password', () => {
     let testUser;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testUser = await User.create({
         email: 'test@example.com',
         password: 'Password123!',
@@ -354,7 +354,7 @@ describe('Auth Endpoints', () => {
       });
     });
 
-    it('should initiate password reset', async () => {
+    it('should initiate password reset', async () => { try {
       const response = await request(server)
         .post('/api/auth/forgot-password')
         .send({ email: 'test@example.com' })
@@ -371,7 +371,7 @@ describe('Auth Endpoints', () => {
       expect(token).toBeTruthy();
     });
 
-    it('should handle non-existent email gracefully', async () => {
+    it('should handle non-existent email gracefully', async () => { try {
       const response = await request(server)
         .post('/api/auth/forgot-password')
         .send({ email: 'nonexistent@example.com' })
@@ -386,7 +386,7 @@ describe('Auth Endpoints', () => {
     let testUser;
     let resetToken;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testUser = await User.create({
         email: 'test@example.com',
         password: 'OldPassword123!',
@@ -403,7 +403,7 @@ describe('Auth Endpoints', () => {
       resetToken = tokenDoc.token;
     });
 
-    it('should reset password with valid token', async () => {
+    it('should reset password with valid token', async () => { try {
       const newPassword = 'NewPassword123!';
 
       const response = await request(server)
@@ -429,7 +429,7 @@ describe('Auth Endpoints', () => {
       expect(loginResponse.body.success).toBe(true);
     });
 
-    it('should not reset with invalid token', async () => {
+    it('should not reset with invalid token', async () => { try {
       const response = await request(server)
         .post('/api/auth/reset-password')
         .send({
@@ -442,7 +442,7 @@ describe('Auth Endpoints', () => {
       expect(response.body.message).toContain('Invalid');
     });
 
-    it('should not reset with expired token', async () => {
+    it('should not reset with expired token', async () => { try {
       // Expire the token
       await Token.updateOne(
         { token: resetToken },
@@ -466,7 +466,7 @@ describe('Auth Endpoints', () => {
     let testUser;
     let verificationToken;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testUser = await User.create({
         email: 'test@example.com',
         password: 'Password123!',
@@ -484,7 +484,7 @@ describe('Auth Endpoints', () => {
       verificationToken = tokenDoc.token;
     });
 
-    it('should verify email with valid token', async () => {
+    it('should verify email with valid token', async () => { try {
       const response = await request(server)
         .get(`/api/auth/verify-email/${verificationToken}`)
         .expect(200);
@@ -497,7 +497,7 @@ describe('Auth Endpoints', () => {
       expect(user.isEmailVerified).toBe(true);
     });
 
-    it('should not verify with invalid token', async () => {
+    it('should not verify with invalid token', async () => { try {
       const response = await request(server)
         .get('/api/auth/verify-email/invalid-token')
         .expect(400);
@@ -508,7 +508,7 @@ describe('Auth Endpoints', () => {
   });
 
   describe('POST /api/auth/check-password', () => {
-    it('should check password strength', async () => {
+    it('should check password strength', async () => { try {
       const response = await request(server)
         .post('/api/auth/check-password')
         .send({ password: 'MyStr0ng!Pass' })
@@ -522,7 +522,7 @@ describe('Auth Endpoints', () => {
       });
     });
 
-    it('should identify weak passwords', async () => {
+    it('should identify weak passwords', async () => { try {
       const response = await request(server)
         .post('/api/auth/check-password')
         .send({ password: 'weak' })
@@ -537,7 +537,7 @@ describe('Auth Endpoints', () => {
   });
 
   describe('Rate Limiting', () => {
-    it('should rate limit auth endpoints', async () => {
+    it('should rate limit auth endpoints', async () => { try {
       // Make multiple requests quickly
       const requests = [];
       for (let i = 0; i < 10; i++) {
@@ -557,4 +557,4 @@ describe('Auth Endpoints', () => {
       expect(rateLimited).toBe(true);
     }, 10000); // Increase timeout for rate limit test
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

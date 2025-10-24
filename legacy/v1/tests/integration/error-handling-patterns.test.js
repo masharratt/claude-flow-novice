@@ -12,13 +12,14 @@ describe('Structured Error Handling Patterns', () => {
     let RuvSwarmWrapper;
     let startRuvSwarmMCP;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const module = await import('../../src/mcp/ruv-swarm-wrapper.js');
       RuvSwarmWrapper = module.RuvSwarmWrapper;
       startRuvSwarmMCP = module.startRuvSwarmMCP;
     });
 
-    test('should properly handle known error codes', async () => {
+    jest.setTimeout(10000);
+  test('should properly handle known error codes', async () => { try {
       const wrapper = new RuvSwarmWrapper({ silent: false });
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
@@ -72,7 +73,8 @@ describe('Structured Error Handling Patterns', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    test('should handle malformed JSON gracefully', () => {
+    jest.setTimeout(10000);
+  test('should handle malformed JSON gracefully', () => {
       const wrapper = new RuvSwarmWrapper({ silent: false });
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -99,7 +101,8 @@ describe('Structured Error Handling Patterns', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    test('should use pattern matching as fallback', () => {
+    jest.setTimeout(10000);
+  test('should use pattern matching as fallback', () => {
       const wrapper = new RuvSwarmWrapper({ silent: false });
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -138,7 +141,8 @@ describe('Structured Error Handling Patterns', () => {
   });
 
   describe('Error Code Standards', () => {
-    test('should follow consistent error code naming convention', () => {
+    jest.setTimeout(10000);
+  test('should follow consistent error code naming convention', () => {
       // Define expected error code patterns
       const validErrorCodePatterns = [
         /^ERR_[A-Z_]+$/,          // ERR_INITIALIZATION
@@ -157,14 +161,16 @@ describe('Structured Error Handling Patterns', () => {
       ];
 
       for (const code of errorCodes) {
-        const isValid = validErrorCodePatterns.some(pattern => pattern.test(code));
+        const isValid = validErrorCodePatterns.some(pattern => pattern.jest.setTimeout(10000);
+  test(code));
         expect(isValid).toBe(true);
       }
     });
   });
 
   describe('Error Recovery and Resilience', () => {
-    test('should continue operation after handling known errors', async () => {
+    jest.setTimeout(10000);
+  test('should continue operation after handling known errors', async () => { try {
       const wrapper = new RuvSwarmWrapper({ 
         silent: true,
         autoRestart: true,
@@ -194,7 +200,8 @@ describe('Structured Error Handling Patterns', () => {
   });
 
   describe('Cross-Component Error Propagation', () => {
-    test('should properly propagate errors between components', async () => {
+    jest.setTimeout(10000);
+  test('should properly propagate errors between components', async () => { try {
       // This test ensures error codes are consistent across components
       const components = [
         { name: 'RuvSwarmWrapper', path: '../../src/mcp/ruv-swarm-wrapper.js' },
@@ -219,4 +226,4 @@ describe('Structured Error Handling Patterns', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

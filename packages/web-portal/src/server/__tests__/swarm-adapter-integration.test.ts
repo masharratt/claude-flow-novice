@@ -17,7 +17,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
   let mockWsServer: any;
   const testDbPath = join(process.cwd(), 'data', 'events.db');
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test database
     if (existsSync(testDbPath)) {
       unlinkSync(testDbPath);
@@ -40,7 +40,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
     await new Promise(resolve => setTimeout(resolve, 100));
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup
     adapter.clearCache();
     await eventStoreService.close();
@@ -51,7 +51,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
   });
 
   describe('Event Persistence', () => {
-    it('should persist swarm_created event to event store', async () => {
+    it('should persist swarm_created event to event store', async () => { try {
       const event: SwarmCoordinatorEvent = {
         type: 'swarm_created',
         swarmId: 'test-swarm-1',
@@ -74,7 +74,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
       expect(result.events[0].payload.swarmId).toBe('test-swarm-1');
     });
 
-    it('should persist agent_spawned event to event store', async () => {
+    it('should persist agent_spawned event to event store', async () => { try {
       const event: SwarmCoordinatorEvent = {
         type: 'agent_spawned',
         swarmId: 'test-swarm-1',
@@ -100,7 +100,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
       expect(result.events[0].payload.parentId).toBe('coordinator');
     });
 
-    it('should persist multiple events in batch', async () => {
+    it('should persist multiple events in batch', async () => { try {
       const events: SwarmCoordinatorEvent[] = [
         {
           type: 'swarm_created',
@@ -137,7 +137,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
       expect(result.events.length).toBeGreaterThanOrEqual(3);
     });
 
-    it('should handle persistence failure gracefully', async () => {
+    it('should handle persistence failure gracefully', async () => { try {
       // Close event store to simulate failure
       await eventStoreService.close();
 
@@ -157,7 +157,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
   });
 
   describe('Event Querying', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Seed test data
       const events: SwarmCoordinatorEvent[] = [
         {
@@ -193,7 +193,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
       await new Promise(resolve => setTimeout(resolve, 500));
     });
 
-    it('should query swarm timeline', async () => {
+    it('should query swarm timeline', async () => { try {
       const timeline = await adapter.getSwarmTimeline('swarm-1');
 
       expect(timeline.length).toBeGreaterThanOrEqual(4);
@@ -201,13 +201,13 @@ describe('SwarmAdapter Integration with EventStore', () => {
       expect(timeline[0]).toHaveProperty('type');
     });
 
-    it('should query agent event history', async () => {
+    it('should query agent event history', async () => { try {
       const history = await adapter.getAgentEventHistory('agent-1');
 
       expect(history.length).toBeGreaterThanOrEqual(2); // spawned + terminated
     });
 
-    it('should get swarm statistics', async () => {
+    it('should get swarm statistics', async () => { try {
       const stats = await adapter.getSwarmStatistics('swarm-1');
 
       expect(stats.totalEvents).toBeGreaterThanOrEqual(4);
@@ -216,7 +216,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
       expect(stats.eventsByType).toHaveProperty('agent_spawned');
     });
 
-    it('should filter events by date range', async () => {
+    it('should filter events by date range', async () => { try {
       const result = await adapter.queryEventHistory({
         swarmId: 'swarm-1',
         startDate: new Date('2024-01-01T10:05:00Z'),
@@ -226,7 +226,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
       expect(result.events.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should paginate query results', async () => {
+    it('should paginate query results', async () => { try {
       const page1 = await adapter.queryEventHistory({
         swarmId: 'swarm-1',
         limit: 2,
@@ -246,7 +246,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
   });
 
   describe('Performance', () => {
-    it('should handle high-throughput event storage', async () => {
+    it('should handle high-throughput event storage', async () => { try {
       const eventCount = 100;
       const events: SwarmCoordinatorEvent[] = Array.from({ length: eventCount }, (_, i) => ({
         type: 'agent_spawned',
@@ -274,7 +274,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
       expect(duration).toBeLessThan(5000); // Should complete within 5 seconds
     });
 
-    it('should query events efficiently', async () => {
+    it('should query events efficiently', async () => { try {
       // Seed 1000 events
       const events: SwarmCoordinatorEvent[] = Array.from({ length: 1000 }, (_, i) => ({
         type: 'agent_spawned',
@@ -301,7 +301,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle disabled event storage', async () => {
+    it('should handle disabled event storage', async () => { try {
       const disabledAdapter = new SwarmAdapter(mockWsServer, { enableEventStorage: false });
 
       const event: SwarmCoordinatorEvent = {
@@ -319,7 +319,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
       expect(result.events).toHaveLength(0);
     });
 
-    it('should handle query errors gracefully', async () => {
+    it('should handle query errors gracefully', async () => { try {
       // Close event store
       await eventStoreService.close();
 
@@ -330,7 +330,7 @@ describe('SwarmAdapter Integration with EventStore', () => {
   });
 
   describe('WebSocket Integration', () => {
-    it('should emit hierarchy change and persist event', async () => {
+    it('should emit hierarchy change and persist event', async () => { try {
       const event: SwarmCoordinatorEvent = {
         type: 'agent_spawned',
         swarmId: 'test-swarm',

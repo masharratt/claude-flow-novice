@@ -184,4 +184,4 @@ describe('CSV Export Functionality', () => {
     expect(lines[0]).toBe('level1.level2.level3.value');
     expect(lines[1]).toBe('deep');
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

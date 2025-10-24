@@ -223,7 +223,7 @@ describe('SecureLogger - VULN-005 Mitigation', () => {
       expect(stats.messagesLogged).toBeLessThanOrEqual(5);
     });
 
-    it('should reset rate limit window after expiration', async () => {
+    it('should reset rate limit window after expiration', async () => { try {
       const rateLimitedLogger = new SecureLogger('rate-test', {
         enableRateLimiting: true,
         rateLimitMax: 2,

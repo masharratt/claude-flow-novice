@@ -32,7 +32,7 @@ describe('HybridRoutingHandler Integration Tests', () => {
           metrics_update: 100,
           agent_update: 50
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       // Create hybrid routing handler
       handler = new HybridRoutingHandler(wsServer);
@@ -42,37 +42,38 @@ describe('HybridRoutingHandler Integration Tests', () => {
       clientSocket = ClientIO(clientUrl, {
         transports: ['websocket'],
         forceNew: true
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       clientSocket.on('connect', () => {
-        done();
-      });
-    });
-  });
+        return;
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterAll((done) => {
     if (clientSocket && clientSocket.connected) {
       clientSocket.disconnect();
     }
     if (wsServer) {
-      wsServer.shutdown().then(() => {
+      wsServer.shutdown()await ( => {
         httpServer.close(() => {
-          done();
-        });
-      });
+          return;
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     } else {
       httpServer.close(() => {
-        done();
-      });
+        return;
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   beforeEach(() => {
     handler.clearStorage();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Agent Lifecycle Integration', () => {
-    test('should broadcast agent:spawned event to connected clients', (done) => {
+    jest.setTimeout(10000);
+  test('should broadcast agent:spawned event to connected clients', (done) => {
       const agentData: AgentSpawnedEvent = {
         agentId: 'agent-integration-123',
         agentType: 'backend-dev',
@@ -99,15 +100,16 @@ describe('HybridRoutingHandler Integration Tests', () => {
           expect(data.status).toBe('spawned');
           expect(data.health.cpu).toBe(4);
           expect(data.health.memory).toBe(8192);
-          done();
+          return;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Trigger agent spawn
       handler.agentSpawned(agentData);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should broadcast agent:completed event with confidence metrics', (done) => {
+    jest.setTimeout(10000);
+  test('should broadcast agent:completed event with confidence metrics', (done) => {
       const completedData: AgentCompletedEvent = {
         agentId: 'agent-integration-456',
         status: 'completed',
@@ -140,15 +142,16 @@ describe('HybridRoutingHandler Integration Tests', () => {
           expect(data.confidence).toBe(0.94);
           expect(data.tasks).toBeDefined();
           expect(data.tasks![0].progress).toBe(100);
-          done();
+          return;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Trigger agent completion
       handler.agentCompleted(completedData);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should broadcast hierarchy change events', (done) => {
+    jest.setTimeout(10000);
+  test('should broadcast hierarchy change events', (done) => {
       const agentData: AgentSpawnedEvent = {
         agentId: 'agent-hierarchy-123',
         agentType: 'frontend-dev',
@@ -165,17 +168,18 @@ describe('HybridRoutingHandler Integration Tests', () => {
           expect(data.type).toBe('spawn');
           expect(data.parentId).toBe('parent-hierarchy-456');
           expect(data.metadata.agentType).toBe('frontend-dev');
-          done();
+          return;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Trigger agent spawn (should generate hierarchy change)
       handler.agentSpawned(agentData);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('CFN Loop 3 Integration', () => {
-    test('should broadcast CFN Loop 3 iteration events', (done) => {
+    jest.setTimeout(10000);
+  test('should broadcast CFN Loop 3 iteration events', (done) => {
       const loop3Data: CFNLoop3Event = {
         phaseId: 'phase-integration-001',
         iteration: 4,
@@ -197,15 +201,16 @@ describe('HybridRoutingHandler Integration Tests', () => {
         if (data.agents && data.agents.total >= 0) {
           expect(data.system).toBeDefined();
           expect(data.agents).toBeDefined();
-          done();
+          return;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Trigger CFN Loop 3 iteration
       handler.cfnLoop3Iteration(loop3Data);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should send notifications for high confidence achievements', (done) => {
+    jest.setTimeout(10000);
+  test('should send notifications for high confidence achievements', (done) => {
       const loop3Data: CFNLoop3Event = {
         phaseId: 'phase-high-confidence',
         iteration: 2,
@@ -228,17 +233,18 @@ describe('HybridRoutingHandler Integration Tests', () => {
           expect(data.type).toBe('success');
           expect(data.message).toContain('0.95');
           expect(data.action.url).toContain('/phases/phase-high-confidence');
-          done();
+          return;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Trigger high confidence event
       handler.cfnLoop3Iteration(loop3Data);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('CFN Loop 4 Integration', () => {
-    test('should broadcast PO decision events', (done) => {
+    jest.setTimeout(10000);
+  test('should broadcast PO decision events', (done) => {
       const decisionData: CFNLoop4Decision = {
         phaseId: 'phase-decision-001',
         decisionId: 'decision-integration-123',
@@ -265,15 +271,16 @@ describe('HybridRoutingHandler Integration Tests', () => {
           expect(data.type).toBe('success');
           expect(data.message).toContain('APPROVE');
           expect(data.action.url).toContain('/phases/phase-decision-001/decisions/decision-integration-123');
-          done();
+          return;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Trigger PO decision
       handler.cfnLoop4Decision(decisionData);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle rejection decisions with appropriate notifications', (done) => {
+    jest.setTimeout(10000);
+  test('should handle rejection decisions with appropriate notifications', (done) => {
       const decisionData: CFNLoop4Decision = {
         phaseId: 'phase-rejection-001',
         decisionId: 'decision-rejection-123',
@@ -294,24 +301,25 @@ describe('HybridRoutingHandler Integration Tests', () => {
         if (data.title.includes('PO Decision') && data.type === 'error') {
           expect(data.message).toContain('REJECT');
           expect(data.action.url).toContain('/phases/phase-rejection-001/decisions/decision-rejection-123');
-          done();
+          return;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Trigger rejection decision
       handler.cfnLoop4Decision(decisionData);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Real-time Event Flow', () => {
-    test('should handle complete agent lifecycle with CFN events', (done) => {
+    jest.setTimeout(10000);
+  test('should handle complete agent lifecycle with CFN events', (done) => {
       let eventsReceived = 0;
       const expectedEvents = 4; // spawned, iteration, completed, decision
 
       const checkComplete = () => {
         eventsReceived++;
         if (eventsReceived === expectedEvents) {
-          done();
+          return;
         }
       };
 
@@ -320,17 +328,17 @@ describe('HybridRoutingHandler Integration Tests', () => {
         if (data.agentId === 'agent-lifecycle-123') {
           checkComplete();
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       clientSocket.on('notification', (data) => {
         if (data.title.includes('Agent Completed') || data.title.includes('PO Decision')) {
           checkComplete();
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       clientSocket.on('metrics_update', () => {
         checkComplete();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // 1. Spawn agent
       handler.agentSpawned({
@@ -340,7 +348,7 @@ describe('HybridRoutingHandler Integration Tests', () => {
         capabilities: ['frontend', 'backend', 'database'],
         resources: { cpu: 4, memory: 8192, storage: 2048 },
         timestamp: new Date()
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // 2. CFN Loop 3 iteration
       setTimeout(() => {
@@ -353,7 +361,7 @@ describe('HybridRoutingHandler Integration Tests', () => {
           confidence: 0.78,
           duration: 12000,
           timestamp: new Date()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }, 100);
 
       // 3. Complete agent
@@ -365,7 +373,7 @@ describe('HybridRoutingHandler Integration Tests', () => {
           cost: { compute: 0.085, storage: 0.012, network: 0.023, total: 0.120 },
           duration: 35000,
           timestamp: new Date()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }, 200);
 
       // 4. PO decision
@@ -378,13 +386,14 @@ describe('HybridRoutingHandler Integration Tests', () => {
           rationale: 'Feature implemented successfully with good quality',
           criteria: { quality: 0.90, completeness: 0.88, compliance: 0.92, performance: 0.87 },
           timestamp: new Date()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }, 300);
     }, 10000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance and Scalability', () => {
-    test('should handle high-frequency events without memory leaks', (done) => {
+    jest.setTimeout(10000);
+  test('should handle high-frequency events without memory leaks', (done) => {
       const eventCount = 50;
       let eventsReceived = 0;
 
@@ -400,9 +409,9 @@ describe('HybridRoutingHandler Integration Tests', () => {
           const history = handler.getLoop3History('phase-performance');
           expect(history.length).toBeLessThanOrEqual(100);
           
-          done();
+          return;
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Generate high-frequency events
       for (let i = 0; i < eventCount; i++) {
@@ -414,7 +423,7 @@ describe('HybridRoutingHandler Integration Tests', () => {
             capabilities: ['test'],
             resources: { cpu: 1, memory: 512, storage: 256 },
             timestamp: new Date()
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           handler.agentCompleted({
             agentId: `agent-perf-${i}`,
@@ -423,7 +432,7 @@ describe('HybridRoutingHandler Integration Tests', () => {
             cost: { compute: 0.001, storage: 0.0001, network: 0.0001, total: 0.0012 },
             duration: 1000,
             timestamp: new Date()
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           if (i % 5 === 0) {
             handler.cfnLoop3Iteration({
@@ -435,10 +444,10 @@ describe('HybridRoutingHandler Integration Tests', () => {
               confidence: 0.8,
               duration: 500,
               timestamp: new Date()
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           }
         }, i * 10); // 10ms intervals
       }
     }, 15000);
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

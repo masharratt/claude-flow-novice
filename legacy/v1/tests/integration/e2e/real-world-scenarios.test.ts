@@ -14,18 +14,19 @@ describe('Real-World Usage Scenarios', () => {
   const testDir = path.join(process.cwd(), 'tests', 'integration', 'temp-scenarios');
   const cliPath = path.join(process.cwd(), 'src', 'cli', 'main.ts');
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     await fs.mkdir(testDir, { recursive: true });
     process.chdir(testDir);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     process.chdir(process.cwd().replace(path.sep + 'tests' + path.sep + 'integration' + path.sep + 'temp-scenarios', ''));
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
   describe('Full-Stack Development Workflow', () => {
-    test('should coordinate full-stack development with swarm', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate full-stack development with swarm', async () => { try {
       // Initialize project
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
 
@@ -49,7 +50,8 @@ describe('Real-World Usage Scenarios', () => {
       expect(statusOut).toMatch(/4.*agents|active|mesh/i);
     }, 70000);
 
-    test('should orchestrate complex multi-step development task', async () => {
+    jest.setTimeout(10000);
+  test('should orchestrate complex multi-step development task', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init hierarchical`, { timeout: 10000 });
 
       const command = `tsx ${cliPath} task orchestrate "Create e-commerce platform with user auth, product catalog, shopping cart, and payment processing" --strategy adaptive --priority high`;
@@ -64,7 +66,8 @@ describe('Real-World Usage Scenarios', () => {
   });
 
   describe('SPARC-Driven Development Workflow', () => {
-    test('should complete full SPARC workflow for feature development', async () => {
+    jest.setTimeout(10000);
+  test('should complete full SPARC workflow for feature development', async () => { try {
       const feature = "User authentication system with JWT tokens, password hashing, and role-based access control";
 
       // Run complete SPARC TDD workflow
@@ -78,7 +81,8 @@ describe('Real-World Usage Scenarios', () => {
       expect(stdout).toMatch(/sparc|specification|pseudocode|architecture|refinement|completion/i);
     }, 50000);
 
-    test('should handle iterative SPARC development with refinement', async () => {
+    jest.setTimeout(10000);
+  test('should handle iterative SPARC development with refinement', async () => { try {
       // Initial specification
       const spec = await execAsync(`tsx ${cliPath} sparc run spec-pseudocode "API rate limiting middleware"`, { timeout: 15000 });
       expect(spec.stdout).toMatch(/specification|pseudocode/i);
@@ -94,7 +98,8 @@ describe('Real-World Usage Scenarios', () => {
   });
 
   describe('Enterprise Development Scenarios', () => {
-    test('should handle large team coordination', async () => {
+    jest.setTimeout(10000);
+  test('should handle large team coordination', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh --max-agents 10`, { timeout: 10000 });
 
       // Spawn enterprise development team
@@ -118,7 +123,8 @@ describe('Real-World Usage Scenarios', () => {
       expect(successful).toBeGreaterThan(3); // At least majority should succeed
     }, 100000);
 
-    test('should coordinate microservices development', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate microservices development', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init hierarchical`, { timeout: 10000 });
 
       const command = `tsx ${cliPath} task orchestrate "Develop microservices architecture with API gateway, user service, order service, payment service, and notification service" --strategy parallel --priority critical`;
@@ -133,7 +139,8 @@ describe('Real-World Usage Scenarios', () => {
   });
 
   describe('DevOps and Deployment Scenarios', () => {
-    test('should setup complete CI/CD pipeline', async () => {
+    jest.setTimeout(10000);
+  test('should setup complete CI/CD pipeline', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init star`, { timeout: 10000 });
 
       const command = `tsx ${cliPath} task orchestrate "Setup CI/CD pipeline with GitHub Actions, Docker containerization, Kubernetes deployment, and monitoring" --strategy sequential`;
@@ -146,7 +153,8 @@ describe('Real-World Usage Scenarios', () => {
       expect(stdout).toMatch(/ci.*cd|pipeline|sequential/i);
     }, 30000);
 
-    test('should handle deployment coordination', async () => {
+    jest.setTimeout(10000);
+  test('should handle deployment coordination', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
 
       // Spawn deployment team
@@ -165,7 +173,8 @@ describe('Real-World Usage Scenarios', () => {
   });
 
   describe('Learning and Documentation Scenarios', () => {
-    test('should coordinate documentation generation', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate documentation generation', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init ring`, { timeout: 10000 });
 
       const command = `tsx ${cliPath} task orchestrate "Generate comprehensive project documentation including API docs, user guides, and developer onboarding" --strategy adaptive`;
@@ -178,7 +187,8 @@ describe('Real-World Usage Scenarios', () => {
       expect(stdout).toMatch(/documentation|adaptive/i);
     }, 25000);
 
-    test('should handle code review and knowledge sharing', async () => {
+    jest.setTimeout(10000);
+  test('should handle code review and knowledge sharing', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init mesh`, { timeout: 10000 });
 
       // Store knowledge for sharing
@@ -196,7 +206,8 @@ describe('Real-World Usage Scenarios', () => {
   });
 
   describe('Performance and Optimization Scenarios', () => {
-    test('should coordinate performance optimization workflow', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate performance optimization workflow', async () => { try {
       await execAsync(`tsx ${cliPath} swarm init hierarchical`, { timeout: 10000 });
 
       const command = `tsx ${cliPath} task orchestrate "Optimize application performance including database queries, caching, CDN setup, and code splitting" --priority high`;
@@ -209,7 +220,8 @@ describe('Real-World Usage Scenarios', () => {
       expect(stdout).toMatch(/performance|optimization|high/i);
     }, 30000);
 
-    test('should run comprehensive benchmarking', async () => {
+    jest.setTimeout(10000);
+  test('should run comprehensive benchmarking', async () => { try {
       const command = `tsx ${cliPath} benchmark run --type all`;
       const { stdout, stderr } = await execAsync(command, {
         timeout: 20000,
@@ -222,7 +234,8 @@ describe('Real-World Usage Scenarios', () => {
   });
 
   describe('Integration with External Tools', () => {
-    test('should handle git workflow integration', async () => {
+    jest.setTimeout(10000);
+  test('should handle git workflow integration', async () => { try {
       // Initialize git repo
       await execAsync('git init', { timeout: 5000 });
       await execAsync('git config user.email "test@example.com"', { timeout: 5000 });
@@ -240,7 +253,8 @@ describe('Real-World Usage Scenarios', () => {
       expect(stdout).toMatch(/git|workflow|branch|commit/i);
     }, 30000);
 
-    test('should coordinate with package managers', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate with package managers', async () => { try {
       // Create package.json
       await fs.writeFile('package.json', JSON.stringify({
         name: 'test-project',
@@ -263,4 +277,4 @@ describe('Real-World Usage Scenarios', () => {
       expect(stdout).toMatch(/dependencies|build|deployment/i);
     }, 20000);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

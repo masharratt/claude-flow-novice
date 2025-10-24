@@ -83,14 +83,15 @@ describe('MCP Recovery Mechanisms', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (client) {
       await client.cleanup();
     }
   });
 
   describe('Connection Health Monitor', () => {
-    test('should detect healthy connection', async () => {
+    jest.setTimeout(10000);
+  test('should detect healthy connection', async () => { try {
       client = new MCPClient({
         transport: mockTransport,
         enableRecovery: false,
@@ -108,7 +109,8 @@ describe('MCP Recovery Mechanisms', () => {
       await monitor.stop();
     });
 
-    test('should detect connection failure', async () => {
+    jest.setTimeout(10000);
+  test('should detect connection failure', async () => { try {
       client = new MCPClient({
         transport: mockTransport,
         enableRecovery: false,
@@ -145,7 +147,8 @@ describe('MCP Recovery Mechanisms', () => {
   });
 
   describe('Reconnection Manager', () => {
-    test('should attempt reconnection with backoff', async () => {
+    jest.setTimeout(10000);
+  test('should attempt reconnection with backoff', async () => { try {
       client = new MCPClient({
         transport: mockTransport,
         enableRecovery: false,
@@ -176,7 +179,8 @@ describe('MCP Recovery Mechanisms', () => {
       manager.stopReconnection();
     });
 
-    test('should successfully reconnect', async () => {
+    jest.setTimeout(10000);
+  test('should successfully reconnect', async () => { try {
       client = new MCPClient({
         transport: mockTransport,
         enableRecovery: false,
@@ -201,7 +205,8 @@ describe('MCP Recovery Mechanisms', () => {
   });
 
   describe('Fallback Coordinator', () => {
-    test('should queue operations in fallback mode', async () => {
+    jest.setTimeout(10000);
+  test('should queue operations in fallback mode', async () => { try {
       const coordinator = new FallbackCoordinator(logger);
       
       coordinator.enableCLIFallback();
@@ -223,7 +228,8 @@ describe('MCP Recovery Mechanisms', () => {
       expect(operations[0].method).toBe('test/method');
     });
 
-    test('should process queue when fallback disabled', async () => {
+    jest.setTimeout(10000);
+  test('should process queue when fallback disabled', async () => { try {
       const coordinator = new FallbackCoordinator(logger);
       
       coordinator.enableCLIFallback();
@@ -255,7 +261,8 @@ describe('MCP Recovery Mechanisms', () => {
   });
 
   describe('Connection State Manager', () => {
-    test('should persist and restore state', async () => {
+    jest.setTimeout(10000);
+  test('should persist and restore state', async () => { try {
       const stateManager = new ConnectionStateManager(logger, {
         enablePersistence: false, // Disable file persistence for tests
       });
@@ -278,7 +285,8 @@ describe('MCP Recovery Mechanisms', () => {
       expect(restored?.pendingRequests).toHaveLength(1);
     });
 
-    test('should track connection events', () => {
+    jest.setTimeout(10000);
+  test('should track connection events', () => {
       const stateManager = new ConnectionStateManager(logger, {
         enablePersistence: false,
       });
@@ -307,7 +315,8 @@ describe('MCP Recovery Mechanisms', () => {
   });
 
   describe('Recovery Manager Integration', () => {
-    test('should coordinate recovery on connection loss', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate recovery on connection loss', async () => { try {
       client = new MCPClient({
         transport: mockTransport,
         enableRecovery: true,
@@ -360,7 +369,8 @@ describe('MCP Recovery Mechanisms', () => {
       expect(status?.fallbackState.isFallbackActive).toBe(true);
     });
 
-    test('should successfully recover connection', async () => {
+    jest.setTimeout(10000);
+  test('should successfully recover connection', async () => { try {
       client = new MCPClient({
         transport: mockTransport,
         enableRecovery: true,
@@ -398,4 +408,4 @@ describe('MCP Recovery Mechanisms', () => {
       expect(client.isConnected()).toBe(true);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

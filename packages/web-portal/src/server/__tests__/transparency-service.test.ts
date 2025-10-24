@@ -14,25 +14,25 @@ import type {
 } from '../../../../../src/coordination/shared/transparency/interfaces/transparency-system.js';
 
 describe('TransparencyService', () => {
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize service before each test
     await transparencyService.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup after each test
     vi.clearAllMocks();
   });
 
   describe('initialization', () => {
-    it('should initialize TransparencySystem successfully', async () => {
+    it('should initialize TransparencySystem successfully', async () => { try {
       // Service already initialized in beforeEach
       const metrics = await transparencyService.getSystemMetrics();
       expect(metrics).toBeDefined();
       expect(metrics.totalAgents).toBeGreaterThanOrEqual(0);
     });
 
-    it('should not re-initialize if already initialized', async () => {
+    it('should not re-initialize if already initialized', async () => { try {
       // Try initializing again
       await transparencyService.initialize();
       // Should not throw
@@ -42,12 +42,12 @@ describe('TransparencyService', () => {
   });
 
   describe('getAgentHierarchy', () => {
-    it('should return agent hierarchy', async () => {
+    it('should return agent hierarchy', async () => { try {
       const hierarchy = await transparencyService.getAgentHierarchy();
       expect(Array.isArray(hierarchy)).toBe(true);
     });
 
-    it('should cache hierarchy for 30 seconds', async () => {
+    it('should cache hierarchy for 30 seconds', async () => { try {
       // First call
       const hierarchy1 = await transparencyService.getAgentHierarchy();
 
@@ -58,7 +58,7 @@ describe('TransparencyService', () => {
       expect(hierarchy1).toBe(hierarchy2);
     });
 
-    it('should filter hierarchy by status', async () => {
+    it('should filter hierarchy by status', async () => { try {
       const hierarchy = await transparencyService.getAgentHierarchy({
         status: 'active',
       });
@@ -70,7 +70,7 @@ describe('TransparencyService', () => {
       });
     });
 
-    it('should filter hierarchy by type', async () => {
+    it('should filter hierarchy by type', async () => { try {
       const hierarchy = await transparencyService.getAgentHierarchy({
         type: 'coder',
       });
@@ -82,7 +82,7 @@ describe('TransparencyService', () => {
       });
     });
 
-    it('should cache different filters separately', async () => {
+    it('should cache different filters separately', async () => { try {
       const hierarchy1 = await transparencyService.getAgentHierarchy({
         status: 'active',
       });
@@ -97,7 +97,7 @@ describe('TransparencyService', () => {
   });
 
   describe('getAgentStatus', () => {
-    it('should return agent status for valid agentId', async () => {
+    it('should return agent status for valid agentId', async () => { try {
       // First, get hierarchy to find a valid agentId
       const hierarchy = await transparencyService.getAgentHierarchy();
 
@@ -111,13 +111,13 @@ describe('TransparencyService', () => {
       }
     });
 
-    it('should throw error for invalid agentId', async () => {
+    it('should throw error for invalid agentId', async () => { try {
       await expect(
         transparencyService.getAgentStatus('non-existent-agent')
       ).rejects.toThrow();
     });
 
-    it('should not cache agent status (real-time requirement)', async () => {
+    it('should not cache agent status (real-time requirement)', async () => { try {
       const hierarchy = await transparencyService.getAgentHierarchy();
 
       if (hierarchy.length > 0) {
@@ -136,7 +136,7 @@ describe('TransparencyService', () => {
   });
 
   describe('getSystemMetrics', () => {
-    it('should return system metrics', async () => {
+    it('should return system metrics', async () => { try {
       const metrics = await transparencyService.getSystemMetrics();
 
       expect(metrics).toBeDefined();
@@ -146,7 +146,7 @@ describe('TransparencyService', () => {
       expect(metrics.agentsByType).toBeDefined();
     });
 
-    it('should cache metrics for 10 seconds', async () => {
+    it('should cache metrics for 10 seconds', async () => { try {
       // First call
       const metrics1 = await transparencyService.getSystemMetrics();
 
@@ -159,7 +159,7 @@ describe('TransparencyService', () => {
   });
 
   describe('getEvents', () => {
-    it('should return paginated events', async () => {
+    it('should return paginated events', async () => { try {
       const result = await transparencyService.getEvents({
         page: 1,
         limit: 50,
@@ -173,7 +173,7 @@ describe('TransparencyService', () => {
       expect(result.pagination.limit).toBe(50);
     });
 
-    it('should filter events by type', async () => {
+    it('should filter events by type', async () => { try {
       const result = await transparencyService.getEvents({
         page: 1,
         limit: 50,
@@ -185,7 +185,7 @@ describe('TransparencyService', () => {
       });
     });
 
-    it('should filter events by agentId', async () => {
+    it('should filter events by agentId', async () => { try {
       const hierarchy = await transparencyService.getAgentHierarchy();
 
       if (hierarchy.length > 0) {
@@ -205,7 +205,7 @@ describe('TransparencyService', () => {
   });
 
   describe('subscribeToLifecycleEvents', () => {
-    it('should allow subscribing to lifecycle events', async () => {
+    it('should allow subscribing to lifecycle events', async () => { try {
       let eventReceived = false;
 
       const unsubscribe = transparencyService.subscribeToLifecycleEvents(
@@ -220,7 +220,7 @@ describe('TransparencyService', () => {
       unsubscribe();
     });
 
-    it('should unsubscribe properly', async () => {
+    it('should unsubscribe properly', async () => { try {
       let eventCount = 0;
 
       const unsubscribe = transparencyService.subscribeToLifecycleEvents(
@@ -240,14 +240,14 @@ describe('TransparencyService', () => {
   });
 
   describe('error handling', () => {
-    it('should handle TransparencySystem failures gracefully', async () => {
+    it('should handle TransparencySystem failures gracefully', async () => { try {
       // Test with invalid agentId should throw
       await expect(
         transparencyService.getAgentStatus('invalid-agent-id')
       ).rejects.toThrow();
     });
 
-    it('should handle getHealthStatus errors', async () => {
+    it('should handle getHealthStatus errors', async () => { try {
       const health = await transparencyService.getHealthStatus();
 
       expect(health).toBeDefined();
@@ -257,7 +257,7 @@ describe('TransparencyService', () => {
   });
 
   describe('cache invalidation', () => {
-    it('should invalidate hierarchy cache on agent lifecycle events', async () => {
+    it('should invalidate hierarchy cache on agent lifecycle events', async () => { try {
       // Get initial hierarchy (cached)
       const hierarchy1 = await transparencyService.getAgentHierarchy();
 

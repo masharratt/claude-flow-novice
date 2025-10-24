@@ -476,7 +476,7 @@ describe('Recovery Engine Production Tests', () => {
     }
   }
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Configure Redis connection for testing
     testConfig = {
       host: process.env.REDIS_TEST_HOST || 'localhost',
@@ -492,13 +492,13 @@ describe('Recovery Engine Production Tests', () => {
     recoveryManager = new RecoveryManager(redisClient);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (redisClient) {
       await redisClient.quit();
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test data before each test
     const testKeys = await redisClient.keys('recovery-test-*');
     if (testKeys.length > 0) {
@@ -506,12 +506,12 @@ describe('Recovery Engine Production Tests', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     jest.clearAllMocks();
   });
 
   describe('Interruption Scenario Classification', () => {
-    it('should classify network glitch interruptions correctly', async () => {
+    it('should classify network glitch interruptions correctly', async () => { try {
       const recentInterruption = generateInterruptedSwarmState({
         lastActivity: Date.now() - 30000, // 30 seconds ago
         metadata: {
@@ -529,7 +529,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.confidence).toBeGreaterThan(0.7);
     });
 
-    it('should classify process crash interruptions correctly', async () => {
+    it('should classify process crash interruptions correctly', async () => { try {
       const processCrash = generateInterruptedSwarmState({
         lastActivity: Date.now() - 120000, // 2 minutes ago
         status: 'crashed',
@@ -548,7 +548,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.confidence).toBeGreaterThan(0.6);
     });
 
-    it('should classify system failure interruptions correctly', async () => {
+    it('should classify system failure interruptions correctly', async () => { try {
       const systemFailure = generateInterruptedSwarmState({
         lastActivity: Date.now() - 1800000, // 30 minutes ago
         status: 'system_failure',
@@ -567,7 +567,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.confidence).toBeLessThan(0.8);
     });
 
-    it('should classify abandoned swarms correctly', async () => {
+    it('should classify abandoned swarms correctly', async () => { try {
       const abandonedSwarm = generateInterruptedSwarmState({
         lastActivity: Date.now() - 7200000, // 2 hours ago
         status: 'abandoned',
@@ -588,7 +588,7 @@ describe('Recovery Engine Production Tests', () => {
   });
 
   describe('State Consistency Validation', () => {
-    it('should validate swarm state data integrity', async () => {
+    it('should validate swarm state data integrity', async () => { try {
       const validState = generateInterruptedSwarmState();
 
       const analysis = await recoveryManager.analyzeInterruption(validState);
@@ -598,7 +598,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.dataIntegrity.score).toBe(1.0);
     });
 
-    it('should detect missing required fields', async () => {
+    it('should detect missing required fields', async () => { try {
       const invalidState = generateInterruptedSwarmState({
         id: undefined,
         objective: null,
@@ -612,7 +612,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.dataIntegrity.score).toBeLessThan(0.7);
     });
 
-    it('should detect agent data inconsistencies', async () => {
+    it('should detect agent data inconsistencies', async () => { try {
       const inconsistentAgents = [
         { id: null, type: 'coder', status: 'active', confidence: 0.8 },
         { id: 'agent-2', type: null, status: 'idle', confidence: 0.9 },
@@ -630,7 +630,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.dataIntegrity.score).toBeLessThan(0.8);
     });
 
-    it('should detect task data inconsistencies', async () => {
+    it('should detect task data inconsistencies', async () => { try {
       const inconsistentTasks = [
         { id: null, status: 'completed', progress: 100 },
         { id: 'task-2', status: null, progress: 50 },
@@ -648,7 +648,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.dataIntegrity.score).toBeLessThan(0.8);
     });
 
-    it('should validate checkpoint consistency', async () => {
+    it('should validate checkpoint consistency', async () => { try {
       const stateWithInconsistentCheckpoints = generateInterruptedSwarmState({
         checkpoints: [
           {
@@ -668,7 +668,7 @@ describe('Recovery Engine Production Tests', () => {
   });
 
   describe('Confidence Score Calculation', () => {
-    it('should calculate high confidence for recoverable swarms', async () => {
+    it('should calculate high confidence for recoverable swarms', async () => { try {
       const highlyRecoverable = generateInterruptedSwarmState({
         lastActivity: Date.now() - 30000, // Recent activity
         agents: Array.from({ length: 10 }, (_, i) => ({
@@ -697,7 +697,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.taskStates.averageProgress).toBeGreaterThan(0.5);
     });
 
-    it('should calculate low confidence for damaged swarms', async () => {
+    it('should calculate low confidence for damaged swarms', async () => { try {
       const poorlyRecoverable = generateInterruptedSwarmState({
         lastActivity: Date.now() - 3600000, // 1 hour ago
         agents: Array.from({ length: 3 }, (_, i) => ({
@@ -723,7 +723,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.taskStates.averageProgress).toBeLessThan(0.2);
     });
 
-    it('should provide confidence score breakdown', async () => {
+    it('should provide confidence score breakdown', async () => { try {
       const testState = generateInterruptedSwarmState();
       const analysis = await recoveryManager.analyzeInterruption(testState);
 
@@ -739,7 +739,7 @@ describe('Recovery Engine Production Tests', () => {
   });
 
   describe('Recovery Plan Generation', () => {
-    it('should create comprehensive recovery plans', async () => {
+    it('should create comprehensive recovery plans', async () => { try {
       const testState = generateInterruptedSwarmState();
       const analysis = await recoveryManager.analyzeInterruption(testState);
       const plan = await recoveryManager.createRecoveryPlan(testState, analysis);
@@ -773,7 +773,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(plan.checkpoints[0].id).toBe('pre_recovery');
     });
 
-    it('should adapt strategy based on analysis', async () => {
+    it('should adapt strategy based on analysis', async () => { try {
       const testCases = [
         {
           state: generateInterruptedSwarmState({
@@ -814,7 +814,7 @@ describe('Recovery Engine Production Tests', () => {
       }
     });
 
-    it('should estimate recovery duration accurately', async () => {
+    it('should estimate recovery duration accurately', async () => { try {
       const simpleState = generateInterruptedSwarmState({
         agents: Array.from({ length: 5 }, (_, i) => ({
           id: `agent-${i}`,
@@ -855,7 +855,7 @@ describe('Recovery Engine Production Tests', () => {
   });
 
   describe('Recovery Execution', () => {
-    it('should execute recovery plans successfully', async () => {
+    it('should execute recovery plans successfully', async () => { try {
       const testState = generateInterruptedSwarmState();
       const analysis = await recoveryManager.analyzeInterruption(testState);
       const plan = await recoveryManager.createRecoveryPlan(testState, analysis);
@@ -871,7 +871,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(recovery.errors).toHaveLength(0);
     });
 
-    it('should handle recovery failures gracefully', async () => {
+    it('should handle recovery failures gracefully', async () => { try {
       // Mock a failure during recovery
       const originalExecute = recoveryManager.executeRecoveryPhase;
       recoveryManager.executeRecoveryPhase = jest.fn().mockImplementation(async (phase) => {
@@ -896,7 +896,7 @@ describe('Recovery Engine Production Tests', () => {
       recoveryManager.executeRecoveryPhase = originalExecute;
     });
 
-    it('should create and validate recovery checkpoints', async () => {
+    it('should create and validate recovery checkpoints', async () => { try {
       const testState = generateInterruptedSwarmState();
       const analysis = await recoveryManager.analyzeInterruption(testState);
       const plan = await recoveryManager.createRecoveryPlan(testState, analysis);
@@ -925,7 +925,7 @@ describe('Recovery Engine Production Tests', () => {
   });
 
   describe('Progress Analysis and Reporting', () => {
-    it('should analyze task progress before interruption', async () => {
+    it('should analyze task progress before interruption', async () => { try {
       const testState = generateInterruptedSwarmState({
         tasks: Array.from({ length: 30 }, (_, i) => ({
           id: `task-${i}`,
@@ -943,7 +943,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.taskStates.averageProgress).toBe(50); // (15*100 + 10*50 + 5*0) / 30
     });
 
-    it('should analyze agent utilization before interruption', async () => {
+    it('should analyze agent utilization before interruption', async () => { try {
       const testState = generateInterruptedSwarmState({
         agents: Array.from({ length: 20 }, (_, i) => ({
           id: `agent-${i}`,
@@ -962,7 +962,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.agentStates.averageConfidence).toBeGreaterThan(0.8);
     });
 
-    it('should track recovery progress over time', async () => {
+    it('should track recovery progress over time', async () => { try {
       const testState = generateInterruptedSwarmState();
       const analysis = await recoveryManager.analyzeInterruption(testState);
       const plan = await recoveryManager.createRecoveryPlan(testState, analysis);
@@ -993,7 +993,7 @@ describe('Recovery Engine Production Tests', () => {
       recoveryManager.executeRecoveryPhase = originalExecute;
     });
 
-    it('should generate recovery reports', async () => {
+    it('should generate recovery reports', async () => { try {
       const testState = generateInterruptedSwarmState();
       const analysis = await recoveryManager.analyzeInterruption(testState);
       const plan = await recoveryManager.createRecoveryPlan(testState, analysis);
@@ -1030,7 +1030,7 @@ describe('Recovery Engine Production Tests', () => {
   });
 
   describe('Multiple Interruption Scenarios', () => {
-    it('should handle repeated interruptions', async () => {
+    it('should handle repeated interruptions', async () => { try {
       const testState = generateInterruptedSwarmState();
 
       // First interruption
@@ -1062,7 +1062,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(recovery2.id).not.toBe(recovery1.id);
     });
 
-    it('should handle cascading failures', async () => {
+    it('should handle cascading failures', async () => { try {
       const cascadingState = generateInterruptedSwarmState({
         agents: Array.from({ length: 10 }, (_, i) => ({
           id: `agent-${i}`,
@@ -1087,7 +1087,7 @@ describe('Recovery Engine Production Tests', () => {
       expect(plan.rollbackPlan.enabled).toBe(true);
     });
 
-    it('should handle partial state corruption', async () => {
+    it('should handle partial state corruption', async () => { try {
       const corruptedState = {
         ...generateInterruptedSwarmState(),
         agents: [
@@ -1120,7 +1120,7 @@ describe('Recovery Engine Production Tests', () => {
   });
 
   describe('Performance and Load Testing', () => {
-    it('should handle rapid recovery analysis', async () => {
+    it('should handle rapid recovery analysis', async () => { try {
       const numSwarms = 50;
       const swarms = Array.from({ length: numSwarms }, () => generateInterruptedSwarmState());
       const startTime = Date.now();
@@ -1145,7 +1145,7 @@ describe('Recovery Engine Production Tests', () => {
       });
     });
 
-    it('should handle concurrent recovery operations', async () => {
+    it('should handle concurrent recovery operations', async () => { try {
       const numRecoveries = 10;
       const recoveries = [];
 
@@ -1171,7 +1171,7 @@ describe('Recovery Engine Production Tests', () => {
       });
     });
 
-    it('should maintain performance with large swarms', async () => {
+    it('should maintain performance with large swarms', async () => { try {
       const largeSwarm = generateInterruptedSwarmState({
         agents: Array.from({ length: 100 }, (_, i) => ({
           id: `agent-${i}`,
@@ -1203,4 +1203,4 @@ describe('Recovery Engine Production Tests', () => {
       expect(analysis.taskStates.total).toBe(500);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

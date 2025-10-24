@@ -7,7 +7,7 @@ describe('WebSocket Events', () => {
   beforeEach((done) => {
     socket = io(socketUrl);
     socket.on('connect', () => {
-      done();
+      return;
     });
   });
 
@@ -15,19 +15,19 @@ describe('WebSocket Events', () => {
     if (socket.connected) {
       socket.disconnect();
     }
-    done();
+    return;
   });
 
   it('should connect successfully', (done) => {
     expect(socket.connected).toBe(true);
-    done();
+    return;
   });
 
   it('should receive agent status update', (done) => {
     socket.on('agent-status', (data) => {
       expect(data).toHaveProperty('agentId');
       expect(data).toHaveProperty('status');
-      done();
+      return;
     });
 
     // Trigger agent status event
@@ -39,7 +39,7 @@ describe('WebSocket Events', () => {
       expect(data).toHaveProperty('id');
       expect(data).toHaveProperty('type');
       expect(data).toHaveProperty('details');
-      done();
+      return;
     });
 
     // Trigger decision event
@@ -49,7 +49,7 @@ describe('WebSocket Events', () => {
   it('should handle error event', (done) => {
     socket.on('error', (err) => {
       expect(err).toBeDefined();
-      done();
+      return;
     });
 
     // Trigger error event (e.g., unauthorized access)
@@ -64,10 +64,10 @@ describe('WebSocket Events', () => {
     socket.on('room-message', (message) => {
       expect(message).toHaveProperty('roomId', roomName);
       expect(message).toHaveProperty('content');
-      done();
+      return;
     });
 
     // Trigger room message
     socket.emit('send-room-message', { roomId: roomName, content: 'Test message' });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

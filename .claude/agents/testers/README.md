@@ -46,7 +46,7 @@ Testers participate in CFN Loop 2 (validation layer):
 **In CFN Loop:**
 Automatically spawned by orchestrator in Loop 2:
 ```bash
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --loop2-agents "reviewer,tester"
 ```
 

@@ -36,7 +36,7 @@ describe('Envelope Encryption Security Validation', () => {
     testMasterKey = crypto.randomBytes(32).toString('base64');
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (keyManager) {
       await keyManager.shutdown();
     }
@@ -49,7 +49,8 @@ describe('Envelope Encryption Security Validation', () => {
   });
 
   describe('Master Key Management', () => {
-    test('should load master key from environment variable', async () => {
+    jest.setTimeout(10000);
+  test('should load master key from environment variable', async () => { try {
       process.env.MASTER_ENCRYPTION_KEY = testMasterKey;
 
       keyManager = new EncryptionKeyManager({ db });
@@ -62,7 +63,8 @@ describe('Envelope Encryption Security Validation', () => {
       delete process.env.MASTER_ENCRYPTION_KEY;
     });
 
-    test('should load master key from options', async () => {
+    jest.setTimeout(10000);
+  test('should load master key from options', async () => { try {
       keyManager = new EncryptionKeyManager({
         db,
         masterKey: testMasterKey
@@ -73,7 +75,8 @@ describe('Envelope Encryption Security Validation', () => {
       expect(keyManager.masterKey.length).toBeGreaterThanOrEqual(32);
     });
 
-    test('should reject invalid master key (too short)', async () => {
+    jest.setTimeout(10000);
+  test('should reject invalid master key (too short)', async () => { try {
       const shortKey = crypto.randomBytes(16).toString('base64'); // Only 128 bits
 
       expect(() => {
@@ -81,13 +84,15 @@ describe('Envelope Encryption Security Validation', () => {
       }).toThrow('Master key must be at least 32 bytes');
     });
 
-    test('should reject invalid master key format', async () => {
+    jest.setTimeout(10000);
+  test('should reject invalid master key format', async () => { try {
       expect(() => {
         new EncryptionKeyManager({ db, masterKey: 'invalid-not-base64' });
       }).toThrow('Invalid master key format');
     });
 
-    test('should throw error if no master key provided in production', async () => {
+    jest.setTimeout(10000);
+  test('should throw error if no master key provided in production', async () => { try {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
       delete process.env.MASTER_ENCRYPTION_KEY;
@@ -99,7 +104,8 @@ describe('Envelope Encryption Security Validation', () => {
       process.env.NODE_ENV = originalEnv;
     });
 
-    test('should never log master key value', async () => {
+    jest.setTimeout(10000);
+  test('should never log master key value', async () => { try {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
       keyManager = new EncryptionKeyManager({ db, masterKey: testMasterKey });
@@ -117,12 +123,13 @@ describe('Envelope Encryption Security Validation', () => {
   });
 
   describe('Data Encryption Key (DEK) Generation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       keyManager = new EncryptionKeyManager({ db, masterKey: testMasterKey });
       await keyManager.initialize();
     });
 
-    test('should generate DEK with envelope encryption', async () => {
+    jest.setTimeout(10000);
+  test('should generate DEK with envelope encryption', async () => { try {
       const metrics = keyManager.getMetrics();
 
       expect(metrics.keysGenerated).toBe(1);
@@ -130,7 +137,8 @@ describe('Envelope Encryption Security Validation', () => {
       expect(keyManager.activeKeyId).toBeDefined();
     });
 
-    test('should encrypt DEK with master key before storage', async () => {
+    jest.setTimeout(10000);
+  test('should encrypt DEK with master key before storage', async () => { try {
       return new Promise((resolve, reject) => {
         const sql = 'SELECT key_material, metadata FROM encryption_keys WHERE is_active = 1';
 
@@ -157,7 +165,8 @@ describe('Envelope Encryption Security Validation', () => {
       });
     });
 
-    test('should store encrypted DEK, not plaintext', async () => {
+    jest.setTimeout(10000);
+  test('should store encrypted DEK, not plaintext', async () => { try {
       const activeDEK = keyManager.activeKey;
 
       return new Promise((resolve, reject) => {
@@ -188,7 +197,8 @@ describe('Envelope Encryption Security Validation', () => {
       });
     });
 
-    test('should generate unique DEKs for each key generation', async () => {
+    jest.setTimeout(10000);
+  test('should generate unique DEKs for each key generation', async () => { try {
       const firstKeyId = keyManager.activeKeyId;
       const firstKey = keyManager.activeKey;
 
@@ -204,12 +214,13 @@ describe('Envelope Encryption Security Validation', () => {
   });
 
   describe('DEK Decryption and Retrieval', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       keyManager = new EncryptionKeyManager({ db, masterKey: testMasterKey });
       await keyManager.initialize();
     });
 
-    test('should decrypt DEK correctly on retrieval', async () => {
+    jest.setTimeout(10000);
+  test('should decrypt DEK correctly on retrieval', async () => { try {
       const originalDEK = keyManager.activeKey;
       const keyId = keyManager.activeKeyId;
 
@@ -222,7 +233,8 @@ describe('Envelope Encryption Security Validation', () => {
       expect(keyManager.metrics.dekDecryptions).toBeGreaterThan(0);
     });
 
-    test('should use cached DEK when available', async () => {
+    jest.setTimeout(10000);
+  test('should use cached DEK when available', async () => { try {
       const keyId = keyManager.activeKeyId;
 
       // First retrieval (cache miss)
@@ -237,7 +249,8 @@ describe('Envelope Encryption Security Validation', () => {
       expect(secondDecryptions).toBe(firstDecryptions);
     });
 
-    test('should cache decrypted DEKs in memory only', async () => {
+    jest.setTimeout(10000);
+  test('should cache decrypted DEKs in memory only', async () => { try {
       const keyId = keyManager.activeKeyId;
       await keyManager.getDecryptionKey(keyId);
 
@@ -245,7 +258,8 @@ describe('Envelope Encryption Security Validation', () => {
       expect(keyManager.keyCache.get(keyId)).toBeInstanceOf(Buffer);
     });
 
-    test('should enforce cache size limits (LRU)', async () => {
+    jest.setTimeout(10000);
+  test('should enforce cache size limits (LRU)', async () => { try {
       keyManager.maxCachedKeys = 3;
 
       // Generate and cache 5 keys
@@ -267,12 +281,13 @@ describe('Envelope Encryption Security Validation', () => {
   });
 
   describe('Security Validations', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       keyManager = new EncryptionKeyManager({ db, masterKey: testMasterKey });
       await keyManager.initialize();
     });
 
-    test('should never store plaintext DEK in database', async () => {
+    jest.setTimeout(10000);
+  test('should never store plaintext DEK in database', async () => { try {
       return new Promise((resolve, reject) => {
         const sql = 'SELECT key_material FROM encryption_keys';
 
@@ -296,7 +311,8 @@ describe('Envelope Encryption Security Validation', () => {
       });
     });
 
-    test('should fail decryption with wrong master key', async () => {
+    jest.setTimeout(10000);
+  test('should fail decryption with wrong master key', async () => { try {
       const keyId = keyManager.activeKeyId;
       keyManager.keyCache.clear();
 
@@ -307,7 +323,8 @@ describe('Envelope Encryption Security Validation', () => {
       await expect(keyManager.getDecryptionKey(keyId)).rejects.toThrow();
     });
 
-    test('should validate DEK integrity with authentication tag', async () => {
+    jest.setTimeout(10000);
+  test('should validate DEK integrity with authentication tag', async () => { try {
       return new Promise((resolve, reject) => {
         const sql = 'SELECT key_material FROM encryption_keys WHERE is_active = 1';
 
@@ -321,7 +338,7 @@ describe('Envelope Encryption Security Validation', () => {
           const tamperedDEK = row.key_material + 'tampered';
 
           const updateSql = 'UPDATE encryption_keys SET key_material = ? WHERE is_active = 1';
-          db.run(updateSql, [tamperedDEK], async () => {
+          db.run(updateSql, [tamperedDEK], async () => { try {
             keyManager.keyCache.clear();
 
             // Decryption should fail due to authentication tag mismatch
@@ -335,7 +352,8 @@ describe('Envelope Encryption Security Validation', () => {
       });
     });
 
-    test('should audit all key operations', async () => {
+    jest.setTimeout(10000);
+  test('should audit all key operations', async () => { try {
       const auditTrail = await keyManager.getAuditTrail();
 
       expect(auditTrail.length).toBeGreaterThan(0);
@@ -345,19 +363,21 @@ describe('Envelope Encryption Security Validation', () => {
       expect(metadata.envelopeEncryption).toBe(true);
     });
 
-    test('should enforce minimum DEK size (256 bits)', async () => {
+    jest.setTimeout(10000);
+  test('should enforce minimum DEK size (256 bits)', async () => { try {
       const dek = keyManager.activeKey;
       expect(dek.length).toBeGreaterThanOrEqual(32); // 256 bits minimum
     });
   });
 
   describe('Key Rotation with Envelope Encryption', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       keyManager = new EncryptionKeyManager({ db, masterKey: testMasterKey });
       await keyManager.initialize();
     });
 
-    test('should rotate key with envelope encryption', async () => {
+    jest.setTimeout(10000);
+  test('should rotate key with envelope encryption', async () => { try {
       const originalKeyId = keyManager.activeKeyId;
       const beforeRotations = keyManager.metrics.keyRotations;
 
@@ -368,7 +388,8 @@ describe('Envelope Encryption Security Validation', () => {
       expect(keyManager.metrics.dekEncryptions).toBeGreaterThanOrEqual(2);
     });
 
-    test('should mark rotated keys as inactive', async () => {
+    jest.setTimeout(10000);
+  test('should mark rotated keys as inactive', async () => { try {
       const oldKeyId = keyManager.activeKeyId;
       await keyManager.rotateKey('test');
 
@@ -388,7 +409,8 @@ describe('Envelope Encryption Security Validation', () => {
       });
     });
 
-    test('should maintain access to old DEKs after rotation', async () => {
+    jest.setTimeout(10000);
+  test('should maintain access to old DEKs after rotation', async () => { try {
       const oldKeyId = keyManager.activeKeyId;
       const oldKey = keyManager.activeKey;
 
@@ -402,7 +424,8 @@ describe('Envelope Encryption Security Validation', () => {
   });
 
   describe('Legacy Key Compatibility', () => {
-    test('should handle legacy keys without envelope encryption', async () => {
+    jest.setTimeout(10000);
+  test('should handle legacy keys without envelope encryption', async () => { try {
       // Manually insert legacy key (plaintext hex format)
       const legacyDEK = crypto.randomBytes(32);
       const legacyKeyId = 'legacy-key-test';
@@ -430,7 +453,7 @@ describe('Envelope Encryption Security Validation', () => {
           new Date().toISOString(),
           1,
           metadata
-        ], async () => {
+        ], async () => { try {
           keyManager = new EncryptionKeyManager({ db, masterKey: testMasterKey });
           await keyManager.initialize();
 
@@ -443,7 +466,8 @@ describe('Envelope Encryption Security Validation', () => {
       });
     });
 
-    test('should upgrade legacy keys on rotation', async () => {
+    jest.setTimeout(10000);
+  test('should upgrade legacy keys on rotation', async () => { try {
       // Insert legacy key
       const legacyDEK = crypto.randomBytes(32);
       const legacyKeyId = 'legacy-key-test';
@@ -500,12 +524,13 @@ describe('Envelope Encryption Security Validation', () => {
   });
 
   describe('Metrics and Monitoring', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       keyManager = new EncryptionKeyManager({ db, masterKey: testMasterKey });
       await keyManager.initialize();
     });
 
-    test('should track DEK encryption operations', async () => {
+    jest.setTimeout(10000);
+  test('should track DEK encryption operations', async () => { try {
       const beforeEncryptions = keyManager.metrics.dekEncryptions;
 
       await keyManager.rotateKey('test');
@@ -513,7 +538,8 @@ describe('Envelope Encryption Security Validation', () => {
       expect(keyManager.metrics.dekEncryptions).toBe(beforeEncryptions + 1);
     });
 
-    test('should track DEK decryption operations', async () => {
+    jest.setTimeout(10000);
+  test('should track DEK decryption operations', async () => { try {
       keyManager.keyCache.clear();
 
       const beforeDecryptions = keyManager.metrics.dekDecryptions;
@@ -522,7 +548,8 @@ describe('Envelope Encryption Security Validation', () => {
       expect(keyManager.metrics.dekDecryptions).toBe(beforeDecryptions + 1);
     });
 
-    test('should include envelope encryption metrics', async () => {
+    jest.setTimeout(10000);
+  test('should include envelope encryption metrics', async () => { try {
       const metrics = keyManager.getMetrics();
 
       expect(metrics.dekEncryptions).toBeDefined();

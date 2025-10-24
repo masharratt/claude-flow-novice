@@ -49,12 +49,12 @@ vi.mock('../../src/utils/helpers.js', () => ({
 }));
 
 describe('Coordinator Dependency Scenarios', () => {
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     vi.clearAllMocks();
     await initializeLifecycleManager();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await shutdownLifecycleManager();
     vi.clearAllMocks();
   });
@@ -64,7 +64,7 @@ describe('Coordinator Dependency Scenarios', () => {
   // ============================================================================
 
   describe('Mesh Coordinator Scenarios', () => {
-    it('should prevent mesh coordinator from completing before agents finish tasks', async () => {
+    it('should prevent mesh coordinator from completing before agents finish tasks', async () => { try {
       const meshCoord = createMeshCoordinatorWithDependencies('mesh-test');
       await meshCoord.initialize();
 
@@ -137,7 +137,7 @@ describe('Coordinator Dependency Scenarios', () => {
       expect(agentsCompleted).toBeGreaterThan(0);
     });
 
-    it('should handle mesh coordinator re-run request while dependencies exist', async () => {
+    it('should handle mesh coordinator re-run request while dependencies exist', async () => { try {
       const meshCoord = createMeshCoordinatorWithDependencies('mesh-rerun-test');
       await meshCoord.initialize();
 
@@ -175,7 +175,7 @@ describe('Coordinator Dependency Scenarios', () => {
       await shutdownPromise;
     });
 
-    it('should handle mesh network with interconnected agent dependencies', async () => {
+    it('should handle mesh network with interconnected agent dependencies', async () => { try {
       const meshCoord = createMeshCoordinatorWithDependencies('mesh-network-test');
       await meshCoord.initialize();
 
@@ -232,7 +232,7 @@ describe('Coordinator Dependency Scenarios', () => {
       await meshCoord.shutdown();
     });
 
-    it('should handle mesh coordinator task failure and dependency cleanup', async () => {
+    it('should handle mesh coordinator task failure and dependency cleanup', async () => { try {
       const meshCoord = createMeshCoordinatorWithDependencies('mesh-failure-test');
       await meshCoord.initialize();
 
@@ -268,7 +268,7 @@ describe('Coordinator Dependency Scenarios', () => {
   // ============================================================================
 
   describe('Hierarchical Coordinator Scenarios', () => {
-    it('should prevent hierarchical coordinator from completing before hierarchy finishes', async () => {
+    it('should prevent hierarchical coordinator from completing before hierarchy finishes', async () => { try {
       const hierCoord = createHierarchicalCoordinatorWithDependencies('hier-test');
       await hierCoord.initialize();
 
@@ -345,7 +345,7 @@ describe('Coordinator Dependency Scenarios', () => {
       expect(coordinatorCompleted).toBe(true);
     });
 
-    it('should handle hierarchical agent promotion with dependency updates', async () => {
+    it('should handle hierarchical agent promotion with dependency updates', async () => { try {
       const hierCoord = createHierarchicalCoordinatorWithDependencies('hier-promotion-test');
       await hierCoord.initialize();
 
@@ -385,7 +385,7 @@ describe('Coordinator Dependency Scenarios', () => {
       await hierCoord.shutdown();
     });
 
-    it('should handle complex hierarchical delegation with subtask dependencies', async () => {
+    it('should handle complex hierarchical delegation with subtask dependencies', async () => { try {
       const hierCoord = createHierarchicalCoordinatorWithDependencies('hier-complex-test');
       await hierCoord.initialize();
 
@@ -446,7 +446,7 @@ describe('Coordinator Dependency Scenarios', () => {
       await hierCoord.shutdown();
     });
 
-    it('should handle hierarchical coordinator with agent failures and recovery', async () => {
+    it('should handle hierarchical coordinator with agent failures and recovery', async () => { try {
       const hierCoord = createHierarchicalCoordinatorWithDependencies('hier-failure-test');
       await hierCoord.initialize();
 
@@ -512,7 +512,7 @@ describe('Coordinator Dependency Scenarios', () => {
   // ============================================================================
 
   describe('Mixed Coordinator Scenarios', () => {
-    it('should handle mesh and hierarchical coordinators working together', async () => {
+    it('should handle mesh and hierarchical coordinators working together', async () => { try {
       const meshCoord = createMeshCoordinatorWithDependencies('mixed-mesh');
       const hierCoord = createHierarchicalCoordinatorWithDependencies('mixed-hier');
 
@@ -579,7 +579,7 @@ describe('Coordinator Dependency Scenarios', () => {
       await hierCoord.shutdown();
     });
 
-    it('should handle coordinator dependencies across different topologies', async () => {
+    it('should handle coordinator dependencies across different topologies', async () => { try {
       const meshCoord = createMeshCoordinatorWithDependencies('cross-mesh');
       const hierCoord = createHierarchicalCoordinatorWithDependencies('cross-hier');
 
@@ -636,7 +636,7 @@ describe('Coordinator Dependency Scenarios', () => {
   // ============================================================================
 
   describe('Edge Case Scenarios', () => {
-    it('should handle coordinator shutdown during dependency resolution', async () => {
+    it('should handle coordinator shutdown during dependency resolution', async () => { try {
       const meshCoord = createMeshCoordinatorWithDependencies('edge-shutdown-test');
       await meshCoord.initialize();
 
@@ -662,7 +662,7 @@ describe('Coordinator Dependency Scenarios', () => {
       expect(status.status).toBe('stopped');
     });
 
-    it('should handle multiple force completions in rapid succession', async () => {
+    it('should handle multiple force completions in rapid succession', async () => { try {
       const meshCoord = createMeshCoordinatorWithDependencies('edge-force-test');
       await meshCoord.initialize();
 
@@ -686,7 +686,7 @@ describe('Coordinator Dependency Scenarios', () => {
       expect(status.status).toBe('stopped');
     });
 
-    it('should handle coordinator rerun with partially completed dependencies', async () => {
+    it('should handle coordinator rerun with partially completed dependencies', async () => { try {
       const hierCoord = createHierarchicalCoordinatorWithDependencies('edge-rerun-test');
       await hierCoord.initialize();
 
@@ -740,4 +740,4 @@ describe('Coordinator Dependency Scenarios', () => {
       await hierCoord.shutdown();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

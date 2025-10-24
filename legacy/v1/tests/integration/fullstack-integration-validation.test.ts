@@ -11,17 +11,17 @@ import { communicationBus } from "../../src/communication/ultra-fast-communicati
 describe("Fullstack Integration Validation", () => {
   let validator: FullstackIntegrationValidator;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     validator = new FullstackIntegrationValidator();
     await validator.initialize();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await validator.shutdown();
   });
 
   describe("Simple Feature Development Scenario", () => {
-    it("should develop user authentication feature with 90%+ coverage", async () => {
+    it("should develop user authentication feature with 90%+ coverage", async () => { try {
       const scenario = {
         id: "simple-auth-feature",
         name: "User Authentication Feature",
@@ -57,7 +57,7 @@ describe("Fullstack Integration Validation", () => {
       expect(criticalIssues).toHaveLength(0);
     }, 300000); // 5 minute timeout
 
-    it("should complete build-test cycle within 30 minutes per iteration", async () => {
+    it("should complete build-test cycle within 30 minutes per iteration", async () => { try {
       const scenario = {
         id: "build-test-cycle",
         name: "Build-Test Cycle Performance",
@@ -88,7 +88,7 @@ describe("Fullstack Integration Validation", () => {
   });
 
   describe("Complex Feature with Integration Scenario", () => {
-    it("should develop real-time chat with WebSocket coordination", async () => {
+    it("should develop real-time chat with WebSocket coordination", async () => { try {
       const scenario = {
         id: "realtime-chat-feature",
         name: "Real-time Chat Feature",
@@ -132,7 +132,7 @@ describe("Fullstack Integration Validation", () => {
       expect(criticalIssues).toHaveLength(0);
     }, 600000); // 10 minute timeout
 
-    it("should handle WebSocket integration with low latency", async () => {
+    it("should handle WebSocket integration with low latency", async () => { try {
       const scenario = {
         id: "websocket-integration",
         name: "WebSocket Integration Test",
@@ -161,7 +161,7 @@ describe("Fullstack Integration Validation", () => {
   });
 
   describe("Multi-Agent Coordination Scenario", () => {
-    it("should coordinate 5+ agents working simultaneously", async () => {
+    it("should coordinate 5+ agents working simultaneously", async () => { try {
       const scenario = {
         id: "multi-agent-coordination",
         name: "5+ Agents Simultaneous Work",
@@ -207,7 +207,7 @@ describe("Fullstack Integration Validation", () => {
       expect(performanceIssues).toHaveLength(0);
     }, 400000); // 6.67 minute timeout
 
-    it("should maintain communication performance under load", async () => {
+    it("should maintain communication performance under load", async () => { try {
       const scenario = {
         id: "communication-load-test",
         name: "Communication System Load Test",
@@ -239,7 +239,7 @@ describe("Fullstack Integration Validation", () => {
   });
 
   describe("Stress Test Scenario", () => {
-    it("should support 100+ simultaneous agents", async () => {
+    it("should support 100+ simultaneous agents", async () => { try {
       const scenario = {
         id: "stress-test-100-agents",
         name: "100+ Concurrent Agents",
@@ -273,7 +273,7 @@ describe("Fullstack Integration Validation", () => {
       expect(criticalIssues).toHaveLength(0);
     }, 300000); // 5 minute timeout
 
-    it("should maintain performance with high message throughput", async () => {
+    it("should maintain performance with high message throughput", async () => { try {
       // Pre-spawn agents
       const agentManager = new UltraFastAgentManager();
       await agentManager.initialize();
@@ -326,7 +326,7 @@ describe("Fullstack Integration Validation", () => {
   });
 
   describe("Full System Integration", () => {
-    it("should run all scenarios and generate comprehensive report", async () => {
+    it("should run all scenarios and generate comprehensive report", async () => { try {
       const report = await validator.runAllScenarios();
 
       // Validate report structure
@@ -378,7 +378,7 @@ describe("Fullstack Integration Validation", () => {
   });
 
   describe("Performance Benchmarking", () => {
-    it("should measure and validate communication latency targets", async () => {
+    it("should measure and validate communication latency targets", async () => { try {
       const busMetrics = communicationBus.getMetrics();
 
       // Validate latency targets
@@ -387,7 +387,7 @@ describe("Fullstack Integration Validation", () => {
       expect(busMetrics.p99LatencyNs / 1000000).toBeLessThanOrEqual(5.0); // <5ms P99
     });
 
-    it("should validate agent spawn time performance", async () => {
+    it("should validate agent spawn time performance", async () => { try {
       const agentManager = new UltraFastAgentManager();
       await agentManager.initialize();
 
@@ -405,7 +405,7 @@ describe("Fullstack Integration Validation", () => {
       await agentManager.shutdown();
     });
 
-    it("should validate system throughput targets", async () => {
+    it("should validate system throughput targets", async () => { try {
       const agentManager = new UltraFastAgentManager();
       await agentManager.initialize();
 
@@ -425,4 +425,4 @@ describe("Fullstack Integration Validation", () => {
       await agentManager.shutdown();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

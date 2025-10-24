@@ -78,7 +78,7 @@ describe('Hive Mind SIGINT Handler', () => {
         db.close();
       }
 
-      done();
+      return;
     });
   }, 30000); // 30 second timeout
 
@@ -121,7 +121,7 @@ describe('Hive Mind SIGINT Handler', () => {
         db.close();
       }
 
-      done();
+      return;
     });
   }, 30000);
 
@@ -135,7 +135,7 @@ describe('Hive Mind SIGINT Handler', () => {
       claudeAvailable = true;
     } catch {
       console.log('Skipping test: claude command not available');
-      done();
+      return;
       return;
     }
 
@@ -167,7 +167,7 @@ describe('Hive Mind SIGINT Handler', () => {
         expect(output).toContain('Pausing session and terminating Claude Code...');
       }
       expect(code).toBe(0);
-      done();
+      return;
     });
   }, 30000);
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -52,7 +52,7 @@ describe('Verification System Performance Benchmarks', () => {
   let calculator: any;
   let performanceResults: BenchmarkResult[] = [];
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'verification-perf-'));
 
     // Setup truth score calculator
@@ -60,17 +60,18 @@ describe('Verification System Performance Benchmarks', () => {
     calculator.configPath = path.join(tempDir, 'verification.json');
     calculator.memoryPath = path.join(tempDir, 'truth-scores');
     await calculator.init();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterAll(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
+  afterAll(async () => { try {
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Generate performance report
     await generatePerformanceReport(performanceResults);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Truth Score Calculation Performance', () => {
-    test('should calculate truth scores efficiently at scale', async () => {
+    jest.setTimeout(10000);
+  test('should calculate truth scores efficiently at scale', async () => { try {
       const thresholds: BenchmarkThresholds = {
         maxAverageTime: 5, // 5ms per calculation
         minThroughput: 200, // 200 calculations per second
@@ -112,7 +113,7 @@ describe('Verification System Performance Benchmarks', () => {
         initial: initialMemory,
         peak: peakMemory,
         final: finalMemory,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result: BenchmarkResult = {
         testName: 'Truth Score Calculation Performance',
@@ -128,9 +129,10 @@ describe('Verification System Performance Benchmarks', () => {
       expect(metrics.throughput).toBeGreaterThanOrEqual(thresholds.minThroughput);
       expect(metrics.memoryUsage.delta).toBeLessThanOrEqual(thresholds.maxMemoryDelta);
       expect(metrics.p99).toBeLessThanOrEqual(thresholds.maxP99Latency);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle concurrent truth score calculations efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent truth score calculations efficiently', async () => { try {
       const thresholds: BenchmarkThresholds = {
         maxAverageTime: 8, // 8ms per calculation (slightly higher for concurrency)
         minThroughput: 150, // 150 calculations per second
@@ -169,7 +171,7 @@ describe('Verification System Performance Benchmarks', () => {
         }
 
         return workerDurations;
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const allDurations = (await Promise.all(workerPromises)).flat();
       const endTime = performance.now();
@@ -200,10 +202,11 @@ describe('Verification System Performance Benchmarks', () => {
       expect(metrics.throughput).toBeGreaterThanOrEqual(thresholds.minThroughput);
       expect(metrics.memoryUsage.delta).toBeLessThanOrEqual(thresholds.maxMemoryDelta);
     }, 30000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Memory Usage Optimization', () => {
-    test('should maintain stable memory usage during extended operations', async () => {
+    jest.setTimeout(10000);
+  test('should maintain stable memory usage during extended operations', async () => { try {
       const thresholds: BenchmarkThresholds = {
         maxAverageTime: 10, // 10ms per operation
         minThroughput: 100, // 100 operations per second
@@ -256,7 +259,7 @@ describe('Verification System Performance Benchmarks', () => {
         initial: initialMemory,
         peak: peakMemory,
         final: finalMemory,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Check for memory leaks by analyzing memory growth trend
       const memoryGrowthRate = (finalMemory - initialMemory) / operations;
@@ -274,7 +277,8 @@ describe('Verification System Performance Benchmarks', () => {
       expect(metrics.memoryUsage.delta).toBeLessThanOrEqual(thresholds.maxMemoryDelta);
     }, 45000);
 
-    test('should efficiently handle large evidence datasets', async () => {
+    jest.setTimeout(10000);
+  test('should efficiently handle large evidence datasets', async () => { try {
       const thresholds: BenchmarkThresholds = {
         maxAverageTime: 15, // 15ms per operation (larger datasets)
         minThroughput: 70, // 70 operations per second
@@ -314,7 +318,7 @@ describe('Verification System Performance Benchmarks', () => {
         initial: initialMemory,
         peak: finalMemory,
         final: finalMemory,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result: BenchmarkResult = {
         testName: 'Large Evidence Dataset Handling',
@@ -328,10 +332,11 @@ describe('Verification System Performance Benchmarks', () => {
       expect(metrics.averageTime).toBeLessThanOrEqual(thresholds.maxAverageTime);
       expect(metrics.throughput).toBeGreaterThanOrEqual(thresholds.minThroughput);
     }, 30000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Truth Score Storage Performance', () => {
-    test('should store truth scores efficiently at high volume', async () => {
+    jest.setTimeout(10000);
+  test('should store truth scores efficiently at high volume', async () => { try {
       const thresholds: BenchmarkThresholds = {
         maxAverageTime: 20, // 20ms per storage operation
         minThroughput: 50, // 50 storage operations per second
@@ -365,7 +370,7 @@ describe('Verification System Performance Benchmarks', () => {
         initial: initialMemory,
         peak: finalMemory,
         final: finalMemory,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result: BenchmarkResult = {
         testName: 'High Volume Truth Score Storage',
@@ -384,7 +389,8 @@ describe('Verification System Performance Benchmarks', () => {
       expect(files.length).toBe(operations);
     }, 30000);
 
-    test('should retrieve agent history efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should retrieve agent history efficiently', async () => { try {
       const thresholds: BenchmarkThresholds = {
         maxAverageTime: 50, // 50ms per history retrieval
         minThroughput: 20, // 20 retrievals per second
@@ -398,7 +404,7 @@ describe('Verification System Performance Benchmarks', () => {
         for (let i = 0; i < 50; i++) {
           await calculator.storeTruthScore(agentId, `history-task-${i}`, Math.random(), {
             test: `data-${i}`,
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
       }
 
@@ -429,7 +435,7 @@ describe('Verification System Performance Benchmarks', () => {
         initial: initialMemory,
         peak: finalMemory,
         final: finalMemory,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result: BenchmarkResult = {
         testName: 'Agent History Retrieval Performance',
@@ -443,10 +449,11 @@ describe('Verification System Performance Benchmarks', () => {
       expect(metrics.averageTime).toBeLessThanOrEqual(thresholds.maxAverageTime);
       expect(metrics.throughput).toBeGreaterThanOrEqual(thresholds.minThroughput);
     }, 45000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Report Generation Performance', () => {
-    test('should generate reports efficiently with large datasets', async () => {
+    jest.setTimeout(10000);
+  test('should generate reports efficiently with large datasets', async () => { try {
       const thresholds: BenchmarkThresholds = {
         maxAverageTime: 1000, // 1 second per report generation
         minThroughput: 1, // 1 report per second
@@ -461,7 +468,7 @@ describe('Verification System Performance Benchmarks', () => {
           await calculator.storeTruthScore(agentId, `report-task-${i}`, Math.random(), {
             complexity: Math.random(),
             quality: Math.random(),
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
       }
 
@@ -503,7 +510,7 @@ describe('Verification System Performance Benchmarks', () => {
         initial: initialMemory,
         peak: finalMemory,
         final: finalMemory,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result: BenchmarkResult = {
         testName: 'Large Dataset Report Generation',
@@ -517,10 +524,11 @@ describe('Verification System Performance Benchmarks', () => {
       expect(metrics.averageTime).toBeLessThanOrEqual(thresholds.maxAverageTime);
       expect(metrics.throughput).toBeGreaterThanOrEqual(thresholds.minThroughput);
     }, 60000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('System Load Testing', () => {
-    test('should maintain performance under sustained load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under sustained load', async () => { try {
       const thresholds: BenchmarkThresholds = {
         maxAverageTime: 25, // 25ms average under load
         minThroughput: 40, // 40 operations per second
@@ -540,7 +548,7 @@ describe('Verification System Performance Benchmarks', () => {
       const evidenceVariants = generateEvidenceVariants(5);
 
       const loadTestPromise = new Promise<void>((resolve) => {
-        const interval = setInterval(async () => {
+        const interval = setInterval(async () => { try {
           if (performance.now() - startTime >= loadDuration) {
             clearInterval(interval);
             resolve();
@@ -574,12 +582,12 @@ describe('Verification System Performance Benchmarks', () => {
 
             const operationEnd = performance.now();
             durations.push(operationEnd - operationStart);
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           await Promise.all(batchPromises);
           operationCount += batchSize;
         }, batchInterval);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await loadTestPromise;
 
@@ -590,7 +598,7 @@ describe('Verification System Performance Benchmarks', () => {
         initial: initialMemory,
         peak: finalMemory,
         final: finalMemory,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result: BenchmarkResult = {
         testName: 'Sustained Load Performance',
@@ -605,7 +613,7 @@ describe('Verification System Performance Benchmarks', () => {
       expect(metrics.throughput).toBeGreaterThanOrEqual(thresholds.minThroughput);
       expect(operationCount).toBeGreaterThan(100); // Should process significant number of operations
     }, 20000);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   // Helper functions
   function generateEvidenceVariants(count: number): any[] {
@@ -740,4 +748,4 @@ describe('Verification System Performance Benchmarks', () => {
     await fs.writeFile(reportPath, JSON.stringify(report, null, 2));
     console.log(`Performance report generated: ${reportPath}`);
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

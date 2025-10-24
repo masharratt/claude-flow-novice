@@ -251,7 +251,7 @@ describe('Test Lock Serialization', () => {
   let redis: Redis;
   let testLock: TestLockCoordinator;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Connect to Redis (test database 15)
     redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
@@ -286,7 +286,7 @@ describe('Test Lock Serialization', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up
     await testLock.forceReleaseLock();
     await redis.del('test:queue:all');
@@ -302,7 +302,7 @@ describe('Test Lock Serialization', () => {
   });
 
   describe('Concurrency Prevention', () => {
-    it('should prevent concurrent test execution across 10 sprints', async () => {
+    it('should prevent concurrent test execution across 10 sprints', async () => { try {
       const sprints = Array.from({ length: 10 }, (_, i) => `sprint-${i}`);
       const executionLog: string[] = [];
 
@@ -383,7 +383,7 @@ describe('Test Lock Serialization', () => {
       expect(overlapCount).toBe(0);
     }, 180000); // 3 minute timeout for 10 sprints @ 2s each + overhead
 
-    it('should verify no overlap in execution windows', async () => {
+    it('should verify no overlap in execution windows', async () => { try {
       const sprints = ['sprint-a', 'sprint-b', 'sprint-c'];
       const windows: ExecutionWindow[] = [];
 
@@ -429,7 +429,7 @@ describe('Test Lock Serialization', () => {
      * - Even with closeServer() + sleep(), OS may hold port for 30-120 seconds
      * - Solution: Hold lock during ENTIRE port lifecycle (bind -> close -> cleanup)
      */
-    it('should prevent concurrent port binding via lock serialization', async () => {
+    it('should prevent concurrent port binding via lock serialization', async () => { try {
       const sprints = ['sprint-1', 'sprint-2', 'sprint-3'];
       const testPort = 13579; // Use high port number to avoid conflicts with system services
       const portConflicts: string[] = [];
@@ -503,7 +503,7 @@ describe('Test Lock Serialization', () => {
   });
 
   describe('Lock Management', () => {
-    it('should acquire and release lock correctly', async () => {
+    it('should acquire and release lock correctly', async () => { try {
       const sprintId = 'sprint-test';
 
       // Initially no lock held
@@ -529,7 +529,7 @@ describe('Test Lock Serialization', () => {
       expect(isHeld).toBe(false);
     });
 
-    it('should timeout if lock not available within limit', async () => {
+    it('should timeout if lock not available within limit', async () => { try {
       const sprint1 = 'sprint-hold';
       const sprint2 = 'sprint-wait';
 
@@ -551,7 +551,7 @@ describe('Test Lock Serialization', () => {
       await testLock.releaseTestLock(sprint2);
     });
 
-    it('should handle lock expiration (stale lock protection)', async () => {
+    it('should handle lock expiration (stale lock protection)', async () => { try {
       // Create coordinator with short TTL
       const shortTTLLock = new TestLockCoordinator({
         redis,
@@ -579,7 +579,7 @@ describe('Test Lock Serialization', () => {
   });
 
   describe('Queue Fairness', () => {
-    it('should process sprints in FIFO order', async () => {
+    it('should process sprints in FIFO order', async () => { try {
       const sprints = ['sprint-first', 'sprint-second', 'sprint-third'];
       const executionOrder: string[] = [];
 

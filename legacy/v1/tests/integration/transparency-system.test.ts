@@ -21,7 +21,7 @@ describe('Transparency System Integration', () => {
   let transparency: TransparencySystem;
   let mockAgents: Agent[];
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize transparency system
     transparency = new TransparencySystem();
     await transparency.initialize({
@@ -40,12 +40,12 @@ describe('Transparency System Integration', () => {
     registerMockAgents();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await transparency.cleanup();
   });
 
   describe('Agent Hierarchy Tracking', () => {
-    it('should track multi-level agent hierarchy', async () => {
+    it('should track multi-level agent hierarchy', async () => { try {
       const hierarchy = await transparency.getAgentHierarchy();
 
       expect(hierarchy).toHaveLength(7); // 1 orchestrator + 3 workers + 3 helpers
@@ -77,7 +77,7 @@ describe('Transparency System Integration', () => {
       });
     });
 
-    it('should get agents at specific levels', async () => {
+    it('should get agents at specific levels', async () => { try {
       const level1Agents = await transparency.getAgentsAtLevel(1);
       const level2Agents = await transparency.getAgentsAtLevel(2);
       const level3Agents = await transparency.getAgentsAtLevel(3);
@@ -91,7 +91,7 @@ describe('Transparency System Integration', () => {
       level3Agents.forEach(agent => expect(agent.type).toContain('helper'));
     });
 
-    it('should get root agents correctly', async () => {
+    it('should get root agents correctly', async () => { try {
       const rootAgents = await transparency.getRootAgents();
 
       expect(rootAgents).toHaveLength(1);
@@ -100,7 +100,7 @@ describe('Transparency System Integration', () => {
       expect(rootAgents[0].parentAgentId).toBeUndefined();
     });
 
-    it('should get child agents correctly', async () => {
+    it('should get child agents correctly', async () => { try {
       const childAgents = await transparency.getChildAgents('orchestrator-001');
 
       expect(childAgents).toHaveLength(3);
@@ -112,7 +112,7 @@ describe('Transparency System Integration', () => {
   });
 
   describe('Real-time Agent Status Monitoring', () => {
-    it('should track agent statuses', async () => {
+    it('should track agent statuses', async () => { try {
       const statuses = await transparency.getAllAgentStatuses();
 
       expect(statuses).toHaveLength(7);
@@ -129,7 +129,7 @@ describe('Transparency System Integration', () => {
       });
     });
 
-    it('should update agent state changes', async () => {
+    it('should update agent state changes', async () => { try {
       // Update state for a specific agent
       transparency.updateAgentState('worker-coder-001', 'active', 'Processing task');
 
@@ -145,7 +145,7 @@ describe('Transparency System Integration', () => {
       expect(stateChangeEvent!.eventData.reason).toBe('Processing task');
     });
 
-    it('should track token usage', async () => {
+    it('should track token usage', async () => { try {
       // Update token usage for an agent
       transparency.updateTokenUsage('worker-coder-001', 1500);
 
@@ -154,7 +154,7 @@ describe('Transparency System Integration', () => {
       expect(status.tokenUsageRate).toBeGreaterThan(0);
     });
 
-    it('should distinguish active vs paused agents', async () => {
+    it('should distinguish active vs paused agents', async () => { try {
       // Pause an agent
       transparency.updateAgentState('helper-tester-001', 'paused', 'Resource constraints');
 
@@ -171,7 +171,7 @@ describe('Transparency System Integration', () => {
   });
 
   describe('Event Streaming', () => {
-    it('should record agent lifecycle events', async () => {
+    it('should record agent lifecycle events', async () => { try {
       const events = await transparency.getRecentEvents(20);
 
       expect(events.length).toBeGreaterThan(0);
@@ -194,7 +194,7 @@ describe('Transparency System Integration', () => {
       expect(spawnEvents).toHaveLength(7);
     });
 
-    it('should filter events by type', async () => {
+    it('should filter events by type', async () => { try {
       const stateChangeEvents = await transparency.getRecentEvents(10, 'state_changed');
       const spawnEvents = await transparency.getRecentEvents(10, 'spawned');
 
@@ -202,14 +202,14 @@ describe('Transparency System Integration', () => {
       expect(spawnEvents.every(e => e.eventType === 'spawned')).toBe(true);
     });
 
-    it('should get events for specific agent', async () => {
+    it('should get events for specific agent', async () => { try {
       const agentEvents = await transparency.getAgentEvents('worker-coder-001', 10);
 
       expect(agentEvents.every(e => e.agentId === 'worker-coder-001')).toBe(true);
       expect(agentEvents.some(e => e.eventType === 'spawned')).toBe(true);
     });
 
-    it('should get events in time range', async () => {
+    it('should get events in time range', async () => { try {
       const now = new Date();
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
@@ -223,7 +223,7 @@ describe('Transparency System Integration', () => {
   });
 
   describe('Metrics & Analytics', () => {
-    it('should calculate transparency metrics', async () => {
+    it('should calculate transparency metrics', async () => { try {
       const metrics = await transparency.getTransparencyMetrics();
 
       expect(metrics).toHaveProperty('totalAgents', 7);
@@ -252,7 +252,7 @@ describe('Transparency System Integration', () => {
       expect(metrics.eventStreamStats.eventTypes).toBeDefined();
     });
 
-    it('should calculate agent performance metrics', async () => {
+    it('should calculate agent performance metrics', async () => { try {
       const metrics = await transparency.getAgentPerformanceMetrics('worker-coder-001');
 
       expect(metrics).toHaveProperty('agentId', 'worker-coder-001');
@@ -275,7 +275,7 @@ describe('Transparency System Integration', () => {
       expect(metrics.tokenMetrics).toHaveProperty('utilizationRate');
     });
 
-    it('should calculate hierarchy analytics', async () => {
+    it('should calculate hierarchy analytics', async () => { try {
       const analytics = await transparency.getHierarchyAnalytics();
 
       expect(analytics).toHaveProperty('depth', 3);
@@ -293,7 +293,7 @@ describe('Transparency System Integration', () => {
   });
 
   describe('Event Listeners', () => {
-    it('should notify hierarchy change listeners', async () => {
+    it('should notify hierarchy change listeners', async () => { try {
       let hierarchyChangeReceived = false;
       let changeData: any = null;
 
@@ -324,7 +324,7 @@ describe('Transparency System Integration', () => {
       expect(changeData.agentId).toBe('new-agent-001');
     });
 
-    it('should notify state change listeners', async () => {
+    it('should notify state change listeners', async () => { try {
       let stateChangeReceived = false;
       let stateChangeData: any = null;
 
@@ -345,7 +345,7 @@ describe('Transparency System Integration', () => {
       expect(stateChangeData.reason).toBe('Test reason');
     });
 
-    it('should notify lifecycle event listeners', async () => {
+    it('should notify lifecycle event listeners', async () => { try {
       let lifecycleEventReceived = false;
       let eventData: any = null;
 
@@ -367,7 +367,7 @@ describe('Transparency System Integration', () => {
   });
 
   describe('Performance Monitoring', () => {
-    it('should track resource usage over time', async () => {
+    it('should track resource usage over time', async () => { try {
       const agentId = 'worker-coder-001';
 
       // Simulate resource usage changes
@@ -385,7 +385,7 @@ describe('Transparency System Integration', () => {
       expect(status2.tokenUsageRate).toBeGreaterThan(0);
     });
 
-    it('should handle errors gracefully', async () => {
+    it('should handle errors gracefully', async () => { try {
       // Try to get status for non-existent agent
       await expect(transparency.getAgentStatus('non-existent-agent'))
         .rejects.toThrow('Agent non-existent-agent not found');
@@ -486,4 +486,4 @@ describe('Transparency System Integration', () => {
     transparency.registerAgent(mockAgents[5], 'worker-tester-002');
     transparency.registerAgent(mockAgents[6], 'worker-reviewer-003');
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -304,7 +304,7 @@ describe('CVE-2025-004: Path Traversal Prevention', () => {
   });
 
   describe('Integration with EpicParser', () => {
-    it('should prevent path traversal in phase file parsing', async () => {
+    it('should prevent path traversal in phase file parsing', async () => { try {
       const { EpicParser } = await import('../../src/parsers/epic-parser.js');
 
       const epicDir = path.resolve(process.cwd(), 'planning/test-epic');
@@ -331,7 +331,7 @@ describe('CVE-2025-004: Path Traversal Prevention', () => {
   });
 
   describe('Integration with CFN Loop Epic Command', () => {
-    it('should prevent path traversal in epic directory validation', async () => {
+    it('should prevent path traversal in epic directory validation', async () => { try {
       const { CfnLoopEpicCommand } = await import('../../src/slash-commands/cfn-loop-epic.js');
 
       const command = new CfnLoopEpicCommand();

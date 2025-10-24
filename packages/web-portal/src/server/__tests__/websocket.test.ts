@@ -24,7 +24,7 @@ describe('WebSocket Server Integration Tests', () => {
   const port = 3100;
   const jwtSecret = 'test-secret-key';
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Create HTTP server
     httpServer = createServer();
 
@@ -57,7 +57,7 @@ describe('WebSocket Server Integration Tests', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup
     if (clientSocket?.connected) clientSocket.disconnect();
     if (authenticatedClientSocket?.connected) authenticatedClientSocket.disconnect();
@@ -87,7 +87,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.authenticated).toBe(false);
         expect(data.role).toBe('guest');
         process.env.NODE_ENV = originalEnv;
-        done();
+        return;
       });
     }, 10000);
 
@@ -104,7 +104,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.socketId).toBeDefined();
         expect(data.authenticated).toBe(true);
         expect(data.role).toBe('admin');
-        done();
+        return;
       });
     }, 10000);
 
@@ -119,7 +119,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.socketId).toBeDefined();
         expect(data.authenticated).toBe(true);
         expect(data.role).toBe('api');
-        done();
+        return;
       });
     }, 10000);
   });
@@ -131,7 +131,7 @@ describe('WebSocket Server Integration Tests', () => {
         path: '/ws',
         transports: ['websocket']
       });
-      clientSocket.on('connection-established', () => done());
+      clientSocket.on('connection-established', () => return);
     });
 
     it('should receive agent_update event in agents room', (done) => {
@@ -140,7 +140,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.status).toBe('spawned');
         expect(data.confidence).toBe(0.85);
         expect(data.timestamp).toBeDefined();
-        done();
+        return;
       });
 
       // Simulate agent spawn via TransparencyAdapter
@@ -162,7 +162,7 @@ describe('WebSocket Server Integration Tests', () => {
         clientSocket.on('agent_update', (data) => {
           expect(data.agentId).toBe(agentId);
           expect(data.status).toBe('running');
-          done();
+          return;
         });
 
         // Trigger agent update
@@ -199,7 +199,7 @@ describe('WebSocket Server Integration Tests', () => {
         // Should receive fewer than 10 events due to throttling
         expect(receivedEvents.length).toBeLessThan(10);
         expect(receivedEvents.length).toBeGreaterThan(0);
-        done();
+        return;
       }, 500);
     }, 10000);
   });
@@ -211,7 +211,7 @@ describe('WebSocket Server Integration Tests', () => {
         path: '/ws',
         transports: ['websocket']
       });
-      clientSocket.on('connection-established', () => done());
+      clientSocket.on('connection-established', () => return);
     });
 
     it('should receive hierarchy_change event for agent spawn', (done) => {
@@ -220,7 +220,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.agentId).toBe('child-agent-1');
         expect(data.parentId).toBe('parent-agent-1');
         expect(data.timestamp).toBeDefined();
-        done();
+        return;
       });
 
       setTimeout(() => {
@@ -238,7 +238,7 @@ describe('WebSocket Server Integration Tests', () => {
       clientSocket.on('hierarchy_change', (data) => {
         if (data.type === 'terminate') {
           expect(data.agentId).toBe('terminated-agent');
-          done();
+          return;
         }
       });
 
@@ -257,7 +257,7 @@ describe('WebSocket Server Integration Tests', () => {
         if (data.type === 'reparent') {
           expect(data.agentId).toBe('moved-agent');
           expect(data.newParentId).toBe('new-parent');
-          done();
+          return;
         }
       });
 
@@ -282,7 +282,7 @@ describe('WebSocket Server Integration Tests', () => {
       });
       clientSocket.on('connection-established', () => {
         metricsAggregator.start();
-        done();
+        return;
       });
     });
 
@@ -302,7 +302,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.timestamp).toBeDefined();
 
         if (receivedCount >= 2) {
-          done();
+          return;
         }
       });
     }, 10000);
@@ -319,7 +319,7 @@ describe('WebSocket Server Integration Tests', () => {
         // Should receive ~5 events in 600ms (100ms throttle)
         expect(receivedEvents.length).toBeGreaterThanOrEqual(3);
         expect(receivedEvents.length).toBeLessThanOrEqual(7);
-        done();
+        return;
       }, 600);
     }, 10000);
   });
@@ -332,7 +332,7 @@ describe('WebSocket Server Integration Tests', () => {
         auth: { token },
         transports: ['websocket']
       });
-      authenticatedClientSocket.on('connection-established', () => done());
+      authenticatedClientSocket.on('connection-established', () => return);
     });
 
     it('should receive error event in errors room (authenticated only)', (done) => {
@@ -341,7 +341,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.message).toBe('Test error message');
         expect(data.agentId).toBe('error-agent-1');
         expect(data.timestamp).toBeDefined();
-        done();
+        return;
       });
 
       setTimeout(() => {
@@ -357,7 +357,7 @@ describe('WebSocket Server Integration Tests', () => {
       authenticatedClientSocket.on('error', (data) => {
         expect(data.severity).toBe('critical');
         expect(data.message).toBe('Socket-specific error');
-        done();
+        return;
       });
 
       setTimeout(() => {
@@ -376,7 +376,7 @@ describe('WebSocket Server Integration Tests', () => {
         path: '/ws',
         transports: ['websocket']
       });
-      clientSocket.on('connection-established', () => done());
+      clientSocket.on('connection-established', () => return);
     });
 
     it('should receive notification event', (done) => {
@@ -385,7 +385,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.title).toBe('Test Notification');
         expect(data.message).toBe('This is a test notification');
         expect(data.timestamp).toBeDefined();
-        done();
+        return;
       });
 
       setTimeout(() => {
@@ -403,7 +403,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(data.action).toBeDefined();
         expect(data.action?.label).toBe('View Details');
         expect(data.action?.url).toBe('/details');
-        done();
+        return;
       });
 
       setTimeout(() => {
@@ -427,7 +427,7 @@ describe('WebSocket Server Integration Tests', () => {
         path: '/ws',
         transports: ['websocket']
       });
-      clientSocket.on('connection-established', () => done());
+      clientSocket.on('connection-established', () => return);
     });
 
     it('should auto-join default rooms on connection', (done) => {
@@ -447,7 +447,7 @@ describe('WebSocket Server Integration Tests', () => {
 
       function checkCompletion() {
         if (agentUpdateReceived && hierarchyChangeReceived) {
-          done();
+          return;
         }
       }
 
@@ -473,7 +473,7 @@ describe('WebSocket Server Integration Tests', () => {
         clientSocket.emit('unsubscribe:agent', agentId);
         clientSocket.once('unsubscribed', (data) => {
           expect(data.agentId).toBe(agentId);
-          done();
+          return;
         });
       });
     }, 10000);
@@ -494,7 +494,7 @@ describe('WebSocket Server Integration Tests', () => {
         clientSocket.once('pong', (data) => {
           expect(data.timestamp).toBe(startTime);
           expect(data.serverTime).toBeGreaterThanOrEqual(startTime);
-          done();
+          return;
         });
       });
     }, 10000);
@@ -512,7 +512,7 @@ describe('WebSocket Server Integration Tests', () => {
         expect(metrics.activeConnections).toBeGreaterThanOrEqual(0);
         expect(metrics.totalMessages).toBeGreaterThanOrEqual(0);
         testSocket.disconnect();
-        done();
+        return;
       });
     }, 10000);
 

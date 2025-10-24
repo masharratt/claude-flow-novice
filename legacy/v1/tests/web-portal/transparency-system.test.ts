@@ -21,7 +21,7 @@ describe('Transparency System Tests', () => {
   let statusMonitor: AgentStatusMonitor;
   let mockDatabase: TransparencyDatabase;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     mockDatabase = createMockDatabase();
 
     // Initialize transparency components
@@ -74,13 +74,13 @@ describe('Transparency System Tests', () => {
     await transparencySystem.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await transparencySystem.shutdown();
     jest.clearAllMocks();
   });
 
   describe('Decision Logging and Display', () => {
-    it('should log agent decisions with full context', async () => {
+    it('should log agent decisions with full context', async () => { try {
       const decision = {
         id: 'decision-001',
         agentId: 'agent-researcher-001',
@@ -146,7 +146,7 @@ describe('Transparency System Tests', () => {
       expect(displayData.decisions[0].id).toBe('decision-001');
     });
 
-    it('should display decision timeline with filtering capabilities', async () => {
+    it('should display decision timeline with filtering capabilities', async () => { try {
       // Log multiple decisions
       const decisions = [
         {
@@ -202,7 +202,7 @@ describe('Transparency System Tests', () => {
       expect(coderDecisions.decisions[0].decision).toBe('Use Express.js framework');
     });
 
-    it('should track decision impact and outcomes', async () => {
+    it('should track decision impact and outcomes', async () => { try {
       const decision = {
         id: 'decision-impact-001',
         agentId: 'agent-architect-001',
@@ -241,7 +241,7 @@ describe('Transparency System Tests', () => {
       expect(impactAnalysis.learnings).toContain('Service discovery challenges');
     });
 
-    it('should support decision revision and versioning', async () => {
+    it('should support decision revision and versioning', async () => { try {
       const originalDecision = {
         id: 'decision-revision-001',
         agentId: 'agent-researcher-001',
@@ -276,7 +276,7 @@ describe('Transparency System Tests', () => {
   });
 
   describe('Reasoning Chain Capture', () => {
-    it('should capture complete reasoning chains with intermediate steps', async () => {
+    it('should capture complete reasoning chains with intermediate steps', async () => { try {
       const reasoningChain = {
         id: 'reasoning-chain-001',
         agentId: 'agent-researcher-001',
@@ -335,7 +335,7 @@ describe('Transparency System Tests', () => {
       expect(chainDisplay.averageConfidence).toBeCloseTo(0.92, 2);
     });
 
-    it('should track reasoning patterns and learning', async () => {
+    it('should track reasoning patterns and learning', async () => { try {
       // Capture multiple reasoning chains to identify patterns
       const reasoningChains = [
         {
@@ -383,7 +383,7 @@ describe('Transparency System Tests', () => {
       expect(patternAnalysis.recommendations).toContain('Continue using problem_decomposition pattern');
     });
 
-    it('should identify reasoning bottlenecks and inefficiencies', async () => {
+    it('should identify reasoning bottlenecks and inefficiencies', async () => { try {
       const problematicChain = {
         id: 'bottleneck-chain-001',
         agentId: 'agent-analyst-001',
@@ -411,7 +411,7 @@ describe('Transparency System Tests', () => {
       expect(bottleneckAnalysis.suggestions).toContain('Low confidence indicates uncertainty');
     });
 
-    it('should support reasoning chain visualization data', async () => {
+    it('should support reasoning chain visualization data', async () => { try {
       const visualChain = {
         id: 'visual-chain-001',
         agentId: 'agent-designer-001',
@@ -460,7 +460,7 @@ describe('Transparency System Tests', () => {
   });
 
   describe('Human Intervention Tracking', () => {
-    it('should track intervention requests and responses comprehensively', async () => {
+    it('should track intervention requests and responses comprehensively', async () => { try {
       const intervention = {
         id: 'intervention-track-001',
         requestTime: new Date().toISOString(),
@@ -509,7 +509,7 @@ describe('Transparency System Tests', () => {
       expect(trackingMetrics.qualityImpact).toBe(0.2);
     });
 
-    it('should analyze intervention patterns and frequency', async () => {
+    it('should analyze intervention patterns and frequency', async () => { try {
       // Track multiple interventions over time
       const interventions = [
         {
@@ -553,7 +553,7 @@ describe('Transparency System Tests', () => {
       expect(patternAnalysis.recommendedTraining).toBeDefined();
     });
 
-    it('should track intervention effectiveness and agent learning', async () => {
+    it('should track intervention effectiveness and agent learning', async () => { try {
       const learningIntervention = {
         id: 'learning-001',
         agentId: 'agent-researcher-001',
@@ -598,7 +598,7 @@ describe('Transparency System Tests', () => {
       expect(effectiveness.sustainedImprovement).toBe(true);
     });
 
-    it('should support intervention audit trails for compliance', async () => {
+    it('should support intervention audit trails for compliance', async () => { try {
       const auditableIntervention = {
         id: 'audit-001',
         timestamp: new Date().toISOString(),
@@ -650,7 +650,7 @@ describe('Transparency System Tests', () => {
   });
 
   describe('Agent Status Monitoring', () => {
-    it('should monitor agent status with real-time updates', async () => {
+    it('should monitor agent status with real-time updates', async () => { try {
       const agentStatuses = [
         {
           agentId: 'agent-researcher-001',
@@ -706,7 +706,7 @@ describe('Transparency System Tests', () => {
       expect(researcherStatus.performance.qualityScore).toBe(0.88);
     });
 
-    it('should detect and alert on agent performance issues', async () => {
+    it('should detect and alert on agent performance issues', async () => { try {
       const problematicStatus = {
         agentId: 'agent-problematic-001',
         status: 'degraded',
@@ -749,7 +749,7 @@ describe('Transparency System Tests', () => {
       expect(memoryAlert.recommendations).toContain('Consider restarting agent');
     });
 
-    it('should track agent collaboration and coordination', async () => {
+    it('should track agent collaboration and coordination', async () => { try {
       const collaborationEvent = {
         id: 'collab-001',
         timestamp: new Date().toISOString(),
@@ -799,7 +799,7 @@ describe('Transparency System Tests', () => {
       expect(coordEffectiveness.researcherToCoder).toBeGreaterThan(0.8);
     });
 
-    it('should provide comprehensive status dashboard data', async () => {
+    it('should provide comprehensive status dashboard data', async () => { try {
       // Set up various agent statuses
       await statusMonitor.updateAgentStatus({
         agentId: 'agent-001',
@@ -842,7 +842,7 @@ describe('Transparency System Tests', () => {
       expect(dashboardData.trends.activityTrend).toBeDefined();
     });
 
-    it('should export transparency data for external analysis', async () => {
+    it('should export transparency data for external analysis', async () => { try {
       // Add various data points
       await decisionLogger.logDecision({
         id: 'export-decision-001',
@@ -883,4 +883,4 @@ describe('Transparency System Tests', () => {
       expect(csvExport.files.interventions).toContain('id,context,responseTime');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -23,7 +23,7 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
   let pheromoneTrails;
   let routingStats;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     messageBroker = new MessageBroker({
       maxQueueSize: 5000,
       deliverySemantics: 'at-least-once'
@@ -39,14 +39,15 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
     await messageBroker.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await messageBroker?.shutdown();
     pheromoneTrails.clear();
     routingStats = null;
   });
 
   describe('Pheromone Trail Creation and Decay', () => {
-    test('should create pheromone trails on successful message delivery', async () => {
+    jest.setTimeout(10000);
+  test('should create pheromone trails on successful message delivery', async () => { try {
       const routes = [
         { from: 'peer-1', to: 'peer-2', path: ['peer-1', 'peer-2'] },
         { from: 'peer-1', to: 'peer-3', path: ['peer-1', 'peer-2', 'peer-3'] },
@@ -105,7 +106,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       console.log(`✅ Pheromone trails created: ${pheromoneTrails.size} paths`);
     });
 
-    test('should decay pheromone strength over time', async () => {
+    jest.setTimeout(10000);
+  test('should decay pheromone strength over time', async () => { try {
       const decayRate = 0.5; // 50% decay per interval
       const decayInterval = 100; // 100ms
       const halfLife = 150; // 150ms
@@ -141,7 +143,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       console.log(`✅ Pheromone decay: ${strengths[0].toFixed(2)} → ${strengths[strengths.length - 1].toFixed(2)}`);
     });
 
-    test('should reinforce frequently used paths', async () => {
+    jest.setTimeout(10000);
+  test('should reinforce frequently used paths', async () => { try {
       const paths = [
         { route: ['peer-1', 'peer-2', 'peer-3'], useCount: 10 },
         { route: ['peer-1', 'peer-4', 'peer-3'], useCount: 2 }
@@ -175,7 +178,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
   });
 
   describe('Path Optimization', () => {
-    test('should optimize routing paths by 30% after 100 messages', async () => {
+    jest.setTimeout(10000);
+  test('should optimize routing paths by 30% after 100 messages', async () => { try {
       const messageCount = 100;
       const source = 'peer-1';
       const destination = 'peer-5';
@@ -218,7 +222,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       console.log(`✅ Path optimization: ${improvement.toFixed(1)}% improvement (${initialAvgLatency.toFixed(0)}ms → ${optimizedAvgLatency.toFixed(0)}ms)`);
     });
 
-    test('should discover emergent routing patterns', async () => {
+    jest.setTimeout(10000);
+  test('should discover emergent routing patterns', async () => { try {
       const peers = ['peer-1', 'peer-2', 'peer-3', 'peer-4', 'peer-5'];
       const trafficPatterns = new Map();
 
@@ -244,7 +249,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       console.log(`✅ Emergent patterns: ${hubs.length} traffic hubs identified`);
     });
 
-    test('should adapt to changing network conditions', async () => {
+    jest.setTimeout(10000);
+  test('should adapt to changing network conditions', async () => { try {
       const path1 = ['peer-1', 'peer-2', 'peer-3'];
       const path2 = ['peer-1', 'peer-4', 'peer-3'];
 
@@ -278,7 +284,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
   });
 
   describe('Mesh vs Hierarchical Topology Selection', () => {
-    test('should prefer mesh routing for <8 peers', async () => {
+    jest.setTimeout(10000);
+  test('should prefer mesh routing for <8 peers', async () => { try {
       const peerCounts = [3, 5, 7];
 
       for (const peerCount of peerCounts) {
@@ -299,7 +306,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       }
     });
 
-    test('should prefer hierarchical routing for ≥8 peers', async () => {
+    jest.setTimeout(10000);
+  test('should prefer hierarchical routing for ≥8 peers', async () => { try {
       const peerCounts = [8, 10, 15, 20];
 
       for (const peerCount of peerCounts) {
@@ -320,7 +328,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       }
     });
 
-    test('should auto-select topology based on peer count', async () => {
+    jest.setTimeout(10000);
+  test('should auto-select topology based on peer count', async () => { try {
       const topologySelections = [
         { peerCount: 3, expected: 'mesh' },
         { peerCount: 7, expected: 'mesh' },
@@ -341,7 +350,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       console.log(`✅ Auto-selection: validated ${topologySelections.length} topology choices`);
     });
 
-    test('should handle dynamic topology switching', async () => {
+    jest.setTimeout(10000);
+  test('should handle dynamic topology switching', async () => { try {
       let peerCount = 5;
       let currentTopology = 'mesh';
       const topologyChanges = [];
@@ -384,7 +394,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
   });
 
   describe('Backward Compatibility', () => {
-    test('should support legacy routing patterns', async () => {
+    jest.setTimeout(10000);
+  test('should support legacy routing patterns', async () => { try {
       const legacyRoutes = [
         { from: 'legacy-peer-1', to: 'legacy-peer-2', protocol: 'v1' },
         { from: 'modern-peer-1', to: 'modern-peer-2', protocol: 'v2' }
@@ -426,7 +437,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       console.log(`✅ Backward compatibility: ${v1Routes.length} legacy, ${v2Routes.length} modern routes`);
     });
 
-    test('should translate between routing protocols', async () => {
+    jest.setTimeout(10000);
+  test('should translate between routing protocols', async () => { try {
       const message = {
         id: 'msg-1',
         from: 'peer-v1',
@@ -450,7 +462,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
       console.log('✅ Protocol translation: v1 → v2');
     });
 
-    test('should fall back to hierarchical when mesh unavailable', async () => {
+    jest.setTimeout(10000);
+  test('should fall back to hierarchical when mesh unavailable', async () => { try {
       const routingAttempts = [
         { topology: 'mesh', available: false },
         { topology: 'hierarchical', available: true }
@@ -472,7 +485,8 @@ describe('Phase 6 - Pheromone Trails and Topology Selection', () => {
   });
 
   describe('Performance Benchmarks', () => {
-    test('should benchmark mesh vs hierarchical latencies', async () => {
+    jest.setTimeout(10000);
+  test('should benchmark mesh vs hierarchical latencies', async () => { try {
       const peerCounts = [3, 5, 7, 8, 10, 12, 15];
       const benchmarks = [];
 

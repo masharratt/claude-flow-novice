@@ -30,7 +30,7 @@ describe('Sprint 1.2 WASM Coordination Benchmarks', () => {
   let stateManager;
   let benchmarkResults;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     benchmarkResults = {
       eventBus: {
         target: { throughput: 10000, concurrent: 100 },
@@ -59,7 +59,7 @@ describe('Sprint 1.2 WASM Coordination Benchmarks', () => {
     console.log('📊 Testing coordination systems with WASM acceleration');
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup
     if (eventBus) {
       eventBus.removeAllListeners();
@@ -79,7 +79,7 @@ describe('Sprint 1.2 WASM Coordination Benchmarks', () => {
   });
 
   describe('Event Bus: 10k events/sec with WASM', () => {
-    it('should achieve 10,000+ events/sec sustained throughput', async () => {
+    it('should achieve 10,000+ events/sec sustained throughput', async () => { try {
       // Initialize event bus with WASM acceleration
       eventBus = new WASMEventBus(wasmRuntime);
 
@@ -136,7 +136,7 @@ describe('Sprint 1.2 WASM Coordination Benchmarks', () => {
       expect(eventsReceived).toBe(targetEvents); // All events processed
     }, 30000);
 
-    it('should handle 100 concurrent agents publishing events', async () => {
+    it('should handle 100 concurrent agents publishing events', async () => { try {
       const concurrentAgents = 100;
       const eventsPerAgent = 100;
       let totalEventsReceived = 0;
@@ -188,7 +188,7 @@ describe('Sprint 1.2 WASM Coordination Benchmarks', () => {
   });
 
   describe('Messenger: 10k messages/sec JSON marshaling', () => {
-    it('should achieve 10,000+ messages/sec with WASM JSON acceleration', async () => {
+    it('should achieve 10,000+ messages/sec with WASM JSON acceleration', async () => { try {
       messenger = new WASMMessenger(wasmRuntime);
 
       const targetMessages = 10000;
@@ -254,7 +254,7 @@ describe('Sprint 1.2 WASM Coordination Benchmarks', () => {
   });
 
   describe('State Manager: <1ms snapshots with WASM', () => {
-    it('should create snapshots in <1ms for 100KB states', async () => {
+    it('should create snapshots in <1ms for 100KB states', async () => { try {
       stateManager = new WASMStateManager(wasmRuntime);
 
       // Generate 100KB state
@@ -319,7 +319,7 @@ describe('Sprint 1.2 WASM Coordination Benchmarks', () => {
   });
 
   describe('Load Test: 100 concurrent agents', () => {
-    it('should coordinate 100+ concurrent agents efficiently', async () => {
+    it('should coordinate 100+ concurrent agents efficiently', async () => { try {
       const concurrentAgents = 100;
       const operationsPerAgent = 100;
       let totalOperations = 0;

@@ -15,7 +15,7 @@ describe('Agent Validation System', () => {
   });
 
   describe('AgentValidator', () => {
-    it('should validate known agent types', async () => {
+    it('should validate known agent types', async () => { try {
       const result = await validateAgentType('researcher');
 
       expect(result.isValid).toBe(true);
@@ -24,7 +24,7 @@ describe('Agent Validation System', () => {
       expect(result.warnings).toHaveLength(0);
     });
 
-    it('should handle analyst -> code-analyzer mapping', async () => {
+    it('should handle analyst -> code-analyzer mapping', async () => { try {
       const result = await validateAgentType('analyst');
 
       expect(result.isValid).toBe(true);
@@ -34,7 +34,7 @@ describe('Agent Validation System', () => {
       expect(result.warnings[0]).toContain('analyst');
     });
 
-    it('should handle consensus-builder correctly', async () => {
+    it('should handle consensus-builder correctly', async () => { try {
       const result = await validateAgentType('consensus-builder');
 
       expect(result.isValid).toBe(true);
@@ -42,7 +42,7 @@ describe('Agent Validation System', () => {
       expect(result.fallbackUsed).toBe(false);
     });
 
-    it('should provide fallback for unknown agent types', async () => {
+    it('should provide fallback for unknown agent types', async () => { try {
       const result = await validateAgentType('nonexistent-agent');
 
       expect(result.isValid).toBe(true);
@@ -51,7 +51,7 @@ describe('Agent Validation System', () => {
       expect(result.warnings.length).toBeGreaterThan(0);
     });
 
-    it('should handle legacy mappings correctly', async () => {
+    it('should handle legacy mappings correctly', async () => { try {
       const testCases = [
         { input: 'coordinator', expected: 'task-orchestrator' },
         { input: 'optimizer', expected: 'perf-analyzer' },
@@ -70,7 +70,7 @@ describe('Agent Validation System', () => {
       }
     });
 
-    it('should handle capability-based matching', async () => {
+    it('should handle capability-based matching', async () => { try {
       // This assumes the agent loader can find agents with matching capabilities
       const result = await validateAgentType('unknown-analysis-agent');
 
@@ -79,7 +79,7 @@ describe('Agent Validation System', () => {
       // Should find code-analyzer or similar based on 'analysis' keyword
     });
 
-    it('should cache validation results', async () => {
+    it('should cache validation results', async () => { try {
       const start = Date.now();
       await validateAgentType('analyst');
       const firstCallTime = Date.now() - start;
@@ -94,7 +94,7 @@ describe('Agent Validation System', () => {
   });
 
   describe('TaskAgentIntegration', () => {
-    it('should prepare valid agent spawn requests', async () => {
+    it('should prepare valid agent spawn requests', async () => { try {
       const request: TaskAgentSpawnRequest = {
         type: 'researcher',
         description: 'Research task',
@@ -109,7 +109,7 @@ describe('Agent Validation System', () => {
       expect(result.warnings).toHaveLength(0);
     });
 
-    it('should handle invalid agent types with fallbacks', async () => {
+    it('should handle invalid agent types with fallbacks', async () => { try {
       const request: TaskAgentSpawnRequest = {
         type: 'analyst',
         description: 'Code analysis task',
@@ -124,7 +124,7 @@ describe('Agent Validation System', () => {
       expect(result.warnings.length).toBeGreaterThan(0);
     });
 
-    it('should enhance prompts with validation context', async () => {
+    it('should enhance prompts with validation context', async () => { try {
       const request: TaskAgentSpawnRequest = {
         type: 'consensus-builder',
         description: 'Build consensus',
@@ -137,7 +137,7 @@ describe('Agent Validation System', () => {
       expect(result.spawnCommand).toContain('coordination');
     });
 
-    it('should handle batch agent spawn requests', async () => {
+    it('should handle batch agent spawn requests', async () => { try {
       const requests: TaskAgentSpawnRequest[] = [
         {
           type: 'researcher',
@@ -164,14 +164,14 @@ describe('Agent Validation System', () => {
       expect(results[2].finalType).toBe('researcher'); // fallback
     });
 
-    it('should suggest appropriate agent types', async () => {
+    it('should suggest appropriate agent types', async () => { try {
       const suggestions = await taskAgentIntegration.suggestAgentTypes('code analysis and review');
 
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions).toContain('code-analyzer');
     });
 
-    it('should provide comprehensive agent information', async () => {
+    it('should provide comprehensive agent information', async () => { try {
       const info = await taskAgentIntegration.getAgentInfo();
 
       expect(info.available.length).toBeGreaterThan(0);
@@ -186,7 +186,7 @@ describe('Agent Validation System', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty agent type', async () => {
+    it('should handle empty agent type', async () => { try {
       const result = await validateAgentType('');
 
       expect(result.isValid).toBe(true);
@@ -194,7 +194,7 @@ describe('Agent Validation System', () => {
       expect(result.resolvedType).toBe('researcher');
     });
 
-    it('should handle null/undefined agent types gracefully', async () => {
+    it('should handle null/undefined agent types gracefully', async () => { try {
       const result1 = await validateAgentType(null as any);
       const result2 = await validateAgentType(undefined as any);
 
@@ -204,7 +204,7 @@ describe('Agent Validation System', () => {
       expect(result2.resolvedType).toBe('researcher');
     });
 
-    it('should handle case-insensitive agent types', async () => {
+    it('should handle case-insensitive agent types', async () => { try {
       const result1 = await validateAgentType('RESEARCHER');
       const result2 = await validateAgentType('Analyst');
       const result3 = await validateAgentType('consensus-BUILDER');
@@ -214,7 +214,7 @@ describe('Agent Validation System', () => {
       expect(result3.isValid).toBe(true);
     });
 
-    it('should handle agent types with special characters', async () => {
+    it('should handle agent types with special characters', async () => { try {
       const result = await validateAgentType('code-analyzer-v2.0');
 
       expect(result.isValid).toBe(true);
@@ -223,7 +223,7 @@ describe('Agent Validation System', () => {
   });
 
   describe('Performance Tests', () => {
-    it('should validate multiple agent types efficiently', async () => {
+    it('should validate multiple agent types efficiently', async () => { try {
       const agentTypes = [
         'researcher', 'coder', 'reviewer', 'tester', 'analyst',
         'consensus-builder', 'coordinator', 'optimizer', 'monitor',
@@ -243,7 +243,7 @@ describe('Agent Validation System', () => {
       }
     });
 
-    it('should not degrade with repeated validations', async () => {
+    it('should not degrade with repeated validations', async () => { try {
       const iterations = 100;
       const durations: number[] = [];
 
@@ -267,7 +267,7 @@ describe('Agent Validation System', () => {
 });
 
 describe('Integration with Claude Code Task Tool', () => {
-  it('should provide hook function for Claude Code', async () => {
+  it('should provide hook function for Claude Code', async () => { try {
     const { claudeCodeTaskHook } = await import('../../src/agents/task-agent-integration.js');
 
     const result = await claudeCodeTaskHook(
@@ -281,7 +281,7 @@ describe('Integration with Claude Code Task Tool', () => {
     expect(result.enhancedPrompt).toContain('Analyze the codebase');
   });
 
-  it('should work with consensus-builder agent', async () => {
+  it('should work with consensus-builder agent', async () => { try {
     const { claudeCodeTaskHook } = await import('../../src/agents/task-agent-integration.js');
 
     const result = await claudeCodeTaskHook(
@@ -294,7 +294,7 @@ describe('Integration with Claude Code Task Tool', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  it('should provide appropriate fallbacks for unknown agents', async () => {
+  it('should provide appropriate fallbacks for unknown agents', async () => { try {
     const { claudeCodeTaskHook } = await import('../../src/agents/task-agent-integration.js');
 
     const result = await claudeCodeTaskHook(
@@ -307,4 +307,4 @@ describe('Integration with Claude Code Task Tool', () => {
     expect(result.warnings.length).toBeGreaterThan(0);
     expect(result.warnings[0]).toContain('mystery-agent');
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

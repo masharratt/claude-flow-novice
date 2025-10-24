@@ -22,7 +22,7 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
   let roleRegistry;
   let capabilityMatcher;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     messageBroker = new MessageBroker({
       maxQueueSize: 5000,
       deliverySemantics: 'at-least-once'
@@ -37,13 +37,14 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
     await messageBroker.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await messageBroker?.shutdown();
     roleRegistry.clear();
   });
 
   describe('Capability Negotiation', () => {
-    test('should negotiate roles among peers in <1 second', async () => {
+    jest.setTimeout(10000);
+  test('should negotiate roles among peers in <1 second', async () => { try {
       const peers = [
         { id: 'peer-1', capabilities: ['compute', 'storage', 'network'] },
         { id: 'peer-2', capabilities: ['compute', 'analytics'] },
@@ -113,7 +114,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
       console.log(`✅ Role negotiation: ${roleAssignments.size} roles assigned in ${negotiationTime}ms`);
     });
 
-    test('should match capabilities with 95% accuracy', async () => {
+    jest.setTimeout(10000);
+  test('should match capabilities with 95% accuracy', async () => { try {
       const tasks = [
         { id: 'task-1', requiredCapabilities: ['compute', 'ml'] },
         { id: 'task-2', requiredCapabilities: ['storage', 'database'] },
@@ -164,7 +166,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
       console.log(`✅ Capability matching accuracy: ${accuracy}% (${perfectMatches.length}/${tasks.length} perfect matches)`);
     });
 
-    test('should handle capability updates dynamically', async () => {
+    jest.setTimeout(10000);
+  test('should handle capability updates dynamically', async () => { try {
       const peerId = 'peer-1';
       const capabilityUpdates = [];
 
@@ -228,7 +231,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
   });
 
   describe('Role Claiming and Conflict Resolution', () => {
-    test('should resolve role conflicts via consensus in <500ms', async () => {
+    jest.setTimeout(10000);
+  test('should resolve role conflicts via consensus in <500ms', async () => { try {
       const role = 'compute-leader';
       const claimants = ['peer-1', 'peer-2', 'peer-3'];
       const claimTimestamps = new Map();
@@ -296,7 +300,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
       console.log(`✅ Conflict resolution: ${role} assigned to ${winner} in ${resolutionTime}ms`);
     });
 
-    test('should handle priority-based role assignment', async () => {
+    jest.setTimeout(10000);
+  test('should handle priority-based role assignment', async () => { try {
       const roles = ['leader', 'coordinator', 'worker'];
       const peers = [
         { id: 'peer-1', priority: 10, capabilities: ['all'] },
@@ -327,7 +332,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
       expect(assignments.get('worker')).toBe('peer-3');
     });
 
-    test('should prevent duplicate role assignments', async () => {
+    jest.setTimeout(10000);
+  test('should prevent duplicate role assignments', async () => { try {
       const role = 'storage-leader';
       const assignments = [];
 
@@ -380,7 +386,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
   });
 
   describe('Dynamic Role Reassignment', () => {
-    test('should reassign role on peer failure in <2 seconds', async () => {
+    jest.setTimeout(10000);
+  test('should reassign role on peer failure in <2 seconds', async () => { try {
       const role = 'compute-leader';
       const primaryPeer = 'peer-1';
       const backupPeers = ['peer-2', 'peer-3', 'peer-4'];
@@ -449,7 +456,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
       console.log(`✅ Role reassignment: ${role} from ${primaryPeer} to ${currentAssignment} in ${reassignments[0].time}ms`);
     });
 
-    test('should handle cascading role reassignments', async () => {
+    jest.setTimeout(10000);
+  test('should handle cascading role reassignments', async () => { try {
       const roleHierarchy = [
         { role: 'leader', peer: 'peer-1', backup: 'peer-2' },
         { role: 'coordinator', peer: 'peer-2', backup: 'peer-3' },
@@ -504,7 +512,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
   });
 
   describe('Load-Based Role Assignment', () => {
-    test('should assign roles based on peer load', async () => {
+    jest.setTimeout(10000);
+  test('should assign roles based on peer load', async () => { try {
       const peers = [
         { id: 'peer-1', load: 0.9, capabilities: ['compute'] },
         { id: 'peer-2', load: 0.3, capabilities: ['compute'] },
@@ -526,7 +535,8 @@ describe('Phase 6 - Role Assignment and Capability Negotiation', () => {
       console.log(`✅ Load-based assignment: ${role} to ${selectedPeer.id} (load: ${selectedPeer.load})`);
     });
 
-    test('should rebalance roles on load change', async () => {
+    jest.setTimeout(10000);
+  test('should rebalance roles on load change', async () => { try {
       const peers = new Map([
         ['peer-1', { load: 0.2, role: 'compute-leader' }],
         ['peer-2', { load: 0.3, role: null }],

@@ -370,7 +370,7 @@ describe('Installation Comprehensive Test Suite', () => {
     tester = new InstallationTester();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await tester.cleanup();
   });
 
@@ -391,11 +391,11 @@ describe('Installation Comprehensive Test Suite', () => {
     let testDir;
     let installResult;
 
-    beforeAll(async () => {
+    beforeAll(async () => { try {
       testDir = await tester.createTestDir('fresh-install');
     }, INSTALL_TIMEOUT);
 
-    it('should complete installation within 5 minutes', async () => {
+    it('should complete installation within 5 minutes', async () => { try {
       const startTime = performance.now();
 
       // Create package.json
@@ -413,12 +413,12 @@ describe('Installation Comprehensive Test Suite', () => {
       expect(installResult.installTime).toBeLessThan(5);
     }, INSTALL_TIMEOUT);
 
-    it('should run init successfully', async () => {
+    it('should run init successfully', async () => { try {
       const initResult = await tester.runInit(testDir, ['--force']);
       expect(initResult.success).toBe(true);
     }, 60000);
 
-    it('should create all required files', async () => {
+    it('should create all required files', async () => { try {
       const verification = await tester.verifyInstallation(testDir);
 
       expect(Object.values(verification.files).every(v => v)).toBe(true);
@@ -426,7 +426,7 @@ describe('Installation Comprehensive Test Suite', () => {
       expect(verification.errors).toHaveLength(0);
     });
 
-    it('should have valid template content', async () => {
+    it('should have valid template content', async () => { try {
       const templates = await tester.verifyTemplates(testDir);
 
       for (const [file, result] of Object.entries(templates)) {
@@ -435,7 +435,7 @@ describe('Installation Comprehensive Test Suite', () => {
       }
     });
 
-    it('should configure fallback when Redis unavailable', async () => {
+    it('should configure fallback when Redis unavailable', async () => { try {
       const redisConfig = await tester.testRedisConfiguration(testDir);
 
       // Should have configuration even if Redis is not available
@@ -447,7 +447,7 @@ describe('Installation Comprehensive Test Suite', () => {
     let testDir;
     let redisAvailable;
 
-    beforeAll(async () => {
+    beforeAll(async () => { try {
       testDir = await tester.createTestDir('with-redis');
       redisAvailable = await tester.isRedisAvailable();
     }, INSTALL_TIMEOUT);
@@ -457,7 +457,7 @@ describe('Installation Comprehensive Test Suite', () => {
       expect(typeof redisAvailable).toBe('boolean');
     });
 
-    it('should configure Redis when available', async () => {
+    it('should configure Redis when available', async () => { try {
       if (!redisAvailable) {
         console.log('⏭️  Skipping Redis configuration test (Redis not available)');
         return;
@@ -480,11 +480,11 @@ describe('Installation Comprehensive Test Suite', () => {
   describe('Error Handling', () => {
     let testDir;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       testDir = await tester.createTestDir('error-handling');
     });
 
-    it('should handle missing package.json gracefully', async () => {
+    it('should handle missing package.json gracefully', async () => { try {
       try {
         await tester.installPackage(testDir);
         // Should create package.json automatically or fail gracefully
@@ -493,7 +493,7 @@ describe('Installation Comprehensive Test Suite', () => {
       }
     }, 60000);
 
-    it('should handle invalid configuration gracefully', async () => {
+    it('should handle invalid configuration gracefully', async () => { try {
       await fs.writeFile(
         path.join(testDir, 'package.json'),
         'invalid json content'
@@ -506,7 +506,7 @@ describe('Installation Comprehensive Test Suite', () => {
       }
     }, 60000);
 
-    it('should provide clear error messages', async () => {
+    it('should provide clear error messages', async () => { try {
       await fs.writeFile(
         path.join(testDir, 'package.json'),
         JSON.stringify({ name: 'test', version: '1.0.0' }, null, 2)
@@ -543,7 +543,7 @@ describe('Installation Comprehensive Test Suite', () => {
       }
     });
 
-    it('should work in platform-specific temp directory', async () => {
+    it('should work in platform-specific temp directory', async () => { try {
       const tempDir = os.tmpdir();
       expect(tempDir).toBeDefined();
 
@@ -555,7 +555,7 @@ describe('Installation Comprehensive Test Suite', () => {
   describe('Performance Validation', () => {
     let testDir;
 
-    beforeAll(async () => {
+    beforeAll(async () => { try {
       testDir = await tester.createTestDir('performance');
 
       await fs.writeFile(
@@ -564,7 +564,7 @@ describe('Installation Comprehensive Test Suite', () => {
       );
     }, INSTALL_TIMEOUT);
 
-    it('should complete full installation cycle within 5 minutes', async () => {
+    it('should complete full installation cycle within 5 minutes', async () => { try {
       const startTime = performance.now();
 
       // Install package
@@ -583,7 +583,7 @@ describe('Installation Comprehensive Test Suite', () => {
       console.log(`\n⏱️  Total installation time: ${totalTime.toFixed(2)} minutes`);
     }, INSTALL_TIMEOUT);
 
-    it('should have minimal file system operations', async () => {
+    it('should have minimal file system operations', async () => { try {
       const verification = await tester.verifyInstallation(testDir);
 
       const totalFiles = Object.keys(verification.files).length;
@@ -600,7 +600,7 @@ describe('Installation Comprehensive Test Suite', () => {
   describe('Setup Wizard Validation', () => {
     let testDir;
 
-    beforeAll(async () => {
+    beforeAll(async () => { try {
       testDir = await tester.createTestDir('wizard');
 
       await fs.writeFile(
@@ -609,21 +609,21 @@ describe('Installation Comprehensive Test Suite', () => {
       );
     });
 
-    it('should support minimal installation flag', async () => {
+    it('should support minimal installation flag', async () => { try {
       await tester.installPackage(testDir);
       const initResult = await tester.runInit(testDir, ['--minimal', '--force']);
 
       expect(initResult.success).toBe(true);
     }, INSTALL_TIMEOUT);
 
-    it('should support force flag', async () => {
+    it('should support force flag', async () => { try {
       // Run init again with force flag
       const initResult = await tester.runInit(testDir, ['--force']);
 
       expect(initResult.success).toBe(true);
     }, 60000);
 
-    it('should support dry-run flag', async () => {
+    it('should support dry-run flag', async () => { try {
       const testDirDryRun = await tester.createTestDir('dry-run');
 
       await fs.writeFile(
@@ -642,7 +642,7 @@ describe('Installation Comprehensive Test Suite', () => {
   describe('Recovery and Rollback', () => {
     let testDir;
 
-    beforeAll(async () => {
+    beforeAll(async () => { try {
       testDir = await tester.createTestDir('recovery');
 
       await fs.writeFile(
@@ -651,7 +651,7 @@ describe('Installation Comprehensive Test Suite', () => {
       );
     });
 
-    it('should handle interrupted installation', async () => {
+    it('should handle interrupted installation', async () => { try {
       await tester.installPackage(testDir);
 
       // Simulate interrupted init by creating partial files
@@ -665,7 +665,7 @@ describe('Installation Comprehensive Test Suite', () => {
       expect(initResult.success).toBe(true);
     }, INSTALL_TIMEOUT);
 
-    it('should validate installation after recovery', async () => {
+    it('should validate installation after recovery', async () => { try {
       const verification = await tester.verifyInstallation(testDir);
 
       expect(verification.errors).toHaveLength(0);

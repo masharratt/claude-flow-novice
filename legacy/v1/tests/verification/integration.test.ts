@@ -18,7 +18,7 @@ describe('CRDT Verification Integration', () => {
   let conflictResolver: CRDTConflictResolver;
   let tempDir: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'crdt-test-'));
 
     coordinator = new CRDTVerificationCoordinator({
@@ -56,14 +56,14 @@ describe('CRDT Verification Integration', () => {
     conflictResolver = new CRDTConflictResolver('test-node');
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await coordinator.shutdown();
     await memoryManager.shutdown();
     await fs.rm(tempDir, { recursive: true, force: true });
   });
 
   describe('Memory Management Tests', () => {
-    it('should store and retrieve CRDT states correctly', async () => {
+    it('should store and retrieve CRDT states correctly', async () => { try {
       const verification = new VerificationCRDT('test-agent', {
         id: 'test-1',
         agentId: 'test-agent',
@@ -83,7 +83,7 @@ describe('CRDT Verification Integration', () => {
       expect(retrieved!.toReport().metrics.get('performance')).toBe(95);
     });
 
-    it('should handle agent termination and cleanup', async () => {
+    it('should handle agent termination and cleanup', async () => { try {
       const agentId = 'terminating-agent';
       const verification = new VerificationCRDT(agentId);
 
@@ -102,13 +102,13 @@ describe('CRDT Verification Integration', () => {
       expect(statsAfter.activeAgents).toBe(0);
 
       // State should be cleaned up after some time
-      setTimeout(async () => {
+      setTimeout(async () => { try {
         const retrieved = await memoryManager.getState(`${agentId}-state`);
         expect(retrieved).toBeNull();
       }, 100);
     });
 
-    it('should persist states to disk when enabled', async () => {
+    it('should persist states to disk when enabled', async () => { try {
       const verification = new VerificationCRDT('persistent-agent');
       verification.updateStatus('passed');
       verification.updateMetric('score', 88, ['test-node']);
@@ -120,7 +120,7 @@ describe('CRDT Verification Integration', () => {
       expect(persistedFiles.some(file => file.includes('persistent-key'))).toBe(true);
     });
 
-    it('should validate resource cleanup', async () => {
+    it('should validate resource cleanup', async () => { try {
       // Create multiple states
       for (let i = 0; i < 5; i++) {
         const verification = new VerificationCRDT(`agent-${i}`);
@@ -138,7 +138,7 @@ describe('CRDT Verification Integration', () => {
       expect(validation.memoryLeaks.length).toBe(0);
     });
 
-    it('should handle memory pressure correctly', async () => {
+    it('should handle memory pressure correctly', async () => { try {
       // Fill memory with many states
       const states = [];
       for (let i = 0; i < 50; i++) {
@@ -152,7 +152,7 @@ describe('CRDT Verification Integration', () => {
       expect(stats.totalStates).toBe(50);
     });
 
-    it('should create and restore backups', async () => {
+    it('should create and restore backups', async () => { try {
       // Create some test states
       const verification1 = new VerificationCRDT('backup-agent-1');
       const verification2 = new VerificationCRDT('backup-agent-2');
@@ -207,7 +207,7 @@ describe('CRDT Verification Integration', () => {
   });
 
   describe('Distributed Synchronization Tests', () => {
-    it('should synchronize states across multiple nodes', async () => {
+    it('should synchronize states across multiple nodes', async () => { try {
       const report1: VerificationReport = {
         id: 'sync-test-1',
         agentId: 'sync-agent',
@@ -229,7 +229,7 @@ describe('CRDT Verification Integration', () => {
       expect(status.totalStates).toBeGreaterThan(0);
     });
 
-    it('should merge conflicting verification reports', async () => {
+    it('should merge conflicting verification reports', async () => { try {
       const conflictingReports: VerificationReport[] = [
         {
           id: 'conflict-1',
@@ -270,7 +270,7 @@ describe('CRDT Verification Integration', () => {
       expect(merged.metrics.get('score')).toBeGreaterThan(0);
     });
 
-    it('should handle network partitions gracefully', async () => {
+    it('should handle network partitions gracefully', async () => { try {
       // Simulate network partition by processing reports without sync
       const report1: VerificationReport = {
         id: 'partition-1',
@@ -304,7 +304,7 @@ describe('CRDT Verification Integration', () => {
   });
 
   describe('Conflict Resolution Tests', () => {
-    it('should resolve performance benchmark conflicts', async () => {
+    it('should resolve performance benchmark conflicts', async () => { try {
       const benchmarkResults = new Map([
         ['cpu-benchmark', [
           {
@@ -376,7 +376,7 @@ describe('CRDT Verification Integration', () => {
       expect(resolvedBenchmark!.metadata.configuration.resolution).toBeTruthy();
     });
 
-    it('should handle statistical outliers in benchmark results', async () => {
+    it('should handle statistical outliers in benchmark results', async () => { try {
       const benchmarkResults = new Map([
         ['outlier-test', Array.from({ length: 10 }, (_, i) => ({
           benchmarkId: 'outlier-test',
@@ -407,7 +407,7 @@ describe('CRDT Verification Integration', () => {
       expect(resolvedBenchmark!.metrics.executionTime).toBeLessThan(2000);
     });
 
-    it('should use appropriate resolution strategies based on conflict type', async () => {
+    it('should use appropriate resolution strategies based on conflict type', async () => { try {
       // Environment conflicts
       const envConflicts = new Map([
         ['env-test', [
@@ -439,7 +439,7 @@ describe('CRDT Verification Integration', () => {
   });
 
   describe('End-to-End Integration Tests', () => {
-    it('should handle complete verification workflow', async () => {
+    it('should handle complete verification workflow', async () => { try {
       // 1. Multiple agents report verification results
       const reports: VerificationReport[] = [
         {
@@ -491,7 +491,7 @@ describe('CRDT Verification Integration', () => {
       expect(merged.id).toContain('merged');
     });
 
-    it('should maintain consistency under concurrent operations', async () => {
+    it('should maintain consistency under concurrent operations', async () => { try {
       const concurrentReports = Array.from({ length: 20 }, (_, i) => ({
         id: `concurrent-${i}`,
         agentId: `agent-${i % 5}`, // 5 different agents
@@ -514,7 +514,7 @@ describe('CRDT Verification Integration', () => {
       expect(finalStatus.consensusMetrics).toBe(20);
     });
 
-    it('should recover gracefully from failures', async () => {
+    it('should recover gracefully from failures', async () => { try {
       const report: VerificationReport = {
         id: 'recovery-test',
         agentId: 'failing-agent',
@@ -538,7 +538,7 @@ describe('CRDT Verification Integration', () => {
   });
 
   describe('Performance Tests', () => {
-    it('should handle high-volume verification reports', async () => {
+    it('should handle high-volume verification reports', async () => { try {
       const startTime = Date.now();
       const reportCount = 1000;
 
@@ -571,7 +571,7 @@ describe('CRDT Verification Integration', () => {
       expect(status.consensusMetrics).toBe(reportCount);
     });
 
-    it('should maintain memory efficiency', async () => {
+    it('should maintain memory efficiency', async () => { try {
       const initialMemory = process.memoryUsage().heapUsed;
 
       // Create many verification states
@@ -594,4 +594,4 @@ describe('CRDT Verification Integration', () => {
       expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024); // Less than 50MB increase
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -37,7 +37,7 @@ describe('CLI Agent Context Builder', () => {
   });
 
   describe('buildCLIAgentSystemPrompt', () => {
-    it('should build basic system prompt with agent type only', async () => {
+    it('should build basic system prompt with agent type only', async () => { try {
       // Mock fs.readFile to fail (no CLAUDE.md, no agent template)
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
@@ -52,7 +52,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('CLI-spawned agent');
     });
 
-    it('should include CLAUDE.md when available', async () => {
+    it('should include CLAUDE.md when available', async () => { try {
       const claudeMd = '# Test Project Rules\nRule 1\nRule 2';
 
       mockFs.readFile.mockImplementation((path: any) => {
@@ -73,7 +73,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('Rule 1');
     });
 
-    it('should include agent markdown template when available', async () => {
+    it('should include agent markdown template when available', async () => { try {
       const agentTemplate = '# Researcher Agent\n\nCore responsibilities:\n- Research\n- Analysis';
 
       mockFs.readFile.mockImplementation((path: any) => {
@@ -94,7 +94,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('Core responsibilities');
     });
 
-    it('should format epic context from JSON to natural language', async () => {
+    it('should format epic context from JSON to natural language', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const epicContext: EpicContext = {
@@ -122,7 +122,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('**Risk Profile:** medium');
     });
 
-    it('should format phase context from JSON to natural language', async () => {
+    it('should format phase context from JSON to natural language', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const phaseContext: PhaseContext = {
@@ -148,7 +148,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('- Working authentication');
     });
 
-    it('should format success criteria from JSON to natural language', async () => {
+    it('should format success criteria from JSON to natural language', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const successCriteria: SuccessCriteria = {
@@ -186,7 +186,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('- Performance Budget: 200ms');
     });
 
-    it('should include iteration context for iteration > 1', async () => {
+    it('should include iteration context for iteration > 1', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const options: ContextBuilderOptions = {
@@ -203,7 +203,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('Address feedback from previous iterations');
     });
 
-    it('should not include iteration context for iteration 1', async () => {
+    it('should not include iteration context for iteration 1', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const options: ContextBuilderOptions = {
@@ -217,7 +217,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).not.toContain('## Current Iteration');
     });
 
-    it('should handle malformed JSON gracefully', async () => {
+    it('should handle malformed JSON gracefully', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const options: ContextBuilderOptions = {
@@ -234,7 +234,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('Execution Instructions');
     });
 
-    it('should handle nil Redis values gracefully', async () => {
+    it('should handle nil Redis values gracefully', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const options: ContextBuilderOptions = {
@@ -253,7 +253,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).not.toContain('## Success Criteria');
     });
 
-    it('should build complete prompt with all sections', async () => {
+    it('should build complete prompt with all sections', async () => { try {
       const claudeMd = '# Project Rules\nRule 1';
       const agentTemplate = '# Researcher\nResponsibilities';
 
@@ -353,7 +353,7 @@ describe('CLI Agent Context Builder', () => {
   });
 
   describe('Epic Context Formatting', () => {
-    it('should format epic with phases', async () => {
+    it('should format epic with phases', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const epicContext: EpicContext = {
@@ -374,7 +374,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('3. Phase 3: Testing');
     });
 
-    it('should format epic with stakeholders', async () => {
+    it('should format epic with stakeholders', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const epicContext: EpicContext = {
@@ -392,7 +392,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('**Stakeholders:** Product Manager, Tech Lead, Security Team');
     });
 
-    it('should format epic with timeline', async () => {
+    it('should format epic with timeline', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const epicContext: EpicContext = {
@@ -424,7 +424,7 @@ describe('CLI Agent Context Builder', () => {
   });
 
   describe('Phase Context Formatting', () => {
-    it('should format phase with blockers', async () => {
+    it('should format phase with blockers', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const phaseContext: PhaseContext = {
@@ -444,7 +444,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('- Database migration pending');
     });
 
-    it('should format phase with resources', async () => {
+    it('should format phase with resources', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const phaseContext: PhaseContext = {
@@ -471,7 +471,7 @@ describe('CLI Agent Context Builder', () => {
   });
 
   describe('Success Criteria Formatting', () => {
-    it('should format success criteria with definition of done', async () => {
+    it('should format success criteria with definition of done', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const successCriteria: SuccessCriteria = {
@@ -495,7 +495,7 @@ describe('CLI Agent Context Builder', () => {
       expect(result).toContain('- [ ] Documentation complete');
     });
 
-    it('should format success criteria with non-functional requirements', async () => {
+    it('should format success criteria with non-functional requirements', async () => { try {
       mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
       const successCriteria: SuccessCriteria = {

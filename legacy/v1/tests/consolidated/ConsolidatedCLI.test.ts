@@ -9,7 +9,7 @@ import { UserTier } from '../../src/cli/consolidated/core/TierManager.js';
 describe('ConsolidatedCLI', () => {
   let cli: ConsolidatedCLI;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     cli = await createConsolidatedCLI({
       enablePerformanceOptimization: false, // Disable for testing
       debugMode: true
@@ -18,7 +18,7 @@ describe('ConsolidatedCLI', () => {
 
   describe('Core Command Tests', () => {
     describe('init command', () => {
-      it('should initialize a new project with intelligent defaults', async () => {
+      it('should initialize a new project with intelligent defaults', async () => { try {
         const result = await cli.execute('init', ['web-app']);
 
         expect(result.success).toBe(true);
@@ -27,14 +27,14 @@ describe('ConsolidatedCLI', () => {
         expect(result.nextSteps.length).toBeGreaterThan(0);
       });
 
-      it('should handle natural language project descriptions', async () => {
+      it('should handle natural language project descriptions', async () => { try {
         const result = await cli.execute('init', ['todo app with React']);
 
         expect(result.success).toBe(true);
         expect(result.message).toContain('Successfully initialized');
       });
 
-      it('should provide helpful error messages for invalid input', async () => {
+      it('should provide helpful error messages for invalid input', async () => { try {
         // Mock file system errors
         const result = await cli.execute('init', [], { skipGit: true });
 
@@ -47,14 +47,14 @@ describe('ConsolidatedCLI', () => {
     });
 
     describe('build command', () => {
-      it('should analyze and execute build tasks', async () => {
+      it('should analyze and execute build tasks', async () => { try {
         const result = await cli.execute('build', ['add user authentication']);
 
         expect(result.success).toBe(true);
         expect(result.message).toBeDefined();
       });
 
-      it('should handle complex feature requests', async () => {
+      it('should handle complex feature requests', async () => { try {
         const result = await cli.execute('build', [
           'create REST API with JWT authentication and PostgreSQL database'
         ]);
@@ -64,7 +64,7 @@ describe('ConsolidatedCLI', () => {
         expect(result.data.analysis).toBeDefined();
       });
 
-      it('should support dry-run mode', async () => {
+      it('should support dry-run mode', async () => { try {
         const result = await cli.execute('build', ['add user login'], { 'dry-run': true });
 
         expect(result.success).toBe(true);
@@ -72,7 +72,7 @@ describe('ConsolidatedCLI', () => {
         expect(result.data.analysis).toBeDefined();
       });
 
-      it('should provide suggestions for vague requests', async () => {
+      it('should provide suggestions for vague requests', async () => { try {
         const result = await cli.execute('build', []);
 
         expect(result.success).toBe(false);
@@ -82,21 +82,21 @@ describe('ConsolidatedCLI', () => {
     });
 
     describe('status command', () => {
-      it('should return project and system status', async () => {
+      it('should return project and system status', async () => { try {
         const result = await cli.execute('status');
 
         expect(result.success).toBe(true);
         expect(result.message).toContain('Status check completed');
       });
 
-      it('should support detailed status output', async () => {
+      it('should support detailed status output', async () => { try {
         const result = await cli.execute('status', [], { detailed: true });
 
         expect(result.success).toBe(true);
         // Should include more detailed information in detailed mode
       });
 
-      it('should support JSON output format', async () => {
+      it('should support JSON output format', async () => { try {
         const result = await cli.execute('status', [], { format: 'json' });
 
         expect(result.success).toBe(true);
@@ -107,7 +107,7 @@ describe('ConsolidatedCLI', () => {
     });
 
     describe('help command', () => {
-      it('should display general help information', async () => {
+      it('should display general help information', async () => { try {
         const result = await cli.execute('help');
 
         expect(result.success).toBe(true);
@@ -115,21 +115,21 @@ describe('ConsolidatedCLI', () => {
         expect(result.nextSteps.length).toBeGreaterThan(0);
       });
 
-      it('should provide command-specific help', async () => {
+      it('should provide command-specific help', async () => { try {
         const result = await cli.execute('help', ['build']);
 
         expect(result.success).toBe(true);
         expect(result.message).toBeDefined();
       });
 
-      it('should handle help for unknown commands', async () => {
+      it('should handle help for unknown commands', async () => { try {
         const result = await cli.execute('help', ['nonexistent-command']);
 
         expect(result.success).toBe(false);
         expect(result.suggestions).toBeDefined();
       });
 
-      it('should show new features when requested', async () => {
+      it('should show new features when requested', async () => { try {
         const result = await cli.execute('help', [], { 'new-features': true });
 
         expect(result.success).toBe(true);
@@ -138,7 +138,7 @@ describe('ConsolidatedCLI', () => {
     });
 
     describe('learn command', () => {
-      it('should display learning dashboard', async () => {
+      it('should display learning dashboard', async () => { try {
         const result = await cli.execute('learn');
 
         expect(result.success).toBe(true);
@@ -146,14 +146,14 @@ describe('ConsolidatedCLI', () => {
         expect(result.nextSteps).toBeDefined();
       });
 
-      it('should provide topic-specific learning', async () => {
+      it('should provide topic-specific learning', async () => { try {
         const result = await cli.execute('learn', ['agents']);
 
         expect(result.success).toBe(true);
         expect(result.message).toContain('Learning: AI Agents');
       });
 
-      it('should handle unknown learning topics', async () => {
+      it('should handle unknown learning topics', async () => { try {
         const result = await cli.execute('learn', ['unknown-topic']);
 
         expect(result.success).toBe(false);
@@ -174,7 +174,7 @@ describe('ConsolidatedCLI', () => {
       expect(status.availableCommands).toBe(5);
     });
 
-    it('should record command usage for tier progression', async () => {
+    it('should record command usage for tier progression', async () => { try {
       const initialStatus = cli.getStatus();
 
       // Execute several commands
@@ -189,21 +189,21 @@ describe('ConsolidatedCLI', () => {
   });
 
   describe('Natural Language Processing Tests', () => {
-    it('should interpret natural language commands', async () => {
+    it('should interpret natural language commands', async () => { try {
       const result = await cli.execute('create a todo app with React and TypeScript');
 
       expect(result.success).toBe(true);
       // Should be interpreted as an init or build command
     });
 
-    it('should handle complex natural language requests', async () => {
+    it('should handle complex natural language requests', async () => { try {
       const result = await cli.execute('build me a REST API with authentication using JWT tokens');
 
       expect(result.success).toBe(true);
       expect(result.message).toBeDefined();
     });
 
-    it('should provide feedback on interpretation confidence', async () => {
+    it('should provide feedback on interpretation confidence', async () => { try {
       const result = await cli.execute('maybe add something to the project');
 
       // Low confidence should be handled gracefully
@@ -213,7 +213,7 @@ describe('ConsolidatedCLI', () => {
       }
     });
 
-    it('should fallback to suggestions for unclear input', async () => {
+    it('should fallback to suggestions for unclear input', async () => { try {
       const result = await cli.execute('xyz abc 123');
 
       expect(result.success).toBe(false);
@@ -223,7 +223,7 @@ describe('ConsolidatedCLI', () => {
   });
 
   describe('Command Routing Tests', () => {
-    it('should handle command aliases', async () => {
+    it('should handle command aliases', async () => { try {
       const initResult = await cli.execute('initialize', ['test-project']);
       const createResult = await cli.execute('create', ['test-project']);
 
@@ -231,7 +231,7 @@ describe('ConsolidatedCLI', () => {
       expect(initResult.success || createResult.success).toBe(true);
     });
 
-    it('should provide suggestions for similar commands', async () => {
+    it('should provide suggestions for similar commands', async () => { try {
       const result = await cli.execute('biuld', ['something']); // Typo
 
       expect(result.success).toBe(false);
@@ -239,7 +239,7 @@ describe('ConsolidatedCLI', () => {
       expect(result.suggestions).toContain(expect.stringMatching(/build/i));
     });
 
-    it('should handle backward compatibility for legacy commands', async () => {
+    it('should handle backward compatibility for legacy commands', async () => { try {
       const result = await cli.execute('sparc', ['tdd', 'implement feature']);
 
       // Should either work or provide clear migration guidance
@@ -251,7 +251,7 @@ describe('ConsolidatedCLI', () => {
   });
 
   describe('Performance Tests', () => {
-    it('should execute commands within performance targets', async () => {
+    it('should execute commands within performance targets', async () => { try {
       const startTime = performance.now();
 
       await cli.execute('status');
@@ -260,7 +260,7 @@ describe('ConsolidatedCLI', () => {
       expect(executionTime).toBeLessThan(2000); // 2 second target
     });
 
-    it('should handle concurrent command execution', async () => {
+    it('should handle concurrent command execution', async () => { try {
       const promises = [
         cli.execute('status'),
         cli.execute('help'),
@@ -275,7 +275,7 @@ describe('ConsolidatedCLI', () => {
       });
     });
 
-    it('should cache frequently used data', async () => {
+    it('should cache frequently used data', async () => { try {
       // Execute same command twice
       const result1 = await cli.execute('status');
       const result2 = await cli.execute('status');
@@ -289,7 +289,7 @@ describe('ConsolidatedCLI', () => {
   });
 
   describe('Error Handling Tests', () => {
-    it('should handle invalid command gracefully', async () => {
+    it('should handle invalid command gracefully', async () => { try {
       const result = await cli.execute('invalid-command');
 
       expect(result.success).toBe(false);
@@ -297,7 +297,7 @@ describe('ConsolidatedCLI', () => {
       expect(result.suggestions).toBeDefined();
     });
 
-    it('should handle execution errors gracefully', async () => {
+    it('should handle execution errors gracefully', async () => { try {
       // Mock an execution error scenario
       const result = await cli.execute('build', ['invalid input that causes error']);
 
@@ -308,7 +308,7 @@ describe('ConsolidatedCLI', () => {
       }
     });
 
-    it('should provide helpful error recovery suggestions', async () => {
+    it('should provide helpful error recovery suggestions', async () => { try {
       const result = await cli.execute('nonexistent');
 
       expect(result.success).toBe(false);
@@ -318,14 +318,14 @@ describe('ConsolidatedCLI', () => {
   });
 
   describe('Configuration Tests', () => {
-    it('should respect debug mode configuration', async () => {
+    it('should respect debug mode configuration', async () => { try {
       const debugCli = await createConsolidatedCLI({ debugMode: true });
       const result = await debugCli.execute('status');
 
       expect(result.data?.debug).toBeDefined();
     });
 
-    it('should handle disabled natural language processing', async () => {
+    it('should handle disabled natural language processing', async () => { try {
       const noCli = await createConsolidatedCLI({ enableNaturalLanguage: false });
       const result = await noCli.execute('create something cool');
 
@@ -334,7 +334,7 @@ describe('ConsolidatedCLI', () => {
       expect(result.message).toContain('Natural language processing is disabled');
     });
 
-    it('should handle disabled backward compatibility', async () => {
+    it('should handle disabled backward compatibility', async () => { try {
       const strictCli = await createConsolidatedCLI({ enableBackwardCompatibility: false });
       const result = await strictCli.execute('sparc', ['tdd']);
 
@@ -344,7 +344,7 @@ describe('ConsolidatedCLI', () => {
   });
 
   describe('Integration Tests', () => {
-    it('should handle a complete workflow', async () => {
+    it('should handle a complete workflow', async () => { try {
       // Simulate a complete user workflow
       const initResult = await cli.execute('init', ['todo-app']);
       expect(initResult.success).toBe(true);
@@ -356,7 +356,7 @@ describe('ConsolidatedCLI', () => {
       expect(statusResult.success).toBe(true);
     });
 
-    it('should maintain state across commands', async () => {
+    it('should maintain state across commands', async () => { try {
       await cli.execute('init', ['test-project']);
       const statusAfterInit = await cli.execute('status');
 
@@ -364,7 +364,7 @@ describe('ConsolidatedCLI', () => {
       // Status should reflect the initialized project
     });
 
-    it('should handle help requests during workflow', async () => {
+    it('should handle help requests during workflow', async () => { try {
       await cli.execute('init', ['test-project']);
       const helpResult = await cli.execute('help', ['build']);
 
@@ -374,7 +374,7 @@ describe('ConsolidatedCLI', () => {
   });
 
   describe('Version and System Tests', () => {
-    it('should handle version requests', async () => {
+    it('should handle version requests', async () => { try {
       const result = await cli.execute('version');
 
       expect(result.success).toBe(true);
@@ -382,14 +382,14 @@ describe('ConsolidatedCLI', () => {
       expect(result.data.version).toBeDefined();
     });
 
-    it('should handle --version flag', async () => {
+    it('should handle --version flag', async () => { try {
       const result = await cli.execute('--version');
 
       expect(result.success).toBe(true);
       expect(result.data.version).toBeDefined();
     });
 
-    it('should show system capabilities in version info', async () => {
+    it('should show system capabilities in version info', async () => { try {
       const result = await cli.execute('version');
 
       expect(result.data.features).toBeDefined();
@@ -398,21 +398,21 @@ describe('ConsolidatedCLI', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle empty command', async () => {
+    it('should handle empty command', async () => { try {
       const result = await cli.execute('');
 
       expect(result.success).toBe(false);
       expect(result.suggestions).toBeDefined();
     });
 
-    it('should handle command with only whitespace', async () => {
+    it('should handle command with only whitespace', async () => { try {
       const result = await cli.execute('   ');
 
       expect(result.success).toBe(false);
       expect(result.suggestions).toBeDefined();
     });
 
-    it('should handle very long command descriptions', async () => {
+    it('should handle very long command descriptions', async () => { try {
       const longDescription = 'build ' + 'a'.repeat(1000);
       const result = await cli.execute(longDescription);
 
@@ -420,7 +420,7 @@ describe('ConsolidatedCLI', () => {
       // Should handle gracefully without crashing
     });
 
-    it('should handle special characters in commands', async () => {
+    it('should handle special characters in commands', async () => { try {
       const result = await cli.execute('build', ['add @user/profile with #hashtags']);
 
       expect(result).toBeDefined();
@@ -430,12 +430,12 @@ describe('ConsolidatedCLI', () => {
 });
 
 describe('CLI Factory Function', () => {
-  it('should create CLI with default config', async () => {
+  it('should create CLI with default config', async () => { try {
     const cli = await createConsolidatedCLI();
     expect(cli).toBeInstanceOf(ConsolidatedCLI);
   });
 
-  it('should create CLI with custom config', async () => {
+  it('should create CLI with custom config', async () => { try {
     const cli = await createConsolidatedCLI({
       enablePerformanceOptimization: false,
       debugMode: true
@@ -444,7 +444,7 @@ describe('CLI Factory Function', () => {
     expect(cli).toBeInstanceOf(ConsolidatedCLI);
   });
 
-  it('should warm up system during creation', async () => {
+  it('should warm up system during creation', async () => { try {
     const startTime = performance.now();
     const cli = await createConsolidatedCLI();
     const createTime = performance.now() - startTime;
@@ -457,7 +457,7 @@ describe('CLI Factory Function', () => {
 
 // Performance and Load Testing
 describe('Performance Tests', () => {
-  it('should handle rapid command execution', async () => {
+  it('should handle rapid command execution', async () => { try {
     const cli = await createConsolidatedCLI({ enablePerformanceOptimization: true });
 
     const commands = Array(10).fill('status');
@@ -476,7 +476,7 @@ describe('Performance Tests', () => {
     });
   });
 
-  it('should maintain performance under load', async () => {
+  it('should maintain performance under load', async () => { try {
     const cli = await createConsolidatedCLI({ enablePerformanceOptimization: true });
 
     const heavyCommands = [

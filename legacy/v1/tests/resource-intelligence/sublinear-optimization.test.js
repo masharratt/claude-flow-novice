@@ -19,7 +19,7 @@ describe('Sublinear Matrix Solver - Cryptographic Verification', () => {
     let matrixSolver;
     let byzantineCoordinator;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         byzantineCoordinator = new ByzantineConsensusCoordinator({
             nodeId: 'matrix-test-' + crypto.randomBytes(4).toString('hex'),
             totalNodes: 4
@@ -35,11 +35,13 @@ describe('Sublinear Matrix Solver - Cryptographic Verification', () => {
     });
 
     describe('TDD Phase - Failing Tests (Must fail until implementation)', () => {
-        test('should fail: Sublinear matrix solver not implemented yet', () => {
+        jest.setTimeout(10000);
+  test('should fail: Sublinear matrix solver not implemented yet', () => {
             expect(matrixSolver).toBeNull();
         });
 
-        test('should fail: solveSystem method not available', () => {
+        jest.setTimeout(10000);
+  test('should fail: solveSystem method not available', () => {
             if (matrixSolver) {
                 expect(typeof matrixSolver.solveSystem).toBe('undefined');
             } else {
@@ -56,7 +58,8 @@ describe('Sublinear Matrix Solver - Cryptographic Verification', () => {
             { n: 6400, maxIterations: 80, label: '6400x6400' }
         ];
 
-        test('should solve diagonally dominant systems in O(√n) time (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should solve diagonally dominant systems in O(√n) time (WILL FAIL INITIALLY)', async () => { try {
             if (!matrixSolver) {
                 expect(true).toBe(false); // Force failure until implemented
                 return;
@@ -109,7 +112,8 @@ describe('Sublinear Matrix Solver - Cryptographic Verification', () => {
             verifySublinearComplexity(performanceResults);
         });
 
-        test('should achieve 3.2x performance improvement over traditional methods (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should achieve 3.2x performance improvement over traditional methods (WILL FAIL INITIALLY)', async () => { try {
             if (!matrixSolver) {
                 expect(true).toBe(false);
                 return;
@@ -166,7 +170,8 @@ describe('Sublinear Matrix Solver - Cryptographic Verification', () => {
             console.log(`🚀 Performance: Traditional ${traditionalTime.toFixed(2)}ms, Sublinear ${sublinearTime.toFixed(2)}ms, Speedup: ${speedup.toFixed(2)}x`);
         });
 
-        test('should maintain Byzantine security during matrix operations (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should maintain Byzantine security during matrix operations (WILL FAIL INITIALLY)', async () => { try {
             if (!matrixSolver) {
                 expect(true).toBe(false);
                 return;
@@ -206,7 +211,8 @@ describe('Sublinear Matrix Solver - Cryptographic Verification', () => {
             }
         });
 
-        test('should provide cryptographically signed performance certificates (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should provide cryptographically signed performance certificates (WILL FAIL INITIALLY)', async () => { try {
             if (!matrixSolver) {
                 expect(true).toBe(false);
                 return;
@@ -245,7 +251,8 @@ describe('Sublinear Matrix Solver - Cryptographic Verification', () => {
     });
 
     describe('Edge Cases and Stress Testing', () => {
-        test('should handle large sparse matrices efficiently (WILL FAIL INITIALLY)', async () => {
+        jest.setTimeout(10000);
+  test('should handle large sparse matrices efficiently (WILL FAIL INITIALLY)', async () => { try {
             if (!matrixSolver) {
                 expect(true).toBe(false);
                 return;

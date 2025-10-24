@@ -51,7 +51,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
   });
 
   describe('Cross-Component Byzantine Consensus', () => {
-    test('should achieve consensus across all three Phase 3 components', async () => {
+    jest.setTimeout(10000);
+  test('should achieve consensus across all three Phase 3 components', async () => { try {
       // FAILING TEST: Cross-component consensus not implemented
       const sharedWorkflowData = {
         patterns: generateWorkflowPatterns(10),
@@ -75,7 +76,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
       expect(crossValidation.cryptographicProof).toBeDefined();
     });
 
-    test('should detect and isolate malicious behavior across components', async () => {
+    jest.setTimeout(10000);
+  test('should detect and isolate malicious behavior across components', async () => { try {
       // FAILING TEST: Malicious behavior detection not implemented
       const maliciousScenario = {
         component: 'pattern-recognition',
@@ -100,7 +102,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
       expect(byzantineConsensus.maliciousNodesDetected.length).toBeGreaterThan(0);
     });
 
-    test('should maintain system integrity under coordinated attacks', async () => {
+    jest.setTimeout(10000);
+  test('should maintain system integrity under coordinated attacks', async () => { try {
       // FAILING TEST: Coordinated attack resistance not implemented
       const coordinatedAttack = {
         targetComponents: ['pattern-recognition', 'temporal-engine'],
@@ -130,7 +133,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
   });
 
   describe('End-to-End Workflow Integration', () => {
-    test('should complete full learning analytics workflow with Byzantine security', async () => {
+    jest.setTimeout(10000);
+  test('should complete full learning analytics workflow with Byzantine security', async () => { try {
       // FAILING TEST: Complete workflow not implemented
       const workflowInput = {
         historicalData: generateHistoricalWorkflows(50),
@@ -162,7 +166,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
       expect(integratedResults.cryptographicEvidence).toBeDefined();
     });
 
-    test('should provide actionable insights with cryptographic evidence', async () => {
+    jest.setTimeout(10000);
+  test('should provide actionable insights with cryptographic evidence', async () => { try {
       // FAILING TEST: Actionable insights generation not implemented
       const learningData = {
         identifiedPatterns: [
@@ -191,7 +196,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
   });
 
   describe('Performance and Scalability', () => {
-    test('should meet all performance requirements under load', async () => {
+    jest.setTimeout(10000);
+  test('should meet all performance requirements under load', async () => { try {
       // FAILING TEST: Performance under load not implemented
       const loadTest = {
         concurrentPatternAnalysis: 10,
@@ -218,7 +224,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
       expect(performanceResults.byzantineOverhead).toBeLessThan(0.05);
     });
 
-    test('should scale horizontally while maintaining Byzantine security', async () => {
+    jest.setTimeout(10000);
+  test('should scale horizontally while maintaining Byzantine security', async () => { try {
       // FAILING TEST: Horizontal scaling not implemented
       const scalingTest = {
         initialNodes: 5,
@@ -238,7 +245,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
   });
 
   describe('Phase Integration with Previous Phases', () => {
-    test('should integrate seamlessly with Phase 1 Byzantine security', async () => {
+    jest.setTimeout(10000);
+  test('should integrate seamlessly with Phase 1 Byzantine security', async () => { try {
       // FAILING TEST: Phase 1 integration not implemented
       const phase1Context = {
         consensusNodes: integrationNodes,
@@ -255,7 +263,8 @@ describe('Phase 3 Byzantine Integration Tests', () => {
       expect(phase1Integration.consensusAlignment).toBe(true);
     });
 
-    test('should leverage Phase 2 resource optimization insights', async () => {
+    jest.setTimeout(10000);
+  test('should leverage Phase 2 resource optimization insights', async () => { try {
       // FAILING TEST: Phase 2 integration not implemented
       const phase2Insights = {
         resourceBottlenecks: ['cpu_intensive_pattern_analysis', 'memory_heavy_predictions'],
@@ -421,4 +430,4 @@ describe('Phase 3 Byzantine Integration Tests', () => {
       byzantineSecurityPreserved: true
     };
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -14,7 +14,7 @@ import { transparencyService } from '../../../packages/web-portal/src/server/ser
 describe('Metrics API Endpoint', () => {
   let app: Express;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     app = express();
     app.use(express.json());
     app.use('/api/metrics', metricsRouter);
@@ -24,7 +24,7 @@ describe('Metrics API Endpoint', () => {
   });
 
   describe('GET /api/metrics', () => {
-    it('should return system metrics', async () => {
+    it('should return system metrics', async () => { try {
       const response = await request(app).get('/api/metrics').expect(200);
 
       expect(response.body).toHaveProperty('data');
@@ -37,13 +37,13 @@ describe('Metrics API Endpoint', () => {
       expect(response.body.data).toHaveProperty('eventStreamStats');
     });
 
-    it('should have 10 second cache', async () => {
+    it('should have 10 second cache', async () => { try {
       const response = await request(app).get('/api/metrics').expect(200);
 
       expect(response.headers['cache-control']).toContain('max-age=10');
     });
 
-    it('should return valid metric types', async () => {
+    it('should return valid metric types', async () => { try {
       const response = await request(app).get('/api/metrics').expect(200);
 
       const { data } = response.body;
@@ -54,7 +54,7 @@ describe('Metrics API Endpoint', () => {
       expect(typeof data.hierarchyDepth).toBe('number');
     });
 
-    it('should return event stream statistics', async () => {
+    it('should return event stream statistics', async () => { try {
       const response = await request(app).get('/api/metrics').expect(200);
 
       const { eventStreamStats } = response.body.data;

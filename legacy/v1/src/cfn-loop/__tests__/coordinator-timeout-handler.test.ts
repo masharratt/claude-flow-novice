@@ -75,7 +75,7 @@ describe('CoordinatorTimeoutHandler', () => {
   let timeoutHandler: CoordinatorTimeoutHandler;
   let heartbeatSystem: HeartbeatWarningSystem;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis client
     redis = new Redis(REDIS_CONFIG);
 
@@ -101,7 +101,7 @@ describe('CoordinatorTimeoutHandler', () => {
     heartbeatSystem = new HeartbeatWarningSystem(heartbeatConfig);
   }, TEST_TIMEOUT);
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Stop monitoring
     if (timeoutHandler) {
       timeoutHandler.stopMonitoring();
@@ -172,7 +172,7 @@ describe('CoordinatorTimeoutHandler', () => {
       timeoutHandler = createCoordinatorTimeoutHandler(config);
     });
 
-    it('should record coordinator activity', async () => {
+    it('should record coordinator activity', async () => { try {
       const coordinatorId = 'coordinator-1';
       const iteration = 1;
       const phase = 'test-phase';
@@ -192,7 +192,7 @@ describe('CoordinatorTimeoutHandler', () => {
       expect(activity.lastActivity).toBeGreaterThan(Date.now() - 1000);
     });
 
-    it('should update activity on subsequent recordings', async () => {
+    it('should update activity on subsequent recordings', async () => { try {
       const coordinatorId = 'coordinator-1';
 
       // Record initial activity
@@ -226,7 +226,7 @@ describe('CoordinatorTimeoutHandler', () => {
       timeoutHandler = createCoordinatorTimeoutHandler(config);
     });
 
-    it('should detect timeout when activity exceeds threshold', async () => {
+    it('should detect timeout when activity exceeds threshold', async () => { try {
       const coordinatorId = 'coordinator-timeout';
       const iteration = 1;
 
@@ -251,7 +251,7 @@ describe('CoordinatorTimeoutHandler', () => {
       expect(metrics.timeoutEventsTotal).toBe(1);
     });
 
-    it('should NOT detect timeout when activity is within threshold', async () => {
+    it('should NOT detect timeout when activity is within threshold', async () => { try {
       const coordinatorId = 'coordinator-active';
       const iteration = 1;
 
@@ -267,7 +267,7 @@ describe('CoordinatorTimeoutHandler', () => {
       expect(metrics.timeoutEventsTotal).toBe(0);
     });
 
-    it('should return false when no activity record exists', async () => {
+    it('should return false when no activity record exists', async () => { try {
       const coordinatorId = 'coordinator-unknown';
 
       // Check for timeout (no activity recorded)
@@ -288,7 +288,7 @@ describe('CoordinatorTimeoutHandler', () => {
       timeoutHandler = createCoordinatorTimeoutHandler(config);
     });
 
-    it('should emit coordinator:timeout event on timeout detection', async () => {
+    it('should emit coordinator:timeout event on timeout detection', async () => { try {
       const coordinatorId = 'coordinator-timeout';
       const iteration = 3;
       const phase = 'test-phase';
@@ -338,7 +338,7 @@ describe('CoordinatorTimeoutHandler', () => {
         timeoutHandler = createCoordinatorTimeoutHandler(config);
       });
 
-      it('should cleanup all coordinator state on timeout', async () => {
+      it('should cleanup all coordinator state on timeout', async () => { try {
         const coordinatorId = 'coordinator-cleanup';
 
         // Setup coordinator state in Redis
@@ -366,7 +366,7 @@ describe('CoordinatorTimeoutHandler', () => {
         expect(metrics.cleanupFailures).toBe(0);
       });
 
-      it('should emit cleanup:complete event after successful cleanup', async () => {
+      it('should emit cleanup:complete event after successful cleanup', async () => { try {
         const coordinatorId = 'coordinator-cleanup';
 
         // Setup listener
@@ -386,7 +386,7 @@ describe('CoordinatorTimeoutHandler', () => {
         expect(cleanupEvent.coordinatorId).toBe(coordinatorId);
       });
 
-      it('should emit cleanup:failed event on cleanup error', async () => {
+      it('should emit cleanup:failed event on cleanup error', async () => { try {
         const coordinatorId = 'coordinator-fail';
 
         // Mock Redis to throw error
@@ -431,7 +431,7 @@ describe('CoordinatorTimeoutHandler', () => {
         timeoutHandler = createCoordinatorTimeoutHandler(config);
       });
 
-      it('should delegate cleanup to HeartbeatWarningSystem', async () => {
+      it('should delegate cleanup to HeartbeatWarningSystem', async () => { try {
         const coordinatorId = 'coordinator-integrated';
 
         // Setup coordinator state
@@ -458,7 +458,7 @@ describe('CoordinatorTimeoutHandler', () => {
   });
 
   describe('Automatic Timeout Monitoring', () => {
-    it('should check for timeouts on interval', async () => {
+    it('should check for timeouts on interval', async () => { try {
       const config: CoordinatorTimeoutConfig = {
         redisClient: redis,
         timeoutThreshold: 2000, // 2 seconds
@@ -482,7 +482,7 @@ describe('CoordinatorTimeoutHandler', () => {
       expect(metrics.totalChecks).toBeGreaterThan(0);
     });
 
-    it('should emit monitoring:started event', async () => {
+    it('should emit monitoring:started event', async () => { try {
       const config: CoordinatorTimeoutConfig = {
         redisClient: redis,
         checkInterval: 1000,
@@ -503,7 +503,7 @@ describe('CoordinatorTimeoutHandler', () => {
       timeoutHandler.stopMonitoring();
     });
 
-    it('should emit monitoring:stopped event', async () => {
+    it('should emit monitoring:stopped event', async () => { try {
       const config: CoordinatorTimeoutConfig = {
         redisClient: redis,
         checkInterval: 1000,
@@ -552,7 +552,7 @@ describe('CoordinatorTimeoutHandler', () => {
       timeoutHandler = createCoordinatorTimeoutHandler(config);
     });
 
-    it('should track timeout_events_total metric', async () => {
+    it('should track timeout_events_total metric', async () => { try {
       const coordinatorId = 'coordinator-metrics';
 
       // Record stale activity
@@ -575,7 +575,7 @@ describe('CoordinatorTimeoutHandler', () => {
       expect(metrics.timeoutEventsTotal).toBe(1);
     });
 
-    it('should increment timeout_events_total for multiple timeouts', async () => {
+    it('should increment timeout_events_total for multiple timeouts', async () => { try {
       // Create multiple timed-out coordinators
       for (let i = 1; i <= 3; i++) {
         const coordinatorId = `coordinator-${i}`;
@@ -600,7 +600,7 @@ describe('CoordinatorTimeoutHandler', () => {
       expect(metrics.cleanupsPerformed).toBe(3);
     });
 
-    it('should reset metrics', async () => {
+    it('should reset metrics', async () => { try {
       const coordinatorId = 'coordinator-reset';
 
       // Generate some metrics
@@ -630,7 +630,7 @@ describe('CoordinatorTimeoutHandler', () => {
   });
 
   describe('End-to-End Timeout Flow', () => {
-    it('should detect timeout, emit event, cleanup state, and update metrics', async () => {
+    it('should detect timeout, emit event, cleanup state, and update metrics', async () => { try {
       const config: CoordinatorTimeoutConfig = {
         redisClient: redis,
         timeoutThreshold: 5000,

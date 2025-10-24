@@ -95,7 +95,7 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
   let manager: DualWriteManager;
   let redisQuitInTest = false;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     redisQuitInTest = false;
     redis = new Redis(REDIS_CONFIG);
     await new Promise<void>((resolve, reject) => {
@@ -121,7 +121,7 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
     manager = new DualWriteManager(redis, db);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     db.close();
     // Only quit Redis if it wasn't already quit in the test
     if (!redisQuitInTest && redis.status !== 'end') {
@@ -134,7 +134,7 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
     }
   });
 
-  it('should fallback to SQLite when Redis connection is lost', async () => {
+  it('should fallback to SQLite when Redis connection is lost', async () => { try {
     const key = 'redis-failure-key';
     const value = { test: 'data', critical: true };
 
@@ -149,7 +149,7 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
     expect(retrieved).toEqual(value);
   }, 30000);
 
-  it('should continue writing to SQLite when Redis is unavailable', async () => {
+  it('should continue writing to SQLite when Redis is unavailable', async () => { try {
     // Disconnect Redis
     await redis.quit();
     redisQuitInTest = true;
@@ -166,7 +166,7 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
     expect(JSON.parse(row.value)).toEqual(value);
   }, 30000);
 
-  it('should handle concurrent writes without data loss (WAL mode)', async () => {
+  it('should handle concurrent writes without data loss (WAL mode)', async () => { try {
     const key = 'concurrent-key';
     const writeCount = 50;
 
@@ -182,7 +182,7 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
     expect(typeof finalValue.iteration).toBe('number');
   }, 30000);
 
-  it('should handle database lock contention gracefully', async () => {
+  it('should handle database lock contention gracefully', async () => { try {
     const keys = Array.from({ length: 20 }, (_, i) => `lock-key-${i}`);
 
     // Concurrent writes to different keys
@@ -201,7 +201,7 @@ describe('SQLite Failure Scenarios (Chaos)', () => {
     }
   }, 30000);
 
-  it('should detect and handle SQLite corruption', async () => {
+  it('should detect and handle SQLite corruption', async () => { try {
     const key = 'corruption-test';
 
     // Write valid data

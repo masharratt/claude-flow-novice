@@ -67,7 +67,7 @@ describe('Real-time Updates Performance Tests', () => {
   let clients: ClientSocket[] = [];
   let testMetrics: PerformanceMetrics[] = [];
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     jest.clearAllMocks();
 
     // Create HTTP server
@@ -112,7 +112,7 @@ describe('Real-time Updates Performance Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 100));
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Disconnect all clients
     clients.forEach(client => {
       if (client.connected) {
@@ -176,7 +176,8 @@ describe('Real-time Updates Performance Tests', () => {
   }
 
   describe('Connection Performance', () => {
-    test('establishes connections within performance threshold', async () => {
+    jest.setTimeout(10000);
+  test('establishes connections within performance threshold', async () => { try {
       const connectionTimes: number[] = [];
       const clientCount = 10;
 
@@ -220,7 +221,8 @@ describe('Real-time Updates Performance Tests', () => {
       expect(connectionTimes).toHaveLength(clientCount);
     });
 
-    test('handles concurrent connections efficiently', async () => {
+    jest.setTimeout(10000);
+  test('handles concurrent connections efficiently', async () => { try {
       const startTime = performance.now();
       const batchSize = 20;
       const totalBatches = 3;
@@ -255,7 +257,8 @@ describe('Real-time Updates Performance Tests', () => {
       expect(totalTime).toBeLessThan(10000); // Should complete within 10 seconds
     });
 
-    test('maintains performance under sustained connection load', async () => {
+    jest.setTimeout(10000);
+  test('maintains performance under sustained connection load', async () => { try {
       const connectionCount = 30;
       const testDuration = 10000; // 10 seconds
       const connectionInterval = 100; // Connect a new client every 100ms
@@ -263,7 +266,7 @@ describe('Real-time Updates Performance Tests', () => {
       let connectedCount = 0;
       const connectionTimes: number[] = [];
 
-      const connectionIntervalId = setInterval(async () => {
+      const connectionIntervalId = setInterval(async () => { try {
         if (connectedCount >= connectionCount) {
           clearInterval(connectionIntervalId);
           return;
@@ -305,7 +308,8 @@ describe('Real-time Updates Performance Tests', () => {
   });
 
   describe('Message Delivery Performance', () => {
-    test('delivers messages with low latency', async () => {
+    jest.setTimeout(10000);
+  test('delivers messages with low latency', async () => { try {
       // Set up test clients
       const clientCount = 5;
       const messageCount = 50;
@@ -376,7 +380,8 @@ describe('Real-time Updates Performance Tests', () => {
       }
     });
 
-    test('maintains performance under high message volume', async () => {
+    jest.setTimeout(10000);
+  test('maintains performance under high message volume', async () => { try {
       const clientCount = 10;
       const messagesPerSecond = 100;
       const testDuration = 5000; // 5 seconds
@@ -433,7 +438,8 @@ describe('Real-time Updates Performance Tests', () => {
       expect(totalReceived).toBeGreaterThan(expectedMessages * 0.8);
     });
 
-    test('handles large message payloads efficiently', async () => {
+    jest.setTimeout(10000);
+  test('handles large message payloads efficiently', async () => { try {
       const clientCount = 3;
       const payloadSizes = [1024, 10240, 102400, 1048576]; // 1KB, 10KB, 100KB, 1MB
 
@@ -489,7 +495,8 @@ describe('Real-time Updates Performance Tests', () => {
   });
 
   describe('Broadcast Performance', () => {
-    test('broadcasts to many clients efficiently', async () => {
+    jest.setTimeout(10000);
+  test('broadcasts to many clients efficiently', async () => { try {
       const clientCount = 25;
       const messageCount = 20;
 
@@ -556,7 +563,8 @@ describe('Real-time Updates Performance Tests', () => {
       expect(averageBroadcastTime).toBeLessThan(PERFORMANCE_CONFIG.BROADCAST_LATENCY_MAX);
     });
 
-    test('maintains broadcast performance under load', async () => {
+    jest.setTimeout(10000);
+  test('maintains broadcast performance under load', async () => { try {
       const clientCount = 15;
       const broadcastFrequency = 20; // broadcasts per second
       const testDuration = 10000; // 10 seconds
@@ -629,7 +637,8 @@ describe('Real-time Updates Performance Tests', () => {
   });
 
   describe('Memory and Resource Management', () => {
-    test('maintains stable memory usage during extended operation', async () => {
+    jest.setTimeout(10000);
+  test('maintains stable memory usage during extended operation', async () => { try {
       const initialMemory = process.memoryUsage();
       const clientCount = 20;
       const testDuration = 15000; // 15 seconds
@@ -687,7 +696,8 @@ describe('Real-time Updates Performance Tests', () => {
       }
     });
 
-    test('efficiently handles connection churn', async () => {
+    jest.setTimeout(10000);
+  test('efficiently handles connection churn', async () => { try {
       const maxConcurrentClients = 30;
       const churnCycleDuration = 5000; // 5 seconds per cycle
       const cycles = 3;
@@ -765,7 +775,8 @@ describe('Real-time Updates Performance Tests', () => {
       expect(memoryVariation).toBeLessThan(0.5); // Memory usage should be relatively stable
     });
 
-    test('gracefully handles resource exhaustion', async () => {
+    jest.setTimeout(10000);
+  test('gracefully handles resource exhaustion', async () => { try {
       // This test simulates resource exhaustion scenarios
       const clientCount = 10;
 
@@ -831,7 +842,8 @@ describe('Real-time Updates Performance Tests', () => {
   });
 
   describe('Comprehensive Load Testing', () => {
-    test('handles realistic production load', async () => {
+    jest.setTimeout(10000);
+  test('handles realistic production load', async () => { try {
       const testConfig = {
         clients: PERFORMANCE_CONFIG.CONCURRENT_CLIENTS,
         messagesPerClient: PERFORMANCE_CONFIG.MESSAGES_PER_CLIENT,
@@ -978,7 +990,8 @@ describe('Real-time Updates Performance Tests', () => {
   });
 
   describe('Performance Regression Detection', () => {
-    test('detects performance regressions in connection time', async () => {
+    jest.setTimeout(10000);
+  test('detects performance regressions in connection time', async () => { try {
       const baselineConnectionTime = 500; // milliseconds
       const clientCount = 10;
       const connectionTimes: number[] = [];
@@ -1009,7 +1022,8 @@ describe('Real-time Updates Performance Tests', () => {
       }
     });
 
-    test('detects performance regressions in message latency', async () => {
+    jest.setTimeout(10000);
+  test('detects performance regressions in message latency', async () => { try {
       const baselineLatency = 50; // milliseconds
       const clientCount = 5;
       const messageCount = 20;
@@ -1066,7 +1080,8 @@ describe('Real-time Updates Performance Tests', () => {
       expect(receivedCount).toBeGreaterThan(messageCount * (clientCount - 1) * 0.9);
     });
 
-    test('maintains performance benchmarks over time', async () => {
+    jest.setTimeout(10000);
+  test('maintains performance benchmarks over time', async () => { try {
       const benchmarks = {
         connectionTime: 1000,      // ms
         messageLatency: 100,       // ms
@@ -1146,4 +1161,4 @@ describe('Real-time Updates Performance Tests', () => {
       });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

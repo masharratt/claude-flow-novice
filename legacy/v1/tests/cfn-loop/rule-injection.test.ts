@@ -8,7 +8,7 @@ import { writeFile } from 'fs/promises';
 
 describe('CFN Rule Injection', () => {
   describe('injectCFNRulesAtTransition', () => {
-    it('should inject CFN rules at Loop 3 relaunch', async () => {
+    it('should inject CFN rules at Loop 3 relaunch', async () => { try {
       const context = {
         point: CFNTransitionPoint.LOOP_3_RELAUNCH,
         phaseId: 'phase-auth',
@@ -30,9 +30,9 @@ describe('CFN Rule Injection', () => {
       expect(result).toContain('DECISION FRAMEWORK REMINDER');
       expect(result).toContain('LOOP IMMEDIATELY');
       expect(result).toContain('Missing edge case tests');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should enforce ESCALATE reminder at max iterations', async () => {
+    it('should enforce ESCALATE reminder at max iterations', async () => { try {
       const context = {
         point: CFNTransitionPoint.LOOP_4_DECISION,
         phaseId: 'phase-auth',
@@ -47,9 +47,9 @@ describe('CFN Rule Injection', () => {
 
       expect(result).toContain('MAX ITERATIONS REACHED');
       expect(result).toContain('MUST ESCALATE');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should suggest PROCEED when above threshold', async () => {
+    it('should suggest PROCEED when above threshold', async () => { try {
       const context = {
         point: CFNTransitionPoint.LOOP_2_START,
         phaseId: 'phase-api',
@@ -64,11 +64,11 @@ describe('CFN Rule Injection', () => {
 
       expect(result).toContain('ABOVE THRESHOLD');
       expect(result).toContain('PROCEED TO NEXT PHASE');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('enrichInstructionFile', () => {
-    it('should append CFN rules to instruction file', async () => {
+    it('should append CFN rules to instruction file', async () => { try {
       const tempPath = '/tmp/test-instruction-enrichment.md';
       const original = '# Test Instructions\n\nOriginal content.';
       await writeFile(tempPath, original);
@@ -88,9 +88,9 @@ describe('CFN Rule Injection', () => {
       expect(enriched).toContain('Original content');
       expect(enriched).toContain('CFN LOOP RULES');
       expect(enriched).toContain('CURRENT CONTEXT');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle file read errors gracefully', async () => {
+    it('should handle file read errors gracefully', async () => { try {
       const nonExistentPath = '/path/to/non/existent/file.md';
 
       const context = {
@@ -103,9 +103,9 @@ describe('CFN Rule Injection', () => {
       };
 
       await expect(enrichInstructionFile(nonExistentPath, context)).rejects.toThrow();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle empty instruction file', async () => {
+    it('should handle empty instruction file', async () => { try {
       const emptyPath = '/tmp/empty-instruction.md';
       await writeFile(emptyPath, '');
 
@@ -123,9 +123,9 @@ describe('CFN Rule Injection', () => {
       expect(enriched).toContain('CFN LOOP RULES');
       expect(enriched).toContain('CURRENT CONTEXT');
       expect(enriched).toContain('EMPTY INSTRUCTION FILE');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should limit instruction file size for very large files', async () => {
+    it('should limit instruction file size for very large files', async () => { try {
       const largePath = '/tmp/large-instruction.md';
       const largeContent = 'x'.repeat(1024 * 1024 * 10); // 10MB file
       await writeFile(largePath, largeContent);
@@ -140,6 +140,6 @@ describe('CFN Rule Injection', () => {
       };
 
       await expect(enrichInstructionFile(largePath, context)).rejects.toThrow('File too large');
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

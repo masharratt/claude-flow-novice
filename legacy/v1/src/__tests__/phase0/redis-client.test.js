@@ -65,7 +65,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('connectRedis', () => {
-    it('should connect to Redis with default configuration', async () => {
+    it('should connect to Redis with default configuration', async () => { try {
       const client = await connectRedis();
 
       expect(client).toBeDefined();
@@ -77,7 +77,7 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.on).toHaveBeenCalledWith('end', expect.any(Function));
     });
 
-    it('should connect to Redis with custom configuration', async () => {
+    it('should connect to Redis with custom configuration', async () => { try {
       const config = {
         host: 'redis.example.com',
         port: 6380,
@@ -91,13 +91,13 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.connect).toHaveBeenCalled();
     });
 
-    it('should throw error on connection failure', async () => {
+    it('should throw error on connection failure', async () => { try {
       mockRedisClient.connect.mockRejectedValue(new Error('Connection failed'));
 
       await expect(connectRedis()).rejects.toThrow('Failed to connect to Redis: Connection failed');
     });
 
-    it('should throw error on ping failure', async () => {
+    it('should throw error on ping failure', async () => { try {
       mockRedisClient.ping.mockRejectedValue(new Error('Ping failed'));
 
       await expect(connectRedis()).rejects.toThrow('Failed to connect to Redis: Ping failed');
@@ -105,7 +105,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('saveSwarmState', () => {
-    it('should save swarm state successfully', async () => {
+    it('should save swarm state successfully', async () => { try {
       const swarmId = 'test-swarm-123';
       const state = {
         id: swarmId,
@@ -132,7 +132,7 @@ describe('Redis Client Operations', () => {
       );
     });
 
-    it('should include lastUpdated timestamp', async () => {
+    it('should include lastUpdated timestamp', async () => { try {
       const swarmId = 'test-swarm-123';
       const state = {
         id: swarmId,
@@ -147,7 +147,7 @@ describe('Redis Client Operations', () => {
       expect(typeof savedData.lastUpdated).toBe('number');
     });
 
-    it('should throw error on save failure', async () => {
+    it('should throw error on save failure', async () => { try {
       mockRedisClient.setEx.mockRejectedValue(new Error('Save failed'));
 
       await expect(saveSwarmState(mockRedisClient, 'test', {}))
@@ -156,7 +156,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('loadSwarmState', () => {
-    it('should load existing swarm state', async () => {
+    it('should load existing swarm state', async () => { try {
       const swarmId = 'test-swarm-123';
       const stateData = {
         id: swarmId,
@@ -172,7 +172,7 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.get).toHaveBeenCalledWith(`swarm:${swarmId}`);
     });
 
-    it('should return null for non-existent swarm', async () => {
+    it('should return null for non-existent swarm', async () => { try {
       mockRedisClient.get.mockResolvedValue(null);
 
       const result = await loadSwarmState(mockRedisClient, 'non-existent');
@@ -180,14 +180,14 @@ describe('Redis Client Operations', () => {
       expect(result).toBeNull();
     });
 
-    it('should throw error on load failure', async () => {
+    it('should throw error on load failure', async () => { try {
       mockRedisClient.get.mockRejectedValue(new Error('Load failed'));
 
       await expect(loadSwarmState(mockRedisClient, 'test'))
         .rejects.toThrow('Failed to load swarm state: Load failed');
     });
 
-    it('should throw error for invalid JSON', async () => {
+    it('should throw error for invalid JSON', async () => { try {
       mockRedisClient.get.mockResolvedValue('invalid json');
 
       await expect(loadSwarmState(mockRedisClient, 'test'))
@@ -196,7 +196,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('listActiveSwarms', () => {
-    it('should list active swarms', async () => {
+    it('should list active swarms', async () => { try {
       const swarmIds = ['swarm-1', 'swarm-2'];
       const swarmData = {
         id: 'swarm-1',
@@ -216,7 +216,7 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.sMembers).toHaveBeenCalledWith('swarms:active');
     });
 
-    it('should filter out completed swarms by default', async () => {
+    it('should filter out completed swarms by default', async () => { try {
       const swarmIds = ['swarm-1', 'swarm-2'];
       const activeSwarm = {
         id: 'swarm-1',
@@ -240,7 +240,7 @@ describe('Redis Client Operations', () => {
       expect(result[0].status).toBe('running');
     });
 
-    it('should include all swarms when includeAll is true', async () => {
+    it('should include all swarms when includeAll is true', async () => { try {
       const swarmIds = ['swarm-1', 'swarm-2'];
       const completedSwarm = {
         id: 'swarm-1',
@@ -263,7 +263,7 @@ describe('Redis Client Operations', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('should clean up stale swarm IDs', async () => {
+    it('should clean up stale swarm IDs', async () => { try {
       const swarmIds = ['swarm-1', 'stale-swarm'];
       const validSwarm = {
         id: 'swarm-1',
@@ -282,7 +282,7 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.hDel).toHaveBeenCalledWith('swarms:index', 'stale-swarm');
     });
 
-    it('should sort swarms by start time (newest first)', async () => {
+    it('should sort swarms by start time (newest first)', async () => { try {
       const swarmIds = ['old-swarm', 'new-swarm'];
       const oldSwarm = {
         id: 'old-swarm',
@@ -308,7 +308,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('deleteSwarmState', () => {
-    it('should delete swarm state successfully', async () => {
+    it('should delete swarm state successfully', async () => { try {
       const swarmId = 'test-swarm-123';
 
       const result = await deleteSwarmState(mockRedisClient, swarmId);
@@ -319,7 +319,7 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.hDel).toHaveBeenCalledWith('swarms:index', swarmId);
     });
 
-    it('should throw error on delete failure', async () => {
+    it('should throw error on delete failure', async () => { try {
       mockRedisClient.del.mockRejectedValue(new Error('Delete failed'));
 
       await expect(deleteSwarmState(mockRedisClient, 'test'))
@@ -328,7 +328,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('updateSwarmStatus', () => {
-    it('should update swarm status successfully', async () => {
+    it('should update swarm status successfully', async () => { try {
       const swarmId = 'test-swarm-123';
       const currentState = {
         id: swarmId,
@@ -349,7 +349,7 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.sRem).toHaveBeenCalledWith('swarms:active', swarmId);
     });
 
-    it('should add endTime for terminal status', async () => {
+    it('should add endTime for terminal status', async () => { try {
       const swarmId = 'test-swarm-123';
       const currentState = {
         id: swarmId,
@@ -365,7 +365,7 @@ describe('Redis Client Operations', () => {
       expect(result.endTime).toBeGreaterThan(result.startTime);
     });
 
-    it('should not add endTime for non-terminal status', async () => {
+    it('should not add endTime for non-terminal status', async () => { try {
       const swarmId = 'test-swarm-123';
       const currentState = {
         id: swarmId,
@@ -380,7 +380,7 @@ describe('Redis Client Operations', () => {
       expect(result.endTime).toBeUndefined();
     });
 
-    it('should throw error for non-existent swarm', async () => {
+    it('should throw error for non-existent swarm', async () => { try {
       mockRedisClient.get.mockResolvedValue(null);
 
       await expect(updateSwarmStatus(mockRedisClient, 'non-existent', 'completed'))
@@ -389,7 +389,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('getSwarmMetrics', () => {
-    it('should calculate swarm metrics correctly', async () => {
+    it('should calculate swarm metrics correctly', async () => { try {
       const swarms = [
         {
           id: 'swarm-1',
@@ -443,7 +443,7 @@ describe('Redis Client Operations', () => {
       expect(metrics.averageDuration).toBeGreaterThan(0);
     });
 
-    it('should handle empty swarms list', async () => {
+    it('should handle empty swarms list', async () => { try {
       mockRedisClient.sMembers.mockResolvedValue([]);
 
       const metrics = await getSwarmMetrics(mockRedisClient);
@@ -457,7 +457,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('cleanupExpiredSwarms', () => {
-    it('should cleanup expired swarms', async () => {
+    it('should cleanup expired swarms', async () => { try {
       const now = Date.now();
       const oldSwarm = {
         id: 'old-swarm',
@@ -487,7 +487,7 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.del).toHaveBeenCalledTimes(2);
     });
 
-    it('should use default max age of 24 hours', async () => {
+    it('should use default max age of 24 hours', async () => { try {
       const now = Date.now();
       const oldSwarm = {
         id: 'old-swarm',
@@ -507,7 +507,7 @@ describe('Redis Client Operations', () => {
   describe('backupSwarmStates', () => {
     const { promises: fsPromises } = require('fs');
 
-    it('should backup swarm states to file', async () => {
+    it('should backup swarm states to file', async () => { try {
       const swarms = [
         {
           id: 'swarm-1',
@@ -539,7 +539,7 @@ describe('Redis Client Operations', () => {
       );
     });
 
-    it('should throw error on file write failure', async () => {
+    it('should throw error on file write failure', async () => { try {
       fsPromises.writeFile.mockRejectedValue(new Error('Write failed'));
 
       await expect(backupSwarmStates(mockRedisClient, '/invalid/path'))
@@ -550,7 +550,7 @@ describe('Redis Client Operations', () => {
   describe('restoreSwarmStates', () => {
     const { promises: fsPromises } = require('fs');
 
-    it('should restore swarm states from backup file', async () => {
+    it('should restore swarm states from backup file', async () => { try {
       const backupData = {
         timestamp: Date.now(),
         swarms: [
@@ -575,7 +575,7 @@ describe('Redis Client Operations', () => {
       expect(mockRedisClient.setEx).toHaveBeenCalledTimes(2);
     });
 
-    it('should throw error for invalid backup format', async () => {
+    it('should throw error for invalid backup format', async () => { try {
       const invalidBackup = { invalid: 'format' };
       fsPromises.readFile.mockResolvedValue(JSON.stringify(invalidBackup));
 
@@ -583,7 +583,7 @@ describe('Redis Client Operations', () => {
         .rejects.toThrow('Failed to restore swarm states: Invalid backup file format');
     });
 
-    it('should handle partial restore failures gracefully', async () => {
+    it('should handle partial restore failures gracefully', async () => { try {
       const backupData = {
         timestamp: Date.now(),
         swarms: [
@@ -604,7 +604,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('checkRedisHealth', () => {
-    it('should return healthy status for working Redis', async () => {
+    it('should return healthy status for working Redis', async () => { try {
       const health = await checkRedisHealth(mockRedisClient);
 
       expect(health.status).toBe('healthy');
@@ -614,7 +614,7 @@ describe('Redis Client Operations', () => {
       expect(health.uptime).toBe('3600');
     });
 
-    it('should return unhealthy status on ping failure', async () => {
+    it('should return unhealthy status on ping failure', async () => { try {
       mockRedisClient.ping.mockRejectedValue(new Error('Redis down'));
 
       const health = await checkRedisHealth(mockRedisClient);
@@ -623,7 +623,7 @@ describe('Redis Client Operations', () => {
       expect(health.error).toBe('Redis down');
     });
 
-    it('should return unhealthy status on info failure', async () => {
+    it('should return unhealthy status on info failure', async () => { try {
       mockRedisClient.info.mockRejectedValue(new Error('Info command failed'));
 
       const health = await checkRedisHealth(mockRedisClient);
@@ -632,9 +632,9 @@ describe('Redis Client Operations', () => {
       expect(health.error).toBe('Info command failed');
     });
 
-    it('should measure response time accurately', async () => {
+    it('should measure response time accurately', async () => { try {
       const startTime = Date.now();
-      mockRedisClient.ping.mockImplementation(async () => {
+      mockRedisClient.ping.mockImplementation(async () => { try {
         await new Promise(resolve => setTimeout(resolve, 100));
         return 'PONG';
       });
@@ -647,14 +647,14 @@ describe('Redis Client Operations', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle Redis client errors gracefully', async () => {
+    it('should handle Redis client errors gracefully', async () => { try {
       mockRedisClient.connect.mockRejectedValue(new Error('ECONNREFUSED'));
 
       await expect(connectRedis())
         .rejects.toThrow('Failed to connect to Redis: ECONNREFUSED');
     });
 
-    it('should handle JSON serialization errors', async () => {
+    it('should handle JSON serialization errors', async () => { try {
       const circularObject = {};
       circularObject.self = circularObject;
 
@@ -662,7 +662,7 @@ describe('Redis Client Operations', () => {
         .rejects.toThrow('Failed to save swarm state:');
     });
 
-    it('should handle network timeouts', async () => {
+    it('should handle network timeouts', async () => { try {
       mockRedisClient.get.mockRejectedValue(new Error('ETIMEDOUT'));
 
       await expect(loadSwarmState(mockRedisClient, 'test'))
@@ -671,7 +671,7 @@ describe('Redis Client Operations', () => {
   });
 
   describe('Data Validation', () => {
-    it('should validate swarm state structure', async () => {
+    it('should validate swarm state structure', async () => { try {
       const invalidState = { id: null, objective: undefined };
 
       // Should still save, validation is handled at higher level
@@ -679,7 +679,7 @@ describe('Redis Client Operations', () => {
         .resolves.toBe(true);
     });
 
-    it('should handle malformed swarm IDs', async () => {
+    it('should handle malformed swarm IDs', async () => { try {
       await expect(saveSwarmState(mockRedisClient, '', {}))
         .resolves.toBe(true);
 
@@ -687,7 +687,7 @@ describe('Redis Client Operations', () => {
         .resolves.toBe(true);
     });
 
-    it('should handle large swarm states', async () => {
+    it('should handle large swarm states', async () => { try {
       const largeState = {
         id: 'large-swarm',
         agents: Array(1000).fill({ id: 'agent' }),
@@ -698,4 +698,4 @@ describe('Redis Client Operations', () => {
         .resolves.toBe(true);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

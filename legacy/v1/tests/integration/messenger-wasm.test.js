@@ -29,7 +29,7 @@ describe('Messenger WASM Integration', () => {
   let messenger;
   let testRedis;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     console.log('\n🚀 Messenger WASM Integration Tests Starting...');
   });
 
@@ -51,7 +51,7 @@ describe('Messenger WASM Integration', () => {
     console.log(`  Overall Confidence: ${(testResults.confidence * 100).toFixed(1)}%`);
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create mock Redis instance
     testRedis = new Redis();
 
@@ -67,7 +67,7 @@ describe('Messenger WASM Integration', () => {
     messenger.subscriber = testRedis;
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup messenger
     if (messenger) {
       try {
@@ -84,7 +84,7 @@ describe('Messenger WASM Integration', () => {
   });
 
   describe('1. WASM JSON Serialization/Deserialization', () => {
-    it('should use WASM serialization when available', async () => {
+    it('should use WASM serialization when available', async () => { try {
       const result = {
         wasmEnabled: false,
         serializationSpeed: 0,
@@ -150,7 +150,7 @@ describe('Messenger WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 15000);
 
-    it('should handle large message serialization efficiently', async () => {
+    it('should handle large message serialization efficiently', async () => { try {
       await messenger.initialize('test-swarm-2');
 
       // Create large message (1MB payload)
@@ -184,7 +184,7 @@ describe('Messenger WASM Integration', () => {
   });
 
   describe('2. Backward Compatibility with Old Messages', () => {
-    it('should parse old message format without WASM features', async () => {
+    it('should parse old message format without WASM features', async () => { try {
       const result = {
         oldFormatParsed: false,
         newFormatParsed: false,
@@ -246,7 +246,7 @@ describe('Messenger WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 15000);
 
-    it('should upgrade old messages to new format seamlessly', async () => {
+    it('should upgrade old messages to new format seamlessly', async () => { try {
       await messenger.initialize('test-swarm-4');
 
       // Simulate old message format
@@ -276,7 +276,7 @@ describe('Messenger WASM Integration', () => {
   });
 
   describe('3. Batch Parsing Optimization', () => {
-    it('should parse message batches efficiently with WASM', async () => {
+    it('should parse message batches efficiently with WASM', async () => { try {
       const result = {
         batchSize: 0,
         totalParsingTime: 0,
@@ -332,7 +332,7 @@ describe('Messenger WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 15000);
 
-    it('should use WASM batch deserialization for message history', async () => {
+    it('should use WASM batch deserialization for message history', async () => { try {
       await messenger.initialize('test-swarm-6');
 
       // Create message history
@@ -364,7 +364,7 @@ describe('Messenger WASM Integration', () => {
   });
 
   describe('4. Fallback Behavior', () => {
-    it('should fallback gracefully when WASM fails', async () => {
+    it('should fallback gracefully when WASM fails', async () => { try {
       const result = {
         fallbackTriggered: false,
         functionalityPreserved: false,
@@ -410,7 +410,7 @@ describe('Messenger WASM Integration', () => {
       expect(result.passed).toBe(true);
     }, 15000);
 
-    it('should maintain message integrity in fallback mode', async () => {
+    it('should maintain message integrity in fallback mode', async () => { try {
       await messenger.initialize('test-swarm-8');
 
       const testMessages = Array.from({ length: 20 }, (_, i) => ({

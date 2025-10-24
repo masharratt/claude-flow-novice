@@ -47,7 +47,7 @@ describe('Orchestrator - Enhanced Tests', () => {
     fakeTime = new FakeTime();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     fakeTime.restore();
     await cleanupTestEnv();
     
@@ -64,7 +64,7 @@ describe('Orchestrator - Enhanced Tests', () => {
   });
 
   describe('Initialization', () => {
-    it('should initialize all components in correct order', async () => {
+    it('should initialize all components in correct order', async () => { try {
       await orchestrator.initialize();
 
       // Verify initialization order and calls
@@ -80,9 +80,9 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(initEvent).toBeDefined();
     });
 
-    it('should handle partial initialization failure gracefully', async () => {
+    it('should handle partial initialization failure gracefully', async () => { try {
       // Make memory manager fail
-      mocks.memoryManager.initialize = spy(async () => {
+      mocks.memoryManager.initialize = spy(async () => { try {
         throw new Error('Memory initialization failed');
       });
 
@@ -96,9 +96,9 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(mocks.terminalManager.shutdown.calls.length).toBe(1);
     });
 
-    it('should timeout initialization after configured time', async () => {
+    it('should timeout initialization after configured time', async () => { try {
       // Make terminal manager hang
-      mocks.terminalManager.initialize = spy(async () => {
+      mocks.terminalManager.initialize = spy(async () => { try {
         await new Promise(resolve => setTimeout(resolve, 60000)); // 1 minute
       });
 
@@ -109,7 +109,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       );
     });
 
-    it('should handle concurrent initialization attempts', async () => {
+    it('should handle concurrent initialization attempts', async () => { try {
       const promises = Array.from({ length: 5 }, () => orchestrator.initialize());
       
       // Only first should succeed, others should be rejected
@@ -124,11 +124,11 @@ describe('Orchestrator - Enhanced Tests', () => {
   });
 
   describe('Task Management', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await orchestrator.initialize();
     });
 
-    it('should create and execute tasks correctly', async () => {
+    it('should create and execute tasks correctly', async () => { try {
       const agentProfile = { id: 'test-agent', name: 'Test Agent' };
       const task = {
         id: 'test-task-1',
@@ -145,7 +145,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(result).toBeDefined();
     });
 
-    it('should handle task dependencies correctly', async () => {
+    it('should handle task dependencies correctly', async () => { try {
       const tasks = generateCoordinationTasks(5);
       const agentProfile = { id: 'test-agent', name: 'Test Agent' };
 
@@ -158,7 +158,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(mocks.coordinationManager.assignTask.calls.length).toBe(5);
     });
 
-    it('should handle concurrent task execution', async () => {
+    it('should handle concurrent task execution', async () => { try {
       const agentProfile = { id: 'test-agent', name: 'Test Agent' };
       const tasks = Array.from({ length: 10 }, (_, i) => ({
         id: `task-${i}`,
@@ -178,9 +178,9 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(mocks.coordinationManager.assignTask.calls.length).toBe(10);
     });
 
-    it('should handle task timeouts properly', async () => {
+    it('should handle task timeouts properly', async () => { try {
       // Mock a task that hangs
-      mocks.terminalManager.sendCommand = spy(async () => {
+      mocks.terminalManager.sendCommand = spy(async () => { try {
         await new Promise(resolve => setTimeout(resolve, 60000)); // 1 minute
         return 'Never reached';
       });
@@ -201,9 +201,9 @@ describe('Orchestrator - Enhanced Tests', () => {
       );
     });
 
-    it('should handle task retry logic', async () => {
+    it('should handle task retry logic', async () => { try {
       let attemptCount = 0;
-      mocks.terminalManager.sendCommand = spy(async () => {
+      mocks.terminalManager.sendCommand = spy(async () => { try {
         attemptCount++;
         if (attemptCount < 3) {
           throw new Error('Temporary failure');
@@ -227,11 +227,11 @@ describe('Orchestrator - Enhanced Tests', () => {
   });
 
   describe('Health Monitoring', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await orchestrator.initialize();
     });
 
-    it('should report overall health status correctly', async () => {
+    it('should report overall health status correctly', async () => { try {
       const health = await orchestrator.getHealthStatus();
       
       expect(health.healthy).toBe(true);
@@ -244,7 +244,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       });
     });
 
-    it('should detect unhealthy components', async () => {
+    it('should detect unhealthy components', async () => { try {
       // Make terminal manager unhealthy
       mocks.terminalManager.getHealthStatus = spy(async () => ({
         healthy: false,
@@ -259,7 +259,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(health.components.terminal.error).toBe('Terminal manager is down');
     });
 
-    it('should track performance metrics', async () => {
+    it('should track performance metrics', async () => { try {
       // Execute some tasks to generate metrics
       const agentProfile = { id: 'test-agent', name: 'Test Agent' };
       const tasks = Array.from({ length: 5 }, (_, i) => ({
@@ -284,11 +284,11 @@ describe('Orchestrator - Enhanced Tests', () => {
   });
 
   describe('Memory Management', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await orchestrator.initialize();
     });
 
-    it('should manage agent memory banks correctly', async () => {
+    it('should manage agent memory banks correctly', async () => { try {
       const agentId = 'test-agent';
       const bankId = await orchestrator.createMemoryBank(agentId);
       
@@ -303,7 +303,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(retrieved).toBe({ data: 'test-value' });
     });
 
-    it('should handle memory operations under load', async () => {
+    it('should handle memory operations under load', async () => { try {
       const agentId = 'load-test-agent';
       const bankId = await orchestrator.createMemoryBank(agentId);
       
@@ -322,11 +322,11 @@ describe('Orchestrator - Enhanced Tests', () => {
       });
     });
 
-    it('should check for memory leaks during operations', async () => {
+    it('should check for memory leaks during operations', async () => { try {
       const agentId = 'memory-leak-test';
       const bankId = await orchestrator.createMemoryBank(agentId);
       
-      const { leaked } = await MemoryTestUtils.checkMemoryLeak(async () => {
+      const { leaked } = await MemoryTestUtils.checkMemoryLeak(async () => { try {
         // Perform memory-intensive operations
         for (let i = 0; i < 1000; i++) {
           await orchestrator.storeMemory(bankId, `key-${i}`, {
@@ -347,11 +347,11 @@ describe('Orchestrator - Enhanced Tests', () => {
   });
 
   describe('Performance Testing', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await orchestrator.initialize();
     });
 
-    it('should handle high task throughput', async () => {
+    it('should handle high task throughput', async () => { try {
       const agentProfile = { id: 'perf-agent', name: 'Performance Agent' };
       
       const { stats } = await PerformanceTestUtils.benchmark(
@@ -371,7 +371,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       console.log(`Performance stats: mean=${stats.mean.toFixed(2)}ms, p95=${stats.p95.toFixed(2)}ms`);
     });
 
-    it('should maintain performance under memory pressure', async () => {
+    it('should maintain performance under memory pressure', async () => { try {
       const agentId = 'memory-pressure-agent';
       const bankId = await orchestrator.createMemoryBank(agentId);
       
@@ -400,7 +400,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       TestAssertions.assertInRange(stats.mean, 0, 2000); // Under 2s mean
     });
 
-    it('should handle load testing scenario', async () => {
+    it('should handle load testing scenario', async () => { try {
       const agentProfile = { id: 'load-agent', name: 'Load Agent' };
       
       const results = await PerformanceTestUtils.loadTest(
@@ -427,16 +427,16 @@ describe('Orchestrator - Enhanced Tests', () => {
   });
 
   describe('Error Handling and Edge Cases', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await orchestrator.initialize();
     });
 
-    it('should handle component failures gracefully', async () => {
+    it('should handle component failures gracefully', async () => { try {
       const errorScenarios = generateErrorScenarios();
       
       for (const scenario of errorScenarios) {
         // Inject the error into terminal manager
-        mocks.terminalManager.sendCommand = spy(async () => {
+        mocks.terminalManager.sendCommand = spy(async () => { try {
           throw scenario.error;
         });
 
@@ -466,7 +466,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       }
     });
 
-    it('should handle malformed task data', async () => {
+    it('should handle malformed task data', async () => { try {
       const agentProfile = { id: 'malformed-agent', name: 'Malformed Agent' };
       
       const malformedTasks = [
@@ -485,7 +485,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       }
     });
 
-    it('should handle resource exhaustion scenarios', async () => {
+    it('should handle resource exhaustion scenarios', async () => { try {
       // Simulate resource exhaustion by creating many concurrent tasks
       const agentProfile = { id: 'resource-agent', name: 'Resource Agent' };
       
@@ -512,7 +512,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(health.healthy).toBe(true);
     });
 
-    it('should recover from temporary component failures', async () => {
+    it('should recover from temporary component failures', async () => { try {
       let failureCount = 0;
       
       // Make terminal manager fail first 3 times, then succeed
@@ -540,7 +540,7 @@ describe('Orchestrator - Enhanced Tests', () => {
   });
 
   describe('Shutdown and Cleanup', () => {
-    it('should shutdown gracefully', async () => {
+    it('should shutdown gracefully', async () => { try {
       await orchestrator.initialize();
       
       // Create some resources
@@ -561,7 +561,7 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(shutdownEvent).toBeDefined();
     });
 
-    it('should handle shutdown with active tasks', async () => {
+    it('should handle shutdown with active tasks', async () => { try {
       await orchestrator.initialize();
       
       const agentProfile = { id: 'active-agent', name: 'Active Agent' };
@@ -584,11 +584,11 @@ describe('Orchestrator - Enhanced Tests', () => {
       expect(mocks.terminalManager.shutdown.calls.length).toBe(1);
     });
 
-    it('should timeout shutdown if components hang', async () => {
+    it('should timeout shutdown if components hang', async () => { try {
       await orchestrator.initialize();
       
       // Make terminal manager hang during shutdown
-      mocks.terminalManager.shutdown = spy(async () => {
+      mocks.terminalManager.shutdown = spy(async () => { try {
         await new Promise(resolve => setTimeout(resolve, 60000)); // 1 minute
       });
 
@@ -598,4 +598,4 @@ describe('Orchestrator - Enhanced Tests', () => {
       );
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

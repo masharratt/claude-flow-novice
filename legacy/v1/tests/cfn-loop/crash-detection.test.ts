@@ -50,13 +50,13 @@ describe('CrashDetector', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await detector.shutdown();
     vi.clearAllMocks();
   });
 
   describe('initialization', () => {
-    it('should initialize Redis connection', async () => {
+    it('should initialize Redis connection', async () => { try {
       await detector.initialize();
 
       expect(createClient).toHaveBeenCalledWith({
@@ -65,7 +65,7 @@ describe('CrashDetector', () => {
       expect(mockRedis.connect).toHaveBeenCalled();
     });
 
-    it('should emit initialized event', async () => {
+    it('should emit initialized event', async () => { try {
       const initSpy = vi.fn();
       detector.on('initialized', initSpy);
 
@@ -74,7 +74,7 @@ describe('CrashDetector', () => {
       expect(initSpy).toHaveBeenCalled();
     });
 
-    it('should throw error on initialization failure', async () => {
+    it('should throw error on initialization failure', async () => { try {
       mockRedis.connect.mockRejectedValue(new Error('Connection failed'));
 
       await expect(detector.initialize()).rejects.toThrow('Connection failed');
@@ -82,7 +82,7 @@ describe('CrashDetector', () => {
   });
 
   describe('detectInterruptedExecutions', () => {
-    it('should detect interrupted executions', async () => {
+    it('should detect interrupted executions', async () => { try {
       const now = Date.now();
       const staleHeartbeat = now - 600000; // 10 minutes ago
 
@@ -108,7 +108,7 @@ describe('CrashDetector', () => {
       expect(interrupted[0].isCleanShutdown).toBe(false);
     });
 
-    it('should complete scan within timeout', async () => {
+    it('should complete scan within timeout', async () => { try {
       await detector.initialize();
 
       const startTime = Date.now();
@@ -118,7 +118,7 @@ describe('CrashDetector', () => {
       expect(duration).toBeLessThan(5000); // 5 second timeout
     });
 
-    it('should return empty array when no interrupted executions', async () => {
+    it('should return empty array when no interrupted executions', async () => { try {
       mockRedis.keys.mockResolvedValue([]);
 
       await detector.initialize();
@@ -127,7 +127,7 @@ describe('CrashDetector', () => {
       expect(interrupted).toHaveLength(0);
     });
 
-    it('should emit scan-completed event with stats', async () => {
+    it('should emit scan-completed event with stats', async () => { try {
       const scanSpy = vi.fn();
       detector.on('scan-completed', scanSpy);
 
@@ -142,7 +142,7 @@ describe('CrashDetector', () => {
   });
 
   describe('scanRedisForStaleHeartbeats', () => {
-    it('should identify stale heartbeats', async () => {
+    it('should identify stale heartbeats', async () => { try {
       const now = Date.now();
       const staleTime = now - 600000; // 10 minutes ago
       const recentTime = now - 60000; // 1 minute ago
@@ -167,7 +167,7 @@ describe('CrashDetector', () => {
       expect(staleEpics).not.toContain('epic-2');
     });
 
-    it('should handle missing heartbeat data gracefully', async () => {
+    it('should handle missing heartbeat data gracefully', async () => { try {
       mockRedis.keys.mockResolvedValue(['cfn:epic:epic-1:heartbeat']);
       mockRedis.get.mockResolvedValue(null);
 
@@ -177,7 +177,7 @@ describe('CrashDetector', () => {
       expect(staleEpics).toHaveLength(0);
     });
 
-    it('should handle invalid heartbeat JSON gracefully', async () => {
+    it('should handle invalid heartbeat JSON gracefully', async () => { try {
       mockRedis.keys.mockResolvedValue(['cfn:epic:epic-1:heartbeat']);
       mockRedis.get.mockResolvedValue('invalid json');
 
@@ -189,7 +189,7 @@ describe('CrashDetector', () => {
   });
 
   describe('sprint progress calculation', () => {
-    it('should calculate accurate sprint progress percentages', async () => {
+    it('should calculate accurate sprint progress percentages', async () => { try {
       const epicState = createMockEpicState('epic-1', 'in-progress');
       epicState.sprints[0].phases[0].status = 'completed';
       epicState.sprints[0].phases[1].status = 'completed';
@@ -216,7 +216,7 @@ describe('CrashDetector', () => {
       expect(interrupted[0].sprintsInProgress[0].phasesTotal).toBe(3);
     });
 
-    it('should identify files in progress', async () => {
+    it('should identify files in progress', async () => { try {
       const epicState = createMockEpicState('epic-1', 'in-progress');
       epicState.sprints[0].phases[1].status = 'loop3-in-progress';
       epicState.sprints[0].phases[1].deliverables = ['file1.ts', 'file2.ts'];
@@ -243,7 +243,7 @@ describe('CrashDetector', () => {
   });
 
   describe('recovery estimation', () => {
-    it('should calculate accurate recovery time estimate', async () => {
+    it('should calculate accurate recovery time estimate', async () => { try {
       const epicState = createMockEpicState('epic-1', 'in-progress');
       // Sprint 1: 2 incomplete phases
       epicState.sprints[0].phases[0].status = 'completed';
@@ -270,7 +270,7 @@ describe('CrashDetector', () => {
       expect(interrupted[0].recoveryTimeEstimate).toBe(10);
     });
 
-    it('should calculate accurate work loss percentage', async () => {
+    it('should calculate accurate work loss percentage', async () => { try {
       const epicState = createMockEpicState('epic-1', 'in-progress');
       // Total: 3 phases, Completed: 1, In Progress: 1, Pending: 1
       epicState.sprints[0].phases[0].status = 'completed';
@@ -299,7 +299,7 @@ describe('CrashDetector', () => {
   });
 
   describe('clean shutdown differentiation', () => {
-    it('should detect clean shutdown via shutdown marker', async () => {
+    it('should detect clean shutdown via shutdown marker', async () => { try {
       const epicState = createMockEpicState('epic-1', 'in-progress');
 
       mockRedis.keys.mockResolvedValue(['cfn:epic:epic-1:heartbeat']);
@@ -321,7 +321,7 @@ describe('CrashDetector', () => {
       expect(interrupted[0].isCleanShutdown).toBe(true);
     });
 
-    it('should detect clean shutdown via completed status', async () => {
+    it('should detect clean shutdown via completed status', async () => { try {
       const epicState = createMockEpicState('epic-1', 'completed');
 
       mockRedis.keys.mockResolvedValue(['cfn:epic:epic-1:heartbeat']);
@@ -343,7 +343,7 @@ describe('CrashDetector', () => {
       expect(interrupted[0].isCleanShutdown).toBe(true);
     });
 
-    it('should detect clean shutdown via all sprints finished', async () => {
+    it('should detect clean shutdown via all sprints finished', async () => { try {
       const epicState = createMockEpicState('epic-1', 'in-progress');
       epicState.sprints[0].status = 'completed';
       epicState.sprints[0].phases.forEach((p) => (p.status = 'completed'));
@@ -367,7 +367,7 @@ describe('CrashDetector', () => {
       expect(interrupted[0].isCleanShutdown).toBe(true);
     });
 
-    it('should detect crash (no clean shutdown indicators)', async () => {
+    it('should detect crash (no clean shutdown indicators)', async () => { try {
       const epicState = createMockEpicState('epic-1', 'in-progress');
 
       mockRedis.keys.mockResolvedValue(['cfn:epic:epic-1:heartbeat']);
@@ -391,7 +391,7 @@ describe('CrashDetector', () => {
   });
 
   describe('statistics', () => {
-    it('should track scan statistics', async () => {
+    it('should track scan statistics', async () => { try {
       mockRedis.keys.mockResolvedValue(['cfn:epic:epic-1:heartbeat']);
       mockRedis.get.mockResolvedValue(JSON.stringify({ timestamp: Date.now() - 600000 }));
 
@@ -404,7 +404,7 @@ describe('CrashDetector', () => {
       expect(stats.redisKeysScanned).toBeGreaterThanOrEqual(0);
     });
 
-    it('should differentiate interrupted and clean shutdowns', async () => {
+    it('should differentiate interrupted and clean shutdowns', async () => { try {
       const now = Date.now();
       const staleTime = now - 600000;
 

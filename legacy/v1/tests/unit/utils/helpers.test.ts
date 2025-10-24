@@ -40,7 +40,7 @@ describe('Helpers', () => {
     setupTestEnv();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await cleanupTestEnv();
   });
 
@@ -69,7 +69,7 @@ describe('Helpers', () => {
   });
 
   describe('delay', () => {
-    it('should resolve after specified time', async () => {
+    it('should resolve after specified time', async () => { try {
       const time = new FakeTime();
       
       const promise = delay(1000);
@@ -80,7 +80,7 @@ describe('Helpers', () => {
       time.restore();
     });
 
-    it('should work with zero delay', async () => {
+    it('should work with zero delay', async () => { try {
       const start = Date.now();
       await delay(0);
       const elapsed = Date.now() - start;
@@ -90,7 +90,7 @@ describe('Helpers', () => {
   });
 
   describe('retry', () => {
-    it('should succeed on first attempt if no error', async () => {
+    it('should succeed on first attempt if no error', async () => { try {
       const fn = spy(() => Promise.resolve('success'));
       
       const result = await retry(fn);
@@ -99,7 +99,7 @@ describe('Helpers', () => {
       expect(fn.calls.length).toBe(1);
     });
 
-    it('should retry on failure and eventually succeed', async () => {
+    it('should retry on failure and eventually succeed', async () => { try {
       let attempts = 0;
       
       const result = await retry(
@@ -117,7 +117,7 @@ describe('Helpers', () => {
       expect(attempts).toBe(3);
     });
 
-    it('should throw after max attempts', async () => {
+    it('should throw after max attempts', async () => { try {
       let attempts = 0;
       
       await assertRejects(
@@ -135,7 +135,7 @@ describe('Helpers', () => {
       expect(attempts).toBe(2);
     });
 
-    it('should call onRetry callback', async () => {
+    it('should call onRetry callback', async () => { try {
       let attempts = 0;
       const onRetry = spy();
       
@@ -155,7 +155,7 @@ describe('Helpers', () => {
       expect(onRetry.calls[0].args[1].message).toBe('Retry'); // error
     });
 
-    it('should use exponential backoff', async () => {
+    it('should use exponential backoff', async () => { try {
       const delays: number[] = [];
       let attempts = 0;
       
@@ -187,7 +187,7 @@ describe('Helpers', () => {
   });
 
   describe('debounce', () => {
-    it('should debounce function calls', async () => {
+    it('should debounce function calls', async () => { try {
       const fn = spy();
       const debouncedFn = debounce(fn, 10); // Use small delay to avoid long waits
       
@@ -204,7 +204,7 @@ describe('Helpers', () => {
       expect(fn.calls.length).toBe(1);
     });
 
-    it('should reset timer on subsequent calls', async () => {
+    it('should reset timer on subsequent calls', async () => { try {
       const fn = spy();
       const debouncedFn = debounce(fn, 20);
       
@@ -224,7 +224,7 @@ describe('Helpers', () => {
   });
 
   describe('throttle', () => {
-    it('should throttle function calls', async () => {
+    it('should throttle function calls', async () => { try {
       const fn = spy();
       const throttledFn = throttle(fn, 10);
       
@@ -516,7 +516,7 @@ describe('Helpers', () => {
   });
 
   describe('createDeferred', () => {
-    it('should create a deferred promise', async () => {
+    it('should create a deferred promise', async () => { try {
       const deferred = createDeferred<string>();
       
       // Resolve immediately to avoid timer leaks
@@ -526,7 +526,7 @@ describe('Helpers', () => {
       expect(result).toBe('success');
     });
 
-    it('should handle rejection', async () => {
+    it('should handle rejection', async () => { try {
       const deferred = createDeferred<string>();
       
       // Reject immediately to avoid timer leaks
@@ -564,13 +564,13 @@ describe('Helpers', () => {
   });
 
   describe('timeout', () => {
-    it('should resolve if promise completes in time', async () => {
+    it('should resolve if promise completes in time', async () => { try {
       const promise = Promise.resolve('success');
       const result = await timeout(promise, 1000);
       expect(result).toBe('success');
     });
 
-    it('should reject if promise times out', async () => {
+    it('should reject if promise times out', async () => { try {
       const promise = new Promise(resolve => {
         setTimeout(() => resolve('too late'), 50);
       });
@@ -582,7 +582,7 @@ describe('Helpers', () => {
       );
     });
 
-    it('should use custom error message', async () => {
+    it('should use custom error message', async () => { try {
       const promise = new Promise(resolve => {
         setTimeout(() => resolve('too late'), 50);
       });
@@ -596,7 +596,7 @@ describe('Helpers', () => {
   });
 
   describe('circuitBreaker', () => {
-    it('should execute function normally when closed', async () => {
+    it('should execute function normally when closed', async () => { try {
       const breaker = circuitBreaker('test', {
         threshold: 3,
         timeout: 1000,
@@ -611,7 +611,7 @@ describe('Helpers', () => {
       expect(state.failureCount).toBe(0);
     });
 
-    it('should open after threshold failures', async () => {
+    it('should open after threshold failures', async () => { try {
       const breaker = circuitBreaker('test', {
         threshold: 3,
         timeout: 1000,
@@ -630,7 +630,7 @@ describe('Helpers', () => {
       expect(state.failureCount).toBe(3);
     });
 
-    it('should reject immediately when open', async () => {
+    it('should reject immediately when open', async () => { try {
       const breaker = circuitBreaker('test', {
         threshold: 2,
         timeout: 1000,
@@ -652,7 +652,7 @@ describe('Helpers', () => {
       );
     });
 
-    it('should reset after timeout', async () => {
+    it('should reset after timeout', async () => { try {
       const breaker = circuitBreaker('test', {
         threshold: 2,
         timeout: 1000,
@@ -677,7 +677,7 @@ describe('Helpers', () => {
       expect(breaker.getState().state).toBe('closed');
     });
 
-    it('should handle timeout errors', async () => {
+    it('should handle timeout errors', async () => { try {
       const breaker = circuitBreaker('test', {
         threshold: 3,
         timeout: 10,
@@ -691,7 +691,7 @@ describe('Helpers', () => {
       );
     });
 
-    it('should reset failure count on success', async () => {
+    it('should reset failure count on success', async () => { try {
       const breaker = circuitBreaker('test', {
         threshold: 3,
         timeout: 1000,
@@ -728,4 +728,4 @@ describe('Helpers', () => {
       expect(state.lastFailureTime).toBe(0);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

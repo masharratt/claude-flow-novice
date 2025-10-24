@@ -134,15 +134,15 @@ describe('MemoryStoreAdapter', () => {
       dbPath: ':memory:',
       encryptionKey: Buffer.from('test-encryption-key-32-bytes!!'),
       memoryManager: mockMemoryManager  // Inject mock
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (adapter) {
       await adapter.close();
     }
     vi.restoreAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('(1) MemoryStoreAdapter Initialization', () => {
     it('should initialize with default options', () => {
@@ -151,42 +151,42 @@ describe('MemoryStoreAdapter', () => {
       expect(defaultAdapter.namespace).toBe('memory-store');
       expect(defaultAdapter.defaultTTL).toBe(86400);
       expect(defaultAdapter.isInitialized).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should initialize with custom options', () => {
       const customAdapter = new MemoryStoreAdapter({
         swarmId: 'custom-swarm',
         namespace: 'custom-namespace',
         defaultTTL: 7200
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(customAdapter.swarmId).toBe('custom-swarm');
       expect(customAdapter.namespace).toBe('custom-namespace');
       expect(customAdapter.defaultTTL).toBe(7200);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should initialize successfully', async () => {
+    it('should initialize successfully', async () => { try {
       await adapter.initialize();
       expect(adapter.isInitialized).toBe(true);
       expect(adapter.memoryManager.initialize).toHaveBeenCalled();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should not initialize twice', async () => {
+    it('should not initialize twice', async () => { try {
       await adapter.initialize();
       await adapter.initialize(); // Second call
       expect(adapter.memoryManager.initialize).toHaveBeenCalledTimes(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle initialization errors', async () => {
+    it('should handle initialization errors', async () => { try {
       adapter.memoryManager.initialize.mockRejectedValue(new Error('DB Error'));
       await expect(adapter.initialize()).rejects.toThrow('DB Error');
       expect(adapter.isInitialized).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should set up event forwarding', () => {
       expect(adapter.memoryManager.on).toHaveBeenCalledWith('error', expect.any(Function));
       expect(adapter.memoryManager.on).toHaveBeenCalledWith('initialized', expect.any(Function));
       expect(adapter.memoryManager.on).toHaveBeenCalledWith('closed', expect.any(Function));
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should track metrics correctly', () => {
       expect(adapter.metrics).toEqual({
@@ -200,14 +200,14 @@ describe('MemoryStoreAdapter', () => {
         errors: 0,
         totalAccessTime: 0,
         averageAccessTime: 0
-      });
-    });
-  });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('(2) ACL Enforcement (5 levels)', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should derive ACL level 1 (Private) for sensitive keys', () => {
       const level1 = adapter._deriveACLLevel('user-private-key', 'value');
@@ -218,7 +218,7 @@ describe('MemoryStoreAdapter', () => {
 
       const level1c = adapter._deriveACLLevel('credential-token', 'value');
       expect(level1c).toBe(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should derive ACL level 2 (Team) for team keys', () => {
       const level2 = adapter._deriveACLLevel('team-config', 'value');
@@ -226,12 +226,12 @@ describe('MemoryStoreAdapter', () => {
 
       const level2b = adapter._deriveACLLevel('group-settings', 'value');
       expect(level2b).toBe(2);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should derive ACL level 3 (Swarm) for default keys', () => {
       const level3 = adapter._deriveACLLevel('normal-key', 'value');
       expect(level3).toBe(3);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should derive ACL level 4 (Public) for public keys', () => {
       const level4 = adapter._deriveACLLevel('public-data', 'value');
@@ -239,7 +239,7 @@ describe('MemoryStoreAdapter', () => {
 
       const level4b = adapter._deriveACLLevel('shared-resource', 'value');
       expect(level4b).toBe(4);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should derive ACL level 5 (System) for system keys', () => {
       const level5 = adapter._deriveACLLevel('system-config', 'value');
@@ -247,15 +247,15 @@ describe('MemoryStoreAdapter', () => {
 
       const level5b = adapter._deriveACLLevel('config-setting', 'value');
       expect(level5b).toBe(5);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should pass ACL level to memory manager', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should pass ACL level to memory manager', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       await adapter.set('private-key', 'sensitive-value', {
         agentId: 'agent1',
         aclLevel: 1
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'private-key',
@@ -267,14 +267,14 @@ describe('MemoryStoreAdapter', () => {
           aclLevel: 1
         })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should use derived ACL level when not specified', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should use derived ACL level when not specified', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       await adapter.set('user-private-data', 'sensitive-value', {
         agentId: 'agent1'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'user-private-data',
@@ -283,22 +283,22 @@ describe('MemoryStoreAdapter', () => {
           aclLevel: 1 // Derived from key pattern
         })
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('(3) Memory Storage/Retrieval with TTL', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should store and retrieve values', async () => {
+    it('should store and retrieve values', async () => { try {
       const testValue = { data: 'test', timestamp: Date.now() };
       
-      adapter.memoryManager.set.mockResolvedValue({ id: 'test-id', success: true });
+      adapter.memoryManager.set.mockResolvedValue({ id: 'test-id', success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       adapter.memoryManager.get.mockResolvedValue(testValue);
 
-      await adapter.set('test-key', testValue, { agentId: 'agent1' });
-      const retrieved = await adapter.get('test-key', { agentId: 'agent1' });
+      await adapter.set('test-key', testValue, { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      const retrieved = await adapter.get('test-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'test-key',
@@ -317,15 +317,15 @@ describe('MemoryStoreAdapter', () => {
         })
       );
       expect(retrieved).toEqual(testValue);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle TTL correctly', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should handle TTL correctly', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await adapter.set('ttl-key', 'value', {
         agentId: 'agent1',
         ttl: 1800 // 30 minutes
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'ttl-key',
@@ -334,12 +334,12 @@ describe('MemoryStoreAdapter', () => {
           ttl: 1800
         })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should use default TTL when not specified', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should use default TTL when not specified', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      await adapter.set('default-ttl-key', 'value', { agentId: 'agent1' });
+      await adapter.set('default-ttl-key', 'value', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'default-ttl-key',
@@ -348,12 +348,12 @@ describe('MemoryStoreAdapter', () => {
           ttl: 3600 // Default TTL from constructor
         })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle setex operation', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should handle setex operation', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      await adapter.setex('setex-key', 900, 'value', { agentId: 'agent1' });
+      await adapter.setex('setex-key', 900, 'value', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'setex-key',
@@ -362,42 +362,42 @@ describe('MemoryStoreAdapter', () => {
           ttl: 900
         })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle cache misses', async () => {
+    it('should handle cache misses', async () => { try {
       adapter.memoryManager.get.mockResolvedValue(null);
 
-      const result = await adapter.get('nonexistent-key', { agentId: 'agent1' });
+      const result = await adapter.get('nonexistent-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toBeNull();
       expect(adapter.metrics.cacheMisses).toBe(1);
       expect(adapter.metrics.cacheHits).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle cache hits', async () => {
+    it('should handle cache hits', async () => { try {
       adapter.memoryManager.get.mockResolvedValue('value');
 
-      const result = await adapter.get('existing-key', { agentId: 'agent1' });
+      const result = await adapter.get('existing-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toBe('value');
       expect(adapter.metrics.cacheHits).toBe(1);
       expect(adapter.metrics.cacheMisses).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle multiple get operations (mget)', async () => {
+    it('should handle multiple get operations (mget)', async () => { try {
       adapter.memoryManager.get
         .mockResolvedValueOnce('value1')
         .mockResolvedValueOnce('value2')
         .mockResolvedValueOnce(null);
 
-      const results = await adapter.mget(['key1', 'key2', 'key3'], { agentId: 'agent1' });
+      const results = await adapter.mget(['key1', 'key2', 'key3'], { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(results).toEqual(['value1', 'value2', null]);
       expect(adapter.memoryManager.get).toHaveBeenCalledTimes(3);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle multiple set operations (mset)', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should handle multiple set operations (mset)', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const keyValuePairs = {
         'key1': 'value1',
@@ -405,18 +405,18 @@ describe('MemoryStoreAdapter', () => {
         'key3': 'value3'
       };
 
-      await adapter.mset(keyValuePairs, { agentId: 'agent1' });
+      await adapter.mset(keyValuePairs, { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledTimes(3);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('(4) Permission Grant/Revoke', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should grant permissions through memory manager', async () => {
+    it('should grant permissions through memory manager', async () => { try {
       const mockACLEnforcer = {
         checkPermission: vi.fn().mockResolvedValue(true),
         grantPermission: vi.fn().mockResolvedValue('perm-123'),
@@ -446,9 +446,9 @@ describe('MemoryStoreAdapter', () => {
         ['read', 'write'],
         { grantedBy: 'admin' }
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should revoke permissions through memory manager', async () => {
+    it('should revoke permissions through memory manager', async () => { try {
       const mockACLEnforcer = {
         checkPermission: vi.fn().mockResolvedValue(true),
         grantPermission: vi.fn().mockResolvedValue('perm-123'),
@@ -466,9 +466,9 @@ describe('MemoryStoreAdapter', () => {
 
       expect(result).toBe(true);
       expect(aclEnforcer.revokePermission).toHaveBeenCalledWith('perm-123', 'admin');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle permission checks with context', async () => {
+    it('should handle permission checks with context', async () => { try {
       const mockACLEnforcer = {
         checkPermission: vi.fn().mockResolvedValue(true),
         grantPermission: vi.fn().mockResolvedValue('perm-123'),
@@ -498,9 +498,9 @@ describe('MemoryStoreAdapter', () => {
         'read',
         { swarmId: 'swarm1', teamId: 'team1', projectId: 'project1' }
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle permission denial', async () => {
+    it('should handle permission denial', async () => { try {
       const mockACLEnforcer = {
         checkPermission: vi.fn().mockResolvedValue(false),
         grantPermission: vi.fn().mockResolvedValue('perm-123'),
@@ -522,15 +522,15 @@ describe('MemoryStoreAdapter', () => {
       );
 
       expect(hasPermission).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('(5) Audit Trail', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should retrieve audit trail through memory manager', async () => {
+    it('should retrieve audit trail through memory manager', async () => { try {
       const mockAuditEntries = [
         {
           id: 'audit-1',
@@ -566,16 +566,16 @@ describe('MemoryStoreAdapter', () => {
       const auditTrail = await aclEnforcer.getAuditTrail('resource-123', {
         limit: 10,
         offset: 0
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(auditTrail).toEqual(mockAuditEntries);
       expect(aclEnforcer.getAuditTrail).toHaveBeenCalledWith('resource-123', {
         limit: 10,
         offset: 0
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle empty audit trail', async () => {
+    it('should handle empty audit trail', async () => { try {
       const mockACLEnforcer = {
         checkPermission: vi.fn().mockResolvedValue(true),
         grantPermission: vi.fn().mockResolvedValue('perm-123'),
@@ -592,9 +592,9 @@ describe('MemoryStoreAdapter', () => {
       const auditTrail = await aclEnforcer.getAuditTrail('nonexistent-resource');
 
       expect(auditTrail).toEqual([]);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should track audit metrics', async () => {
+    it('should track audit metrics', async () => { try {
       const mockACLEnforcer = {
         checkPermission: vi.fn().mockResolvedValue(true),
         grantPermission: vi.fn().mockResolvedValue('perm-123'),
@@ -621,21 +621,21 @@ describe('MemoryStoreAdapter', () => {
       expect(metrics.denials).toBe(10);
       expect(metrics.auditLogs).toBe(130);
       expect(metrics.cacheHitRate).toBe(0.85);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('(6) Encryption for Private/Team', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should use encryption for private data (ACL level 1)', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should use encryption for private data (ACL level 1)', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await adapter.set('private-secret', 'sensitive-data', {
         agentId: 'agent1',
         aclLevel: 1
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'private-secret',
@@ -645,16 +645,16 @@ describe('MemoryStoreAdapter', () => {
           agentId: 'agent1'
         })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should use encryption for team data (ACL level 2)', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should use encryption for team data (ACL level 2)', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await adapter.set('team-config', 'team-settings', {
         agentId: 'agent1',
         aclLevel: 2,
         teamId: 'team1'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'team-config',
@@ -665,9 +665,9 @@ describe('MemoryStoreAdapter', () => {
           teamId: 'team1'
         })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle encrypted data retrieval', async () => {
+    it('should handle encrypted data retrieval', async () => { try {
       const encryptedData = {
         encrypted: 'encrypted-data',
         iv: 'mock-iv',
@@ -676,7 +676,7 @@ describe('MemoryStoreAdapter', () => {
 
       adapter.memoryManager.get.mockResolvedValue(encryptedData);
 
-      const result = await adapter.get('encrypted-key', { agentId: 'agent1' });
+      const result = await adapter.get('encrypted-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toEqual(encryptedData);
       expect(adapter.memoryManager.get).toHaveBeenCalledWith(
@@ -685,10 +685,10 @@ describe('MemoryStoreAdapter', () => {
           agentId: 'agent1'
         })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should automatically apply encryption based on key patterns', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should automatically apply encryption based on key patterns', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Test various private key patterns that match the _deriveACLLevel logic
       const privateKeys = [
@@ -699,7 +699,7 @@ describe('MemoryStoreAdapter', () => {
       ];
 
       for (const key of privateKeys) {
-        await adapter.set(key, 'sensitive-value', { agentId: 'agent1' });
+        await adapter.set(key, 'sensitive-value', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         expect(adapter.memoryManager.set).toHaveBeenCalledWith(
           key,
@@ -709,10 +709,10 @@ describe('MemoryStoreAdapter', () => {
           })
         );
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle team-level encryption automatically', async () => {
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+    it('should handle team-level encryption automatically', async () => { try {
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Test team key patterns
       const teamKeys = [
@@ -722,7 +722,7 @@ describe('MemoryStoreAdapter', () => {
       ];
 
       for (const key of teamKeys) {
-        await adapter.set(key, 'team-data', { agentId: 'agent1' });
+        await adapter.set(key, 'team-data', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         expect(adapter.memoryManager.set).toHaveBeenCalledWith(
           key,
@@ -732,18 +732,18 @@ describe('MemoryStoreAdapter', () => {
           })
         );
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Additional Operations and Edge Cases', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle delete operations', async () => {
+    it('should handle delete operations', async () => { try {
       adapter.memoryManager.delete.mockResolvedValue(true);
 
-      const result = await adapter.delete('test-key', { agentId: 'agent1' });
+      const result = await adapter.delete('test-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toBe(true);
       expect(adapter.memoryManager.delete).toHaveBeenCalledWith(
@@ -754,12 +754,12 @@ describe('MemoryStoreAdapter', () => {
         })
       );
       expect(adapter.metrics.deleteOperations).toBe(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle has operations', async () => {
+    it('should handle has operations', async () => { try {
       adapter.memoryManager.has.mockResolvedValue(true);
 
-      const result = await adapter.has('test-key', { agentId: 'agent1' });
+      const result = await adapter.has('test-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toBe(true);
       expect(adapter.memoryManager.has).toHaveBeenCalledWith(
@@ -769,41 +769,41 @@ describe('MemoryStoreAdapter', () => {
           namespace: 'test-namespace'
         })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle clear operations', async () => {
+    it('should handle clear operations', async () => { try {
       adapter.memoryManager.clear.mockResolvedValue(5);
 
-      const result = await adapter.clear({ agentId: 'system' });
+      const result = await adapter.clear({ agentId: 'system' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toBe(5);
       expect(adapter.memoryManager.clear).toHaveBeenCalledWith({
         agentId: 'system',
         namespace: 'test-namespace'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(adapter.metrics.clearOperations).toBe(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle clear all operations', async () => {
+    it('should handle clear all operations', async () => { try {
       adapter.memoryManager.clear.mockResolvedValue(10);
 
       const result = await adapter.clear({ 
         agentId: 'system',
         clearAll: true 
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toBe(10);
       expect(adapter.memoryManager.clear).toHaveBeenCalledWith({
         agentId: 'system',
         namespace: undefined
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle atomic getset operation', async () => {
+    it('should handle atomic getset operation', async () => { try {
       adapter.memoryManager.get.mockResolvedValue('old-value');
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      const oldValue = await adapter.getset('test-key', 'new-value', { agentId: 'agent1' });
+      const oldValue = await adapter.getset('test-key', 'new-value', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(oldValue).toBe('old-value');
       expect(adapter.memoryManager.get).toHaveBeenCalled();
@@ -812,25 +812,25 @@ describe('MemoryStoreAdapter', () => {
         'new-value',
         expect.objectContaining({ agentId: 'agent1' })
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle getdel operation', async () => {
+    it('should handle getdel operation', async () => { try {
       adapter.memoryManager.get.mockResolvedValue('value-to-delete');
       adapter.memoryManager.delete.mockResolvedValue(true);
 
-      const value = await adapter.getdel('test-key', { agentId: 'agent1' });
+      const value = await adapter.getdel('test-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(value).toBe('value-to-delete');
       expect(adapter.memoryManager.get).toHaveBeenCalled();
       expect(adapter.memoryManager.delete).toHaveBeenCalled();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle numeric operations', async () => {
+    it('should handle numeric operations', async () => { try {
       adapter.memoryManager.get.mockResolvedValue(null);
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Test incr
-      const newValue = await adapter.incr('counter', { agentId: 'agent1' });
+      const newValue = await adapter.incr('counter', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(newValue).toBe(1);
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'counter',
@@ -842,16 +842,16 @@ describe('MemoryStoreAdapter', () => {
       adapter.memoryManager.get.mockResolvedValue(1);
 
       // Test incrby
-      const incremented = await adapter.incrby('counter', 5, { agentId: 'agent1' });
+      const incremented = await adapter.incrby('counter', 5, { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(incremented).toBe(6);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle string operations', async () => {
+    it('should handle string operations', async () => { try {
       adapter.memoryManager.get.mockResolvedValue('hello');
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Test append
-      const newLength = await adapter.append('string-key', ' world', { agentId: 'agent1' });
+      const newLength = await adapter.append('string-key', ' world', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(newLength).toBe(11); // 'hello world'.length
       expect(adapter.memoryManager.set).toHaveBeenCalledWith(
         'string-key',
@@ -860,55 +860,55 @@ describe('MemoryStoreAdapter', () => {
       );
 
       // Test strlen
-      const length = await adapter.strlen('string-key', { agentId: 'agent1' });
+      const length = await adapter.strlen('string-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(adapter.memoryManager.get).toHaveBeenCalledWith(
         'string-key',
         expect.any(Object)
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle backup operations', async () => {
+    it('should handle backup operations', async () => { try {
       const backupPath = await adapter.backup('/backup/dir');
 
       expect(backupPath).toContain('/backup/dir/memory-store-backup-test-namespace-');
       expect(adapter.memoryManager.backup).toHaveBeenCalled();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle optimize operations', async () => {
+    it('should handle optimize operations', async () => { try {
       await adapter.optimize();
 
       expect(adapter.memoryManager.vacuum).toHaveBeenCalled();
       expect(adapter.memoryManager.analyze).toHaveBeenCalled();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should track metrics correctly', async () => {
+    it('should track metrics correctly', async () => { try {
       adapter.memoryManager.get.mockResolvedValue('value');
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      await adapter.get('test-key', { agentId: 'agent1' });
-      await adapter.set('test-key', 'value', { agentId: 'agent1' });
+      await adapter.get('test-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      await adapter.set('test-key', 'value', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.metrics.operations).toBe(2);
       expect(adapter.metrics.getOperations).toBe(1);
       expect(adapter.metrics.setOperations).toBe(1);
       expect(adapter.metrics.cacheHits).toBe(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle errors gracefully', async () => {
+    it('should handle errors gracefully', async () => { try {
       adapter.memoryManager.get.mockRejectedValue(new Error('Database error'));
 
       await expect(adapter.get('test-key', { agentId: 'agent1' }))
         .rejects.toThrow('Database error');
       
       expect(adapter.metrics.errors).toBe(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should provide comprehensive stats', async () => {
+    it('should provide comprehensive stats', async () => { try {
       adapter.memoryManager.getStats.mockResolvedValue({
         total_memory_entries: 100,
         total_size_bytes: 10240,
         avg_access_count: 5.5
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const stats = await adapter.getStats();
 
@@ -923,8 +923,8 @@ describe('MemoryStoreAdapter', () => {
           swarmId: 'test-swarm'
         }),
         performance: expect.any(Object)
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should reset metrics', () => {
       adapter.metrics.operations = 10;
@@ -934,20 +934,20 @@ describe('MemoryStoreAdapter', () => {
 
       expect(adapter.metrics.operations).toBe(0);
       expect(adapter.metrics.errors).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle close operation', async () => {
+    it('should handle close operation', async () => { try {
       await adapter.close();
 
       expect(adapter.memoryManager.close).toHaveBeenCalled();
       expect(adapter.isInitialized).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Event Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should emit events correctly', () => {
       const events = [];
@@ -958,14 +958,14 @@ describe('MemoryStoreAdapter', () => {
       adapter.on('optimized', (data) => events.push('optimized'));
 
       // Simulate events
-      adapter.emit('setItem', { key: 'test' });
-      adapter.emit('deleteItem', { key: 'test' });
-      adapter.emit('clear', { namespace: 'test' });
-      adapter.emit('backup', { path: '/backup' });
-      adapter.emit('optimized', {});
+      adapter.emit('setItem', { key: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      adapter.emit('deleteItem', { key: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      adapter.emit('clear', { namespace: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      adapter.emit('backup', { path: '/backup' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      adapter.emit('optimized', {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(events).toEqual(['setItem', 'deleteItem', 'clear', 'backup', 'optimized']);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should forward memory manager events', () => {
       const events = [];
@@ -981,10 +981,10 @@ describe('MemoryStoreAdapter', () => {
         if (event === 'error') callback(new Error('test error'));
         else if (event === 'initialized') callback();
         else if (event === 'closed') callback();
-        else if (event === 'get') callback({ key: 'test' });
-        else if (event === 'set') callback({ key: 'test' });
-        else if (event === 'accessDenied') callback({ key: 'test' });
-      });
+        else if (event === 'get') callback({ key: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        else if (event === 'set') callback({ key: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        else if (event === 'accessDenied') callback({ key: 'test' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(events).toContain('error');
       expect(events).toContain('initialized');
@@ -992,29 +992,29 @@ describe('MemoryStoreAdapter', () => {
       expect(events).toContain('get');
       expect(events).toContain('set');
       expect(events).toContain('accessDenied');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance and Scalability', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.initialize();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should update access time metrics', async () => {
+    it('should update access time metrics', async () => { try {
       // Add a small delay to simulate actual execution time
       adapter.memoryManager.get.mockImplementation(() =>
         new Promise(resolve => setTimeout(() => resolve('value'), 5))
       );
 
-      await adapter.get('test-key', { agentId: 'agent1' });
+      await adapter.get('test-key', { agentId: 'agent1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(adapter.metrics.totalAccessTime).toBeGreaterThan(0);
       expect(adapter.metrics.averageAccessTime).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle high-frequency operations', async () => {
+    it('should handle high-frequency operations', async () => { try {
       adapter.memoryManager.get.mockResolvedValue('value');
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const promises = [];
       for (let i = 0; i < 100; i++) {
@@ -1027,11 +1027,11 @@ describe('MemoryStoreAdapter', () => {
       expect(adapter.metrics.operations).toBe(200);
       expect(adapter.memoryManager.get).toHaveBeenCalledTimes(100);
       expect(adapter.memoryManager.set).toHaveBeenCalledTimes(100);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle concurrent operations safely', async () => {
+    it('should handle concurrent operations safely', async () => { try {
       adapter.memoryManager.get.mockResolvedValue('value');
-      adapter.memoryManager.set.mockResolvedValue({ success: true });
+      adapter.memoryManager.set.mockResolvedValue({ success: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const concurrentGets = Array(10).fill().map(() => 
         adapter.get('concurrent-key', { agentId: 'agent1' })
@@ -1043,6 +1043,6 @@ describe('MemoryStoreAdapter', () => {
       await Promise.all([...concurrentGets, ...concurrentSets]);
 
       expect(adapter.metrics.operations).toBe(20);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

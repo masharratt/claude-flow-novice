@@ -58,7 +58,7 @@ vi.mock('../../src/utils/helpers.js', () => ({
 describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   let mockAgentDefinition: AgentDefinition;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     vi.clearAllMocks();
     await initializeLifecycleManager();
 
@@ -78,7 +78,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
     };
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await shutdownLifecycleManager();
     vi.clearAllMocks();
   });
@@ -88,7 +88,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   // ============================================================================
 
   describe('Basic Integration', () => {
-    it('should initialize lifecycle manager with dependency tracking', async () => {
+    it('should initialize lifecycle manager with dependency tracking', async () => { try {
       // Lifecycle manager should be initialized
       expect(lifecycleManager).toBeDefined();
 
@@ -97,7 +97,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(depTracker).toBeDefined();
     });
 
-    it('should register agents and track their lifecycle', async () => {
+    it('should register agents and track their lifecycle', async () => { try {
       const coordinator = await lifecycleManager.initializeAgent(
         'coordinator-1',
         { ...mockAgentDefinition, name: 'coordinator', type: 'coordinator' }
@@ -114,7 +114,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(worker.state).toBe('uninitialized');
     });
 
-    it('should transition agent states properly', async () => {
+    it('should transition agent states properly', async () => { try {
       await lifecycleManager.initializeAgent('agent-1', mockAgentDefinition);
 
       const success1 = await transitionAgentState('agent-1', 'initializing', 'Starting initialization');
@@ -133,7 +133,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   // ============================================================================
 
   describe('Dependency Registration Integration', () => {
-    it('should register dependencies between agents through lifecycle manager', async () => {
+    it('should register dependencies between agents through lifecycle manager', async () => { try {
       // Initialize agents
       await lifecycleManager.initializeAgent('coordinator-1', {
         ...mockAgentDefinition,
@@ -170,7 +170,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(workerContext?.dependentAgents).toContain('coordinator-1');
     });
 
-    it('should remove dependencies and update agent contexts', async () => {
+    it('should remove dependencies and update agent contexts', async () => { try {
       await lifecycleManager.initializeAgent('agent-1', mockAgentDefinition);
       await lifecycleManager.initializeAgent('agent-2', mockAgentDefinition);
 
@@ -201,7 +201,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   // ============================================================================
 
   describe('Completion Blocking Integration', () => {
-    it('should block agent completion when dependencies exist', async () => {
+    it('should block agent completion when dependencies exist', async () => { try {
       // Initialize agents
       await lifecycleManager.initializeAgent('coordinator-1', mockAgentDefinition);
       await lifecycleManager.initializeAgent('worker-1', mockAgentDefinition);
@@ -229,7 +229,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(context?.state).toBe('running'); // State should not have changed
     });
 
-    it('should allow completion after dependencies are resolved', async () => {
+    it('should allow completion after dependencies are resolved', async () => { try {
       // Setup agents and dependency
       await lifecycleManager.initializeAgent('coordinator-1', mockAgentDefinition);
       await lifecycleManager.initializeAgent('worker-1', mockAgentDefinition);
@@ -260,7 +260,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(context?.state).toBe('stopped');
     });
 
-    it('should handle task completion with dependencies', async () => {
+    it('should handle task completion with dependencies', async () => { try {
       // Initialize coordinator and worker
       await lifecycleManager.initializeAgent('coordinator-1', mockAgentDefinition, 'task-1');
       await lifecycleManager.initializeAgent('worker-1', mockAgentDefinition, 'task-2');
@@ -294,7 +294,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   // ============================================================================
 
   describe('Force Completion Integration', () => {
-    it('should force agent completion bypassing dependencies', async () => {
+    it('should force agent completion bypassing dependencies', async () => { try {
       // Setup agents with dependency
       await lifecycleManager.initializeAgent('coordinator-1', mockAgentDefinition);
       await lifecycleManager.initializeAgent('worker-1', mockAgentDefinition);
@@ -324,7 +324,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(success).toBe(true);
     });
 
-    it('should emit appropriate events during force completion', async () => {
+    it('should emit appropriate events during force completion', async () => { try {
       const depTracker = getDependencyTracker('lifecycle-manager');
       const mockForced = vi.fn();
 
@@ -349,7 +349,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   // ============================================================================
 
   describe('Cleanup Integration', () => {
-    it('should cleanup agent dependencies during agent cleanup', async () => {
+    it('should cleanup agent dependencies during agent cleanup', async () => { try {
       // Setup multiple agents with dependencies
       await lifecycleManager.initializeAgent('coordinator-1', mockAgentDefinition);
       await lifecycleManager.initializeAgent('worker-1', mockAgentDefinition);
@@ -372,7 +372,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(depTracker.getDependencyDetails(dep2)).toBeUndefined();
     });
 
-    it('should handle cleanup when agent is providing dependencies', async () => {
+    it('should handle cleanup when agent is providing dependencies', async () => { try {
       await lifecycleManager.initializeAgent('provider-1', mockAgentDefinition);
       await lifecycleManager.initializeAgent('dependent-1', mockAgentDefinition);
       await lifecycleManager.initializeAgent('dependent-2', mockAgentDefinition);
@@ -403,7 +403,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   // ============================================================================
 
   describe('Complex Scenarios', () => {
-    it('should handle coordinator-worker hierarchy with dependencies', async () => {
+    it('should handle coordinator-worker hierarchy with dependencies', async () => { try {
       // Setup hierarchy: main-coordinator -> sub-coordinator -> worker
       await lifecycleManager.initializeAgent('main-coordinator', {
         ...mockAgentDefinition,
@@ -459,7 +459,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(mainContext?.pendingCompletion).toBe(false);
     });
 
-    it('should handle multiple dependency types between agents', async () => {
+    it('should handle multiple dependency types between agents', async () => { try {
       await lifecycleManager.initializeAgent('dependent', mockAgentDefinition);
       await lifecycleManager.initializeAgent('provider', mockAgentDefinition);
 
@@ -501,7 +501,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(context2?.pendingCompletion).toBe(false);
     });
 
-    it('should handle agent failure and dependency cascade', async () => {
+    it('should handle agent failure and dependency cascade', async () => { try {
       await lifecycleManager.initializeAgent('coordinator', mockAgentDefinition);
       await lifecycleManager.initializeAgent('worker', mockAgentDefinition);
 
@@ -533,7 +533,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   // ============================================================================
 
   describe('Performance Integration', () => {
-    it('should handle many agents with dependencies efficiently', async () => {
+    it('should handle many agents with dependencies efficiently', async () => { try {
       const agentCount = 50;
       const startTime = Date.now();
 
@@ -586,7 +586,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
   // ============================================================================
 
   describe('Error Handling Integration', () => {
-    it('should handle operations on non-existent agents gracefully', async () => {
+    it('should handle operations on non-existent agents gracefully', async () => { try {
       // Try to register dependency with non-existent agent
       await expect(
         registerAgentDependency('non-existent', 'also-non-existent', DependencyType.COMPLETION)
@@ -598,7 +598,7 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       expect(status.dependencies).toHaveLength(0);
     });
 
-    it('should handle lifecycle manager shutdown with pending dependencies', async () => {
+    it('should handle lifecycle manager shutdown with pending dependencies', async () => { try {
       await lifecycleManager.initializeAgent('agent-1', mockAgentDefinition);
       await lifecycleManager.initializeAgent('agent-2', mockAgentDefinition);
 
@@ -611,4 +611,4 @@ describe('Lifecycle Manager and Dependency Tracker Integration', () => {
       await initializeLifecycleManager();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -77,7 +77,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   let redis: Redis;
   let warningSystem: HeartbeatWarningSystem;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis client
     redis = new Redis(REDIS_CONFIG);
 
@@ -91,7 +91,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
     await cleanupRedis(redis);
   }, TEST_TIMEOUT);
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Stop monitoring if running
     if (warningSystem) {
       warningSystem.stopMonitoring();
@@ -108,7 +108,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   // ===== HEARTBEAT REGISTRATION TESTS =====
 
   describe('Heartbeat Registration', () => {
-    it('should register heartbeat with timestamp and sequence', async () => {
+    it('should register heartbeat with timestamp and sequence', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -128,7 +128,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(heartbeat.metadata).toEqual(metadata);
     });
 
-    it('should increment sequence on consecutive heartbeats', async () => {
+    it('should increment sequence on consecutive heartbeats', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -145,7 +145,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(heartbeat3.sequence).toBe(3);
     });
 
-    it('should persist heartbeat to Redis with TTL', async () => {
+    it('should persist heartbeat to Redis with TTL', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -169,7 +169,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   // ===== HEARTBEAT RETRIEVAL TESTS =====
 
   describe('Heartbeat Retrieval', () => {
-    it('should retrieve registered heartbeat', async () => {
+    it('should retrieve registered heartbeat', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -187,7 +187,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(heartbeat!.iteration).toBe(iteration);
     });
 
-    it('should return null for non-existent heartbeat', async () => {
+    it('should return null for non-existent heartbeat', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -198,7 +198,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(heartbeat).toBeNull();
     });
 
-    it('should check heartbeat freshness', async () => {
+    it('should check heartbeat freshness', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -221,7 +221,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   // ===== STALE HEARTBEAT DETECTION TESTS =====
 
   describe('Stale Heartbeat Detection', () => {
-    it('should detect stale heartbeat after threshold', async () => {
+    it('should detect stale heartbeat after threshold', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         monitorInterval: 100, // 100ms monitor interval
@@ -253,7 +253,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(warnings[0].health).toBe(CoordinatorHealth.WARNING);
     }, 10000);
 
-    it('should escalate warnings after consecutive detections', async () => {
+    it('should escalate warnings after consecutive detections', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         monitorInterval: 100,
@@ -302,7 +302,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   // ===== DEAD COORDINATOR MARKING TESTS =====
 
   describe('Dead Coordinator Marking', () => {
-    it('should mark coordinator as dead after max warnings', async () => {
+    it('should mark coordinator as dead after max warnings', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         maxWarnings: 3,
@@ -331,7 +331,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(health).toBe(CoordinatorHealth.DEAD);
     });
 
-    it('should emit error for critical exit path', async () => {
+    it('should emit error for critical exit path', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         autoCleanup: false,
@@ -360,7 +360,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   // ===== CLEANUP TESTS =====
 
   describe('Dead Coordinator Cleanup', () => {
-    it('should cleanup all coordinator state', async () => {
+    it('should cleanup all coordinator state', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         autoCleanup: true,
@@ -402,7 +402,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(signalExists).toBe(0);
     });
 
-    it('should cleanup manually when auto-cleanup disabled', async () => {
+    it('should cleanup manually when auto-cleanup disabled', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         autoCleanup: false,
@@ -430,7 +430,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   // ===== CONTINUITY VALIDATION TESTS =====
 
   describe('Heartbeat Continuity Validation', () => {
-    it('should validate sequence continuity', async () => {
+    it('should validate sequence continuity', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -450,7 +450,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(valid2).toBe(true);
     });
 
-    it('should detect sequence gaps', async () => {
+    it('should detect sequence gaps', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -489,7 +489,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   // ===== MONITORING LIFECYCLE TESTS =====
 
   describe('Monitoring Lifecycle', () => {
-    it('should start and stop monitoring', async () => {
+    it('should start and stop monitoring', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         monitorInterval: 100,
@@ -525,7 +525,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(stats.totalMonitorCycles).toBeGreaterThan(0);
     });
 
-    it('should not double-start monitoring', async () => {
+    it('should not double-start monitoring', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -542,7 +542,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
   // ===== STATISTICS TESTS =====
 
   describe('Statistics', () => {
-    it('should track statistics', async () => {
+    it('should track statistics', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,
@@ -559,7 +559,7 @@ describe('HeartbeatWarningSystem - Sprint 1.2', () => {
       expect(stats.cleanupsPerformed).toBeGreaterThanOrEqual(0);
     });
 
-    it('should reset statistics', async () => {
+    it('should reset statistics', async () => { try {
       warningSystem = createHeartbeatWarningSystem({
         redisClient: redis,
         debug: false,

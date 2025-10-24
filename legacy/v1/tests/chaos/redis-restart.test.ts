@@ -50,7 +50,7 @@ const TEST_CONFIG = {
 describe('Chaos: Redis Restart', () => {
   let coordinators: CoordinatorInstance[] = [];
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Ensure Redis is running
     await waitForRedis(5000);
 
@@ -58,7 +58,7 @@ describe('Chaos: Redis Restart', () => {
     await cleanupRedis();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Kill all coordinators
     killAllCoordinators(coordinators);
 
@@ -73,7 +73,7 @@ describe('Chaos: Redis Restart', () => {
 
   it(
     'should survive Redis restarts every 2 minutes',
-    async () => {
+    async () => { try {
       const restartEvents: { time: number; success: boolean }[] = [];
       const stateSnapshots: Map<number, Map<string, CoordinatorState>> = new Map();
 
@@ -165,7 +165,7 @@ describe('Chaos: Redis Restart', () => {
 
   it(
     'should trigger circuit breaker on Redis connection loss',
-    async () => {
+    async () => { try {
       // Spawn coordinators
       coordinators = await spawnCoordinators(3, {
         timeout: 10 * 60 * 1000,
@@ -204,7 +204,7 @@ describe('Chaos: Redis Restart', () => {
 
   it(
     'should handle rapid Redis restarts (every 30 seconds)',
-    async () => {
+    async () => { try {
       const RAPID_RESTART_COUNT = 5;
       const RAPID_RESTART_INTERVAL = 30 * 1000; // 30 seconds
 
@@ -244,7 +244,7 @@ describe('Chaos: Redis Restart', () => {
 
   it(
     'should maintain heartbeats during Redis reconnection',
-    async () => {
+    async () => { try {
       // Spawn single coordinator
       const coordinator = (await spawnCoordinators(1, {
         timeout: 10 * 60 * 1000,
@@ -285,7 +285,7 @@ describe('Chaos: Redis Restart', () => {
 
   it(
     'should preserve coordinator state across Redis restart',
-    async () => {
+    async () => { try {
       // Spawn coordinators
       coordinators = await spawnCoordinators(3, {
         timeout: 10 * 60 * 1000,

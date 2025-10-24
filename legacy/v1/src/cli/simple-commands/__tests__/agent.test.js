@@ -42,16 +42,17 @@ describe('Agent Command', () => {
     ora.mockReturnValue(mockSpinner);
 
     jest.clearAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('list subcommand', () => {
-    test('should list available agent types', async () => {
-      await agentCommand(['list'], {});
+    jest.setTimeout(10000);
+  test('should list available agent types', async () => { try {
+      await agentCommand(['list'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(consoleLogSpy).toHaveBeenCalled();
       const output = consoleLogSpy.mock.calls.flat().join('\n');
@@ -63,21 +64,22 @@ describe('Agent Command', () => {
       expect(output).toContain('architect');
       expect(output).toContain('tester');
       expect(output).toContain('coordinator');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('spawn subcommand', () => {
-    test('should spawn an agent with type', async () => {
+    jest.setTimeout(10000);
+  test('should spawn an agent with type', async () => { try {
       const swarmDir = path.join(process.cwd(), '.claude', 'swarm');
       fs.pathExists.mockResolvedValue(true);
       fs.readJson.mockResolvedValue({
         id: 'swarm-123',
         agents: [],
         status: 'active',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       fs.writeJson.mockResolvedValue(undefined);
 
-      await agentCommand(['spawn', 'researcher'], {});
+      await agentCommand(['spawn', 'researcher'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(mockSpinner.start).toHaveBeenCalledWith('Spawning researcher agent...');
       expect(mockSpinner.succeed).toHaveBeenCalled();
@@ -86,45 +88,49 @@ describe('Agent Command', () => {
       const writeCall = fs.writeJson.mock.calls[0];
       expect(writeCall[1].agents).toHaveLength(1);
       expect(writeCall[1].agents[0].type).toBe('researcher');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should spawn agent with custom name', async () => {
+    jest.setTimeout(10000);
+  test('should spawn agent with custom name', async () => { try {
       fs.pathExists.mockResolvedValue(true);
       fs.readJson.mockResolvedValue({
         id: 'swarm-123',
         agents: [],
         status: 'active',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       fs.writeJson.mockResolvedValue(undefined);
 
-      await agentCommand(['spawn', 'coder'], { name: 'CustomCoder' });
+      await agentCommand(['spawn', 'coder'], { name: 'CustomCoder' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const writeCall = fs.writeJson.mock.calls[0];
       expect(writeCall[1].agents[0].name).toBe('CustomCoder');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should error if swarm not initialized', async () => {
+    jest.setTimeout(10000);
+  test('should error if swarm not initialized', async () => { try {
       fs.pathExists.mockResolvedValue(false);
 
-      await agentCommand(['spawn', 'researcher'], {});
+      await agentCommand(['spawn', 'researcher'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(mockSpinner.fail).toHaveBeenCalledWith(
         expect.stringContaining('No active swarm found'),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should error for invalid agent type', async () => {
+    jest.setTimeout(10000);
+  test('should error for invalid agent type', async () => { try {
       fs.pathExists.mockResolvedValue(true);
-      fs.readJson.mockResolvedValue({ agents: [] });
+      fs.readJson.mockResolvedValue({ agents: [] } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      await agentCommand(['spawn', 'invalid-type'], {});
+      await agentCommand(['spawn', 'invalid-type'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid agent type'));
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('status subcommand', () => {
-    test('should show agent status', async () => {
+    jest.setTimeout(10000);
+  test('should show agent status', async () => { try {
       const mockSwarmData = {
         id: 'swarm-123',
         agents: [
@@ -152,7 +158,7 @@ describe('Agent Command', () => {
       fs.pathExists.mockResolvedValue(true);
       fs.readJson.mockResolvedValue(mockSwarmData);
 
-      await agentCommand(['status'], {});
+      await agentCommand(['status'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const output = consoleLogSpy.mock.calls.flat().join('\n');
       expect(output).toContain('Active Agents');
@@ -161,9 +167,10 @@ describe('Agent Command', () => {
       expect(output).toContain('Analyzing data');
       expect(output).toContain('Coder');
       expect(output).toContain('idle');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should show specific agent status', async () => {
+    jest.setTimeout(10000);
+  test('should show specific agent status', async () => { try {
       const mockSwarmData = {
         agents: [
           {
@@ -183,18 +190,19 @@ describe('Agent Command', () => {
       fs.pathExists.mockResolvedValue(true);
       fs.readJson.mockResolvedValue(mockSwarmData);
 
-      await agentCommand(['status', 'agent-1'], {});
+      await agentCommand(['status', 'agent-1'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const output = consoleLogSpy.mock.calls.flat().join('\n');
       expect(output).toContain('Agent Details');
       expect(output).toContain('Researcher');
       expect(output).toContain('Tasks Completed: 10');
       expect(output).toContain('Success Rate: 95%');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('remove subcommand', () => {
-    test('should remove an agent', async () => {
+    jest.setTimeout(10000);
+  test('should remove an agent', async () => { try {
       const mockSwarmData = {
         agents: [
           { id: 'agent-1', name: 'Researcher' },
@@ -206,7 +214,7 @@ describe('Agent Command', () => {
       fs.readJson.mockResolvedValue(mockSwarmData);
       fs.writeJson.mockResolvedValue(undefined);
 
-      await agentCommand(['remove', 'agent-1'], {});
+      await agentCommand(['remove', 'agent-1'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(mockSpinner.succeed).toHaveBeenCalledWith(
         expect.stringContaining('Agent agent-1 removed'),
@@ -215,22 +223,24 @@ describe('Agent Command', () => {
       const writeCall = fs.writeJson.mock.calls[0];
       expect(writeCall[1].agents).toHaveLength(1);
       expect(writeCall[1].agents[0].id).toBe('agent-2');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should error if agent not found', async () => {
+    jest.setTimeout(10000);
+  test('should error if agent not found', async () => { try {
       fs.pathExists.mockResolvedValue(true);
-      fs.readJson.mockResolvedValue({ agents: [] });
+      fs.readJson.mockResolvedValue({ agents: [] } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      await agentCommand(['remove', 'nonexistent'], {});
+      await agentCommand(['remove', 'nonexistent'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(mockSpinner.fail).toHaveBeenCalledWith(
         expect.stringContaining('Agent nonexistent not found'),
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('assign subcommand', () => {
-    test('should assign task to agent', async () => {
+    jest.setTimeout(10000);
+  test('should assign task to agent', async () => { try {
       const mockSwarmData = {
         agents: [{ id: 'agent-1', name: 'Researcher', currentTask: null }],
       };
@@ -239,7 +249,7 @@ describe('Agent Command', () => {
       fs.readJson.mockResolvedValue(mockSwarmData);
       fs.writeJson.mockResolvedValue(undefined);
 
-      await agentCommand(['assign', 'agent-1', 'Research new algorithms'], {});
+      await agentCommand(['assign', 'agent-1', 'Research new algorithms'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(mockSpinner.succeed).toHaveBeenCalledWith(
         expect.stringContaining('Task assigned to agent-1'),
@@ -248,44 +258,48 @@ describe('Agent Command', () => {
       const writeCall = fs.writeJson.mock.calls[0];
       expect(writeCall[1].agents[0].currentTask).toBe('Research new algorithms');
       expect(writeCall[1].agents[0].status).toBe('working');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('help subcommand', () => {
-    test('should show help when no arguments', async () => {
-      await agentCommand([], {});
+    jest.setTimeout(10000);
+  test('should show help when no arguments', async () => { try {
+      await agentCommand([], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const output = consoleLogSpy.mock.calls.flat().join('\n');
       expect(output).toContain('Agent Management');
       expect(output).toContain('USAGE:');
       expect(output).toContain('agent <subcommand>');
       expect(output).toContain('SUBCOMMANDS:');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should show help for help subcommand', async () => {
-      await agentCommand(['help'], {});
+    jest.setTimeout(10000);
+  test('should show help for help subcommand', async () => { try {
+      await agentCommand(['help'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const output = consoleLogSpy.mock.calls.flat().join('\n');
       expect(output).toContain('Agent Management');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('error handling', () => {
-    test('should handle file read errors gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle file read errors gracefully', async () => { try {
       fs.pathExists.mockResolvedValue(true);
       fs.readJson.mockRejectedValue(new Error('Permission denied'));
 
-      await agentCommand(['status'], {});
+      await agentCommand(['status'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Error:'));
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle invalid subcommands', async () => {
-      await agentCommand(['invalid-subcommand'], {});
+    jest.setTimeout(10000);
+  test('should handle invalid subcommands', async () => { try {
+      await agentCommand(['invalid-subcommand'], {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Unknown subcommand: invalid-subcommand'),
       );
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

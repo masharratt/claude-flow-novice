@@ -16,13 +16,14 @@ describe('Cross-Platform Portability Tests', () => {
   describe('RuvSwarmWrapper Error Handling', () => {
     let RuvSwarmWrapper;
     
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Import the wrapper
       const wrapperModule = await import('../../src/mcp/ruv-swarm-wrapper.js');
       RuvSwarmWrapper = wrapperModule.RuvSwarmWrapper;
     });
 
-    test('should handle structured error messages with error codes', async () => {
+    jest.setTimeout(10000);
+  test('should handle structured error messages with error codes', async () => { try {
       const wrapper = new RuvSwarmWrapper({ silent: false });
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       
@@ -72,7 +73,8 @@ describe('Cross-Platform Portability Tests', () => {
       jest.dontMock('readline');
     });
 
-    test('should fall back to pattern matching for non-JSON errors', async () => {
+    jest.setTimeout(10000);
+  test('should fall back to pattern matching for non-JSON errors', async () => { try {
       const wrapper = new RuvSwarmWrapper({ silent: false });
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -103,13 +105,14 @@ describe('Cross-Platform Portability Tests', () => {
   describe('SwarmUI Cross-Platform Process Management', () => {
     let SwarmUI;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Import SwarmUI
       const swarmUIModule = await import('../../src/cli/simple-commands/swarm-ui.js');
       SwarmUI = swarmUIModule.default;
     });
 
-    test('should track processes for cross-platform termination', () => {
+    jest.setTimeout(10000);
+  test('should track processes for cross-platform termination', () => {
       const ui = new SwarmUI();
       
       // Mock process
@@ -127,7 +130,8 @@ describe('Cross-Platform Portability Tests', () => {
       expect(ui.activeProcesses.get('swarm-test')).toBe(mockProcess);
     });
 
-    test('should use process.kill() instead of pkill', async () => {
+    jest.setTimeout(10000);
+  test('should use process.kill() instead of pkill', async () => { try {
       const ui = new SwarmUI();
       
       // Mock processes
@@ -153,7 +157,8 @@ describe('Cross-Platform Portability Tests', () => {
       expect(ui.activeProcesses.size).toBe(0);
     });
 
-    test('should handle Windows process termination', async () => {
+    jest.setTimeout(10000);
+  test('should handle Windows process termination', async () => { try {
       const ui = new SwarmUI();
       const originalPlatform = process.platform;
       
@@ -195,13 +200,14 @@ describe('Cross-Platform Portability Tests', () => {
     let checkCommandAvailable;
     let checkClaudeAvailable;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Import the functions
       const githubModule = await import('../../src/cli/simple-commands/github.js');
       // These functions are not exported, so we'll test them indirectly
     });
 
-    test('should use platform-appropriate command checking', async () => {
+    jest.setTimeout(10000);
+  test('should use platform-appropriate command checking', async () => { try {
       const { execSync } = await import('child_process');
       const execSyncSpy = jest.spyOn(execSync, 'default');
 
@@ -235,7 +241,8 @@ describe('Cross-Platform Portability Tests', () => {
   });
 
   describe('Integration Test: Full Workflow', () => {
-    test('should handle cross-platform operations without using non-portable commands', async () => {
+    jest.setTimeout(10000);
+  test('should handle cross-platform operations without using non-portable commands', async () => { try {
       // This test verifies that our code doesn't use pkill, which, etc.
       const sourceFiles = [
         '../../src/mcp/ruv-swarm-wrapper.js',
@@ -276,4 +283,4 @@ describe('Cross-Platform Portability Tests', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

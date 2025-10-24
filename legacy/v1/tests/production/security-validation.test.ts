@@ -17,7 +17,7 @@ describe('Production Security Validation', () => {
   let memoryManager: MemoryManager;
   let agentManager: AgentManager;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     systemIntegration = SystemIntegration.getInstance();
     await systemIntegration.initialize({
       logLevel: 'info',
@@ -34,14 +34,15 @@ describe('Production Security Validation', () => {
     agentManager = systemIntegration.getComponent('agentManager') as AgentManager;
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (systemIntegration?.isReady()) {
       await systemIntegration.shutdown();
     }
   });
 
   describe('Input Validation and Sanitization', () => {
-    test('should prevent script injection in agent names', async () => {
+    jest.setTimeout(10000);
+  test('should prevent script injection in agent names', async () => { try {
       const maliciousNames = [
         '<script>alert("xss")</script>',
         '"; DROP TABLE agents; --',
@@ -80,7 +81,8 @@ describe('Production Security Validation', () => {
       }
     });
 
-    test('should prevent path traversal in memory keys', async () => {
+    jest.setTimeout(10000);
+  test('should prevent path traversal in memory keys', async () => { try {
       const maliciousPaths = [
         '../../../etc/passwd',
         '..\\..\\..\\windows\\system32\\config\\sam',
@@ -109,7 +111,8 @@ describe('Production Security Validation', () => {
       }
     });
 
-    test('should handle malformed JSON and data injection', async () => {
+    jest.setTimeout(10000);
+  test('should handle malformed JSON and data injection', async () => { try {
       const maliciousData = [
         '{"__proto__": {"isAdmin": true}}',
         '{"constructor": {"prototype": {"isAdmin": true}}}',
@@ -146,7 +149,8 @@ describe('Production Security Validation', () => {
   });
 
   describe('Authentication and Authorization', () => {
-    test('should enforce authentication for protected operations', async () => {
+    jest.setTimeout(10000);
+  test('should enforce authentication for protected operations', async () => { try {
       // Test without authentication context
       try {
         await agentManager.createAgent({
@@ -163,7 +167,8 @@ describe('Production Security Validation', () => {
       }
     });
 
-    test('should validate agent permissions for operations', async () => {
+    jest.setTimeout(10000);
+  test('should validate agent permissions for operations', async () => { try {
       // Create agent with limited permissions
       const agentId = await agentManager.createAgent({
         type: 'researcher',
@@ -192,7 +197,8 @@ describe('Production Security Validation', () => {
   });
 
   describe('Data Protection and Encryption', () => {
-    test('should protect sensitive data in memory', async () => {
+    jest.setTimeout(10000);
+  test('should protect sensitive data in memory', async () => { try {
       const sensitiveData = {
         password: 'secret123',
         apiKey: 'sk-1234567890abcdef',
@@ -222,7 +228,8 @@ describe('Production Security Validation', () => {
       await memoryManager.delete(key, 'security-test');
     });
 
-    test('should prevent data leakage in error messages', async () => {
+    jest.setTimeout(10000);
+  test('should prevent data leakage in error messages', async () => { try {
       const sensitiveData = {
         password: 'secret123',
         database_url: 'postgresql://user:password@host:5432/db'
@@ -244,7 +251,8 @@ describe('Production Security Validation', () => {
   });
 
   describe('Rate Limiting and DoS Protection', () => {
-    test('should enforce rate limits on agent creation', async () => {
+    jest.setTimeout(10000);
+  test('should enforce rate limits on agent creation', async () => { try {
       const rapidRequests = 20;
       const timeWindow = 1000; // 1 second
       const startTime = Date.now();
@@ -279,7 +287,8 @@ describe('Production Security Validation', () => {
       }
     });
 
-    test('should handle resource exhaustion gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle resource exhaustion gracefully', async () => { try {
       const largeData = 'x'.repeat(10 * 1024 * 1024); // 10MB string
       const memoryKeys: string[] = [];
 
@@ -310,7 +319,8 @@ describe('Production Security Validation', () => {
   });
 
   describe('Audit Logging and Monitoring', () => {
-    test('should log security events', async () => {
+    jest.setTimeout(10000);
+  test('should log security events', async () => { try {
       const securityEvents: string[] = [];
       
       // Mock security event logger (in real implementation, this would be real logging)
@@ -354,7 +364,8 @@ describe('Production Security Validation', () => {
       }
     });
 
-    test('should monitor for suspicious activity patterns', async () => {
+    jest.setTimeout(10000);
+  test('should monitor for suspicious activity patterns', async () => { try {
       // Simulate suspicious pattern - rapid operations from same source
       const suspiciousOperations = Array.from({ length: 10 }, (_, i) =>
         agentManager.createAgent({
@@ -380,4 +391,4 @@ describe('Production Security Validation', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

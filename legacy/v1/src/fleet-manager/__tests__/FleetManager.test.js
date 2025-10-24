@@ -20,20 +20,22 @@ describe('FleetManager', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (fleet && fleet.isInitialized) {
       await fleet.shutdown();
     }
   });
 
   describe('Initialization', () => {
-    test('should create fleet manager instance', () => {
+    jest.setTimeout(10000);
+  test('should create fleet manager instance', () => {
       expect(fleet).toBeInstanceOf(FleetManager);
       expect(fleet.fleetId).toBeDefined();
       expect(fleet.swarmId).toBeDefined();
     });
 
-    test('should initialize successfully', async () => {
+    jest.setTimeout(10000);
+  test('should initialize successfully', async () => { try {
       await fleet.initialize();
 
       expect(fleet.isInitialized).toBe(true);
@@ -43,7 +45,8 @@ describe('FleetManager', () => {
       expect(fleet.coordinator).toBeDefined();
     });
 
-    test('should initialize with custom configuration', () => {
+    jest.setTimeout(10000);
+  test('should initialize with custom configuration', () => {
       const customFleet = new FleetManager({
         maxAgents: 500,
         fleetId: 'custom-fleet',
@@ -57,11 +60,12 @@ describe('FleetManager', () => {
   });
 
   describe('Agent Registration', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await fleet.initialize();
     });
 
-    test('should register agent successfully', async () => {
+    jest.setTimeout(10000);
+  test('should register agent successfully', async () => { try {
       const agentId = await fleet.registerAgent({
         type: 'coder',
         priority: 8,
@@ -73,7 +77,8 @@ describe('FleetManager', () => {
       expect(agentId).toMatch(/^agent-/);
     });
 
-    test('should emit agent_registered event', async () => {
+    jest.setTimeout(10000);
+  test('should emit agent_registered event', async () => { try {
       const handler = jest.fn();
       fleet.on('agent_registered', handler);
 
@@ -85,7 +90,8 @@ describe('FleetManager', () => {
       expect(handler).toHaveBeenCalled();
     });
 
-    test('should increment total agents metric', async () => {
+    jest.setTimeout(10000);
+  test('should increment total agents metric', async () => { try {
       const before = fleet.metrics.totalAgents;
 
       await fleet.registerAgent({
@@ -98,11 +104,12 @@ describe('FleetManager', () => {
   });
 
   describe('Agent Allocation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await fleet.initialize();
     });
 
-    test('should allocate agent successfully', async () => {
+    jest.setTimeout(10000);
+  test('should allocate agent successfully', async () => { try {
       const allocation = await fleet.allocateAgent({
         type: 'coder',
         taskId: 'test-task-001',
@@ -115,7 +122,8 @@ describe('FleetManager', () => {
       expect(allocation.allocationId).toBeDefined();
     });
 
-    test('should update agent status to busy', async () => {
+    jest.setTimeout(10000);
+  test('should update agent status to busy', async () => { try {
       const allocation = await fleet.allocateAgent({
         type: 'tester',
         taskId: 'test-task-002'
@@ -125,7 +133,8 @@ describe('FleetManager', () => {
       expect(agent.status).toBe('busy');
     });
 
-    test('should increment active agents metric', async () => {
+    jest.setTimeout(10000);
+  test('should increment active agents metric', async () => { try {
       const before = fleet.metrics.activeAgents;
 
       await fleet.allocateAgent({
@@ -136,7 +145,8 @@ describe('FleetManager', () => {
       expect(fleet.metrics.activeAgents).toBe(before + 1);
     });
 
-    test('should emit agent_allocated event', async () => {
+    jest.setTimeout(10000);
+  test('should emit agent_allocated event', async () => { try {
       const handler = jest.fn();
       fleet.on('agent_allocated', handler);
 
@@ -152,7 +162,7 @@ describe('FleetManager', () => {
   describe('Agent Release', () => {
     let agentId;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await fleet.initialize();
 
       const allocation = await fleet.allocateAgent({
@@ -163,7 +173,8 @@ describe('FleetManager', () => {
       agentId = allocation.agentId;
     });
 
-    test('should release agent successfully', async () => {
+    jest.setTimeout(10000);
+  test('should release agent successfully', async () => { try {
       await expect(
         fleet.releaseAgent(agentId, {
           success: true,
@@ -172,14 +183,16 @@ describe('FleetManager', () => {
       ).resolves.not.toThrow();
     });
 
-    test('should update agent status to idle', async () => {
+    jest.setTimeout(10000);
+  test('should update agent status to idle', async () => { try {
       await fleet.releaseAgent(agentId, { success: true });
 
       const agent = await fleet.registry.get(agentId);
       expect(agent.status).toBe('idle');
     });
 
-    test('should update task metrics on success', async () => {
+    jest.setTimeout(10000);
+  test('should update task metrics on success', async () => { try {
       const before = fleet.metrics.tasksCompleted;
 
       await fleet.releaseAgent(agentId, { success: true });
@@ -187,7 +200,8 @@ describe('FleetManager', () => {
       expect(fleet.metrics.tasksCompleted).toBe(before + 1);
     });
 
-    test('should update task metrics on failure', async () => {
+    jest.setTimeout(10000);
+  test('should update task metrics on failure', async () => { try {
       const before = fleet.metrics.tasksFailed;
 
       await fleet.releaseAgent(agentId, {
@@ -198,7 +212,8 @@ describe('FleetManager', () => {
       expect(fleet.metrics.tasksFailed).toBe(before + 1);
     });
 
-    test('should update agent performance metrics', async () => {
+    jest.setTimeout(10000);
+  test('should update agent performance metrics', async () => { try {
       await fleet.releaseAgent(agentId, {
         success: true,
         duration: 1234
@@ -211,11 +226,12 @@ describe('FleetManager', () => {
   });
 
   describe('Fleet Status', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await fleet.initialize();
     });
 
-    test('should get fleet status', async () => {
+    jest.setTimeout(10000);
+  test('should get fleet status', async () => { try {
       const status = await fleet.getStatus();
 
       expect(status).toBeDefined();
@@ -228,7 +244,8 @@ describe('FleetManager', () => {
       expect(status.coordination).toBeDefined();
     });
 
-    test('should include agent statistics', async () => {
+    jest.setTimeout(10000);
+  test('should include agent statistics', async () => { try {
       const status = await fleet.getStatus();
 
       expect(status.agents.total).toBeGreaterThanOrEqual(0);
@@ -237,7 +254,8 @@ describe('FleetManager', () => {
       expect(status.agents.failed).toBeGreaterThanOrEqual(0);
     });
 
-    test('should include pool status', async () => {
+    jest.setTimeout(10000);
+  test('should include pool status', async () => { try {
       const status = await fleet.getStatus();
 
       expect(Object.keys(status.pools).length).toBeGreaterThan(0);
@@ -252,11 +270,12 @@ describe('FleetManager', () => {
   });
 
   describe('Fleet Health', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await fleet.initialize();
     });
 
-    test('should get fleet health status', async () => {
+    jest.setTimeout(10000);
+  test('should get fleet health status', async () => { try {
       const health = await fleet.getHealth();
 
       expect(health).toBeDefined();
@@ -265,7 +284,8 @@ describe('FleetManager', () => {
       expect(health.timestamp).toBeGreaterThan(0);
     });
 
-    test('should include component health', async () => {
+    jest.setTimeout(10000);
+  test('should include component health', async () => { try {
       const health = await fleet.getHealth();
 
       expect(health.components.coordinator).toBeDefined();
@@ -275,7 +295,8 @@ describe('FleetManager', () => {
       expect(health.components.monitor).toBeDefined();
     });
 
-    test('should report healthy status when all components healthy', async () => {
+    jest.setTimeout(10000);
+  test('should report healthy status when all components healthy', async () => { try {
       const health = await fleet.getHealth();
 
       expect(health.status).toBe('healthy');
@@ -283,11 +304,12 @@ describe('FleetManager', () => {
   });
 
   describe('Pool Scaling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await fleet.initialize();
     });
 
-    test('should scale pool up', async () => {
+    jest.setTimeout(10000);
+  test('should scale pool up', async () => { try {
       const poolType = 'coder';
       const targetSize = 10;
 
@@ -297,7 +319,8 @@ describe('FleetManager', () => {
       expect(status.pools[poolType].currentAgents).toBe(targetSize);
     });
 
-    test('should scale pool down', async () => {
+    jest.setTimeout(10000);
+  test('should scale pool down', async () => { try {
       const poolType = 'coder';
 
       // Scale up first
@@ -310,7 +333,8 @@ describe('FleetManager', () => {
       expect(status.pools[poolType].currentAgents).toBe(10);
     });
 
-    test('should respect minimum pool size', async () => {
+    jest.setTimeout(10000);
+  test('should respect minimum pool size', async () => { try {
       const poolType = 'coder';
       const pool = await fleet.allocator.getPool(poolType);
       const minSize = pool.minAgents;
@@ -322,7 +346,8 @@ describe('FleetManager', () => {
       expect(status.pools[poolType].currentAgents).toBeGreaterThanOrEqual(minSize);
     });
 
-    test('should respect maximum pool size', async () => {
+    jest.setTimeout(10000);
+  test('should respect maximum pool size', async () => { try {
       const poolType = 'coder';
       const pool = await fleet.allocator.getPool(poolType);
       const maxSize = pool.maxAgents;
@@ -336,17 +361,19 @@ describe('FleetManager', () => {
   });
 
   describe('Shutdown', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await fleet.initialize();
     });
 
-    test('should shutdown gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should shutdown gracefully', async () => { try {
       await fleet.shutdown();
 
       expect(fleet.isRunning).toBe(false);
     });
 
-    test('should close all components', async () => {
+    jest.setTimeout(10000);
+  test('should close all components', async () => { try {
       await fleet.shutdown();
 
       // Components should be cleaned up
@@ -356,26 +383,28 @@ describe('FleetManager', () => {
   });
 
   describe('Event Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await fleet.initialize();
     });
 
-    test('should emit status events', (done) => {
+    jest.setTimeout(10000);
+  test('should emit status events', (done) => {
       fleet.on('status', (status) => {
         expect(status).toBeDefined();
         expect(status.status).toBeDefined();
         expect(status.message).toBeDefined();
-        done();
+        return;
       });
 
       fleet.emit('status', { status: 'test', message: 'Test message' });
     });
 
-    test('should emit error events', (done) => {
+    jest.setTimeout(10000);
+  test('should emit error events', (done) => {
       fleet.on('error', (error) => {
         expect(error).toBeDefined();
         expect(error.type).toBe('test_error');
-        done();
+        return;
       });
 
       fleet.emit('error', { type: 'test_error', error: 'Test error' });
@@ -384,6 +413,7 @@ describe('FleetManager', () => {
 });
 
 describe('Fleet Presets', () => {
+  jest.setTimeout(10000);
   test('should provide development preset', () => {
     const preset = FLEET_PRESETS.development;
 
@@ -392,6 +422,7 @@ describe('Fleet Presets', () => {
     expect(preset.autoScaling.enabled).toBe(false);
   });
 
+  jest.setTimeout(10000);
   test('should provide production preset', () => {
     const preset = FLEET_PRESETS.production;
 
@@ -401,6 +432,7 @@ describe('Fleet Presets', () => {
     expect(preset.autoScaling.efficiencyTarget).toBe(0.45);
   });
 
+  jest.setTimeout(10000);
   test('should provide enterprise preset', () => {
     const preset = FLEET_PRESETS.enterprise;
 

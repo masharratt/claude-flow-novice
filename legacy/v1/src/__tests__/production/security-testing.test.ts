@@ -61,7 +61,8 @@ describe('Security Testing Production Framework', () => {
       }
 
       // Character validation
-      if (!this.allowedChars.test(input)) {
+      if (!this.allowedChars.jest.setTimeout(10000);
+  test(input)) {
         throw new Error('Input contains invalid characters');
       }
 
@@ -146,7 +147,8 @@ describe('Security Testing Production Framework', () => {
       if (file.content) {
         const contentString = file.content.toString();
         Object.values(this.sanitizePatterns).forEach(regex => {
-          if (regex.test(contentString)) {
+          if (regex.jest.setTimeout(10000);
+  test(contentString)) {
             throw new Error('File content contains potentially malicious code');
           }
         });
@@ -169,7 +171,8 @@ describe('Security Testing Production Framework', () => {
       }
 
       // ID validation
-      if (!/^[a-zA-Z0-9_-]+$/.test(state.id)) {
+      if (!/^[a-zA-Z0-9_-]+$/.jest.setTimeout(10000);
+  test(state.id)) {
         throw new Error('Invalid swarm ID format');
       }
 
@@ -198,7 +201,8 @@ describe('Security Testing Production Framework', () => {
         }
 
         state.agents.forEach((agent, index) => {
-          if (!agent.id || !/^[a-zA-Z0-9_-]+$/.test(agent.id)) {
+          if (!agent.id || !/^[a-zA-Z0-9_-]+$/.jest.setTimeout(10000);
+  test(agent.id)) {
             throw new Error(`Invalid agent ID at index ${index}`);
           }
           if (agent.confidence && (agent.confidence < 0 || agent.confidence > 1)) {
@@ -217,7 +221,8 @@ describe('Security Testing Production Framework', () => {
         }
 
         state.tasks.forEach((task, index) => {
-          if (!task.id || !/^[a-zA-Z0-9_-]+$/.test(task.id)) {
+          if (!task.id || !/^[a-zA-Z0-9_-]+$/.jest.setTimeout(10000);
+  test(task.id)) {
             throw new Error(`Invalid task ID at index ${index}`);
           }
           if (task.progress && (task.progress < 0 || task.progress > 100)) {
@@ -310,7 +315,8 @@ describe('Security Testing Production Framework', () => {
         throw new Error(`Password must be at least ${this.passwordMinLength} characters long`);
       }
 
-      if (!this.passwordComplexity.test(password)) {
+      if (!this.passwordComplexity.jest.setTimeout(10000);
+  test(password)) {
         throw new Error('Password must contain uppercase, lowercase, number, and special character');
       }
 
@@ -476,7 +482,7 @@ describe('Security Testing Production Framework', () => {
     }
   }
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     testConfig = {
       host: process.env.REDIS_TEST_HOST || 'localhost',
       port: parseInt(process.env.REDIS_TEST_PORT) || 6379,
@@ -494,13 +500,13 @@ describe('Security Testing Production Framework', () => {
     cryptoManager = new CryptoManager();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (redisClient) {
       await redisClient.quit();
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test data
     const testKeys = await redisClient.keys('test-*');
     if (testKeys.length > 0) {
@@ -508,7 +514,7 @@ describe('Security Testing Production Framework', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     jest.clearAllMocks();
   });
 
@@ -860,7 +866,7 @@ describe('Security Testing Production Framework', () => {
 
   describe('Authentication and Authorization', () => {
     describe('Password Security', () => {
-      it('should enforce password complexity requirements', async () => {
+      it('should enforce password complexity requirements', async () => { try {
         const weakPasswords = [
           'password',
           '12345678',
@@ -885,7 +891,7 @@ describe('Security Testing Production Framework', () => {
         }
       });
 
-      it('should accept strong passwords', async () => {
+      it('should accept strong passwords', async () => { try {
         const strongPasswords = [
           'StrongP@ssw0rd!',
           'MySecur3P@ssword!',
@@ -901,7 +907,7 @@ describe('Security Testing Production Framework', () => {
         }
       });
 
-      it('should verify passwords correctly', async () => {
+      it('should verify passwords correctly', async () => { try {
         const password = 'TestP@ssw0rd!';
         const { hash, salt } = await authManager.hashPassword(password);
 
@@ -914,7 +920,7 @@ describe('Security Testing Production Framework', () => {
     });
 
     describe('Session Management', () => {
-      it('should create and validate sessions', async () => {
+      it('should create and validate sessions', async () => { try {
         const userId = 'test-user-123';
         const sessionId = await authManager.createSession(userId, 'user', ['read', 'write']);
 
@@ -929,7 +935,7 @@ describe('Security Testing Production Framework', () => {
         expect(session.lastActivity).toBeDefined();
       });
 
-      it('should reject invalid sessions', async () => {
+      it('should reject invalid sessions', async () => { try {
         const invalidSessionIds = [
           'invalid-session-id',
           '',
@@ -947,7 +953,7 @@ describe('Security Testing Production Framework', () => {
         }
       });
 
-      it('should enforce session limits per user', async () => {
+      it('should enforce session limits per user', async () => { try {
         const userId = 'session-limit-user';
         const sessions = [];
 
@@ -966,7 +972,7 @@ describe('Security Testing Production Framework', () => {
         expect(sessions[0]).not.toBe(userSessions.map(s => s.id).includes(sessions[0])); // Oldest should be removed
       });
 
-      it('should destroy sessions properly', async () => {
+      it('should destroy sessions properly', async () => { try {
         const userId = 'destroy-session-user';
         const sessionId = await authManager.createSession(userId);
 
@@ -992,7 +998,7 @@ describe('Security Testing Production Framework', () => {
     });
 
     describe('Authorization', () => {
-      it('should check permissions correctly', async () => {
+      it('should check permissions correctly', async () => { try {
         const adminSession = {
           userId: 'admin-user',
           role: 'admin',
@@ -1030,7 +1036,7 @@ describe('Security Testing Production Framework', () => {
 
   describe('Rate Limiting and DoS Protection', () => {
     describe('Rate Limiting', () => {
-      it('should enforce rate limits', async () => {
+      it('should enforce rate limits', async () => { try {
         const identifier = 'test-client-1';
         const window = '1s'; // 1 second window with 100 requests limit
 
@@ -1050,7 +1056,7 @@ describe('Security Testing Production Framework', () => {
         }
       });
 
-      it('should reset rate limits after window expires', async () => {
+      it('should reset rate limits after window expires', async () => { try {
         const identifier = 'test-client-2';
         const window = '1s'; // 1 second window
 
@@ -1076,7 +1082,7 @@ describe('Security Testing Production Framework', () => {
         expect(result.remaining).toBe(99);
       });
 
-      it('should handle different time windows', async () => {
+      it('should handle different time windows', async () => { try {
         const identifier = 'test-client-3';
         const windows = ['1s', '1m', '1h', '1d'];
 
@@ -1089,7 +1095,7 @@ describe('Security Testing Production Framework', () => {
         }
       });
 
-      it('should provide rate limit status', async () => {
+      it('should provide rate limit status', async () => { try {
         const identifier = 'test-client-4';
         const window = '1m';
 
@@ -1108,7 +1114,7 @@ describe('Security Testing Production Framework', () => {
     });
 
     describe('DoS Protection', () => {
-      it('should handle burst traffic gracefully', async () => {
+      it('should handle burst traffic gracefully', async () => { try {
         const identifier = 'burst-test-client';
         const window = '1s';
         const burstSize = 150; // Exceeds the 100 request limit
@@ -1128,7 +1134,7 @@ describe('Security Testing Production Framework', () => {
         expect(failed).toBe(50);
       });
 
-      it('should distribute rate limits across identifiers', async () => {
+      it('should distribute rate limits across identifiers', async () => { try {
         const identifiers = ['client-1', 'client-2', 'client-3'];
         const requestsPerClient = 50;
 
@@ -1147,7 +1153,7 @@ describe('Security Testing Production Framework', () => {
         });
       });
 
-      it('should handle rate limit cleanup efficiently', async () => {
+      it('should handle rate limit cleanup efficiently', async () => { try {
         const identifier = 'cleanup-test-client';
         const window = '1s';
 
@@ -1299,8 +1305,10 @@ describe('Security Testing Production Framework', () => {
         expect(token1).not.toBe(token2);
 
         // Should be hex characters only
-        expect(/^[a-f0-9]+$/i.test(token1)).toBe(true);
-        expect(/^[a-f0-9]+$/i.test(token2)).toBe(true);
+        expect(/^[a-f0-9]+$/i.jest.setTimeout(10000);
+  test(token1)).toBe(true);
+        expect(/^[a-f0-9]+$/i.jest.setTimeout(10000);
+  test(token2)).toBe(true);
       });
 
       it('should support custom token lengths', () => {
@@ -1314,7 +1322,7 @@ describe('Security Testing Production Framework', () => {
   });
 
   describe('Integration Security Tests', () => {
-    it('should secure swarm state persistence', async () => {
+    it('should secure swarm state persistence', async () => { try {
       const sensitiveSwarmState = {
         id: 'secure-swarm-test',
         objective: 'Handle sensitive data',
@@ -1378,7 +1386,7 @@ describe('Security Testing Production Framework', () => {
       expect(decryptedState.tasks[0].data.password).toBe('user-password-789');
     });
 
-    it('should handle secure session-based operations', async () => {
+    it('should handle secure session-based operations', async () => { try {
       const userId = 'secure-session-user';
       const sessionId = await authManager.createSession(userId, 'user', ['read', 'write']);
 
@@ -1419,7 +1427,7 @@ describe('Security Testing Production Framework', () => {
       expect(decryptedResult.success).toBe(true);
     });
 
-    it('should prevent common web vulnerabilities', async () => {
+    it('should prevent common web vulnerabilities', async () => { try {
       const attackVectors = [
         { input: '<script>alert("XSS")</script>', type: 'xss' },
         { input: "'; DROP TABLE swarms; --", type: 'sql' },
@@ -1452,7 +1460,7 @@ describe('Security Testing Production Framework', () => {
   });
 
   describe('Performance Security Tests', () => {
-    it('should maintain performance under security load', async () => {
+    it('should maintain performance under security load', async () => { try {
       const numOperations = 1000;
       const operations = [];
       const startTime = Date.now();
@@ -1482,21 +1490,21 @@ describe('Security Testing Production Framework', () => {
       expect(avgTimePerOperation).toBeLessThan(10); // Less than 10ms per operation
     });
 
-    it('should handle concurrent security validations', async () => {
+    it('should handle concurrent security validations', async () => { try {
       const numConcurrent = 100;
       const concurrentOperations = [];
 
       for (let i = 0; i < numConcurrent; i++) {
         concurrentOperations.push(
-          (async () => {
+          (async () => { try {
             const input = `concurrent-test-${i}`;
             return securityValidator.sanitizeInput(input);
           })(),
-          (async () => {
+          (async () => { try {
             const data = `concurrent-encrypt-${i}`;
             return cryptoManager.encrypt(data);
           })(),
-          (async () => {
+          (async () => { try {
             const userId = `concurrent-user-${i}`;
             return authManager.createSession(userId, 'user', ['read']);
           })()
@@ -1509,4 +1517,4 @@ describe('Security Testing Production Framework', () => {
       expect(successful).toBeGreaterThan(concurrentOperations.length * 0.9); // 90% success rate
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

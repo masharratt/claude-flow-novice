@@ -90,7 +90,7 @@ describe('Cleanup Script Performance Validation', () => {
     redisCmd(`SETEX "coordinator:activity:${coordinatorId}" ${ttlSeconds} '{"active":true}'`);
   };
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     console.log('\n========================================');
     console.log('Cleanup Performance Validation Setup');
     console.log('========================================\n');
@@ -155,7 +155,7 @@ describe('Cleanup Script Performance Validation', () => {
     console.log('========================================\n');
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     console.log('\n========================================');
     console.log('Cleanup Performance Validation Teardown');
     console.log('========================================\n');
@@ -203,7 +203,7 @@ describe('Cleanup Script Performance Validation', () => {
     }
   });
 
-  it('should clean up 10,000 stale coordinators in <5 seconds', async () => {
+  it('should clean up 10,000 stale coordinators in <5 seconds', async () => { try {
     console.log('\n========================================');
     console.log('Executing Cleanup Script');
     console.log('========================================\n');

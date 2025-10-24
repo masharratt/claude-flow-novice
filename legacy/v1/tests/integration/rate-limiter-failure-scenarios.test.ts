@@ -74,7 +74,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       expect(status.currentWorkerCount).toBe(0);
     });
 
-    it('should handle token bucket crash mid-acquisition', async () => {
+    it('should handle token bucket crash mid-acquisition', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 50,
         refillRate: 10,
@@ -153,7 +153,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
   });
 
   describe('Race Condition Scenarios', () => {
-    it('should handle concurrent worker spawns racing for last slot', async () => {
+    it('should handle concurrent worker spawns racing for last slot', async () => { try {
       const limiter = new CoordinationRateLimiter(
         { maxConcurrentWorkers: 10 },
         new MockLogger()
@@ -186,7 +186,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       expect(status.currentWorkerCount).toBe(10);
     });
 
-    it('should handle concurrent token acquisitions', async () => {
+    it('should handle concurrent token acquisitions', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 50,
         refillRate: 25,
@@ -210,7 +210,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       expect(stats.totalAcquired).toBe(50);
     });
 
-    it('should handle reset during concurrent operations', async () => {
+    it('should handle reset during concurrent operations', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 100,
         refillRate: 20,
@@ -257,7 +257,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       expect(historySize).toBeLessThanOrEqual(2000);
     });
 
-    it('should cleanup old operation records efficiently', async () => {
+    it('should cleanup old operation records efficiently', async () => { try {
       const limiter = new CoordinationRateLimiter(
         {
           maxConcurrentWorkers: 100,
@@ -290,7 +290,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       expect(finalHistorySize).toBeLessThanOrEqual(5);
     });
 
-    it('should handle adaptive refill tracking without memory leak', async () => {
+    it('should handle adaptive refill tracking without memory leak', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 100,
         refillRate: 20,
@@ -310,7 +310,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
   });
 
   describe('Thundering Herd Prevention', () => {
-    it('should prevent thundering herd with staggered backpressure', async () => {
+    it('should prevent thundering herd with staggered backpressure', async () => { try {
       const limiter = new CoordinationRateLimiter(
         {
           maxConcurrentWorkers: 10,
@@ -351,7 +351,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       });
     });
 
-    it('should distribute load with token bucket backpressure', async () => {
+    it('should distribute load with token bucket backpressure', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 20,
         refillRate: 10, // 10 tokens/sec
@@ -439,7 +439,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
   });
 
   describe('Edge Case Failures', () => {
-    it('should handle extremely rapid operations', async () => {
+    it('should handle extremely rapid operations', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 1000,
         refillRate: 500,
@@ -455,7 +455,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       expect(stats.totalAcquired).toBe(1000);
     });
 
-    it('should handle config update during active operations', async () => {
+    it('should handle config update during active operations', async () => { try {
       const limiter = new CoordinationRateLimiter(
         { maxConcurrentWorkers: 5 },
         new MockLogger()
@@ -535,7 +535,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
   });
 
   describe('Stress Testing', () => {
-    it('should handle sustained high load without degradation', async () => {
+    it('should handle sustained high load without degradation', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 500,
         refillRate: 100,
@@ -562,7 +562,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       expect(stats.refillRate).toBeGreaterThanOrEqual(100);
     });
 
-    it('should handle burst followed by idle period', async () => {
+    it('should handle burst followed by idle period', async () => { try {
       const limiter = createRateLimiter({
         maxTokens: 100,
         refillRate: 50,
@@ -585,7 +585,7 @@ describe('Integration: RateLimiter Failure Scenarios', () => {
       expect(idleStats.currentTokens).toBe(100);
     });
 
-    it('should maintain accuracy under continuous load', async () => {
+    it('should maintain accuracy under continuous load', async () => { try {
       const limiter = new CoordinationRateLimiter(
         {
           maxConcurrentWorkers: 50,

@@ -14,7 +14,7 @@ import { transparencyService } from '../../../packages/web-portal/src/server/ser
 describe('Resources API Endpoint', () => {
   let app: Express;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     app = express();
     app.use(express.json());
     app.use('/api/resources', resourcesRouter);
@@ -24,14 +24,14 @@ describe('Resources API Endpoint', () => {
   });
 
   describe('GET /api/resources', () => {
-    it('should return resource utilization for all agents', async () => {
+    it('should return resource utilization for all agents', async () => { try {
       const response = await request(app).get('/api/resources').expect(200);
 
       expect(response.body).toHaveProperty('data');
       expect(Array.isArray(response.body.data)).toBe(true);
     });
 
-    it('should return correct resource structure', async () => {
+    it('should return correct resource structure', async () => { try {
       const response = await request(app).get('/api/resources').expect(200);
 
       const { data } = response.body;
@@ -50,7 +50,7 @@ describe('Resources API Endpoint', () => {
       }
     });
 
-    it('should filter by threshold', async () => {
+    it('should filter by threshold', async () => { try {
       const threshold = 80;
       const response = await request(app)
         .get(`/api/resources?threshold=${threshold}`)
@@ -67,7 +67,7 @@ describe('Resources API Endpoint', () => {
       });
     });
 
-    it('should reject invalid threshold', async () => {
+    it('should reject invalid threshold', async () => { try {
       const response = await request(app)
         .get('/api/resources?threshold=101')
         .expect(400);
@@ -76,7 +76,7 @@ describe('Resources API Endpoint', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should reject negative threshold', async () => {
+    it('should reject negative threshold', async () => { try {
       const response = await request(app)
         .get('/api/resources?threshold=-1')
         .expect(400);
@@ -84,7 +84,7 @@ describe('Resources API Endpoint', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should accept threshold of 0', async () => {
+    it('should accept threshold of 0', async () => { try {
       const response = await request(app)
         .get('/api/resources?threshold=0')
         .expect(200);
@@ -92,7 +92,7 @@ describe('Resources API Endpoint', () => {
       expect(response.body).toHaveProperty('data');
     });
 
-    it('should accept threshold of 100', async () => {
+    it('should accept threshold of 100', async () => { try {
       const response = await request(app)
         .get('/api/resources?threshold=100')
         .expect(200);

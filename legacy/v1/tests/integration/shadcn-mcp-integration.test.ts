@@ -55,17 +55,17 @@ describe("Shadcn MCP Integration Tests", () => {
 
     // Setup event spy
     eventSpy = jest.fn();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (adapter) {
       await adapter.disconnect();
     }
     jest.clearAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("1. MCP Server Connection and Tool Availability", () => {
-    it("should successfully connect to shadcn MCP server", async () => {
+    it("should successfully connect to shadcn MCP server", async () => { try {
       await adapter.connect();
 
       const status = adapter.getStatus();
@@ -76,14 +76,14 @@ describe("Shadcn MCP Integration Tests", () => {
         "Connecting to shadcn MCP Server",
         expect.any(Object),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should detect available capabilities on connection", async () => {
+    it("should detect available capabilities on connection", async () => { try {
       let capturedCapabilities: string[] = [];
 
       adapter.once("connected", (data) => {
         capturedCapabilities = data.capabilities;
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await adapter.connect();
 
@@ -91,9 +91,9 @@ describe("Shadcn MCP Integration Tests", () => {
       expect(capturedCapabilities).toContain("list_components");
       expect(capturedCapabilities).toContain("customize_theme");
       expect(capturedCapabilities).toContain("validate_component");
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should emit connected event with capabilities", async () => {
+    it("should emit connected event with capabilities", async () => { try {
       const connectedHandler = jest.fn();
       adapter.once("connected", connectedHandler);
 
@@ -109,9 +109,9 @@ describe("Shadcn MCP Integration Tests", () => {
           ]),
         }),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should handle connection failures gracefully", async () => {
+    it("should handle connection failures gracefully", async () => { try {
       // Force a connection error by mocking internal method
       const originalDetect = (adapter as any).detectCapabilities;
       (adapter as any).detectCapabilities = jest
@@ -129,9 +129,9 @@ describe("Shadcn MCP Integration Tests", () => {
 
       // Restore original method
       (adapter as any).detectCapabilities = originalDetect;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should retrieve component library information", async () => {
+    it("should retrieve component library information", async () => { try {
       await adapter.connect();
 
       const library = await adapter.getComponentLibrary();
@@ -151,22 +151,22 @@ describe("Shadcn MCP Integration Tests", () => {
       );
 
       expect(library.components.length).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("2. Component Retrieval with Valid Names", () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.connect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should generate dock component successfully", async () => {
+    it("should generate dock component successfully", async () => { try {
       const result = await adapter.generateComponent({
         component: "Dock",
         variant: "default",
         props: {},
         swarmId: "test-swarm-1",
         agentId: "frontend-agent",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Should return a result (success or failure based on MCP availability)
       expect(result).toBeDefined();
@@ -181,16 +181,16 @@ describe("Shadcn MCP Integration Tests", () => {
         // If MCP is not available, should gracefully fail
         expect(result.error).toBeDefined();
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should generate calendar component successfully", async () => {
+    it("should generate calendar component successfully", async () => { try {
       const result = await adapter.generateComponent({
         component: "Calendar",
         variant: "default",
         props: {},
         swarmId: "test-swarm-1",
         agentId: "frontend-agent",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toBeDefined();
       expect(result.component.name).toBe("Calendar");
@@ -202,24 +202,24 @@ describe("Shadcn MCP Integration Tests", () => {
       } else {
         expect(result.error).toBeDefined();
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should generate tabs component successfully", async () => {
+    it("should generate tabs component successfully", async () => { try {
       const result = await adapter.generateComponent({
         component: "Tabs",
         variant: "default",
         props: {},
         swarmId: "test-swarm-1",
         agentId: "frontend-agent",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.component.name).toBe("Tabs");
       expect(result.component.code).toContain("interface TabsProps");
       expect(result.component.props).toHaveProperty("className");
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should emit component-generated event after successful generation", async () => {
+    it("should emit component-generated event after successful generation", async () => { try {
       const eventHandler = jest.fn();
       adapter.once("component-generated", eventHandler);
 
@@ -229,7 +229,7 @@ describe("Shadcn MCP Integration Tests", () => {
         props: {},
         swarmId: "test-swarm-1",
         agentId: "frontend-agent",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(eventHandler).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -241,9 +241,9 @@ describe("Shadcn MCP Integration Tests", () => {
           }),
         }),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should generate components with different variants", async () => {
+    it("should generate components with different variants", async () => { try {
       const variants = ["default", "destructive", "outline", "ghost"];
 
       for (const variant of variants) {
@@ -251,20 +251,20 @@ describe("Shadcn MCP Integration Tests", () => {
           component: "Button",
           variant,
           props: {},
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         expect(result.success).toBe(true);
         expect(result.component.name).toBe("Button");
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("3. Adapter Wrapper Functionality", () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.connect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should wrap MCP tools with retry logic", async () => {
+    it("should wrap MCP tools with retry logic", async () => { try {
       // Spy on the internal execute method
       const executeSpy = jest.spyOn(adapter as any, "executeShadcnCommand");
 
@@ -272,7 +272,7 @@ describe("Shadcn MCP Integration Tests", () => {
         component: "Card",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(executeSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -282,15 +282,15 @@ describe("Shadcn MCP Integration Tests", () => {
           }),
         }),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should adapt commands for version compatibility", async () => {
+    it("should adapt commands for version compatibility", async () => { try {
       const result = await adapter.generateComponent({
         component: "Input",
         variant: "default",
         props: {},
         framework: "react",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(mockLogger.debug).toHaveBeenCalledWith(
@@ -299,9 +299,9 @@ describe("Shadcn MCP Integration Tests", () => {
           action: "generate_component",
         }),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should handle timeout scenarios", async () => {
+    it("should handle timeout scenarios", async () => { try {
       // Create adapter with very short timeout
       const shortTimeoutAdapter = new ShadcnMCPAdapter(
         {
@@ -316,7 +316,7 @@ describe("Shadcn MCP Integration Tests", () => {
         .fn()
         .mockImplementation(() => {
           return new Promise((resolve) => setTimeout(resolve, 1000));
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await shortTimeoutAdapter.connect();
 
@@ -324,16 +324,16 @@ describe("Shadcn MCP Integration Tests", () => {
         component: "SlowComponent",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Should eventually fail or return error result
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
 
       await shortTimeoutAdapter.disconnect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should implement exponential backoff for retries", async () => {
+    it("should implement exponential backoff for retries", async () => { try {
       let attemptCount = 0;
       const delays: number[] = [];
       let lastTime = Date.now();
@@ -360,27 +360,27 @@ describe("Shadcn MCP Integration Tests", () => {
               dependencies: [],
               props: {},
             },
-          });
-        });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await adapter.generateComponent({
         component: "RetryTest",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(attemptCount).toBe(2);
       expect(delays[0]).toBeGreaterThanOrEqual(1000); // First retry after ~1s
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("4. Caching Behavior", () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.connect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should cache generated components", async () => {
+    it("should cache generated components", async () => { try {
       const componentRequest = {
         component: "Badge",
         variant: "default",
@@ -404,9 +404,9 @@ describe("Shadcn MCP Integration Tests", () => {
           component: "Badge",
         }),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should maintain separate cache entries for different variants", async () => {
+    it("should maintain separate cache entries for different variants", async () => { try {
       const baseRequest = {
         component: "Button",
         props: {},
@@ -415,12 +415,12 @@ describe("Shadcn MCP Integration Tests", () => {
       const defaultResult = await adapter.generateComponent({
         ...baseRequest,
         variant: "default",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const outlineResult = await adapter.generateComponent({
         ...baseRequest,
         variant: "outline",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Results should be different objects (different cache keys)
       expect(defaultResult).toBeDefined();
@@ -429,16 +429,16 @@ describe("Shadcn MCP Integration Tests", () => {
       const status = adapter.getStatus();
       // May have cached entries if both succeeded
       expect(status.cachedComponents).toBeGreaterThanOrEqual(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should cache themes separately", async () => {
+    it("should cache themes separately", async () => { try {
       const theme1 = await adapter.customizeTheme({
         name: "custom-theme-1",
         baseTheme: "default",
         customizations: {
           colors: { primary: "#FF0000" },
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const theme2 = await adapter.customizeTheme({
         name: "custom-theme-2",
@@ -446,16 +446,16 @@ describe("Shadcn MCP Integration Tests", () => {
         customizations: {
           colors: { primary: "#00FF00" },
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(theme1.colors.primary).toBe("#FF0000");
       expect(theme2.colors.primary).toBe("#00FF00");
 
       const status = adapter.getStatus();
       expect(status.cachedThemes).toBeGreaterThanOrEqual(2);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should generate cache keys based on component, variant, and props", async () => {
+    it("should generate cache keys based on component, variant, and props", async () => { try {
       const request1 = {
         component: "Input",
         variant: "default",
@@ -474,15 +474,15 @@ describe("Shadcn MCP Integration Tests", () => {
       const status = adapter.getStatus();
       // Should have 2 different cache entries due to different props
       expect(status.cachedComponents).toBeGreaterThanOrEqual(2);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("5. Error Handling for Invalid Component Names", () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.connect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should return error result for non-existent component", async () => {
+    it("should return error result for non-existent component", async () => { try {
       // Mock execute to simulate component not found
       (adapter as any).executeAdaptedCommand = jest
         .fn()
@@ -496,7 +496,7 @@ describe("Shadcn MCP Integration Tests", () => {
         component: "InvalidComponent",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -505,32 +505,32 @@ describe("Shadcn MCP Integration Tests", () => {
         "Component generation failed",
         expect.any(Object),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should handle empty component name gracefully", async () => {
+    it("should handle empty component name gracefully", async () => { try {
       const result = await adapter.generateComponent({
         component: "",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Should handle gracefully - either fail or succeed with warning
       expect(result).toBeDefined();
       expect(result.component).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should handle malformed component requests", async () => {
+    it("should handle malformed component requests", async () => { try {
       const result = await adapter.generateComponent({
         component: null as any,
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should retry on transient failures", async () => {
+    it("should retry on transient failures", async () => { try {
       let callCount = 0;
       (adapter as any).executeAdaptedCommand = jest
         .fn()
@@ -547,14 +547,14 @@ describe("Shadcn MCP Integration Tests", () => {
               dependencies: [],
               props: {},
             },
-          });
-        });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await adapter.generateComponent({
         component: "RecoveredComponent",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(callCount).toBe(2);
@@ -562,9 +562,9 @@ describe("Shadcn MCP Integration Tests", () => {
         expect.stringContaining("failed (attempt 1)"),
         expect.any(Object),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should fail after maximum retries exceeded", async () => {
+    it("should fail after maximum retries exceeded", async () => { try {
       (adapter as any).executeAdaptedCommand = jest
         .fn()
         .mockRejectedValue(new Error("Persistent error") as never);
@@ -573,20 +573,20 @@ describe("Shadcn MCP Integration Tests", () => {
         component: "FailingComponent",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Persistent error");
       expect(mockLogger.warn).toHaveBeenCalledTimes(2); // retries = 2
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("6. Theme Customization (Adapter-Layer Feature)", () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.connect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should customize theme with color overrides", async () => {
+    it("should customize theme with color overrides", async () => { try {
       const customTheme = await adapter.customizeTheme({
         name: "brand-theme",
         baseTheme: "default",
@@ -597,14 +597,14 @@ describe("Shadcn MCP Integration Tests", () => {
             accent: "#F59E0B",
           },
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(customTheme.colors.primary).toBe("#3B82F6");
       expect(customTheme.colors.secondary).toBe("#10B981");
       expect(customTheme.colors.accent).toBe("#F59E0B");
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should customize theme with font overrides", async () => {
+    it("should customize theme with font overrides", async () => { try {
       const customTheme = await adapter.customizeTheme({
         name: "custom-fonts",
         baseTheme: "default",
@@ -614,13 +614,13 @@ describe("Shadcn MCP Integration Tests", () => {
             heading: "Playfair Display, serif",
           },
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(customTheme.fonts.default).toBe("Roboto, sans-serif");
       expect(customTheme.fonts.heading).toBe("Playfair Display, serif");
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should customize theme with spacing overrides", async () => {
+    it("should customize theme with spacing overrides", async () => { try {
       const customTheme = await adapter.customizeTheme({
         name: "tight-spacing",
         baseTheme: "default",
@@ -632,13 +632,13 @@ describe("Shadcn MCP Integration Tests", () => {
             lg: "1rem",
           },
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(customTheme.spacing.xs).toBe("0.125rem");
       expect(customTheme.spacing.sm).toBe("0.25rem");
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should emit theme-customized event", async () => {
+    it("should emit theme-customized event", async () => { try {
       const eventHandler = jest.fn();
       adapter.once("theme-customized", eventHandler);
 
@@ -649,7 +649,7 @@ describe("Shadcn MCP Integration Tests", () => {
           colors: { primary: "#000000" },
         },
         swarmId: "design-swarm",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(eventHandler).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -662,9 +662,9 @@ describe("Shadcn MCP Integration Tests", () => {
           }),
         }),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should merge customizations with base theme", async () => {
+    it("should merge customizations with base theme", async () => { try {
       const customTheme = await adapter.customizeTheme({
         name: "partial-override",
         baseTheme: "default",
@@ -673,7 +673,7 @@ describe("Shadcn MCP Integration Tests", () => {
             primary: "#FF0000",
           },
         },
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Should have custom primary color
       expect(customTheme.colors.primary).toBe("#FF0000");
@@ -684,9 +684,9 @@ describe("Shadcn MCP Integration Tests", () => {
       expect(customTheme.spacing).toBeDefined();
       expect(customTheme.borderRadius).toBeDefined();
       expect(customTheme.shadows).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should cache customized themes", async () => {
+    it("should cache customized themes", async () => { try {
       const themeSpec = {
         name: "cached-theme",
         baseTheme: "default",
@@ -702,9 +702,9 @@ describe("Shadcn MCP Integration Tests", () => {
 
       const status = adapter.getStatus();
       expect(status.cachedThemes).toBeGreaterThanOrEqual(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should handle theme customization errors", async () => {
+    it("should handle theme customization errors", async () => { try {
       // Mock base theme retrieval to fail
       (adapter as any).getBaseTheme = jest
         .fn()
@@ -722,20 +722,20 @@ describe("Shadcn MCP Integration Tests", () => {
         "Theme customization failed",
         expect.any(Object),
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("7. Component Validation", () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.connect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should validate component quality", async () => {
+    it("should validate component quality", async () => { try {
       const result = await adapter.generateComponent({
         component: "ValidComponent",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const validation = await adapter.validateComponent(result);
 
@@ -745,9 +745,9 @@ describe("Shadcn MCP Integration Tests", () => {
       expect(validation).toHaveProperty("score");
       expect(validation.score).toBeGreaterThanOrEqual(0);
       expect(validation.score).toBeLessThanOrEqual(100);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should detect missing TypeScript interfaces", async () => {
+    it("should detect missing TypeScript interfaces", async () => { try {
       const mockResult = {
         success: true,
         component: {
@@ -767,9 +767,9 @@ describe("Shadcn MCP Integration Tests", () => {
         "Missing TypeScript interface for props",
       );
       expect(validation.score).toBeLessThan(100);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should suggest accessibility improvements", async () => {
+    it("should suggest accessibility improvements", async () => { try {
       const mockResult = {
         success: true,
         component: {
@@ -789,9 +789,9 @@ describe("Shadcn MCP Integration Tests", () => {
       expect(validation).toBeDefined();
       expect(validation.suggestions).toBeDefined();
       expect(Array.isArray(validation.suggestions)).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should check for missing dependencies", async () => {
+    it("should check for missing dependencies", async () => { try {
       const mockResult = {
         success: true,
         component: {
@@ -811,15 +811,15 @@ describe("Shadcn MCP Integration Tests", () => {
       expect(validation).toBeDefined();
       expect(validation.issues).toBeDefined();
       expect(Array.isArray(validation.issues)).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("8. UI Feature Generation", () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.connect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should generate complete UI feature with multiple components", async () => {
+    it("should generate complete UI feature with multiple components", async () => { try {
       const result = await adapter.generateUIFeature({
         name: "UserDashboard",
         description: "User dashboard with stats and charts",
@@ -834,16 +834,16 @@ describe("Shadcn MCP Integration Tests", () => {
         accessibility: true,
         swarmId: "feature-swarm",
         agentId: "ui-architect",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result.success).toBe(true);
       expect(result.feature.components).toHaveLength(3);
       expect(result.feature.layout).toBe("dashboard");
       expect(result.feature.theme).toBeDefined();
       expect(result.files.length).toBeGreaterThan(3); // Components + layout + docs
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should emit feature-generated event", async () => {
+    it("should emit feature-generated event", async () => { try {
       const eventHandler = jest.fn();
       adapter.once("feature-generated", eventHandler);
 
@@ -856,7 +856,7 @@ describe("Shadcn MCP Integration Tests", () => {
         accessibility: true,
         swarmId: "test-swarm",
         agentId: "test-agent",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(eventHandler).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -865,9 +865,9 @@ describe("Shadcn MCP Integration Tests", () => {
           agentId: "test-agent",
         }),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should handle feature generation errors", async () => {
+    it("should handle feature generation errors", async () => { try {
       // Mock component generation to fail
       (adapter as any).executeAdaptedCommand = jest
         .fn()
@@ -882,47 +882,47 @@ describe("Shadcn MCP Integration Tests", () => {
         layout: "dashboard",
         responsive: true,
         accessibility: true,
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Should handle errors gracefully
       expect(result).toBeDefined();
       expect(result.feature).toBeDefined();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("9. Component Search", () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await adapter.connect();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should search components by name", async () => {
+    it("should search components by name", async () => { try {
       const results = await adapter.searchComponents({
         name: "dock",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Should return search results (may be empty if component not found)
       expect(results).toBeDefined();
       expect(Array.isArray(results)).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should search components by category", async () => {
+    it("should search components by category", async () => { try {
       const results = await adapter.searchComponents({
         category: "forms",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].category).toBe("forms");
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should return empty array for no matches", async () => {
+    it("should return empty array for no matches", async () => { try {
       const results = await adapter.searchComponents({
         name: "NonExistentComponent",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(results).toEqual([]);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should handle search errors gracefully", async () => {
+    it("should handle search errors gracefully", async () => { try {
       // Mock library retrieval to fail
       (adapter as any).getComponentLibrary = jest
         .fn()
@@ -930,15 +930,15 @@ describe("Shadcn MCP Integration Tests", () => {
 
       const results = await adapter.searchComponents({
         name: "AnyComponent",
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(results).toEqual([]);
       expect(mockLogger.error).toHaveBeenCalledWith(
         "Component search failed",
         expect.any(Object),
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe("10. Status and Monitoring", () => {
     it("should report correct initial status", () => {
@@ -949,36 +949,36 @@ describe("Shadcn MCP Integration Tests", () => {
       expect(status.registry).toBe("official");
       expect(status.cachedComponents).toBe(0);
       expect(status.cachedThemes).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should update status after connection", async () => {
+    it("should update status after connection", async () => { try {
       await adapter.connect();
 
       const status = adapter.getStatus();
 
       expect(status.connected).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should track cached components count", async () => {
+    it("should track cached components count", async () => { try {
       await adapter.connect();
 
       await adapter.generateComponent({
         component: "Component1",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await adapter.generateComponent({
         component: "Component2",
         variant: "default",
         props: {},
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const status = adapter.getStatus();
       expect(status.cachedComponents).toBeGreaterThanOrEqual(2);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should emit disconnected event", async () => {
+    it("should emit disconnected event", async () => { try {
       await adapter.connect();
 
       const disconnectHandler = jest.fn();
@@ -990,6 +990,6 @@ describe("Shadcn MCP Integration Tests", () => {
       expect(mockLogger.info).toHaveBeenCalledWith(
         "Disconnected from shadcn MCP Server",
       );
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

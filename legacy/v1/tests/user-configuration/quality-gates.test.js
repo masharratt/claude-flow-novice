@@ -773,4 +773,4 @@ describe('Phase 2: Quality Gates Manager - Analytics Integration', function() {
       expect(systemMetrics.resourceUtilization).to.be.below(0.90); // Less than 90% resource utilization
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -31,7 +31,7 @@ describe('Parallel Epic E2E Tests', () => {
   let epicId: string;
   let testWorkspace: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis
     redis = new Redis({
       host: 'localhost',
@@ -53,7 +53,7 @@ describe('Parallel Epic E2E Tests', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup Redis
     const keys = await redis.keys(`cfn:epic:${epicId}:*`);
     if (keys.length > 0) {
@@ -70,7 +70,7 @@ describe('Parallel Epic E2E Tests', () => {
   });
 
   describe('Complete Epic Lifecycle', () => {
-    it('should execute full epic with 3 phases and achieve consensus', async () => {
+    it('should execute full epic with 3 phases and achieve consensus', async () => { try {
       // Define epic with 3 phases
       const epic = {
         id: epicId,
@@ -204,7 +204,7 @@ describe('Parallel Epic E2E Tests', () => {
   });
 
   describe('Cross-Epic Dependency Coordination', () => {
-    it('should coordinate 2 epics with dependencies via Redis', async () => {
+    it('should coordinate 2 epics with dependencies via Redis', async () => { try {
       const epic1Id = `epic-foundation-${Date.now()}`;
       const epic2Id = `epic-features-${Date.now()}`;
 
@@ -320,7 +320,7 @@ describe('Parallel Epic E2E Tests', () => {
   });
 
   describe('Redis Pub/Sub Coordination', () => {
-    it('should coordinate agents via Redis pub/sub channels', async () => {
+    it('should coordinate agents via Redis pub/sub channels', async () => { try {
       const channelName = `cfn:epic:${epicId}:coordination`;
       const messages: string[] = [];
 
@@ -414,7 +414,7 @@ describe('Parallel Epic E2E Tests', () => {
       console.log('✅ CLI command integration validated');
     });
 
-    it('should store CLI execution results in Redis', async () => {
+    it('should store CLI execution results in Redis', async () => { try {
       const cliExecutionId = `cli-exec-${Date.now()}`;
 
       // Simulate CLI execution result
@@ -446,7 +446,7 @@ describe('Parallel Epic E2E Tests', () => {
   });
 
   describe('Dashboard Monitoring Integration', () => {
-    it('should update dashboard metrics during epic execution', async () => {
+    it('should update dashboard metrics during epic execution', async () => { try {
       const dashboardKey = `cfn:dashboard:epic:${epicId}:metrics`;
 
       // Simulate dashboard metrics updates
@@ -482,7 +482,7 @@ describe('Parallel Epic E2E Tests', () => {
       await redis.del(dashboardKey);
     }, E2E_TIMEOUT);
 
-    it('should track real-time agent status in dashboard', async () => {
+    it('should track real-time agent status in dashboard', async () => { try {
       const agents = [
         { id: 'coder-1', status: 'active', task: 'Implementing auth' },
         { id: 'tester-1', status: 'active', task: 'Writing tests' },
@@ -519,7 +519,7 @@ describe('Parallel Epic E2E Tests', () => {
   });
 
   describe('Recovery and Resilience', () => {
-    it('should recover epic state from Redis after interruption', async () => {
+    it('should recover epic state from Redis after interruption', async () => { try {
       // Store partial epic state (as if interrupted mid-execution)
       const partialState = {
         epicId,

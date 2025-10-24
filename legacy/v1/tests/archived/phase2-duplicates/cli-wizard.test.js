@@ -72,59 +72,59 @@ describe('CompletionValidationCLIWizard', () => {
 
     wizard = new CompletionValidationCLIWizard({
       configManager: mockConfigManager
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterEach(() => {
     jest.clearAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Framework Detection', () => {
-    it('should auto-detect JavaScript projects with high confidence', async () => {
+    it('should auto-detect JavaScript projects with high confidence', async () => { try {
       const result = await wizard.runFrameworkDetection();
 
       expect(mockConfigManager.detectFramework).toHaveBeenCalled();
       expect(result.selectedFramework).toBe('javascript');
       expect(result.autoDetected).toBe(true);
       expect(result.confidence).toBe(0.9);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should provide manual selection for low confidence detection', async () => {
+    it('should provide manual selection for low confidence detection', async () => { try {
       // Mock low confidence detection
       mockConfigManager.detectFramework.mockResolvedValue({
         detected: 'unknown',
         confidence: 0.3,
         evidence: {}
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Mock inquirer response
       const inquirer = await import('inquirer');
-      inquirer.prompt.mockResolvedValue({ manualFramework: 'typescript' });
+      inquirer.prompt.mockResolvedValue({ manualFramework: 'typescript' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await wizard.runFrameworkDetection();
 
       expect(result.selectedFramework).toBe('typescript');
       expect(result.autoDetected).toBe(false);
       expect(result.confidence).toBe(1.0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle framework detection errors gracefully', async () => {
+    it('should handle framework detection errors gracefully', async () => { try {
       mockConfigManager.detectFramework.mockRejectedValue(new Error('Detection failed'));
 
       const inquirer = await import('inquirer');
-      inquirer.prompt.mockResolvedValue({ manualFramework: 'python' });
+      inquirer.prompt.mockResolvedValue({ manualFramework: 'python' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await wizard.runFrameworkDetection();
 
       expect(result.selectedFramework).toBe('python');
       expect(result.autoDetected).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Quality Gates Configuration', () => {
-    it('should use framework defaults when not customizing', async () => {
+    it('should use framework defaults when not customizing', async () => { try {
       const inquirer = await import('inquirer');
-      inquirer.prompt.mockResolvedValue({ customizeGates: false });
+      inquirer.prompt.mockResolvedValue({ customizeGates: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const detectionResult = {
         selectedFramework: 'javascript',
@@ -136,9 +136,9 @@ describe('CompletionValidationCLIWizard', () => {
 
       expect(result.truthScore).toBe(0.85); // JavaScript default
       expect(result.testCoverage).toBe(0.90); // JavaScript default
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should allow custom quality gate configuration', async () => {
+    it('should allow custom quality gate configuration', async () => { try {
       const inquirer = await import('inquirer');
       inquirer.prompt
         .mockResolvedValueOnce({ customizeGates: true })
@@ -147,7 +147,7 @@ describe('CompletionValidationCLIWizard', () => {
           testCoverage: 98,
           codeQuality: 90,
           documentationScore: 85
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const detectionResult = {
         selectedFramework: 'typescript',
@@ -161,9 +161,9 @@ describe('CompletionValidationCLIWizard', () => {
       expect(result.testCoverage).toBe(0.98);
       expect(result.codeQuality).toBe(0.90);
       expect(result.documentationScore).toBe(0.85);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should validate quality gate thresholds', async () => {
+    it('should validate quality gate thresholds', async () => { try {
       const inquirer = await import('inquirer');
 
       // Mock the validation function
@@ -182,22 +182,22 @@ describe('CompletionValidationCLIWizard', () => {
       expect(validation(150)).toBe('Value must be between 0 and 100');
       expect(validation(50)).toBe('Warning: Values below 70% may be too permissive');
       expect(validation(85)).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Validation Settings Configuration', () => {
-    it('should use default settings when not configuring advanced options', async () => {
+    it('should use default settings when not configuring advanced options', async () => { try {
       const inquirer = await import('inquirer');
-      inquirer.prompt.mockResolvedValue({ advancedSettings: false });
+      inquirer.prompt.mockResolvedValue({ advancedSettings: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await wizard.configureValidationSettings();
 
       expect(result.byzantineConsensusEnabled).toBe(true);
       expect(result.consensusTimeout).toBe(5000);
       expect(result.requiredValidators).toBe(3);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should allow advanced validation settings configuration', async () => {
+    it('should allow advanced validation settings configuration', async () => { try {
       const inquirer = await import('inquirer');
       inquirer.prompt
         .mockResolvedValueOnce({ advancedSettings: true })
@@ -207,7 +207,7 @@ describe('CompletionValidationCLIWizard', () => {
           requiredValidators: 5,
           allowPartialValidation: true,
           strictMode: true
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await wizard.configureValidationSettings();
 
@@ -216,11 +216,11 @@ describe('CompletionValidationCLIWizard', () => {
       expect(result.requiredValidators).toBe(5);
       expect(result.allowPartialValidation).toBe(true);
       expect(result.strictMode).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Configuration Save and Test', () => {
-    it('should save and test configuration successfully', async () => {
+    it('should save and test configuration successfully', async () => { try {
       const config = {
         version: '2.0.0',
         framework: 'javascript',
@@ -232,13 +232,13 @@ describe('CompletionValidationCLIWizard', () => {
 
       expect(mockConfigManager.updateConfiguration).toHaveBeenCalledWith(config);
       expect(mockConfigManager.testConfiguration).toHaveBeenCalled();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle configuration test failures', async () => {
+    it('should handle configuration test failures', async () => { try {
       mockConfigManager.testConfiguration.mockResolvedValue({
         configurationValid: false,
         errors: ['Byzantine consensus test failed']
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const config = {
         version: '2.0.0',
@@ -247,11 +247,11 @@ describe('CompletionValidationCLIWizard', () => {
       };
 
       await expect(wizard.saveAndTestConfiguration(config)).rejects.toThrow('Configuration validation failed');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Complete Setup Wizard', () => {
-    it('should complete full setup wizard successfully under 5 seconds', async () => {
+    it('should complete full setup wizard successfully under 5 seconds', async () => { try {
       const startTime = Date.now();
 
       // Mock all inquirer interactions for automated testing
@@ -267,20 +267,20 @@ describe('CompletionValidationCLIWizard', () => {
       expect(result.success).toBe(true);
       expect(result.configuration).toBeDefined();
       expect(setupTime).toBeLessThan(5000); // Under 5 seconds for automated test
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle setup wizard errors gracefully', async () => {
+    it('should handle setup wizard errors gracefully', async () => { try {
       mockConfigManager.initialize.mockRejectedValue(new Error('Initialization failed'));
 
       const result = await wizard.runSetupWizard();
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Initialization failed');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Configuration Display and Testing', () => {
-    it('should display current configuration correctly', async () => {
+    it('should display current configuration correctly', async () => { try {
       // Mock console.log to capture output
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
@@ -291,9 +291,9 @@ describe('CompletionValidationCLIWizard', () => {
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Truth Score: 90%'));
 
       consoleSpy.mockRestore();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should test configuration and show results', async () => {
+    it('should test configuration and show results', async () => { try {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
       await wizard.testConfiguration();
@@ -302,13 +302,13 @@ describe('CompletionValidationCLIWizard', () => {
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Test Results:'));
 
       consoleSpy.mockRestore();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle configuration test failures properly', async () => {
+    it('should handle configuration test failures properly', async () => { try {
       mockConfigManager.testConfiguration.mockResolvedValue({
         configurationValid: false,
         errors: ['Framework detection failed', 'Invalid quality gates']
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
@@ -317,11 +317,11 @@ describe('CompletionValidationCLIWizard', () => {
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Configuration Issues:'));
 
       consoleSpy.mockRestore();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Prevention and Validation', () => {
-    it('should prevent invalid configuration inputs', async () => {
+    it('should prevent invalid configuration inputs', async () => { try {
       const validation = {
         qualityGates: {
           truthScore: 1.5, // Invalid: > 1
@@ -338,9 +338,9 @@ describe('CompletionValidationCLIWizard', () => {
 
       // This would test the actual validation logic
       expect(typeof result).toBe('object');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should provide helpful error messages for common issues', async () => {
+    it('should provide helpful error messages for common issues', async () => { try {
       // Test the validation messages directly
       const truthScoreValidation = (value) => {
         if (value < 0 || value > 100) return 'Value must be between 0 and 100';
@@ -351,11 +351,11 @@ describe('CompletionValidationCLIWizard', () => {
       expect(truthScoreValidation(150)).toContain('must be between 0 and 100');
       expect(truthScoreValidation(50)).toContain('may be too permissive');
       expect(truthScoreValidation(85)).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Framework Detection Accuracy', () => {
-    it('should achieve >90% detection accuracy for JavaScript projects', async () => {
+    it('should achieve >90% detection accuracy for JavaScript projects', async () => { try {
       const testCases = [
         {
           evidence: { packageJson: true, jsFiles: 10, jest: true },
@@ -379,18 +379,18 @@ describe('CompletionValidationCLIWizard', () => {
           detected: testCase.expected,
           confidence: testCase.expectedConfidence,
           evidence: testCase.evidence
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         const result = await wizard.runFrameworkDetection();
 
         expect(result.selectedFramework).toBe(testCase.expected);
         expect(result.confidence).toBeGreaterThan(0.8); // >80% confidence threshold
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance Requirements', () => {
-    it('should complete setup in under 5 minutes for 95% of users', async () => {
+    it('should complete setup in under 5 minutes for 95% of users', async () => { try {
       // This test simulates optimal user flow
       const startTime = Date.now();
 
@@ -404,16 +404,16 @@ describe('CompletionValidationCLIWizard', () => {
 
       const setupTime = Date.now() - startTime;
       expect(setupTime).toBeLessThan(300000); // 5 minutes in milliseconds
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 /**
  * Integration Tests for CLI Commands
  */
 describe('CLI Command Integration', () => {
   describe('setupCommand', () => {
-    it('should execute setup wizard successfully', async () => {
+    it('should execute setup wizard successfully', async () => { try {
       const { setupCommand } = await import('../../src/completion/cli-wizard.js');
 
       // Mock the wizard methods
@@ -427,31 +427,31 @@ describe('CLI Command Integration', () => {
 
       // This test would require more complex mocking infrastructure
       expect(typeof setupCommand).toBe('function');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('showConfigCommand', () => {
-    it('should display configuration successfully', async () => {
+    it('should display configuration successfully', async () => { try {
       const { showConfigCommand } = await import('../../src/completion/cli-wizard.js');
 
       expect(typeof showConfigCommand).toBe('function');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('testConfigCommand', () => {
-    it('should test configuration successfully', async () => {
+    it('should test configuration successfully', async () => { try {
       const { testConfigCommand } = await import('../../src/completion/cli-wizard.js');
 
       expect(typeof testConfigCommand).toBe('function');
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 /**
  * User Experience Tests
  */
 describe('User Experience', () => {
-  it('should provide clear progress indicators', async () => {
+  it('should provide clear progress indicators', async () => { try {
     const ora = await import('ora');
     const mockSpinner = {
       start: jest.fn().mockReturnThis(),
@@ -467,9 +467,9 @@ describe('User Experience', () => {
 
     expect(mockSpinner.start).toHaveBeenCalled();
     expect(mockSpinner.succeed).toHaveBeenCalled();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  it('should provide helpful guidance and examples', async () => {
+  it('should provide helpful guidance and examples', async () => { try {
     // Test that help text contains useful information
     const { registerValidationCommands } = await import('../../src/cli/commands/validate.js');
 
@@ -483,5 +483,5 @@ describe('User Experience', () => {
     registerValidationCommands(mockProgram);
 
     expect(mockProgram.command).toHaveBeenCalledWith('validate');
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

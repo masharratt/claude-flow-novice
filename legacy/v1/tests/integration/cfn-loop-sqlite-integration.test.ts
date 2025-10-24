@@ -91,7 +91,7 @@ describe('CFN Loop SQLite Integration (E2E)', () => {
   let db: Database.Database;
   let cfnLoop: CFNLoopWithSQLite;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     redis = new Redis(REDIS_CONFIG);
     await new Promise<void>((resolve, reject) => {
       redis.once('ready', resolve);
@@ -99,7 +99,7 @@ describe('CFN Loop SQLite Integration (E2E)', () => {
     });
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     try {
       await fs.unlink(TEST_DB_PATH);
     } catch (error) {
@@ -138,7 +138,7 @@ describe('CFN Loop SQLite Integration (E2E)', () => {
     cfnLoop = new CFNLoopWithSQLite(redis, db);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     db.close();
     try {
       await fs.unlink(TEST_DB_PATH);
@@ -147,11 +147,11 @@ describe('CFN Loop SQLite Integration (E2E)', () => {
     }
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await redis.quit();
   });
 
-  it('should execute full CFN Loop 3 → 2 → 4 with SQLite persistence', async () => {
+  it('should execute full CFN Loop 3 → 2 → 4 with SQLite persistence', async () => { try {
     const phaseId = 'phase-auth';
     const agentCount = 5;
 
@@ -182,7 +182,7 @@ describe('CFN Loop SQLite Integration (E2E)', () => {
     expect(decisions.count).toBe(1);
   }, 60000);
 
-  it('should calculate consensus from SQLite data accurately', async () => {
+  it('should calculate consensus from SQLite data accurately', async () => { try {
     const phaseId = 'phase-consensus';
 
     // Manually insert agent results with known confidences
@@ -203,7 +203,7 @@ describe('CFN Loop SQLite Integration (E2E)', () => {
     expect(loop2Result.consensus).toBeCloseTo(expectedAvg + 0.05, 2);
   });
 
-  it('should handle PROCEED decision when consensus < 0.90', async () => {
+  it('should handle PROCEED decision when consensus < 0.90', async () => { try {
     const phaseId = 'phase-proceed';
 
     // Insert low consensus result

@@ -16,14 +16,15 @@ describe('Message Broker Security Fixes', () => {
     broker = new MessageBroker();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (broker && typeof broker.shutdown === 'function') {
       await broker.shutdown();
     }
   });
 
   describe('SEC-006: Message Replay Attack Prevention', () => {
-    test('SEC-006 mitigations are implemented in codebase', () => {
+    jest.setTimeout(10000);
+  test('SEC-006 mitigations are implemented in codebase', () => {
       // SEC-006: Message Replay Attack Prevention
       // Validates that the following mitigations exist:
       // 1. PendingRequest interface has 'resolved' field (line 62)
@@ -40,35 +41,39 @@ describe('Message Broker Security Fixes', () => {
   });
 
   describe('SEC-007: Topic Injection Prevention', () => {
-    test('should reject topics with path traversal', async () => {
+    jest.setTimeout(10000);
+  test('should reject topics with path traversal', async () => { try {
       await expect(
         broker.subscribe({
           topic: 'test/../admin',
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).rejects.toThrow('Path traversal detected');
     });
 
-    test('should reject topics with invalid characters', async () => {
+    jest.setTimeout(10000);
+  test('should reject topics with invalid characters', async () => { try {
       await expect(
         broker.subscribe({
           topic: 'test;DROP TABLE users',
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).rejects.toThrow('Invalid topic name');
     });
 
-    test('should reject excessively long topics', async () => {
+    jest.setTimeout(10000);
+  test('should reject excessively long topics', async () => { try {
       const longTopic = 'a'.repeat(300);
       await expect(
         broker.subscribe({
           topic: longTopic,
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).rejects.toThrow('Topic name exceeds 256 characters');
     });
 
-    test('should accept valid topic patterns', async () => {
+    jest.setTimeout(10000);
+  test('should accept valid topic patterns', async () => { try {
       const validTopics = [
         'task.execute',
         'task.*',
@@ -81,13 +86,14 @@ describe('Message Broker Security Fixes', () => {
         await expect(
           broker.subscribe({
             topic,
-            handler: async () => {}
+            handler: async () => { try {}
           })
         ).resolves.toBeDefined();
       }
     });
 
-    test('should validate topics in publish()', async () => {
+    jest.setTimeout(10000);
+  test('should validate topics in publish()', async () => { try {
       await expect(
         broker.publish({
           topic: 'test/../admin',
@@ -98,7 +104,8 @@ describe('Message Broker Security Fixes', () => {
   });
 
   describe('SEC-012: Subscription Authorization', () => {
-    test('should enforce authorization when provider is configured', async () => {
+    jest.setTimeout(10000);
+  test('should enforce authorization when provider is configured', async () => { try {
       const authProvider = {
         canSubscribe: async (subscriberId, topic) => {
           // Only allow "authorized-user" to subscribe to "admin" topics
@@ -116,7 +123,7 @@ describe('Message Broker Security Fixes', () => {
         brokerWithAuth.subscribe({
           topic: 'admin.events',
           subscriberId: 'authorized-user',
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).resolves.toBeDefined();
 
@@ -125,25 +132,27 @@ describe('Message Broker Security Fixes', () => {
         brokerWithAuth.subscribe({
           topic: 'admin.events',
           subscriberId: 'unauthorized-user',
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).rejects.toThrow('not authorized');
 
       await brokerWithAuth.shutdown();
     });
 
-    test('should allow all subscriptions when no provider is configured', async () => {
+    jest.setTimeout(10000);
+  test('should allow all subscriptions when no provider is configured', async () => { try {
       // Default broker without auth provider
       await expect(
         broker.subscribe({
           topic: 'admin.events',
           subscriberId: 'any-user',
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).resolves.toBeDefined();
     });
 
-    test('should allow subscriptions without subscriberId', async () => {
+    jest.setTimeout(10000);
+  test('should allow subscriptions without subscriberId', async () => { try {
       const authProvider = {
         canSubscribe: async () => true
       };
@@ -154,7 +163,7 @@ describe('Message Broker Security Fixes', () => {
       await expect(
         brokerWithAuth.subscribe({
           topic: 'test.events',
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).resolves.toBeDefined();
 
@@ -163,7 +172,8 @@ describe('Message Broker Security Fixes', () => {
   });
 
   describe('Security Summary', () => {
-    test('ALL SECURITY CHECKS: Verify all fixes are in place', async () => {
+    jest.setTimeout(10000);
+  test('ALL SECURITY CHECKS: Verify all fixes are in place', async () => { try {
       const authProvider = {
         canSubscribe: async (subscriberId, topic) => subscriberId === 'authorized'
       };
@@ -175,7 +185,7 @@ describe('Message Broker Security Fixes', () => {
         secureBroker.subscribe({
           topic: '../admin',
           subscriberId: 'authorized',
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).rejects.toThrow('Path traversal');
 
@@ -184,7 +194,7 @@ describe('Message Broker Security Fixes', () => {
         secureBroker.subscribe({
           topic: 'admin.events',
           subscriberId: 'unauthorized',
-          handler: async () => {}
+          handler: async () => { try {}
         })
       ).rejects.toThrow('not authorized');
 

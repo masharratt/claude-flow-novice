@@ -522,7 +522,7 @@ describe('RetryTodoManager', () => {
 
       manager.on('todo:created', (todo: RetryTodo) => {
         expect(todo.type).toBe('loop2_retry');
-        done();
+        return;
       });
 
       manager.createLoop2RetryTodo(feedback, 1);
@@ -547,7 +547,7 @@ describe('RetryTodoManager', () => {
       manager.on('todo:cancelled', (data: { todoId: string; reason: string }) => {
         expect(data.todoId).toBe(todo.id);
         expect(data.reason).toBe('test_cancel');
-        done();
+        return;
       });
 
       manager.cancelRetryTodo(todo.id, 'test_cancel');

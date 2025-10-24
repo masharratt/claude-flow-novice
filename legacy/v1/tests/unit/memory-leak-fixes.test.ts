@@ -74,16 +74,16 @@ class MockStateStorage {
 describe('Memory Leak Fixes', () => {
   const testStoragePath = '.claude-flow/test-checkpoints-memory';
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     await fs.mkdir(testStoragePath, { recursive: true });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await fs.rm(testStoragePath, { recursive: true, force: true });
   });
 
   describe('StateMachine transitionLatencies array', () => {
-    it('should limit transitionLatencies to 100 samples', async () => {
+    it('should limit transitionLatencies to 100 samples', async () => { try {
       const queryController = new MockQueryController() as any;
       const checkpointManager = new MockCheckpointManagerForStateMachine() as any;
       const stateStorage = new MockStateStorage();
@@ -129,7 +129,7 @@ describe('Memory Leak Fixes', () => {
   });
 
   describe('CheckpointManager LRU eviction', () => {
-    it('should enforce LRU eviction at 100 checkpoints', async () => {
+    it('should enforce LRU eviction at 100 checkpoints', async () => { try {
       const checkpointManager = new CheckpointManager(testStoragePath, 24);
       await checkpointManager.initialize();
 
@@ -171,7 +171,7 @@ describe('Memory Leak Fixes', () => {
   });
 
   describe('CheckpointManager automatic cleanup', () => {
-    it('should clean expired checkpoints based on retention policy', async () => {
+    it('should clean expired checkpoints based on retention policy', async () => { try {
       // Use 1 hour retention for testing
       const checkpointManager = new CheckpointManager(testStoragePath, 1);
       await checkpointManager.initialize();
@@ -221,7 +221,7 @@ describe('Memory Leak Fixes', () => {
   });
 
   describe('CheckpointManager shutdown cleanup', () => {
-    it('should stop cleanup interval on shutdown', async () => {
+    it('should stop cleanup interval on shutdown', async () => { try {
       const checkpointManager = new CheckpointManager(testStoragePath, 24);
       await checkpointManager.initialize();
 

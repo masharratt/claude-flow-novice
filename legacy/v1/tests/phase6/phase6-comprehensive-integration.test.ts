@@ -39,7 +39,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   const TEST_MEMORY_KEY = 'swarm/phase6/integration-tester';
   const REDIS_CHANNEL = 'swarm:phase-6:integration';
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize test environment
     testEnvironment = new TestEnvironment({
       redis: {
@@ -77,7 +77,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
     await redisClient.del(`${REDIS_CHANNEL}:*`);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup test environment
     if (memoryManager) {
       await memoryManager.cleanup();
@@ -92,19 +92,19 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Reset test state before each test
     await redisClient.flushDb();
     jest.clearAllMocks();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup after each test
     await testEnvironment.clearTestArtifacts();
   });
 
   describe('Redis Coordination Infrastructure', () => {
-    it('should establish Redis connection and validate basic operations', async () => {
+    it('should establish Redis connection and validate basic operations', async () => { try {
       // Test Redis connectivity
       const pong = await redisClient.ping();
       expect(pong).toBe('PONG');
@@ -133,7 +133,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       await subscriber.quit();
     });
 
-    it('should initialize swarm memory manager with proper namespace isolation', async () => {
+    it('should initialize swarm memory manager with proper namespace isolation', async () => { try {
       const testMemoryManager = new RedisMemoryManager(redisClient);
 
       // Test memory storage with namespace isolation
@@ -158,7 +158,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Phase 0: MCP-Less Foundation Integration', () => {
-    it('should validate MCP-less agent coordination via Redis', async () => {
+    it('should validate MCP-less agent coordination via Redis', async () => { try {
       // Test Phase 0 foundation without MCP dependency
       const agentId = 'test-agent-phase0';
       const agentConfig = {
@@ -187,7 +187,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(retrievedLifecycle.status).toBe('active');
     });
 
-    it('should execute swarm recovery functionality', async () => {
+    it('should execute swarm recovery functionality', async () => { try {
       // Simulate interrupted swarm
       const interruptedSwarm = {
         id: 'interrupted-swarm-test',
@@ -213,7 +213,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Phase 1: Foundation Infrastructure Integration', () => {
-    it('should validate CLI swarm execution integration', async () => {
+    it('should validate CLI swarm execution integration', async () => { try {
       // Test CLI integration with Redis coordination
       const cliCommand = {
         command: 'swarm',
@@ -241,7 +241,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(swarmKeys.length).toBeGreaterThan(0);
     });
 
-    it('should validate neural network integration', async () => {
+    it('should validate neural network integration', async () => { try {
       // Test neural network component integration
       const neuralConfig = {
         model: 'test-model',
@@ -275,7 +275,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Phase 2: Auto-Scaling & Resource Management Integration', () => {
-    it('should validate resource monitoring and scaling decisions', async () => {
+    it('should validate resource monitoring and scaling decisions', async () => { try {
       // Test resource monitoring integration
       const resourceMetrics = {
         cpu: 75.5,
@@ -302,7 +302,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(retrievedDecision.confidence).toBeGreaterThan(0.9);
     });
 
-    it('should validate heavy command detection and optimization', async () => {
+    it('should validate heavy command detection and optimization', async () => { try {
       // Test heavy command detection
       const heavyCommands = [
         { command: 'npm install', estimatedTime: 45000, resourceHeavy: true },
@@ -331,7 +331,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Phase 3: Multi-National Compliance & Security Integration', () => {
-    it('should validate GDPR compliance and data sovereignty', async () => {
+    it('should validate GDPR compliance and data sovereignty', async () => { try {
       // Test GDPR compliance validation
       const gdprConfig = {
         region: 'EU',
@@ -359,7 +359,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(userData.encrypted).toBe(true);
     });
 
-    it('should validate security controls and audit logging', async () => {
+    it('should validate security controls and audit logging', async () => { try {
       // Test security configuration
       const securityConfig = {
         encryption: 'AES-256-GCM',
@@ -403,7 +403,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Phase 4: Node Distribution & Performance Optimization Integration', () => {
-    it('should validate distributed node coordination', async () => {
+    it('should validate distributed node coordination', async () => { try {
       // Test multi-node coordination
       const nodes = [
         { id: 'node-1', region: 'us-east-1', status: 'active', capacity: 0.8 },
@@ -431,7 +431,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(distribution.balanceScore).toBeGreaterThan(0.8);
     });
 
-    it('should validate performance monitoring and optimization', async () => {
+    it('should validate performance monitoring and optimization', async () => { try {
       // Test performance metrics collection
       const performanceMetrics = {
         responseTime: { avg: 150, p95: 300, p99: 500 },
@@ -459,7 +459,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Phase 5: Agent-Booster Integration Framework', () => {
-    it('should validate agent routing and coordination', async () => {
+    it('should validate agent routing and coordination', async () => { try {
       // Test agent routing configuration
       const routingConfig = {
         algorithm: 'least-loaded',
@@ -494,7 +494,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(decision.confidence).toBeGreaterThan(0.9);
     });
 
-    it('should validate agent collaboration patterns', async () => {
+    it('should validate agent collaboration patterns', async () => { try {
       // Test collaboration workflow
       const collaboration = {
         id: 'collab-001',
@@ -526,7 +526,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('End-to-End Workflow Integration', () => {
-    it('should execute complete swarm lifecycle with Redis coordination', async () => {
+    it('should execute complete swarm lifecycle with Redis coordination', async () => { try {
       // Test complete swarm lifecycle: init -> execute -> monitor -> recover -> terminate
 
       // 1. Initialize swarm
@@ -616,7 +616,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(finalTermination.status).toBe('completed');
     });
 
-    it('should validate cross-phase data flow and consistency', async () => {
+    it('should validate cross-phase data flow and consistency', async () => { try {
       // Test data consistency across all phases
 
       // Phase 0 data
@@ -687,7 +687,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Error Handling and Recovery Scenarios', () => {
-    it('should handle Redis connection failures gracefully', async () => {
+    it('should handle Redis connection failures gracefully', async () => { try {
       // Simulate Redis connection failure
       const faultyClient = createClient({
         socket: {
@@ -710,7 +710,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(fallbackResult.mode).toBe('offline');
     });
 
-    it('should handle agent failure and recovery scenarios', async () => {
+    it('should handle agent failure and recovery scenarios', async () => { try {
       // Test agent failure detection
       const agentFailure = {
         agentId: 'failed-agent-123',
@@ -749,7 +749,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       expect(completion.status).toBe('completed');
     });
 
-    it('should handle data corruption and rollback scenarios', async () => {
+    it('should handle data corruption and rollback scenarios', async () => { try {
       // Test corrupted data detection
       const corruptedData = {
         validData: { test: 'value' },
@@ -788,7 +788,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Performance and Load Testing', () => {
-    it('should handle concurrent operations without performance degradation', async () => {
+    it('should handle concurrent operations without performance degradation', async () => { try {
       const concurrentOperations = 100;
       const startTime = Date.now();
 
@@ -825,7 +825,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
       });
     });
 
-    it('should validate memory usage and cleanup', async () => {
+    it('should validate memory usage and cleanup', async () => { try {
       // Test memory usage monitoring
       const initialMemory = process.memoryUsage();
 
@@ -861,7 +861,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   describe('Integration Test Results and Reporting', () => {
-    it('should generate comprehensive test coverage report', async () => {
+    it('should generate comprehensive test coverage report', async () => { try {
       // Collect test results from all phases
       const testResults = {
         phase0: {
@@ -963,7 +963,7 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
   });
 
   // Publish test completion to Redis channel
-  it('should publish integration test completion to Redis', async () => {
+  it('should publish integration test completion to Redis', async () => { try {
     const completionMessage = {
       swarmId: TEST_SWARM_ID,
       phase: 6,
@@ -988,4 +988,4 @@ describe('Phase 6: Comprehensive Integration Testing', () => {
     expect(storedCompletion.status).toBe('COMPLETED');
     expect(storedCompletion.confidence).toBeGreaterThanOrEqual(0.85);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

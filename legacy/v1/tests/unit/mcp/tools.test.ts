@@ -13,7 +13,7 @@ describe('ToolRegistry', () => {
   let registry: ToolRegistry;
   let logger: Logger;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     logger = new Logger();
     await logger.configure({
       level: 'debug',
@@ -192,7 +192,7 @@ describe('ToolRegistry', () => {
           name: 'test/error',
           description: 'Error tool',
           inputSchema: { type: 'object', properties: {} },
-          handler: async () => {
+          handler: async () => { try {
             throw new Error('Test error');
           },
         },
@@ -203,12 +203,12 @@ describe('ToolRegistry', () => {
       }
     });
 
-    it('should execute a tool successfully', async () => {
+    it('should execute a tool successfully', async () => { try {
       const result = await registry.executeTool('test/echo', { message: 'Hello, World!' });
       expect(result).toBe({ echo: 'Hello, World!' });
     });
 
-    it('should handle tool execution errors', async () => {
+    it('should handle tool execution errors', async () => { try {
       try {
         await registry.executeTool('test/error', {});
         throw new Error('Should have thrown an error');
@@ -217,7 +217,7 @@ describe('ToolRegistry', () => {
       }
     });
 
-    it('should handle non-existent tool execution', async () => {
+    it('should handle non-existent tool execution', async () => { try {
       try {
         await registry.executeTool('test/nonexistent', {});
         throw new Error('Should have thrown an error');
@@ -226,7 +226,7 @@ describe('ToolRegistry', () => {
       }
     });
 
-    it('should validate input against schema', async () => {
+    it('should validate input against schema', async () => { try {
       try {
         await registry.executeTool('test/echo', {}); // Missing required 'message'
         throw new Error('Should have thrown an error');
@@ -235,7 +235,7 @@ describe('ToolRegistry', () => {
       }
     });
 
-    it('should validate input types', async () => {
+    it('should validate input types', async () => { try {
       try {
         await registry.executeTool('test/echo', { message: 123 }); // Should be string
         throw new Error('Should have thrown an error');
@@ -297,7 +297,7 @@ describe('ToolRegistry', () => {
       registry.register(tool);
     });
 
-    it('should validate string types', async () => {
+    it('should validate string types', async () => { try {
       const result = await registry.executeTool('test/complex', {
         name: 'John',
         age: 30,
@@ -305,7 +305,7 @@ describe('ToolRegistry', () => {
       expect(result.name).toBe('John');
     });
 
-    it('should validate number types', async () => {
+    it('should validate number types', async () => { try {
       try {
         await registry.executeTool('test/complex', {
           name: 'John',
@@ -317,7 +317,7 @@ describe('ToolRegistry', () => {
       }
     });
 
-    it('should validate boolean types', async () => {
+    it('should validate boolean types', async () => { try {
       const result = await registry.executeTool('test/complex', {
         name: 'John',
         age: 30,
@@ -326,7 +326,7 @@ describe('ToolRegistry', () => {
       expect(result.active).toBe(true);
     });
 
-    it('should validate array types', async () => {
+    it('should validate array types', async () => { try {
       const result = await registry.executeTool('test/complex', {
         name: 'John',
         age: 30,
@@ -335,7 +335,7 @@ describe('ToolRegistry', () => {
       expect(result.tags).toBe(['developer', 'typescript']);
     });
 
-    it('should validate object types', async () => {
+    it('should validate object types', async () => { try {
       const result = await registry.executeTool('test/complex', {
         name: 'John',
         age: 30,
@@ -344,7 +344,7 @@ describe('ToolRegistry', () => {
       expect(result.metadata).toBe({ department: 'engineering' });
     });
 
-    it('should handle null input for non-object schema', async () => {
+    it('should handle null input for non-object schema', async () => { try {
       const tool: MCPTool = {
         name: 'test/null',
         description: 'Null input tool',
@@ -358,4 +358,4 @@ describe('ToolRegistry', () => {
       expect(result).toBe({ received: 'null' });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

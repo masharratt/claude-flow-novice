@@ -140,7 +140,7 @@ async function spawnAgent(
 
   // Start heartbeat if enabled
   if (enableHeartbeat) {
-    agent.heartbeatInterval = setInterval(async () => {
+    agent.heartbeatInterval = setInterval(async () => { try {
       if (agent.stopped || agent.crashed) return;
 
       try {
@@ -403,7 +403,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
   let redis: Redis;
   let spawnedAgents: AgentInstance[] = [];
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create Redis connection
     redis = new Redis(DEFAULT_REDIS_CONFIG);
     await redis.ping();
@@ -422,7 +422,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
     spawnedAgents = [];
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Stop all agent heartbeats
     for (const agent of spawnedAgents) {
       if (agent.heartbeatInterval) {
@@ -447,7 +447,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
   });
 
   describe('Test 1: Random Agent Crashes (30%)', () => {
-    it('should cleanup all crashed agents within 3 minutes', { timeout: 6 * 60 * 1000 }, async () => {
+    it('should cleanup all crashed agents within 3 minutes', { timeout: 6 * 60 * 1000 }, async () => { try {
         const totalAgents = CHAOS_CONFIG.TOTAL_AGENTS;
         const crashPercentage = CHAOS_CONFIG.CRASH_PERCENTAGE;
         const expectedCrashes = Math.floor(totalAgents * crashPercentage);
@@ -538,7 +538,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
   });
 
   describe('Test 2: Redis Connection Failures', () => {
-    it('should recover all agents within 30 seconds of Redis reconnection', { timeout: 2 * 60 * 1000 }, async () => {
+    it('should recover all agents within 30 seconds of Redis reconnection', { timeout: 2 * 60 * 1000 }, async () => { try {
         const agentCount = 10;
 
         console.log(`\n🧪 Spawning ${agentCount} agents...`);
@@ -577,7 +577,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
 
         // Restart heartbeats (simulating reconnection)
         for (const agent of agents) {
-          agent.heartbeatInterval = setInterval(async () => {
+          agent.heartbeatInterval = setInterval(async () => { try {
             if (agent.stopped || agent.crashed) return;
 
             try {
@@ -652,7 +652,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
   });
 
   describe('Test 3: Concurrent File Edits', () => {
-    it('should detect 100% of file conflicts from concurrent edits', { timeout: 30000 }, async () => {
+    it('should detect 100% of file conflicts from concurrent edits', { timeout: 30000 }, async () => { try {
         const editorCount = CHAOS_CONFIG.CONCURRENT_EDITORS;
         const testFile = join(tmpdir(), `chaos-test-${Date.now()}.txt`);
 
@@ -721,7 +721,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
   });
 
   describe('Test 4: Test Lock Crashes', () => {
-    it('should release stale locks within 15 minutes after agent crash', { timeout: 60000 }, async () => {
+    it('should release stale locks within 15 minutes after agent crash', { timeout: 60000 }, async () => { try {
         const lockManager = new TestLockManager(redis);
         const agentId = 'lock-holder-agent';
 
@@ -800,7 +800,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
         await lockManager.releaseLock(newAgentId);
       });
 
-    it('should prevent other agents from acquiring expired locks', { timeout: 15000 }, async () => {
+    it('should prevent other agents from acquiring expired locks', { timeout: 15000 }, async () => { try {
       const lockManager = new TestLockManager(redis);
       const agent1 = 'agent-1';
       const agent2 = 'agent-2';
@@ -843,7 +843,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
   });
 
   describe('Edge Cases and Additional Validation', () => {
-    it('should handle multiple simultaneous crashes gracefully', { timeout: 6 * 60 * 1000 }, async () => {
+    it('should handle multiple simultaneous crashes gracefully', { timeout: 6 * 60 * 1000 }, async () => { try {
       const agentCount = 20;
       const agents: AgentInstance[] = [];
 
@@ -876,7 +876,7 @@ describe('Chaos Engineering - Parallelization Resilience', () => {
       console.log(`✅ All ${agentCount} crashed agents cleaned up`);
     });
 
-    it('should maintain healthy agents during partial crashes', { timeout: 6 * 60 * 1000 }, async () => {
+    it('should maintain healthy agents during partial crashes', { timeout: 6 * 60 * 1000 }, async () => { try {
       const totalAgents = 20;
       const crashCount = 10;
       const agents: AgentInstance[] = [];

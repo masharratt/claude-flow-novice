@@ -53,7 +53,7 @@ class MockByzantineNode {
             type: 'proposal',
             data: proposal,
             timestamp: Date.now()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         return proposal;
     }
@@ -86,13 +86,13 @@ class MockByzantineNode {
             proposalId: proposal.proposalId,
             vote: vote.decision,
             timestamp: Date.now()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         this.state.messageLog.push({
             type: 'vote',
             data: vote,
             timestamp: Date.now()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         return vote;
     }
@@ -235,7 +235,7 @@ class MockByzantineNode {
             type: 'commit',
             data: commitRecord,
             timestamp: Date.now()
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         return commitRecord;
     }
@@ -452,7 +452,7 @@ class MockByzantineConsensusProtocol {
             nodeId: primaryNode.nodeId,
             role: 'primary',
             phase: 'proposal'
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         try {
             const proposal = await primaryNode.proposeValidation(consensusSession.validationRequest);
@@ -494,7 +494,7 @@ class MockByzantineConsensusProtocol {
                     role: 'voter',
                     phase: 'voting',
                     decision: result.value.decision
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             } else {
                 // Node failed to vote
                 consensusSession.nodeParticipation.push({
@@ -502,9 +502,9 @@ class MockByzantineConsensusProtocol {
                     role: 'voter',
                     phase: 'voting',
                     error: result.reason?.message || 'Failed to vote'
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Check if we have enough votes for consensus
         if (votes.length < this.config.consensusThreshold) {
@@ -615,7 +615,7 @@ class MockByzantineConsensusProtocol {
                         decision: vote.decision,
                         confidence: vote.confidence
                     }
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
         }
 
@@ -647,12 +647,12 @@ class MockByzantineConsensusProtocol {
                     nodeId: node.nodeId,
                     role: 'committer',
                     phase: 'commit'
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             } else {
                 const error = result.value?.error || result.reason?.message || 'Unknown commit error';
-                failures.push({ nodeId: node.nodeId, error });
+                failures.push({ nodeId: node.nodeId, error } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         return {
             commits,
@@ -700,7 +700,7 @@ class MockByzantineConsensusProtocol {
             validationRequest: consensusSession.validationRequest,
             result: consensusSession.result?.result,
             nodeParticipation: consensusSession.nodeParticipation.length
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Simple hash for testing
         let hash = 0;
@@ -739,7 +739,7 @@ class MockByzantineConsensusProtocol {
                     nodeId,
                     severity: 'low',
                     evidence: ['Failed to participate in consensus']
-                });
+                } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             }
         }
 
@@ -814,15 +814,16 @@ describe('Byzantine Consensus Integration Tests', () => {
             return new MockByzantineNode(`node-${i}`, {
                 byzantineBehavior: isByzantine,
                 maliciousType: i === 0 ? 'always_reject' : 'random'
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         consensusProtocol = new MockByzantineConsensusProtocol(nodes);
         jest.clearAllMocks();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Basic Consensus Functionality', () => {
-        test('should achieve consensus with honest majority', async () => {
+        jest.setTimeout(10000);
+  test('should achieve consensus with honest majority', async () => { try {
             const validationRequest = {
                 type: 'framework_addition',
                 framework: {
@@ -843,9 +844,10 @@ describe('Byzantine Consensus Integration Tests', () => {
             expect(result.duration).toBeGreaterThan(0);
             expect(result.nodeParticipation).toBeGreaterThan(4); // At least 5 nodes participated
             expect(result.proof).toBeDefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle Byzantine node behavior correctly', async () => {
+        jest.setTimeout(10000);
+  test('should handle Byzantine node behavior correctly', async () => { try {
             const validationRequest = {
                 type: 'framework_addition',
                 framework: {
@@ -868,9 +870,10 @@ describe('Byzantine Consensus Integration Tests', () => {
             // Check consensus proof contains Byzantine fault information
             expect(result.proof).toHaveProperty('participatingNodes');
             expect(result.proof.participatingNodes.length).toBeGreaterThan(4);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should reject proposals that fail quality threshold', async () => {
+        jest.setTimeout(10000);
+  test('should reject proposals that fail quality threshold', async () => { try {
             const poorValidationRequest = {
                 type: 'framework_addition',
                 framework: {
@@ -890,9 +893,10 @@ describe('Byzantine Consensus Integration Tests', () => {
             // Consensus should still be reached despite poor quality
             const consensusSession = consensusProtocol.getConsensusHistory()[0];
             expect(consensusSession.phases.voting.votes.length).toBeGreaterThan(4);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain consensus integrity across views', async () => {
+        jest.setTimeout(10000);
+  test('should maintain consensus integrity across views', async () => { try {
             // Trigger a view change
             await consensusProtocol.triggerViewChange();
 
@@ -916,12 +920,13 @@ describe('Byzantine Consensus Integration Tests', () => {
             const currentView = consensusProtocol.currentView;
             nodes.forEach(node => {
                 expect(node.state.currentView).toBe(currentView);
-            });
-        });
-    });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Byzantine Fault Tolerance', () => {
-        test('should tolerate up to f Byzantine nodes where f = (n-1)/3', async () => {
+        jest.setTimeout(10000);
+  test('should tolerate up to f Byzantine nodes where f = (n-1)/3', async () => { try {
             // With 7 nodes, can tolerate up to 2 Byzantine nodes
             expect(consensusProtocol.config.faultTolerance).toBe(2);
 
@@ -946,9 +951,10 @@ describe('Byzantine Consensus Integration Tests', () => {
 
             // System should still reach consensus despite 3 Byzantine nodes
             expect(result.result).toBeDefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should fail gracefully when Byzantine nodes exceed tolerance', async () => {
+        jest.setTimeout(10000);
+  test('should fail gracefully when Byzantine nodes exceed tolerance', async () => { try {
             // Make 4 nodes Byzantine (exceeds f = 2 tolerance)
             for (let i = 0; i < 4; i++) {
                 nodes[i].simulateByzantineBehavior(true, 'always_reject');
@@ -976,9 +982,10 @@ describe('Byzantine Consensus Integration Tests', () => {
                 // Failure is acceptable when Byzantine nodes exceed tolerance
                 expect(result.error).toBeDefined();
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should detect and report various types of Byzantine behavior', async () => {
+        jest.setTimeout(10000);
+  test('should detect and report various types of Byzantine behavior', async () => { try {
             // Configure different types of Byzantine behavior
             nodes[0].simulateByzantineBehavior(true, 'always_reject');
             nodes[1].simulateByzantineBehavior(true, 'always_approve');
@@ -1002,9 +1009,10 @@ describe('Byzantine Consensus Integration Tests', () => {
             // Check that different types of Byzantine behavior are detected
             const faultTypes = result.byzantineFaultsDetected.map(f => f.type);
             expect(faultTypes).toContain('suspicious_voting');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain liveness under Byzantine attacks', async () => {
+        jest.setTimeout(10000);
+  test('should maintain liveness under Byzantine attacks', async () => { try {
             // Configure delayed Byzantine nodes to test liveness
             nodes[0].simulateByzantineBehavior(true, 'delayed');
             nodes[0].config.responseDelay = 2000; // 2 second delay
@@ -1029,11 +1037,12 @@ describe('Byzantine Consensus Integration Tests', () => {
             expect(result.success).toBe(true);
             expect(duration).toBeLessThan(10000); // Should complete within 10 seconds
             expect(result.nodeParticipation).toBeGreaterThanOrEqual(5); // Most nodes participated
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Network Partition Resilience', () => {
-        test('should handle network partitions gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle network partitions gracefully', async () => { try {
             // Partition 2 nodes (still have majority)
             nodes[0].simulatePartition(true);
             nodes[1].simulatePartition(true);
@@ -1060,9 +1069,10 @@ describe('Byzantine Consensus Integration Tests', () => {
             const votingNodeIds = votingParticipants.map(p => p.nodeId);
             expect(votingNodeIds).not.toContain('node-0');
             expect(votingNodeIds).not.toContain('node-1');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should fail when partition prevents consensus', async () => {
+        jest.setTimeout(10000);
+  test('should fail when partition prevents consensus', async () => { try {
             // Partition majority of nodes (4 out of 7)
             for (let i = 0; i < 4; i++) {
                 nodes[i].simulatePartition(true);
@@ -1085,9 +1095,10 @@ describe('Byzantine Consensus Integration Tests', () => {
             expect(result.error).toContain('Insufficient votes');
             // nodeParticipation counts all phase participations, not unique nodes
             expect(result.nodeParticipation).toBeLessThan(10);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should recover after partition healing', async () => {
+        jest.setTimeout(10000);
+  test('should recover after partition healing', async () => { try {
             // Start with partition
             nodes[0].simulatePartition(true);
             nodes[1].simulatePartition(true);
@@ -1131,11 +1142,12 @@ describe('Byzantine Consensus Integration Tests', () => {
             const healedSession = consensusProtocol.getConsensusHistory()[1];
             const uniqueHealedParticipants = new Set(healedSession.nodeParticipation.map(p => p.nodeId));
             expect(uniqueHealedParticipants.size).toBe(7);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Cryptographic Integrity', () => {
-        test('should verify cryptographic signatures in all phases', async () => {
+        jest.setTimeout(10000);
+  test('should verify cryptographic signatures in all phases', async () => { try {
             const validationRequest = {
                 type: 'framework_addition',
                 framework: {
@@ -1160,10 +1172,11 @@ describe('Byzantine Consensus Integration Tests', () => {
             // All vote hashes should include signatures
             result.proof.phases.voting.voteHashes.forEach(hash => {
                 expect(hash).toMatch(/^node-\d+:(approve|reject|abstain):/);
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should reject messages with invalid signatures', async () => {
+        jest.setTimeout(10000);
+  test('should reject messages with invalid signatures', async () => { try {
             // Mock a node with invalid signature generation
             const corruptNode = new MockByzantineNode('corrupt-node');
             corruptNode.cryptoProvider.signData = jest.fn().mockResolvedValue('invalid-signature');
@@ -1192,13 +1205,14 @@ describe('Byzantine Consensus Integration Tests', () => {
             const corruptSession = corruptConsensus.getConsensusHistory()[0];
             const votingParticipants = corruptSession.nodeParticipation.filter(p => p.phase === 'voting' && !p.error);
             expect(votingParticipants.length).toBe(6);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain message integrity across network delays', async () => {
+        jest.setTimeout(10000);
+  test('should maintain message integrity across network delays', async () => { try {
             // Introduce network delays
             nodes.forEach(node => {
                 node.networkSimulator.setLatency(200);
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const validationRequest = {
                 type: 'framework_addition',
@@ -1223,11 +1237,12 @@ describe('Byzantine Consensus Integration Tests', () => {
             // Message integrity should be maintained despite delays
             const consensusSession = consensusProtocol.getConsensusHistory()[0];
             expect(consensusSession.phases.voting.votes.length).toBeGreaterThan(4);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Performance Under Adversarial Conditions', () => {
-        test('should maintain reasonable performance with Byzantine nodes', async () => {
+        jest.setTimeout(10000);
+  test('should maintain reasonable performance with Byzantine nodes', async () => { try {
             // Configure various Byzantine behaviors
             nodes[0].simulateByzantineBehavior(true, 'delayed');
             nodes[0].config.responseDelay = 1000;
@@ -1264,9 +1279,10 @@ describe('Byzantine Consensus Integration Tests', () => {
             // Most should succeed despite Byzantine behavior
             const successCount = results.filter(r => r.success).length;
             expect(successCount).toBeGreaterThanOrEqual(3);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle concurrent consensus attempts', async () => {
+        jest.setTimeout(10000);
+  test('should handle concurrent consensus attempts', async () => { try {
             const concurrentRequests = Array.from({ length: 3 }, (_, i) => ({
                 type: 'framework_addition',
                 framework: {
@@ -1298,9 +1314,10 @@ describe('Byzantine Consensus Integration Tests', () => {
             const consensusIds = results.map(r => r.consensusId);
             const uniqueIds = new Set(consensusIds);
             expect(uniqueIds.size).toBe(consensusIds.length);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should provide comprehensive metrics and monitoring', async () => {
+        jest.setTimeout(10000);
+  test('should provide comprehensive metrics and monitoring', async () => { try {
             // Run several consensus rounds with different conditions
             const testScenarios = [
                 { byzantine: false, partition: false },
@@ -1352,11 +1369,12 @@ describe('Byzantine Consensus Integration Tests', () => {
 
             // Should have detected some Byzantine faults
             expect(metrics.byzantineFaultsDetected).toBeGreaterThanOrEqual(0);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Consensus Proof and Auditability', () => {
-        test('should generate verifiable consensus proofs', async () => {
+        jest.setTimeout(10000);
+  test('should generate verifiable consensus proofs', async () => { try {
             const validationRequest = {
                 type: 'framework_addition',
                 framework: {
@@ -1388,9 +1406,10 @@ describe('Byzantine Consensus Integration Tests', () => {
 
             // Verify integrity hash (can be negative due to signed integer)
             expect(result.proof.integrity).toMatch(/^-?[a-f0-9]+$/);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain complete audit trail', async () => {
+        jest.setTimeout(10000);
+  test('should maintain complete audit trail', async () => { try {
             const requests = Array.from({ length: 3 }, (_, i) => ({
                 type: 'framework_addition',
                 framework: {
@@ -1421,15 +1440,16 @@ describe('Byzantine Consensus Integration Tests', () => {
                 expect(session.phases).toBeDefined();
                 expect(session.nodeParticipation).toBeInstanceOf(Array);
                 expect(session.result).toBeDefined();
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             // Verify chronological order
             for (let i = 1; i < history.length; i++) {
                 expect(history[i].startTime).toBeGreaterThanOrEqual(history[i - 1].startTime);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should detect and log consensus anomalies', async () => {
+        jest.setTimeout(10000);
+  test('should detect and log consensus anomalies', async () => { try {
             // Create scenario with anomalous behavior
             nodes[0].simulateByzantineBehavior(true, 'always_approve');
             nodes[1].simulateByzantineBehavior(true, 'always_reject');
@@ -1459,12 +1479,12 @@ describe('Byzantine Consensus Integration Tests', () => {
                 expect(fault.nodeId).toBeDefined();
                 expect(fault.severity).toMatch(/^(low|medium|high)$/);
                 expect(fault.evidence).toBeInstanceOf(Array);
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             // Verify audit trail includes anomaly information
             const consensusSession = consensusProtocol.getConsensusHistory()[0];
             expect(consensusSession.phases.decision.suspiciousVotes).toBeInstanceOf(Array);
             expect(consensusSession.phases.decision.suspiciousVotes.length).toBeGreaterThan(0);
-        });
-    });
-});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

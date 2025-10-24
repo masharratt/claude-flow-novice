@@ -352,7 +352,7 @@ describe('SQLiteMemoryManager', () => {
   let redis: Redis;
   let manager: SQLiteMemoryManager;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize Redis client
     redis = new Redis(REDIS_CONFIG);
 
@@ -362,7 +362,7 @@ describe('SQLiteMemoryManager', () => {
     });
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test database
     try {
       await fs.unlink(TEST_DB_PATH);
@@ -380,7 +380,7 @@ describe('SQLiteMemoryManager', () => {
     }
   }, TEST_TIMEOUT);
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Close manager
     if (manager) {
       manager.close();
@@ -400,13 +400,13 @@ describe('SQLiteMemoryManager', () => {
     }
   }, TEST_TIMEOUT);
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Disconnect Redis
     await redis.quit();
   });
 
   describe('Dual-Write Pattern', () => {
-    it('should write to both Redis and SQLite simultaneously', async () => {
+    it('should write to both Redis and SQLite simultaneously', async () => { try {
       const key = 'test-dual-write';
       const value = { data: 'test-value', timestamp: Date.now() };
 
@@ -427,7 +427,7 @@ describe('SQLiteMemoryManager', () => {
       expect(sqliteValue).toEqual(value);
     });
 
-    it('should maintain consistency between Redis and SQLite', async () => {
+    it('should maintain consistency between Redis and SQLite', async () => { try {
       const keys = ['key-1', 'key-2', 'key-3'];
       const values = [
         { test: 'value-1' },
@@ -452,7 +452,7 @@ describe('SQLiteMemoryManager', () => {
       }
     });
 
-    it('should handle Redis failure with SQLite fallback', async () => {
+    it('should handle Redis failure with SQLite fallback', async () => { try {
       const key = 'test-fallback';
       const value = { fallback: 'test' };
 
@@ -472,7 +472,7 @@ describe('SQLiteMemoryManager', () => {
   });
 
   describe('ACL Enforcement', () => {
-    it('should enforce PRIVATE level (agent-only access)', async () => {
+    it('should enforce PRIVATE level (agent-only access)', async () => { try {
       const key = 'private-key';
       const value = { secret: 'data' };
       const agentId = 'agent-1';
@@ -492,7 +492,7 @@ describe('SQLiteMemoryManager', () => {
       ).rejects.toThrow('ACL violation');
     });
 
-    it('should enforce AGENT level (swarm coordination)', async () => {
+    it('should enforce AGENT level (swarm coordination)', async () => { try {
       const key = 'agent-coord';
       const value = { coordination: 'data' };
       const swarmId = 'swarm-1';
@@ -512,7 +512,7 @@ describe('SQLiteMemoryManager', () => {
       ).rejects.toThrow('ACL violation');
     });
 
-    it('should enforce SWARM level (swarm-wide access)', async () => {
+    it('should enforce SWARM level (swarm-wide access)', async () => { try {
       const key = 'swarm-data';
       const value = { swarm: 'information' };
       const swarmId = 'swarm-1';
@@ -532,7 +532,7 @@ describe('SQLiteMemoryManager', () => {
       ).rejects.toThrow('ACL violation');
     });
 
-    it('should allow PROJECT level access (Product Owner, CI/CD)', async () => {
+    it('should allow PROJECT level access (Product Owner, CI/CD)', async () => { try {
       const key = 'project-data';
       const value = { project: 'metrics' };
 
@@ -545,7 +545,7 @@ describe('SQLiteMemoryManager', () => {
       expect(retrieved).toEqual(value);
     });
 
-    it('should allow SYSTEM level access (admin, monitoring)', async () => {
+    it('should allow SYSTEM level access (admin, monitoring)', async () => { try {
       const key = 'system-config';
       const value = { system: 'settings' };
 
@@ -560,7 +560,7 @@ describe('SQLiteMemoryManager', () => {
   });
 
   describe('Encryption', () => {
-    it('should encrypt PRIVATE level data (AES-256-GCM)', async () => {
+    it('should encrypt PRIVATE level data (AES-256-GCM)', async () => { try {
       const key = 'encrypted-private';
       const value = { sensitive: 'private-data', ssn: '123-45-6789' };
       const agentId = 'agent-1';
@@ -584,7 +584,7 @@ describe('SQLiteMemoryManager', () => {
       expect(retrieved).toEqual(value);
     });
 
-    it('should encrypt AGENT level data', async () => {
+    it('should encrypt AGENT level data', async () => { try {
       const key = 'encrypted-agent';
       const value = { coordination: 'secret-strategy' };
       const swarmId = 'swarm-1';
@@ -606,7 +606,7 @@ describe('SQLiteMemoryManager', () => {
       expect(retrieved).toEqual(value);
     });
 
-    it('should encrypt SYSTEM level data', async () => {
+    it('should encrypt SYSTEM level data', async () => { try {
       const key = 'encrypted-system';
       const value = { apiKey: 'secret-key-12345', token: 'jwt-token' };
 
@@ -627,7 +627,7 @@ describe('SQLiteMemoryManager', () => {
       expect(retrieved).toEqual(value);
     });
 
-    it('should NOT encrypt SWARM level data', async () => {
+    it('should NOT encrypt SWARM level data', async () => { try {
       const key = 'unencrypted-swarm';
       const value = { public: 'swarm-status' };
 
@@ -644,7 +644,7 @@ describe('SQLiteMemoryManager', () => {
       expect(row.encrypted).toBe(0);
     });
 
-    it('should NOT encrypt PROJECT level data', async () => {
+    it('should NOT encrypt PROJECT level data', async () => { try {
       const key = 'unencrypted-project';
       const value = { metrics: 'project-performance' };
 
@@ -662,7 +662,7 @@ describe('SQLiteMemoryManager', () => {
   });
 
   describe('TTL Expiration', () => {
-    it('should respect TTL for entries', async () => {
+    it('should respect TTL for entries', async () => { try {
       const key = 'ttl-test';
       const value = { temporary: 'data' };
       const ttl = 100; // 100ms (Redis rounds up to 1 second)
@@ -685,7 +685,7 @@ describe('SQLiteMemoryManager', () => {
       expect(retrieved).toBeNull();
     });
 
-    it('should cleanup expired entries in batch', async () => {
+    it('should cleanup expired entries in batch', async () => { try {
       const keys = ['expire-1', 'expire-2', 'expire-3'];
       const ttl = 50; // 50ms
 
@@ -705,7 +705,7 @@ describe('SQLiteMemoryManager', () => {
       expect(cleanedCount).toBe(keys.length);
     });
 
-    it('should handle entries without TTL (never expire)', async () => {
+    it('should handle entries without TTL (never expire)', async () => { try {
       const key = 'no-ttl';
       const value = { permanent: 'data' };
 
@@ -722,7 +722,7 @@ describe('SQLiteMemoryManager', () => {
   });
 
   describe('Concurrent Operations', () => {
-    it('should handle concurrent writes to same key', async () => {
+    it('should handle concurrent writes to same key', async () => { try {
       const key = 'concurrent-key';
       const writes = 10;
 
@@ -742,7 +742,7 @@ describe('SQLiteMemoryManager', () => {
       expect(retrieved.value).toBeLessThan(writes);
     });
 
-    it('should handle concurrent writes to different keys', async () => {
+    it('should handle concurrent writes to different keys', async () => { try {
       const keyCount = 50;
 
       const writePromises = Array.from({ length: keyCount }, (_, i) =>
@@ -767,14 +767,14 @@ describe('SQLiteMemoryManager', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle Redis connection failure gracefully', async () => {
+    it('should handle Redis connection failure gracefully', async () => { try {
       // Disconnect Redis temporarily
       const originalRedis = manager['redis'];
       const brokenRedis = {
         ...originalRedis,
-        set: async () => { throw new Error('Redis connection lost'); },
-        setex: async () => { throw new Error('Redis connection lost'); },
-        get: async () => { throw new Error('Redis connection lost'); },
+        set: async () => { try { throw new Error('Redis connection lost'); },
+        setex: async () => { try { throw new Error('Redis connection lost'); },
+        get: async () => { try { throw new Error('Redis connection lost'); },
       } as any;
 
       manager['redis'] = brokenRedis;
@@ -795,12 +795,12 @@ describe('SQLiteMemoryManager', () => {
       manager['redis'] = originalRedis;
     });
 
-    it('should return null for non-existent keys', async () => {
+    it('should return null for non-existent keys', async () => { try {
       const retrieved = await manager.get('non-existent-key');
       expect(retrieved).toBeNull();
     });
 
-    it('should handle malformed encryption data', async () => {
+    it('should handle malformed encryption data', async () => { try {
       // Manually insert bad encryption data
       const db = new Database(TEST_DB_PATH);
       db.prepare(`
@@ -824,7 +824,7 @@ describe('SQLiteMemoryManager', () => {
   });
 
   describe('Performance & Indexing', () => {
-    it('should efficiently query by ACL level (indexed)', async () => {
+    it('should efficiently query by ACL level (indexed)', async () => { try {
       const keyCount = 100;
 
       // Insert many entries
@@ -847,7 +847,7 @@ describe('SQLiteMemoryManager', () => {
       expect(duration).toBeLessThan(50); // Should be fast with index
     });
 
-    it('should efficiently query by agent_id (indexed)', async () => {
+    it('should efficiently query by agent_id (indexed)', async () => { try {
       const agents = ['agent-1', 'agent-2', 'agent-3'];
       const entriesPerAgent = 10;
 

@@ -16,7 +16,7 @@ describe('Large-Scale Agent Coordination', () => {
   let healthMonitor: AgentHealthMonitor;
   let consensusCoordinator: ConsensusCoordinator;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize all components
     agentManager = new UltraFastAgentManager({
       performanceTargets: {
@@ -66,7 +66,7 @@ describe('Large-Scale Agent Coordination', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await agentManager.shutdown();
     await coordinator.shutdown();
     healthMonitor.shutdown();
@@ -74,7 +74,7 @@ describe('Large-Scale Agent Coordination', () => {
   });
 
   describe('Parallel Agent Spawning', () => {
-    it('should spawn 100 agents in under 5 seconds', async () => {
+    it('should spawn 100 agents in under 5 seconds', async () => { try {
       const startTime = performance.now();
       const agentDefinitions: AgentDefinition[] = [];
 
@@ -96,7 +96,7 @@ describe('Large-Scale Agent Coordination', () => {
       console.log(`Spawned 100 agents in ${totalTime.toFixed(2)}ms (${(totalTime / agents.length).toFixed(2)}ms per agent)`);
     }, 10000);
 
-    it('should spawn 100 agents with target <50ms per agent', async () => {
+    it('should spawn 100 agents with target <50ms per agent', async () => { try {
       const agentDefinitions: AgentDefinition[] = [];
 
       for (let i = 100; i < 200; i++) {
@@ -119,7 +119,7 @@ describe('Large-Scale Agent Coordination', () => {
   });
 
   describe('Hierarchical Coordination', () => {
-    it('should register 100+ agents in hierarchical structure', async () => {
+    it('should register 100+ agents in hierarchical structure', async () => { try {
       const agents = await agentManager.spawnAgentBatch(
         Array.from({ length: 100 }, (_, i) => ({
           id: `coord-agent-${i}`,
@@ -137,7 +137,7 @@ describe('Large-Scale Agent Coordination', () => {
       console.log(`Coordinating ${metrics.totalAgentsManaged} agents across ${metrics.activeCoordinationNodes} nodes`);
     }, 15000);
 
-    it('should coordinate tasks with <10ms latency', async () => {
+    it('should coordinate tasks with <10ms latency', async () => { try {
       const tasks = Array.from({ length: 50 }, (_, i) => ({
         id: `task-${i}`,
         type: 'test-task',
@@ -166,7 +166,7 @@ describe('Large-Scale Agent Coordination', () => {
   });
 
   describe('Work Stealing and Load Balancing', () => {
-    it('should balance load across agents', async () => {
+    it('should balance load across agents', async () => { try {
       // Create agents with varying load
       const agents = await agentManager.spawnAgentBatch(
         Array.from({ length: 20 }, (_, i) => ({
@@ -201,7 +201,7 @@ describe('Large-Scale Agent Coordination', () => {
   });
 
   describe('Health Monitoring and Auto-Recovery', () => {
-    it('should track health of 100+ agents', async () => {
+    it('should track health of 100+ agents', async () => { try {
       const agents = await agentManager.spawnAgentBatch(
         Array.from({ length: 100 }, (_, i) => ({
           id: `health-agent-${i}`,
@@ -223,7 +223,7 @@ describe('Large-Scale Agent Coordination', () => {
       console.log(`Health monitoring ${stats.totalAgents} agents: ${stats.healthy} healthy, ${stats.degraded} degraded`);
     }, 15000);
 
-    it('should detect and recover failed agents in <5 seconds', async () => {
+    it('should detect and recover failed agents in <5 seconds', async () => { try {
       const agent = await agentManager.spawnAgent({
         id: 'recovery-test-agent',
         type: 'coder',
@@ -270,7 +270,7 @@ describe('Large-Scale Agent Coordination', () => {
   });
 
   describe('Consensus Protocols', () => {
-    it('should reach quorum consensus with 100+ agents', async () => {
+    it('should reach quorum consensus with 100+ agents', async () => { try {
       // Register agents for consensus
       for (let i = 0; i < 100; i++) {
         consensusCoordinator.registerAgent(`consensus-agent-${i}`);
@@ -295,7 +295,7 @@ describe('Large-Scale Agent Coordination', () => {
       console.log(`Consensus reached in ${consensusTime.toFixed(2)}ms with ${(result.participationRate * 100).toFixed(1)}% participation`);
     }, 15000);
 
-    it('should handle multiple concurrent proposals', async () => {
+    it('should handle multiple concurrent proposals', async () => { try {
       const proposals = Array.from({ length: 10 }, (_, i) => ({
         id: `concurrent-proposal-${i}`,
         type: 'configuration-change' as const,
@@ -318,7 +318,7 @@ describe('Large-Scale Agent Coordination', () => {
   });
 
   describe('System Performance Metrics', () => {
-    it('should maintain performance targets under load', async () => {
+    it('should maintain performance targets under load', async () => { try {
       const metrics = agentManager.getSystemMetrics();
 
       expect(metrics.p95SpawnTime).toBeLessThan(100); // Target: <100ms P95
@@ -374,7 +374,7 @@ describe('Large-Scale Agent Coordination', () => {
   });
 
   describe('Stress Test: 200 Agents', () => {
-    it('should handle 200 concurrent agents', async () => {
+    it('should handle 200 concurrent agents', async () => { try {
       const agentDefinitions: AgentDefinition[] = [];
 
       for (let i = 300; i < 500; i++) {
@@ -395,4 +395,4 @@ describe('Large-Scale Agent Coordination', () => {
       console.log(`Spawned 200 agents in waves: ${totalTime.toFixed(2)}ms total`);
     }, 20000);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

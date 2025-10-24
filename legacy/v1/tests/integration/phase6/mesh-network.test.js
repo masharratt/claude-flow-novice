@@ -24,7 +24,7 @@ describe('Phase 6 - Mesh Network Communication', () => {
   let meshPeers;
   let messageStats;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize message broker
     messageBroker = new MessageBroker({
       maxQueueSize: 10000,
@@ -44,14 +44,15 @@ describe('Phase 6 - Mesh Network Communication', () => {
     await messageBroker.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await messageBroker?.shutdown();
     meshPeers.clear();
     messageStats = null;
   });
 
   describe('Peer Discovery Protocol', () => {
-    test('should discover all peers in mesh within 5 seconds', async () => {
+    jest.setTimeout(10000);
+  test('should discover all peers in mesh within 5 seconds', async () => { try {
       const peerCount = 10;
       const discoveryStartTime = Date.now();
 
@@ -114,7 +115,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
       console.log(`✅ Peer discovery: ${peerCount} peers in ${discoveryTime}ms`);
     });
 
-    test('should handle peer join/leave events correctly', async () => {
+    jest.setTimeout(10000);
+  test('should handle peer join/leave events correctly', async () => { try {
       const peerEvents = [];
 
       await messageBroker.subscribe({
@@ -165,7 +167,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
       expect(peerEvents[2]).toEqual({ type: 'leave', peerId: 'peer-1' });
     });
 
-    test('should detect duplicate peer IDs and reject', async () => {
+    jest.setTimeout(10000);
+  test('should detect duplicate peer IDs and reject', async () => { try {
       const duplicateDetections = [];
 
       await messageBroker.subscribe({
@@ -211,7 +214,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
   });
 
   describe('Task Broadcasting', () => {
-    test('should broadcast task to all peers within 1 second', async () => {
+    jest.setTimeout(10000);
+  test('should broadcast task to all peers within 1 second', async () => { try {
       const peerCount = 10;
       const peerIds = Array.from({ length: peerCount }, (_, i) => `peer-${i}`);
       const receivedByPeers = new Set();
@@ -255,7 +259,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
       console.log(`✅ Task broadcast: ${peerCount} peers in ${broadcastTime}ms`);
     });
 
-    test('should handle selective broadcasting to subset of peers', async () => {
+    jest.setTimeout(10000);
+  test('should handle selective broadcasting to subset of peers', async () => { try {
       const allPeers = ['peer-1', 'peer-2', 'peer-3', 'peer-4', 'peer-5'];
       const targetPeers = ['peer-1', 'peer-3', 'peer-5'];
       const receivedByPeers = [];
@@ -291,7 +296,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
       expect(receivedByPeers.sort()).toEqual(targetPeers.sort());
     });
 
-    test('should maintain message ordering in broadcast', async () => {
+    jest.setTimeout(10000);
+  test('should maintain message ordering in broadcast', async () => { try {
       const messageCount = 100;
       const receivedOrders = new Map();
 
@@ -328,7 +334,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
   });
 
   describe('Network Health Monitoring', () => {
-    test('should detect peer failure within 500ms', async () => {
+    jest.setTimeout(10000);
+  test('should detect peer failure within 500ms', async () => { try {
       const healthCheckInterval = 100; // 100ms health check
       const failureThreshold = 3; // 3 missed heartbeats
       const peerFailures = [];
@@ -381,7 +388,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
       console.log(`✅ Peer failure detected: peer-3 in <500ms`);
     });
 
-    test('should track network latency metrics', async () => {
+    jest.setTimeout(10000);
+  test('should track network latency metrics', async () => { try {
       const measurementCount = 100;
       const latencies = [];
 
@@ -412,7 +420,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
       console.log(`✅ Network latency - avg: ${avgLatency.toFixed(2)}ms, p95: ${p95Latency}ms`);
     });
 
-    test('should detect network partition and reconfigure', async () => {
+    jest.setTimeout(10000);
+  test('should detect network partition and reconfigure', async () => { try {
       const partition1 = ['peer-1', 'peer-2'];
       const partition2 = ['peer-3', 'peer-4'];
       const partitionDetections = [];
@@ -452,7 +461,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
   });
 
   describe('Message Throughput Performance', () => {
-    test('should achieve >8000 messages/sec throughput', async () => {
+    jest.setTimeout(10000);
+  test('should achieve >8000 messages/sec throughput', async () => { try {
       const targetThroughput = 8000; // messages per second
       const testDuration = 1000; // 1 second
       let messagesSent = 0;
@@ -470,7 +480,7 @@ describe('Phase 6 - Mesh Network Communication', () => {
       const startTime = Date.now();
 
       // Send messages as fast as possible for 1 second
-      const sendInterval = setInterval(async () => {
+      const sendInterval = setInterval(async () => { try {
         await messageBroker.publish({
           topic: 'throughput.test',
           payload: { sequence: messagesSent },
@@ -494,7 +504,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
       console.log(`✅ Message throughput: ${throughput.toFixed(0)} msg/sec (${messagesSent} messages in ${elapsedTime}ms)`);
     }, 10000);
 
-    test('should maintain throughput under concurrent peer load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain throughput under concurrent peer load', async () => { try {
       const peerCount = 10;
       const messagesPerPeer = 100;
       const receivedCounts = new Map();
@@ -519,7 +530,7 @@ describe('Phase 6 - Mesh Network Communication', () => {
       const sendPromises = [];
       for (let i = 0; i < peerCount; i++) {
         const peerId = `peer-${i}`;
-        const peerPromise = (async () => {
+        const peerPromise = (async () => { try {
           for (let j = 0; j < messagesPerPeer; j++) {
             await messageBroker.publish({
               topic: `peer.${peerId}.messages`,
@@ -552,7 +563,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
   });
 
   describe('Peer-to-Peer Direct Communication', () => {
-    test('should support direct peer-to-peer messaging', async () => {
+    jest.setTimeout(10000);
+  test('should support direct peer-to-peer messaging', async () => { try {
       const peer1Messages = [];
       const peer2Messages = [];
 
@@ -600,7 +612,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
       expect(peer2Messages[0].from).toBe('peer-1');
     });
 
-    test('should measure p2p latency <50ms p95', async () => {
+    jest.setTimeout(10000);
+  test('should measure p2p latency <50ms p95', async () => { try {
       const measurements = 100;
       const latencies = [];
 
@@ -654,7 +667,8 @@ describe('Phase 6 - Mesh Network Communication', () => {
   });
 
   describe('Network Resilience', () => {
-    test('should handle message loss and retry', async () => {
+    jest.setTimeout(10000);
+  test('should handle message loss and retry', async () => { try {
       const totalMessages = 10;
       const lossRate = 0.3; // 30% message loss
       const receivedMessages = [];

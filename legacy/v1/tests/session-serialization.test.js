@@ -416,4 +416,4 @@ describe('Session Serializer Integration Tests', () => {
     expect(deserialized.statistics.lastUpdate).toBeInstanceOf(Date);
     expect(deserialized.statistics.completionPercentage).toBe(67.5);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

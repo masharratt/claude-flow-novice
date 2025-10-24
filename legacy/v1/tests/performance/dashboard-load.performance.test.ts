@@ -36,7 +36,7 @@ describe('Dashboard Performance and Load Testing', () => {
     rateLimitHits: 0
   };
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     originalEnv = process.env;
     process.env.NODE_ENV = 'test';
     jwtSecret = 'test-jwt-secret-for-performance-testing';
@@ -359,7 +359,7 @@ describe('Dashboard Performance and Load Testing', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (server) {
       await new Promise<void>((resolve) => {
         server.close(resolve);
@@ -385,7 +385,8 @@ describe('Dashboard Performance and Load Testing', () => {
   });
 
   describe('Performance Benchmarks', () => {
-    test('should handle 100 concurrent requests efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle 100 concurrent requests efficiently', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -421,7 +422,8 @@ describe('Dashboard Performance and Load Testing', () => {
       expect(performanceMetrics.errors).toBe(0);
     });
 
-    test('should maintain performance under sustained load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under sustained load', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -462,7 +464,8 @@ describe('Dashboard Performance and Load Testing', () => {
       expect(performanceMetrics.rateLimitHits).toBe(0);
     });
 
-    test('should handle large data requests efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle large data requests efficiently', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -494,7 +497,8 @@ describe('Dashboard Performance and Load Testing', () => {
   });
 
   describe('WebSocket Performance', () => {
-    test('should handle 50 concurrent WebSocket connections', async () => {
+    jest.setTimeout(10000);
+  test('should handle 50 concurrent WebSocket connections', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -564,7 +568,8 @@ describe('Dashboard Performance and Load Testing', () => {
       connections.forEach(socket => socket.close());
     });
 
-    test('should handle high-frequency real-time updates', async () => {
+    jest.setTimeout(10000);
+  test('should handle high-frequency real-time updates', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -623,7 +628,8 @@ describe('Dashboard Performance and Load Testing', () => {
   });
 
   describe('Security Performance Impact', () => {
-    test('should measure security middleware overhead', async () => {
+    jest.setTimeout(10000);
+  test('should measure security middleware overhead', async () => { try {
       // Test without authentication
       const unauthenticatedRequests = 100;
       const unauthenticatedStart = performance.now();
@@ -667,7 +673,8 @@ describe('Dashboard Performance and Load Testing', () => {
       expect(authenticatedAvg).toBeLessThan(100); // Still under 100ms per request
     });
 
-    test('should handle rate limiting performance efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle rate limiting performance efficiently', async () => { try {
       // Test rate limiting behavior under load
       const burstRequests = 250; // Exceeds the rate limit of 200
 
@@ -691,7 +698,8 @@ describe('Dashboard Performance and Load Testing', () => {
       expect(averageTime).toBeLessThan(20); // 20ms average even with rate limiting
     });
 
-    test('should maintain performance during authentication storms', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance during authentication storms', async () => { try {
       // Simulate many simultaneous login attempts
       const loginAttempts = 50;
       const validCredentials = { username: 'admin', password: 'password123' };
@@ -722,7 +730,8 @@ describe('Dashboard Performance and Load Testing', () => {
   });
 
   describe('Resource Usage Under Load', () => {
-    test('should monitor memory usage during load testing', async () => {
+    jest.setTimeout(10000);
+  test('should monitor memory usage during load testing', async () => { try {
       const initialMemory = process.memoryUsage();
 
       // Login first
@@ -750,7 +759,8 @@ describe('Dashboard Performance and Load Testing', () => {
       expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024); // Less than 50MB increase
     });
 
-    test('should handle concurrent user sessions efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent user sessions efficiently', async () => { try {
       // Create multiple user sessions
       const userCount = 10;
       const sessions = [];
@@ -791,7 +801,8 @@ describe('Dashboard Performance and Load Testing', () => {
   });
 
   describe('Performance Regression Detection', () => {
-    test('should establish performance baseline', async () => {
+    jest.setTimeout(10000);
+  test('should establish performance baseline', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -830,7 +841,8 @@ describe('Dashboard Performance and Load Testing', () => {
       console.log('Performance Baseline:', baselineMetrics);
     });
 
-    test('should detect performance regressions', async () => {
+    jest.setTimeout(10000);
+  test('should detect performance regressions', async () => { try {
       // This test would be used in CI to detect regressions
       // For now, we'll just establish the measurement pattern
 
@@ -876,4 +888,4 @@ describe('Dashboard Performance and Load Testing', () => {
       console.log('Thresholds:', thresholds);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

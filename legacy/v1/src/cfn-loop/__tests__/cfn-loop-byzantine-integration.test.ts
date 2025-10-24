@@ -29,7 +29,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
     mockAgentSpawner = jest.fn();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (orchestrator) {
       await orchestrator.shutdown();
     }
@@ -57,7 +57,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       orchestrator = new CFNLoopOrchestrator(config);
     });
 
-    it('should execute full CFN Loop with Byzantine validation - happy path', async () => {
+    it('should execute full CFN Loop with Byzantine validation - happy path', async () => { try {
       // Mock primary swarm (Loop 3) execution
       jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockResolvedValue([
         {
@@ -103,7 +103,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       expect(result.escalated).toBe(false);
     });
 
-    it('should handle single malicious validator (3/4 agreement)', async () => {
+    it('should handle single malicious validator (3/4 agreement)', async () => { try {
       jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockResolvedValue([
         {
           agentId: 'coder-1',
@@ -141,7 +141,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       // Byzantine consensus should have detected and excluded malicious validator
     });
 
-    it('should fail with 2 malicious validators and trigger retry', async () => {
+    it('should fail with 2 malicious validators and trigger retry', async () => { try {
       let consensusCallCount = 0;
 
       jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockResolvedValue([
@@ -154,7 +154,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
         },
       ] as AgentResponse[]);
 
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         consensusCallCount++;
 
         if (consensusCallCount === 1) {
@@ -185,7 +185,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       expect(result.totalLoop2Iterations).toBeGreaterThan(1);
     });
 
-    it('should spawn 4 validator agents for Byzantine consensus', async () => {
+    it('should spawn 4 validator agents for Byzantine consensus', async () => { try {
       const validatorSpawnSpy = jest.fn().mockResolvedValue([
         { agentId: 'reviewer-1', agentType: 'reviewer' },
         { agentId: 'security-1', agentType: 'security-specialist' },
@@ -214,7 +214,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       expect(validatorSpawnSpy).toHaveBeenCalled();
     });
 
-    it('should collect votes from all validators', async () => {
+    it('should collect votes from all validators', async () => { try {
       const voteCollectionSpy = jest.fn().mockResolvedValue([
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -243,7 +243,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       expect(voteCollectionSpy).toHaveBeenCalled();
     });
 
-    it('should persist malicious agents across iterations', async () => {
+    it('should persist malicious agents across iterations', async () => { try {
       const maliciousAgents = new Set<string>();
 
       jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockResolvedValue([
@@ -251,7 +251,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       ] as AgentResponse[]);
 
       let consensusCallCount = 0;
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         consensusCallCount++;
 
         if (consensusCallCount === 1) {
@@ -304,7 +304,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       orchestrator = new CFNLoopOrchestrator(config);
     });
 
-    it('should fall back to simple consensus when Byzantine disabled', async () => {
+    it('should fall back to simple consensus when Byzantine disabled', async () => { try {
       jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockResolvedValue([
         { agentId: 'coder-1', agentType: 'coder', deliverable: {}, confidence: 0.85, timestamp: Date.now() },
       ] as AgentResponse[]);
@@ -329,7 +329,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       // Should use simple consensus (averaging)
     });
 
-    it('should not detect malicious agents when Byzantine disabled', async () => {
+    it('should not detect malicious agents when Byzantine disabled', async () => { try {
       jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockResolvedValue([
         { agentId: 'coder-1', agentType: 'coder', deliverable: {}, confidence: 0.85, timestamp: Date.now() },
       ] as AgentResponse[]);
@@ -370,13 +370,13 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       orchestrator = new CFNLoopOrchestrator(config);
     });
 
-    it('should fall back to simple consensus on Byzantine failure', async () => {
+    it('should fall back to simple consensus on Byzantine failure', async () => { try {
       jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockResolvedValue([
         { agentId: 'coder-1', agentType: 'coder', deliverable: {}, confidence: 0.85, timestamp: Date.now() },
       ] as AgentResponse[]);
 
       let consensusCallCount = 0;
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         consensusCallCount++;
 
         if (consensusCallCount === 1) {
@@ -402,12 +402,12 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle timeout gracefully with fallback', async () => {
+    it('should handle timeout gracefully with fallback', async () => { try {
       jest.spyOn(orchestrator as any, 'executePrimarySwarm').mockResolvedValue([
         { agentId: 'coder-1', agentType: 'coder', deliverable: {}, confidence: 0.85, timestamp: Date.now() },
       ] as AgentResponse[]);
 
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         // Simulate timeout
         await new Promise(resolve => setTimeout(resolve, 100));
         return {
@@ -428,7 +428,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
   });
 
   describe('Memory Recovery', () => {
-    it('should exclude malicious agents on retry', async () => {
+    it('should exclude malicious agents on retry', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'test-phase',
         swarmId: 'test-swarm',
@@ -449,7 +449,7 @@ describe('CFN Loop Byzantine Consensus Integration', () => {
       const maliciousAgents = new Set<string>(['analyst-1']);
 
       let consensusCallCount = 0;
-      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => {
+      jest.spyOn(orchestrator as any, 'executeConsensusValidation').mockImplementation(async () => { try {
         consensusCallCount++;
 
         if (consensusCallCount === 1) {

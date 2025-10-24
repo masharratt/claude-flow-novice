@@ -422,4 +422,4 @@ error: you seem to be trying to use \`match\` for destructuring a single pattern
       expect(hash1).not.toBe(hash2);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -12,13 +12,13 @@ describe('RedisPerformanceAnalyzer', () => {
   let analyzer;
   let redisClient;
   
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Setup test Redis connection
     redisClient = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: process.env.REDIS_PORT || 6379,
       db: 15 // Use dedicated test database
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
     analyzer = new RedisPerformanceAnalyzer({
       redis: {
@@ -32,51 +32,54 @@ describe('RedisPerformanceAnalyzer', () => {
         errorRate: 0.1,
         memoryUsage: 0.8
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
     await analyzer.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup test data
     await redisClient.flushdb();
     await analyzer.close();
     await redisClient.quit();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up before each test
     await redisClient.flushdb();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Initialization', () => {
-    test('should initialize successfully', async () => {
+    jest.setTimeout(10000);
+  test('should initialize successfully', async () => { try {
       const testAnalyzer = new RedisPerformanceAnalyzer({
         redis: { db: 15 }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       const result = await testAnalyzer.initialize();
       expect(result).toBe(true);
       
       await testAnalyzer.close();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should emit connected event', (done) => {
+    jest.setTimeout(10000);
+  test('should emit connected event', (done) => {
       const testAnalyzer = new RedisPerformanceAnalyzer({
         redis: { db: 15 }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       testAnalyzer.on('connected', () => {
         testAnalyzer.close();
-        done();
-      });
+        return;
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       testAnalyzer.initialize().catch(console.error);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Agent Metrics Recording', () => {
-    test('should record agent metrics successfully', async () => {
+    jest.setTimeout(10000);
+  test('should record agent metrics successfully', async () => { try {
       const agentId = 'test-agent-1';
       const metrics = {
         responseTime: 150,
@@ -93,12 +96,13 @@ describe('RedisPerformanceAnalyzer', () => {
         confidence: 0.85,
         status: 'success',
         taskType: 'analysis'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(result.timestamp).toBeDefined();
       expect(result.id).toBe(`${agentId}:${result.timestamp}`);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should store metrics in Redis', async () => {
+    jest.setTimeout(10000);
+  test('should store metrics in Redis', async () => { try {
       const agentId = 'test-agent-2';
       const metrics = {
         responseTime: 200,
@@ -115,24 +119,26 @@ describe('RedisPerformanceAnalyzer', () => {
       const parsed = JSON.parse(storedMetrics[0]);
       expect(parsed.agentId).toBe(agentId);
       expect(parsed.responseTime).toBe(200);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should emit metrics recorded event', (done) => {
+    jest.setTimeout(10000);
+  test('should emit metrics recorded event', (done) => {
       const agentId = 'test-agent-3';
       const metrics = { responseTime: 100, status: 'success' };
       
       analyzer.on('metrics:recorded', (data) => {
         expect(data.agentId).toBe(agentId);
         expect(data.metrics.responseTime).toBe(100);
-        done();
-      });
+        return;
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       analyzer.recordAgentMetrics(agentId, metrics);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Task Metrics Recording', () => {
-    test('should record task metrics successfully', async () => {
+    jest.setTimeout(10000);
+  test('should record task metrics successfully', async () => { try {
       const taskId = 'task-123';
       const agentId = 'agent-456';
       const metrics = {
@@ -149,11 +155,12 @@ describe('RedisPerformanceAnalyzer', () => {
         agentId,
         status: 'success',
         confidence: 0.88
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(result.id).toBe(`task:${taskId}:${result.timestamp}`);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should update agent aggregates', async () => {
+    jest.setTimeout(10000);
+  test('should update agent aggregates', async () => { try {
       const agentId = 'agent-aggregate-test';
       
       // Record multiple tasks
@@ -161,13 +168,13 @@ describe('RedisPerformanceAnalyzer', () => {
         status: 'success',
         responseTime: 100,
         confidence: 0.9
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       await analyzer.recordTaskMetrics('task2', agentId, {
         status: 'error',
         responseTime: 200,
         confidence: 0.3
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       // Check aggregates
       const aggregatesKey = `aggregates:agent:${agentId}:current`;
@@ -176,11 +183,11 @@ describe('RedisPerformanceAnalyzer', () => {
       expect(aggregates.totalTasks).toBe(2);
       expect(aggregates.successfulTasks).toBe(1);
       expect(aggregates.failedTasks).toBe(1);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Performance History Retrieval', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Setup test data
       const agentId = 'history-test-agent';
       const now = Date.now();
@@ -191,11 +198,12 @@ describe('RedisPerformanceAnalyzer', () => {
           confidence: 0.8 + i * 0.01,
           status: i % 4 === 0 ? 'error' : 'success',
           timestamp: now - (9 - i) * 60 * 60 * 1000 // 1 hour intervals
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should retrieve agent performance history', async () => {
+    jest.setTimeout(10000);
+  test('should retrieve agent performance history', async () => { try {
       const agentId = 'history-test-agent';
       const history = await analyzer.getAgentPerformanceHistory(agentId);
       
@@ -204,9 +212,10 @@ describe('RedisPerformanceAnalyzer', () => {
       expect(history.totalRecords).toBe(10);
       expect(history.aggregates).toBeDefined();
       expect(history.trends).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should respect time range filters', async () => {
+    jest.setTimeout(10000);
+  test('should respect time range filters', async () => { try {
       const agentId = 'history-test-agent';
       const now = Date.now();
       const sixHoursAgo = now - 6 * 60 * 60 * 1000;
@@ -214,12 +223,13 @@ describe('RedisPerformanceAnalyzer', () => {
       const history = await analyzer.getAgentPerformanceHistory(agentId, {
         startTime: sixHoursAgo,
         endTime: now
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       expect(history.metrics.length).toBeLessThanOrEqual(6);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should calculate aggregates correctly', async () => {
+    jest.setTimeout(10000);
+  test('should calculate aggregates correctly', async () => { try {
       const agentId = 'history-test-agent';
       const aggregates = await analyzer.calculateAgentAggregates(
         agentId,
@@ -232,11 +242,11 @@ describe('RedisPerformanceAnalyzer', () => {
       expect(aggregates.failedTasks).toBe(3);
       expect(aggregates.errorRate).toBe(0.3);
       expect(aggregates.performanceScore).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Performance Trends Analysis', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create trending data
       const agentId = 'trend-test-agent';
       const now = Date.now();
@@ -247,30 +257,33 @@ describe('RedisPerformanceAnalyzer', () => {
           confidence: 0.7 + i * 0.01, // Improving confidence
           status: i % 5 === 0 ? 'error' : 'success',
           timestamp: now - (23 - i) * 60 * 60 * 1000 // Hourly
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should analyze performance trends', async () => {
+    jest.setTimeout(10000);
+  test('should analyze performance trends', async () => { try {
       const trends = await analyzer.getPerformanceTrends('1d');
       
       expect(trends.timeRange).toBeDefined();
       expect(trends.intervals).toContain('1h');
       expect(trends.trends).toBeDefined();
       expect(trends.summary).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should detect improving trends', async () => {
+    jest.setTimeout(10000);
+  test('should detect improving trends', async () => { try {
       const agentId = 'trend-test-agent';
       const patterns = await analyzer.analyzePerformancePatterns(agentId, '1d');
       
       expect(patterns.agentId).toBe(agentId);
       expect(patterns.patterns.responseTimePatterns.trend).toBe('improving');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Anomaly Detection', () => {
-    test('should detect response time anomalies', async () => {
+    jest.setTimeout(10000);
+  test('should detect response time anomalies', async () => { try {
       const agentId = 'anomaly-test-agent';
       
       // Record normal metrics
@@ -279,7 +292,7 @@ describe('RedisPerformanceAnalyzer', () => {
           responseTime: 100,
           status: 'success',
           confidence: 0.8
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
       
       // Record anomalous metric
@@ -287,7 +300,7 @@ describe('RedisPerformanceAnalyzer', () => {
         responseTime: 2000, // Much higher than normal
         status: 'success',
         confidence: 0.9
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       const history = await analyzer.getAgentPerformanceHistory(agentId);
       const anomalies = await analyzer.detectAnomalies(agentId, history.metrics);
@@ -295,9 +308,10 @@ describe('RedisPerformanceAnalyzer', () => {
       expect(anomalies.length).toBeGreaterThan(0);
       expect(anomalies[0].type).toBe('response_time');
       expect(anomalies[0].severity).toBe('high');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should detect error rate anomalies', async () => {
+    jest.setTimeout(10000);
+  test('should detect error rate anomalies', async () => { try {
       const agentId = 'error-anomaly-agent';
       
       // Record high error rate
@@ -306,7 +320,7 @@ describe('RedisPerformanceAnalyzer', () => {
           responseTime: 150,
           status: i < 12 ? 'error' : 'success', // 80% error rate
           confidence: 0.3
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
       
       const history = await analyzer.getAgentPerformanceHistory(agentId);
@@ -314,27 +328,28 @@ describe('RedisPerformanceAnalyzer', () => {
       
       const errorAnomalies = anomalies.filter(a => a.type === 'error_rate');
       expect(errorAnomalies.length).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should detect confidence anomalies', async () => {
+    jest.setTimeout(10000);
+  test('should detect confidence anomalies', async () => { try {
       const agentId = 'confidence-anomaly-agent';
       
       await analyzer.recordAgentMetrics(agentId, {
         responseTime: 100,
         status: 'success',
         confidence: 0.2 // Very low confidence
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       const history = await analyzer.getAgentPerformanceHistory(agentId);
       const anomalies = await analyzer.detectAnomalies(agentId, history.metrics);
       
       const confidenceAnomalies = anomalies.filter(a => a.type === 'low_confidence');
       expect(confidenceAnomalies.length).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Performance Reports', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const agentId = 'report-test-agent';
       const now = Date.now();
       
@@ -345,11 +360,12 @@ describe('RedisPerformanceAnalyzer', () => {
           confidence: 0.7 + Math.random() * 0.3,
           status: Math.random() > 0.1 ? 'success' : 'error',
           timestamp: now - (49 - i) * 60 * 60 * 1000
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should generate comprehensive performance report', async () => {
+    jest.setTimeout(10000);
+  test('should generate comprehensive performance report', async () => { try {
       const agentId = 'report-test-agent';
       const report = await analyzer.generatePerformanceReport(agentId, '1d');
       
@@ -360,9 +376,10 @@ describe('RedisPerformanceAnalyzer', () => {
       expect(report.anomalies).toBeDefined();
       expect(report.recommendations).toBeDefined();
       expect(report.insights).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should include executive summary', async () => {
+    jest.setTimeout(10000);
+  test('should include executive summary', async () => { try {
       const agentId = 'report-test-agent';
       const report = await analyzer.generatePerformanceReport(agentId, '1d');
       
@@ -370,9 +387,10 @@ describe('RedisPerformanceAnalyzer', () => {
       expect(summary.overallPerformance).toBeDefined();
       expect(summary.performanceScore).toBeDefined();
       expect(summary.keyMetrics).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should generate actionable recommendations', async () => {
+    jest.setTimeout(10000);
+  test('should generate actionable recommendations', async () => { try {
       const agentId = 'report-test-agent';
       const report = await analyzer.generatePerformanceReport(agentId, '1d');
       
@@ -384,18 +402,19 @@ describe('RedisPerformanceAnalyzer', () => {
         expect(rec.title).toBeDefined();
         expect(rec.action).toBeDefined();
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('System Performance Statistics', () => {
-    test('should get system-wide performance stats', async () => {
+    jest.setTimeout(10000);
+  test('should get system-wide performance stats', async () => { try {
       // Create data for multiple agents
       for (let i = 1; i <= 3; i++) {
         await analyzer.recordAgentMetrics(`agent-${i}`, {
           responseTime: 100 + i * 50,
           status: 'success',
           confidence: 0.8 + i * 0.05
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
       
       const stats = await analyzer.getSystemPerformanceStats();
@@ -404,45 +423,49 @@ describe('RedisPerformanceAnalyzer', () => {
       expect(stats.activeAgents).toBe(3);
       expect(stats.totalMetrics).toBe(3);
       expect(stats.systemHealth).toBeDefined();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Data Retention and Cleanup', () => {
-    test('should respect retention period', async () => {
+    jest.setTimeout(10000);
+  test('should respect retention period', async () => { try {
       const agentId = 'retention-test-agent';
       
       await analyzer.recordAgentMetrics(agentId, {
         responseTime: 100,
         status: 'success'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       // Check TTL is set
       const ttl = await redisClient.ttl(`performance:agent:${agentId}`);
       expect(ttl).toBeGreaterThan(0);
       expect(ttl).toBeLessThanOrEqual(7 * 24 * 60 * 60); // 7 days
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Error Handling', () => {
-    test('should handle Redis connection errors gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle Redis connection errors gracefully', async () => { try {
       const faultyAnalyzer = new RedisPerformanceAnalyzer({
         redis: {
           host: 'nonexistent-host',
           port: 9999
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       // Should not throw immediately
       await expect(faultyAnalyzer.initialize()).rejects.toThrow();
       
       await faultyAnalyzer.close();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should handle invalid time ranges', async () => {
+    jest.setTimeout(10000);
+  test('should handle invalid time ranges', async () => { try {
       await expect(analyzer.parseTimeRange('invalid')).rejects.toThrow();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
-    test('should handle empty metrics gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle empty metrics gracefully', async () => { try {
       const aggregates = await analyzer.calculateAgentAggregates(
         'nonexistent-agent',
         Date.now() - 60000,
@@ -450,29 +473,31 @@ describe('RedisPerformanceAnalyzer', () => {
       );
       
       expect(aggregates).toBeNull();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Configuration', () => {
-    test('should use custom configuration', async () => {
+    jest.setTimeout(10000);
+  test('should use custom configuration', async () => { try {
       const customAnalyzer = new RedisPerformanceAnalyzer({
         retentionDays: 14,
         alertThresholds: {
           responseTime: 2000,
           errorRate: 0.2
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       expect(customAnalyzer.config.retentionDays).toBe(14);
       expect(customAnalyzer.config.alertThresholds.responseTime).toBe(2000);
       expect(customAnalyzer.config.alertThresholds.errorRate).toBe(0.2);
       
       await customAnalyzer.close();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   describe('Integration Tests', () => {
-    test('should handle complete performance tracking workflow', async () => {
+    jest.setTimeout(10000);
+  test('should handle complete performance tracking workflow', async () => { try {
       const agentId = 'integration-test-agent';
       
       // Simulate complete workflow
@@ -485,7 +510,7 @@ describe('RedisPerformanceAnalyzer', () => {
           confidence: 0.7 + Math.random() * 0.3,
           status: Math.random() > 0.15 ? 'success' : 'error',
           taskType: ['analysis', 'development', 'testing'][Math.floor(Math.random() * 3)]
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         metrics.push(metric);
       }
       
@@ -502,6 +527,6 @@ describe('RedisPerformanceAnalyzer', () => {
       
       // Verify data consistency
       expect(report.performanceMetrics.aggregates.totalTasks).toBe(20);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

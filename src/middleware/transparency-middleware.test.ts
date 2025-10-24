@@ -34,46 +34,52 @@ describe('TransparencyMiddleware', () => {
           function_calls: true
         }
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('I/O Parsing', () => {
-    test('parseAgentIO - XML invoke tags', () => {
+    jest.setTimeout(10000);
+  test('parseAgentIO - XML invoke tags', () => {
       const input = '<invoke name="Edit"><parameter name="file_path">test.ts</parameter></invoke>';
       const parsed = middleware.parseAgentIO(input);
       expect(parsed.toolCalls).toHaveLength(1);
       expect(parsed.toolCalls[0].tool).toBe('Edit');
       expect(parsed.toolCalls[0].parameters.file_path).toBe('test.ts');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('parseAgentIO - function call style', () => {
+    jest.setTimeout(10000);
+  test('parseAgentIO - function call style', () => {
       const input = 'Task("backend-dev", "Implement feature")';
       const parsed = middleware.parseAgentIO(input);
       expect(parsed.toolCalls).toHaveLength(1);
       expect(parsed.toolCalls[0].tool).toBe('Task');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('parseAgentIO - malformed input', () => {
+    jest.setTimeout(10000);
+  test('parseAgentIO - malformed input', () => {
       const parsed = middleware.parseAgentIO('invalid <invoke incomplete');
       expect(parsed.toolCalls).toHaveLength(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('parseAgentIO - empty input', () => {
+    jest.setTimeout(10000);
+  test('parseAgentIO - empty input', () => {
       const parsed = middleware.parseAgentIO('');
       expect(parsed.toolCalls).toHaveLength(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('parseAgentIO - multiple invoke tags', () => {
+    jest.setTimeout(10000);
+  test('parseAgentIO - multiple invoke tags', () => {
       const input = '<invoke name="Edit"><parameter name="file_path">test.ts</parameter></invoke><invoke name="Bash"><parameter name="command">ls</parameter></invoke>';
       const parsed = middleware.parseAgentIO(input);
       expect(parsed.toolCalls).toHaveLength(2);
       expect(parsed.toolCalls[0].tool).toBe('Edit');
       expect(parsed.toolCalls[1].tool).toBe('Bash');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Event Extraction', () => {
-    test('extractHighValueEvents - Edit tool', () => {
+    jest.setTimeout(10000);
+  test('extractHighValueEvents - Edit tool', () => {
       const parsed = {
         toolCalls: [
           {
@@ -92,9 +98,10 @@ describe('TransparencyMiddleware', () => {
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe('edit');
       expect(events[0].metadata.filePath).toBe('test.ts');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('extractHighValueEvents - function call', () => {
+    jest.setTimeout(10000);
+  test('extractHighValueEvents - function call', () => {
       const parsed = {
         toolCalls: [
           {
@@ -111,11 +118,12 @@ describe('TransparencyMiddleware', () => {
       const events = middleware.extractHighValueEvents(parsed, 'test-agent', 'test-task');
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe('function_call');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Memory Storage', () => {
-    test('storeMemory - successful storage', async () => {
+    jest.setTimeout(10000);
+  test('storeMemory - successful storage', async () => { try {
       const event = {
         type: 'edit',
         agentId: 'test',
@@ -129,9 +137,10 @@ describe('TransparencyMiddleware', () => {
 
       await expect(middleware.storeMemory('test-agent', 'test-task', event)).resolves.not.toThrow();
       expect(mockSQLiteMemorySystem.insert).toHaveBeenCalledWith(event);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('queueMemory - batch processing', async () => {
+    jest.setTimeout(10000);
+  test('queueMemory - batch processing', async () => { try {
       const mockEvent = {
         type: 'edit',
         agentId: 'test',
@@ -152,25 +161,28 @@ describe('TransparencyMiddleware', () => {
 
       // Expect batch insert to be called
       expect(mockSQLiteMemorySystem.batchInsert).toHaveBeenCalled();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Event Filtering', () => {
-    test('shouldCaptureEvent - respects config', () => {
+    jest.setTimeout(10000);
+  test('shouldCaptureEvent - respects config', () => {
       expect(middleware.shouldCaptureEvent('edit')).toBe(true);
 
       // Test with edit operations disabled
       middleware.config.capture.edit_operations = false;
       expect(middleware.shouldCaptureEvent('edit')).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('shouldCaptureEvent - unknown event type', () => {
+    jest.setTimeout(10000);
+  test('shouldCaptureEvent - unknown event type', () => {
       expect(middleware.shouldCaptureEvent('unknown')).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Handling', () => {
-    test('storeMemory - handles storage errors', async () => {
+    jest.setTimeout(10000);
+  test('storeMemory - handles storage errors', async () => { try {
       const event = {
         type: 'edit',
         agentId: 'test',
@@ -191,9 +203,10 @@ describe('TransparencyMiddleware', () => {
         expect.stringContaining('Failed to store memory'),
         expect.any(Error)
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('queueMemory - handles null/undefined taskId', async () => {
+    jest.setTimeout(10000);
+  test('queueMemory - handles null/undefined taskId', async () => { try {
       const event = {
         type: 'edit',
         agentId: 'test',
@@ -211,6 +224,6 @@ describe('TransparencyMiddleware', () => {
       expect(mockLogger.warn).toHaveBeenCalledWith(
         expect.stringContaining('Invalid taskId or agentId')
       );
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

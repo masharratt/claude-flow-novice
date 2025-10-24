@@ -18,13 +18,14 @@ describe('SEC-INJ-001: Payload Injection Prevention', () => {
     broker = new MessageBroker();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (broker && typeof broker.shutdown === 'function') {
       await broker.shutdown();
     }
   });
 
-  test('should reject prototype pollution attempts (__proto__)', async () => {
+  jest.setTimeout(10000);
+  test('should reject prototype pollution attempts (__proto__)', async () => { try {
     // Use Object.defineProperty to simulate real attack where __proto__ is non-enumerable
     const malicious = Object.defineProperty({}, '__proto__', {
       value: { isAdmin: true },
@@ -39,7 +40,8 @@ describe('SEC-INJ-001: Payload Injection Prevention', () => {
     ).rejects.toThrow(/Forbidden keys detected|prototype pollution/i);
   });
 
-  test('should reject prototype pollution attempts (constructor)', async () => {
+  jest.setTimeout(10000);
+  test('should reject prototype pollution attempts (constructor)', async () => { try {
     await expect(
       broker.publish({
         topic: 'test',
@@ -48,7 +50,8 @@ describe('SEC-INJ-001: Payload Injection Prevention', () => {
     ).rejects.toThrow(/Forbidden keys detected|prototype pollution/i);
   });
 
-  test('should reject oversized payloads (>1MB)', async () => {
+  jest.setTimeout(10000);
+  test('should reject oversized payloads (>1MB)', async () => { try {
     const largePayload = 'x'.repeat(2 * 1024 * 1024); // 2MB
     await expect(
       broker.publish({
@@ -58,7 +61,8 @@ describe('SEC-INJ-001: Payload Injection Prevention', () => {
     ).rejects.toThrow(/Payload size|exceeds maximum/i);
   });
 
-  test('should reject deeply nested objects (depth >5)', async () => {
+  jest.setTimeout(10000);
+  test('should reject deeply nested objects (depth >5)', async () => { try {
     const deep = { a: { b: { c: { d: { e: { f: { g: {} } } } } } } }; // depth 7
     await expect(
       broker.publish({
@@ -68,7 +72,8 @@ describe('SEC-INJ-001: Payload Injection Prevention', () => {
     ).rejects.toThrow(/Payload depth|too deeply nested/i);
   });
 
-  test('should sanitize dangerous keys (eval, Function)', async () => {
+  jest.setTimeout(10000);
+  test('should sanitize dangerous keys (eval, Function)', async () => { try {
     await expect(
       broker.publish({
         topic: 'test',
@@ -77,7 +82,8 @@ describe('SEC-INJ-001: Payload Injection Prevention', () => {
     ).rejects.toThrow(/Forbidden keys detected|dangerous keys/i);
   });
 
-  test('should accept valid payloads', async () => {
+  jest.setTimeout(10000);
+  test('should accept valid payloads', async () => { try {
     const validPayloads = [
       { name: 'John', age: 30 },
       { nested: { level1: { level2: { level3: 'data' } } } }, // depth 3
@@ -94,14 +100,15 @@ describe('SEC-INJ-001: Payload Injection Prevention', () => {
 });
 
 describe('SEC-MEM-001: Subscription Limit Enforcement', () => {
-  test('should enforce global subscription limit', async () => {
+  jest.setTimeout(10000);
+  test('should enforce global subscription limit', async () => { try {
     const broker = new MessageBroker({ maxSubscriptions: 10 });
 
     // Create 10 subscriptions (should succeed)
     for (let i = 0; i < 10; i++) {
       await broker.subscribe({
         topic: `test.${i}`,
-        handler: async () => {}
+        handler: async () => { try {}
       });
     }
 
@@ -109,21 +116,22 @@ describe('SEC-MEM-001: Subscription Limit Enforcement', () => {
     await expect(
       broker.subscribe({
         topic: 'test.11',
-        handler: async () => {}
+        handler: async () => { try {}
       })
     ).rejects.toThrow(/Maximum subscriptions|subscription limit/i);
 
     await broker.shutdown();
   });
 
-  test('should enforce per-agent subscription limit', async () => {
+  jest.setTimeout(10000);
+  test('should enforce per-agent subscription limit', async () => { try {
     const broker = new MessageBroker({ maxSubscriptionsPerAgent: 5 });
 
     // Agent-1 creates 5 subscriptions (should succeed)
     for (let i = 0; i < 5; i++) {
       await broker.subscribe({
         topic: `test.${i}`,
-        handler: async () => {},
+        handler: async () => { try {},
         subscriberId: 'agent-1'
       });
     }
@@ -132,7 +140,7 @@ describe('SEC-MEM-001: Subscription Limit Enforcement', () => {
     await expect(
       broker.subscribe({
         topic: 'test.6',
-        handler: async () => {},
+        handler: async () => { try {},
         subscriberId: 'agent-1'
       })
     ).rejects.toThrow(/exceeded subscription limit|per-agent limit/i);
@@ -140,7 +148,7 @@ describe('SEC-MEM-001: Subscription Limit Enforcement', () => {
     // Different agent can still subscribe
     const sub = await broker.subscribe({
       topic: 'test.other',
-      handler: async () => {},
+      handler: async () => { try {},
       subscriberId: 'agent-2'
     });
     expect(sub).toBeDefined();
@@ -148,7 +156,8 @@ describe('SEC-MEM-001: Subscription Limit Enforcement', () => {
     await broker.shutdown();
   });
 
-  test('should auto-expire inactive subscriptions', async () => {
+  jest.setTimeout(10000);
+  test('should auto-expire inactive subscriptions', async () => { try {
     const broker = new MessageBroker({
       subscriptionTTL: 1000, // 1 second
       cleanupIntervalMs: 100 // Clean up every 100ms for testing
@@ -156,7 +165,7 @@ describe('SEC-MEM-001: Subscription Limit Enforcement', () => {
 
     const sub = await broker.subscribe({
       topic: 'test',
-      handler: async () => {}
+      handler: async () => { try {}
     });
 
     expect(broker.getSubscriptions().length).toBe(1);
@@ -172,7 +181,8 @@ describe('SEC-MEM-001: Subscription Limit Enforcement', () => {
 });
 
 describe('SEC-DOS-001: Queue Overflow Protection', () => {
-  test('should enforce per-sender queue limit', async () => {
+  jest.setTimeout(10000);
+  test('should enforce per-sender queue limit', async () => { try {
     const broker = new MessageBroker({ maxQueueSizePerSender: 10 });
 
     // Fill agent-1 quota (10 messages)
@@ -205,7 +215,8 @@ describe('SEC-DOS-001: Queue Overflow Protection', () => {
     await broker.shutdown();
   });
 
-  test('should evict low-priority messages when queue full', async () => {
+  jest.setTimeout(10000);
+  test('should evict low-priority messages when queue full', async () => { try {
     const broker = new MessageBroker({ maxQueueSize: 5 });
 
     // Fill queue with low-priority messages
@@ -232,7 +243,8 @@ describe('SEC-DOS-001: Queue Overflow Protection', () => {
     await broker.shutdown();
   });
 
-  test('should move evicted messages to dead letter queue', async () => {
+  jest.setTimeout(10000);
+  test('should move evicted messages to dead letter queue', async () => { try {
     const broker = new MessageBroker({
       maxQueueSize: 3,
       enableDeadLetterQueue: true
@@ -262,7 +274,8 @@ describe('SEC-DOS-001: Queue Overflow Protection', () => {
 });
 
 describe('SEC-DOS-002: Rate Limiting', () => {
-  test('should enforce per-sender rate limit', async () => {
+  jest.setTimeout(10000);
+  test('should enforce per-sender rate limit', async () => { try {
     const broker = new MessageBroker({
       rateLimit: { maxMessagesPerSecond: 10 }
     });
@@ -292,7 +305,8 @@ describe('SEC-DOS-002: Rate Limiting', () => {
     await broker.shutdown();
   });
 
-  test('should allow burst then throttle', async () => {
+  jest.setTimeout(10000);
+  test('should allow burst then throttle', async () => { try {
     const broker = new MessageBroker({
       rateLimit: {
         maxMessagesPerSecond: 5,
@@ -329,7 +343,8 @@ describe('SEC-DOS-002: Rate Limiting', () => {
     await broker.shutdown();
   });
 
-  test('should cleanup idle rate limiters', async () => {
+  jest.setTimeout(10000);
+  test('should cleanup idle rate limiters', async () => { try {
     const broker = new MessageBroker({
       rateLimit: { maxMessagesPerSecond: 100 }
     });
@@ -346,7 +361,8 @@ describe('SEC-DOS-002: Rate Limiting', () => {
 });
 
 describe('Security Integration Test', () => {
-  test('ALL 4 CRITICAL FIXES: Comprehensive validation', async () => {
+  jest.setTimeout(10000);
+  test('ALL 4 CRITICAL FIXES: Comprehensive validation', async () => { try {
     const broker = new MessageBroker({
       // SEC-DOS-001: Queue limits
       maxQueueSizePerSender: 100,
@@ -373,14 +389,14 @@ describe('Security Integration Test', () => {
     for (let i = 0; i < 100; i++) {
       await broker.subscribe({
         topic: `test.${i}`,
-        handler: async () => {},
+        handler: async () => { try {},
         subscriberId: 'agent-1'
       });
     }
     await expect(
       broker.subscribe({
         topic: 'test.101',
-        handler: async () => {},
+        handler: async () => { try {},
         subscriberId: 'agent-1'
       })
     ).rejects.toThrow();

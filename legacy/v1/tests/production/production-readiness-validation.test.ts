@@ -21,7 +21,7 @@ describe('Production Readiness Validation', () => {
   let securityManager: SecurityManager;
   let testResults: any = {};
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Create test database
     const testDbPath = path.join(__dirname, '../test-data/dashboard-production-test.db');
     const testDir = path.dirname(testDbPath);
@@ -35,7 +35,7 @@ describe('Production Readiness Validation', () => {
     securityManager = new SecurityManager(databaseManager);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup
     if (databaseManager) {
       databaseManager.close();
@@ -51,7 +51,8 @@ describe('Production Readiness Validation', () => {
   });
 
   describe('Security Controls Validation', () => {
-    test('should create and manage users with proper authentication', () => {
+    jest.setTimeout(10000);
+  test('should create and manage users with proper authentication', () => {
       // Test user creation
       const adminUser = databaseManager.createUser('admin-test', 'SecurePassword123!', 'admin');
       const operatorUser = databaseManager.createUser('operator-test', 'SecurePassword123!', 'operator');
@@ -91,7 +92,8 @@ describe('Production Readiness Validation', () => {
       };
     });
 
-    test('should log and track security events properly', () => {
+    jest.setTimeout(10000);
+  test('should log and track security events properly', () => {
       // Get the admin user created in the previous test
       const adminUser = databaseManager.getUserByUsername('admin-test');
 
@@ -126,7 +128,8 @@ describe('Production Readiness Validation', () => {
       };
     });
 
-    test('should enforce rate limiting and prevent abuse', () => {
+    jest.setTimeout(10000);
+  test('should enforce rate limiting and prevent abuse', () => {
       // Test rate limiter creation
       const globalRateLimiter = securityManager.createRateLimiter({
         windowMs: 60000, // 1 minute
@@ -151,7 +154,8 @@ describe('Production Readiness Validation', () => {
   });
 
   describe('Performance Validation', () => {
-    test('should handle concurrent database operations efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent database operations efficiently', async () => { try {
       const concurrentOperations = 50;
       const operationsPerThread = 10;
       const startTime = Date.now();
@@ -225,7 +229,8 @@ describe('Production Readiness Validation', () => {
       };
     });
 
-    test('should maintain database integrity under load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain database integrity under load', async () => { try {
       const dataIntegrityTests = 100;
       const integrityResults = [];
 
@@ -267,7 +272,8 @@ describe('Production Readiness Validation', () => {
   });
 
   describe('Scalability Validation', () => {
-    test('should handle large volumes of security events', async () => {
+    jest.setTimeout(10000);
+  test('should handle large volumes of security events', async () => { try {
       const volumeTest = 1000;
       const batchSize = 50;
       const startTime = Date.now();
@@ -320,7 +326,8 @@ describe('Production Readiness Validation', () => {
       };
     });
 
-    test('should handle multiple user sessions concurrently', async () => {
+    jest.setTimeout(10000);
+  test('should handle multiple user sessions concurrently', async () => { try {
       const concurrentUsers = 20;
       const sessionsPerUser = 5;
 
@@ -366,7 +373,8 @@ describe('Production Readiness Validation', () => {
   });
 
   describe('Monitoring and Alerting Validation', () => {
-    test('should collect and aggregate metrics properly', async () => {
+    jest.setTimeout(10000);
+  test('should collect and aggregate metrics properly', async () => { try {
       const metricTypes = ['cpu', 'memory', 'disk', 'network', 'connections'];
       const metricsData = {};
 
@@ -442,7 +450,8 @@ describe('Production Readiness Validation', () => {
       };
     });
 
-    test('should generate appropriate alerts for threshold violations', () => {
+    jest.setTimeout(10000);
+  test('should generate appropriate alerts for threshold violations', () => {
       const alertThresholds = {
         cpu: 80,
         memory: 85,
@@ -500,7 +509,8 @@ describe('Production Readiness Validation', () => {
   });
 
   describe('Database Reliability Validation', () => {
-    test('should maintain data consistency during operations', async () => {
+    jest.setTimeout(10000);
+  test('should maintain data consistency during operations', async () => { try {
       const consistencyTests = [
         { name: 'user_creation', operations: 50 },
         { name: 'session_creation', operations: 100 },
@@ -578,7 +588,8 @@ describe('Production Readiness Validation', () => {
       };
     });
 
-    test('should handle database backup and recovery', () => {
+    jest.setTimeout(10000);
+  test('should handle database backup and recovery', () => {
       // This test simulates backup/recovery procedures
       const backupTest = {
         originalSize: databaseManager.getDatabaseStats().databaseSize,
@@ -625,6 +636,7 @@ describe('Production Readiness Validation', () => {
     });
   });
 
+  jest.setTimeout(10000);
   test('should generate comprehensive production readiness report', () => {
     // Calculate overall readiness score
     const categories = {

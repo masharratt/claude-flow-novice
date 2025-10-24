@@ -19,23 +19,23 @@ import {
 describe('Swarm Init Validator', () => {
   describe('validateSwarmInit', () => {
     describe('Single agent spawning (no swarm required)', () => {
-      it('should pass validation for single agent without swarm', async () => {
+      it('should pass validation for single agent without swarm', async () => { try {
         const result = await validateSwarmInit(1);
 
         expect(result.valid).toBe(true);
         expect(result.error).toBeUndefined();
         expect(result.suggestion).toBeUndefined();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      it('should pass validation for 0 agents', async () => {
+      it('should pass validation for 0 agents', async () => { try {
         const result = await validateSwarmInit(0);
 
         expect(result.valid).toBe(true);
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Multi-agent spawning with swarm initialized', () => {
-      it('should pass validation for 2 agents with mesh topology', async () => {
+      it('should pass validation for 2 agents with mesh topology', async () => { try {
         const swarmStatus: SwarmStatus = {
           initialized: true,
           topology: 'mesh',
@@ -47,9 +47,9 @@ describe('Swarm Init Validator', () => {
         const result = await validateSwarmInit(2, swarmStatus);
 
         expect(result.valid).toBe(true);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      it('should pass validation for 7 agents with mesh topology', async () => {
+      it('should pass validation for 7 agents with mesh topology', async () => { try {
         const swarmStatus: SwarmStatus = {
           initialized: true,
           topology: 'mesh',
@@ -60,9 +60,9 @@ describe('Swarm Init Validator', () => {
         const result = await validateSwarmInit(7, swarmStatus);
 
         expect(result.valid).toBe(true);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      it('should pass validation for 8 agents with hierarchical topology', async () => {
+      it('should pass validation for 8 agents with hierarchical topology', async () => { try {
         const swarmStatus: SwarmStatus = {
           initialized: true,
           topology: 'hierarchical',
@@ -73,11 +73,11 @@ describe('Swarm Init Validator', () => {
         const result = await validateSwarmInit(8, swarmStatus);
 
         expect(result.valid).toBe(true);
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Multi-agent spawning without swarm (should fail)', () => {
-      it('should fail validation for 2 agents without swarm', async () => {
+      it('should fail validation for 2 agents without swarm', async () => { try {
         const swarmStatus: SwarmStatus = {
           initialized: false,
         };
@@ -91,9 +91,9 @@ describe('Swarm Init Validator', () => {
         expect(result.suggestion).toContain('--topology mesh');
         expect(result.topology).toBe('mesh');
         expect(result.maxAgents).toBe(2);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      it('should fail validation for 3 agents without swarm (JWT scenario)', async () => {
+      it('should fail validation for 3 agents without swarm (JWT scenario)', async () => { try {
         const swarmStatus: SwarmStatus = {
           initialized: false,
         };
@@ -105,9 +105,9 @@ describe('Swarm Init Validator', () => {
         expect(result.error).toContain('inconsistent');
         expect(result.suggestion).toContain('mesh');
         expect(result.topology).toBe('mesh');
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      it('should fail validation for 10 agents without swarm', async () => {
+      it('should fail validation for 10 agents without swarm', async () => { try {
         const swarmStatus: SwarmStatus = {
           initialized: false,
         };
@@ -118,12 +118,12 @@ describe('Swarm Init Validator', () => {
         expect(result.suggestion).toContain('--topology hierarchical');
         expect(result.topology).toBe('hierarchical');
         expect(result.maxAgents).toBe(10);
-      });
-    });
-  });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('requireSwarmInit', () => {
-    it('should not throw for valid swarm', async () => {
+    it('should not throw for valid swarm', async () => { try {
       const swarmStatus: SwarmStatus = {
         initialized: true,
         topology: 'mesh',
@@ -132,9 +132,9 @@ describe('Swarm Init Validator', () => {
       };
 
       await expect(requireSwarmInit(3, swarmStatus)).resolves.toBeUndefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should throw error for invalid swarm', async () => {
+    it('should throw error for invalid swarm', async () => { try {
       const swarmStatus: SwarmStatus = {
         initialized: false,
       };
@@ -142,9 +142,9 @@ describe('Swarm Init Validator', () => {
       await expect(requireSwarmInit(3, swarmStatus)).rejects.toThrow(
         'SWARM INITIALIZATION REQUIRED'
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should include suggestion in error message', async () => {
+    it('should include suggestion in error message', async () => { try {
       const swarmStatus: SwarmStatus = {
         initialized: false,
       };
@@ -152,22 +152,22 @@ describe('Swarm Init Validator', () => {
       await expect(requireSwarmInit(3, swarmStatus)).rejects.toThrow(
         'npx claude-flow-novice swarm init'
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('getRecommendedTopology', () => {
     it('should return mesh for 2-7 agents', () => {
       expect(getRecommendedTopology(2)).toBe('mesh');
       expect(getRecommendedTopology(5)).toBe('mesh');
       expect(getRecommendedTopology(7)).toBe('mesh');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should return hierarchical for 8+ agents', () => {
       expect(getRecommendedTopology(8)).toBe('hierarchical');
       expect(getRecommendedTopology(10)).toBe('hierarchical');
       expect(getRecommendedTopology(15)).toBe('hierarchical');
       expect(getRecommendedTopology(20)).toBe('hierarchical');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should respect custom configuration', () => {
       const config: SwarmValidatorConfig = {
@@ -177,19 +177,19 @@ describe('Swarm Init Validator', () => {
       expect(getRecommendedTopology(8, config)).toBe('mesh');
       expect(getRecommendedTopology(10, config)).toBe('mesh');
       expect(getRecommendedTopology(11, config)).toBe('hierarchical');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('isSwarmRequired', () => {
     it('should return false for single agent', () => {
       expect(isSwarmRequired(1)).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should return true for 2+ agents', () => {
       expect(isSwarmRequired(2)).toBe(true);
       expect(isSwarmRequired(3)).toBe(true);
       expect(isSwarmRequired(10)).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should respect custom minAgentsRequiringSwarm', () => {
       const config: SwarmValidatorConfig = {
@@ -200,7 +200,7 @@ describe('Swarm Init Validator', () => {
       expect(isSwarmRequired(4, config)).toBe(false);
       expect(isSwarmRequired(5, config)).toBe(true);
       expect(isSwarmRequired(6, config)).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should return false when validation is disabled', () => {
       const config: SwarmValidatorConfig = {
@@ -208,21 +208,21 @@ describe('Swarm Init Validator', () => {
       };
 
       expect(isSwarmRequired(10, config)).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('validateSwarmConfig', () => {
     it('should validate correct mesh topology configuration', () => {
       const result = validateSwarmConfig('mesh', 5);
 
       expect(result.valid).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should validate correct hierarchical topology configuration', () => {
       const result = validateSwarmConfig('hierarchical', 10);
 
       expect(result.valid).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should fail for mesh topology with 10 agents', () => {
       const result = validateSwarmConfig('mesh', 10);
@@ -231,7 +231,7 @@ describe('Swarm Init Validator', () => {
       expect(result.error).toContain("not optimal for 10 agents");
       expect(result.suggestion).toContain('hierarchical');
       expect(result.topology).toBe('hierarchical');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should fail for hierarchical topology with 5 agents', () => {
       const result = validateSwarmConfig('hierarchical', 5);
@@ -240,11 +240,11 @@ describe('Swarm Init Validator', () => {
       expect(result.error).toContain("not optimal for 5 agents");
       expect(result.suggestion).toContain('mesh');
       expect(result.topology).toBe('mesh');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Real-world JWT secret scenario (from test strategy)', () => {
-    it('should prevent inconsistent JWT implementations without swarm', async () => {
+    it('should prevent inconsistent JWT implementations without swarm', async () => { try {
       // Scenario: 3 agents fixing JWT secret without coordination
       const swarmStatus: SwarmStatus = {
         initialized: false,
@@ -262,9 +262,9 @@ describe('Swarm Init Validator', () => {
       // Suggestion should provide solution
       expect(result.suggestion).toContain('npx claude-flow-novice swarm init');
       expect(result.suggestion).toContain('--topology mesh');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should allow coordinated JWT fix with swarm', async () => {
+    it('should allow coordinated JWT fix with swarm', async () => { try {
       // Scenario: 3 agents fixing JWT secret WITH coordination
       const swarmStatus: SwarmStatus = {
         initialized: true,
@@ -277,6 +277,6 @@ describe('Swarm Init Validator', () => {
 
       // Validation should pass
       expect(result.valid).toBe(true);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

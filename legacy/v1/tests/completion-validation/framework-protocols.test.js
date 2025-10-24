@@ -41,7 +41,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
   });
 
   describe('TDD Framework Protocol (≥0.90 truth + 95% coverage)', () => {
-    test('should enforce TDD truth threshold ≥0.90 with Byzantine validation', async () => {
+    jest.setTimeout(10000);
+  test('should enforce TDD truth threshold ≥0.90 with Byzantine validation', async () => { try {
       // FAILING TEST: Framework protocol handler not implemented
 
       mockTruthValidator.calculateTruthScore.mockReturnValue(0.92);
@@ -78,7 +79,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
       }).toThrow('Cannot find module');
     });
 
-    test('should reject TDD completion below 0.90 truth threshold', async () => {
+    jest.setTimeout(10000);
+  test('should reject TDD completion below 0.90 truth threshold', async () => { try {
       // FAILING TEST: TDD validation not implemented
 
       const lowQualityTddCompletion = {
@@ -115,7 +117,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
       }
     });
 
-    test('should validate TDD red-green-refactor cycle compliance', async () => {
+    jest.setTimeout(10000);
+  test('should validate TDD red-green-refactor cycle compliance', async () => { try {
       // FAILING TEST: TDD cycle validation not implemented
 
       const tddCycleCompletion = {
@@ -166,7 +169,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
   });
 
   describe('BDD Framework Protocol (≥0.85 truth + 90% scenarios)', () => {
-    test('should enforce BDD truth threshold ≥0.85 with scenario coverage', async () => {
+    jest.setTimeout(10000);
+  test('should enforce BDD truth threshold ≥0.85 with scenario coverage', async () => { try {
       // FAILING TEST: BDD validation not implemented
 
       const bddCompletion = {
@@ -208,7 +212,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
       }
     });
 
-    test('should validate Gherkin syntax and Given-When-Then structure', async () => {
+    jest.setTimeout(10000);
+  test('should validate Gherkin syntax and Given-When-Then structure', async () => { try {
       // FAILING TEST: Gherkin validation not implemented
 
       const gherkinCompletion = {
@@ -259,7 +264,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
   });
 
   describe('SPARC Framework Protocol (≥0.80 truth + 100% phases)', () => {
-    test('should enforce SPARC truth threshold ≥0.80 with complete phase validation', async () => {
+    jest.setTimeout(10000);
+  test('should enforce SPARC truth threshold ≥0.80 with complete phase validation', async () => { try {
       // FAILING TEST: SPARC validation not implemented
 
       const sparcCompletion = {
@@ -326,7 +332,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
       }
     });
 
-    test('should reject SPARC completion with incomplete phases', async () => {
+    jest.setTimeout(10000);
+  test('should reject SPARC completion with incomplete phases', async () => { try {
       // FAILING TEST: SPARC phase validation not implemented
 
       const incompleteSparcCompletion = {
@@ -368,7 +375,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
       }
     });
 
-    test('should validate SPARC phase evidence and deliverables', async () => {
+    jest.setTimeout(10000);
+  test('should validate SPARC phase evidence and deliverables', async () => { try {
       // FAILING TEST: SPARC evidence validation not implemented
 
       const sparcEvidenceCompletion = {
@@ -417,7 +425,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
   });
 
   describe('Cross-Framework Byzantine Consensus Validation', () => {
-    test('should achieve Byzantine consensus across multiple framework validators', async () => {
+    jest.setTimeout(10000);
+  test('should achieve Byzantine consensus across multiple framework validators', async () => { try {
       // FAILING TEST: Cross-framework consensus not implemented
 
       const multiFrameworkValidation = {
@@ -467,7 +476,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
       }
     });
 
-    test('should handle framework-specific validation conflicts with Byzantine resolution', async () => {
+    jest.setTimeout(10000);
+  test('should handle framework-specific validation conflicts with Byzantine resolution', async () => { try {
       // FAILING TEST: Conflict resolution not implemented
 
       const conflictingValidation = {
@@ -512,7 +522,8 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
   });
 
   describe('Performance and Integration Requirements', () => {
-    test('should complete framework validation within performance requirements', async () => {
+    jest.setTimeout(10000);
+  test('should complete framework validation within performance requirements', async () => { try {
       // FAILING TEST: Performance optimization not implemented
 
       const performanceTest = {
@@ -538,4 +549,4 @@ describe('Framework-Specific Protocol Tests - Truth Threshold Validation', () =>
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

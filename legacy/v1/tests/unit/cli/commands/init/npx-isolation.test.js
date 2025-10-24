@@ -11,14 +11,14 @@ describe('Init Command NPX Isolation', () => {
   });
 
   describe('import validation', () => {
-    it('should successfully import getIsolatedNpxEnv utility', async () => {
+    it('should successfully import getIsolatedNpxEnv utility', async () => { try {
       const { getIsolatedNpxEnv } = await import('../../../../../src/utils/npx-isolated-cache.js');
       
       expect(getIsolatedNpxEnv).toBeDefined();
       expect(typeof getIsolatedNpxEnv).toBe('function');
     });
 
-    it('should successfully import init command with npx isolation', async () => {
+    it('should successfully import init command with npx isolation', async () => { try {
       // This test verifies that our changes to the init command don't break imports
       const initModule = await import('../../../../../src/cli/simple-commands/init/index.js');
       
@@ -27,7 +27,7 @@ describe('Init Command NPX Isolation', () => {
       expect(initModule.initCommand).toBeDefined();
     });
 
-    it('should successfully import batch-init with npx isolation', async () => {
+    it('should successfully import batch-init with npx isolation', async () => { try {
       // This test verifies that our changes to batch-init don't break imports
       const batchInitModule = await import('../../../../../src/cli/simple-commands/init/batch-init.js');
       
@@ -57,7 +57,7 @@ describe('Init Command NPX Isolation', () => {
 });
 
 describe('NPX Cache Isolation Integration', () => {
-  it('should provide isolated environment without affecting global state', async () => {
+  it('should provide isolated environment without affecting global state', async () => { try {
     const { getIsolatedNpxEnv } = await import('../../../../../src/utils/npx-isolated-cache.js');
     
     const originalCache = process.env.NPM_CONFIG_CACHE;
@@ -73,7 +73,7 @@ describe('NPX Cache Isolation Integration', () => {
     expect(process.env.NPM_CONFIG_CACHE).toBe(originalCache);
   });
 
-  it('should work with Deno.Command-style environment passing', async () => {
+  it('should work with Deno.Command-style environment passing', async () => { try {
     const { getIsolatedNpxEnv } = await import('../../../../../src/utils/npx-isolated-cache.js');
     
     // Simulate how the init command would use this
@@ -89,4 +89,4 @@ describe('NPX Cache Isolation Integration', () => {
     expect(isolatedEnv.NPM_CONFIG_CACHE).toBeDefined();
     expect(isolatedEnv.NPM_CONFIG_CACHE).toContain('claude-flow-');
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

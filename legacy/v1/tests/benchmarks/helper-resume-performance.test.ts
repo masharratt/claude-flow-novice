@@ -193,7 +193,7 @@ describe('Helper Resume Performance Benchmark', () => {
     expect(p95Latency).toBeLessThan(50);
   });
 
-  it('should handle concurrent resume operations efficiently', async () => {
+  it('should handle concurrent resume operations efficiently', async () => { try {
     // Pause 30 helpers
     for (let i = 1; i <= 30; i++) {
       const checkpoint: AgentCheckpoint = {

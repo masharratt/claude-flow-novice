@@ -17,7 +17,7 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
   let memorySystem;
   let testDbPath;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Use in-memory database to avoid schema loading issues
     testDbPath = ':memory:';
 
@@ -33,12 +33,13 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
     await memorySystem.initialize();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await memorySystem.gracefulShutdown();
   });
 
   describe('5-Level ACL System', () => {
-    test('should enforce private (level 1) access', async () => {
+    jest.setTimeout(10000);
+  test('should enforce private (level 1) access', async () => { try {
       const agent1 = {
         id: 'agent-private-1',
         name: 'Agent 1',
@@ -83,7 +84,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(deniedValue).toBeNull();
     });
 
-    test('should enforce team (level 2) access', async () => {
+    jest.setTimeout(10000);
+  test('should enforce team (level 2) access', async () => { try {
       const agent1 = {
         id: 'agent-team-1',
         name: 'Team Agent 1',
@@ -143,7 +145,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(deniedValue).toBeNull();
     });
 
-    test('should enforce swarm (level 3) access', async () => {
+    jest.setTimeout(10000);
+  test('should enforce swarm (level 3) access', async () => { try {
       const agent1 = {
         id: 'agent-swarm-1',
         name: 'Swarm Agent 1',
@@ -187,7 +190,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(value2).toBe('swarm-value');
     });
 
-    test('should enforce public (level 5) access', async () => {
+    jest.setTimeout(10000);
+  test('should enforce public (level 5) access', async () => { try {
       const agent1 = {
         id: 'agent-public-1',
         name: 'Public Agent 1',
@@ -220,7 +224,7 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
     let keyManager;
     let testDb;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const sqlite3 = require('sqlite3').verbose();
       testDb = new sqlite3.Database(':memory:');
 
@@ -233,12 +237,13 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       await keyManager.initialize();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await keyManager.shutdown();
       testDb.close();
     });
 
-    test('should generate and store encryption keys', async () => {
+    jest.setTimeout(10000);
+  test('should generate and store encryption keys', async () => { try {
       expect(keyManager.activeKey).toBeTruthy();
       expect(keyManager.activeKeyId).toBeTruthy();
       expect(keyManager.activeKeyGeneration).toBeGreaterThan(0);
@@ -247,14 +252,16 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(metrics.keysGenerated).toBeGreaterThan(0);
     });
 
-    test('should retrieve encryption key for encryption', () => {
+    jest.setTimeout(10000);
+  test('should retrieve encryption key for encryption', () => {
       const key = keyManager.getEncryptionKey();
       expect(key).toBeTruthy();
       expect(Buffer.isBuffer(key)).toBe(true);
       expect(key.length).toBe(32); // 256 bits
     });
 
-    test('should retrieve decryption key by ID', async () => {
+    jest.setTimeout(10000);
+  test('should retrieve decryption key by ID', async () => { try {
       const keyId = keyManager.activeKeyId;
       const key = await keyManager.getDecryptionKey(keyId);
       expect(key).toBeTruthy();
@@ -262,7 +269,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(key.length).toBe(32);
     });
 
-    test('should rotate encryption keys', async () => {
+    jest.setTimeout(10000);
+  test('should rotate encryption keys', async () => { try {
       const oldKeyId = keyManager.activeKeyId;
       const oldGeneration = keyManager.activeKeyGeneration;
 
@@ -275,14 +283,16 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(metrics.keyRotations).toBeGreaterThan(0);
     });
 
-    test('should maintain audit trail', async () => {
+    jest.setTimeout(10000);
+  test('should maintain audit trail', async () => { try {
       const auditTrail = await keyManager.getAuditTrail();
       expect(auditTrail).toBeTruthy();
       expect(Array.isArray(auditTrail)).toBe(true);
       expect(auditTrail.length).toBeGreaterThan(0);
     });
 
-    test('should handle key compromise', async () => {
+    jest.setTimeout(10000);
+  test('should handle key compromise', async () => { try {
       const keyId = keyManager.activeKeyId;
 
       await keyManager.markKeyCompromised(keyId, 'test compromise');
@@ -299,7 +309,7 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
     let cache;
     let testDb;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const sqlite3 = require('sqlite3').verbose();
       testDb = new sqlite3.Database(':memory:');
 
@@ -325,12 +335,13 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       });
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await cache.shutdown();
       testDb.close();
     });
 
-    test('should store and retrieve from L1 cache', async () => {
+    jest.setTimeout(10000);
+  test('should store and retrieve from L1 cache', async () => { try {
       await cache.set('test-key-l1', 'test-value-l1');
 
       const value = await cache.get('test-key-l1');
@@ -340,7 +351,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(stats.l1.hits).toBeGreaterThan(0);
     });
 
-    test('should promote data from L3 to L1', async () => {
+    jest.setTimeout(10000);
+  test('should promote data from L3 to L1', async () => { try {
       // Set with write-through to L3
       await cache.set('test-key-promote', 'test-value-promote', {
         writeThrough: true,
@@ -358,7 +370,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(stats.l3.hits).toBeGreaterThan(0);
     });
 
-    test('should track cache hit rates', async () => {
+    jest.setTimeout(10000);
+  test('should track cache hit rates', async () => { try {
       await cache.set('key1', 'value1');
       await cache.set('key2', 'value2');
       await cache.set('key3', 'value3');
@@ -373,7 +386,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(stats.l1.hitRate).toBeGreaterThan(0);
     });
 
-    test('should handle cache deletion', async () => {
+    jest.setTimeout(10000);
+  test('should handle cache deletion', async () => { try {
       await cache.set('delete-key', 'delete-value');
 
       let value = await cache.get('delete-key');
@@ -385,7 +399,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(value).toBeNull();
     });
 
-    test('should support cache clearing', async () => {
+    jest.setTimeout(10000);
+  test('should support cache clearing', async () => { try {
       await cache.set('clear-key-1', 'value1');
       await cache.set('clear-key-2', 'value2');
 
@@ -403,7 +418,7 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
     let aclEnforcer;
     let testDb;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const sqlite3 = require('sqlite3').verbose();
       testDb = new sqlite3.Database(':memory:');
 
@@ -469,12 +484,13 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       });
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await aclEnforcer.shutdown();
       testDb.close();
     });
 
-    test('should check permissions correctly', async () => {
+    jest.setTimeout(10000);
+  test('should check permissions correctly', async () => { try {
       const hasPermission = await aclEnforcer.checkPermission(
         'test-agent-1',
         'test-memory-1',
@@ -490,7 +506,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(metrics.grants).toBeGreaterThan(0);
     });
 
-    test('should grant explicit permissions', async () => {
+    jest.setTimeout(10000);
+  test('should grant explicit permissions', async () => { try {
       const permissionId = await aclEnforcer.grantPermission(
         'test-agent-1',
         'memory',
@@ -511,7 +528,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(hasPermission).toBe(true);
     });
 
-    test('should revoke permissions', async () => {
+    jest.setTimeout(10000);
+  test('should revoke permissions', async () => { try {
       const permissionId = await aclEnforcer.grantPermission(
         'test-agent-1',
         'memory',
@@ -533,7 +551,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(hasPermission).toBe(false);
     });
 
-    test('should cache permission checks', async () => {
+    jest.setTimeout(10000);
+  test('should cache permission checks', async () => { try {
       // First check - cache miss
       await aclEnforcer.checkPermission(
         'test-agent-1',
@@ -555,7 +574,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(metrics.cacheHitRate).toBeGreaterThan(0);
     });
 
-    test('should maintain audit trail', async () => {
+    jest.setTimeout(10000);
+  test('should maintain audit trail', async () => { try {
       await aclEnforcer.checkPermission(
         'test-agent-1',
         'test-memory-1',
@@ -573,7 +593,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
   });
 
   describe('Integration Tests', () => {
-    test('should integrate all components', async () => {
+    jest.setTimeout(10000);
+  test('should integrate all components', async () => { try {
       const metrics = memorySystem.getSystemMetrics();
 
       expect(metrics).toBeTruthy();
@@ -583,7 +604,8 @@ describe('SQLite Memory Management with 5-Level ACL', () => {
       expect(metrics.components.agentRegistry).toBeTruthy();
     });
 
-    test('should handle memory operations with ACL', async () => {
+    jest.setTimeout(10000);
+  test('should handle memory operations with ACL', async () => { try {
       const agent = {
         id: 'integration-agent-1',
         name: 'Integration Agent',

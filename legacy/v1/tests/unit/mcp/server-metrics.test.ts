@@ -506,7 +506,7 @@ describe('MCP Server - Metrics Instrumentation', () => {
       expect(endpoint2Count).toBe(1);
     });
 
-    it('should handle concurrent metric writes', async () => {
+    it('should handle concurrent metric writes', async () => { try {
       const promises = [];
 
       for (let i = 0; i < 50; i++) {

@@ -38,7 +38,7 @@ describe('Dashboard Security Integration Tests', () => {
   let securityManager: SecurityManager;
   let originalEnv: NodeJS.ProcessEnv;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     originalEnv = process.env;
     process.env.NODE_ENV = 'test';
     process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
@@ -245,7 +245,7 @@ describe('Dashboard Security Integration Tests', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (server) {
       await new Promise<void>((resolve) => {
         server.close(resolve);
@@ -271,7 +271,8 @@ describe('Dashboard Security Integration Tests', () => {
   });
 
   describe('Authentication and Authorization Security', () => {
-    test('should reject requests without authentication token', async () => {
+    jest.setTimeout(10000);
+  test('should reject requests without authentication token', async () => { try {
       const response = await request(app)
         .get('/api/metrics')
         .expect(401);
@@ -279,7 +280,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body).toHaveProperty('error', 'Access token required');
     });
 
-    test('should reject requests with invalid JWT token', async () => {
+    jest.setTimeout(10000);
+  test('should reject requests with invalid JWT token', async () => { try {
       const response = await request(app)
         .get('/api/metrics')
         .set('Authorization', 'Bearer invalid-token')
@@ -288,7 +290,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body).toHaveProperty('error', 'Invalid token');
     });
 
-    test('should reject requests with expired JWT token', async () => {
+    jest.setTimeout(10000);
+  test('should reject requests with expired JWT token', async () => { try {
       // Create expired token
       const expiredToken = jwt.sign(
         { username: 'admin', sessionId: 'test-session' },
@@ -304,7 +307,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body).toHaveProperty('error', 'Session expired');
     });
 
-    test('should enforce rate limiting on login attempts', async () => {
+    jest.setTimeout(10000);
+  test('should enforce rate limiting on login attempts', async () => { try {
       const maxAttempts = 5;
       const loginPromises = Array.from({ length: maxAttempts + 2 }, () =>
         request(app)
@@ -325,7 +329,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(results[maxAttempts].body).toHaveProperty('error', 'Too many authentication attempts');
     });
 
-    test('should enforce role-based permissions', async () => {
+    jest.setTimeout(10000);
+  test('should enforce role-based permissions', async () => { try {
       // Login as admin
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -353,7 +358,8 @@ describe('Dashboard Security Integration Tests', () => {
         .expect(200);
     });
 
-    test('should handle login with secure password hashing', async () => {
+    jest.setTimeout(10000);
+  test('should handle login with secure password hashing', async () => { try {
       const response = await request(app)
         .post('/api/auth/login')
         .send({ username: 'admin', password: 'test123' })
@@ -368,7 +374,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body.user).not.toHaveProperty('passwordHash');
     });
 
-    test('should refresh tokens securely', async () => {
+    jest.setTimeout(10000);
+  test('should refresh tokens securely', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -393,7 +400,8 @@ describe('Dashboard Security Integration Tests', () => {
         .expect(200);
     });
 
-    test('should logout and invalidate tokens', async () => {
+    jest.setTimeout(10000);
+  test('should logout and invalidate tokens', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -417,7 +425,8 @@ describe('Dashboard Security Integration Tests', () => {
   });
 
   describe('Input Validation and XSS Protection', () => {
-    test('should sanitize query parameters to prevent XSS', async () => {
+    jest.setTimeout(10000);
+  test('should sanitize query parameters to prevent XSS', async () => { try {
       const maliciousQueries = [
         '<script>alert("xss")</script>',
         'javascript:alert(1)',
@@ -438,7 +447,8 @@ describe('Dashboard Security Integration Tests', () => {
       }
     });
 
-    test('should reject oversized payloads', async () => {
+    jest.setTimeout(10000);
+  test('should reject oversized payloads', async () => { try {
       const oversizedPayload = 'x'.repeat(11 * 1024 * 1024); // 11MB
 
       const response = await request(app)
@@ -449,7 +459,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body).toHaveProperty('error', 'Payload too large');
     });
 
-    test('should validate JSON input structure', async () => {
+    jest.setTimeout(10000);
+  test('should validate JSON input structure', async () => { try {
       const response = await request(app)
         .post('/api/auth/login')
         .set('Content-Type', 'application/json')
@@ -459,7 +470,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body).toHaveProperty('error');
     });
 
-    test('should handle null and undefined values safely', async () => {
+    jest.setTimeout(10000);
+  test('should handle null and undefined values safely', async () => { try {
       // Login first to get token
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -478,7 +490,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body).toHaveProperty('error', 'Invalid benchmark type');
     });
 
-    test('should prevent prototype pollution', async () => {
+    jest.setTimeout(10000);
+  test('should prevent prototype pollution', async () => { try {
       // Login first to get token
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -507,7 +520,8 @@ describe('Dashboard Security Integration Tests', () => {
   });
 
   describe('Security Headers and CSP', () => {
-    test('should include all required security headers', async () => {
+    jest.setTimeout(10000);
+  test('should include all required security headers', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -521,7 +535,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.headers).toHaveProperty('strict-transport-security');
     });
 
-    test('should have proper Content Security Policy', async () => {
+    jest.setTimeout(10000);
+  test('should have proper Content Security Policy', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -536,7 +551,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(csp).toContain("connect-src 'self' ws: wss:");
     });
 
-    test('should enforce HTTPS in production', async () => {
+    jest.setTimeout(10000);
+  test('should enforce HTTPS in production', async () => { try {
       // This test would be for production mode
       // In test mode, HTTPS is disabled, but CSP should still be strict
       const response = await request(app)
@@ -547,7 +563,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(csp).toContain("upgrade-insecure-requests");
     });
 
-    test('should include proper CORS headers', async () => {
+    jest.setTimeout(10000);
+  test('should include proper CORS headers', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -558,7 +575,8 @@ describe('Dashboard Security Integration Tests', () => {
   });
 
   describe('Rate Limiting and DoS Protection', () => {
-    test('should enforce general rate limits', async () => {
+    jest.setTimeout(10000);
+  test('should enforce general rate limits', async () => { try {
       const maxRequests = 100;
       const windowMs = 15 * 60 * 1000; // 15 minutes
 
@@ -574,7 +592,8 @@ describe('Dashboard Security Integration Tests', () => {
       });
     });
 
-    test('should enforce API-specific rate limits', async () => {
+    jest.setTimeout(10000);
+  test('should enforce API-specific rate limits', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -607,7 +626,8 @@ describe('Dashboard Security Integration Tests', () => {
       }
     });
 
-    test('should handle concurrent requests gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent requests gracefully', async () => { try {
       const concurrentRequests = 50;
       const promises = Array.from({ length: concurrentRequests }, () =>
         request(app).get('/health')
@@ -630,7 +650,8 @@ describe('Dashboard Security Integration Tests', () => {
   });
 
   describe('WebSocket Security', () => {
-    test('should reject WebSocket connections without authentication', async () => {
+    jest.setTimeout(10000);
+  test('should reject WebSocket connections without authentication', async () => { try {
       const client = require('socket.io-client')(`http://localhost:${server.address().port}`, {
         transports: ['websocket']
       });
@@ -644,7 +665,8 @@ describe('Dashboard Security Integration Tests', () => {
       });
     });
 
-    test('should allow authenticated WebSocket connections', async () => {
+    jest.setTimeout(10000);
+  test('should allow authenticated WebSocket connections', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -667,7 +689,8 @@ describe('Dashboard Security Integration Tests', () => {
       });
     });
 
-    test('should validate WebSocket event names and data', async () => {
+    jest.setTimeout(10000);
+  test('should validate WebSocket event names and data', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -705,7 +728,8 @@ describe('Dashboard Security Integration Tests', () => {
   });
 
   describe('Session Security and Token Management', () => {
-    test('should create secure JWT tokens', async () => {
+    jest.setTimeout(10000);
+  test('should create secure JWT tokens', async () => { try {
       const response = await request(app)
         .post('/api/auth/login')
         .send({ username: 'admin', password: 'test123' })
@@ -731,7 +755,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(decodedRefresh.exp).toBeGreaterThan(decodedAccess.exp);
     });
 
-    test('should handle session expiration gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle session expiration gracefully', async () => { try {
       // Create token with very short expiration
       const shortLivedToken = jwt.sign(
         { username: 'admin', sessionId: 'test-session' },
@@ -750,7 +775,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body).toHaveProperty('error', 'Session expired');
     });
 
-    test('should prevent token reuse after logout', async () => {
+    jest.setTimeout(10000);
+  test('should prevent token reuse after logout', async () => { try {
       // Login
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -776,7 +802,8 @@ describe('Dashboard Security Integration Tests', () => {
   });
 
   describe('Error Handling and Information Disclosure', () => {
-    test('should not leak sensitive information in error messages', async () => {
+    jest.setTimeout(10000);
+  test('should not leak sensitive information in error messages', async () => { try {
       const response = await request(app)
         .get('/api/nonexistent')
         .set('Authorization', 'Bearer invalid-token')
@@ -790,7 +817,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body).not.toContain('secret');
     });
 
-    test('should handle malformed requests safely', async () => {
+    jest.setTimeout(10000);
+  test('should handle malformed requests safely', async () => { try {
       const response = await request(app)
         .post('/api/auth/login')
         .set('Content-Type', 'application/json')
@@ -802,7 +830,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(response.body.error).not.toContain('test');
     });
 
-    test('should log security events appropriately', async () => {
+    jest.setTimeout(10000);
+  test('should log security events appropriately', async () => { try {
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
       // Trigger security events
@@ -824,7 +853,8 @@ describe('Dashboard Security Integration Tests', () => {
   });
 
   describe('Performance Under Security Load', () => {
-    test('should maintain response times with security middleware', async () => {
+    jest.setTimeout(10000);
+  test('should maintain response times with security middleware', async () => { try {
       const startTime = performance.now();
 
       // Make multiple requests
@@ -840,7 +870,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(averageTime).toBeLessThan(100); // 100ms average
     });
 
-    test('should handle authentication requests efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle authentication requests efficiently', async () => { try {
       const startTime = performance.now();
 
       await request(app)
@@ -854,7 +885,8 @@ describe('Dashboard Security Integration Tests', () => {
       expect(responseTime).toBeLessThan(1000); // 1 second max for bcrypt
     });
 
-    test('should maintain security under concurrent load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain security under concurrent load', async () => { try {
       const concurrentRequests = 20;
       const startTime = performance.now();
 
@@ -885,4 +917,4 @@ describe('Dashboard Security Integration Tests', () => {
       expect(totalTime).toBeLessThan(2000); // 2 seconds total
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

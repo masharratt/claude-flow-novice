@@ -23,7 +23,7 @@ describe('End-to-End Integration Tests', () => {
   let testUser: any;
   let authToken: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create test logger
     testLogger = {
       info: vi.fn(),
@@ -59,13 +59,13 @@ describe('End-to-End Integration Tests', () => {
     authToken = authResult.token;
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await transparencySystem.cleanup();
     vi.clearAllMocks();
   });
 
   describe('Full REST API Request Flow', () => {
-    it('should complete full authenticated request flow', async () => {
+    it('should complete full authenticated request flow', async () => { try {
       // Step 1: Verify JWT token
       const { user } = await authService.verifyJWT(authToken);
       expect(user.id).toBe(testUser.id);
@@ -112,7 +112,7 @@ describe('End-to-End Integration Tests', () => {
       expect(finalState?.confidence).toBe(0.92);
     });
 
-    it('should handle unauthorized requests correctly', async () => {
+    it('should handle unauthorized requests correctly', async () => { try {
       // Arrange - Invalid token
       const invalidToken = 'invalid.jwt.token';
 
@@ -120,7 +120,7 @@ describe('End-to-End Integration Tests', () => {
       await expect(authService.verifyJWT(invalidToken)).rejects.toThrow();
     });
 
-    it('should enforce permission checks', async () => {
+    it('should enforce permission checks', async () => { try {
       // Arrange - Create viewer user (limited permissions)
       const viewerUser = await authService.createUser({
         email: 'viewer@example.com',
@@ -137,7 +137,7 @@ describe('End-to-End Integration Tests', () => {
   });
 
   describe('Full WebSocket Flow', () => {
-    it('should complete full WebSocket event flow', async () => {
+    it('should complete full WebSocket event flow', async () => { try {
       // Step 1: Authenticate WebSocket connection
       const { user } = await authService.verifyJWT(authToken);
       expect(user).toBeDefined();
@@ -179,7 +179,7 @@ describe('End-to-End Integration Tests', () => {
       expect(updateEvent).toBeDefined();
     });
 
-    it('should handle WebSocket disconnection gracefully', async () => {
+    it('should handle WebSocket disconnection gracefully', async () => { try {
       // Arrange - Setup event listener
       const events: any[] = [];
       const listener = (event: any) => {
@@ -208,7 +208,7 @@ describe('End-to-End Integration Tests', () => {
       expect(true).toBe(true);
     });
 
-    it('should handle multiple concurrent WebSocket connections', async () => {
+    it('should handle multiple concurrent WebSocket connections', async () => { try {
       // Arrange - Create multiple event listeners (simulating multiple clients)
       const client1Events: any[] = [];
       const client2Events: any[] = [];
@@ -238,7 +238,7 @@ describe('End-to-End Integration Tests', () => {
   });
 
   describe('Rate Limiting', () => {
-    it('should enforce rate limits after max attempts', async () => {
+    it('should enforce rate limits after max attempts', async () => { try {
       // Arrange - Attempt login multiple times with wrong password
       const maxAttempts = 5;
 
@@ -257,7 +257,7 @@ describe('End-to-End Integration Tests', () => {
       ).rejects.toThrow('Too many failed login attempts');
     });
 
-    it('should reset rate limit after successful authentication', async () => {
+    it('should reset rate limit after successful authentication', async () => { try {
       // Arrange - Failed attempts
       for (let i = 0; i < 3; i++) {
         try {
@@ -276,19 +276,19 @@ describe('End-to-End Integration Tests', () => {
   });
 
   describe('Error Response Handling', () => {
-    it('should return 401 Unauthorized for missing token', async () => {
+    it('should return 401 Unauthorized for missing token', async () => { try {
       // Act & Assert
       await expect(authService.verifyJWT('')).rejects.toThrow();
     });
 
-    it('should return 401 Unauthorized for invalid token', async () => {
+    it('should return 401 Unauthorized for invalid token', async () => { try {
       // Act & Assert
       await expect(
         authService.verifyJWT('invalid.token.here')
       ).rejects.toThrow();
     });
 
-    it('should return 403 Forbidden for insufficient permissions', async () => {
+    it('should return 403 Forbidden for insufficient permissions', async () => { try {
       // Arrange - Create viewer user
       const viewerUser = await authService.createUser({
         email: 'forbidden@example.com',
@@ -303,7 +303,7 @@ describe('End-to-End Integration Tests', () => {
       expect(hasAdminPermission).toBe(false);
     });
 
-    it('should return 429 Too Many Requests for rate limit exceeded', async () => {
+    it('should return 429 Too Many Requests for rate limit exceeded', async () => { try {
       // Arrange - Exceed rate limit
       for (let i = 0; i < 5; i++) {
         try {
@@ -319,7 +319,7 @@ describe('End-to-End Integration Tests', () => {
       ).rejects.toThrow('Too many failed login attempts');
     });
 
-    it('should return 404 Not Found for non-existent agent', async () => {
+    it('should return 404 Not Found for non-existent agent', async () => { try {
       // Act
       const agentState = await transparencySystem.getAgentState('does-not-exist');
 
@@ -327,7 +327,7 @@ describe('End-to-End Integration Tests', () => {
       expect(agentState).toBeUndefined();
     });
 
-    it('should handle 503 Service Unavailable gracefully', async () => {
+    it('should handle 503 Service Unavailable gracefully', async () => { try {
       // Arrange - Shutdown transparency system
       await transparencySystem.cleanup();
 
@@ -340,7 +340,7 @@ describe('End-to-End Integration Tests', () => {
   });
 
   describe('Performance and Reliability', () => {
-    it('should complete authentication flow within 100ms', async () => {
+    it('should complete authentication flow within 100ms', async () => { try {
       // Act
       const startTime = Date.now();
       await authService.authenticateUser('e2e@example.com', 'E2ETest123!');
@@ -350,7 +350,7 @@ describe('End-to-End Integration Tests', () => {
       expect(duration).toBeLessThan(100);
     });
 
-    it('should verify JWT within 10ms', async () => {
+    it('should verify JWT within 10ms', async () => { try {
       // Act
       const startTime = Date.now();
       await authService.verifyJWT(authToken);
@@ -360,7 +360,7 @@ describe('End-to-End Integration Tests', () => {
       expect(duration).toBeLessThan(10);
     });
 
-    it('should query agent state within 50ms', async () => {
+    it('should query agent state within 50ms', async () => { try {
       // Arrange
       await transparencySystem.registerAgent({
         agentId: 'perf-test',
@@ -379,7 +379,7 @@ describe('End-to-End Integration Tests', () => {
       expect(duration).toBeLessThan(50);
     });
 
-    it('should handle 100 concurrent requests', async () => {
+    it('should handle 100 concurrent requests', async () => { try {
       // Act - 100 concurrent JWT verifications
       const startTime = Date.now();
       const promises = Array.from({ length: 100 }, () =>
@@ -399,7 +399,7 @@ describe('End-to-End Integration Tests', () => {
       expect(duration).toBeLessThan(1000);
     });
 
-    it('should propagate WebSocket events within 50ms', async () => {
+    it('should propagate WebSocket events within 50ms', async () => { try {
       // Arrange
       let eventReceived = false;
       let eventTimestamp = 0;
@@ -430,7 +430,7 @@ describe('End-to-End Integration Tests', () => {
   });
 
   describe('Complex Integration Scenarios', () => {
-    it('should handle full agent lifecycle with authentication', async () => {
+    it('should handle full agent lifecycle with authentication', async () => { try {
       // Step 1: Authenticate
       const { user } = await authService.verifyJWT(authToken);
 
@@ -470,7 +470,7 @@ describe('End-to-End Integration Tests', () => {
       expect(finalState?.confidence).toBe(0.88);
     });
 
-    it('should handle hierarchical agent spawning with authentication', async () => {
+    it('should handle hierarchical agent spawning with authentication', async () => { try {
       // Step 1: Authenticate
       const { user } = await authService.verifyJWT(authToken);
       expect(authService.hasPermission(user, 'agent.spawn')).toBe(false); // Developer can't spawn
@@ -522,7 +522,7 @@ describe('End-to-End Integration Tests', () => {
       expect(parentNode?.children?.length).toBe(2);
     });
 
-    it('should handle session management across multiple requests', async () => {
+    it('should handle session management across multiple requests', async () => { try {
       // Step 1: Initial authentication
       const auth1 = await authService.authenticateUser('e2e@example.com', 'E2ETest123!');
       const session1 = auth1.session;

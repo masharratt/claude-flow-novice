@@ -25,7 +25,7 @@ describe('CheckpointCompressor', () => {
   });
 
   describe('Structural Optimization', () => {
-    it('should remove null and undefined fields', async () => {
+    it('should remove null and undefined fields', async () => { try {
       const checkpoint: Checkpoint = {
         id: 'checkpoint_001',
         type: 'during',
@@ -102,7 +102,7 @@ describe('CheckpointCompressor', () => {
   });
 
   describe('Delta Compression', () => {
-    it('should compress second checkpoint as delta from first', async () => {
+    it('should compress second checkpoint as delta from first', async () => { try {
       const checkpoint1: Checkpoint = createMockCheckpoint('checkpoint_001', 'coder-1', 'task-1');
       const checkpoint2: Checkpoint = createMockCheckpoint('checkpoint_002', 'coder-1', 'task-1');
 
@@ -122,7 +122,7 @@ describe('CheckpointCompressor', () => {
       expect(deltaSize).toBeLessThan(fullSize);
     });
 
-    it('should correctly reconstruct checkpoint from delta', async () => {
+    it('should correctly reconstruct checkpoint from delta', async () => { try {
       const checkpoint1: Checkpoint = createMockCheckpoint('checkpoint_001', 'coder-1', 'task-1');
       const checkpoint2: Checkpoint = {
         ...createMockCheckpoint('checkpoint_002', 'coder-1', 'task-1'),
@@ -138,7 +138,7 @@ describe('CheckpointCompressor', () => {
   });
 
   describe('Deduplication', () => {
-    it('should deduplicate identical agent states across checkpoints', async () => {
+    it('should deduplicate identical agent states across checkpoints', async () => { try {
       const agentState = {
         id: 'agent-1',
         status: 'idle' as const,
@@ -181,7 +181,7 @@ describe('CheckpointCompressor', () => {
       expect(stats.sharedStateCount).toBe(1); // Only stored once
     });
 
-    it('should track reference counts for shared state', async () => {
+    it('should track reference counts for shared state', async () => { try {
       const checkpoint1: Checkpoint = createMockCheckpoint('checkpoint_001', 'coder-1', 'task-1');
       const checkpoint2: Checkpoint = createMockCheckpoint('checkpoint_002', 'coder-2', 'task-2');
 
@@ -194,7 +194,7 @@ describe('CheckpointCompressor', () => {
   });
 
   describe('Gzip Compression', () => {
-    it('should compress validations with gzip', async () => {
+    it('should compress validations with gzip', async () => { try {
       const checkpoint: Checkpoint = createMockCheckpoint('checkpoint_001', 'coder-1', 'task-1');
       checkpoint.validations = [
         {
@@ -226,7 +226,7 @@ describe('CheckpointCompressor', () => {
       expect(decompressed.validations[0].name).toBe('test_validation');
     });
 
-    it('should skip compression for small data', async () => {
+    it('should skip compression for small data', async () => { try {
       const smallCompressor = createCheckpointCompressor({
         minSizeForCompression: 10000, // Very high threshold
       });
@@ -250,7 +250,7 @@ describe('CheckpointCompressor', () => {
   });
 
   describe('Compression Ratio Target (60% Reduction)', () => {
-    it('should achieve at least 60% storage reduction for typical checkpoints', async () => {
+    it('should achieve at least 60% storage reduction for typical checkpoints', async () => { try {
       // Create a realistic checkpoint with substantial data
       const checkpoints: Checkpoint[] = [];
 
@@ -337,7 +337,7 @@ describe('CheckpointCompressor', () => {
   });
 
   describe('Compression Statistics', () => {
-    it('should track compression statistics accurately', async () => {
+    it('should track compression statistics accurately', async () => { try {
       const checkpoint1 = createMockCheckpoint('checkpoint_001', 'coder-1', 'task-1');
       const checkpoint2 = createMockCheckpoint('checkpoint_002', 'coder-1', 'task-1');
 
@@ -357,7 +357,7 @@ describe('CheckpointCompressor', () => {
   });
 
   describe('Garbage Collection', () => {
-    it('should garbage collect unused shared state', async () => {
+    it('should garbage collect unused shared state', async () => { try {
       const checkpoint1 = createMockCheckpoint('checkpoint_001', 'coder-1', 'task-1');
       const compressed = await compressor.compress(checkpoint1);
 
@@ -372,7 +372,7 @@ describe('CheckpointCompressor', () => {
   });
 
   describe('Clear and Reset', () => {
-    it('should clear all history and shared state', async () => {
+    it('should clear all history and shared state', async () => { try {
       const checkpoint = createMockCheckpoint('checkpoint_001', 'coder-1', 'task-1');
       await compressor.compress(checkpoint);
 

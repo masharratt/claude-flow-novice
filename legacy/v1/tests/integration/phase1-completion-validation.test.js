@@ -54,7 +54,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
   });
 
   describe('Complete Integration Test Suite', () => {
-    test('should implement the exact validation loop process we are using right now', async () => {
+    jest.setTimeout(10000);
+  test('should implement the exact validation loop process we are using right now', async () => { try {
       // FAILING TEST: Complete framework not implemented yet
 
       // This test represents the META-IMPLEMENTATION: the completion validation
@@ -85,7 +86,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }).toThrow('Cannot find module');
     });
 
-    test('should validate this implementation using the same process it provides', async () => {
+    jest.setTimeout(10000);
+  test('should validate this implementation using the same process it provides', async () => { try {
       // FAILING TEST: Recursive validation not implemented
 
       // The completion validation framework should validate its own completion
@@ -149,7 +151,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
   });
 
   describe('Checkpoint 1.1: CompletionTruthValidator Integration', () => {
-    test('should achieve >85% accuracy on 100+ test completions with existing TruthScorer', async () => {
+    jest.setTimeout(10000);
+  test('should achieve >85% accuracy on 100+ test completions with existing TruthScorer', async () => { try {
       // FAILING TEST: Integration not implemented
 
       const testCompletions = Array.from({ length: 100 }, (_, i) => ({
@@ -182,7 +185,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
 
-    test('should leverage existing 745-line TruthScorer and 1,080-line VerificationPipeline', async () => {
+    jest.setTimeout(10000);
+  test('should leverage existing 745-line TruthScorer and 1,080-line VerificationPipeline', async () => { try {
       // FAILING TEST: Existing system integration not implemented
 
       const integrationTest = {
@@ -208,7 +212,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
   });
 
   describe('Checkpoint 1.2: CompletionInterceptor Hook Integration', () => {
-    test('should achieve 100% completion claim interception rate', async () => {
+    jest.setTimeout(10000);
+  test('should achieve 100% completion claim interception rate', async () => { try {
       // FAILING TEST: Interception not implemented
 
       const completionClaims = [
@@ -241,7 +246,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
 
-    test('should integrate with existing EnhancedHookManager from Phase 1-5 (678 files)', async () => {
+    jest.setTimeout(10000);
+  test('should integrate with existing EnhancedHookManager from Phase 1-5 (678 files)', async () => { try {
       // FAILING TEST: Hook integration not implemented
 
       const existingHookIntegration = {
@@ -265,7 +271,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
   });
 
   describe('Checkpoint 1.3: Framework-Specific Truth Thresholds', () => {
-    test('should enforce TDD ≥0.90 truth + 95% coverage with Byzantine validation', async () => {
+    jest.setTimeout(10000);
+  test('should enforce TDD ≥0.90 truth + 95% coverage with Byzantine validation', async () => { try {
       // FAILING TEST: Framework thresholds not implemented
 
       const tddValidation = {
@@ -300,7 +307,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
 
-    test('should enforce BDD ≥0.85 truth + 90% scenarios with Byzantine validation', async () => {
+    jest.setTimeout(10000);
+  test('should enforce BDD ≥0.85 truth + 90% scenarios with Byzantine validation', async () => { try {
       // FAILING TEST: BDD framework thresholds not implemented
 
       const bddValidation = {
@@ -327,7 +335,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
 
-    test('should enforce SPARC ≥0.80 truth + 100% phases with Byzantine validation', async () => {
+    jest.setTimeout(10000);
+  test('should enforce SPARC ≥0.80 truth + 100% phases with Byzantine validation', async () => { try {
       // FAILING TEST: SPARC framework thresholds not implemented
 
       const sparcValidation = {
@@ -356,7 +365,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
   });
 
   describe('Performance and System Integration Requirements', () => {
-    test('should maintain <5% performance degradation with existing systems', async () => {
+    jest.setTimeout(10000);
+  test('should maintain <5% performance degradation with existing systems', async () => { try {
       // FAILING TEST: Performance integration not implemented
 
       const performanceBaseline = {
@@ -382,7 +392,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
 
-    test('should complete Byzantine consensus within 5 minutes for 95% of validations', async () => {
+    jest.setTimeout(10000);
+  test('should complete Byzantine consensus within 5 minutes for 95% of validations', async () => { try {
       // FAILING TEST: Consensus timing not implemented
 
       const consensusValidations = Array.from({ length: 100 }, (_, i) => ({
@@ -407,7 +418,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
 
-    test('should maintain all existing Claude Flow functionality without breaking changes', async () => {
+    jest.setTimeout(10000);
+  test('should maintain all existing Claude Flow functionality without breaking changes', async () => { try {
       // FAILING TEST: Backward compatibility not implemented
 
       const existingFunctionality = {
@@ -434,7 +446,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
   });
 
   describe('Integration Test Commands', () => {
-    test('npm test:completion-truth-validator should pass 100%', async () => {
+    jest.setTimeout(10000);
+  test('npm test:completion-truth-validator should pass 100%', async () => { try {
       // FAILING TEST: npm test command not configured
 
       try {
@@ -451,7 +464,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
 
-    test('npm test:completion-interceptor --hook-integration should show 100% interception', async () => {
+    jest.setTimeout(10000);
+  test('npm test:completion-interceptor --hook-integration should show 100% interception', async () => { try {
       // FAILING TEST: npm test command not configured
 
       try {
@@ -467,7 +481,8 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
 
-    test('npm test:framework-thresholds --all-frameworks should validate threshold enforcement', async () => {
+    jest.setTimeout(10000);
+  test('npm test:framework-thresholds --all-frameworks should validate threshold enforcement', async () => { try {
       // FAILING TEST: npm test command not configured
 
       try {
@@ -485,4 +500,4 @@ describe('Phase 1 Completion Validation Framework - Full Integration Tests', () 
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

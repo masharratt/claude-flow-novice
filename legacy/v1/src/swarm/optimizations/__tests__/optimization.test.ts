@@ -25,7 +25,7 @@ describe('Swarm Optimizations', () => {
 
       expect(buffer.getSize()).toBe(5);
       expect(buffer.getAll()).toEqual([5, 6, 7, 8, 9]);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should return recent items correctly', () => {
       const buffer = new CircularBuffer<string>(3);
@@ -36,7 +36,7 @@ describe('Swarm Optimizations', () => {
 
       expect(buffer.getRecent(2)).toEqual(['c', 'd']);
       expect(buffer.getRecent(5)).toEqual(['b', 'c', 'd']); // Only 3 items available
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should track overwritten count', () => {
       const buffer = new CircularBuffer<number>(3);
@@ -46,20 +46,20 @@ describe('Swarm Optimizations', () => {
 
       expect(buffer.getTotalItemsWritten()).toBe(5);
       expect(buffer.getOverwrittenCount()).toBe(2);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('TTLMap', () => {
     beforeEach(() => {
       jest.useFakeTimers();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     afterEach(() => {
       jest.useRealTimers();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should expire items after TTL', () => {
-      const map = new TTLMap<string, string>({ defaultTTL: 1000 });
+      const map = new TTLMap<string, string>({ defaultTTL: 1000 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       map.set('key1', 'value1');
       expect(map.get('key1')).toBe('value1');
@@ -69,10 +69,10 @@ describe('Swarm Optimizations', () => {
 
       expect(map.get('key1')).toBeUndefined();
       expect(map.size).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should respect max size with LRU eviction', () => {
-      const map = new TTLMap<string, number>({ maxSize: 3 });
+      const map = new TTLMap<string, number>({ maxSize: 3 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       map.set('a', 1);
       jest.advanceTimersByTime(1);
@@ -92,10 +92,10 @@ describe('Swarm Optimizations', () => {
       expect(map.has('b')).toBe(false);
       expect(map.has('c')).toBe(true);
       expect(map.has('d')).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should update TTL on touch', () => {
-      const map = new TTLMap<string, string>({ defaultTTL: 1000 });
+      const map = new TTLMap<string, string>({ defaultTTL: 1000 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       map.set('key1', 'value1');
 
@@ -114,8 +114,8 @@ describe('Swarm Optimizations', () => {
       // Advance past new TTL
       jest.advanceTimersByTime(1800);
       expect(map.get('key1')).toBeUndefined();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('AsyncFileManager', () => {
     const testDir = '/tmp/swarm-test';
@@ -123,9 +123,9 @@ describe('Swarm Optimizations', () => {
 
     beforeEach(() => {
       fileManager = new AsyncFileManager();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle concurrent write operations', async () => {
+    it('should handle concurrent write operations', async () => { try {
       // Mock file operations since real file system isn't needed
       jest
         .spyOn(fileManager, 'writeFile')
@@ -142,9 +142,9 @@ describe('Swarm Optimizations', () => {
 
       expect(results).toHaveLength(5);
       expect(results.every((r) => r.success)).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should write and read JSON files', async () => {
+    it('should write and read JSON files', async () => { try {
       const testData = { id: 1, name: 'test', values: [1, 2, 3] };
       const path = `${testDir}/test.json`;
 
@@ -154,21 +154,21 @@ describe('Swarm Optimizations', () => {
       const readResult = await fileManager.readJSON(path);
       expect(readResult.success).toBe(true);
       expect(readResult.data).toEqual(testData);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('ClaudeConnectionPool', () => {
     let pool: ClaudeConnectionPool;
 
     beforeEach(() => {
-      pool = new ClaudeConnectionPool({ min: 2, max: 5 });
-    });
+      pool = new ClaudeConnectionPool({ min: 2, max: 5 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await pool.drain();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reuse connections', async () => {
+    it('should reuse connections', async () => { try {
       // Mock connection behavior since ClaudeAPI isn't available
       const mockConnection = { id: 'mock-conn-1', isHealthy: true };
       jest.spyOn(pool, 'acquire').mockResolvedValue(mockConnection as any);
@@ -183,9 +183,9 @@ describe('Swarm Optimizations', () => {
 
       expect(id2).toBe(id1); // Same connection reused
       await pool.release(conn2);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should create new connections up to max', async () => {
+    it('should create new connections up to max', async () => { try {
       const connections = [];
 
       // Acquire max connections
@@ -201,23 +201,23 @@ describe('Swarm Optimizations', () => {
       for (const conn of connections) {
         await pool.release(conn);
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should execute with automatic acquire/release', async () => {
+    it('should execute with automatic acquire/release', async () => { try {
       let executionCount = 0;
 
       const result = await pool.execute(async (api) => {
         executionCount++;
         return 'test-result';
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(result).toBe('test-result');
       expect(executionCount).toBe(1);
 
       const stats = pool.getStats();
       expect(stats.inUse).toBe(0); // Connection released
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('OptimizedExecutor', () => {
     let executor: OptimizedExecutor;
@@ -227,14 +227,14 @@ describe('Swarm Optimizations', () => {
         connectionPool: { min: 1, max: 2 },
         concurrency: 2,
         caching: { enabled: true, ttl: 60000 },
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await executor.shutdown();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should execute tasks successfully', async () => {
+    it('should execute tasks successfully', async () => { try {
       const task: TaskDefinition = {
         id: generateId('task'),
         parentId: generateId('swarm'),
@@ -276,9 +276,9 @@ describe('Swarm Optimizations', () => {
       expect(result).toBeDefined();
       expect(result.taskId).toBe(task.id);
       expect(result.agentId).toBe(agentId.id);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should cache results when enabled', async () => {
+    it('should cache results when enabled', async () => { try {
       const task: TaskDefinition = {
         id: generateId('task'),
         parentId: generateId('swarm'),
@@ -319,9 +319,9 @@ describe('Swarm Optimizations', () => {
 
       const metrics = executor.getMetrics();
       expect(metrics.cacheHitRate).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should track metrics correctly', async () => {
+    it('should track metrics correctly', async () => { try {
       const initialMetrics = executor.getMetrics();
       expect(initialMetrics.totalExecuted).toBe(0);
 
@@ -368,6 +368,6 @@ describe('Swarm Optimizations', () => {
       // Check that metrics object exists and has expected structure
       expect(updatedMetrics).toBeDefined();
       expect(typeof updatedMetrics.totalExecuted).toBe('number');
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

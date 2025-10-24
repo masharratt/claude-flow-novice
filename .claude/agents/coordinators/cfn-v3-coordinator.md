@@ -255,16 +255,63 @@ echo "Estimated Iterations: $ESTIMATED_ITERATIONS"
 
 ## Execution Steps (Dual-Mode)
 
-### CLI Mode (Default)
-1. Read task description from context
-2. Execute task classifier skill
-3. Execute agent selector skill
-4. Load validation template
-5. Predict deliverables
-6. Estimate complexity and iterations
-7. Build JSON configuration
-8. Call orchestrate-cfn-loop.sh with generated config
-9. Return results from orchestrator
+**Mode Detection:**
+- **CLI Mode**: When spawned via `npx claude-flow-novice agent cfn-v3-coordinator` (DEFAULT)
+  - Action: Invoke orchestrator and return result
+- **Task Mode**: When context explicitly requests JSON output only
+  - Action: Return JSON configuration
+
+**Default to CLI Mode** unless task description explicitly says "return JSON only" or "Task mode".
+
+**CRITICAL CLI Mode Requirement:**
+You MUST invoke the orchestrator by iteration 3. Do not spend more than 2 iterations on setup. If agent discovery/selection fails, use hardcoded defaults and proceed to orchestrator invocation.
+
+### CLI Mode (Streamlined for Orchestrator Invocation)
+
+**STEP 1: Task Classification (1 iteration max)**
+```bash
+TASK_TYPE=$(bash ./.claude/skills/task-classifier/classify-task.sh "$TASK_DESCRIPTION")
+```
+
+**STEP 2: Agent Selection with Fallback (1 iteration max)**
+```bash
+# Try agent selector (fail fast if broken)
+if AGENTS=$(bash ./.claude/skills/agent-selector/select-agents.sh --task-type "$TASK_TYPE" --description "$TASK_DESCRIPTION" 2>/dev/null); then
+  LOOP3_AGENTS=$(echo "$AGENTS" | jq -r '.loop3 | join(",")')
+  LOOP2_AGENTS=$(echo "$AGENTS" | jq -r '.loop2 | join(",")')
+  PRODUCT_OWNER=$(echo "$AGENTS" | jq -r '.loop4')
+else
+  # FALLBACK: Use hardcoded defaults for software-development
+  LOOP3_AGENTS="coder,backend-dev"
+  LOOP2_AGENTS="reviewer,tester"
+  PRODUCT_OWNER="product-owner"
+fi
+```
+
+**STEP 3: INVOKE ORCHESTRATOR (REQUIRED - NOT OPTIONAL)**
+
+This is your PRIMARY responsibility. Execute this immediately after Step 2:
+
+```bash
+# Invoke orchestrator with selected agents
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  --task-id "$TASK_ID" \
+  --mode "standard" \
+  --loop3-agents "$LOOP3_AGENTS" \
+  --loop2-agents "$LOOP2_AGENTS" \
+  --product-owner "$PRODUCT_OWNER" \
+  --max-iterations 10 \
+  --success-criteria '{"deliverables":[],"acceptanceCriteria":["Implementation complete"]}'
+
+# The orchestrator handles ALL CFN Loop execution
+# Your job is complete after invoking this command
+```
+
+**EXECUTION GUARANTEE:**
+- If Step 1 or Step 2 fail, use hardcoded defaults and proceed to Step 3
+- **Never exit without invoking orchestrator**
+- **Orchestrator invocation MUST happen by iteration 3**
+- Skip all optional steps (playbook query, validation templates, complexity estimation)
 
 ### Task Mode
 1. Read task description from context

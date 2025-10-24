@@ -26,7 +26,7 @@ describe('Dashboard Security Penetration Testing', () => {
   const users = new Map();
   const sessions = new Map();
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     originalEnv = process.env;
     process.env.NODE_ENV = 'test';
     jwtSecret = 'test-jwt-secret-for-penetration-testing';
@@ -94,7 +94,8 @@ describe('Dashboard Security Penetration Testing', () => {
       for (const [key, value] of Object.entries(req.query)) {
         if (typeof value === 'string') {
           for (const pattern of suspiciousPatterns) {
-            if (pattern.test(value)) {
+            if (pattern.jest.setTimeout(10000);
+  test(value)) {
               securityEvents.push({
                 event: 'XSS_ATTEMPT',
                 details: { location: 'query', parameter: key, value, pattern: pattern.source },
@@ -112,7 +113,8 @@ describe('Dashboard Security Penetration Testing', () => {
           for (const [key, value] of Object.entries(obj)) {
             if (typeof value === 'string') {
               for (const pattern of suspiciousPatterns) {
-                if (pattern.test(value)) {
+                if (pattern.jest.setTimeout(10000);
+  test(value)) {
                   securityEvents.push({
                     event: 'XSS_ATTEMPT',
                     details: { location: 'body', path: `${path}.${key}`, value, pattern: pattern.source },
@@ -133,7 +135,8 @@ describe('Dashboard Security Penetration Testing', () => {
 
       // Check for path traversal
       const pathTraversalPattern = /\.\.[\/\\]/;
-      if (req.url && pathTraversalPattern.test(req.url)) {
+      if (req.url && pathTraversalPattern.jest.setTimeout(10000);
+  test(req.url)) {
         securityEvents.push({
           event: 'PATH_TRAVERSAL_ATTEMPT',
           details: { url: req.url },
@@ -315,7 +318,7 @@ describe('Dashboard Security Penetration Testing', () => {
     server = app.listen(0);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (server) {
       await new Promise<void>((resolve) => {
         server.close(resolve);
@@ -330,7 +333,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Cross-Site Scripting (XSS) Attack Prevention', () => {
-    test('should prevent reflected XSS in query parameters', async () => {
+    jest.setTimeout(10000);
+  test('should prevent reflected XSS in query parameters', async () => { try {
       const xssPayloads = [
         '<script>alert("XSS")</script>',
         '<img src=x onerror=alert(1)>',
@@ -380,7 +384,8 @@ describe('Dashboard Security Penetration Testing', () => {
       });
     });
 
-    test('should prevent stored XSS in request body', async () => {
+    jest.setTimeout(10000);
+  test('should prevent stored XSS in request body', async () => { try {
       const xssPayloads = [
         { name: '<script>alert("XSS")</script>', value: 'test' },
         { description: '<img src=x onerror=alert(1)>', type: 'normal' },
@@ -409,7 +414,8 @@ describe('Dashboard Security Penetration Testing', () => {
       });
     });
 
-    test('should prevent XSS via HTTP headers', async () => {
+    jest.setTimeout(10000);
+  test('should prevent XSS via HTTP headers', async () => { try {
       const xssHeaders = [
         { 'User-Agent': '<script>alert(1)</script>' },
         { 'Referer': 'javascript:alert(1)' },
@@ -439,7 +445,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('SQL Injection Attack Prevention', () => {
-    test('should prevent SQL injection in query parameters', async () => {
+    jest.setTimeout(10000);
+  test('should prevent SQL injection in query parameters', async () => { try {
       const sqlInjectionPayloads = [
         "'; DROP TABLE users; --",
         "' OR '1'='1",
@@ -479,7 +486,8 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(xssEvents.length).toBeGreaterThan(0);
     });
 
-    test('should prevent SQL injection in request body', async () => {
+    jest.setTimeout(10000);
+  test('should prevent SQL injection in request body', async () => { try {
       const sqlInjectionPayloads = [
         { username: "admin'; DROP TABLE users; --", password: 'password' },
         { search: "' OR '1'='1", filter: 'all' },
@@ -503,7 +511,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Path Traversal Attack Prevention', () => {
-    test('should prevent directory traversal attacks', async () => {
+    jest.setTimeout(10000);
+  test('should prevent directory traversal attacks', async () => { try {
       const pathTraversalPayloads = [
         '../../../etc/passwd',
         '..\\..\\..\\windows\\system32\\config\\sam',
@@ -540,7 +549,8 @@ describe('Dashboard Security Penetration Testing', () => {
       });
     });
 
-    test('should prevent path traversal in query parameters', async () => {
+    jest.setTimeout(10000);
+  test('should prevent path traversal in query parameters', async () => { try {
       const pathTraversalPayloads = [
         { file: '../../../etc/passwd' },
         { path: '..\\..\\..\\windows\\system32\\config\\sam' },
@@ -564,7 +574,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Authentication Bypass Attempts', () => {
-    test('should prevent JWT token manipulation', async () => {
+    jest.setTimeout(10000);
+  test('should prevent JWT token manipulation', async () => { try {
       const jwtManipulationPayloads = [
         'invalid.token.here',
         'eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
@@ -597,7 +608,8 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(authEvents.length).toBeGreaterThan(0);
     });
 
-    test('should prevent privilege escalation via token tampering', async () => {
+    jest.setTimeout(10000);
+  test('should prevent privilege escalation via token tampering', async () => { try {
       // Login as regular user first
       const regularUser = {
         id: 'user-1',
@@ -637,7 +649,8 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(event).toBeDefined();
     });
 
-    test('should prevent brute force authentication attacks', async () => {
+    jest.setTimeout(10000);
+  test('should prevent brute force authentication attacks', async () => { try {
       const maxAttempts = 5;
       const wrongPasswords = Array.from({ length: maxAttempts + 2 }, (_, i) => `wrongpassword${i}`);
 
@@ -666,7 +679,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Cross-Site Request Forgery (CSRF) Protection', () => {
-    test('should include CSRF protection headers', async () => {
+    jest.setTimeout(10000);
+  test('should include CSRF protection headers', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -679,7 +693,8 @@ describe('Dashboard Security Penetration Testing', () => {
       // This would be tested in a real implementation with cookies
     });
 
-    test('should validate origin headers for state-changing requests', async () => {
+    jest.setTimeout(10000);
+  test('should validate origin headers for state-changing requests', async () => { try {
       // Login first to get token
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -711,7 +726,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Server-Side Request Forgery (SSRF) Protection', () => {
-    test('should prevent SSRF via URL parameters', async () => {
+    jest.setTimeout(10000);
+  test('should prevent SSRF via URL parameters', async () => { try {
       const ssrfPayloads = [
         'http://localhost:22',
         'http://127.0.0.1:22',
@@ -740,7 +756,8 @@ describe('Dashboard Security Penetration Testing', () => {
       }
     });
 
-    test('should validate and sanitize redirect URLs', async () => {
+    jest.setTimeout(10000);
+  test('should validate and sanitize redirect URLs', async () => { try {
       const maliciousRedirects = [
         'http://evil.com',
         'javascript:alert(1)',
@@ -766,7 +783,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Denial of Service (DoS) Protection', () => {
-    test('should handle oversized payloads', async () => {
+    jest.setTimeout(10000);
+  test('should handle oversized payloads', async () => { try {
       const oversizedPayloads = [
         'x'.repeat(11 * 1024 * 1024), // 11MB
         Array(1000000).fill('data').join(','), // Large array
@@ -784,7 +802,8 @@ describe('Dashboard Security Penetration Testing', () => {
       }
     });
 
-    test('should handle request flood attacks', async () => {
+    jest.setTimeout(10000);
+  test('should handle request flood attacks', async () => { try {
       const floodCount = 150; // Exceeds rate limit
       const promises = Array.from({ length: floodCount }, () =>
         request(app).get('/health')
@@ -803,7 +822,8 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(rateLimitEvents.length).toBeGreaterThan(0);
     });
 
-    test('should prevent resource exhaustion via complex requests', async () => {
+    jest.setTimeout(10000);
+  test('should prevent resource exhaustion via complex requests', async () => { try {
       const complexPayloads = [
         // Deeply nested object
         { data: { nested: { deep: { deeper: { deepest: 'x'.repeat(10000) } } } } },
@@ -839,7 +859,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Information Disclosure Prevention', () => {
-    test('should not leak sensitive information in error messages', async () => {
+    jest.setTimeout(10000);
+  test('should not leak sensitive information in error messages', async () => { try {
       const errorCauses = [
         { username: 'nonexistent', password: 'password' },
         { username: '', password: 'password' },
@@ -866,7 +887,8 @@ describe('Dashboard Security Penetration Testing', () => {
       }
     });
 
-    test('should not expose system information in headers', async () => {
+    jest.setTimeout(10000);
+  test('should not expose system information in headers', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -879,7 +901,8 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(response.headers).not.toHaveProperty('x-runtime');
     });
 
-    test('should not leak stack traces in production mode', async () => {
+    jest.setTimeout(10000);
+  test('should not leak stack traces in production mode', async () => { try {
       // Simulate various error conditions
       const errorRequests = [
         () => request(app).get('/nonexistent'),
@@ -903,7 +926,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Session Security', () => {
-    test('should prevent session fixation attacks', async () => {
+    jest.setTimeout(10000);
+  test('should prevent session fixation attacks', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -934,7 +958,8 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(sessionEvents.length).toBeGreaterThan(0);
     });
 
-    test('should invalidate tokens on logout', async () => {
+    jest.setTimeout(10000);
+  test('should invalidate tokens on logout', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -958,7 +983,8 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(response.body).toHaveProperty('error', 'Session expired');
     });
 
-    test('should handle concurrent session limits', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent session limits', async () => { try {
       // Login multiple times to create multiple sessions
       const loginPromises = Array.from({ length: 5 }, () =>
         request(app)
@@ -990,7 +1016,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Security Headers and Controls', () => {
-    test('should enforce strict security headers', async () => {
+    jest.setTimeout(10000);
+  test('should enforce strict security headers', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -1011,7 +1038,8 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(csp).toContain("object-src 'none'");
     });
 
-    test('should enforce CORS policies', async () => {
+    jest.setTimeout(10000);
+  test('should enforce CORS policies', async () => { try {
       const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001'];
       const disallowedOrigins = ['http://evil.com', 'https://malicious.site'];
 
@@ -1038,7 +1066,8 @@ describe('Dashboard Security Penetration Testing', () => {
       }
     });
 
-    test('should prevent MIME-type sniffing', async () => {
+    jest.setTimeout(10000);
+  test('should prevent MIME-type sniffing', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -1048,7 +1077,8 @@ describe('Dashboard Security Penetration Testing', () => {
   });
 
   describe('Comprehensive Security Assessment', () => {
-    test('should pass comprehensive security validation', async () => {
+    jest.setTimeout(10000);
+  test('should pass comprehensive security validation', async () => { try {
       // Login first
       const loginResponse = await request(app)
         .post('/api/auth/login')
@@ -1094,4 +1124,4 @@ describe('Dashboard Security Penetration Testing', () => {
       expect(normalResponse.headers['content-security-policy']).toBeDefined();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

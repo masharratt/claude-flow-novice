@@ -216,7 +216,7 @@ describe('V1 Transparency System Integration', () => {
   let mockMetricsCollector: MockMetricsCollector;
   let logger: Logger;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     logger = new Logger({
       level: 'error', // Reduce log noise during tests
       format: 'text',
@@ -238,7 +238,7 @@ describe('V1 Transparency System Integration', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await transparencySystem.cleanup();
   });
 
@@ -249,7 +249,7 @@ describe('V1 Transparency System Integration', () => {
   });
 
   describe('V1 Coordinator Registration', () => {
-    it('should register QueenAgent successfully', async () => {
+    it('should register QueenAgent successfully', async () => { try {
       const coordinatorId = 'test-queen-agent';
 
       transparencySystem.registerQueenAgent(coordinatorId, mockQueenAgent);
@@ -264,7 +264,7 @@ describe('V1 Transparency System Integration', () => {
       expect(coordinator?.topology).toBe('hierarchical');
     });
 
-    it('should register MeshCoordinator successfully', async () => {
+    it('should register MeshCoordinator successfully', async () => { try {
       const coordinatorId = 'test-mesh-coordinator';
 
       transparencySystem.registerMeshCoordinator(coordinatorId, mockMeshCoordinator);
@@ -278,7 +278,7 @@ describe('V1 Transparency System Integration', () => {
       expect(coordinator?.topology).toBe('mesh');
     });
 
-    it('should handle multiple coordinators', async () => {
+    it('should handle multiple coordinators', async () => { try {
       transparencySystem.registerQueenAgent('queen-1', mockQueenAgent);
       transparencySystem.registerMeshCoordinator('mesh-1', mockMeshCoordinator);
 
@@ -298,7 +298,7 @@ describe('V1 Transparency System Integration', () => {
       transparencySystem.registerMetricsCollector('test-coordinator', mockMetricsCollector);
     });
 
-    it('should track agent spawning', async () => {
+    it('should track agent spawning', async () => { try {
       mockQueenAgent.spawnWorker('worker-1', 'coder', {
         type: 'coder',
         skills: ['typescript', 'react'],
@@ -319,7 +319,7 @@ describe('V1 Transparency System Integration', () => {
       expect(worker?.coordinatorId).toBe('test-coordinator');
     });
 
-    it('should track agent status changes', async () => {
+    it('should track agent status changes', async () => { try {
       mockQueenAgent.spawnWorker('worker-2', 'tester', {
         type: 'tester',
         skills: ['jest', 'testing'],
@@ -342,7 +342,7 @@ describe('V1 Transparency System Integration', () => {
       expect(worker?.status).toBe('busy');
     });
 
-    it('should track task delegation', async () => {
+    it('should track task delegation', async () => { try {
       mockQueenAgent.spawnWorker('worker-3', 'reviewer', {
         type: 'reviewer',
         skills: ['code-review'],
@@ -368,7 +368,7 @@ describe('V1 Transparency System Integration', () => {
       expect(task?.assignedAgents).toContain('worker-3');
     });
 
-    it('should track task completion', async () => {
+    it('should track task completion', async () => { try {
       mockQueenAgent.spawnWorker('worker-4', 'writer', {
         type: 'writer',
         skills: ['documentation'],
@@ -398,7 +398,7 @@ describe('V1 Transparency System Integration', () => {
       expect(task?.quality.confidence).toBe(0.9);
     });
 
-    it('should track task failures', async () => {
+    it('should track task failures', async () => { try {
       mockQueenAgent.spawnWorker('worker-5', 'analyzer', {
         type: 'analyzer',
         skills: ['analysis'],
@@ -431,7 +431,7 @@ describe('V1 Transparency System Integration', () => {
       transparencySystem.registerMetricsCollector('test-coordinator', mockMetricsCollector);
     });
 
-    it('should collect transparency events', async () => {
+    it('should collect transparency events', async () => { try {
       mockQueenAgent.spawnWorker('worker-1', 'coder', {
         type: 'coder',
         skills: ['javascript'],
@@ -449,7 +449,7 @@ describe('V1 Transparency System Integration', () => {
       expect(spawnEvent?.eventData.agentId).toBe('worker-1');
     });
 
-    it('should filter events by type', async () => {
+    it('should filter events by type', async () => { try {
       mockQueenAgent.spawnWorker('worker-1', 'coder', {
         type: 'coder',
         skills: ['javascript'],
@@ -471,7 +471,7 @@ describe('V1 Transparency System Integration', () => {
       expect(statusEvents.every(e => e.eventType === 'agent_status_changed')).toBe(true);
     });
 
-    it('should get events for specific agent', async () => {
+    it('should get events for specific agent', async () => { try {
       mockQueenAgent.spawnWorker('worker-1', 'coder', {
         type: 'coder',
         skills: ['javascript'],
@@ -492,7 +492,7 @@ describe('V1 Transparency System Integration', () => {
       expect(eventTypes).toContain('agent_status_changed');
     });
 
-    it('should limit event retention', async () => {
+    it('should limit event retention', async () => { try {
       // Create more events than the retention limit
       for (let i = 0; i < 150; i++) {
         mockQueenAgent.spawnWorker(`worker-${i}`, 'worker', {
@@ -517,7 +517,7 @@ describe('V1 Transparency System Integration', () => {
       transparencySystem.registerMetricsCollector('test-coordinator', mockMetricsCollector);
     });
 
-    it('should collect transparency metrics', async () => {
+    it('should collect transparency metrics', async () => { try {
       const metrics = await transparencySystem.getTransparencyMetrics();
 
       expect(metrics).toBeDefined();
@@ -527,7 +527,7 @@ describe('V1 Transparency System Integration', () => {
       expect(metrics.tasks.total).toBe(0); // No tasks created yet
     });
 
-    it('should track coordinator metrics', async () => {
+    it('should track coordinator metrics', async () => { try {
       const metrics = await transparencySystem.getTransparencyMetrics();
 
       expect(metrics.coordinators.byType['queen-agent']).toBe(1);
@@ -536,7 +536,7 @@ describe('V1 Transparency System Integration', () => {
       expect(metrics.coordinators.byTopology['mesh']).toBe(1);
     });
 
-    it('should update metrics when agents are added', async () => {
+    it('should update metrics when agents are added', async () => { try {
       mockQueenAgent.spawnWorker('worker-1', 'coder', {
         type: 'coder',
         skills: ['javascript'],
@@ -551,7 +551,7 @@ describe('V1 Transparency System Integration', () => {
       expect(metrics.agents.byType['coder']).toBe(1);
     });
 
-    it('should track task metrics', async () => {
+    it('should track task metrics', async () => { try {
       mockQueenAgent.spawnWorker('worker-1', 'coder', {
         type: 'coder',
         skills: ['javascript'],
@@ -591,7 +591,7 @@ describe('V1 Transparency System Integration', () => {
       });
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await mockV1System.cleanup();
     });
 
@@ -674,7 +674,7 @@ describe('V1 Transparency System Integration', () => {
       expect(v2Metrics.hierarchyDepth).toBe(2);
     });
 
-    it('should create bridge interface', async () => {
+    it('should create bridge interface', async () => { try {
       const bridge = V1ToV2BridgeFactory.createBridge(mockV1System);
 
       expect(bridge).toBeDefined();
@@ -705,11 +705,11 @@ describe('V1 Transparency System Integration', () => {
       transparencySystem.startMonitoring();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await transparencySystem.stopMonitoring();
     });
 
-    it('should start and stop monitoring', async () => {
+    it('should start and stop monitoring', async () => { try {
       // Monitoring should be active after startMonitoring()
       expect(transparencySystem['isMonitoring']).toBe(true);
 
@@ -717,7 +717,7 @@ describe('V1 Transparency System Integration', () => {
       expect(transparencySystem['isMonitoring']).toBe(false);
     });
 
-    it('should perform periodic metrics collection', async () => {
+    it('should perform periodic metrics collection', async () => { try {
       const collectMetricsSpy = jest.spyOn(transparencySystem as any, 'collectMetrics');
 
       // Wait for at least one metrics collection cycle
@@ -726,7 +726,7 @@ describe('V1 Transparency System Integration', () => {
       expect(collectMetricsSpy).toHaveBeenCalled();
     });
 
-    it('should notify event listeners in real-time', async () => {
+    it('should notify event listeners in real-time', async () => { try {
       const listener = {
         onTransparencyEvent: jest.fn(),
       };
@@ -750,25 +750,25 @@ describe('V1 Transparency System Integration', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle invalid agent IDs gracefully', async () => {
+    it('should handle invalid agent IDs gracefully', async () => { try {
       await expect(
         transparencySystem.getAgentInfo('non-existent-agent')
       ).rejects.toThrow('Agent non-existent-agent not found');
     });
 
-    it('should handle invalid task IDs gracefully', async () => {
+    it('should handle invalid task IDs gracefully', async () => { try {
       await expect(
         transparencySystem.getTaskInfo('non-existent-task')
       ).rejects.toThrow('Task non-existent-task not found');
     });
 
-    it('should handle invalid coordinator IDs gracefully', async () => {
+    it('should handle invalid coordinator IDs gracefully', async () => { try {
       await expect(
         transparencySystem.getCoordinatorInfo('non-existent-coordinator')
       ).rejects.toThrow('Coordinator non-existent-coordinator not found');
     });
 
-    it('should handle coordinator errors', async () => {
+    it('should handle coordinator errors', async () => { try {
       const errorListener = jest.fn();
       await transparencySystem.registerEventListener({ onTransparencyEvent: errorListener });
 
@@ -784,7 +784,7 @@ describe('V1 Transparency System Integration', () => {
   });
 
   describe('Performance and Scalability', () => {
-    it('should handle large numbers of agents efficiently', async () => {
+    it('should handle large numbers of agents efficiently', async () => { try {
       const startTime = Date.now();
 
       // Register a coordinator
@@ -808,7 +808,7 @@ describe('V1 Transparency System Integration', () => {
       expect(agents.length).toBe(100);
     });
 
-    it('should handle high-frequency events efficiently', async () => {
+    it('should handle high-frequency events efficiently', async () => { try {
       const eventListener = jest.fn();
       await transparencySystem.registerEventListener({ onTransparencyEvent: eventListener });
 
@@ -827,7 +827,7 @@ describe('V1 Transparency System Integration', () => {
       expect(events.length).toBe(50); // Should maintain event retention
     });
 
-    it('should maintain reasonable memory usage', async () => {
+    it('should maintain reasonable memory usage', async () => { try {
       const initialEvents = await transparencySystem.getRecentEvents(1000);
       expect(initialEvents.length).toBeLessThanOrEqual(1000);
 
@@ -845,4 +845,4 @@ describe('V1 Transparency System Integration', () => {
       expect(finalEvents.length).toBeLessThanOrEqual(1000); // Should respect retention limit
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

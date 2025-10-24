@@ -106,7 +106,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(coordinator.rateLimits.size).toBe(2);
     });
 
-    it('should reset rate limit after window expires', async () => {
+    it('should reset rate limit after window expires', async () => { try {
       const sender = 'sender-1';
 
       // Fill up to limit
@@ -144,7 +144,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
   });
 
   describe('Queue Bounds Enforcement', () => {
-    it('should accept requests when queue has capacity', async () => {
+    it('should accept requests when queue has capacity', async () => { try {
       // Fill queue to capacity (10 items)
       for (let i = 0; i < 10; i++) {
         const message = {
@@ -162,7 +162,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(coordinator.stats.queueOverflows).toBe(0);
     });
 
-    it('should reject requests when queue is full', async () => {
+    it('should reject requests when queue is full', async () => { try {
       // Fill queue to capacity
       for (let i = 0; i < 10; i++) {
         const message = {
@@ -193,7 +193,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(coordinator.requestQueue.length).toBe(10); // Should not exceed limit
     });
 
-    it('should log security events on queue overflow', async () => {
+    it('should log security events on queue overflow', async () => { try {
       // Fill queue
       for (let i = 0; i < 10; i++) {
         await coordinator.handleRequest({
@@ -233,7 +233,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
   });
 
   describe('Combined Rate Limiting and Queue Bounds', () => {
-    it('should enforce both rate limiting and queue bounds', async () => {
+    it('should enforce both rate limiting and queue bounds', async () => { try {
       const sender = 'aggressive-sender';
 
       // Send 5 messages quickly (hit rate limit)
@@ -260,7 +260,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(coordinator.stats.queueOverflows).toBe(0);
     });
 
-    it('should handle mixed attack scenarios', async () => {
+    it('should handle mixed attack scenarios', async () => { try {
       // Scenario: Multiple senders flooding queue
       // Sender 1: Hit rate limit
       for (let i = 0; i < 5; i++) {
@@ -319,7 +319,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(coordinator.rateLimitCleanupInterval).toBeNull();
     });
 
-    it('should clean expired rate limit entries', async () => {
+    it('should clean expired rate limit entries', async () => { try {
       const sender1 = 'sender-1';
       const sender2 = 'sender-2';
 
@@ -359,7 +359,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(coordinator.stats.rateLimitEntriesCleaned).toBe(1);
     });
 
-    it('should prevent memory buildup from abandoned rate limits', async () => {
+    it('should prevent memory buildup from abandoned rate limits', async () => { try {
       // Simulate many senders with expired limits
       for (let i = 0; i < 100; i++) {
         coordinator.rateLimits.set(`sender-${i}`, {
@@ -409,7 +409,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(stats.rateLimiting.activeRateLimits).toBe(3);
     });
 
-    it('should track queue depth alongside rate limits', async () => {
+    it('should track queue depth alongside rate limits', async () => { try {
       // Add messages from different senders
       for (let i = 0; i < 5; i++) {
         await coordinator.handleRequest({
@@ -427,7 +427,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(stats.stats.rateLimitViolations).toBe(0);
     });
 
-    it('should track cumulative violations and overflows', async () => {
+    it('should track cumulative violations and overflows', async () => { try {
       const sender = 'attacker';
 
       // Trigger multiple rate limit violations
@@ -474,7 +474,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
   });
 
   describe('Normal Operation Under Limits', () => {
-    it('should process requests normally when under all limits', async () => {
+    it('should process requests normally when under all limits', async () => { try {
       // Send 3 messages from 2 senders (well under limits)
       await coordinator.handleRequest({
         id: 'msg-1',
@@ -506,7 +506,7 @@ describe('Dormant Coordinator - Rate Limiting and Queue Bounds (VULN-004)', () =
       expect(coordinator.stats.queueOverflows).toBe(0);
     });
 
-    it('should handle burst traffic within rate limits', async () => {
+    it('should handle burst traffic within rate limits', async () => { try {
       // Send 4 requests quickly (under limit of 5)
       const promises = [];
       for (let i = 0; i < 4; i++) {

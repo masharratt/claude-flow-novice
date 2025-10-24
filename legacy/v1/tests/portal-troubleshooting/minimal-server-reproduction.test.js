@@ -30,10 +30,10 @@ describe('Portal Server Component Isolation Tests', function() {
       server.close(() => {
         server = null;
         app = null;
-        done();
+        return;
       });
     } else {
-      done();
+      return;
     }
   });
 
@@ -57,7 +57,7 @@ describe('Portal Server Component Isolation Tests', function() {
         expect(server.listening).to.be.true;
         expect(app).to.exist;
 
-        done();
+        return;
       });
 
       server.on('error', (error) => {
@@ -66,7 +66,7 @@ describe('Portal Server Component Isolation Tests', function() {
       });
     });
 
-    it('should handle HTTP requests without middleware', async () => {
+    it('should handle HTTP requests without middleware', async () => { try {
       const response = await fetch(`http://localhost:${testPort}/health`);
       const data = await response.json();
 
@@ -104,7 +104,7 @@ describe('Portal Server Component Isolation Tests', function() {
 
       server.listen(testPort, 'localhost', () => {
         console.log(`✅ Helmet middleware server started on port ${testPort}`);
-        done();
+        return;
       });
 
       server.on('error', (error) => {
@@ -113,7 +113,7 @@ describe('Portal Server Component Isolation Tests', function() {
       });
     });
 
-    it('should set security headers correctly', async () => {
+    it('should set security headers correctly', async () => { try {
       const response = await fetch(`http://localhost:${testPort}/health`);
 
       expect(response.headers.get('x-content-type-options')).to.exist;
@@ -141,7 +141,7 @@ describe('Portal Server Component Isolation Tests', function() {
 
       server.listen(testPort, 'localhost', () => {
         console.log(`✅ CORS middleware server started on port ${testPort}`);
-        done();
+        return;
       });
 
       server.on('error', (error) => {
@@ -150,7 +150,7 @@ describe('Portal Server Component Isolation Tests', function() {
       });
     });
 
-    it('should handle CORS headers', async () => {
+    it('should handle CORS headers', async () => { try {
       const response = await fetch(`http://localhost:${testPort}/health`, {
         headers: { 'Origin': 'http://localhost:3000' }
       });
@@ -188,7 +188,7 @@ describe('Portal Server Component Isolation Tests', function() {
 
       server.listen(testPort, 'localhost', () => {
         console.log(`✅ Rate limiter middleware server started on port ${testPort}`);
-        done();
+        return;
       });
 
       server.on('error', (error) => {
@@ -198,7 +198,7 @@ describe('Portal Server Component Isolation Tests', function() {
       });
     });
 
-    it('should allow requests under rate limit', async () => {
+    it('should allow requests under rate limit', async () => { try {
       const response = await fetch(`http://localhost:${testPort}/api/health`);
       const data = await response.json();
 
@@ -206,7 +206,7 @@ describe('Portal Server Component Isolation Tests', function() {
       expect(data.middleware).to.equal('rate-limiter');
     });
 
-    it('should apply rate limiting correctly', async () => {
+    it('should apply rate limiting correctly', async () => { try {
       // Make multiple rapid requests
       const requests = Array.from({ length: 5 }, () =>
         fetch(`http://localhost:${testPort}/api/health`)
@@ -238,7 +238,7 @@ describe('Portal Server Component Isolation Tests', function() {
 
       server.listen(testPort, 'localhost', () => {
         console.log(`✅ Compression middleware server started on port ${testPort}`);
-        done();
+        return;
       });
 
       server.on('error', (error) => {
@@ -266,7 +266,7 @@ describe('Portal Server Component Isolation Tests', function() {
 
       server.listen(testPort, 'localhost', () => {
         console.log(`✅ JSON parser middleware server started on port ${testPort}`);
-        done();
+        return;
       });
 
       server.on('error', (error) => {
@@ -275,7 +275,7 @@ describe('Portal Server Component Isolation Tests', function() {
       });
     });
 
-    it('should parse JSON requests', async () => {
+    it('should parse JSON requests', async () => { try {
       const response = await fetch(`http://localhost:${testPort}/api/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -326,7 +326,7 @@ describe('Portal Server Component Isolation Tests', function() {
 
       server.listen(testPort, 'localhost', () => {
         console.log(`✅ Socket.IO server started on port ${testPort}`);
-        done();
+        return;
       });
 
       server.on('error', (error) => {
@@ -409,7 +409,7 @@ describe('Portal Server Component Isolation Tests', function() {
       server.listen(testPort, 'localhost', () => {
         console.log(`✅ Full middleware stack server started on port ${testPort}`);
         console.log('   All components initialized successfully');
-        done();
+        return;
       });
 
       server.on('error', (error) => {
@@ -419,7 +419,7 @@ describe('Portal Server Component Isolation Tests', function() {
       });
     });
 
-    it('should handle requests through full stack', async () => {
+    it('should handle requests through full stack', async () => { try {
       const response = await fetch(`http://localhost:${testPort}/api/health`);
       const data = await response.json();
 

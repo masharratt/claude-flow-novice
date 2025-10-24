@@ -38,7 +38,7 @@ describe('Swarm Coordination Tests', () => {
   let coderAgent: Agent;
   let reviewerAgent: Agent;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize core services
     memoryManager = new SwarmMemoryManager({
       persistence: true,
@@ -93,13 +93,13 @@ describe('Swarm Coordination Tests', () => {
     await swarmCoordinator.addAgent(reviewerAgent);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await swarmCoordinator.shutdown();
     jest.clearAllMocks();
   });
 
   describe('Researcher-Coder-Reviewer Coordination', () => {
-    it('should coordinate sequential workflow from research to implementation to review', async () => {
+    it('should coordinate sequential workflow from research to implementation to review', async () => { try {
       const task = {
         id: 'task-full-workflow-001',
         title: 'Implement user authentication system',
@@ -154,7 +154,7 @@ describe('Swarm Coordination Tests', () => {
       expect(reviewPhase.overallAssessment).toMatch(/^(approved|approved_with_changes|rejected)$/);
     });
 
-    it('should handle task handoffs with comprehensive data transfer', async () => {
+    it('should handle task handoffs with comprehensive data transfer', async () => { try {
       // Complete research phase
       const researchOutput = {
         taskId: 'task-handoff-001',
@@ -233,7 +233,7 @@ describe('Swarm Coordination Tests', () => {
       expect(handoffMetrics.successRate).toBe(1.0);
     });
 
-    it('should manage task dependencies and ensure proper sequencing', async () => {
+    it('should manage task dependencies and ensure proper sequencing', async () => { try {
       const complexTask = {
         id: 'task-dependencies-001',
         title: 'Build authentication system with user management',
@@ -316,7 +316,7 @@ describe('Swarm Coordination Tests', () => {
       }
     });
 
-    it('should optimize agent workload distribution', async () => {
+    it('should optimize agent workload distribution', async () => { try {
       // Create scenario with uneven workload
       const tasks = [
         {
@@ -361,7 +361,7 @@ describe('Swarm Coordination Tests', () => {
       expect(workloadOptimization.estimatedSpeedup).toBeGreaterThan(1.5);
     });
 
-    it('should handle cross-agent feedback and iteration cycles', async () => {
+    it('should handle cross-agent feedback and iteration cycles', async () => { try {
       const iterativeTask = {
         id: 'task-iterative-001',
         title: 'Design and implement API with iterative feedback',
@@ -419,7 +419,7 @@ describe('Swarm Coordination Tests', () => {
   });
 
   describe('Task Handoffs and Dependencies', () => {
-    it('should validate handoff completeness and quality', async () => {
+    it('should validate handoff completeness and quality', async () => { try {
       const incompleteHandoffData = {
         taskId: 'task-incomplete-001',
         fromAgent: 'agent-researcher-001',
@@ -467,10 +467,10 @@ describe('Swarm Coordination Tests', () => {
       expect(improvementTask).toBeDefined();
     });
 
-    it('should handle handoff failures and retry mechanisms', async () => {
+    it('should handle handoff failures and retry mechanisms', async () => { try {
       // Mock network failures during handoff
       let attemptCount = 0;
-      jest.spyOn(taskHandoffService, 'transferData').mockImplementation(async () => {
+      jest.spyOn(taskHandoffService, 'transferData').mockImplementation(async () => { try {
         attemptCount++;
         if (attemptCount < 3) {
           throw new Error('Network timeout');
@@ -498,7 +498,7 @@ describe('Swarm Coordination Tests', () => {
       expect(retryMetrics.successAfterRetry).toBe(1);
     });
 
-    it('should manage dependency chains with circular detection', async () => {
+    it('should manage dependency chains with circular detection', async () => { try {
       const taskWithCircularDependency = {
         id: 'task-circular-001',
         subtasks: [
@@ -533,7 +533,7 @@ describe('Swarm Coordination Tests', () => {
       expect(dependencyAnalysis.resolutionSuggestions.length).toBeGreaterThan(0);
     });
 
-    it('should support conditional dependencies and dynamic routing', async () => {
+    it('should support conditional dependencies and dynamic routing', async () => { try {
       const conditionalTask = {
         id: 'task-conditional-001',
         subtasks: [
@@ -598,7 +598,7 @@ describe('Swarm Coordination Tests', () => {
       expect(routingDecisions[0].result).toBe(true);
     });
 
-    it('should track handoff performance and optimize transfer protocols', async () => {
+    it('should track handoff performance and optimize transfer protocols', async () => { try {
       // Execute multiple handoffs to gather performance data
       const handoffTests = [
         {
@@ -655,7 +655,7 @@ describe('Swarm Coordination Tests', () => {
   });
 
   describe('Swarm Relaunch Capabilities', () => {
-    it('should detect swarm failure conditions and trigger relaunch', async () => {
+    it('should detect swarm failure conditions and trigger relaunch', async () => { try {
       // Simulate swarm failure scenarios
       const failureScenarios = [
         {
@@ -704,7 +704,7 @@ describe('Swarm Coordination Tests', () => {
       }
     });
 
-    it('should preserve context and memory across relaunches', async () => {
+    it('should preserve context and memory across relaunches', async () => { try {
       // Set up initial swarm context
       const initialContext = {
         taskId: 'task-preserve-001',
@@ -762,7 +762,7 @@ describe('Swarm Coordination Tests', () => {
       expect(recoveredContext.workflowMemory.iterations).toBe(2);
     });
 
-    it('should track relaunch attempts and implement backoff strategy', async () => {
+    it('should track relaunch attempts and implement backoff strategy', async () => { try {
       // Simulate repeated failures to test backoff
       let relaunchCount = 0;
       const relaunchHistory = [];
@@ -816,7 +816,7 @@ describe('Swarm Coordination Tests', () => {
       expect(relaunchMetrics.averageBackoffDelay).toBeGreaterThan(1000);
     });
 
-    it('should support different relaunch strategies based on failure type', async () => {
+    it('should support different relaunch strategies based on failure type', async () => { try {
       const relaunchStrategies = [
         {
           failureType: 'agent_unresponsive',
@@ -873,7 +873,7 @@ describe('Swarm Coordination Tests', () => {
       }
     });
 
-    it('should handle graceful degradation when relaunch limit reached', async () => {
+    it('should handle graceful degradation when relaunch limit reached', async () => { try {
       // Exhaust all relaunch attempts
       for (let i = 0; i < 10; i++) {
         await relaunchManager.executeRelaunch({
@@ -908,7 +908,7 @@ describe('Swarm Coordination Tests', () => {
   });
 
   describe('Performance Metrics Collection', () => {
-    it('should collect comprehensive swarm performance metrics', async () => {
+    it('should collect comprehensive swarm performance metrics', async () => { try {
       // Execute multiple tasks to generate performance data
       const performanceTasks = [
         {
@@ -964,7 +964,7 @@ describe('Swarm Coordination Tests', () => {
       expect(performanceMetrics.trends.coordinationTrend).toBeDefined();
     });
 
-    it('should identify performance bottlenecks and optimization opportunities', async () => {
+    it('should identify performance bottlenecks and optimization opportunities', async () => { try {
       // Create scenario with known bottlenecks
       const bottleneckTask = {
         id: 'bottleneck-task-001',
@@ -1013,7 +1013,7 @@ describe('Swarm Coordination Tests', () => {
       expect(bottleneckAnalysis.impactAssessment.qualityImpact).toBe(-0.2); // 20% quality drop
     });
 
-    it('should track learning and improvement over time', async () => {
+    it('should track learning and improvement over time', async () => { try {
       // Simulate multiple task executions over time to show improvement
       const learningTasks = [
         { iteration: 1, qualityScore: 0.7, duration: 120 }, // Initial performance
@@ -1052,7 +1052,7 @@ describe('Swarm Coordination Tests', () => {
       expect(learningAnalysis.masteryIndicators.autonomy).toBeGreaterThan(0.7);
     });
 
-    it('should provide performance dashboards and reporting', async () => {
+    it('should provide performance dashboards and reporting', async () => { try {
       // Generate sample performance data
       await metricsCollector.generateSamplePerformanceData({
         duration: 86400000, // 24 hours of data
@@ -1098,7 +1098,7 @@ describe('Swarm Coordination Tests', () => {
       expect(detailedReport.appendices.rawData).toBeDefined();
     });
 
-    it('should support custom metrics and KPI tracking', async () => {
+    it('should support custom metrics and KPI tracking', async () => { try {
       // Define custom metrics for business objectives
       const customMetrics = [
         {
@@ -1157,4 +1157,4 @@ describe('Swarm Coordination Tests', () => {
       expect(kpiDashboard.actionItems).toBeDefined();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

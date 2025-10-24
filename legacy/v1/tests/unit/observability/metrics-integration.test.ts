@@ -91,7 +91,7 @@ describe('Metrics Integration - Phase 1', () => {
       expect(afterCount).toBeGreaterThan(beforeCount);
     });
 
-    it('should track agent.started on runAgent', async () => {
+    it('should track agent.started on runAgent', async () => { try {
       const beforeCount = storage.getCounterTotal('agent.started');
 
       const agentId = agentManager.createAgent('coder', 'test task');
@@ -101,7 +101,7 @@ describe('Metrics Integration - Phase 1', () => {
       expect(afterCount).toBeGreaterThan(beforeCount);
     });
 
-    it('should track agent.completed with success status', async () => {
+    it('should track agent.completed with success status', async () => { try {
       const beforeCount = storage.getCounterTotal('agent.completed');
 
       const agentId = agentManager.createAgent('coder', 'simple test task');
@@ -118,7 +118,7 @@ describe('Metrics Integration - Phase 1', () => {
       expect(tags.agentType).toBe('coder');
     });
 
-    it('should track agent.duration timing', async () => {
+    it('should track agent.duration timing', async () => { try {
       const agentId = agentManager.createAgent('coder', 'test task with timing');
 
       const startTime = Date.now();
@@ -136,7 +136,7 @@ describe('Metrics Integration - Phase 1', () => {
       expect(metrics[0].type).toBe('timer');
     });
 
-    it('should track agent.error on failure', async () => {
+    it('should track agent.error on failure', async () => { try {
       const beforeErrorCount = storage.getCounterTotal('agent.error');
 
       // Create an agent that will fail
@@ -172,7 +172,7 @@ describe('Metrics Integration - Phase 1', () => {
       expect(tags.errorType).toBeDefined();
     });
 
-    it('should track agent types correctly', async () => {
+    it('should track agent types correctly', async () => { try {
       const agentTypes = ['coder', 'planner', 'researcher'];
 
       for (const type of agentTypes) {
@@ -255,7 +255,7 @@ describe('Metrics Integration - Phase 1', () => {
       expect(timers.every(m => m.type === 'timer')).toBe(true);
     });
 
-    it('should query metrics by time range', async () => {
+    it('should query metrics by time range', async () => { try {
       const startTime = new Date();
 
       incrementMetric('time.range.test', 1);
@@ -308,7 +308,7 @@ describe('Metrics Integration - Phase 1', () => {
   });
 
   describe('Double-Count Prevention', () => {
-    it('should NOT double-count agent lifecycle events', async () => {
+    it('should NOT double-count agent lifecycle events', async () => { try {
       const beforeCreated = storage.getCounterTotal('agent.created');
       const beforeStarted = storage.getCounterTotal('agent.started');
       const beforeCompleted = storage.getCounterTotal('agent.completed');
@@ -326,7 +326,7 @@ describe('Metrics Integration - Phase 1', () => {
       expect(afterCompleted - beforeCompleted).toBe(1);
     });
 
-    it('should NOT double-count on multiple agent runs', async () => {
+    it('should NOT double-count on multiple agent runs', async () => { try {
       const agentIds = [
         agentManager.createAgent('coder', 'task 1'),
         agentManager.createAgent('planner', 'task 2'),
@@ -455,7 +455,7 @@ describe('Metrics Integration - Phase 1', () => {
   });
 
   describe('Data Retention and Cleanup', () => {
-    it('should clean up old metrics based on retention policy', async () => {
+    it('should clean up old metrics based on retention policy', async () => { try {
       // Insert metrics with old timestamp
       const oldMetric = {
         name: 'retention.test',
@@ -538,7 +538,7 @@ describe('Metrics Integration - Phase 1', () => {
       expect(total).toBe(largeValue);
     });
 
-    it('should handle concurrent metric writes', async () => {
+    it('should handle concurrent metric writes', async () => { try {
       const promises = [];
       for (let i = 0; i < 50; i++) {
         promises.push(

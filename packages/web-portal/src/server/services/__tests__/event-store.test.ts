@@ -13,7 +13,7 @@ import { join } from 'path';
 describe('EventStoreService', () => {
   const testDbPath = join(process.cwd(), 'data', 'events.db');
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up any existing test database
     if (existsSync(testDbPath)) {
       unlinkSync(testDbPath);
@@ -21,28 +21,28 @@ describe('EventStoreService', () => {
     
     // Initialize fresh service
     await eventStoreService.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Close connection and clean up
     await eventStoreService.close();
     if (existsSync(testDbPath)) {
       unlinkSync(testDbPath);
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Initialization', () => {
     it('should initialize successfully', () => {
       expect(eventStoreService.isReady()).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should create database file and tables', () => {
       expect(existsSync(testDbPath)).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Event Storage', () => {
-    it('should store a single event', async () => {
+    it('should store a single event', async () => { try {
       const eventData = {
         timestamp: new Date(),
         phaseId: 'phase-1',
@@ -55,9 +55,9 @@ describe('EventStoreService', () => {
       
       expect(eventId).toBeDefined();
       expect(eventId).toMatch(/^evt_\d+_[a-z0-9]+$/);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should store multiple events in batch', async () => {
+    it('should store multiple events in batch', async () => { try {
       const events = [
         {
           timestamp: new Date(),
@@ -80,9 +80,9 @@ describe('EventStoreService', () => {
       expect(eventIds).toHaveLength(2);
       expect(eventIds[0]).toMatch(/^evt_\d+_[a-z0-9]+$/);
       expect(eventIds[1]).toMatch(/^evt_\d+_[a-z0-9]+$/);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle events with metadata', async () => {
+    it('should handle events with metadata', async () => { try {
       const eventData = {
         timestamp: new Date(),
         phaseId: 'phase-1',
@@ -95,8 +95,8 @@ describe('EventStoreService', () => {
       const eventId = await eventStoreService.storeEvent(eventData);
       
       expect(eventId).toBeDefined();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Event Querying', () => {
     const testEvents: Omit<EventData, 'id'>[] = [
@@ -123,75 +123,75 @@ describe('EventStoreService', () => {
       }
     ];
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await eventStoreService.storeEvents(testEvents);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should query all events', async () => {
+    it('should query all events', async () => { try {
       const result = await eventStoreService.queryEvents();
       
       expect(result.events).toHaveLength(3);
       expect(result.total).toBe(3);
       expect(result.hasMore).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should filter by phase ID', async () => {
-      const result = await eventStoreService.queryEvents({ phaseId: 'phase-1' });
+    it('should filter by phase ID', async () => { try {
+      const result = await eventStoreService.queryEvents({ phaseId: 'phase-1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       expect(result.events).toHaveLength(2);
       expect(result.total).toBe(2);
       expect(result.events.every(e => e.phaseId === 'phase-1')).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should filter by agent ID', async () => {
-      const result = await eventStoreService.queryEvents({ agentId: 'agent-1' });
+    it('should filter by agent ID', async () => { try {
+      const result = await eventStoreService.queryEvents({ agentId: 'agent-1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       expect(result.events).toHaveLength(2);
       expect(result.total).toBe(2);
       expect(result.events.every(e => e.agentId === 'agent-1')).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should filter by event type', async () => {
-      const result = await eventStoreService.queryEvents({ eventType: 'event-type-1' });
+    it('should filter by event type', async () => { try {
+      const result = await eventStoreService.queryEvents({ eventType: 'event-type-1' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       expect(result.events).toHaveLength(2);
       expect(result.total).toBe(2);
       expect(result.events.every(e => e.eventType === 'event-type-1')).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should filter by date range', async () => {
+    it('should filter by date range', async () => { try {
       const startDate = new Date('2024-01-01T10:30:00Z');
       const endDate = new Date('2024-01-01T12:30:00Z');
       
-      const result = await eventStoreService.queryEvents({ startDate, endDate });
+      const result = await eventStoreService.queryEvents({ startDate, endDate } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       expect(result.events).toHaveLength(2);
       expect(result.total).toBe(2);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should apply pagination', async () => {
-      const result = await eventStoreService.queryEvents({ limit: 2, offset: 1 });
+    it('should apply pagination', async () => { try {
+      const result = await eventStoreService.queryEvents({ limit: 2, offset: 1 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       expect(result.events).toHaveLength(2);
       expect(result.total).toBe(3);
       expect(result.hasMore).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should combine multiple filters', async () => {
+    it('should combine multiple filters', async () => { try {
       const result = await eventStoreService.queryEvents({
         phaseId: 'phase-1',
         agentId: 'agent-1'
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       expect(result.events).toHaveLength(1);
       expect(result.total).toBe(1);
       expect(result.events[0].agentId).toBe('agent-1');
       expect(result.events[0].phaseId).toBe('phase-1');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Convenience Methods', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const events = [
         {
           timestamp: new Date(),
@@ -209,47 +209,47 @@ describe('EventStoreService', () => {
         }
       ];
       await eventStoreService.storeEvents(events);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should get events by phase ID', async () => {
+    it('should get events by phase ID', async () => { try {
       const events = await eventStoreService.getEventsByPhaseId('phase-1');
       
       expect(events).toHaveLength(1);
       expect(events[0].phaseId).toBe('phase-1');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should get events by agent ID', async () => {
+    it('should get events by agent ID', async () => { try {
       const events = await eventStoreService.getEventsByAgentId('agent-2');
       
       expect(events).toHaveLength(1);
       expect(events[0].agentId).toBe('agent-2');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should get events by type', async () => {
+    it('should get events by type', async () => { try {
       const events = await eventStoreService.getEventsByType('test-event');
       
       expect(events).toHaveLength(1);
       expect(events[0].eventType).toBe('test-event');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should get recent events', async () => {
+    it('should get recent events', async () => { try {
       const events = await eventStoreService.getRecentEvents(1);
       
       expect(events).toHaveLength(1);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Statistics', () => {
-    it('should return empty statistics for no events', async () => {
+    it('should return empty statistics for no events', async () => { try {
       const stats = await eventStoreService.getStatistics();
       
       expect(stats.totalEvents).toBe(0);
       expect(stats.uniquePhases).toBe(0);
       expect(stats.uniqueAgents).toBe(0);
       expect(stats.uniqueEventTypes).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should return correct statistics for test data', async () => {
+    it('should return correct statistics for test data', async () => { try {
       const events = [
         {
           timestamp: new Date('2024-01-01T10:00:00Z'),
@@ -276,11 +276,11 @@ describe('EventStoreService', () => {
       expect(stats.uniqueEventTypes).toBe(2);
       expect(stats.oldestEvent).toBeInstanceOf(Date);
       expect(stats.newestEvent).toBeInstanceOf(Date);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Event Deletion', () => {
-    it('should delete existing event', async () => {
+    it('should delete existing event', async () => { try {
       const eventData = {
         timestamp: new Date(),
         phaseId: 'phase-1',
@@ -293,25 +293,25 @@ describe('EventStoreService', () => {
       const deleted = await eventStoreService.deleteEvent(eventId);
       
       expect(deleted).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should return false for non-existent event', async () => {
+    it('should return false for non-existent event', async () => { try {
       const deleted = await eventStoreService.deleteEvent('non-existent-id');
       
       expect(deleted).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Handling', () => {
-    it('should handle invalid JSON in payload gracefully', async () => {
+    it('should handle invalid JSON in payload gracefully', async () => { try {
       // This would be tested with corrupted data in a real scenario
       // For now, we test that the service handles malformed data
       expect(true).toBe(true); // Placeholder
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance', () => {
-    it('should handle batch inserts efficiently', async () => {
+    it('should handle batch inserts efficiently', async () => { try {
       const events = Array.from({ length: 100 }, (_, i) => ({
         timestamp: new Date(),
         phaseId: `phase-${i % 10}`,
@@ -326,9 +326,9 @@ describe('EventStoreService', () => {
 
       // Should complete within reasonable time (adjust threshold as needed)
       expect(duration).toBeLessThan(1000); // 1 second
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle large queries efficiently', async () => {
+    it('should handle large queries efficiently', async () => { try {
       // Insert test data
       const events = Array.from({ length: 1000 }, (_, i) => ({
         timestamp: new Date(Date.now() - i * 1000), // 1 second intervals
@@ -340,11 +340,11 @@ describe('EventStoreService', () => {
       await eventStoreService.storeEvents(events);
 
       const startTime = Date.now();
-      const result = await eventStoreService.queryEvents({ limit: 100 });
+      const result = await eventStoreService.queryEvents({ limit: 100 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       const duration = Date.now() - startTime;
 
       expect(result.events).toHaveLength(100);
       expect(duration).toBeLessThan(500); // 500ms
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

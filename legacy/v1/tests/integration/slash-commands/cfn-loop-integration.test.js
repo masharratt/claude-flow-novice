@@ -33,7 +33,7 @@ describe('CFN Loop Integration', () => {
   });
 
   describe('Command Execution', () => {
-    it('should execute cfn-loop command through registry', async () => {
+    it('should execute cfn-loop command through registry', async () => { try {
       const result = await globalRegistry.execute('/cfn-loop Implement JWT auth');
 
       expect(result.success).toBe(true);
@@ -42,7 +42,7 @@ describe('CFN Loop Integration', () => {
       expect(result.result.prompt).toBeDefined();
     });
 
-    it('should execute via cfn alias', async () => {
+    it('should execute via cfn alias', async () => { try {
       const result = await globalRegistry.execute('/cfn Build API');
 
       expect(result.success).toBe(true);
@@ -50,7 +50,7 @@ describe('CFN Loop Integration', () => {
       expect(result.result.task).toBe('Build API');
     });
 
-    it('should execute via loop alias', async () => {
+    it('should execute via loop alias', async () => { try {
       const result = await globalRegistry.execute('/loop Fix bug');
 
       expect(result.success).toBe(true);
@@ -58,7 +58,7 @@ describe('CFN Loop Integration', () => {
       expect(result.result.task).toBe('Fix bug');
     });
 
-    it('should handle command with options', async () => {
+    it('should handle command with options', async () => { try {
       const result = await globalRegistry.execute(
         '/cfn-loop Refactor code --phase=refactoring --max-loop2=3'
       );
@@ -68,7 +68,7 @@ describe('CFN Loop Integration', () => {
       expect(result.result.config.maxLoop2).toBe(3);
     });
 
-    it('should return error when no task provided', async () => {
+    it('should return error when no task provided', async () => { try {
       const result = await globalRegistry.execute('/cfn-loop');
 
       expect(result.success).toBe(true); // Command executes but returns error result
@@ -99,7 +99,7 @@ describe('CFN Loop Integration', () => {
   });
 
   describe('Prompt Generation', () => {
-    it('should generate comprehensive prompt with all loops', async () => {
+    it('should generate comprehensive prompt with all loops', async () => { try {
       const result = await globalRegistry.execute('/cfn-loop Test task');
       const prompt = result.result.prompt;
 
@@ -125,14 +125,14 @@ describe('CFN Loop Integration', () => {
       expect(prompt).toContain('Enhanced post-edit hooks');
     });
 
-    it('should include proper memory namespace', async () => {
+    it('should include proper memory namespace', async () => { try {
       const result = await globalRegistry.execute('/cfn-loop Task --phase=testing');
 
       expect(result.result.memoryNamespace).toBe('cfn-loop/testing/iteration-0');
       expect(result.result.prompt).toContain('cfn-loop/testing');
     });
 
-    it('should adjust agent count based on complexity', async () => {
+    it('should adjust agent count based on complexity', async () => { try {
       const simpleResult = await globalRegistry.execute('/cfn-loop Fix bug');
       expect(simpleResult.result.config.agentCount).toBe(3);
 
@@ -143,7 +143,7 @@ describe('CFN Loop Integration', () => {
       expect(enterpriseResult.result.config.agentCount).toBe(15);
     });
 
-    it('should use appropriate topology for agent count', async () => {
+    it('should use appropriate topology for agent count', async () => { try {
       const meshResult = await globalRegistry.execute('/cfn-loop Implement feature');
       expect(meshResult.result.config.topology).toBe('mesh');
 

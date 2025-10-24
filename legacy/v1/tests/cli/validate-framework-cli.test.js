@@ -134,25 +134,25 @@ describe('Framework Validation CLI', function() {
 
   before(async function() {
     testDir = path.join(__dirname, 'test-cli-temp');
-    await fs.mkdir(testDir, { recursive: true });
-  });
+    await fs.mkdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   after(async function() {
-    await fs.rmdir(testDir, { recursive: true }).catch(() => {});
+    await fs.rmdir(testDir, { recursive: true }).catch(() => {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     restoreConsole();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   beforeEach(function() {
     mockConsole();
-    cli = new FrameworkValidationCLI({ interactive: false });
-  });
+    cli = new FrameworkValidationCLI({ interactive: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterEach(async function() {
     if (cli) {
       await cli.cleanup();
     }
     restoreConsole();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('CLI Initialization', function() {
     it('should initialize CLI without errors', async function() {
@@ -160,11 +160,11 @@ describe('Framework Validation CLI', function() {
 
       expect(result).to.be.undefined; // Should not throw
       expect(consoleOutput.log.some(msg => msg.includes('initialized'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle initialization errors gracefully', async function() {
       // Mock a failing validator
-      const mockCLI = new FrameworkValidationCLI({ interactive: false });
+      const mockCLI = new FrameworkValidationCLI({ interactive: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Stub the validator initialization to fail
       const originalInitialize = mockCLI.initialize;
@@ -178,15 +178,15 @@ describe('Framework Validation CLI', function() {
       } catch (error) {
         expect(error.message).to.include('Mock initialization failure');
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Add Framework Command', function() {
     let frameworkFile;
 
     beforeEach(async function() {
       frameworkFile = path.join(testDir, 'test-framework.json');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     afterEach(async function() {
       try {
@@ -194,7 +194,7 @@ describe('Framework Validation CLI', function() {
       } catch (error) {
         // Ignore cleanup errors
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should successfully add a valid framework', async function() {
       await fs.writeFile(frameworkFile, JSON.stringify(validFramework, null, 2));
@@ -204,7 +204,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
       expect(result.frameworkId).to.equal('cli-test-framework');
       expect(consoleOutput.log.some(msg => msg.includes('successfully'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should reject invalid framework with helpful errors', async function() {
       await fs.writeFile(frameworkFile, JSON.stringify(invalidFramework, null, 2));
@@ -214,7 +214,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.false;
       expect(result.errors).to.be.an('array').that.is.not.empty;
       expect(consoleOutput.error.some(msg => msg.includes('validation failed'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should detect malicious frameworks and provide security warnings', async function() {
       await fs.writeFile(frameworkFile, JSON.stringify(maliciousFramework, null, 2));
@@ -224,7 +224,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.false;
       expect(result.securityViolations).to.be.an('array').that.is.not.empty;
       expect(consoleOutput.error.some(msg => msg.includes('Security'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle missing file with clear error message', async function() {
       const result = await cli.handleCommand(['add', 'nonexistent-file.json']);
@@ -232,7 +232,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.false;
       expect(result.error).to.include('not found');
       expect(consoleOutput.error.some(msg => msg.includes('not found'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle invalid JSON with helpful error', async function() {
       await fs.writeFile(frameworkFile, 'invalid json content');
@@ -242,7 +242,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.false;
       expect(result.error).to.include('Invalid JSON');
       expect(consoleOutput.error.some(msg => msg.includes('Invalid JSON'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle missing framework file argument', async function() {
       const result = await cli.handleCommand(['add']);
@@ -250,7 +250,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.false;
       expect(result.error).to.include('Missing');
       expect(consoleOutput.error.some(msg => msg.includes('required'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should provide fixing suggestions for validation errors', async function() {
       await fs.writeFile(frameworkFile, JSON.stringify(invalidFramework, null, 2));
@@ -259,7 +259,7 @@ describe('Framework Validation CLI', function() {
 
       expect(result.success).to.be.false;
       expect(consoleOutput.log.some(msg => msg.includes('Fixing Suggestions'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should display comprehensive framework information', async function() {
       await fs.writeFile(frameworkFile, JSON.stringify(validFramework, null, 2));
@@ -269,7 +269,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Framework Information'))).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('CLI Test Framework'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should show usage instructions after successful addition', async function() {
       await fs.writeFile(frameworkFile, JSON.stringify({
@@ -282,8 +282,8 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Usage Instructions'))).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('validate framework test'))).to.be.true;
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Test Framework Command', function() {
     beforeEach(async function() {
@@ -299,7 +299,7 @@ describe('Framework Validation CLI', function() {
 
       // Clear console output from add command
       consoleOutput = { log: [], error: [], warn: [] };
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should successfully test a framework', async function() {
       const result = await cli.handleCommand(['test', 'test-target-framework']);
@@ -307,7 +307,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
       expect(result.truthScore).to.be.a('number');
       expect(consoleOutput.log.some(msg => msg.includes('Test Results'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle missing framework ID', async function() {
       const result = await cli.handleCommand(['test']);
@@ -315,14 +315,14 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.false;
       expect(result.error).to.include('Framework ID is required');
       expect(consoleOutput.error.some(msg => msg.includes('required'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle non-existent framework', async function() {
       const result = await cli.handleCommand(['test', 'nonexistent-framework']);
 
       expect(result.success).to.be.false;
       expect(result.error).to.include('not found');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should display test results with metrics', async function() {
       const result = await cli.handleCommand(['test', 'test-target-framework']);
@@ -330,7 +330,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Truth Score'))).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Threshold'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle framework test failures gracefully', async function() {
       // Add a framework that will fail tests
@@ -353,8 +353,8 @@ describe('Framework Validation CLI', function() {
       // Test might fail due to high threshold, should handle gracefully
       expect(result).to.be.an('object');
       expect(result.truthScore).to.be.a('number');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('List Frameworks Command', function() {
     beforeEach(async function() {
@@ -382,7 +382,7 @@ describe('Framework Validation CLI', function() {
 
       // Clear console output
       consoleOutput = { log: [], error: [], warn: [] };
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should list all frameworks in table format', async function() {
       const result = await cli.handleCommand(['list']);
@@ -391,11 +391,11 @@ describe('Framework Validation CLI', function() {
       expect(result.frameworks).to.be.an('array');
       expect(result.frameworks.length).to.be.greaterThan(0);
       expect(consoleOutput.log.some(msg => msg.includes('Custom Frameworks'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle empty framework list gracefully', async function() {
       // Use a fresh CLI instance with no frameworks
-      const emptyCLI = new FrameworkValidationCLI({ interactive: false });
+      const emptyCLI = new FrameworkValidationCLI({ interactive: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       await emptyCLI.initialize();
 
       const result = await emptyCLI.handleCommand(['list']);
@@ -405,7 +405,7 @@ describe('Framework Validation CLI', function() {
       expect(consoleOutput.log.some(msg => msg.includes('No custom frameworks'))).to.be.true;
 
       await emptyCLI.cleanup();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should display framework details in table', async function() {
       const result = await cli.handleCommand(['list']);
@@ -413,8 +413,8 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('List Test Framework 1'))).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('List Test Framework 2'))).to.be.true;
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Remove Framework Command', function() {
     beforeEach(async function() {
@@ -430,26 +430,26 @@ describe('Framework Validation CLI', function() {
 
       // Clear console output
       consoleOutput = { log: [], error: [], warn: [] };
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle missing framework ID', async function() {
       const result = await cli.handleCommand(['remove']);
 
       expect(result.success).to.be.false;
       expect(result.error).to.include('Framework ID is required');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle non-existent framework', async function() {
       const result = await cli.handleCommand(['remove', 'nonexistent-framework']);
 
       expect(result.success).to.be.false;
       expect(result.error).to.include('not found');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should display framework info before removal', async function() {
       // Mock inquirer to auto-confirm
       const inquirer = await import('inquirer');
-      const promptStub = sinon.stub(inquirer.default, 'prompt').resolves({ confirm: true });
+      const promptStub = sinon.stub(inquirer.default, 'prompt').resolves({ confirm: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await cli.handleCommand(['remove', 'remove-test-framework']);
 
@@ -457,12 +457,12 @@ describe('Framework Validation CLI', function() {
       expect(consoleOutput.log.some(msg => msg.includes('Removing custom framework'))).to.be.true;
 
       promptStub.restore();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should cancel removal when user declines', async function() {
       // Mock inquirer to decline
       const inquirer = await import('inquirer');
-      const promptStub = sinon.stub(inquirer.default, 'prompt').resolves({ confirm: false });
+      const promptStub = sinon.stub(inquirer.default, 'prompt').resolves({ confirm: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await cli.handleCommand(['remove', 'remove-test-framework']);
 
@@ -471,8 +471,8 @@ describe('Framework Validation CLI', function() {
       expect(consoleOutput.log.some(msg => msg.includes('cancelled'))).to.be.true;
 
       promptStub.restore();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Export Framework Command', function() {
     beforeEach(async function() {
@@ -488,21 +488,21 @@ describe('Framework Validation CLI', function() {
 
       // Clear console output
       consoleOutput = { log: [], error: [], warn: [] };
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle missing framework ID', async function() {
       const result = await cli.handleCommand(['export']);
 
       expect(result.success).to.be.false;
       expect(result.error).to.include('Framework ID is required');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle non-existent framework', async function() {
       const result = await cli.handleCommand(['export', 'nonexistent-framework']);
 
       expect(result.success).to.be.false;
       expect(result.error).to.include('not found');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should export framework to default file', async function() {
       const result = await cli.handleCommand(['export', 'export-test-framework']);
@@ -513,8 +513,8 @@ describe('Framework Validation CLI', function() {
 
       // Clean up exported file
       const exportedFile = path.resolve('export-test-framework-framework.json');
-      await fs.unlink(exportedFile).catch(() => {});
-    });
+      await fs.unlink(exportedFile).catch(() => {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should export framework to specified file', async function() {
       const outputFile = path.join(testDir, 'custom-export.json');
@@ -530,7 +530,7 @@ describe('Framework Validation CLI', function() {
 
       // Clean up
       await fs.unlink(outputFile);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should display export details', async function() {
       const result = await cli.handleCommand(['export', 'export-test-framework']);
@@ -540,9 +540,9 @@ describe('Framework Validation CLI', function() {
 
       // Clean up
       const exportedFile = path.resolve('export-test-framework-framework.json');
-      await fs.unlink(exportedFile).catch(() => {});
-    });
-  });
+      await fs.unlink(exportedFile).catch(() => {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Validate Completion Command', function() {
     let completionFile;
@@ -573,7 +573,7 @@ describe('Framework Validation CLI', function() {
 
       // Clear console output
       consoleOutput = { log: [], error: [], warn: [] };
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     afterEach(async function() {
       try {
@@ -581,7 +581,7 @@ describe('Framework Validation CLI', function() {
       } catch (error) {
         // Ignore cleanup errors
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should validate completion with framework', async function() {
       const result = await cli.handleCommand(['validate', completionFile, 'validation-test-framework']);
@@ -589,21 +589,21 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
       expect(result.truthScore).to.be.a('number');
       expect(consoleOutput.log.some(msg => msg.includes('validation passed'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle missing arguments', async function() {
       const result = await cli.handleCommand(['validate']);
 
       expect(result.success).to.be.false;
       expect(result.error).to.include('required arguments');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle invalid completion file', async function() {
       const result = await cli.handleCommand(['validate', 'nonexistent-completion.json', 'validation-test-framework']);
 
       expect(result.success).to.be.false;
       expect(result.error).to.include('ENOENT');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle invalid JSON in completion file', async function() {
       await fs.writeFile(completionFile, 'invalid json');
@@ -612,7 +612,7 @@ describe('Framework Validation CLI', function() {
 
       expect(result.success).to.be.false;
       expect(result.error).to.include('JSON');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should display validation details on success', async function() {
       const result = await cli.handleCommand(['validate', completionFile, 'validation-test-framework']);
@@ -620,7 +620,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Validation Details'))).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Truth Score'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should display failure details on validation failure', async function() {
       // Create a completion that will fail validation
@@ -637,8 +637,8 @@ describe('Framework Validation CLI', function() {
 
       expect(result.success).to.be.false;
       expect(consoleOutput.error.some(msg => msg.includes('validation failed'))).to.be.true;
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Help and Usage', function() {
     it('should display help for invalid commands', async function() {
@@ -646,14 +646,14 @@ describe('Framework Validation CLI', function() {
 
       expect(result.help).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Framework Validation Commands'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should display help for empty commands', async function() {
       const result = await cli.handleCommand([]);
 
       expect(result.help).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Commands'))).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should show examples in help', async function() {
       const result = await cli.handleCommand(['help']);
@@ -661,12 +661,12 @@ describe('Framework Validation CLI', function() {
       expect(result.help).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('Examples'))).to.be.true;
       expect(consoleOutput.log.some(msg => msg.includes('claude-flow-novice validate framework'))).to.be.true;
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Handling and Edge Cases', function() {
     it('should handle CLI cleanup properly', async function() {
-      const testCLI = new FrameworkValidationCLI({ interactive: false });
+      const testCLI = new FrameworkValidationCLI({ interactive: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       await testCLI.initialize();
 
       // Should not throw during cleanup
@@ -674,11 +674,11 @@ describe('Framework Validation CLI', function() {
 
       // Should be safe to call multiple times
       await testCLI.cleanup();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle concurrent CLI operations', async function() {
-      const cli1 = new FrameworkValidationCLI({ interactive: false });
-      const cli2 = new FrameworkValidationCLI({ interactive: false });
+      const cli1 = new FrameworkValidationCLI({ interactive: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      const cli2 = new FrameworkValidationCLI({ interactive: false } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await Promise.all([
         cli1.initialize(),
@@ -693,13 +693,13 @@ describe('Framework Validation CLI', function() {
 
       results.forEach(result => {
         expect(result.success).to.be.true;
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await Promise.all([
         cli1.cleanup(),
         cli2.cleanup()
       ]);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle file system permissions errors', async function() {
       // Try to write to a read-only location (simulated)
@@ -709,7 +709,7 @@ describe('Framework Validation CLI', function() {
 
       expect(result.success).to.be.false;
       expect(result.error).to.be.a('string');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should handle very large framework files', async function() {
       // Create a large but valid framework
@@ -732,7 +732,7 @@ describe('Framework Validation CLI', function() {
               operator: '>='
             }
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       }
 
       const largeFile = path.join(testDir, 'large-framework.json');
@@ -745,7 +745,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.a('boolean');
 
       await fs.unlink(largeFile);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should provide meaningful error messages for common issues', async function() {
       // Test various error scenarios
@@ -778,8 +778,8 @@ describe('Framework Validation CLI', function() {
         expect(result.success).to.be.false;
         expect(result.error).to.include(test.expectedError);
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Integration with handleFrameworkValidationCommand', function() {
     it('should handle commands through main handler', async function() {
@@ -797,7 +797,7 @@ describe('Framework Validation CLI', function() {
       expect(result.success).to.be.true;
 
       await fs.unlink(frameworkFile);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should pass options correctly to CLI', async function() {
       const result = await handleFrameworkValidationCommand(
@@ -806,16 +806,16 @@ describe('Framework Validation CLI', function() {
       );
 
       expect(result.success).to.be.true;
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should cleanup resources after command execution', async function() {
       // This tests that the finally block in handleFrameworkValidationCommand works
       const result = await handleFrameworkValidationCommand(['list']);
 
       expect(result.success).to.be.true;
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 // Utility functions for CLI testing
 export function createTestFrameworkFile(framework, directory) {
@@ -823,7 +823,7 @@ export function createTestFrameworkFile(framework, directory) {
   const filepath = path.join(directory, filename);
 
   return fs.writeFile(filepath, JSON.stringify(framework, null, 2))
-    .then(() => filepath);
+    await ( => filepath);
 }
 
 export function createTestCompletionFile(completion, directory) {
@@ -831,7 +831,7 @@ export function createTestCompletionFile(completion, directory) {
   const filepath = path.join(directory, filename);
 
   return fs.writeFile(filepath, JSON.stringify(completion, null, 2))
-    .then(() => filepath);
+    await ( => filepath);
 }
 
 export function captureConsoleOutput() {

@@ -785,4 +785,4 @@ describe('Phase 2: Custom Framework Registry - Security & Byzantine Validation',
       expect(legacyValidation.backwardCompatibilityUsed).to.be.true;
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

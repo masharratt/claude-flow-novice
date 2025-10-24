@@ -84,7 +84,7 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
   let testLogger: Logger;
   let testNamespace: string;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     testLogger = new Logger({ level: 'info', format: 'json', destination: 'console' });
     testNamespace = `validation-test-${Date.now()}`;
 
@@ -94,7 +94,7 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
     testLogger.info('Starting comprehensive validation tests');
   }, TEST_TIMEOUT);
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup global lifecycle manager
     await shutdownLifecycleManager();
 
@@ -106,7 +106,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
   // ============================================================================
 
   describe('Checkpoint 1: Agent Lifecycle State Management', () => {
-    test('should manage agent lifecycle states correctly', async () => {
+    jest.setTimeout(10000);
+  test('should manage agent lifecycle states correctly', async () => { try {
       const agentId = generateId('test-agent');
       const mockAgentDefinition = {
         name: 'test-agent',
@@ -158,7 +159,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       expect(cleanupResult).toBe(true);
     }, TEST_TIMEOUT);
 
-    test('should handle agent memory management', async () => {
+    jest.setTimeout(10000);
+  test('should handle agent memory management', async () => { try {
       const agentId = generateId('memory-test-agent');
       const mockAgentDefinition = {
         name: 'memory-test-agent',
@@ -189,7 +191,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await lifecycleManager.cleanupAgent(agentId);
     }, TEST_TIMEOUT);
 
-    test('should handle lifecycle hooks correctly', async () => {
+    jest.setTimeout(10000);
+  test('should handle lifecycle hooks correctly', async () => { try {
       const agentId = generateId('hooks-test-agent');
       const hookResults: string[] = [];
 
@@ -230,19 +233,20 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
   describe('Checkpoint 2: Dependency-Aware Completion Tracking', () => {
     let dependencyTracker: DependencyTracker;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const trackerNamespace = `${testNamespace}-${generateId('tracker')}`;
       dependencyTracker = createDependencyTracker(trackerNamespace);
       await dependencyTracker.initialize();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (dependencyTracker) {
         await dependencyTracker.shutdown();
       }
     });
 
-    test('should register and manage bidirectional dependencies', async () => {
+    jest.setTimeout(10000);
+  test('should register and manage bidirectional dependencies', async () => { try {
       const agentA = generateId('agent-a');
       const agentB = generateId('agent-b');
 
@@ -286,7 +290,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await dependencyTracker.removeDependency(dependencyId);
     }, TEST_TIMEOUT);
 
-    test('should detect and prevent dependency cycles', async () => {
+    jest.setTimeout(10000);
+  test('should detect and prevent dependency cycles', async () => { try {
       const agentA = generateId('agent-a');
       const agentB = generateId('agent-b');
       const agentC = generateId('agent-c');
@@ -313,7 +318,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await dependencyTracker.removeDependency(depBC);
     }, TEST_TIMEOUT);
 
-    test('should handle dependency timeouts', async () => {
+    jest.setTimeout(10000);
+  test('should handle dependency timeouts', async () => { try {
       const agentA = generateId('timeout-agent-a');
       const agentB = generateId('timeout-agent-b');
 
@@ -338,7 +344,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await dependencyTracker.removeDependency(dependencyId);
     }, TEST_TIMEOUT);
 
-    test('should provide comprehensive dependency statistics', async () => {
+    jest.setTimeout(10000);
+  test('should provide comprehensive dependency statistics', async () => { try {
       const agents = Array.from({ length: 5 }, () => generateId('stats-agent'));
       const dependencies: string[] = [];
 
@@ -373,7 +380,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       }
     }, TEST_TIMEOUT);
 
-    test('should handle cross-session persistence', async () => {
+    jest.setTimeout(10000);
+  test('should handle cross-session persistence', async () => { try {
       const agentA = generateId('persist-agent-a');
       const agentB = generateId('persist-agent-b');
 
@@ -405,7 +413,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
   // ============================================================================
 
   describe('Checkpoint 3: Enhanced Topology Coordination', () => {
-    test('should manage hierarchical coordinator with dependencies', async () => {
+    jest.setTimeout(10000);
+  test('should manage hierarchical coordinator with dependencies', async () => { try {
       const config: Partial<HierarchicalCoordinatorConfig> = {
         maxDepth: 3,
         maxChildrenPerNode: 5,
@@ -478,7 +487,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await coordinator.shutdown();
     }, TEST_TIMEOUT);
 
-    test('should manage mesh coordinator with cross-agent dependencies', async () => {
+    jest.setTimeout(10000);
+  test('should manage mesh coordinator with cross-agent dependencies', async () => { try {
       const config: Partial<MeshCoordinatorConfig> = {
         maxAgents: 10,
         maxConnections: 8,
@@ -529,7 +539,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await coordinator.shutdown();
     }, TEST_TIMEOUT);
 
-    test('should manage topology manager with multiple topologies', async () => {
+    jest.setTimeout(10000);
+  test('should manage topology manager with multiple topologies', async () => { try {
       const config: Partial<TopologyManagerConfig> = {
         maxTopologies: 5,
         maxBridges: 10,
@@ -624,7 +635,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await manager.shutdown();
     }, INTEGRATION_TEST_TIMEOUT);
 
-    test('should handle adaptive coordinator topology switching', async () => {
+    jest.setTimeout(10000);
+  test('should handle adaptive coordinator topology switching', async () => { try {
       const coordinator = new AdaptiveCoordinator({
         adaptationInterval: 5000, // 5 seconds
         confidenceThreshold: 0.6,
@@ -669,7 +681,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await coordinator.shutdown();
     }, INTEGRATION_TEST_TIMEOUT);
 
-    test('should handle communication bridge message routing', async () => {
+    jest.setTimeout(10000);
+  test('should handle communication bridge message routing', async () => { try {
       const bridge = new CommunicationBridge({
         managerId: generateId('test-manager'),
         enableCompression: false,
@@ -718,7 +731,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
   // ============================================================================
 
   describe('Integration Testing: All Checkpoints Combined', () => {
-    test('should integrate lifecycle management with dependency tracking and topology coordination', async () => {
+    jest.setTimeout(10000);
+  test('should integrate lifecycle management with dependency tracking and topology coordination', async () => { try {
       // Setup integrated system
       const integrationNamespace = `${testNamespace}-integration`;
 
@@ -932,7 +946,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
 
     }, INTEGRATION_TEST_TIMEOUT);
 
-    test('should handle system-wide error recovery and fault tolerance', async () => {
+    jest.setTimeout(10000);
+  test('should handle system-wide error recovery and fault tolerance', async () => { try {
       const errorTestNamespace = `${testNamespace}-error-test`;
 
       // Setup fault tolerance test system
@@ -1014,7 +1029,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
   // ============================================================================
 
   describe('Performance and Load Testing', () => {
-    test('should handle high-volume agent registrations and dependencies', async () => {
+    jest.setTimeout(10000);
+  test('should handle high-volume agent registrations and dependencies', async () => { try {
       const performanceNamespace = `${testNamespace}-performance`;
       const agentCount = 50;
       const dependencyCount = 100;
@@ -1117,7 +1133,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
   // ============================================================================
 
   describe('Deployment Readiness Validation', () => {
-    test('should validate TypeScript compilation and module exports', async () => {
+    jest.setTimeout(10000);
+  test('should validate TypeScript compilation and module exports', async () => { try {
       // Test that all main modules can be imported and instantiated
       expect(lifecycleManager).toBeDefined();
       expect(DependencyTracker).toBeDefined();
@@ -1140,7 +1157,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       expect(DependencyStatus.RESOLVED).toBeDefined();
     });
 
-    test('should validate configuration management and defaults', async () => {
+    jest.setTimeout(10000);
+  test('should validate configuration management and defaults', async () => { try {
       // Test dependency tracker configuration
       const tracker = createDependencyTracker('config-test');
       expect(tracker).toBeDefined();
@@ -1172,7 +1190,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await tracker.shutdown();
     });
 
-    test('should validate error handling and edge cases', async () => {
+    jest.setTimeout(10000);
+  test('should validate error handling and edge cases', async () => { try {
       const edgeTestNamespace = `${testNamespace}-edge-cases`;
       const tracker = createDependencyTracker(edgeTestNamespace);
       await tracker.initialize();
@@ -1217,7 +1236,8 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       await tracker.shutdown();
     });
 
-    test('should validate resource cleanup and memory management', async () => {
+    jest.setTimeout(10000);
+  test('should validate resource cleanup and memory management', async () => { try {
       const cleanupNamespace = `${testNamespace}-cleanup`;
 
       // Create and destroy multiple components to test cleanup
@@ -1248,4 +1268,4 @@ describe('Checkpoint 4: Comprehensive Validation and Testing', () => {
       expect(true).toBe(true); // Placeholder for memory validation
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

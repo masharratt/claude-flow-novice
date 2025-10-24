@@ -10,7 +10,7 @@ import { stage3Validator } from '../../src/agents/stage3-integration-validator.j
 describe('Stage 3 Unified System Integration', () => {
   let unifiedManager: UltraFastAgentManager;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     unifiedManager = new UltraFastAgentManager({
       performanceTargets: {
         spawnTimeP95Ms: 100,
@@ -21,14 +21,14 @@ describe('Stage 3 Unified System Integration', () => {
     await unifiedManager.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (unifiedManager) {
       await unifiedManager.shutdown();
     }
   });
 
   describe('System Integration Tests', () => {
-    it('should initialize with all components integrated', async () => {
+    it('should initialize with all components integrated', async () => { try {
       const systemStatus = await unifiedManager.getSystemStatus();
       
       expect(systemStatus.status).toBe('operational');
@@ -37,7 +37,7 @@ describe('Stage 3 Unified System Integration', () => {
       expect(systemStatus.components.executor).toBe('operational');
     });
 
-    it('should spawn agents within performance targets', async () => {
+    it('should spawn agents within performance targets', async () => { try {
       const agentCount = 10;
       const spawnTimes: number[] = [];
       const startTime = performance.now();
@@ -71,7 +71,7 @@ describe('Stage 3 Unified System Integration', () => {
       expect(metrics.totalAgents).toBe(agentCount);
     });
 
-    it('should handle inter-agent communication efficiently', async () => {
+    it('should handle inter-agent communication efficiently', async () => { try {
       // Spawn test agents
       const agentIds = ['agent-1', 'agent-2', 'agent-3'];
       await Promise.all(
@@ -111,7 +111,7 @@ describe('Stage 3 Unified System Integration', () => {
       expect(messageTimes.length).toBe(messageCount); // All messages delivered
     });
 
-    it('should execute tasks through integrated executor', async () => {
+    it('should execute tasks through integrated executor', async () => { try {
       // Spawn test agent
       await unifiedManager.spawnAgent({
         id: 'executor-test-agent',
@@ -152,7 +152,7 @@ describe('Stage 3 Unified System Integration', () => {
       expect(taskTimes.every(t => t < 1000)).toBe(true); // All tasks <1 second
     });
 
-    it('should maintain system stability under concurrent operations', async () => {
+    it('should maintain system stability under concurrent operations', async () => { try {
       const initialMemory = process.memoryUsage().heapUsed / 1024 / 1024;
       
       // Create mixed concurrent operations
@@ -230,7 +230,7 @@ describe('Stage 3 Unified System Integration', () => {
       expect(systemStatus.status).toMatch(/operational|degraded/);
     });
 
-    it('should handle system resource cleanup properly', async () => {
+    it('should handle system resource cleanup properly', async () => { try {
       const initialMetrics = unifiedManager.getSystemMetrics();
       
       // Create and terminate agents
@@ -267,7 +267,7 @@ describe('Stage 3 Unified System Integration', () => {
   });
 
   describe('Performance Validation Integration', () => {
-    it('should run baseline performance validation', async () => {
+    it('should run baseline performance validation', async () => { try {
       // Use the integrated performance validator
       const validator = stage3Validator;
       
@@ -309,7 +309,7 @@ describe('Stage 3 Unified System Integration', () => {
   });
 
   describe('System Error Handling', () => {
-    it('should handle invalid agent operations gracefully', async () => {
+    it('should handle invalid agent operations gracefully', async () => { try {
       // Test invalid agent spawning
       try {
         await unifiedManager.spawnAgent({
@@ -342,7 +342,7 @@ describe('Stage 3 Unified System Integration', () => {
       expect(taskResult.success).toBe(false);
     });
 
-    it('should maintain system stability during error conditions', async () => {
+    it('should maintain system stability during error conditions', async () => { try {
       // Spawn a valid agent first
       await unifiedManager.spawnAgent({
         id: 'error-test-agent',
@@ -399,4 +399,4 @@ describe('Stage 3 Unified System Integration', () => {
       expect(validMessageResult.success).toBe(true);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -17,7 +17,7 @@ describe('Redis Auto-Configuration', () => {
   let testDir;
   let redisAvailable;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     testDir = path.join(os.tmpdir(), `redis-config-test-${Date.now()}`);
     await fs.mkdir(testDir, { recursive: true });
 
@@ -32,7 +32,7 @@ describe('Redis Auto-Configuration', () => {
     }
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     try {
       await fs.rm(testDir, { recursive: true, force: true });
     } catch (error) {
@@ -41,7 +41,7 @@ describe('Redis Auto-Configuration', () => {
   });
 
   describe('Redis Detection', () => {
-    it('should detect Redis availability', async () => {
+    it('should detect Redis availability', async () => { try {
       expect(typeof redisAvailable).toBe('boolean');
 
       if (redisAvailable) {
@@ -50,7 +50,7 @@ describe('Redis Auto-Configuration', () => {
       }
     });
 
-    it('should get Redis version if available', async () => {
+    it('should get Redis version if available', async () => { try {
       if (!redisAvailable) {
         console.log('⏭️  Skipping Redis version check');
         return;
@@ -65,7 +65,7 @@ describe('Redis Auto-Configuration', () => {
       }
     });
 
-    it('should check Redis connectivity', async () => {
+    it('should check Redis connectivity', async () => { try {
       if (!redisAvailable) {
         console.log('⏭️  Skipping connectivity check');
         return;
@@ -81,7 +81,7 @@ describe('Redis Auto-Configuration', () => {
   });
 
   describe('Configuration Generation', () => {
-    it('should generate Redis config when available', async () => {
+    it('should generate Redis config when available', async () => { try {
       const config = {
         redis: {
           host: 'localhost',
@@ -97,7 +97,7 @@ describe('Redis Auto-Configuration', () => {
       expect(config.redis.mode).toBe(redisAvailable ? 'redis' : 'fallback');
     });
 
-    it('should generate fallback config when Redis unavailable', async () => {
+    it('should generate fallback config when Redis unavailable', async () => { try {
       if (redisAvailable) {
         console.log('⏭️  Skipping fallback test (Redis available)');
         return;
@@ -132,7 +132,7 @@ describe('Redis Auto-Configuration', () => {
   });
 
   describe('Connection Testing', () => {
-    it('should test Redis connection', async () => {
+    it('should test Redis connection', async () => { try {
       if (!redisAvailable) {
         console.log('⏭️  Skipping connection test');
         return;
@@ -158,7 +158,7 @@ describe('Redis Auto-Configuration', () => {
       }
     });
 
-    it('should handle connection errors gracefully', async () => {
+    it('should handle connection errors gracefully', async () => { try {
       try {
         // Try to connect to non-existent Redis instance
         await execAsync('redis-cli -p 9999 ping', { timeout: 2000 });
@@ -205,7 +205,7 @@ describe('Redis Auto-Configuration', () => {
       expect(selectedBackend).toBe(redisAvailable ? 'redis' : 'fallback');
     });
 
-    it('should configure swarm persistence', async () => {
+    it('should configure swarm persistence', async () => { try {
       const swarmConfig = {
         persistence: {
           enabled: true,
@@ -239,7 +239,7 @@ describe('Redis Auto-Configuration', () => {
   });
 
   describe('Configuration Persistence', () => {
-    it('should save configuration to file', async () => {
+    it('should save configuration to file', async () => { try {
       const configPath = path.join(testDir, 'redis-config.json');
       const config = {
         redis: {
@@ -255,7 +255,7 @@ describe('Redis Auto-Configuration', () => {
       expect(savedConfig.redis.available).toBe(redisAvailable);
     });
 
-    it('should validate saved configuration', async () => {
+    it('should validate saved configuration', async () => { try {
       const configPath = path.join(testDir, 'redis-config-validate.json');
       const config = {
         redis: {
@@ -344,7 +344,7 @@ describe('Redis Auto-Configuration', () => {
 });
 
 describe('Redis Auto-Configuration Summary', () => {
-  it('should generate configuration report', async () => {
+  it('should generate configuration report', async () => { try {
     let redisAvailable = false;
     let redisVersion = 'N/A';
 

@@ -19,7 +19,7 @@ describe('TransparencySystem Integration Tests', () => {
   let transparencySystem: TransparencySystem;
   let mockAgent: Agent;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create transparency system instance
     transparencySystem = new TransparencySystem();
 
@@ -48,14 +48,14 @@ describe('TransparencySystem Integration Tests', () => {
     } as Agent;
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup transparency system
     await transparencySystem.cleanup();
     vi.clearAllMocks();
   });
 
   describe('REST API Integration', () => {
-    it('should register agent and retrieve via REST API', async () => {
+    it('should register agent and retrieve via REST API', async () => { try {
       // Act - Register agent
       await transparencySystem.registerAgent({
         agentId: mockAgent.id,
@@ -82,7 +82,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(agentState?.status).toBe('spawned');
     });
 
-    it('should retrieve all agents via REST API', async () => {
+    it('should retrieve all agents via REST API', async () => { try {
       // Arrange - Register multiple agents
       const agents = [
         { id: 'agent-1', name: 'Agent1', role: 'coder', status: 'spawned' },
@@ -111,7 +111,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(allAgents.some(a => a.agentId === 'agent-3')).toBe(true);
     });
 
-    it('should retrieve agent hierarchy via REST API', async () => {
+    it('should retrieve agent hierarchy via REST API', async () => { try {
       // Arrange - Register parent and child agents
       await transparencySystem.registerAgent({
         agentId: 'parent-agent',
@@ -155,7 +155,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(parentNode?.children?.some(c => c.agentId === 'child-agent-2')).toBe(true);
     });
 
-    it('should retrieve performance metrics via REST API', async () => {
+    it('should retrieve performance metrics via REST API', async () => { try {
       // Arrange - Register agent and update performance
       await transparencySystem.registerAgent({
         agentId: mockAgent.id,
@@ -187,7 +187,7 @@ describe('TransparencySystem Integration Tests', () => {
   });
 
   describe('WebSocket Event Propagation', () => {
-    it('should emit agent_update event when agent is registered', async () => {
+    it('should emit agent_update event when agent is registered', async () => { try {
       // Arrange - Subscribe to events
       const events: any[] = [];
       transparencySystem.on('agent_update', (event) => {
@@ -212,7 +212,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(spawnEvent).toBeDefined();
     });
 
-    it('should emit agent_update event when agent state changes', async () => {
+    it('should emit agent_update event when agent state changes', async () => { try {
       // Arrange - Register agent first
       await transparencySystem.registerAgent({
         agentId: mockAgent.id,
@@ -243,7 +243,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(updateEvent).toBeDefined();
     });
 
-    it('should emit agent_update event when agent completes', async () => {
+    it('should emit agent_update event when agent completes', async () => { try {
       // Arrange - Register agent
       await transparencySystem.registerAgent({
         agentId: mockAgent.id,
@@ -275,7 +275,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(completeEvent?.confidence).toBe(0.92);
     });
 
-    it('should emit hierarchy_update event when parent-child relationship changes', async () => {
+    it('should emit hierarchy_update event when parent-child relationship changes', async () => { try {
       // Arrange - Subscribe to hierarchy events
       const events: any[] = [];
       transparencySystem.on('hierarchy_update', (event) => {
@@ -308,7 +308,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(events.length).toBeGreaterThan(0);
     });
 
-    it('should handle multiple concurrent event subscriptions', async () => {
+    it('should handle multiple concurrent event subscriptions', async () => { try {
       // Arrange - Multiple subscribers
       const subscriber1Events: any[] = [];
       const subscriber2Events: any[] = [];
@@ -346,7 +346,7 @@ describe('TransparencySystem Integration Tests', () => {
   });
 
   describe('Caching Behavior', () => {
-    it('should cache agent hierarchy for 30 seconds', async () => {
+    it('should cache agent hierarchy for 30 seconds', async () => { try {
       // Arrange - Register agents
       await transparencySystem.registerAgent({
         agentId: 'agent-cache-1',
@@ -371,7 +371,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(secondQueryTime).toBeLessThan(firstQueryTime * 0.5); // At least 50% faster
     });
 
-    it('should invalidate cache after 30 seconds', async () => {
+    it('should invalidate cache after 30 seconds', async () => { try {
       // Arrange - Register agent
       await transparencySystem.registerAgent({
         agentId: 'agent-cache-2',
@@ -397,7 +397,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(hierarchy2).toBeDefined();
     });
 
-    it('should invalidate cache when hierarchy changes', async () => {
+    it('should invalidate cache when hierarchy changes', async () => { try {
       // Arrange - Initial hierarchy
       await transparencySystem.registerAgent({
         agentId: 'parent-cache',
@@ -431,7 +431,7 @@ describe('TransparencySystem Integration Tests', () => {
   });
 
   describe('Error Handling and Graceful Degradation', () => {
-    it('should handle TransparencySystem unavailable (503) gracefully', async () => {
+    it('should handle TransparencySystem unavailable (503) gracefully', async () => { try {
       // Arrange - Simulate system unavailable
       await transparencySystem.cleanup();
 
@@ -440,7 +440,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(agentState).toBeUndefined(); // Graceful degradation
     });
 
-    it('should handle agent not found (404) gracefully', async () => {
+    it('should handle agent not found (404) gracefully', async () => { try {
       // Act - Query non-existent agent
       const agentState = await transparencySystem.getAgentState('does-not-exist-123');
 
@@ -448,7 +448,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(agentState).toBeUndefined();
     });
 
-    it('should handle invalid agent data gracefully', async () => {
+    it('should handle invalid agent data gracefully', async () => { try {
       // Act & Assert - Should validate and reject invalid data
       await expect(
         transparencySystem.registerAgent({
@@ -461,21 +461,21 @@ describe('TransparencySystem Integration Tests', () => {
       ).rejects.toThrow();
     });
 
-    it('should handle network timeouts gracefully', async () => {
+    it('should handle network timeouts gracefully', async () => { try {
       // Arrange - Simulate slow query (mock with timeout)
       const timeout = new Promise(resolve => setTimeout(resolve, 100));
 
       // Act - Query with timeout
       const result = await Promise.race([
         transparencySystem.getAllAgents(),
-        timeout.then(() => []),
+        timeoutawait ( => []),
       ]);
 
       // Assert - Should complete or timeout gracefully
       expect(result).toBeDefined();
     });
 
-    it('should recover from temporary failures', async () => {
+    it('should recover from temporary failures', async () => { try {
       // Arrange - Register agent
       await transparencySystem.registerAgent({
         agentId: 'recovery-test',
@@ -510,7 +510,7 @@ describe('TransparencySystem Integration Tests', () => {
   });
 
   describe('Performance and Scalability', () => {
-    it('should handle 100 agents efficiently', async () => {
+    it('should handle 100 agents efficiently', async () => { try {
       // Arrange - Register 100 agents
       const startTime = Date.now();
       const registrationPromises = Array.from({ length: 100 }, (_, i) =>
@@ -537,7 +537,7 @@ describe('TransparencySystem Integration Tests', () => {
       expect(queryTime).toBeLessThan(1000); // 1s to query 100 agents
     });
 
-    it('should handle rapid state updates efficiently', async () => {
+    it('should handle rapid state updates efficiently', async () => { try {
       // Arrange - Register agent
       await transparencySystem.registerAgent({
         agentId: 'rapid-update-test',

@@ -187,7 +187,7 @@ describe('MCP Integration Tests', () => {
   let eventBus: EventBus;
   let config: MCPConfig;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     logger = new Logger();
     await logger.configure({
       level: 'debug',
@@ -224,14 +224,14 @@ describe('MCP Integration Tests', () => {
     server = new MCPServer(config, eventBus, logger, mockOrchestrator);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (server) {
       await server.stop();
     }
   });
 
   describe('Server Lifecycle', () => {
-    it('should start and stop successfully', async () => {
+    it('should start and stop successfully', async () => { try {
       await server.start();
       
       const healthStatus = await server.getHealthStatus();
@@ -240,7 +240,7 @@ describe('MCP Integration Tests', () => {
       await server.stop();
     });
 
-    it('should register built-in tools on start', async () => {
+    it('should register built-in tools on start', async () => { try {
       await server.start();
       
       const metrics = server.getMetrics();
@@ -251,7 +251,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Tool Registry', () => {
-    it('should register and list tools correctly', async () => {
+    it('should register and list tools correctly', async () => { try {
       const testTool: MCPTool = {
         name: 'test/tool',
         description: 'A test tool',
@@ -276,7 +276,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Session Management', () => {
-    it('should create and manage sessions', async () => {
+    it('should create and manage sessions', async () => { try {
       const sessionManager = new SessionManager(config, logger);
       
       const session = sessionManager.createSession('stdio');
@@ -300,7 +300,7 @@ describe('MCP Integration Tests', () => {
       expect(sessionManager.getSession(session.id)).toBeUndefined();
     });
 
-    it('should handle session expiration', async () => {
+    it('should handle session expiration', async () => { try {
       const shortTimeoutConfig = { ...config, sessionTimeout: 100 };
       const sessionManager = new SessionManager(shortTimeoutConfig, logger);
       
@@ -315,7 +315,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Authentication', () => {
-    it('should authenticate with token', async () => {
+    it('should authenticate with token', async () => { try {
       const authConfig = {
         enabled: true,
         method: 'token' as const,
@@ -332,7 +332,7 @@ describe('MCP Integration Tests', () => {
       expect(invalidResult.success).toBe(false);
     });
 
-    it('should authenticate with basic auth', async () => {
+    it('should authenticate with basic auth', async () => { try {
       const authConfig = {
         enabled: true,
         method: 'basic' as const,
@@ -359,7 +359,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Load Balancer', () => {
-    it('should enforce rate limits', async () => {
+    it('should enforce rate limits', async () => { try {
       const lbConfig = {
         enabled: true,
         strategy: 'round-robin' as const,
@@ -387,7 +387,7 @@ describe('MCP Integration Tests', () => {
       expect(await loadBalancer.shouldAllowRequest(session, request)).toBe(false);
     });
 
-    it('should track metrics', async () => {
+    it('should track metrics', async () => { try {
       const lbConfig = {
         enabled: true,
         strategy: 'round-robin' as const,
@@ -417,44 +417,44 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Claude-Flow Tools', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await server.start();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       await server.stop();
     });
 
-    it('should spawn an agent', async () => {
+    it('should spawn an agent', async () => { try {
       // This would require a more complex setup with actual tool execution
       // For now, we verify the tools are registered
       const healthStatus = await server.getHealthStatus();
       expect(healthStatus.healthy).toBe(true);
     });
 
-    it('should list agents', async () => {
+    it('should list agents', async () => { try {
       const healthStatus = await server.getHealthStatus();
       expect(healthStatus.healthy).toBe(true);
     });
 
-    it('should create and manage tasks', async () => {
+    it('should create and manage tasks', async () => { try {
       const healthStatus = await server.getHealthStatus();
       expect(healthStatus.healthy).toBe(true);
     });
 
-    it('should query and store memory', async () => {
+    it('should query and store memory', async () => { try {
       const healthStatus = await server.getHealthStatus();
       expect(healthStatus.healthy).toBe(true);
     });
 
-    it('should execute terminal commands', async () => {
+    it('should execute terminal commands', async () => { try {
       const healthStatus = await server.getHealthStatus();
       expect(healthStatus.healthy).toBe(true);
     });
   });
 
   describe('Error Handling', () => {
-    it('should handle tool execution errors gracefully', async () => {
+    it('should handle tool execution errors gracefully', async () => { try {
       const errorTool: MCPTool = {
         name: 'test/error',
         description: 'A tool that throws errors',
@@ -462,7 +462,7 @@ describe('MCP Integration Tests', () => {
           type: 'object',
           properties: {},
         },
-        handler: async () => {
+        handler: async () => { try {
           throw new Error('Test error');
         },
       };
@@ -477,7 +477,7 @@ describe('MCP Integration Tests', () => {
       await server.stop();
     });
 
-    it('should handle invalid requests', async () => {
+    it('should handle invalid requests', async () => { try {
       await server.start();
       
       // Invalid request handling would be tested through transports
@@ -489,7 +489,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Protocol Compliance', () => {
-    it('should handle initialization correctly', async () => {
+    it('should handle initialization correctly', async () => { try {
       await server.start();
       
       // Protocol compliance would be tested through actual JSON-RPC messages
@@ -499,7 +499,7 @@ describe('MCP Integration Tests', () => {
       await server.stop();
     });
 
-    it('should handle notifications', async () => {
+    it('should handle notifications', async () => { try {
       await server.start();
       
       // Notification handling would be tested through transports
@@ -509,7 +509,7 @@ describe('MCP Integration Tests', () => {
       await server.stop();
     });
 
-    it('should format responses correctly', async () => {
+    it('should format responses correctly', async () => { try {
       await server.start();
       
       // Response formatting is tested through actual requests
@@ -521,7 +521,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Metrics and Monitoring', () => {
-    it('should track server metrics', async () => {
+    it('should track server metrics', async () => { try {
       await server.start();
       
       const metrics = server.getMetrics();
@@ -532,7 +532,7 @@ describe('MCP Integration Tests', () => {
       await server.stop();
     });
 
-    it('should provide health status', async () => {
+    it('should provide health status', async () => { try {
       await server.start();
       
       const healthStatus = await server.getHealthStatus();
@@ -542,7 +542,7 @@ describe('MCP Integration Tests', () => {
       await server.stop();
     });
 
-    it('should track session metrics', async () => {
+    it('should track session metrics', async () => { try {
       await server.start();
       
       const sessions = server.getSessions();

@@ -52,7 +52,7 @@ describe('Claude API Enhanced Error Handling', () => {
   });
 
   describe('500 Internal Server Error Handling', () => {
-    it('should retry on 500 error and eventually fail', async () => {
+    it('should retry on 500 error and eventually fail', async () => { try {
       mockFetch.mockRejectedValue({
         ok: false,
         status: 500,
@@ -91,7 +91,7 @@ describe('Claude API Enhanced Error Handling', () => {
       );
     });
 
-    it('should succeed after retry on 500 error', async () => {
+    it('should succeed after retry on 500 error', async () => { try {
       let callCount = 0;
       mockFetch.mockImplementation(() => {
         callCount++;
@@ -130,7 +130,7 @@ describe('Claude API Enhanced Error Handling', () => {
   });
 
   describe('503 Service Unavailable Handling', () => {
-    it('should retry on 503 error', async () => {
+    it('should retry on 503 error', async () => { try {
       mockFetch.mockImplementation(() => Promise.resolve({
         ok: false,
         status: 503,
@@ -148,7 +148,7 @@ describe('Claude API Enhanced Error Handling', () => {
   });
 
   describe('429 Rate Limit Handling', () => {
-    it('should retry with retry-after header', async () => {
+    it('should retry with retry-after header', async () => { try {
       mockFetch.mockImplementation(() => Promise.resolve({
         ok: false,
         status: 429,
@@ -173,7 +173,7 @@ describe('Claude API Enhanced Error Handling', () => {
   });
 
   describe('Timeout Handling', () => {
-    it('should handle request timeout', async () => {
+    it('should handle request timeout', async () => { try {
       mockFetch.mockImplementation(() => new Promise((resolve, reject) => {
         setTimeout(() => {
           const error = new Error('Aborted');
@@ -191,7 +191,7 @@ describe('Claude API Enhanced Error Handling', () => {
   });
 
   describe('Network Error Handling', () => {
-    it('should handle network connection errors', async () => {
+    it('should handle network connection errors', async () => { try {
       mockFetch.mockRejectedValue(new Error('fetch failed'));
 
       await expect(
@@ -199,7 +199,7 @@ describe('Claude API Enhanced Error Handling', () => {
       ).rejects.toThrow(ClaudeNetworkError);
     });
 
-    it('should handle ECONNREFUSED errors', async () => {
+    it('should handle ECONNREFUSED errors', async () => { try {
       mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
 
       await expect(
@@ -209,7 +209,7 @@ describe('Claude API Enhanced Error Handling', () => {
   });
 
   describe('Authentication Error Handling', () => {
-    it('should not retry on 401 authentication error', async () => {
+    it('should not retry on 401 authentication error', async () => { try {
       mockFetch.mockImplementation(() => Promise.resolve({
         ok: false,
         status: 401,
@@ -257,7 +257,7 @@ describe('Claude API Enhanced Error Handling', () => {
   });
 
   describe('Health Check', () => {
-    it('should perform health check successfully', async () => {
+    it('should perform health check successfully', async () => { try {
       mockFetch.mockImplementation(() => Promise.resolve({
         ok: true,
         json: async () => ({
@@ -278,7 +278,7 @@ describe('Claude API Enhanced Error Handling', () => {
       expect(result.error).toBeUndefined();
     });
 
-    it('should handle health check failure', async () => {
+    it('should handle health check failure', async () => { try {
       mockFetch.mockRejectedValue(new Error('Network error'));
 
       const result = await client.performHealthCheck();
@@ -291,7 +291,7 @@ describe('Claude API Enhanced Error Handling', () => {
       );
     });
 
-    it('should treat 429 as healthy in health check', async () => {
+    it('should treat 429 as healthy in health check', async () => { try {
       mockFetch.mockImplementation(() => Promise.resolve({
         ok: false,
         status: 429,
@@ -308,7 +308,7 @@ describe('Claude API Enhanced Error Handling', () => {
   });
 
   describe('Exponential Backoff', () => {
-    it('should apply exponential backoff with jitter', async () => {
+    it('should apply exponential backoff with jitter', async () => { try {
       const clientWithJitter = new ClaudeAPIClient(mockLogger, mockConfigManager as any, {
         retryAttempts: 3,
         retryDelay: 100,
@@ -339,4 +339,4 @@ describe('Claude API Enhanced Error Handling', () => {
       clientWithJitter.destroy();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

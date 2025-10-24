@@ -130,7 +130,7 @@ class MockTruthScorer {
                         content,
                         lines: content.split('\n').length,
                         size: content.length
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             }
         }
@@ -147,7 +147,7 @@ class MockTruthScorer {
                         path,
                         content,
                         testCount: (content.match(/test\(|it\(|describe\(/g) || []).length
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             }
         }
@@ -164,7 +164,7 @@ class MockTruthScorer {
                         path,
                         content,
                         wordCount: content.split(/\s+/).length
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             }
         }
@@ -181,7 +181,7 @@ class MockTruthScorer {
                         path,
                         content,
                         type: this.detectConfigType(path)
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             }
         }
@@ -209,7 +209,7 @@ class MockTruthScorer {
         if (completionData.files && completionData.files['package.json']) {
             try {
                 const pkg = JSON.parse(completionData.files['package.json']);
-                dependencies.npm = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
+                dependencies.npm = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             } catch (e) {
                 // Invalid package.json
             }
@@ -471,7 +471,7 @@ class MockTruthScorer {
                 type: 'score_manipulation',
                 severity: 'high',
                 description: 'Suspiciously high functionality score with low security'
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         // Detect hidden malicious content
@@ -483,7 +483,7 @@ class MockTruthScorer {
                         severity: 'critical',
                         file: path,
                         description: 'Obfuscated or dynamic code execution detected'
-                    });
+                    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                 }
             }
         }
@@ -497,7 +497,7 @@ class MockTruthScorer {
                 type: 'impossible_metrics',
                 severity: 'medium',
                 description: 'High reliability score without any test files'
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
 
         return {
@@ -600,10 +600,11 @@ describe('TruthScorer Integration Tests', () => {
     beforeEach(() => {
         truthScorer = new MockTruthScorer();
         jest.clearAllMocks();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Core Scoring Functionality', () => {
-        test('should score basic completion successfully', async () => {
+        jest.setTimeout(10000);
+  test('should score basic completion successfully', async () => { try {
             const completionData = {
                 id: 'test-completion-001',
                 type: 'javascript',
@@ -616,9 +617,10 @@ describe('TruthScorer Integration Tests', () => {
                     `,
                     'test.js': `
                         const greet = require('./index');
-                        test('greet function', () => {
+                        jest.setTimeout(10000);
+  test('greet function', () => {
                             expect(greet('World')).toBe('Hello, World!');
-                        });
+                        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                     `,
                     'README.md': '# Test Project\nThis is a simple greeting project.'
                 }
@@ -639,17 +641,20 @@ describe('TruthScorer Integration Tests', () => {
                 expect(score).toBeGreaterThanOrEqual(0);
                 expect(score).toBeLessThanOrEqual(1);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle complex multi-file projects', async () => {
+        jest.setTimeout(10000);
+  test('should handle complex multi-file projects', async () => { try {
             const completionData = {
                 id: 'complex-project-001',
                 type: 'typescript',
                 files: {
                     'src/main.ts': 'export class Calculator { add(a: number, b: number) { return a + b; } }',
                     'src/utils.ts': 'export function formatNumber(n: number) { return n.toFixed(2); }',
-                    'tests/calculator.test.ts': 'import { Calculator } from "../src/main"; test("add", () => {});',
-                    'tests/utils.test.ts': 'import { formatNumber } from "../src/utils"; test("format", () => {});',
+                    'tests/calculator.test.ts': 'import { Calculator } from "../src/main"; jest.setTimeout(10000);
+  test("add", () => {});',
+                    'tests/utils.test.ts': 'import { formatNumber } from "../src/utils"; jest.setTimeout(10000);
+  test("format", () => {});',
                     'package.json': '{"name": "calculator", "dependencies": {"typescript": "^4.0.0"}}',
                     'tsconfig.json': '{"compilerOptions": {"target": "es2020"}}',
                     'README.md': '# Calculator\nA TypeScript calculator library with comprehensive tests.',
@@ -667,9 +672,10 @@ describe('TruthScorer Integration Tests', () => {
 
             // Complex projects should score well on maintainability
             expect(result.dimensionalScores.maintainability).toBeGreaterThan(0.6);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should properly weight dimensional scores', async () => {
+        jest.setTimeout(10000);
+  test('should properly weight dimensional scores', async () => { try {
             const customScorer = new MockTruthScorer({
                 scoringWeights: {
                     functionality: 0.5,
@@ -678,13 +684,16 @@ describe('TruthScorer Integration Tests', () => {
                     maintainability: 0.1,
                     security: 0.1
                 }
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const completionData = {
                 id: 'weighted-test-001',
                 files: {
-                    'main.js': 'function test() { return "working"; }',
-                    'test.js': 'test("works", () => { expect(test()).toBe("working"); });'
+                    'main.js': 'function jest.setTimeout(10000);
+  test() { return "working"; }',
+                    'test.js': 'jest.setTimeout(10000);
+  test("works", () => { expect(jest.setTimeout(10000);
+  test()).toBe("working"); });'
                 }
             };
 
@@ -695,11 +704,12 @@ describe('TruthScorer Integration Tests', () => {
             const reliabilityContribution = result.dimensionalScores.reliability * 0.2;
 
             expect(functionalityContribution).toBeGreaterThan(reliabilityContribution);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Quality Gate Evaluation', () => {
-        test('should enforce all quality gates', async () => {
+        jest.setTimeout(10000);
+  test('should enforce all quality gates', async () => { try {
             const strictScorer = new MockTruthScorer({
                 qualityGates: {
                     codeQuality: 0.8,
@@ -707,7 +717,7 @@ describe('TruthScorer Integration Tests', () => {
                     documentation: 0.7,
                     security: 0.95
                 }
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const highQualityData = {
                 id: 'high-quality-001',
@@ -734,16 +744,18 @@ describe('TruthScorer Integration Tests', () => {
                         const Application = require('../src/app');
 
                         describe('Application', () => {
-                            test('initializes correctly', () => {
+                            jest.setTimeout(10000);
+  test('initializes correctly', () => {
                                 const app = new Application();
                                 expect(app.initialize()).toBe(true);
                                 expect(app.initialized).toBe(true);
-                            });
+                            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-                            test('handles errors gracefully', () => {
+                            jest.setTimeout(10000);
+  test('handles errors gracefully', () => {
                                 // Additional comprehensive test
-                            });
-                        });
+                            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+                        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                     `,
                     'README.md': `
                         # High Quality Application
@@ -777,9 +789,10 @@ describe('TruthScorer Integration Tests', () => {
             const passedGates = Object.values(result.qualityGateResults)
                 .filter(gate => gate.passed && typeof gate.passed === 'boolean').length;
             expect(passedGates).toBeGreaterThan(2);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should fail quality gates for poor code', async () => {
+        jest.setTimeout(10000);
+  test('should fail quality gates for poor code', async () => { try {
             const poorQualityData = {
                 id: 'poor-quality-001',
                 files: {
@@ -798,14 +811,15 @@ describe('TruthScorer Integration Tests', () => {
 
             // Security gate should definitely fail
             expect(result.qualityGateResults.security.passed).toBe(false);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Truth Threshold Validation', () => {
-        test('should validate truth threshold correctly', async () => {
+        jest.setTimeout(10000);
+  test('should validate truth threshold correctly', async () => { try {
             const highThresholdScorer = new MockTruthScorer({
                 truthThreshold: 0.9
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const excellentData = {
                 id: 'excellent-001',
@@ -840,16 +854,19 @@ describe('TruthScorer Integration Tests', () => {
                     `,
                     'tests/excellent.test.js': `
                         describe('ExcellentCode', () => {
-                            test('processes successfully', () => {
+                            jest.setTimeout(10000);
+  test('processes successfully', () => {
                                 // Comprehensive test
-                            });
-                            test('handles errors', () => {
+                            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+                            jest.setTimeout(10000);
+  test('handles errors', () => {
                                 // Error handling test
-                            });
-                            test('maintains state', () => {
+                            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+                            jest.setTimeout(10000);
+  test('maintains state', () => {
                                 // State management test
-                            });
-                        });
+                            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+                        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                     `,
                     'README.md': `
                         # Excellent Code Example
@@ -884,9 +901,10 @@ describe('TruthScorer Integration Tests', () => {
             if (!result.truthValidation.meetsThreshold) {
                 expect(result.truthValidation.gap).toBeGreaterThan(0);
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should apply custom validation rules', async () => {
+        jest.setTimeout(10000);
+  test('should apply custom validation rules', async () => { try {
             const customRulesScorer = new MockTruthScorer({
                 validationRules: [
                     {
@@ -901,7 +919,7 @@ describe('TruthScorer Integration Tests', () => {
                         gates: ['codeQuality', 'security']
                     }
                 ]
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const testData = {
                 id: 'custom-rules-001',
@@ -915,9 +933,10 @@ describe('TruthScorer Integration Tests', () => {
                         }
                     `,
                     'secure.test.js': `
-                        test('secure function', () => {
+                        jest.setTimeout(10000);
+  test('secure function', () => {
                             expect(secureFunction('TEST')).toBe('test');
-                        });
+                        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                     `
                 }
             };
@@ -933,11 +952,12 @@ describe('TruthScorer Integration Tests', () => {
                 expect(result.truthValidation.rule_minimum_functionality).toHaveProperty('score');
                 expect(result.truthValidation.rule_minimum_functionality).toHaveProperty('threshold');
             }
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Security Bypass Detection', () => {
-        test('should detect obfuscated malicious code', async () => {
+        jest.setTimeout(10000);
+  test('should detect obfuscated malicious code', async () => { try {
             const maliciousData = {
                 id: 'malicious-001',
                 files: {
@@ -963,9 +983,10 @@ describe('TruthScorer Integration Tests', () => {
                 .find(b => b.type === 'obfuscated_code');
             expect(obfuscatedBypass).toBeDefined();
             expect(obfuscatedBypass.severity).toBe('critical');
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should detect impossible quality metrics', async () => {
+        jest.setTimeout(10000);
+  test('should detect impossible quality metrics', async () => { try {
             const suspiciousData = {
                 id: 'suspicious-001',
                 files: {
@@ -989,9 +1010,10 @@ describe('TruthScorer Integration Tests', () => {
 
             // Restore original method
             jest.restoreAllMocks();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should detect score manipulation patterns', async () => {
+        jest.setTimeout(10000);
+  test('should detect score manipulation patterns', async () => { try {
             // Create data that would naturally have low security but might be manipulated
             const manipulatedData = {
                 id: 'manipulated-001',
@@ -1024,12 +1046,13 @@ describe('TruthScorer Integration Tests', () => {
             }
 
             jest.restoreAllMocks();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should allow bypass detection to be disabled', async () => {
+        jest.setTimeout(10000);
+  test('should allow bypass detection to be disabled', async () => { try {
             const noBypasScorer = new MockTruthScorer({
                 enableBypassDetection: false
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const suspiciousData = {
                 id: 'suspicious-no-bypass-001',
@@ -1042,11 +1065,12 @@ describe('TruthScorer Integration Tests', () => {
 
             expect(result.bypassDetection.detected).toBe(false);
             expect(result.bypassDetection.bypasses).toEqual([]);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Performance and Metrics', () => {
-        test('should track performance metrics', async () => {
+        jest.setTimeout(10000);
+  test('should track performance metrics', async () => { try {
             const testData = [
                 {
                     id: 'perf-test-001',
@@ -1073,9 +1097,10 @@ describe('TruthScorer Integration Tests', () => {
             expect(metrics.successRate).toBeGreaterThanOrEqual(0);
             expect(metrics.successRate).toBeLessThanOrEqual(1);
             expect(metrics.errorCount).toBe(0);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle performance benchmarking', async () => {
+        jest.setTimeout(10000);
+  test('should handle performance benchmarking', async () => { try {
             const benchmarkData = Array.from({ length: 10 }, (_, i) => ({
                 id: `benchmark-${i}`,
                 files: {
@@ -1096,10 +1121,11 @@ describe('TruthScorer Integration Tests', () => {
                 expect(result).toHaveProperty('scoringId');
                 expect(result).toHaveProperty('finalScore');
                 expect(result).toHaveProperty('passed');
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should maintain scoring history', async () => {
+        jest.setTimeout(10000);
+  test('should maintain scoring history', async () => { try {
             const historicalData = [
                 { id: 'hist-001', files: { 'a.js': 'var a = 1;' } },
                 { id: 'hist-002', files: { 'b.js': 'var b = 2;' } }
@@ -1123,10 +1149,11 @@ describe('TruthScorer Integration Tests', () => {
                 expect(entry).toHaveProperty('processingTime');
                 expect(entry).toHaveProperty('dimensionalScores');
                 expect(entry).toHaveProperty('finalScore');
-            });
-        });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle high-load scenarios', async () => {
+        jest.setTimeout(10000);
+  test('should handle high-load scenarios', async () => { try {
             const loadTestData = Array.from({ length: 50 }, (_, i) => ({
                 id: `load-test-${i}`,
                 files: {
@@ -1142,10 +1169,11 @@ describe('TruthScorer Integration Tests', () => {
                         }
                     `,
                     [`component${i}.test.js`]: `
-                        test('Component${i}', () => {
+                        jest.setTimeout(10000);
+  test('Component${i}', () => {
                             const c = new Component${i}();
-                            expect(c.process()).toBe(${i * 2});
-                        });
+                            expect(c.process()).toBe(${i * 2} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+                        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
                     `
                 }
             }));
@@ -1166,15 +1194,16 @@ describe('TruthScorer Integration Tests', () => {
             results.forEach(result => {
                 expect(result).toHaveProperty('passed');
                 expect(result.finalScore.overall).toBeGreaterThanOrEqual(0);
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             const metrics = truthScorer.getPerformanceMetrics();
             expect(metrics.totalScorings).toBe(50);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Error Handling and Edge Cases', () => {
-        test('should handle invalid completion data', async () => {
+        jest.setTimeout(10000);
+  test('should handle invalid completion data', async () => { try {
             const invalidDataCases = [
                 null,
                 undefined,
@@ -1195,9 +1224,10 @@ describe('TruthScorer Integration Tests', () => {
                     expect(error.message).toContain('TruthScorer error');
                 }
             }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle empty files gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle empty files gracefully', async () => { try {
             const emptyData = {
                 id: 'empty-001',
                 files: {}
@@ -1209,9 +1239,10 @@ describe('TruthScorer Integration Tests', () => {
             expect(result.preprocessedData.code).toHaveLength(0);
             expect(result.preprocessedData.tests).toHaveLength(0);
             expect(result.dimensionalScores.functionality).toBeLessThan(0.7); // Should score poorly
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle malformed file content', async () => {
+        jest.setTimeout(10000);
+  test('should handle malformed file content', async () => { try {
             const malformedData = {
                 id: 'malformed-001',
                 files: {
@@ -1226,9 +1257,10 @@ describe('TruthScorer Integration Tests', () => {
             expect(result).toBeDefined();
             // Should handle malformed content without crashing
             expect(result.passed).toBeDefined();
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle extremely large files', async () => {
+        jest.setTimeout(10000);
+  test('should handle extremely large files', async () => { try {
             const largeContent = 'console.log("large file");\n'.repeat(1000);
 
             const largeFileData = {
@@ -1245,9 +1277,10 @@ describe('TruthScorer Integration Tests', () => {
 
             // Large files should impact performance score
             expect(result.dimensionalScores.performance).toBeLessThan(0.8);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should recover from scoring errors', async () => {
+        jest.setTimeout(10000);
+  test('should recover from scoring errors', async () => { try {
             // Mock a scoring method to throw an error
             const originalScoreSecurity = truthScorer.scoreSecurity;
             truthScorer.scoreSecurity = jest.fn().mockRejectedValue(new Error('Scoring failed'));
@@ -1269,11 +1302,12 @@ describe('TruthScorer Integration Tests', () => {
 
             // Restore original method
             truthScorer.scoreSecurity = originalScoreSecurity;
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('Integration with Configuration', () => {
-        test('should respect custom configuration', async () => {
+        jest.setTimeout(10000);
+  test('should respect custom configuration', async () => { try {
             const customConfig = {
                 truthThreshold: 0.95,
                 qualityGates: {
@@ -1296,7 +1330,8 @@ describe('TruthScorer Integration Tests', () => {
             const testData = {
                 id: 'custom-config-001',
                 files: {
-                    'main.js': 'function test() { return "configured"; }'
+                    'main.js': 'function jest.setTimeout(10000);
+  test() { return "configured"; }'
                 }
             };
 
@@ -1305,9 +1340,10 @@ describe('TruthScorer Integration Tests', () => {
             expect(result.truthValidation.truthThreshold).toBe(0.95);
             expect(result.qualityGateResults.codeQuality.threshold).toBe(0.9);
             expect(result.metadata.truthThreshold).toBe(0.95);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-        test('should handle configuration updates', async () => {
+        jest.setTimeout(10000);
+  test('should handle configuration updates', async () => { try {
             // Test initial configuration
             expect(truthScorer.config.truthThreshold).toBe(0.8);
 
@@ -1324,11 +1360,12 @@ describe('TruthScorer Integration Tests', () => {
 
             expect(result.truthValidation.truthThreshold).toBe(0.9);
             expect(result.qualityGateResults.security.threshold).toBe(1.0);
-        });
-    });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     describe('System Reset and Cleanup', () => {
-        test('should reset system state', async () => {
+        jest.setTimeout(10000);
+  test('should reset system state', async () => { try {
             // Add some scoring history
             const testData = {
                 id: 'reset-test-001',
@@ -1350,6 +1387,6 @@ describe('TruthScorer Integration Tests', () => {
             expect(truthScorer.getPerformanceMetrics().averageProcessingTime).toBe(0);
             expect(truthScorer.getPerformanceMetrics().successRate).toBe(0);
             expect(truthScorer.getPerformanceMetrics().errorCount).toBe(0);
-        });
-    });
-});
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

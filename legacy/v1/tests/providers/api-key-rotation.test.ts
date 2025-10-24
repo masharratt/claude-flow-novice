@@ -93,7 +93,7 @@ describe('API Key Rotation', () => {
   });
 
   describe('Key Rotation', () => {
-    it('should rotate to next key when rate limited', async () => {
+    it('should rotate to next key when rate limited', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -148,7 +148,7 @@ describe('API Key Rotation', () => {
       expect(stats.activeKeys).toBe(2);
     });
 
-    it('should track usage per key', async () => {
+    it('should track usage per key', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2'],
         redis: mockRedis as any,
@@ -183,7 +183,7 @@ describe('API Key Rotation', () => {
       expect(stats.totalRequests).toBe(50);
     });
 
-    it('should respect 90% threshold for proactive rotation', async () => {
+    it('should respect 90% threshold for proactive rotation', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2'],
         redis: mockRedis as any,
@@ -219,7 +219,7 @@ describe('API Key Rotation', () => {
   });
 
   describe('Exponential Backoff', () => {
-    it('should use exponential backoff when all keys exhausted', async () => {
+    it('should use exponential backoff when all keys exhausted', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2'],
         redis: mockRedis as any,
@@ -266,7 +266,7 @@ describe('API Key Rotation', () => {
   });
 
   describe('Error Handling', () => {
-    it('should throw immediately for non-rate-limit errors', async () => {
+    it('should throw immediately for non-rate-limit errors', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2'],
         redis: mockRedis as any,
@@ -293,7 +293,7 @@ describe('API Key Rotation', () => {
       expect(stats.rateLimitedKeys).toBe(0);
     });
 
-    it('should handle network errors gracefully', async () => {
+    it('should handle network errors gracefully', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1'],
         redis: mockRedis as any,
@@ -315,7 +315,7 @@ describe('API Key Rotation', () => {
   });
 
   describe('Usage Statistics', () => {
-    it('should provide accurate usage stats', async () => {
+    it('should provide accurate usage stats', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -361,25 +361,25 @@ describe('RateLimitDetector', () => {
   });
 
   describe('Rate Limit Detection', () => {
-    it('should detect 429 status code', async () => {
+    it('should detect 429 status code', async () => { try {
       const error = { status: 429 };
       const isRateLimit = await detector.detectRateLimit(error);
       expect(isRateLimit).toBe(true);
     });
 
-    it('should detect rate_limit_exceeded error code', async () => {
+    it('should detect rate_limit_exceeded error code', async () => { try {
       const error = { code: 'rate_limit_exceeded' };
       const isRateLimit = await detector.detectRateLimit(error);
       expect(isRateLimit).toBe(true);
     });
 
-    it('should detect rate limit in error message', async () => {
+    it('should detect rate limit in error message', async () => { try {
       const error = { message: 'Too many requests, rate limit exceeded' };
       const isRateLimit = await detector.detectRateLimit(error);
       expect(isRateLimit).toBe(true);
     });
 
-    it('should not detect non-rate-limit errors', async () => {
+    it('should not detect non-rate-limit errors', async () => { try {
       const error = { status: 401, message: 'Unauthorized' };
       const isRateLimit = await detector.detectRateLimit(error);
       expect(isRateLimit).toBe(false);
@@ -387,7 +387,7 @@ describe('RateLimitDetector', () => {
   });
 
   describe('Retry-After Extraction', () => {
-    it('should extract Retry-After seconds', async () => {
+    it('should extract Retry-After seconds', async () => { try {
       const error = {
         response: {
           headers: {
@@ -400,7 +400,7 @@ describe('RateLimitDetector', () => {
       expect(retryAfter).toBe(60);
     });
 
-    it('should return null if no Retry-After header', async () => {
+    it('should return null if no Retry-After header', async () => { try {
       const error = {
         response: {
           headers: {},
@@ -413,7 +413,7 @@ describe('RateLimitDetector', () => {
   });
 
   describe('Backoff Calculation', () => {
-    it('should calculate exponential backoff correctly', async () => {
+    it('should calculate exponential backoff correctly', async () => { try {
       const delays = [
         await detector.calculateBackoffDelay(0, 1000, 60000),
         await detector.calculateBackoffDelay(1, 1000, 60000),
@@ -435,7 +435,7 @@ describe('RateLimitDetector', () => {
       expect(delays[3]).toBeLessThanOrEqual(8800);
     });
 
-    it('should cap at maximum delay', async () => {
+    it('should cap at maximum delay', async () => { try {
       const delay = await detector.calculateBackoffDelay(10, 1000, 10000);
       expect(delay).toBeLessThanOrEqual(11000); // maxDelay + 10% jitter
     });

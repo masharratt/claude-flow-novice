@@ -32,7 +32,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
   let redis: Redis;
   let orchestrators: Map<string, CFNLoopOrchestrator>;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis connection
     redis = new Redis({
       host: 'localhost',
@@ -50,7 +50,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup orchestrators
     for (const [id, orchestrator] of orchestrators.entries()) {
       await orchestrator.shutdown();
@@ -62,7 +62,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
   });
 
   describe('3 Independent Sprints (Target: <40min)', () => {
-    it('should execute 3 independent sprints in parallel without conflicts', async () => {
+    it('should execute 3 independent sprints in parallel without conflicts', async () => { try {
       const startTime = Date.now();
 
       // Create 3 independent sprints
@@ -161,7 +161,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
   });
 
   describe('5 Dependent Sprints (Target: <60min)', () => {
-    it('should execute 5 sprints with dependencies using productive waiting', async () => {
+    it('should execute 5 sprints with dependencies using productive waiting', async () => { try {
       const startTime = Date.now();
 
       // Define 5 sprints with dependency chain
@@ -285,7 +285,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
   });
 
   describe('Memory Leak Test (10 Sequential Epics)', () => {
-    it('should not leak memory across 10 sequential epic executions', async () => {
+    it('should not leak memory across 10 sequential epic executions', async () => { try {
       const memorySnapshots: number[] = [];
 
       // Force garbage collection if available
@@ -351,7 +351,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
   });
 
   describe('Port Conflict Prevention', () => {
-    it('should prevent port conflicts across concurrent orchestrators', async () => {
+    it('should prevent port conflicts across concurrent orchestrators', async () => { try {
       // Create 10 orchestrators simultaneously
       const orchestratorConfigs = Array.from({ length: 10 }, (_, i) => ({
         phaseId: `test-port-${i}`,
@@ -394,7 +394,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
   });
 
   describe('Coordination with 5+ Concurrent Sprints', () => {
-    it('should coordinate 7 concurrent sprints without deadlock', async () => {
+    it('should coordinate 7 concurrent sprints without deadlock', async () => { try {
       const startTime = Date.now();
 
       // Create 7 concurrent sprints
@@ -449,7 +449,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
   });
 
   describe('Redis State Persistence', () => {
-    it('should persist orchestrator state to Redis during execution', async () => {
+    it('should persist orchestrator state to Redis during execution', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'test-redis-persistence',
         swarmId: 'swarm-redis-test',
@@ -482,7 +482,7 @@ describe('Parallel CFN Loop Integration Tests', () => {
   });
 
   describe('Performance Benchmarks', () => {
-    it('should track and report performance metrics', async () => {
+    it('should track and report performance metrics', async () => { try {
       const config: CFNLoopConfig = {
         phaseId: 'test-performance',
         swarmId: 'swarm-perf',

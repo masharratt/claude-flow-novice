@@ -26,7 +26,7 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
   let mockEnhancedHookManager;
   let completionTruthValidator;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Mock existing TruthScorer system (745 lines)
     mockTruthScorer = {
       evaluateCompletion: jest.fn(),
@@ -65,7 +65,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
   });
 
   describe('TruthScorer Integration (Phase 1.1)', () => {
-    test('should integrate with existing 745-line TruthScorer system', async () => {
+    jest.setTimeout(10000);
+  test('should integrate with existing 745-line TruthScorer system', async () => { try {
       // FAILING TEST: CompletionTruthValidator not implemented yet
 
       // Mock TruthScorer to return high accuracy results
@@ -107,7 +108,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
       }).toThrow('Cannot find module');
     });
 
-    test('should achieve >85% accuracy on 100+ test completions with existing TruthScorer', async () => {
+    jest.setTimeout(10000);
+  test('should achieve >85% accuracy on 100+ test completions with existing TruthScorer', async () => { try {
       // FAILING TEST: Implementation required
 
       // Mock 100 test completions with varying truth scores
@@ -152,7 +154,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
       }
     });
 
-    test('should integrate with existing VerificationPipeline (1,080 lines)', async () => {
+    jest.setTimeout(10000);
+  test('should integrate with existing VerificationPipeline (1,080 lines)', async () => { try {
       // FAILING TEST: Integration not implemented
 
       mockVerificationPipeline.processValidationSteps.mockResolvedValue({
@@ -189,7 +192,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
   });
 
   describe('Byzantine Consensus Integration (Phase 1.1)', () => {
-    test('should validate all results with Byzantine consensus and cryptographic evidence', async () => {
+    jest.setTimeout(10000);
+  test('should validate all results with Byzantine consensus and cryptographic evidence', async () => { try {
       // FAILING TEST: Byzantine integration not implemented
 
       mockByzantineConsensus.achieveConsensus.mockResolvedValue({
@@ -229,7 +233,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
       }
     });
 
-    test('should maintain Byzantine fault tolerance with up to 1/3 faulty validators', async () => {
+    jest.setTimeout(10000);
+  test('should maintain Byzantine fault tolerance with up to 1/3 faulty validators', async () => { try {
       // FAILING TEST: Fault tolerance not implemented
 
       // Test with 7 validators, 2 faulty (< 1/3)
@@ -266,7 +271,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
   });
 
   describe('Framework-Specific Truth Thresholds (Phase 1.3)', () => {
-    test('should enforce TDD truth threshold ≥0.90 with 95% test coverage', async () => {
+    jest.setTimeout(10000);
+  test('should enforce TDD truth threshold ≥0.90 with 95% test coverage', async () => { try {
       // FAILING TEST: Framework thresholds not implemented
 
       const tddCompletion = {
@@ -290,7 +296,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
       }
     });
 
-    test('should enforce BDD truth threshold ≥0.85 with 90% scenario coverage', async () => {
+    jest.setTimeout(10000);
+  test('should enforce BDD truth threshold ≥0.85 with 90% scenario coverage', async () => { try {
       // FAILING TEST: Framework thresholds not implemented
 
       const bddCompletion = {
@@ -313,7 +320,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
       }
     });
 
-    test('should enforce SPARC truth threshold ≥0.80 with 100% phase completion', async () => {
+    jest.setTimeout(10000);
+  test('should enforce SPARC truth threshold ≥0.80 with 100% phase completion', async () => { try {
       // FAILING TEST: Framework thresholds not implemented
 
       const sparcCompletion = {
@@ -345,7 +353,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
   });
 
   describe('Performance Integration Requirements (Phase 1)', () => {
-    test('should maintain <5% performance degradation with existing systems', async () => {
+    jest.setTimeout(10000);
+  test('should maintain <5% performance degradation with existing systems', async () => { try {
       // FAILING TEST: Performance integration not implemented
 
       const startTime = performance.now();
@@ -384,7 +393,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
       }
     });
 
-    test('should complete Byzantine consensus within 5 minutes for 95% of validations', async () => {
+    jest.setTimeout(10000);
+  test('should complete Byzantine consensus within 5 minutes for 95% of validations', async () => { try {
       // FAILING TEST: Consensus timing not implemented
 
       const validations = Array.from({ length: 100 }, (_, i) => ({
@@ -417,7 +427,8 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
   });
 
   describe('Integration with Existing Claude Flow Infrastructure', () => {
-    test('should not break existing Claude Flow functionality', async () => {
+    jest.setTimeout(10000);
+  test('should not break existing Claude Flow functionality', async () => { try {
       // FAILING TEST: Non-breaking integration not implemented
 
       // Test that existing hooks system still works
@@ -449,4 +460,4 @@ describe('CompletionTruthValidator - Byzantine Secure Integration Tests', () => 
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

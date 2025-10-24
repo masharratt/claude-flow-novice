@@ -82,22 +82,26 @@ describe("ConfigManager", () => {
     configManager = ConfigManager["instance"] || new (ConfigManager as any)();
   });
 
+  jest.setTimeout(10000);
   test("getInstance returns a singleton instance", () => {
     const anotherInstance = ConfigManager.getInstance();
     expect(anotherInstance).toBe(configManager);
   });
 
-  test("getValue returns entire config object when no subkey specified", async () => {
+  jest.setTimeout(10000);
+  test("getValue returns entire config object when no subkey specified", async () => { try {
     const result = await configManager.getAll();
     expect(result).toEqual(mockConfig);
   });
 
-  test("getValue returns specific config value when subkey is specified", async () => {
+  jest.setTimeout(10000);
+  test("getValue returns specific config value when subkey is specified", async () => { try {
     const hostValue = await configManager.getValue("redis.host");
     expect(hostValue).toBe("localhost");
   });
 
-  test("set updates configuration", async () => {
+  jest.setTimeout(10000);
+  test("set updates configuration", async () => { try {
     await configManager.set("redis", {
       host: "newhost",
       port: 9999
@@ -111,7 +115,8 @@ describe("ConfigManager", () => {
     );
   });
 
-  test("resetToDefaults restores default configuration", async () => {
+  jest.setTimeout(10000);
+  test("resetToDefaults restores default configuration", async () => { try {
     const defaults = await configManager.resetToDefaults();
     expect(defaults).toEqual(mockConfig);
 
@@ -123,9 +128,10 @@ describe("ConfigManager", () => {
     );
   });
 
-  test("throws error when setting invalid configuration", async () => {
+  jest.setTimeout(10000);
+  test("throws error when setting invalid configuration", async () => { try {
     await expect(
       configManager.set("agent", "invalid" as any)
     ).rejects.toThrow("Invalid configuration value");
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

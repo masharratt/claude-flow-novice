@@ -217,7 +217,7 @@ describe('SystemMonitor', () => {
       globalThis.clearInterval = originalClearInterval;
     });
 
-    it('should collect metrics for running processes', async () => {
+    it('should collect metrics for running processes', async () => { try {
       await processManager.initialize();
       await processManager.startProcess('event-bus');
       
@@ -259,7 +259,7 @@ describe('SystemMonitor', () => {
   });
 
   describe('system health printing', () => {
-    it('should print system health', async () => {
+    it('should print system health', async () => { try {
       await processManager.initialize();
       await processManager.startProcess('event-bus');
       
@@ -321,4 +321,4 @@ describe('SystemMonitor', () => {
       expect(formatUptime(90061000)).toBe('1d 1h 1m'); 
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -159,7 +159,7 @@ describe('CfnLoopCommand', () => {
   });
 
   describe('execute', () => {
-    it('should return error when no task provided', async () => {
+    it('should return error when no task provided', async () => { try {
       const result = await command.execute([]);
 
       expect(result.success).toBe(false);
@@ -167,7 +167,7 @@ describe('CfnLoopCommand', () => {
       expect(result.usage).toBeDefined();
     });
 
-    it('should execute with valid task', async () => {
+    it('should execute with valid task', async () => { try {
       const result = await command.execute(['Implement', 'JWT', 'auth']);
 
       expect(result.success).toBe(true);
@@ -176,7 +176,7 @@ describe('CfnLoopCommand', () => {
       expect(result.config).toBeDefined();
     });
 
-    it('should include swarm configuration in result', async () => {
+    it('should include swarm configuration in result', async () => { try {
       const result = await command.execute(['Build', 'API']);
 
       expect(result.config.agentCount).toBeDefined();
@@ -186,7 +186,7 @@ describe('CfnLoopCommand', () => {
       expect(result.config.maxLoop3).toBe(10);
     });
 
-    it('should respect custom loop limits', async () => {
+    it('should respect custom loop limits', async () => { try {
       const result = await command.execute([
         'Test',
         'task',
@@ -198,13 +198,13 @@ describe('CfnLoopCommand', () => {
       expect(result.config.maxLoop3).toBe(8);
     });
 
-    it('should include memory namespace in result', async () => {
+    it('should include memory namespace in result', async () => { try {
       const result = await command.execute(['Task', '--phase=testing']);
 
       expect(result.memoryNamespace).toContain('cfn-loop/testing');
     });
 
-    it('should generate appropriate prompt with all loop instructions', async () => {
+    it('should generate appropriate prompt with all loop instructions', async () => { try {
       const result = await command.execute(['Implement', 'feature']);
 
       expect(result.prompt).toContain('LOOP 3');

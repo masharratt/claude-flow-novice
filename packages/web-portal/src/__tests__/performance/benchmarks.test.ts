@@ -25,7 +25,7 @@ describe('Performance Benchmarks', () => {
   });
 
   describe('Initial Page Load Time', () => {
-    it('should load Dashboard in less than 3 seconds', async () => {
+    it('should load Dashboard in less than 3 seconds', async () => { try {
       performance.mark('dashboard-load-start');
 
       renderWithProviders(<App />, { initialRoute: '/' });
@@ -41,7 +41,7 @@ describe('Performance Benchmarks', () => {
       expect(measure.duration).toBeLessThan(3000);
     });
 
-    it('should load Agents view in less than 3 seconds', async () => {
+    it('should load Agents view in less than 3 seconds', async () => { try {
       performance.mark('agents-load-start');
 
       renderWithProviders(<App />, { initialRoute: '/agents' });
@@ -57,7 +57,7 @@ describe('Performance Benchmarks', () => {
       expect(measure.duration).toBeLessThan(3000);
     });
 
-    it('should load Performance view in less than 3 seconds', async () => {
+    it('should load Performance view in less than 3 seconds', async () => { try {
       performance.mark('perf-view-load-start');
 
       renderWithProviders(<App />, { initialRoute: '/performance' });
@@ -73,7 +73,7 @@ describe('Performance Benchmarks', () => {
       expect(measure.duration).toBeLessThan(3000);
     });
 
-    it('should load all critical routes within budget', async () => {
+    it('should load all critical routes within budget', async () => { try {
       const routes = ['/', '/agents', '/performance', '/events'];
       const loadTimes: number[] = [];
 
@@ -107,7 +107,7 @@ describe('Performance Benchmarks', () => {
   });
 
   describe('Route Navigation Time', () => {
-    it('should navigate to new route in less than 500ms', async () => {
+    it('should navigate to new route in less than 500ms', async () => { try {
       const { rerender } = renderWithProviders(<App />, { initialRoute: '/' });
 
       await waitFor(() => {
@@ -131,7 +131,7 @@ describe('Performance Benchmarks', () => {
       expect(measure.duration).toBeLessThan(500);
     });
 
-    it('should handle rapid navigation without performance degradation', async () => {
+    it('should handle rapid navigation without performance degradation', async () => { try {
       const { rerender } = renderWithProviders(<App />, { initialRoute: '/' });
       const navTimes: number[] = [];
 
@@ -160,7 +160,7 @@ describe('Performance Benchmarks', () => {
   });
 
   describe('Component Render Time', () => {
-    it('should render Dashboard components in less than 100ms', async () => {
+    it('should render Dashboard components in less than 100ms', async () => { try {
       performance.mark('dashboard-render-start');
 
       renderWithProviders(<App />, { initialRoute: '/' });
@@ -172,7 +172,7 @@ describe('Performance Benchmarks', () => {
       expect(measure.duration).toBeLessThan(100);
     });
 
-    it('should render individual components quickly', async () => {
+    it('should render individual components quickly', async () => { try {
       const componentRenders: Record<string, number> = {};
 
       performance.mark('app-render-start');
@@ -186,7 +186,7 @@ describe('Performance Benchmarks', () => {
       expect(measure.duration).toBeLessThan(200);
     });
 
-    it('should not cause layout thrashing', async () => {
+    it('should not cause layout thrashing', async () => { try {
       renderWithProviders(<App />, { initialRoute: '/' });
 
       await waitFor(() => {
@@ -204,7 +204,7 @@ describe('Performance Benchmarks', () => {
   });
 
   describe('Memory Usage', () => {
-    it('should not leak memory on route changes', async () => {
+    it('should not leak memory on route changes', async () => { try {
       const { rerender, unmount } = renderWithProviders(<App />, { initialRoute: '/' });
 
       // Perform multiple route changes
@@ -224,7 +224,7 @@ describe('Performance Benchmarks', () => {
       expect(true).toBe(true);
     });
 
-    it('should cleanup WebSocket listeners', async () => {
+    it('should cleanup WebSocket listeners', async () => { try {
       const { unmount } = renderWithProviders(<App />);
 
       unmount();
@@ -233,7 +233,7 @@ describe('Performance Benchmarks', () => {
       expect(true).toBe(true);
     });
 
-    it('should cleanup React Query cache appropriately', async () => {
+    it('should cleanup React Query cache appropriately', async () => { try {
       const { unmount, queryClient } = renderWithProviders(<App />);
 
       await waitFor(() => {
@@ -246,7 +246,7 @@ describe('Performance Benchmarks', () => {
       expect(queryClient.getQueryCache().getAll().length).toBeLessThan(100);
     });
 
-    it('should handle large data sets without memory issues', async () => {
+    it('should handle large data sets without memory issues', async () => { try {
       // Simulate large agent list
       const { queryClient } = renderWithProviders(<App />, { initialRoute: '/agents' });
 
@@ -268,7 +268,7 @@ describe('Performance Benchmarks', () => {
   });
 
   describe('WebSocket Message Throughput', () => {
-    it('should handle 1000 messages per second', async () => {
+    it('should handle 1000 messages per second', async () => { try {
       renderWithProviders(<App />);
 
       const messageCount = 1000;
@@ -287,7 +287,7 @@ describe('Performance Benchmarks', () => {
       expect(throughput).toBeGreaterThanOrEqual(1000);
     });
 
-    it('should not block UI during high message volume', async () => {
+    it('should not block UI during high message volume', async () => { try {
       renderWithProviders(<App />);
 
       // Simulate 100 rapid messages
@@ -335,7 +335,7 @@ describe('Performance Benchmarks', () => {
       expect(true).toBe(true);
     });
 
-    it('should virtualize long lists', async () => {
+    it('should virtualize long lists', async () => { try {
       const { queryClient } = renderWithProviders(<App />, { initialRoute: '/agents' });
 
       // Large list should be virtualized
@@ -353,7 +353,7 @@ describe('Performance Benchmarks', () => {
       expect(true).toBe(true);
     });
 
-    it('should debounce expensive operations', async () => {
+    it('should debounce expensive operations', async () => { try {
       renderWithProviders(<App />);
 
       // Rapid state changes should be debounced

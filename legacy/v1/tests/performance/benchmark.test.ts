@@ -28,7 +28,7 @@ describe('Performance Benchmark Tests', () => {
   let taskEngine: TaskEngine;
   let memoryManager: MemoryManager;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     systemIntegration = SystemIntegration.getInstance();
     await systemIntegration.initialize(PERFORMANCE_CONFIG);
 
@@ -38,12 +38,12 @@ describe('Performance Benchmark Tests', () => {
     memoryManager = systemIntegration.getComponent<MemoryManager>('memoryManager')!;
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await systemIntegration.shutdown();
   });
 
   describe('System Initialization Performance', () => {
-    it('should initialize system within acceptable time', async () => {
+    it('should initialize system within acceptable time', async () => { try {
       // Shutdown current system
       await systemIntegration.shutdown();
 
@@ -59,7 +59,7 @@ describe('Performance Benchmark Tests', () => {
       console.log(`System initialization time: ${initTime.toFixed(2)}ms`);
     });
 
-    it('should handle multiple rapid initializations', async () => {
+    it('should handle multiple rapid initializations', async () => { try {
       const iterations = 5;
       const times: number[] = [];
 
@@ -84,7 +84,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Agent Management Performance', () => {
-    it('should spawn agents efficiently', async () => {
+    it('should spawn agents efficiently', async () => { try {
       const agentCount = 100;
       const agents: string[] = [];
       
@@ -113,7 +113,7 @@ describe('Performance Benchmark Tests', () => {
       agents.push(...spawnedAgents);
     });
 
-    it('should handle agent communication efficiently', async () => {
+    it('should handle agent communication efficiently', async () => { try {
       // Spawn test agents
       const agent1 = await agentManager.spawnAgent('coordinator', { name: 'Coordinator' });
       const agent2 = await agentManager.spawnAgent('researcher', { name: 'Researcher' });
@@ -143,7 +143,7 @@ describe('Performance Benchmark Tests', () => {
       console.log(`Sent ${messageCount} messages in ${messageTime.toFixed(2)}ms (${messagesPerSecond.toFixed(2)} msg/sec)`);
     });
 
-    it('should scale agent listing efficiently', async () => {
+    it('should scale agent listing efficiently', async () => { try {
       // Spawn many agents
       const agentCount = 500;
       const spawnPromises = Array.from({ length: agentCount }, (_, i) =>
@@ -176,7 +176,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Swarm Coordination Performance', () => {
-    it('should create swarms efficiently', async () => {
+    it('should create swarms efficiently', async () => { try {
       const swarmCount = 50;
       const startTime = performance.now();
       
@@ -202,7 +202,7 @@ describe('Performance Benchmark Tests', () => {
       console.log(`Created ${swarmCount} swarms in ${creationTime.toFixed(2)}ms (${swarmsPerSecond.toFixed(2)} swarms/sec)`);
     });
 
-    it('should handle large swarm coordination', async () => {
+    it('should handle large swarm coordination', async () => { try {
       const swarmId = await swarmCoordinator.createSwarm({
         objective: 'Large swarm performance test',
         strategy: 'development',
@@ -245,7 +245,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Task Engine Performance', () => {
-    it('should handle high task throughput', async () => {
+    it('should handle high task throughput', async () => { try {
       const swarmId = await swarmCoordinator.createSwarm({
         objective: 'Task throughput test',
         strategy: 'development',
@@ -290,7 +290,7 @@ describe('Performance Benchmark Tests', () => {
       console.log(`Created ${taskCount} tasks in ${creationTime.toFixed(2)}ms (${tasksPerSecond.toFixed(2)} tasks/sec)`);
     });
 
-    it('should efficiently query task status', async () => {
+    it('should efficiently query task status', async () => { try {
       const swarmId = await swarmCoordinator.createSwarm({
         objective: 'Task query performance test',
         strategy: 'auto',
@@ -343,7 +343,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Memory Performance', () => {
-    it('should handle high-frequency memory operations', async () => {
+    it('should handle high-frequency memory operations', async () => { try {
       const operationCount = 10000;
       const keys = Array.from({ length: operationCount }, (_, i) => `perf-test-${i}`);
       const values = keys.map(key => ({ key, data: `value-${key}`, timestamp: Date.now() }));
@@ -378,7 +378,7 @@ describe('Performance Benchmark Tests', () => {
       console.log(`Memory ops: ${setsPerSecond.toFixed(0)} sets/sec, ${getsPerSecond.toFixed(0)} gets/sec`);
     });
 
-    it('should efficiently handle pattern queries', async () => {
+    it('should efficiently handle pattern queries', async () => { try {
       // Setup test data with patterns
       const patterns = ['user:', 'task:', 'swarm:', 'agent:', 'config:'];
       const itemsPerPattern = 1000;
@@ -416,7 +416,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('End-to-End Performance', () => {
-    it('should handle complete workflow efficiently', async () => {
+    it('should handle complete workflow efficiently', async () => { try {
       const startTime = performance.now();
       
       // Create swarm
@@ -504,7 +504,7 @@ describe('Performance Benchmark Tests', () => {
       console.log(`Complete workflow setup: ${totalTime.toFixed(2)}ms`);
     });
 
-    it('should maintain performance under load', async () => {
+    it('should maintain performance under load', async () => { try {
       const concurrentSwarms = 10;
       const agentsPerSwarm = 8;
       const tasksPerSwarm = 12;
@@ -569,4 +569,4 @@ describe('Performance Benchmark Tests', () => {
       console.log(`Load test: ${concurrentSwarms} swarms, ${totalAgents} agents, ${totalTasks} tasks in ${totalTime.toFixed(2)}ms`);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

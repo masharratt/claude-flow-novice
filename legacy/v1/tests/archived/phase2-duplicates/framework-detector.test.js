@@ -27,7 +27,7 @@ describe('FrameworkDetector', () => {
 
     detector = new FrameworkDetector({
       basePath: '/test/project'
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Replace with mock
     detector.memoryStore = mockMemoryStore;
@@ -35,14 +35,14 @@ describe('FrameworkDetector', () => {
 
     // Clear all mocks
     jest.clearAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterEach(() => {
     jest.restoreAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('JavaScript Project Detection', () => {
-    it('should detect JavaScript projects with 90%+ confidence', async () => {
+    it('should detect JavaScript projects with 90%+ confidence', async () => { try {
       // Mock JavaScript project structure
       fs.readdir.mockImplementation(async (dir, options) => {
         if (dir.includes('/test/project')) {
@@ -61,12 +61,12 @@ describe('FrameworkDetector', () => {
           ];
         }
         return [];
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       fs.access.mockImplementation(async (filePath) => {
         if (filePath.includes('package.json')) return;
         throw new Error('File not found');
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       fs.readFile.mockImplementation(async (filePath, encoding) => {
         if (filePath.includes('package.json')) {
@@ -76,13 +76,13 @@ describe('FrameworkDetector', () => {
             scripts: { test: 'jest' },
             devDependencies: { jest: '^29.0.0' },
             dependencies: { express: '^4.0.0' }
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         if (filePath.includes('.js')) {
           return 'const express = require("express");\nmodule.exports = app;';
         }
         throw new Error('File not found');
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await detector.detectFramework();
 
@@ -91,9 +91,9 @@ describe('FrameworkDetector', () => {
       expect(result.evidence.files.packageJson).toBe(true);
       expect(result.evidence.files.jsFiles).toBeGreaterThan(0);
       expect(result.metadata.filesAnalyzed).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should detect Jest testing framework in JavaScript projects', async () => {
+    it('should detect Jest testing framework in JavaScript projects', async () => { try {
       fs.readdir.mockResolvedValue([
         { name: 'package.json', isFile: () => true, isDirectory: () => false },
         { name: 'app.test.js', isFile: () => true, isDirectory: () => false }
@@ -105,23 +105,23 @@ describe('FrameworkDetector', () => {
         if (filePath.includes('package.json')) {
           return JSON.stringify({
             devDependencies: { jest: '^29.0.0' }
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         if (filePath.includes('test.js')) {
           return 'describe("test", () => { it("should work", () => { expect(true).toBe(true); }); });';
         }
         return '';
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await detector.detectFramework();
 
       expect(result.evidence.testingFrameworks).toContain('jest');
       expect(result.evidence.packageJson['devDependencies.jest']).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('TypeScript Project Detection', () => {
-    it('should detect TypeScript projects with 90%+ confidence', async () => {
+    it('should detect TypeScript projects with 90%+ confidence', async () => { try {
       fs.readdir.mockImplementation(async (dir) => {
         if (dir.includes('/test/project')) {
           return [
@@ -138,7 +138,7 @@ describe('FrameworkDetector', () => {
           ];
         }
         return [];
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       fs.access.mockResolvedValue(undefined);
 
@@ -150,16 +150,16 @@ describe('FrameworkDetector', () => {
               '@types/node': '^20.0.0',
               'ts-jest': '^29.0.0'
             }
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         if (filePath.includes('tsconfig.json')) {
-          return JSON.stringify({ compilerOptions: { target: 'ES2022' } });
+          return JSON.stringify({ compilerOptions: { target: 'ES2022' } } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         if (filePath.includes('.ts')) {
           return 'interface User { id: number; name: string; }\nexport type UserID = number;';
         }
         return '';
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await detector.detectFramework();
 
@@ -168,9 +168,9 @@ describe('FrameworkDetector', () => {
       expect(result.evidence.files.tsFiles).toBeGreaterThan(0);
       expect(result.evidence.files['tsconfig.json']).toBe(true);
       expect(result.evidence.packageJson.typescript).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should detect TypeScript-specific patterns in code', async () => {
+    it('should detect TypeScript-specific patterns in code', async () => { try {
       fs.readdir.mockResolvedValue([
         { name: 'main.ts', isFile: () => true, isDirectory: () => false }
       ]);
@@ -199,11 +199,11 @@ describe('FrameworkDetector', () => {
       expect(result.scores.typescript).toBeGreaterThan(0);
       expect(result.evidence.patterns.typescript).toBeDefined();
       expect(result.metadata.patternsMatched).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Python Project Detection', () => {
-    it('should detect Python projects with 90%+ confidence', async () => {
+    it('should detect Python projects with 90%+ confidence', async () => { try {
       fs.readdir.mockImplementation(async (dir) => {
         if (dir.includes('/test/project')) {
           return [
@@ -222,7 +222,7 @@ describe('FrameworkDetector', () => {
           ];
         }
         return [];
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       fs.access.mockResolvedValue(undefined);
 
@@ -256,7 +256,7 @@ if __name__ == "__main__":
           `;
         }
         return '';
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await detector.detectFramework();
 
@@ -265,9 +265,9 @@ if __name__ == "__main__":
       expect(result.evidence.files['requirements.txt']).toBe(true);
       expect(result.evidence.files['setup.py']).toBe(true);
       expect(result.evidence.files.pyFiles).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should detect pytest testing framework in Python projects', async () => {
+    it('should detect pytest testing framework in Python projects', async () => { try {
       fs.readdir.mockResolvedValue([
         { name: 'test_main.py', isFile: () => true, isDirectory: () => false },
         { name: 'pytest.ini', isFile: () => true, isDirectory: () => false }
@@ -294,16 +294,16 @@ def test_with_fixture(sample_data):
           `;
         }
         return '';
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await detector.detectFramework();
 
       expect(result.evidence.testingFrameworks).toContain('pytest');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Edge Cases and Error Handling', () => {
-    it('should handle unreadable directories gracefully', async () => {
+    it('should handle unreadable directories gracefully', async () => { try {
       fs.readdir.mockRejectedValue(new Error('Permission denied'));
       fs.access.mockRejectedValue(new Error('File not found'));
 
@@ -312,9 +312,9 @@ def test_with_fixture(sample_data):
       expect(result.detected).toBe('unknown');
       expect(result.confidence).toBe(0);
       expect(result.error).toBeUndefined(); // Should not throw, just low confidence
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle corrupted package.json files', async () => {
+    it('should handle corrupted package.json files', async () => { try {
       fs.readdir.mockResolvedValue([
         { name: 'package.json', isFile: () => true, isDirectory: () => false }
       ]);
@@ -326,9 +326,9 @@ def test_with_fixture(sample_data):
 
       expect(result.detected).toBe('unknown');
       expect(result.confidence).toBeLessThan(0.5);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle mixed project types with weighted scoring', async () => {
+    it('should handle mixed project types with weighted scoring', async () => { try {
       fs.readdir.mockResolvedValue([
         { name: 'package.json', isFile: () => true, isDirectory: () => false },
         { name: 'tsconfig.json', isFile: () => true, isDirectory: () => false },
@@ -343,16 +343,16 @@ def test_with_fixture(sample_data):
         if (filePath.includes('package.json')) {
           return JSON.stringify({
             devDependencies: { typescript: '^5.0.0' }
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         if (filePath.includes('tsconfig.json')) {
-          return JSON.stringify({});
+          return JSON.stringify({} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         if (filePath.includes('requirements.txt')) {
           return 'flask==2.0.0';
         }
         return '';
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await detector.detectFramework();
 
@@ -360,11 +360,11 @@ def test_with_fixture(sample_data):
       expect(result.detected).toBe('typescript');
       expect(result.confidence).toBeGreaterThan(0.5);
       expect(result.scores.typescript).toBeGreaterThan(result.scores.python);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance and Accuracy Requirements', () => {
-    it('should complete detection in under 5 seconds', async () => {
+    it('should complete detection in under 5 seconds', async () => { try {
       // Mock a large project structure
       const generateMockFiles = (count) => {
         return Array.from({ length: count }, (_, i) => ({
@@ -388,9 +388,9 @@ def test_with_fixture(sample_data):
 
       expect(detectionTime).toBeLessThan(5000);
       expect(result.metadata.detectionTime).toBeLessThan(5000);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should achieve >90% accuracy on known project structures', async () => {
+    it('should achieve >90% accuracy on known project structures', async () => { try {
       const testCases = [
         {
           name: 'React TypeScript Project',
@@ -440,18 +440,18 @@ def test_with_fixture(sample_data):
           const fileName = path.basename(filePath);
           const file = testCase.files.find(f => f.name === fileName);
           return file ? file.content : '';
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         const result = await detector.detectFramework();
 
         expect(result.detected).toBe(testCase.expected);
         expect(result.confidence).toBeGreaterThan(testCase.minConfidence);
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Framework-Specific Features', () => {
-    it('should detect monorepo structures', async () => {
+    it('should detect monorepo structures', async () => { try {
       fs.readdir.mockImplementation(async (dir) => {
         if (dir.includes('/test/project')) {
           return [
@@ -461,7 +461,7 @@ def test_with_fixture(sample_data):
           ];
         }
         return [];
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       fs.access.mockResolvedValue(undefined);
 
@@ -470,21 +470,21 @@ def test_with_fixture(sample_data):
           return JSON.stringify({
             workspaces: ['packages/*'],
             devDependencies: { lerna: '^6.0.0' }
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         if (filePath.includes('lerna.json')) {
-          return JSON.stringify({ version: 'independent' });
+          return JSON.stringify({ version: 'independent' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         return '';
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await detector.detectFramework();
 
       expect(result.detected).toBe('javascript');
       expect(result.evidence.packageJson.workspaces).toBeUndefined(); // Not implemented in patterns yet
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should detect modern build tools', async () => {
+    it('should detect modern build tools', async () => { try {
       fs.readdir.mockResolvedValue([
         { name: 'package.json', isFile: () => true, isDirectory: () => false },
         { name: 'vite.config.js', isFile: () => true, isDirectory: () => false },
@@ -500,18 +500,18 @@ def test_with_fixture(sample_data):
               vite: '^5.0.0',
               '@vitejs/plugin-react': '^4.0.0'
             }
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
         return '';
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const result = await detector.detectFramework();
 
       expect(result.detected).toBe('javascript');
       // Modern tooling should boost confidence
       expect(result.confidence).toBeGreaterThan(0.7);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Helper Methods', () => {
     it('should correctly match file patterns', () => {
@@ -519,7 +519,7 @@ def test_with_fixture(sample_data):
       expect(detector.matchesPattern('file.test.js', '*.test.js')).toBe(true);
       expect(detector.matchesPattern('package.json', 'package.json')).toBe(true);
       expect(detector.matchesPattern('main.py', '*.js')).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should correctly access nested properties', () => {
       const obj = {
@@ -532,22 +532,22 @@ def test_with_fixture(sample_data):
       expect(detector.getNestedProperty(obj, 'devDependencies.jest')).toBe('^29.0.0');
       expect(detector.getNestedProperty(obj, 'devDependencies.@types/node')).toBe('^20.0.0');
       expect(detector.getNestedProperty(obj, 'nonexistent.key')).toBeUndefined();
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 /**
  * Integration Tests
  */
 describe('FrameworkDetector Integration', () => {
-  it('should integrate with TruthConfigManager', async () => {
+  it('should integrate with TruthConfigManager', async () => { try {
     // This test would verify integration with the config manager
     // For now, we test that the detector can be used standalone
     const detector = new FrameworkDetector();
     expect(detector).toBeInstanceOf(FrameworkDetector);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  it('should cache detection results for performance', async () => {
+  it('should cache detection results for performance', async () => { try {
     const detector = new FrameworkDetector();
     const mockStore = {
       initialize: jest.fn(),
@@ -575,5 +575,5 @@ describe('FrameworkDetector Integration', () => {
         })
       })
     );
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

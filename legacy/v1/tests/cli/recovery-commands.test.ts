@@ -88,7 +88,7 @@ describe('Recovery Commands', () => {
   let redis: RedisClientType;
   let checkpointManager: StateCheckpointManager;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize Redis client
     redis = createClient({ url: 'redis://localhost:6379' });
     await redis.connect();
@@ -105,7 +105,7 @@ describe('Recovery Commands', () => {
     // In tests, we simulate this by updating the timestamp
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup Redis keys
     const keys = await redis.keys('cfn:checkpoint:*');
     if (keys.length > 0) {
@@ -117,7 +117,7 @@ describe('Recovery Commands', () => {
   });
 
   describe('recovery:status', () => {
-    it('should detect interrupted epic', async () => {
+    it('should detect interrupted epic', async () => { try {
       // Simulate crash by not updating checkpoint for 2+ minutes
       // (already set in mock data)
 
@@ -135,7 +135,7 @@ describe('Recovery Commands', () => {
       await detector.shutdown();
     });
 
-    it('should not detect completed epic', async () => {
+    it('should not detect completed epic', async () => { try {
       // Update epic to completed status
       const completedEpic = { ...mockEpicState, status: 'completed' as const };
       await checkpointManager.updateState(completedEpic);
@@ -151,7 +151,7 @@ describe('Recovery Commands', () => {
       await detector.shutdown();
     });
 
-    it('should calculate sprint progress correctly', async () => {
+    it('should calculate sprint progress correctly', async () => { try {
       const detector = new CrashDetector();
       await detector.initialize();
 
@@ -171,7 +171,7 @@ describe('Recovery Commands', () => {
       await detector.shutdown();
     });
 
-    it('should determine recovery strategy', async () => {
+    it('should determine recovery strategy', async () => { try {
       const detector = new CrashDetector();
       await detector.initialize();
 
@@ -187,7 +187,7 @@ describe('Recovery Commands', () => {
       await detector.shutdown();
     });
 
-    it('should estimate work loss', async () => {
+    it('should estimate work loss', async () => { try {
       const detector = new CrashDetector();
       await detector.initialize();
 
@@ -199,7 +199,7 @@ describe('Recovery Commands', () => {
       await detector.shutdown();
     });
 
-    it('should estimate recovery time', async () => {
+    it('should estimate recovery time', async () => { try {
       const detector = new CrashDetector();
       await detector.initialize();
 
@@ -212,7 +212,7 @@ describe('Recovery Commands', () => {
   });
 
   describe('recovery:resume', () => {
-    it('should resume epic from checkpoint', async () => {
+    it('should resume epic from checkpoint', async () => { try {
       const engine = new RecoveryEngine();
       await engine.initialize();
 
@@ -226,7 +226,7 @@ describe('Recovery Commands', () => {
       await engine.shutdown();
     });
 
-    it('should skip completed sprints', async () => {
+    it('should skip completed sprints', async () => { try {
       const engine = new RecoveryEngine();
       await engine.initialize();
 
@@ -238,7 +238,7 @@ describe('Recovery Commands', () => {
       await engine.shutdown();
     });
 
-    it('should resume in-progress sprints', async () => {
+    it('should resume in-progress sprints', async () => { try {
       const engine = new RecoveryEngine();
       await engine.initialize();
 
@@ -250,7 +250,7 @@ describe('Recovery Commands', () => {
       await engine.shutdown();
     });
 
-    it('should filter sprints if specified', async () => {
+    it('should filter sprints if specified', async () => { try {
       const engine = new RecoveryEngine();
       await engine.initialize();
 
@@ -265,7 +265,7 @@ describe('Recovery Commands', () => {
       await engine.shutdown();
     });
 
-    it('should throw error for non-existent epic', async () => {
+    it('should throw error for non-existent epic', async () => { try {
       const engine = new RecoveryEngine();
       await engine.initialize();
 
@@ -276,7 +276,7 @@ describe('Recovery Commands', () => {
       await engine.shutdown();
     });
 
-    it('should calculate work loss percentage', async () => {
+    it('should calculate work loss percentage', async () => { try {
       const engine = new RecoveryEngine();
       await engine.initialize();
 
@@ -290,7 +290,7 @@ describe('Recovery Commands', () => {
   });
 
   describe('recovery:inspect', () => {
-    it('should retrieve checkpoint history', async () => {
+    it('should retrieve checkpoint history', async () => { try {
       // Create multiple checkpoints
       for (let i = 0; i < 5; i++) {
         await checkpointManager.updateState(mockEpicState);
@@ -314,7 +314,7 @@ describe('Recovery Commands', () => {
       });
     });
 
-    it('should sort checkpoints by version descending', async () => {
+    it('should sort checkpoints by version descending', async () => { try {
       // Create multiple checkpoints
       for (let i = 0; i < 3; i++) {
         await checkpointManager.updateState(mockEpicState);
@@ -330,7 +330,7 @@ describe('Recovery Commands', () => {
       }
     });
 
-    it('should limit checkpoint history', async () => {
+    it('should limit checkpoint history', async () => { try {
       // Create more checkpoints than limit
       for (let i = 0; i < 15; i++) {
         await checkpointManager.updateState(mockEpicState);
@@ -343,7 +343,7 @@ describe('Recovery Commands', () => {
       expect(history.length).toBeLessThanOrEqual(10);
     });
 
-    it('should validate checkpoint size', async () => {
+    it('should validate checkpoint size', async () => { try {
       const history = await checkpointManager.getCheckpointHistory('epic-test-123', 10);
 
       history.forEach((checkpoint) => {
@@ -352,7 +352,7 @@ describe('Recovery Commands', () => {
       });
     });
 
-    it('should validate write latency', async () => {
+    it('should validate write latency', async () => { try {
       const history = await checkpointManager.getCheckpointHistory('epic-test-123', 10);
 
       history.forEach((checkpoint) => {
@@ -363,7 +363,7 @@ describe('Recovery Commands', () => {
   });
 
   describe('recovery:abandon', () => {
-    it('should delete all checkpoint keys for epic', async () => {
+    it('should delete all checkpoint keys for epic', async () => { try {
       // Verify keys exist
       const keysBefore = await redis.keys('cfn:checkpoint:epic-test-123:*');
       expect(keysBefore.length).toBeGreaterThan(0);
@@ -379,7 +379,7 @@ describe('Recovery Commands', () => {
       expect(keysAfter.length).toBe(0);
     });
 
-    it('should not affect other epic checkpoints', async () => {
+    it('should not affect other epic checkpoints', async () => { try {
       // Create checkpoint for another epic
       const otherEpic: EpicState = {
         ...mockEpicState,
@@ -403,7 +403,7 @@ describe('Recovery Commands', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle Redis connection failure', async () => {
+    it('should handle Redis connection failure', async () => { try {
       const detector = new CrashDetector();
 
       // Try to initialize with invalid Redis URL
@@ -412,7 +412,7 @@ describe('Recovery Commands', () => {
       ).rejects.toThrow();
     });
 
-    it('should handle corrupted checkpoint data', async () => {
+    it('should handle corrupted checkpoint data', async () => { try {
       // Write corrupted data to Redis
       await redis.set('cfn:checkpoint:corrupted:1', 'invalid-json');
 
@@ -426,7 +426,7 @@ describe('Recovery Commands', () => {
       await detector.shutdown();
     });
 
-    it('should handle missing checkpoint metadata', async () => {
+    it('should handle missing checkpoint metadata', async () => { try {
       // Write checkpoint without metadata
       await redis.set(
         'cfn:checkpoint:missing-meta:1',

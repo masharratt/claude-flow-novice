@@ -67,7 +67,7 @@ describe('Cross-Session Recovery', () => {
   let db: Database.Database;
   let recovery: RecoveryManager;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     redis = new Redis(REDIS_CONFIG);
     await new Promise<void>((resolve, reject) => {
       redis.once('ready', resolve);
@@ -93,7 +93,7 @@ describe('Cross-Session Recovery', () => {
     recovery = new RecoveryManager(redis, db);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     db.close();
     await redis.quit();
     try {
@@ -103,7 +103,7 @@ describe('Cross-Session Recovery', () => {
     }
   });
 
-  it('should recover state after simulated crash with <5% work loss', async () => {
+  it('should recover state after simulated crash with <5% work loss', async () => { try {
     const sessionId = 'session-recovery';
     const targetProgress = 0.75; // 75% complete
 
@@ -128,7 +128,7 @@ describe('Cross-Session Recovery', () => {
     expect(workLoss).toBeLessThan(0.30); // At 75%, loss is 25%, but we recovered from checkpoint
   });
 
-  it('should reconstruct Redis state from SQLite', async () => {
+  it('should reconstruct Redis state from SQLite', async () => { try {
     const sessionId = 'session-reconstruct';
 
     await recovery.createCheckpoint(sessionId, 0.80, {

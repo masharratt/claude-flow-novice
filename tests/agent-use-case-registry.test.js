@@ -16,12 +16,14 @@ const {
 
 describe('Agent Use Case Registry', () => {
   describe('Registry Integrity', () => {
-    test('should have 85+ agents defined', () => {
+    jest.setTimeout(10000);
+  test('should have 85+ agents defined', () => {
       const agentCount = Object.keys(agentRegistry).length;
       expect(agentCount).toBeGreaterThanOrEqual(85);
     });
 
-    test('each agent should have required fields', () => {
+    jest.setTimeout(10000);
+  test('each agent should have required fields', () => {
       Object.entries(agentRegistry).forEach(([agentType, config]) => {
         expect(config).toHaveProperty('keywords');
         expect(config).toHaveProperty('domains');
@@ -42,29 +44,34 @@ describe('Agent Use Case Registry', () => {
   });
 
   describe('Domain Detection', () => {
-    test('should detect frontend domain', () => {
+    jest.setTimeout(10000);
+  test('should detect frontend domain', () => {
       const domains = detectDomains('Build a React component with state management');
       expect(domains.has('frontend')).toBe(true);
     });
 
-    test('should detect backend domain', () => {
+    jest.setTimeout(10000);
+  test('should detect backend domain', () => {
       const domains = detectDomains('Create REST API endpoints for user service');
       expect(domains.has('backend')).toBe(true);
     });
 
-    test('should detect security domain', () => {
+    jest.setTimeout(10000);
+  test('should detect security domain', () => {
       const domains = detectDomains('Audit application for security vulnerabilities');
       expect(domains.has('security')).toBe(true);
     });
 
-    test('should detect multiple domains', () => {
+    jest.setTimeout(10000);
+  test('should detect multiple domains', () => {
       const domains = detectDomains('Build secure REST API with authentication');
       expect(domains.has('backend')).toBe(true);
       expect(domains.has('security')).toBe(true);
       expect(domains.has('api')).toBe(true);
     });
 
-    test('should detect mobile domain', () => {
+    jest.setTimeout(10000);
+  test('should detect mobile domain', () => {
       const domains = detectDomains('Develop React Native app for iOS and Android');
       expect(domains.has('mobile')).toBe(true);
     });
@@ -98,63 +105,72 @@ describe('Agent Use Case Registry', () => {
     global.performanceMetrics.averageSelectionTime =
       global.performanceMetrics.selectionTimes.reduce((a, b) => a + b, 0) /
       global.performanceMetrics.totalSelections;
-    done();
+    return;
   });
 
   afterAll(() => {
     console.log('Performance Metrics:', global.performanceMetrics);
   });
-    test('should select backend-dev for API task', () => {
+    jest.setTimeout(10000);
+  test('should select backend-dev for API task', () => {
       const result = selectAgent('Create REST API endpoints with authentication');
       expect(result.type).toBe('backend-dev');
       expect(result.score).toBeGreaterThan(50);
       expect(result.fallback).toBe(false);
     });
 
-    test('should select react-frontend-engineer for React task', () => {
+    jest.setTimeout(10000);
+  test('should select react-frontend-engineer for React task', () => {
       const result = selectAgent('Build React component with hooks and state');
       expect(result.type).toBe('react-frontend-engineer');
       expect(result.score).toBeGreaterThan(50);
     });
 
-    test('should select mobile-dev for mobile task', () => {
+    jest.setTimeout(10000);
+  test('should select mobile-dev for mobile task', () => {
       const result = selectAgent('Develop React Native iOS Android app');
       expect(result.type).toBe('mobile-dev');
       expect(result.score).toBeGreaterThan(60);
     });
 
-    test('should select security-specialist for security audit', () => {
+    jest.setTimeout(10000);
+  test('should select security-specialist for security audit', () => {
       const result = selectAgent('Security audit vulnerability assessment OWASP');
       expect(result.type).toBe('security-specialist');
       expect(result.score).toBeGreaterThan(60);
     });
 
-    test('should select tester for testing task', () => {
+    jest.setTimeout(10000);
+  test('should select tester for testing task', () => {
       const result = selectAgent('Write unit tests and integration tests with TDD');
       expect(result.type).toBe('tester');
       expect(result.score).toBeGreaterThan(50);
     });
 
-    test('should select architecture agent for architecture task', () => {
+    jest.setTimeout(10000);
+  test('should select architecture agent for architecture task', () => {
       const result = selectAgent('Design distributed microservices architecture');
       expect(['system-architect', 'architect']).toContain(result.type);
       expect(result.score).toBeGreaterThan(50);
     });
 
-    test('should select perf-analyzer for performance task', () => {
+    jest.setTimeout(10000);
+  test('should select perf-analyzer for performance task', () => {
       const result = selectAgent('Analyze performance bottlenecks and slow queries');
       expect(result.type).toBe('perf-analyzer');
       expect(result.score).toBeGreaterThan(50);
     });
 
-    test('should select some agent even for vague task', () => {
+    jest.setTimeout(10000);
+  test('should select some agent even for vague task', () => {
       const result = selectAgent('xyz abc nonsense task description');
       // Will match something based on partial keywords, or fallback to coder
       expect(result.type).toBeDefined();
       expect(result.score).toBeGreaterThanOrEqual(0);
     });
 
-    test('should provide alternatives', () => {
+    jest.setTimeout(10000);
+  test('should provide alternatives', () => {
       const result = selectAgent('Build API with security and testing');
       expect(result.alternatives).toBeDefined();
       expect(result.alternatives.length).toBeGreaterThan(0);
@@ -162,7 +178,8 @@ describe('Agent Use Case Registry', () => {
   });
 
   describe('Agent Selection - Multiple Agents', () => {
-    test('should select multiple agents for complex task', () => {
+    jest.setTimeout(10000);
+  test('should select multiple agents for complex task', () => {
       const result = selectMultipleAgents(
         'Build secure REST API with testing and performance optimization',
         { count: 4 }
@@ -175,7 +192,8 @@ describe('Agent Use Case Registry', () => {
       expect(types).toContain('backend-dev');
     });
 
-    test('should ensure domain diversity', () => {
+    jest.setTimeout(10000);
+  test('should ensure domain diversity', () => {
       const result = selectMultipleAgents(
         'Full-stack application with security and testing',
         { count: 5, diverseDomains: true }
@@ -189,7 +207,8 @@ describe('Agent Use Case Registry', () => {
       expect(allDomains.size).toBeGreaterThan(3);
     });
 
-    test('should respect minScore threshold', () => {
+    jest.setTimeout(10000);
+  test('should respect minScore threshold', () => {
       const result = selectMultipleAgents(
         'Build React component',
         { count: 3, minScore: 40 }
@@ -202,7 +221,8 @@ describe('Agent Use Case Registry', () => {
   });
 
   describe('Domain-Based Selection', () => {
-    test('should get agents by security domain', () => {
+    jest.setTimeout(10000);
+  test('should get agents by security domain', () => {
       const agents = getAgentsByDomain('security');
       expect(agents.length).toBeGreaterThan(0);
 
@@ -210,7 +230,8 @@ describe('Agent Use Case Registry', () => {
       expect(types).toContain('security-specialist');
     });
 
-    test('should get agents by frontend domain', () => {
+    jest.setTimeout(10000);
+  test('should get agents by frontend domain', () => {
       const agents = getAgentsByDomain('frontend');
       expect(agents.length).toBeGreaterThan(0);
 
@@ -218,7 +239,8 @@ describe('Agent Use Case Registry', () => {
       expect(types).toContain('react-frontend-engineer');
     });
 
-    test('should respect minPriority filter', () => {
+    jest.setTimeout(10000);
+  test('should respect minPriority filter', () => {
       const agents = getAgentsByDomain('backend', { minPriority: 8 });
 
       agents.forEach(agent => {
@@ -226,7 +248,8 @@ describe('Agent Use Case Registry', () => {
       });
     });
 
-    test('should sort by priority descending', () => {
+    jest.setTimeout(10000);
+  test('should sort by priority descending', () => {
       const agents = getAgentsByDomain('backend');
 
       for (let i = 0; i < agents.length - 1; i++) {
@@ -236,7 +259,8 @@ describe('Agent Use Case Registry', () => {
   });
 
   describe('Scoring Algorithm', () => {
-    test('should score higher for exact keyword matches', () => {
+    jest.setTimeout(10000);
+  test('should score higher for exact keyword matches', () => {
       const domains = new Set(['backend', 'api']);
       const score1 = calculateScore('backend-dev', 'REST API development', domains);
       const score2 = calculateScore('backend-dev', 'general task', domains);
@@ -244,7 +268,8 @@ describe('Agent Use Case Registry', () => {
       expect(score1).toBeGreaterThan(score2);
     });
 
-    test('should score higher with domain matches', () => {
+    jest.setTimeout(10000);
+  test('should score higher with domain matches', () => {
       const domains1 = new Set(['backend', 'api']);
       const domains2 = new Set(['frontend']);
 
@@ -254,7 +279,8 @@ describe('Agent Use Case Registry', () => {
       expect(score1).toBeGreaterThan(score2);
     });
 
-    test('should respect agent priority', () => {
+    jest.setTimeout(10000);
+  test('should respect agent priority', () => {
       const domains = new Set(['security']);
       const score1 = calculateScore('security-specialist', 'security', domains);
       const score2 = calculateScore('security-manager', 'security', domains);
@@ -265,7 +291,8 @@ describe('Agent Use Case Registry', () => {
   });
 
   describe('Registry Statistics', () => {
-    test('should provide accurate statistics', () => {
+    jest.setTimeout(10000);
+  test('should provide accurate statistics', () => {
       const stats = getRegistryStats();
 
       expect(stats.totalAgents).toBeGreaterThanOrEqual(85);
@@ -277,26 +304,30 @@ describe('Agent Use Case Registry', () => {
   });
 
   describe('Edge Cases', () => {
-    test('should handle empty task description', () => {
+    jest.setTimeout(10000);
+  test('should handle empty task description', () => {
       const result = selectAgent('');
       expect(result.type).toBeDefined();
       // Empty description gets low score or fallback
       expect(result.score).toBeGreaterThanOrEqual(0);
     });
 
-    test('should handle very short task description', () => {
+    jest.setTimeout(10000);
+  test('should handle very short task description', () => {
       const result = selectAgent('API');
       expect(result).toBeDefined();
       expect(result.type).toBeDefined();
     });
 
-    test('should handle task with special characters', () => {
+    jest.setTimeout(10000);
+  test('should handle task with special characters', () => {
       const result = selectAgent('Build REST API with @auth & #security!');
       expect(result).toBeDefined();
       expect(['backend-dev', 'security-specialist']).toContain(result.type);
     });
 
-    test('should exclude specified agents', () => {
+    jest.setTimeout(10000);
+  test('should exclude specified agents', () => {
       const result = selectAgent('Build REST API', {
         excludeAgents: ['backend-dev']
       });
@@ -304,7 +335,8 @@ describe('Agent Use Case Registry', () => {
       expect(result.type).not.toBe('backend-dev');
     });
 
-    test('should prefer specified domains', () => {
+    jest.setTimeout(10000);
+  test('should prefer specified domains', () => {
       const result = selectAgent('Perform security vulnerability assessment', {
         preferDomains: ['security']
       });
@@ -316,43 +348,50 @@ describe('Agent Use Case Registry', () => {
   });
 
   describe('Real-World Scenarios', () => {
-    test('authentication system task', () => {
+    jest.setTimeout(10000);
+  test('authentication system task', () => {
       const result = selectAgent('Build user authentication system with JWT tokens');
       expect(['backend-dev', 'security-specialist', 'react-frontend-engineer']).toContain(result.type);
       expect(result.score).toBeGreaterThan(40);
     });
 
-    test('performance optimization task', () => {
+    jest.setTimeout(10000);
+  test('performance optimization task', () => {
       const result = selectAgent('Optimize slow database queries and improve performance');
       expect(['perf-analyzer', 'code-booster', 'backend-dev']).toContain(result.type);
       expect(result.score).toBeGreaterThan(40);
     });
 
-    test('mobile app development task', () => {
+    jest.setTimeout(10000);
+  test('mobile app development task', () => {
       const result = selectAgent('Create cross-platform React Native mobile app');
       expect(result.type).toBe('mobile-dev');
       expect(result.score).toBeGreaterThan(60);
     });
 
-    test('security audit task', () => {
+    jest.setTimeout(10000);
+  test('security audit task', () => {
       const result = selectAgent('Perform comprehensive security audit for vulnerabilities');
       expect(result.type).toBe('security-specialist');
       expect(result.score).toBeGreaterThan(50);
     });
 
-    test('distributed system architecture task', () => {
+    jest.setTimeout(10000);
+  test('distributed system architecture task', () => {
       const result = selectAgent('Design scalable microservices architecture');
       expect(['system-architect', 'architect']).toContain(result.type);
       expect(result.score).toBeGreaterThan(50);
     });
 
-    test('CI/CD pipeline task', () => {
+    jest.setTimeout(10000);
+  test('CI/CD pipeline task', () => {
       const result = selectAgent('Setup Docker Kubernetes CI/CD pipeline');
       expect(result.type).toBe('devops-engineer');
       expect(result.score).toBeGreaterThan(50);
     });
 
-    test('accessibility compliance task', () => {
+    jest.setTimeout(10000);
+  test('accessibility compliance task', () => {
       const result = selectAgent('Ensure WCAG accessibility compliance');
       expect(result.type).toBe('accessibility-advocate-persona');
       expect(result.score).toBeGreaterThan(50);

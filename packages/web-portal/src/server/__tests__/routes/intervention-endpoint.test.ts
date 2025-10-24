@@ -20,7 +20,7 @@ vi.mock('../../services/transparency-service.js', () => ({
 
 describe('Intervention Endpoint Authentication (MED-003 Fix)', () => {
   describe('POST /api/agents/:id/intervene', () => {
-    it('should allow admin users to intervene', async () => {
+    it('should allow admin users to intervene', async () => { try {
       const adminUser: Omit<JWTUser, 'iat' | 'exp'> = {
         userId: 'admin-123',
         role: 'admin',
@@ -86,7 +86,7 @@ describe('Intervention Endpoint Authentication (MED-003 Fix)', () => {
       expect(invalidToken).not.toMatch(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/);
     });
 
-    it('should include audit trail in response', async () => {
+    it('should include audit trail in response', async () => { try {
       const adminUser: Omit<JWTUser, 'iat' | 'exp'> = {
         userId: 'admin-123',
         role: 'admin',
@@ -137,7 +137,7 @@ describe('Intervention Endpoint Authentication (MED-003 Fix)', () => {
       expect(hasPlaceholderAuth).toBe(false);
     });
 
-    it('should verify JWT signature', async () => {
+    it('should verify JWT signature', async () => { try {
       const adminUser: Omit<JWTUser, 'iat' | 'exp'> = {
         userId: 'admin-123',
         role: 'admin',

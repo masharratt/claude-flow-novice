@@ -4,7 +4,7 @@ const app = require('../src/server');
 
 describe('Server Tests', () => {
   describe('GET /health', () => {
-    it('should return health status', async () => {
+    it('should return health status', async () => { try {
       const response = await request(app)
         .get('/health')
         .expect(200);
@@ -17,7 +17,7 @@ describe('Server Tests', () => {
   });
 
   describe('GET /api/v1', () => {
-    it('should return API information', async () => {
+    it('should return API information', async () => { try {
       const response = await request(app)
         .get('/api/v1')
         .expect(200);
@@ -31,7 +31,7 @@ describe('Server Tests', () => {
   });
 
   describe('404 Handler', () => {
-    it('should return 404 for unknown routes', async () => {
+    it('should return 404 for unknown routes', async () => { try {
       const response = await request(app)
         .get('/unknown-route')
         .expect(404);
@@ -40,4 +40,4 @@ describe('Server Tests', () => {
       expect(response.body).toHaveProperty('message');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

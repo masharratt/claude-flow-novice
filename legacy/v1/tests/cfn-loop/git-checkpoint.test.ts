@@ -59,7 +59,7 @@ describe('GitCheckpointManager', () => {
   let mockRedis: any;
   let mockGit: any;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     vi.clearAllMocks();
 
     mockRedis = vi.mocked(createClient)();
@@ -73,12 +73,12 @@ describe('GitCheckpointManager', () => {
     await manager.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await manager.shutdown();
   });
 
   describe('WIP Branch Management', () => {
-    it('should create WIP branch with correct naming format', async () => {
+    it('should create WIP branch with correct naming format', async () => { try {
       mockGit.branchLocal.mockResolvedValue({ all: [] });
 
       const branch = await manager.createWIPBranch('epic-123', 'sprint-1');
@@ -90,7 +90,7 @@ describe('GitCheckpointManager', () => {
       );
     });
 
-    it('should switch to existing WIP branch instead of creating new one', async () => {
+    it('should switch to existing WIP branch instead of creating new one', async () => { try {
       mockGit.branchLocal.mockResolvedValue({
         all: ['cfn-epic-epic-123/sprint-sprint-1-wip'],
       });
@@ -101,7 +101,7 @@ describe('GitCheckpointManager', () => {
       expect(mockGit.checkoutBranch).not.toHaveBeenCalled();
     });
 
-    it('should store branch info in Redis', async () => {
+    it('should store branch info in Redis', async () => { try {
       mockGit.branchLocal.mockResolvedValue({ all: [] });
 
       await manager.createWIPBranch('epic-123', 'sprint-1');
@@ -113,7 +113,7 @@ describe('GitCheckpointManager', () => {
       );
     });
 
-    it('should emit branch-created event', async () => {
+    it('should emit branch-created event', async () => { try {
       mockGit.branchLocal.mockResolvedValue({ all: [] });
 
       const eventSpy = vi.fn();
@@ -130,7 +130,7 @@ describe('GitCheckpointManager', () => {
   });
 
   describe('Auto-Commit Progress', () => {
-    it('should auto-commit with correct message format', async () => {
+    it('should auto-commit with correct message format', async () => { try {
       mockGit.status.mockResolvedValue({
         modified: ['file1.ts'],
         not_added: [],
@@ -149,7 +149,7 @@ describe('GitCheckpointManager', () => {
       expect(commitHash).toBe('abc123');
     });
 
-    it('should skip commit when no changes detected', async () => {
+    it('should skip commit when no changes detected', async () => { try {
       mockGit.status.mockResolvedValue({
         modified: [],
         not_added: [],
@@ -162,7 +162,7 @@ describe('GitCheckpointManager', () => {
       expect(commitHash).toBe('');
     });
 
-    it('should tag commit with metadata', async () => {
+    it('should tag commit with metadata', async () => { try {
       mockGit.status.mockResolvedValue({
         modified: ['file1.ts'],
         not_added: [],
@@ -185,7 +185,7 @@ describe('GitCheckpointManager', () => {
       );
     });
 
-    it('should emit commit-created event', async () => {
+    it('should emit commit-created event', async () => { try {
       mockGit.status.mockResolvedValue({
         modified: ['file1.ts'],
         not_added: [],
@@ -206,7 +206,7 @@ describe('GitCheckpointManager', () => {
       );
     });
 
-    it('should update statistics after commit', async () => {
+    it('should update statistics after commit', async () => { try {
       mockGit.status.mockResolvedValue({
         modified: ['file1.ts'],
         not_added: [],
@@ -223,7 +223,7 @@ describe('GitCheckpointManager', () => {
   });
 
   describe('Checkpoint Comparison', () => {
-    it('should recommend Redis when Redis checkpoint is newer', async () => {
+    it('should recommend Redis when Redis checkpoint is newer', async () => { try {
       const gitDate = new Date('2025-01-01T10:00:00Z');
       const redisTimestamp = new Date('2025-01-01T10:05:00Z').getTime();
 
@@ -254,7 +254,7 @@ describe('GitCheckpointManager', () => {
       expect(comparison.timeDiffMs).toBe(300000); // 5 minutes
     });
 
-    it('should recommend Git when Git checkpoint is newer', async () => {
+    it('should recommend Git when Git checkpoint is newer', async () => { try {
       const gitDate = new Date('2025-01-01T10:05:00Z');
       const redisTimestamp = new Date('2025-01-01T10:00:00Z').getTime();
 
@@ -283,7 +283,7 @@ describe('GitCheckpointManager', () => {
       expect(comparison.source).toBe('git');
     });
 
-    it('should handle no checkpoints found', async () => {
+    it('should handle no checkpoints found', async () => { try {
       mockGit.branchLocal.mockResolvedValue({ all: [] });
       mockRedis.keys.mockResolvedValue([]);
 
@@ -293,7 +293,7 @@ describe('GitCheckpointManager', () => {
       expect(comparison.reason).toBe('No checkpoints found');
     });
 
-    it('should emit checkpoints-compared event', async () => {
+    it('should emit checkpoints-compared event', async () => { try {
       mockGit.branchLocal.mockResolvedValue({ all: [] });
       mockRedis.keys.mockResolvedValue([]);
 
@@ -342,7 +342,7 @@ describe('GitCheckpointManager', () => {
   });
 
   describe('WIP Branch Cleanup', () => {
-    it('should delete WIP branches after completion', async () => {
+    it('should delete WIP branches after completion', async () => { try {
       mockGit.branchLocal.mockResolvedValue({
         all: ['main', 'cfn-epic-epic-123/sprint-sprint-1-wip', 'cfn-epic-epic-123/sprint-sprint-2-wip'],
       });
@@ -360,7 +360,7 @@ describe('GitCheckpointManager', () => {
       );
     });
 
-    it('should delete WIP tags during cleanup', async () => {
+    it('should delete WIP tags during cleanup', async () => { try {
       mockGit.branchLocal.mockResolvedValue({
         all: ['main', 'cfn-epic-epic-123/sprint-sprint-1-wip'],
       });
@@ -374,7 +374,7 @@ describe('GitCheckpointManager', () => {
       expect(mockGit.tag).not.toHaveBeenCalledWith(['-d', 'v1.0.0']);
     });
 
-    it('should skip cleanup when no WIP branches exist', async () => {
+    it('should skip cleanup when no WIP branches exist', async () => { try {
       mockGit.branchLocal.mockResolvedValue({
         all: ['main', 'develop'],
       });
@@ -384,7 +384,7 @@ describe('GitCheckpointManager', () => {
       expect(mockGit.deleteLocalBranch).not.toHaveBeenCalled();
     });
 
-    it('should emit branches-cleaned event', async () => {
+    it('should emit branches-cleaned event', async () => { try {
       mockGit.branchLocal.mockResolvedValue({
         all: ['main', 'cfn-epic-epic-123/sprint-sprint-1-wip'],
       });
@@ -401,7 +401,7 @@ describe('GitCheckpointManager', () => {
       });
     });
 
-    it('should not throw on cleanup failure', async () => {
+    it('should not throw on cleanup failure', async () => { try {
       mockGit.branchLocal.mockRejectedValue(new Error('Git error'));
 
       await expect(manager.cleanupWIPBranches('epic-123')).resolves.not.toThrow();
@@ -409,7 +409,7 @@ describe('GitCheckpointManager', () => {
   });
 
   describe('Statistics', () => {
-    it('should track commit statistics', async () => {
+    it('should track commit statistics', async () => { try {
       mockGit.status.mockResolvedValue({
         modified: ['file1.ts'],
         not_added: [],
@@ -425,7 +425,7 @@ describe('GitCheckpointManager', () => {
       expect(stats.averageCommitLatencyMs).toBeGreaterThan(0);
     });
 
-    it('should track branch statistics', async () => {
+    it('should track branch statistics', async () => { try {
       mockGit.branchLocal.mockResolvedValue({ all: [] });
 
       await manager.createWIPBranch('epic-123', 'sprint-1');
@@ -435,7 +435,7 @@ describe('GitCheckpointManager', () => {
       expect(stats.totalBranches).toBe(2);
     });
 
-    it('should track commit failures', async () => {
+    it('should track commit failures', async () => { try {
       mockGit.status.mockResolvedValue({
         modified: ['file1.ts'],
         not_added: [],
@@ -451,7 +451,7 @@ describe('GitCheckpointManager', () => {
   });
 
   describe('Integration Scenarios', () => {
-    it('should complete full checkpoint lifecycle', async () => {
+    it('should complete full checkpoint lifecycle', async () => { try {
       // Create WIP branch
       mockGit.branchLocal.mockResolvedValue({ all: [] });
       const branch = await manager.createWIPBranch('epic-123', 'sprint-1');

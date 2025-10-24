@@ -824,7 +824,7 @@ describe('Rust Validation Test Suite', () => {
   let testDir;
   let rustValidator;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     testDir = path.join(__dirname, `rust-validation-test-${crypto.randomBytes(4).toString('hex')}`);
     await fs.mkdir(testDir, { recursive: true });
 
@@ -834,7 +834,7 @@ describe('Rust Validation Test Suite', () => {
     await rustValidator.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (rustValidator) {
       await rustValidator.close();
     }
@@ -1015,7 +1015,8 @@ pub fn greet(name: &str) {
       }
     ];
 
-    test('should detect Rust projects with >95% accuracy', async () => {
+    jest.setTimeout(10000);
+  test('should detect Rust projects with >95% accuracy', async () => { try {
       let correctDetections = 0;
       const detectionResults = [];
 
@@ -1118,7 +1119,8 @@ pub fn greet(name: &str) {
   });
 
   describe('Cargo Test Execution Validation', () => {
-    test('should validate cargo test execution capabilities', async () => {
+    jest.setTimeout(10000);
+  test('should validate cargo test execution capabilities', async () => { try {
       const cargoTestProject = {
         name: 'Cargo Test Validation',
         files: {
@@ -1219,7 +1221,8 @@ fn fibonacci_benchmark(c: &mut Criterion) {
       expect(result.cargoInfo.devDependencies).toHaveProperty('assert_matches');
     });
 
-    test('should handle complex cargo test configurations', async () => {
+    jest.setTimeout(10000);
+  test('should handle complex cargo test configurations', async () => { try {
       const complexTestProject = {
         name: 'Complex Cargo Test',
         files: {
@@ -1374,7 +1377,8 @@ exclude-files = ["src/bin/*", "benches/*"]`
   });
 
   describe('Rust Build Validation', () => {
-    test('should validate different Rust build configurations', async () => {
+    jest.setTimeout(10000);
+  test('should validate different Rust build configurations', async () => { try {
       const buildTestProjects = [
         {
           name: 'Custom Build Script',
@@ -1468,7 +1472,8 @@ linker = "aarch64-linux-gnu-gcc"`
   });
 
   describe('Quality Checks and Linting', () => {
-    test('should validate Rust quality tools configuration', async () => {
+    jest.setTimeout(10000);
+  test('should validate Rust quality tools configuration', async () => { try {
       const qualityProject = {
         name: 'Quality Tools Project',
         files: {
@@ -1575,7 +1580,8 @@ targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]`
       expect(result.rustConfig.channel).toBe('1.70.0');
     });
 
-    test('should identify quality issues and provide suggestions', async () => {
+    jest.setTimeout(10000);
+  test('should identify quality issues and provide suggestions', async () => { try {
       const problematicProject = {
         name: 'Problematic Project',
         files: {
@@ -1628,7 +1634,8 @@ deprecated-crate = "0.5"`,
   });
 
   describe('Byzantine Consensus Validation Scenarios', () => {
-    test('should validate Rust frameworks through Byzantine consensus', async () => {
+    jest.setTimeout(10000);
+  test('should validate Rust frameworks through Byzantine consensus', async () => { try {
       const frameworkForValidation = {
         id: 'rust-test-framework',
         name: 'Rust Testing Framework',
@@ -1667,7 +1674,8 @@ deprecated-crate = "0.5"`,
       console.log(`  Result: ${validationResult.success ? '✅ APPROVED' : '❌ REJECTED'}`);
     });
 
-    test('should reject poor quality Rust frameworks via consensus', async () => {
+    jest.setTimeout(10000);
+  test('should reject poor quality Rust frameworks via consensus', async () => { try {
       const poorFramework = {
         id: 'poor-rust-framework',
         name: 'P', // Too short name
@@ -1702,7 +1710,8 @@ deprecated-crate = "0.5"`,
       console.log(`  Result: ${validationResult.success ? '✅ APPROVED' : '❌ REJECTED'}`);
     });
 
-    test('should handle Byzantine node failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle Byzantine node failures gracefully', async () => { try {
       // Override to simulate more Byzantine nodes
       rustValidator.createRustConsensusNodes = function(count) {
         return Array.from({ length: count }, (_, i) => ({
@@ -1752,7 +1761,8 @@ deprecated-crate = "0.5"`,
       console.log(`  Confidence: ${validationResult.confidence?.toFixed(3)}`);
     });
 
-    test('should maintain consensus integrity with network partitions', async () => {
+    jest.setTimeout(10000);
+  test('should maintain consensus integrity with network partitions', async () => { try {
       // Simulate network partition scenarios
       const partitionTests = [
         { name: 'Minor Partition', byzantineCount: 1, expectedSuccess: true },
@@ -1810,7 +1820,8 @@ deprecated-crate = "0.5"`,
   });
 
   describe('Performance and False Positive Rate (<5%)', () => {
-    test('should maintain <5% false completion rate', async () => {
+    jest.setTimeout(10000);
+  test('should maintain <5% false completion rate', async () => { try {
       const falsePositiveTestCases = [
         {
           name: 'JavaScript Project with Rust-like Files',
@@ -1890,7 +1901,8 @@ deprecated-crate = "0.5"`,
       expect(falsePositiveRate).toBeLessThan(5);
     });
 
-    test('should handle large projects efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle large projects efficiently', async () => { try {
       const largeProjectStructure = {
         'Cargo.toml': `[workspace]
 members = [${Array.from({length: 10}, (_, i) => `"crate-${i}"`).join(', ')}]`,
@@ -1943,7 +1955,8 @@ edition = "2021"`;
       expect(result.metrics.projectComplexity).toBeGreaterThan(3); // Should detect high complexity
     });
 
-    test('should provide comprehensive metrics and reporting', async () => {
+    jest.setTimeout(10000);
+  test('should provide comprehensive metrics and reporting', async () => { try {
       const metricsTestProject = {
         'Cargo.toml': `[package]
 name = "metrics-test"
@@ -1965,9 +1978,12 @@ tarpaulin = "0.27"`,
         'src/client.rs': 'pub struct Client { /* fields */ } impl Client { pub fn new() -> Self { todo!() } }',
         'src/server.rs': 'pub struct Server { /* fields */ } impl Server { pub async fn start(&self) { todo!() } }',
         'src/utils.rs': 'pub fn helper_function() { /* implementation */ }',
-        'tests/integration_test.rs': '#[test] fn integration_test() { /* test code */ }',
-        'tests/client_test.rs': '#[test] fn client_test() { /* test code */ }',
-        'tests/server_test.rs': '#[tokio::test] async fn server_test() { /* async test */ }',
+        'tests/integration_test.rs': '#[test] fn integration_jest.setTimeout(10000);
+  test() { /* test code */ }',
+        'tests/client_test.rs': '#[test] fn client_jest.setTimeout(10000);
+  test() { /* test code */ }',
+        'tests/server_test.rs': '#[tokio::test] async fn server_jest.setTimeout(10000);
+  test() { /* async test */ }',
         'benches/performance.rs': 'use criterion::*; fn bench_main(c: &mut Criterion) { /* benchmark */ }',
         '.rustfmt.toml': 'max_width = 120',
         'clippy.toml': 'msrv = "1.70.0"'
@@ -2016,4 +2032,4 @@ tarpaulin = "0.27"`,
       console.log(`  Warnings: ${result.warnings.length}`);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

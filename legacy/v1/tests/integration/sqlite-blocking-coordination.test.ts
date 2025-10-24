@@ -24,7 +24,7 @@ describe('SQLite Blocking Coordination Integration', () => {
   let blockingCoordinator: BlockingCoordinationManager;
   let lifecycleManager: AgentLifecycleSQLiteManager;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Initialize Redis
     redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
@@ -66,7 +66,7 @@ describe('SQLite Blocking Coordination Integration', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (cfnMemoryManager) {
       await cfnMemoryManager.shutdown();
     }
@@ -75,7 +75,7 @@ describe('SQLite Blocking Coordination Integration', () => {
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test data
     const keys = await redis.keys('cfn/*');
     if (keys.length > 0) {
@@ -84,7 +84,7 @@ describe('SQLite Blocking Coordination Integration', () => {
   });
 
   describe('Complete CFN Loop Workflow', () => {
-    it('should complete full Loop 3 -> Loop 2 -> Loop 4 workflow', async () => {
+    it('should complete full Loop 3 -> Loop 2 -> Loop 4 workflow', async () => { try {
       // ===== PHASE 1: Loop 3 - Agent Implementation =====
 
       // Register agents
@@ -258,7 +258,7 @@ describe('SQLite Blocking Coordination Integration', () => {
   });
 
   describe('Blocking Coordination Audit Trail', () => {
-    it('should log signal ACK events to SQLite', async () => {
+    it('should log signal ACK events to SQLite', async () => { try {
       const signal = {
         signalId: 'signal-1',
         type: 'completion' as const,
@@ -294,7 +294,7 @@ describe('SQLite Blocking Coordination Integration', () => {
   });
 
   describe('Cross-Session Recovery', () => {
-    it('should recover Loop 3/2/4 data after restart', async () => {
+    it('should recover Loop 3/2/4 data after restart', async () => { try {
       // Store data in first session
       await cfnMemoryManager.storeLoop3Confidence(
         {
@@ -339,7 +339,7 @@ describe('SQLite Blocking Coordination Integration', () => {
   });
 
   describe('Performance Validation', () => {
-    it('should meet p95 latency targets', async () => {
+    it('should meet p95 latency targets', async () => { try {
       const iterations = 100;
 
       for (let i = 0; i < iterations; i++) {
@@ -373,7 +373,7 @@ describe('SQLite Blocking Coordination Integration', () => {
   });
 
   describe('ACL Enforcement', () => {
-    it('should enforce private ACL level', async () => {
+    it('should enforce private ACL level', async () => { try {
       // Store private confidence
       await cfnMemoryManager.storeLoop3Confidence(
         {
@@ -407,7 +407,7 @@ describe('SQLite Blocking Coordination Integration', () => {
   });
 
   describe('Audit Trail Completeness', () => {
-    it('should maintain complete audit trail for CFN Loop', async () => {
+    it('should maintain complete audit trail for CFN Loop', async () => { try {
       // Execute complete workflow
       await cfnMemoryManager.storeLoop3Confidence(
         {

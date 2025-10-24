@@ -233,7 +233,7 @@ function verifyCleanupScriptExists(): void {
 describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
   let redis: Redis;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Verify cleanup script exists
     verifyCleanupScriptExists();
 
@@ -261,7 +261,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
     await cleanupRedis(redis);
   }, TEST_TIMEOUT);
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up test data
     await cleanupRedis(redis);
 
@@ -272,7 +272,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
   // ===== TEST SCENARIO 1: STALE COORDINATOR CLEANUP SUCCESS =====
 
   describe('Scenario 1: Stale Coordinator Cleanup Success', () => {
-    it('should cleanup coordinator with heartbeat >10 minutes old', async () => {
+    it('should cleanup coordinator with heartbeat >10 minutes old', async () => { try {
       const coordinatorId = 'stale-coordinator-1';
       const ageSeconds = 700; // 11 minutes 40 seconds (>10 min threshold)
 
@@ -311,7 +311,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
       expect(result.stdout).toContain('Cleanup completed successfully');
     });
 
-    it('should cleanup multiple stale coordinators in one execution', async () => {
+    it('should cleanup multiple stale coordinators in one execution', async () => { try {
       const coordinatorIds = ['stale-1', 'stale-2', 'stale-3'];
       const ageSeconds = 650; // 10 minutes 50 seconds
 
@@ -340,7 +340,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
   // ===== TEST SCENARIO 2: ACTIVE COORDINATOR PRESERVATION =====
 
   describe('Scenario 2: Active Coordinator Preservation', () => {
-    it('should preserve coordinator with heartbeat <5 minutes old', async () => {
+    it('should preserve coordinator with heartbeat <5 minutes old', async () => { try {
       const coordinatorId = 'active-coordinator-1';
       const ageSeconds = 250; // 4 minutes 10 seconds (well within threshold)
 
@@ -369,7 +369,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
       expect(result.stdout).toContain('Coordinator active');
     });
 
-    it('should preserve multiple active coordinators', async () => {
+    it('should preserve multiple active coordinators', async () => { try {
       const coordinatorIds = ['active-1', 'active-2', 'active-3'];
       const ageSeconds = 120; // 2 minutes
 
@@ -398,7 +398,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
   // ===== TEST SCENARIO 3: MIXED SCENARIO (STALE + ACTIVE) =====
 
   describe('Scenario 3: Mixed Scenario (Stale + Active)', () => {
-    it('should cleanup 5 stale coordinators and preserve 3 active coordinators', async () => {
+    it('should cleanup 5 stale coordinators and preserve 3 active coordinators', async () => { try {
       // Create 5 stale coordinators (>10 min old)
       const staleIds = ['stale-1', 'stale-2', 'stale-3', 'stale-4', 'stale-5'];
       const staleAge = 700; // 11 minutes 40 seconds
@@ -442,7 +442,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
       expect(result.stdout).toContain('Cleanup completed successfully');
     });
 
-    it('should handle edge case: coordinator exactly at 10 minute threshold', async () => {
+    it('should handle edge case: coordinator exactly at 10 minute threshold', async () => { try {
       const coordinatorId = 'edge-case-coordinator';
       const ageSeconds = STALE_THRESHOLD_SECONDS; // Exactly 10 minutes
 
@@ -460,7 +460,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
       expect(keyCount).toBeGreaterThan(0); // Should be preserved
     });
 
-    it('should handle edge case: coordinator 1 second past threshold', async () => {
+    it('should handle edge case: coordinator 1 second past threshold', async () => { try {
       const coordinatorId = 'just-stale-coordinator';
       const ageSeconds = STALE_THRESHOLD_SECONDS + 1; // 10 minutes 1 second
 
@@ -484,7 +484,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
   describe('Scenario 4: Redis SCAN Performance (10k+ Keys)', () => {
     it(
       'should cleanup 8k stale and preserve 2k active coordinators in <60 seconds',
-      async () => {
+      async () => { try {
         const totalCoordinators = 10000;
         const staleCount = 8000;
         const activeCount = 2000;
@@ -545,7 +545,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
       TEST_TIMEOUT
     );
 
-    it('should use SCAN (not KEYS) to avoid blocking Redis', async () => {
+    it('should use SCAN (not KEYS) to avoid blocking Redis', async () => { try {
       // Create some test coordinators
       for (let i = 0; i < 100; i++) {
         await createHeartbeat(redis, `test-${i}`, 700);
@@ -597,7 +597,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
       expect(stdout).toContain('Cleanup aborted');
     });
 
-    it('should handle empty Redis (no coordinators) gracefully', async () => {
+    it('should handle empty Redis (no coordinators) gracefully', async () => { try {
       // Ensure Redis is empty
       await cleanupRedis(redis);
 
@@ -615,7 +615,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
       expect(result.stdout).toContain('Cleanup complete (nothing to do)');
     });
 
-    it('should handle invalid heartbeat data gracefully', async () => {
+    it('should handle invalid heartbeat data gracefully', async () => { try {
       const coordinatorId = 'invalid-heartbeat';
 
       // Create heartbeat with invalid JSON
@@ -629,7 +629,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
       expect(result.stdout).toContain('Invalid or missing heartbeat');
     });
 
-    it('should log cleanup errors but continue processing', async () => {
+    it('should log cleanup errors but continue processing', async () => { try {
       // Create a coordinator with valid heartbeat
       await createHeartbeat(redis, 'coordinator-1', 700);
 
@@ -654,7 +654,7 @@ describe('Cleanup Script Integration Tests - Sprint 3.2', () => {
   // ===== ADDITIONAL TESTS: DRY-RUN MODE =====
 
   describe('Dry-Run Mode Validation', () => {
-    it('should not delete any keys in dry-run mode', async () => {
+    it('should not delete any keys in dry-run mode', async () => { try {
       const coordinatorId = 'dry-run-test';
       const ageSeconds = 700; // Stale
 

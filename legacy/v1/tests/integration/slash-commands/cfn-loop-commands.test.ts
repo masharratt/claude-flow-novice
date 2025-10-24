@@ -41,7 +41,7 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       command = new CfnLoopSingleCommand();
     });
 
-    it('should execute with natural language task', async () => {
+    it('should execute with natural language task', async () => { try {
       const result = await command.execute(
         ['Implement JWT authentication with bcrypt'],
         testContext
@@ -56,7 +56,7 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       expect(result.prompt).toBeDefined();
     });
 
-    it('should handle custom loop parameters', async () => {
+    it('should handle custom loop parameters', async () => { try {
       const result = await command.execute(
         ['Fix security vulnerability', '--max-loop2=7', '--max-loop3=15', '--consensus=0.95'],
         testContext
@@ -68,7 +68,7 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       expect(result.config.consensusThreshold).toBe(0.95);
     });
 
-    it('should handle file reference', async () => {
+    it('should handle file reference', async () => { try {
       const taskFilePath = path.join(tempDir, 'test-task.md');
       fs.writeFileSync(taskFilePath, 'Description: Implement user authentication\n\n## Agents\n- coder\n- tester');
 
@@ -79,7 +79,7 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       expect(result.task).toContain('user authentication');
     });
 
-    it('should handle partial file reference', async () => {
+    it('should handle partial file reference', async () => { try {
       const planningDir = path.join(tempDir, 'planning/tasks');
       fs.mkdirSync(planningDir, { recursive: true });
       fs.writeFileSync(path.join(planningDir, 'auth-implementation.md'), 'Auth task description');
@@ -90,15 +90,15 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       expect(result.sourceFile).toContain('auth-implementation.md');
     });
 
-    it('should return error for missing task', async () => {
+    it('should return error for missing task', async () => { try {
       const result = await command.execute([], testContext);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Task description or file reference required');
     });
 
-    it('should validate iteration limits', async () => {
-      await expect(async () => {
+    it('should validate iteration limits', async () => { try {
+      await expect(async () => { try {
         await command.execute(
           ['Test task', '--max-loop2=150'],
           testContext
@@ -106,8 +106,8 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       }).rejects.toThrow('--max-loop2 must be between 1 and 100');
     });
 
-    it('should validate threshold ranges', async () => {
-      await expect(async () => {
+    it('should validate threshold ranges', async () => { try {
+      await expect(async () => { try {
         await command.execute(
           ['Test task', '--consensus=1.5'],
           testContext
@@ -115,7 +115,7 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       }).rejects.toThrow('--consensus must be between 0.5 and 1.0');
     });
 
-    it('should assign agents based on task complexity', async () => {
+    it('should assign agents based on task complexity', async () => { try {
       const simpleResult = await command.execute(
         ['Fix small bug in login'],
         testContext
@@ -137,7 +137,7 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       command = new CfnLoopSprintsCommand();
     });
 
-    it('should execute with valid phase file', async () => {
+    it('should execute with valid phase file', async () => { try {
       const phaseFilePath = path.join(tempDir, 'phase-1-auth.md');
       const phaseContent = `# Phase 1: Authentication
 
@@ -170,7 +170,7 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       expect(result.prompt).toBeDefined();
     });
 
-    it('should handle custom loop parameters', async () => {
+    it('should handle custom loop parameters', async () => { try {
       const phaseFilePath = path.join(tempDir, 'phase-test.md');
       fs.writeFileSync(phaseFilePath, '# Test Phase\n\n### Sprint 1.1: Test\n\n**Status**: ❌ Not Started');
 
@@ -184,14 +184,14 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       expect(result.config.consensusThreshold).toBe(0.95);
     });
 
-    it('should return error for missing phase file', async () => {
+    it('should return error for missing phase file', async () => { try {
       const result = await command.execute(['non-existent-phase.md'], testContext);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('not found');
     });
 
-    it('should parse sprint dependencies', async () => {
+    it('should parse sprint dependencies', async () => { try {
       const phaseFilePath = path.join(tempDir, 'phase-deps.md');
       const phaseContent = `# Phase 1
 
@@ -214,7 +214,7 @@ describe('CFN Loop Slash Commands - Integration Tests', () => {
       expect(result.phase.sprints[1].dependencies).toContain('sprint-1.1');
     });
 
-    it('should create single sprint from phase without sprint structure', async () => {
+    it('should create single sprint from phase without sprint structure', async () => { try {
       const phaseFilePath = path.join(tempDir, 'phase-no-sprints.md');
       const phaseContent = `# Phase 1: Simple Phase
 
@@ -241,7 +241,7 @@ No sprint breakdown provided.
       command = new CfnLoopEpicCommand();
     });
 
-    it('should execute with epic directory containing config', async () => {
+    it('should execute with epic directory containing config', async () => { try {
       const epicDir = path.join(tempDir, 'test-epic');
       fs.mkdirSync(epicDir, { recursive: true });
 
@@ -289,7 +289,7 @@ No sprint breakdown provided.
       expect(result.prompt).toBeDefined();
     });
 
-    it('should auto-discover phase files in directory', async () => {
+    it('should auto-discover phase files in directory', async () => { try {
       const epicDir = path.join(tempDir, 'auto-epic');
       fs.mkdirSync(epicDir, { recursive: true });
 
@@ -330,7 +330,7 @@ No sprint breakdown provided.
       expect(result.epic.totalSprints).toBe(2);
     });
 
-    it('should handle custom loop parameters', async () => {
+    it('should handle custom loop parameters', async () => { try {
       const epicDir = path.join(tempDir, 'params-epic');
       fs.mkdirSync(epicDir, { recursive: true });
 
@@ -346,14 +346,14 @@ No sprint breakdown provided.
       expect(result.config.consensusThreshold).toBe(0.92);
     });
 
-    it('should return error for non-existent directory', async () => {
+    it('should return error for non-existent directory', async () => { try {
       const result = await command.execute(['non-existent-epic'], testContext);
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('not found');
     });
 
-    it('should return error for file path instead of directory', async () => {
+    it('should return error for file path instead of directory', async () => { try {
       const filePath = path.join(tempDir, 'test-file.md');
       fs.writeFileSync(filePath, 'Test file');
 
@@ -363,7 +363,7 @@ No sprint breakdown provided.
       expect(result.error).toContain('not a directory');
     });
 
-    it('should compute topological order for phases', async () => {
+    it('should compute topological order for phases', async () => { try {
       const epicDir = path.join(tempDir, 'topo-epic');
       fs.mkdirSync(epicDir, { recursive: true });
 
@@ -426,7 +426,7 @@ No sprint breakdown provided.
       expect(epicCmd.getExamples().length).toBeGreaterThan(0);
     });
 
-    it('should format response consistently', async () => {
+    it('should format response consistently', async () => { try {
       const singleCmd = new CfnLoopSingleCommand();
       const result = await singleCmd.execute(['Test task'], testContext);
 
@@ -441,7 +441,7 @@ No sprint breakdown provided.
       }
     });
 
-    it('should validate memory namespace format', async () => {
+    it('should validate memory namespace format', async () => { try {
       const singleCmd = new CfnLoopSingleCommand();
       const result = await singleCmd.execute(['Test task'], testContext);
 
@@ -450,17 +450,17 @@ No sprint breakdown provided.
   });
 
   describe('CFN-2025-001 Security Validation', () => {
-    it('should enforce iteration limits (single command)', async () => {
+    it('should enforce iteration limits (single command)', async () => { try {
       const singleCmd = new CfnLoopSingleCommand();
 
-      await expect(async () => {
+      await expect(async () => { try {
         await singleCmd.execute(
           ['Test', '--max-loop2=0'],
           testContext
         );
       }).rejects.toThrow('must be between 1 and 100');
 
-      await expect(async () => {
+      await expect(async () => { try {
         await singleCmd.execute(
           ['Test', '--max-loop2=101'],
           testContext
@@ -468,17 +468,17 @@ No sprint breakdown provided.
       }).rejects.toThrow('must be between 1 and 100');
     });
 
-    it('should enforce threshold limits', async () => {
+    it('should enforce threshold limits', async () => { try {
       const singleCmd = new CfnLoopSingleCommand();
 
-      await expect(async () => {
+      await expect(async () => { try {
         await singleCmd.execute(
           ['Test', '--consensus=0.4'],
           testContext
         );
       }).rejects.toThrow('must be between 0.5 and 1.0');
 
-      await expect(async () => {
+      await expect(async () => { try {
         await singleCmd.execute(
           ['Test', '--consensus=1.1'],
           testContext
@@ -486,23 +486,23 @@ No sprint breakdown provided.
       }).rejects.toThrow('must be between 0.5 and 1.0');
     });
 
-    it('should enforce iteration limits (sprints command)', async () => {
+    it('should enforce iteration limits (sprints command)', async () => { try {
       const sprintsCmd = new CfnLoopSprintsCommand();
       const phaseFile = path.join(tempDir, 'test-phase.md');
       fs.writeFileSync(phaseFile, '# Phase\n\n### Sprint 1.1: Test\n\n**Status**: ❌');
 
-      await expect(async () => {
+      await expect(async () => { try {
         await sprintsCmd.execute([phaseFile, '--max-loop2=150'], testContext);
       }).rejects.toThrow('must be between 1 and 100');
     });
 
-    it('should enforce iteration limits (epic command)', async () => {
+    it('should enforce iteration limits (epic command)', async () => { try {
       const epicCmd = new CfnLoopEpicCommand();
       const epicDir = path.join(tempDir, 'sec-epic');
       fs.mkdirSync(epicDir, { recursive: true });
       fs.writeFileSync(path.join(epicDir, 'EPIC_OVERVIEW.md'), '# Epic\n\n**Epic ID**: `test`');
 
-      await expect(async () => {
+      await expect(async () => { try {
         await epicCmd.execute([epicDir, '--max-loop3=-5'], testContext);
       }).rejects.toThrow('must be between 1 and 100');
     });

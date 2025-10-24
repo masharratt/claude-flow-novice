@@ -336,7 +336,7 @@ describe('CRDT Types', () => {
   });
 
   describe('CRDT Integration Tests', () => {
-    it('should maintain consistency across multiple nodes', async () => {
+    it('should maintain consistency across multiple nodes', async () => { try {
       const nodes = ['node1', 'node2', 'node3'];
       const counters = nodes.map(nodeId => new GCounter(nodeId, nodes));
 
@@ -427,4 +427,4 @@ describe('CRDT Types', () => {
       expect(deserialized.value()).toBe(iterations);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -7,7 +7,7 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
     let unifiedSystem;
     let securityManager;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
         securityManager = new ByzantineSecurityManager({
             nodeId: 'verification-node',
             performanceOptimized: true
@@ -23,7 +23,7 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
     });
 
     describe('FINAL VERIFICATION: Complete System Integration', () => {
-        it('should successfully integrate all 5 phases with Byzantine security', async () => {
+        it('should successfully integrate all 5 phases with Byzantine security', async () => { try {
             const integrationResult = await unifiedSystem.validateCompleteIntegration({
                 byzantineConsensusRequired: true,
                 allPhasesRequired: true,
@@ -43,7 +43,7 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
             console.log('✅ PHASE 5 FINAL VERIFICATION: All phases integrated successfully');
         });
 
-        it('should achieve 8-10x performance improvement target', async () => {
+        it('should achieve 8-10x performance improvement target', async () => { try {
             const testWorkflow = {
                 userId: 'performance-test-user',
                 projectType: 'enterprise-application',
@@ -76,7 +76,7 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
             console.log(`✅ PERFORMANCE TARGET ACHIEVED: ${performanceResult.overallPerformanceMultiplier.toFixed(1)}x improvement`);
         });
 
-        it('should execute complete workflow across all phases', async () => {
+        it('should execute complete workflow across all phases', async () => { try {
             const complexWorkflow = {
                 userId: 'integration-test-user',
                 projectType: 'microservices-architecture',
@@ -128,7 +128,7 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
             console.log('✅ COMPLETE WORKFLOW: All 5 phases executed successfully');
         });
 
-        it('should validate user satisfaction above 4.5/5.0', async () => {
+        it('should validate user satisfaction above 4.5/5.0', async () => { try {
             const userScenarios = [
                 {
                     userType: 'senior_developer',
@@ -187,7 +187,7 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
             });
         });
 
-        it('should maintain security under stress with Byzantine fault tolerance', async () => {
+        it('should maintain security under stress with Byzantine fault tolerance', async () => { try {
             const securityStressScenario = {
                 concurrentOperations: 500,
                 maliciousNodePercentage: 0.25, // 25% malicious nodes
@@ -217,9 +217,10 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
     });
 
     describe('PHASE 5 SPECIFIC FEATURES VALIDATION', () => {
-        it('should achieve 98% language detection accuracy', async () => {
+        it('should achieve 98% language detection accuracy', async () => { try {
             const codeExamples = [
-                { code: 'function test() { console.log("hello"); }', expected: 'javascript' },
+                { code: 'function jest.setTimeout(10000);
+  test() { console.log("hello"); }', expected: 'javascript' },
                 { code: 'def hello(): print("world")', expected: 'python' },
                 { code: 'fn main() { println!("rust"); }', expected: 'rust' },
                 { code: 'package main\nfunc main() {}', expected: 'go' },
@@ -248,11 +249,12 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
             console.log(`✅ LANGUAGE DETECTION: ${(accuracy * 100).toFixed(1)}% accuracy (Target: ≥98%)`);
         });
 
-        it('should prevent 80% of predictable failures', async () => {
+        it('should prevent 80% of predictable failures', async () => { try {
             const failureScenarios = [
                 {
                     type: 'syntax_error',
-                    code: 'function test() { console.log("missing bracket"',
+                    code: 'function jest.setTimeout(10000);
+  test() { console.log("missing bracket"',
                     predictability: 0.95
                 },
                 {
@@ -262,7 +264,7 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
                 },
                 {
                     type: 'async_race_condition',
-                    code: 'let result; fetch("/api").then(r => result = r); return result;',
+                    code: 'let result; fetch("/api")await r => result = r; return result;',
                     predictability: 0.85
                 },
                 {
@@ -301,7 +303,7 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
     });
 
     describe('FINAL SYSTEM METRICS VALIDATION', () => {
-        it('should provide comprehensive system metrics showing all targets achieved', async () => {
+        it('should provide comprehensive system metrics showing all targets achieved', async () => { try {
             const systemMetrics = unifiedSystem.getSystemMetrics();
 
             // System initialization and readiness
@@ -338,4 +340,4 @@ describe('Phase 5 Final System Verification - 8-10x Performance Achievement', ()
         console.log('✅ Complete system ready for production deployment');
         console.log('=====================================');
     });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

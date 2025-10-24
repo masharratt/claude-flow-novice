@@ -53,7 +53,7 @@ describe('Chaos: Network Partition', () => {
   let coordinators: CoordinatorInstance[] = [];
   let networkPartitionSupported = false;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     networkPartitionSupported = await isNetworkPartitionSupported();
 
     if (!networkPartitionSupported) {
@@ -62,12 +62,12 @@ describe('Chaos: Network Partition', () => {
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     if (!networkPartitionSupported) return;
     await cleanupRedis();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (!networkPartitionSupported) return;
 
     killAllCoordinators(coordinators);
@@ -85,7 +85,7 @@ describe('Chaos: Network Partition', () => {
 
   it.skipIf(!networkPartitionSupported)(
     'should recover from 5-minute network partition',
-    async () => {
+    async () => { try {
       // Spawn coordinators
       coordinators = await spawnCoordinators(TEST_CONFIG.COORDINATOR_COUNT, {
         timeout: TEST_CONFIG.COORDINATOR_TIMEOUT,
@@ -156,7 +156,7 @@ describe('Chaos: Network Partition', () => {
 
   it.skipIf(!networkPartitionSupported)(
     'should trigger circuit breaker during partition',
-    async () => {
+    async () => { try {
       // Spawn coordinators
       coordinators = await spawnCoordinators(3, {
         timeout: 10 * 60 * 1000,
@@ -194,7 +194,7 @@ describe('Chaos: Network Partition', () => {
 
   it.skipIf(!networkPartitionSupported)(
     'should handle brief network flapping (partition + heal cycles)',
-    async () => {
+    async () => { try {
       const FLAP_COUNT = 3;
       const FLAP_DURATION = 30 * 1000; // 30 seconds
 

@@ -21,7 +21,7 @@ describe('CFNLoopMemoryManager', () => {
   let redis: any;
   let memoryManager: CFNLoopMemoryManager;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create mock Redis client
     redis = new Redis();
 
@@ -40,7 +40,7 @@ describe('CFNLoopMemoryManager', () => {
     vi.spyOn(memoryManager as any, 'initialize').mockResolvedValue(undefined);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (memoryManager) {
       await memoryManager.shutdown();
     }
@@ -50,7 +50,7 @@ describe('CFNLoopMemoryManager', () => {
   });
 
   describe('Loop 3 Confidence Storage', () => {
-    it('should store confidence score with dual-write', async () => {
+    it('should store confidence score with dual-write', async () => { try {
       const confidence: Loop3Confidence = {
         agentId: 'coder-1',
         confidence: 0.85,
@@ -98,7 +98,7 @@ describe('CFNLoopMemoryManager', () => {
       expect(metrics.dualWrites).toBe(1);
     });
 
-    it('should retrieve confidence scores for phase', async () => {
+    it('should retrieve confidence scores for phase', async () => { try {
       const mockResults = [
         {
           value: {
@@ -143,7 +143,7 @@ describe('CFNLoopMemoryManager', () => {
   });
 
   describe('Loop 2 Consensus Storage', () => {
-    it('should store consensus result with dual-write', async () => {
+    it('should store consensus result with dual-write', async () => { try {
       const consensus: Loop2Consensus = {
         consensusId: 'consensus-1',
         phase: 'auth',
@@ -194,7 +194,7 @@ describe('CFNLoopMemoryManager', () => {
       expect(metrics.dualWrites).toBe(1);
     });
 
-    it('should retrieve consensus for phase', async () => {
+    it('should retrieve consensus for phase', async () => { try {
       const mockResults = [
         {
           value: {
@@ -229,7 +229,7 @@ describe('CFNLoopMemoryManager', () => {
   });
 
   describe('Loop 4 Decision Storage', () => {
-    it('should store Product Owner decision with dual-write', async () => {
+    it('should store Product Owner decision with dual-write', async () => { try {
       const decision: Loop4Decision = {
         decisionId: 'decision-1',
         phase: 'auth',
@@ -270,7 +270,7 @@ describe('CFNLoopMemoryManager', () => {
       expect(metrics.dualWrites).toBe(1);
     });
 
-    it('should retrieve decision history for phase', async () => {
+    it('should retrieve decision history for phase', async () => { try {
       const mockResults = [
         {
           value: {
@@ -317,7 +317,7 @@ describe('CFNLoopMemoryManager', () => {
   });
 
   describe('Performance Metrics', () => {
-    it('should track dual-write performance', async () => {
+    it('should track dual-write performance', async () => { try {
       const confidence: Loop3Confidence = {
         agentId: 'coder-1',
         confidence: 0.85,
@@ -351,7 +351,7 @@ describe('CFNLoopMemoryManager', () => {
       expect(metrics.dualWriteLatency.p95).toBeDefined();
     });
 
-    it('should handle SQLite failures gracefully', async () => {
+    it('should handle SQLite failures gracefully', async () => { try {
       const confidence: Loop3Confidence = {
         agentId: 'coder-1',
         confidence: 0.85,
@@ -388,7 +388,7 @@ describe('CFNLoopMemoryManager', () => {
   });
 
   describe('ACL Enforcement', () => {
-    it('should enforce ACL levels on retrieval', async () => {
+    it('should enforce ACL levels on retrieval', async () => { try {
       const mockSQLite = {
         memoryAdapter: {
           getPattern: vi.fn().mockResolvedValue([])
@@ -412,7 +412,7 @@ describe('CFNLoopMemoryManager', () => {
   });
 
   describe('Event Broadcasting', () => {
-    it('should broadcast events to Redis pub/sub', async () => {
+    it('should broadcast events to Redis pub/sub', async () => { try {
       const confidence: Loop3Confidence = {
         agentId: 'coder-1',
         confidence: 0.85,

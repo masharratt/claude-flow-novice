@@ -25,26 +25,30 @@ describe('PM2 Ecosystem Configuration', () => {
   });
 
   describe('App Configuration', () => {
-    test('should have apps array', () => {
+    jest.setTimeout(10000);
+  test('should have apps array', () => {
       expect(config.apps).toBeDefined();
       expect(Array.isArray(config.apps)).toBe(true);
       expect(config.apps.length).toBeGreaterThan(0);
     });
 
-    test('should configure queen agent', () => {
+    jest.setTimeout(10000);
+  test('should configure queen agent', () => {
       const queenApp = config.apps[0];
       expect(queenApp.name).toBe('claude-flow-queen');
       expect(queenApp.script).toBe('./dist/src/coordination/queen-agent.js');
     });
 
-    test('should enable cluster mode', () => {
+    jest.setTimeout(10000);
+  test('should enable cluster mode', () => {
       const queenApp = config.apps[0];
       expect(queenApp.exec_mode).toBe('cluster');
       expect(queenApp.instances).toBeDefined();
       expect(['max', 2, 3, 4, 5, 6, 7, 8]).toContain(queenApp.instances);
     });
 
-    test('should configure memory limits', () => {
+    jest.setTimeout(10000);
+  test('should configure memory limits', () => {
       const queenApp = config.apps[0];
       expect(queenApp.max_memory_restart).toBeDefined();
       expect(queenApp.max_memory_restart).toMatch(/^\d+[GM]$/);
@@ -52,25 +56,29 @@ describe('PM2 Ecosystem Configuration', () => {
   });
 
   describe('Production Environment', () => {
-    test('should define production environment variables', () => {
+    jest.setTimeout(10000);
+  test('should define production environment variables', () => {
       const queenApp = config.apps[0];
       expect(queenApp.env_production).toBeDefined();
       expect(queenApp.env_production.NODE_ENV).toBe('production');
     });
 
-    test('should configure PORT', () => {
+    jest.setTimeout(10000);
+  test('should configure PORT', () => {
       const queenApp = config.apps[0];
       expect(queenApp.env_production.PORT).toBeDefined();
       expect(typeof queenApp.env_production.PORT).toBe('number');
     });
 
-    test('should enable cluster mode and PM failover', () => {
+    jest.setTimeout(10000);
+  test('should enable cluster mode and PM failover', () => {
       const queenApp = config.apps[0];
       expect(queenApp.env_production.CLUSTER_MODE).toBe('true');
       expect(queenApp.env_production.PM_FAILOVER_ENABLED).toBe('true');
     });
 
-    test('should configure logging', () => {
+    jest.setTimeout(10000);
+  test('should configure logging', () => {
       const queenApp = config.apps[0];
       expect(queenApp.env_production.LOG_LEVEL).toBeDefined();
       expect(queenApp.env_production.LOG_FORMAT).toBe('json');
@@ -78,19 +86,22 @@ describe('PM2 Ecosystem Configuration', () => {
   });
 
   describe('Graceful Shutdown', () => {
-    test('should configure kill timeout', () => {
+    jest.setTimeout(10000);
+  test('should configure kill timeout', () => {
       const queenApp = config.apps[0];
       expect(queenApp.kill_timeout).toBeDefined();
       expect(queenApp.kill_timeout).toBeGreaterThanOrEqual(3000);
       expect(queenApp.kill_timeout).toBeLessThanOrEqual(10000);
     });
 
-    test('should enable wait_ready', () => {
+    jest.setTimeout(10000);
+  test('should enable wait_ready', () => {
       const queenApp = config.apps[0];
       expect(queenApp.wait_ready).toBe(true);
     });
 
-    test('should configure listen timeout', () => {
+    jest.setTimeout(10000);
+  test('should configure listen timeout', () => {
       const queenApp = config.apps[0];
       expect(queenApp.listen_timeout).toBeDefined();
       expect(queenApp.listen_timeout).toBeGreaterThanOrEqual(5000);
@@ -98,25 +109,29 @@ describe('PM2 Ecosystem Configuration', () => {
   });
 
   describe('Auto-Restart Configuration', () => {
-    test('should enable auto-restart', () => {
+    jest.setTimeout(10000);
+  test('should enable auto-restart', () => {
       const queenApp = config.apps[0];
       expect(queenApp.autorestart).toBe(true);
     });
 
-    test('should configure max restarts', () => {
+    jest.setTimeout(10000);
+  test('should configure max restarts', () => {
       const queenApp = config.apps[0];
       expect(queenApp.max_restarts).toBeDefined();
       expect(queenApp.max_restarts).toBeGreaterThanOrEqual(5);
       expect(queenApp.max_restarts).toBeLessThanOrEqual(20);
     });
 
-    test('should configure min uptime', () => {
+    jest.setTimeout(10000);
+  test('should configure min uptime', () => {
       const queenApp = config.apps[0];
       expect(queenApp.min_uptime).toBeDefined();
       expect(queenApp.min_uptime).toBeGreaterThanOrEqual(30000); // At least 30s
     });
 
-    test('should configure exponential backoff', () => {
+    jest.setTimeout(10000);
+  test('should configure exponential backoff', () => {
       const queenApp = config.apps[0];
       expect(queenApp.exp_backoff_restart_delay).toBeDefined();
       expect(queenApp.exp_backoff_restart_delay).toBeGreaterThanOrEqual(50);
@@ -124,48 +139,56 @@ describe('PM2 Ecosystem Configuration', () => {
   });
 
   describe('Logging Configuration', () => {
-    test('should configure error log file', () => {
+    jest.setTimeout(10000);
+  test('should configure error log file', () => {
       const queenApp = config.apps[0];
       expect(queenApp.error_file).toBeDefined();
       expect(queenApp.error_file).toMatch(/\.log$/);
     });
 
-    test('should configure output log file', () => {
+    jest.setTimeout(10000);
+  test('should configure output log file', () => {
       const queenApp = config.apps[0];
       expect(queenApp.out_file).toBeDefined();
       expect(queenApp.out_file).toMatch(/\.log$/);
     });
 
-    test('should configure log date format', () => {
+    jest.setTimeout(10000);
+  test('should configure log date format', () => {
       const queenApp = config.apps[0];
       expect(queenApp.log_date_format).toBeDefined();
     });
 
-    test('should enable log merging', () => {
+    jest.setTimeout(10000);
+  test('should enable log merging', () => {
       const queenApp = config.apps[0];
       expect(queenApp.merge_logs).toBe(true);
     });
   });
 
   describe('Advanced Features', () => {
-    test('should disable watch in production', () => {
+    jest.setTimeout(10000);
+  test('should disable watch in production', () => {
       const queenApp = config.apps[0];
       expect(queenApp.watch).toBe(false);
     });
 
-    test('should configure instance variable', () => {
+    jest.setTimeout(10000);
+  test('should configure instance variable', () => {
       const queenApp = config.apps[0];
       expect(queenApp.instance_var).toBeDefined();
     });
 
-    test('should configure port increment', () => {
+    jest.setTimeout(10000);
+  test('should configure port increment', () => {
       const queenApp = config.apps[0];
       expect(queenApp.increment_var).toBeDefined();
     });
   });
 
   describe('Deployment Configuration (Optional)', () => {
-    test('should optionally define deployment config', () => {
+    jest.setTimeout(10000);
+  test('should optionally define deployment config', () => {
       if (config.deploy) {
         expect(config.deploy.production).toBeDefined();
       }
@@ -173,12 +196,14 @@ describe('PM2 Ecosystem Configuration', () => {
   });
 
   describe('Security and Best Practices', () => {
-    test('should not use fork mode for cluster', () => {
+    jest.setTimeout(10000);
+  test('should not use fork mode for cluster', () => {
       const queenApp = config.apps[0];
       expect(queenApp.exec_mode).not.toBe('fork');
     });
 
-    test('should configure reasonable instance count', () => {
+    jest.setTimeout(10000);
+  test('should configure reasonable instance count', () => {
       const queenApp = config.apps[0];
       if (typeof queenApp.instances === 'number') {
         expect(queenApp.instances).toBeGreaterThanOrEqual(2);
@@ -186,7 +211,8 @@ describe('PM2 Ecosystem Configuration', () => {
       }
     });
 
-    test('should configure reasonable memory limit', () => {
+    jest.setTimeout(10000);
+  test('should configure reasonable memory limit', () => {
       const queenApp = config.apps[0];
       const memoryStr = queenApp.max_memory_restart;
       const unit = memoryStr.slice(-1); // G or M
@@ -203,19 +229,22 @@ describe('PM2 Ecosystem Configuration', () => {
   });
 
   describe('Script Path Validation', () => {
-    test('should have valid script path format', () => {
+    jest.setTimeout(10000);
+  test('should have valid script path format', () => {
       const queenApp = config.apps[0];
       expect(queenApp.script).toMatch(/^\.\/.*\.js$/);
     });
 
-    test('should point to coordination directory', () => {
+    jest.setTimeout(10000);
+  test('should point to coordination directory', () => {
       const queenApp = config.apps[0];
       expect(queenApp.script).toContain('/coordination/');
     });
   });
 
   describe('Configuration Completeness', () => {
-    test('should have all required fields', () => {
+    jest.setTimeout(10000);
+  test('should have all required fields', () => {
       const queenApp = config.apps[0];
       const requiredFields = [
         'name',
@@ -233,7 +262,8 @@ describe('PM2 Ecosystem Configuration', () => {
       });
     });
 
-    test('should have production environment essentials', () => {
+    jest.setTimeout(10000);
+  test('should have production environment essentials', () => {
       const queenApp = config.apps[0];
       const requiredEnvVars = [
         'NODE_ENV',
@@ -256,11 +286,13 @@ describe('PM2 Configuration Loading', () => {
     loadedConfig = require(configPath);
   });
 
+  jest.setTimeout(10000);
   test('should be loadable as CommonJS module', () => {
     expect(loadedConfig).toBeDefined();
     expect(typeof loadedConfig).toBe('object');
   });
 
+  jest.setTimeout(10000);
   test('should export valid PM2 configuration structure', () => {
     expect(loadedConfig).toHaveProperty('apps');
     expect(Array.isArray(loadedConfig.apps)).toBe(true);

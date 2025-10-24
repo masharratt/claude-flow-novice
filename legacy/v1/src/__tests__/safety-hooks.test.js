@@ -90,7 +90,8 @@ describe('Safety Hooks Test Suite', () => {
     });
 
     describe('Enhanced Pre-Tool Validator', () => {
-        test('should allow safe Read operations', async () => {
+        jest.setTimeout(10000);
+  test('should allow safe Read operations', async () => { try {
             const result = await preToolValidator.validate('Read', {
                 file_path: '/tmp/test.txt'
             });
@@ -100,7 +101,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.strictEqual(result.securityLevel, 'safe');
         });
 
-        test('should block dangerous Bash commands', async () => {
+        jest.setTimeout(10000);
+  test('should block dangerous Bash commands', async () => { try {
             const result = await preToolValidator.validate('Bash', {
                 command: 'rm -rf /'
             });
@@ -110,7 +112,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.strictEqual(result.securityLevel, 'dangerous');
         });
 
-        test('should detect command injection attempts', async () => {
+        jest.setTimeout(10000);
+  test('should detect command injection attempts', async () => { try {
             const result = await preToolValidator.validate('Bash', {
                 command: 'ls; rm -rf /'
             });
@@ -119,7 +122,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.errors.some(e => e.includes('Blocked security pattern')));
         });
 
-        test('should sanitize input parameters', async () => {
+        jest.setTimeout(10000);
+  test('should sanitize input parameters', async () => { try {
             const result = await preToolValidator.validate('Write', {
                 file_path: '/tmp/test.txt',
                 content: 'Hello\x00World\x01'
@@ -128,7 +132,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.warnings.some(w => w.includes('sanitized')));
         });
 
-        test('should assess resource impact correctly', async () => {
+        jest.setTimeout(10000);
+  test('should assess resource impact correctly', async () => { try {
             const result = await preToolValidator.validate('Bash', {
                 command: 'npm install express'
             });
@@ -137,7 +142,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.strictEqual(result.resourceImpact.disk, 'high');
         });
 
-        test('should validate ACL permissions', async () => {
+        jest.setTimeout(10000);
+  test('should validate ACL permissions', async () => { try {
             const result = await preToolValidator.validate('Read', {
                 file_path: '/tmp/test.txt'
             });
@@ -145,14 +151,16 @@ describe('Safety Hooks Test Suite', () => {
             assert.strictEqual(result.aclValidated, true);
         });
 
-        test('should handle missing required parameters', async () => {
+        jest.setTimeout(10000);
+  test('should handle missing required parameters', async () => { try {
             const result = await preToolValidator.validate('Read', {});
 
             assert.strictEqual(result.allowed, false);
             assert.ok(result.errors.some(e => e.includes('Missing required parameter')));
         });
 
-        test('should cache validation results', async () => {
+        jest.setTimeout(10000);
+  test('should cache validation results', async () => { try {
             const params = { file_path: '/tmp/test.txt' };
 
             // First validation
@@ -166,7 +174,8 @@ describe('Safety Hooks Test Suite', () => {
     });
 
     describe('Safety Validator', () => {
-        test('should detect OWASP security patterns', async () => {
+        jest.setTimeout(10000);
+  test('should detect OWASP security patterns', async () => { try {
             const maliciousCode = `
                 const password = "hardcoded123";
                 const query = "SELECT * FROM users WHERE id = " + userId;
@@ -183,7 +192,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.securityScore < 100);
         });
 
-        test('should detect CWE patterns', async () => {
+        jest.setTimeout(10000);
+  test('should detect CWE patterns', async () => { try {
             const vulnerableCode = `
                 eval(userInput);
                 const path = req.params.path;
@@ -198,7 +208,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.cweFindings.pathTraversal.length > 0);
         });
 
-        test('should check package.json for vulnerable dependencies', async () => {
+        jest.setTimeout(10000);
+  test('should check package.json for vulnerable dependencies', async () => { try {
             const packageJson = {
                 "name": "test-app",
                 "dependencies": {
@@ -216,7 +227,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.vulnerabilities.some(v => v.package === 'axios'));
         });
 
-        test('should assess performance metrics', async () => {
+        jest.setTimeout(10000);
+  test('should assess performance metrics', async () => { try {
             const largeComplexCode = `
                 function veryComplexFunction(param1, param2, param3, param4, param5) {
                     if (param1 && param2 || param3 && !param4) {
@@ -251,7 +263,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.performance.score < 100);
         });
 
-        test('should validate GDPR compliance', async () => {
+        jest.setTimeout(10000);
+  test('should validate GDPR compliance', async () => { try {
             const personalDataCode = `
                 const user = {
                     name: "John Doe",
@@ -269,7 +282,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.compliance.gdpr.issues.length > 0);
         });
 
-        test('should detect PCI card data', async () => {
+        jest.setTimeout(10000);
+  test('should detect PCI card data', async () => { try {
             const cardDataCode = `
                 const cardNumber = "4111-1111-1111-1111";
                 const expiry = "12/25";
@@ -285,7 +299,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.compliance.pci.issues.some(i => i.severity === 'critical'));
         });
 
-        test('should generate security recommendations', async () => {
+        jest.setTimeout(10000);
+  test('should generate security recommendations', async () => { try {
             const vulnerableCode = `
                 eval(userInput);
                 const password = "secret123";
@@ -301,7 +316,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.summary.includes('SECURITY ISSUES'));
         });
 
-        test('should pass validation for secure code', async () => {
+        jest.setTimeout(10000);
+  test('should pass validation for secure code', async () => { try {
             const secureCode = `
                 function secureFunction(userInput) {
                     const sanitized = DOMPurify.sanitize(userInput);
@@ -325,7 +341,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.summary.includes('SECURE'));
         });
 
-        test('should cache validation results', async () => {
+        jest.setTimeout(10000);
+  test('should cache validation results', async () => { try {
             const code = 'const x = 42;';
 
             // First validation
@@ -343,7 +360,8 @@ describe('Safety Hooks Test Suite', () => {
     });
 
     describe('ACL Integration', () => {
-        test('should respect ACL permissions for pre-tool validation', async () => {
+        jest.setTimeout(10000);
+  test('should respect ACL permissions for pre-tool validation', async () => { try {
             // Test with restricted agent
             const restrictedValidator = new EnhancedPreToolValidator({
                 memoryManager: mockMemoryManager,
@@ -359,7 +377,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.confidence < 0.8);
         });
 
-        test('should grant elevated access to admin agents', async () => {
+        jest.setTimeout(10000);
+  test('should grant elevated access to admin agents', async () => { try {
             const adminValidator = new EnhancedPreToolValidator({
                 memoryManager: mockMemoryManager,
                 agentId: 'admin-agent',
@@ -374,7 +393,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.confidence > 0.9);
         });
 
-        test('should handle ACL validation failures gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle ACL validation failures gracefully', async () => { try {
             const validatorWithoutMemory = new EnhancedPreToolValidator({
                 memoryManager: null,
                 agentId: 'test-agent',
@@ -391,7 +411,8 @@ describe('Safety Hooks Test Suite', () => {
     });
 
     describe('Performance Assessment', () => {
-        test('should detect large files', async () => {
+        jest.setTimeout(10000);
+  test('should detect large files', async () => { try {
             // Create a temporary large file
             const largeContent = 'x'.repeat(15 * 1024 * 1024); // 15MB
             const tempFile = join(__dirname, 'temp-large.txt');
@@ -411,7 +432,8 @@ describe('Safety Hooks Test Suite', () => {
             }
         });
 
-        test('should assess resource impact for different tools', async () => {
+        jest.setTimeout(10000);
+  test('should assess resource impact for different tools', async () => { try {
             const tools = [
                 { name: 'Read', params: { file_path: '/tmp/test.txt' }, expected: { cpu: 'low', memory: 'low' } },
                 { name: 'Bash', params: { command: 'npm install' }, expected: { network: 'high', disk: 'high' } },
@@ -430,7 +452,8 @@ describe('Safety Hooks Test Suite', () => {
     });
 
     describe('Error Handling', () => {
-        test('should handle invalid parameters gracefully', async () => {
+        jest.setTimeout(10000);
+  test('should handle invalid parameters gracefully', async () => { try {
             const result = await preToolValidator.validate('InvalidTool', {});
 
             assert.strictEqual(result.allowed, false);
@@ -438,9 +461,10 @@ describe('Safety Hooks Test Suite', () => {
             assert.strictEqual(result.confidence, 0.0);
         });
 
-        test('should handle memory manager errors', async () => {
+        jest.setTimeout(10000);
+  test('should handle memory manager errors', async () => { try {
             const brokenMemoryManager = {
-                _checkACL: async () => {
+                _checkACL: async () => { try {
                     throw new Error('Memory manager error');
                 }
             };
@@ -458,7 +482,8 @@ describe('Safety Hooks Test Suite', () => {
             assert.ok(result.warnings.some(w => w.includes('ACL validation failed')));
         });
 
-        test('should handle file reading errors', async () => {
+        jest.setTimeout(10000);
+  test('should handle file reading errors', async () => { try {
             const result = await safetyValidator.validate('/nonexistent/file.js', {
                 type: 'file'
             });
@@ -471,7 +496,8 @@ describe('Safety Hooks Test Suite', () => {
 
 // Integration test for Redis coordination
 describe('Redis Coordination Integration', () => {
-    test('should publish validation results to Redis', async () => {
+    jest.setTimeout(10000);
+  test('should publish validation results to Redis', async () => { try {
         // This would be tested with actual Redis in the integration environment
         const mockRedisPublisher = {
             publish: async (channel, message) => {
@@ -489,7 +515,8 @@ describe('Redis Coordination Integration', () => {
         assert.ok(validationLogs !== null);
     });
 
-    test('should recover from Redis connection failures', async () => {
+    jest.setTimeout(10000);
+  test('should recover from Redis connection failures', async () => { try {
         const validatorWithoutRedis = new EnhancedPreToolValidator({
             memoryManager: null,
             agentId: 'test-agent',

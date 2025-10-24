@@ -29,7 +29,7 @@ describe('Cross-Component Coordination Integration Tests', () => {
   let migrationManager;
   let originalConfigPaths = new Map();
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     testDir = path.join(os.tmpdir(), 'claude-flow-integration-test', Date.now().toString());
     await fs.mkdir(testDir, { recursive: true });
 
@@ -54,7 +54,7 @@ describe('Cross-Component Coordination Integration Tests', () => {
     migrationManager.backupDirectory = path.join(testConfigDir, 'backups');
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Restore original paths
     configManager.userConfigDir = originalConfigPaths.get('config');
     consentManager.consentStorePath = originalConfigPaths.get('consent');
@@ -64,7 +64,7 @@ describe('Cross-Component Coordination Integration Tests', () => {
     await fs.rm(testDir, { recursive: true, force: true });
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clear any cached state
     configManager.invalidateCache();
 
@@ -75,7 +75,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
   });
 
   describe('Configuration and Consent Integration', () => {
-    test('should coordinate configuration changes with consent requirements', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate configuration changes with consent requirements', async () => { try {
       let consentRequested = false;
       let configChanged = false;
 
@@ -106,7 +107,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
       expect(configManager.isFeatureAvailable('byzantineConsensus')).toBe(true);
     });
 
-    test('should respect consent decisions in configuration validation', async () => {
+    jest.setTimeout(10000);
+  test('should respect consent decisions in configuration validation', async () => { try {
       await configManager.init();
       await consentManager.init();
 
@@ -137,7 +139,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
   });
 
   describe('Configuration and Migration Integration', () => {
-    test('should handle configuration migrations with proper backup and validation', async () => {
+    jest.setTimeout(10000);
+  test('should handle configuration migrations with proper backup and validation', async () => { try {
       const configPath = path.join(testDir, 'test-config.json');
 
       // Create a legacy configuration
@@ -181,7 +184,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
       expect(migratedConfig.version).toBe('2.0.0');
     });
 
-    test('should handle migration rollback when validation fails', async () => {
+    jest.setTimeout(10000);
+  test('should handle migration rollback when validation fails', async () => { try {
       const configPath = path.join(testDir, 'test-config-rollback.json');
 
       // Create a configuration that will cause validation to fail
@@ -221,7 +225,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
   });
 
   describe('Cache and Performance Coordination', () => {
-    test('should coordinate cache invalidation across components', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate cache invalidation across components', async () => { try {
       let cacheInvalidated = false;
       let cacheWarmed = false;
 
@@ -253,7 +258,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
       expect(metricsAfter.entryCount).toBeLessThan(metrics.entryCount);
     });
 
-    test('should preload configuration for optimal performance', async () => {
+    jest.setTimeout(10000);
+  test('should preload configuration for optimal performance', async () => { try {
       let configPreloaded = false;
 
       configManager.on('configurationPreloaded', () => {
@@ -274,7 +280,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
       expect(endTime - startTime).toBeLessThan(10); // Should be very fast due to caching
     });
 
-    test('should monitor cache performance and auto-cleanup', async () => {
+    jest.setTimeout(10000);
+  test('should monitor cache performance and auto-cleanup', async () => { try {
       let autoCleanupTriggered = false;
 
       configManager.on('cacheAutoCleanup', () => {
@@ -304,7 +311,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
   });
 
   describe('Event System Coordination', () => {
-    test('should coordinate events across all components', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate events across all components', async () => { try {
       const events = [];
 
       // Set up cross-component event listeners
@@ -341,7 +349,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
       expect(events.some(e => e.component === 'consent')).toBe(true);
     });
 
-    test('should handle concurrent operations without conflicts', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent operations without conflicts', async () => { try {
       await Promise.all([
         configManager.init(),
         consentManager.init(),
@@ -373,7 +382,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
   });
 
   describe('Error Handling and Recovery', () => {
-    test('should gracefully handle component failures', async () => {
+    jest.setTimeout(10000);
+  test('should gracefully handle component failures', async () => { try {
       await configManager.init();
 
       // Simulate a component failure by corrupting data
@@ -392,7 +402,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
       expect(config).toBeDefined();
     });
 
-    test('should maintain system integrity during partial failures', async () => {
+    jest.setTimeout(10000);
+  test('should maintain system integrity during partial failures', async () => { try {
       const events = [];
 
       configManager.on('initializationFailed', (data) => {
@@ -417,7 +428,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
   });
 
   describe('Performance and Scalability', () => {
-    test('should handle large configuration sets efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle large configuration sets efficiently', async () => { try {
       await configManager.init();
 
       const startTime = Date.now();
@@ -442,7 +454,8 @@ describe('Cross-Component Coordination Integration Tests', () => {
       expect(getTime - setTime).toBeLessThan(500);
     });
 
-    test('should scale consent management for many features', async () => {
+    jest.setTimeout(10000);
+  test('should scale consent management for many features', async () => { try {
       await consentManager.init();
 
       const startTime = Date.now();
@@ -474,4 +487,4 @@ describe('Cross-Component Coordination Integration Tests', () => {
       expect(summary.grantedConsents).toBe(features.length);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

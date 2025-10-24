@@ -61,7 +61,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Redis Performance Benchmarks', () => {
-    it('should benchmark Redis connection performance', async () => {
+    it('should benchmark Redis connection performance', async () => { try {
       const { connectRedis } = await import('../../cli/utils/redis-client.js');
       connectRedis.mockResolvedValue(mockRedisClient);
 
@@ -75,7 +75,7 @@ describe('Performance Benchmark Tests', () => {
       expect(mockRedisClient.ping).toHaveBeenCalled();
     });
 
-    it('should benchmark Redis SET operations with varying payload sizes', async () => {
+    it('should benchmark Redis SET operations with varying payload sizes', async () => { try {
       const payloadSizes = [
         { name: 'small', size: 1024 },           // 1KB
         { name: 'medium', size: 10240 },         // 10KB
@@ -122,7 +122,7 @@ describe('Performance Benchmark Tests', () => {
       expect(results.large.throughput).toBeGreaterThan(500000);  // > 500KB/s
     });
 
-    it('should benchmark Redis GET operations under load', async () => {
+    it('should benchmark Redis GET operations under load', async () => { try {
       const concurrencyLevels = [1, 5, 10, 20, 50];
       const results = {};
 
@@ -161,7 +161,7 @@ describe('Performance Benchmark Tests', () => {
       expect(results[50].avgLatency).toBeLessThan(20); // < 20ms average latency at 50 concurrency
     });
 
-    it('should benchmark Redis batch operations', async () => {
+    it('should benchmark Redis batch operations', async () => { try {
       const batchSizes = [10, 50, 100, 500, 1000];
       const results = {};
 
@@ -204,7 +204,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Swarm State Performance Benchmarks', () => {
-    it('should benchmark swarm state serialization/deserialization', async () => {
+    it('should benchmark swarm state serialization/deserialization', async () => { try {
       const swarmSizes = [
         { agents: 5, tasks: 10, name: 'small' },
         { agents: 20, tasks: 50, name: 'medium' },
@@ -293,7 +293,7 @@ describe('Performance Benchmark Tests', () => {
       expect(results.large.serializationThroughput).toBeGreaterThan(500000);   // > 500KB/s
     });
 
-    it('should benchmark concurrent swarm operations', async () => {
+    it('should benchmark concurrent swarm operations', async () => { try {
       const { saveSwarmState, loadSwarmState, connectRedis } = await import('../../cli/utils/redis-client.js');
       connectRedis.mockResolvedValue(mockRedisClient);
       saveSwarmState.mockResolvedValue(true);
@@ -354,7 +354,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Memory Usage Benchmarks', () => {
-    it('should benchmark memory usage during swarm operations', async () => {
+    it('should benchmark memory usage during swarm operations', async () => { try {
       const initialMemory = process.memoryUsage();
       const swarms = [];
 
@@ -401,7 +401,7 @@ describe('Performance Benchmark Tests', () => {
       expect(totalMemoryIncrease).toBeLessThan(100 * 1024 * 1024); // < 100MB total for 100 swarms
     });
 
-    it('should benchmark memory cleanup after swarm operations', async () => {
+    it('should benchmark memory cleanup after swarm operations', async () => { try {
       const initialMemory = process.memoryUsage();
       const swarms = [];
 
@@ -446,7 +446,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Performance Regression Detection', () => {
-    it('should detect Redis performance regression', async () => {
+    it('should detect Redis performance regression', async () => { try {
       const { connectRedis } = await import('../../cli/utils/redis-client.js');
       connectRedis.mockResolvedValue(mockRedisClient);
 
@@ -476,7 +476,7 @@ describe('Performance Benchmark Tests', () => {
       expect(currentOperationTime).toBeLessThan(20);    // < 20ms operations
     });
 
-    it('should detect swarm state performance regression', async () => {
+    it('should detect swarm state performance regression', async () => { try {
       // Create large swarm state
       const largeSwarmState = {
         id: 'regression-test',
@@ -517,7 +517,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Load Testing and Stress Testing', () => {
-    it('should handle high-frequency swarm state operations', async () => {
+    it('should handle high-frequency swarm state operations', async () => { try {
       const { saveSwarmState, connectRedis } = await import('../../cli/utils/redis-client.js');
       connectRedis.mockResolvedValue(mockRedisClient);
       saveSwarmState.mockResolvedValue(true);
@@ -560,7 +560,7 @@ describe('Performance Benchmark Tests', () => {
       expect(mockRedisClient.setEx).toHaveBeenCalledTimes(operations);
     });
 
-    it('should maintain performance under sustained load', async () => {
+    it('should maintain performance under sustained load', async () => { try {
       const { saveSwarmState, loadSwarmState, connectRedis } = await import('../../cli/utils/redis-client.js');
       connectRedis.mockResolvedValue(mockRedisClient);
       saveSwarmState.mockResolvedValue(true);
@@ -628,7 +628,7 @@ describe('Performance Benchmark Tests', () => {
   });
 
   describe('Performance Monitoring and Metrics', () => {
-    it('should collect and report performance metrics', async () => {
+    it('should collect and report performance metrics', async () => { try {
       const mockMetricsCollector = {
         startTimer: jest.fn().mockReturnValue('timer-123'),
         endTimer: jest.fn().mockReturnValue(150),
@@ -686,7 +686,7 @@ describe('Performance Benchmark Tests', () => {
       expect(mockMetricsCollector.recordMetric).toHaveBeenCalledWith('operation-latency', 150);
     });
 
-    it('should detect performance anomalies', async () => {
+    it('should detect performance anomalies', async () => { try {
       const mockAnomalyDetector = {
         checkThreshold: jest.fn(),
         detectOutliers: jest.fn(),
@@ -750,4 +750,4 @@ describe('Performance Benchmark Tests', () => {
       expect(mockAnomalyDetector.generateAlert).toHaveBeenCalledWith('HIGH_ERROR_RATE', errorRateCheck);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

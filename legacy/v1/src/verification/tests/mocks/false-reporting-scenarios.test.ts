@@ -84,7 +84,7 @@ describe('False Reporting Detection Scenarios', () => {
   let deceptionDetector: DeceptionDetector;
   let mockAgents: Map<string, MockAgent>;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'false-reporting-test-'));
 
     // Setup truth score calculator
@@ -100,11 +100,11 @@ describe('False Reporting Detection Scenarios', () => {
     // Create mock agents with different deception strategies
     mockAgents = new Map();
     await createMockAgentScenarios();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+  afterEach(async () => { try {
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   async function createMockAgentScenarios() {
     const agentConfigs = [
@@ -206,7 +206,8 @@ describe('False Reporting Detection Scenarios', () => {
   }
 
   describe('Overconfident Agent Scenarios', () => {
-    test('should detect agent consistently overestimating success rates', async () => {
+    jest.setTimeout(10000);
+  test('should detect agent consistently overestimating success rates', async () => { try {
       const agent = mockAgents.get('overconfident-agent-002')!;
       const reports: AgentReport[] = [];
 
@@ -238,7 +239,7 @@ describe('False Reporting Detection Scenarios', () => {
               maintainability: 0.9,
             },
           },
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         reports.push(report);
         agent.reportHistory.push(report);
@@ -258,9 +259,10 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.recommendations).toContain(
         'Implement additional verification for this agent',
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect pattern of hiding minor issues', async () => {
+    jest.setTimeout(10000);
+  test('should detect pattern of hiding minor issues', async () => { try {
       const agent = mockAgents.get('overconfident-agent-002')!;
       const reports: AgentReport[] = [];
 
@@ -284,7 +286,7 @@ describe('False Reporting Detection Scenarios', () => {
             performance: { improvement: 0.15, metrics: { minorIssues: 0, majorIssues: 0 } },
             quality: { codeQuality: 0.9, documentation: 0.8, maintainability: 0.9 },
           },
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         reports.push(report);
         agent.reportHistory.push(report);
@@ -296,11 +298,12 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.deceptionType).toContain('issue_hiding');
       expect(analysis.evidence.hiddenIssuesCount).toBeGreaterThan(10);
       expect(analysis.recommendations).toContain('Require detailed issue reporting');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Evidence Fabrication Scenarios', () => {
-    test('should detect fabricated test results', async () => {
+    jest.setTimeout(10000);
+  test('should detect fabricated test results', async () => { try {
       const agent = mockAgents.get('fabricating-agent-003')!;
       const reports: AgentReport[] = [];
 
@@ -342,7 +345,7 @@ describe('False Reporting Detection Scenarios', () => {
             executionTime: Math.random() * 100 + 50, // Suspiciously consistent timing
             testLogs: generateFakeTestLogs(fabricatedResults),
           },
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         reports.push(report);
         agent.reportHistory.push(report);
@@ -359,9 +362,10 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.evidence.unrealisticSuccessRate).toBe(true);
       expect(analysis.evidence.suspiciouslyFastReporting).toBe(true);
       expect(analysis.evidence.evidenceInconsistency).toBeGreaterThan(0.5);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect impossible performance improvements', async () => {
+    jest.setTimeout(10000);
+  test('should detect impossible performance improvements', async () => { try {
       const agent = mockAgents.get('fabricating-agent-003')!;
       const reports: AgentReport[] = [];
 
@@ -396,7 +400,7 @@ describe('False Reporting Detection Scenarios', () => {
             },
             quality: { codeQuality: 0.99, documentation: 0.99, maintainability: 0.99 },
           },
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         reports.push(report);
         agent.reportHistory.push(report);
@@ -410,11 +414,12 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.recommendations).toContain(
         'Require third-party verification for performance claims',
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Selective Reporting Scenarios', () => {
-    test('should detect agent that only reports successes', async () => {
+    jest.setTimeout(10000);
+  test('should detect agent that only reports successes', async () => { try {
       const agent = mockAgents.get('selective-agent-004')!;
       const reports: AgentReport[] = [];
 
@@ -446,7 +451,7 @@ describe('False Reporting Detection Scenarios', () => {
               performance: { improvement: 0.12, metrics: {} },
               quality: { codeQuality: 0.85, documentation: 0.8, maintainability: 0.8 },
             },
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           reports.push(report);
           agent.reportHistory.push(report);
@@ -460,9 +465,10 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.evidence.missingFailureReports).toBe(true);
       expect(analysis.evidence.suspiciousSuccessRate).toBeGreaterThan(0.95);
       expect(analysis.recommendations).toContain('Mandatory reporting of all task outcomes');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect cherry-picked metrics reporting', async () => {
+    jest.setTimeout(10000);
+  test('should detect cherry-picked metrics reporting', async () => { try {
       const agent = mockAgents.get('selective-agent-004')!;
       const reports: AgentReport[] = [];
 
@@ -487,7 +493,7 @@ describe('False Reporting Detection Scenarios', () => {
             );
           })
           .slice(0, 3)
-          .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+          .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         const report = generateReport(agent, `cherry-pick-task-${i}`, {
           actualOutcome: {
@@ -504,7 +510,7 @@ describe('False Reporting Detection Scenarios', () => {
             performance: { improvement: 0.15, metrics: favorableMetrics },
             quality: { codeQuality: 0.9, documentation: 0.8, maintainability: 0.9 },
           },
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         reports.push(report);
         agent.reportHistory.push(report);
@@ -516,11 +522,12 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.deceptionType).toContain('cherry_picking');
       expect(analysis.evidence.incompleteMetricsReporting).toBe(true);
       expect(analysis.recommendations).toContain('Require comprehensive metrics reporting');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Gaslighting and Manipulation Scenarios', () => {
-    test('should detect agent contradicting previous statements', async () => {
+    jest.setTimeout(10000);
+  test('should detect agent contradicting previous statements', async () => { try {
       const agent = mockAgents.get('gaslighting-agent-005')!;
       const reports: AgentReport[] = [];
 
@@ -545,7 +552,7 @@ describe('False Reporting Detection Scenarios', () => {
             quality: { codeQuality: 0.4, documentation: 0.3, maintainability: 0.5 },
           },
           timestamp: Date.now(),
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Second report - claims success for same task
         const secondReport = generateReport(agent, taskId, {
@@ -564,7 +571,7 @@ describe('False Reporting Detection Scenarios', () => {
             quality: { codeQuality: 0.95, documentation: 0.9, maintainability: 0.95 },
           },
           timestamp: Date.now() + 60000, // 1 minute later
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         reports.push(firstReport, secondReport);
         agent.reportHistory.push(firstReport, secondReport);
@@ -579,9 +586,10 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.recommendations).toContain(
         'Implement immutable audit trail for agent reports',
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect agent attempting to discredit other agents', async () => {
+    jest.setTimeout(10000);
+  test('should detect agent attempting to discredit other agents', async () => { try {
       const gaslightingAgent = mockAgents.get('gaslighting-agent-005')!;
       const honestAgent = mockAgents.get('honest-agent-001')!;
       const reports: AgentReport[] = [];
@@ -606,7 +614,7 @@ describe('False Reporting Detection Scenarios', () => {
             performance: { improvement: 0.08, metrics: {} },
             quality: { codeQuality: 0.75, documentation: 0.7, maintainability: 0.8 },
           },
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Gaslighting agent contradicts with false negative report
         const gaslightingReport = generateReport(gaslightingAgent, taskId, {
@@ -628,7 +636,7 @@ describe('False Reporting Detection Scenarios', () => {
             contradicts: honestReport.id,
             claimsOtherAgentWrong: true,
           },
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         reports.push(honestReport, gaslightingReport);
         gaslightingAgent.reportHistory.push(gaslightingReport);
@@ -640,11 +648,12 @@ describe('False Reporting Detection Scenarios', () => {
       expect(analysis.deceptionType).toContain('discrediting_others');
       expect(analysis.evidence.contradictionsWithOtherAgents).toBeGreaterThan(7);
       expect(analysis.evidence.systematicDisagreement).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Collusion Detection', () => {
-    test('should detect agents colluding to hide failures', async () => {
+    jest.setTimeout(10000);
+  test('should detect agents colluding to hide failures', async () => { try {
       const colludingAgents = [
         mockAgents.get('overconfident-agent-002')!,
         mockAgents.get('selective-agent-004')!,
@@ -674,7 +683,7 @@ describe('False Reporting Detection Scenarios', () => {
             evidence: {
               crossReferencedWith: colludingAgents.map((a) => a.id).filter((id) => id !== agent.id),
             },
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           reports.push(report);
           agent.reportHistory.push(report);
@@ -692,8 +701,8 @@ describe('False Reporting Detection Scenarios', () => {
       expect(collusionAnalysis.confidence).toBeGreaterThan(0.7);
       expect(collusionAnalysis.evidence.synchronizedReporting).toBe(true);
       expect(collusionAnalysis.evidence.identicalFalseClaims).toBeGreaterThan(2);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   // Helper functions
   function generateReport(
@@ -809,7 +818,7 @@ describe('False Reporting Detection Scenarios', () => {
     logs.push('All tests completed successfully!'); // Contradictory message
     return logs.join('\n');
   }
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 // Mock Deception Detector Implementation
 class DeceptionDetector {
@@ -823,7 +832,7 @@ class DeceptionDetector {
   }
 
   async initialize() {
-    await fs.mkdir(path.join(this.dataPath, 'deception-analysis'), { recursive: true });
+    await fs.mkdir(path.join(this.dataPath, 'deception-analysis'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   }
 
   async analyzeAgentPattern(agentId: string, reports: AgentReport[]): Promise<VerificationResult> {
@@ -841,7 +850,7 @@ class DeceptionDetector {
     // Calculate truth scores for all reports
     const truthScores = reports.map((report) => {
       return this.calculateReportTruthScore(report);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     analysis.truthScore = truthScores.reduce((sum, score) => sum + score, 0) / truthScores.length;
 

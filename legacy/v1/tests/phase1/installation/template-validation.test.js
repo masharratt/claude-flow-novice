@@ -12,12 +12,12 @@ import os from 'os';
 describe('Template Validation', () => {
   let testTemplateDir;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     testTemplateDir = path.join(os.tmpdir(), `template-test-${Date.now()}`);
     await fs.mkdir(testTemplateDir, { recursive: true });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     try {
       await fs.rm(testTemplateDir, { recursive: true, force: true });
     } catch (error) {
@@ -26,7 +26,7 @@ describe('Template Validation', () => {
   });
 
   describe('CLAUDE.md Template', () => {
-    it('should have all required sections', async () => {
+    it('should have all required sections', async () => { try {
       const templatePath = path.join(
         process.cwd(),
         'src/cli/simple-commands/init/templates/CLAUDE.md'
@@ -54,7 +54,7 @@ describe('Template Validation', () => {
       }
     });
 
-    it('should have valid markdown structure', async () => {
+    it('should have valid markdown structure', async () => { try {
       const templatePath = path.join(
         process.cwd(),
         'src/cli/simple-commands/init/templates/CLAUDE.md'
@@ -79,7 +79,7 @@ describe('Template Validation', () => {
       }
     });
 
-    it('should not contain placeholder text', async () => {
+    it('should not contain placeholder text', async () => { try {
       const templatePath = path.join(
         process.cwd(),
         'src/cli/simple-commands/init/templates/CLAUDE.md'
@@ -106,7 +106,7 @@ describe('Template Validation', () => {
   });
 
   describe('Settings Template', () => {
-    it('should be valid JSON', async () => {
+    it('should be valid JSON', async () => { try {
       const settingsTemplate = {
         hooks: {
           'pre-tool': {
@@ -208,7 +208,7 @@ Task decomposition and routing.
   });
 
   describe('Template Integration', () => {
-    it('should create complete project structure', async () => {
+    it('should create complete project structure', async () => { try {
       // Simulate template copying
       const templates = [
         { name: 'CLAUDE.md', content: '# Claude Flow Novice' },
@@ -226,12 +226,12 @@ Task decomposition and routing.
       // Verify all templates created
       for (const template of templates) {
         const filePath = path.join(testTemplateDir, template.name);
-        const exists = await fs.access(filePath).then(() => true).catch(() => false);
+        const exists = await fs.access(filePath)await ( => true).catch(() => false);
         expect(exists).toBe(true);
       }
     });
 
-    it('should create directory structure', async () => {
+    it('should create directory structure', async () => { try {
       const directories = [
         'memory',
         'memory/agents',

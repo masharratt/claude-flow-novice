@@ -10,28 +10,28 @@ describe('CFN Compliance Monitor', () => {
   let redisClient: any;
   const testRedisUrl = 'redis://localhost:6379';
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     monitor = new CFNComplianceMonitor({
       redisUrl: testRedisUrl,
       autoCorrect: true,
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     publisher = new CorrectionPublisher(testRedisUrl);
-    redisClient = createClient({ url: testRedisUrl });
+    redisClient = createClient({ url: testRedisUrl } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     await redisClient.connect();
     await monitor.start();
     await publisher.connect();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await monitor.stop();
     await publisher.disconnect();
     await redisClient.quit();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Violation Detection', () => {
-    it('should detect iteration limit violation', async () => {
+    it('should detect iteration limit violation', async () => { try {
       const decision = {
         action: 'LOOP',
         context: {
@@ -52,9 +52,9 @@ describe('CFN Compliance Monitor', () => {
       const violations = await monitor.getViolations('test-coord');
       expect(violations.length).toBeGreaterThan(0);
       expect(violations[0].rule).toBe('Iteration Limit Exceeded');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should detect consensus threshold violation', async () => {
+    it('should detect consensus threshold violation', async () => { try {
       const decision = {
         action: 'LOOP',
         context: {
@@ -75,9 +75,9 @@ describe('CFN Compliance Monitor', () => {
       const violations = await monitor.getViolations('test-coord');
       expect(violations.length).toBeGreaterThan(0);
       expect(violations[0].rule).toBe('Consensus Threshold Not Met');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should detect unexpected permission request', async () => {
+    it('should detect unexpected permission request', async () => { try {
       const decision = {
         action: 'LOOP',
         requestedPermission: true,
@@ -99,11 +99,11 @@ describe('CFN Compliance Monitor', () => {
       const violations = await monitor.getViolations('test-coord');
       expect(violations.length).toBeGreaterThan(0);
       expect(violations[0].rule).toBe('Unexpected Permission Request');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Correction Publishing', () => {
-    it('should publish correction for critical violations', async () => {
+    it('should publish correction for critical violations', async () => { try {
       const decision = {
         action: 'LOOP',
         context: {
@@ -115,8 +115,8 @@ describe('CFN Compliance Monitor', () => {
       };
 
       const correctionPromise = new Promise((resolve) => {
-        const subscriber = createClient({ url: testRedisUrl });
-        subscriber.connect().then(() => {
+        const subscriber = createClient({ url: testRedisUrl } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+        subscriber.connect()await ( => {
           subscriber.subscribe(
             'cfn:coordinator:test-coord:corrections',
             (message) => {
@@ -124,8 +124,8 @@ describe('CFN Compliance Monitor', () => {
               resolve(correction);
             }
           );
-        });
-      });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await redisClient.publish(
         'cfn:coordinator:test-coord:decisions',
@@ -142,11 +142,11 @@ describe('CFN Compliance Monitor', () => {
       expect(correction).toBeDefined();
       expect(correction.violations[0].rule).toBe('Iteration Limit Exceeded');
       expect(correction.correctedDecision.action).toBe('TERMINATE');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Violation History', () => {
-    it('should maintain violation log', async () => {
+    it('should maintain violation log', async () => { try {
       const decisions = [
         {
           action: 'LOOP',
@@ -186,6 +186,6 @@ describe('CFN Compliance Monitor', () => {
       expect(
         violations.some((v) => v.rule === 'Unexpected Permission Request')
       ).toBeTruthy();
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

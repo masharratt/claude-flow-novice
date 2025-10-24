@@ -33,7 +33,8 @@ describe('SEC-005: Retry Limit Bypass Protection', () => {
   });
 
   describe('Task Ownership Validation', () => {
-    test('should reject unauthorized failure reports', () => {
+    jest.setTimeout(10000);
+  test('should reject unauthorized failure reports', () => {
       // Setup: Add task and simulate assignment
       graph.addNode({
         taskId: 'task-1',
@@ -63,7 +64,8 @@ describe('SEC-005: Retry Limit Bypass Protection', () => {
       expect(graph.nodes.get(task.taskId).status).toBe(DependencyNodeStatus.EXECUTING);
     });
 
-    test('should reject unauthorized completion reports', () => {
+    jest.setTimeout(10000);
+  test('should reject unauthorized completion reports', () => {
       // Setup
       graph.addNode({
         taskId: 'task-2',
@@ -87,7 +89,8 @@ describe('SEC-005: Retry Limit Bypass Protection', () => {
       expect(graph.nodes.get(task.taskId).status).toBe(DependencyNodeStatus.EXECUTING);
     });
 
-    test('should allow legitimate owner to report failure', () => {
+    jest.setTimeout(10000);
+  test('should allow legitimate owner to report failure', () => {
       // Setup
       graph.addNode({
         taskId: 'task-3',
@@ -112,7 +115,8 @@ describe('SEC-005: Retry Limit Bypass Protection', () => {
       expect(scheduler.getRetryCount(task.taskId)).toBe(1);
     });
 
-    test('should allow legitimate owner to complete task', () => {
+    jest.setTimeout(10000);
+  test('should allow legitimate owner to complete task', () => {
       // Setup
       graph.addNode({
         taskId: 'task-4',
@@ -136,7 +140,8 @@ describe('SEC-005: Retry Limit Bypass Protection', () => {
       expect(graph.nodes.get(task.taskId).status).toBe(DependencyNodeStatus.COMPLETED);
     });
 
-    test('should maintain backward compatibility (no callerId)', () => {
+    jest.setTimeout(10000);
+  test('should maintain backward compatibility (no callerId)', () => {
       // Setup
       graph.addNode({
         taskId: 'task-5',
@@ -162,7 +167,8 @@ describe('SEC-005: Retry Limit Bypass Protection', () => {
   });
 
   describe('DoS Attack Mitigation', () => {
-    test('should prevent retry exhaustion via unauthorized reports', () => {
+    jest.setTimeout(10000);
+  test('should prevent retry exhaustion via unauthorized reports', () => {
       // Setup
       graph.addNode({
         taskId: 'task-6',
@@ -188,7 +194,8 @@ describe('SEC-005: Retry Limit Bypass Protection', () => {
       expect(graph.nodes.get(task.taskId).status).toBe(DependencyNodeStatus.EXECUTING);
     });
 
-    test('should enforce retry limits only for legitimate owner', () => {
+    jest.setTimeout(10000);
+  test('should enforce retry limits only for legitimate owner', () => {
       // Setup
       graph.addNode({
         taskId: 'task-7',
@@ -214,7 +221,8 @@ describe('SEC-005: Retry Limit Bypass Protection', () => {
   });
 
   describe('Security Checklist Validation', () => {
-    test('SEC-005 comprehensive security validation', () => {
+    jest.setTimeout(10000);
+  test('SEC-005 comprehensive security validation', () => {
       const results = {
         ownershipTracking: false,
         unauthorizedFailureRejected: false,

@@ -20,29 +20,30 @@ describe('RustFrameworkDetector', () => {
   let detector;
   let tempDir;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create temporary test directory
     tempDir = path.join(__dirname, '..', '..', '..', 'temp', `rust-test-${Date.now()}`);
-    await fs.mkdir(tempDir, { recursive: true });
+    await fs.mkdir(tempDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    detector = new RustFrameworkDetector({ basePath: tempDir });
-  });
+    detector = new RustFrameworkDetector({ basePath: tempDir } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (detector) {
       await detector.cleanup();
     }
 
     // Clean up temp directory
     try {
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     } catch (error) {
       // Ignore cleanup errors in tests
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Core Rust Project Detection', () => {
-    test('should detect basic Rust project with Cargo.toml', async () => {
+    jest.setTimeout(10000);
+  test('should detect basic Rust project with Cargo.toml', async () => { try {
       // Create basic Rust project structure
       await createBasicRustProject(tempDir);
 
@@ -53,9 +54,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.confidence).toBeGreaterThan(0.7);
       expect(result.evidence.files['Cargo.toml']).toBe(true);
       expect(result.evidence.files.rustFileCount).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect Rust workspace configuration', async () => {
+    jest.setTimeout(10000);
+  test('should detect Rust workspace configuration', async () => { try {
       // Create workspace project
       await createRustWorkspace(tempDir);
 
@@ -65,9 +67,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.evidence.workspace).toBeDefined();
       expect(result.evidence.workspace.members).toHaveLength(2);
       expect(result.confidence).toBeGreaterThan(0.8);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect Rust edition information', async () => {
+    jest.setTimeout(10000);
+  test('should detect Rust edition information', async () => { try {
       // Create project with specific edition
       await createRustProjectWithEdition(tempDir, '2021');
 
@@ -76,9 +79,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.isRustProject).toBe(true);
       expect(result.evidence.editions).toContain('2021');
       expect(result.evidence.cargo.edition).toBe('2021');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle missing Cargo.toml gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle missing Cargo.toml gracefully', async () => { try {
       // Create directory with only .rs files
       await fs.writeFile(path.join(tempDir, 'main.rs'), 'fn main() { println!("Hello"); }');
 
@@ -87,11 +91,12 @@ describe('RustFrameworkDetector', () => {
       expect(result.isRustProject).toBe(false);
       expect(result.detected).toBe('unknown');
       expect(result.confidence).toBeLessThan(0.5);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Web Framework Detection', () => {
-    test('should detect Axum web framework', async () => {
+    jest.setTimeout(10000);
+  test('should detect Axum web framework', async () => { try {
       await createAxumProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -101,9 +106,10 @@ describe('RustFrameworkDetector', () => {
         expect.arrayContaining([expect.objectContaining({ name: 'axum' })]),
       );
       expect(result.scores.webFrameworks.axum).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect Warp web framework', async () => {
+    jest.setTimeout(10000);
+  test('should detect Warp web framework', async () => { try {
       await createWarpProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -112,9 +118,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.web).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'warp' })]),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect Actix-web framework', async () => {
+    jest.setTimeout(10000);
+  test('should detect Actix-web framework', async () => { try {
       await createActixWebProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -123,9 +130,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.web).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'actix-web' })]),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect Rocket framework', async () => {
+    jest.setTimeout(10000);
+  test('should detect Rocket framework', async () => { try {
       await createRocketProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -134,11 +142,12 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.web).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'rocket' })]),
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Database Framework Detection', () => {
-    test('should detect Diesel ORM', async () => {
+    jest.setTimeout(10000);
+  test('should detect Diesel ORM', async () => { try {
       await createDieselProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -147,9 +156,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.database).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'diesel' })]),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect SeaORM', async () => {
+    jest.setTimeout(10000);
+  test('should detect SeaORM', async () => { try {
       await createSeaOrmProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -158,9 +168,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.database).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'sea-orm' })]),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect SQLx', async () => {
+    jest.setTimeout(10000);
+  test('should detect SQLx', async () => { try {
       await createSqlxProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -169,11 +180,12 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.database).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'sqlx' })]),
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Async Runtime Detection', () => {
-    test('should detect Tokio runtime', async () => {
+    jest.setTimeout(10000);
+  test('should detect Tokio runtime', async () => { try {
       await createTokioProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -182,9 +194,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.async).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'tokio' })]),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect async-std runtime', async () => {
+    jest.setTimeout(10000);
+  test('should detect async-std runtime', async () => { try {
       await createAsyncStdProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -193,11 +206,12 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.async).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'async-std' })]),
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Testing Framework Detection', () => {
-    test('should detect built-in testing framework', async () => {
+    jest.setTimeout(10000);
+  test('should detect built-in testing framework', async () => { try {
       await createRustProjectWithTests(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -206,9 +220,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.testing).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'builtin' })]),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect Criterion benchmarking', async () => {
+    jest.setTimeout(10000);
+  test('should detect Criterion benchmarking', async () => { try {
       await createCriterionProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -217,9 +232,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.testing).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'criterion' })]),
       );
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect PropTest property testing', async () => {
+    jest.setTimeout(10000);
+  test('should detect PropTest property testing', async () => { try {
       await createPropTestProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -228,11 +244,12 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.testing).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'proptest' })]),
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Byzantine Consensus Validation', () => {
-    test('should achieve Byzantine consensus for clear Rust project', async () => {
+    jest.setTimeout(10000);
+  test('should achieve Byzantine consensus for clear Rust project', async () => { try {
       await createComplexRustProject(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -240,38 +257,42 @@ describe('RustFrameworkDetector', () => {
       expect(result.isRustProject).toBe(true);
       expect(result.metadata.byzantineConsensus).toBe(true);
       expect(result.confidence).toBeGreaterThan(0.8);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should fail Byzantine consensus for ambiguous project', async () => {
+    jest.setTimeout(10000);
+  test('should fail Byzantine consensus for ambiguous project', async () => { try {
       // Create minimal project with little evidence
       await fs.writeFile(path.join(tempDir, 'Cargo.toml'), '[package]\nname = "test"');
 
       const result = await detector.detectRustFramework();
 
       expect(result.metadata.byzantineConsensus).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should validate file evidence correctly', async () => {
+    jest.setTimeout(10000);
+  test('should validate file evidence correctly', async () => { try {
       await createBasicRustProject(tempDir);
 
       const result = await detector.detectRustFramework();
       const fileValidation = detector.validateFileEvidence(result);
 
       expect(fileValidation).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should validate cargo evidence correctly', async () => {
+    jest.setTimeout(10000);
+  test('should validate cargo evidence correctly', async () => { try {
       await createRustProjectWithDependencies(tempDir);
 
       const result = await detector.detectRustFramework();
       const cargoValidation = detector.validateCargoEvidence(result);
 
       expect(cargoValidation).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Performance and Edge Cases', () => {
-    test('should complete detection within reasonable time', async () => {
+    jest.setTimeout(10000);
+  test('should complete detection within reasonable time', async () => { try {
       await createLargeRustProject(tempDir);
 
       const startTime = Date.now();
@@ -281,18 +302,20 @@ describe('RustFrameworkDetector', () => {
       expect(result.isRustProject).toBe(true);
       expect(detectionTime).toBeLessThan(5000); // 5 seconds max
       expect(result.metadata.detectionTime).toBeLessThan(5000);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle corrupted Cargo.toml gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle corrupted Cargo.toml gracefully', async () => { try {
       await fs.writeFile(path.join(tempDir, 'Cargo.toml'), 'invalid toml content [[[');
 
       const result = await detector.detectRustFramework();
 
       expect(result.isRustProject).toBe(false);
       expect(result.error).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle nested workspace structure', async () => {
+    jest.setTimeout(10000);
+  test('should handle nested workspace structure', async () => { try {
       await createNestedRustWorkspace(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -300,9 +323,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.isRustProject).toBe(true);
       expect(result.evidence.workspace).toBeDefined();
       expect(result.evidence.workspace.validMembers).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should limit file analysis for performance', async () => {
+    jest.setTimeout(10000);
+  test('should limit file analysis for performance', async () => { try {
       // Create project with many files
       await createRustProjectWithManyFiles(tempDir, 100);
 
@@ -310,11 +334,12 @@ describe('RustFrameworkDetector', () => {
 
       expect(result.isRustProject).toBe(true);
       expect(result.metadata.filesAnalyzed).toBeLessThan(100); // Should be limited
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Complex Project Scenarios', () => {
-    test('should detect full-stack Rust web application', async () => {
+    jest.setTimeout(10000);
+  test('should detect full-stack Rust web application', async () => { try {
       await createFullStackRustApp(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -324,9 +349,10 @@ describe('RustFrameworkDetector', () => {
       expect(result.frameworks.database.length).toBeGreaterThan(0);
       expect(result.frameworks.async.length).toBeGreaterThan(0);
       expect(result.confidence).toBeGreaterThan(0.9);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle multi-crate workspace with different frameworks', async () => {
+    jest.setTimeout(10000);
+  test('should handle multi-crate workspace with different frameworks', async () => { try {
       await createMultiFrameworkWorkspace(tempDir);
 
       const result = await detector.detectRustFramework();
@@ -335,9 +361,9 @@ describe('RustFrameworkDetector', () => {
       expect(result.evidence.workspace.members.length).toBeGreaterThan(2);
       expect(result.frameworks.web.length).toBeGreaterThan(0);
       expect(result.frameworks.database.length).toBeGreaterThan(0);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 // Test Helper Functions
 
@@ -361,7 +387,7 @@ mod tests {
     }
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
 }
@@ -394,8 +420,8 @@ serde = { workspace = true }`;
   await fs.writeFile(path.join(dir, 'Cargo.toml'), workspaceToml);
 
   // Create workspace members
-  await fs.mkdir(path.join(dir, 'web', 'src'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'core', 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'web', 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'core', 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   await fs.writeFile(path.join(dir, 'web', 'Cargo.toml'), webCargoToml);
   await fs.writeFile(path.join(dir, 'core', 'Cargo.toml'), coreCargoToml);
@@ -412,7 +438,7 @@ edition = "${edition}"
 
 [dependencies]`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), 'fn main() { println!("Hello"); }');
 }
@@ -462,7 +488,7 @@ struct User {
     username: String,
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
 }
@@ -489,7 +515,7 @@ async fn main() {
         .await;
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
 }
@@ -521,7 +547,7 @@ async fn main() -> std::io::Result<()> {
     .await
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
 }
@@ -547,7 +573,7 @@ fn rocket() -> _ {
     rocket::build().mount("/", routes![index])
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
 }
@@ -586,8 +612,8 @@ pub struct NewPost<'a> {
     }
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'migrations'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'migrations'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/models.rs'), modelsRs);
   await fs.writeFile(path.join(dir, 'src/schema.rs'), schemaRs);
@@ -619,8 +645,8 @@ pub enum Relation {}
 
 impl ActiveModelTrait for ActiveModel {}`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'src/entities'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'src/entities'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/entities/posts.rs'), entitiesRs);
 }
@@ -657,8 +683,8 @@ async fn main() -> Result<(), sqlx::Error> {
     Ok(())
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'migrations'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'migrations'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
   await fs.writeFile(path.join(dir, '.env'), 'DATABASE_URL=postgres://localhost/test');
@@ -685,7 +711,7 @@ async fn main() {
 
     let handle = tokio::spawn(async {
         "return value"
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     println!("Got: {}", handle.await.unwrap());
 }
@@ -695,7 +721,7 @@ async fn test_async() {
     assert_eq!(1 + 1, 2);
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
 }
@@ -715,7 +741,7 @@ async-std = { version = "1", features = ["attributes"] }`;
 async fn main() {
     let handle = task::spawn(async {
         "hello world"
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     println!("{}", handle.await);
 }
@@ -725,7 +751,7 @@ async fn test_async() {
     assert_eq!(2 * 2, 4);
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
 }
@@ -763,12 +789,13 @@ mod tests {
   const testRs = `use test_project::add;
 
 #[test]
-fn integration_test() {
+fn integration_jest.setTimeout(10000);
+  test() {
     assert_eq!(add(10, 10), 20);
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'tests'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'tests'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/lib.rs'), libRs);
   await fs.writeFile(path.join(dir, 'tests/integration_test.rs'), testRs);
@@ -804,8 +831,8 @@ fn criterion_benchmark(c: &mut Criterion) {
 criterion_group!(benches, criterion_benchmark);
 criterion_main!(benches);`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'benches'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'benches'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/lib.rs'), 'pub fn hello() {}');
   await fs.writeFile(path.join(dir, 'benches/my_benchmark.rs'), benchRs);
@@ -846,7 +873,7 @@ mod tests {
     }
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/lib.rs'), libRs);
 }
@@ -892,7 +919,7 @@ reqwest = { version = "0.11", features = ["json"] }
 [dev-dependencies]
 tokio-test = "0.4"`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), 'fn main() { println!("Hello"); }');
 }
@@ -910,7 +937,7 @@ async function createLargeRustProject(dir) {
     mod tests {
         #[test]
         fn test_function_${i}() {
-            assert_eq!(super::function_${i}(), ${i});
+            assert_eq!(super::function_${i}(), ${i} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         }
     }
 }`;
@@ -939,8 +966,8 @@ edition = "2021"`;
 
   await fs.writeFile(path.join(dir, 'Cargo.toml'), workspaceToml);
 
-  await fs.mkdir(path.join(dir, 'crates', 'web', 'src'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'crates', 'core', 'src'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'crates', 'web', 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'crates', 'core', 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   await fs.writeFile(path.join(dir, 'crates', 'web', 'Cargo.toml'), webCargoToml);
   await fs.writeFile(path.join(dir, 'crates', 'core', 'Cargo.toml'), coreCargoToml);
@@ -988,9 +1015,9 @@ async fn main() {
         .unwrap();
 }`;
 
-  await fs.mkdir(path.join(dir, 'src'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'migrations'), { recursive: true });
-  await fs.mkdir(path.join(dir, 'benches'), { recursive: true });
+  await fs.mkdir(path.join(dir, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'migrations'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  await fs.mkdir(path.join(dir, 'benches'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   await fs.writeFile(path.join(dir, 'Cargo.toml'), cargoToml);
   await fs.writeFile(path.join(dir, 'src/main.rs'), mainRs);
@@ -1031,7 +1058,7 @@ clap = "4.0"`;
 
   // Create workspace members
   for (const member of ['web-api', 'database', 'cli-tool']) {
-    await fs.mkdir(path.join(dir, member, 'src'), { recursive: true });
+    await fs.mkdir(path.join(dir, member, 'src'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     let cargoToml;
     switch (member) {

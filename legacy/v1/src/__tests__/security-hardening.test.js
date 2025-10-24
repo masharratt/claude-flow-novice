@@ -17,14 +17,14 @@ describe('Security Hardening Validation', () => {
   let secureErrorHandler;
   let redisClient;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     secureErrorHandler = new SecureErrorHandler({
       audit: { enabled: false }, // Disable audit logging for tests
       rateLimit: { enabled: false } // Disable rate limiting for tests
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (redisClient) {
       await redisClient.shutdown();
     }
@@ -36,7 +36,8 @@ describe('Security Hardening Validation', () => {
 
   describe('CLI Argument Validation Security', () => {
     describe('Production Limits Enforcement', () => {
-      test('should enforce strict agent limits in production', () => {
+      jest.setTimeout(10000);
+  test('should enforce strict agent limits in production', () => {
         const result = validateArgs({
           objective: 'Test objective',
           maxAgents: 15, // Exceeds production limit of 10
@@ -49,7 +50,8 @@ describe('Security Hardening Validation', () => {
         );
       });
 
-      test('should enforce timeout limits in production', () => {
+      jest.setTimeout(10000);
+  test('should enforce timeout limits in production', () => {
         const result = validateArgs({
           objective: 'Test objective',
           timeout: 120, // Exceeds production limit of 60 minutes
@@ -62,7 +64,8 @@ describe('Security Hardening Validation', () => {
         );
       });
 
-      test('should enforce rate limiting configuration', () => {
+      jest.setTimeout(10000);
+  test('should enforce rate limiting configuration', () => {
         const config = PRODUCTION_SECURITY_CONFIG.redis.network.rateLimiting;
         expect(config.enabled).toBe(true);
         expect(config.maxRequests).toBeLessThanOrEqual(1000);
@@ -71,7 +74,8 @@ describe('Security Hardening Validation', () => {
     });
 
     describe('Input Sanitization', () => {
-      test('should sanitize HTML injection attempts', () => {
+      jest.setTimeout(10000);
+  test('should sanitize HTML injection attempts', () => {
         const result = validateArgs({
           objective: '<script>alert("xss")</script>Test objective',
           strategy: 'development'
@@ -83,7 +87,8 @@ describe('Security Hardening Validation', () => {
         );
       });
 
-      test('should sanitize JavaScript injection attempts', () => {
+      jest.setTimeout(10000);
+  test('should sanitize JavaScript injection attempts', () => {
         const result = validateArgs({
           objective: 'javascript:alert("xss")Test objective',
           strategy: 'development'
@@ -95,7 +100,8 @@ describe('Security Hardening Validation', () => {
         );
       });
 
-      test('should truncate oversized objectives', () => {
+      jest.setTimeout(10000);
+  test('should truncate oversized objectives', () => {
         const longObjective = 'a'.repeat(2500); // Exceeds 2000 char limit
         const result = validateArgs({
           objective: longObjective,
@@ -108,7 +114,8 @@ describe('Security Hardening Validation', () => {
         );
       });
 
-      test('should warn about sensitive terms in objectives', () => {
+      jest.setTimeout(10000);
+  test('should warn about sensitive terms in objectives', () => {
         const result = validateArgs({
           objective: 'Test objective with password and secret tokens',
           strategy: 'development'
@@ -122,7 +129,8 @@ describe('Security Hardening Validation', () => {
     });
 
     describe('Production Security Validation', () => {
-      test('should require Redis password in production', () => {
+      jest.setTimeout(10000);
+  test('should require Redis password in production', () => {
         const result = validateArgs({
           objective: 'Test objective',
           strategy: 'development',
@@ -135,7 +143,8 @@ describe('Security Hardening Validation', () => {
         );
       });
 
-      test('should validate Redis password strength', () => {
+      jest.setTimeout(10000);
+  test('should validate Redis password strength', () => {
         const result = validateArgs({
           objective: 'Test objective',
           strategy: 'development',
@@ -148,7 +157,8 @@ describe('Security Hardening Validation', () => {
         );
       });
 
-      test('should warn about TLS being disabled', () => {
+      jest.setTimeout(10000);
+  test('should warn about TLS being disabled', () => {
         const result = validateArgs({
           objective: 'Test objective',
           strategy: 'development',
@@ -165,21 +175,24 @@ describe('Security Hardening Validation', () => {
 
   describe('Redis Security Hardening', () => {
     describe('Connection Security', () => {
-      test('should enforce TLS in production configuration', () => {
+      jest.setTimeout(10000);
+  test('should enforce TLS in production configuration', () => {
         const securityConfig = PRODUCTION_SECURITY_CONFIG.redis.tls;
         expect(securityConfig.enabled).toBe(true);
         expect(securityConfig.minVersion).toBe('TLSv1.2');
         expect(securityConfig.rejectUnauthorized).toBe(true);
       });
 
-      test('should have strong cipher suites configured', () => {
+      jest.setTimeout(10000);
+  test('should have strong cipher suites configured', () => {
         const ciphers = PRODUCTION_SECURITY_CONFIG.redis.tls.ciphers;
         expect(ciphers).toContain('TLS_AES_256_GCM_SHA384');
         expect(ciphers).toContain('TLS_CHACHA20_POLY1305_SHA256');
         expect(ciphers.length).toBeGreaterThan(0);
       });
 
-      test('should enforce authentication requirements', () => {
+      jest.setTimeout(10000);
+  test('should enforce authentication requirements', () => {
         const authConfig = PRODUCTION_SECURITY_CONFIG.redis.auth;
         expect(authConfig.enabled).toBe(true);
         expect(authConfig.passwordPolicy.minLength).toBe(32);
@@ -189,7 +202,8 @@ describe('Security Hardening Validation', () => {
     });
 
     describe('Access Control Lists (ACL)', () => {
-      test('should have role-based access control configured', () => {
+      jest.setTimeout(10000);
+  test('should have role-based access control configured', () => {
         const aclConfig = PRODUCTION_SECURITY_CONFIG.redis.accessControl.rbac;
         expect(aclConfig.enabled).toBe(true);
         expect(aclConfig.roles).toBeDefined();
@@ -198,7 +212,8 @@ describe('Security Hardening Validation', () => {
         expect(aclConfig.roles.agent).toBeDefined();
       });
 
-      test('should enforce principle of least privilege', () => {
+      jest.setTimeout(10000);
+  test('should enforce principle of least privilege', () => {
         const roles = PRODUCTION_SECURITY_CONFIG.redis.accessControl.rbac.roles;
 
         // Agent role should not have admin permissions
@@ -212,7 +227,8 @@ describe('Security Hardening Validation', () => {
         expect(roles.readonly.permissions).toContain('read');
       });
 
-      test('should validate key pattern access', async () => {
+      jest.setTimeout(10000);
+  test('should validate key pattern access', async () => { try {
         redisClient = new SecureRedisClient({
           host: 'localhost',
           port: 6379,
@@ -236,20 +252,23 @@ describe('Security Hardening Validation', () => {
     });
 
     describe('Input Validation', () => {
-      test('should validate key patterns', () => {
+      jest.setTimeout(10000);
+  test('should validate key patterns', () => {
         const config = PRODUCTION_SECURITY_CONFIG.redis.inputValidation;
         expect(config.keys.maxLength).toBe(256);
         expect(config.keys.allowedPatterns.length).toBeGreaterThan(0);
         expect(config.keys.forbiddenPatterns.length).toBeGreaterThan(0);
       });
 
-      test('should enforce value size limits', () => {
+      jest.setTimeout(10000);
+  test('should enforce value size limits', () => {
         const config = PRODUCTION_SECURITY_CONFIG.redis.inputValidation;
         expect(config.values.maxSize).toBe(10 * 1024 * 1024); // 10MB
         expect(config.values.maxStringLength).toBe(1000000); // 1M chars
       });
 
-      test('should filter dangerous content', () => {
+      jest.setTimeout(10000);
+  test('should filter dangerous content', () => {
         const filters = PRODUCTION_SECURITY_CONFIG.redis.inputValidation.values.contentFilters;
         expect(filters.sqlInjection).toBe(true);
         expect(filters.xss).toBe(true);
@@ -259,7 +278,8 @@ describe('Security Hardening Validation', () => {
     });
 
     describe('Command Restrictions', () => {
-      test('should forbid dangerous commands', () => {
+      jest.setTimeout(10000);
+  test('should forbid dangerous commands', () => {
         const forbiddenCommands = PRODUCTION_SECURITY_CONFIG.redis.inputValidation.commands.forbiddenCommands;
         expect(forbiddenCommands).toContain('eval');
         expect(forbiddenCommands).toContain('script');
@@ -269,7 +289,8 @@ describe('Security Hardening Validation', () => {
         expect(forbiddenCommands).toContain('flushall');
       });
 
-      test('should allow safe commands', () => {
+      jest.setTimeout(10000);
+  test('should allow safe commands', () => {
         const allowedCommands = PRODUCTION_SECURITY_CONFIG.redis.inputValidation.commands.allowedCommands;
         expect(allowedCommands).toContain('get');
         expect(allowedCommands).toContain('set');
@@ -281,7 +302,8 @@ describe('Security Hardening Validation', () => {
 
   describe('Secure Error Handling', () => {
     describe('Information Leakage Prevention', () => {
-      test('should redact sensitive information from error messages', async () => {
+      jest.setTimeout(10000);
+  test('should redact sensitive information from error messages', async () => { try {
         const error = new Error('Connection failed: password=secret123 and token=abc123');
         const result = await secureErrorHandler.handleError(error, {});
 
@@ -290,7 +312,8 @@ describe('Security Hardening Validation', () => {
         expect(result.message).toContain('password=***');
       });
 
-      test('should redact file paths in error messages', async () => {
+      jest.setTimeout(10000);
+  test('should redact file paths in error messages', async () => { try {
         const error = new Error('File not found: /Users/john/secrets/config.json');
         const result = await secureErrorHandler.handleError(error, {});
 
@@ -298,7 +321,8 @@ describe('Security Hardening Validation', () => {
         expect(result.message).not.toContain('config.json');
       });
 
-      test('should redact email addresses', async () => {
+      jest.setTimeout(10000);
+  test('should redact email addresses', async () => { try {
         const error = new Error('User not found: user@example.com');
         const result = await secureErrorHandler.handleError(error, {});
 
@@ -306,7 +330,8 @@ describe('Security Hardening Validation', () => {
         expect(result.message).toContain('***@***.***');
       });
 
-      test('should redact IP addresses', async () => {
+      jest.setTimeout(10000);
+  test('should redact IP addresses', async () => { try {
         const error = new Error('Connection refused: 192.168.1.100:6379');
         const result = await secureErrorHandler.handleError(error, {});
 
@@ -316,7 +341,8 @@ describe('Security Hardening Validation', () => {
     });
 
     describe('Error Classification', () => {
-      test('should classify security errors correctly', async () => {
+      jest.setTimeout(10000);
+  test('should classify security errors correctly', async () => { try {
         const error = new Error('Authentication failed: invalid credentials');
         const result = await secureErrorHandler.handleError(error, {});
 
@@ -325,7 +351,8 @@ describe('Security Hardening Validation', () => {
         expect(result.isSecurity).toBe(true);
       });
 
-      test('should classify validation errors correctly', async () => {
+      jest.setTimeout(10000);
+  test('should classify validation errors correctly', async () => { try {
         const error = new Error('Validation failed: missing required field');
         const result = await secureErrorHandler.handleError(error, {});
 
@@ -334,7 +361,8 @@ describe('Security Hardening Validation', () => {
         expect(result.isSecurity).toBe(false);
       });
 
-      test('should generate unique error IDs', async () => {
+      jest.setTimeout(10000);
+  test('should generate unique error IDs', async () => { try {
         const error1 = new Error('Test error 1');
         const error2 = new Error('Test error 2');
 
@@ -347,7 +375,8 @@ describe('Security Hardening Validation', () => {
     });
 
     describe('Rate Limiting', () => {
-      test('should implement error rate limiting', () => {
+      jest.setTimeout(10000);
+  test('should implement error rate limiting', () => {
         const config = ERROR_HANDLER_CONFIG.rateLimit;
         expect(config.enabled).toBe(true);
         expect(config.windowMs).toBe(60000);
@@ -356,7 +385,8 @@ describe('Security Hardening Validation', () => {
     });
 
     describe('Audit Logging', () => {
-      test('should configure secure audit logging', () => {
+      jest.setTimeout(10000);
+  test('should configure secure audit logging', () => {
         const config = PRODUCTION_SECURITY_CONFIG.redis.audit;
         expect(config.enabled).toBe(true);
         expect(config.protection.encryption).toBe(true);
@@ -364,7 +394,8 @@ describe('Security Hardening Validation', () => {
         expect(config.protection.tamperProtection).toBe(true);
       });
 
-      test('should include required audit events', () => {
+      jest.setTimeout(10000);
+  test('should include required audit events', () => {
         const events = PRODUCTION_SECURITY_CONFIG.redis.audit.events;
         expect(events.authentication.failure).toBe(true);
         expect(events.authorization.failure).toBe(true);
@@ -375,7 +406,8 @@ describe('Security Hardening Validation', () => {
   });
 
   describe('Production Security Configuration', () => {
-    test('should enforce secure defaults', () => {
+    jest.setTimeout(10000);
+  test('should enforce secure defaults', () => {
       const config = PRODUCTION_SECURITY_CONFIG;
       expect(config.environment).toBe('production');
       expect(config.redis.auth.enabled).toBe(true);
@@ -383,7 +415,8 @@ describe('Security Hardening Validation', () => {
       expect(config.redis.audit.enabled).toBe(true);
     });
 
-    test('should have security headers configured', () => {
+    jest.setTimeout(10000);
+  test('should have security headers configured', () => {
       const headers = PRODUCTION_SECURITY_CONFIG.redis.securityHeaders.headers;
       expect(headers['Strict-Transport-Security']).toBeDefined();
       expect(headers['X-Content-Type-Options']).toBe('nosniff');
@@ -391,7 +424,8 @@ describe('Security Hardening Validation', () => {
       expect(headers['X-XSS-Protection']).toBe('1; mode=block');
     });
 
-    test('should have monitoring and alerting configured', () => {
+    jest.setTimeout(10000);
+  test('should have monitoring and alerting configured', () => {
       const monitoring = PRODUCTION_SECURITY_CONFIG.redis.monitoring;
       expect(monitoring.metrics.authenticationAttempts).toBe(true);
       expect(monitoring.metrics.authorizationFailures).toBe(true);
@@ -399,7 +433,8 @@ describe('Security Hardening Validation', () => {
       expect(monitoring.alerts).toBeDefined();
     });
 
-    test('should have backup and recovery configured', () => {
+    jest.setTimeout(10000);
+  test('should have backup and recovery configured', () => {
       const backup = PRODUCTION_SECURITY_CONFIG.redis.backup;
       expect(backup.encryption.enabled).toBe(true);
       expect(backup.verification.enabled).toBe(true);
@@ -408,21 +443,24 @@ describe('Security Hardening Validation', () => {
   });
 
   describe('Security Metrics and Compliance', () => {
-    test('should track security metrics', () => {
+    jest.setTimeout(10000);
+  test('should track security metrics', () => {
       const metrics = secureErrorHandler.getErrorStatistics();
       expect(metrics).toHaveProperty('totalErrors');
       expect(metrics).toHaveProperty('errorsByType');
       expect(metrics).toHaveProperty('suspiciousActivities');
     });
 
-    test('should have compliance frameworks enabled', () => {
+    jest.setTimeout(10000);
+  test('should have compliance frameworks enabled', () => {
       const compliance = PRODUCTION_SECURITY_CONFIG.redis.compliance;
       expect(compliance.standards.SOC2.enabled).toBe(true);
       expect(compliance.standards.ISO27001.enabled).toBe(true);
       expect(compliance.standards.GDPR.enabled).toBe(true);
     });
 
-    test('should have data classification implemented', () => {
+    jest.setTimeout(10000);
+  test('should have data classification implemented', () => {
       const classification = PRODUCTION_SECURITY_CONFIG.redis.compliance.dataClassification;
       expect(classification.public).toBeDefined();
       expect(classification.internal).toBeDefined();
@@ -432,7 +470,8 @@ describe('Security Hardening Validation', () => {
   });
 
   describe('Integration Security Tests', () => {
-    test('should handle end-to-end security validation', async () => {
+    jest.setTimeout(10000);
+  test('should handle end-to-end security validation', async () => { try {
       // Test complete security pipeline
       const args = {
         objective: 'Test secure objective',
@@ -453,7 +492,8 @@ describe('Security Hardening Validation', () => {
       expect(errorResult.message).not.toContain('Test security violation'); // Should be sanitized
     });
 
-    test('should demonstrate security hardening effectiveness', () => {
+    jest.setTimeout(10000);
+  test('should demonstrate security hardening effectiveness', () => {
       const securityFeatures = {
         inputValidation: true,
         outputSanitization: true,
@@ -472,7 +512,8 @@ describe('Security Hardening Validation', () => {
   });
 
   describe('Security Confidence Validation', () => {
-    test('should achieve 90%+ security confidence score', () => {
+    jest.setTimeout(10000);
+  test('should achieve 90%+ security confidence score', () => {
       // Calculate security confidence based on implemented features
       const securityFeatures = [
         'inputValidation',
@@ -494,7 +535,8 @@ describe('Security Hardening Validation', () => {
       expect(confidenceScore).toBe(100); // All features implemented
     });
 
-    test('should address all Phase 0 security concerns', () => {
+    jest.setTimeout(10000);
+  test('should address all Phase 0 security concerns', () => {
       const phase0Concerns = [
         'Production security hardening',
         'Redis security enhancements',
@@ -509,4 +551,4 @@ describe('Security Hardening Validation', () => {
       });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

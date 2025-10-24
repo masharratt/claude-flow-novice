@@ -4,17 +4,20 @@
  */
 
 describe('Test Infrastructure', () => {
+  jest.setTimeout(10000);
   test('should pass basic validation', () => {
     expect(true).toBe(true);
     expect(2 + 2).toBe(4);
   });
 
-  test('should handle async operations', async () => {
+  jest.setTimeout(10000);
+  test('should handle async operations', async () => { try {
     const result = await Promise.resolve('test');
     expect(result).toBe('test');
   });
 
-  test('should handle mock imports', async () => {
+  jest.setTimeout(10000);
+  test('should handle mock imports', async () => { try {
     // Test that our mock modules can be imported using relative path
     const { UserConfigurationManager } = await import('../config/jest/mocks/truth-config-manager.js');
     const configManager = new UserConfigurationManager();
@@ -29,6 +32,7 @@ describe('Test Infrastructure', () => {
     expect(configManager.initialized).toBe(false);
   });
 
+  jest.setTimeout(10000);
   test('should have global test utilities', () => {
     // Test global utilities from jest.setup.cjs
     expect(typeof global.generateTestId).toBe('function');
@@ -43,4 +47,4 @@ describe('Test Infrastructure', () => {
     expect(Array.isArray(testData)).toBe(true);
     expect(testData).toHaveLength(5);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -51,7 +51,7 @@ describe('Rate Limit Chaos Tests', () => {
   });
 
   describe('Extreme Scenarios', () => {
-    it('should recover when all keys rate limited simultaneously', async () => {
+    it('should recover when all keys rate limited simultaneously', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -105,7 +105,7 @@ describe('Rate Limit Chaos Tests', () => {
       expect(duration).toBeGreaterThanOrEqual(50);
     }, 10000);
 
-    it('should handle rapid sequential rate limits', async () => {
+    it('should handle rapid sequential rate limits', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -142,7 +142,7 @@ describe('Rate Limit Chaos Tests', () => {
       expect(successCount).toBeGreaterThan(0);
     });
 
-    it('should handle intermittent rate limits', async () => {
+    it('should handle intermittent rate limits', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2'],
         redis: mockRedis as any,
@@ -192,7 +192,7 @@ describe('Rate Limit Chaos Tests', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle keys with staggered rate limit recovery', async () => {
+    it('should handle keys with staggered rate limit recovery', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -233,7 +233,7 @@ describe('Rate Limit Chaos Tests', () => {
       expect(response2).toBeDefined();
     });
 
-    it('should handle zero available keys gracefully', async () => {
+    it('should handle zero available keys gracefully', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1'],
         redis: mockRedis as any,
@@ -257,7 +257,7 @@ describe('Rate Limit Chaos Tests', () => {
       ).rejects.toThrow();
     }, 5000);
 
-    it('should maintain state across rapid rotations', async () => {
+    it('should maintain state across rapid rotations', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -280,7 +280,7 @@ describe('Rate Limit Chaos Tests', () => {
   });
 
   describe('Performance Under Load', () => {
-    it('should handle 300 requests with 3 keys at 100 req/min limit', async () => {
+    it('should handle 300 requests with 3 keys at 100 req/min limit', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -328,7 +328,7 @@ describe('Rate Limit Chaos Tests', () => {
       }
     }, 30000);
 
-    it('should distribute load evenly across keys', async () => {
+    it('should distribute load evenly across keys', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -369,7 +369,7 @@ describe('Rate Limit Chaos Tests', () => {
   });
 
   describe('Metrics and Monitoring', () => {
-    it('should emit metrics for key usage distribution', async () => {
+    it('should emit metrics for key usage distribution', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2', 'key-3'],
         redis: mockRedis as any,
@@ -404,7 +404,7 @@ describe('Rate Limit Chaos Tests', () => {
       expect(stats.usagePerKey.length).toBe(3);
     });
 
-    it('should track utilization percentage accurately', async () => {
+    it('should track utilization percentage accurately', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1'],
         redis: mockRedis as any,
@@ -439,7 +439,7 @@ describe('Rate Limit Chaos Tests', () => {
       expect(stats.usagePerKey[0].utilization).toBeCloseTo(50, 0);
     });
 
-    it('should alert when all keys at 90% limit', async () => {
+    it('should alert when all keys at 90% limit', async () => { try {
       const options: APIKeyRotatorOptions = {
         apiKeys: ['key-1', 'key-2'],
         redis: mockRedis as any,

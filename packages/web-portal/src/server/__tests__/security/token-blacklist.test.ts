@@ -10,7 +10,7 @@ import { TokenBlacklistService } from '../../services/token-blacklist.js';
 describe('Token Blacklist Service (MED-002)', () => {
   let blacklistService: TokenBlacklistService;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Use test Redis instance
     blacklistService = new TokenBlacklistService({
       redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -19,17 +19,17 @@ describe('Token Blacklist Service (MED-002)', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await blacklistService.clearAll();
     await blacklistService.close();
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     await blacklistService.clearAll();
   });
 
   describe('Token Blacklisting', () => {
-    it('should add token to blacklist successfully', async () => {
+    it('should add token to blacklist successfully', async () => { try {
       const tokenId = 'test-token-123';
       const expiresAt = Date.now() + 60000; // 1 minute from now
 
@@ -41,7 +41,7 @@ describe('Token Blacklist Service (MED-002)', () => {
       expect(result).toBe(true);
     });
 
-    it('should detect blacklisted tokens (O(1) lookup)', async () => {
+    it('should detect blacklisted tokens (O(1) lookup)', async () => { try {
       const tokenId = 'test-token-456';
       const expiresAt = Date.now() + 60000;
 
@@ -51,12 +51,12 @@ describe('Token Blacklist Service (MED-002)', () => {
       expect(isBlacklisted).toBe(true);
     });
 
-    it('should return false for non-blacklisted tokens', async () => {
+    it('should return false for non-blacklisted tokens', async () => { try {
       const isBlacklisted = await blacklistService.isBlacklisted('non-existent-token');
       expect(isBlacklisted).toBe(false);
     });
 
-    it('should store token metadata for audit trail', async () => {
+    it('should store token metadata for audit trail', async () => { try {
       const tokenId = 'test-token-789';
       const expiresAt = Date.now() + 60000;
 
@@ -74,7 +74,7 @@ describe('Token Blacklist Service (MED-002)', () => {
   });
 
   describe('Token Expiration', () => {
-    it('should not blacklist already expired tokens', async () => {
+    it('should not blacklist already expired tokens', async () => { try {
       const tokenId = 'expired-token';
       const expiresAt = Date.now() - 1000; // Already expired
 
@@ -88,7 +88,7 @@ describe('Token Blacklist Service (MED-002)', () => {
       expect(isBlacklisted).toBe(false);
     });
 
-    it('should automatically clean up expired tokens via Redis TTL', async () => {
+    it('should automatically clean up expired tokens via Redis TTL', async () => { try {
       const tokenId = 'short-lived-token';
       const expiresAt = Date.now() + 2000; // 2 seconds from now
 
@@ -108,7 +108,7 @@ describe('Token Blacklist Service (MED-002)', () => {
   });
 
   describe('Token Removal', () => {
-    it('should remove token from blacklist', async () => {
+    it('should remove token from blacklist', async () => { try {
       const tokenId = 'removable-token';
       const expiresAt = Date.now() + 60000;
 
@@ -127,14 +127,14 @@ describe('Token Blacklist Service (MED-002)', () => {
       expect(isBlacklisted).toBe(false);
     });
 
-    it('should return false when removing non-existent token', async () => {
+    it('should return false when removing non-existent token', async () => { try {
       const removed = await blacklistService.removeFromBlacklist('non-existent');
       expect(removed).toBe(false);
     });
   });
 
   describe('Blacklist Statistics', () => {
-    it('should return accurate token count', async () => {
+    it('should return accurate token count', async () => { try {
       const expiresAt = Date.now() + 60000;
 
       await blacklistService.addToBlacklist('token-1', expiresAt);
@@ -147,7 +147,7 @@ describe('Token Blacklist Service (MED-002)', () => {
       expect(stats.isConnected).toBe(true);
     });
 
-    it('should reflect connection status', async () => {
+    it('should reflect connection status', async () => { try {
       const stats = await blacklistService.getStats();
 
       expect(stats.isConnected).toBe(true);
@@ -155,7 +155,7 @@ describe('Token Blacklist Service (MED-002)', () => {
   });
 
   describe('Race Conditions', () => {
-    it('should handle concurrent blacklist operations', async () => {
+    it('should handle concurrent blacklist operations', async () => { try {
       const expiresAt = Date.now() + 60000;
 
       // Concurrent blacklisting
@@ -177,7 +177,7 @@ describe('Token Blacklist Service (MED-002)', () => {
       expect(checks.every(c => c === true)).toBe(true);
     });
 
-    it('should handle concurrent lookup operations', async () => {
+    it('should handle concurrent lookup operations', async () => { try {
       const tokenId = 'lookup-test-token';
       const expiresAt = Date.now() + 60000;
 
@@ -196,7 +196,7 @@ describe('Token Blacklist Service (MED-002)', () => {
   });
 
   describe('Audit Logging', () => {
-    it('should support different revocation reasons', async () => {
+    it('should support different revocation reasons', async () => { try {
       const expiresAt = Date.now() + 60000;
 
       const reasons: Array<'logout' | 'refresh' | 'revoke' | 'security'> = [
@@ -225,7 +225,7 @@ describe('Token Blacklist Service (MED-002)', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle invalid expiration timestamps gracefully', async () => {
+    it('should handle invalid expiration timestamps gracefully', async () => { try {
       const tokenId = 'invalid-expiry-token';
       const invalidExpiresAt = -1; // Invalid timestamp
 
@@ -238,7 +238,7 @@ describe('Token Blacklist Service (MED-002)', () => {
       expect(isBlacklisted).toBe(false);
     });
 
-    it('should fail open on Redis connection errors', async () => {
+    it('should fail open on Redis connection errors', async () => { try {
       // Create service with invalid Redis URL
       const faultyService = new TokenBlacklistService({
         redisUrl: 'redis://invalid-host:9999',
@@ -255,7 +255,7 @@ describe('Token Blacklist Service (MED-002)', () => {
   });
 
   describe('Performance', () => {
-    it('should perform O(1) lookups', async () => {
+    it('should perform O(1) lookups', async () => { try {
       const expiresAt = Date.now() + 60000;
 
       // Add 100 tokens

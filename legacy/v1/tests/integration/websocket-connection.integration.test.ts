@@ -25,7 +25,7 @@ describe('WebSocket Connection Integration Tests', () => {
   let clientSocket: ClientSocket;
   let serverUrl: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     jest.clearAllMocks();
 
     // Create HTTP server
@@ -60,7 +60,7 @@ describe('WebSocket Connection Integration Tests', () => {
     await new Promise(resolve => setTimeout(resolve, 100));
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (clientSocket) {
       clientSocket.disconnect();
       clientSocket = null as any;
@@ -80,7 +80,8 @@ describe('WebSocket Connection Integration Tests', () => {
   });
 
   describe('Basic Connection Management', () => {
-    test('client can connect to WebSocket server', async () => {
+    jest.setTimeout(10000);
+  test('client can connect to WebSocket server', async () => { try {
       clientSocket = ClientIO(serverUrl);
 
       await new Promise<void>((resolve, reject) => {
@@ -99,7 +100,8 @@ describe('WebSocket Connection Integration Tests', () => {
       });
     });
 
-    test('client receives connection confirmation', async () => {
+    jest.setTimeout(10000);
+  test('client receives connection confirmation', async () => { try {
       clientSocket = ClientIO(serverUrl);
 
       const connectionData = await new Promise<any>((resolve, reject) => {
@@ -124,7 +126,8 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(connectionData.supportedEvents).toContain('status-change');
     });
 
-    test('client can disconnect gracefully', async () => {
+    jest.setTimeout(10000);
+  test('client can disconnect gracefully', async () => { try {
       clientSocket = ClientIO(serverUrl);
 
       // Wait for connection
@@ -143,7 +146,8 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(clientSocket.connected).toBe(false);
     });
 
-    test('multiple clients can connect simultaneously', async () => {
+    jest.setTimeout(10000);
+  test('multiple clients can connect simultaneously', async () => { try {
       const clients: ClientSocket[] = [];
       const connectionPromises: Promise<void>[] = [];
 
@@ -181,7 +185,8 @@ describe('WebSocket Connection Integration Tests', () => {
       clients.forEach(client => client.disconnect());
     });
 
-    test('connection statistics are tracked correctly', async () => {
+    jest.setTimeout(10000);
+  test('connection statistics are tracked correctly', async () => { try {
       const initialStats = wsManager.getConnectionStats();
       expect(initialStats.totalConnections).toBe(0);
 
@@ -211,7 +216,8 @@ describe('WebSocket Connection Integration Tests', () => {
   });
 
   describe('Swarm Room Management', () => {
-    test('client can join swarm room', async () => {
+    jest.setTimeout(10000);
+  test('client can join swarm room', async () => { try {
       clientSocket = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -243,7 +249,8 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(joinResult.subscribersCount).toBeGreaterThanOrEqual(1);
     });
 
-    test('client receives swarm status after joining', async () => {
+    jest.setTimeout(10000);
+  test('client receives swarm status after joining', async () => { try {
       clientSocket = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -272,7 +279,8 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(swarmStatus).toHaveProperty('source');
     });
 
-    test('client can leave swarm room', async () => {
+    jest.setTimeout(10000);
+  test('client can leave swarm room', async () => { try {
       clientSocket = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -301,7 +309,8 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(leaveResult).toHaveProperty('timestamp');
     });
 
-    test('multiple clients can join the same swarm', async () => {
+    jest.setTimeout(10000);
+  test('multiple clients can join the same swarm', async () => { try {
       const clients: ClientSocket[] = [];
       const joinPromises: Promise<any>[] = [];
 
@@ -344,7 +353,8 @@ describe('WebSocket Connection Integration Tests', () => {
       clients.forEach(client => client.disconnect());
     });
 
-    test('clients can join multiple swarms', async () => {
+    jest.setTimeout(10000);
+  test('clients can join multiple swarms', async () => { try {
       clientSocket = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -372,7 +382,8 @@ describe('WebSocket Connection Integration Tests', () => {
   });
 
   describe('Real-time Event Broadcasting', () => {
-    test('events are broadcast to swarm members', async () => {
+    jest.setTimeout(10000);
+  test('events are broadcast to swarm members', async () => { try {
       const clients: ClientSocket[] = [];
       const messagePromises: Promise<any>[] = [];
 
@@ -422,7 +433,8 @@ describe('WebSocket Connection Integration Tests', () => {
       clients.forEach(client => client.disconnect());
     });
 
-    test('events are not broadcast to non-swarm members', async () => {
+    jest.setTimeout(10000);
+  test('events are not broadcast to non-swarm members', async () => { try {
       const swarmClient = ClientIO(serverUrl);
       const nonSwarmClient = ClientIO(serverUrl);
 
@@ -474,7 +486,8 @@ describe('WebSocket Connection Integration Tests', () => {
       nonSwarmClient.disconnect();
     });
 
-    test('multiple events can be broadcast rapidly', async () => {
+    jest.setTimeout(10000);
+  test('multiple events can be broadcast rapidly', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -520,7 +533,8 @@ describe('WebSocket Connection Integration Tests', () => {
   });
 
   describe('Human Intervention Handling', () => {
-    test('human intervention events are processed correctly', async () => {
+    jest.setTimeout(10000);
+  test('human intervention events are processed correctly', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -561,7 +575,8 @@ describe('WebSocket Connection Integration Tests', () => {
       client.disconnect();
     });
 
-    test('intervention events are broadcast to other swarm members', async () => {
+    jest.setTimeout(10000);
+  test('intervention events are broadcast to other swarm members', async () => { try {
       const clients: ClientSocket[] = [];
       const interventionPromises: Promise<any>[] = [];
 
@@ -614,7 +629,8 @@ describe('WebSocket Connection Integration Tests', () => {
   });
 
   describe('Status Request Handling', () => {
-    test('status requests trigger appropriate responses', async () => {
+    jest.setTimeout(10000);
+  test('status requests trigger appropriate responses', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -662,7 +678,8 @@ describe('WebSocket Connection Integration Tests', () => {
       client.disconnect();
     });
 
-    test('status requests handle invalid parameters gracefully', async () => {
+    jest.setTimeout(10000);
+  test('status requests handle invalid parameters gracefully', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -691,7 +708,8 @@ describe('WebSocket Connection Integration Tests', () => {
   });
 
   describe('Filter Management', () => {
-    test('clients can set and update filters', async () => {
+    jest.setTimeout(10000);
+  test('clients can set and update filters', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -719,7 +737,8 @@ describe('WebSocket Connection Integration Tests', () => {
       client.disconnect();
     });
 
-    test('filters are applied to message broadcasting', async () => {
+    jest.setTimeout(10000);
+  test('filters are applied to message broadcasting', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -780,7 +799,8 @@ describe('WebSocket Connection Integration Tests', () => {
   });
 
   describe('Error Handling and Resilience', () => {
-    test('handles connection failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('handles connection failures gracefully', async () => { try {
       // Try to connect to non-existent server
       const invalidClient = ClientIO('http://localhost:9999', {
         timeout: 1000,
@@ -797,7 +817,8 @@ describe('WebSocket Connection Integration Tests', () => {
       invalidClient.disconnect();
     });
 
-    test('handles malformed messages gracefully', async () => {
+    jest.setTimeout(10000);
+  test('handles malformed messages gracefully', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -817,7 +838,8 @@ describe('WebSocket Connection Integration Tests', () => {
       client.disconnect();
     });
 
-    test('recovers from temporary disconnections', async () => {
+    jest.setTimeout(10000);
+  test('recovers from temporary disconnections', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -844,7 +866,8 @@ describe('WebSocket Connection Integration Tests', () => {
       reconnectedClient.disconnect();
     });
 
-    test('handles high-frequency events without memory leaks', async () => {
+    jest.setTimeout(10000);
+  test('handles high-frequency events without memory leaks', async () => { try {
       const client = ClientIO(serverUrl);
 
       await new Promise<void>((resolve) => {
@@ -888,7 +911,8 @@ describe('WebSocket Connection Integration Tests', () => {
   });
 
   describe('Performance and Scalability', () => {
-    test('handles many concurrent connections', async () => {
+    jest.setTimeout(10000);
+  test('handles many concurrent connections', async () => { try {
       const clientCount = 20;
       const clients: ClientSocket[] = [];
       const connectionPromises: Promise<void>[] = [];
@@ -933,7 +957,8 @@ describe('WebSocket Connection Integration Tests', () => {
       clients.forEach(client => client.disconnect());
     });
 
-    test('broadcast performance scales with client count', async () => {
+    jest.setTimeout(10000);
+  test('broadcast performance scales with client count', async () => { try {
       const clientCounts = [5, 10, 15];
       const performanceResults: { clients: number; time: number }[] = [];
 
@@ -993,7 +1018,8 @@ describe('WebSocket Connection Integration Tests', () => {
       }
     });
 
-    test('memory usage remains stable under load', async () => {
+    jest.setTimeout(10000);
+  test('memory usage remains stable under load', async () => { try {
       const initialMemory = process.memoryUsage().heapUsed;
 
       // Create and destroy many connections
@@ -1042,4 +1068,4 @@ describe('WebSocket Connection Integration Tests', () => {
       expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

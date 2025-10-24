@@ -17,7 +17,7 @@ describe('Simple Help Routing Test', () => {
   let coordinator: HelpCoordinator;
   let handler: HelpRequestHandler;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     broker = new MessageBroker();
     coordinator = new HelpCoordinator({ messageBroker: broker });
     handler = new HelpRequestHandler({ broker, coordinator });
@@ -37,12 +37,12 @@ describe('Simple Help Routing Test', () => {
     await handler.start();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await handler.stop();
     await broker.shutdown(1000);
   });
 
-  it('should route a simple help request', async () => {
+  it('should route a simple help request', async () => { try {
     const requestPayload = {
       requesterId: 'test-requester',
       description: 'Need testing help',
@@ -73,7 +73,7 @@ describe('Simple Help Routing Test', () => {
     }
   }, 15000);
 
-  it('should handle multiple concurrent requests', async () => {
+  it('should handle multiple concurrent requests', async () => { try {
     const requests = [];
 
     for (let i = 0; i < 3; i++) {

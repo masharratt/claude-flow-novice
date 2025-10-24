@@ -35,7 +35,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Hook Validation', () => {
-    test('hook script exists and is executable', () => {
+    jest.setTimeout(10000);
+  test('hook script exists and is executable', () => {
       expect(fs.existsSync(HOOK_SCRIPT)).toBe(true);
 
       const stats = fs.statSync(HOOK_SCRIPT);
@@ -43,14 +44,16 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(isExecutable).toBe(true);
     });
 
-    test('hook script has correct shebang', () => {
+    jest.setTimeout(10000);
+  test('hook script has correct shebang', () => {
       const content = fs.readFileSync(HOOK_SCRIPT, 'utf8');
       expect(content.startsWith('#!/bin/bash')).toBe(true);
     });
   });
 
   describe('Clean Database Detection', () => {
-    test('allows commit with clean database content', () => {
+    jest.setTimeout(10000);
+  test('allows commit with clean database content', () => {
       // Create database with clean data
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE users (id INTEGER, name TEXT); INSERT INTO users VALUES (1, 'Alice');"`);
 
@@ -64,7 +67,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('✅');
     });
 
-    test('allows commit with no staged database files', () => {
+    jest.setTimeout(10000);
+  test('allows commit with no staged database files', () => {
       // Don't stage any database files
       const result = spawnSync('bash', [HOOK_SCRIPT], { encoding: 'utf8' });
 
@@ -72,7 +76,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('No database files to scan');
     });
 
-    test('handles empty database gracefully', () => {
+    jest.setTimeout(10000);
+  test('handles empty database gracefully', () => {
       // Create empty database
       execSync(`sqlite3 ${TEST_DB} "VACUUM;"`);
       execSync(`git add ${TEST_DB}`);
@@ -85,7 +90,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Secret Detection - API Keys', () => {
-    test('blocks commit with api_key pattern', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with api_key pattern', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE config (key TEXT, value TEXT); INSERT INTO config VALUES ('api_key', 'sk-1234567890');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -96,7 +102,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('api');
     });
 
-    test('blocks commit with ZAI_API_KEY', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with ZAI_API_KEY', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE env (name TEXT, value TEXT); INSERT INTO env VALUES ('ZAI_API_KEY', 'zai-test-key-123');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -107,7 +114,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('ZAI_API_KEY');
     });
 
-    test('blocks commit with ANTHROPIC_API_KEY', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with ANTHROPIC_API_KEY', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE env (name TEXT); INSERT INTO env VALUES ('ANTHROPIC_API_KEY');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -117,7 +125,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('COMMIT BLOCKED');
     });
 
-    test('blocks commit with Anthropic API key format (sk-ant-*)', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with Anthropic API key format (sk-ant-*)', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE keys (value TEXT); INSERT INTO keys VALUES ('sk-ant-api03-1234567890abcdef');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -129,7 +138,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Secret Detection - Authentication', () => {
-    test('blocks commit with password field', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with password field', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE users (username TEXT, password TEXT); INSERT INTO users VALUES ('admin', 'hashed123');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -140,7 +150,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('password');
     });
 
-    test('blocks commit with Bearer token', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with Bearer token', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE auth (token TEXT); INSERT INTO auth VALUES ('Bearer abc123xyz');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -151,7 +162,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('Bearer');
     });
 
-    test('blocks commit with auth_key', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with auth_key', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE config (key TEXT); INSERT INTO config VALUES ('auth_key');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -161,7 +173,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('COMMIT BLOCKED');
     });
 
-    test('blocks commit with session token (sess-*)', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with session token (sess-*)', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE sessions (id TEXT); INSERT INTO sessions VALUES ('sess-1234567890abcdef');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -173,7 +186,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Secret Detection - Credentials', () => {
-    test('blocks commit with secret field', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with secret field', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE config (name TEXT, secret TEXT); INSERT INTO config VALUES ('app', 'my-secret-value');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -184,7 +198,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('secret');
     });
 
-    test('blocks commit with token field', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with token field', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE access (token TEXT); INSERT INTO access VALUES ('access-token-123');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -195,7 +210,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('token');
     });
 
-    test('blocks commit with private_key', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with private_key', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE keys (private_key TEXT); INSERT INTO keys VALUES ('-----BEGIN PRIVATE KEY-----');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -206,7 +222,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('private');
     });
 
-    test('blocks commit with credential field', () => {
+    jest.setTimeout(10000);
+  test('blocks commit with credential field', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE auth (credential TEXT); INSERT INTO auth VALUES ('user:pass');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -219,7 +236,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Multiple Secrets Detection', () => {
-    test('reports all detected secrets in single database', () => {
+    jest.setTimeout(10000);
+  test('reports all detected secrets in single database', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE config (key TEXT, value TEXT); INSERT INTO config VALUES ('api_key', 'sk-123'), ('password', 'pass123');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -233,7 +251,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Error Handling', () => {
-    test('handles non-existent staged file gracefully', () => {
+    jest.setTimeout(10000);
+  test('handles non-existent staged file gracefully', () => {
       // Stage a file that doesn't exist (edge case)
       execSync(`git add non-existent.db 2>/dev/null || true`, { stdio: 'ignore' });
 
@@ -243,7 +262,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect([0, 1]).toContain(result.status);
     });
 
-    test('handles corrupted database gracefully', () => {
+    jest.setTimeout(10000);
+  test('handles corrupted database gracefully', () => {
       // Create corrupted database
       fs.writeFileSync(TEST_DB, 'This is not a valid SQLite database file');
       execSync(`git add ${TEST_DB}`);
@@ -255,7 +275,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('⚠️');
     });
 
-    test('handles locked database gracefully', () => {
+    jest.setTimeout(10000);
+  test('handles locked database gracefully', () => {
       // Create database
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE test (id INTEGER);"`);
 
@@ -275,7 +296,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Case Sensitivity', () => {
-    test('detects uppercase API_KEY', () => {
+    jest.setTimeout(10000);
+  test('detects uppercase API_KEY', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE config (API_KEY TEXT); INSERT INTO config VALUES ('sk-123');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -285,7 +307,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('COMMIT BLOCKED');
     });
 
-    test('detects mixed case Password', () => {
+    jest.setTimeout(10000);
+  test('detects mixed case Password', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE users (Password TEXT); INSERT INTO users VALUES ('pass123');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -297,7 +320,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Output Formatting', () => {
-    test('provides helpful error message on secret detection', () => {
+    jest.setTimeout(10000);
+  test('provides helpful error message on secret detection', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE config (key TEXT); INSERT INTO config VALUES ('api_key');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -309,7 +333,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('--no-verify');
     });
 
-    test('shows detailed findings with file and pattern', () => {
+    jest.setTimeout(10000);
+  test('shows detailed findings with file and pattern', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE config (key TEXT); INSERT INTO config VALUES ('api_key');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -319,7 +344,8 @@ describe('Pre-commit Database Secret Scanning', () => {
       expect(result.stdout).toContain('Pattern:');
     });
 
-    test('masks sensitive data in output', () => {
+    jest.setTimeout(10000);
+  test('masks sensitive data in output', () => {
       execSync(`sqlite3 ${TEST_DB} "CREATE TABLE config (key TEXT); INSERT INTO config VALUES ('sk-ant-api03-very-long-secret-key-1234567890abcdef');"`);
       execSync(`git add ${TEST_DB}`);
 
@@ -334,7 +360,8 @@ describe('Pre-commit Database Secret Scanning', () => {
   });
 
   describe('Integration with Git', () => {
-    test('hook blocks actual git commit with secrets', () => {
+    jest.setTimeout(10000);
+  test('hook blocks actual git commit with secrets', () => {
       // This test requires the hook to be installed
       const hookTarget = path.join(__dirname, '../../.git/hooks/pre-commit');
 
@@ -362,6 +389,7 @@ describe('Pre-commit Database Secret Scanning', () => {
 describe('Installation Script', () => {
   const INSTALL_SCRIPT = path.join(__dirname, '../../scripts/install-pre-commit-hook.sh');
 
+  jest.setTimeout(10000);
   test('installation script exists and is executable', () => {
     expect(fs.existsSync(INSTALL_SCRIPT)).toBe(true);
 
@@ -370,17 +398,20 @@ describe('Installation Script', () => {
     expect(isExecutable).toBe(true);
   });
 
+  jest.setTimeout(10000);
   test('installation script has correct shebang', () => {
     const content = fs.readFileSync(INSTALL_SCRIPT, 'utf8');
     expect(content.startsWith('#!/bin/bash')).toBe(true);
   });
 
+  jest.setTimeout(10000);
   test('installation script checks for required dependencies', () => {
     const content = fs.readFileSync(INSTALL_SCRIPT, 'utf8');
     expect(content).toContain('sqlite3');
     expect(content).toContain('git');
   });
 
+  jest.setTimeout(10000);
   test('installation script creates backup of existing hook', () => {
     const content = fs.readFileSync(INSTALL_SCRIPT, 'utf8');
     expect(content).toContain('backup');

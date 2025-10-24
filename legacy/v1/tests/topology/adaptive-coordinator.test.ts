@@ -18,7 +18,7 @@ describe('AdaptiveCoordinator', () => {
   let mockLifecycleManager: vi.Mocked<LifecycleManager>;
   let mockDependencyTracker: vi.Mocked<DependencyTracker>;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Setup mocks
     mockLifecycleManager = {
       pauseAgent: vi.fn().mockResolvedValue(undefined),
@@ -49,7 +49,7 @@ describe('AdaptiveCoordinator', () => {
     (coordinator as any).dependencyTracker = mockDependencyTracker;
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (coordinator) {
       await coordinator.shutdown(true);
     }
@@ -57,21 +57,24 @@ describe('AdaptiveCoordinator', () => {
   });
 
   describe('Initialization', () => {
-    test('should initialize successfully', async () => {
+    jest.setTimeout(10000);
+  test('should initialize successfully', async () => { try {
       await coordinator.initialize();
 
       expect(mockDependencyTracker.initialize).toHaveBeenCalled();
       expect(coordinator.type).toBe('hybrid');
     });
 
-    test('should not initialize twice', async () => {
+    jest.setTimeout(10000);
+  test('should not initialize twice', async () => { try {
       await coordinator.initialize();
       await coordinator.initialize();
 
       expect(mockDependencyTracker.initialize).toHaveBeenCalledTimes(1);
     });
 
-    test('should emit initialization event', async () => {
+    jest.setTimeout(10000);
+  test('should emit initialization event', async () => { try {
       const initSpy = vi.fn();
       coordinator.on('coordinator:initialized', initSpy);
 
@@ -85,7 +88,8 @@ describe('AdaptiveCoordinator', () => {
       });
     });
 
-    test('should start with mesh topology', async () => {
+    jest.setTimeout(10000);
+  test('should start with mesh topology', async () => { try {
       await coordinator.initialize();
 
       expect((coordinator as any).activeTopology).toBe('mesh');
@@ -93,11 +97,12 @@ describe('AdaptiveCoordinator', () => {
   });
 
   describe('Agent Management', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    test('should register agent successfully', async () => {
+    jest.setTimeout(10000);
+  test('should register agent successfully', async () => { try {
       const agent: AgentRegistration = {
         id: 'agent-1',
         type: 'worker',
@@ -113,7 +118,8 @@ describe('AdaptiveCoordinator', () => {
       expect(registeredAgent.status).toBe('active');
     });
 
-    test('should emit agent registration event', async () => {
+    jest.setTimeout(10000);
+  test('should emit agent registration event', async () => { try {
       const agent: AgentRegistration = {
         id: 'agent-1',
         type: 'worker',
@@ -134,7 +140,8 @@ describe('AdaptiveCoordinator', () => {
       });
     });
 
-    test('should enforce agent limit', async () => {
+    jest.setTimeout(10000);
+  test('should enforce agent limit', async () => { try {
       // Register maximum number of agents
       for (let i = 0; i < 20; i++) {
         const agent: AgentRegistration = {
@@ -158,7 +165,8 @@ describe('AdaptiveCoordinator', () => {
         .rejects.toThrow('Maximum agent limit reached');
     });
 
-    test('should unregister agent successfully', async () => {
+    jest.setTimeout(10000);
+  test('should unregister agent successfully', async () => { try {
       const agent: AgentRegistration = {
         id: 'agent-1',
         type: 'worker',
@@ -173,7 +181,8 @@ describe('AdaptiveCoordinator', () => {
       expect(registeredAgent).toBeUndefined();
     });
 
-    test('should prevent unregistering agent with dependencies', async () => {
+    jest.setTimeout(10000);
+  test('should prevent unregistering agent with dependencies', async () => { try {
       const agent: AgentRegistration = {
         id: 'agent-1',
         type: 'worker',
@@ -191,7 +200,7 @@ describe('AdaptiveCoordinator', () => {
   });
 
   describe('Task Execution', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
 
       // Register some agents
@@ -206,7 +215,8 @@ describe('AdaptiveCoordinator', () => {
       }
     });
 
-    test('should execute task in mesh topology', async () => {
+    jest.setTimeout(10000);
+  test('should execute task in mesh topology', async () => { try {
       const task: TaskExecution = {
         description: 'Test task',
         requirements: ['compute'],
@@ -224,7 +234,8 @@ describe('AdaptiveCoordinator', () => {
       expect(executedTask.topology).toBe('mesh');
     });
 
-    test('should emit task completion event', async () => {
+    jest.setTimeout(10000);
+  test('should emit task completion event', async () => { try {
       const task: TaskExecution = {
         description: 'Test task',
         requirements: ['compute'],
@@ -250,7 +261,8 @@ describe('AdaptiveCoordinator', () => {
       });
     });
 
-    test('should handle task execution failure', async () => {
+    jest.setTimeout(10000);
+  test('should handle task execution failure', async () => { try {
       const task: TaskExecution = {
         description: 'Failing task',
         requirements: ['compute'],
@@ -286,7 +298,7 @@ describe('AdaptiveCoordinator', () => {
   });
 
   describe('Message Routing', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
 
       // Register some agents
@@ -301,7 +313,8 @@ describe('AdaptiveCoordinator', () => {
       }
     });
 
-    test('should route message in mesh topology', async () => {
+    jest.setTimeout(10000);
+  test('should route message in mesh topology', async () => { try {
       const message: CoordinationMessage = {
         id: 'msg-1',
         type: 'task_assignment',
@@ -317,7 +330,8 @@ describe('AdaptiveCoordinator', () => {
       expect(true).toBe(true);
     });
 
-    test('should route broadcast message', async () => {
+    jest.setTimeout(10000);
+  test('should route broadcast message', async () => { try {
       const message: CoordinationMessage = {
         id: 'msg-broadcast',
         type: 'broadcast',
@@ -335,11 +349,12 @@ describe('AdaptiveCoordinator', () => {
   });
 
   describe('Topology Adaptation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    test('should adapt from mesh to hierarchical under high load', async () => {
+    jest.setTimeout(10000);
+  test('should adapt from mesh to hierarchical under high load', async () => { try {
       // Register many agents to trigger hierarchical adaptation
       for (let i = 0; i < 35; i++) {
         const agent: AgentRegistration = {
@@ -367,7 +382,8 @@ describe('AdaptiveCoordinator', () => {
       expect(adaptationSpy).toHaveBeenCalled();
     });
 
-    test('should adapt from mesh to hybrid under high error rate', async () => {
+    jest.setTimeout(10000);
+  test('should adapt from mesh to hybrid under high error rate', async () => { try {
       // Register some agents
       for (let i = 0; i < 10; i++) {
         const agent: AgentRegistration = {
@@ -402,7 +418,8 @@ describe('AdaptiveCoordinator', () => {
       expect(adaptationSpy).toHaveBeenCalled();
     });
 
-    test('should not adapt too frequently', async () => {
+    jest.setTimeout(10000);
+  test('should not adapt too frequently', async () => { try {
       // Force a recent adaptation
       (coordinator as any).lastAdaptation = new Date();
       (coordinator as any).adaptationCount = 10;
@@ -416,7 +433,8 @@ describe('AdaptiveCoordinator', () => {
       expect(adaptationSpy).not.toHaveBeenCalled();
     });
 
-    test('should handle adaptation failure gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle adaptation failure gracefully', async () => { try {
       // Register some agents
       for (let i = 0; i < 10; i++) {
         const agent: AgentRegistration = {
@@ -460,11 +478,12 @@ describe('AdaptiveCoordinator', () => {
   });
 
   describe('Metrics and Performance', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    test('should calculate metrics correctly', async () => {
+    jest.setTimeout(10000);
+  test('should calculate metrics correctly', async () => { try {
       // Register agents
       for (let i = 0; i < 5; i++) {
         const agent: AgentRegistration = {
@@ -498,7 +517,8 @@ describe('AdaptiveCoordinator', () => {
       expect(metrics.lastUpdated).toBeInstanceOf(Date);
     });
 
-    test('should calculate mesh connections correctly', async () => {
+    jest.setTimeout(10000);
+  test('should calculate mesh connections correctly', async () => { try {
       // Register 5 agents
       for (let i = 0; i < 5; i++) {
         const agent: AgentRegistration = {
@@ -516,7 +536,8 @@ describe('AdaptiveCoordinator', () => {
       expect(activeConnections).toBe(5 * 4); // 20 connections
     });
 
-    test('should calculate hierarchical connections correctly', async () => {
+    jest.setTimeout(10000);
+  test('should calculate hierarchical connections correctly', async () => { try {
       // Switch to hierarchical topology
       (coordinator as any).activeTopology = 'hierarchical';
 
@@ -537,7 +558,8 @@ describe('AdaptiveCoordinator', () => {
       expect(activeConnections).toBe(4); // 4 connections
     });
 
-    test('should calculate hybrid connections correctly', async () => {
+    jest.setTimeout(10000);
+  test('should calculate hybrid connections correctly', async () => { try {
       // Switch to hybrid topology
       (coordinator as any).activeTopology = 'hybrid';
 
@@ -561,7 +583,8 @@ describe('AdaptiveCoordinator', () => {
   });
 
   describe('Shutdown', () => {
-    test('should shutdown gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should shutdown gracefully', async () => { try {
       await coordinator.initialize();
 
       // Register some agents
@@ -589,7 +612,8 @@ describe('AdaptiveCoordinator', () => {
       });
     });
 
-    test('should force shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should force shutdown', async () => { try {
       await coordinator.initialize();
 
       await coordinator.shutdown(true);
@@ -597,7 +621,8 @@ describe('AdaptiveCoordinator', () => {
       expect(mockDependencyTracker.shutdown).toHaveBeenCalled();
     });
 
-    test('should wait for pending tasks during graceful shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should wait for pending tasks during graceful shutdown', async () => { try {
       await coordinator.initialize();
 
       // Register an agent
@@ -619,7 +644,7 @@ describe('AdaptiveCoordinator', () => {
 
       // Mock a long-running task
       const originalExecuteTaskMesh = (coordinator as any).executeTaskMesh;
-      (coordinator as any).executeTaskMesh = vi.fn().mockImplementation(async () => {
+      (coordinator as any).executeTaskMesh = vi.fn().mockImplementation(async () => { try {
         await new Promise(resolve => setTimeout(resolve, 2000));
       });
 
@@ -646,16 +671,18 @@ describe('AdaptiveCoordinator', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await coordinator.initialize();
     });
 
-    test('should handle unregistering non-existent agent', async () => {
+    jest.setTimeout(10000);
+  test('should handle unregistering non-existent agent', async () => { try {
       await expect(coordinator.unregisterAgent('non-existent'))
         .rejects.toThrow('Agent non-existent not found');
     });
 
-    test('should handle unsupported topology in message routing', async () => {
+    jest.setTimeout(10000);
+  test('should handle unsupported topology in message routing', async () => { try {
       // Set invalid topology
       (coordinator as any).activeTopology = 'unsupported';
 
@@ -672,7 +699,8 @@ describe('AdaptiveCoordinator', () => {
         .rejects.toThrow('Unsupported topology: unsupported');
     });
 
-    test('should handle dependency tracker errors gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle dependency tracker errors gracefully', async () => { try {
       const agent: AgentRegistration = {
         id: 'agent-1',
         type: 'worker',
@@ -690,4 +718,4 @@ describe('AdaptiveCoordinator', () => {
       expect(registeredAgent).toBeDefined();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

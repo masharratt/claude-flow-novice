@@ -53,7 +53,7 @@ describe('Backend Integration Tests', () => {
   let contractValidator: APIContractValidator;
   let logger: Logger;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Configure Logger for test environment before getInstance
     process.env.CLAUDE_FLOW_ENV = 'test';
     logger = Logger.getInstance();
@@ -184,7 +184,7 @@ describe('Backend Integration Tests', () => {
     });
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup resources
   });
 
@@ -198,7 +198,7 @@ describe('Backend Integration Tests', () => {
       expect(status.config.coverage.threshold).toBe(80);
     });
 
-    it('should execute unit tests successfully', async () => {
+    it('should execute unit tests successfully', async () => { try {
       const swarmId = 'test-swarm-1';
       const result = await orchestrator.executeUnitTests(swarmId);
 
@@ -212,7 +212,7 @@ describe('Backend Integration Tests', () => {
       }
     }, 15000);
 
-    it('should execute integration tests with database isolation', async () => {
+    it('should execute integration tests with database isolation', async () => { try {
       const swarmId = 'test-swarm-2';
       const result = await orchestrator.executeIntegrationTests(swarmId);
 
@@ -221,7 +221,7 @@ describe('Backend Integration Tests', () => {
       expect(result.tests.total).toBeGreaterThan(0);
     }, 45000);
 
-    it('should execute API tests', async () => {
+    it('should execute API tests', async () => { try {
       const swarmId = 'test-swarm-3';
       const result = await orchestrator.executeAPITests(swarmId);
 
@@ -230,7 +230,7 @@ describe('Backend Integration Tests', () => {
       expect(result.tests.total).toBeGreaterThan(0);
     }, 30000);
 
-    it('should execute performance tests and validate thresholds', async () => {
+    it('should execute performance tests and validate thresholds', async () => { try {
       const swarmId = 'test-swarm-4';
       const result = await orchestrator.executePerformanceTests(swarmId);
 
@@ -246,7 +246,7 @@ describe('Backend Integration Tests', () => {
       }
     }, 90000);
 
-    it('should execute complete test workflow', async () => {
+    it('should execute complete test workflow', async () => { try {
       const swarmId = 'test-swarm-5';
       const plan = {
         swarmId,
@@ -265,7 +265,7 @@ describe('Backend Integration Tests', () => {
       expect(results.has('integration')).toBe(true);
     }, 180000);
 
-    it('should track test results correctly', async () => {
+    it('should track test results correctly', async () => { try {
       const swarmId = 'test-swarm-6';
       await orchestrator.executeUnitTests(swarmId);
 
@@ -278,7 +278,7 @@ describe('Backend Integration Tests', () => {
   });
 
   describe('API Contract Validator', () => {
-    it('should validate valid request successfully', async () => {
+    it('should validate valid request successfully', async () => { try {
       const result = await contractValidator.validateRequest('test-api', '/users', 'GET', {
         query: {
           page: 1,
@@ -290,7 +290,7 @@ describe('Backend Integration Tests', () => {
       expect(result.errors.length).toBe(0);
     });
 
-    it('should detect missing required request body', async () => {
+    it('should detect missing required request body', async () => { try {
       const result = await contractValidator.validateRequest('test-api', '/users', 'POST', {});
 
       expect(result.valid).toBe(false);
@@ -298,7 +298,7 @@ describe('Backend Integration Tests', () => {
       expect(result.errors[0].message).toContain('required');
     });
 
-    it('should validate request body schema', async () => {
+    it('should validate request body schema', async () => { try {
       const result = await contractValidator.validateRequest('test-api', '/users', 'POST', {
         body: {
           email: 'test@example.com',
@@ -311,7 +311,7 @@ describe('Backend Integration Tests', () => {
       expect(result.errors.length).toBe(0);
     });
 
-    it('should detect invalid parameter types', async () => {
+    it('should detect invalid parameter types', async () => { try {
       const result = await contractValidator.validateRequest('test-api', '/users', 'GET', {
         query: {
           page: 'invalid', // Should be number
@@ -323,7 +323,7 @@ describe('Backend Integration Tests', () => {
       expect(result.errors.some((e) => e.type === 'schema')).toBe(true);
     });
 
-    it('should validate response schema', async () => {
+    it('should validate response schema', async () => { try {
       const result = await contractValidator.validateResponse('test-api', '/users', 'GET', 200, {
         body: {
           users: [
@@ -338,7 +338,7 @@ describe('Backend Integration Tests', () => {
       expect(result.errors.length).toBe(0);
     });
 
-    it('should detect invalid response status codes', async () => {
+    it('should detect invalid response status codes', async () => { try {
       const result = await contractValidator.validateResponse('test-api', '/users', 'GET', 418, {
         body: {},
       });
@@ -429,7 +429,7 @@ describe('Backend Integration Tests', () => {
       expect(spec.paths['/users']).toBeDefined();
     });
 
-    it('should track validation statistics', async () => {
+    it('should track validation statistics', async () => { try {
       await contractValidator.validateRequest('test-api', '/users', 'GET', {
         query: { page: 1 },
       });
@@ -443,7 +443,7 @@ describe('Backend Integration Tests', () => {
   });
 
   describe('Database Test Isolation', () => {
-    it('should create isolated database context', async () => {
+    it('should create isolated database context', async () => { try {
       const swarmId = 'test-swarm-7';
 
       await orchestrator.executeIntegrationTests(swarmId);
@@ -452,7 +452,7 @@ describe('Backend Integration Tests', () => {
       expect(status.activeContexts).toBeGreaterThanOrEqual(0);
     }, 45000);
 
-    it('should cleanup database context after tests', async () => {
+    it('should cleanup database context after tests', async () => { try {
       const swarmId = 'test-swarm-8';
 
       await orchestrator.executeIntegrationTests(swarmId);
@@ -466,7 +466,7 @@ describe('Backend Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle test execution errors gracefully', async () => {
+    it('should handle test execution errors gracefully', async () => { try {
       const swarmId = 'test-swarm-error';
 
       // Test will handle internal errors
@@ -476,7 +476,7 @@ describe('Backend Integration Tests', () => {
       expect(result.suiteId).toContain(swarmId);
     }, 15000);
 
-    it('should continue workflow after non-critical failures', async () => {
+    it('should continue workflow after non-critical failures', async () => { try {
       const swarmId = 'test-swarm-9';
       const plan = {
         swarmId,
@@ -495,7 +495,7 @@ describe('Backend Integration Tests', () => {
   });
 
   describe('Performance Benchmarking', () => {
-    it('should measure test execution time', async () => {
+    it('should measure test execution time', async () => { try {
       const swarmId = 'test-swarm-10';
       const startTime = Date.now();
 
@@ -507,7 +507,7 @@ describe('Backend Integration Tests', () => {
       expect(duration).toBeGreaterThan(0);
     }, 15000);
 
-    it('should validate performance thresholds', async () => {
+    it('should validate performance thresholds', async () => { try {
       const swarmId = 'test-swarm-11';
       const result = await orchestrator.executePerformanceTests(swarmId);
 
@@ -521,7 +521,7 @@ describe('Backend Integration Tests', () => {
   });
 
   describe('Coverage Analysis', () => {
-    it('should collect test coverage data', async () => {
+    it('should collect test coverage data', async () => { try {
       const swarmId = 'test-swarm-12';
       const result = await orchestrator.executeUnitTests(swarmId);
 
@@ -533,7 +533,7 @@ describe('Backend Integration Tests', () => {
       }
     }, 15000);
 
-    it('should validate coverage threshold', async () => {
+    it('should validate coverage threshold', async () => { try {
       const swarmId = 'test-swarm-13';
       const result = await orchestrator.executeUnitTests(swarmId);
 
@@ -545,4 +545,4 @@ describe('Backend Integration Tests', () => {
       }
     }, 15000);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

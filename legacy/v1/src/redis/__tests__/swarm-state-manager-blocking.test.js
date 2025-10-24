@@ -59,7 +59,8 @@ const createMockRedis = () => {
       const regex = new RegExp(`^${regexPattern}$`);
 
       // Get matching keys
-      const matchingKeys = Array.from(storage.keys()).filter(key => regex.test(key));
+      const matchingKeys = Array.from(storage.keys()).filter(key => regex.jest.setTimeout(10000);
+  test(key));
 
       // Return [cursor, keys] format
       return Promise.resolve(['0', matchingKeys]);
@@ -84,7 +85,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
   let manager;
   let redis;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create mock Redis
     redis = createMockRedis();
 
@@ -95,14 +96,14 @@ describe('Swarm State Manager - Blocking State Integration', () => {
     await manager.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup
     await redis.flushall();
     await manager.shutdown();
   });
 
   describe('saveBlockingState', () => {
-    it('should save blocking state to Redis with 24h TTL', async () => {
+    it('should save blocking state to Redis with 24h TTL', async () => { try {
       const swarmId = 'test-swarm-001';
       const coordinatorId = 'coordinator-alpha';
       const blockingState = {
@@ -134,7 +135,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(retrieved.phase).toBe('testing');
     });
 
-    it('should emit blocking_state_saved event', async () => {
+    it('should emit blocking_state_saved event', async () => { try {
       const swarmId = 'test-swarm-002';
       const coordinatorId = 'coordinator-beta';
       const blockingState = {
@@ -161,7 +162,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       });
     });
 
-    it('should include timestamp in saved state', async () => {
+    it('should include timestamp in saved state', async () => { try {
       const swarmId = 'test-swarm-003';
       const coordinatorId = 'coordinator-gamma';
       const beforeSave = Date.now();
@@ -183,7 +184,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(saved.timestamp).toBeLessThanOrEqual(Date.now());
     });
 
-    it('should handle multiple blocking states for same swarm', async () => {
+    it('should handle multiple blocking states for same swarm', async () => { try {
       const swarmId = 'test-swarm-004';
 
       const coordinators = [
@@ -212,7 +213,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
   });
 
   describe('getBlockingState', () => {
-    it('should retrieve saved blocking state', async () => {
+    it('should retrieve saved blocking state', async () => { try {
       const swarmId = 'test-swarm-005';
       const coordinatorId = 'coordinator-delta';
       const blockingState = {
@@ -238,13 +239,13 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(retrieved.timestamp).toBeDefined();
     });
 
-    it('should return null for non-existent state', async () => {
+    it('should return null for non-existent state', async () => { try {
       const result = await manager.getBlockingState('non-existent-swarm', 'non-existent-coordinator');
 
       expect(result).toBeNull();
     });
 
-    it('should handle malformed JSON gracefully', async () => {
+    it('should handle malformed JSON gracefully', async () => { try {
       const swarmId = 'test-swarm-006';
       const coordinatorId = 'coordinator-epsilon';
 
@@ -259,7 +260,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       // Note: Stats errors might not increment in mock Redis, but graceful handling is verified
     });
 
-    it('should retrieve state with all expected fields', async () => {
+    it('should retrieve state with all expected fields', async () => { try {
       const swarmId = 'test-swarm-007';
       const coordinatorId = 'coordinator-zeta';
       const completeState = {
@@ -281,7 +282,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
   });
 
   describe('clearBlockingState', () => {
-    it('should delete blocking state from Redis', async () => {
+    it('should delete blocking state from Redis', async () => { try {
       const swarmId = 'test-swarm-008';
       const coordinatorId = 'coordinator-eta';
 
@@ -306,7 +307,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(state).toBeNull();
     });
 
-    it('should emit blocking_state_cleared event', async () => {
+    it('should emit blocking_state_cleared event', async () => { try {
       const swarmId = 'test-swarm-009';
       const coordinatorId = 'coordinator-theta';
 
@@ -334,13 +335,13 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       });
     });
 
-    it('should not error when clearing non-existent state', async () => {
+    it('should not error when clearing non-existent state', async () => { try {
       await expect(
         manager.clearBlockingState('non-existent-swarm', 'non-existent-coordinator')
       ).resolves.not.toThrow();
     });
 
-    it('should only clear specified coordinator state', async () => {
+    it('should only clear specified coordinator state', async () => { try {
       const swarmId = 'test-swarm-010';
 
       // Save multiple states
@@ -373,7 +374,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
   });
 
   describe('getAllBlockingCoordinators', () => {
-    it('should return all blocking coordinators for swarm', async () => {
+    it('should return all blocking coordinators for swarm', async () => { try {
       const swarmId = 'test-swarm-011';
 
       // Save 3 blocking states
@@ -411,13 +412,13 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(betaState.status).toBe('complete');
     });
 
-    it('should return empty array when no blocking coordinators', async () => {
+    it('should return empty array when no blocking coordinators', async () => { try {
       const allStates = await manager.getAllBlockingCoordinators('empty-swarm');
 
       expect(allStates).toEqual([]);
     });
 
-    it('should use non-blocking SCAN pattern', async () => {
+    it('should use non-blocking SCAN pattern', async () => { try {
       const swarmId = 'test-swarm-012';
 
       // Spy on scanKeys method
@@ -430,7 +431,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       scanKeysSpy.mockRestore();
     });
 
-    it('should handle errors gracefully', async () => {
+    it('should handle errors gracefully', async () => { try {
       // Force Redis error by disconnecting
       await redis.disconnect();
       redis.get = jest.fn().mockRejectedValue(new Error('Redis disconnected'));
@@ -440,7 +441,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(result).toEqual([]);
     });
 
-    it('should skip malformed JSON entries', async () => {
+    it('should skip malformed JSON entries', async () => { try {
       const swarmId = 'test-swarm-013';
 
       // Save valid state
@@ -522,7 +523,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
   });
 
   describe('scanKeys performance', () => {
-    it('should handle 100+ blocking coordinators efficiently', async () => {
+    it('should handle 100+ blocking coordinators efficiently', async () => { try {
       const swarmId = 'test-swarm-large';
 
       // Create 100 blocking states
@@ -550,7 +551,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(elapsed).toBeLessThan(1000); // Less than 1 second
     }, 10000); // Increase timeout for this test
 
-    it('should use SCAN cursor-based iteration', async () => {
+    it('should use SCAN cursor-based iteration', async () => { try {
       const swarmId = 'test-swarm-014';
 
       // Save a few states
@@ -577,7 +578,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
   });
 
   describe('saveState integration with blocking coordinators', () => {
-    it('should include blocking coordinators in state snapshot', async () => {
+    it('should include blocking coordinators in state snapshot', async () => { try {
       const swarmId = 'test-swarm-015';
 
       // Save blocking states for 2 coordinators
@@ -616,7 +617,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(coordIds).toEqual(['coord-1', 'coord-2']);
     });
 
-    it('should enable crash recovery with blocking states', async () => {
+    it('should enable crash recovery with blocking states', async () => { try {
       const swarmId = 'test-swarm-016';
 
       // Save blocking states
@@ -656,7 +657,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       await recoveryManager.shutdown();
     });
 
-    it('should snapshot blocking states at time of saveState', async () => {
+    it('should snapshot blocking states at time of saveState', async () => { try {
       const swarmId = 'test-swarm-017';
 
       // Save initial blocking state
@@ -690,7 +691,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(latestState.blockingCoordinators[0].status).toBe('complete');
     });
 
-    it('should handle empty blocking coordinators gracefully', async () => {
+    it('should handle empty blocking coordinators gracefully', async () => { try {
       const swarmId = 'test-swarm-018';
 
       // Save state with no blocking coordinators
@@ -704,7 +705,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
   });
 
   describe('edge cases and error handling', () => {
-    it('should handle missing swarmId gracefully', async () => {
+    it('should handle missing swarmId gracefully', async () => { try {
       await expect(
         manager.saveBlockingState('', 'coord-1', {
           status: 'waiting',
@@ -716,7 +717,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       ).resolves.not.toThrow();
     });
 
-    it('should handle missing coordinatorId gracefully', async () => {
+    it('should handle missing coordinatorId gracefully', async () => { try {
       await expect(
         manager.saveBlockingState('swarm-1', '', {
           status: 'waiting',
@@ -728,7 +729,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       ).resolves.not.toThrow();
     });
 
-    it('should handle concurrent blocking state updates', async () => {
+    it('should handle concurrent blocking state updates', async () => { try {
       const swarmId = 'test-swarm-concurrent';
       const coordinatorId = 'coord-concurrent';
 
@@ -754,7 +755,7 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       expect(finalState.status).toBe('waiting');
     });
 
-    it('should handle TTL expiration simulation', async () => {
+    it('should handle TTL expiration simulation', async () => { try {
       const swarmId = 'test-swarm-ttl';
       const coordinatorId = 'coord-ttl';
 
@@ -784,13 +785,13 @@ describe('Swarm State Manager - Blocking State Integration', () => {
       // In production, Redis would handle TTL expiration automatically
     });
 
-    it('should handle SCAN with 0 results', async () => {
+    it('should handle SCAN with 0 results', async () => { try {
       const keys = await manager.scanKeys('swarm:non-existent:blocking:*');
 
       expect(keys).toEqual([]);
     });
 
-    it('should handle SCAN with 50+ results', async () => {
+    it('should handle SCAN with 50+ results', async () => { try {
       const swarmId = 'test-swarm-massive';
 
       // Create 50 blocking states

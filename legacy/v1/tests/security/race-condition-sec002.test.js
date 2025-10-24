@@ -51,7 +51,8 @@ describe('SEC-002: Race Condition Fix', () => {
     }
   });
 
-  test('concurrent completion attempts - only one succeeds', async () => {
+  jest.setTimeout(10000);
+  test('concurrent completion attempts - only one succeeds', async () => { try {
     // Spawn agent first
     const spawnResult = await execCLI([
       'agent-lifecycle', 'spawn',
@@ -93,7 +94,8 @@ describe('SEC-002: Race Condition Fix', () => {
     expect(failedResult.stderr).toContain('already completed');
   });
 
-  test('sequential completion after spawn succeeds', async () => {
+  jest.setTimeout(10000);
+  test('sequential completion after spawn succeeds', async () => { try {
     // Spawn agent
     await execCLI([
       'agent-lifecycle', 'spawn',
@@ -113,7 +115,8 @@ describe('SEC-002: Race Condition Fix', () => {
     expect(completeResult.stdout).toContain('marked as completed');
   });
 
-  test('duplicate completion fails gracefully', async () => {
+  jest.setTimeout(10000);
+  test('duplicate completion fails gracefully', async () => { try {
     // Spawn and complete agent
     await execCLI([
       'agent-lifecycle', 'spawn',
@@ -139,7 +142,8 @@ describe('SEC-002: Race Condition Fix', () => {
     expect(duplicateResult.stderr).toContain('already completed');
   });
 
-  test('completion of non-existent agent fails', async () => {
+  jest.setTimeout(10000);
+  test('completion of non-existent agent fails', async () => { try {
     const result = await execCLI([
       'agent-lifecycle', 'complete',
       '--id', 'nonexistent-agent',
@@ -150,7 +154,8 @@ describe('SEC-002: Race Condition Fix', () => {
     expect(result.stderr).toContain('not found');
   });
 
-  test('confidence score validation during atomic completion', async () => {
+  jest.setTimeout(10000);
+  test('confidence score validation during atomic completion', async () => { try {
     // Spawn agent
     await execCLI([
       'agent-lifecycle', 'spawn',

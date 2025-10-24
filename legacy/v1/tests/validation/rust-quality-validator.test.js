@@ -13,7 +13,7 @@ describe('RustQualityValidator', () => {
   let testProjectPath;
   let mockRustProject;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     validator = new RustQualityValidator({
       timeout: 60000,
       enableByzantineValidation: false, // Disabled for testing
@@ -35,7 +35,7 @@ describe('RustQualityValidator', () => {
     mockRustProject = await createMockRustProject(testProjectPath);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up test directory
     try {
       await fs.rmdir(testProjectPath, { recursive: true });
@@ -45,7 +45,7 @@ describe('RustQualityValidator', () => {
   });
 
   describe('Project Structure Validation', () => {
-    it('should validate valid Rust project structure', async () => {
+    it('should validate valid Rust project structure', async () => { try {
       const result = await validator.validateRustProject(testProjectPath);
 
       expect(result.valid).toBe(true);
@@ -55,7 +55,7 @@ describe('RustQualityValidator', () => {
       expect(result.projectType).toBe('library');
     });
 
-    it('should reject invalid project without Cargo.toml', async () => {
+    it('should reject invalid project without Cargo.toml', async () => { try {
       // Remove Cargo.toml
       await fs.unlink(path.join(testProjectPath, 'Cargo.toml'));
 
@@ -63,7 +63,7 @@ describe('RustQualityValidator', () => {
         .rejects.toThrow('Invalid Rust project structure');
     });
 
-    it('should detect project type correctly', async () => {
+    it('should detect project type correctly', async () => { try {
       // Test library project
       let result = await validator.validateRustProject(testProjectPath);
       expect(result.projectType).toBe('library');
@@ -76,7 +76,7 @@ describe('RustQualityValidator', () => {
   });
 
   describe('Clippy Integration', () => {
-    it('should run cargo clippy successfully on clean code', async () => {
+    it('should run cargo clippy successfully on clean code', async () => { try {
       // Skip if cargo clippy not available
       try {
         await validator.executeCommand('cargo', ['clippy', '--version'], { timeout: 5000 });
@@ -96,7 +96,7 @@ describe('RustQualityValidator', () => {
       expect(result.performanceMetrics.executionTime).toBeGreaterThan(0);
     });
 
-    it('should categorize clippy lints correctly', async () => {
+    it('should categorize clippy lints correctly', async () => { try {
       const mockLints = [
         { level: 'warning', code: 'clippy::complexity', message: 'Complex function' },
         { level: 'error', code: 'clippy::correctness', message: 'Potential bug' },
@@ -110,7 +110,7 @@ describe('RustQualityValidator', () => {
       expect(categories.style).toHaveLength(1);
     });
 
-    it('should parse clippy JSON output correctly', async () => {
+    it('should parse clippy JSON output correctly', async () => { try {
       const mockOutput = `
         {"message":{"level":"warning","message":"unused variable","code":{"code":"unused_variables"},"spans":[],"rendered":"warning text"}}
         {"message":{"level":"error","message":"type error","code":{"code":"type_error"},"spans":[],"rendered":"error text"}}
@@ -127,7 +127,7 @@ describe('RustQualityValidator', () => {
   });
 
   describe('Formatting Validation', () => {
-    it('should run cargo fmt check successfully', async () => {
+    it('should run cargo fmt check successfully', async () => { try {
       // Skip if cargo fmt not available
       try {
         await validator.executeCommand('cargo', ['fmt', '--version'], { timeout: 5000 });
@@ -146,7 +146,7 @@ describe('RustQualityValidator', () => {
       expect(result.executionTime).toBeGreaterThan(0);
     });
 
-    it('should detect unformatted files', async () => {
+    it('should detect unformatted files', async () => { try {
       // Create poorly formatted Rust file
       const poorlyFormattedCode = `fn main(){let x=1;let y=2;
 if x==1{println!("hello");}}
@@ -169,7 +169,7 @@ if x==1{println!("hello");}}
   });
 
   describe('Security Audit', () => {
-    it('should run cargo audit successfully', async () => {
+    it('should run cargo audit successfully', async () => { try {
       const result = await validator.runCargoAudit(testProjectPath);
 
       expect(result).toBeDefined();
@@ -185,7 +185,7 @@ if x==1{println!("hello");}}
       }
     });
 
-    it('should handle cargo audit installation gracefully', async () => {
+    it('should handle cargo audit installation gracefully', async () => { try {
       // This tests the installation logic when cargo-audit is not available
       const originalExecuteCommand = validator.executeCommand;
       let installCalled = false;
@@ -213,7 +213,7 @@ if x==1{println!("hello");}}
   });
 
   describe('Code Complexity Analysis', () => {
-    it('should analyze code complexity correctly', async () => {
+    it('should analyze code complexity correctly', async () => { try {
       const complexCode = `fn simple_function() {
     println!("Hello");
 }
@@ -256,7 +256,7 @@ fn complex_function(x: i32) -> i32 {
       expect(result.metrics.totalFiles).toBeGreaterThan(0);
     });
 
-    it('should identify complex functions correctly', async () => {
+    it('should identify complex functions correctly', async () => { try {
       const testCode = `fn very_complex_function(x: i32) -> i32 {
     if x > 0 {
         if x > 10 {
@@ -283,7 +283,7 @@ fn complex_function(x: i32) -> i32 {
   });
 
   describe('Documentation Analysis', () => {
-    it('should analyze documentation coverage', async () => {
+    it('should analyze documentation coverage', async () => { try {
       const documentedCode = `//! Library documentation
 
 /// This function adds two numbers
@@ -318,7 +318,7 @@ pub fn undocumented_function() -> i32 {
   });
 
   describe('Performance Analysis', () => {
-    it('should analyze compilation performance', async () => {
+    it('should analyze compilation performance', async () => { try {
       // Skip if cargo not available
       try {
         await validator.executeCommand('cargo', ['--version'], { timeout: 5000 });
@@ -337,7 +337,7 @@ pub fn undocumented_function() -> i32 {
   });
 
   describe('Quality Score Calculation', () => {
-    it('should calculate quality scores correctly', async () => {
+    it('should calculate quality scores correctly', async () => { try {
       const mockResults = {
         clippyResults: {
           passed: true,
@@ -372,7 +372,7 @@ pub fn undocumented_function() -> i32 {
       expect(score.weights).toBeDefined();
     });
 
-    it('should penalize poor code quality appropriately', async () => {
+    it('should penalize poor code quality appropriately', async () => { try {
       const mockResults = {
         clippyResults: {
           passed: false,
@@ -407,7 +407,7 @@ pub fn undocumented_function() -> i32 {
   });
 
   describe('Quality Recommendations', () => {
-    it('should generate appropriate recommendations', async () => {
+    it('should generate appropriate recommendations', async () => { try {
       const mockResults = {
         clippyResults: {
           errors: [{ message: 'Fix this error' }],
@@ -449,7 +449,7 @@ pub fn undocumented_function() -> i32 {
   });
 
   describe('Rust Project Utilities', () => {
-    it('should find Rust source files correctly', async () => {
+    it('should find Rust source files correctly', async () => { try {
       // Create additional Rust files
       await fs.mkdir(path.join(testProjectPath, 'src', 'utils'), { recursive: true });
       await fs.writeFile(
@@ -465,7 +465,7 @@ pub fn undocumented_function() -> i32 {
       expect(files.some(f => f.endsWith('helper.rs'))).toBe(true);
     });
 
-    it('should parse Cargo.toml correctly', async () => {
+    it('should parse Cargo.toml correctly', async () => { try {
       const cargoToml = `
 [package]
 name = "test-project"
@@ -487,7 +487,7 @@ tokio = { version = "1.0", features = ["full"] }
   });
 
   describe('Full Integration', () => {
-    it('should perform complete quality validation', async () => {
+    it('should perform complete quality validation', async () => { try {
       // Skip if Rust toolchain not available
       try {
         await validator.executeCommand('cargo', ['--version'], { timeout: 5000 });

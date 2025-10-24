@@ -44,7 +44,7 @@ const createMockNext = (): NextFunction => vi.fn();
 
 describe('JWT Authentication Middleware', () => {
   describe('authenticateJWT', () => {
-    it('should authenticate valid JWT token', async () => {
+    it('should authenticate valid JWT token', async () => { try {
       const user: Omit<JWTUser, 'iat' | 'exp'> = {
         userId: 'user-123',
         role: 'admin',
@@ -64,7 +64,7 @@ describe('JWT Authentication Middleware', () => {
       expect(next).toHaveBeenCalledWith();
     });
 
-    it('should reject missing Authorization header', async () => {
+    it('should reject missing Authorization header', async () => { try {
       const req = createMockRequest() as Request;
       const res = createMockResponse() as Response;
       const next = createMockNext();
@@ -80,7 +80,7 @@ describe('JWT Authentication Middleware', () => {
       );
     });
 
-    it('should reject invalid token format', async () => {
+    it('should reject invalid token format', async () => { try {
       const req = createMockRequest('Bearer invalid-token') as Request;
       const res = createMockResponse() as Response;
       const next = createMockNext();
@@ -96,7 +96,7 @@ describe('JWT Authentication Middleware', () => {
       );
     });
 
-    it('should reject expired token', async () => {
+    it('should reject expired token', async () => { try {
       const user: Omit<JWTUser, 'iat' | 'exp'> = {
         userId: 'user-123',
         role: 'user',
@@ -124,7 +124,7 @@ describe('JWT Authentication Middleware', () => {
       );
     });
 
-    it('should reject token with invalid signature', async () => {
+    it('should reject token with invalid signature', async () => { try {
       const user: Omit<JWTUser, 'iat' | 'exp'> = {
         userId: 'user-123',
         role: 'user',
@@ -149,7 +149,7 @@ describe('JWT Authentication Middleware', () => {
       );
     });
 
-    it('should reject token with missing userId', async () => {
+    it('should reject token with missing userId', async () => { try {
       const invalidPayload = { role: 'user', permissions: [] };
       const token = jwt.sign(invalidPayload, 'test-secret-key-for-testing', { algorithm: 'HS256' });
 
@@ -168,7 +168,7 @@ describe('JWT Authentication Middleware', () => {
       );
     });
 
-    it('should reject token with invalid role', async () => {
+    it('should reject token with invalid role', async () => { try {
       const invalidPayload = { userId: 'user-123', role: 'superadmin', permissions: [] };
       const token = jwt.sign(invalidPayload, 'test-secret-key-for-testing', { algorithm: 'HS256' });
 
@@ -187,7 +187,7 @@ describe('JWT Authentication Middleware', () => {
       );
     });
 
-    it('should cache token verification results', async () => {
+    it('should cache token verification results', async () => { try {
       const user: Omit<JWTUser, 'iat' | 'exp'> = {
         userId: 'user-123',
         role: 'user',
@@ -214,7 +214,7 @@ describe('JWT Authentication Middleware', () => {
   });
 
   describe('optionalAuthenticateJWT', () => {
-    it('should attach user if valid token present', async () => {
+    it('should attach user if valid token present', async () => { try {
       const user: Omit<JWTUser, 'iat' | 'exp'> = {
         userId: 'user-123',
         role: 'user',
@@ -233,7 +233,7 @@ describe('JWT Authentication Middleware', () => {
       expect(next).toHaveBeenCalledWith();
     });
 
-    it('should not fail if token missing', async () => {
+    it('should not fail if token missing', async () => { try {
       const req = createMockRequest() as Request;
       const res = createMockResponse() as Response;
       const next = createMockNext();
@@ -244,7 +244,7 @@ describe('JWT Authentication Middleware', () => {
       expect(next).toHaveBeenCalledWith(); // Called without error
     });
 
-    it('should not fail if token invalid', async () => {
+    it('should not fail if token invalid', async () => { try {
       const req = createMockRequest('Bearer invalid-token') as Request;
       const res = createMockResponse() as Response;
       const next = createMockNext();

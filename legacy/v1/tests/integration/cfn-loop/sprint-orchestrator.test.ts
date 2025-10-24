@@ -81,7 +81,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
     orchestrator = createSprintOrchestrator(config);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await orchestrator.shutdown();
     delete process.env.CLAUDE_FLOW_ENV;
   });
@@ -98,11 +98,11 @@ describe('SprintOrchestrator - Integration Tests', () => {
       newOrchestrator.shutdown();
     });
 
-    it('should initialize orchestrator and build dependency graphs', async () => {
+    it('should initialize orchestrator and build dependency graphs', async () => { try {
       await expect(orchestrator.initialize()).resolves.not.toThrow();
     });
 
-    it('should detect cycles in dependency graph', async () => {
+    it('should detect cycles in dependency graph', async () => { try {
       const cyclicSprints: Sprint[] = [
         {
           id: 'sprint-a',
@@ -151,7 +151,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
   });
 
   describe('Single Sprint Execution', () => {
-    it('should execute single sprint successfully', async () => {
+    it('should execute single sprint successfully', async () => { try {
       const singleSprintConfig: SprintOrchestratorConfig = {
         epicId: 'single-sprint-test',
         sprints: [config.sprints[0]],
@@ -175,7 +175,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       await singleOrchestrator.shutdown();
     }, 30000);
 
-    it('should track sprint execution metrics', async () => {
+    it('should track sprint execution metrics', async () => { try {
       await orchestrator.initialize();
       const result = await orchestrator.executeEpic();
 
@@ -190,14 +190,14 @@ describe('SprintOrchestrator - Integration Tests', () => {
   });
 
   describe('Sprint Dependencies', () => {
-    it('should execute sprints in dependency order', async () => {
+    it('should execute sprints in dependency order', async () => { try {
       await orchestrator.initialize();
       const result = await orchestrator.executeEpic();
 
       expect(result.completedSprints).toEqual(['sprint-1.1', 'sprint-1.2']);
     }, 30000);
 
-    it('should fail sprint when dependency not satisfied', async () => {
+    it('should fail sprint when dependency not satisfied', async () => { try {
       const dependentSprints: Sprint[] = [
         {
           id: 'sprint-dependent',
@@ -233,7 +233,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       await dependentOrchestrator.shutdown();
     }, 15000);
 
-    it('should handle cross-phase dependencies', async () => {
+    it('should handle cross-phase dependencies', async () => { try {
       const crossPhaseSprints: Sprint[] = [
         {
           id: 'sprint-2.1',
@@ -273,7 +273,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
   });
 
   describe('Sprint Retry Logic', () => {
-    it('should retry sprint up to 10 times on failure', async () => {
+    it('should retry sprint up to 10 times on failure', async () => { try {
       // This test is challenging to implement without actual failure injection
       // We verify the retry mechanism through configuration
       const retryConfig: SprintOrchestratorConfig = {
@@ -294,7 +294,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       await retryOrchestrator.shutdown();
     }, 30000);
 
-    it('should escalate after max retries reached', async () => {
+    it('should escalate after max retries reached', async () => { try {
       // Similar limitation - testing escalation requires failure injection
       const stats = orchestrator.getStatistics();
       expect(stats.totalSprints).toBe(2);
@@ -302,7 +302,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
   });
 
   describe('Checkpoint Validation', () => {
-    it('should validate all checkpoint criteria', async () => {
+    it('should validate all checkpoint criteria', async () => { try {
       await orchestrator.initialize();
       const result = await orchestrator.executeEpic();
 
@@ -317,7 +317,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       expect(sprintResult!.checkpointResults.checkpoints).toHaveProperty('dependenciesPass');
     }, 30000);
 
-    it('should report failed checkpoints', async () => {
+    it('should report failed checkpoints', async () => { try {
       await orchestrator.initialize();
       const result = await orchestrator.executeEpic();
 
@@ -326,7 +326,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       expect(Array.isArray(sprintResult!.checkpointResults.failedCheckpoints)).toBe(true);
     }, 30000);
 
-    it('should validate minimum coverage threshold', async () => {
+    it('should validate minimum coverage threshold', async () => { try {
       const highCoverageSprint: Sprint = {
         id: 'sprint-high-coverage',
         phaseId: 'phase-1',
@@ -364,7 +364,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
   });
 
   describe('Auto-Agent Assignment', () => {
-    it('should auto-assign agents based on sprint description', async () => {
+    it('should auto-assign agents based on sprint description', async () => { try {
       const backendSprint: Sprint = {
         id: 'sprint-backend',
         phaseId: 'phase-1',
@@ -403,7 +403,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       await backendOrchestrator.shutdown();
     }, 30000);
 
-    it('should use suggested agent types when provided', async () => {
+    it('should use suggested agent types when provided', async () => { try {
       const customAgentSprint: Sprint = {
         id: 'sprint-custom-agents',
         phaseId: 'phase-1',
@@ -442,7 +442,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       await customOrchestrator.shutdown();
     }, 30000);
 
-    it('should always include tester and reviewer agents', async () => {
+    it('should always include tester and reviewer agents', async () => { try {
       await orchestrator.initialize();
       const result = await orchestrator.executeEpic();
 
@@ -455,7 +455,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
   });
 
   describe('Epic Execution', () => {
-    it('should execute all sprints in epic', async () => {
+    it('should execute all sprints in epic', async () => { try {
       await orchestrator.initialize();
       const result = await orchestrator.executeEpic();
 
@@ -465,7 +465,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       expect(result.failedSprints).toHaveLength(0);
     }, 30000);
 
-    it('should calculate epic statistics', async () => {
+    it('should calculate epic statistics', async () => { try {
       await orchestrator.initialize();
       const result = await orchestrator.executeEpic();
 
@@ -478,7 +478,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       expect(result.statistics.checkpointFailures).toBeGreaterThanOrEqual(0);
     }, 30000);
 
-    it('should emit events during execution', async () => {
+    it('should emit events during execution', async () => { try {
       const events: string[] = [];
 
       orchestrator.on('initialized', () => events.push('initialized'));
@@ -506,7 +506,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       expect(stats.inProgress).toBe(2);
     });
 
-    it('should update statistics during execution', async () => {
+    it('should update statistics during execution', async () => { try {
       await orchestrator.initialize();
 
       const beforeStats = orchestrator.getStatistics();
@@ -519,7 +519,7 @@ describe('SprintOrchestrator - Integration Tests', () => {
       expect(afterStats.inProgress).toBe(0);
     }, 30000);
 
-    it('should track execution duration', async () => {
+    it('should track execution duration', async () => { try {
       await orchestrator.initialize();
       const result = await orchestrator.executeEpic();
 
@@ -531,16 +531,16 @@ describe('SprintOrchestrator - Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle orchestrator shutdown gracefully', async () => {
+    it('should handle orchestrator shutdown gracefully', async () => { try {
       await expect(orchestrator.shutdown()).resolves.not.toThrow();
     });
 
-    it('should handle multiple shutdown calls', async () => {
+    it('should handle multiple shutdown calls', async () => { try {
       await orchestrator.shutdown();
       await expect(orchestrator.shutdown()).resolves.not.toThrow();
     });
 
-    it('should handle empty sprint list', async () => {
+    it('should handle empty sprint list', async () => { try {
       const emptyConfig: SprintOrchestratorConfig = {
         epicId: 'empty-test',
         sprints: [],

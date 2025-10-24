@@ -44,12 +44,12 @@ describe('Chaos: Clock Skew', () => {
   let coordinators: CoordinatorInstance[] = [];
   let redis: Redis;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     redis = new Redis(DEFAULT_REDIS_CONFIG);
     await cleanupRedis();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     killAllCoordinators(coordinators);
     await cleanupRedis();
     await redis.quit();
@@ -58,7 +58,7 @@ describe('Chaos: Clock Skew', () => {
 
   it(
     'should handle +5 minute clock skew using Redis TIME',
-    async () => {
+    async () => { try {
       // Coordinator A: +5 minutes ahead
       const coordA = await spawnCoordinator({
         coordinatorId: 'coord-skew-ahead',
@@ -109,7 +109,7 @@ describe('Chaos: Clock Skew', () => {
 
   it(
     'should handle -5 minute clock skew using Redis TIME',
-    async () => {
+    async () => { try {
       // Coordinator B: -5 minutes behind
       const coordB = await spawnCoordinator({
         coordinatorId: 'coord-skew-behind',
@@ -156,7 +156,7 @@ describe('Chaos: Clock Skew', () => {
 
   it(
     'should timeout at correct Redis time despite clock skew',
-    async () => {
+    async () => { try {
       const SHORT_TIMEOUT = 2 * 60 * 1000; // 2 minutes
 
       // Coordinator with +5 minute skew and 2-minute timeout
@@ -194,7 +194,7 @@ describe('Chaos: Clock Skew', () => {
 
   it(
     'should handle mixed clock skews across multiple coordinators',
-    async () => {
+    async () => { try {
       // Coordinator A: +5 minutes ahead
       const coordA = await spawnCoordinator({
         coordinatorId: 'coord-mixed-a',

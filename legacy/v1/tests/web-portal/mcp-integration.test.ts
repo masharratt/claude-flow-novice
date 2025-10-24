@@ -17,7 +17,7 @@ describe('MCP Integration Tests', () => {
   let ruvSwarmMCP: RuvSwarmMCP;
   let mockWebSocket: WebSocket;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize mock WebSocket
     mockWebSocket = createMockWebSocket();
 
@@ -41,13 +41,13 @@ describe('MCP Integration Tests', () => {
     await mcpService.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await mcpService.shutdown();
     jest.clearAllMocks();
   });
 
   describe('Claude Flow MCP Command Execution', () => {
-    it('should execute swarm initialization successfully', async () => {
+    it('should execute swarm initialization successfully', async () => { try {
       // Mock successful swarm init response
       jest.spyOn(claudeFlowMCP, 'executeCommand').mockResolvedValue(
         mockMCPResponses.swarmInit.success
@@ -69,7 +69,7 @@ describe('MCP Integration Tests', () => {
       });
     });
 
-    it('should handle swarm initialization failure gracefully', async () => {
+    it('should handle swarm initialization failure gracefully', async () => { try {
       // Mock failed swarm init response
       jest.spyOn(claudeFlowMCP, 'executeCommand').mockResolvedValue(
         mockMCPResponses.swarmInit.failure
@@ -85,7 +85,7 @@ describe('MCP Integration Tests', () => {
       expect(result.retryable).toBe(true);
     });
 
-    it('should execute agent spawning with proper coordination', async () => {
+    it('should execute agent spawning with proper coordination', async () => { try {
       // Mock agent spawn responses
       jest.spyOn(claudeFlowMCP, 'executeCommand')
         .mockResolvedValueOnce(mockMCPResponses.agentSpawn.researcher)
@@ -107,7 +107,7 @@ describe('MCP Integration Tests', () => {
       expect(results.agents[2].type).toBe('reviewer');
     });
 
-    it('should execute task orchestration with dependency tracking', async () => {
+    it('should execute task orchestration with dependency tracking', async () => { try {
       // Mock task orchestration response
       jest.spyOn(claudeFlowMCP, 'executeCommand').mockResolvedValue(
         mockMCPResponses.taskOrchestrate.success
@@ -128,7 +128,7 @@ describe('MCP Integration Tests', () => {
       expect(result.assignedAgents).toHaveLength(3);
     });
 
-    it('should handle command timeout and retry logic', async () => {
+    it('should handle command timeout and retry logic', async () => { try {
       // Mock timeout scenario
       jest.spyOn(claudeFlowMCP, 'executeCommand')
         .mockRejectedValueOnce(new Error('Connection timeout'))
@@ -143,7 +143,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('ruv-swarm MCP Coordination', () => {
-    it('should initialize ruv-swarm coordination successfully', async () => {
+    it('should initialize ruv-swarm coordination successfully', async () => { try {
       jest.spyOn(ruvSwarmMCP, 'executeCommand').mockResolvedValue(
         mockMCPResponses.ruvSwarm.init.success
       );
@@ -160,7 +160,7 @@ describe('MCP Integration Tests', () => {
       expect(result.capabilities).toContain('daa_agents');
     });
 
-    it('should coordinate neural pattern training', async () => {
+    it('should coordinate neural pattern training', async () => { try {
       jest.spyOn(ruvSwarmMCP, 'executeCommand').mockResolvedValue(
         mockMCPResponses.ruvSwarm.neuralTrain.success
       );
@@ -178,7 +178,7 @@ describe('MCP Integration Tests', () => {
       expect(result.trainingMetrics.convergenceRate).toBeDefined();
     });
 
-    it('should handle DAA agent creation and adaptation', async () => {
+    it('should handle DAA agent creation and adaptation', async () => { try {
       jest.spyOn(ruvSwarmMCP, 'executeCommand')
         .mockResolvedValueOnce(mockMCPResponses.ruvSwarm.daaCreate.success)
         .mockResolvedValueOnce(mockMCPResponses.ruvSwarm.daaAdapt.success);
@@ -205,7 +205,7 @@ describe('MCP Integration Tests', () => {
       expect(adaptResult.adaptationMetrics.learningRateAdjustment).toBeDefined();
     });
 
-    it('should manage knowledge sharing between agents', async () => {
+    it('should manage knowledge sharing between agents', async () => { try {
       jest.spyOn(ruvSwarmMCP, 'executeCommand').mockResolvedValue(
         mockMCPResponses.ruvSwarm.knowledgeShare.success
       );
@@ -230,7 +230,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('WebSocket Message Routing', () => {
-    it('should route MCP responses to correct WebSocket clients', async () => {
+    it('should route MCP responses to correct WebSocket clients', async () => { try {
       const mockSend = jest.fn();
       mockWebSocket.send = mockSend;
 
@@ -254,7 +254,7 @@ describe('MCP Integration Tests', () => {
       expect(sentMessage.data.agentName).toBe('Research Agent');
     });
 
-    it('should broadcast swarm status updates to all connected clients', async () => {
+    it('should broadcast swarm status updates to all connected clients', async () => { try {
       const mockClients = [
         { send: jest.fn(), readyState: WebSocket.OPEN },
         { send: jest.fn(), readyState: WebSocket.OPEN },
@@ -275,7 +275,7 @@ describe('MCP Integration Tests', () => {
       expect(mockClients[2].send).not.toHaveBeenCalled();
     });
 
-    it('should handle WebSocket connection errors gracefully', async () => {
+    it('should handle WebSocket connection errors gracefully', async () => { try {
       const mockSend = jest.fn().mockImplementation(() => {
         throw new Error('Connection closed');
       });
@@ -292,7 +292,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Error Handling and Recovery', () => {
-    it('should handle MCP service unavailability', async () => {
+    it('should handle MCP service unavailability', async () => { try {
       jest.spyOn(claudeFlowMCP, 'executeCommand').mockRejectedValue(
         new Error('Service unavailable')
       );
@@ -304,7 +304,7 @@ describe('MCP Integration Tests', () => {
       expect(result.fallbackExecuted).toBe(true);
     });
 
-    it('should implement circuit breaker pattern for failing services', async () => {
+    it('should implement circuit breaker pattern for failing services', async () => { try {
       // Simulate multiple consecutive failures
       jest.spyOn(claudeFlowMCP, 'executeCommand').mockRejectedValue(
         new Error('Service error')
@@ -324,9 +324,9 @@ describe('MCP Integration Tests', () => {
       expect(result.error).toContain('Circuit breaker is open');
     });
 
-    it('should recover from transient network issues', async () => {
+    it('should recover from transient network issues', async () => { try {
       let callCount = 0;
-      jest.spyOn(claudeFlowMCP, 'executeCommand').mockImplementation(async () => {
+      jest.spyOn(claudeFlowMCP, 'executeCommand').mockImplementation(async () => { try {
         callCount++;
         if (callCount <= 2) {
           throw new Error('Network timeout');
@@ -345,7 +345,7 @@ describe('MCP Integration Tests', () => {
       expect(callCount).toBe(3);
     });
 
-    it('should validate MCP response integrity', async () => {
+    it('should validate MCP response integrity', async () => { try {
       // Mock malformed response
       jest.spyOn(claudeFlowMCP, 'executeCommand').mockResolvedValue({
         // Missing required fields
@@ -361,9 +361,9 @@ describe('MCP Integration Tests', () => {
       expect(result.validationErrors).toBeDefined();
     });
 
-    it('should handle concurrent command execution safely', async () => {
+    it('should handle concurrent command execution safely', async () => { try {
       jest.spyOn(claudeFlowMCP, 'executeCommand').mockImplementation(
-        async () => {
+        async () => { try {
           // Simulate processing delay
           await new Promise(resolve => setTimeout(resolve, 100));
           return mockMCPResponses.swarmStatus.success;
@@ -388,7 +388,7 @@ describe('MCP Integration Tests', () => {
   });
 
   describe('Performance and Monitoring', () => {
-    it('should track command execution metrics', async () => {
+    it('should track command execution metrics', async () => { try {
       jest.spyOn(claudeFlowMCP, 'executeCommand').mockResolvedValue(
         mockMCPResponses.swarmStatus.success
       );
@@ -402,7 +402,7 @@ describe('MCP Integration Tests', () => {
       expect(metrics.averageLatency).toBeLessThan(1000);
     });
 
-    it('should monitor WebSocket connection health', async () => {
+    it('should monitor WebSocket connection health', async () => { try {
       const healthCheck = await mcpService.performHealthCheck();
 
       expect(healthCheck.claudeFlow).toBeDefined();
@@ -411,7 +411,7 @@ describe('MCP Integration Tests', () => {
       expect(healthCheck.overall.status).toMatch(/^(healthy|degraded|unhealthy)$/);
     });
 
-    it('should handle memory management for long-running sessions', async () => {
+    it('should handle memory management for long-running sessions', async () => { try {
       // Simulate long-running session with many commands
       for (let i = 0; i < 100; i++) {
         jest.spyOn(claudeFlowMCP, 'executeCommand').mockResolvedValue(
@@ -426,4 +426,4 @@ describe('MCP Integration Tests', () => {
       expect(memoryUsage.garbageCollectionCount).toBeGreaterThan(0);
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

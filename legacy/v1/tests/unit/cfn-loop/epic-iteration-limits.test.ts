@@ -25,7 +25,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(stats.totalAcquired).toBe(0);
   });
 
-  it('should acquire tokens successfully when available', async () => {
+  it('should acquire tokens successfully when available', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 100,
       refillRate: 10,
@@ -39,7 +39,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(stats.currentTokens).toBeLessThanOrEqual(50);
   });
 
-  it('should wait for tokens to refill if insufficient', async () => {
+  it('should wait for tokens to refill if insufficient', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 10,
       refillRate: 100, // 100 tokens per second (fast refill for testing)
@@ -57,7 +57,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(stats.totalAcquired).toBe(10);
   });
 
-  it('should prevent exceeding bucket capacity', async () => {
+  it('should prevent exceeding bucket capacity', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 10,
       refillRate: 5,
@@ -71,7 +71,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(stats.currentTokens).toBeLessThanOrEqual(10);
   });
 
-  it('should throw error for invalid token cost', async () => {
+  it('should throw error for invalid token cost', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 10,
       refillRate: 5,
@@ -81,7 +81,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     await expect(limiter.acquire(-5)).rejects.toThrow('Token cost must be positive');
   });
 
-  it('should throw error for cost exceeding capacity', async () => {
+  it('should throw error for cost exceeding capacity', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 10,
       refillRate: 5,
@@ -118,7 +118,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(stats.totalAcquired).toBe(0);
   });
 
-  it('should refill tokens over time', async () => {
+  it('should refill tokens over time', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 100,
       refillRate: 100, // 100 tokens/sec
@@ -132,7 +132,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(stats.currentTokens).toBeGreaterThan(5); // Should have refilled some
   });
 
-  it('should calculate utilization correctly', async () => {
+  it('should calculate utilization correctly', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 100,
       refillRate: 10,
@@ -145,7 +145,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(stats.utilization).toBeGreaterThan(40); // ~50% utilized
   });
 
-  it('should reset limiter state', async () => {
+  it('should reset limiter state', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 100,
       refillRate: 10,
@@ -161,7 +161,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(stats.totalWaitTime).toBe(0);
   });
 
-  it('should calculate time until tokens available', async () => {
+  it('should calculate time until tokens available', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 100,
       refillRate: 10, // 10 tokens/sec = 100ms per token
@@ -175,7 +175,7 @@ describe('RateLimiter - Token Bucket Implementation', () => {
     expect(timeUntil).toBeLessThan(1100);
   });
 
-  it('should enable adaptive refill rate', async () => {
+  it('should enable adaptive refill rate', async () => { try {
     const limiter = new RateLimiter({
       maxTokens: 100,
       refillRate: 10,
@@ -198,7 +198,7 @@ describe('Memory Rate Limiter Factory', () => {
     expect(stats.refillRate).toBe(10); // 10 ops/sec
   });
 
-  it('should throttle excessive memory operations', async () => {
+  it('should throttle excessive memory operations', async () => { try {
     const limiter = createMemoryRateLimiter();
 
     // Consume all initial tokens first

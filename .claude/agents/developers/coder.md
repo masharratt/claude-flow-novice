@@ -25,11 +25,11 @@ validation_hooks:
   - test-coverage-validator
 lifecycle:
   pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'coder', 'active', CURRENT_TIMESTAMP)"
+    # Placeholder for agent initialization
+    echo "Initializing coder agent: ${AGENT_ID}"
   post_task: |
-    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                     completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
+    # Placeholder for agent completion tracking
+    echo "Coder agent completed with confidence: ${CONFIDENCE_SCORE}"
 acl_level: 1
 ---
 
@@ -55,6 +55,125 @@ acl_level: 1
 - Follow clean code principles
 - Optimize for readability
 - Minimize code complexity
+
+## Module Syntax Guidelines (MANDATORY)
+
+### ES Module Syntax Requirements
+
+#### Export Strategies
+
+##### 1. Default Exports
+```javascript
+// Single default export
+export default function mainFunction() {
+  // Implementation
+}
+
+// Class as default export
+export default class MainClass {
+  constructor() {
+    // Implementation
+  }
+}
+```
+
+##### 2. Named Exports
+```javascript
+// Multiple named exports
+export const CONSTANT = 'value';
+export function utilityFunction() {}
+export class HelperClass {}
+```
+
+##### 3. Mixed Exports (Complex Scenarios)
+```javascript
+// Combining default and named exports
+export const helper1 = () => {};
+export const helper2 = () => {};
+export default function mainFunction() {}
+
+// Re-exporting from other modules
+export { default as Component } from './Component.js';
+export * from './utilities.js';
+```
+
+##### 4. Dynamic Imports
+```javascript
+// Lazy loading and conditional imports
+async function loadModule() {
+  // Dynamic import with await
+  const dynamicModule = await import('./dynamic-module.js');
+  const { safeUtils } = await import('./utils.js');
+
+  // Conditional loading
+  if (checkModuleRequirement()) {
+    const conditionalModule = await import('./optional-module.js');
+  }
+}
+
+// Import with robust error handling
+async function safeImport() {
+  try {
+    const optionalModule = await import('./optional-dependency.js');
+    return optionalModule;
+  } catch (error) {
+    console.warn('Optional module not available:', error.message);
+    return null;
+  }
+}
+```
+
+#### Import Patterns
+```javascript
+// Standard imports
+import defaultExport from './module.js';
+import { namedExport1, namedExport2 } from './module.js';
+import * as moduleNamespace from './namespace-module.js';
+
+// Selective imports
+import {
+  specificFunction,
+  anotherFunction as renamedFunction
+} from './complex-module.js';
+```
+
+### Ecosystem Migration & Compatibility
+
+#### Migration Strategies
+1. **Gradual Conversion**
+   - Start with `.mjs` for new modules
+   - Update `package.json`: `"type": "module"`
+   - Use `"exports"` field for package entry points
+   ```json
+   {
+     "type": "module",
+     "exports": {
+       ".": "./index.js",
+       "./utils": "./utils.js"
+     }
+   }
+   ```
+
+2. **Extension Guidelines**
+   - `.js`: ES Modules (with `"type": "module"`)
+   - `.mjs`: Explicit ES Modules
+   - `.cjs`: CommonJS modules (legacy support)
+
+3. **Build Tool Configuration**
+   - Configure Babel/TypeScript to transpile to ES Modules
+   - Use Webpack/Rollup with ES Module resolution
+   - Set `target: "esnext"` in TypeScript config
+
+#### Interoperability Considerations
+- Use dynamic `import()` for packages requiring CommonJS
+- Check Node.js version compatibility (≥14.8 recommended)
+- Be aware of module resolution differences
+
+### Best Practices
+- Prefer named exports for better tree-shaking
+- Use dynamic imports for performance optimization
+- Minimize side effects in module-level code
+- Document module interfaces clearly
 
 ## Collaboration Patterns
 - **With Architect:** Follow design guidelines
@@ -149,4 +268,3 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
   --confidence [0.0-1.0] \
   --iteration 1
 ```
-

@@ -15,7 +15,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
   let messenger;
   const testSwarmId = 'test-swarm-wasm-' + Date.now();
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Dynamic import of CommonJS module
     const module = await import('../../src/redis/swarm-messenger.js');
     SwarmMessenger = module.default;
@@ -29,7 +29,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
     await messenger.initialize(testSwarmId);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (messenger) {
       await messenger.shutdown();
     }
@@ -60,7 +60,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
   });
 
   describe('Message Serialization', () => {
-    it('should serialize and deserialize simple messages', async () => {
+    it('should serialize and deserialize simple messages', async () => { try {
       const testMessage = {
         type: 'test',
         data: {
@@ -76,7 +76,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
       expect(envelope.payload).toEqual(testMessage);
     });
 
-    it('should handle complex nested objects', async () => {
+    it('should handle complex nested objects', async () => { try {
       const complexMessage = {
         type: 'complex',
         nested: {
@@ -98,7 +98,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
       expect(envelope.payload).toEqual(complexMessage);
     });
 
-    it('should handle arrays and special characters', async () => {
+    it('should handle arrays and special characters', async () => { try {
       const specialMessage = {
         type: 'special',
         data: {
@@ -115,7 +115,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
   });
 
   describe('Message History Batch Processing', () => {
-    it('should handle batch deserialization of message history', async () => {
+    it('should handle batch deserialization of message history', async () => { try {
       const channel = `test:batch:${Date.now()}`;
 
       // Send multiple messages
@@ -176,7 +176,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
       console.log(`Serialization time: ${durationMicroseconds.toFixed(2)}μs`);
     });
 
-    it('should handle high message volume', async () => {
+    it('should handle high message volume', async () => { try {
       const channel = `test:volume:${Date.now()}`;
       const messageCount = 100;
       const messages = [];
@@ -207,7 +207,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
   });
 
   describe('Message Format Compatibility', () => {
-    it('should maintain backward compatibility with JSON format', async () => {
+    it('should maintain backward compatibility with JSON format', async () => { try {
       const message = {
         type: 'compatibility',
         data: { test: true },
@@ -229,7 +229,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
       expect(envelope.swarmId).toBe(testSwarmId);
     });
 
-    it('should handle all JavaScript primitive types', async () => {
+    it('should handle all JavaScript primitive types', async () => { try {
       const message = {
         type: 'primitives',
         data: {
@@ -277,7 +277,7 @@ describe('WASM Serialization in SwarmMessenger', () => {
 });
 
 describe('WASM Serialization Performance Benchmarks', () => {
-  it('should provide 50x speedup compared to JavaScript (informational)', async () => {
+  it('should provide 50x speedup compared to JavaScript (informational)', async () => { try {
     const wasmModule = await import('../../src/wasm-regex-engine/pkg/wasm_regex_engine.js');
 
     if (!wasmModule || !wasmModule.MessageSerializer) {

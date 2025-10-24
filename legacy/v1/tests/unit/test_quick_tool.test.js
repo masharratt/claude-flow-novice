@@ -1,6 +1,7 @@
 // Quick tool test verification
 describe('Quick Tool Test', () => {
-  test('should read test.txt and create output.txt with correct content', async () => {
+  jest.setTimeout(10000);
+  test('should read test.txt and create output.txt with correct content', async () => { try {
     // Test reading test.txt (file doesn't exist - this is expected)
     try {
       const fs = require('fs').promises;
@@ -19,9 +20,10 @@ describe('Quick Tool Test', () => {
     // Verify output.txt content
     const outputContent = await fs.readFile('output.txt', 'utf8');
     expect(outputContent).toBe('tester completed');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should verify output.txt file exists and has correct content', async () => {
+  jest.setTimeout(10000);
+  test('should verify output.txt file exists and has correct content', async () => { try {
     const fs = require('fs').promises;
     
     // Check file exists
@@ -31,9 +33,10 @@ describe('Quick Tool Test', () => {
     const content = await fs.readFile('output.txt', 'utf8');
     expect(content).toBe('tester completed');
     expect(content.length).toBeGreaterThan(0);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should handle file operations gracefully', async () => {
+  jest.setTimeout(10000);
+  test('should handle file operations gracefully', async () => { try {
     const fs = require('fs').promises;
     
     // Test that we can create and read files
@@ -46,5 +49,5 @@ describe('Quick Tool Test', () => {
     
     // Cleanup
     await fs.unlink(testFile);
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

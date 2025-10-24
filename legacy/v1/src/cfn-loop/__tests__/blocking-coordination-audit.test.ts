@@ -188,7 +188,7 @@ describe('BlockingCoordinationAudit', () => {
   let redis: Redis;
   let audit: BlockingCoordinationAudit;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     redis = new Redis(REDIS_CONFIG);
 
     await new Promise<void>((resolve, reject) => {
@@ -197,7 +197,7 @@ describe('BlockingCoordinationAudit', () => {
     });
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     try {
       await fs.unlink(TEST_DB_PATH);
     } catch (error) {
@@ -207,7 +207,7 @@ describe('BlockingCoordinationAudit', () => {
     audit = new BlockingCoordinationAudit(redis, TEST_DB_PATH);
   }, TEST_TIMEOUT);
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (audit) {
       audit.close();
     }
@@ -219,12 +219,12 @@ describe('BlockingCoordinationAudit', () => {
     }
   }, TEST_TIMEOUT);
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await redis.quit();
   });
 
   describe('Signal ACK Logging', () => {
-    it('should log Signal ACK events with complete data', async () => {
+    it('should log Signal ACK events with complete data', async () => { try {
       const coordinatorId = 'coordinator-1';
       const signalId = 'signal-123';
 
@@ -245,7 +245,7 @@ describe('BlockingCoordinationAudit', () => {
       expect(eventData.iteration).toBe(5);
     });
 
-    it('should handle multiple Signal ACKs from same coordinator', async () => {
+    it('should handle multiple Signal ACKs from same coordinator', async () => { try {
       const coordinatorId = 'coordinator-multi';
 
       // Log multiple ACKs
@@ -268,7 +268,7 @@ describe('BlockingCoordinationAudit', () => {
   });
 
   describe('Timeout Event Persistence', () => {
-    it('should persist timeout events with duration data', async () => {
+    it('should persist timeout events with duration data', async () => { try {
       const coordinatorId = 'coordinator-timeout';
       const iteration = 10;
       const duration = 60000; // 60 seconds
@@ -286,7 +286,7 @@ describe('BlockingCoordinationAudit', () => {
       expect(eventData.timestamp).toBeDefined();
     });
 
-    it('should track multiple timeouts for coordinator', async () => {
+    it('should track multiple timeouts for coordinator', async () => { try {
       const coordinatorId = 'coordinator-frequent-timeouts';
 
       // Log multiple timeouts
@@ -308,7 +308,7 @@ describe('BlockingCoordinationAudit', () => {
       expect(eventData3.duration).toBe(60000);
     });
 
-    it('should query timeout events efficiently', async () => {
+    it('should query timeout events efficiently', async () => { try {
       // Create many coordinators with timeouts
       for (let i = 0; i < 50; i++) {
         await audit.logTimeout(`coordinator-${i}`, 1, 30000);
@@ -325,7 +325,7 @@ describe('BlockingCoordinationAudit', () => {
   });
 
   describe('Dead Coordinator Escalation Logging', () => {
-    it('should log dead coordinator detection', async () => {
+    it('should log dead coordinator detection', async () => { try {
       const coordinatorId = 'coordinator-dead';
       const lastHeartbeat = Date.now() - 120000; // 2 minutes ago
 
@@ -342,7 +342,7 @@ describe('BlockingCoordinationAudit', () => {
       expect(eventData.detectedAt).toBeDefined();
     });
 
-    it('should differentiate escalated vs non-escalated deaths', async () => {
+    it('should differentiate escalated vs non-escalated deaths', async () => { try {
       const coordinator1 = 'coordinator-escalated';
       const coordinator2 = 'coordinator-not-escalated';
 
@@ -361,7 +361,7 @@ describe('BlockingCoordinationAudit', () => {
   });
 
   describe('Work Transfer Logging', () => {
-    it('should log work transfer between coordinators', async () => {
+    it('should log work transfer between coordinators', async () => { try {
       const fromCoordinator = 'coordinator-failed';
       const toCoordinator = 'coordinator-recovery';
 
@@ -385,7 +385,7 @@ describe('BlockingCoordinationAudit', () => {
   });
 
   describe('Audit Trail Completeness', () => {
-    it('should maintain complete audit trail for coordinator lifecycle', async () => {
+    it('should maintain complete audit trail for coordinator lifecycle', async () => { try {
       const coordinatorId = 'coordinator-lifecycle';
 
       // Simulate full coordinator lifecycle
@@ -428,7 +428,7 @@ describe('BlockingCoordinationAudit', () => {
   });
 
   describe('Query Performance', () => {
-    it('should efficiently query events by timestamp range', async () => {
+    it('should efficiently query events by timestamp range', async () => { try {
       const baseTime = Date.now();
 
       // Create events over time range
@@ -446,7 +446,7 @@ describe('BlockingCoordinationAudit', () => {
       expect(duration).toBeLessThan(100); // Should be fast with timestamp index
     });
 
-    it('should efficiently retrieve events by type', async () => {
+    it('should efficiently retrieve events by type', async () => { try {
       // Mix of different event types
       for (let i = 0; i < 30; i++) {
         await audit.logSignalACK(`coordinator-${i}`, `signal-${i}`, { iteration: 1 });
@@ -464,7 +464,7 @@ describe('BlockingCoordinationAudit', () => {
   });
 
   describe('Redis Pub/Sub Integration', () => {
-    it('should publish events to Redis channel for real-time monitoring', async () => {
+    it('should publish events to Redis channel for real-time monitoring', async () => { try {
       const coordinatorId = 'coordinator-pubsub';
       let receivedMessage: any = null;
 

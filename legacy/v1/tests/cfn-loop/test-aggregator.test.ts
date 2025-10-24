@@ -33,25 +33,25 @@ describe('TestResultAggregator', () => {
     }
   };
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     aggregator = new TestResultAggregator(redisConfig);
     await aggregator.connect();
     await aggregator.clearResults(); // Clean state
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await aggregator.clearResults();
     await aggregator.disconnect();
   });
 
   describe('Connection Management', () => {
-    it('should connect to Redis successfully', async () => {
+    it('should connect to Redis successfully', async () => { try {
       const newAggregator = new TestResultAggregator(redisConfig);
       await expect(newAggregator.connect()).resolves.not.toThrow();
       await newAggregator.disconnect();
     });
 
-    it('should disconnect gracefully', async () => {
+    it('should disconnect gracefully', async () => { try {
       await expect(aggregator.disconnect()).resolves.not.toThrow();
       await aggregator.connect(); // Reconnect for cleanup
     });
@@ -92,7 +92,7 @@ describe('TestResultAggregator', () => {
       }
     ];
 
-    it('should store sprint results successfully', async () => {
+    it('should store sprint results successfully', async () => { try {
       await expect(
         aggregator.storeSprintResults(
           'sprint-1',
@@ -103,7 +103,7 @@ describe('TestResultAggregator', () => {
       ).resolves.not.toThrow();
     });
 
-    it('should emit results:stored event', async () => {
+    it('should emit results:stored event', async () => { try {
       return new Promise<void>((resolve) => {
         aggregator.once('results:stored', (event) => {
           expect(event).toMatchObject({
@@ -124,7 +124,7 @@ describe('TestResultAggregator', () => {
       });
     });
 
-    it('should store multiple sprint results', async () => {
+    it('should store multiple sprint results', async () => { try {
       await aggregator.storeSprintResults(
         'sprint-1',
         'phase-1',
@@ -145,7 +145,7 @@ describe('TestResultAggregator', () => {
   });
 
   describe('Conflict Detection', () => {
-    it('should detect test conflicts when same test modified by multiple sprints', async () => {
+    it('should detect test conflicts when same test modified by multiple sprints', async () => { try {
       const test1: TestResult = {
         testId: 'test-shared',
         testName: 'shared test',
@@ -175,7 +175,7 @@ describe('TestResultAggregator', () => {
       });
     });
 
-    it('should not detect conflicts for different tests', async () => {
+    it('should not detect conflicts for different tests', async () => { try {
       const test1: TestResult = {
         testId: 'test-1',
         testName: 'test 1',
@@ -208,7 +208,7 @@ describe('TestResultAggregator', () => {
   });
 
   describe('Coverage Aggregation', () => {
-    it('should merge coverage for same file using union strategy', async () => {
+    it('should merge coverage for same file using union strategy', async () => { try {
       const coverage1: FileCoverage = {
         file: 'src/shared.ts',
         lines: { total: 50, covered: 40, percentage: 80 },
@@ -237,7 +237,7 @@ describe('TestResultAggregator', () => {
       expect(mergedCoverage!.lines.covered).toBe(45); // Max covered
     });
 
-    it('should calculate overall coverage correctly', async () => {
+    it('should calculate overall coverage correctly', async () => { try {
       const coverage: FileCoverage[] = [
         {
           file: 'src/file1.ts',
@@ -266,7 +266,7 @@ describe('TestResultAggregator', () => {
   });
 
   describe('Unified Report Generation', () => {
-    it('should generate unified report for single sprint', async () => {
+    it('should generate unified report for single sprint', async () => { try {
       const testResults: TestResult[] = [
         {
           testId: 'test-1',
@@ -306,7 +306,7 @@ describe('TestResultAggregator', () => {
       });
     });
 
-    it('should generate unified report for multiple sprints', async () => {
+    it('should generate unified report for multiple sprints', async () => { try {
       const test1: TestResult[] = [
         {
           testId: 'test-1',
@@ -345,7 +345,7 @@ describe('TestResultAggregator', () => {
       expect(report.summary.failed).toBe(1);
     });
 
-    it('should calculate average coverage across sprints', async () => {
+    it('should calculate average coverage across sprints', async () => { try {
       const coverage1: FileCoverage[] = [
         {
           file: 'src/file1.ts',
@@ -378,7 +378,7 @@ describe('TestResultAggregator', () => {
   });
 
   describe('Report Retrieval', () => {
-    it('should retrieve unified report from Redis', async () => {
+    it('should retrieve unified report from Redis', async () => { try {
       const testResults: TestResult[] = [
         {
           testId: 'test-1',
@@ -401,14 +401,14 @@ describe('TestResultAggregator', () => {
       expect(retrievedReport!.totalSprints).toBe(1);
     });
 
-    it('should return null when no report exists', async () => {
+    it('should return null when no report exists', async () => { try {
       const report = await aggregator.getUnifiedReport();
       expect(report).toBeNull();
     });
   });
 
   describe('Clear Results', () => {
-    it('should clear all results and reports', async () => {
+    it('should clear all results and reports', async () => { try {
       const testResults: TestResult[] = [
         {
           testId: 'test-1',
@@ -433,7 +433,7 @@ describe('TestResultAggregator', () => {
   });
 
   describe('Event Emissions', () => {
-    it('should emit sprint:processed event', async () => {
+    it('should emit sprint:processed event', async () => { try {
       const testResults: TestResult[] = [
         {
           testId: 'test-1',
@@ -463,7 +463,7 @@ describe('TestResultAggregator', () => {
       });
     });
 
-    it('should emit report:aggregated event', async () => {
+    it('should emit report:aggregated event', async () => { try {
       const testResults: TestResult[] = [
         {
           testId: 'test-1',

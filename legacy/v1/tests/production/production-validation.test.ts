@@ -11,7 +11,7 @@ import { performance } from "perf_hooks";
 
 describe("Production Validation", () => {
   describe("Real System Integration", () => {
-    it("should work with real agent instances", async () => {
+    it("should work with real agent instances", async () => { try {
       const agentManager = new UltraFastAgentManager();
       await agentManager.initialize();
 
@@ -25,12 +25,12 @@ describe("Production Validation", () => {
       agents.forEach(agent => {
         expect(agent.state).toBe("ready");
         expect(agent.spawnTime).toBeDefined();
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await agentManager.shutdown();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it("should complete full feature development cycle", async () => {
+    it("should complete full feature development cycle", async () => { try {
       const validator = new FullstackIntegrationValidator();
       await validator.initialize();
 
@@ -47,7 +47,7 @@ describe("Production Validation", () => {
           maxDuration: 180000,
           minSuccessRate: 0.95
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(metrics.iterationCount).toBeLessThanOrEqual(5);
       expect(metrics.testCoverage).toBeGreaterThanOrEqual(90);
@@ -55,5 +55,5 @@ describe("Production Validation", () => {
 
       await validator.shutdown();
     }, 300000);
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

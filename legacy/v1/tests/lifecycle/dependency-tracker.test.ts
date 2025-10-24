@@ -56,7 +56,7 @@ describe('DependencyTracker', () => {
   let tracker: DependencyTracker;
   let mockMemoryManager: any;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     vi.clearAllMocks();
     tracker = createDependencyTracker('test-namespace');
     await tracker.initialize();
@@ -66,7 +66,7 @@ describe('DependencyTracker', () => {
     mockMemoryManager = new MemoryManager();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (tracker) {
       await tracker.shutdown();
     }
@@ -78,7 +78,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Dependency Registration', () => {
-    it('should register a basic completion dependency', async () => {
+    it('should register a basic completion dependency', async () => { try {
       const depId = await tracker.registerDependency(
         'agent-1',
         'agent-2',
@@ -96,7 +96,7 @@ describe('DependencyTracker', () => {
       expect(dependency?.status).toBe(DependencyStatus.PENDING);
     });
 
-    it('should register different types of dependencies', async () => {
+    it('should register different types of dependencies', async () => { try {
       const completionDepId = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
       const dataDepId = await tracker.registerDependency('agent-3', 'agent-4', DependencyType.DATA_DEPENDENCY);
       const serviceDepId = await tracker.registerDependency('agent-5', 'agent-6', DependencyType.SERVICE_DEPENDENCY);
@@ -110,7 +110,7 @@ describe('DependencyTracker', () => {
       expect(serviceDep?.dependencyType).toBe(DependencyType.SERVICE_DEPENDENCY);
     });
 
-    it('should register dependency with timeout and metadata', async () => {
+    it('should register dependency with timeout and metadata', async () => { try {
       const metadata = { testKey: 'testValue', priority: 'high' };
       const timeout = 5000;
 
@@ -126,13 +126,13 @@ describe('DependencyTracker', () => {
       expect(dependency?.metadata).toEqual(metadata);
     });
 
-    it('should prevent self-dependency registration', async () => {
+    it('should prevent self-dependency registration', async () => { try {
       await expect(
         tracker.registerDependency('agent-1', 'agent-1', DependencyType.COMPLETION)
       ).rejects.toThrow('Agent cannot depend on itself');
     });
 
-    it('should track bidirectional dependency mappings', async () => {
+    it('should track bidirectional dependency mappings', async () => { try {
       await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       const agent1Deps = tracker.getAgentDependencies('agent-1');
@@ -149,7 +149,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Cycle Detection', () => {
-    it('should detect and prevent simple cycles', async () => {
+    it('should detect and prevent simple cycles', async () => { try {
       // Create: A -> B -> C
       await tracker.registerDependency('agent-a', 'agent-b', DependencyType.COMPLETION);
       await tracker.registerDependency('agent-b', 'agent-c', DependencyType.COMPLETION);
@@ -160,7 +160,7 @@ describe('DependencyTracker', () => {
       ).rejects.toThrow('Adding dependency would create a cycle');
     });
 
-    it('should detect complex multi-node cycles', async () => {
+    it('should detect complex multi-node cycles', async () => { try {
       // Create chain: A -> B -> C -> D -> E
       await tracker.registerDependency('agent-a', 'agent-b', DependencyType.COMPLETION);
       await tracker.registerDependency('agent-b', 'agent-c', DependencyType.COMPLETION);
@@ -173,7 +173,7 @@ describe('DependencyTracker', () => {
       ).rejects.toThrow('Adding dependency would create a cycle');
     });
 
-    it('should detect cycles in complex graph structures', async () => {
+    it('should detect cycles in complex graph structures', async () => { try {
       // Create diamond pattern: A -> B, A -> C, B -> D, C -> D
       await tracker.registerDependency('agent-a', 'agent-b', DependencyType.COMPLETION);
       await tracker.registerDependency('agent-a', 'agent-c', DependencyType.COMPLETION);
@@ -189,7 +189,7 @@ describe('DependencyTracker', () => {
       ).rejects.toThrow('Adding dependency would create a cycle');
     });
 
-    it('should provide cycle detection results', async () => {
+    it('should provide cycle detection results', async () => { try {
       // Create a dependency chain
       await tracker.registerDependency('agent-a', 'agent-b', DependencyType.COMPLETION);
       await tracker.registerDependency('agent-b', 'agent-c', DependencyType.COMPLETION);
@@ -209,7 +209,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Completion Blocking', () => {
-    it('should block agent completion when dependencies exist', async () => {
+    it('should block agent completion when dependencies exist', async () => { try {
       await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       const blockerInfo = await tracker.canAgentComplete('agent-1');
@@ -218,13 +218,13 @@ describe('DependencyTracker', () => {
       expect(blockerInfo.reason).toContain('Blocked by 1 dependencies');
     });
 
-    it('should allow completion when no dependencies exist', async () => {
+    it('should allow completion when no dependencies exist', async () => { try {
       const blockerInfo = await tracker.canAgentComplete('agent-no-deps');
       expect(blockerInfo.canComplete).toBe(true);
       expect(blockerInfo.blockedBy).toHaveLength(0);
     });
 
-    it('should track what agents are being blocked', async () => {
+    it('should track what agents are being blocked', async () => { try {
       await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
       await tracker.registerDependency('agent-3', 'agent-2', DependencyType.COMPLETION);
 
@@ -233,7 +233,7 @@ describe('DependencyTracker', () => {
       expect(agent2BlockerInfo.blocking).toContain('agent-3');
     });
 
-    it('should handle completion requests correctly', async () => {
+    it('should handle completion requests correctly', async () => { try {
       await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       // Agent 1 should be blocked
@@ -245,7 +245,7 @@ describe('DependencyTracker', () => {
       expect(canComplete2).toBe(true);
     });
 
-    it('should emit completion events correctly', async () => {
+    it('should emit completion events correctly', async () => { try {
       const mockApproved = vi.fn();
       const mockBlocked = vi.fn();
 
@@ -276,7 +276,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Dependency Resolution', () => {
-    it('should resolve dependencies and unblock agents', async () => {
+    it('should resolve dependencies and unblock agents', async () => { try {
       const depId = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       // Initially blocked
@@ -297,7 +297,7 @@ describe('DependencyTracker', () => {
       expect(dependency?.resolvedAt).toBeDefined();
     });
 
-    it('should validate resolution data when validator provided', async () => {
+    it('should validate resolution data when validator provided', async () => { try {
       const validator = vi.fn().mockReturnValue(true);
       const depId = await tracker.registerDependency(
         'agent-1',
@@ -317,7 +317,7 @@ describe('DependencyTracker', () => {
       expect(validator).toHaveBeenCalledWith({ testData: 'value' });
     });
 
-    it('should reject resolution with invalid data', async () => {
+    it('should reject resolution with invalid data', async () => { try {
       const validator = vi.fn().mockReturnValue(false);
       const depId = await tracker.registerDependency(
         'agent-1',
@@ -340,7 +340,7 @@ describe('DependencyTracker', () => {
       expect(dependency?.status).toBe(DependencyStatus.PENDING);
     });
 
-    it('should transform resolution data when transformer provided', async () => {
+    it('should transform resolution data when transformer provided', async () => { try {
       const transformer = vi.fn().mockImplementation((data: any) => ({
         transformed: true,
         original: data
@@ -370,7 +370,7 @@ describe('DependencyTracker', () => {
       });
     });
 
-    it('should emit resolution events', async () => {
+    it('should emit resolution events', async () => { try {
       const mockResolved = vi.fn();
       tracker.on('dependency:resolved', mockResolved);
 
@@ -394,7 +394,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Dependency Removal', () => {
-    it('should remove dependencies and update mappings', async () => {
+    it('should remove dependencies and update mappings', async () => { try {
       const depId = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       // Verify dependency exists
@@ -412,7 +412,7 @@ describe('DependencyTracker', () => {
       expect(tracker.getDependentAgents('agent-2')).not.toContain('agent-1');
     });
 
-    it('should unblock agents when dependencies are removed', async () => {
+    it('should unblock agents when dependencies are removed', async () => { try {
       const depId = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       // Initially blocked
@@ -427,12 +427,12 @@ describe('DependencyTracker', () => {
       expect(blockerInfo.canComplete).toBe(true);
     });
 
-    it('should handle removal of non-existent dependencies', async () => {
+    it('should handle removal of non-existent dependencies', async () => { try {
       const removed = await tracker.removeDependency('non-existent-id');
       expect(removed).toBe(false);
     });
 
-    it('should emit removal events', async () => {
+    it('should emit removal events', async () => { try {
       const mockRemoved = vi.fn();
       tracker.on('dependency:removed', mockRemoved);
 
@@ -454,7 +454,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Force Completion', () => {
-    it('should force agent completion and cancel dependencies', async () => {
+    it('should force agent completion and cancel dependencies', async () => { try {
       const depId = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       // Initially blocked
@@ -473,7 +473,7 @@ describe('DependencyTracker', () => {
       expect(dependency?.status).toBe(DependencyStatus.CANCELLED);
     });
 
-    it('should emit force completion events', async () => {
+    it('should emit force completion events', async () => { try {
       const mockForced = vi.fn();
       tracker.on('agent:completion_forced', mockForced);
 
@@ -494,7 +494,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Timeout Handling', () => {
-    it('should handle dependency timeouts', async () => {
+    it('should handle dependency timeouts', async () => { try {
       vi.useFakeTimers();
 
       const mockTimeout = vi.fn();
@@ -520,7 +520,7 @@ describe('DependencyTracker', () => {
       vi.useRealTimers();
     });
 
-    it('should not timeout resolved dependencies', async () => {
+    it('should not timeout resolved dependencies', async () => { try {
       vi.useFakeTimers();
 
       const depId = await tracker.registerDependency(
@@ -548,7 +548,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Statistics and Queries', () => {
-    it('should provide accurate statistics', async () => {
+    it('should provide accurate statistics', async () => { try {
       const dep1 = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
       const dep2 = await tracker.registerDependency('agent-3', 'agent-4', DependencyType.DATA_DEPENDENCY);
       const dep3 = await tracker.registerDependency('agent-5', 'agent-6', DependencyType.SERVICE_DEPENDENCY);
@@ -564,7 +564,7 @@ describe('DependencyTracker', () => {
       expect(stats.providingAgents).toBe(3);
     });
 
-    it('should provide agent-specific dependency information', async () => {
+    it('should provide agent-specific dependency information', async () => { try {
       await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
       await tracker.registerDependency('agent-1', 'agent-3', DependencyType.DATA_DEPENDENCY);
 
@@ -578,7 +578,7 @@ describe('DependencyTracker', () => {
       expect(agent2Dependents).toContain('agent-1');
     });
 
-    it('should detect dependency violations', async () => {
+    it('should detect dependency violations', async () => { try {
       vi.useFakeTimers();
 
       // Create a dependency with short timeout
@@ -606,7 +606,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Memory Persistence', () => {
-    it('should persist dependencies to memory', async () => {
+    it('should persist dependencies to memory', async () => { try {
       const depId = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       // Verify memory manager store was called
@@ -619,7 +619,7 @@ describe('DependencyTracker', () => {
       );
     });
 
-    it('should save state snapshot on shutdown', async () => {
+    it('should save state snapshot on shutdown', async () => { try {
       await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
       await tracker.shutdown();
 
@@ -639,7 +639,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Error Handling', () => {
-    it('should handle operations on uninitialized tracker', async () => {
+    it('should handle operations on uninitialized tracker', async () => { try {
       const uninitializedTracker = createDependencyTracker('uninitialized');
 
       await expect(
@@ -647,12 +647,12 @@ describe('DependencyTracker', () => {
       ).rejects.toThrow('DependencyTracker not initialized');
     });
 
-    it('should handle resolution of non-existent dependencies', async () => {
+    it('should handle resolution of non-existent dependencies', async () => { try {
       const resolved = await tracker.resolveDependency('non-existent-id', { data: 'test' });
       expect(resolved).toBe(false);
     });
 
-    it('should handle validation errors gracefully', async () => {
+    it('should handle validation errors gracefully', async () => { try {
       const failingValidator = vi.fn().mockImplementation(() => {
         throw new Error('Validation error');
       });
@@ -673,7 +673,7 @@ describe('DependencyTracker', () => {
       expect(resolved).toBe(false);
     });
 
-    it('should handle transformation errors gracefully', async () => {
+    it('should handle transformation errors gracefully', async () => { try {
       const failingTransformer = vi.fn().mockImplementation(() => {
         throw new Error('Transform error');
       });
@@ -700,7 +700,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Edge Cases', () => {
-    it('should handle empty dependency queries', async () => {
+    it('should handle empty dependency queries', async () => { try {
       const blockerInfo = await tracker.canAgentComplete('non-existent-agent');
       expect(blockerInfo.canComplete).toBe(true);
       expect(blockerInfo.blockedBy).toHaveLength(0);
@@ -712,7 +712,7 @@ describe('DependencyTracker', () => {
       expect(dependents).toHaveLength(0);
     });
 
-    it('should handle multiple dependencies between same agents', async () => {
+    it('should handle multiple dependencies between same agents', async () => { try {
       const dep1 = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
       const dep2 = await tracker.registerDependency('agent-1', 'agent-2', DependencyType.DATA_DEPENDENCY);
 
@@ -734,7 +734,7 @@ describe('DependencyTracker', () => {
       expect(blockerInfo3.canComplete).toBe(true);
     });
 
-    it('should handle rapid registration and removal', async () => {
+    it('should handle rapid registration and removal', async () => { try {
       const promises: Promise<string>[] = [];
 
       // Rapidly register many dependencies
@@ -757,7 +757,7 @@ describe('DependencyTracker', () => {
       expect(stats.totalDependencies).toBe(0);
     });
 
-    it('should handle concurrent completion requests', async () => {
+    it('should handle concurrent completion requests', async () => { try {
       await tracker.registerDependency('agent-1', 'agent-2', DependencyType.COMPLETION);
 
       // Multiple concurrent completion requests for same agent
@@ -775,7 +775,7 @@ describe('DependencyTracker', () => {
   // ============================================================================
 
   describe('Performance', () => {
-    it('should handle large numbers of dependencies efficiently', async () => {
+    it('should handle large numbers of dependencies efficiently', async () => { try {
       const startTime = Date.now();
 
       // Create a large dependency graph
@@ -812,7 +812,7 @@ describe('DependencyTracker', () => {
       expect(statsTime).toBeLessThan(100); // Statistics should be very fast
     }, 10000); // Increase timeout for performance test
 
-    it('should handle frequent completion checks efficiently', async () => {
+    it('should handle frequent completion checks efficiently', async () => { try {
       // Create moderate dependency graph
       for (let i = 0; i < 100; i++) {
         await tracker.registerDependency(`dependent-${i}`, `provider-${i}`, DependencyType.COMPLETION);
@@ -832,4 +832,4 @@ describe('DependencyTracker', () => {
       expect(checkTime).toBeLessThan(1000); // Should complete checks quickly
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -38,7 +38,7 @@ interface TodoWriteToolCall {
 
 describe('Validation System Integration Tests', () => {
   describe('Swarm Init Validator Integration', () => {
-    it('should integrate with agent spawn command and block execution if swarm not initialized', async () => {
+    it('should integrate with agent spawn command and block execution if swarm not initialized', async () => { try {
       const command: AgentSpawnCommand = {
         agentCount: 3,
         agentTypes: ['coder', 'tester', 'reviewer'],
@@ -54,7 +54,7 @@ describe('Validation System Integration Tests', () => {
       expect(result.agentsSpawned).toBe(0);
     });
 
-    it('should allow agent spawn command when swarm is initialized', async () => {
+    it('should allow agent spawn command when swarm is initialized', async () => { try {
       const command: AgentSpawnCommand = {
         agentCount: 3,
         agentTypes: ['coder', 'tester', 'reviewer'],
@@ -69,7 +69,7 @@ describe('Validation System Integration Tests', () => {
       expect(result.agentsSpawned).toBe(3);
     });
 
-    it('should suggest correct topology based on agent count', async () => {
+    it('should suggest correct topology based on agent count', async () => { try {
       const smallCommand: AgentSpawnCommand = {
         agentCount: 5,
         agentTypes: Array(5).fill('coder'),
@@ -89,7 +89,7 @@ describe('Validation System Integration Tests', () => {
       expect(largeResult.suggestion).toContain('hierarchical');
     });
 
-    it('should validate topology matches recommendation', async () => {
+    it('should validate topology matches recommendation', async () => { try {
       const command: AgentSpawnCommand = {
         agentCount: 10,
         agentTypes: Array(10).fill('coder'),
@@ -165,7 +165,7 @@ describe('Validation System Integration Tests', () => {
   });
 
   describe('CLI Flag Integration', () => {
-    it('should respect --validate-swarm-init flag when enabled', async () => {
+    it('should respect --validate-swarm-init flag when enabled', async () => { try {
       const context: CLIContext = {
         command: 'spawn-agents',
         args: ['3', 'coder,tester,reviewer'],
@@ -182,7 +182,7 @@ describe('Validation System Integration Tests', () => {
       expect(result.error).toContain('SWARM_INIT_REQUIRED');
     });
 
-    it('should skip swarm validation when --validate-swarm-init is false', async () => {
+    it('should skip swarm validation when --validate-swarm-init is false', async () => { try {
       const context: CLIContext = {
         command: 'spawn-agents',
         args: ['3', 'coder,tester,reviewer'],
@@ -235,7 +235,7 @@ describe('Validation System Integration Tests', () => {
   });
 
   describe('Backward Compatibility', () => {
-    it('should not break existing agent spawn workflow without validators', async () => {
+    it('should not break existing agent spawn workflow without validators', async () => { try {
       const command: AgentSpawnCommand = {
         agentCount: 1,
         agentTypes: ['coder'],
@@ -261,7 +261,7 @@ describe('Validation System Integration Tests', () => {
       expect(result.executed).toBe(true);
     });
 
-    it('should allow disabling validators via environment variables', async () => {
+    it('should allow disabling validators via environment variables', async () => { try {
       const context: CLIContext = {
         command: 'spawn-agents',
         args: ['3', 'coder,tester,reviewer'],
@@ -279,7 +279,7 @@ describe('Validation System Integration Tests', () => {
   });
 
   describe('Cross-Validator Coordination', () => {
-    it('should run both validators when spawning agents with TodoWrite', async () => {
+    it('should run both validators when spawning agents with TodoWrite', async () => { try {
       const context: CLIContext = {
         command: 'spawn-agents-with-todos',
         args: ['3', 'coder,tester,reviewer'],
@@ -307,7 +307,7 @@ describe('Validation System Integration Tests', () => {
       expect(result2.success).toBe(true); // Still executes despite warning
     });
 
-    it('should provide combined recommendations when both validators fail', async () => {
+    it('should provide combined recommendations when both validators fail', async () => { try {
       const context: CLIContext = {
         command: 'full-workflow',
         args: [],
@@ -331,7 +331,7 @@ describe('Validation System Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle validator failures gracefully', async () => {
+    it('should handle validator failures gracefully', async () => { try {
       const command: AgentSpawnCommand = {
         agentCount: 3,
         agentTypes: ['coder', 'tester', 'reviewer'],
@@ -359,7 +359,7 @@ describe('Validation System Integration Tests', () => {
       expect(result.executed).toBe(true);
     });
 
-    it('should provide clear error messages for validation failures', async () => {
+    it('should provide clear error messages for validation failures', async () => { try {
       const command: AgentSpawnCommand = {
         agentCount: 5,
         agentTypes: Array(5).fill('coder'),

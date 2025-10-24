@@ -22,7 +22,7 @@ describe('Real-time Communication Tests', () => {
   let mockClients: WebSocket[];
   let eventBus: EventEmitter;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     eventBus = new EventEmitter();
     mockServer = createMockWebSocketServer();
     mockClients = [];
@@ -66,7 +66,7 @@ describe('Real-time Communication Tests', () => {
     await communicationService.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await communicationService.shutdown();
     mockClients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
@@ -77,7 +77,7 @@ describe('Real-time Communication Tests', () => {
   });
 
   describe('Agent Message Broadcasting', () => {
-    it('should broadcast agent progress updates to all connected clients', async () => {
+    it('should broadcast agent progress updates to all connected clients', async () => { try {
       // Create mock clients
       const client1 = createMockWebSocket();
       const client2 = createMockWebSocket();
@@ -116,7 +116,7 @@ describe('Real-time Communication Tests', () => {
       expect(sentMessage1.data.metadata.completion).toBe(0.75);
     });
 
-    it('should handle different message priorities correctly', async () => {
+    it('should handle different message priorities correctly', async () => { try {
       const client = createMockWebSocket();
       mockClients = [client];
       await communicationService.addClients(mockClients);
@@ -151,7 +151,7 @@ describe('Real-time Communication Tests', () => {
       expect(criticalMessage.timestamp).toBeDefined();
     });
 
-    it('should persist important messages for reconnecting clients', async () => {
+    it('should persist important messages for reconnecting clients', async () => { try {
       // Send persistent message with no clients connected
       await agentBroadcaster.broadcastMessage({
         agentId: 'agent-coder-001',
@@ -171,7 +171,7 @@ describe('Real-time Communication Tests', () => {
       );
     });
 
-    it('should filter messages based on client subscriptions', async () => {
+    it('should filter messages based on client subscriptions', async () => { try {
       const client = createMockWebSocket();
       mockClients = [client];
 
@@ -206,7 +206,7 @@ describe('Real-time Communication Tests', () => {
       expect(sentMessage.data.agentType).toBe('researcher');
     });
 
-    it('should handle agent swarm coordination messages', async () => {
+    it('should handle agent swarm coordination messages', async () => { try {
       const client = createMockWebSocket();
       mockClients = [client];
       await communicationService.addClients(mockClients);
@@ -241,7 +241,7 @@ describe('Real-time Communication Tests', () => {
   });
 
   describe('Human Intervention Delivery', () => {
-    it('should deliver intervention requests with timeout handling', async () => {
+    it('should deliver intervention requests with timeout handling', async () => { try {
       const client = createMockWebSocket();
       mockClients = [client];
       await communicationService.addClients(mockClients);
@@ -289,7 +289,7 @@ describe('Real-time Communication Tests', () => {
       expect(result.reasoning).toContain('SQL provides better consistency');
     });
 
-    it('should handle intervention timeout gracefully', async () => {
+    it('should handle intervention timeout gracefully', async () => { try {
       const client = createMockWebSocket();
       mockClients = [client];
       await communicationService.addClients(mockClients);
@@ -323,7 +323,7 @@ describe('Real-time Communication Tests', () => {
       );
     });
 
-    it('should support different intervention types with appropriate UI', async () => {
+    it('should support different intervention types with appropriate UI', async () => { try {
       const client = createMockWebSocket();
       mockClients = [client];
       await communicationService.addClients(mockClients);
@@ -367,7 +367,7 @@ describe('Real-time Communication Tests', () => {
       expect(sentMessages[2].data.options).toContain('Jest');
     });
 
-    it('should queue interventions when human is busy', async () => {
+    it('should queue interventions when human is busy', async () => { try {
       const client = createMockWebSocket();
       mockClients = [client];
       await communicationService.addClients(mockClients);
@@ -405,7 +405,7 @@ describe('Real-time Communication Tests', () => {
       expect(queuedMessage.data.id).toBe('intervention-queue-002');
     });
 
-    it('should support intervention escalation for critical decisions', async () => {
+    it('should support intervention escalation for critical decisions', async () => { try {
       const client = createMockWebSocket();
       mockClients = [client];
       await communicationService.addClients(mockClients);
@@ -442,7 +442,7 @@ describe('Real-time Communication Tests', () => {
   });
 
   describe('WebSocket Connection Management', () => {
-    it('should handle client connections and disconnections', async () => {
+    it('should handle client connections and disconnections', async () => { try {
       const client1 = createMockWebSocket();
       const client2 = createMockWebSocket();
 
@@ -458,7 +458,7 @@ describe('Real-time Communication Tests', () => {
       expect(communicationService.getConnectedClientsCount()).toBe(1);
     });
 
-    it('should authenticate clients before allowing message routing', async () => {
+    it('should authenticate clients before allowing message routing', async () => { try {
       const client = createMockWebSocket();
 
       // Try to add unauthenticated client
@@ -480,7 +480,7 @@ describe('Real-time Communication Tests', () => {
       expect(communicationService.isClientAuthenticated(client.id)).toBe(true);
     });
 
-    it('should handle WebSocket ping/pong for connection health', async () => {
+    it('should handle WebSocket ping/pong for connection health', async () => { try {
       const client = createMockWebSocket();
       await communicationService.addClient(client);
 
@@ -496,7 +496,7 @@ describe('Real-time Communication Tests', () => {
       expect(healthStatus.latency).toBeDefined();
     });
 
-    it('should cleanup resources on connection close', async () => {
+    it('should cleanup resources on connection close', async () => { try {
       const client = createMockWebSocket();
       await communicationService.addClient(client);
 
@@ -513,7 +513,7 @@ describe('Real-time Communication Tests', () => {
       expect(communicationService.getClientSubscriptions(client.id)).toBeNull();
     });
 
-    it('should handle WebSocket errors gracefully', async () => {
+    it('should handle WebSocket errors gracefully', async () => { try {
       const client = createMockWebSocket();
       await communicationService.addClient(client);
 
@@ -535,7 +535,7 @@ describe('Real-time Communication Tests', () => {
   });
 
   describe('Message Filtering and Routing', () => {
-    it('should route messages based on content filters', async () => {
+    it('should route messages based on content filters', async () => { try {
       const client = createMockWebSocket();
       await communicationService.addClient(client);
 
@@ -572,7 +572,7 @@ describe('Real-time Communication Tests', () => {
       expect(sentMessage.data.content).toContain('authentication');
     });
 
-    it('should support regex-based message filtering', async () => {
+    it('should support regex-based message filtering', async () => { try {
       const client = createMockWebSocket();
       await communicationService.addClient(client);
 
@@ -604,7 +604,7 @@ describe('Real-time Communication Tests', () => {
       expect(client.send).toHaveBeenCalledTimes(3);
     });
 
-    it('should handle message rate limiting', async () => {
+    it('should handle message rate limiting', async () => { try {
       const client = createMockWebSocket();
       await communicationService.addClient(client);
 
@@ -645,7 +645,7 @@ describe('Real-time Communication Tests', () => {
       expect(client.send).toHaveBeenCalledTimes(6);
     });
 
-    it('should support priority-based message routing', async () => {
+    it('should support priority-based message routing', async () => { try {
       const client = createMockWebSocket();
       await communicationService.addClient(client);
 
@@ -686,4 +686,4 @@ describe('Real-time Communication Tests', () => {
       expect(sentMessages[1].data.priority).toBe('critical');
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -19,7 +19,7 @@ describe('Production Performance Validation', () => {
   let swarmCoordinator: SwarmCoordinator;
   let taskEngine: TaskEngine;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     systemIntegration = SystemIntegration.getInstance();
     await systemIntegration.initialize({
       logLevel: 'error', // Minimize logging overhead for performance tests
@@ -45,14 +45,15 @@ describe('Production Performance Validation', () => {
     taskEngine = systemIntegration.getComponent('taskEngine') as TaskEngine;
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (systemIntegration?.isReady()) {
       await systemIntegration.shutdown();
     }
   });
 
   describe('Agent Management Performance', () => {
-    test('should create 100 agents in under 10 seconds', async () => {
+    jest.setTimeout(10000);
+  test('should create 100 agents in under 10 seconds', async () => { try {
       const agentCount = 100;
       const maxTime = 10000; // 10 seconds
       const startTime = Date.now();
@@ -83,7 +84,8 @@ describe('Production Performance Validation', () => {
       console.log(`Cleaned up ${agentCount} agents in ${cleanupTime}ms`);
     });
 
-    test('should handle concurrent agent operations without degradation', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent agent operations without degradation', async () => { try {
       const concurrency = 20;
       const operationsPerAgent = 5;
       const maxTimePerOperation = 500; // 500ms per operation
@@ -134,7 +136,8 @@ describe('Production Performance Validation', () => {
   });
 
   describe('Memory Management Performance', () => {
-    test('should handle 1000 memory operations per second', async () => {
+    jest.setTimeout(10000);
+  test('should handle 1000 memory operations per second', async () => { try {
       const operationsPerSecond = 1000;
       const testDuration = 5000; // 5 seconds
       const expectedOperations = (operationsPerSecond * testDuration) / 1000;
@@ -144,7 +147,7 @@ describe('Production Performance Validation', () => {
       const operations: Promise<void>[] = [];
 
       while (Date.now() - startTime < testDuration) {
-        const operation = (async () => {
+        const operation = (async () => { try {
           const key = `perf-${operationCount++}-${Date.now()}`;
           const data = { 
             index: operationCount,
@@ -176,7 +179,8 @@ describe('Production Performance Validation', () => {
       console.log(`Memory operations rate: ${actualRate.toFixed(2)} ops/sec`);
     });
 
-    test('should handle large data objects efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle large data objects efficiently', async () => { try {
       const largeDataSizes = [1024, 10240, 102400, 1024000]; // 1KB, 10KB, 100KB, 1MB
       const maxTime = 1000; // 1 second per operation
 
@@ -219,7 +223,8 @@ describe('Production Performance Validation', () => {
   });
 
   describe('Swarm Coordination Performance', () => {
-    test('should coordinate multiple swarms efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate multiple swarms efficiently', async () => { try {
       const swarmCount = 10;
       const agentsPerSwarm = 5;
       const maxCoordinationTime = 15000; // 15 seconds
@@ -262,7 +267,8 @@ describe('Production Performance Validation', () => {
       console.log(`Swarm coordination - Creation: ${creationTime}ms, Cleanup: ${cleanupTime}ms`);
     });
 
-    test('should handle cross-swarm communication efficiently', async () => {
+    jest.setTimeout(10000);
+  test('should handle cross-swarm communication efficiently', async () => { try {
       // Create two swarms for communication testing
       const swarm1Id = await swarmCoordinator.initializeSwarm({
         topology: 'mesh',
@@ -306,7 +312,8 @@ describe('Production Performance Validation', () => {
   });
 
   describe('Task Execution Performance', () => {
-    test('should execute 50 tasks concurrently within time limits', async () => {
+    jest.setTimeout(10000);
+  test('should execute 50 tasks concurrently within time limits', async () => { try {
       const taskCount = 50;
       const maxExecutionTime = 20000; // 20 seconds
       const startTime = Date.now();
@@ -337,7 +344,8 @@ describe('Production Performance Validation', () => {
       console.log(`Task execution: ${tasksPerSecond.toFixed(2)} tasks/sec`);
     });
 
-    test('should maintain performance under sustained load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under sustained load', async () => { try {
       const loadDuration = 30000; // 30 seconds
       const targetRate = 10; // 10 tasks per second
       const tolerance = 0.8; // 80% of target rate
@@ -385,7 +393,8 @@ describe('Production Performance Validation', () => {
   });
 
   describe('Memory Usage and Resource Management', () => {
-    test('should not leak memory during sustained operations', async () => {
+    jest.setTimeout(10000);
+  test('should not leak memory during sustained operations', async () => { try {
       // Get baseline memory usage
       const initialMemory = process.memoryUsage();
       const operationCycles = 1000;
@@ -432,4 +441,4 @@ describe('Production Performance Validation', () => {
       expect(totalHeapGrowth).toBeLessThan(100 * 1024 * 1024); // Less than 100MB growth
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -24,7 +24,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     });
 
-    test('INDEPENDENT VERIFICATION: O(√n) complexity with varying team sizes', async () => {
+    jest.setTimeout(10000);
+  test('INDEPENDENT VERIFICATION: O(√n) complexity with varying team sizes', async () => { try {
       const teamSizes = [10, 25, 50, 75, 100];
       const performanceResults = [];
 
@@ -75,7 +76,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     }, 30000);
 
-    test('ATTACK SIMULATION: Sybil attack with 20+ fake members', async () => {
+    jest.setTimeout(10000);
+  test('ATTACK SIMULATION: Sybil attack with 20+ fake members', async () => { try {
       // Create legitimate members
       const legitimateMembers = Array.from({ length: 30 }, (_, i) => ({
         id: `legitimate_${i}`,
@@ -115,7 +117,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     }, 15000);
 
-    test('BYZANTINE FAULT TOLERANCE: 1/3 compromised validators', async () => {
+    jest.setTimeout(10000);
+  test('BYZANTINE FAULT TOLERANCE: 1/3 compromised validators', async () => { try {
       const team = Array.from({ length: 45 }, (_, i) => ({
         id: `member_${i}`,
         signature: require('crypto').createHash('sha256').update(`member_${i}secret`).digest('hex'),
@@ -160,7 +163,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     });
 
-    test('PERFORMANCE VERIFICATION: 90%+ resolution rate with 100+ conflicts', async () => {
+    jest.setTimeout(10000);
+  test('PERFORMANCE VERIFICATION: 90%+ resolution rate with 100+ conflicts', async () => { try {
       // Generate 120 diverse conflicts
       const conflicts = Array.from({ length: 120 }, (_, i) => ({
         id: `conflict_${i}`,
@@ -198,7 +202,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     }, 60000);
 
-    test('ATTACK SIMULATION: Malicious conflict injection', async () => {
+    jest.setTimeout(10000);
+  test('ATTACK SIMULATION: Malicious conflict injection', async () => { try {
       const legitimateConflicts = Array.from({ length: 30 }, (_, i) => ({
         id: `legit_conflict_${i}`,
         type: 'resource_allocation',
@@ -249,7 +254,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     });
 
-    test('PAGERANK ALGORITHM VERIFICATION: Mathematical correctness', async () => {
+    jest.setTimeout(10000);
+  test('PAGERANK ALGORITHM VERIFICATION: Mathematical correctness', async () => { try {
       // Create collaboration graph with known structure
       const collaborationGraph = {
         nodes: ['alice', 'bob', 'charlie', 'diana', 'eve'],
@@ -286,7 +292,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     });
 
-    test('PERFORMANCE IMPROVEMENT VERIFICATION: 25%+ team optimization', async () => {
+    jest.setTimeout(10000);
+  test('PERFORMANCE IMPROVEMENT VERIFICATION: 25%+ team optimization', async () => { try {
       const baselineMetrics = {
         efficiency: 0.60,
         collaboration: 0.65,
@@ -317,7 +324,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     });
 
-    test('ATTACK SIMULATION: Pattern injection and coordinated poisoning', async () => {
+    jest.setTimeout(10000);
+  test('ATTACK SIMULATION: Pattern injection and coordinated poisoning', async () => { try {
       const legitimatePatterns = Array.from({ length: 20 }, (_, i) => ({
         id: `legit_pattern_${i}`,
         type: 'collaboration_improvement',
@@ -367,7 +375,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     });
 
-    test('ECLIPSE ATTACK RESISTANCE: Network isolation prevention', async () => {
+    jest.setTimeout(10000);
+  test('ECLIPSE ATTACK RESISTANCE: Network isolation prevention', async () => { try {
       const normalNetwork = {
         nodes: ['node1', 'node2', 'node3', 'target', 'node5', 'node6'],
         edges: [
@@ -406,7 +415,8 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
   });
 
   describe('🔗 CROSS-PHASE INTEGRATION VERIFICATION', () => {
-    test('INTEGRATION: Phase 4 with existing Byzantine infrastructure', async () => {
+    jest.setTimeout(10000);
+  test('INTEGRATION: Phase 4 with existing Byzantine infrastructure', async () => { try {
       // This test verifies that Phase 4 components integrate with Phase 1-3 systems
       const teamSync = new ByzantineTeamSync();
       const resolver = new ByzantineGOAPResolver();
@@ -481,4 +491,4 @@ describe('BYZANTINE CONSENSUS VERIFICATION - Phase 4 Independent Testing', () =>
       });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

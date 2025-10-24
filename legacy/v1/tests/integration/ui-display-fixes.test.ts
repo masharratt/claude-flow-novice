@@ -251,4 +251,4 @@ describe('UI Display Fixes Integration', () => {
     expect(taskDetails).toContain('lines');
     expect(taskDetails).toContain('"type": "edge-case"');
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

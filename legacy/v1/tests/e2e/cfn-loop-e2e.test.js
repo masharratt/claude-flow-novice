@@ -101,11 +101,11 @@ class MockCFNLoopOrchestrator {
       failureThreshold: 3,
       resetTimeout: 5000,
       monitoringPeriod: 10000
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   }
   
   async executePhase(phaseConfig) {
-    return this.circuitBreaker.execute(async () => {
+    return this.circuitBreaker.execute(async () => { try {
       // Simulate phase execution with all loops
       const phaseTransitions = [];
       
@@ -123,7 +123,7 @@ class MockCFNLoopOrchestrator {
         validators: this.getMockValidators(),
         threshold: this.config.consensusThreshold || 0.80,
         timeoutMs: phaseConfig.timeoutMs || 30000
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       // Loop 4: Product Owner Decision
       phaseTransitions.push('Loop 4: Product Owner Decision');
@@ -131,7 +131,7 @@ class MockCFNLoopOrchestrator {
         phaseId: phaseConfig.phaseId,
         consensusResult,
         confidenceValidation: swarmResult.confidenceValidation
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       phaseTransitions.push('Loop 1: Phase Execution Completed');
       
@@ -160,7 +160,7 @@ class MockCFNLoopOrchestrator {
         },
         timestamp: Date.now()
       };
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   }
   
   async executePrimarySwarm(swarmConfig) {
@@ -169,7 +169,8 @@ class MockCFNLoopOrchestrator {
       {
         agentId: 'agent-1',
         agentType: 'developer',
-        deliverable: { code: 'function test() { return "success"; }', tests: ['test-case-1'] },
+        deliverable: { code: 'function jest.setTimeout(10000);
+  test() { return "success"; }', tests: ['test-case-1'] },
         confidence: 0.95,
         reasoning: 'Implementation meets all requirements',
         timestamp: Date.now()
@@ -368,7 +369,7 @@ describe('CFN Loop E2E Test Suite', () => {
   let sprintOrchestrator;
   let circuitBreaker;
   
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Reset mocks
     mockRedis.data.clear();
     mockSQLite.data.clear();
@@ -388,7 +389,7 @@ describe('CFN Loop E2E Test Suite', () => {
       failureThreshold: 3,
       resetTimeout: 5000,
       monitoringPeriod: 10000
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
     // Create orchestrators with mocked dependencies
     const cfnConfig = {
@@ -439,14 +440,14 @@ describe('CFN Loop E2E Test Suite', () => {
     };
     
     sprintOrchestrator = await createSprintOrchestrator(sprintConfig);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
   
   afterEach(() => {
     vi.clearAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Loop 0: Epic/Sprint Orchestration', () => {
-    it('should initialize sprint orchestration successfully', async () => {
+    it('should initialize sprint orchestration successfully', async () => { try {
       const sprintId = 'test-sprint-1';
       
       const result = await sprintOrchestrator.initializeSprint(sprintId);
@@ -455,9 +456,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.sprintId).toBe(sprintId);
       expect(result.phases).toHaveLength(1);
       expect(result.phases[0]).toBe('test-phase-1');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should orchestrate epic-level coordination', async () => {
+    it('should orchestrate epic-level coordination', async () => { try {
       const epicConfig = {
         epicId: 'test-epic-1',
         name: 'Test Epic',
@@ -471,11 +472,11 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.success).toBe(true);
       expect(result.epicId).toBe('test-epic-1');
       expect(result.orchestratedSprints).toContain('test-sprint-1');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Loop 1: Phase Execution', () => {
-    it('should execute phase with autonomous transitions', async () => {
+    it('should execute phase with autonomous transitions', async () => { try {
       const phaseConfig = {
         phaseId: 'test-phase-1',
         instructions: 'Implement test functionality with validation',
@@ -492,9 +493,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.productOwnerDecision.decision).toBe('PROCEED');
       expect(result.escalated).toBe(false);
       expect(result.statistics.phaseTransitions).toHaveLength(5);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle phase execution failures with circuit breaker', async () => {
+    it('should handle phase execution failures with circuit breaker', async () => { try {
       const phaseConfig = {
         phaseId: 'test-phase-fail',
         instructions: 'This phase will fail',
@@ -511,11 +512,11 @@ describe('CFN Loop E2E Test Suite', () => {
       
       // Verify circuit breaker state
       expect(circuitBreaker.getState()).toBe('OPEN');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Loop 2: Consensus with Validators', () => {
-    it('should achieve consensus with validator votes', async () => {
+    it('should achieve consensus with validator votes', async () => { try {
       const validators = [
         {
           agentId: 'validator-1',
@@ -559,9 +560,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.consensusScore).toBe(1.0);
       expect(result.votingBreakdown.PASS).toBe(3);
       expect(result.votingBreakdown.FAIL).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle consensus failures and retry logic', async () => {
+    it('should handle consensus failures and retry logic', async () => { try {
       const validators = [
         {
           agentId: 'validator-1',
@@ -588,11 +589,11 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.consensusScore).toBe(0.0);
       expect(result.votingBreakdown.FAIL).toBe(1);
       expect(result.votingBreakdown.PASS).toBe(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Loop 3: Primary Swarm with Confidence', () => {
-    it('should execute primary swarm with confidence validation', async () => {
+    it('should execute primary swarm with confidence validation', async () => { try {
       const swarmConfig = {
         phaseId: 'test-phase-1',
         agents: ['developer', 'reviewer'],
@@ -607,9 +608,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.confidenceValidation.overallConfidence).toBe(0.925);
       expect(result.confidenceValidation.passed).toBe(true);
       expect(result.responses).toHaveLength(2);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle low confidence scenarios with feedback injection', async () => {
+    it('should handle low confidence scenarios with feedback injection', async () => { try {
       const swarmConfig = {
         phaseId: 'test-phase-low-confidence',
         agents: ['developer'],
@@ -623,11 +624,11 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.gatePassed).toBe(false);
       expect(result.confidenceValidation.overallConfidence).toBe(0.925);
       expect(result.confidenceValidation.passed).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Loop 4: Product Owner Decision', () => {
-    it('should make autonomous PROCEED decision with high confidence', async () => {
+    it('should make autonomous PROCEED decision with high confidence', async () => { try {
       const decisionConfig = {
         phaseId: 'test-phase-1',
         consensusResult: {
@@ -653,9 +654,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.confidence).toBeGreaterThan(0.9);
       expect(result.blockers).toHaveLength(0);
       expect(result.backlogItems).toHaveLength(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should make DEFER decision for low confidence scenarios', async () => {
+    it('should make DEFER decision for low confidence scenarios', async () => { try {
       const decisionConfig = {
         phaseId: 'test-phase-defer',
         consensusResult: {
@@ -680,9 +681,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.decision).toBe('DEFER');
       expect(result.confidence).toBeLessThan(0.85);
       expect(result.backlogItems.length).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should make ESCALATE decision for critical blockers', async () => {
+    it('should make ESCALATE decision for critical blockers', async () => { try {
       const decisionConfig = {
         phaseId: 'test-phase-escalate',
         consensusResult: {
@@ -718,11 +719,11 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.decision).toBe('ESCALATE');
       expect(result.confidence).toBeLessThan(0.5);
       expect(result.blockers.length).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Complete CFN Loop Integration', () => {
-    it('should execute complete CFN Loop with all phases', async () => {
+    it('should execute complete CFN Loop with all phases', async () => { try {
       const completeLoopConfig = {
         phaseId: 'test-phase-complete',
         instructions: 'Execute complete CFN Loop test',
@@ -742,9 +743,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.escalated).toBe(false);
       expect(result.statistics.gatePasses).toBe(1);
       expect(result.statistics.gateFails).toBe(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle complete CFN Loop with feedback injection and recovery', async () => {
+    it('should handle complete CFN Loop with feedback injection and recovery', async () => { try {
       const loopConfigWithFeedback = {
         phaseId: 'test-phase-feedback',
         instructions: 'Test CFN Loop with feedback injection',
@@ -762,11 +763,11 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.totalLoop3Iterations).toBe(1);
       expect(result.statistics.gateFails).toBe(1);
       expect(result.statistics.gatePasses).toBe(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Autonomous Phase Transitions', () => {
-    it('should autonomously transition between CFN Loop phases', async () => {
+    it('should autonomously transition between CFN Loop phases', async () => { try {
       const transitionConfig = {
         phaseId: 'test-phase-transitions',
         instructions: 'Test autonomous phase transitions',
@@ -786,9 +787,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.statistics.phaseTransitions[2]).toBe('Loop 2: Consensus with Validators');
       expect(result.statistics.phaseTransitions[3]).toBe('Loop 4: Product Owner Decision');
       expect(result.statistics.phaseTransitions[4]).toBe('Loop 1: Phase Execution Completed');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle phase transition failures with rollback', async () => {
+    it('should handle phase transition failures with rollback', async () => { try {
       const failureConfig = {
         phaseId: 'test-phase-failure',
         instructions: 'Test phase transition failure handling',
@@ -806,11 +807,11 @@ describe('CFN Loop E2E Test Suite', () => {
       
       // Verify circuit breaker is triggered
       expect(cfnLoopOrchestrator.circuitBreaker.getState()).toBe('OPEN');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Confidence Reporting and Metrics', () => {
-    it('should report confidence scores across all loops', async () => {
+    it('should report confidence scores across all loops', async () => { try {
       const metricsConfig = {
         phaseId: 'test-phase-metrics',
         instructions: 'Test confidence reporting',
@@ -833,9 +834,9 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(result.confidenceScores.every(score => score.confidence >= 0.85)).toBe(true);
       expect(result.consensusResult.consensusScore).toBeGreaterThanOrEqual(0.80);
       expect(result.productOwnerDecision.confidence).toBeGreaterThanOrEqual(0.85);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should track confidence trends over multiple iterations', async () => {
+    it('should track confidence trends over multiple iterations', async () => { try {
       const trendConfig = {
         phaseId: 'test-phase-trends',
         instructions: 'Test confidence trend tracking',
@@ -856,6 +857,6 @@ describe('CFN Loop E2E Test Suite', () => {
       expect(results).toHaveLength(3);
       expect(results.every(r => r.statistics.averageConfidenceScore === 0.925)).toBe(true);
       expect(results.every(r => r.consensusResult.consensusScore === 1.0)).toBe(true);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

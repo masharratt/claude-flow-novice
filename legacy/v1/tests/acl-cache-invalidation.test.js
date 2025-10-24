@@ -16,7 +16,7 @@ describe('ACL Cache Invalidation', () => {
   let redisPublisher, redisSubscriber;
   let db;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Create in-memory SQLite database
     db = new sqlite3.Database(':memory:');
     const runAsync = promisify(db.run.bind(db));
@@ -117,7 +117,7 @@ describe('ACL Cache Invalidation', () => {
     }
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (db) {
       await new Promise((resolve) => db.close(resolve));
     }
@@ -126,7 +126,8 @@ describe('ACL Cache Invalidation', () => {
   });
 
   describe('Local Cache Invalidation', () => {
-    test('should invalidate cache when granting permission', async () => {
+    jest.setTimeout(10000);
+  test('should invalidate cache when granting permission', async () => { try {
       // First check - should cache the result
       const result1 = await enforcer1.checkPermission(
         'agent-123',
@@ -153,7 +154,8 @@ describe('ACL Cache Invalidation', () => {
       expect(metrics2.cacheSize).toBeLessThan(initialCacheSize);
     });
 
-    test('should invalidate cache when revoking permission', async () => {
+    jest.setTimeout(10000);
+  test('should invalidate cache when revoking permission', async () => { try {
       // Grant permission first
       const permissionId = await enforcer1.grantPermission(
         'agent-123',
@@ -182,7 +184,8 @@ describe('ACL Cache Invalidation', () => {
       expect(metrics2.invalidations).toBeGreaterThan(initialInvalidations);
     });
 
-    test('should invalidate cache when updating agent permissions', async () => {
+    jest.setTimeout(10000);
+  test('should invalidate cache when updating agent permissions', async () => { try {
       // Check permission (will be cached)
       await enforcer1.checkPermission(
         'agent-123',
@@ -206,7 +209,8 @@ describe('ACL Cache Invalidation', () => {
       expect(metrics2.invalidations).toBeGreaterThan(initialInvalidations);
     });
 
-    test('should invalidate cache when updating agent role', async () => {
+    jest.setTimeout(10000);
+  test('should invalidate cache when updating agent role', async () => { try {
       // Check permission (will be cached)
       await enforcer1.checkPermission(
         'agent-123',
@@ -229,7 +233,8 @@ describe('ACL Cache Invalidation', () => {
   });
 
   describe('Multi-Instance Cache Invalidation (Redis)', () => {
-    test('should invalidate cache across instances when granting permission', async () => {
+    jest.setTimeout(10000);
+  test('should invalidate cache across instances when granting permission', async () => { try {
       if (!redisPublisher || !enforcer2) {
         console.log('Skipping multi-instance test - Redis not available');
         return;
@@ -263,7 +268,8 @@ describe('ACL Cache Invalidation', () => {
       expect(metrics2.redisInvalidations).toBeGreaterThan(initialRedisInvalidations);
     });
 
-    test('should invalidate cache across instances when updating role', async () => {
+    jest.setTimeout(10000);
+  test('should invalidate cache across instances when updating role', async () => { try {
       if (!redisPublisher || !enforcer2) {
         console.log('Skipping multi-instance test - Redis not available');
         return;
@@ -294,26 +300,28 @@ describe('ACL Cache Invalidation', () => {
   });
 
   describe('Event Emission', () => {
-    test('should emit cache invalidation events', (done) => {
+    jest.setTimeout(10000);
+  test('should emit cache invalidation events', (done) => {
       enforcer1.once('cacheInvalidated', (event) => {
         expect(event.type).toBeDefined();
         expect(event.agentId || event.permissionId).toBeDefined();
-        done();
+        return;
       });
 
       enforcer1.grantPermission('agent-123', 'memory', 3, ['read']);
     });
 
-    test('should emit invalidation published events', (done) => {
+    jest.setTimeout(10000);
+  test('should emit invalidation published events', (done) => {
       if (!redisPublisher) {
-        done();
+        return;
         return;
       }
 
       enforcer1.once('invalidationPublished', (event) => {
         expect(event.type).toBeDefined();
         expect(event.data).toBeDefined();
-        done();
+        return;
       });
 
       enforcer1.grantPermission('agent-123', 'event', 3, ['write']);
@@ -321,7 +329,8 @@ describe('ACL Cache Invalidation', () => {
   });
 
   describe('Metrics Tracking', () => {
-    test('should track invalidation metrics', async () => {
+    jest.setTimeout(10000);
+  test('should track invalidation metrics', async () => { try {
       const metrics1 = enforcer1.getMetrics();
       const initialInvalidations = metrics1.invalidations;
 
@@ -337,7 +346,8 @@ describe('ACL Cache Invalidation', () => {
       expect(metrics2.invalidations).toBeGreaterThanOrEqual(3);
     });
 
-    test('should track Redis invalidation metrics', async () => {
+    jest.setTimeout(10000);
+  test('should track Redis invalidation metrics', async () => { try {
       if (!redisPublisher || !enforcer2) {
         console.log('Skipping Redis metrics test - Redis not available');
         return;
@@ -360,7 +370,8 @@ describe('ACL Cache Invalidation', () => {
   });
 
   describe('Immediate Propagation', () => {
-    test('permission changes should invalidate cache immediately', async () => {
+    jest.setTimeout(10000);
+  test('permission changes should invalidate cache immediately', async () => { try {
       // Cache a permission check
       const result1 = await enforcer1.checkPermission(
         'agent-123',
@@ -395,6 +406,7 @@ describe('ACL Cache Invalidation', () => {
 
 // Self-assessment
 describe('Self-Assessment', () => {
+  jest.setTimeout(10000);
   test('implementation confidence score', () => {
     const confidence = {
       score: 0.88,

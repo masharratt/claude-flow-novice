@@ -22,7 +22,7 @@ describe('TruthConfigManager', () => {
   let testConfigDir;
   let mockLogger;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create temporary test directory
     testConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), 'truth-config-test-'));
 
@@ -39,19 +39,19 @@ describe('TruthConfigManager', () => {
     configManager = new TruthConfigManager({
       configDir: testConfigDir,
       logger: mockLogger
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     await configManager.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup
     await configManager.cleanup();
-    await fs.rm(testConfigDir, { recursive: true, force: true });
-  });
+    await fs.rm(testConfigDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Framework Presets', () => {
-    it('should provide TDD configuration with threshold ≥0.90', async () => {
+    it('should provide TDD configuration with threshold ≥0.90', async () => { try {
       const config = await configManager.createFromFramework('TDD');
 
       expect(config.framework).toBe('TDD');
@@ -59,61 +59,61 @@ describe('TruthConfigManager', () => {
       expect(config.weights.agentReliability).toBeGreaterThan(0);
       expect(config.checks.historicalValidation).toBe(true);
       expect(config.checks.crossAgentValidation).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should provide BDD configuration with threshold ≥0.85', async () => {
+    it('should provide BDD configuration with threshold ≥0.85', async () => { try {
       const config = await configManager.createFromFramework('BDD');
 
       expect(config.framework).toBe('BDD');
       expect(config.threshold).toBeGreaterThanOrEqual(0.85);
       expect(config.threshold).toBeLessThan(0.90);
       expect(config.weights.crossValidation).toBeGreaterThanOrEqual(0.25);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should provide SPARC configuration with threshold ≥0.80', async () => {
+    it('should provide SPARC configuration with threshold ≥0.80', async () => { try {
       const config = await configManager.createFromFramework('SPARC');
 
       expect(config.framework).toBe('SPARC');
       expect(config.threshold).toBeGreaterThanOrEqual(0.80);
       expect(config.threshold).toBeLessThan(0.85);
       expect(config.checks.logicalValidation).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject unknown framework', async () => {
+    it('should reject unknown framework', async () => { try {
       await expect(configManager.createFromFramework('UNKNOWN'))
         .rejects.toThrow('Unknown framework: UNKNOWN');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Configuration Validation', () => {
-    it('should validate correct configuration', async () => {
+    it('should validate correct configuration', async () => { try {
       const config = await configManager.createFromFramework('TDD');
       const validation = await configManager.validateConfiguration(config);
 
       expect(validation.valid).toBe(true);
       expect(validation.errors).toHaveLength(0);
       expect(validation.byzantineFaultTolerant).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject configuration with invalid threshold', async () => {
+    it('should reject configuration with invalid threshold', async () => { try {
       const config = await configManager.createFromFramework('TDD');
       config.threshold = 1.5; // Invalid: > 1.0
 
       const validation = await configManager.validateConfiguration(config);
       expect(validation.valid).toBe(false);
       expect(validation.errors.some(error => error.includes('Threshold'))).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject configuration with invalid weight sum', async () => {
+    it('should reject configuration with invalid weight sum', async () => { try {
       const config = await configManager.createFromFramework('TDD');
       config.weights.agentReliability = 0.8; // Makes sum > 1.0
 
       const validation = await configManager.validateConfiguration(config);
       expect(validation.valid).toBe(false);
       expect(validation.errors.some(error => error.includes('Weight sum'))).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should detect Byzantine fault patterns', async () => {
+    it('should detect Byzantine fault patterns', async () => { try {
       const maliciousConfig = {
         framework: 'TDD',
         threshold: 0.01, // Suspiciously low
@@ -141,11 +141,11 @@ describe('TruthConfigManager', () => {
       const validation = await configManager.validateConfiguration(maliciousConfig);
       expect(validation.byzantineFaultTolerant).toBe(false);
       expect(validation.warnings.length).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Configuration Persistence', () => {
-    it('should save and load configuration', async () => {
+    it('should save and load configuration', async () => { try {
       const originalConfig = await configManager.createFromFramework('TDD');
       const { configId } = await configManager.saveConfiguration(originalConfig, 'test-config');
 
@@ -154,9 +154,9 @@ describe('TruthConfigManager', () => {
       expect(loadedConfig.framework).toBe(originalConfig.framework);
       expect(loadedConfig.threshold).toBe(originalConfig.threshold);
       expect(loadedConfig.metadata.configId).toBeTruthy();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should list saved configurations', async () => {
+    it('should list saved configurations', async () => { try {
       const config1 = await configManager.createFromFramework('TDD');
       const config2 = await configManager.createFromFramework('BDD');
 
@@ -168,36 +168,36 @@ describe('TruthConfigManager', () => {
       expect(configurations.length).toBeGreaterThanOrEqual(2);
       expect(configurations.some(c => c.framework === 'TDD')).toBe(true);
       expect(configurations.some(c => c.framework === 'BDD')).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject saving invalid configuration', async () => {
+    it('should reject saving invalid configuration', async () => { try {
       const invalidConfig = { framework: 'INVALID' };
 
       await expect(configManager.saveConfiguration(invalidConfig, 'invalid'))
         .rejects.toThrow('Cannot save invalid configuration');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('TruthScorer Integration', () => {
-    it('should apply configuration to new TruthScorer', async () => {
+    it('should apply configuration to new TruthScorer', async () => { try {
       const config = await configManager.createFromFramework('TDD');
       const truthScorer = await configManager.applyConfiguration(config);
 
       expect(truthScorer).toBeInstanceOf(TruthScorer);
       expect(configManager.getCurrentConfiguration()).toEqual(config);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should apply configuration to existing TruthScorer', async () => {
-      const existingScorer = new TruthScorer({ logger: mockLogger });
+    it('should apply configuration to existing TruthScorer', async () => { try {
+      const existingScorer = new TruthScorer({ logger: mockLogger } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       const config = await configManager.createFromFramework('BDD');
 
       const scorer = await configManager.applyConfiguration(config, existingScorer);
 
       expect(scorer).toBe(existingScorer);
       expect(configManager.getCurrentConfiguration().framework).toBe('BDD');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject applying invalid configuration', async () => {
+    it('should reject applying invalid configuration', async () => { try {
       const invalidConfig = {
         framework: 'TDD',
         threshold: 'invalid', // Wrong type
@@ -208,11 +208,11 @@ describe('TruthConfigManager', () => {
 
       await expect(configManager.applyConfiguration(invalidConfig))
         .rejects.toThrow('Cannot apply invalid configuration');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Weight Customization', () => {
-    it('should allow weight customization', async () => {
+    it('should allow weight customization', async () => { try {
       const customWeights = {
         agentReliability: 0.4,
         crossValidation: 0.3,
@@ -223,15 +223,15 @@ describe('TruthConfigManager', () => {
 
       const config = await configManager.createFromFramework('TDD', {
         weights: customWeights
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(config.weights).toEqual(customWeights);
 
       const validation = await configManager.validateConfiguration(config);
       expect(validation.valid).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject invalid weight customization', async () => {
+    it('should reject invalid weight customization', async () => { try {
       const invalidWeights = {
         agentReliability: 0.8, // Sum > 1.0
         crossValidation: 0.8,
@@ -242,15 +242,15 @@ describe('TruthConfigManager', () => {
 
       const config = await configManager.createFromFramework('TDD', {
         weights: invalidWeights
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const validation = await configManager.validateConfiguration(config);
       expect(validation.valid).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Hot Reload', () => {
-    it('should hot reload valid configuration', async () => {
+    it('should hot reload valid configuration', async () => { try {
       const config = await configManager.createFromFramework('SPARC');
       const { configId } = await configManager.saveConfiguration(config, 'sparc-config');
 
@@ -258,9 +258,9 @@ describe('TruthConfigManager', () => {
 
       expect(reloadedConfig.framework).toBe('SPARC');
       expect(configManager.getCurrentConfiguration()).toEqual(config);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject hot reloading invalid configuration', async () => {
+    it('should reject hot reloading invalid configuration', async () => { try {
       // Create invalid config file directly
       const invalidConfig = { framework: 'INVALID' };
       const filepath = path.join(testConfigDir, 'invalid-config.json');
@@ -268,33 +268,33 @@ describe('TruthConfigManager', () => {
 
       await expect(configManager.hotReload('invalid-config'))
         .rejects.toThrow('Cannot hot reload invalid configuration');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Framework Coherence', () => {
-    it('should warn about TDD coherence issues', async () => {
+    it('should warn about TDD coherence issues', async () => { try {
       const config = await configManager.createFromFramework('TDD', {
         threshold: 0.7, // Low for TDD
         checks: { ...configManager.getFrameworkPresets().TDD.checks, historicalValidation: false }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const validation = await configManager.validateConfiguration(config);
       expect(validation.warnings.some(w => w.includes('TDD'))).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should warn about BDD coherence issues', async () => {
+    it('should warn about BDD coherence issues', async () => { try {
       const config = await configManager.createFromFramework('BDD', {
         weights: {
           ...configManager.getFrameworkPresets().BDD.weights,
           crossValidation: 0.1 // Too low for BDD
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const validation = await configManager.validateConfiguration(config);
       expect(validation.warnings.some(w => w.includes('cross-validation'))).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should warn about SPARC coherence issues', async () => {
+    it('should warn about SPARC coherence issues', async () => { try {
       const config = await configManager.createFromFramework('SPARC', {
         checks: {
           ...configManager.getFrameworkPresets().SPARC.checks,
@@ -304,15 +304,15 @@ describe('TruthConfigManager', () => {
           ...configManager.getFrameworkPresets().SPARC.weights,
           externalVerification: 0.05 // Too low for SPARC
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const validation = await configManager.validateConfiguration(config);
       expect(validation.warnings.length).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Configuration Integrity', () => {
-    it('should detect configuration hash consistency', async () => {
+    it('should detect configuration hash consistency', async () => { try {
       const config = await configManager.createFromFramework('TDD');
       const hash1 = configManager.hashConfig(config);
       const hash2 = configManager.hashConfig(config);
@@ -324,9 +324,9 @@ describe('TruthConfigManager', () => {
       const hash3 = configManager.hashConfig(modifiedConfig);
 
       expect(hash1).not.toBe(hash3);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should validate configuration integrity on initialization', async () => {
+    it('should validate configuration integrity on initialization', async () => { try {
       // Create some configs
       const config1 = await configManager.createFromFramework('TDD');
       const config2 = await configManager.createFromFramework('BDD');
@@ -340,11 +340,11 @@ describe('TruthConfigManager', () => {
       expect(integrity.total).toBeGreaterThanOrEqual(2);
       expect(integrity.valid).toBeGreaterThanOrEqual(2);
       expect(integrity.invalid).toBe(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Advanced Features', () => {
-    it('should maintain validation history', async () => {
+    it('should maintain validation history', async () => { try {
       const config = await configManager.createFromFramework('TDD');
 
       await configManager.validateConfiguration(config);
@@ -353,16 +353,16 @@ describe('TruthConfigManager', () => {
       const history = configManager.getValidationHistory();
       expect(history.length).toBe(2);
       expect(history[0].validationId).toBeTruthy();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle configuration anomaly detection', async () => {
+    it('should handle configuration anomaly detection', async () => { try {
       const anomalousConfig = await configManager.createFromFramework('TDD', {
         threshold: 0.5 // Significant deviation from TDD preset (0.90)
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const validation = await configManager.validateConfiguration(anomalousConfig);
       expect(validation.warnings.some(w => w.includes('deviates significantly'))).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should provide framework presets', () => {
       const presets = configManager.getFrameworkPresets();
@@ -375,37 +375,37 @@ describe('TruthConfigManager', () => {
       expect(presets.TDD.threshold).toBeGreaterThanOrEqual(0.90);
       expect(presets.BDD.threshold).toBeGreaterThanOrEqual(0.85);
       expect(presets.SPARC.threshold).toBeGreaterThanOrEqual(0.80);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Handling', () => {
-    it('should handle missing configuration files gracefully', async () => {
+    it('should handle missing configuration files gracefully', async () => { try {
       await expect(configManager.loadConfiguration('non-existent'))
         .rejects.toThrow('Configuration not found');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle corrupted configuration files', async () => {
+    it('should handle corrupted configuration files', async () => { try {
       // Create corrupted config file
       const corruptedPath = path.join(testConfigDir, 'corrupted.json');
       await fs.writeFile(corruptedPath, '{ invalid json');
 
       await expect(configManager.loadConfiguration(corruptedPath))
         .rejects.toThrow('Configuration load failed');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle initialization failures gracefully', async () => {
+    it('should handle initialization failures gracefully', async () => { try {
       // Try to initialize with invalid directory
       const invalidManager = new TruthConfigManager({
         configDir: '/invalid/path/that/does/not/exist/and/cannot/be/created',
         logger: mockLogger
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await expect(invalidManager.initialize()).rejects.toThrow();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Schema Validation Edge Cases', () => {
-    it('should validate nested object structures', async () => {
+    it('should validate nested object structures', async () => { try {
       const config = {
         framework: 'TDD',
         threshold: 0.9,
@@ -432,17 +432,17 @@ describe('TruthConfigManager', () => {
 
       const validation = await configManager.validateConfiguration(config);
       expect(validation.valid).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should reject null or undefined configuration', async () => {
+    it('should reject null or undefined configuration', async () => { try {
       const validation1 = await configManager.validateConfiguration(null);
       const validation2 = await configManager.validateConfiguration(undefined);
 
       expect(validation1.valid).toBe(false);
       expect(validation2.valid).toBe(false);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle missing required fields', async () => {
+    it('should handle missing required fields', async () => { try {
       const incompleteConfig = {
         framework: 'TDD'
         // Missing threshold, weights, checks, confidence
@@ -451,9 +451,9 @@ describe('TruthConfigManager', () => {
       const validation = await configManager.validateConfiguration(incompleteConfig);
       expect(validation.valid).toBe(false);
       expect(validation.errors.length).toBeGreaterThan(0);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 /**
  * Integration Tests with Real TruthScorer
@@ -462,18 +462,18 @@ describe('TruthConfigManager Integration', () => {
   let configManager;
   let testConfigDir;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     testConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), 'truth-config-integration-'));
-    configManager = new TruthConfigManager({ configDir: testConfigDir });
+    configManager = new TruthConfigManager({ configDir: testConfigDir } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     await configManager.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await configManager.cleanup();
-    await fs.rm(testConfigDir, { recursive: true, force: true });
-  });
+    await fs.rm(testConfigDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  it('should create functional TruthScorer with TDD configuration', async () => {
+  it('should create functional TruthScorer with TDD configuration', async () => { try {
     const config = await configManager.createFromFramework('TDD');
     const truthScorer = await configManager.applyConfiguration(config);
 
@@ -504,9 +504,9 @@ describe('TruthConfigManager Integration', () => {
     expect(truthScore).toHaveProperty('confidence');
     expect(truthScore).toHaveProperty('evidence');
     expect(truthScore).toHaveProperty('timestamp');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  it('should validate truth scores meet framework thresholds', async () => {
+  it('should validate truth scores meet framework thresholds', async () => { try {
     const tddConfig = await configManager.createFromFramework('TDD');
     const truthScorer = await configManager.applyConfiguration(tddConfig);
 
@@ -534,9 +534,9 @@ describe('TruthConfigManager Integration', () => {
     // For TDD framework, expect high standards
     expect(truthScore.score).toBeGreaterThan(0.8);
     expect(isValid).toBe(truthScore.score >= tddConfig.threshold);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  it('should demonstrate framework-specific behavior differences', async () => {
+  it('should demonstrate framework-specific behavior differences', async () => { try {
     const tddConfig = await configManager.createFromFramework('TDD');
     const bddConfig = await configManager.createFromFramework('BDD');
     const sparcConfig = await configManager.createFromFramework('SPARC');
@@ -581,6 +581,6 @@ describe('TruthConfigManager Integration', () => {
       TDD: { score: tddScore.score, valid: tddValid, threshold: tddConfig.threshold },
       BDD: { score: bddScore.score, valid: bddValid, threshold: bddConfig.threshold },
       SPARC: { score: sparcScore.score, valid: sparcValid, threshold: sparcConfig.threshold }
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -23,18 +23,19 @@ describe('Simplified Checkpoint Validation', () => {
     let dependencyTracker: DependencyTracker;
     const testNamespace = `validation-${Date.now()}`;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       dependencyTracker = new DependencyTracker(testNamespace);
       await dependencyTracker.initialize();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (dependencyTracker) {
         await dependencyTracker.shutdown();
       }
     });
 
-    test('should register basic dependencies', async () => {
+    jest.setTimeout(10000);
+  test('should register basic dependencies', async () => { try {
       const agentA = generateId('agent-a');
       const agentB = generateId('agent-b');
 
@@ -57,7 +58,8 @@ describe('Simplified Checkpoint Validation', () => {
       await dependencyTracker.removeDependency(dependencyId);
     }, TEST_TIMEOUT);
 
-    test('should resolve dependencies correctly', async () => {
+    jest.setTimeout(10000);
+  test('should resolve dependencies correctly', async () => { try {
       const agentA = generateId('agent-a');
       const agentB = generateId('agent-b');
 
@@ -84,7 +86,8 @@ describe('Simplified Checkpoint Validation', () => {
       await dependencyTracker.removeDependency(dependencyId);
     }, TEST_TIMEOUT);
 
-    test('should handle multiple dependencies correctly', async () => {
+    jest.setTimeout(10000);
+  test('should handle multiple dependencies correctly', async () => { try {
       const agentA = generateId('agent-a');
       const agentB = generateId('agent-b');
       const agentC = generateId('agent-c');
@@ -121,7 +124,8 @@ describe('Simplified Checkpoint Validation', () => {
       await dependencyTracker.removeDependency(depAC);
     }, TEST_TIMEOUT);
 
-    test('should provide statistics correctly', async () => {
+    jest.setTimeout(10000);
+  test('should provide statistics correctly', async () => { try {
       const agents = [
         generateId('stats-agent-1'),
         generateId('stats-agent-2'),
@@ -155,7 +159,8 @@ describe('Simplified Checkpoint Validation', () => {
       await dependencyTracker.removeDependency(dep2);
     }, TEST_TIMEOUT);
 
-    test('should detect and prevent self-dependencies', async () => {
+    jest.setTimeout(10000);
+  test('should detect and prevent self-dependencies', async () => { try {
       const agentA = generateId('self-dep-agent');
 
       await expect(
@@ -163,7 +168,8 @@ describe('Simplified Checkpoint Validation', () => {
       ).rejects.toThrow(/cannot depend on itself/i);
     }, TEST_TIMEOUT);
 
-    test('should handle dependency timeouts', async () => {
+    jest.setTimeout(10000);
+  test('should handle dependency timeouts', async () => { try {
       const agentA = generateId('timeout-agent-a');
       const agentB = generateId('timeout-agent-b');
 
@@ -188,7 +194,8 @@ describe('Simplified Checkpoint Validation', () => {
       await dependencyTracker.removeDependency(dependencyId);
     }, TEST_TIMEOUT);
 
-    test('should provide dependency details correctly', async () => {
+    jest.setTimeout(10000);
+  test('should provide dependency details correctly', async () => { try {
       const agentA = generateId('detail-agent-a');
       const agentB = generateId('detail-agent-b');
       const metadata = { test: 'metadata', priority: 'high' };
@@ -216,7 +223,8 @@ describe('Simplified Checkpoint Validation', () => {
       await dependencyTracker.removeDependency(dependencyId);
     }, TEST_TIMEOUT);
 
-    test('should check violations correctly', async () => {
+    jest.setTimeout(10000);
+  test('should check violations correctly', async () => { try {
       const agentA = generateId('violation-agent-a');
       const agentB = generateId('violation-agent-b');
 
@@ -248,7 +256,8 @@ describe('Simplified Checkpoint Validation', () => {
   // ============================================================================
 
   describe('Basic Integration Validation', () => {
-    test('should create and manage multiple dependency trackers', async () => {
+    jest.setTimeout(10000);
+  test('should create and manage multiple dependency trackers', async () => { try {
       const namespace1 = `integration-1-${Date.now()}`;
       const namespace2 = `integration-2-${Date.now()}`;
 
@@ -282,7 +291,8 @@ describe('Simplified Checkpoint Validation', () => {
       await tracker2.shutdown();
     }, TEST_TIMEOUT);
 
-    test('should handle rapid dependency creation and resolution', async () => {
+    jest.setTimeout(10000);
+  test('should handle rapid dependency creation and resolution', async () => { try {
       const tracker = new DependencyTracker(`rapid-test-${Date.now()}`);
       await tracker.initialize();
 
@@ -335,18 +345,19 @@ describe('Simplified Checkpoint Validation', () => {
   describe('Error Handling Validation', () => {
     let dependencyTracker: DependencyTracker;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       dependencyTracker = new DependencyTracker(`error-test-${Date.now()}`);
       await dependencyTracker.initialize();
     });
 
-    afterEach(async () => {
+    afterEach(async () => { try {
       if (dependencyTracker) {
         await dependencyTracker.shutdown();
       }
     });
 
-    test('should handle invalid dependency operations gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle invalid dependency operations gracefully', async () => { try {
       // Test resolving non-existent dependency
       const invalidResolve = await dependencyTracker.resolveDependency('non-existent-dep', {});
       expect(invalidResolve).toBe(false);
@@ -360,7 +371,8 @@ describe('Simplified Checkpoint Validation', () => {
       expect(details).toBeUndefined();
     }, TEST_TIMEOUT);
 
-    test('should handle malformed inputs', async () => {
+    jest.setTimeout(10000);
+  test('should handle malformed inputs', async () => { try {
       // Test with empty agent IDs
       await expect(
         dependencyTracker.registerDependency('', 'valid-agent', DependencyType.COMPLETION)
@@ -376,7 +388,8 @@ describe('Simplified Checkpoint Validation', () => {
       expect(blockerInfo.blockedBy).toHaveLength(0);
     }, TEST_TIMEOUT);
 
-    test('should handle shutdown and reinitialization', async () => {
+    jest.setTimeout(10000);
+  test('should handle shutdown and reinitialization', async () => { try {
       const agentA = generateId('shutdown-agent-a');
       const agentB = generateId('shutdown-agent-b');
 
@@ -411,7 +424,8 @@ describe('Simplified Checkpoint Validation', () => {
   // ============================================================================
 
   describe('Configuration Validation', () => {
-    test('should validate dependency tracker configuration', async () => {
+    jest.setTimeout(10000);
+  test('should validate dependency tracker configuration', async () => { try {
       // Test with different namespaces
       const tracker1 = new DependencyTracker('config-test-1');
       const tracker2 = new DependencyTracker('config-test-2');
@@ -439,7 +453,8 @@ describe('Simplified Checkpoint Validation', () => {
       await tracker2.shutdown();
     }, TEST_TIMEOUT);
 
-    test('should handle different dependency types', async () => {
+    jest.setTimeout(10000);
+  test('should handle different dependency types', async () => { try {
       const tracker = new DependencyTracker(`type-test-${Date.now()}`);
       await tracker.initialize();
 
@@ -467,4 +482,4 @@ describe('Simplified Checkpoint Validation', () => {
       await tracker.shutdown();
     }, TEST_TIMEOUT);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

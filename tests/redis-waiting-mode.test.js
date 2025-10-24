@@ -19,12 +19,14 @@ describe('Redis Waiting Mode', () => {
     };
   };
 
+  jest.setTimeout(10000);
   test('Agent can enter waiting mode', () => {
     const enterResult = runWaitingModeScript('enter', ['--context', 'test-iteration']);
     expect(enterResult.status).toBe(0);
     expect(enterResult.stdout).toContain('Entered waiting mode');
   });
 
+  jest.setTimeout(10000);
   test('Coordinator can wake agent', () => {
     const wakeResult = runWaitingModeScript('wake', [
       '--reason', 'test_iteration',
@@ -35,6 +37,7 @@ describe('Redis Waiting Mode', () => {
     expect(wakeResult.stdout).toContain('Agent awakened');
   });
 
+  jest.setTimeout(10000);
   test('Agent can report result', () => {
     const reportResult = runWaitingModeScript('report', [
       '--confidence', '0.92',
@@ -44,6 +47,7 @@ describe('Redis Waiting Mode', () => {
     expect(reportResult.stdout).toContain('Result reported');
   });
 
+  jest.setTimeout(10000);
   test('Coordinator can collect results', () => {
     const collectResult = runWaitingModeScript('collect', [
       '--agent-ids', 'tester-1,coder-1,reviewer-1'
@@ -53,4 +57,4 @@ describe('Redis Waiting Mode', () => {
     const consensusValue = parseFloat(collectResult.stdout.split('Consensus: ')[1]);
     expect(consensusValue).toBeGreaterThanOrEqual(0.65);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

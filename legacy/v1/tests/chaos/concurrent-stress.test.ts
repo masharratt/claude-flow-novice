@@ -48,11 +48,11 @@ const TEST_CONFIG = {
 describe('Chaos: 100 Concurrent Coordinators', () => {
   let coordinators: CoordinatorInstance[] = [];
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     await cleanupRedis();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     killAllCoordinators(coordinators);
     await cleanupRedis();
     coordinators = [];
@@ -60,7 +60,7 @@ describe('Chaos: 100 Concurrent Coordinators', () => {
 
   it(
     'should handle 100 concurrent coordinators without race conditions',
-    async () => {
+    async () => { try {
       const startTime = Date.now();
       const signalEvents: { time: number; sender: string; receiver: string }[] = [];
 
@@ -152,7 +152,7 @@ describe('Chaos: 100 Concurrent Coordinators', () => {
 
   it(
     'should handle high signal throughput (1000 signals/minute)',
-    async () => {
+    async () => { try {
       const SIGNAL_COUNT = 1000;
       const DURATION = 1 * 60 * 1000; // 1 minute
 
@@ -203,7 +203,7 @@ describe('Chaos: 100 Concurrent Coordinators', () => {
 
   it(
     'should handle coordinator spawn race conditions',
-    async () => {
+    async () => { try {
       const SPAWN_COUNT = 50;
 
       console.log(`Spawning ${SPAWN_COUNT} coordinators simultaneously...`);
@@ -242,7 +242,7 @@ describe('Chaos: 100 Concurrent Coordinators', () => {
 
   it(
     'should handle signal race conditions (multiple signals to same coordinator)',
-    async () => {
+    async () => { try {
       // Spawn coordinators
       coordinators = await spawnCoordinators(10, {
         timeout: 10 * 60 * 1000,
@@ -290,7 +290,7 @@ describe('Chaos: 100 Concurrent Coordinators', () => {
 
   it(
     'should maintain performance under memory pressure (200 coordinators)',
-    async () => {
+    async () => { try {
       const LARGE_COUNT = 200;
 
       console.log(`Spawning ${LARGE_COUNT} coordinators for memory pressure test...`);

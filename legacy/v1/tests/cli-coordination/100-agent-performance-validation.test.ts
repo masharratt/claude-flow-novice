@@ -46,7 +46,7 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
 
   let testResults: PerformanceMetrics[] = [];
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Create test directory
     await execAsync(`mkdir -p ${TEST_DIR}`);
 
@@ -56,7 +56,7 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
     console.log(stdout);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Save results
     await fs.writeFile(
       RESULTS_FILE,
@@ -73,7 +73,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
   });
 
   describe('Performance Baseline (Local WSL Environment)', () => {
-    test('should coordinate 100 agents in <10 seconds (iteration 1)', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate 100 agents in <10 seconds (iteration 1)', async () => { try {
       const result = await runCoordinationTest(AGENT_COUNT, 'wsl-local', 1);
       testResults.push(result.metrics);
 
@@ -85,7 +86,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       console.log(`Iteration 1 - Coordination: ${result.metrics.coordinationTime}s, Delivery: ${result.metrics.deliveryRate}%`);
     }, 30000);
 
-    test('should coordinate 100 agents in <10 seconds (iteration 2)', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate 100 agents in <10 seconds (iteration 2)', async () => { try {
       const result = await runCoordinationTest(AGENT_COUNT, 'wsl-local', 2);
       testResults.push(result.metrics);
 
@@ -96,7 +98,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       console.log(`Iteration 2 - Coordination: ${result.metrics.coordinationTime}s, Delivery: ${result.metrics.deliveryRate}%`);
     }, 30000);
 
-    test('should coordinate 100 agents in <10 seconds (iteration 3)', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate 100 agents in <10 seconds (iteration 3)', async () => { try {
       const result = await runCoordinationTest(AGENT_COUNT, 'wsl-local', 3);
       testResults.push(result.metrics);
 
@@ -107,7 +110,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       console.log(`Iteration 3 - Coordination: ${result.metrics.coordinationTime}s, Delivery: ${result.metrics.deliveryRate}%`);
     }, 30000);
 
-    test('should coordinate 100 agents in <10 seconds (iteration 4)', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate 100 agents in <10 seconds (iteration 4)', async () => { try {
       const result = await runCoordinationTest(AGENT_COUNT, 'wsl-local', 4);
       testResults.push(result.metrics);
 
@@ -118,7 +122,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       console.log(`Iteration 4 - Coordination: ${result.metrics.coordinationTime}s, Delivery: ${result.metrics.deliveryRate}%`);
     }, 30000);
 
-    test('should coordinate 100 agents in <10 seconds (iteration 5)', async () => {
+    jest.setTimeout(10000);
+  test('should coordinate 100 agents in <10 seconds (iteration 5)', async () => { try {
       const result = await runCoordinationTest(AGENT_COUNT, 'wsl-local', 5);
       testResults.push(result.metrics);
 
@@ -129,7 +134,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       console.log(`Iteration 5 - Coordination: ${result.metrics.coordinationTime}s, Delivery: ${result.metrics.deliveryRate}%`);
     }, 30000);
 
-    test('should have performance variance <20% across iterations', () => {
+    jest.setTimeout(10000);
+  test('should have performance variance <20% across iterations', () => {
       const wslResults = testResults.filter(r => r.environment === 'wsl-local');
       const variance = calculateVariance(wslResults);
 
@@ -144,7 +150,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
   });
 
   describe('Performance Consistency (Statistical Analysis)', () => {
-    test('should achieve ≥90% delivery rate in ALL iterations', () => {
+    jest.setTimeout(10000);
+  test('should achieve ≥90% delivery rate in ALL iterations', () => {
       const deliveryRates = testResults.map(r => r.deliveryRate);
       const allAboveThreshold = deliveryRates.every(rate => rate >= MIN_DELIVERY_RATE);
 
@@ -153,7 +160,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       console.log('Delivery rates across iterations:', deliveryRates.map(r => `${r.toFixed(1)}%`).join(', '));
     });
 
-    test('should have zero critical errors in ALL iterations', () => {
+    jest.setTimeout(10000);
+  test('should have zero critical errors in ALL iterations', () => {
       const totalErrors = testResults.reduce((sum, r) => sum + r.errors, 0);
 
       expect(totalErrors).toBe(0);
@@ -161,7 +169,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       console.log(`Total errors across ${testResults.length} iterations: ${totalErrors}`);
     });
 
-    test('should maintain throughput >30 agents/sec', () => {
+    jest.setTimeout(10000);
+  test('should maintain throughput >30 agents/sec', () => {
       const throughputs = testResults.map(r => r.throughput);
       const meanThroughput = calculateMean(throughputs);
 
@@ -171,7 +180,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       console.log(`Mean throughput: ${meanThroughput.toFixed(1)} agents/sec`);
     });
 
-    test('should have p95 coordination time <8 seconds', () => {
+    jest.setTimeout(10000);
+  test('should have p95 coordination time <8 seconds', () => {
       const times = testResults.map(r => r.coordinationTime).sort((a, b) => a - b);
       const p95Index = Math.floor(times.length * 0.95);
       const p95Time = times[p95Index];
@@ -184,7 +194,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
   });
 
   describe('Resource Efficiency', () => {
-    test('should use <100MB /dev/shm for 100 agents', async () => {
+    jest.setTimeout(10000);
+  test('should use <100MB /dev/shm for 100 agents', async () => { try {
       const testId = `resource-test-${Date.now()}`;
       const messageBaseDir = `/dev/shm/cfn-${testId}`;
 
@@ -211,7 +222,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       }
     }, 15000);
 
-    test('should maintain low memory footprint per agent', async () => {
+    jest.setTimeout(10000);
+  test('should maintain low memory footprint per agent', async () => { try {
       // Verify average message file size
       const avgMessageSize = 500; // bytes (target from performance targets)
       const maxMessageSize = 1024; // 1KB max per message
@@ -223,7 +235,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
   });
 
   describe('Error Handling and Reliability', () => {
-    test('should handle agent failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle agent failures gracefully', async () => { try {
       const testId = `failure-test-${Date.now()}`;
       const messageBaseDir = `/dev/shm/cfn-${testId}`;
 
@@ -256,7 +269,8 @@ describe('Sprint 0 - Day 1: 100-Agent Performance Validation', () => {
       }
     }, 15000);
 
-    test('should detect and report timeout scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should detect and report timeout scenarios', async () => { try {
       const timeout = 30; // 30 second timeout for 100 agents
 
       // Verify timeout is reasonable for agent count

@@ -15,7 +15,7 @@ describe('CoordinationValidator', () => {
   let validator: CoordinationValidator;
   const testEpicId = 'epic-test-123';
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     redis = new Redis();
     validator = new CoordinationValidator({
       redis,
@@ -30,7 +30,7 @@ describe('CoordinationValidator', () => {
     }
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup
     const keys = await redis.keys(`coordination:messages:${testEpicId}:*`);
     if (keys.length > 0) {
@@ -40,7 +40,7 @@ describe('CoordinationValidator', () => {
   });
 
   describe('validateEpicCoordination', () => {
-    it('should validate epic with complete coordination', async () => {
+    it('should validate epic with complete coordination', async () => { try {
       // Setup: Create complete coordination messages
       const messages = [
         {
@@ -143,7 +143,7 @@ describe('CoordinationValidator', () => {
       expect(result.issues.length).toBe(0);
     });
 
-    it('should fail epic with no pub/sub messages', async () => {
+    it('should fail epic with no pub/sub messages', async () => { try {
       // No messages in Redis
 
       // Run validation
@@ -161,7 +161,7 @@ describe('CoordinationValidator', () => {
       );
     });
 
-    it('should detect missing required channels', async () => {
+    it('should detect missing required channels', async () => { try {
       // Setup: Create messages but skip interface:ready channel
       const messages = [
         {
@@ -217,7 +217,7 @@ describe('CoordinationValidator', () => {
       );
     });
 
-    it('should detect invalid timeline (spawn before claim)', async () => {
+    it('should detect invalid timeline (spawn before claim)', async () => { try {
       // Setup: Create messages with invalid order
       const messages = [
         {
@@ -272,7 +272,7 @@ describe('CoordinationValidator', () => {
       );
     });
 
-    it('should detect missing dependency waiting', async () => {
+    it('should detect missing dependency waiting', async () => { try {
       // Setup: Complete coordination but no dependency waiting
       const messages = [];
       for (let i = 0; i < 15; i++) {
@@ -306,7 +306,7 @@ describe('CoordinationValidator', () => {
       );
     });
 
-    it('should calculate correct score with bonuses', async () => {
+    it('should calculate correct score with bonuses', async () => { try {
       // Setup: Very active coordination (>100 messages)
       const messages = [];
       for (let i = 0; i < 150; i++) {
@@ -343,7 +343,7 @@ describe('CoordinationValidator', () => {
   });
 
   describe('getCoordinationSummary', () => {
-    it('should generate human-readable summary', async () => {
+    it('should generate human-readable summary', async () => { try {
       // Setup: Create sample messages
       const messages = [
         {

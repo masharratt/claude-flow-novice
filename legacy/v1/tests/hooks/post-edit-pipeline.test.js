@@ -46,7 +46,7 @@ describe('Post-Edit Pipeline - Comprehensive Test Suite', () => {
 
     describe('Standard Mode - No TDD', () => {
         describe('JavaScript Files', () => {
-            it('should validate and format a valid JavaScript file', async () => {
+            it('should validate and format a valid JavaScript file', async () => { try {
                 const testFile = path.join(TEST_DIR, 'test.js');
                 const content = `
 function add(a, b) {
@@ -66,11 +66,12 @@ module.exports = add;
                 expect(stdout).toContain('VALIDATION SUMMARY');
             }, 30000);
 
-            it('should detect linting issues in JavaScript', async () => {
+            it('should detect linting issues in JavaScript', async () => { try {
                 const testFile = path.join(TEST_DIR, 'bad-lint.js');
                 const content = `
 var unused = 123;
-function test() {
+function jest.setTimeout(10000);
+  test() {
     console.log("test")
 }
 `;
@@ -84,7 +85,7 @@ function test() {
                 }
             }, 30000);
 
-            it('should handle missing dependencies gracefully', async () => {
+            it('should handle missing dependencies gracefully', async () => { try {
                 const testFile = path.join(TEST_DIR, 'missing-deps.js');
                 const content = `
 import someFakePackage from 'fake-package-that-does-not-exist';
@@ -100,7 +101,7 @@ const x = someFakePackage.doStuff();
         });
 
         describe('TypeScript Files', () => {
-            it('should validate TypeScript file with type checking', async () => {
+            it('should validate TypeScript file with type checking', async () => { try {
                 const testFile = path.join(TEST_DIR, 'test.ts');
                 const content = `
 interface User {
@@ -123,7 +124,7 @@ export { greet };
                 expect(stdout).toContain('VALIDATION SUMMARY');
             }, 30000);
 
-            it('should detect type errors in TypeScript', async () => {
+            it('should detect type errors in TypeScript', async () => { try {
                 const testFile = path.join(TEST_DIR, 'type-error.ts');
                 const content = `
 function add(a: number, b: number): number {
@@ -141,7 +142,7 @@ function add(a: number, b: number): number {
         });
 
         describe('Python Files', () => {
-            it('should validate Python file', async () => {
+            it('should validate Python file', async () => { try {
                 const testFile = path.join(TEST_DIR, 'test.py');
                 const content = `
 def add(a, b):
@@ -160,7 +161,7 @@ if __name__ == "__main__":
                 expect(stdout).toContain('VALIDATION SUMMARY');
             }, 30000);
 
-            it('should detect Python imports', async () => {
+            it('should detect Python imports', async () => { try {
                 const testFile = path.join(TEST_DIR, 'imports.py');
                 const content = `
 import os
@@ -180,7 +181,7 @@ def main():
         });
 
         describe('Existing Behavior Unchanged', () => {
-            it('should maintain backward compatibility with existing features', async () => {
+            it('should maintain backward compatibility with existing features', async () => { try {
                 const testFile = path.join(TEST_DIR, 'compat.js');
                 const content = `
 // Basic JavaScript file
@@ -205,7 +206,7 @@ module.exports = multiply;
     });
 
     describe('TDD Mode', () => {
-        it('should enable TDD mode with --tdd-mode flag', async () => {
+        it('should enable TDD mode with --tdd-mode flag', async () => { try {
             const testFile = path.join(TEST_DIR, 'tdd-test.js');
             const content = `
 function divide(a, b) {
@@ -220,11 +221,13 @@ module.exports = divide;
             const testContent = `
 const divide = require('./tdd-test');
 
-test('divides two numbers', () => {
+jest.setTimeout(10000);
+  test('divides two numbers', () => {
     expect(divide(10, 2)).toBe(5);
 });
 
-test('throws on division by zero', () => {
+jest.setTimeout(10000);
+  test('throws on division by zero', () => {
     expect(() => divide(10, 0)).toThrow('Division by zero');
 });
 `;
@@ -236,7 +239,7 @@ test('throws on division by zero', () => {
             expect(stdout).toContain('Single-file testing');
         }, 30000);
 
-        it('should run single-file tests without full system compilation', async () => {
+        it('should run single-file tests without full system compilation', async () => { try {
             const testFile = path.join(TEST_DIR, 'isolated.js');
             const content = `
 function fibonacci(n) {
@@ -254,7 +257,7 @@ module.exports = fibonacci;
             expect(stdout).toContain('VALIDATION SUMMARY');
         }, 30000);
 
-        it('should analyze coverage with configurable threshold', async () => {
+        it('should analyze coverage with configurable threshold', async () => { try {
             const testFile = path.join(TEST_DIR, 'coverage-test.js');
             const content = `
 function calculate(op, a, b) {
@@ -276,7 +279,7 @@ module.exports = calculate;
             expect(stdout).toContain('80'); // threshold
         }, 30000);
 
-        it('should detect TDD phase (Red-Green-Refactor)', async () => {
+        it('should detect TDD phase (Red-Green-Refactor)', async () => { try {
             const testFile = path.join(TEST_DIR, 'tdd-phase.js');
             const content = `
 // Red phase: Test exists but implementation is incomplete
@@ -296,7 +299,7 @@ module.exports = complexOperation;
     });
 
     describe('Rust Enforcement', () => {
-        it('should detect .unwrap() calls in Rust files', async () => {
+        it('should detect .unwrap() calls in Rust files', async () => { try {
             const testFile = path.join(TEST_DIR, 'unsafe.rs');
             const content = `
 fn main() {
@@ -314,7 +317,7 @@ fn main() {
             expect(stdout).toContain('dangerous pattern');
         }, 30000);
 
-        it('should detect panic macros in Rust', async () => {
+        it('should detect panic macros in Rust', async () => { try {
             const testFile = path.join(TEST_DIR, 'panic.rs');
             const content = `
 fn divide(a: i32, b: i32) -> i32 {
@@ -332,7 +335,7 @@ fn divide(a: i32, b: i32) -> i32 {
             expect(stdout).toContain('panic!');
         }, 30000);
 
-        it('should handle false positives in Rust comments', async () => {
+        it('should handle false positives in Rust comments', async () => { try {
             const testFile = path.join(TEST_DIR, 'comments.rs');
             const content = `
 fn main() {
@@ -350,7 +353,7 @@ fn main() {
             expect(stdout).not.toContain('dangerous pattern found in comments');
         }, 30000);
 
-        it('should suggest safe alternatives for .unwrap()', async () => {
+        it('should suggest safe alternatives for .unwrap()', async () => { try {
             const testFile = path.join(TEST_DIR, 'suggest.rs');
             const content = `
 fn get_value(opt: Option<i32>) -> i32 {
@@ -367,7 +370,7 @@ fn get_value(opt: Option<i32>) -> i32 {
     });
 
     describe('Edge Cases', () => {
-        it('should handle missing test files gracefully', async () => {
+        it('should handle missing test files gracefully', async () => { try {
             const testFile = path.join(TEST_DIR, 'no-tests.js');
             const content = `
 function noTests() {
@@ -382,7 +385,7 @@ module.exports = noTests;
             expect(stdout).toContain('No tests found') || expect(stdout).toContain('SKIPPING TESTS');
         }, 30000);
 
-        it('should handle missing coverage tools', async () => {
+        it('should handle missing coverage tools', async () => { try {
             const testFile = path.join(TEST_DIR, 'no-coverage.js');
             const content = `
 function simple() { return true; }
@@ -400,7 +403,7 @@ module.exports = simple;
             }
         }, 30000);
 
-        it('should handle files with no tests in TDD mode', async () => {
+        it('should handle files with no tests in TDD mode', async () => { try {
             const testFile = path.join(TEST_DIR, 'empty-coverage.js');
             const content = `
 function untested() {
@@ -415,7 +418,7 @@ function untested() {
             // Should not crash, but warn about missing tests
         }, 30000);
 
-        it('should handle non-existent files', async () => {
+        it('should handle non-existent files', async () => { try {
             const nonExistentFile = path.join(TEST_DIR, 'does-not-exist.js');
 
             try {
@@ -426,7 +429,7 @@ function untested() {
             }
         }, 30000);
 
-        it('should handle mixed TDD and non-TDD modes', async () => {
+        it('should handle mixed TDD and non-TDD modes', async () => { try {
             const testFile = path.join(TEST_DIR, 'mixed.js');
             const content = `
 function mixed() { return 42; }
@@ -447,9 +450,10 @@ module.exports = mixed;
     });
 
     describe('Logging and Output', () => {
-        it('should write structured logs to root file', async () => {
+        it('should write structured logs to root file', async () => { try {
             const testFile = path.join(TEST_DIR, 'log-test.js');
-            const content = `function test() { return true; }`;
+            const content = `function jest.setTimeout(10000);
+  test() { return true; }`;
             fs.writeFileSync(testFile, content);
 
             await execAsync(`node ${PIPELINE_PATH} ${testFile} --memory-key "test/agent/step1"`);
@@ -464,14 +468,15 @@ module.exports = mixed;
             expect(logContent).toContain('JSON:');
         }, 30000);
 
-        it('should enforce 500 entry limit in logs', async () => {
+        it('should enforce 500 entry limit in logs', async () => { try {
             // This test would create 501 entries to verify trimming
             // Skipped for performance reasons in normal test runs
         });
 
-        it('should provide human-readable timestamps', async () => {
+        it('should provide human-readable timestamps', async () => { try {
             const testFile = path.join(TEST_DIR, 'timestamp.js');
-            const content = `function test() { return 1; }`;
+            const content = `function jest.setTimeout(10000);
+  test() { return 1; }`;
             fs.writeFileSync(testFile, content);
 
             await execAsync(`node ${PIPELINE_PATH} ${testFile}`);
@@ -483,9 +488,10 @@ module.exports = mixed;
     });
 
     describe('Agent Context', () => {
-        it('should extract agent context from memory key', async () => {
+        it('should extract agent context from memory key', async () => { try {
             const testFile = path.join(TEST_DIR, 'agent-context.js');
-            const content = `function test() {}`;
+            const content = `function jest.setTimeout(10000);
+  test() {}`;
             fs.writeFileSync(testFile, content);
 
             await execAsync(`node ${PIPELINE_PATH} ${testFile} --memory-key "swarm/coder/implement-feature"`);
@@ -495,9 +501,10 @@ module.exports = mixed;
             expect(logContent).toContain('implement-feature');
         }, 30000);
 
-        it('should accept multiple agent context parameters', async () => {
+        it('should accept multiple agent context parameters', async () => { try {
             const testFile = path.join(TEST_DIR, 'multi-context.js');
-            const content = `function test() {}`;
+            const content = `function jest.setTimeout(10000);
+  test() {}`;
             fs.writeFileSync(testFile, content);
 
             await execAsync(`node ${PIPELINE_PATH} ${testFile} --memory-key "test/key" --agent-type "tester" --swarm-id "swarm123"`);

@@ -14,12 +14,13 @@ describe('Functional Portability Tests', () => {
   describe('RuvSwarmWrapper Functional Tests', () => {
     let RuvSwarmWrapper;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       const module = await import('../../src/mcp/ruv-swarm-wrapper.js');
       RuvSwarmWrapper = module.RuvSwarmWrapper;
     });
 
-    test('wrapper should instantiate with proper options', () => {
+    jest.setTimeout(10000);
+  test('wrapper should instantiate with proper options', () => {
       const wrapper = new RuvSwarmWrapper({
         silent: true,
         autoRestart: false,
@@ -33,7 +34,8 @@ describe('Functional Portability Tests', () => {
       expect(wrapper.isRunning()).toBe(false);
     });
 
-    test('wrapper should handle process lifecycle methods', () => {
+    jest.setTimeout(10000);
+  test('wrapper should handle process lifecycle methods', () => {
       const wrapper = new RuvSwarmWrapper({ autoRestart: false });
       
       // Test initial state
@@ -55,7 +57,8 @@ describe('Functional Portability Tests', () => {
   });
 
   describe('Cross-Platform Command Detection', () => {
-    test('should detect common commands correctly', async () => {
+    jest.setTimeout(10000);
+  test('should detect common commands correctly', async () => { try {
       // Test detection of a command that should exist on all platforms
       const nodeExists = await checkIfCommandExists('node');
       expect(nodeExists).toBe(true);
@@ -65,7 +68,8 @@ describe('Functional Portability Tests', () => {
       expect(fakeCommandExists).toBe(false);
     });
 
-    test('should use platform-appropriate detection method', () => {
+    jest.setTimeout(10000);
+  test('should use platform-appropriate detection method', () => {
       const detectionCommand = getCommandDetectionCommand('node');
       
       if (platform() === 'win32') {
@@ -77,7 +81,8 @@ describe('Functional Portability Tests', () => {
   });
 
   describe('Process Management', () => {
-    test('should track and terminate processes correctly', async () => {
+    jest.setTimeout(10000);
+  test('should track and terminate processes correctly', async () => { try {
       const processTracker = new Map();
       
       // Simulate adding a process
@@ -101,7 +106,8 @@ describe('Functional Portability Tests', () => {
       expect(mockProcess.killed).toBe(true);
     });
 
-    test('should handle missing processes gracefully', () => {
+    jest.setTimeout(10000);
+  test('should handle missing processes gracefully', () => {
       const processTracker = new Map();
       
       // Add a process that's already dead

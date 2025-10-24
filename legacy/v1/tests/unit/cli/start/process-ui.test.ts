@@ -70,7 +70,7 @@ describe('ProcessUI', () => {
   });
 
   describe('command handling', () => {
-    it('should handle help command', async () => {
+    it('should handle help command', async () => { try {
       const handleCommand = processUI['handleCommand'].bind(processUI);
       
       // Mock console output
@@ -89,7 +89,7 @@ describe('ProcessUI', () => {
       console.log = originalLog;
     });
 
-    it('should handle refresh command', async () => {
+    it('should handle refresh command', async () => { try {
       const handleCommand = processUI['handleCommand'].bind(processUI);
       let renderCalled = false;
       
@@ -101,7 +101,7 @@ describe('ProcessUI', () => {
       expect(renderCalled).toBe(true);
     });
 
-    it('should handle invalid commands', async () => {
+    it('should handle invalid commands', async () => { try {
       const handleCommand = processUI['handleCommand'].bind(processUI);
       
       // Mock console output
@@ -120,7 +120,7 @@ describe('ProcessUI', () => {
       console.log = originalLog;
     });
 
-    it('should handle numeric process selection', async () => {
+    it('should handle numeric process selection', async () => { try {
       const handleCommand = processUI['handleCommand'].bind(processUI);
       await processManager.initialize();
       
@@ -137,11 +137,11 @@ describe('ProcessUI', () => {
   });
 
   describe('process actions', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await processManager.initialize();
     });
 
-    it('should start process', async () => {
+    it('should start process', async () => { try {
       const startProcess = processUI['startProcess'].bind(processUI);
       
       await startProcess('event-bus');
@@ -150,7 +150,7 @@ describe('ProcessUI', () => {
       expect(process?.status).toBe(ProcessStatus.RUNNING);
     });
 
-    it('should stop process', async () => {
+    it('should stop process', async () => { try {
       const stopProcess = processUI['stopProcess'].bind(processUI);
       
       // Start first
@@ -162,7 +162,7 @@ describe('ProcessUI', () => {
       expect(process?.status).toBe(ProcessStatus.STOPPED);
     });
 
-    it('should restart process', async () => {
+    it('should restart process', async () => { try {
       const restartProcess = processUI['restartProcess'].bind(processUI);
       
       // Start first
@@ -177,7 +177,7 @@ describe('ProcessUI', () => {
       expect(process?.startTime !== firstStartTime).toBe(true);
     });
 
-    it('should start all processes', async () => {
+    it('should start all processes', async () => { try {
       const startAll = processUI['startAll'].bind(processUI);
       
       await startAll();
@@ -186,7 +186,7 @@ describe('ProcessUI', () => {
       expect(stats.runningProcesses >= 5).toBe(true);
     });
 
-    it('should stop all processes', async () => {
+    it('should stop all processes', async () => { try {
       const stopAll = processUI['stopAll'].bind(processUI);
       
       // Start some processes first
@@ -252,7 +252,7 @@ describe('ProcessUI', () => {
   });
 
   describe('exit handling', () => {
-    it('should prompt to stop running processes on exit', async () => {
+    it('should prompt to stop running processes on exit', async () => { try {
       const handleExit = processUI['handleExit'].bind(processUI);
       
       // Start a process
@@ -277,7 +277,7 @@ describe('ProcessUI', () => {
       
       // Mock stop method
       let stopCalled = false;
-      processUI['stop'] = async () => {
+      processUI['stop'] = async () => { try {
         stopCalled = true;
       };
       
@@ -291,4 +291,4 @@ describe('ProcessUI', () => {
       Deno.stdin.read = originalRead;
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

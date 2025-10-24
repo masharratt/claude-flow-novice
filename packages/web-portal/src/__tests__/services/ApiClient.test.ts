@@ -35,7 +35,7 @@ describe('ApiClient', () => {
   });
 
   describe('GET /api/agents/hierarchy', () => {
-    it('should fetch agent hierarchy successfully', async () => {
+    it('should fetch agent hierarchy successfully', async () => { try {
       const response = await apiClient.getAgentHierarchy();
 
       expect(response.success).toBe(true);
@@ -45,7 +45,7 @@ describe('ApiClient', () => {
       expect(response.data.topology).toMatch(/mesh|hierarchical/);
     });
 
-    it('should fetch agent hierarchy with filters', async () => {
+    it('should fetch agent hierarchy with filters', async () => { try {
       const filters = { status: 'in_progress' as const, type: 'coder' };
       const response = await apiClient.getAgentHierarchy(filters);
 
@@ -53,7 +53,7 @@ describe('ApiClient', () => {
       expect(response.data).toBeDefined();
     });
 
-    it('should include child agents in hierarchy', async () => {
+    it('should include child agents in hierarchy', async () => { try {
       const response = await apiClient.getAgentHierarchy();
       const rootAgent = response.data.hierarchy[0];
 
@@ -66,7 +66,7 @@ describe('ApiClient', () => {
   });
 
   describe('GET /api/agents/:id/status', () => {
-    it('should fetch agent status successfully', async () => {
+    it('should fetch agent status successfully', async () => { try {
       const agentId = 'agent-2';
       const response = await apiClient.getAgentStatus(agentId);
 
@@ -77,7 +77,7 @@ describe('ApiClient', () => {
       expect(response.data.metrics.tasks_completed).toBeGreaterThanOrEqual(0);
     });
 
-    it('should include current task if agent is working', async () => {
+    it('should include current task if agent is working', async () => { try {
       const response = await apiClient.getAgentStatus('agent-2');
 
       if (response.data.current_task) {
@@ -90,7 +90,7 @@ describe('ApiClient', () => {
   });
 
   describe('GET /api/metrics', () => {
-    it('should fetch system metrics successfully', async () => {
+    it('should fetch system metrics successfully', async () => { try {
       const response = await apiClient.getMetrics();
 
       expect(response.success).toBe(true);
@@ -101,7 +101,7 @@ describe('ApiClient', () => {
       expect(response.data.metrics.swarms).toBeDefined();
     });
 
-    it('should include valid CPU metrics', async () => {
+    it('should include valid CPU metrics', async () => { try {
       const response = await apiClient.getMetrics();
       const cpu = response.data.metrics.cpu;
 
@@ -110,7 +110,7 @@ describe('ApiClient', () => {
       expect(cpu.cores).toBeGreaterThan(0);
     });
 
-    it('should include valid memory metrics', async () => {
+    it('should include valid memory metrics', async () => { try {
       const response = await apiClient.getMetrics();
       const memory = response.data.metrics.memory;
 
@@ -120,7 +120,7 @@ describe('ApiClient', () => {
       expect(memory.usage_percent).toBeLessThanOrEqual(100);
     });
 
-    it('should include Redis and SQLite status', async () => {
+    it('should include Redis and SQLite status', async () => { try {
       const response = await apiClient.getMetrics();
 
       expect(response.data.metrics.redis).toBeDefined();
@@ -131,7 +131,7 @@ describe('ApiClient', () => {
   });
 
   describe('GET /api/events', () => {
-    it('should fetch events successfully', async () => {
+    it('should fetch events successfully', async () => { try {
       const response = await apiClient.getEvents();
 
       expect(response.success).toBe(true);
@@ -140,7 +140,7 @@ describe('ApiClient', () => {
       expect(response.meta.page).toBeGreaterThan(0);
     });
 
-    it('should fetch events with pagination', async () => {
+    it('should fetch events with pagination', async () => { try {
       const params = { page: 1, limit: 20 };
       const response = await apiClient.getEvents(params);
 
@@ -149,7 +149,7 @@ describe('ApiClient', () => {
       expect(response.meta.totalPages).toBeGreaterThan(0);
     });
 
-    it('should include event details', async () => {
+    it('should include event details', async () => { try {
       const response = await apiClient.getEvents();
 
       if (response.data.events.length > 0) {
@@ -164,7 +164,7 @@ describe('ApiClient', () => {
   });
 
   describe('GET /api/resources', () => {
-    it('should fetch resource utilization successfully', async () => {
+    it('should fetch resource utilization successfully', async () => { try {
       const response = await apiClient.getResources();
 
       expect(response.success).toBe(true);
@@ -172,7 +172,7 @@ describe('ApiClient', () => {
       expect(response.data.summary).toBeDefined();
     });
 
-    it('should include resource summary', async () => {
+    it('should include resource summary', async () => { try {
       const response = await apiClient.getResources();
       const summary = response.data.summary;
 
@@ -182,7 +182,7 @@ describe('ApiClient', () => {
       expect(summary.avg_memory_mb).toBeGreaterThanOrEqual(0);
     });
 
-    it('should include resource details for each agent', async () => {
+    it('should include resource details for each agent', async () => { try {
       const response = await apiClient.getResources();
 
       if (response.data.resources.length > 0) {
@@ -197,7 +197,7 @@ describe('ApiClient', () => {
   });
 
   describe('POST /api/agents/:id/intervene', () => {
-    it('should pause agent successfully', async () => {
+    it('should pause agent successfully', async () => { try {
       const agentId = 'agent-2';
       const request = { action: 'pause' as const, reason: 'Testing pause' };
       const response = await apiClient.interventeAgent(agentId, request);
@@ -208,7 +208,7 @@ describe('ApiClient', () => {
       expect(response.data.status).toBe('success');
     });
 
-    it('should resume agent successfully', async () => {
+    it('should resume agent successfully', async () => { try {
       const agentId = 'agent-2';
       const request = { action: 'resume' as const };
       const response = await apiClient.interventeAgent(agentId, request);
@@ -217,7 +217,7 @@ describe('ApiClient', () => {
       expect(response.data.action).toBe('resume');
     });
 
-    it('should terminate agent successfully', async () => {
+    it('should terminate agent successfully', async () => { try {
       const agentId = 'agent-2';
       const request = { action: 'terminate' as const, reason: 'Task complete' };
       const response = await apiClient.interventeAgent(agentId, request);
@@ -226,7 +226,7 @@ describe('ApiClient', () => {
       expect(response.data.action).toBe('terminate');
     });
 
-    it('should restart agent successfully', async () => {
+    it('should restart agent successfully', async () => { try {
       const agentId = 'agent-2';
       const request = { action: 'restart' as const };
       const response = await apiClient.interventeAgent(agentId, request);
@@ -235,7 +235,7 @@ describe('ApiClient', () => {
       expect(response.data.action).toBe('restart');
     });
 
-    it('should update agent config successfully', async () => {
+    it('should update agent config successfully', async () => { try {
       const agentId = 'agent-2';
       const request = {
         action: 'update_config' as const,
@@ -249,7 +249,7 @@ describe('ApiClient', () => {
   });
 
   describe('GET /api/health', () => {
-    it('should fetch health check successfully', async () => {
+    it('should fetch health check successfully', async () => { try {
       const response = await apiClient.getHealthCheck();
 
       expect(response.success).toBe(true);
@@ -258,7 +258,7 @@ describe('ApiClient', () => {
       expect(response.data.services).toBeDefined();
     });
 
-    it('should include all service statuses', async () => {
+    it('should include all service statuses', async () => { try {
       const response = await apiClient.getHealthCheck();
       const services = response.data.services;
 
@@ -268,7 +268,7 @@ describe('ApiClient', () => {
       expect(services.websocket).toBeDefined();
     });
 
-    it('should not require authentication', async () => {
+    it('should not require authentication', async () => { try {
       // Clear auth token
       apiClient.clearAuthToken();
 
@@ -279,7 +279,7 @@ describe('ApiClient', () => {
   });
 
   describe('Request Cancellation', () => {
-    it('should cancel specific request', async () => {
+    it('should cancel specific request', async () => { try {
       // Start a request
       const promise = apiClient.getMetrics();
 
@@ -290,7 +290,7 @@ describe('ApiClient', () => {
       await expect(promise).rejects.toThrow();
     });
 
-    it('should cancel all requests', async () => {
+    it('should cancel all requests', async () => { try {
       // Start multiple requests
       const promises = [
         apiClient.getMetrics(),
@@ -307,7 +307,7 @@ describe('ApiClient', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle 500 error', async () => {
+    it('should handle 500 error', async () => { try {
       // MSW will return 500 for this endpoint
       try {
         await apiClient.getMetrics();
@@ -316,7 +316,7 @@ describe('ApiClient', () => {
       }
     });
 
-    it('should handle 404 error', async () => {
+    it('should handle 404 error', async () => { try {
       try {
         await apiClient.getAgentStatus('non-existent-agent');
       } catch (error) {

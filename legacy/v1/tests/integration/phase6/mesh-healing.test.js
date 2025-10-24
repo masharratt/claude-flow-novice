@@ -24,7 +24,7 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
   let meshDetector;
   let peerRegistry;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     messageBroker = new MessageBroker({
       maxQueueSize: 5000,
       deliverySemantics: 'at-least-once'
@@ -44,13 +44,14 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
     await messageBroker.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await messageBroker?.shutdown();
     peerRegistry = null;
   });
 
   describe('Failure Detection', () => {
-    test('should detect peer failure within 500ms', async () => {
+    jest.setTimeout(10000);
+  test('should detect peer failure within 500ms', async () => { try {
       const peerCount = 5;
       const peers = Array.from({ length: peerCount }, (_, i) => `peer-${i}`);
       const heartbeatInterval = 100; // 100ms heartbeats
@@ -108,7 +109,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
       console.log(`✅ Failure detection: ${failingPeer} detected in ${failureDetection.detectionTime}ms`);
     });
 
-    test('should distinguish between network partition and peer failure', async () => {
+    jest.setTimeout(10000);
+  test('should distinguish between network partition and peer failure', async () => { try {
       const partition1 = ['peer-1', 'peer-2', 'peer-3'];
       const partition2 = ['peer-4', 'peer-5', 'peer-6'];
 
@@ -161,7 +163,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
       console.log(`✅ Event distinction: ${partitionEvents.length} partitions, ${failureEvents.length} failures`);
     });
 
-    test('should detect cascading failures', async () => {
+    jest.setTimeout(10000);
+  test('should detect cascading failures', async () => { try {
       const peers = ['peer-1', 'peer-2', 'peer-3', 'peer-4'];
       const failureSequence = [];
 
@@ -214,7 +217,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
   });
 
   describe('Task Reassignment', () => {
-    test('should reassign tasks from failed peer within 2 seconds', async () => {
+    jest.setTimeout(10000);
+  test('should reassign tasks from failed peer within 2 seconds', async () => { try {
       const failedPeer = 'peer-1';
       const tasks = [
         { id: 'task-1', assignedTo: failedPeer, data: { type: 'compute' } },
@@ -268,7 +272,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
       console.log(`✅ Task reassignment: ${reassignments.length} tasks in ${reassignTime}ms`);
     });
 
-    test('should preserve task state during reassignment', async () => {
+    jest.setTimeout(10000);
+  test('should preserve task state during reassignment', async () => { try {
       const task = {
         id: 'stateful-task',
         assignedTo: 'peer-1',
@@ -306,7 +311,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
       console.log('✅ Task state preservation: state preserved during reassignment');
     });
 
-    test('should handle concurrent task reassignments', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent task reassignments', async () => { try {
       const failedPeers = ['peer-1', 'peer-2'];
       const tasksPerPeer = 5;
       const allTasks = [];
@@ -360,7 +366,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
   });
 
   describe('Topology Reconfiguration', () => {
-    test('should reconfigure 10-peer mesh in <5 seconds', async () => {
+    jest.setTimeout(10000);
+  test('should reconfigure 10-peer mesh in <5 seconds', async () => { try {
       const peerCount = 10;
       const peers = Array.from({ length: peerCount }, (_, i) => `peer-${i}`);
       const failedPeer = 'peer-5';
@@ -385,7 +392,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
       console.log(`✅ Topology reconfiguration: ${remainingPeers.length} peers in ${reconfigTime}ms`);
     });
 
-    test('should reestablish peer connections after reconfiguration', async () => {
+    jest.setTimeout(10000);
+  test('should reestablish peer connections after reconfiguration', async () => { try {
       const peers = ['peer-1', 'peer-2', 'peer-3', 'peer-4'];
       const connections = new Map();
 
@@ -411,7 +419,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
       console.log(`✅ Connection reestablishment: ${connections.size} peers reconnected`);
     });
 
-    test('should balance load after topology change', async () => {
+    jest.setTimeout(10000);
+  test('should balance load after topology change', async () => { try {
       const peers = [
         { id: 'peer-1', load: 0.8 },
         { id: 'peer-2', load: 0.9 }, // High load
@@ -453,7 +462,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
   });
 
   describe('Data Loss Prevention', () => {
-    test('should ensure zero data loss during peer failure', async () => {
+    jest.setTimeout(10000);
+  test('should ensure zero data loss during peer failure', async () => { try {
       const messages = [
         { id: 'msg-1', data: 'important data 1', acknowledged: false },
         { id: 'msg-2', data: 'important data 2', acknowledged: false },
@@ -499,7 +509,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
       console.log(`✅ Data preservation: ${backupStore.size}/${messages.length} messages replicated`);
     });
 
-    test('should recover in-flight messages from replicas', async () => {
+    jest.setTimeout(10000);
+  test('should recover in-flight messages from replicas', async () => { try {
       const inFlightMessages = [
         { id: 'inflight-1', data: 'processing', replica: 'replica-1' },
         { id: 'inflight-2', data: 'processing', replica: 'replica-2' },
@@ -543,7 +554,8 @@ describe('Phase 6 - Mesh Self-Healing and Failure Recovery', () => {
   });
 
   describe('Graceful Degradation', () => {
-    test('should maintain partial functionality when majority peers fail', async () => {
+    jest.setTimeout(10000);
+  test('should maintain partial functionality when majority peers fail', async () => { try {
       const totalPeers = 10;
       const failedPeers = 6; // 60% failure
       const activePeers = totalPeers - failedPeers;

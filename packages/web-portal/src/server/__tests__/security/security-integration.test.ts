@@ -55,18 +55,18 @@ describe('Security Integration (MED-001 + MED-002)', () => {
     app.use(errorHandler);
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await blacklistService.clearAll();
     await blacklistService.close();
     delete process.env.JWT_SECRET;
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     await blacklistService.clearAll();
   });
 
   describe('Complete Authentication Flow', () => {
-    it('should enforce security headers on all responses', async () => {
+    it('should enforce security headers on all responses', async () => { try {
       const response = await request(app).get('/api/protected');
 
       // Verify all security headers present
@@ -77,7 +77,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
       expect(response.headers['permissions-policy']).toBeDefined();
     });
 
-    it('should allow access with valid token', async () => {
+    it('should allow access with valid token', async () => { try {
       const token = jwt.sign(
         {
           jti: 'valid-token',
@@ -97,7 +97,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
       expect(response.body.message).toBe('Access granted');
     });
 
-    it('should deny access after token is blacklisted', async () => {
+    it('should deny access after token is blacklisted', async () => { try {
       const tokenId = 'blacklist-integration';
       const token = jwt.sign(
         {
@@ -131,7 +131,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
       expect(response.body.error.code).toBe('TOKEN_REVOKED');
     });
 
-    it('should allow access with refreshed token', async () => {
+    it('should allow access with refreshed token', async () => { try {
       const oldTokenId = 'old-refresh-token';
       const refreshToken = jwt.sign(
         {
@@ -162,7 +162,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
   });
 
   describe('CORS and Origin Validation', () => {
-    it('should allow requests from configured origin', async () => {
+    it('should allow requests from configured origin', async () => { try {
       const response = await request(app)
         .get('/api/protected')
         .set('Origin', 'http://localhost:3001');
@@ -171,7 +171,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
       expect(response.headers['access-control-allow-credentials']).toBe('true');
     });
 
-    it('should reject requests from unauthorized origin', async () => {
+    it('should reject requests from unauthorized origin', async () => { try {
       const response = await request(app)
         .get('/api/protected')
         .set('Origin', 'https://malicious.com');
@@ -181,7 +181,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
   });
 
   describe('Payload Size Validation', () => {
-    it('should reject oversized payloads', async () => {
+    it('should reject oversized payloads', async () => { try {
       const largePayload = 'x'.repeat(2 * 1024 * 1024); // 2MB
 
       const response = await request(app)
@@ -195,7 +195,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
   });
 
   describe('Token Expiration and Renewal', () => {
-    it('should deny access with expired token', async () => {
+    it('should deny access with expired token', async () => { try {
       const expiredToken = jwt.sign(
         {
           jti: 'expired-token',
@@ -214,7 +214,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
       expect(response.body.error.code).toBe('TOKEN_EXPIRED');
     });
 
-    it('should allow renewal of near-expired token', async () => {
+    it('should allow renewal of near-expired token', async () => { try {
       const nearExpiredRefreshToken = jwt.sign(
         {
           jti: 'near-expired',
@@ -235,7 +235,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
   });
 
   describe('Multi-Device Token Management', () => {
-    it('should allow multiple active tokens from different devices', async () => {
+    it('should allow multiple active tokens from different devices', async () => { try {
       const userId = 'multi-device-user';
 
       // Device 1 token
@@ -265,7 +265,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
       expect(response2.status).toBe(200);
     });
 
-    it('should allow logging out from one device without affecting others', async () => {
+    it('should allow logging out from one device without affecting others', async () => { try {
       const userId = 'selective-logout-user';
 
       // Device 1 token
@@ -303,7 +303,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
   });
 
   describe('Security Header Consistency', () => {
-    it('should apply security headers to all endpoints', async () => {
+    it('should apply security headers to all endpoints', async () => { try {
       const endpoints = [
         '/api/protected',
         '/api/auth/logout',
@@ -321,7 +321,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
   });
 
   describe('Rate Limiting Integration', () => {
-    it('should rate limit authentication endpoints', async () => {
+    it('should rate limit authentication endpoints', async () => { try {
       const token = jwt.sign(
         { jti: 'rate-limit-test', userId: 'user-rate', role: 'user' },
         jwtSecret,
@@ -344,7 +344,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
   });
 
   describe('Error Response Security', () => {
-    it('should not leak sensitive information in error messages', async () => {
+    it('should not leak sensitive information in error messages', async () => { try {
       const response = await request(app)
         .post('/api/auth/refresh')
         .send({ refreshToken: 'invalid-token' });
@@ -355,7 +355,7 @@ describe('Security Integration (MED-001 + MED-002)', () => {
       expect(response.body.error.message).not.toContain('signature');
     });
 
-    it('should provide generic error messages for security events', async () => {
+    it('should provide generic error messages for security events', async () => { try {
       const response = await request(app).get('/api/protected');
 
       expect(response.status).toBe(401);

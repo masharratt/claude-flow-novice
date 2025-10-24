@@ -4,10 +4,21 @@ import os
 import re
 import sys
 import json
+import logging
 from datetime import datetime
+
+import yaml  # Make sure to `pip install PyYAML`
 
 AGENTS_DIR = "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents"
 OUTPUT_FILE = "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/agent-discovery/agents-registry.json"
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 # Mapping agent types to loops
 LOOP_MAPPING = {
@@ -31,35 +42,9 @@ def clean_windows_endings(content):
     """Remove Windows line endings."""
     return content.replace('\r', '')
 
-def parse_yaml_like(yaml_str):
-    """
-    Simple YAML-like parsing for our specific use case.
-    Does not support full YAML spec, just our simple frontmatter.
-    """
-    result = {}
-    for line in yaml_str.split('\n'):
-        line = line.strip()
-        if not line:
-            continue
-
-        # Key-value parsing
-        parts = line.split(':', 1)
-        if len(parts) == 2:
-            key, value = parts[0].strip(), parts[1].strip()
-
-            # Handle list-like values
-            if value.startswith('[') and value.endswith(']'):
-                value = [v.strip().strip("'\"") for v in value[1:-1].split(',')]
-            else:
-                value = value.strip("'\"")
-
-            result[key] = value
-
-    return result
-
 def extract_frontmatter(file_path):
     """
-    Extract and parse frontmatter from markdown file.
+    Extract and parse frontmatter from markdown file using PyYAML.
     Handles multiline descriptions and Windows line endings.
     """
     try:
@@ -68,25 +53,26 @@ def extract_frontmatter(file_path):
             match = re.search(r'^---\n(.*?)\n---', content, re.DOTALL | re.MULTILINE)
 
             if not match:
+                logger.warning(f"No frontmatter found in {file_path}")
                 return None
 
             frontmatter_str = match.group(1)
 
-            # Use our custom parsing
+            # Use PyYAML for robust parsing
             try:
-                frontmatter = parse_yaml_like(frontmatter_str)
+                frontmatter = yaml.safe_load(frontmatter_str)
                 return frontmatter
-            except Exception as e:
-                print(f"Error parsing frontmatter in {file_path}: {e}")
+            except yaml.YAMLError as e:
+                logger.error(f"YAML parsing error in {file_path}: {e}")
                 return None
 
     except Exception as e:
-        print(f"Error reading {file_path}: {e}")
+        logger.error(f"Error reading {file_path}: {e}")
         return None
 
 def determine_loop(agent_type):
     """Determine the loop for an agent type."""
-    agent_type = agent_type.lower()
+    agent_type = str(agent_type).lower()
     return LOOP_MAPPING.get(agent_type, "strategic")
 
 def process_agents():
@@ -120,10 +106,14 @@ def process_agents():
                 continue
 
             # Extract required fields with fallbacks
-            name = frontmatter.get('name', filename.replace('.md', ''))
-            description = frontmatter.get('description', '')
-            agent_type = frontmatter.get('type', 'specialist')
+            name = str(frontmatter.get('name', filename.replace('.md', '')))
+            description = str(frontmatter.get('description', ''))
+            agent_type = str(frontmatter.get('type', 'specialist'))
             keywords = frontmatter.get('keywords', [])
+
+            # Handle potential list conversion
+            if not isinstance(keywords, list):
+                keywords = [keywords] if keywords else []
 
             # Determine loop
             loop = determine_loop(agent_type)
@@ -138,13 +128,8 @@ def process_agents():
                 "file": file_path  # Include file path for tracking
             }
 
-            print(f"DEBUG: Processing agent: {name}")
-            print(f"DEBUG: Agent details:")
-            print(f"  Description: {description}")
-            print(f"  Type: {agent_type}")
-            print(f"  Loop: {loop}")
-            print(f"  Keywords: {keywords}")
-            print(f"  File: {file_path}")
+            logger.info(f"Processing agent: {name}")
+            logger.debug(f"Agent details: {json.dumps(agent_entry, indent=2)}")
 
             agents.append(agent_entry)
 
@@ -160,27 +145,31 @@ def process_agents():
 
     # Write to file
     try:
-        print(f"DEBUG: Output path is {OUTPUT_FILE}")
-        print(f"DEBUG: Total agents before write: {len(agents)}")
-
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
             json.dump(registry, f, indent=2)
 
-        print(f"Agent registry generated: {OUTPUT_FILE}")
-        print(f"Total agents discovered: {len(agents)}")
+        logger.info(f"Agent registry generated: {OUTPUT_FILE}")
+        logger.info(f"Total agents discovered: {len(agents)}")
 
         if skipped_files:
-            print("Skipped files:", ", ".join(skipped_files))
+            logger.warning(f"Skipped files: {', '.join(skipped_files)}")
 
         # Verify file was written
         if os.path.getsize(OUTPUT_FILE) > 0:
-            print("File successfully generated and not empty.")
+            logger.info("File successfully generated and not empty.")
         else:
             raise ValueError("Output file is empty.")
 
     except Exception as e:
-        print(f"Error writing registry: {e}")
+        logger.error(f"Error writing registry: {e}")
+        sys.exit(1)
+
+def main():
+    try:
+        process_agents()
+    except Exception as e:
+        logger.critical(f"Unhandled exception: {e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":
-    process_agents()
+    main()

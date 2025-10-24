@@ -13,16 +13,16 @@ const __dirname = path.dirname(__filename);
 describe('Template Generator', () => {
   const testOutputDir = path.join(__dirname, 'temp-templates');
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     await fs.ensureDir(testOutputDir);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await fs.remove(testOutputDir);
   });
 
   describe('Basic Swarm Template', () => {
-    it('should generate required files', async () => {
+    it('should generate required files', async () => { try {
       const projectName = 'test-swarm';
       const projectPath = path.join(testOutputDir, projectName);
 
@@ -52,7 +52,7 @@ describe('Template Generator', () => {
       }
     });
 
-    it('should include mesh topology configuration', async () => {
+    it('should include mesh topology configuration', async () => { try {
       const config = {
         swarmId: 'basic-swarm-example',
         mode: 'mesh',
@@ -92,7 +92,7 @@ describe('Template Generator', () => {
   });
 
   describe('Custom Agent Template', () => {
-    it('should include agent scaffolding', async () => {
+    it('should include agent scaffolding', async () => { try {
       const projectName = 'test-agent';
       const projectPath = path.join(testOutputDir, projectName);
 

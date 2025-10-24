@@ -70,7 +70,7 @@ describe('Claude API Client - Metrics Integration', () => {
 
   describe('Non-Streaming Request Metrics', () => {
     describe('Line 307-311: claude.api.request counter', () => {
-      it('should increment request counter on sendMessage', async () => {
+      it('should increment request counter on sendMessage', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           json: async () => ({
@@ -92,7 +92,7 @@ describe('Claude API Client - Metrics Integration', () => {
         expect(afterCount).toBeGreaterThan(beforeCount);
       });
 
-      it('should track request with correct tags (model, provider, stream)', async () => {
+      it('should track request with correct tags (model, provider, stream)', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           json: async () => ({
@@ -121,7 +121,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 352-356: claude.api.duration (success)', () => {
-      it('should record duration on successful request', async () => {
+      it('should record duration on successful request', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           json: async () => ({
@@ -156,7 +156,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 360-368: Token usage metrics (input, output, total)', () => {
-      it('should track claude.tokens.input', async () => {
+      it('should track claude.tokens.input', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           json: async () => ({
@@ -178,7 +178,7 @@ describe('Claude API Client - Metrics Integration', () => {
         expect(afterInput - beforeInput).toBeGreaterThanOrEqual(100);
       });
 
-      it('should track claude.tokens.output', async () => {
+      it('should track claude.tokens.output', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           json: async () => ({
@@ -200,7 +200,7 @@ describe('Claude API Client - Metrics Integration', () => {
         expect(afterOutput - beforeOutput).toBeGreaterThanOrEqual(200);
       });
 
-      it('should track claude.tokens.total', async () => {
+      it('should track claude.tokens.total', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           json: async () => ({
@@ -222,7 +222,7 @@ describe('Claude API Client - Metrics Integration', () => {
         expect(afterTotal - beforeTotal).toBeGreaterThanOrEqual(300);
       });
 
-      it('should tag token metrics with model', async () => {
+      it('should tag token metrics with model', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           json: async () => ({
@@ -245,7 +245,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 384-389: claude.api.error counter (on failure)', () => {
-      it('should track errors on API failure', async () => {
+      it('should track errors on API failure', async () => { try {
         mockFetch.mockResolvedValue({
           ok: false,
           status: 500,
@@ -264,7 +264,7 @@ describe('Claude API Client - Metrics Integration', () => {
         expect(afterCount).toBeGreaterThan(beforeCount);
       });
 
-      it('should tag errors with errorType, statusCode, retryable', async () => {
+      it('should tag errors with errorType, statusCode, retryable', async () => { try {
         mockFetch.mockResolvedValue({
           ok: false,
           status: 400,
@@ -288,7 +288,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 393-397: claude.api.duration (error, non-retryable)', () => {
-      it('should record duration on non-retryable error', async () => {
+      it('should record duration on non-retryable error', async () => { try {
         mockFetch.mockResolvedValue({
           ok: false,
           status: 400,
@@ -313,7 +313,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 419-423: claude.api.duration (error, after retries)', () => {
-      it('should record duration after all retries exhausted', async () => {
+      it('should record duration after all retries exhausted', async () => { try {
         mockFetch.mockResolvedValue({
           ok: false,
           status: 500,
@@ -343,7 +343,7 @@ describe('Claude API Client - Metrics Integration', () => {
 
   describe('Streaming Request Metrics', () => {
     describe('Line 439-443: claude.api.request (stream=true)', () => {
-      it('should track streaming request with stream=true tag', async () => {
+      it('should track streaming request with stream=true tag', async () => { try {
         const mockStream = createMockStreamResponse([
           { type: 'message_start', message: { usage: { input_tokens: 10 } } },
           { type: 'content_block_delta', delta: { text: 'test' } },
@@ -371,7 +371,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 473-478: claude.api.error (HTTP error)', () => {
-      it('should track HTTP error in streaming', async () => {
+      it('should track HTTP error in streaming', async () => { try {
         mockFetch.mockResolvedValue({
           ok: false,
           status: 500,
@@ -395,7 +395,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 480-484: claude.api.duration (HTTP error)', () => {
-      it('should record duration on HTTP error', async () => {
+      it('should record duration on HTTP error', async () => { try {
         mockFetch.mockResolvedValue({
           ok: false,
           status: 500,
@@ -423,7 +423,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 492-497: claude.api.error (null body)', () => {
-      it('should track error when response body is null', async () => {
+      it('should track error when response body is null', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           body: null
@@ -450,7 +450,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 499-503: claude.api.duration (null body)', () => {
-      it('should record duration on null body error', async () => {
+      it('should record duration on null body error', async () => { try {
         mockFetch.mockResolvedValue({
           ok: true,
           body: null
@@ -476,7 +476,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 546-550: claude.api.duration (success)', () => {
-      it('should record duration on successful streaming completion', async () => {
+      it('should record duration on successful streaming completion', async () => { try {
         const mockStream = createMockStreamResponse([
           { type: 'message_start', message: { usage: { input_tokens: 10 } } },
           { type: 'content_block_delta', delta: { text: 'test' } },
@@ -504,7 +504,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 553-557: Token metrics (input, output, total) from streaming', () => {
-      it('should track input tokens from message_start event', async () => {
+      it('should track input tokens from message_start event', async () => { try {
         const mockStream = createMockStreamResponse([
           { type: 'message_start', message: { usage: { input_tokens: 150 } } },
           { type: 'message_delta', usage: { output_tokens: 50 } },
@@ -525,7 +525,7 @@ describe('Claude API Client - Metrics Integration', () => {
         expect(afterInput - beforeInput).toBeGreaterThanOrEqual(150);
       });
 
-      it('should track output tokens from message_delta events', async () => {
+      it('should track output tokens from message_delta events', async () => { try {
         const mockStream = createMockStreamResponse([
           { type: 'message_start', message: { usage: { input_tokens: 10 } } },
           { type: 'message_delta', usage: { output_tokens: 25 } },
@@ -547,7 +547,7 @@ describe('Claude API Client - Metrics Integration', () => {
         expect(afterOutput - beforeOutput).toBeGreaterThanOrEqual(50);
       });
 
-      it('should track total tokens from streaming events', async () => {
+      it('should track total tokens from streaming events', async () => { try {
         const mockStream = createMockStreamResponse([
           { type: 'message_start', message: { usage: { input_tokens: 100 } } },
           { type: 'message_delta', usage: { output_tokens: 200 } },
@@ -570,7 +570,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 565-570: claude.api.error (timeout)', () => {
-      it('should track timeout errors', async () => {
+      it('should track timeout errors', async () => { try {
         // Mock AbortError
         const abortError = new Error('The operation was aborted');
         abortError.name = 'AbortError';
@@ -600,7 +600,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 572-576: claude.api.duration (timeout)', () => {
-      it('should record duration on timeout', async () => {
+      it('should record duration on timeout', async () => { try {
         const abortError = new Error('The operation was aborted');
         abortError.name = 'AbortError';
 
@@ -626,7 +626,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 582-588: claude.api.error (generic error)', () => {
-      it('should track generic errors not already instrumented', async () => {
+      it('should track generic errors not already instrumented', async () => { try {
         const genericError = new Error('Generic network error');
         mockFetch.mockRejectedValue(genericError);
 
@@ -647,7 +647,7 @@ describe('Claude API Client - Metrics Integration', () => {
     });
 
     describe('Line 590-594: claude.api.duration (generic error)', () => {
-      it('should record duration on generic error', async () => {
+      it('should record duration on generic error', async () => { try {
         const genericError = new Error('Generic network error');
         mockFetch.mockRejectedValue(genericError);
 
@@ -672,7 +672,7 @@ describe('Claude API Client - Metrics Integration', () => {
   });
 
   describe('Cross-cutting Metric Concerns', () => {
-    it('should track different models separately', async () => {
+    it('should track different models separately', async () => { try {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -696,7 +696,7 @@ describe('Claude API Client - Metrics Integration', () => {
       expect(tags.model).toBe('claude-3-haiku-20240307');
     });
 
-    it('should detect Z.ai provider from apiUrl', async () => {
+    it('should detect Z.ai provider from apiUrl', async () => { try {
       // Create client with Z.ai URL
       const zaiClient = new ClaudeAPIClient(mockLogger, mockConfigManager as any, {
         apiKey: 'test-key',
@@ -726,7 +726,7 @@ describe('Claude API Client - Metrics Integration', () => {
       zaiClient.destroy();
     });
 
-    it('should provide breakdown by error type', async () => {
+    it('should provide breakdown by error type', async () => { try {
       // Trigger multiple error types
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -757,7 +757,7 @@ function createMockStreamResponse(events: any[]) {
 
   let index = 0;
   const mockReader = {
-    read: async () => {
+    read: async () => { try {
       if (index >= chunks.length) {
         return { done: true, value: undefined };
       }

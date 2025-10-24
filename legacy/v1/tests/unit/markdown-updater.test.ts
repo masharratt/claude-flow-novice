@@ -88,7 +88,7 @@ describe('MarkdownUpdater', () => {
   let backupDir: string;
   let logger: Logger;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create temporary directory for tests
     tempDir = path.join(process.cwd(), '.test-tmp', `markdown-updater-${Date.now()}`);
     await fs.promises.mkdir(tempDir, { recursive: true });
@@ -103,7 +103,7 @@ describe('MarkdownUpdater', () => {
     );
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up temp directory
     if (fs.existsSync(tempDir)) {
       await fs.promises.rm(tempDir, { recursive: true, force: true });
@@ -133,7 +133,7 @@ describe('MarkdownUpdater', () => {
   // ===== PARSING TESTS =====
 
   describe('Markdown Parsing', () => {
-    it('should parse phase overview table rows', async () => {
+    it('should parse phase overview table rows', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_OVERVIEW_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -149,7 +149,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toContain('| **Phase 0** | 🔄');
     });
 
-    it('should parse sprint list items', async () => {
+    it('should parse sprint list items', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -165,7 +165,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toContain('🔄 **Sprint 1.1**');
     });
 
-    it('should parse checklist items', async () => {
+    it('should parse checklist items', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -181,7 +181,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toContain('- [x] **SDK installed and configured**');
     });
 
-    it('should handle multiple sections in single update', async () => {
+    it('should handle multiple sections in single update', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -207,7 +207,7 @@ describe('MarkdownUpdater', () => {
   // ===== STATUS UPDATE TESTS =====
 
   describe('Status Updates', () => {
-    it('should update status from NOT_STARTED to IN_PROGRESS', async () => {
+    it('should update status from NOT_STARTED to IN_PROGRESS', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -225,7 +225,7 @@ describe('MarkdownUpdater', () => {
       expect(content).not.toContain('❌ **Sprint 1.1**');
     });
 
-    it('should update status from IN_PROGRESS to COMPLETE', async () => {
+    it('should update status from IN_PROGRESS to COMPLETE', async () => { try {
       const inProgressContent = SPRINT_FILE_CONTENT.replace(
         '❌ **Sprint 1.1**',
         '🔄 **Sprint 1.1**'
@@ -247,7 +247,7 @@ describe('MarkdownUpdater', () => {
       expect(content).not.toContain('🔄 **Sprint 1.1**');
     });
 
-    it('should update phase status with completion percentage', async () => {
+    it('should update phase status with completion percentage', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_OVERVIEW_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -266,7 +266,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toContain('| 50% |');
     });
 
-    it('should update checklist completion state', async () => {
+    it('should update checklist completion state', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -281,7 +281,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toContain('- [x] **Agent Spawning Performance**');
     });
 
-    it('should warn on section not found', async () => {
+    it('should warn on section not found', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -299,7 +299,7 @@ describe('MarkdownUpdater', () => {
   // ===== BACKUP/ROLLBACK TESTS =====
 
   describe('Backup and Rollback', () => {
-    it('should create backup when enabled', async () => {
+    it('should create backup when enabled', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: true });
@@ -319,7 +319,7 @@ describe('MarkdownUpdater', () => {
       expect(backupContent).toContain('❌ **Sprint 1.1**');
     });
 
-    it('should not create backup when disabled', async () => {
+    it('should not create backup when disabled', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -334,7 +334,7 @@ describe('MarkdownUpdater', () => {
       expect(result.backupPath).toBeUndefined();
     });
 
-    it('should rollback on validation failure', async () => {
+    it('should rollback on validation failure', async () => { try {
       // Create invalid markdown that will fail validation
       const invalidContent = SPRINT_FILE_CONTENT + '\n\n[unclosed bracket';
       await fs.promises.writeFile(testFilePath, invalidContent, 'utf-8');
@@ -363,7 +363,7 @@ describe('MarkdownUpdater', () => {
   // ===== VALIDATION TESTS =====
 
   describe('Markdown Validation', () => {
-    it('should validate markdown structure', async () => {
+    it('should validate markdown structure', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({
@@ -383,7 +383,7 @@ describe('MarkdownUpdater', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should detect unmatched brackets', async () => {
+    it('should detect unmatched brackets', async () => { try {
       const invalidContent = '# Test\n\n[unclosed bracket\n\nSome text';
       await fs.promises.writeFile(testFilePath, invalidContent, 'utf-8');
 
@@ -400,7 +400,7 @@ describe('MarkdownUpdater', () => {
       expect(result.errors.some(e => e.includes('Unmatched brackets'))).toBe(true);
     });
 
-    it('should skip validation when disabled', async () => {
+    it('should skip validation when disabled', async () => { try {
       const invalidContent = '# Test\n\n[unclosed bracket';
       await fs.promises.writeFile(testFilePath, invalidContent, 'utf-8');
 
@@ -420,7 +420,7 @@ describe('MarkdownUpdater', () => {
   // ===== ERROR HANDLING TESTS =====
 
   describe('Error Handling', () => {
-    it('should handle non-existent file', async () => {
+    it('should handle non-existent file', async () => { try {
       const nonExistentPath = path.join(tempDir, 'nonexistent.md');
 
       const updater = createMarkdownUpdater({ logger, backupDir });
@@ -433,7 +433,7 @@ describe('MarkdownUpdater', () => {
       expect(result.errors.some(e => e.includes('does not exist'))).toBe(true);
     });
 
-    it('should handle write errors gracefully', async () => {
+    it('should handle write errors gracefully', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       // Make file read-only to trigger write error
@@ -456,7 +456,7 @@ describe('MarkdownUpdater', () => {
   // ===== INTEGRATION HELPER TESTS =====
 
   describe('Integration Helpers', () => {
-    it('updateSprintStatusHook should update sprint', async () => {
+    it('updateSprintStatusHook should update sprint', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -472,7 +472,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toContain('🔄 **Sprint 1.1**');
     });
 
-    it('updatePhaseStatusHook should update phase', async () => {
+    it('updatePhaseStatusHook should update phase', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_OVERVIEW_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -490,7 +490,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toContain('| 50% |');
     });
 
-    it('integration helpers should throw on failure', async () => {
+    it('integration helpers should throw on failure', async () => { try {
       const nonExistentPath = path.join(tempDir, 'nonexistent.md');
 
       const updater = createMarkdownUpdater({ logger, backupDir });
@@ -509,7 +509,7 @@ describe('MarkdownUpdater', () => {
   // ===== ATOMIC WRITE TESTS =====
 
   describe('Atomic Writes', () => {
-    it('should write atomically (temp file then rename)', async () => {
+    it('should write atomically (temp file then rename)', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -527,7 +527,7 @@ describe('MarkdownUpdater', () => {
       expect(tempFiles).toHaveLength(0);
     });
 
-    it('should clean up temp file on write error', async () => {
+    it('should clean up temp file on write error', async () => { try {
       await fs.promises.writeFile(testFilePath, SPRINT_FILE_CONTENT, 'utf-8');
 
       // Make directory read-only to trigger write error
@@ -553,7 +553,7 @@ describe('MarkdownUpdater', () => {
   // ===== HEADING-BASED SPRINT TESTS (NEW) =====
 
   describe('Heading-Based Sprint Sections', () => {
-    it('should parse heading-based sprint sections', async () => {
+    it('should parse heading-based sprint sections', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -571,7 +571,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toContain('**Status**: 🔄 In Progress');
     });
 
-    it('should update multiple heading-based sprints', async () => {
+    it('should update multiple heading-based sprints', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -593,7 +593,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toMatch(/### Sprint 1\.3:.*\n\*\*Status\*\*: ❌/);
     });
 
-    it('should preserve sprint formatting when updating', async () => {
+    it('should preserve sprint formatting when updating', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_FILE_CONTENT, 'utf-8');
 
       const originalContent = await fs.promises.readFile(testFilePath, 'utf-8');
@@ -614,7 +614,7 @@ describe('MarkdownUpdater', () => {
   // ===== PHASE COMPLETION CALCULATION TESTS (NEW) =====
 
   describe('Phase Completion Calculation', () => {
-    it('should calculate phase completion with all sprints not started', async () => {
+    it('should calculate phase completion with all sprints not started', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -626,7 +626,7 @@ describe('MarkdownUpdater', () => {
       expect(result.sprintStatuses).toHaveLength(3);
     });
 
-    it('should calculate phase completion with partial progress', async () => {
+    it('should calculate phase completion with partial progress', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -645,7 +645,7 @@ describe('MarkdownUpdater', () => {
       expect(result.sprintStatuses[1].status).toBe(StatusEmoji.IN_PROGRESS);
     });
 
-    it('should calculate phase completion with all sprints complete', async () => {
+    it('should calculate phase completion with all sprints complete', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -663,7 +663,7 @@ describe('MarkdownUpdater', () => {
       expect(result.status).toBe(StatusEmoji.COMPLETE);
     });
 
-    it('should throw error for non-existent phase file', async () => {
+    it('should throw error for non-existent phase file', async () => { try {
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
 
       await expect(
@@ -675,7 +675,7 @@ describe('MarkdownUpdater', () => {
   // ===== PHASE FILE STATUS UPDATE TESTS (NEW) =====
 
   describe('Phase File Status Updates', () => {
-    it('should update phase-level status in phase file', async () => {
+    it('should update phase-level status in phase file', async () => { try {
       await fs.promises.writeFile(testFilePath, PHASE_FILE_CONTENT, 'utf-8');
 
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
@@ -689,7 +689,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toMatch(/^\*\*Status\*\*: 🔄/m);
     });
 
-    it('should update phase status from IN_PROGRESS to COMPLETE', async () => {
+    it('should update phase status from IN_PROGRESS to COMPLETE', async () => { try {
       const inProgressContent = PHASE_FILE_CONTENT.replace(
         '**Status**: ❌ Not Started',
         '**Status**: 🔄 In Progress'
@@ -706,7 +706,7 @@ describe('MarkdownUpdater', () => {
       expect(content).toMatch(/^\*\*Status\*\*: ✅/m);
     });
 
-    it('should handle missing phase status line', async () => {
+    it('should handle missing phase status line', async () => { try {
       const contentWithoutStatus = `
 # Phase 1: Core Authentication System
 
@@ -727,7 +727,7 @@ Implement foundational JWT-based authentication system.
       expect(result.errors).toContain('Phase-level **Status**: line not found in file');
     });
 
-    it('should handle non-existent phase file', async () => {
+    it('should handle non-existent phase file', async () => { try {
       const updater = createMarkdownUpdater({ logger, backupDir, enableBackup: false });
 
       const result = await updater.updatePhaseFileStatus(

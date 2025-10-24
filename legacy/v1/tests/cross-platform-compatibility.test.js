@@ -105,14 +105,14 @@ class CompatibilityTestSuite {
   async testCoreComponents() {
     console.log('🔧 Testing Core Components...');
 
-    await this.runTest('CLI Commands', async () => {
+    await this.runTest('CLI Commands', async () => { try {
       const commands = ['status', '--help', 'swarm --help', 'hooks --help'];
       for (const cmd of commands) {
         await this.executeCommand(`npm run dev ${cmd}`, { timeout: 10000 });
       }
     });
 
-    await this.runTest('Module Loading', async () => {
+    await this.runTest('Module Loading', async () => { try {
       const modules = [
         'src/cli/main.js',
         'src/swarm/SwarmManager.js',
@@ -123,12 +123,12 @@ class CompatibilityTestSuite {
       for (const module of modules) {
         const testPath = join(projectRoot, module);
         if (existsSync(testPath)) {
-          await this.executeCommand(`node -e "import('${testPath}').then(() => console.log('✓ ${module} loaded')).catch(e => { console.error('✗ ${module} failed:', e.message); process.exit(1) })"`);
+          await this.executeCommand(`node -e "import('${testPath}')await ( => console.log('✓ ${module} loaded')).catch(e => { console.error('✗ ${module} failed:', e.message); process.exit(1) })"`);
         }
       }
     });
 
-    await this.runTest('Dependency Resolution', async () => {
+    await this.runTest('Dependency Resolution', async () => { try {
       await this.executeCommand('npm list --depth=0', { timeout: 30000 });
     });
   }
@@ -136,7 +136,7 @@ class CompatibilityTestSuite {
   async testFileOperations() {
     console.log('📁 Testing File Operations...');
 
-    await this.runTest('Path Handling', async () => {
+    await this.runTest('Path Handling', async () => { try {
       const pathTests = [
         { path: '.', desc: 'Current directory' },
         { path: '..', desc: 'Parent directory' },
@@ -154,7 +154,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('File Permissions', async () => {
+    await this.runTest('File Permissions', async () => { try {
       const testFile = join(projectRoot, 'test-permissions.tmp');
       try {
         writeFileSync(testFile, 'test');
@@ -167,7 +167,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('Cross-Platform Paths', async () => {
+    await this.runTest('Cross-Platform Paths', async () => { try {
       const pathSepTests = [
         join('a', 'b', 'c'),
         normalize('a/b/c'),
@@ -185,7 +185,7 @@ class CompatibilityTestSuite {
   async testProcessManagement() {
     console.log('⚙️  Testing Process Management...');
 
-    await this.runTest('Process Spawning', async () => {
+    await this.runTest('Process Spawning', async () => { try {
       const testScript = `
         setTimeout(() => {
           console.log('Process spawned successfully');
@@ -205,7 +205,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('Signal Handling', async () => {
+    await this.runTest('Signal Handling', async () => { try {
       const signalScript = `
         process.on('SIGINT', () => {
           console.log('SIGINT received');
@@ -232,7 +232,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('Environment Variables', async () => {
+    await this.runTest('Environment Variables', async () => { try {
       const envTest = process.env.NODE_ENV || 'development';
       const pathTest = process.env.PATH || '';
 
@@ -245,7 +245,7 @@ class CompatibilityTestSuite {
   async testNetworkOperations() {
     console.log('🌐 Testing Network Operations...');
 
-    await this.runTest('HTTP Server', async () => {
+    await this.runTest('HTTP Server', async () => { try {
       const serverScript = `
         import { createServer } from 'http';
 
@@ -275,7 +275,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('WebSocket Connection', async () => {
+    await this.runTest('WebSocket Connection', async () => { try {
       const wsScript = `
         import { WebSocketServer } from 'ws';
 
@@ -311,7 +311,7 @@ class CompatibilityTestSuite {
   async testRedisIntegration() {
     console.log('🔴 Testing Redis Integration...');
 
-    await this.runTest('Redis Connection', async () => {
+    await this.runTest('Redis Connection', async () => { try {
       const redisScript = `
         import Redis from 'ioredis';
 
@@ -332,7 +332,7 @@ class CompatibilityTestSuite {
           process.exit(1);
         });
 
-        redis.connect().then(() => {
+        redis.connect()await ( => {
           console.log('Redis connection successful');
           redis.disconnect();
           process.exit(0);
@@ -354,7 +354,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('Redis Pub/Sub', async () => {
+    await this.runTest('Redis Pub/Sub', async () => { try {
       const pubSubScript = `
         import Redis from 'ioredis';
 
@@ -364,7 +364,7 @@ class CompatibilityTestSuite {
         Promise.all([
           pub.connect(),
           sub.connect()
-        ]).then(() => {
+        ])await ( => {
           sub.subscribe('test-channel', (err, count) => {
             if (err) {
               console.error('Subscribe error:', err);
@@ -402,7 +402,7 @@ class CompatibilityTestSuite {
   async testAuthentication() {
     console.log('🔐 Testing Authentication...');
 
-    await this.runTest('JWT Token Generation', async () => {
+    await this.runTest('JWT Token Generation', async () => { try {
       const jwtScript = `
         import jwt from 'jsonwebtoken';
 
@@ -435,7 +435,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('Password Hashing', async () => {
+    await this.runTest('Password Hashing', async () => { try {
       const bcryptScript = `
         import bcrypt from 'bcrypt';
 
@@ -473,7 +473,7 @@ class CompatibilityTestSuite {
   async testDashboardFeatures() {
     console.log('📊 Testing Dashboard Features...');
 
-    await this.runTest('Dashboard Server Startup', async () => {
+    await this.runTest('Dashboard Server Startup', async () => { try {
       const dashboardScript = `
         import { createServer } from 'http';
         import { Server as SocketIOServer } from 'socket.io';
@@ -508,7 +508,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('Real-time Updates', async () => {
+    await this.runTest('Real-time Updates', async () => { try {
       const realtimeScript = `
         import { createServer } from 'http';
         import { Server as SocketIOServer } from 'socket.io';
@@ -555,7 +555,7 @@ class CompatibilityTestSuite {
   async testSwarmExecution() {
     console.log('🐝 Testing Swarm Execution...');
 
-    await this.runTest('Swarm Initialization', async () => {
+    await this.runTest('Swarm Initialization', async () => { try {
       const swarmScript = `
         try {
           const swarmId = 'test-swarm-' + Date.now();
@@ -587,7 +587,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('Agent Communication', async () => {
+    await this.runTest('Agent Communication', async () => { try {
       const agentScript = `
         const EventEmitter = require('events');
 
@@ -662,7 +662,7 @@ class CompatibilityTestSuite {
   async testPerformanceCharacteristics() {
     console.log('⚡ Testing Performance Characteristics...');
 
-    await this.runTest('Memory Usage', async () => {
+    await this.runTest('Memory Usage', async () => { try {
       const memoryScript = `
         const used = process.memoryUsage();
 
@@ -694,7 +694,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('CPU Performance', async () => {
+    await this.runTest('CPU Performance', async () => { try {
       const cpuScript = `
         const start = Date.now();
         let iterations = 0;
@@ -731,7 +731,7 @@ class CompatibilityTestSuite {
   async testSecurityFeatures() {
     console.log('🛡️  Testing Security Features...');
 
-    await this.runTest('Input Validation', async () => {
+    await this.runTest('Input Validation', async () => { try {
       const validationScript = `
         const maliciousInputs = [
           '<script>alert("xss")</script>',
@@ -778,7 +778,7 @@ class CompatibilityTestSuite {
       }
     });
 
-    await this.runTest('Rate Limiting', async () => {
+    await this.runTest('Rate Limiting', async () => { try {
       const rateLimitScript = `
         const rateLimiter = {
           requests: new Map(),

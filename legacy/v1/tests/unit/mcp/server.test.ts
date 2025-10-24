@@ -16,7 +16,7 @@ describe('MCPServer', () => {
   let eventBus: EventBus;
   let config: MCPConfig;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     logger = new Logger();
     await logger.configure({
       level: 'debug',
@@ -46,7 +46,7 @@ describe('MCPServer', () => {
     server = new MCPServer(config, eventBus, logger);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (server) {
       await server.stop();
     }
@@ -69,7 +69,7 @@ describe('MCPServer', () => {
       expect(typeof server.getHealthStatus).toBe('function');
     });
 
-    it('should handle stop when not running', async () => {
+    it('should handle stop when not running', async () => { try {
       // Should not throw
       await server.stop();
     });
@@ -115,7 +115,7 @@ describe('MCPServer', () => {
   });
 
   describe('Health and Metrics', () => {
-    it('should provide health status without starting', async () => {
+    it('should provide health status without starting', async () => { try {
       const healthStatus = await server.getHealthStatus();
       expect(healthStatus).toBeDefined();
       expect(healthStatus.healthy).toBeDefined();
@@ -179,4 +179,4 @@ describe('MCPServer', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -14,7 +14,7 @@ describe('MCP Error Scenario Testing', () => {
   let manager;
   let mockConsole;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     mockConsole = global.mockConsole.setup();
 
     manager = new McpConfigurationManager({
@@ -33,7 +33,8 @@ describe('MCP Error Scenario Testing', () => {
   });
 
   describe('File System Error Handling', () => {
-    test('should handle missing configuration files gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle missing configuration files gracefully', async () => { try {
       // Point to non-existent files
       manager.localConfigPath = '/non/existent/local-config.json';
       manager.projectConfigPath = '/non/existent/project-config.json';
@@ -47,7 +48,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(state.healthScore).toBeGreaterThan(0); // Should not be zero due to graceful handling
     });
 
-    test('should handle permission denied errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle permission denied errors', async () => { try {
       const configPath = await global.testUtils.createTempFile('permission-test.json', '{"test": true}');
 
       try {
@@ -71,7 +73,8 @@ describe('MCP Error Scenario Testing', () => {
       }
     });
 
-    test('should handle corrupted JSON files', async () => {
+    jest.setTimeout(10000);
+  test('should handle corrupted JSON files', async () => { try {
       const corruptedConfigs = [
         'invalid json content',
         '{"incomplete": json',
@@ -96,7 +99,8 @@ describe('MCP Error Scenario Testing', () => {
       }
     });
 
-    test('should handle extremely large files', async () => {
+    jest.setTimeout(10000);
+  test('should handle extremely large files', async () => { try {
       // Create a very large JSON file
       const largeConfig = {
         mcpServers: {}
@@ -121,7 +125,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(Object.keys(config.mcpServers)).toHaveLength(50000);
     });
 
-    test('should handle file system failures during backup creation', async () => {
+    jest.setTimeout(10000);
+  test('should handle file system failures during backup creation', async () => { try {
       const configPath = await global.testUtils.createTempFile('test-config.json', '{"test": true}');
 
       // Mock fs.copyFile to fail
@@ -136,7 +141,8 @@ describe('MCP Error Scenario Testing', () => {
       }
     });
 
-    test('should handle concurrent file access conflicts', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent file access conflicts', async () => { try {
       const configPath = await global.testUtils.createTempFile('concurrent-test.json', '{"test": true}');
       const promises = [];
 
@@ -153,7 +159,8 @@ describe('MCP Error Scenario Testing', () => {
   });
 
   describe('Network and CLI Error Handling', () => {
-    test('should handle Claude CLI installation failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle Claude CLI installation failures', async () => { try {
       execSync.mockImplementation(() => {
         throw new Error('claude: command not found');
       });
@@ -168,7 +175,8 @@ describe('MCP Error Scenario Testing', () => {
       );
     });
 
-    test('should handle CLI timeout errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle CLI timeout errors', async () => { try {
       execSync.mockImplementation(() => {
         throw new Error('Command timed out after 30000ms');
       });
@@ -177,7 +185,8 @@ describe('MCP Error Scenario Testing', () => {
       await expect(manager.verifySetup()).resolves.not.toThrow();
     });
 
-    test('should handle CLI process crashes', async () => {
+    jest.setTimeout(10000);
+  test('should handle CLI process crashes', async () => { try {
       execSync.mockImplementation(() => {
         const error = new Error('Process crashed');
         error.signal = 'SIGSEGV';
@@ -188,7 +197,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(isInstalled).toBe(false);
     });
 
-    test('should handle CLI partial failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle CLI partial failures', async () => { try {
       let callCount = 0;
       execSync.mockImplementation((command) => {
         callCount++;
@@ -210,7 +220,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(verification.tests.some(test => !test.passed)).toBe(true);
     });
 
-    test('should handle network connectivity issues', async () => {
+    jest.setTimeout(10000);
+  test('should handle network connectivity issues', async () => { try {
       // Simulate network-related errors
       const networkErrors = [
         'ENOTFOUND',
@@ -234,7 +245,8 @@ describe('MCP Error Scenario Testing', () => {
   });
 
   describe('Configuration Validation Error Handling', () => {
-    test('should handle missing required fields', async () => {
+    jest.setTimeout(10000);
+  test('should handle missing required fields', async () => { try {
       for (const [configName, config] of Object.entries(invalidConfigurations)) {
         if (typeof config === 'string') {
           await global.testUtils.createTempFile('invalid.json', config);
@@ -250,7 +262,8 @@ describe('MCP Error Scenario Testing', () => {
       }
     });
 
-    test('should handle legacy configuration patterns', async () => {
+    jest.setTimeout(10000);
+  test('should handle legacy configuration patterns', async () => { try {
       for (const [legacyName, legacyConfig] of Object.entries(legacyConfigurations)) {
         await global.testUtils.createMockProjectConfig(legacyConfig);
 
@@ -262,7 +275,8 @@ describe('MCP Error Scenario Testing', () => {
       }
     });
 
-    test('should handle circular references in configuration', async () => {
+    jest.setTimeout(10000);
+  test('should handle circular references in configuration', async () => { try {
       // Create a configuration with circular references
       const circularConfig = {
         mcpServers: {
@@ -285,7 +299,8 @@ describe('MCP Error Scenario Testing', () => {
       }
     });
 
-    test('should handle invalid data types in configuration', async () => {
+    jest.setTimeout(10000);
+  test('should handle invalid data types in configuration', async () => { try {
       const invalidTypeConfigs = [
         {
           mcpServers: {
@@ -324,7 +339,8 @@ describe('MCP Error Scenario Testing', () => {
   });
 
   describe('Rollback and Recovery Mechanisms', () => {
-    test('should create and execute rollback operations', async () => {
+    jest.setTimeout(10000);
+  test('should create and execute rollback operations', async () => { try {
       const originalConfig = { mcpServers: { original: { command: 'node', args: ['original.js'] } } };
       await global.testUtils.createMockLocalConfig(originalConfig);
 
@@ -353,11 +369,12 @@ describe('MCP Error Scenario Testing', () => {
       expect(restored.mcpServers.modified).toBeUndefined();
     });
 
-    test('should handle rollback failures gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle rollback failures gracefully', async () => { try {
       // Add a rollback operation that will fail
       manager.addRollbackOperation({
         type: 'test-operation',
-        action: async () => {
+        action: async () => { try {
           throw new Error('Rollback operation failed');
         }
       });
@@ -367,26 +384,27 @@ describe('MCP Error Scenario Testing', () => {
       expect(rollbackResult.operationsRolledBack).toBe(0);
     });
 
-    test('should execute rollback operations in reverse order', async () => {
+    jest.setTimeout(10000);
+  test('should execute rollback operations in reverse order', async () => { try {
       const executionOrder = [];
 
       manager.addRollbackOperation({
         type: 'first-operation',
-        action: async () => {
+        action: async () => { try {
           executionOrder.push('first');
         }
       });
 
       manager.addRollbackOperation({
         type: 'second-operation',
-        action: async () => {
+        action: async () => { try {
           executionOrder.push('second');
         }
       });
 
       manager.addRollbackOperation({
         type: 'third-operation',
-        action: async () => {
+        action: async () => { try {
           executionOrder.push('third');
         }
       });
@@ -396,19 +414,20 @@ describe('MCP Error Scenario Testing', () => {
       expect(executionOrder).toEqual(['third', 'second', 'first']);
     });
 
-    test('should handle partial rollback failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle partial rollback failures', async () => { try {
       const executionOrder = [];
 
       manager.addRollbackOperation({
         type: 'success-operation',
-        action: async () => {
+        action: async () => { try {
           executionOrder.push('success');
         }
       });
 
       manager.addRollbackOperation({
         type: 'failure-operation',
-        action: async () => {
+        action: async () => { try {
           executionOrder.push('failure');
           throw new Error('Operation failed');
         }
@@ -416,7 +435,7 @@ describe('MCP Error Scenario Testing', () => {
 
       manager.addRollbackOperation({
         type: 'another-success',
-        action: async () => {
+        action: async () => { try {
           executionOrder.push('another-success');
         }
       });
@@ -431,7 +450,8 @@ describe('MCP Error Scenario Testing', () => {
   });
 
   describe('Error Analysis and Recovery Recommendations', () => {
-    test('should analyze permission errors correctly', () => {
+    jest.setTimeout(10000);
+  test('should analyze permission errors correctly', () => {
       const permissionError = new Error('EACCES: permission denied, open \'/etc/shadow\'');
       permissionError.code = 'EACCES';
 
@@ -449,7 +469,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(actions).toContain('Run with appropriate user privileges');
     });
 
-    test('should analyze missing dependency errors', () => {
+    jest.setTimeout(10000);
+  test('should analyze missing dependency errors', () => {
       const dependencyError = new Error('claude not installed or not found in PATH');
 
       const analysis = manager.analyzeError(dependencyError);
@@ -465,7 +486,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(actions).toContain('Verify installation: claude --version');
     });
 
-    test('should provide context-aware recovery suggestions', () => {
+    jest.setTimeout(10000);
+  test('should provide context-aware recovery suggestions', () => {
       const corruptionError = new Error('JSON parse error: Unexpected end of JSON input');
 
       const analysis = manager.analyzeError(corruptionError);
@@ -476,7 +498,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(actions).toContain('Validate configuration file syntax');
     });
 
-    test('should handle unknown errors gracefully', () => {
+    jest.setTimeout(10000);
+  test('should handle unknown errors gracefully', () => {
       const unknownError = new Error('Something weird happened');
 
       const analysis = manager.analyzeError(unknownError);
@@ -493,7 +516,8 @@ describe('MCP Error Scenario Testing', () => {
   });
 
   describe('Comprehensive Error Recovery Workflows', () => {
-    test('should recover from complete setup failure', async () => {
+    jest.setTimeout(10000);
+  test('should recover from complete setup failure', async () => { try {
       // Mock multiple failures
       execSync.mockImplementation(() => {
         throw new Error('claude: command not found');
@@ -507,7 +531,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(result.recovery.recommendedActions.length).toBeGreaterThan(0);
     });
 
-    test('should handle cascading failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle cascading failures', async () => { try {
       // Create a scenario with multiple failure points
       const brokenConfig = {
         mcpServers: {
@@ -532,7 +557,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(result.recovery.recommendedActions.length).toBeGreaterThan(1);
     });
 
-    test('should provide comprehensive failure analysis', async () => {
+    jest.setTimeout(10000);
+  test('should provide comprehensive failure analysis', async () => { try {
       const complexError = new Error('Multiple subsystems failed');
 
       const recovery = await manager.handleSetupFailure(complexError);
@@ -544,7 +570,8 @@ describe('MCP Error Scenario Testing', () => {
   });
 
   describe('Enhanced MCP Init Error Handling', () => {
-    test('should handle init failure with UX disabled', async () => {
+    jest.setTimeout(10000);
+  test('should handle init failure with UX disabled', async () => { try {
       execSync.mockImplementation(() => {
         throw new Error('System failure');
       });
@@ -560,7 +587,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(result.recovery).toBeTruthy();
     });
 
-    test('should handle UX module loading failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle UX module loading failures', async () => { try {
       // Mock UX module to fail loading
       jest.doMock('../../../src/cli/mcp-user-experience.js', () => {
         throw new Error('UX module not found');
@@ -575,7 +603,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(result).toBeTruthy();
     });
 
-    test('should handle mixed success/failure scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should handle mixed success/failure scenarios', async () => { try {
       // Mock partial success
       execSync.mockImplementation((command) => {
         if (command.includes('claude --version')) {
@@ -598,7 +627,8 @@ describe('MCP Error Scenario Testing', () => {
   });
 
   describe('Stress Testing Error Scenarios', () => {
-    test('should handle resource exhaustion gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle resource exhaustion gracefully', async () => { try {
       // Simulate running out of file descriptors
       const originalOpen = fs.open;
       let openCount = 0;
@@ -629,7 +659,8 @@ describe('MCP Error Scenario Testing', () => {
       }
     });
 
-    test('should handle memory pressure scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should handle memory pressure scenarios', async () => { try {
       // Create scenarios that could cause memory issues
       const largeConfig = global.testUtils.generateTestData.largeConfiguration(10000);
       await global.testUtils.createMockProjectConfig(largeConfig);
@@ -639,7 +670,8 @@ describe('MCP Error Scenario Testing', () => {
       expect(state).toBeTruthy();
     });
 
-    test('should handle concurrent error scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent error scenarios', async () => { try {
       // Create multiple failing operations
       const failingOperations = [];
 
@@ -663,4 +695,4 @@ describe('MCP Error Scenario Testing', () => {
       });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

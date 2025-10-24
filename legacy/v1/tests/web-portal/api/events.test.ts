@@ -14,7 +14,7 @@ import { transparencyService } from '../../../packages/web-portal/src/server/ser
 describe('Events API Endpoint', () => {
   let app: Express;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     app = express();
     app.use(express.json());
     app.use('/api/events', eventsRouter);
@@ -24,7 +24,7 @@ describe('Events API Endpoint', () => {
   });
 
   describe('GET /api/events', () => {
-    it('should return paginated events with default params', async () => {
+    it('should return paginated events with default params', async () => { try {
       const response = await request(app).get('/api/events').expect(200);
 
       expect(response.body).toHaveProperty('data');
@@ -40,7 +40,7 @@ describe('Events API Endpoint', () => {
       expect(pagination.limit).toBe(50);
     });
 
-    it('should handle custom page and limit', async () => {
+    it('should handle custom page and limit', async () => { try {
       const response = await request(app)
         .get('/api/events?page=2&limit=25')
         .expect(200);
@@ -50,7 +50,7 @@ describe('Events API Endpoint', () => {
       expect(pagination.limit).toBe(25);
     });
 
-    it('should reject invalid page number', async () => {
+    it('should reject invalid page number', async () => { try {
       const response = await request(app)
         .get('/api/events?page=0')
         .expect(400);
@@ -59,7 +59,7 @@ describe('Events API Endpoint', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should reject limit exceeding 1000', async () => {
+    it('should reject limit exceeding 1000', async () => { try {
       const response = await request(app)
         .get('/api/events?limit=1001')
         .expect(400);
@@ -68,7 +68,7 @@ describe('Events API Endpoint', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should filter by event type', async () => {
+    it('should filter by event type', async () => { try {
       const response = await request(app)
         .get('/api/events?type=spawned')
         .expect(200);
@@ -77,7 +77,7 @@ describe('Events API Endpoint', () => {
       expect(Array.isArray(response.body.data)).toBe(true);
     });
 
-    it('should filter by severity', async () => {
+    it('should filter by severity', async () => { try {
       const response = await request(app)
         .get('/api/events?severity=critical')
         .expect(200);
@@ -85,7 +85,7 @@ describe('Events API Endpoint', () => {
       expect(response.body).toHaveProperty('data');
     });
 
-    it('should reject invalid severity', async () => {
+    it('should reject invalid severity', async () => { try {
       const response = await request(app)
         .get('/api/events?severity=invalid')
         .expect(400);
@@ -93,7 +93,7 @@ describe('Events API Endpoint', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should filter by agent ID', async () => {
+    it('should filter by agent ID', async () => { try {
       const response = await request(app)
         .get('/api/events?agentId=test-agent-id')
         .expect(200);
@@ -101,7 +101,7 @@ describe('Events API Endpoint', () => {
       expect(response.body).toHaveProperty('data');
     });
 
-    it('should filter by time range', async () => {
+    it('should filter by time range', async () => { try {
       const startTime = new Date(Date.now() - 3600000).toISOString();
       const endTime = new Date().toISOString();
 
@@ -112,7 +112,7 @@ describe('Events API Endpoint', () => {
       expect(response.body).toHaveProperty('data');
     });
 
-    it('should return events sorted newest first', async () => {
+    it('should return events sorted newest first', async () => { try {
       const response = await request(app).get('/api/events?limit=10').expect(200);
 
       const { data } = response.body;
@@ -123,7 +123,7 @@ describe('Events API Endpoint', () => {
       }
     });
 
-    it('should calculate correct pagination metadata', async () => {
+    it('should calculate correct pagination metadata', async () => { try {
       const response = await request(app).get('/api/events?limit=10').expect(200);
 
       const { pagination } = response.body;

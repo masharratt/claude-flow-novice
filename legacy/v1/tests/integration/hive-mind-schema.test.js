@@ -18,7 +18,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
   let dbPath;
   let db;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create temporary test directory
     testDir = path.join(os.tmpdir(), `claude-flow-hive-test-${Date.now()}`);
     await fs.mkdir(testDir, { recursive: true });
@@ -28,7 +28,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
     dbPath = path.join(testDir, '.hive-mind', 'hive.db');
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Close database if open
     if (db && db.open) {
       db.close();
@@ -40,7 +40,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
   });
 
   describe('Database Initialization via Init Command', () => {
-    it('should create database with correct schema through init command', async () => {
+    it('should create database with correct schema through init command', async () => { try {
       // Run init command
       execSync('npx claude-flow init', {
         cwd: testDir,
@@ -49,7 +49,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
       });
 
       // Verify database file exists
-      const dbExists = await fs.access(dbPath).then(() => true).catch(() => false);
+      const dbExists = await fs.access(dbPath)await ( => true).catch(() => false);
       expect(dbExists).toBe(true);
 
       // Open database and check schema
@@ -69,7 +69,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
       expect(roleColumn.notnull).toBe(0); // 0 means NULL is allowed, 1 means NOT NULL
     });
 
-    it('should allow inserting agents without role value', async () => {
+    it('should allow inserting agents without role value', async () => { try {
       // Run init command
       execSync('npx claude-flow init', {
         cwd: testDir,
@@ -106,7 +106,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
       expect(agent.role).toBeNull(); // Role should be NULL when not provided
     });
 
-    it('should allow inserting agents with role value', async () => {
+    it('should allow inserting agents with role value', async () => { try {
       // Run init command
       execSync('npx claude-flow init', {
         cwd: testDir,
@@ -140,7 +140,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
   });
 
   describe('Direct Database Schema Tests', () => {
-    it('should create agents table with nullable role column', async () => {
+    it('should create agents table with nullable role column', async () => { try {
       // Create .hive-mind directory
       await fs.mkdir(path.join(testDir, '.hive-mind'), { recursive: true });
       
@@ -182,7 +182,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
       expect(roleColumn.dflt_value).toBeNull(); // No default value
     });
 
-    it('should handle schema migration from NOT NULL to nullable', async () => {
+    it('should handle schema migration from NOT NULL to nullable', async () => { try {
       // Create .hive-mind directory
       await fs.mkdir(path.join(testDir, '.hive-mind'), { recursive: true });
       
@@ -247,7 +247,7 @@ describe('Hive Mind Database Schema - Issue #403', () => {
   });
 
   describe('Schema Consistency Tests', () => {
-    it('should have consistent schema across all database creation paths', async () => {
+    it('should have consistent schema across all database creation paths', async () => { try {
       // Test schema from init command
       execSync('npx claude-flow init', {
         cwd: testDir,
@@ -276,4 +276,4 @@ describe('Hive Mind Database Schema - Issue #403', () => {
       });
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

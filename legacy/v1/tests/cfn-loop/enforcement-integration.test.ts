@@ -8,21 +8,21 @@ import { createClient } from 'redis';
 describe('CFN Loop Enforcement - E2E Integration', () => {
   let redis, monitor;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     redis = createClient();
     await redis.connect();
 
-    monitor = new CFNComplianceMonitor({ autoCorrect: true });
+    monitor = new CFNComplianceMonitor({ autoCorrect: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     await monitor.start();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await monitor.stop();
     await redis.quit();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Standard Mode - Full Loop Execution', () => {
-    it('should enforce CFN rules throughout complete loop cycle', async () => {
+    it('should enforce CFN rules throughout complete loop cycle', async () => { try {
       const phaseId = 'test-phase-integration';
       const mode = 'standard';
 
@@ -52,11 +52,11 @@ describe('CFN Loop Enforcement - E2E Integration', () => {
       expect(validation.decision.action).toBe('LOOP');
 
       // Additional assertion sequences testing loop mechanics
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Violation Scenarios', () => {
-    it('should detect and correct LOOP with permission request', async () => {
+    it('should detect and correct LOOP with permission request', async () => { try {
       const invalidDecision = {
         action: 'LOOP',
         requestedPermission: true,
@@ -75,6 +75,6 @@ describe('CFN Loop Enforcement - E2E Integration', () => {
       expect(validation.corrected).toBe(true);
       expect(validation.decision.requestedPermission).toBe(false);
       expect(validation.decision.executeImmediately).toBe(true);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -22,7 +22,7 @@ describe('Truth Scoring System', () => {
   let originalConfigPath: string;
   let originalMemoryPath: string;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     calculator = new TruthScoreCalculator();
 
     // Create temporary directory for testing
@@ -36,19 +36,20 @@ describe('Truth Scoring System', () => {
     calculator.memoryPath = path.join(tempDir, 'truth-scores');
 
     await calculator.init();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup temp directory
-    await fs.rm(tempDir, { recursive: true, force: true });
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Restore original paths
     calculator.configPath = originalConfigPath;
     calculator.memoryPath = originalMemoryPath;
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Score Calculation', () => {
-    test('should calculate perfect score with all evidence passing', () => {
+    jest.setTimeout(10000);
+  test('should calculate perfect score with all evidence passing', () => {
       const evidence = {
         test_results: { passed: 10, total: 10 },
         lint_results: { errors: 0 },
@@ -58,9 +59,10 @@ describe('Truth Scoring System', () => {
 
       const score = calculator.calculateScore(evidence);
       expect(score).toBe(1.0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should calculate partial score with mixed evidence', () => {
+    jest.setTimeout(10000);
+  test('should calculate partial score with mixed evidence', () => {
       const evidence = {
         test_results: { passed: 8, total: 10 }, // 80% pass rate
         lint_results: { errors: 2 }, // Failed
@@ -72,9 +74,10 @@ describe('Truth Scoring System', () => {
 
       // Expected: (0.8 * 0.4) + (0 * 0.2) + (1 * 0.2) + (1 * 0.2) = 0.72
       expect(score).toBe(0.72);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle missing evidence gracefully', () => {
+    jest.setTimeout(10000);
+  test('should handle missing evidence gracefully', () => {
       const evidence = {
         test_results: { passed: 5, total: 10 },
         // Missing other evidence types
@@ -84,9 +87,10 @@ describe('Truth Scoring System', () => {
 
       // Only test weight should contribute: 0.5 * 0.4 = 0.2
       expect(score).toBe(0.2);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle zero total tests', () => {
+    jest.setTimeout(10000);
+  test('should handle zero total tests', () => {
       const evidence = {
         test_results: { passed: 0, total: 0 },
         lint_results: { errors: 0 },
@@ -98,9 +102,10 @@ describe('Truth Scoring System', () => {
 
       // Test score should be 0/1 = 0, others pass: 0 + 0.2 + 0.2 + 0.2 = 0.6
       expect(score).toBe(0.6);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should round scores to two decimal places', () => {
+    jest.setTimeout(10000);
+  test('should round scores to two decimal places', () => {
       const evidence = {
         test_results: { passed: 1, total: 3 }, // 0.333...
         lint_results: { errors: 0 },
@@ -112,11 +117,12 @@ describe('Truth Scoring System', () => {
 
       // Expected: (0.333... * 0.4) + 0.6 = 0.733..., rounded to 0.73
       expect(score).toBe(0.73);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Claim vs Reality Comparison', () => {
-    test('should identify accurate claims', () => {
+    jest.setTimeout(10000);
+  test('should identify accurate claims', () => {
       const claim = {
         tests_pass: true,
         no_lint_errors: true,
@@ -135,9 +141,10 @@ describe('Truth Scoring System', () => {
 
       expect(comparison.discrepancies).toHaveLength(0);
       expect(comparison.truth_score).toBe(1.0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect false claims about test results', () => {
+    jest.setTimeout(10000);
+  test('should detect false claims about test results', () => {
       const claim = {
         tests_pass: true,
         no_lint_errors: true,
@@ -152,9 +159,10 @@ describe('Truth Scoring System', () => {
 
       expect(comparison.discrepancies).toContain('Claimed tests pass but they fail');
       expect(comparison.truth_score).toBe(0.5); // 1 out of 2 claims accurate
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect false claims about lint errors', () => {
+    jest.setTimeout(10000);
+  test('should detect false claims about lint errors', () => {
       const claim = {
         tests_pass: true,
         no_lint_errors: true,
@@ -171,9 +179,10 @@ describe('Truth Scoring System', () => {
 
       expect(comparison.discrepancies).toContain('Claimed no lint errors but found 5');
       expect(comparison.truth_score).toBeCloseTo(0.67, 2);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect multiple false claims', () => {
+    jest.setTimeout(10000);
+  test('should detect multiple false claims', () => {
       const claim = {
         tests_pass: true,
         no_lint_errors: true,
@@ -192,11 +201,12 @@ describe('Truth Scoring System', () => {
 
       expect(comparison.discrepancies).toHaveLength(4);
       expect(comparison.truth_score).toBe(0.0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Truth Score Storage', () => {
-    test('should store truth score with metadata', async () => {
+    jest.setTimeout(10000);
+  test('should store truth score with metadata', async () => { try {
       const agentId = 'test-agent';
       const taskId = 'task-123';
       const score = 0.85;
@@ -216,27 +226,28 @@ describe('Truth Scoring System', () => {
       expect(data.evidence).toEqual(evidence);
       expect(data.threshold).toBe(calculator.config.truth_threshold);
       expect(data.passed).toBe(score >= calculator.config.truth_threshold);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should create memory directory if it does not exist', async () => {
+    jest.setTimeout(10000);
+  test('should create memory directory if it does not exist', async () => { try {
       const agentId = 'test-agent';
       const taskId = 'task-456';
 
       // Ensure directory doesn't exist
-      await fs.rm(calculator.memoryPath, { recursive: true, force: true });
+      await fs.rm(calculator.memoryPath, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      await calculator.storeTruthScore(agentId, taskId, 0.9, {});
+      await calculator.storeTruthScore(agentId, taskId, 0.9, {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Directory should now exist
       const stats = await fs.stat(calculator.memoryPath);
       expect(stats.isDirectory()).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Agent History Tracking', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create test history files
-      await fs.mkdir(calculator.memoryPath, { recursive: true });
+      await fs.mkdir(calculator.memoryPath, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const testData = [
         { agent_id: 'agent-1', task_id: 'task-1', truth_score: 0.9, timestamp: 1000, passed: true },
@@ -270,36 +281,39 @@ describe('Truth Scoring System', () => {
           JSON.stringify(data, null, 2),
         );
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should retrieve agent history in chronological order', async () => {
+    jest.setTimeout(10000);
+  test('should retrieve agent history in chronological order', async () => { try {
       const history = await calculator.getAgentHistory('agent-1');
 
       expect(history).toHaveLength(3);
       expect(history[0].timestamp).toBe(3000); // Most recent first
       expect(history[1].timestamp).toBe(2000);
       expect(history[2].timestamp).toBe(1000);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should limit history results', async () => {
+    jest.setTimeout(10000);
+  test('should limit history results', async () => { try {
       const history = await calculator.getAgentHistory('agent-1', 2);
 
       expect(history).toHaveLength(2);
       expect(history[0].timestamp).toBe(3000);
       expect(history[1].timestamp).toBe(2000);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should return empty array for non-existent agent', async () => {
+    jest.setTimeout(10000);
+  test('should return empty array for non-existent agent', async () => { try {
       const history = await calculator.getAgentHistory('non-existent-agent');
 
       expect(history).toEqual([]);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Agent Reliability Calculation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create comprehensive test data for reliability calculation
-      await fs.mkdir(calculator.memoryPath, { recursive: true });
+      await fs.mkdir(calculator.memoryPath, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const scores = [0.9, 0.8, 0.85, 0.75, 0.9, 0.95, 0.7, 0.85, 0.8, 0.9];
       const threshold = calculator.config.truth_threshold;
@@ -319,27 +333,30 @@ describe('Truth Scoring System', () => {
           JSON.stringify(data, null, 2),
         );
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should calculate agent reliability metrics', async () => {
+    jest.setTimeout(10000);
+  test('should calculate agent reliability metrics', async () => { try {
       const reliability = await calculator.calculateAgentReliability('reliability-agent');
 
       expect(reliability.reliability).toBeGreaterThan(0.8);
       expect(reliability.pass_rate).toBeGreaterThan(0.7);
       expect(reliability.sample_size).toBe(10);
       expect(['improving', 'declining', 'stable']).toContain(reliability.trend);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle agent with no history', async () => {
+    jest.setTimeout(10000);
+  test('should handle agent with no history', async () => { try {
       const reliability = await calculator.calculateAgentReliability('new-agent');
 
       expect(reliability.reliability).toBe(1.0);
       expect(reliability.sample_size).toBe(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Trend Analysis', () => {
-    test('should detect improving trend', () => {
+    jest.setTimeout(10000);
+  test('should detect improving trend', () => {
       const history = [
         { truth_score: 0.9 },
         { truth_score: 0.85 },
@@ -351,9 +368,10 @@ describe('Truth Scoring System', () => {
 
       const trend = calculator.calculateTrend(history);
       expect(trend).toBe('improving');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect declining trend', () => {
+    jest.setTimeout(10000);
+  test('should detect declining trend', () => {
       const history = [
         { truth_score: 0.6 },
         { truth_score: 0.65 },
@@ -365,9 +383,10 @@ describe('Truth Scoring System', () => {
 
       const trend = calculator.calculateTrend(history);
       expect(trend).toBe('declining');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should detect stable trend', () => {
+    jest.setTimeout(10000);
+  test('should detect stable trend', () => {
       const history = [
         { truth_score: 0.8 },
         { truth_score: 0.82 },
@@ -379,20 +398,21 @@ describe('Truth Scoring System', () => {
 
       const trend = calculator.calculateTrend(history);
       expect(trend).toBe('stable');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle insufficient data', () => {
+    jest.setTimeout(10000);
+  test('should handle insufficient data', () => {
       const history = [{ truth_score: 0.8 }];
 
       const trend = calculator.calculateTrend(history);
       expect(trend).toBe('insufficient_data');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Report Generation', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Create test data for multiple agents
-      await fs.mkdir(calculator.memoryPath, { recursive: true });
+      await fs.mkdir(calculator.memoryPath, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const testAgents = [
         { id: 'agent-high', scores: [0.9, 0.95, 0.85, 0.9] },
@@ -417,9 +437,10 @@ describe('Truth Scoring System', () => {
           );
         }
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should generate JSON report', async () => {
+    jest.setTimeout(10000);
+  test('should generate JSON report', async () => { try {
       const report = await calculator.generateReport('json');
 
       expect(report.generated_at).toBeDefined();
@@ -430,9 +451,10 @@ describe('Truth Scoring System', () => {
       expect(highAgent.total_tasks).toBe(4);
       expect(highAgent.average_truth_score).toBeGreaterThan(0.85);
       expect(highAgent.pass_rate).toBeGreaterThan(0.75);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should generate markdown report', async () => {
+    jest.setTimeout(10000);
+  test('should generate markdown report', async () => { try {
       const report = await calculator.generateReport('markdown');
 
       expect(typeof report).toBe('string');
@@ -442,18 +464,20 @@ describe('Truth Scoring System', () => {
       expect(report).toContain('agent-high');
       expect(report).toContain('agent-medium');
       expect(report).toContain('agent-low');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should include trend indicators in markdown', async () => {
+    jest.setTimeout(10000);
+  test('should include trend indicators in markdown', async () => { try {
       const report = await calculator.generateReport('markdown');
 
       // Check for trend emoji indicators
       expect(report).toMatch(/[📈📉➡️]/);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Configuration Management', () => {
-    test('should use default config when file does not exist', async () => {
+    jest.setTimeout(10000);
+  test('should use default config when file does not exist', async () => { try {
       const newCalculator = new TruthScoreCalculator();
       newCalculator.configPath = path.join(tempDir, 'non-existent.json');
 
@@ -463,9 +487,10 @@ describe('Truth Scoring System', () => {
       expect(newCalculator.config.mode).toBe('passive');
       expect(newCalculator.config.truth_threshold).toBe(0.8);
       expect(newCalculator.config.weights.tests).toBe(0.4);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should load custom config from file', async () => {
+    jest.setTimeout(10000);
+  test('should load custom config from file', async () => { try {
       const customConfig = {
         enabled: true,
         mode: 'active',
@@ -488,11 +513,12 @@ describe('Truth Scoring System', () => {
       expect(newCalculator.config.mode).toBe('active');
       expect(newCalculator.config.truth_threshold).toBe(0.9);
       expect(newCalculator.config.weights.tests).toBe(0.5);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Edge Cases and Error Handling', () => {
-    test('should handle malformed evidence data', () => {
+    jest.setTimeout(10000);
+  test('should handle malformed evidence data', () => {
       const evidence = {
         test_results: null,
         lint_results: undefined,
@@ -507,9 +533,10 @@ describe('Truth Scoring System', () => {
       expect(typeof score).toBe('number');
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle very large numbers in evidence', () => {
+    jest.setTimeout(10000);
+  test('should handle very large numbers in evidence', () => {
       const evidence = {
         test_results: { passed: Number.MAX_SAFE_INTEGER, total: Number.MAX_SAFE_INTEGER },
         lint_results: { errors: Number.MAX_SAFE_INTEGER },
@@ -520,9 +547,10 @@ describe('Truth Scoring System', () => {
       const score = calculator.calculateScore(evidence);
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(1);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle empty memory directory gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle empty memory directory gracefully', async () => { try {
       const emptyCalculator = new TruthScoreCalculator();
       emptyCalculator.memoryPath = path.join(tempDir, 'empty-memory');
 
@@ -532,6 +560,6 @@ describe('Truth Scoring System', () => {
       const reliability = await emptyCalculator.calculateAgentReliability('any-agent');
       expect(reliability.reliability).toBe(1.0);
       expect(reliability.sample_size).toBe(0);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

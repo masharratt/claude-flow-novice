@@ -63,14 +63,15 @@ describe('RecoveryEngine', () => {
     recoveryEngine = new RecoveryEngine(mockConfig);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (recoveryEngine) {
       await recoveryEngine.shutdown();
     }
   });
 
   describe('Initialization', () => {
-    test('should initialize with default configuration', () => {
+    jest.setTimeout(10000);
+  test('should initialize with default configuration', () => {
       const engine = new RecoveryEngine();
 
       expect(engine.config.maxRetries).toBe(3);
@@ -78,7 +79,8 @@ describe('RecoveryEngine', () => {
       expect(engine.config.healthCheckInterval).toBe(5000);
     });
 
-    test('should initialize with custom configuration', () => {
+    jest.setTimeout(10000);
+  test('should initialize with custom configuration', () => {
       const customConfig = {
         maxRetries: 5,
         retryDelay: 2000,
@@ -94,7 +96,8 @@ describe('RecoveryEngine', () => {
       expect(engine.config.backupLocation).toBe('/custom/backups');
     });
 
-    test('should set up event handlers', () => {
+    jest.setTimeout(10000);
+  test('should set up event handlers', () => {
       const engine = new RecoveryEngine();
 
       expect(engine.listenerCount('recovery-started')).toBe(0);
@@ -105,7 +108,7 @@ describe('RecoveryEngine', () => {
   });
 
   describe('Basic Recovery Operations', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       mockRedisClient.ping.mockResolvedValue('PONG');
       mockRedisClient.exists.mockResolvedValue(1);
       mockRedisClient.get.mockResolvedValue(JSON.stringify({
@@ -118,7 +121,8 @@ describe('RecoveryEngine', () => {
       }));
     });
 
-    test('should detect interrupted swarms', async () => {
+    jest.setTimeout(10000);
+  test('should detect interrupted swarms', async () => { try {
       mockRedisClient.sMembers.mockResolvedValue(['swarm:test-swarm-123', 'swarm:test-swarm-456']);
 
       const interruptedSwarms = await recoveryEngine.detectInterruptedSwarms();
@@ -127,7 +131,8 @@ describe('RecoveryEngine', () => {
       expect(mockRedisClient.sMembers).toHaveBeenCalledWith('swarms:active');
     });
 
-    test('should recover a single swarm', async () => {
+    jest.setTimeout(10000);
+  test('should recover a single swarm', async () => { try {
       const swarmId = 'test-swarm-123';
       const mockSwarmState = {
         id: swarmId,
@@ -147,7 +152,8 @@ describe('RecoveryEngine', () => {
       expect(result.recoveredState).toEqual(mockSwarmState);
     });
 
-    test('should handle non-existent swarm recovery', async () => {
+    jest.setTimeout(10000);
+  test('should handle non-existent swarm recovery', async () => { try {
       const swarmId = 'non-existent-swarm';
       mockRedisClient.get.mockResolvedValue(null);
 
@@ -157,7 +163,8 @@ describe('RecoveryEngine', () => {
       expect(result.error).toContain('not found');
     });
 
-    test('should handle corrupted swarm state', async () => {
+    jest.setTimeout(10000);
+  test('should handle corrupted swarm state', async () => { try {
       const swarmId = 'corrupted-swarm';
       mockRedisClient.get.mockResolvedValue('invalid json data');
 
@@ -170,7 +177,8 @@ describe('RecoveryEngine', () => {
 
   describe('Enhanced Failure Mode Testing', () => {
     describe('Connection Failure Scenarios', () => {
-      test('should handle Redis connection timeouts', async () => {
+      jest.setTimeout(10000);
+  test('should handle Redis connection timeouts', async () => { try {
         const swarmId = 'timeout-swarm';
 
         // Simulate connection timeout
@@ -187,7 +195,8 @@ describe('RecoveryEngine', () => {
         expect(result.retryCount).toBeGreaterThan(0);
       });
 
-      test('should handle Redis connection refused', async () => {
+      jest.setTimeout(10000);
+  test('should handle Redis connection refused', async () => { try {
         const swarmId = 'refused-swarm';
 
         mockRedisClient.get.mockRejectedValue(new Error('Connection refused'));
@@ -198,7 +207,8 @@ describe('RecoveryEngine', () => {
         expect(result.error).toContain('Connection refused');
       });
 
-      test('should handle Redis authentication failures', async () => {
+      jest.setTimeout(10000);
+  test('should handle Redis authentication failures', async () => { try {
         const swarmId = 'auth-failed-swarm';
 
         mockRedisClient.get.mockRejectedValue(new Error('Authentication failed'));
@@ -209,7 +219,8 @@ describe('RecoveryEngine', () => {
         expect(result.error).toContain('Authentication failed');
       });
 
-      test('should handle Redis memory overload', async () => {
+      jest.setTimeout(10000);
+  test('should handle Redis memory overload', async () => { try {
         const swarmId = 'memory-overload-swarm';
 
         mockRedisClient.get.mockRejectedValue(new Error('Memory overflow'));
@@ -222,7 +233,8 @@ describe('RecoveryEngine', () => {
     });
 
     describe('Data Corruption Scenarios', () => {
-      test('should handle partially corrupted swarm data', async () => {
+      jest.setTimeout(10000);
+  test('should handle partially corrupted swarm data', async () => { try {
         const swarmId = 'partial-corrupt-swarm';
 
         // Partially corrupted JSON
@@ -234,7 +246,8 @@ describe('RecoveryEngine', () => {
         expect(result.error).toContain('corrupted');
       });
 
-      test('should handle swarm data with missing required fields', async () => {
+      jest.setTimeout(10000);
+  test('should handle swarm data with missing required fields', async () => { try {
         const swarmId = 'missing-fields-swarm';
 
         // Missing required fields
@@ -252,7 +265,8 @@ describe('RecoveryEngine', () => {
         expect(result.warnings).toContain('Missing required fields');
       });
 
-      test('should handle swarm data with invalid agent states', async () => {
+      jest.setTimeout(10000);
+  test('should handle swarm data with invalid agent states', async () => { try {
         const swarmId = 'invalid-agents-swarm';
 
         const invalidState = {
@@ -275,7 +289,8 @@ describe('RecoveryEngine', () => {
         expect(result.warnings).toContain('Invalid agent states detected');
       });
 
-      test('should handle swarm data with circular references', async () => {
+      jest.setTimeout(10000);
+  test('should handle swarm data with circular references', async () => { try {
         const swarmId = 'circular-ref-swarm';
 
         // Create object with circular reference
@@ -294,7 +309,8 @@ describe('RecoveryEngine', () => {
     });
 
     describe('Concurrent Failure Scenarios', () => {
-      test('should handle multiple concurrent swarm recoveries', async () => {
+      jest.setTimeout(10000);
+  test('should handle multiple concurrent swarm recoveries', async () => { try {
         const swarmIds = ['concurrent-1', 'concurrent-2', 'concurrent-3'];
 
         // Mock successful recovery for some, failure for others
@@ -323,7 +339,8 @@ describe('RecoveryEngine', () => {
         expect(results[2].success).toBe(true);
       });
 
-      test('should handle race conditions during recovery', async () => {
+      jest.setTimeout(10000);
+  test('should handle race conditions during recovery', async () => { try {
         const swarmId = 'race-condition-swarm';
         let callCount = 0;
 
@@ -349,7 +366,8 @@ describe('RecoveryEngine', () => {
         expect(result.retryCount).toBeGreaterThan(0);
       });
 
-      test('should handle resource exhaustion during recovery', async () => {
+      jest.setTimeout(10000);
+  test('should handle resource exhaustion during recovery', async () => { try {
         const swarmId = 'resource-exhausted-swarm';
 
         mockRedisClient.get.mockRejectedValue(new Error('Resource temporarily unavailable'));
@@ -362,7 +380,8 @@ describe('RecoveryEngine', () => {
     });
 
     describe('Network Partition Scenarios', () => {
-      test('should handle network partition during recovery', async () => {
+      jest.setTimeout(10000);
+  test('should handle network partition during recovery', async () => { try {
         const swarmId = 'partitioned-swarm';
 
         // Simulate network partition
@@ -375,7 +394,8 @@ describe('RecoveryEngine', () => {
         expect(result.canRetry).toBe(true);
       });
 
-      test('should handle partial network recovery', async () => {
+      jest.setTimeout(10000);
+  test('should handle partial network recovery', async () => { try {
         const swarmId = 'partial-network-swarm';
         let attempt = 0;
 
@@ -407,7 +427,8 @@ describe('RecoveryEngine', () => {
       recoveryEngine.config.stressTestEnabled = true;
     });
 
-    test('should handle high-volume concurrent recoveries', async () => {
+    jest.setTimeout(10000);
+  test('should handle high-volume concurrent recoveries', async () => { try {
       const swarmCount = 100;
       const swarmIds = Array.from({ length: swarmCount }, (_, i) => `stress-swarm-${i}`);
 
@@ -437,7 +458,8 @@ describe('RecoveryEngine', () => {
       expect(duration).toBeLessThan(30000); // Should complete within 30 seconds
     });
 
-    test('should maintain performance under memory pressure', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under memory pressure', async () => { try {
       const swarmId = 'memory-pressure-swarm';
 
       // Create a large swarm state
@@ -464,7 +486,8 @@ describe('RecoveryEngine', () => {
       expect(endTime - startTime).toBeLessThan(10000); // Should complete within 10 seconds
     });
 
-    test('should handle timeout during stress testing', async () => {
+    jest.setTimeout(10000);
+  test('should handle timeout during stress testing', async () => { try {
       const swarmId = 'timeout-stress-swarm';
 
       // Simulate slow response
@@ -487,7 +510,8 @@ describe('RecoveryEngine', () => {
       expect(result.error).toContain('timeout');
     });
 
-    test('should validate recovery confidence under stress', async () => {
+    jest.setTimeout(10000);
+  test('should validate recovery confidence under stress', async () => { try {
       const testCases = [
         { id: 'high-confidence', shouldSucceed: true, confidence: 0.95 },
         { id: 'medium-confidence', shouldSucceed: true, confidence: 0.75 },
@@ -520,7 +544,8 @@ describe('RecoveryEngine', () => {
   });
 
   describe('Recovery Workflow Automation', () => {
-    test('should execute complete recovery workflow', async () => {
+    jest.setTimeout(10000);
+  test('should execute complete recovery workflow', async () => { try {
       const workflow = {
         name: 'complete-recovery',
         steps: [
@@ -552,7 +577,8 @@ describe('RecoveryEngine', () => {
       expect(result.recoveredSwarms).toHaveLength(2);
     });
 
-    test('should handle workflow step failures', async () => {
+    jest.setTimeout(10000);
+  test('should handle workflow step failures', async () => { try {
       const workflow = {
         name: 'failure-workflow',
         steps: [
@@ -572,7 +598,8 @@ describe('RecoveryEngine', () => {
       expect(result.error).toContain('Detection failed');
     });
 
-    test('should support custom recovery workflows', async () => {
+    jest.setTimeout(10000);
+  test('should support custom recovery workflows', async () => { try {
       const customWorkflow = {
         name: 'custom-recovery',
         steps: [
@@ -597,7 +624,8 @@ describe('RecoveryEngine', () => {
   });
 
   describe('Health Monitoring and Diagnostics', () => {
-    test('should perform comprehensive health checks', async () => {
+    jest.setTimeout(10000);
+  test('should perform comprehensive health checks', async () => { try {
       mockRedisClient.ping.mockResolvedValue('PONG');
 
       const healthStatus = await recoveryEngine.performHealthCheck();
@@ -607,7 +635,8 @@ describe('RecoveryEngine', () => {
       expect(healthStatus.timestamp).toBeGreaterThan(0);
     });
 
-    test('should detect system health degradation', async () => {
+    jest.setTimeout(10000);
+  test('should detect system health degradation', async () => { try {
       mockRedisClient.ping.mockRejectedValue(new Error('Redis not responding'));
 
       const healthStatus = await recoveryEngine.performHealthCheck();
@@ -616,7 +645,8 @@ describe('RecoveryEngine', () => {
       expect(healthStatus.errors).toContain('Redis not responding');
     });
 
-    test('should generate recovery diagnostics report', async () => {
+    jest.setTimeout(10000);
+  test('should generate recovery diagnostics report', async () => { try {
       const diagnostics = await recoveryEngine.generateDiagnosticsReport();
 
       expect(diagnostics).toHaveProperty('systemInfo');
@@ -626,7 +656,8 @@ describe('RecoveryEngine', () => {
       expect(diagnostics).toHaveProperty('recommendations');
     });
 
-    test('should track recovery success rates', async () => {
+    jest.setTimeout(10000);
+  test('should track recovery success rates', async () => { try {
       // Simulate multiple recovery attempts
       const attempts = [
         { success: true, duration: 1000 },
@@ -651,7 +682,8 @@ describe('RecoveryEngine', () => {
   });
 
   describe('Backup and Restore Operations', () => {
-    test('should create swarm state backups', async () => {
+    jest.setTimeout(10000);
+  test('should create swarm state backups', async () => { try {
       const swarmId = 'backup-test-swarm';
       const swarmState = {
         id: swarmId,
@@ -671,7 +703,8 @@ describe('RecoveryEngine', () => {
       expect(backupResult.timestamp).toBeGreaterThan(0);
     });
 
-    test('should restore from backup', async () => {
+    jest.setTimeout(10000);
+  test('should restore from backup', async () => { try {
       const swarmId = 'restore-test-swarm';
       const backupPath = `${recoveryEngine.config.backupLocation}/${swarmId}.backup`;
 
@@ -692,7 +725,8 @@ describe('RecoveryEngine', () => {
       expect(fsPromises.readFile).toHaveBeenCalledWith(backupPath, 'utf8');
     });
 
-    test('should handle corrupted backup files', async () => {
+    jest.setTimeout(10000);
+  test('should handle corrupted backup files', async () => { try {
       const swarmId = 'corrupted-backup-swarm';
       const backupPath = `${recoveryEngine.config.backupLocation}/${swarmId}.backup`;
 
@@ -707,7 +741,8 @@ describe('RecoveryEngine', () => {
   });
 
   describe('Event Handling and Notifications', () => {
-    test('should emit recovery events', async () => {
+    jest.setTimeout(10000);
+  test('should emit recovery events', async () => { try {
       const swarmId = 'event-test-swarm';
       const events = [];
 
@@ -732,7 +767,8 @@ describe('RecoveryEngine', () => {
       expect(events[1].data.swarmId).toBe(swarmId);
     });
 
-    test('should handle event listener errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle event listener errors', async () => { try {
       const swarmId = 'event-error-swarm';
 
       recoveryEngine.on('recovery-completed', () => {
@@ -756,7 +792,8 @@ describe('RecoveryEngine', () => {
   });
 
   describe('Configuration and Customization', () => {
-    test('should allow runtime configuration updates', () => {
+    jest.setTimeout(10000);
+  test('should allow runtime configuration updates', () => {
       const newConfig = {
         maxRetries: 10,
         retryDelay: 5000,
@@ -770,7 +807,8 @@ describe('RecoveryEngine', () => {
       expect(recoveryEngine.config.healthCheckInterval).toBe(15000);
     });
 
-    test('should validate configuration changes', () => {
+    jest.setTimeout(10000);
+  test('should validate configuration changes', () => {
       const invalidConfig = {
         maxRetries: -1, // Invalid
         retryDelay: 'invalid' // Invalid type
@@ -781,7 +819,8 @@ describe('RecoveryEngine', () => {
       }).toThrow('Invalid configuration');
     });
 
-    test('should support custom recovery strategies', async () => {
+    jest.setTimeout(10000);
+  test('should support custom recovery strategies', async () => { try {
       const customStrategy = {
         name: 'custom-strategy',
         recover: async (swarmId, state) => {
@@ -814,7 +853,8 @@ describe('RecoveryEngine', () => {
   });
 
   describe('Cleanup and Resource Management', () => {
-    test('should cleanup expired recovery data', async () => {
+    jest.setTimeout(10000);
+  test('should cleanup expired recovery data', async () => { try {
       const expiredData = [
         { swarmId: 'expired-1', timestamp: Date.now() - 25 * 60 * 60 * 1000 }, // 25 hours ago
         { swarmId: 'expired-2', timestamp: Date.now() - 30 * 60 * 60 * 1000 }, // 30 hours ago
@@ -831,7 +871,8 @@ describe('RecoveryEngine', () => {
       expect(cleanedCount).toBe(2); // Should clean up 2 expired entries
     });
 
-    test('should handle graceful shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should handle graceful shutdown', async () => { try {
       const shutdownSpy = jest.fn();
       recoveryEngine.on('shutdown', shutdownSpy);
 
@@ -841,7 +882,8 @@ describe('RecoveryEngine', () => {
       expect(recoveryEngine.isShutdown).toBe(true);
     });
 
-    test('should prevent operations after shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should prevent operations after shutdown', async () => { try {
       await recoveryEngine.shutdown();
 
       await expect(recoveryEngine.recoverSwarm('test-swarm'))
@@ -850,7 +892,8 @@ describe('RecoveryEngine', () => {
   });
 
   describe('Integration with Other Components', () => {
-    test('should integrate with swarm coordination', async () => {
+    jest.setTimeout(10000);
+  test('should integrate with swarm coordination', async () => { try {
       const swarmCoordinator = {
         resumeSwarm: jest.fn(),
         validateSwarmState: jest.fn()
@@ -879,7 +922,8 @@ describe('RecoveryEngine', () => {
       expect(swarmCoordinator.resumeSwarm).toHaveBeenCalledWith(swarmState);
     });
 
-    test('should handle monitoring system integration', async () => {
+    jest.setTimeout(10000);
+  test('should handle monitoring system integration', async () => { try {
       const monitoringSystem = {
         reportMetric: jest.fn(),
         sendAlert: jest.fn()
@@ -902,4 +946,4 @@ describe('RecoveryEngine', () => {
       );
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

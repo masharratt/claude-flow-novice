@@ -374,7 +374,7 @@ describe('AgentLifecycleSQLite', () => {
   let redis: Redis;
   let lifecycle: AgentLifecycleSQLite;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     redis = new Redis(REDIS_CONFIG);
 
     await new Promise<void>((resolve, reject) => {
@@ -383,7 +383,7 @@ describe('AgentLifecycleSQLite', () => {
     });
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Clean up test database
     try {
       await fs.unlink(TEST_DB_PATH);
@@ -400,7 +400,7 @@ describe('AgentLifecycleSQLite', () => {
     }
   }, TEST_TIMEOUT);
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (lifecycle) {
       lifecycle.close();
     }
@@ -417,12 +417,12 @@ describe('AgentLifecycleSQLite', () => {
     }
   }, TEST_TIMEOUT);
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     await redis.quit();
   });
 
   describe('Agent Spawn Registration', () => {
-    it('should register agent spawn in SQLite and Redis', async () => {
+    it('should register agent spawn in SQLite and Redis', async () => { try {
       const agentId = 'coder-1';
       const swarmId = 'swarm-phase-1';
       const phase = 'implementation';
@@ -460,7 +460,7 @@ describe('AgentLifecycleSQLite', () => {
       expect(auditLog[0].eventType).toBe('agent.spawned');
     });
 
-    it('should handle concurrent agent spawns', async () => {
+    it('should handle concurrent agent spawns', async () => { try {
       const agentCount = 10;
       const swarmId = 'swarm-concurrent';
       const phase = 'test-phase';
@@ -491,7 +491,7 @@ describe('AgentLifecycleSQLite', () => {
   });
 
   describe('Confidence Score Updates', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Spawn test agent
       await lifecycle.spawnAgent({
         agentId: 'test-agent',
@@ -501,7 +501,7 @@ describe('AgentLifecycleSQLite', () => {
       });
     });
 
-    it('should update confidence score and track history', async () => {
+    it('should update confidence score and track history', async () => { try {
       const agentId = 'test-agent';
 
       // Update confidence multiple times
@@ -527,7 +527,7 @@ describe('AgentLifecycleSQLite', () => {
       expect(confidenceEvents.length).toBe(3);
     });
 
-    it('should track blockers in confidence updates', async () => {
+    it('should track blockers in confidence updates', async () => { try {
       const agentId = 'test-agent';
       const blockers = ['Missing dependency', 'API endpoint not available'];
 
@@ -541,7 +541,7 @@ describe('AgentLifecycleSQLite', () => {
       expect(blockersData).toEqual(blockers);
     });
 
-    it('should update Redis in sync with SQLite', async () => {
+    it('should update Redis in sync with SQLite', async () => { try {
       const agentId = 'test-agent';
 
       await lifecycle.updateConfidence(agentId, 0.90, 'Production ready', []);
@@ -558,7 +558,7 @@ describe('AgentLifecycleSQLite', () => {
   });
 
   describe('Agent Termination', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await lifecycle.spawnAgent({
         agentId: 'terminate-test',
         swarmId: 'test-swarm',
@@ -567,7 +567,7 @@ describe('AgentLifecycleSQLite', () => {
       });
     });
 
-    it('should terminate agent and cleanup state', async () => {
+    it('should terminate agent and cleanup state', async () => { try {
       const agentId = 'terminate-test';
 
       await lifecycle.terminateAgent(agentId, 'Task completed successfully');
@@ -592,7 +592,7 @@ describe('AgentLifecycleSQLite', () => {
   });
 
   describe('Audit Log Completeness', () => {
-    it('should log all lifecycle events', async () => {
+    it('should log all lifecycle events', async () => { try {
       const agentId = 'audit-test';
       const swarmId = 'audit-swarm';
 
@@ -632,7 +632,7 @@ describe('AgentLifecycleSQLite', () => {
   });
 
   describe('Cross-Session Recovery', () => {
-    it('should recover agent state from SQLite after Redis loss', async () => {
+    it('should recover agent state from SQLite after Redis loss', async () => { try {
       const agentId = 'recovery-test';
       const swarmId = 'recovery-swarm';
 
@@ -672,7 +672,7 @@ describe('AgentLifecycleSQLite', () => {
   });
 
   describe('Swarm-Wide Queries', () => {
-    it('should efficiently query all agents in a swarm', async () => {
+    it('should efficiently query all agents in a swarm', async () => { try {
       const swarmId = 'query-swarm';
       const agentCount = 20;
 

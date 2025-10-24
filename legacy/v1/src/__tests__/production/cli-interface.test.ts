@@ -63,7 +63,7 @@ describe('CLI Interface Production Tests', () => {
     });
   };
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     originalEnv = { ...process.env };
     testResultsDir = path.join(__dirname, '../../test-results');
     await fs.mkdir(testResultsDir, { recursive: true });
@@ -72,15 +72,15 @@ describe('CLI Interface Production Tests', () => {
     mockSpawn = require('child_process').spawn;
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     process.env = originalEnv;
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     jest.clearAllMocks();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Clean up test outputs
     try {
       const files = await fs.readdir(testResultsDir);
@@ -91,7 +91,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Command Variations and Arguments', () => {
-    it('should handle swarm command with objective', async () => {
+    it('should handle swarm command with objective', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn() },
         stderr: { on: jest.fn() },
@@ -117,7 +117,7 @@ describe('CLI Interface Production Tests', () => {
       expect(mockSpawn).toHaveBeenCalled();
     });
 
-    it('should handle swarm command with all strategy variations', async () => {
+    it('should handle swarm command with all strategy variations', async () => { try {
       const strategies = ['auto', 'research', 'development', 'analysis', 'testing', 'optimization', 'maintenance'];
       const results = [];
 
@@ -156,7 +156,7 @@ describe('CLI Interface Production Tests', () => {
       });
     });
 
-    it('should handle swarm command with all mode variations', async () => {
+    it('should handle swarm command with all mode variations', async () => { try {
       const modes = ['centralized', 'distributed', 'hierarchical', 'mesh', 'hybrid'];
       const results = [];
 
@@ -193,7 +193,7 @@ describe('CLI Interface Production Tests', () => {
       });
     });
 
-    it('should handle all CLI flags and options', async () => {
+    it('should handle all CLI flags and options', async () => { try {
       const flagCombinations = [
         { 'max-agents': '10' },
         { timeout: '120' },
@@ -249,7 +249,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Error Handling and Edge Cases', () => {
-    it('should handle missing objective gracefully', async () => {
+    it('should handle missing objective gracefully', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn() },
         stderr: { on: jest.fn() },
@@ -270,7 +270,7 @@ describe('CLI Interface Production Tests', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should handle invalid flag values', async () => {
+    it('should handle invalid flag values', async () => { try {
       const invalidFlags = [
         { 'max-agents': 'invalid' },
         { timeout: 'invalid' },
@@ -300,7 +300,7 @@ describe('CLI Interface Production Tests', () => {
       }
     });
 
-    it('should handle Claude CLI not available', async () => {
+    it('should handle Claude CLI not available', async () => { try {
       // Mock execSync to simulate Claude CLI not found
       require('child_process').execSync.mockImplementation(() => {
         throw new Error('Command not found: claude');
@@ -319,7 +319,7 @@ describe('CLI Interface Production Tests', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should handle headless environment detection', async () => {
+    it('should handle headless environment detection', async () => { try {
       const headlessEnvironments = [
         { CI: 'true' },
         { GITHUB_ACTIONS: 'true' },
@@ -356,7 +356,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Output Format Validation', () => {
-    it('should generate valid JSON output', async () => {
+    it('should generate valid JSON output', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn((event, handler) => {
           if (event === 'data') {
@@ -394,7 +394,7 @@ describe('CLI Interface Production Tests', () => {
       expect(mockSpawn).toHaveBeenCalled();
     });
 
-    it('should generate valid text output', async () => {
+    it('should generate valid text output', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn((event, handler) => {
           if (event === 'data') {
@@ -430,7 +430,7 @@ describe('CLI Interface Production Tests', () => {
       expect(mockSpawn).toHaveBeenCalled();
     });
 
-    it('should handle stream-json output format', async () => {
+    it('should handle stream-json output format', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn() },
         stderr: { on: jest.fn() },
@@ -457,7 +457,7 @@ describe('CLI Interface Production Tests', () => {
       expect(mockSpawn).toHaveBeenCalled();
     });
 
-    it('should save output to file when specified', async () => {
+    it('should save output to file when specified', async () => { try {
       const outputFile = path.join(testResultsDir, 'test-output.json');
       const mockProcess = {
         stdout: { on: jest.fn() },
@@ -488,7 +488,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Redis Backend Integration', () => {
-    it('should integrate with Redis client for state persistence', async () => {
+    it('should integrate with Redis client for state persistence', async () => { try {
       const { connectRedis, saveSwarmState, loadSwarmState } = await import('../../../src/cli/utils/redis-client.js');
 
       // Mock Redis client
@@ -526,7 +526,7 @@ describe('CLI Interface Production Tests', () => {
       expect(state.id).toBe('test-swarm');
     });
 
-    it('should handle Redis connection failures gracefully', async () => {
+    it('should handle Redis connection failures gracefully', async () => { try {
       // Mock Redis connection failure
       const mockRedisClient = {
         connect: jest.fn().mockRejectedValue(new Error('Connection failed')),
@@ -547,7 +547,7 @@ describe('CLI Interface Production Tests', () => {
       }
     });
 
-    it('should handle swarm state persistence across CLI sessions', async () => {
+    it('should handle swarm state persistence across CLI sessions', async () => { try {
       const mockRedisClient = {
         connect: jest.fn().mockResolvedValue(true),
         setEx: jest.fn().mockResolvedValue(true),
@@ -593,7 +593,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Performance and Load Testing', () => {
-    it('should handle rapid command execution', async () => {
+    it('should handle rapid command execution', async () => { try {
       const numCommands = 50;
       const commands = [];
       const startTime = Date.now();
@@ -629,7 +629,7 @@ describe('CLI Interface Production Tests', () => {
       expect(totalTime).toBeLessThan(5000); // Total < 5 seconds
     });
 
-    it('should handle large objective strings', async () => {
+    it('should handle large objective strings', async () => { try {
       const largeObjective = 'Build a comprehensive system with '.repeat(1000) + 'detailed requirements';
       const mockProcess = {
         stdout: { on: jest.fn() },
@@ -656,7 +656,7 @@ describe('CLI Interface Production Tests', () => {
       expect(processingTime).toBeLessThan(1000);
     });
 
-    it('should handle concurrent CLI processes', async () => {
+    it('should handle concurrent CLI processes', async () => { try {
       const numProcesses = 10;
       const processes = [];
 
@@ -693,7 +693,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Background and Daemon Mode', () => {
-    it('should handle background execution', async () => {
+    it('should handle background execution', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn() },
         stderr: { on: jest.fn() },
@@ -723,7 +723,7 @@ describe('CLI Interface Production Tests', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should handle daemon mode with proper process management', async () => {
+    it('should handle daemon mode with proper process management', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn() },
         stderr: { on: jest.fn() },
@@ -753,7 +753,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Health Check and Monitoring', () => {
-    it('should perform health check when requested', async () => {
+    it('should perform health check when requested', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn((event, handler) => {
           if (event === 'data') {
@@ -787,7 +787,7 @@ describe('CLI Interface Production Tests', () => {
       expect(mockSpawn).toHaveBeenCalled();
     });
 
-    it('should provide monitoring information', async () => {
+    it('should provide monitoring information', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn((event, handler) => {
           if (event === 'data') {
@@ -818,7 +818,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Security and Validation', () => {
-    it('should validate input parameters', async () => {
+    it('should validate input parameters', async () => { try {
       const maliciousInputs = [
         '../../../etc/passwd',
         'rm -rf /',
@@ -849,7 +849,7 @@ describe('CLI Interface Production Tests', () => {
       }
     });
 
-    it('should handle permission and security flags', async () => {
+    it('should handle permission and security flags', async () => { try {
       const securityFlags = [
         { 'dangerously-skip-permissions': false },
         { 'no-auto-permissions': true },
@@ -879,7 +879,7 @@ describe('CLI Interface Production Tests', () => {
       }
     });
 
-    it('should sanitize output for security', async () => {
+    it('should sanitize output for security', async () => { try {
       const mockProcess = {
         stdout: { on: jest.fn((event, handler) => {
           if (event === 'data') {
@@ -908,7 +908,7 @@ describe('CLI Interface Production Tests', () => {
   });
 
   describe('Integration Tests', () => {
-    it('should integrate with file system operations', async () => {
+    it('should integrate with file system operations', async () => { try {
       const testFile = path.join(testResultsDir, 'integration-test.txt');
 
       // Mock file system operations
@@ -936,7 +936,7 @@ describe('CLI Interface Production Tests', () => {
       readSpy.mockRestore();
     });
 
-    it('should handle environment-specific configurations', async () => {
+    it('should handle environment-specific configurations', async () => { try {
       const environments = ['development', 'staging', 'production'];
 
       for (const env of environments) {
@@ -964,4 +964,4 @@ describe('CLI Interface Production Tests', () => {
       process.env.NODE_ENV = 'test';
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

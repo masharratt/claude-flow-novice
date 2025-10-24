@@ -34,7 +34,7 @@ describe('Platform-Specific Installation Tests', () => {
       expect(testPath).toContain('\\');
     });
 
-    it('should support PowerShell execution', async () => {
+    it('should support PowerShell execution', async () => { try {
       try {
         const { stdout } = await execAsync('powershell -Command "Write-Output test"');
         expect(stdout.trim()).toBe('test');
@@ -67,7 +67,7 @@ describe('Platform-Specific Installation Tests', () => {
       expect(testPath).not.toContain('\\');
     });
 
-    it('should detect Homebrew availability', async () => {
+    it('should detect Homebrew availability', async () => { try {
       try {
         await execAsync('which brew');
         console.log('✅ Homebrew detected');
@@ -76,12 +76,12 @@ describe('Platform-Specific Installation Tests', () => {
       }
     });
 
-    it('should support bash shell', async () => {
+    it('should support bash shell', async () => { try {
       const { stdout } = await execAsync('echo $SHELL');
       expect(stdout).toMatch(/(bash|zsh)/);
     });
 
-    it('should have proper file permissions', async () => {
+    it('should have proper file permissions', async () => { try {
       const tempFile = path.join(os.tmpdir(), 'test-perms.sh');
       await fs.writeFile(tempFile, '#!/bin/bash\necho "test"');
       await fs.chmod(tempFile, 0o755);
@@ -105,7 +105,7 @@ describe('Platform-Specific Installation Tests', () => {
       expect(testPath).not.toContain('\\');
     });
 
-    it('should detect package manager', async () => {
+    it('should detect package manager', async () => { try {
       const packageManagers = ['apt', 'yum', 'dnf', 'pacman'];
       let detected = false;
 
@@ -124,7 +124,7 @@ describe('Platform-Specific Installation Tests', () => {
       expect(detected || process.env.CI).toBeTruthy();
     });
 
-    it('should support systemd (if available)', async () => {
+    it('should support systemd (if available)', async () => { try {
       try {
         await execAsync('which systemctl');
         console.log('✅ systemd detected');
@@ -133,7 +133,7 @@ describe('Platform-Specific Installation Tests', () => {
       }
     });
 
-    it('should have proper file permissions', async () => {
+    it('should have proper file permissions', async () => { try {
       const tempFile = path.join(os.tmpdir(), 'test-perms.sh');
       await fs.writeFile(tempFile, '#!/bin/bash\necho "test"');
       await fs.chmod(tempFile, 0o755);
@@ -146,7 +146,7 @@ describe('Platform-Specific Installation Tests', () => {
   });
 
   describe('Cross-Platform File Operations', () => {
-    it('should create directories across platforms', async () => {
+    it('should create directories across platforms', async () => { try {
       const testDir = path.join(os.tmpdir(), `cross-platform-test-${Date.now()}`);
 
       await fs.mkdir(testDir, { recursive: true });
@@ -156,7 +156,7 @@ describe('Platform-Specific Installation Tests', () => {
       await fs.rmdir(testDir);
     });
 
-    it('should handle different line endings', async () => {
+    it('should handle different line endings', async () => { try {
       const testFile = path.join(os.tmpdir(), `line-endings-${Date.now()}.txt`);
 
       // Write with platform-specific line ending
@@ -170,7 +170,7 @@ describe('Platform-Specific Installation Tests', () => {
       await fs.unlink(testFile);
     });
 
-    it('should handle special characters in filenames', async () => {
+    it('should handle special characters in filenames', async () => { try {
       const specialChars = IS_WINDOWS
         ? 'test-file-special-_()[]'  // Windows has more restrictions
         : 'test-file-special-_()[]{}';
@@ -178,7 +178,7 @@ describe('Platform-Specific Installation Tests', () => {
       const testFile = path.join(os.tmpdir(), `${specialChars}.txt`);
 
       await fs.writeFile(testFile, 'test content');
-      const exists = await fs.access(testFile).then(() => true).catch(() => false);
+      const exists = await fs.access(testFile)await ( => true).catch(() => false);
 
       expect(exists).toBe(true);
 
@@ -196,7 +196,7 @@ describe('Platform-Specific Installation Tests', () => {
       expect(typeof isCI).toBe('boolean');
     });
 
-    it('should detect Docker environment', async () => {
+    it('should detect Docker environment', async () => { try {
       try {
         const { stdout } = await execAsync('cat /proc/1/cgroup');
         const isDocker = stdout.includes('docker');
@@ -213,7 +213,7 @@ describe('Platform-Specific Installation Tests', () => {
   });
 
   describe('Network Configuration', () => {
-    it('should have network access', async () => {
+    it('should have network access', async () => { try {
       try {
         await execAsync('ping -c 1 8.8.8.8', { timeout: 5000 });
         console.log('✅ Network access available');
@@ -222,7 +222,7 @@ describe('Platform-Specific Installation Tests', () => {
       }
     });
 
-    it('should access npm registry', async () => {
+    it('should access npm registry', async () => { try {
       try {
         const testUrl = IS_WINDOWS
           ? 'curl.exe -I https://registry.npmjs.org'

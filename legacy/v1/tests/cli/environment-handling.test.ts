@@ -5,4 +5,4 @@ describe('Environment Handling', () => {
     // Placeholder test to prevent failures
     expect(process.env.NODE_ENV).toBeDefined();
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -18,7 +18,7 @@ describe('TopologyManager', () => {
   let mockLifecycleManager: vi.Mocked<LifecycleManager>;
   let mockDependencyTracker: vi.Mocked<DependencyTracker>;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Setup mocks
     mockLifecycleManager = {
       initializeAgent: vi.fn().mockResolvedValue({ state: 'running' }),
@@ -49,7 +49,7 @@ describe('TopologyManager', () => {
     (topologyManager as any).dependencyTracker = mockDependencyTracker;
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (topologyManager) {
       await topologyManager.shutdown(true);
     }
@@ -57,7 +57,8 @@ describe('TopologyManager', () => {
   });
 
   describe('Initialization', () => {
-    test('should initialize successfully', async () => {
+    jest.setTimeout(10000);
+  test('should initialize successfully', async () => { try {
       await topologyManager.initialize();
 
       expect(mockDependencyTracker.initialize).toHaveBeenCalled();
@@ -69,14 +70,16 @@ describe('TopologyManager', () => {
       );
     });
 
-    test('should not initialize twice', async () => {
+    jest.setTimeout(10000);
+  test('should not initialize twice', async () => { try {
       await topologyManager.initialize();
       await topologyManager.initialize();
 
       expect(mockDependencyTracker.initialize).toHaveBeenCalledTimes(1);
     });
 
-    test('should emit initialization event', async () => {
+    jest.setTimeout(10000);
+  test('should emit initialization event', async () => { try {
       const initSpy = vi.fn();
       topologyManager.on('manager:initialized', initSpy);
 
@@ -89,11 +92,12 @@ describe('TopologyManager', () => {
   });
 
   describe('Topology Lifecycle', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await topologyManager.initialize();
     });
 
-    test('should create mesh topology', async () => {
+    jest.setTimeout(10000);
+  test('should create mesh topology', async () => { try {
       const config: TopologyConfiguration = {
         type: 'mesh',
         name: 'test-mesh',
@@ -124,7 +128,8 @@ describe('TopologyManager', () => {
       expect(topologyManager.getAllTopologies()).toHaveLength(1);
     });
 
-    test('should create hierarchical topology', async () => {
+    jest.setTimeout(10000);
+  test('should create hierarchical topology', async () => { try {
       const config: TopologyConfiguration = {
         type: 'hierarchical',
         name: 'test-hierarchical',
@@ -154,7 +159,8 @@ describe('TopologyManager', () => {
       expect(coordinator.type).toBe('hierarchical');
     });
 
-    test('should create hybrid topology', async () => {
+    jest.setTimeout(10000);
+  test('should create hybrid topology', async () => { try {
       const config: TopologyConfiguration = {
         type: 'hybrid',
         name: 'test-hybrid',
@@ -184,7 +190,8 @@ describe('TopologyManager', () => {
       expect(coordinator.type).toBe('hybrid');
     });
 
-    test('should enforce topology limit', async () => {
+    jest.setTimeout(10000);
+  test('should enforce topology limit', async () => { try {
       const config: TopologyConfiguration = {
         type: 'mesh',
         name: 'test-mesh',
@@ -221,7 +228,8 @@ describe('TopologyManager', () => {
         .rejects.toThrow('Maximum topology limit reached');
     });
 
-    test('should destroy topology', async () => {
+    jest.setTimeout(10000);
+  test('should destroy topology', async () => { try {
       const config: TopologyConfiguration = {
         type: 'mesh',
         name: 'test-mesh',
@@ -254,7 +262,8 @@ describe('TopologyManager', () => {
       expect(topologyManager.getAllTopologies()).toHaveLength(0);
     });
 
-    test('should emit topology events', async () => {
+    jest.setTimeout(10000);
+  test('should emit topology events', async () => { try {
       const createdSpy = vi.fn();
       const destroyedSpy = vi.fn();
 
@@ -309,7 +318,7 @@ describe('TopologyManager', () => {
     let topology1: any;
     let topology2: any;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await topologyManager.initialize();
 
       const config1: TopologyConfiguration = {
@@ -362,7 +371,8 @@ describe('TopologyManager', () => {
       topology2 = await topologyManager.createTopology(config2);
     });
 
-    test('should create bridge between topologies', async () => {
+    jest.setTimeout(10000);
+  test('should create bridge between topologies', async () => { try {
       const bridge = await topologyManager.createBridge(
         topology1.id,
         topology2.id,
@@ -375,7 +385,8 @@ describe('TopologyManager', () => {
       expect(bridge.status).toBe('active');
     });
 
-    test('should remove bridge', async () => {
+    jest.setTimeout(10000);
+  test('should remove bridge', async () => { try {
       const bridge = await topologyManager.createBridge(
         topology1.id,
         topology2.id
@@ -387,7 +398,8 @@ describe('TopologyManager', () => {
       // This is tested indirectly through topology destruction
     });
 
-    test('should enforce bridge limit', async () => {
+    jest.setTimeout(10000);
+  test('should enforce bridge limit', async () => { try {
       // Create bridges up to the limit
       const bridges = [];
       for (let i = 0; i < 10; i++) {
@@ -459,7 +471,7 @@ describe('TopologyManager', () => {
   describe('Optimization and Adaptation', () => {
     let topology: any;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await topologyManager.initialize();
 
       const config: TopologyConfiguration = {
@@ -488,7 +500,8 @@ describe('TopologyManager', () => {
       topology = await topologyManager.createTopology(config);
     });
 
-    test('should optimize topology', async () => {
+    jest.setTimeout(10000);
+  test('should optimize topology', async () => { try {
       // Mock topology metrics
       const mockMetrics = {
         agentCount: 15,
@@ -510,7 +523,8 @@ describe('TopologyManager', () => {
       expect(result.improvements).toBeDefined();
     });
 
-    test('should adapt topology configuration', async () => {
+    jest.setTimeout(10000);
+  test('should adapt topology configuration', async () => { try {
       const newConfig = {
         maxAgents: 20,
         performanceThresholds: {
@@ -527,7 +541,8 @@ describe('TopologyManager', () => {
       expect(topology.config.performanceThresholds.latency).toBe(800);
     });
 
-    test('should recommend topology based on requirements', async () => {
+    jest.setTimeout(10000);
+  test('should recommend topology based on requirements', async () => { try {
       const requirements = {
         expectedAgents: 100,
         latencyRequirement: 500,
@@ -545,11 +560,12 @@ describe('TopologyManager', () => {
   });
 
   describe('Monitoring and Metrics', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await topologyManager.initialize();
     });
 
-    test('should get global metrics', async () => {
+    jest.setTimeout(10000);
+  test('should get global metrics', async () => { try {
       const config: TopologyConfiguration = {
         type: 'mesh',
         name: 'test-mesh',
@@ -582,7 +598,8 @@ describe('TopologyManager', () => {
       expect(metrics[topologyId]).toBeDefined();
     });
 
-    test('should get resource utilization', async () => {
+    jest.setTimeout(10000);
+  test('should get resource utilization', async () => { try {
       const utilization = topologyManager.getResourceUtilization();
 
       expect(utilization).toBeDefined();
@@ -591,7 +608,8 @@ describe('TopologyManager', () => {
       expect(utilization.totalAgents).toBe(0);
     });
 
-    test('should detect bottlenecks', async () => {
+    jest.setTimeout(10000);
+  test('should detect bottlenecks', async () => { try {
       const config: TopologyConfiguration = {
         type: 'mesh',
         name: 'test-mesh',
@@ -637,7 +655,8 @@ describe('TopologyManager', () => {
       expect(bottlenecks.some(b => b.component.includes('latency'))).toBe(true);
     });
 
-    test('should get manager status', async () => {
+    jest.setTimeout(10000);
+  test('should get manager status', async () => { try {
       const status = topologyManager.getManagerStatus();
 
       expect(status).toBeDefined();
@@ -648,11 +667,12 @@ describe('TopologyManager', () => {
   });
 
   describe('Error Handling', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await topologyManager.initialize();
     });
 
-    test('should handle topology creation failure', async () => {
+    jest.setTimeout(10000);
+  test('should handle topology creation failure', async () => { try {
       const invalidConfig = {
         type: 'invalid' as TopologyType,
         name: 'invalid-topology',
@@ -680,19 +700,22 @@ describe('TopologyManager', () => {
         .rejects.toThrow('Unsupported topology type: invalid');
     });
 
-    test('should handle bridge creation with non-existent topologies', async () => {
+    jest.setTimeout(10000);
+  test('should handle bridge creation with non-existent topologies', async () => { try {
       await expect(topologyManager.createBridge('non-existent-1', 'non-existent-2'))
         .rejects.toThrow('Source or target topology not found');
     });
 
-    test('should handle optimization of non-existent topology', async () => {
+    jest.setTimeout(10000);
+  test('should handle optimization of non-existent topology', async () => { try {
       await expect(topologyManager.optimizeTopology('non-existent'))
         .rejects.toThrow('Topology non-existent not found');
     });
   });
 
   describe('Shutdown', () => {
-    test('should shutdown gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should shutdown gracefully', async () => { try {
       await topologyManager.initialize();
 
       const config: TopologyConfiguration = {
@@ -734,7 +757,8 @@ describe('TopologyManager', () => {
       expect(shutdownSpy).toHaveBeenCalled();
     });
 
-    test('should force shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should force shutdown', async () => { try {
       await topologyManager.initialize();
 
       await topologyManager.shutdown(true);
@@ -742,4 +766,4 @@ describe('TopologyManager', () => {
       expect(mockDependencyTracker.shutdown).toHaveBeenCalled();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

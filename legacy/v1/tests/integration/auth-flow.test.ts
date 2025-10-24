@@ -19,7 +19,7 @@ describe('Authentication Flow Integration Tests', () => {
   let testLogger: any;
   let testUser: User;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create test logger
     testLogger = {
       info: vi.fn(),
@@ -55,7 +55,7 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('User Authentication Flow', () => {
-    it('should authenticate user with valid credentials and return JWT', async () => {
+    it('should authenticate user with valid credentials and return JWT', async () => { try {
       // Act
       const result = await authService.authenticateUser('test@example.com', 'SecurePassword123!', {
         userAgent: 'Mozilla/5.0',
@@ -81,7 +81,7 @@ describe('Authentication Flow Integration Tests', () => {
       );
     });
 
-    it('should verify JWT and retrieve user data', async () => {
+    it('should verify JWT and retrieve user data', async () => { try {
       // Arrange
       const authResult = await authService.authenticateUser('test@example.com', 'SecurePassword123!');
       const token = authResult.token;
@@ -98,7 +98,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(verifyResult.session.isActive).toBe(true);
     });
 
-    it('should reject invalid credentials', async () => {
+    it('should reject invalid credentials', async () => { try {
       // Act & Assert
       await expect(
         authService.authenticateUser('test@example.com', 'WrongPassword')
@@ -112,14 +112,14 @@ describe('Authentication Flow Integration Tests', () => {
       );
     });
 
-    it('should reject authentication for non-existent user', async () => {
+    it('should reject authentication for non-existent user', async () => { try {
       // Act & Assert
       await expect(
         authService.authenticateUser('nonexistent@example.com', 'password')
       ).rejects.toThrow('Invalid credentials');
     });
 
-    it('should reject authentication for inactive user', async () => {
+    it('should reject authentication for inactive user', async () => { try {
       // Arrange
       const inactiveUser = await authService.createUser({
         email: 'inactive@example.com',
@@ -134,7 +134,7 @@ describe('Authentication Flow Integration Tests', () => {
       ).rejects.toThrow('Account is disabled');
     });
 
-    it('should handle rate limiting after multiple failed attempts', async () => {
+    it('should handle rate limiting after multiple failed attempts', async () => { try {
       // Arrange - Attempt login 5 times with wrong password
       for (let i = 0; i < 5; i++) {
         try {
@@ -150,7 +150,7 @@ describe('Authentication Flow Integration Tests', () => {
       ).rejects.toThrow('Too many failed login attempts');
     });
 
-    it('should reset login attempts after successful authentication', async () => {
+    it('should reset login attempts after successful authentication', async () => { try {
       // Arrange - Failed attempts
       for (let i = 0; i < 3; i++) {
         try {
@@ -170,7 +170,7 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('API Key Authentication Flow', () => {
-    it('should create API key for user', async () => {
+    it('should create API key for user', async () => { try {
       // Act
       const result = await authService.createApiKey(testUser.id, {
         name: 'Test API Key',
@@ -193,7 +193,7 @@ describe('Authentication Flow Integration Tests', () => {
       );
     });
 
-    it('should authenticate with valid API key', async () => {
+    it('should authenticate with valid API key', async () => { try {
       // Arrange
       const { key } = await authService.createApiKey(testUser.id, {
         name: 'Test API Key',
@@ -210,14 +210,14 @@ describe('Authentication Flow Integration Tests', () => {
       expect(result.user?.id).toBe(testUser.id);
     });
 
-    it('should reject invalid API key', async () => {
+    it('should reject invalid API key', async () => { try {
       // Act & Assert
       await expect(
         authService.authenticateApiKey('invalid-api-key-12345')
       ).rejects.toThrow('Invalid API key');
     });
 
-    it('should reject disabled API key', async () => {
+    it('should reject disabled API key', async () => { try {
       // Arrange
       const { key, apiKey } = await authService.createApiKey(testUser.id, {
         name: 'Test API Key',
@@ -230,7 +230,7 @@ describe('Authentication Flow Integration Tests', () => {
       ).rejects.toThrow('API key is disabled');
     });
 
-    it('should reject expired API key', async () => {
+    it('should reject expired API key', async () => { try {
       // Arrange
       const expiresAt = new Date(Date.now() - 1000); // Expired 1 second ago
       const { key } = await authService.createApiKey(testUser.id, {
@@ -244,7 +244,7 @@ describe('Authentication Flow Integration Tests', () => {
       ).rejects.toThrow('API key has expired');
     });
 
-    it('should update lastUsed timestamp on API key authentication', async () => {
+    it('should update lastUsed timestamp on API key authentication', async () => { try {
       // Arrange
       const { key, apiKey } = await authService.createApiKey(testUser.id, {
         name: 'Test API Key',
@@ -266,7 +266,7 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('Token Refresh Flow', () => {
-    it('should invalidate old session and create new token', async () => {
+    it('should invalidate old session and create new token', async () => { try {
       // Arrange - First authentication
       const firstAuth = await authService.authenticateUser('test@example.com', 'SecurePassword123!');
       const firstToken = firstAuth.token;
@@ -288,7 +288,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(verifyResult.user.id).toBe(testUser.id);
     });
 
-    it('should reject expired JWT token', async () => {
+    it('should reject expired JWT token', async () => { try {
       // Arrange - Create auth service with very short expiration
       const shortExpiryConfig: AuthConfig = {
         jwtSecret: 'test-secret',
@@ -312,7 +312,7 @@ describe('Authentication Flow Integration Tests', () => {
       ).rejects.toThrow();
     });
 
-    it('should reject JWT with tampered signature', async () => {
+    it('should reject JWT with tampered signature', async () => { try {
       // Arrange
       const authResult = await authService.authenticateUser('test@example.com', 'SecurePassword123!');
       const token = authResult.token;
@@ -331,7 +331,7 @@ describe('Authentication Flow Integration Tests', () => {
     let operatorUser: User;
     let viewerUser: User;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       adminUser = await authService.createUser({
         email: 'admin@example.com',
         password: 'AdminPassword123!',
@@ -351,7 +351,7 @@ describe('Authentication Flow Integration Tests', () => {
       });
     });
 
-    it('should grant admin full permissions', async () => {
+    it('should grant admin full permissions', async () => { try {
       // Act
       const hasSystemAdmin = authService.hasPermission(adminUser, 'system.admin');
       const hasSwarmCreate = authService.hasPermission(adminUser, 'swarm.create');
@@ -363,7 +363,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(hasAgentTerminate).toBe(true);
     });
 
-    it('should grant operator limited permissions', async () => {
+    it('should grant operator limited permissions', async () => { try {
       // Act
       const hasSwarmCreate = authService.hasPermission(operatorUser, 'swarm.create');
       const hasAgentSpawn = authService.hasPermission(operatorUser, 'agent.spawn');
@@ -375,7 +375,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(hasSystemAdmin).toBe(false);
     });
 
-    it('should grant developer task management permissions', async () => {
+    it('should grant developer task management permissions', async () => { try {
       // Act
       const hasTaskCreate = authService.hasPermission(testUser, 'task.create');
       const hasSwarmRead = authService.hasPermission(testUser, 'swarm.read');
@@ -387,7 +387,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(hasSwarmDelete).toBe(false);
     });
 
-    it('should grant viewer only read permissions', async () => {
+    it('should grant viewer only read permissions', async () => { try {
       // Act
       const hasSwarmRead = authService.hasPermission(viewerUser, 'swarm.read');
       const hasMetricsRead = authService.hasPermission(viewerUser, 'metrics.read');
@@ -399,7 +399,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(hasTaskCreate).toBe(false);
     });
 
-    it('should authenticate users with different roles independently', async () => {
+    it('should authenticate users with different roles independently', async () => { try {
       // Act
       const adminAuth = await authService.authenticateUser('admin@example.com', 'AdminPassword123!');
       const viewerAuth = await authService.authenticateUser('viewer@example.com', 'ViewerPassword123!');
@@ -421,7 +421,7 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('Session Management', () => {
-    it('should track client information in session', async () => {
+    it('should track client information in session', async () => { try {
       // Arrange
       const clientInfo = {
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
@@ -436,7 +436,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(result.session.clientInfo).toEqual(clientInfo);
     });
 
-    it('should update session timestamp on token verification', async () => {
+    it('should update session timestamp on token verification', async () => { try {
       // Arrange
       const authResult = await authService.authenticateUser('test@example.com', 'SecurePassword123!');
       const originalUpdatedAt = authResult.session.updatedAt;
@@ -451,7 +451,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(authResult.session.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
     });
 
-    it('should cleanup expired sessions', async () => {
+    it('should cleanup expired sessions', async () => { try {
       // Arrange - Create sessions with very short timeout
       const shortSessionConfig: AuthConfig = {
         jwtSecret: 'test-secret',
@@ -482,7 +482,7 @@ describe('Authentication Flow Integration Tests', () => {
   });
 
   describe('Edge Cases and Error Handling', () => {
-    it('should handle missing JWT payload fields', async () => {
+    it('should handle missing JWT payload fields', async () => { try {
       // Arrange - Create malformed token
       const malformedToken = 'invalid.token.format';
 
@@ -490,7 +490,7 @@ describe('Authentication Flow Integration Tests', () => {
       await expect(authService.verifyJWT(malformedToken)).rejects.toThrow();
     });
 
-    it('should handle concurrent authentication requests', async () => {
+    it('should handle concurrent authentication requests', async () => { try {
       // Act - Multiple concurrent authentications
       const promises = Array.from({ length: 10 }, () =>
         authService.authenticateUser('test@example.com', 'SecurePassword123!')
@@ -511,7 +511,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(uniqueSessionIds.size).toBe(10);
     });
 
-    it('should handle special characters in email', async () => {
+    it('should handle special characters in email', async () => { try {
       // Arrange
       const specialUser = await authService.createUser({
         email: 'test+tag@example.com',
@@ -526,7 +526,7 @@ describe('Authentication Flow Integration Tests', () => {
       expect(result.user.email).toBe('test+tag@example.com');
     });
 
-    it('should prevent duplicate email registration', async () => {
+    it('should prevent duplicate email registration', async () => { try {
       // Act & Assert
       await expect(
         authService.createUser({

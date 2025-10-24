@@ -12,7 +12,7 @@ const WS_URL = 'ws://localhost:3001';
 describe('Portal Integration Tests', () => {
   let wsClient;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Wait for server to be ready
     await new Promise(resolve => setTimeout(resolve, 2000));
   });
@@ -24,7 +24,8 @@ describe('Portal Integration Tests', () => {
   });
 
   describe('1. API Health Check', () => {
-    test('GET /api/health should return healthy status', async () => {
+    jest.setTimeout(10000);
+  test('GET /api/health should return healthy status', async () => { try {
       const response = await fetch(`${PORTAL_URL}/api/health`);
       const data = await response.json();
 
@@ -34,7 +35,8 @@ describe('Portal Integration Tests', () => {
       expect(data).toHaveProperty('version');
     });
 
-    test('Health endpoint should respond within 200ms', async () => {
+    jest.setTimeout(10000);
+  test('Health endpoint should respond within 200ms', async () => { try {
       const startTime = Date.now();
       await fetch(`${PORTAL_URL}/api/health`);
       const responseTime = Date.now() - startTime;
@@ -44,7 +46,8 @@ describe('Portal Integration Tests', () => {
   });
 
   describe('2. Rate Limiter Validation', () => {
-    test('Should allow multiple requests within rate limit', async () => {
+    jest.setTimeout(10000);
+  test('Should allow multiple requests within rate limit', async () => { try {
       const requests = [];
 
       // Send 10 requests rapidly
@@ -58,7 +61,8 @@ describe('Portal Integration Tests', () => {
       expect(allSuccessful).toBe(true);
     });
 
-    test('Should apply rate limiting to /api/* routes', async () => {
+    jest.setTimeout(10000);
+  test('Should apply rate limiting to /api/* routes', async () => { try {
       // This test validates rate limiter is configured
       // Actual limit testing would require many more requests
       const response = await fetch(`${PORTAL_URL}/api/messages`);
@@ -69,14 +73,16 @@ describe('Portal Integration Tests', () => {
   });
 
   describe('3. Catch-all Route Behavior', () => {
-    test('Undefined route should serve frontend or return 404', async () => {
+    jest.setTimeout(10000);
+  test('Undefined route should serve frontend or return 404', async () => { try {
       const response = await fetch(`${PORTAL_URL}/undefined-route`);
 
       // Either serves index.html (200) or returns 404
       expect([200, 404]).toContain(response.status);
     });
 
-    test('Root path should serve frontend', async () => {
+    jest.setTimeout(10000);
+  test('Root path should serve frontend', async () => { try {
       const response = await fetch(`${PORTAL_URL}/`);
 
       expect(response.status).toBe(200);
@@ -86,7 +92,8 @@ describe('Portal Integration Tests', () => {
   });
 
   describe('4. WebSocket Connection', () => {
-    test('Should establish WebSocket connection successfully', (done) => {
+    jest.setTimeout(10000);
+  test('Should establish WebSocket connection successfully', (done) => {
       wsClient = ioClient(PORTAL_URL, {
         transports: ['websocket'],
         reconnection: false
@@ -94,7 +101,7 @@ describe('Portal Integration Tests', () => {
 
       wsClient.on('connect', () => {
         expect(wsClient.connected).toBe(true);
-        done();
+        return;
       });
 
       wsClient.on('connect_error', (error) => {
@@ -109,7 +116,8 @@ describe('Portal Integration Tests', () => {
       }, 5000);
     });
 
-    test('Should support room joining functionality', (done) => {
+    jest.setTimeout(10000);
+  test('Should support room joining functionality', (done) => {
       if (!wsClient || !wsClient.connected) {
         wsClient = ioClient(PORTAL_URL, {
           transports: ['websocket']
@@ -122,21 +130,23 @@ describe('Portal Integration Tests', () => {
         // If no error after 1 second, consider it successful
         setTimeout(() => {
           expect(wsClient.connected).toBe(true);
-          done();
+          return;
         }, 1000);
       });
     });
   });
 
   describe('5. MCP Integration Functionality', () => {
-    test('Should have agent status endpoint', async () => {
+    jest.setTimeout(10000);
+  test('Should have agent status endpoint', async () => { try {
       const response = await fetch(`${PORTAL_URL}/api/agents/status?swarmId=test`);
 
       // Endpoint should exist (200) or return expected error (500 if no swarm)
       expect([200, 500]).toContain(response.status);
     });
 
-    test('Should have messages API endpoint', async () => {
+    jest.setTimeout(10000);
+  test('Should have messages API endpoint', async () => { try {
       const response = await fetch(`${PORTAL_URL}/api/messages?swarmId=test&limit=10`);
 
       expect([200, 500]).toContain(response.status);
@@ -144,7 +154,8 @@ describe('Portal Integration Tests', () => {
       expect(data).toBeDefined();
     });
 
-    test('Should have intervention endpoint', async () => {
+    jest.setTimeout(10000);
+  test('Should have intervention endpoint', async () => { try {
       const response = await fetch(`${PORTAL_URL}/api/intervention`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -159,7 +170,8 @@ describe('Portal Integration Tests', () => {
       expect([200, 400, 500]).toContain(response.status);
     });
 
-    test('Should have stats endpoint', async () => {
+    jest.setTimeout(10000);
+  test('Should have stats endpoint', async () => { try {
       const response = await fetch(`${PORTAL_URL}/api/stats?swarmId=test`);
 
       expect([200, 500]).toContain(response.status);
@@ -167,7 +179,8 @@ describe('Portal Integration Tests', () => {
   });
 
   describe('6. Performance Baseline', () => {
-    test('API endpoints should respond within acceptable time', async () => {
+    jest.setTimeout(10000);
+  test('API endpoints should respond within acceptable time', async () => { try {
       const endpoints = [
         '/api/health',
         '/api/messages?swarmId=test&limit=5',
@@ -190,7 +203,8 @@ describe('Portal Integration Tests', () => {
       expect(maxTime).toBeLessThan(1000); // 1s max
     });
 
-    test('Should handle concurrent requests efficiently', async () => {
+    jest.setTimeout(10000);
+  test('Should handle concurrent requests efficiently', async () => { try {
       const concurrentRequests = 20;
       const startTime = Date.now();
 

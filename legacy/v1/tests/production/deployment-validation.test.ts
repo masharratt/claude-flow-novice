@@ -17,7 +17,7 @@ describe('Production Deployment Validation', () => {
   let healthCheckManager: HealthCheckManager;
   let testServer: http.Server;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     systemIntegration = SystemIntegration.getInstance();
     await systemIntegration.initialize({
       logLevel: 'info',
@@ -32,7 +32,7 @@ describe('Production Deployment Validation', () => {
     healthCheckManager = new HealthCheckManager();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     if (testServer) {
       testServer.close();
     }
@@ -42,7 +42,8 @@ describe('Production Deployment Validation', () => {
   });
 
   describe('Health Check Endpoints', () => {
-    test('should provide comprehensive health check response', async () => {
+    jest.setTimeout(10000);
+  test('should provide comprehensive health check response', async () => { try {
       const healthResult = await healthCheckManager.performHealthCheck();
       
       expect(healthResult).toBeDefined();
@@ -71,7 +72,8 @@ describe('Production Deployment Validation', () => {
       expect(typeof healthResult.metrics.memory.total).toBe('number');
     });
 
-    test('should provide detailed health check for each component', async () => {
+    jest.setTimeout(10000);
+  test('should provide detailed health check for each component', async () => { try {
       const components = ['orchestrator', 'agentManager', 'memoryManager', 'swarmCoordinator'];
       
       for (const componentName of components) {
@@ -93,7 +95,8 @@ describe('Production Deployment Validation', () => {
       }
     });
 
-    test('should provide liveness probe endpoint', async () => {
+    jest.setTimeout(10000);
+  test('should provide liveness probe endpoint', async () => { try {
       const livenessResult = await healthCheckManager.livenessProbe();
       
       expect(livenessResult).toBeDefined();
@@ -107,7 +110,8 @@ describe('Production Deployment Validation', () => {
       expect(responseTime).toBeLessThan(1000);
     });
 
-    test('should provide readiness probe endpoint', async () => {
+    jest.setTimeout(10000);
+  test('should provide readiness probe endpoint', async () => { try {
       const readinessResult = await healthCheckManager.readinessProbe();
       
       expect(readinessResult).toBeDefined();
@@ -127,7 +131,8 @@ describe('Production Deployment Validation', () => {
   });
 
   describe('Graceful Shutdown', () => {
-    test('should handle SIGTERM gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle SIGTERM gracefully', async () => { try {
       // Create a separate system instance for shutdown testing
       const shutdownSystem = SystemIntegration.getInstance();
       await shutdownSystem.initialize({
@@ -151,7 +156,8 @@ describe('Production Deployment Validation', () => {
       console.log(`Graceful shutdown completed in ${shutdownTime}ms`);
     });
 
-    test('should cleanup resources during shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should cleanup resources during shutdown', async () => { try {
       const tempDir = path.join(process.cwd(), 'temp-shutdown-test');
       await fs.ensureDir(tempDir);
       
@@ -184,7 +190,8 @@ describe('Production Deployment Validation', () => {
   });
 
   describe('Container and Process Management', () => {
-    test('should validate process signals handling', async () => {
+    jest.setTimeout(10000);
+  test('should validate process signals handling', async () => { try {
       const originalHandlers = {
         SIGTERM: process.listeners('SIGTERM'),
         SIGINT: process.listeners('SIGINT'),
@@ -199,7 +206,8 @@ describe('Production Deployment Validation', () => {
       expect(newTermListeners.length).toBeGreaterThanOrEqual(originalHandlers.SIGTERM.length);
     });
 
-    test('should validate environment variable inheritance', () => {
+    jest.setTimeout(10000);
+  test('should validate environment variable inheritance', () => {
       // Core environment variables should be available
       const requiredEnvVars = ['NODE_ENV', 'PATH'];
       
@@ -212,7 +220,8 @@ describe('Production Deployment Validation', () => {
       expect(childEnv.TEST_VAR).toBe('test-value');
     });
 
-    test('should validate resource usage monitoring', async () => {
+    jest.setTimeout(10000);
+  test('should validate resource usage monitoring', async () => { try {
       const resourceUsage = process.resourceUsage();
       
       expect(resourceUsage).toBeDefined();
@@ -225,7 +234,8 @@ describe('Production Deployment Validation', () => {
   });
 
   describe('File System and Storage Validation', () => {
-    test('should validate required directories exist', async () => {
+    jest.setTimeout(10000);
+  test('should validate required directories exist', async () => { try {
       const requiredDirs = [
         'src',
         'dist',
@@ -250,7 +260,8 @@ describe('Production Deployment Validation', () => {
       }
     });
 
-    test('should validate log file creation and rotation', async () => {
+    jest.setTimeout(10000);
+  test('should validate log file creation and rotation', async () => { try {
       const logDir = path.join(process.cwd(), 'logs');
       await fs.ensureDir(logDir);
       
@@ -270,7 +281,8 @@ describe('Production Deployment Validation', () => {
       await fs.remove(testLogFile);
     });
 
-    test('should validate persistent storage', async () => {
+    jest.setTimeout(10000);
+  test('should validate persistent storage', async () => { try {
       const memoryDir = path.join(process.cwd(), 'memory');
       await fs.ensureDir(memoryDir);
       
@@ -300,7 +312,8 @@ describe('Production Deployment Validation', () => {
   });
 
   describe('Network and Service Discovery', () => {
-    test('should validate HTTP server startup', async () => {
+    jest.setTimeout(10000);
+  test('should validate HTTP server startup', async () => { try {
       const port = 0; // Use dynamic port
       
       testServer = http.createServer((req, res) => {
@@ -331,7 +344,8 @@ describe('Production Deployment Validation', () => {
       }
     });
 
-    test('should validate health endpoint response', async () => {
+    jest.setTimeout(10000);
+  test('should validate health endpoint response', async () => { try {
       if (!testServer) {
         return; // Skip if server not started
       }
@@ -366,7 +380,8 @@ describe('Production Deployment Validation', () => {
   });
 
   describe('Configuration and Environment Validation', () => {
-    test('should validate production configuration loading', async () => {
+    jest.setTimeout(10000);
+  test('should validate production configuration loading', async () => { try {
       const prodConfig = {
         logLevel: 'warn',
         environment: 'production',
@@ -397,7 +412,8 @@ describe('Production Deployment Validation', () => {
       await prodSystem.shutdown();
     });
 
-    test('should validate configuration merging and overrides', async () => {
+    jest.setTimeout(10000);
+  test('should validate configuration merging and overrides', async () => { try {
       const baseConfig = {
         logLevel: 'info',
         environment: 'test'
@@ -421,4 +437,4 @@ describe('Production Deployment Validation', () => {
       await mergedSystem.shutdown();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

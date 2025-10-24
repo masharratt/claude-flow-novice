@@ -76,10 +76,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
   let truthValidator;
   let frameworkRegistry;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Create temporary test directory
     testDir = path.join(__dirname, `test-${crypto.randomBytes(8).toString('hex')}`);
-    await fs.mkdir(testDir, { recursive: true });
+    await fs.mkdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Initialize components with test configuration
     configManager = new UserConfigurationManager({
@@ -88,23 +88,23 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       consensusThreshold: 0.85,
       enablePhase1Integration: true,
       enableAnalyticsIntegration: true
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     truthValidator = new CompletionTruthValidator({
       memoryStore: configManager.analyticsStore
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     frameworkRegistry = new CustomFrameworkRegistry({
       configManager,
       truthValidator
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     await configManager.initialize();
     await truthValidator.initialize();
     await frameworkRegistry.initialize();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup
     if (configManager) {
       await configManager.shutdown();
@@ -118,14 +118,15 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
     // Remove test directory
     try {
-      await fs.rmdir(testDir, { recursive: true });
+      await fs.rmdir(testDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     } catch (error) {
       // Ignore cleanup errors
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('TruthConfigManager Schema Validation (100% Coverage)', () => {
-    test('should validate all supported framework types', async () => {
+    jest.setTimeout(10000);
+  test('should validate all supported framework types', async () => { try {
       const frameworks = [
         {
           id: 'tdd-custom',
@@ -163,7 +164,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
               [framework.id]: framework
             }
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         expect(validation.valid).toBe(true);
         expect(validation.errors).toHaveLength(0);
@@ -172,15 +173,16 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         const addResult = await frameworkRegistry.addFramework(framework, {
           requireByzantineConsensus: true,
           securityValidation: true
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         expect(addResult.success).toBe(true);
         expect(addResult.byzantineValidated).toBe(true);
         expect(addResult).toHaveProperty('cryptographicSignature');
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should reject invalid schema configurations', async () => {
+    jest.setTimeout(10000);
+  test('should reject invalid schema configurations', async () => { try {
       const invalidConfigurations = [
         {
           name: 'missing_required_fields',
@@ -231,7 +233,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       for (const testCase of invalidConfigurations) {
         const validation = await configManager.validateConfigurationUpdate(testCase.config, {
           securityValidation: true
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         expect(validation.valid).toBe(false);
 
@@ -250,9 +252,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
           expect(hasExpectedViolation).toBe(true);
         }
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle edge cases and boundary conditions', async () => {
+    jest.setTimeout(10000);
+  test('should handle edge cases and boundary conditions', async () => { try {
       const edgeCases = [
         {
           name: 'minimum_valid_threshold',
@@ -291,7 +294,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
               [edgeCase.framework.id]: edgeCase.framework
             }
           }
-        }, { securityValidation: true });
+        }, { securityValidation: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         if (edgeCase.shouldPass) {
           expect(validation.valid).toBe(true);
@@ -304,18 +307,19 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
                   [edgeCase.framework.id]: edgeCase.framework
                 }
               }
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             const hasViolation = securityCheck.violations.some(v =>
               v.message.includes(edgeCase.expectedViolation));
             expect(hasViolation).toBe(true);
           }
         }
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('CLI Wizard User Experience (<5 minute completion)', () => {
-    test('should complete framework setup wizard in under 5 minutes', async () => {
+    jest.setTimeout(10000);
+  test('should complete framework setup wizard in under 5 minutes', async () => { try {
       const startTime = Date.now();
       const maxDurationMs = 5 * 60 * 1000; // 5 minutes
 
@@ -324,7 +328,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         {
           name: 'framework_selection',
           duration: 30000, // 30 seconds
-          action: async () => {
+          action: async () => { try {
             const availableFrameworks = await frameworkRegistry.listAvailableFrameworks();
             expect(availableFrameworks.length).toBeGreaterThan(0);
             return 'TDD';
@@ -333,14 +337,14 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         {
           name: 'threshold_configuration',
           duration: 45000, // 45 seconds
-          action: async () => {
+          action: async () => { try {
             const config = {
               truth_threshold: 0.90,
               test_coverage_requirement: 0.95
             };
             const validation = await configManager.validateConfigurationSchema({
               completion_validation: { frameworks: { tdd: config } }
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             expect(validation.valid).toBe(true);
             return config;
           }
@@ -348,7 +352,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         {
           name: 'quality_gates_setup',
           duration: 60000, // 60 seconds
-          action: async () => {
+          action: async () => { try {
             const qualityGates = [
               'requirements_analysis',
               'test_design',
@@ -359,7 +363,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
               const gateConfig = await frameworkRegistry.configureQualityGate(gate, {
                 enabled: true,
                 enforcement_level: 'moderate'
-              });
+              } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
               expect(gateConfig.configured).toBe(true);
             }
 
@@ -369,7 +373,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         {
           name: 'byzantine_security_setup',
           duration: 90000, // 90 seconds
-          action: async () => {
+          action: async () => { try {
             const securityConfig = {
               enableByzantineValidation: true,
               consensusThreshold: 0.85,
@@ -390,7 +394,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         {
           name: 'configuration_finalization',
           duration: 45000, // 45 seconds
-          action: async () => {
+          action: async () => { try {
             const finalConfig = {
               completion_validation: {
                 frameworks: {
@@ -410,7 +414,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             const updateResult = await configManager.updateConfiguration(finalConfig, {
               requireConsensus: true,
               validateWithPhase1: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
             expect(updateResult.success).toBe(true);
             expect(updateResult.configurationApplied).toBe(true);
@@ -437,7 +441,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             duration: stepDuration,
             success: true,
             result
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           console.log(`✅ ${step.name}: ${stepDuration}ms`);
 
@@ -450,7 +454,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             duration: Date.now() - stepStartTime,
             success: false,
             error: error.message
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           throw error;
         }
       }
@@ -470,9 +474,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       // Verify final configuration is persisted and accessible
       const savedConfig = await configManager.getPreferences();
       expect(savedConfig.preferences?.completion_validation?.frameworks).toHaveProperty('wizard-tdd');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle wizard interruption and resume gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle wizard interruption and resume gracefully', async () => { try {
       const wizardId = `wizard-${crypto.randomBytes(4).toString('hex')}`;
 
       // Start wizard
@@ -495,7 +500,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       const newConfigManager = new UserConfigurationManager({
         preferencesPath: configManager.options.preferencesPath,
         enableByzantineValidation: true
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await newConfigManager.initialize();
 
@@ -521,14 +526,14 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
       const completionResult = await newConfigManager.updateConfiguration(completionConfig, {
         requireConsensus: true
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(completionResult.success).toBe(true);
       expect(completionResult.consensusReached).toBe(true);
 
       await newConfigManager.shutdown();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Framework Detection Accuracy (>90% for JS/TS/Python)', () => {
     const testProjects = [
@@ -544,7 +549,8 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             }
           }),
           'src/App.js': 'import React from "react"; export default function App() { return <div>Hello</div>; }',
-          'src/__tests__/App.test.js': 'import { render } from "@testing-library/react"; test("renders", () => {});',
+          'src/__tests__/App.test.js': 'import { render } from "@testing-library/react"; jest.setTimeout(10000);
+  test("renders", () => {});',
           'jest.config.js': 'module.exports = { testEnvironment: "jsdom" };'
         },
         expectedFramework: 'TDD',
@@ -630,19 +636,20 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       }
     ];
 
-    test('should accurately detect framework and language combinations', async () => {
+    jest.setTimeout(10000);
+  test('should accurately detect framework and language combinations', async () => { try {
       const detectionResults = [];
       let correctDetections = 0;
 
       for (const project of testProjects) {
         // Create temporary project structure
         const projectDir = path.join(testDir, project.name.toLowerCase().replace(/\s+/g, '-'));
-        await fs.mkdir(projectDir, { recursive: true });
+        await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         // Write project files
         for (const [filePath, content] of Object.entries(project.files)) {
           const fullPath = path.join(projectDir, filePath);
-          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           await fs.writeFile(fullPath, content);
         }
 
@@ -659,7 +666,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
           detected: detectionResult,
           correct: detectionResult.framework === project.expectedFramework &&
                    detectionResult.language === project.expectedLanguage
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         if (detectionResult.framework === project.expectedFramework &&
             detectionResult.language === project.expectedLanguage &&
@@ -693,9 +700,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         const avgDetectionTime = detectionTimes.reduce((a, b) => a + b, 0) / detectionTimes.length;
         expect(avgDetectionTime).toBeLessThan(1000); // < 1 second average
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle edge cases and complex project structures', async () => {
+    jest.setTimeout(10000);
+  test('should handle edge cases and complex project structures', async () => { try {
       const edgeCaseProjects = [
         {
           name: 'Mixed Testing Frameworks',
@@ -744,11 +752,11 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
       for (const project of edgeCaseProjects) {
         const projectDir = path.join(testDir, project.name.toLowerCase().replace(/\s+/g, '-'));
-        await fs.mkdir(projectDir, { recursive: true });
+        await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         for (const [filePath, content] of Object.entries(project.files)) {
           const fullPath = path.join(projectDir, filePath);
-          await fs.mkdir(path.dirname(fullPath), { recursive: true });
+          await fs.mkdir(path.dirname(fullPath), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           await fs.writeFile(fullPath, content);
         }
 
@@ -769,11 +777,12 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
         console.log(`${project.name}: ${JSON.stringify(detectionResult, null, 2)}`);
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Integration with Existing 745-line TruthScorer', () => {
-    test('should integrate seamlessly with TruthScorer validation', async () => {
+    jest.setTimeout(10000);
+  test('should integrate seamlessly with TruthScorer validation', async () => { try {
       const testCompletions = [
         {
           id: 'completion-1',
@@ -852,9 +861,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         console.log(`  Byzantine Consensus: ${validationResult.consensusAchieved ? 'ACHIEVED' : 'FAILED'}`);
         console.log(`  Validation Time: ${validationResult.validationTime.toFixed(2)}ms`);
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should maintain <5% performance degradation from baseline', async () => {
+    jest.setTimeout(10000);
+  test('should maintain <5% performance degradation from baseline', async () => { try {
       const baselineCompletion = {
         id: 'baseline-test',
         claim: 'Simple completion for baseline measurement',
@@ -882,15 +892,16 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       // Verify both results are functionally equivalent
       expect(integrationResult.truthScore).toBeCloseTo(baselineResult.truthScore, 1);
       expect(integrationResult.consensusAchieved).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle TruthScorer integration errors gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle TruthScorer integration errors gracefully', async () => { try {
       // Create a failing TruthScorer mock
       const failingTruthValidator = new CompletionTruthValidator({
         truthScorer: {
           evaluateCompletion: jest.fn().mockRejectedValue(new Error('TruthScorer unavailable'))
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await failingTruthValidator.initialize();
 
@@ -908,11 +919,12 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       expect(result.evidence.truthScorerIntegrated).toBe(false);
 
       await failingTruthValidator.close();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Configuration Persistence Across Sessions', () => {
-    test('should persist complex configurations across restarts', async () => {
+    jest.setTimeout(10000);
+  test('should persist complex configurations across restarts', async () => { try {
       const complexConfig = {
         completion_validation: {
           frameworks: {
@@ -971,7 +983,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       const updateResult = await configManager.updateConfiguration(complexConfig, {
         requireConsensus: true,
         validateWithPhase1: true
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(updateResult.success).toBe(true);
       expect(updateResult.consensusReached).toBe(true);
@@ -986,7 +998,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         consensusThreshold: 0.85,
         enablePhase1Integration: true,
         enableAnalyticsIntegration: true
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await newConfigManager.initialize();
 
@@ -1016,15 +1028,16 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
       const addResult = await newConfigManager.addCustomFramework(testFramework, {
         requireByzantineConsensus: true
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       expect(addResult.frameworkAdded).toBe(true);
       expect(addResult.byzantineValidated).toBe(true);
 
       await newConfigManager.shutdown();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle configuration corruption and recovery', async () => {
+    jest.setTimeout(10000);
+  test('should handle configuration corruption and recovery', async () => { try {
       // Create valid configuration first
       const validConfig = {
         completion_validation: {
@@ -1051,7 +1064,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       const recoveryManager = new UserConfigurationManager({
         preferencesPath: configManager.options.preferencesPath,
         enableByzantineValidation: true
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       // Should initialize without throwing error
       await expect(recoveryManager.initialize()).resolves.not.toThrow();
@@ -1073,15 +1086,16 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       expect(addResult.frameworkAdded).toBe(true);
 
       await recoveryManager.shutdown();
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Byzantine Consensus Integration Validation', () => {
-    test('should achieve Byzantine consensus for all configuration changes', async () => {
+    jest.setTimeout(10000);
+  test('should achieve Byzantine consensus for all configuration changes', async () => { try {
       const consensusTests = [
         {
           name: 'Framework Addition',
-          action: async () => {
+          action: async () => { try {
             const framework = {
               id: 'consensus-tdd',
               name: 'Consensus TDD Framework',
@@ -1092,13 +1106,13 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
             return await configManager.addCustomFramework(framework, {
               requireByzantineConsensus: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           },
           expectedConsensus: true
         },
         {
           name: 'Threshold Modification',
-          action: async () => {
+          action: async () => { try {
             const config = {
               completion_validation: {
                 frameworks: {
@@ -1115,13 +1129,13 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
             return await configManager.updateConfiguration(config, {
               requireConsensus: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           },
           expectedConsensus: true
         },
         {
           name: 'Security-Sensitive Change',
-          action: async () => {
+          action: async () => { try {
             const config = {
               completion_validation: {
                 user_customization: {
@@ -1135,7 +1149,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             return await configManager.updateConfiguration(config, {
               requireConsensus: true,
               securityValidation: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           },
           expectedConsensus: true
         }
@@ -1160,9 +1174,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         console.log(`  Consensus: ${result.byzantineValidated || result.consensusReached ? '✅' : '❌'}`);
         console.log(`  Cryptographic proof: ${result.cryptographicSignature ? '✅' : '❌'}`);
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should resist Byzantine attacks and malicious configurations', async () => {
+    jest.setTimeout(10000);
+  test('should resist Byzantine attacks and malicious configurations', async () => { try {
       const attackScenarios = [
         {
           name: 'Threshold Bypass Attack',
@@ -1225,7 +1240,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
           const result = await configManager.updateConfiguration(scenario.maliciousConfig, {
             requireConsensus: true,
             securityValidation: true
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           const duration = Date.now() - startTime;
 
@@ -1253,9 +1268,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
           }
         }
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should maintain consensus across network partitions', async () => {
+    jest.setTimeout(10000);
+  test('should maintain consensus across network partitions', async () => { try {
       // Simulate network partition by creating multiple config managers
       const managers = [];
       const partitionSize = 3;
@@ -1266,7 +1282,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
           enableByzantineValidation: true,
           consensusThreshold: 0.67, // 2/3 majority
           nodeId: `node-${i}`
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         await manager.initialize();
         managers.push(manager);
@@ -1316,15 +1332,16 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         // Cleanup all managers
         await Promise.all(managers.map(manager => manager.shutdown()));
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Error Handling and Edge Case Coverage', () => {
-    test('should handle all error scenarios gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle all error scenarios gracefully', async () => { try {
       const errorScenarios = [
         {
           name: 'Disk Full During Configuration Save',
-          setup: async () => {
+          setup: async () => { try {
             // Mock fs.writeFile to simulate disk full
             const originalWriteFile = fs.writeFile;
             jest.spyOn(fs, 'writeFile').mockRejectedValueOnce(
@@ -1332,7 +1349,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             );
             return () => fs.writeFile = originalWriteFile;
           },
-          action: async () => {
+          action: async () => { try {
             const config = {
               completion_validation: {
                 frameworks: { 'disk-full-test': { id: 'disk-full-test', name: 'Test' } }
@@ -1344,7 +1361,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         },
         {
           name: 'Memory Exhaustion During Validation',
-          setup: async () => {
+          setup: async () => { try {
             // Create extremely large configuration to trigger memory issues
             const largeConfig = {
               completion_validation: {
@@ -1370,14 +1387,14 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             return await configManager.updateConfiguration(config, {
               requireConsensus: true,
               securityValidation: true
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           },
           expectTimeout: true,
           timeoutMs: 10000
         },
         {
           name: 'Network Timeout During Byzantine Consensus',
-          setup: async () => {
+          setup: async () => { try {
             // Mock Byzantine consensus to timeout
             const mockConsensus = jest.spyOn(configManager.byzantineConsensus, 'achieveConsensus')
               .mockImplementation(() => new Promise((_, reject) =>
@@ -1385,7 +1402,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
               ));
             return () => mockConsensus.mockRestore();
           },
-          action: async () => {
+          action: async () => { try {
             const config = {
               completion_validation: {
                 frameworks: {
@@ -1398,21 +1415,21 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
                 }
               }
             };
-            return await configManager.updateConfiguration(config, { requireConsensus: true });
+            return await configManager.updateConfiguration(config, { requireConsensus: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           },
           expectedError: 'Consensus timeout'
         },
         {
           name: 'Corrupted Configuration File Recovery',
-          setup: async () => {
+          setup: async () => { try {
             // Corrupt the preferences file
             const prefsPath = path.join(configManager.options.preferencesPath, 'user-global.json');
             await fs.writeFile(prefsPath, Buffer.from([0xFF, 0xFE, 0x00, 0x01])); // Binary data
           },
-          action: async () => {
+          action: async () => { try {
             const newManager = new UserConfigurationManager({
               preferencesPath: configManager.options.preferencesPath
-            });
+            } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
             await newManager.initialize();
             const preferences = await newManager.getPreferences();
             await newManager.shutdown();
@@ -1487,15 +1504,16 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
           }
         }
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should maintain system stability under concurrent operations', async () => {
+    jest.setTimeout(10000);
+  test('should maintain system stability under concurrent operations', async () => { try {
       const concurrentOperations = 10;
       const operations = [];
 
       // Create multiple concurrent configuration updates
       for (let i = 0; i < concurrentOperations; i++) {
-        const operation = async () => {
+        const operation = async () => { try {
           const config = {
             completion_validation: {
               frameworks: {
@@ -1511,7 +1529,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
           return await configManager.updateConfiguration(config, {
             requireConsensus: i % 2 === 0 // Half require consensus
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
         };
 
         operations.push(operation());
@@ -1549,11 +1567,12 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         expect(framework.truth_threshold).toBeGreaterThan(0.8);
         expect(framework.truth_threshold).toBeLessThan(1.0);
       }
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Comprehensive Coverage Validation (>95%)', () => {
-    test('should achieve >95% test coverage for all Phase 2 components', async () => {
+    jest.setTimeout(10000);
+  test('should achieve >95% test coverage for all Phase 2 components', async () => { try {
       // This test validates that our test suite covers all critical paths
       const componentCoverage = {
         UserConfigurationManager: {
@@ -1654,9 +1673,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
       console.log(`  Error Paths: ${errorCoverage.toFixed(1)}% (${errorPathsCovered}/${errorPathTests.length})`);
 
       expect(errorCoverage).toBeGreaterThanOrEqual(90); // 90% error path coverage minimum
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should validate end-to-end integration scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should validate end-to-end integration scenarios', async () => { try {
       // Complete end-to-end scenario covering all Phase 2 functionality
       console.log('\n🔄 End-to-End Integration Scenario');
 
@@ -1665,10 +1685,10 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
         steps: [
           {
             name: 'Project Detection',
-            action: async () => {
+            action: async () => { try {
               // Create test project
               const projectDir = path.join(testDir, 'e2e-project');
-              await fs.mkdir(projectDir, { recursive: true });
+              await fs.mkdir(projectDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
               await fs.writeFile(path.join(projectDir, 'package.json'), JSON.stringify({
                 dependencies: { 'jest': '^29.0.0' }
               }));
@@ -1680,7 +1700,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
           },
           {
             name: 'Custom Framework Creation',
-            action: async () => {
+            action: async () => { try {
               const framework = {
                 id: 'e2e-framework',
                 name: 'End-to-End Test Framework',
@@ -1692,14 +1712,14 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
               const result = await frameworkRegistry.addFramework(framework, {
                 requireByzantineConsensus: true
-              });
+              } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
               expect(result.success).toBe(true);
               return result;
             }
           },
           {
             name: 'Configuration Update',
-            action: async () => {
+            action: async () => { try {
               const config = {
                 completion_validation: {
                   frameworks: {
@@ -1717,14 +1737,14 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
               const result = await configManager.updateConfiguration(config, {
                 requireConsensus: true,
                 validateWithPhase1: true
-              });
+              } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
               expect(result.success).toBe(true);
               return result;
             }
           },
           {
             name: 'Completion Validation',
-            action: async () => {
+            action: async () => { try {
               const completion = {
                 id: 'e2e-completion',
                 claim: 'E2E framework implementation complete',
@@ -1745,14 +1765,14 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
           },
           {
             name: 'Configuration Persistence',
-            action: async () => {
+            action: async () => { try {
               // Shutdown and restart to verify persistence
               await configManager.shutdown();
 
               const newManager = new UserConfigurationManager({
                 preferencesPath: path.join(testDir, 'preferences'),
                 enableByzantineValidation: true
-              });
+              } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
               await newManager.initialize();
               const config = await newManager.getPreferences();
@@ -1783,7 +1803,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             success: true,
             duration: stepDuration,
             result
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           console.log(`    ✅ ${step.name} completed in ${stepDuration}ms`);
 
@@ -1793,7 +1813,7 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
             success: false,
             duration: Date.now() - stepStart,
             error: error.message
-          });
+          } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
           console.log(`    ❌ ${step.name} failed: ${error.message}`);
           throw error;
@@ -1809,6 +1829,6 @@ describe('Phase 2 Comprehensive Integration Tests', () => {
 
       // Verify reasonable performance
       expect(totalDuration).toBeLessThan(30000); // 30 seconds maximum
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

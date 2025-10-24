@@ -15,7 +15,7 @@ describe('PM Failover - Crash Simulation', () => {
   let broker;
   let logger;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     logger = new Logger({ level: 'error' });
     memory = new SwarmMemoryManager({ dbPath: ':memory:' }, logger);
     await memory.initialize();
@@ -28,12 +28,12 @@ describe('PM Failover - Crash Simulation', () => {
     }, memory, broker, logger);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     pmFailover.shutdown();
     await memory.shutdown();
   });
 
-  it('should detect PM crash and promote successor', async () => {
+  it('should detect PM crash and promote successor', async () => { try {
     // Register PM
     pmFailover.registerPM('pm-1', {
       successRate: 0.95,
@@ -78,7 +78,7 @@ describe('PM Failover - Crash Simulation', () => {
     expect(storedEvent).toBeDefined();
   });
 
-  it('should redistribute tasks after PM crash', async () => {
+  it('should redistribute tasks after PM crash', async () => { try {
     // Register PM with active tasks
     pmFailover.registerPM('pm-crashed', {
       successRate: 0.90,
@@ -119,7 +119,7 @@ describe('PM Failover - Crash Simulation', () => {
     // (In real implementation, would check MessageBroker for published tasks)
   });
 
-  it('should handle multiple PM failures with successive promotions', async () => {
+  it('should handle multiple PM failures with successive promotions', async () => { try {
     // Register initial PM
     pmFailover.registerPM('pm-1', {
       successRate: 0.90,
@@ -157,7 +157,7 @@ describe('PM Failover - Crash Simulation', () => {
     expect(finalPromotion).toBeDefined();
   });
 
-  it('should not promote if no eligible successors available', async () => {
+  it('should not promote if no eligible successors available', async () => { try {
     // Register PM
     pmFailover.registerPM('pm-lonely', {
       successRate: 0.90,
@@ -179,7 +179,7 @@ describe('PM Failover - Crash Simulation', () => {
     expect(promoted).toBe(false);
   });
 
-  it('should preserve task dependencies during failover', async () => {
+  it('should preserve task dependencies during failover', async () => { try {
     // Register PM with dependent tasks
     pmFailover.registerPM('pm-deps', {
       successRate: 0.90,

@@ -43,24 +43,24 @@ describe('MCP Server', () => {
 
   beforeEach(() => {
     server = new MCPServer(mockMCPConfig, mockEventBus, mockLogger);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (server) {
       await server.stop();
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Lifecycle Management', () => {
-    it('should start and stop server successfully', async () => {
+    it('should start and stop server successfully', async () => { try {
       await server.start();
       expect(mockLogger.info).toHaveBeenCalledWith('MCP server started successfully');
 
       await server.stop();
       expect(mockLogger.info).toHaveBeenCalledWith('MCP server stopped');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle initialization request', async () => {
+    it('should handle initialization request', async () => { try {
       await server.start();
 
       const initParams: MCPInitializeParams = {
@@ -90,14 +90,14 @@ describe('MCP Server', () => {
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-init');
       expect(response.result).toBeDefined();
-      expect(response.result.protocolVersion).toEqual({ major: 2024, minor: 11, patch: 5 });
-    });
-  });
+      expect(response.result.protocolVersion).toEqual({ major: 2024, minor: 11, patch: 5 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Tool Registration', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await server.start();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should register tools successfully', () => {
       const tool = {
@@ -113,10 +113,10 @@ describe('MCP Server', () => {
       };
 
       server.registerTool(tool);
-      expect(mockLogger.info).toHaveBeenCalledWith('Tool registered', { name: 'test/tool' });
-    });
+      expect(mockLogger.info).toHaveBeenCalledWith('Tool registered', { name: 'test/tool' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should list registered tools', async () => {
+    it('should list registered tools', async () => { try {
       const tool1 = {
         name: 'test/tool1',
         description: 'Test tool 1',
@@ -138,23 +138,23 @@ describe('MCP Server', () => {
       expect(tools).toHaveLength(2 + 4); // 2 custom + 4 built-in tools
       expect(tools.some((t: any) => t.name === 'test/tool1')).toBe(true);
       expect(tools.some((t: any) => t.name === 'test/tool2')).toBe(true);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Health Checks', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await server.start();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should report healthy status when running', async () => {
+    it('should report healthy status when running', async () => { try {
       const health = await server.getHealthStatus();
 
       expect(health.healthy).toBe(true);
       expect(health.metrics).toBeDefined();
       expect(health.metrics?.registeredTools).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should include metrics in health status', async () => {
+    it('should include metrics in health status', async () => { try {
       const health = await server.getHealthStatus();
 
       expect(health.metrics).toBeDefined();
@@ -162,9 +162,9 @@ describe('MCP Server', () => {
       expect(typeof health.metrics?.totalRequests).toBe('number');
       expect(typeof health.metrics?.successfulRequests).toBe('number');
       expect(typeof health.metrics?.failedRequests).toBe('number');
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 describe('MCP Lifecycle Manager', () => {
   let lifecycleManager: MCPLifecycleManager;
@@ -174,35 +174,35 @@ describe('MCP Lifecycle Manager', () => {
     mockServerFactory = jest.fn(() => new MCPServer(mockMCPConfig, mockEventBus, mockLogger));
 
     lifecycleManager = new MCPLifecycleManager(mockMCPConfig, mockLogger, mockServerFactory);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (lifecycleManager) {
       await lifecycleManager.stop();
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('State Management', () => {
     it('should start in stopped state', () => {
       expect(lifecycleManager.getState()).toBe(LifecycleState.STOPPED);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should transition to running state when started', async () => {
+    it('should transition to running state when started', async () => { try {
       await lifecycleManager.start();
       expect(lifecycleManager.getState()).toBe(LifecycleState.RUNNING);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should transition back to stopped when stopped', async () => {
+    it('should transition back to stopped when stopped', async () => { try {
       await lifecycleManager.start();
       await lifecycleManager.stop();
       expect(lifecycleManager.getState()).toBe(LifecycleState.STOPPED);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should emit state change events', async () => {
+    it('should emit state change events', async () => { try {
       const stateChanges: any[] = [];
       lifecycleManager.on('stateChange', (event) => {
         stateChanges.push(event);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       await lifecycleManager.start();
       await lifecycleManager.stop();
@@ -212,11 +212,11 @@ describe('MCP Lifecycle Manager', () => {
       expect(stateChanges[1].state).toBe(LifecycleState.RUNNING);
       expect(stateChanges[2].state).toBe(LifecycleState.STOPPING);
       expect(stateChanges[3].state).toBe(LifecycleState.STOPPED);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Health Monitoring', () => {
-    it('should perform health checks when enabled', async () => {
+    it('should perform health checks when enabled', async () => { try {
       const config = {
         healthCheckInterval: 100,
         enableHealthChecks: true,
@@ -237,9 +237,9 @@ describe('MCP Lifecycle Manager', () => {
       const health = await lifecycleManager.healthCheck();
       expect(health).toBeDefined();
       expect(health.state).toBeDefined();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should track uptime', async () => {
+    it('should track uptime', async () => { try {
       await lifecycleManager.start();
 
       // Wait a bit
@@ -247,25 +247,25 @@ describe('MCP Lifecycle Manager', () => {
 
       const uptime = lifecycleManager.getUptime();
       expect(uptime).toBeGreaterThan(0);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 describe('MCP Performance Monitor', () => {
   let performanceMonitor: MCPPerformanceMonitor;
 
   beforeEach(() => {
     performanceMonitor = new MCPPerformanceMonitor(mockLogger);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterEach(() => {
     if (performanceMonitor) {
       performanceMonitor.stop();
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Request Tracking', () => {
-    it('should track request metrics', async () => {
+    it('should track request metrics', async () => { try {
       const mockSession: MCPSession = {
         id: 'test-session',
         clientInfo: { name: 'test', version: '1.0' },
@@ -294,21 +294,21 @@ describe('MCP Performance Monitor', () => {
         jsonrpc: '2.0',
         id: 'test-request',
         result: 'success',
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const metrics = performanceMonitor.getCurrentMetrics();
       expect(metrics.requestCount).toBe(1);
       expect(metrics.averageResponseTime).toBeGreaterThan(0);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 describe('MCP Protocol Manager', () => {
   let protocolManager: MCPProtocolManager;
 
   beforeEach(() => {
     protocolManager = new MCPProtocolManager(mockLogger);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Version Compatibility', () => {
     it('should check version compatibility correctly', () => {
@@ -317,7 +317,7 @@ describe('MCP Protocol Manager', () => {
 
       expect(compatibility.compatible).toBe(true);
       expect(compatibility.errors).toHaveLength(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should reject incompatible major versions', () => {
       const clientVersion = { major: 2023, minor: 11, patch: 5 };
@@ -325,11 +325,11 @@ describe('MCP Protocol Manager', () => {
 
       expect(compatibility.compatible).toBe(false);
       expect(compatibility.errors.length).toBeGreaterThan(0);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Protocol Negotiation', () => {
-    it('should negotiate protocol successfully', async () => {
+    it('should negotiate protocol successfully', async () => { try {
       const clientParams: MCPInitializeParams = {
         protocolVersion: { major: 2024, minor: 11, patch: 5 },
         capabilities: {
@@ -347,16 +347,16 @@ describe('MCP Protocol Manager', () => {
       expect(result.agreedVersion).toEqual(clientParams.protocolVersion);
       expect(result.agreedCapabilities).toBeDefined();
       expect(result.agreedCapabilities.tools?.listChanged).toBe(true);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 describe('Tool Registry', () => {
   let toolRegistry: ToolRegistry;
 
   beforeEach(() => {
     toolRegistry = new ToolRegistry(mockLogger);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Tool Management', () => {
     it('should register tools with capabilities', () => {
@@ -385,7 +385,7 @@ describe('Tool Registry', () => {
 
       const registeredCapability = toolRegistry.getToolCapability('test/tool');
       expect(registeredCapability).toEqual(capability);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     it('should discover tools by criteria', () => {
       const tool1 = {
@@ -405,16 +405,16 @@ describe('Tool Registry', () => {
       toolRegistry.register(tool1);
       toolRegistry.register(tool2);
 
-      const fileTools = toolRegistry.discoverTools({ category: 'file' });
+      const fileTools = toolRegistry.discoverTools({ category: 'file' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(fileTools).toHaveLength(1);
       expect(fileTools[0].tool.name).toBe('file/read');
 
-      const memoryTools = toolRegistry.discoverTools({ tags: ['memory'] });
+      const memoryTools = toolRegistry.discoverTools({ tags: ['memory'] } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(memoryTools).toHaveLength(1);
       expect(memoryTools[0].tool.name).toBe('memory/query');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should track tool metrics', async () => {
+    it('should track tool metrics', async () => { try {
       const tool = {
         name: 'test/metric-tool',
         description: 'Tool for metrics testing',
@@ -425,8 +425,8 @@ describe('Tool Registry', () => {
       toolRegistry.register(tool);
 
       // Execute tool multiple times
-      await toolRegistry.executeTool('test/metric-tool', {});
-      await toolRegistry.executeTool('test/metric-tool', {});
+      await toolRegistry.executeTool('test/metric-tool', {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      await toolRegistry.executeTool('test/metric-tool', {} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       const metrics = toolRegistry.getToolMetrics('test/metric-tool');
       expect(Array.isArray(metrics) ? metrics[0].totalInvocations : metrics.totalInvocations).toBe(
@@ -435,9 +435,9 @@ describe('Tool Registry', () => {
       expect(
         Array.isArray(metrics) ? metrics[0].successfulInvocations : metrics.successfulInvocations,
       ).toBe(2);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
 describe('MCP Orchestration Integration', () => {
   let integration: MCPOrchestrationIntegration;
@@ -474,16 +474,16 @@ describe('MCP Orchestration Integration', () => {
       mockComponents,
       mockLogger,
     );
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (integration) {
       await integration.stop();
     }
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Integration Management', () => {
-    it('should start integration successfully', async () => {
+    it('should start integration successfully', async () => { try {
       await integration.start();
 
       const status = integration.getIntegrationStatus();
@@ -491,9 +491,9 @@ describe('MCP Orchestration Integration', () => {
 
       const orchestratorStatus = status.find((s) => s.component === 'orchestrator');
       expect(orchestratorStatus?.enabled).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should register orchestrator tools when enabled', async () => {
+    it('should register orchestrator tools when enabled', async () => { try {
       await integration.start();
 
       const server = integration.getServer();
@@ -503,9 +503,9 @@ describe('MCP Orchestration Integration', () => {
       const tools = (server as any).toolRegistry.listTools();
       const orchestratorTools = tools.filter((t: any) => t.name.startsWith('orchestrator/'));
       expect(orchestratorTools.length).toBeGreaterThan(0);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    it('should handle component connection failures gracefully', async () => {
+    it('should handle component connection failures gracefully', async () => { try {
       // Mock a failing component
       mockComponents.orchestrator.getStatus = jest
         .fn()
@@ -516,11 +516,11 @@ describe('MCP Orchestration Integration', () => {
       const status = integration.getComponentStatus('orchestrator');
       expect(status).toBeDefined();
       // Connection status can vary in test environment
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('Health Monitoring', () => {
-    it('should monitor component health', async () => {
+    it('should monitor component health', async () => { try {
       await integration.start();
 
       // Wait for health check
@@ -532,6 +532,6 @@ describe('MCP Orchestration Integration', () => {
       for (const component of enabledComponents) {
         expect(component.lastCheck).toBeInstanceOf(Date);
       }
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

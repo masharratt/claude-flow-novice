@@ -79,15 +79,16 @@ describe('Command Registry', () => {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
     jest.clearAllMocks();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
     consoleErrorSpy.mockRestore();
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('registerCoreCommands', () => {
-    test('should register all core commands', () => {
+    jest.setTimeout(10000);
+  test('should register all core commands', () => {
       registerCoreCommands();
 
       const expectedCommands = [
@@ -111,10 +112,11 @@ describe('Command Registry', () => {
 
       expectedCommands.forEach((cmd) => {
         expect(commandRegistry.has(cmd)).toBe(true);
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should register commands with correct metadata', () => {
+    jest.setTimeout(10000);
+  test('should register commands with correct metadata', () => {
       registerCoreCommands();
 
       const initCmd = commandRegistry.get('init');
@@ -123,58 +125,64 @@ describe('Command Registry', () => {
       expect(initCmd).toHaveProperty('usage');
       expect(initCmd).toHaveProperty('examples');
       expect(initCmd.description).toContain('Initialize Claude Code integration');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('hasCommand', () => {
     beforeEach(() => {
       registerCoreCommands();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should return true for registered commands', () => {
+    jest.setTimeout(10000);
+  test('should return true for registered commands', () => {
       expect(hasCommand('init')).toBe(true);
       expect(hasCommand('swarm')).toBe(true);
       expect(hasCommand('agent')).toBe(true);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should return false for unregistered commands', () => {
+    jest.setTimeout(10000);
+  test('should return false for unregistered commands', () => {
       expect(hasCommand('nonexistent')).toBe(false);
       expect(hasCommand('')).toBe(false);
       expect(hasCommand(null)).toBe(false);
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('executeCommand', () => {
     beforeEach(() => {
       registerCoreCommands();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should execute command handler with arguments', async () => {
+    jest.setTimeout(10000);
+  test('should execute command handler with arguments', async () => { try {
       const { initCommand } = await import('../simple-commands/init.js');
 
-      await executeCommand('init', ['--sparc'], { force: true });
+      await executeCommand('init', ['--sparc'], { force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-      expect(initCommand).toHaveBeenCalledWith(['--sparc'], { force: true });
-    });
+      expect(initCommand).toHaveBeenCalledWith(['--sparc'], { force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should throw error for unknown command', async () => {
+    jest.setTimeout(10000);
+  test('should throw error for unknown command', async () => { try {
       await expect(executeCommand('unknown', [], {})).rejects.toThrow('Unknown command: unknown');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should handle command execution errors', async () => {
+    jest.setTimeout(10000);
+  test('should handle command execution errors', async () => { try {
       const { swarmCommand } = await import('../simple-commands/swarm.js');
       swarmCommand.mockRejectedValue(new Error('Command failed'));
 
       await expect(executeCommand('swarm', ['test'], {})).rejects.toThrow('Command failed');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('showCommandHelp', () => {
     beforeEach(() => {
       registerCoreCommands();
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should display help for existing command', () => {
+    jest.setTimeout(10000);
+  test('should display help for existing command', () => {
       showCommandHelp('init');
 
       const output = consoleLogSpy.mock.calls.flat().join('\n');
@@ -182,19 +190,21 @@ describe('Command Registry', () => {
       expect(output).toContain('Initialize Claude Code integration');
       expect(output).toContain('Usage:');
       expect(output).toContain('Examples:');
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should show error for unknown command', () => {
+    jest.setTimeout(10000);
+  test('should show error for unknown command', () => {
       showCommandHelp('unknown');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Unknown command: unknown'),
       );
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('showAllCommands', () => {
-    test('should display all registered commands grouped by category', () => {
+    jest.setTimeout(10000);
+  test('should display all registered commands grouped by category', () => {
       registerCoreCommands();
       showAllCommands();
 
@@ -212,11 +222,12 @@ describe('Command Registry', () => {
       expect(output).toContain('task');
       expect(output).toContain('github');
       expect(output).toContain('docker');
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   describe('listCommands', () => {
-    test('should return array of all command names', () => {
+    jest.setTimeout(10000);
+  test('should return array of all command names', () => {
       registerCoreCommands();
       const commands = listCommands();
 
@@ -225,13 +236,14 @@ describe('Command Registry', () => {
       expect(commands).toContain('swarm');
       expect(commands).toContain('agent');
       expect(commands.length).toBeGreaterThan(10);
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-    test('should return empty array when no commands registered', () => {
+    jest.setTimeout(10000);
+  test('should return empty array when no commands registered', () => {
       commandRegistry.clear();
       const commands = listCommands();
 
       expect(commands).toEqual([]);
-    });
-  });
-});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

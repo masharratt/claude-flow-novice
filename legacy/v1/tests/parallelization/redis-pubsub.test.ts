@@ -66,13 +66,13 @@ describe('Redis Pub/Sub Performance', () => {
   let publisherClient: RedisClientType;
   let subscriberClient: RedisClientType;
 
-  beforeAll(async () => {
+  beforeAll(async () => { try {
     // Connect publisher and subscriber clients
     publisherClient = await connectRedisClient();
     subscriberClient = await connectRedisClient();
   });
 
-  afterAll(async () => {
+  afterAll(async () => { try {
     // Cleanup connections
     if (subscriberClient) {
       await subscriberClient.quit();
@@ -82,7 +82,7 @@ describe('Redis Pub/Sub Performance', () => {
     }
   });
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Cleanup any existing subscriptions
     try {
       await subscriberClient.unsubscribe();
@@ -91,7 +91,7 @@ describe('Redis Pub/Sub Performance', () => {
     }
   });
 
-  it('should handle 10,000 messages/sec without delays', async () => {
+  it('should handle 10,000 messages/sec without delays', async () => { try {
     const messageCount = TEST_CONFIG.MESSAGE_COUNT;
     const channels = TEST_CONFIG.CHANNELS;
     const startTime = Date.now();
@@ -122,7 +122,7 @@ describe('Redis Pub/Sub Performance', () => {
     expect(duration).toBeLessThan(TEST_CONFIG.DURATION_THRESHOLD);
   });
 
-  it('should deliver messages with <100ms latency under load', { timeout: 15000 }, async () => {
+  it('should deliver messages with <100ms latency under load', { timeout: 15000 }, async () => { try {
     const latencies: number[] = [];
     const messageCount = TEST_CONFIG.LATENCY_TEST_MESSAGES;
     const channel = 'latency:test';
@@ -184,7 +184,7 @@ describe('Redis Pub/Sub Performance', () => {
     expect(maxLatency).toBeLessThan(TEST_CONFIG.MAX_LATENCY_THRESHOLD);
   });
 
-  it('should handle concurrent subscriptions across multiple channels', async () => {
+  it('should handle concurrent subscriptions across multiple channels', async () => { try {
     const channels = TEST_CONFIG.CHANNELS;
     const messagesPerChannel = 1000;
     const receivedMessages = new Map<string, number>();
@@ -255,7 +255,7 @@ describe('Redis Pub/Sub Performance', () => {
     expect(throughput).toBeGreaterThan(TEST_CONFIG.THROUGHPUT_THRESHOLD);
   });
 
-  it('should maintain performance under sustained load', { timeout: 10000 }, async () => {
+  it('should maintain performance under sustained load', { timeout: 10000 }, async () => { try {
     const channel = 'sustained:load:test';
     const duration = 5000; // 5 seconds
     const targetRate = 1500; // 1500 msg/sec (more realistic for sustained load)

@@ -5,4 +5,4 @@ describe('Analysis Tools', () => {
     // Placeholder test to prevent failures
     expect(true).toBe(true);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

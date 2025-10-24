@@ -4,13 +4,13 @@
 
 describe('Start Command Backward Compatibility', () => {
   describe('simple-commands functionality', () => {
-    it('should export startCommand from simple-commands', async () => {
+    it('should export startCommand from simple-commands', async () => { try {
       const { startCommand } = await import('../../src/cli/simple-commands/start.js');
       expect(startCommand).toBeDefined();
       expect(typeof startCommand).toBe('function');
     });
 
-    it('should handle help flag', async () => {
+    it('should handle help flag', async () => { try {
       const { startCommand } = await import('../../src/cli/simple-commands/start.js');
       
       // Mock console.log
@@ -29,7 +29,7 @@ describe('Start Command Backward Compatibility', () => {
       console.log = originalLog;
     });
 
-    it('should show UI option in help', async () => {
+    it('should show UI option in help', async () => { try {
       const { startCommand } = await import('../../src/cli/simple-commands/start.js');
       
       // Mock console.log
@@ -51,16 +51,16 @@ describe('Start Command Backward Compatibility', () => {
   });
 
   describe('command functionality', () => {
-    it('should handle unknown arguments without throwing', async () => {
+    it('should handle unknown arguments without throwing', async () => { try {
       const { startCommand } = await import('../../src/cli/simple-commands/start.js');
       
       // Test that the function doesn't throw when given unknown flags
-      await expect(async () => {
+      await expect(async () => { try {
         await startCommand(['--unknown-flag'], {});
       }).not.toThrow();
     });
 
-    it('should accept valid options', async () => {
+    it('should accept valid options', async () => { try {
       const { startCommand } = await import('../../src/cli/simple-commands/start.js');
       
       // Test that it can be called with valid options
@@ -71,4 +71,4 @@ describe('Start Command Backward Compatibility', () => {
       }).not.toThrow();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

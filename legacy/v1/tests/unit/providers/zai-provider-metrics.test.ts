@@ -33,7 +33,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
   let mockLogger: ILogger;
   const mockFetch = global.fetch as Mock;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Initialize metrics storage
     storage = getGlobalMetricsStorage();
 
@@ -64,7 +64,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
   });
 
   describe('Non-Streaming Request Metrics', () => {
-    it('should track request with provider: "z.ai" tag', async () => {
+    it('should track request with provider: "z.ai" tag', async () => { try {
       // Mock Z.ai API response
       mockFetch.mockResolvedValue({
         ok: true,
@@ -108,7 +108,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
       });
     });
 
-    it('should track token usage with model tag', async () => {
+    it('should track token usage with model tag', async () => { try {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -152,7 +152,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
       expect(tags.model).toBe('glm-4.6');
     });
 
-    it('should record duration on successful request', async () => {
+    it('should record duration on successful request', async () => { try {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -195,7 +195,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
       });
     });
 
-    it('should track errors with Z.ai provider tag', async () => {
+    it('should track errors with Z.ai provider tag', async () => { try {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
@@ -226,7 +226,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
   });
 
   describe('Streaming Request Metrics', () => {
-    it('should track streaming request with provider: "z.ai" and stream: "true"', async () => {
+    it('should track streaming request with provider: "z.ai" and stream: "true"', async () => { try {
       const mockStream = createMockZaiStreamResponse([
         { choices: [{ delta: { content: 'Hello' } }] },
         { choices: [{ delta: { content: ' world' } }] },
@@ -259,7 +259,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
       });
     });
 
-    it('should track token usage in streaming mode', async () => {
+    it('should track token usage in streaming mode', async () => { try {
       const mockStream = createMockZaiStreamResponse([
         { choices: [{ delta: { content: 'Streaming' } }] },
         { choices: [{ delta: { content: ' response' } }] },
@@ -290,7 +290,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
       expect(afterTotal - beforeTotal).toBeGreaterThanOrEqual(240);
     });
 
-    it('should record duration on successful streaming completion', async () => {
+    it('should record duration on successful streaming completion', async () => { try {
       const mockStream = createMockZaiStreamResponse([
         { choices: [{ delta: { content: 'test' } }] },
         { choices: [{ finish_reason: 'stop' }], usage: { prompt_tokens: 5, completion_tokens: 10, total_tokens: 15 } }
@@ -324,7 +324,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
       });
     });
 
-    it('should track streaming errors', async () => {
+    it('should track streaming errors', async () => { try {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
@@ -356,7 +356,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
   });
 
   describe('Cross-Model Support', () => {
-    it('should track different GLM models separately', async () => {
+    it('should track different GLM models separately', async () => { try {
       // Test GLM-4.5
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -406,7 +406,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
   });
 
   describe('Metrics Aggregation', () => {
-    it('should allow breakdown by provider tag', async () => {
+    it('should allow breakdown by provider tag', async () => { try {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -435,7 +435,7 @@ describe('Z.ai Provider - Metrics Tracking', () => {
       expect(breakdown['z.ai']).toBeGreaterThanOrEqual(2);
     });
 
-    it('should allow filtering metrics by Z.ai provider tag', async () => {
+    it('should allow filtering metrics by Z.ai provider tag', async () => { try {
       mockFetch.mockResolvedValue({
         ok: true,
         json: async () => ({
@@ -482,7 +482,7 @@ function createMockZaiStreamResponse(events: any[]) {
 
   let index = 0;
   const mockReader = {
-    read: async () => {
+    read: async () => { try {
       if (index >= chunks.length) {
         return { done: true, value: undefined };
       }

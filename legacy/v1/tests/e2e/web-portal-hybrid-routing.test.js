@@ -28,7 +28,7 @@ test.describe('Web Portal Hybrid Routing', () => {
     duration: '< 2s'
   };
 
-  test.beforeAll(async () => {
+  test.beforeAll(async () => { try {
     console.log('🚀 Starting test setup...');
     
     // Start the web portal
@@ -37,7 +37,7 @@ test.describe('Web Portal Hybrid Routing', () => {
       cwd: path.resolve(__dirname, '../../packages/web-portal'),
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...process.env, PORT: '3000' }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Wait for portal to be ready
     await new Promise((resolve, reject) => {
@@ -55,22 +55,22 @@ test.describe('Web Portal Hybrid Routing', () => {
           clearTimeout(timeout);
           setTimeout(resolve, 2000); // Give it extra time to fully initialize
         }
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       portalProcess.stderr.on('data', (data) => {
         console.error(`[Portal ERROR] ${data.toString().trim()}`);
-      });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
       portalProcess.on('error', (error) => {
         clearTimeout(timeout);
         reject(error);
-      });
-    });
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     console.log('✅ Web portal started successfully');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test.afterAll(async () => {
+  test.afterAll(async () => { try {
     console.log('🧹 Cleaning up test processes...');
     
     // Kill worker processes
@@ -80,7 +80,7 @@ test.describe('Web Portal Hybrid Routing', () => {
       } catch (error) {
         console.warn('Failed to kill worker process:', error.message);
       }
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Kill portal process
     if (portalProcess) {
@@ -94,14 +94,15 @@ test.describe('Web Portal Hybrid Routing', () => {
     // Wait for processes to clean up
     await new Promise(resolve => setTimeout(resolve, 2000));
     console.log('✅ Cleanup completed');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
+  jest.setTimeout(10000);
   test('should spawn hybrid workers and display them correctly', async ({ page }) => {
     console.log('🧪 Starting hybrid routing E2E test...');
 
     // Step 1: Navigate to the web portal
     console.log('🌐 Navigating to web portal...');
-    await page.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await page.goto('http://localhost:3000', { waitUntil: 'networkidle' } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
     // Wait for the page to load completely
     await page.waitForLoadState('networkidle');
@@ -128,7 +129,7 @@ test.describe('Web Portal Hybrid Routing', () => {
             COORDINATOR_ID: `test-worker-${i}`,
             BLOCKING_COORDINATION_SECRET: 'test-secret-key'
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         let workerOutput = '';
         const startupTimeout = setTimeout(() => {
@@ -143,19 +144,19 @@ test.describe('Web Portal Hybrid Routing', () => {
           if (output.includes('spawned') || output.includes('running') || output.includes('registered')) {
             clearTimeout(startupTimeout);
             workerProcesses.push(workerProcess);
-            resolve({ process: workerProcess, id: `test-worker-${i}` });
+            resolve({ process: workerProcess, id: `test-worker-${i}` } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
           }
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         workerProcess.stderr.on('data', (data) => {
           console.error(`[Worker-${i} ERROR] ${data.toString().trim()}`);
-        });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
         workerProcess.on('error', (error) => {
           clearTimeout(startupTimeout);
           reject(error);
-        });
-      });
+        } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       
       workerPromises.push(workerPromise);
     }
@@ -169,19 +170,19 @@ test.describe('Web Portal Hybrid Routing', () => {
     
     // Look for navigation menu and Agents link
     const agentsLink = page.locator('a[href*="agents"], a:has-text("Agents"), nav a:has-text("Agents")').first();
-    await expect(agentsLink).toBeVisible({ timeout: 10000 });
+    await expect(agentsLink).toBeVisible({ timeout: 10000 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     await agentsLink.click();
     
     // Wait for Agents view to load
     await page.waitForLoadState('networkidle');
-    await page.waitForSelector('[data-testid="agents-view"], .agents-view, #agents', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="agents-view"], .agents-view, #agents', { timeout: 10000 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     console.log('✅ Navigated to Agents view');
 
     // Step 4: Verify 'Show Hybrid Workers' checkbox filter
     console.log('🎯 Looking for Hybrid Workers filter...');
     
     const hybridCheckbox = page.locator('input[type="checkbox"][data-testid="show-hybrid-workers"], input[name*="hybrid"], label:has-text("Show Hybrid Workers")').first();
-    await expect(hybridCheckbox).toBeVisible({ timeout: 5000 });
+    await expect(hybridCheckbox).toBeVisible({ timeout: 5000 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
     // Ensure the checkbox is checked to show hybrid workers
     if (!(await hybridCheckbox.isChecked())) {
@@ -196,7 +197,7 @@ test.describe('Web Portal Hybrid Routing', () => {
     
     // Look for worker cards/rows in the agents view
     const workerSelector = '[data-testid="worker-card"], [data-testid="agent-row"], .worker-item, .agent-item';
-    await page.waitForSelector(workerSelector, { timeout: 2000 });
+    await page.waitForSelector(workerSelector, { timeout: 2000 } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     
     const workers = await page.locator(workerSelector).all();
     expect(workers.length).toBeGreaterThanOrEqual(3);
@@ -267,8 +268,9 @@ test.describe('Web Portal Hybrid Routing', () => {
     }
 
     console.log('🎉 Hybrid routing E2E test completed successfully!');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
+  jest.setTimeout(10000);
   test('should handle hybrid worker filtering correctly', async ({ page }) => {
     console.log('🔄 Testing hybrid worker filtering functionality...');
 
@@ -308,5 +310,5 @@ test.describe('Web Portal Hybrid Routing', () => {
     expect(visibleHybridWorkersAfter).toBeGreaterThan(visibleHybridWorkers);
     
     console.log('✅ Hybrid worker filtering functionality verified');
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -161,7 +161,7 @@ describe('Agent Loader Lifecycle Integration', () => {
   });
 
   describe('Backward Compatibility', () => {
-    it('should initialize lifecycle-enabled agents successfully', async () => {
+    it('should initialize lifecycle-enabled agents successfully', async () => { try {
       const lifecycleAgent: AgentDefinition = {
         name: 'compat-lifecycle',
         description: 'Compatibility test for lifecycle agent',
@@ -188,7 +188,7 @@ describe('Agent Loader Lifecycle Integration', () => {
       expect(context.maxRetries).toBe(3);
     });
 
-    it('should initialize legacy agents successfully', async () => {
+    it('should initialize legacy agents successfully', async () => { try {
       const legacyAgent: AgentDefinition = {
         name: 'compat-legacy',
         description: 'Compatibility test for legacy agent',
@@ -209,7 +209,7 @@ describe('Agent Loader Lifecycle Integration', () => {
       expect(context.maxRetries).toBe(3); // Should use default
     });
 
-    it('should handle mixed agent types in the same manager', async () => {
+    it('should handle mixed agent types in the same manager', async () => { try {
       const lifecycleAgent: AgentDefinition = {
         name: 'mixed-lifecycle',
         description: 'Lifecycle agent',
@@ -233,7 +233,7 @@ describe('Agent Loader Lifecycle Integration', () => {
   });
 
   describe('Configuration Defaults', () => {
-    it('should apply default values for missing lifecycle properties', async () => {
+    it('should apply default values for missing lifecycle properties', async () => { try {
       const agentWithPartialConfig: AgentDefinition = {
         name: 'partial-config',
         description: 'Agent with partial config',
@@ -254,7 +254,7 @@ describe('Agent Loader Lifecycle Integration', () => {
       expect(context.agentDefinition.lifecycle?.persistent_memory).toBeUndefined();
     });
 
-    it('should override defaults with explicit configuration', async () => {
+    it('should override defaults with explicit configuration', async () => { try {
       const agentWithFullConfig: AgentDefinition = {
         name: 'full-config',
         description: 'Agent with full config',
@@ -280,7 +280,7 @@ describe('Agent Loader Lifecycle Integration', () => {
   });
 
   describe('Hook Execution Integration', () => {
-    it('should prioritize lifecycle hooks over general hooks', async () => {
+    it('should prioritize lifecycle hooks over general hooks', async () => { try {
       const agentWithBothHooks: AgentDefinition = {
         name: 'both-hooks',
         description: 'Agent with both hook types',
@@ -297,7 +297,7 @@ describe('Agent Loader Lifecycle Integration', () => {
       expect(agentWithBothHooks.hooks?.lifecycle?.cleanup).toBe('echo "Lifecycle cleanup"');
     });
 
-    it('should handle missing hooks gracefully', async () => {
+    it('should handle missing hooks gracefully', async () => { try {
       const agentWithMissingHooks: AgentDefinition = {
         name: 'missing-hooks',
         description: 'Agent with missing hooks',
@@ -317,4 +317,4 @@ describe('Agent Loader Lifecycle Integration', () => {
       expect(context.agentDefinition.hooks).toBeUndefined();
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

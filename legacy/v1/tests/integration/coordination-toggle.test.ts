@@ -178,7 +178,7 @@ describe('Phase 11: Coordination Toggle Integration', () => {
       expect(adapter).toHaveProperty('isReady');
     });
 
-    it('should return NOOP for pause/resume with fallbackBehavior = "noop"', async () => {
+    it('should return NOOP for pause/resume with fallbackBehavior = "noop"', async () => { try {
       const mockV1Coordinator = {
         topology: 'mesh' as const,
         coordinator: {},
@@ -194,7 +194,7 @@ describe('Phase 11: Coordination Toggle Integration', () => {
       await expect(adapter.resumeAgent('agent-123', 'checkpoint-123')).resolves.toBeUndefined();
     });
 
-    it('should throw error for pause/resume with fallbackBehavior = "error"', async () => {
+    it('should throw error for pause/resume with fallbackBehavior = "error"', async () => { try {
       const mockV1Coordinator = {
         topology: 'mesh' as const,
         coordinator: {},
@@ -563,7 +563,7 @@ describe('Phase 11: Coordination Toggle Integration', () => {
   // ===========================
 
   describe('End-to-End Integration', () => {
-    it('should create V2 coordinator when COORDINATION_VERSION=v2', async () => {
+    it('should create V2 coordinator when COORDINATION_VERSION=v2', async () => { try {
       process.env.COORDINATION_VERSION = 'v2';
 
       const config: UnifiedCoordinatorConfig = {
@@ -581,7 +581,7 @@ describe('Phase 11: Coordination Toggle Integration', () => {
       expect(v2Config.maxConcurrentAgents).toBe(5);
     });
 
-    it('should create V1 coordinator when COORDINATION_VERSION=v1', async () => {
+    it('should create V1 coordinator when COORDINATION_VERSION=v1', async () => { try {
       process.env.COORDINATION_VERSION = 'v1';
 
       const config: UnifiedCoordinatorConfig = {

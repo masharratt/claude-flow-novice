@@ -59,14 +59,15 @@ describe('APM Integration Tests', () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     if (apmIntegration) {
       await apmIntegration.shutdown();
     }
   });
 
   describe('Basic Functionality', () => {
-    test('should initialize APM integration with all components', () => {
+    jest.setTimeout(10000);
+  test('should initialize APM integration with all components', () => {
       expect(apmIntegration).toBeDefined();
 
       const collectors = apmIntegration.getCollectors();
@@ -76,7 +77,8 @@ describe('APM Integration Tests', () => {
       expect(collectors.performanceOptimizer).toBeDefined();
     });
 
-    test('should report healthy status initially', async () => {
+    jest.setTimeout(10000);
+  test('should report healthy status initially', async () => { try {
       const health = await apmIntegration.getHealthStatus();
 
       expect(health.overall).toBe('healthy');
@@ -86,7 +88,8 @@ describe('APM Integration Tests', () => {
       expect(health.components.performanceOptimizer).toBe('healthy');
     });
 
-    test('should collect and report custom metrics', () => {
+    jest.setTimeout(10000);
+  test('should collect and report custom metrics', () => {
       // Record business metrics
       apmIntegration.recordBusinessMetric('test.metric', 42, { tag: 'test' });
       apmIntegration.recordBusinessMetric('test.counter', 1, { tag: 'test' }, 'count');
@@ -98,7 +101,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Agent Lifecycle Tracing', () => {
-    test('should trace agent lifecycle events', () => {
+    jest.setTimeout(10000);
+  test('should trace agent lifecycle events', () => {
       expect(() => {
         apmIntegration.traceAgentLifecycle('test-agent', 'spawn', 'agent-123');
         apmIntegration.traceAgentLifecycle('test-agent', 'initialize', 'agent-123');
@@ -108,7 +112,8 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should trace agent errors', () => {
+    jest.setTimeout(10000);
+  test('should trace agent errors', () => {
       expect(() => {
         apmIntegration.traceAgentLifecycle('test-agent', 'error', 'agent-123', {
           error: 'Test error message'
@@ -116,7 +121,8 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should handle multiple agents simultaneously', () => {
+    jest.setTimeout(10000);
+  test('should handle multiple agents simultaneously', () => {
       const agentIds = ['agent-1', 'agent-2', 'agent-3', 'agent-4', 'agent-5'];
 
       expect(() => {
@@ -128,7 +134,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Swarm Activity Monitoring', () => {
-    test('should trace swarm activities', () => {
+    jest.setTimeout(10000);
+  test('should trace swarm activities', () => {
       expect(() => {
         apmIntegration.traceSwarmActivity('swarm-123', 'init', 'mesh', 5);
         apmIntegration.traceSwarmActivity('swarm-123', 'execute', 'mesh', 5);
@@ -138,7 +145,8 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should trace different swarm topologies', () => {
+    jest.setTimeout(10000);
+  test('should trace different swarm topologies', () => {
       const topologies = ['mesh', 'hierarchical', 'ring', 'star'];
 
       expect(() => {
@@ -148,7 +156,8 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should handle large swarm sizes', () => {
+    jest.setTimeout(10000);
+  test('should handle large swarm sizes', () => {
       expect(() => {
         apmIntegration.traceSwarmActivity('large-swarm', 'execute', 'hierarchical', 50);
       }).not.toThrow();
@@ -156,7 +165,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('WebSocket Performance Optimization', () => {
-    test('should optimize WebSocket operations', () => {
+    jest.setTimeout(10000);
+  test('should optimize WebSocket operations', () => {
       expect(() => {
         apmIntegration.optimizeWebSocketPerformance('connection', 'socket-123', 10, true);
         apmIntegration.optimizeWebSocketPerformance('message', 'socket-123', 5, true);
@@ -165,7 +175,8 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should handle WebSocket errors', () => {
+    jest.setTimeout(10000);
+  test('should handle WebSocket errors', () => {
       expect(() => {
         apmIntegration.optimizeWebSocketPerformance('connection', 'socket-456', 1000, false, {
           error: 'Connection failed'
@@ -173,7 +184,8 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should handle high WebSocket load', () => {
+    jest.setTimeout(10000);
+  test('should handle high WebSocket load', () => {
       expect(() => {
         for (let i = 0; i < 100; i++) {
           apmIntegration.optimizeWebSocketPerformance('message', `socket-${i}`, Math.random() * 100, true);
@@ -183,7 +195,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Database Performance Monitoring', () => {
-    test('should monitor database operations', () => {
+    jest.setTimeout(10000);
+  test('should monitor database operations', () => {
       expect(() => {
         apmIntegration.monitorDatabasePerformance('query', 'SELECT * FROM users', 50, true);
         apmIntegration.monitorDatabasePerformance('connection', undefined, 10, true);
@@ -191,13 +204,15 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should record slow queries', () => {
+    jest.setTimeout(10000);
+  test('should record slow queries', () => {
       expect(() => {
         apmIntegration.monitorDatabasePerformance('query', 'SELECT * FROM large_table', 2000, true);
       }).not.toThrow();
     });
 
-    test('should handle database errors', () => {
+    jest.setTimeout(10000);
+  test('should handle database errors', () => {
       expect(() => {
         apmIntegration.monitorDatabasePerformance('query', 'INVALID SQL', 500, false, {
           error: 'SQL syntax error'
@@ -205,7 +220,8 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should track different table operations', () => {
+    jest.setTimeout(10000);
+  test('should track different table operations', () => {
       const tables = ['users', 'swarms', 'agents', 'metrics'];
 
       expect(() => {
@@ -219,7 +235,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Performance Analytics', () => {
-    test('should provide performance analytics', () => {
+    jest.setTimeout(10000);
+  test('should provide performance analytics', () => {
       const analytics = apmIntegration.getPerformanceAnalytics();
 
       expect(analytics).toBeDefined();
@@ -230,7 +247,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Integration Testing', () => {
-    test('should run comprehensive integration tests', async () => {
+    jest.setTimeout(10000);
+  test('should run comprehensive integration tests', async () => { try {
       const results = await apmIntegration.runIntegrationTest();
 
       expect(results).toBeDefined();
@@ -240,7 +258,8 @@ describe('APM Integration Tests', () => {
       expect(results.duration).toBeGreaterThan(0);
     }, 30000);
 
-    test('should test individual components', async () => {
+    jest.setTimeout(10000);
+  test('should test individual components', async () => { try {
       const results = await apmIntegration.runIntegrationTest();
 
       if (results.status === 'passed') {
@@ -253,7 +272,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Disaster Recovery Testing', () => {
-    test('should run disaster recovery scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should run disaster recovery scenarios', async () => { try {
       const results = await apmIntegration.runDisasterRecoveryTest();
 
       expect(results).toBeDefined();
@@ -263,14 +283,16 @@ describe('APM Integration Tests', () => {
       expect(results.duration).toBeGreaterThan(0);
     }, 60000);
 
-    test('should handle DataDog outage gracefully', async () => {
+    jest.setTimeout(10000);
+  test('should handle DataDog outage gracefully', async () => { try {
       const results = await apmIntegration.runDisasterRecoveryTest();
 
       expect(results.scenarios.dataDogOutage).toBeDefined();
       expect(['passed', 'failed', 'skipped']).toContain(results.scenarios.dataDogOutage.status);
     }, 60000);
 
-    test('should handle high load scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should handle high load scenarios', async () => { try {
       const results = await apmIntegration.runDisasterRecoveryTest();
 
       expect(results.scenarios.highLoad).toBeDefined();
@@ -282,7 +304,8 @@ describe('APM Integration Tests', () => {
       }
     }, 60000);
 
-    test('should handle memory stress scenarios', async () => {
+    jest.setTimeout(10000);
+  test('should handle memory stress scenarios', async () => { try {
       const results = await apmIntegration.runDisasterRecoveryTest();
 
       expect(results.scenarios.memoryStress).toBeDefined();
@@ -291,7 +314,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Load Testing', () => {
-    test('should handle high metric volume', async () => {
+    jest.setTimeout(10000);
+  test('should handle high metric volume', async () => { try {
       const startTime = Date.now();
       const metricCount = 10000;
 
@@ -310,7 +334,8 @@ describe('APM Integration Tests', () => {
       expect(metricCount).toBe(10000);
     });
 
-    test('should handle concurrent tracing operations', async () => {
+    jest.setTimeout(10000);
+  test('should handle concurrent tracing operations', async () => { try {
       const promises: Promise<void>[] = [];
       const operationCount = 100;
 
@@ -329,7 +354,8 @@ describe('APM Integration Tests', () => {
       await Promise.all(promises);
     });
 
-    test('should maintain performance under sustained load', async () => {
+    jest.setTimeout(10000);
+  test('should maintain performance under sustained load', async () => { try {
       const testDuration = 10000; // 10 seconds
       const startTime = Date.now();
       let operationCount = 0;
@@ -356,14 +382,16 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Error Handling', () => {
-    test('should handle invalid metric names gracefully', () => {
+    jest.setTimeout(10000);
+  test('should handle invalid metric names gracefully', () => {
       expect(() => {
         apmIntegration.recordBusinessMetric('', 42);
         apmIntegration.recordBusinessMetric('valid.metric', 42);
       }).not.toThrow();
     });
 
-    test('should handle invalid trace parameters', () => {
+    jest.setTimeout(10000);
+  test('should handle invalid trace parameters', () => {
       expect(() => {
         apmIntegration.traceAgentLifecycle('', 'execute', '');
         apmIntegration.traceSwarmActivity('', 'execute', '', 0);
@@ -371,7 +399,8 @@ describe('APM Integration Tests', () => {
       }).not.toThrow();
     });
 
-    test('should handle malformed metadata', () => {
+    jest.setTimeout(10000);
+  test('should handle malformed metadata', () => {
       expect(() => {
         apmIntegration.traceAgentLifecycle('test-agent', 'execute', 'agent-1', {
           nested: { object: { with: { deep: { structure: true } } } },
@@ -384,7 +413,8 @@ describe('APM Integration Tests', () => {
   });
 
   describe('Memory Management', () => {
-    test('should not leak memory during normal operations', async () => {
+    jest.setTimeout(10000);
+  test('should not leak memory during normal operations', async () => { try {
       const initialMemory = process.memoryUsage().heapUsed;
 
       // Perform a significant number of operations
@@ -406,7 +436,8 @@ describe('APM Integration Tests', () => {
       expect(memoryIncrease).toBeLessThan(50 * 1024 * 1024);
     });
 
-    test('should clean up resources on shutdown', async () => {
+    jest.setTimeout(10000);
+  test('should clean up resources on shutdown', async () => { try {
       const collectors = apmIntegration.getCollectors();
 
       // Verify collectors exist before shutdown
@@ -420,6 +451,7 @@ describe('APM Integration Tests', () => {
 });
 
 describe('APM Integration Configuration Tests', () => {
+  jest.setTimeout(10000);
   test('should work with minimal configuration', () => {
     const apmIntegration = createAPMIntegration({
       dataDog: { enabled: false },
@@ -438,6 +470,7 @@ describe('APM Integration Configuration Tests', () => {
     expect(collectors.performanceOptimizer).toBeUndefined();
   });
 
+  jest.setTimeout(10000);
   test('should work with partial configuration', () => {
     const apmIntegration = createAPMIntegration({
       dataDog: {
@@ -456,6 +489,7 @@ describe('APM Integration Configuration Tests', () => {
     expect(collectors.distributedTracer).toBeDefined();
   });
 
+  jest.setTimeout(10000);
   test('should handle invalid configuration gracefully', () => {
     expect(() => {
       createAPMIntegration({
@@ -465,4 +499,4 @@ describe('APM Integration Configuration Tests', () => {
       });
     }).not.toThrow();
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

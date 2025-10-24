@@ -24,7 +24,7 @@ describe('V2 Multi-Level Agent Spawning', () => {
   const spawnedAgents: Agent[] = [];
   const checkpointIds: string[] = [];
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     // Force V2 SDK mode for testing
     process.env.COORDINATION_VERSION = 'v2';
 
@@ -45,7 +45,7 @@ describe('V2 Multi-Level Agent Spawning', () => {
     console.log('✅ V2 Coordinator initialized\n');
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     // Cleanup all spawned agents
     console.log('\n🧹 Cleanup: Terminating all agents...');
     for (const agent of spawnedAgents) {
@@ -63,7 +63,7 @@ describe('V2 Multi-Level Agent Spawning', () => {
     delete process.env.COORDINATION_VERSION;
   });
 
-  it('should spawn 3-level agent hierarchy with telemetry', async () => {
+  it('should spawn 3-level agent hierarchy with telemetry', async () => { try {
     console.log('━'.repeat(60));
     console.log('📊 TEST: 3-Level Agent Hierarchy');
     console.log('━'.repeat(60));
@@ -219,7 +219,7 @@ describe('V2 Multi-Level Agent Spawning', () => {
     expect(metrics.pausedAgents).toBe(0);
   });
 
-  it('should pause/resume agents at each level (zero-cost)', async () => {
+  it('should pause/resume agents at each level (zero-cost)', async () => { try {
     console.log('━'.repeat(60));
     console.log('⏸️  TEST: Zero-Cost Pause/Resume at Each Level');
     console.log('━'.repeat(60));
@@ -368,7 +368,7 @@ describe('V2 Multi-Level Agent Spawning', () => {
     expect(finalMetrics.p99RestoreTimeMs).toBeLessThan(500); // P99 < 500ms target
   });
 
-  it('should track agent hierarchy in telemetry', async () => {
+  it('should track agent hierarchy in telemetry', async () => { try {
     console.log('━'.repeat(60));
     console.log('📈 TEST: Telemetry Tracking for Agent Hierarchy');
     console.log('━'.repeat(60));

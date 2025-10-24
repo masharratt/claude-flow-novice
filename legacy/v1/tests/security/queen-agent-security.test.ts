@@ -53,7 +53,7 @@ describe('Queen Agent Security Tests', () => {
     roles: ['unknown-role']
   };
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     logger = new Logger({ level: 'error' });
     memory = new SwarmMemoryManager(':memory:', { enableCrypto: false });
     await memory.initialize();
@@ -80,13 +80,13 @@ describe('Queen Agent Security Tests', () => {
     await queenAgent.initialize();
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await queenAgent.shutdown();
     await memory.close();
   });
 
   describe('VULN-P5-001: spawnWorker() Authorization', () => {
-    it('should allow admin to spawn workers', async () => {
+    it('should allow admin to spawn workers', async () => { try {
       const workerId = await queenAgent.spawnWorker(
         'backend-dev',
         {
@@ -100,7 +100,7 @@ describe('Queen Agent Security Tests', () => {
       expect(workerId).toMatch(/^worker-backend-dev/);
     });
 
-    it('should allow system callers to spawn workers', async () => {
+    it('should allow system callers to spawn workers', async () => { try {
       const systemCaller: CallerIdentityInput = {
         id: 'system-service',
         type: 'system',
@@ -120,7 +120,7 @@ describe('Queen Agent Security Tests', () => {
       expect(workerId).toMatch(/^worker-tester/);
     });
 
-    it('should deny observer from spawning workers (403)', async () => {
+    it('should deny observer from spawning workers (403)', async () => { try {
       await expect(
         queenAgent.spawnWorker(
           'backend-dev',
@@ -134,7 +134,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Forbidden');
     });
 
-    it('should deny unauthorized caller from spawning workers (403)', async () => {
+    it('should deny unauthorized caller from spawning workers (403)', async () => { try {
       await expect(
         queenAgent.spawnWorker(
           'backend-dev',
@@ -148,7 +148,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Forbidden');
     });
 
-    it('should validate worker capabilities input', async () => {
+    it('should validate worker capabilities input', async () => { try {
       await expect(
         queenAgent.spawnWorker(
           '', // Invalid: empty type
@@ -162,7 +162,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Worker capabilities validation failed');
     });
 
-    it('should reject malicious worker type with special characters', async () => {
+    it('should reject malicious worker type with special characters', async () => { try {
       await expect(
         queenAgent.spawnWorker(
           '../../../etc/passwd', // Path traversal attempt
@@ -176,7 +176,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Worker capabilities validation failed');
     });
 
-    it('should reject worker with excessive skills (>50)', async () => {
+    it('should reject worker with excessive skills (>50)', async () => { try {
       const excessiveSkills = Array.from({ length: 51 }, (_, i) => `skill-${i}`);
 
       await expect(
@@ -192,7 +192,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Maximum 50 skills allowed');
     });
 
-    it('should reject worker with invalid maxConcurrentTasks', async () => {
+    it('should reject worker with invalid maxConcurrentTasks', async () => { try {
       await expect(
         queenAgent.spawnWorker(
           'backend-dev',
@@ -211,7 +211,7 @@ describe('Queen Agent Security Tests', () => {
     let workerId: string;
     let testTask: Task;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       // Spawn a worker for delegation tests
       workerId = await queenAgent.spawnWorker(
         'backend-dev',
@@ -232,7 +232,7 @@ describe('Queen Agent Security Tests', () => {
       } as Task;
     });
 
-    it('should allow coordinator to delegate tasks', async () => {
+    it('should allow coordinator to delegate tasks', async () => { try {
       const result = await queenAgent.delegateTask(testTask, coordinatorCaller, workerId);
 
       expect(result.status).toBe('accepted');
@@ -240,7 +240,7 @@ describe('Queen Agent Security Tests', () => {
       expect(result.taskId).toBe('task-test-001');
     });
 
-    it('should allow admin to delegate tasks', async () => {
+    it('should allow admin to delegate tasks', async () => { try {
       const task2: Task = {
         id: 'task-admin-001',
         type: 'review-code',
@@ -255,19 +255,19 @@ describe('Queen Agent Security Tests', () => {
       expect(result.taskId).toBe('task-admin-001');
     });
 
-    it('should deny observer from delegating tasks (403)', async () => {
+    it('should deny observer from delegating tasks (403)', async () => { try {
       await expect(
         queenAgent.delegateTask(testTask, observerCaller, workerId)
       ).rejects.toThrow('Forbidden');
     });
 
-    it('should deny unauthorized caller from delegating tasks (403)', async () => {
+    it('should deny unauthorized caller from delegating tasks (403)', async () => { try {
       await expect(
         queenAgent.delegateTask(testTask, unauthorizedCaller, workerId)
       ).rejects.toThrow('Forbidden');
     });
 
-    it('should validate task input', async () => {
+    it('should validate task input', async () => { try {
       const invalidTask = {
         id: '', // Invalid: empty ID
         type: 'test',
@@ -279,7 +279,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Task validation failed');
     });
 
-    it('should reject task with malicious ID (SQL injection attempt)', async () => {
+    it('should reject task with malicious ID (SQL injection attempt)', async () => { try {
       const sqlInjectionTask = {
         id: "'; DROP TABLE tasks; --",
         type: 'malicious',
@@ -291,7 +291,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Task validation failed');
     });
 
-    it('should reject task with path traversal in ID', async () => {
+    it('should reject task with path traversal in ID', async () => { try {
       const pathTraversalTask = {
         id: '../../etc/passwd',
         type: 'malicious',
@@ -303,7 +303,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Task validation failed');
     });
 
-    it('should reject task with excessive dependencies (>100)', async () => {
+    it('should reject task with excessive dependencies (>100)', async () => { try {
       const excessiveDepsTask = {
         id: 'task-excessive-deps',
         type: 'test',
@@ -316,7 +316,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Maximum 100 dependencies allowed');
     });
 
-    it('should validate worker ID format', async () => {
+    it('should validate worker ID format', async () => { try {
       await expect(
         queenAgent.delegateTask(testTask, coordinatorCaller, 'invalid-worker-id')
       ).rejects.toThrow();
@@ -326,7 +326,7 @@ describe('Queen Agent Security Tests', () => {
   describe('aggregateResults() Authorization', () => {
     let workerId: string;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       workerId = await queenAgent.spawnWorker(
         'backend-dev',
         {
@@ -338,7 +338,7 @@ describe('Queen Agent Security Tests', () => {
       );
     });
 
-    it('should allow coordinator to aggregate results', async () => {
+    it('should allow coordinator to aggregate results', async () => { try {
       const results = new Map([
         [workerId, { success: true, data: { result: 'success' } }]
       ]);
@@ -353,7 +353,7 @@ describe('Queen Agent Security Tests', () => {
       expect(aggregated.completedWorkers).toContain(workerId);
     });
 
-    it('should deny observer from aggregating results (403)', async () => {
+    it('should deny observer from aggregating results (403)', async () => { try {
       const results = new Map([
         [workerId, { success: true, data: { result: 'success' } }]
       ]);
@@ -363,7 +363,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Forbidden');
     });
 
-    it('should validate worker results format', async () => {
+    it('should validate worker results format', async () => { try {
       const invalidResults = new Map([
         ['invalid-id', { success: true }] // Invalid worker ID format
       ]);
@@ -375,7 +375,7 @@ describe('Queen Agent Security Tests', () => {
   });
 
   describe('Rate Limiting', () => {
-    it('should enforce worker spawn rate limit', async () => {
+    it('should enforce worker spawn rate limit', async () => { try {
       const spawns: Promise<string>[] = [];
 
       // Attempt to spawn 25 workers (exceeds limit of 20 per window)
@@ -402,7 +402,7 @@ describe('Queen Agent Security Tests', () => {
       expect(rateLimitErrors.length).toBeGreaterThan(0);
     });
 
-    it('should enforce concurrent worker limit', async () => {
+    it('should enforce concurrent worker limit', async () => { try {
       // Spawn workers sequentially to avoid concurrent spawn rate limiting
       const successfulSpawns: string[] = [];
       let limitReached = false;
@@ -437,7 +437,7 @@ describe('Queen Agent Security Tests', () => {
       expect(successfulSpawns.length).toBeLessThanOrEqual(10);
     });
 
-    it('should enforce task delegation rate limit', async () => {
+    it('should enforce task delegation rate limit', async () => { try {
       // Spawn a worker first (maxConcurrentTasks limited to 100)
       const workerId = await queenAgent.spawnWorker(
         'backend-dev',
@@ -471,7 +471,7 @@ describe('Queen Agent Security Tests', () => {
       expect(rateLimitErrors.length).toBeGreaterThan(0);
     });
 
-    it('should enforce task queue size limit', async () => {
+    it('should enforce task queue size limit', async () => { try {
       // Spawn a worker with limited capacity (maxConcurrentTasks limited to 100)
       const workerId = await queenAgent.spawnWorker(
         'backend-dev',
@@ -507,7 +507,7 @@ describe('Queen Agent Security Tests', () => {
   });
 
   describe('Caller Identity Validation', () => {
-    it('should reject caller with missing ID', async () => {
+    it('should reject caller with missing ID', async () => { try {
       const invalidCaller = {
         id: '',
         type: 'user',
@@ -527,7 +527,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Caller identity validation failed');
     });
 
-    it('should reject caller with invalid type', async () => {
+    it('should reject caller with invalid type', async () => { try {
       const invalidCaller = {
         id: 'user-001',
         type: 'hacker' as any, // Invalid type
@@ -547,7 +547,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Caller identity validation failed');
     });
 
-    it('should reject caller with no roles', async () => {
+    it('should reject caller with no roles', async () => { try {
       const invalidCaller = {
         id: 'user-001',
         type: 'user',
@@ -567,7 +567,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('At least one role is required');
     });
 
-    it('should reject caller with excessive roles (>20)', async () => {
+    it('should reject caller with excessive roles (>20)', async () => { try {
       const invalidCaller = {
         id: 'user-001',
         type: 'user',
@@ -587,7 +587,7 @@ describe('Queen Agent Security Tests', () => {
       ).rejects.toThrow('Maximum 20 roles allowed');
     });
 
-    it('should reject caller with malicious role names', async () => {
+    it('should reject caller with malicious role names', async () => { try {
       const invalidCaller = {
         id: 'user-001',
         type: 'user',

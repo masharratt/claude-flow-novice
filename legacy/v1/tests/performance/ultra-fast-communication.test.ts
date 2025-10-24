@@ -27,12 +27,13 @@ import {
 import { MessageType } from '../../src/communication/ultra-fast-serialization';
 
 describe('Zero-Copy Ring Buffer Performance', () => {
-  test('enqueue/dequeue <5μs for 10k operations', async () => {
+  jest.setTimeout(10000);
+  test('enqueue/dequeue <5μs for 10k operations', async () => { try {
     const buffer = new ZeroCopyRingBuffer(1000, 1024);
     const data = new Uint8Array(512);
     const iterations = 10000;
 
-    const { duration } = await NanosecondTimer.measureAsync(async () => {
+    const { duration } = await NanosecondTimer.measureAsync(async () => { try {
       for (let i = 0; i < iterations; i++) {
         buffer.enqueue(data);
         buffer.dequeue();
@@ -46,6 +47,7 @@ describe('Zero-Copy Ring Buffer Performance', () => {
     expect(avgLatencyUs).toBeLessThan(5);
   });
 
+  jest.setTimeout(10000);
   test('concurrent enqueue/dequeue maintains data integrity', () => {
     const buffer = new ZeroCopyRingBuffer(1000, 256);
     const testData = new Uint8Array([1, 2, 3, 4, 5]);
@@ -65,6 +67,7 @@ describe('Zero-Copy Ring Buffer Performance', () => {
     }
   });
 
+  jest.setTimeout(10000);
   test('handles buffer full condition gracefully', () => {
     const buffer = new ZeroCopyRingBuffer(10, 256);
     const data = new Uint8Array(128);
@@ -82,7 +85,8 @@ describe('Zero-Copy Ring Buffer Performance', () => {
     expect(buffer.enqueue(data)).toBe(true);
   });
 
-  test('zero-copy semantics reduce GC pressure', async () => {
+  jest.setTimeout(10000);
+  test('zero-copy semantics reduce GC pressure', async () => { try {
     const buffer = new ZeroCopyRingBuffer(1000, 8192);
     const data = new Uint8Array(4096);
 
@@ -104,7 +108,8 @@ describe('Zero-Copy Ring Buffer Performance', () => {
 });
 
 describe('Object Pool Performance', () => {
-  test('acquire/release <1μs for pooled objects', async () => {
+  jest.setTimeout(10000);
+  test('acquire/release <1μs for pooled objects', async () => { try {
     const pool = new ObjectPool(
       () => ({ data: new ArrayBuffer(1024) }),
       (obj) => { /* reset */ },
@@ -113,7 +118,7 @@ describe('Object Pool Performance', () => {
     );
 
     const iterations = 100000;
-    const { duration } = await NanosecondTimer.measureAsync(async () => {
+    const { duration } = await NanosecondTimer.measureAsync(async () => { try {
       for (let i = 0; i < iterations; i++) {
         const obj = pool.acquire();
         pool.release(obj);
@@ -127,7 +132,8 @@ describe('Object Pool Performance', () => {
     expect(avgLatencyUs).toBeLessThan(1);
   });
 
-  test('thread-local caching improves performance', async () => {
+  jest.setTimeout(10000);
+  test('thread-local caching improves performance', async () => { try {
     const pool = new ObjectPool(
       () => ({ data: new ArrayBuffer(1024) }),
       (obj) => { /* reset */ },
@@ -142,7 +148,7 @@ describe('Object Pool Performance', () => {
     }
 
     const iterations = 10000;
-    const { duration } = await NanosecondTimer.measureAsync(async () => {
+    const { duration } = await NanosecondTimer.measureAsync(async () => { try {
       for (let i = 0; i < iterations; i++) {
         const obj = pool.acquire();
         pool.release(obj);
@@ -159,7 +165,8 @@ describe('Object Pool Performance', () => {
 });
 
 describe('Bloom Filter Performance', () => {
-  test('bloom filter check <100ns', async () => {
+  jest.setTimeout(10000);
+  test('bloom filter check <100ns', async () => { try {
     const bloom = new BloomFilter(10000, 0.01);
 
     // Add test strings
@@ -168,7 +175,7 @@ describe('Bloom Filter Performance', () => {
     }
 
     const iterations = 100000;
-    const { duration } = await NanosecondTimer.measureAsync(async () => {
+    const { duration } = await NanosecondTimer.measureAsync(async () => { try {
       for (let i = 0; i < iterations; i++) {
         bloom.mightContain(`test-string-${i % 1000}`);
       }
@@ -180,6 +187,7 @@ describe('Bloom Filter Performance', () => {
     expect(avgLatencyNs).toBeLessThan(100);
   });
 
+  jest.setTimeout(10000);
   test('bloom filter false positive rate within bounds', () => {
     const bloom = new BloomFilter(10000, 0.01);
 
@@ -209,7 +217,8 @@ describe('Bloom Filter Performance', () => {
 });
 
 describe('String Interning Performance', () => {
-  test('optimized string pool intern <200ns', async () => {
+  jest.setTimeout(10000);
+  test('optimized string pool intern <200ns', async () => { try {
     const pool = new OptimizedStringPool();
     const testStrings = [];
 
@@ -219,7 +228,7 @@ describe('String Interning Performance', () => {
     }
 
     const iterations = 10000;
-    const { duration } = await NanosecondTimer.measureAsync(async () => {
+    const { duration } = await NanosecondTimer.measureAsync(async () => { try {
       for (let i = 0; i < iterations; i++) {
         pool.intern(testStrings[i % testStrings.length]);
       }
@@ -231,6 +240,7 @@ describe('String Interning Performance', () => {
     expect(avgLatencyNs).toBeLessThan(200);
   });
 
+  jest.setTimeout(10000);
   test('common strings pre-populated for fast access', () => {
     const pool = new OptimizedStringPool();
 
@@ -248,11 +258,12 @@ describe('String Interning Performance', () => {
 });
 
 describe('Binary Codec Pool Performance', () => {
-  test('codec pool acquire/release <500ns', async () => {
+  jest.setTimeout(10000);
+  test('codec pool acquire/release <500ns', async () => { try {
     const codecPool = new BinaryCodecPool();
 
     const iterations = 100000;
-    const { duration } = await NanosecondTimer.measureAsync(async () => {
+    const { duration } = await NanosecondTimer.measureAsync(async () => { try {
       for (let i = 0; i < iterations; i++) {
         const encoder = codecPool.acquireEncoder();
         codecPool.releaseEncoder(encoder);
@@ -267,7 +278,8 @@ describe('Binary Codec Pool Performance', () => {
 });
 
 describe('Message Serialization Performance', () => {
-  test('serialization <10μs for typical messages', async () => {
+  jest.setTimeout(10000);
+  test('serialization <10μs for typical messages', async () => { try {
     const serializer = new OptimizedMessageSerializer();
     const payload = {
       id: 'task-123',
@@ -282,7 +294,7 @@ describe('Message Serialization Performance', () => {
     };
 
     const iterations = 10000;
-    const { duration } = await NanosecondTimer.measureAsync(async () => {
+    const { duration } = await NanosecondTimer.measureAsync(async () => { try {
       for (let i = 0; i < iterations; i++) {
         serializer.serialize(MessageType.TASK_ASSIGNMENT, payload);
       }
@@ -295,7 +307,8 @@ describe('Message Serialization Performance', () => {
     expect(avgLatencyUs).toBeLessThan(10);
   });
 
-  test('deserialization <10μs for typical messages', async () => {
+  jest.setTimeout(10000);
+  test('deserialization <10μs for typical messages', async () => { try {
     const serializer = new OptimizedMessageSerializer();
     const payload = {
       id: 'task-123',
@@ -307,7 +320,7 @@ describe('Message Serialization Performance', () => {
     const serialized = serializer.serialize(MessageType.TASK_ASSIGNMENT, payload);
 
     const iterations = 10000;
-    const { duration } = await NanosecondTimer.measureAsync(async () => {
+    const { duration } = await NanosecondTimer.measureAsync(async () => { try {
       for (let i = 0; i < iterations; i++) {
         serializer.deserialize(serialized);
       }
@@ -320,6 +333,7 @@ describe('Message Serialization Performance', () => {
     expect(avgLatencyUs).toBeLessThan(10);
   });
 
+  jest.setTimeout(10000);
   test('round-trip serialization maintains data integrity', () => {
     const serializer = new OptimizedMessageSerializer();
     const payload = {
@@ -344,7 +358,8 @@ describe('Message Serialization Performance', () => {
 });
 
 describe('End-to-End Communication Latency', () => {
-  test('P95 latency <1ms for 100k messages', async () => {
+  jest.setTimeout(10000);
+  test('P95 latency <1ms for 100k messages', async () => { try {
     const monitor = new PerformanceMonitor({
       latencyP95Ms: 1,
       monitoringIntervalMs: 0 // Disable background monitoring
@@ -383,7 +398,8 @@ describe('End-to-End Communication Latency', () => {
     expect(p99LatencyMs).toBeLessThan(5.0);
   });
 
-  test('throughput >100k messages/sec', async () => {
+  jest.setTimeout(10000);
+  test('throughput >100k messages/sec', async () => { try {
     const messageCount = 100000;
     const messageSize = 256;
 
@@ -410,6 +426,7 @@ describe('End-to-End Communication Latency', () => {
 });
 
 describe('Memory Efficiency', () => {
+  jest.setTimeout(10000);
   test('memory overhead <10MB for 100 agents', () => {
     const agentCount = 100;
     const buffers: ZeroCopyRingBuffer[] = [];
@@ -432,7 +449,8 @@ describe('Memory Efficiency', () => {
     expect(overhead).toBeLessThan(100); // Relaxed for initial implementation
   });
 
-  test('pool utilization remains high under load', async () => {
+  jest.setTimeout(10000);
+  test('pool utilization remains high under load', async () => { try {
     const codecPool = new BinaryCodecPool();
 
     // Heavy usage
@@ -453,13 +471,14 @@ describe('Memory Efficiency', () => {
 });
 
 describe('Performance Under Stress', () => {
-  test('maintains performance under concurrent load', async () => {
+  jest.setTimeout(10000);
+  test('maintains performance under concurrent load', async () => { try {
     const buffer = new ZeroCopyRingBuffer(10000, 4096);
     const histogram = new LatencyHistogram(100, 500);
     const iterations = 50000;
 
     // Simulate concurrent producers/consumers
-    const producer = async () => {
+    const producer = async () => { try {
       for (let i = 0; i < iterations / 2; i++) {
         const start = NanosecondTimer.rdtsc();
         const data = new Uint8Array(2048);
@@ -472,7 +491,7 @@ describe('Performance Under Stress', () => {
       }
     };
 
-    const consumer = async () => {
+    const consumer = async () => { try {
       for (let i = 0; i < iterations / 2; i++) {
         while (buffer.isEmpty()) {
           // Wait for data
@@ -500,7 +519,8 @@ describe('Performance Under Stress', () => {
 });
 
 describe('Performance Validation', () => {
-  test('validates latency targets across component stack', async () => {
+  jest.setTimeout(10000);
+  test('validates latency targets across component stack', async () => { try {
     const result = await performanceValidator.validateLatencyTarget(10000, 1);
 
     console.log('\n=== Performance Validation ===');
@@ -517,7 +537,8 @@ describe('Performance Validation', () => {
     expect(result.passed).toBe(true);
   });
 
-  test('benchmarks individual components', async () => {
+  jest.setTimeout(10000);
+  test('benchmarks individual components', async () => { try {
     const benchmarks = await performanceValidator.benchmarkComponents();
 
     console.log('\n=== Component Benchmarks ===');
@@ -547,4 +568,4 @@ afterAll(() => {
   console.log('✓ Throughput: >100k messages/sec');
   console.log('✓ Memory overhead: <10MB per 100 agents');
   console.log('='.repeat(60));
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

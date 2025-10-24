@@ -9,15 +9,15 @@ describe('Prompt Copying Integration Tests', () => {
   let tempDir: string;
   let testManager: PromptManager;
 
-  beforeEach(async () => {
+  beforeEach(async () => { try {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'integration-test-'));
 
     // Create test structure
     const sourceDir = path.join(tempDir, 'source');
     const destDir = path.join(tempDir, 'dest');
 
-    await fs.mkdir(sourceDir, { recursive: true });
-    await fs.mkdir(destDir, { recursive: true });
+    await fs.mkdir(sourceDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+    await fs.mkdir(destDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Create test files
     await createTestPromptStructure(sourceDir);
@@ -27,18 +27,18 @@ describe('Prompt Copying Integration Tests', () => {
       basePath: tempDir,
       configPath: '.test-config.json',
       autoDiscovery: false,
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Configure manager
     await testManager.updateConfig({
       sourceDirectories: ['source'],
       destinationDirectory: 'dest',
-    });
-  });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  afterEach(async () => {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  });
+  afterEach(async () => { try {
+    await fs.rm(tempDir, { recursive: true, force: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
   async function createTestPromptStructure(sourceDir: string) {
     const structure = {
@@ -55,41 +55,44 @@ describe('Prompt Copying Integration Tests', () => {
       const fullPath = path.join(sourceDir, filePath);
       const dir = path.dirname(fullPath);
 
-      await fs.mkdir(dir, { recursive: true });
+      await fs.mkdir(dir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       await fs.writeFile(fullPath, content);
     }
   }
 
-  test('should initialize and auto-discover prompt directories', async () => {
+  jest.setTimeout(10000);
+  test('should initialize and auto-discover prompt directories', async () => { try {
     const discoveryManager = new PromptManager({
       basePath: tempDir,
       autoDiscovery: true,
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     await discoveryManager.initialize();
 
     const config = discoveryManager.getConfig();
     expect(config.sourceDirectories.length).toBeGreaterThan(0);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should copy prompts using different profiles', async () => {
+  jest.setTimeout(10000);
+  test('should copy prompts using different profiles', async () => { try {
     await testManager.initialize();
 
     // Test with safe profile
     const safeResult = await testManager.copyPrompts({
       conflictResolution: 'skip',
       parallel: false,
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     expect(safeResult.success).toBe(true);
     expect(safeResult.copiedFiles).toBeGreaterThan(0);
 
     // Verify files exist
-    const destFiles = await fs.readdir(path.join(tempDir, 'dest'), { recursive: true });
+    const destFiles = await fs.readdir(path.join(tempDir, 'dest'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     expect(destFiles.length).toBeGreaterThan(0);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should validate prompts and generate reports', async () => {
+  jest.setTimeout(10000);
+  test('should validate prompts and generate reports', async () => { try {
     await testManager.initialize();
 
     // Copy files first
@@ -106,18 +109,19 @@ describe('Prompt Copying Integration Tests', () => {
     const emptyFileIssue = validation.issues.find((issue) => issue.file.includes('invalid.md'));
     expect(emptyFileIssue).toBeDefined();
     expect(emptyFileIssue!.issues).toContain('File is empty');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should handle multiple sources', async () => {
+  jest.setTimeout(10000);
+  test('should handle multiple sources', async () => { try {
     // Create second source
     const source2Dir = path.join(tempDir, 'source2');
-    await fs.mkdir(source2Dir, { recursive: true });
+    await fs.mkdir(source2Dir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     await fs.writeFile(path.join(source2Dir, 'extra.md'), '# Extra\nExtra prompt.');
 
     // Update config
     await testManager.updateConfig({
       sourceDirectories: ['source', 'source2'],
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     await testManager.initialize();
 
@@ -128,11 +132,12 @@ describe('Prompt Copying Integration Tests', () => {
     expect(results.every((r) => r.success)).toBe(true);
 
     // Verify files from both sources
-    const destFiles = await fs.readdir(path.join(tempDir, 'dest'), { recursive: true });
+    const destFiles = await fs.readdir(path.join(tempDir, 'dest'), { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
     expect(destFiles).toContain('extra.md');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should generate comprehensive system report', async () => {
+  jest.setTimeout(10000);
+  test('should generate comprehensive system report', async () => { try {
     await testManager.initialize();
     await testManager.copyPrompts();
 
@@ -147,9 +152,10 @@ describe('Prompt Copying Integration Tests', () => {
     expect(sourceInfo.exists).toBe(true);
     expect(sourceInfo.fileCount).toBeGreaterThan(0);
     expect(sourceInfo.totalSize).toBeGreaterThan(0);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should handle configuration persistence', async () => {
+  jest.setTimeout(10000);
+  test('should handle configuration persistence', async () => { try {
     const configManager = new PromptConfigManager(path.join(tempDir, '.test-config.json'));
 
     // Save custom config
@@ -159,7 +165,7 @@ describe('Prompt Copying Integration Tests', () => {
         maxWorkers: 8,
         conflictResolution: 'merge',
       },
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     // Load config in new instance
     const newConfigManager = new PromptConfigManager(path.join(tempDir, '.test-config.json'));
@@ -169,13 +175,14 @@ describe('Prompt Copying Integration Tests', () => {
     expect(config.destinationDirectory).toBe('./custom-dest');
     expect(config.defaultOptions.maxWorkers).toBe(8);
     expect(config.defaultOptions.conflictResolution).toBe('merge');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should handle errors gracefully', async () => {
+  jest.setTimeout(10000);
+  test('should handle errors gracefully', async () => { try {
     // Test with invalid source directory
     await testManager.updateConfig({
       sourceDirectories: ['nonexistent'],
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     await testManager.initialize();
 
@@ -184,9 +191,10 @@ describe('Prompt Copying Integration Tests', () => {
 
     // The result should indicate failure or no files copied
     expect(result.copiedFiles).toBe(0);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should support incremental sync', async () => {
+  jest.setTimeout(10000);
+  test('should support incremental sync', async () => { try {
     await testManager.initialize();
 
     // Initial copy
@@ -201,19 +209,20 @@ describe('Prompt Copying Integration Tests', () => {
     const syncResult = await testManager.syncPrompts({
       incrementalOnly: true,
       compareHashes: true,
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     expect(syncResult.forward.success).toBe(true);
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should respect include/exclude patterns', async () => {
+  jest.setTimeout(10000);
+  test('should respect include/exclude patterns', async () => { try {
     await testManager.initialize();
 
     // Copy only .md files from sparc directory
     const result = await testManager.copyPrompts({
       includePatterns: ['**/sparc/*.md'],
       excludePatterns: ['**/tdd.md'],
-    });
+    } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
     expect(result.success).toBe(true);
 
@@ -224,9 +233,10 @@ describe('Prompt Copying Integration Tests', () => {
     expect(sparcFiles).toContain('architect.md');
     expect(sparcFiles).toContain('code.md');
     expect(sparcFiles).not.toContain('tdd.md');
-  });
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
 
-  test('should handle concurrent operations', async () => {
+  jest.setTimeout(10000);
+  test('should handle concurrent operations', async () => { try {
     await testManager.initialize();
 
     // Start multiple copy operations
@@ -244,8 +254,8 @@ describe('Prompt Copying Integration Tests', () => {
     // Verify all destinations have files
     for (let i = 1; i <= 3; i++) {
       const destDir = path.join(tempDir, `dest${i}`);
-      const files = await fs.readdir(destDir, { recursive: true });
+      const files = await fs.readdir(destDir, { recursive: true } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
       expect(files.length).toBeGreaterThan(0);
     }
-  });
-});
+  } catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

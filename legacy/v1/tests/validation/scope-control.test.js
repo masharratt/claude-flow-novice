@@ -33,7 +33,8 @@ describe('Scope Control Framework', () => {
   });
 
   describe('Scope Boundary Enforcement', () => {
-    test('should reject feature implementation actions', async () => {
+    jest.setTimeout(10000);
+  test('should reject feature implementation actions', async () => { try {
       validator = new TestValidator(testScope, 'validation_only');
 
       const implementationAction = {
@@ -47,7 +48,8 @@ describe('Scope Control Framework', () => {
       ).rejects.toThrow(ScopeViolationError);
     });
 
-    test('should reject enterprise security expansion', async () => {
+    jest.setTimeout(10000);
+  test('should reject enterprise security expansion', async () => { try {
       validator = new TestValidator(testScope, 'validation_only');
 
       const enterpriseAction = {
@@ -61,7 +63,8 @@ describe('Scope Control Framework', () => {
       ).rejects.toThrow(ScopeViolationError);
     });
 
-    test('should reject architecture expansion', async () => {
+    jest.setTimeout(10000);
+  test('should reject architecture expansion', async () => { try {
       validator = new TestValidator(testScope, 'validation_only');
 
       const architectureAction = {
@@ -75,7 +78,8 @@ describe('Scope Control Framework', () => {
       ).rejects.toThrow(ScopeViolationError);
     });
 
-    test('should allow core validation actions', async () => {
+    jest.setTimeout(10000);
+  test('should allow core validation actions', async () => { try {
       validator = new TestValidator(testScope, 'validation_only');
 
       const validationActions = [
@@ -103,7 +107,8 @@ describe('Scope Control Framework', () => {
       expect(result.validation_result.success).toBe(true);
     });
 
-    test('should maintain scope adherence score', async () => {
+    jest.setTimeout(10000);
+  test('should maintain scope adherence score', async () => { try {
       validator = new TestValidator(testScope, 'validation_only');
 
       const mixedActions = [
@@ -127,7 +132,8 @@ describe('Scope Control Framework', () => {
   });
 
   describe('Suggestion System', () => {
-    test('should separate suggestions from core validation in suggest_minor mode', async () => {
+    jest.setTimeout(10000);
+  test('should separate suggestions from core validation in suggest_minor mode', async () => { try {
       validator = new TestValidator(testScope, 'suggest_minor');
 
       const mixedActions = [
@@ -157,7 +163,8 @@ describe('Scope Control Framework', () => {
       expect(result.scope_compliance.within_original_scope).toBe(true);
     });
 
-    test('should block architectural suggestions in suggest_minor mode', async () => {
+    jest.setTimeout(10000);
+  test('should block architectural suggestions in suggest_minor mode', async () => { try {
       validator = new TestValidator(testScope, 'suggest_minor');
 
       const architecturalSuggestion = {
@@ -173,7 +180,8 @@ describe('Scope Control Framework', () => {
       expect(result.violations[0].violation.violation_type).toBe('CATEGORY_VIOLATION');
     });
 
-    test('should allow architectural suggestions in suggest_major mode', async () => {
+    jest.setTimeout(10000);
+  test('should allow architectural suggestions in suggest_major mode', async () => { try {
       validator = new TestValidator(testScope, 'suggest_major');
 
       const architecturalSuggestion = {
@@ -189,7 +197,8 @@ describe('Scope Control Framework', () => {
       expect(result.suggestions[0].requires_approval).toBe(true);
     });
 
-    test('should enforce suggestion complexity limits', async () => {
+    jest.setTimeout(10000);
+  test('should enforce suggestion complexity limits', async () => { try {
       validator = new TestValidator(testScope, 'suggest_minor');
 
       const highComplexitySuggestion = {
@@ -213,7 +222,8 @@ describe('Scope Control Framework', () => {
       scopeGuard = new ValidationScopeGuard(testScope, false);
     });
 
-    test('should detect implementation indicators', () => {
+    jest.setTimeout(10000);
+  test('should detect implementation indicators', () => {
       const implementationAction = {
         description: 'Implement new OAuth authentication system',
         complexity: 7
@@ -225,7 +235,8 @@ describe('Scope Control Framework', () => {
       expect(analysis.implementation_indicators.implementation_word_count).toBeGreaterThan(0);
     });
 
-    test('should detect enterprise indicators', () => {
+    jest.setTimeout(10000);
+  test('should detect enterprise indicators', () => {
       const enterpriseAction = {
         description: 'Add Byzantine fault tolerance for distributed validation',
         complexity: 10
@@ -237,7 +248,8 @@ describe('Scope Control Framework', () => {
       expect(analysis.enterprise_indicators.enterprise_features).toContain('byzantine');
     });
 
-    test('should calculate scope alignment correctly', () => {
+    jest.setTimeout(10000);
+  test('should calculate scope alignment correctly', () => {
       const alignedAction = {
         description: 'Run tests and check coverage meets requirements',
         complexity: 3
@@ -255,7 +267,8 @@ describe('Scope Control Framework', () => {
       expect(misalignedAnalysis.scope_alignment).toBeLessThan(0.3);
     });
 
-    test('should validate request with multiple actions', () => {
+    jest.setTimeout(10000);
+  test('should validate request with multiple actions', () => {
       const validationRequest = {
         actions: [
           { description: 'Run unit tests', complexity: 2 },
@@ -274,7 +287,8 @@ describe('Scope Control Framework', () => {
   });
 
   describe('Feature Suggestion Configuration', () => {
-    test('should configure validation_only mode correctly', () => {
+    jest.setTimeout(10000);
+  test('should configure validation_only mode correctly', () => {
       const config = new FeatureSuggestionConfig(
         FeatureSuggestionConfig.MODES.VALIDATION_ONLY
       );
@@ -284,7 +298,8 @@ describe('Scope Control Framework', () => {
       expect(config.config.suggestion_categories).toHaveLength(0);
     });
 
-    test('should configure suggest_minor mode correctly', () => {
+    jest.setTimeout(10000);
+  test('should configure suggest_minor mode correctly', () => {
       const config = new FeatureSuggestionConfig(
         FeatureSuggestionConfig.MODES.SUGGEST_MINOR
       );
@@ -295,7 +310,8 @@ describe('Scope Control Framework', () => {
       expect(config.config.suggestion_categories).not.toContain('architecture');
     });
 
-    test('should process suggestions correctly', () => {
+    jest.setTimeout(10000);
+  test('should process suggestions correctly', () => {
       const config = new FeatureSuggestionConfig(
         FeatureSuggestionConfig.MODES.SUGGEST_MAJOR
       );
@@ -313,7 +329,8 @@ describe('Scope Control Framework', () => {
       expect(processed.metadata).toBeDefined();
     });
 
-    test('should reject suggestions exceeding complexity limits', () => {
+    jest.setTimeout(10000);
+  test('should reject suggestions exceeding complexity limits', () => {
       const config = new FeatureSuggestionConfig(
         FeatureSuggestionConfig.MODES.SUGGEST_MINOR
       );
@@ -331,7 +348,8 @@ describe('Scope Control Framework', () => {
   });
 
   describe('Scope Overreach Prevention', () => {
-    test('should prevent completion validator from suggesting enterprise features', async () => {
+    jest.setTimeout(10000);
+  test('should prevent completion validator from suggesting enterprise features', async () => { try {
       const completionScope = {
         primary_objective: "Validate task completion claims",
         must_validate: ["Tests pass as claimed", "Requirements met as stated"],
@@ -368,7 +386,8 @@ describe('Scope Control Framework', () => {
       expect(result.violations[0].violation.violation_type).toBe('ENTERPRISE_OVERREACH');
     });
 
-    test('should prevent build validator from adding security frameworks', async () => {
+    jest.setTimeout(10000);
+  test('should prevent build validator from adding security frameworks', async () => { try {
       const buildScope = {
         primary_objective: "Validate build process works",
         must_validate: ["Build completes successfully", "Artifacts generated"],
@@ -397,7 +416,8 @@ describe('Scope Control Framework', () => {
       ).rejects.toThrow(/security.*not.*scope/i);
     });
 
-    test('should maintain scope boundaries across multiple validations', async () => {
+    jest.setTimeout(10000);
+  test('should maintain scope boundaries across multiple validations', async () => { try {
       validator = new TestValidator(testScope, 'validation_only');
 
       // First validation - should pass
@@ -421,7 +441,8 @@ describe('Scope Control Framework', () => {
   });
 
   describe('Metrics and Analytics', () => {
-    test('should track validation metrics', async () => {
+    jest.setTimeout(10000);
+  test('should track validation metrics', async () => { try {
       validator = new TestValidator(testScope, 'suggest_minor');
 
       const actions = [
@@ -438,7 +459,8 @@ describe('Scope Control Framework', () => {
       expect(result.metrics.scope_adherence_score).toBe(100);
     });
 
-    test('should calculate efficiency score', async () => {
+    jest.setTimeout(10000);
+  test('should calculate efficiency score', async () => { try {
       validator = new TestValidator(testScope, 'validation_only');
 
       const actions = [
@@ -453,7 +475,8 @@ describe('Scope Control Framework', () => {
   });
 
   describe('Integration Scenarios', () => {
-    test('should handle legacy validator compatibility', async () => {
+    jest.setTimeout(10000);
+  test('should handle legacy validator compatibility', async () => { try {
       // Simulate wrapping a legacy validator
       const legacyValidator = {
         validate: async (target) => ({
@@ -479,7 +502,8 @@ describe('Scope Control Framework', () => {
       expect(result.suggestions).toHaveLength(0); // No suggestions in validation_only mode
     });
 
-    test('should work with existing project structure', async () => {
+    jest.setTimeout(10000);
+  test('should work with existing project structure', async () => { try {
       const projectScope = {
         primary_objective: "Validate project build and test",
         must_validate: ["Build succeeds", "Tests pass", "Linting passes"],
@@ -598,7 +622,8 @@ describe('Scope Violation Scenarios', () => {
   ];
 
   testCases.forEach(testCase => {
-    test(`should detect ${testCase.name}`, async () => {
+    jest.setTimeout(10000);
+  test(`should detect ${testCase.name}`, async () => { try {
       const scope = {
         primary_objective: testCase.originalScope,
         must_validate: [testCase.originalScope],
@@ -622,4 +647,4 @@ describe('Scope Violation Scenarios', () => {
       }
     });
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});

@@ -321,7 +321,7 @@ describe('ByzantineConsensusAdapter', () => {
   });
 
   describe('executeConsensus', () => {
-    it('should reach consensus with 4 unanimous PASS votes', async () => {
+    it('should reach consensus with 4 unanimous PASS votes', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -338,7 +338,7 @@ describe('ByzantineConsensusAdapter', () => {
       expect(result.votingBreakdown.FAIL).toBe(0);
     });
 
-    it('should reach consensus with 3/4 agreement (1 malicious outlier)', async () => {
+    it('should reach consensus with 3/4 agreement (1 malicious outlier)', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -354,7 +354,7 @@ describe('ByzantineConsensusAdapter', () => {
       expect(result.validVotes).toHaveLength(3);
     });
 
-    it('should fail consensus with 2/4 agreement (2 malicious)', async () => {
+    it('should fail consensus with 2/4 agreement (2 malicious)', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -365,7 +365,7 @@ describe('ByzantineConsensusAdapter', () => {
       await expect(adapter.executeConsensus(votes)).rejects.toThrow('Malicious agent ratio');
     });
 
-    it('should detect outlier validators by confidence score', async () => {
+    it('should detect outlier validators by confidence score', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.90, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.91, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -379,7 +379,7 @@ describe('ByzantineConsensusAdapter', () => {
       expect(result.validVotes.map(v => v.agentId)).not.toContain('malicious-1');
     });
 
-    it('should handle high confidence but wrong vote (not necessarily malicious)', async () => {
+    it('should handle high confidence but wrong vote (not necessarily malicious)', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -395,7 +395,7 @@ describe('ByzantineConsensusAdapter', () => {
       expect(result.consensusAchieved).toBe(true); // 3/4 = 75% > 67%
     });
 
-    it('should verify signatures when enabled', async () => {
+    it('should verify signatures when enabled', async () => { try {
       const adapterWithSig = new ByzantineConsensusAdapter({
         signatureValidation: true,
       });
@@ -410,7 +410,7 @@ describe('ByzantineConsensusAdapter', () => {
       expect(result.maliciousAgents).toContain('security-1');
     });
 
-    it('should throw error for insufficient validators', async () => {
+    it('should throw error for insufficient validators', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -419,14 +419,14 @@ describe('ByzantineConsensusAdapter', () => {
       await expect(adapter.executeConsensus(votes)).rejects.toThrow('Insufficient validators');
     });
 
-    it('should handle validator spawn failures gracefully', async () => {
+    it('should handle validator spawn failures gracefully', async () => { try {
       // Simulated by empty votes array
       const votes: ValidatorVote[] = [];
 
       await expect(adapter.executeConsensus(votes)).rejects.toThrow('Insufficient validators');
     });
 
-    it('should generate Byzantine proof with consensus', async () => {
+    it('should generate Byzantine proof with consensus', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -445,7 +445,7 @@ describe('ByzantineConsensusAdapter', () => {
   });
 
   describe('Signature Verification', () => {
-    it('should accept valid signatures', async () => {
+    it('should accept valid signatures', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'valid-signature-1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'valid-signature-2', timestamp: Date.now() },
@@ -459,7 +459,7 @@ describe('ByzantineConsensusAdapter', () => {
       expect(result.maliciousAgents).toHaveLength(0);
     });
 
-    it('should reject empty signatures', async () => {
+    it('should reject empty signatures', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'valid-sig', timestamp: Date.now() },
         { agentId: 'malicious-1', confidence: 0.88, vote: 'PASS', signature: '', timestamp: Date.now() },
@@ -472,7 +472,7 @@ describe('ByzantineConsensusAdapter', () => {
       expect(result.maliciousAgents).toContain('malicious-1');
     });
 
-    it('should work with signature validation disabled', async () => {
+    it('should work with signature validation disabled', async () => { try {
       const noSigAdapter = new ByzantineConsensusAdapter({
         signatureValidation: false,
       });
@@ -492,7 +492,7 @@ describe('ByzantineConsensusAdapter', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle timeout scenarios', async () => {
+    it('should handle timeout scenarios', async () => { try {
       // Simulate timeout by processing minimal validators
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
@@ -503,7 +503,7 @@ describe('ByzantineConsensusAdapter', () => {
       await expect(adapter.executeConsensus(votes)).rejects.toThrow('Insufficient validators');
     });
 
-    it('should handle missing validator responses', async () => {
+    it('should handle missing validator responses', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
       ];
@@ -511,7 +511,7 @@ describe('ByzantineConsensusAdapter', () => {
       await expect(adapter.executeConsensus(votes)).rejects.toThrow('Insufficient validators');
     });
 
-    it('should handle invalid vote data', async () => {
+    it('should handle invalid vote data', async () => { try {
       const invalidVotes: any[] = [
         { agentId: 'reviewer-1', confidence: NaN, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -526,7 +526,7 @@ describe('ByzantineConsensusAdapter', () => {
   });
 
   describe('Malicious Agent Detection', () => {
-    it('should track malicious agents across multiple consensus rounds', async () => {
+    it('should track malicious agents across multiple consensus rounds', async () => { try {
       const round1: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.92, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.88, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },
@@ -547,7 +547,7 @@ describe('ByzantineConsensusAdapter', () => {
   });
 
   describe('Consensus Thresholds', () => {
-    it('should respect custom consensus threshold', async () => {
+    it('should respect custom consensus threshold', async () => { try {
       const strictAdapter = new ByzantineConsensusAdapter({
         consensusThreshold: 0.90, // 90% required
       });
@@ -565,7 +565,7 @@ describe('ByzantineConsensusAdapter', () => {
       expect(result.consensusAchieved).toBe(false);
     });
 
-    it('should calculate weighted consensus score', async () => {
+    it('should calculate weighted consensus score', async () => { try {
       const votes: ValidatorVote[] = [
         { agentId: 'reviewer-1', confidence: 0.95, vote: 'PASS', signature: 'sig1', timestamp: Date.now() },
         { agentId: 'security-1', confidence: 0.90, vote: 'PASS', signature: 'sig2', timestamp: Date.now() },

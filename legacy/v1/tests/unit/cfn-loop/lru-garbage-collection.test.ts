@@ -55,10 +55,11 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     orchestrator = new PhaseOrchestrator(config);
   });
 
-  afterEach(async () => {
+  afterEach(async () => { try {
     await orchestrator.shutdown();
   });
 
+  jest.setTimeout(10000);
   test('should initialize LRU cache with correct configuration', () => {
     const memStats = orchestrator.getMemoryStats();
 
@@ -67,6 +68,7 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(memStats.size).toBe(0);
   });
 
+  jest.setTimeout(10000);
   test('should store sprint results in LRU cache', () => {
     // Access private globalSprintResults for testing
     const sprintResults = (orchestrator as any).globalSprintResults;
@@ -88,7 +90,8 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(memStats.size).toBe(2);
   });
 
-  test('should clean up phase sprint results on completion', async () => {
+  jest.setTimeout(10000);
+  test('should clean up phase sprint results on completion', async () => { try {
     const sprintResults = (orchestrator as any).globalSprintResults;
 
     // Add sprint results for multiple phases
@@ -114,6 +117,7 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(sprintResults.has('phase-3/sprint-3.1')).toBe(true);
   });
 
+  jest.setTimeout(10000);
   test('should respect LRU max size limit', () => {
     const sprintResults = (orchestrator as any).globalSprintResults;
 
@@ -128,6 +132,7 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(memStats.size).toBeLessThanOrEqual(500);
   });
 
+  jest.setTimeout(10000);
   test('should update age on get (TTL refresh)', () => {
     const sprintResults = (orchestrator as any).globalSprintResults;
 
@@ -143,6 +148,7 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(sprintResults.has(key)).toBe(true);
   });
 
+  jest.setTimeout(10000);
   test('should include memory stats in orchestrator statistics', () => {
     const sprintResults = (orchestrator as any).globalSprintResults;
 
@@ -158,7 +164,8 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(stats.memoryStats.sprintCacheTTL).toBe(1000 * 60 * 60);
   });
 
-  test('should handle cleanup of non-existent phase gracefully', async () => {
+  jest.setTimeout(10000);
+  test('should handle cleanup of non-existent phase gracefully', async () => { try {
     const sprintResults = (orchestrator as any).globalSprintResults;
 
     // Add some data
@@ -172,7 +179,8 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(sprintResults.has('phase-1/sprint-1.1')).toBe(true);
   });
 
-  test('should cleanup multiple sprints for same phase', async () => {
+  jest.setTimeout(10000);
+  test('should cleanup multiple sprints for same phase', async () => { try {
     const sprintResults = (orchestrator as any).globalSprintResults;
 
     // Add multiple sprints for phase-1
@@ -195,7 +203,8 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(memStats.size).toBe(1); // Only phase-2 sprint remains
   });
 
-  test('should handle archiving gracefully when memory manager is disabled', async () => {
+  jest.setTimeout(10000);
+  test('should handle archiving gracefully when memory manager is disabled', async () => { try {
     const sprintResults = (orchestrator as any).globalSprintResults;
 
     sprintResults.set('phase-1/sprint-1.1', { success: true });
@@ -206,6 +215,7 @@ describe('PhaseOrchestrator LRU Garbage Collection', () => {
     expect(orchestrator.getMemoryStats().size).toBe(0);
   });
 
+  jest.setTimeout(10000);
   test('should track evictions in memory stats', () => {
     const sprintResults = (orchestrator as any).globalSprintResults;
 

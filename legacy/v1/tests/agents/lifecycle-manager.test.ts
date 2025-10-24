@@ -66,7 +66,7 @@ describe('AgentLifecycleManager', () => {
   });
 
   describe('Agent Initialization', () => {
-    it('should initialize agent with default state', async () => {
+    it('should initialize agent with default state', async () => { try {
       const context = await manager.initializeAgent('test-1', mockAgentDefinition, 'task-1');
 
       expect(context.agentId).toBe('test-1');
@@ -79,7 +79,7 @@ describe('AgentLifecycleManager', () => {
       expect(context.stateHistory[0].state).toBe('uninitialized');
     });
 
-    it('should handle agents without lifecycle configuration', async () => {
+    it('should handle agents without lifecycle configuration', async () => { try {
       const context = await manager.initializeAgent('minimal-1', minimalAgentDefinition);
 
       expect(context.agentId).toBe('minimal-1');
@@ -87,7 +87,7 @@ describe('AgentLifecycleManager', () => {
       expect(context.maxRetries).toBe(3); // default
     });
 
-    it('should initialize memory for persistent agents', async () => {
+    it('should initialize memory for persistent agents', async () => { try {
       const context = await manager.initializeAgent('persistent-1', mockAgentDefinition);
 
       expect(context.memory).toBeInstanceOf(Map);
@@ -98,12 +98,12 @@ describe('AgentLifecycleManager', () => {
   describe('State Transitions', () => {
     let agentId: string;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       agentId = 'state-test-1';
       await manager.initializeAgent(agentId, mockAgentDefinition);
     });
 
-    it('should allow valid state transitions', async () => {
+    it('should allow valid state transitions', async () => { try {
       // uninitialized -> initializing
       await expect(manager.transitionState(agentId, 'initializing')).resolves.toBe(true);
 
@@ -126,7 +126,7 @@ describe('AgentLifecycleManager', () => {
       await expect(manager.transitionState(agentId, 'stopped')).resolves.toBe(true);
     });
 
-    it('should reject invalid state transitions', async () => {
+    it('should reject invalid state transitions', async () => { try {
       // uninitialized -> running (invalid)
       await expect(manager.transitionState(agentId, 'running')).rejects.toThrow();
 
@@ -140,7 +140,7 @@ describe('AgentLifecycleManager', () => {
       await expect(manager.transitionState(agentId, 'running')).rejects.toThrow();
     });
 
-    it('should update state history', async () => {
+    it('should update state history', async () => { try {
       await manager.transitionState(agentId, 'initializing', 'Test transition');
 
       const context = manager.getAgentContext(agentId);
@@ -149,7 +149,7 @@ describe('AgentLifecycleManager', () => {
       expect(context?.stateHistory[1].reason).toBe('Test transition');
     });
 
-    it('should handle error states', async () => {
+    it('should handle error states', async () => { try {
       await manager.transitionState(agentId, 'initializing');
       await manager.transitionState(agentId, 'error', 'Test error');
 
@@ -162,7 +162,7 @@ describe('AgentLifecycleManager', () => {
   describe('Task Completion Handling', () => {
     let agentId: string;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       agentId = 'task-test-1';
       await manager.initializeAgent(agentId, mockAgentDefinition);
       await manager.transitionState(agentId, 'initializing');
@@ -170,7 +170,7 @@ describe('AgentLifecycleManager', () => {
       await manager.transitionState(agentId, 'running');
     });
 
-    it('should handle successful task completion', async () => {
+    it('should handle successful task completion', async () => { try {
       const result = await manager.handleTaskComplete(agentId, { success: true }, true);
 
       expect(result.success).toBe(true);
@@ -178,7 +178,7 @@ describe('AgentLifecycleManager', () => {
       expect(context?.state).toBe('idle');
     });
 
-    it('should handle failed task completion with retries', async () => {
+    it('should handle failed task completion with retries', async () => { try {
       const result = await manager.handleTaskComplete(agentId, { success: false }, false);
 
       expect(result.success).toBe(true);
@@ -187,7 +187,7 @@ describe('AgentLifecycleManager', () => {
       expect(context?.state).toBe('idle');
     });
 
-    it('should transition to error after max retries', async () => {
+    it('should transition to error after max retries', async () => { try {
       const context = manager.getAgentContext(agentId);
       if (context) {
         context.retryCount = 2; // Set to one less than max
@@ -204,14 +204,14 @@ describe('AgentLifecycleManager', () => {
   describe('Rerun Request Handling', () => {
     let agentId: string;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       agentId = 'rerun-test-1';
       await manager.initializeAgent(agentId, mockAgentDefinition);
       await manager.transitionState(agentId, 'initializing');
       await manager.transitionState(agentId, 'idle');
     });
 
-    it('should handle rerun requests', async () => {
+    it('should handle rerun requests', async () => { try {
       const result = await manager.handleRerunRequest(agentId, 'User requested rerun');
 
       expect(result.success).toBe(true);
@@ -220,7 +220,7 @@ describe('AgentLifecycleManager', () => {
       expect(context?.retryCount).toBe(0); // Reset on rerun
     });
 
-    it('should reset retry count on rerun', async () => {
+    it('should reset retry count on rerun', async () => { try {
       const context = manager.getAgentContext(agentId);
       if (context) {
         context.retryCount = 2;
@@ -236,7 +236,7 @@ describe('AgentLifecycleManager', () => {
   describe('Memory Management', () => {
     let agentId: string;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       agentId = 'memory-test-1';
       await manager.initializeAgent(agentId, mockAgentDefinition);
     });
@@ -270,12 +270,12 @@ describe('AgentLifecycleManager', () => {
   describe('Agent Cleanup', () => {
     let agentId: string;
 
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       agentId = 'cleanup-test-1';
       await manager.initializeAgent(agentId, mockAgentDefinition);
     });
 
-    it('should cleanup agent with persistent memory', async () => {
+    it('should cleanup agent with persistent memory', async () => { try {
       const success = await manager.cleanupAgent(agentId);
       expect(success).toBe(true);
 
@@ -283,7 +283,7 @@ describe('AgentLifecycleManager', () => {
       expect(context?.state).toBe('stopped'); // Should still exist for persistent agents
     });
 
-    it('should cleanup agent without persistent memory', async () => {
+    it('should cleanup agent without persistent memory', async () => { try {
       const nonPersistentAgent: AgentDefinition = {
         ...mockAgentDefinition,
         lifecycle: {
@@ -302,7 +302,7 @@ describe('AgentLifecycleManager', () => {
   });
 
   describe('Agent Queries', () => {
-    beforeEach(async () => {
+    beforeEach(async () => { try {
       await manager.initializeAgent('agent-1', mockAgentDefinition);
       await manager.initializeAgent('agent-2', mockAgentDefinition);
       await manager.initializeAgent('agent-3', minimalAgentDefinition);
@@ -375,14 +375,14 @@ describe('AgentLifecycleManager', () => {
   });
 
   describe('Convenience Functions', () => {
-    it('should use singleton lifecycle manager', async () => {
+    it('should use singleton lifecycle manager', async () => { try {
       const context1 = await initializeAgent('singleton-test', mockAgentDefinition);
       const context2 = getAgentContext('singleton-test');
 
       expect(context1).toBe(context2);
     });
 
-    it('should handle state transitions via convenience function', async () => {
+    it('should handle state transitions via convenience function', async () => { try {
       await initializeAgent('convenience-test', mockAgentDefinition);
       const success = await transitionAgentState('convenience-test', 'initializing');
 
@@ -391,7 +391,7 @@ describe('AgentLifecycleManager', () => {
       expect(context?.state).toBe('initializing');
     });
 
-    it('should handle task completion via convenience function', async () => {
+    it('should handle task completion via convenience function', async () => { try {
       await initializeAgent('task-conv-test', mockAgentDefinition);
       await transitionAgentState('task-conv-test', 'initializing');
       await transitionAgentState('task-conv-test', 'idle');
@@ -401,7 +401,7 @@ describe('AgentLifecycleManager', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle memory operations via convenience functions', async () => {
+    it('should handle memory operations via convenience functions', async () => { try {
       await initializeAgent('memory-conv-test', mockAgentDefinition);
 
       const updateSuccess = updateAgentMemory('memory-conv-test', 'conv-key', 'conv-value');
@@ -450,4 +450,4 @@ describe('Integration with Agent Loader', () => {
 
     expect(AgentLifecycleManager.supportsLifecycle(mixedAgent)).toBe(true);
   });
-});
+} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
