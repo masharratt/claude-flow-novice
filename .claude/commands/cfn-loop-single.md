@@ -120,7 +120,7 @@ Task("cost-savings-cfn-loop-coordinator", `
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   1. INVOKE ORCHESTRATOR:
-     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \\
+     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
        --task-id "cfn-single-$(date +%s)" \\
        --mode standard \\
        --loop3-agents "researcher,backend-dev,devops" \\

@@ -111,7 +111,7 @@ Task("CFN Loop Coordinator", `
 
   MANDATORY: Use orchestrator script for dependency enforcement.
 
-  ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+  ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
     --task-id "sprint-${sprintId}-$(date +%s)" \
     --mode standard \
     --loop3-agents "backend-dev,tester,security-specialist" \

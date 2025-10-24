@@ -182,7 +182,7 @@ Task("cost-savings-cfn-loop-coordinator", `
      LOOP3_AGENTS="researcher,backend-dev,devops"
      LOOP2_AGENTS="reviewer,architect,tester,security-specialist"
 
-     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
        --task-id "$TASK_ID" \
        --mode "$MODE" \
        --loop3-agents "$LOOP3_AGENTS" \

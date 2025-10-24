@@ -37,6 +37,7 @@ ITERATION=""
 CONFIDENCE=""
 FEEDBACK=""
 PRIORITY=50  # Default medium priority (0-100, higher = more urgent)
+MIN_QUORUM=""  # Minimum quorum for consensus validation
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -70,6 +71,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --priority)
             PRIORITY="$2"
+            shift 2
+            ;;
+        --min-quorum)
+            MIN_QUORUM="$2"
             shift 2
             ;;
         *)
@@ -125,12 +130,13 @@ case "$COMMAND" in
 
     collect)
         if [ -z "$TASK_ID" ] || [ -z "$AGENT_IDS" ]; then
-            echo "Error: collect requires --task-id and --agent-ids"
+            echo "Error: collect requires --task-id and --agent-ids" >&2
             exit 1
         fi
 
-        echo "[Coordinator] Collecting results from agents..."
-        echo ""
+        # Output verbose messages to stderr
+        echo "[Coordinator] Collecting results from agents..." >&2
+        echo "" >&2
 
         # Split agent IDs
         IFS=',' read -ra AGENTS <<< "$AGENT_IDS"
@@ -146,26 +152,64 @@ case "$COMMAND" in
             RESULT=$(redis-cli LPOP "$RESULT_KEY")
 
             if [ -n "$RESULT" ] && [ "$RESULT" != "(nil)" ]; then
-                CONF=$(echo "$RESULT" | jq -r '.confidence')
-                echo "  [$AGENT] Confidence: $CONF"
-                RESULTS+=("$RESULT")
-                CONFIDENCES+=("$CONF")
+                # Handle both simple numeric format and JSON format
+                # Try to parse as JSON first, fall back to simple number
+                if CONF=$(echo "$RESULT" | jq -r '.confidence' 2>/dev/null) && [ "$CONF" != "null" ]; then
+                    # JSON format: {"confidence":0.85,"iteration":1,...}
+                    echo "  [$AGENT] Confidence: $CONF" >&2
+                    RESULTS+=("$RESULT")
+                    CONFIDENCES+=("$CONF")
 
-                # Check if result includes feedback array
-                FEEDBACK=$(echo "$RESULT" | jq -r '.feedback // empty | .[]?' 2>/dev/null)
-                if [ -n "$FEEDBACK" ]; then
-                    echo "  [$AGENT] Feedback provided:"
-                    echo "$RESULT" | jq -r '.feedback[]' | sed 's/^/    - /'
+                    # Check if result includes feedback array
+                    FEEDBACK=$(echo "$RESULT" | jq -r '.feedback // empty | .[]?' 2>/dev/null)
+                    if [ -n "$FEEDBACK" ]; then
+                        echo "  [$AGENT] Feedback provided:" >&2
+                        echo "$RESULT" | jq -r '.feedback[]' | sed 's/^/    - /' >&2
 
-                    # Collect all feedback items
-                    while IFS= read -r ITEM; do
-                        ALL_FEEDBACK+=("$ITEM")
-                    done < <(echo "$RESULT" | jq -r '.feedback[]')
+                        # Collect all feedback items
+                        while IFS= read -r ITEM; do
+                            ALL_FEEDBACK+=("$ITEM")
+                        done < <(echo "$RESULT" | jq -r '.feedback[]')
+                    fi
+                elif [[ "$RESULT" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+                    # Simple numeric format: "0.85"
+                    CONF="$RESULT"
+                    echo "  [$AGENT] Confidence: $CONF" >&2
+                    CONFIDENCES+=("$CONF")
+                else
+                    echo "  [$AGENT] ⚠️  Invalid result format: $RESULT" >&2
                 fi
             else
-                echo "  [$AGENT] ⚠️  No result found"
+                echo "  [$AGENT] ⚠️  No result found" >&2
             fi
         done
+
+        # Validate quorum if specified
+        TOTAL_AGENTS=${#AGENTS[@]}
+        RESPONDING_AGENTS=${#CONFIDENCES[@]}
+
+        if [ -n "$MIN_QUORUM" ]; then
+            # Parse min-quorum (supports: absolute number, percentage, or decimal)
+            if [[ "$MIN_QUORUM" =~ ^[0-9]+%$ ]]; then
+                # Percentage format: "66%"
+                PCT=${MIN_QUORUM%\%}
+                REQUIRED=$(echo "scale=0; ($TOTAL_AGENTS * $PCT) / 100" | bc)
+            elif [[ "$MIN_QUORUM" =~ ^0\.[0-9]+$ ]]; then
+                # Decimal format: "0.66"
+                REQUIRED=$(echo "scale=0; ($TOTAL_AGENTS * $MIN_QUORUM) / 1" | bc)
+            else
+                # Absolute number format: "2"
+                REQUIRED=$MIN_QUORUM
+            fi
+
+            if [ "$RESPONDING_AGENTS" -lt "$REQUIRED" ]; then
+                echo "" >&2
+                echo "[Coordinator] ❌ Quorum not met" >&2
+                echo "  Required: $REQUIRED agents" >&2
+                echo "  Responding: $RESPONDING_AGENTS agents" >&2
+                exit 1
+            fi
+        fi
 
         # Calculate consensus
         if [ ${#CONFIDENCES[@]} -gt 0 ]; then
@@ -176,19 +220,25 @@ case "$COMMAND" in
             COUNT=${#CONFIDENCES[@]}
             CONSENSUS=$(echo "scale=2; $SUM / $COUNT" | bc)
 
-            echo ""
-            echo "[Coordinator] Consensus: $CONSENSUS"
+            # Ensure leading zero for bc output (handles .87 -> 0.87)
+            if [[ "$CONSENSUS" =~ ^\. ]]; then
+                CONSENSUS="0$CONSENSUS"
+            fi
+
+            echo "" >&2
+            echo "[Coordinator] Consensus: $CONSENSUS" >&2
 
             # Print aggregated feedback if available
             if [ ${#ALL_FEEDBACK[@]} -gt 0 ]; then
-                echo "[Coordinator] Aggregated Feedback (${#ALL_FEEDBACK[@]} items):"
-                printf '%s\n' "${ALL_FEEDBACK[@]}" | sort -u | sed 's/^/  - /'
+                echo "[Coordinator] Aggregated Feedback (${#ALL_FEEDBACK[@]} items):" >&2
+                printf '%s\n' "${ALL_FEEDBACK[@]}" | sort -u | sed 's/^/  - /' >&2
             fi
 
+            # Output only consensus value to stdout for callers
             echo "$CONSENSUS"
         else
-            echo ""
-            echo "[Coordinator] No results to calculate consensus"
+            echo "" >&2
+            echo "[Coordinator] No results to calculate consensus" >&2
             echo "0.0"
         fi
         ;;

@@ -222,7 +222,7 @@ Product Owner: product-owner
 
 ```bash
 1. INVOKE ORCHESTRATOR:
-   ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+   ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
      --task-id "${taskId}" \
      --mode ${mode} \
      --loop3-agents "${loop3Agents.join(',')}" \
@@ -488,7 +488,7 @@ Task("cost-savings-cfn-loop-coordinator", `
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   1. INVOKE ORCHESTRATOR:
-     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \\
+     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
        --task-id "cfn-mvp-registration-1729350000" \\
        --mode mvp \\
        --loop3-agents "backend-dev" \\
@@ -585,7 +585,7 @@ Task("cost-savings-cfn-loop-coordinator", `
   1. CHECK DEPENDENCIES
   2. STORE SCOPE BOUNDARIES (memory)
   3. INVOKE ORCHESTRATOR:
-     ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \\
+     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
        --task-id "phase-X-$(date +%s)" \\
        --mode enterprise \\
        --loop3-agents "backend-dev,frontend-dev,devops,security-specialist,researcher" \\
