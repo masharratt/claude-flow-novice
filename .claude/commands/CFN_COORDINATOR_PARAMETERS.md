@@ -19,7 +19,7 @@ This document defines the structured parameter specification for CFN Loop coordi
 ```
 /cfn-loop "task"
   ↓
-Main Chat spawns ONE agent: cost-savings-cfn-loop-coordinator
+Main Chat spawns ONE agent: cfn-v3-coordinator
   ↓
 Coordinator runs orchestrate-cfn-loop.sh internally
   ↓
@@ -202,7 +202,7 @@ Product Owner: product-owner
 **Loop 3 (Implementation):**
 - `researcher` - Requirement analysis, research
 - `backend-dev` - Backend implementation
-- `frontend-dev` - Frontend implementation (if needed)
+- `react-frontend-engineer` - Frontend implementation (if needed)
 - `devops` - Infrastructure, deployment
 
 **Loop 2 (Validation):**
@@ -435,7 +435,7 @@ Epic-Level Acceptance Criteria:
 ### Example 1: MVP Mode Single Task
 
 ```javascript
-Task("cost-savings-cfn-loop-coordinator", `
+Task("cfn-v3-coordinator", `
   CFN LOOP EXECUTION - STRUCTURED PARAMETERS
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -517,13 +517,13 @@ Task("cost-savings-cfn-loop-coordinator", `
   - LET orchestrator handle CLI spawning
   - USE Redis BLPOP for dependencies
   - RETURN structured result
-`, "cost-savings-cfn-loop-coordinator")
+`, "cfn-v3-coordinator")
 ```
 
 ### Example 2: Enterprise Mode Multi-Phase Epic
 
 ```javascript
-Task("cost-savings-cfn-loop-coordinator", `
+Task("cfn-v3-coordinator", `
   CFN LOOP EPIC EXECUTION - MULTI-PHASE
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -588,7 +588,7 @@ Task("cost-savings-cfn-loop-coordinator", `
      ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
        --task-id "phase-X-$(date +%s)" \\
        --mode enterprise \\
-       --loop3-agents "backend-dev,frontend-dev,devops,security-specialist,researcher" \\
+       --loop3-agents "backend-dev,react-frontend-engineer,devops,security-specialist,researcher" \\
        --loop2-agents "reviewer,architect,tester,security-specialist,performance-analyst" \\
        --product-owner "product-owner" \\
        --max-iterations 15
@@ -616,7 +616,7 @@ Task("cost-savings-cfn-loop-coordinator", `
   - AUTO-TRANSITION between phases
   - DEFER out-of-scope items
   - RETURN epic summary
-`, "cost-savings-cfn-loop-coordinator")
+`, "cfn-v3-coordinator")
 ```
 
 ---

@@ -135,7 +135,7 @@ Code Quality Focus → + code-analyzer
 **Complex (6-7 agents):**
 ```bash
 # Enterprise features, multi-component systems
---agents=analyst,system-architect,backend-dev,frontend-dev,security-specialist,tester,reviewer
+--agents=analyst,system-architect,backend-dev,react-frontend-engineer,security-specialist,tester,reviewer
 --agents=system-architect,architect,backend-dev,security-specialist,devops-engineer,production-validator
 ```
 

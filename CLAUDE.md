@@ -81,7 +81,7 @@
 
 | Coordinator | Spawning Method | Cost Savings | Use Case |
 |-------------|----------------|--------------|----------|
-| `cost-savings-cfn-loop-coordinator` | CLI | 95-98% | CFN Loops |
+| `cfn-v3-coordinator` | CLI | 95-98% | CFN Loops |
 | `cost-savings-coordinator` | CLI | 95-98% | General tasks |
 
 **Architecture:**
@@ -160,7 +160,7 @@ Task("tester", "Test feature...")            // ❌ NO
 **✅ REQUIRED - Single Coordinator:**
 ```javascript
 // CORRECT - Main Chat spawns only coordinator
-Task("cost-savings-cfn-loop-coordinator", `
+Task("cfn-v3-coordinator", `
   Execute CFN Loop for: Implement authentication
 
   Coordinator will:
@@ -382,7 +382,7 @@ Task("cfn-loop-coordinator", "Execute CFN Loop with orchestrator...")
 
 **1. Main Chat spawns coordinator:**
 ```javascript
-Task("cost-savings-cfn-loop-coordinator", `
+Task("cfn-v3-coordinator", `
   Execute CFN Loop for: Implement authentication system
 
   Use orchestrator for dependency enforcement.
@@ -486,7 +486,7 @@ Main Chat should use these commands instead of manually spawning coordinators:
 ```
 
 **What These Commands Do:**
-- Automatically spawn `cost-savings-cfn-loop-coordinator`
+- Automatically spawn `cfn-v3-coordinator`
 - Pass structured parameters (success criteria, agent configuration)
 - Include custom routing cost reminders
 - Enable web portal visibility

@@ -242,7 +242,7 @@ Task("validator", `
 **Main Chat Thinks:**
 - Task type: Feature implementation
 - Topology: Mesh (coordinator + 5 agents, some parallel)
-- Agents needed: analyst, architect, backend-dev, frontend-dev, tester
+- Agents needed: analyst, architect, backend-dev, react-frontend-engineer, tester
 - Dependencies: analyst → architect → (backend + frontend parallel) → tester
 
 **Single Message Spawn:**
@@ -261,10 +261,10 @@ Task("coordinator-hybrid", `
 
   **Redis Channel:** swarm:profile-edit:coordinator
 
-  **Agents:** analyst → architect → (backend-dev || frontend-dev) → tester
+  **Agents:** analyst → architect → (backend-dev || react-frontend-engineer) → tester
 
   **Parallel Phase:**
-  - backend-dev and frontend-dev work in parallel after architect
+  - backend-dev and react-frontend-engineer work in parallel after architect
   - tester waits for BOTH to complete
 
   Monitor and aggregate results.

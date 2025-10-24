@@ -1,3 +1,11 @@
+---
+name: phase4-template-optimization
+description: Template-based optimization guide for agent development
+model: claude-sonnet-4
+tools: [Read]
+type: documentation
+---
+
 # Phase 4 Template-Based Optimization Guide
 
 **Version:** 1.0.0

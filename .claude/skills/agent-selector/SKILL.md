@@ -40,7 +40,7 @@ echo "$AGENTS" | jq '.loop2[]'  # ["reviewer", "tester", "security-auditor"]
 - "security", "authentication", "JWT" → security-specialist
 - "database", "SQL", "schema" → database-engineer (if exists)
 - "deploy", "CI/CD", "infrastructure" → devops-engineer
-- "frontend", "React", "UI" → frontend-dev (if exists)
+- "frontend", "React", "UI" → react-frontend-engineer
 
 **Loop 2:** reviewer, tester, security-auditor
 

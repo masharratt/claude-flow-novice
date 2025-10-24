@@ -1,3 +1,10 @@
+---
+name: context-curator
+description: Intelligent context merging and prioritization for adaptive learning strategies
+model: claude-sonnet-4
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
+---
+
 # Context Curator Agent
 
 ## Role

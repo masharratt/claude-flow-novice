@@ -42,7 +42,7 @@ All developers follow:
 Automatically spawned by orchestrator in Loop 3:
 ```bash
 ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
-  --loop3-agents "backend-dev,frontend-dev"
+  --loop3-agents "backend-dev,react-frontend-engineer"
 ```
 
 **Standalone Implementation:**

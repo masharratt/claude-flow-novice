@@ -148,8 +148,9 @@ case "$COMMAND" in
         for AGENT in "${AGENTS[@]}"; do
             RESULT_KEY="swarm:${TASK_ID}:${AGENT}:result"
 
-            # Get latest result (non-blocking)
-            RESULT=$(redis-cli LPOP "$RESULT_KEY")
+            # Get latest result (non-blocking, non-destructive)
+            # Use LINDEX instead of LPOP to preserve results for multiple reads
+            RESULT=$(redis-cli LINDEX "$RESULT_KEY" 0)
 
             if [ -n "$RESULT" ] && [ "$RESULT" != "(nil)" ]; then
                 # Handle both simple numeric format and JSON format

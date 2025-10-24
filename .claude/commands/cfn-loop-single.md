@@ -33,7 +33,7 @@ The coordinator uses CLI spawning (95-98% cost savings) and provides full visibi
 ### Step 1: Spawn Coordinator Agent (SINGLE AGENT PATTERN)
 
 ```javascript
-Task("cost-savings-cfn-loop-coordinator", `
+Task("cfn-v3-coordinator", `
   CFN LOOP SINGLE TASK EXECUTION
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -155,7 +155,7 @@ Task("cost-savings-cfn-loop-coordinator", `
   - USE Redis BLPOP for dependencies
   - PUBLISH events to web-portal channel
   - RETURN structured result to Main Chat
-`, "cost-savings-cfn-loop-coordinator")
+`, "cfn-v3-coordinator")
 ```
 
 ### Step 2: Coordinator Autonomous Execution

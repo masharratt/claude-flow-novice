@@ -556,7 +556,7 @@ trap 'cleanup_orchestrator $?' EXIT
 | 3 | Worker Agents (CLI spawns) | Role-based | Orchestrator → Loop 3/Loop 2 agents |
 
 **Worker Agent Timeouts (Layer 3):**
-- **Implementers:** 60 minutes (backend-dev, frontend-dev, coder)
+- **Implementers:** 60 minutes (backend-dev, react-frontend-engineer, coder)
 - **Validators:** 30 minutes (reviewer, tester, security)
 - **Product Owner:** 15 minutes (strategic decisions)
 - **Researchers:** 2 hours (deep analysis)

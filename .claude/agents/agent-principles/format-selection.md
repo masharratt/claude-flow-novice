@@ -1,3 +1,11 @@
+---
+name: agent-format-selection
+description: Principles for selecting agent format specifications
+model: claude-sonnet-4
+tools: [Read]
+type: documentation
+---
+
 # Agent Format Selection Principles
 
 **Version:** 2.0.0

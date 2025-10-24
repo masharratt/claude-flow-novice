@@ -10,6 +10,7 @@ key=""
 value=""
 namespace="swarm"
 ttl=3600
+append_mode=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -39,6 +40,10 @@ while [[ $# -gt 0 ]]; do
             ttl="$2"
             shift 2
             ;;
+        --append)
+            append_mode=true
+            shift
+            ;;
         *)
             echo "Unknown argument: $1" >&2
             exit 1
@@ -58,9 +63,20 @@ fi
 # Validate required arguments
 if [[ -z "$redis_key" || -z "$value" ]]; then
     echo "Error: Both key and value are required" >&2
-    echo "Usage: $0 --task-id <id> --key <key> --value <data> [--namespace <ns>] [--ttl <seconds>]" >&2
+    echo "Usage: $0 --task-id <id> --key <key> --value <data> [--namespace <ns>] [--ttl <seconds>] [--append]" >&2
     echo "   or: $0 --key <full-key> --context <data> [--ttl <seconds>]" >&2
     exit 1
+fi
+
+# Handle append mode
+if [ "$append_mode" = true ]; then
+    # Get existing value
+    existing=$(redis-cli get "$redis_key" 2>/dev/null)
+
+    # Append new value (comma-separated)
+    if [[ -n "$existing" && "$existing" != "(nil)" ]]; then
+        value="${existing},${value}"
+    fi
 fi
 
 # Store in Redis with specified TTL

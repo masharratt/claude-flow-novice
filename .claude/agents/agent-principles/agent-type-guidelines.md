@@ -1,3 +1,11 @@
+---
+name: agent-type-guidelines
+description: Guidelines for agent types and classification
+model: claude-sonnet-4
+tools: [Read]
+type: documentation
+---
+
 # Agent Type Guidelines
 
 **Version:** 2.0.0

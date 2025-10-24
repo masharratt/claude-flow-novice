@@ -85,7 +85,7 @@ Extract parameters from command:
 ### Step 2: Spawn Coordinator Agent (SINGLE AGENT PATTERN)
 
 ```javascript
-Task("cost-savings-cfn-loop-coordinator", `
+Task("cfn-v3-coordinator", `
   CFN LOOP EXECUTION - STRUCTURED PARAMETERS
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -224,7 +224,7 @@ Task("cost-savings-cfn-loop-coordinator", `
   - WAKE agents via invoke-waiting-mode.sh wake
   - PUBLISH events to web-portal:events channel
   - RETURN structured result when complete
-`, "cost-savings-cfn-loop-coordinator")
+`, "cfn-v3-coordinator")
 ```
 
 ### Step 3: Coordinator Autonomous Execution

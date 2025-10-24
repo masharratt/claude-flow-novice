@@ -1,7 +1,7 @@
 ---
 name: mobile-dev
 description: MUST BE USED when developing React Native mobile apps, cross-platform features, or mobile UI. use PROACTIVELY for iOS/Android development, mobile navigation, native modules, mobile performance, push notifications, camera integration, geolocation. ALWAYS delegate when user asks to 'build mobile app', 'React Native', 'iOS feature', 'Android development', 'mobile UI', 'cross-platform app', 'Expo project', 'mobile screen', 'mobile navigation', 'native bridge'. Keywords - React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module, mobile UI, TouchableOpacity, FlatList, navigation
-tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite
+tools: [Read, Write, Edit, MultiEdit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: teal
 type: specialist

@@ -1,3 +1,10 @@
+---
+name: agent-creation-guide
+description: Practical guide to creating, customizing, and maintaining AI agents in the Claude Flow Novice system
+model: claude-sonnet-4
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
+---
+
 # Agent Creation & Customization Guide
 
 **Version:** 4.0.0
@@ -93,7 +100,7 @@ npx claude-flow-novice agent-spawn my-first-agent --task-id test-1
 │   └── coordinator.md          # Multi-agent coordination
 ├── development/                 # Development-focused agents
 │   ├── backend-dev.md
-│   ├── frontend-dev.md
+│   ├── react-frontend-engineer.md
 │   └── devops-engineer.md
 ├── security/                    # Security-focused agents
 │   └── security-specialist.md

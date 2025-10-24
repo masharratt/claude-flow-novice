@@ -73,7 +73,7 @@ sequenceDiagram
 ```mermaid
 graph LR
     A[COST_SAVINGS_MODE=yes] --> B[Use CLI Spawning]
-    B --> C[cost-savings-cfn-loop-coordinator]
+    B --> C[cfn-v3-coordinator]
     C --> D[Lower Overhead]
     D --> E[Sequential Agent Spawning OK]
 ```

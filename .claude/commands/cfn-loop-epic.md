@@ -97,7 +97,7 @@ The coordinator uses CLI spawning per phase and provides full visibility via web
 ### Epic Pattern (SINGLE COORDINATOR FOR ALL PHASES)
 
 ```javascript
-Task("cost-savings-cfn-loop-coordinator", `
+Task("cfn-v3-coordinator", `
   CFN LOOP EPIC EXECUTION - MULTI-PHASE
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -293,7 +293,7 @@ Task("cost-savings-cfn-loop-coordinator", `
   - DEFER out-of-scope items to backlog
   - PUBLISH events per phase
   - RETURN epic summary when complete
-`, "cost-savings-cfn-loop-coordinator")
+`, "cfn-v3-coordinator")
 ```
 
 ### Coordinator Autonomous Multi-Phase Execution

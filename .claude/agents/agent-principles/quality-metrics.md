@@ -1,3 +1,11 @@
+---
+name: quality-metrics-validation
+description: Quality metrics and validation standards for agents
+model: claude-sonnet-4
+tools: [Read]
+type: documentation
+---
+
 # Quality Metrics & Validation
 
 **Version:** 2.0.0

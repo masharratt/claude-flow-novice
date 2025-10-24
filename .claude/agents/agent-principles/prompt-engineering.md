@@ -1,3 +1,11 @@
+---
+name: prompt-engineering-best-practices
+description: Best practices for agent prompt engineering
+model: claude-sonnet-4
+tools: [Read]
+type: documentation
+---
+
 # Prompt Engineering Best Practices
 
 **Version:** 2.0.0

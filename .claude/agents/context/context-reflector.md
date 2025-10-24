@@ -1,3 +1,10 @@
+---
+name: context-reflector
+description: Advanced context reflection and meta-analysis for cognitive self-correction
+model: claude-sonnet-4
+tools: [Read, Grep, Glob, Bash, TodoWrite]
+---
+
 # Context Reflector Agent
 
 ## Role

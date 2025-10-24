@@ -385,13 +385,8 @@ function spawn_loop3_agents() {
       --value "{\"pid\": $AGENT_PID}" \
       --namespace "swarm" >/dev/null
 
-    # Store agent ID mapping for later retrieval
-    "$REDIS_COORD_SKILL/store-context.sh" \
-      --task-id "$task_id" \
-      --key "loop3:agent_ids:iteration${iteration}" \
-      --value "$UNIQUE_AGENT_ID" \
-      --namespace "swarm" \
-      --append >/dev/null
+    # Store agent ID mapping for later retrieval using Redis SADD for set storage
+    redis-cli SADD "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" "$UNIQUE_AGENT_ID" >/dev/null
   done
 
   echo "[Loop 3] All agents spawned"
@@ -406,13 +401,13 @@ function wait_for_agents() {
 
   echo "Waiting for agents to complete (timeout: ${timeout}s)..."
 
-  # Retrieve actual agent IDs from Redis (stored during spawn)
+  # Retrieve actual agent IDs from Redis (stored during spawn using SADD)
   local stored_ids
-  stored_ids=$(redis-cli GET "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" 2>/dev/null || echo "")
+  stored_ids=$(redis-cli SMEMBERS "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
   # If stored IDs exist, use them; otherwise fallback to generating from agent types
   local -a AGENT_IDS
-  if [ -n "$stored_ids" ] && [ "$stored_ids" != "(nil)" ]; then
+  if [ -n "$stored_ids" ]; then
     IFS=',' read -ra AGENT_IDS <<< "$stored_ids"
     echo "  Retrieved ${#AGENT_IDS[@]} agent IDs from Redis"
   else
@@ -504,13 +499,13 @@ function wait_for_loop2_agents() {
 
   echo "Waiting for Loop 2 validators to complete (timeout: ${timeout}s)..."
 
-  # Retrieve actual agent IDs from Redis (stored during spawn)
+  # Retrieve actual agent IDs from Redis (stored during spawn using SADD)
   local stored_ids
-  stored_ids=$(redis-cli GET "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" 2>/dev/null || echo "")
+  stored_ids=$(redis-cli SMEMBERS "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
   # If stored IDs exist, use them; otherwise fallback to generating from agent types
   local -a VALIDATOR_IDS
-  if [ -n "$stored_ids" ] && [ "$stored_ids" != "(nil)" ]; then
+  if [ -n "$stored_ids" ]; then
     IFS=',' read -ra VALIDATOR_IDS <<< "$stored_ids"
     echo "  Retrieved ${#VALIDATOR_IDS[@]} validator IDs from Redis"
   else
@@ -623,13 +618,8 @@ function spawn_loop2_agents() {
       --value "{\"pid\": $AGENT_PID}" \
       --namespace "swarm" >/dev/null
 
-    # Store agent ID mapping for later retrieval
-    "$REDIS_COORD_SKILL/store-context.sh" \
-      --task-id "$task_id" \
-      --key "loop2:agent_ids:iteration${iteration}" \
-      --value "$UNIQUE_VALIDATOR_ID" \
-      --namespace "swarm" \
-      --append >/dev/null
+    # Store agent ID mapping for later retrieval using Redis SADD for set storage
+    redis-cli SADD "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" "$UNIQUE_VALIDATOR_ID" >/dev/null
   done
 
   echo "[Loop 2] All agents spawned"
@@ -748,15 +738,23 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
   fi
 
   # Step 4: Gate check (Loop 3 self-validation)
+  # Retrieve actual Loop 3 agent IDs for validation
+  LOOP3_IDS=$(redis-cli SMEMBERS "swarm:${TASK_ID}:loop3:agent_ids:iteration${ITERATION}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+
+  if [ -z "$LOOP3_IDS" ]; then
+    echo "⚠️  WARNING: No Loop 3 agent IDs found in Redis, using agent types as fallback"
+    LOOP3_IDS="$LOOP3_AGENTS"
+  fi
+
   if "$HELPERS_DIR/gate-check.sh" \
        --task-id "$TASK_ID" \
-       --agents "$LOOP3_AGENTS" \
+       --agents "$LOOP3_IDS" \
        --threshold "$GATE" \
        --min-quorum "$MIN_QUORUM_LOOP3"; then
     # Gate passed - store confidence
     LOOP3_FINAL_CONFIDENCE=$("$REDIS_COORD_SKILL/invoke-waiting-mode.sh" collect \
       --task-id "$TASK_ID" \
-      --agent-ids "$LOOP3_AGENTS" \
+      --agent-ids "$LOOP3_IDS" \
       --min-quorum "$MIN_QUORUM_LOOP3")
   else
     # Gate failed - iterate Loop 3
@@ -776,15 +774,23 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
   wait_for_loop2_agents "$TASK_ID" "$LOOP2_AGENTS" "$TIMEOUT" "$ITERATION"
 
   # Step 7: Consensus check (Loop 2 validation)
+  # Retrieve actual Loop 2 agent IDs for validation
+  LOOP2_IDS=$(redis-cli SMEMBERS "swarm:${TASK_ID}:loop2:agent_ids:iteration${ITERATION}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+
+  if [ -z "$LOOP2_IDS" ]; then
+    echo "⚠️  WARNING: No Loop 2 agent IDs found in Redis, using agent types as fallback"
+    LOOP2_IDS="$LOOP2_AGENTS"
+  fi
+
   if "$HELPERS_DIR/consensus.sh" \
        --task-id "$TASK_ID" \
-       --agents "$LOOP2_AGENTS" \
+       --agents "$LOOP2_IDS" \
        --threshold "$CONSENSUS" \
        --min-quorum "$MIN_QUORUM_LOOP2"; then
     # Consensus reached - store score
     LOOP2_FINAL_CONSENSUS=$("$REDIS_COORD_SKILL/invoke-waiting-mode.sh" collect \
       --task-id "$TASK_ID" \
-      --agent-ids "$LOOP2_AGENTS" \
+      --agent-ids "$LOOP2_IDS" \
       --min-quorum "$MIN_QUORUM_LOOP2")
   else
     # Consensus failed - iterate all agents

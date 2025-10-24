@@ -155,7 +155,7 @@ Agent process exits after completion. For next iteration, orchestrator spawns fr
 ```bash
 # Cost-Savings Mode (Enabled)
 COST_SAVINGS_MODE=yes:
-  - CFN Loop tasks → cost-savings-cfn-loop-coordinator
+  - CFN Loop tasks → cfn-v3-coordinator
 
 # Standard Mode (Default)
 COST_SAVINGS_MODE=no (or unset):

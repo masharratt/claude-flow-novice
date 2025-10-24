@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import AgentsView from './components/AgentsView';
 import Dashboard from './components/Dashboard';
+import CFNLoopDashboard from '../components/CFNLoopDashboard';
 
 const theme = createTheme({
   palette: {
@@ -39,6 +40,9 @@ function App() {
             <Button color="inherit" component={Link} to="/">
               Dashboard
             </Button>
+            <Button color="inherit" component={Link} to="/cfn-loop">
+              CFN Loop
+            </Button>
             <Button color="inherit" component={Link} to="/agents">
               Agents
             </Button>
@@ -48,6 +52,7 @@ function App() {
         <Container maxWidth="xl" sx={{ mt: 2 }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/cfn-loop" element={<CFNLoopDashboard />} />
             <Route path="/agents" element={<AgentsView />} />
           </Routes>
         </Container>

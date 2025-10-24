@@ -15,6 +15,9 @@ import { redisClientService } from './services/redis-client';
 import { WebSocketServer } from './websocket/SocketIOServer';
 import SwarmAdapter from './websocket/integrations/SwarmAdapter';
 
+// Import CFN Metrics Client
+import { CFNMetricsClient } from '../api/cfn-metrics';
+
 const app = express();
 const server = createServer(app);
 const io = new SocketIOServer(server, {
@@ -36,10 +39,14 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting
+// Rate limiting (exclude high-frequency endpoints)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  skip: (req) => {
+    // Exempt CFN metrics endpoints from rate limiting (auto-refresh every 2s)
+    return req.path.startsWith('/cfn-metrics');
+  }
 });
 app.use('/api', limiter);
 
@@ -67,6 +74,98 @@ app.get('/api/dashboard/stats', (req, res) => {
     averageConfidence: 0,
     systemStatus: 'operational'
   });
+});
+
+// CFN Loop Metrics endpoints
+app.get('/api/cfn-metrics/latest', async (req, res) => {
+  try {
+    if (!cfnMetricsClient) {
+      // Return mock data if client not initialized
+      return res.json({
+        taskId: 'demo-task-001',
+        iteration: 2,
+        maxIterations: 10,
+        loop3Confidence: [0.85, 0.82, 0.88],
+        loop2Consensus: 0.90,
+        productOwnerDecision: 'PENDING',
+        status: 'running',
+        startTime: new Date().toISOString(),
+        lastUpdate: new Date().toISOString(),
+        agents: {
+          loop3: ['coder-1', 'researcher-1', 'devops-1'],
+          loop2: ['reviewer-1', 'tester-1'],
+          productOwner: 'product-owner-1'
+        }
+      });
+    }
+
+    const metrics = await cfnMetricsClient.getLatestMetrics();
+
+    if (!metrics) {
+      // Return mock data if no active tasks
+      return res.json({
+        taskId: 'demo-task-001',
+        iteration: 2,
+        maxIterations: 10,
+        loop3Confidence: [0.85, 0.82, 0.88],
+        loop2Consensus: 0.90,
+        productOwnerDecision: 'PENDING',
+        status: 'running',
+        startTime: new Date().toISOString(),
+        lastUpdate: new Date().toISOString(),
+        agents: {
+          loop3: ['coder-1', 'researcher-1', 'devops-1'],
+          loop2: ['reviewer-1', 'tester-1'],
+          productOwner: 'product-owner-1'
+        }
+      });
+    }
+
+    res.json(metrics);
+  } catch (error) {
+    console.error('[CFN Metrics] Error fetching latest metrics:', error);
+    res.status(500).json({ error: 'Failed to fetch CFN Loop metrics' });
+  }
+});
+
+app.get('/api/cfn-metrics/:taskId', async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    if (!cfnMetricsClient) {
+      // Return mock data if client not initialized
+      return res.json({
+        taskId,
+        iteration: 2,
+        maxIterations: 10,
+        loop3Confidence: [0.85, 0.82, 0.88],
+        loop2Consensus: 0.90,
+        productOwnerDecision: 'PENDING',
+        status: 'running',
+        startTime: new Date().toISOString(),
+        lastUpdate: new Date().toISOString(),
+        agents: {
+          loop3: ['coder-1', 'researcher-1', 'devops-1'],
+          loop2: ['reviewer-1', 'tester-1'],
+          productOwner: 'product-owner-1'
+        }
+      });
+    }
+
+    const metrics = await cfnMetricsClient.getMetrics(taskId);
+
+    if (!metrics) {
+      return res.status(404).json({
+        error: 'Task not found',
+        message: `No CFN Loop metrics found for task ID: ${taskId}`
+      });
+    }
+
+    res.json(metrics);
+  } catch (error) {
+    console.error('[CFN Metrics] Error fetching task metrics:', error);
+    res.status(500).json({ error: 'Failed to fetch CFN Loop metrics' });
+  }
 });
 
 // Serve static files from client build
@@ -113,14 +212,22 @@ export const broadcastActivityUpdate = (activity: any) => {
 
 const PORT = process.env.PORT || 8080;
 
-// Initialize Redis client and SwarmAdapter
+// Initialize Redis client, SwarmAdapter, and CFN Metrics Client
 let swarmAdapter: SwarmAdapter | null = null;
+let cfnMetricsClient: CFNMetricsClient | null = null;
 
 async function initializeServices() {
   try {
     console.log('[Server] Initializing Redis client...');
     await redisClientService.connect();
     console.log('[Server] Redis client connected');
+
+    // Initialize CFN Metrics Client with Redis connection
+    console.log('[Server] Initializing CFN Metrics Client...');
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    cfnMetricsClient = new CFNMetricsClient(redisUrl);
+    await cfnMetricsClient.connect();
+    console.log('[Server] CFN Metrics Client connected');
 
     // Create WebSocket server wrapper (if using unified SocketIOServer)
     // Note: Using basic Socket.IO for now, upgrade to WebSocketServer if needed
@@ -158,6 +265,12 @@ async function shutdown() {
     // Shutdown SwarmAdapter
     if (swarmAdapter) {
       await swarmAdapter.shutdown();
+    }
+
+    // Disconnect CFN Metrics Client
+    if (cfnMetricsClient) {
+      console.log('[Server] Disconnecting CFN Metrics Client...');
+      await cfnMetricsClient.disconnect();
     }
 
     // Disconnect Redis

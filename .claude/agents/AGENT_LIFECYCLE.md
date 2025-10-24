@@ -1,3 +1,11 @@
+---
+name: agent-lifecycle-documentation
+description: Documentation for agent lifecycle management and waiting mode protocols
+model: claude-sonnet-4
+tools: [Read]
+type: documentation
+---
+
 # Agent Lifecycle Documentation
 
 **Version:** 2.0 (Post-Waiting Mode Removal)

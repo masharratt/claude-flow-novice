@@ -280,6 +280,47 @@ export class SwarmAdapter {
   }
 
   /**
+   * Map hook events to swarm events
+   */
+  private mapHookEvent(hookType: string, data: any, channel: string, timestamp: Date): SwarmCoordinatorEvent | null {
+    switch (hookType) {
+      case 'post-edit':
+        // Post-edit hook events: swarm:hooks:post-edit
+        return {
+          type: 'swarm_updated',
+          swarmId: data.taskId || 'hook-event',
+          agentId: data.agentId || 'unknown',
+          data: {
+            hookType: 'post-edit',
+            file: data.file,
+            exitCode: data.exitCode,
+            timestamp: data.timestamp,
+            agentId: data.agentId
+          },
+          timestamp
+        };
+
+      case 'pre-spawn':
+      case 'post-spawn':
+        // Spawn hook events
+        return {
+          type: data.agentId ? 'agent_spawned' : 'swarm_updated',
+          swarmId: data.taskId || 'hook-event',
+          agentId: data.agentId,
+          data: {
+            hookType,
+            ...data
+          },
+          timestamp
+        };
+
+      default:
+        console.log(`[SwarmAdapter] Unhandled hook type: ${hookType}`);
+        return null;
+    }
+  }
+
+  /**
    * Map Redis pub/sub message to SwarmCoordinatorEvent
    * Handles multiple CLI event formats
    */
@@ -291,32 +332,42 @@ export class SwarmAdapter {
 
     // Swarm coordination events
     if (prefix === 'swarm') {
-      const [swarmId, eventType] = parts;
+      const [identifier, eventType, ...rest] = parts;
 
-      switch (eventType) {
-        case 'created':
-          return {
-            type: 'swarm_created',
-            swarmId,
-            data,
-            timestamp
-          };
+      switch (identifier) {
+        case 'hooks':
+          // Hook events: swarm:hooks:post-edit
+          return this.mapHookEvent(eventType, data, channel, timestamp);
 
-        case 'updated':
-          return {
-            type: 'swarm_updated',
-            swarmId,
-            data,
-            timestamp
-          };
+        default:
+          // Standard swarm events: swarm:{swarmId}:{eventType}
+          const swarmId = identifier;
 
-        case 'terminated':
-          return {
-            type: 'swarm_terminated',
-            swarmId,
-            data,
-            timestamp
-          };
+          switch (eventType) {
+            case 'created':
+              return {
+                type: 'swarm_created',
+                swarmId,
+                data,
+                timestamp
+              };
+
+            case 'updated':
+              return {
+                type: 'swarm_updated',
+                swarmId,
+                data,
+                timestamp
+              };
+
+            case 'terminated':
+              return {
+                type: 'swarm_terminated',
+                swarmId,
+                data,
+                timestamp
+              };
+          }
       }
     }
 

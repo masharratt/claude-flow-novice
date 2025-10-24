@@ -11,7 +11,7 @@ Automatically discover and catalog available agents in the Claude Flow Novice sy
 
 ## Agent Categorization
 - **Loop 3 (Implementers)**:
-  - Types: coder, developer, backend-dev, frontend-dev, architect, researcher, designer, writer, analyst
+  - Types: coder, developer, backend-dev, react-frontend-engineer, architect, researcher, designer, writer, analyst
 - **Loop 2 (Validators)**:
   - Types: reviewer, tester, security-auditor, performance-analyzer, validator
 - **Coordinators**: Separate category, not included in agent selection

@@ -44,14 +44,31 @@ fi
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REDIS_COORD_SKILL="$SKILL_DIR/redis-coordination"
 
+echo "Gate Check Configuration:"
+echo "  Task ID: $TASK_ID"
+echo "  Agent IDs: $AGENTS"
+echo "  Min Quorum: $MIN_QUORUM"
+echo ""
+
 # Collect Loop 3 confidence scores
+# Note: invoke-waiting-mode.sh outputs consensus to stdout and verbose messages to stderr
+# We capture only stdout to get the numeric consensus value
 CONSENSUS=$("$REDIS_COORD_SKILL/invoke-waiting-mode.sh" collect \
   --task-id "$TASK_ID" \
   --agent-ids "$AGENTS" \
   --min-quorum "$MIN_QUORUM") || {
-  echo "Error: Failed to collect Loop 3 confidence scores"
+  echo "❌ Error: Failed to collect Loop 3 confidence scores"
+  echo "   Agent IDs: $AGENTS"
+  echo "   Output: $CONSENSUS"
   exit 1
 }
+
+# Validate consensus is a valid number
+if ! [[ "$CONSENSUS" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+  echo "⚠️  WARNING: Invalid consensus value: $CONSENSUS (expected numeric)"
+  echo "   Defaulting to 0.0"
+  CONSENSUS="0.0"
+fi
 
 echo "Loop 3 Gate Check:"
 echo "  Consensus: $CONSENSUS"

@@ -31,7 +31,7 @@ They handle:
 
 Main Chat spawns ONLY the coordinator:
 ```javascript
-Task("cost-savings-cfn-loop-coordinator", "Execute CFN Loop for: [task]")
+Task("cfn-v3-coordinator", "Execute CFN Loop for: [task]")
 ```
 
 Coordinator handles all agent spawning internally via orchestration scripts.

@@ -1,0 +1,94 @@
+{
+  "taskId": "cfn-v3-revalidation-1761318504",
+  "phase": "cfn-v3-revalidation",
+  "status": "blocked",
+  "blockers": [
+    {
+      "id": "BUG-30-1",
+      "title": "Agent Template Discovery Failure",
+      "severity": "high",
+      "impact": "Agents spawn without specialized prompts",
+      "file": "dist/cli/agent-context.ts",
+      "fix_estimate": "30 minutes"
+    },
+    {
+      "id": "BUG-30-2",
+      "title": "Z.ai Prompt Length Rejection",
+      "severity": "critical",
+      "impact": "CLI spawning architecture blocked",
+      "error_code": "400 - type 1261",
+      "prompt_size": "~45KB",
+      "fix_estimate": "1-2 hours"
+    }
+  ],
+  "iterations": {
+    "loop3": 0,
+    "loop2": 0,
+    "comment": "Blocked before iteration 1 could complete"
+  },
+  "finalConsensus": null,
+  "architectureConfidence": 0.88,
+  "bug29Status": "deferred",
+  "acceptanceCriteria": {
+    "met": [],
+    "pending": [
+      "End-to-end CFN Loop execution successful",
+      "Agent ID tracking working",
+      "Gate check passes",
+      "Loop 2 consensus validation",
+      "Product Owner decision flow tested",
+      "Deliverable verification validated",
+      "Execution metrics collected",
+      "Architecture confidence ≥0.85"
+    ]
+  },
+  "executionMetrics": {
+    "duration": "~3 minutes (pre-execution diagnostics)",
+    "tokenUsage": {
+      "total": 24799,
+      "orchestrator": "minimal (blocked early)",
+      "agents": "1 failed spawn (interaction-tester)"
+    },
+    "costSavings": "N/A (blocked)"
+  },
+  "recommendations": [
+    {
+      "priority": 1,
+      "action": "Implement provider fallback (Z.ai → Anthropic on 400)",
+      "impact": "Unblock CFN v3 validation immediately",
+      "effort": "1-2 hours"
+    },
+    {
+      "priority": 2,
+      "action": "Fix recursive agent template discovery",
+      "impact": "Enable subdirectory agent organization",
+      "effort": "30 minutes"
+    },
+    {
+      "priority": 3,
+      "action": "Re-run CFN v3 revalidation after fixes",
+      "impact": "Validate BUG #29 resolution, achieve 0.85+ confidence",
+      "effort": "10-15 minutes execution time"
+    }
+  ],
+  "nextActions": [
+    "Spawn backend-dev to implement provider fallback",
+    "Spawn researcher to fix agent template discovery",
+    "Re-execute CFN v3 revalidation after fixes",
+    "Document Z.ai prompt length limits in system docs"
+  ],
+  "learnings": {
+    "ANTI-023": {
+      "title": "Implicit Provider Assumptions",
+      "description": "Assumed Z.ai would accept same prompt sizes as Anthropic without validation. Different providers have different limits - always implement fallback strategies.",
+      "confidence": 0.92,
+      "tags": ["provider-compatibility", "error-handling", "graceful-degradation"]
+    },
+    "PATTERN-025": {
+      "title": "Hierarchical Agent Organization",
+      "description": "Flat agent directory structure doesn't scale. Subdirectory organization (.claude/agents/testers/, .claude/agents/developers/) requires recursive discovery logic.",
+      "confidence": 0.90,
+      "tags": ["agent-organization", "file-structure", "discovery"]
+    }
+  }
+}
