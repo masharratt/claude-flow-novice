@@ -27,7 +27,7 @@
 ## Basic Orchestration Command
 
 ```bash
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --task-id "unique-task-id" \
   --mode standard \
   --loop3-agents "researcher,backend-dev,devops" \
@@ -127,35 +127,26 @@ Feedback accumulates across iterations, enabling agents to learn from previous m
 
 **Impact**: Consensus improvement 0.81 → 0.90+ through iterative learning
 
-## Agent Completion Protocol (Optional)
+## Agent Lifecycle (v3 Stateless)
 
-Agents can optionally use CFN Protocol for explicit confidence reporting. Orchestrator extracts confidence from natural output if protocol not used.
+Agents in v3 follow stateless lifecycle: spawn → work → report → exit. No waiting mode.
 
-### 1. Complete Work
-
-```bash
-# Signal task completion
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### 2. Report Confidence (Optional - Orchestrator extracts automatically)
+### 1. Agent Spawns with Context
 
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+# Orchestrator spawns agent with Redis context
+npx claude-flow-novice agent "backend-dev" \
   --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.85 \
-  --iteration 1
+  --context "$(redis-cli hget swarm:$TASK_ID:epic-context epic_goal)"
 ```
 
-### 3. Enter Waiting Mode
+### 2. Agent Works and Reports
 
-```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-complete"
-```
+Agents complete work and output confidence naturally. Orchestrator extracts confidence using skill-based parsing.
+
+### 3. Agent Exits
+
+Agent process exits after completion. For next iteration, orchestrator spawns fresh agent with updated context from Redis.
 
 ## Cost-Savings Mode
 
@@ -171,27 +162,75 @@ COST_SAVINGS_MODE=no (or unset):
   - CFN Loop tasks → cfn-loop-coordinator (Task tool)
 ```
 
+## Context Injection Pattern (v3)
+
+Agents receive complete context via `--context` parameter, retrieved from Redis:
+
+```bash
+# Orchestrator retrieves context for agent
+EPIC_CONTEXT=$(redis-cli hgetall "swarm:$TASK_ID:epic-context")
+PHASE_CONTEXT=$(redis-cli hgetall "swarm:$TASK_ID:phase-context")
+
+# Spawn agent with complete context
+npx claude-flow-novice agent "backend-dev" \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --context "Epic: $EPIC_CONTEXT | Phase: $PHASE_CONTEXT | Deliverables: file1.ts,file2.md"
+```
+
+## Confidence Collection (v3)
+
+Stateless confidence collection after agents exit:
+
+```bash
+# Collect confidence scores from completed agents
+./.claude/skills/redis-coordination/collect-confidence-scores.sh \
+  --task-id "$TASK_ID" \
+  --agent-ids "agent1,agent2,agent3"
+
+# Returns consensus score
+# Output: 0.87
+```
+
 ## Best Practices
 
 1. **Always use orchestrator** for multi-agent workflows
-2. Spawn coordinator + agents in a single message
-3. Use parallel spawning for coordinator-based workflows
-4. Implement comprehensive test coverage
+2. Store all context in Redis before spawning agents
+3. Use stateless agent spawning (no waiting mode)
+4. Collect confidence after agent processes exit
 5. Validate consensus and gate thresholds
 
 ## Troubleshooting
 
 ### Common Issues
-- Agents blocking indefinitely without coordinator
-- Premature consensus collection
-- Iteration management failures
+- Missing context in agent spawns
+- Confidence extraction failures
+- Redis context storage issues
 
 ### Recommended Solutions
-- Always use `./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh`
-- Implement comprehensive error handling
-- Use waiting mode protocol consistently
+- Always use `./.claude/skills/cfn-loop-orchestration/orchestrate.sh`
+- Store context in Redis before spawning agents
+- Use skill-based output processing for confidence extraction
+- Verify Redis keys exist before retrieval
 
 ## Migration Guide
+
+### V2 to V3 Transition
+
+**Old (V2) Pattern - Waiting Mode:**
+```bash
+# Agents entered waiting mode, woken by coordinator
+invoke-waiting-mode.sh enter --task-id "$TASK_ID"
+invoke-waiting-mode.sh wake --task-id "$TASK_ID"
+```
+
+**New (V3) Pattern - Stateless:**
+```bash
+# Agents exit after work, fresh spawn for iterations
+npx claude-flow-novice agent "backend-dev" \
+  --task-id "$TASK_ID" \
+  --context "$(redis-cli hget swarm:$TASK_ID:context iteration_feedback)"
+```
 
 ### V1 to V2 Transition
 
@@ -203,7 +242,7 @@ Task("backend-dev", "Implement solution...")
 
 **New (V2) Pattern:**
 ```bash
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --task-id "migration-task" \
   --mode standard \
   --loop3-agents "researcher,backend-dev"

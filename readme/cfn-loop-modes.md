@@ -58,13 +58,15 @@
 ### Basic Mode Selection
 
 ```bash
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --task-id "project-task" \
   --mode standard \  # Can be: mvp, standard, enterprise
   --loop3-agents "researcher,backend-dev,devops" \
   --loop2-agents "reviewer,architect,tester" \
   --max-iterations 10
 ```
+
+**Note:** Context injection in v3 does not change thresholds. Modes define gate/consensus requirements; context storage/retrieval is orthogonal.
 
 ## Performance Impact
 
@@ -112,7 +114,7 @@ High               Enterprise Enterprise Enterprise
 ### Transition Between Modes
 ```bash
 # Dynamically update mode mid-execution
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --mode-transition \
   --from standard \
   --to enterprise \
@@ -127,6 +129,30 @@ High               Enterprise Enterprise Enterprise
 - Collect confidence scores
 - Generate performance reports
 
+## V3 Mode Execution
+
+Modes in v3 operate identically to v2, with updated orchestrator:
+
+```bash
+# MVP Mode (v3)
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  --task-id "mvp-task" \
+  --mode mvp
+
+# Standard Mode (v3)
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  --task-id "standard-task" \
+  --mode standard
+
+# Enterprise Mode (v3)
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  --task-id "enterprise-task" \
+  --mode enterprise
+```
+
+Context injection (Redis storage/retrieval) is automatic in all modes.
+
 ## References
-- Redis Coordination Skill: `.claude/skills/redis-coordination/SKILL.md`
-- CFN Loop Validation Skill: `.claude/skills/cfn-loop-validation/SKILL.md`
+- CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration/SKILL.md`
+- Redis Coordination: `.claude/skills/redis-coordination/SKILL.md`
+- CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`

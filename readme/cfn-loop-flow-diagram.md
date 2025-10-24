@@ -1,63 +1,71 @@
-# CFN Loop Flow Diagram (v2)
+# CFN Loop Flow Diagram (v3)
 
 ## Orchestration Flow Overview
 
 ```mermaid
 graph TD
-    A[Coordinator Starts] --> B[Initialize Task]
-    B --> C{Cost Savings Mode?}
-    C -->|Yes| D[CLI Spawning: cost-savings-cfn-loop-coordinator]
-    C -->|No| E[Task Tool: cfn-loop-coordinator]
-    
-    D --> F[Spawn Loop 3 Agents]
-    E --> F
-    
-    F --> G[Loop 3 Agents Work]
-    G --> H[Agents Report Confidence]
-    
-    H --> I{Gate Threshold Met?}
-    I -->|No| J[Enter Waiting Mode]
-    J --> K[Coordinator Wakes Agents]
-    K --> G
-    
-    I -->|Yes| L[Signal Loop 2 Validators]
-    L --> M[Loop 2 Validators Review]
-    M --> N[Validators Report Consensus]
-    
-    N --> O{Consensus Reached?}
-    O -->|No| P[Retry Iteration]
-    P --> G
-    
-    O -->|Yes| Q[Task Complete]
-    Q --> R[Product Owner Notified]
+    A[Coordinator Starts] --> B[Store Context in Redis]
+    B --> C[Spawn Loop 3 Agents with Context]
+
+    C --> D[Loop 3 Agents Work]
+    D --> E[Agents Exit]
+    E --> F[Collect Confidence Scores]
+
+    F --> G{Gate Threshold Met?}
+    G -->|No| H[Store Feedback in Redis]
+    H --> I[Spawn Fresh Loop 3 Agents]
+    I --> D
+
+    G -->|Yes| J[Spawn Loop 2 Validators with Context]
+    J --> K[Loop 2 Validators Review]
+    K --> L[Validators Exit]
+    L --> M[Collect Consensus Scores]
+
+    M --> N{Consensus Reached?}
+    N -->|No| O[Store Feedback in Redis]
+    O --> I
+
+    N -->|Yes| P[Spawn Product Owner]
+    P --> Q[Product Owner Decision]
+    Q --> R[Task Complete]
 ```
 
-## V2 Key Differences from V1
+## V3 Key Differences from V2
+
+### Agent Lifecycle
+- **V2:** Stateful (agents enter waiting mode, woken for iterations)
+- **V3:** Stateless (agents exit after work, fresh spawn per iteration)
+
+### Context Management
+- **V2:** Context passed during wake signal
+- **V3:** Context stored in Redis, retrieved on spawn
 
 ### Coordination Primitives
-- **V1:** Polling-based coordination
-- **V2:** Zero-token BLPOP waiting mode
-
-### Agent Synchronization
-- **V1:** Manual task signaling
-- **V2:** Explicit Redis-based dependency management
+- **V2:** BLPOP-based waiting mode (zero-token blocking)
+- **V3:** Exit-based coordination (no blocking, fresh spawn)
 
 ### Iteration Management
-- **V1:** Linear progression
-- **V2:** Dynamic, context-aware iteration with adaptive thresholds
+- **V2:** Wake existing agents with feedback
+- **V3:** Spawn fresh agents with feedback from Redis
 
-## Waiting Mode Protocol
+## Stateless Agent Protocol (v3)
 
 ```mermaid
 sequenceDiagram
+    participant O as Orchestrator
+    participant R as Redis
     participant A as Agent
-    participant C as Coordinator
-    
-    A->>C: Complete Work
-    A->>C: Report Confidence
-    A->>C: Enter Waiting Mode
-    C->>A: Wake Agent (if needed)
-    A->>C: Continue Work
+
+    O->>R: Store Context + Feedback
+    O->>A: Spawn with Context from Redis
+    A->>A: Work
+    A->>R: Store Confidence
+    A->>A: Exit
+    O->>R: Collect Confidence Scores
+
+    Note over O: If iteration needed
+    O->>R: Update Feedback
+    O->>A: Spawn Fresh Agent
 ```
 
 ## Cost-Savings Mode Workflow
@@ -70,13 +78,32 @@ graph LR
     D --> E[Sequential Agent Spawning OK]
 ```
 
+## Redis Context Storage Steps (v3)
+
+```mermaid
+sequenceDiagram
+    participant C as Coordinator
+    participant R as Redis
+    participant O as Orchestrator
+
+    C->>R: HSET swarm:task_id:epic-context
+    C->>R: HSET swarm:task_id:phase-context
+    C->>R: HSET swarm:task_id:success-criteria
+    C->>O: Invoke orchestrator
+    O->>R: HGET swarm:task_id:epic-context
+    O->>R: HGET swarm:task_id:phase-context
+    Note over O: Spawn agents with retrieved context
+```
+
 ## Best Practices
 
-1. Use `orchestrate-cfn-loop.sh` for all multi-agent workflows
-2. Implement comprehensive error handling
-3. Validate consensus thresholds
-4. Use parallel spawning for coordinator-based workflows
+1. Use `.claude/skills/cfn-loop-orchestration/orchestrate.sh` for all multi-agent workflows
+2. Store complete context in Redis before spawning agents
+3. Use stateless agent spawning (exit after work)
+4. Collect confidence using `collect-confidence-scores.sh`
+5. Validate consensus thresholds
 
 ## References
-- Redis Coordination Skill: `.claude/skills/redis-coordination/SKILL.md`
-- CFN Loop Validation Skill: `.claude/skills/cfn-loop-validation/SKILL.md`
+- CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration/SKILL.md`
+- Redis Coordination: `.claude/skills/redis-coordination/SKILL.md`
+- CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`
