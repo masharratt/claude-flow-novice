@@ -48,6 +48,45 @@ The Skills system is the foundation of Claude Flow Novice v2, providing modular,
 - `complete-swarm.sh` - Clean up swarm resources
 - `heartbeat.sh` - Send/monitor agent heartbeats (60s TTL, 30s updates)
 - `get-agent-timeout.sh` - Resolve per-agent timeout with 5-layer fallback
+
+### CFN Loop Orchestration
+
+**Location**: `.claude/skills/cfn-loop-orchestration/`
+
+**Purpose**: CFN-specific workflow orchestration (3-loop structure, gate checks, consensus)
+
+**Version**: 1.0.0 (2025-10-23)
+
+**Key Features:**
+- Loop 3 (Primary Swarm) gate validation
+- Loop 2 (Consensus Validators) review coordination
+- Product Owner decision execution
+- Iteration cycle management with feedback injection
+- Deliverable verification (prevents "consensus on vapor")
+- Phase-specific timeout calculation
+- Background execution monitoring
+
+**Components**:
+- `orchestrate.sh` - Main coordinator (654 lines)
+- `helpers/gate-check.sh` - Loop 3 self-validation
+- `helpers/consensus.sh` - Loop 2 consensus check
+- `helpers/deliverable-verifier.sh` - Git diff verification
+- `helpers/iteration-manager.sh` - Iteration cycle control
+- `helpers/timeout-calculator.sh` - Phase-based timeouts
+
+**Usage**:
+```bash
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  --task-id "cfn-123" \
+  --mode standard \
+  --loop3-agents "backend-dev,researcher" \
+  --loop2-agents "reviewer,tester" \
+  --product-owner "product-owner"
+```
+
+**Dependencies**: redis-coordination, product-owner-decision, agent-output-processing
+
+**Testing**: `test-edge-cases.sh` (20 tests, 100% pass rate)
 - `query-dlq.sh` - Inspect dead letter queue entries
 - `cancel-swarm.sh` - Graceful swarm shutdown with broadcast signal
 - `metrics-export.sh` - Export metrics in JSON/Prometheus/CSV/OTLP formats
