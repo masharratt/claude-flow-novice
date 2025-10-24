@@ -378,12 +378,9 @@ function wait_for_agents() {
     temp_files+=("$temp_file")
 
     # Spawn BLPOP in background, write result to temp file
+    # BLOCKER #1 FIX: Use redis-cli blpop directly instead of signal.sh wait (which doesn't exist)
     (
-      "$REDIS_COORD_SKILL/signal.sh" wait \
-        --task-id "$task_id" \
-        --signal "${agent_id}:done" \
-        --timeout "$timeout" \
-        --namespace "swarm" >/dev/null 2>&1 && echo "success" > "$temp_file" || echo "timeout" > "$temp_file"
+      redis-cli blpop "swarm:${task_id}:${agent_id}:done" "$timeout" >/dev/null 2>&1 && echo "success" > "$temp_file" || echo "timeout" > "$temp_file"
     ) &
 
     pids+=($!)
@@ -465,14 +462,16 @@ function spawn_product_owner() {
 
   echo "[Product Owner] Spawning decision agent..."
 
-  # Invoke Product Owner decision skill
+  # BLOCKER #2 FIX: Match execute-decision.sh actual parameters
+  # Required: --task-id, --agent-id, --consensus, --threshold, --iteration, --max-iterations
   local decision_output
   decision_output=$("$SCRIPT_DIR/../product-owner-decision/execute-decision.sh" \
     --task-id "$task_id" \
-    --iteration "$iteration" \
     --agent-id "$PRODUCT_OWNER" \
-    --loop3-confidence "$LOOP3_FINAL_CONFIDENCE" \
-    --loop2-consensus "$LOOP2_FINAL_CONSENSUS")
+    --consensus "$LOOP2_FINAL_CONSENSUS" \
+    --threshold "$CONSENSUS" \
+    --iteration "$iteration" \
+    --max-iterations "$MAX_ITERATIONS")
 
   # Parse decision from output
   if echo "$decision_output" | grep -q "PROCEED"; then
