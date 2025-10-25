@@ -1,6 +1,6 @@
 # Claude Flow Novice — AI Agent Orchestration
 
-**🚀 Production Status:** Skills-First Migration Completed (Phase 8 - 2025-10-18)
+**🚀 Production Status:** v2.9.1 - Namespace Isolation Complete (2025-10-25)
 
 ---
 
@@ -49,8 +49,28 @@
 - Redis Coordination (`.claude/skills/cfn-redis-coordination/SKILL.md`)
 - Agent Spawning (`.claude/skills/cfn-agent-spawning/SKILL.md`)
 - CFN Loop Validation (`.claude/skills/cfn-loop-validation/SKILL.md`)
-- **Product Owner Decision** (`.claude/skills/cfn-product-owner-decision/SKILL.md`) - Strategic CFN loop decision execution
-- **Agent Output Processing** (`.claude/skills/cfn-agent-output-processing/SKILL.md`) - Universal structured output extraction
+- Product Owner Decision (`.claude/skills/cfn-product-owner-decision/SKILL.md`)
+- Agent Output Processing (`.claude/skills/cfn-agent-output-processing/SKILL.md`)
+
+### Namespace Isolation (v2.9.1)
+
+**Structure:**
+- Agents: `.claude/agents/cfn-dev-team/` (23 production agents)
+- Skills: `.claude/skills/cfn-*/` (43 skills, cfn- prefix)
+- Hooks: `.claude/hooks/cfn-*` (7 hooks, cfn- prefix)
+- Commands: `.claude/commands/cfn/` (45+ commands, subdirectory)
+
+**Installation:**
+```bash
+npm install claude-flow-novice
+npx cfn-init  # Copy namespace-isolated files
+```
+
+**Collision Risk:** ~0.01% (user custom files preserved)
+
+**Package:** 573 KB tarball, 2.4 MB unpacked, 303 files (68% reduction from v2.0.0)
+
+**Agent Discovery:** Recursive search through `.claude/agents/**/*.md` finds both cfn-dev-team and user custom agents
 
 **Coordination Principles:**
 * ALL agent communication via explicit Redis pub/sub dependencies
