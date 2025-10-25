@@ -75,6 +75,15 @@ def determine_loop(agent_type):
     agent_type = str(agent_type).lower()
     return LOOP_MAPPING.get(agent_type, "strategic")
 
+def relative_path_from_agents(file_path):
+    """
+    Convert absolute file path to relative path from .claude/agents/
+    Maintain flat namespace
+    """
+    base_len = len(AGENTS_DIR)
+    relative_path = file_path[base_len+1:]
+    return relative_path
+
 def process_agents():
     """Process all agent files and generate registry."""
     agents = []
@@ -125,7 +134,7 @@ def process_agents():
                 "type": agent_type,
                 "loop": loop,
                 "keywords": keywords,
-                "file": file_path  # Include file path for tracking
+                "file": relative_path_from_agents(file_path)  # Relative path from .claude/agents/
             }
 
             logger.info(f"Processing agent: {name}")

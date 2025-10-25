@@ -28,22 +28,38 @@ if [[ ! -f "$REGISTRY_PATH" ]]; then
     exit 1
 fi
 
-# Score agents function with simple matching
+# Score agents function with improved flat namespace matching
 score_agents() {
     local registry_path="$1"
     local description="$2"
     local task_type="$3"
 
-    # Simple JQ query for agent matching
+    # Complex JQ query for flexible matching
     jq -r --arg desc "$description" --arg task_type "$task_type" '
         [
             .agents[]
-            | select(.type == $task_type)
+            | select(
+                # Type match using flat namespace
+                (
+                    # Direct type match
+                    .type == $task_type or
+                    # Case-insensitive substring match
+                    (.type | ascii_downcase | contains($task_type | ascii_downcase))
+                )
+            )
             | {
                 name: .name,
+                file: .file,
                 score: (
                     # Base type match score
                     10 +
+                    # Filename-based scoring (flat namespace detection)
+                    (
+                        if (.file | ascii_downcase | contains($task_type | ascii_downcase))
+                        then 5
+                        else 0
+                        end
+                    ) +
                     # Keyword matching
                     (
                         [.keywords[]]
@@ -62,9 +78,9 @@ score_agents() {
     ' "$registry_path"
 }
 
-# Score agents
-LOOP3_AGENTS=$(score_agents "$REGISTRY_PATH" "$DESCRIPTION" "specialist")
-LOOP2_AGENTS=$(score_agents "$REGISTRY_PATH" "$DESCRIPTION" "strategic")
+# Score agents with strategic fallback
+LOOP3_AGENTS=$(score_agents "$REGISTRY_PATH" "$DESCRIPTION" "coder,developer")
+LOOP2_AGENTS=$(score_agents "$REGISTRY_PATH" "$DESCRIPTION" "reviewer,validator")
 
 # Default fallback
 if [[ -z "$LOOP3_AGENTS" || "$LOOP3_AGENTS" == "[]" ]]; then
