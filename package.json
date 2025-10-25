@@ -71,7 +71,7 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && ./scripts/verify-no-secrets.sh",
     "prepack": "npm run build",
-    "postinstall": "node -e \"console.log('\\n✅ claude-flow-novice installed successfully!\\n📚 Get started: npx claude-flow-novice --help\\n🔧 Initialize project: npx cfn-init\\n💡 CFN loops: npx cfn-loop \\\"Task description\\\"\\n')\"",
+    "postinstall": "node scripts/init-project.js",
     "verify-package": "npm pack --dry-run",
     "portal:start": "./scripts/start-portal.sh",
     "portal:stop": "./scripts/stop-portal.sh",
