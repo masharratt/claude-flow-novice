@@ -105,7 +105,7 @@ async function copyFiles(src, dest, pattern) {
 }
 
 async function copyCfnClaudeMarkdown() {
-  const cfnClaudeMdPath = path.join(cfnRoot, 'CFN-CLAUDE.md');
+  const cfnClaudeMdPath = path.join(cfnRoot, '.claude/root-claude-distribute/CLAUDE.md');
   const destPath = path.resolve(process.cwd(), 'CFN-CLAUDE.md');
 
   if (fs.existsSync(cfnClaudeMdPath)) {
