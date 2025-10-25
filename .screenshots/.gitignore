@@ -1,0 +1,7 @@
+# Ephemeral screenshot directories (not version controlled)
+current/
+diffs/
+archive/
+
+# Version control baselines only
+!baselines/

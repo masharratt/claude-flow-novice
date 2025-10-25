@@ -181,7 +181,7 @@ export const useFormValidation = (initialValues: { [key: string]: string }) => {
     setErrors(prev => ({ ...prev, [name]: errorMessages }));
   };
 
-  const setTouched = (name: string, isTouched: boolean = true) => {
+  const setFieldTouched = (name: string, isTouched: boolean = true) => {
     setTouched(prev => ({ ...prev, [name]: isTouched }));
   };
 

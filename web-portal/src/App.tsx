@@ -8,7 +8,8 @@ import { io, Socket } from 'socket.io-client';
 import SwarmDashboard from './components/SwarmDashboard';
 import MessageViewer from './components/MessageViewer';
 import InterventionPanel from './components/InterventionPanel';
-import AgentStatusPanel from './components/AgentStatusPanel';
+import ModernAgentStatusPanel from './components/ModernAgentStatusPanel';
+import AgentActivityStream from './components/AgentActivityStream';
 import TransparencyInsights from './components/TransparencyInsights';
 import FilterControls from './components/FilterControls';
 import MCPIntegrationPanel from './components/MCPIntegrationPanel';
@@ -335,12 +336,10 @@ const App: React.FC = () => {
 
       case 'agents':
         return (
-          <AgentStatusPanel
-            agents={state.agents}
-            selectedAgent={state.selectedAgent}
-            onAgentSelect={(agentId) => setState(prev => ({ ...prev, selectedAgent: agentId }))}
-            onSendIntervention={sendIntervention}
-          />
+          <div className="agents-view" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <ModernAgentStatusPanel />
+            <AgentActivityStream />
+          </div>
         );
 
       case 'transparency':

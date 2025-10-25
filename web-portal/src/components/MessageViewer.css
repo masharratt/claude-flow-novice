@@ -1,0 +1,7 @@
+/* Basic styles for MessageViewer component */
+.message-viewer {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}

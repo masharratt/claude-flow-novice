@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { FixedSizeList as List } from 'react-window';
+// import { FixedSizeList as List } from 'react-window';
 import Fuse from 'fuse.js';
 import './MessageViewer.css';
 
@@ -53,7 +53,7 @@ interface MessageViewerProps {
   onMessageSelect?: (message: AgentMessage) => void;
   onExport?: (messages: AgentMessage[]) => void;
   maxMessages?: number;
-  enableVirtualScrolling?: boolean;
+  // enableVirtualScrolling?: boolean;
 }
 
 const MessageViewer: React.FC<MessageViewerProps> = ({
@@ -63,7 +63,7 @@ const MessageViewer: React.FC<MessageViewerProps> = ({
   onMessageSelect,
   onExport,
   maxMessages = 10000,
-  enableVirtualScrolling = true
+  // enableVirtualScrolling = true
 }) => {
   // State management
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -87,7 +87,7 @@ const MessageViewer: React.FC<MessageViewerProps> = ({
 
   // Refs
   const wsRef = useRef<WebSocket | null>(null);
-  const listRef = useRef<List>(null);
+  // const listRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fuzzy search configuration
@@ -569,27 +569,15 @@ const MessageViewer: React.FC<MessageViewerProps> = ({
 
       {/* Messages List */}
       <div className="messages-container">
-        {enableVirtualScrolling && paginatedMessages.length > 0 ? (
-          <List
-            ref={listRef}
-            height={600}
-            itemCount={paginatedMessages.length}
-            itemSize={150}
-            width="100%"
-          >
-            {MessageItem}
-          </List>
-        ) : (
-          <div className="messages-list">
-            {paginatedMessages.map((message, index) => (
-              <MessageItem
-                key={message.id}
-                index={index}
-                style={{}}
-              />
-            ))}
-          </div>
-        )}
+        <div className="messages-list">
+          {paginatedMessages.map((message, index) => (
+            <MessageItem
+              key={message.id}
+              index={index}
+              style={{}}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Pagination */}
