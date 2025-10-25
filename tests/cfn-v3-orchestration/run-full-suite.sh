@@ -222,9 +222,9 @@ main() {
   declare -A TESTS
   TESTS["01-coordinator-init"]="Coordinator Initialization"
   TESTS["02-worker-connections"]="Worker Connections"
-  TESTS["03-task-distribution"]="Task Distribution"
+  TESTS["03-confidence-scores"]="Confidence Scores & Gate Check"
   TESTS["04-handoff-coordination"]="Handoff Coordination"
-  TESTS["05-state-persistence"]="State Persistence"
+  TESTS["05-data-flow"]="Data Flow Through Pipeline"
   TESTS["06-graceful-shutdown"]="Graceful Shutdown"
 
   # Run specific test or all tests

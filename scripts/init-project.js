@@ -105,14 +105,14 @@ async function copyFiles(src, dest, pattern) {
 }
 
 async function copyCfnClaudeMarkdown() {
-  const cfnClaudeMdPath = path.join(cfnRoot, '.claude/root-claude-distribute/CLAUDE.md');
+  const cfnClaudeMdPath = path.join(cfnRoot, '.claude/root-claude-distribute/CFN-CLAUDE.md');
   const destPath = path.resolve(process.cwd(), 'CFN-CLAUDE.md');
 
   if (fs.existsSync(cfnClaudeMdPath)) {
     try {
       await cpAsync(cfnClaudeMdPath, destPath);
       console.log(chalk.green('📄 CFN-CLAUDE.md copied to project root'));
-      console.log(chalk.yellow('💡 Use CFN-CLAUDE.md as a reference. Copy to CLAUDE.md if needed.'));
+      console.log(chalk.yellow('💡 Activate CFN workflows: cp CFN-CLAUDE.md CLAUDE.md'));
     } catch (error) {
       console.error(chalk.red(`❌ Failed to copy CFN-CLAUDE.md: ${error.message}`));
     }

@@ -30,7 +30,7 @@
     "!scripts/deployment/",
     "README.md",
     "LICENSE",
-    ".claude/root-claude-distribute/CLAUDE.md"
+    ".claude/root-claude-distribute/CFN-CLAUDE.md"
   ],
   "keywords": [
     "ai",
@@ -64,7 +64,9 @@
     "test": "jest",
     "test:cfn-v3": "bash tests/cfn-v3-orchestration/run-full-suite.sh",
     "test:cfn-v3:connections": "node tests/cfn-v3-orchestration/tests/02-worker-connections.test.js",
+    "test:cfn-v3:confidence": "node tests/cfn-v3-orchestration/tests/03-confidence-scores.test.js",
     "test:cfn-v3:handoffs": "node tests/cfn-v3-orchestration/tests/04-handoff-coordination.test.js",
+    "test:cfn-v3:dataflow": "node tests/cfn-v3-orchestration/tests/05-data-flow.test.js",
     "test:cfn-v3:shutdown": "node tests/cfn-v3-orchestration/tests/06-graceful-shutdown.test.js",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && ./scripts/verify-no-secrets.sh",

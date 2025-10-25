@@ -9,15 +9,23 @@ A production-ready AI agent orchestration system with autonomous self-correcting
 ## 🚀 Quick Start
 
 ```bash
-# Install
+# 1. Install package
 npm install claude-flow-novice
 
-# Execute CFN Loop for complex features
+# 2. Initialize CFN files (copies namespace-isolated agents, skills, hooks, commands)
+npx cfn-init
+
+# 3. Activate CFN instructions for CLI agents
+cp CFN-CLAUDE.md CLAUDE.md
+
+# 4. Execute CFN Loop for complex features
 npx cfn-loop "Implement JWT authentication system" --mode=standard
 
 # Or spawn agents directly
 npx cfn-spawn backend-dev --task-id auth-task
 ```
+
+**Important**: CLI-spawned agents read instructions from `CLAUDE.md` in your project root. Copy `CFN-CLAUDE.md` → `CLAUDE.md` to activate CFN workflows.
 
 ## ✨ What Makes CFN v3 Different
 
