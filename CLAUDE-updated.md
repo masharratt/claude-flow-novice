@@ -1,6 +1,42 @@
 # Claude Flow Novice — AI Agent Orchestration
 
-**Production Status:** CFN v3 Live (Skills-First Architecture - 2025-10-24)
+**Production Status:** v2.9.1 - Namespace Isolation Complete (2025-10-25)
+
+---
+
+## Namespace Isolation (v2.9.1)
+
+**Structure:**
+- Agents: `.claude/agents/cfn-dev-team/` (23 production agents in 4 categories)
+  - coordinators/ (cfn-v3-coordinator)
+  - developers/ (coder, backend-dev, researcher, architect, agent-builder, etc.)
+  - reviewers/ (reviewer, code-analyzer, code-quality-validator, security-specialist)
+  - testers/ (tester, playwright-tester, interaction-tester, production-validator, perf-analyzer)
+- Skills: `.claude/skills/cfn-*/` (43 skills with cfn- prefix)
+- Hooks: `.claude/hooks/cfn-*` (7 hooks with cfn- prefix)
+- Commands: `.claude/commands/cfn/` (45+ commands in subdirectory)
+- Data: `.claude/cfn-data/` (SQLite databases, playbook data)
+
+**NPM Installation:**
+```bash
+npm install claude-flow-novice  # Auto-runs cfn-init on postinstall
+cp CFN-CLAUDE.md CLAUDE.md      # Activate CFN workflows for CLI agents
+```
+
+**Package Metrics:**
+- 573 KB tarball, 2.4 MB unpacked (68% reduction from v2.0.0)
+- 303 files (down from 1,401)
+- Collision risk: ~0.01%
+
+**Agent Discovery:**
+- Recursive search through `.claude/agents/**/*.md`
+- Finds both cfn-dev-team and user custom agents
+- Flat namespace (user requests "coder", finds "cfn-dev-team/developers/coder.md")
+
+**Benefits:**
+- User custom files preserved (agents, skills, hooks)
+- Safe to reinstall/update
+- No manual initialization needed
 
 ---
 
@@ -44,12 +80,12 @@
 
 ## Skills-Based Coordination
 
-### Core Skills
-- **Redis Coordination** (`.claude/skills/redis-coordination/SKILL.md`)
-- **Agent Spawning** (`.claude/skills/agent-spawning/SKILL.md`)
+### Core Skills (cfn- prefixed)
+- **Redis Coordination** (`.claude/skills/cfn-redis-coordination/SKILL.md`)
+- **Agent Spawning** (`.claude/skills/cfn-agent-spawning/SKILL.md`)
 - **CFN Loop Orchestration** (`.claude/skills/cfn-loop-orchestration/SKILL.md`)
-- **Product Owner Decision** (`.claude/skills/product-owner-decision/SKILL.md`)
-- **Agent Output Processing** (`.claude/skills/agent-output-processing/SKILL.md`)
+- **Product Owner Decision** (`.claude/skills/cfn-product-owner-decision/SKILL.md`)
+- **Agent Output Processing** (`.claude/skills/cfn-agent-output-processing/SKILL.md`)
 
 ### Coordination Principles
 * ALL agent communication via explicit Redis pub/sub dependencies
@@ -126,7 +162,7 @@ CLI-spawned agents (`npx claude-flow-novice`) automatically use custom routing w
 
 Main Chat spawns ONLY the coordinator agent. The coordinator handles all agent spawning internally via CLI and orchestrator script.
 
-**Active Coordinator:** `cfn-v3-coordinator` (`.claude/agents/coordinators/cfn-v3-coordinator.md`)
+**Active Coordinator:** `cfn-v3-coordinator` (`.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md`)
 
 ### ❌ FORBIDDEN - Main Chat Spawning Workers
 ```javascript
@@ -263,7 +299,7 @@ Task("cfn-v3-coordinator", `
 **2. Coordinator invokes orchestrator internally:**
 ```bash
 # Coordinator runs this (NOT Main Chat)
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+./.claude/skills/cfn-loop-orchestration/cfn-orchestrate.sh \
   --task-id "unique-task-id" \
   --mode standard \
   --loop3-agents "researcher,backend-dev,devops" \
@@ -273,8 +309,9 @@ Task("cfn-v3-coordinator", `
 
 **3. Orchestrator spawns agents via CLI:**
 ```bash
-npx cfn-spawn agent researcher --task-id "$TASK_ID"
-npx cfn-spawn agent backend-dev --task-id "$TASK_ID"
+# Agents come from cfn-dev-team namespace
+npx cfn-spawn agent researcher --task-id "$TASK_ID"  # Finds cfn-dev-team/developers/researcher.md
+npx cfn-spawn agent backend-dev --task-id "$TASK_ID"  # Finds cfn-dev-team/developers/backend-dev.md
 ```
 
 **4. Coordinator manages iterations and returns result to Main Chat**
@@ -419,9 +456,11 @@ Main Chat should use these commands instead of manually spawning coordinators:
 ## Additional Resources
 
 **Skill References:**
-- Redis Coordination: `.claude/skills/redis-coordination/SKILL.md`
-- Agent Spawning: `.claude/skills/agent-spawning/SKILL.md`
+- Redis Coordination: `.claude/skills/cfn-redis-coordination/SKILL.md`
+- Agent Spawning: `.claude/skills/cfn-agent-spawning/SKILL.md`
 - CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`
+- Agent Builder: `.claude/agents/cfn-dev-team/developers/agent-builder.md`
+- Team Documentation: `.claude/agents/cfn-dev-team/README.md`
 
 **Maintenance Plans:**
 - Rollback Strategy: `planning/skills/ROLLBACK_PLAN.md`
@@ -432,6 +471,9 @@ See `.artifacts/analytics/context-reduction-report.json`
 
 ---
 
-**Version:** 3.0.0 (CFN v3 Dual-Mode)
-**Last Updated:** 2025-10-24
-**Lines:** 497
+**Version:** 2.9.1 (Namespace Isolation Complete)
+**Last Updated:** 2025-10-25
+**Package:** 573 KB tarball, 2.4 MB unpacked, 303 files
+**Agents:** 23 in cfn-dev-team (4 categories)
+**Skills:** 43 with cfn- prefix
+**Collision Risk:** ~0.01%
