@@ -30,7 +30,7 @@
     "!scripts/deployment/",
     "README.md",
     "LICENSE",
-    "CFN-CLAUDE.md"
+    ".claude/root-claude-distribute/CLAUDE.md"
   ],
   "keywords": [
     "ai",
