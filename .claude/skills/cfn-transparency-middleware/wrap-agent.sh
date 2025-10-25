@@ -28,7 +28,7 @@ mkdir -p "${LOG_DIR}/${TASK_ID}"
 # Initialize middleware and pre-execution hooks
 initialize_middleware() {
     node -e "
-    import {TransparencyMiddleware} from '../../../src/middleware/transparency-middleware.js';
+    import {TransparencyMiddleware} from '.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-src/middleware/transparency-middleware.js';
     const middleware = new TransparencyMiddleware();
     await middleware.initialize({
         agentRole: '${AGENT_ROLE}',
@@ -58,7 +58,7 @@ execute_agent() {
         # Capture error metrics
         node -e "
         import fs from 'fs';
-        import {TransparencyMiddleware} from '../../../src/middleware/transparency-middleware.js';
+        import {TransparencyMiddleware} from '.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-src/middleware/transparency-middleware.js';
         const middleware = new TransparencyMiddleware();
 
         const metrics = {
@@ -81,7 +81,7 @@ execute_agent() {
     # Capture successful execution metrics
     node -e "
     import fs from 'fs';
-    import {TransparencyMiddleware} from '../../../src/middleware/transparency-middleware.js';
+    import {TransparencyMiddleware} from '.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-src/middleware/transparency-middleware.js';
     const middleware = new TransparencyMiddleware();
 
     const metrics = {
@@ -116,14 +116,14 @@ exit_status=$?
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete" > /dev/null
 
 # Invoke waiting mode report
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "${TASK_ID}" \
   --agent-id "${AGENT_ID}" \
   --confidence 0.80 \
   --iteration 1
 
 # Enter waiting mode
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
   --task-id "${TASK_ID}" \
   --agent-id "${AGENT_ID}" \
   --context "iteration-1-complete"

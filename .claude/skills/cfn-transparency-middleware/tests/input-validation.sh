@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # Source the main script to access validation functions
-source "$(dirname "$0")/../test-integration.sh"
+source "$(dirname "$0")/.claude/skills/cfn-cfn-test-integration.sh"
 
 # Test Cases for validate_input function
 test_input_validation() {

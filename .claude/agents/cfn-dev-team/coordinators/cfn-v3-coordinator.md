@@ -89,7 +89,7 @@ TASK_TYPE=$(bash ./.claude/skills/task-classifier/classify-task.sh "$TASK_DESCRI
 
 **Playbook Query for Similar Tasks:**
 ```bash
-PLAYBOOK_RESULT=$(./.claude/skills/playbook/query-playbook.sh \
+PLAYBOOK_RESULT=$(./.claude/skills/cfn-playbook/query-playbook.sh \
   --task-type "$TASK_TYPE" \
   --description "$TASK_DESCRIPTION")
 

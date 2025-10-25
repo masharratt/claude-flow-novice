@@ -37,7 +37,7 @@ echo ""
 # Test 2: Query Specific Agent DLQ
 ##############################################################################
 echo "[Test 2] Querying DLQ for specific agent..."
-./.claude/skills/redis-coordination/query-dlq.sh \
+./.claude/skills/cfn-redis-coordination/query-dlq.sh \
   --task-id "$TASK_ID" \
   --agent-id "$TEST_AGENT"
 echo ""
@@ -70,7 +70,7 @@ echo ""
 # Test 4: Query All DLQ Entries for Task
 ##############################################################################
 echo "[Test 4] Querying all DLQ entries for task..."
-./.claude/skills/redis-coordination/query-dlq.sh --task-id "$TASK_ID"
+./.claude/skills/cfn-redis-coordination/query-dlq.sh --task-id "$TASK_ID"
 echo ""
 
 ##############################################################################

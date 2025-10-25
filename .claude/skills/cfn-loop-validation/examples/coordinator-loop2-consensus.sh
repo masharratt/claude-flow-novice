@@ -12,7 +12,7 @@ set -euo pipefail
 
 # Get script directory for relative path to validator
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VALIDATOR="${SCRIPT_DIR}/../validate-iteration.sh"
+VALIDATOR="${SCRIPT_DIR}/.claude/skills/cfn-cfn-validate-iteration.sh"
 
 # Configuration
 MODE="enterprise"

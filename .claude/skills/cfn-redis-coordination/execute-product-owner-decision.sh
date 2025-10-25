@@ -207,7 +207,7 @@ if [ "$(echo "$BACKLOG_ITEMS" | jq 'length')" -gt 0 ]; then
   echo "  ✓ Stored $(echo "$BACKLOG_ITEMS" | jq 'length') backlog items in Redis: $BACKLOG_KEY"
 
   # Persist backlog to file for human review
-  BACKLOG_FILE=".claude/data/backlog/${TASK_ID}.json"
+  BACKLOG_FILE=".claude/cfn-data/backlog/${TASK_ID}.json"
   mkdir -p "$(dirname "$BACKLOG_FILE")"
 
   BACKLOG_RECORD=$(jq -n \
@@ -246,7 +246,7 @@ echo ""
 
 # Step 7: Report confidence
 echo "[Step 7] Reporting confidence..."
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence "$DECISION_CONFIDENCE"

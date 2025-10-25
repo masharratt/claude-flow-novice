@@ -68,7 +68,7 @@ Specific agents with more parallel workers:
 ## What It Does
 
 1. **Launches** a coordinator agent via Task tool to manage the optimization process
-2. **Discovers** all agent profiles in .claude/agents/ directory structure
+2. **Discovers** all agent profiles in .claude/agents/cfn-dev-team/ directory structure
 3. **Distributes** profiles evenly among parallel optimizers (zero overlap)
 4. **Coordinates** parallel work via Redis pub/sub messaging
 5. **Spawns** multiple cli-agent-optimizer agents via CLI with specific assignments

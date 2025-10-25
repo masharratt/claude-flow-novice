@@ -30,7 +30,7 @@ set -euo pipefail
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Default to project root data/ directory (consistent with web portal)
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.claude/skills/cfn-cfn-.." && pwd)"
 DB_PATH="${DB_PATH:-${PROJECT_ROOT}/data/cfn-loop.db}"
 
 # Parameters

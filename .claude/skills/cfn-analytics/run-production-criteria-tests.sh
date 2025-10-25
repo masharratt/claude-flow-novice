@@ -36,16 +36,16 @@ run_test() {
 
 # Run all 4 production criteria tests
 run_test "Manual Override Rate <5%" \
-  "node .claude/skills/analytics/test-manual-override-rate.js"
+  "node .claude/skills/cfn-analytics/test-manual-override-rate.js"
 
 run_test "Zero Concurrent Test Conflicts" \
-  ".claude/skills/test-execution/test-concurrent-conflicts.sh"
+  ".claude/skills/cfn-test-execution/test-concurrent-conflicts.sh"
 
 run_test "100% ROOT_WARNING Auto-Resolution" \
-  ".claude/skills/hook-pipeline/test-root-warning-resolution.sh"
+  ".claude/skills/cfn-hook-pipeline/test-root-warning-resolution.sh"
 
 run_test "Agents Persist State Autonomously" \
-  "node .claude/skills/sqlite-memory/test-state-persistence.js"
+  "node .claude/skills/cfn-sqlite-memory/test-state-persistence.js"
 
 # Calculate success rate
 TOTAL_TESTS=$((PASSED + FAILED))

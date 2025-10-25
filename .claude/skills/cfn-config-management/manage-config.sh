@@ -4,7 +4,7 @@ set -euo pipefail
 # Config Management CLI Wrapper with Nested Support
 
 CONFIG_FILE="${HOME}/.claude-flow-config.json"
-SCHEMA_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/config-management/config.json"
+SCHEMA_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-config-management/config.json"
 
 # Validate JSON against schema
 validate_config() {

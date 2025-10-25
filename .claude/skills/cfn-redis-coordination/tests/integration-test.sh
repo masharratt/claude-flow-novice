@@ -38,7 +38,7 @@ test_cfn_loop_retry_integration() {
         for agent_id in "${agent_ids[@]}"; do
             if ! mock_agent_with_retry "$agent_id" "iteration-$iteration"; then
                 # Retry mechanism
-                ./.claude/skills/redis-coordination/retry-mechanism.sh \
+                ./.claude/skills/cfn-redis-coordination/retry-mechanism.sh \
                     --task-id "$task_id" \
                     --agent-id "$agent_id" \
                     --max-retries 3
@@ -49,7 +49,7 @@ test_cfn_loop_retry_integration() {
         done
 
         # Check consensus
-        local consensus_result=$(./.claude/skills/redis-coordination/check-consensus.sh \
+        local consensus_result=$(./.claude/skills/cfn-redis-coordination/check-consensus.sh \
             --task-id "$task_id" \
             --min-confidence 0.85)
 
@@ -80,14 +80,14 @@ test_dlq_capture_during_orchestration() {
     for scenario in "${error_scenarios[@]}"; do
         # Simulate orchestration failure
         local result=$(
-            ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
+            ./.claude/skills/cfn-redis-coordination/orchestrate-cfn-loop.sh \
                 --task-id "$task_id" \
                 --agent-id "$agent_id" \
                 --error-scenario "$scenario" 2>&1
         )
 
         # Check if DLQ write occurred
-        local dlq_entry=$(./.claude/skills/redis-coordination/query-dlq.sh \
+        local dlq_entry=$(./.claude/skills/cfn-redis-coordination/query-dlq.sh \
             --task-id "$task_id")
 
         assert_not_empty "$dlq_entry" "DLQ not captured for $scenario"
@@ -137,7 +137,7 @@ EOF
         esac
 
         # Test config loading
-        local result=$(./.claude/skills/redis-coordination/load-config.sh \
+        local result=$(./.claude/skills/cfn-redis-coordination/load-config.sh \
             --config "$config_path")
 
         assert_not_empty "$result" "Config loading failed for $config_path"

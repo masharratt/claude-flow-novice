@@ -120,7 +120,7 @@ Task("cfn-v3-coordinator", `
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   1. INVOKE ORCHESTRATOR:
-     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
+     ./.claude/skills/cfn-cfn-orchestration/orchestrate.sh \\
        --task-id "cfn-single-$(date +%s)" \\
        --mode standard \\
        --loop3-agents "researcher,backend-dev,devops" \\
@@ -130,8 +130,8 @@ Task("cfn-v3-coordinator", `
 
   2. MONITOR PROGRESS:
      - Web portal: http://localhost:3000
-     - CLI metrics: ./.claude/skills/web-portal/invoke-portal-agents.sh
-     - Event stream: ./.claude/skills/web-portal/invoke-portal-events.sh
+     - CLI metrics: ./.claude/skills/cfn-web-portal/invoke-portal-agents.sh
+     - Event stream: ./.claude/skills/cfn-web-portal/invoke-portal-events.sh
 
   3. REPORT STRUCTURED RESULT:
      {
@@ -182,16 +182,16 @@ The coordinator runs orchestrator script internally:
 **Monitor execution:**
 ```bash
 # Start web portal (if not running)
-./.claude/skills/web-portal/invoke-portal-start.sh
+./.claude/skills/cfn-web-portal/invoke-portal-start.sh
 
 # View agents
-./.claude/skills/web-portal/invoke-portal-agents.sh --status active
+./.claude/skills/cfn-web-portal/invoke-portal-agents.sh --status active
 
 # Track events
-./.claude/skills/web-portal/invoke-portal-events.sh --limit 50
+./.claude/skills/cfn-web-portal/invoke-portal-events.sh --limit 50
 
 # Get metrics
-./.claude/skills/web-portal/invoke-portal-metrics.sh
+./.claude/skills/cfn-web-portal/invoke-portal-metrics.sh
 ```
 
 **Web UI:** http://localhost:3000 (real-time updates)

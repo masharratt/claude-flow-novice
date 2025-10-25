@@ -391,14 +391,14 @@ else
 fi
 
 # Report confidence to CFN Loop
-"$SCRIPT_DIR/../redis-coordination/invoke-waiting-mode.sh" report \
+"$SCRIPT_DIR/.claude/skills/cfn-cfn-redis-coordination/invoke-waiting-mode.sh" report \
     --task-id "sprint-1.3-testing" \
     --agent-id "backend-dev" \
     --confidence "$CONFIDENCE" \
     --iteration 1 2>/dev/null || true
 
 # Enter waiting mode
-"$SCRIPT_DIR/../redis-coordination/invoke-waiting-mode.sh" enter \
+"$SCRIPT_DIR/.claude/skills/cfn-cfn-redis-coordination/invoke-waiting-mode.sh" enter \
     --task-id "sprint-1.3-testing" \
     --agent-id "backend-dev" \
     --context "iteration-1-complete" 2>/dev/null || true

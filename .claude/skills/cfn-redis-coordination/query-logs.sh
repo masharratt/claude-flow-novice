@@ -33,7 +33,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DB_PATH="${DB_PATH:-${SCRIPT_DIR}/../../data/cfn-loop.db}"
+DB_PATH="${DB_PATH:-${SCRIPT_DIR}/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-data/cfn-loop.db}"
 
 # Parameters
 TASK_ID=""

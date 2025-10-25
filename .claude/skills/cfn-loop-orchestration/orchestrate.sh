@@ -28,7 +28,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/security_utils.sh"
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELPERS_DIR="$SCRIPT_DIR/helpers"
-REDIS_COORD_SKILL="$(cd "$SCRIPT_DIR/../redis-coordination" && pwd)"
+REDIS_COORD_SKILL="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-redis-coordination" && pwd)"
 
 # Configuration
 TASK_ID=""
@@ -635,7 +635,7 @@ function spawn_product_owner() {
   # BLOCKER #2 FIX: Match execute-decision.sh actual parameters
   # Required: --task-id, --agent-id, --consensus, --threshold, --iteration, --max-iterations
   local decision_output
-  decision_output=$("$SCRIPT_DIR/../product-owner-decision/execute-decision.sh" \
+  decision_output=$("$SCRIPT_DIR/.claude/skills/cfn-cfn-product-owner-decision/execute-decision.sh" \
     --task-id "$task_id" \
     --agent-id "$PRODUCT_OWNER" \
     --consensus "$LOOP2_FINAL_CONSENSUS" \

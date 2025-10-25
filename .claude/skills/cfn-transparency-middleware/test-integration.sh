@@ -91,7 +91,7 @@ main() {
     log "INFO" "Initializing Transparency Middleware"
     safe_execute "node -e \"
         import TransparencyMiddleware from './src/middleware/transparency-middleware.js';
-        const config = TransparencyMiddleware.loadConfig('./.claude/skills/transparency-middleware/config.json');
+        const config = TransparencyMiddleware.loadConfig('./.claude/skills/cfn-transparency-middleware/config.json');
         const middleware = new TransparencyMiddleware(config);
         await middleware.initialize();
         console.log('Middleware initialized successfully');
@@ -99,7 +99,7 @@ main() {
 
     # 2. Spawn test agent with middleware wrapper
     log "INFO" "Spawning test agent"
-    safe_execute "./.claude/skills/transparency-middleware/wrap-agent.sh \
+    safe_execute "./.claude/skills/cfn-transparency-middleware/wrap-agent.sh \
         \"backend-dev\" \
         \"test-agent-1\" \
         \"integration-test-task\" \
@@ -135,7 +135,7 @@ main() {
 
     # 5. Test query script
     log "INFO" "Testing memory query script"
-    safe_execute "./.claude/skills/transparency-middleware/query-memory.sh \
+    safe_execute "./.claude/skills/cfn-transparency-middleware/query-memory.sh \
         \"integration-test-task\" \
         \"*\" \
         10 | jq '.' >/dev/null" "Memory query failed"
@@ -144,13 +144,13 @@ main() {
     redis-cli lpush "swarm:sprint-1.3-testing:interaction-tester:done" "complete" >/dev/null
 
     # Report confidence and enter waiting mode
-    ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
         --task-id "sprint-1.3-testing" \
         --agent-id "interaction-tester" \
         --confidence 0.95 \
         --iteration 1
 
-    ./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
         --task-id "sprint-1.3-testing" \
         --agent-id "interaction-tester" \
         --context "iteration-1-complete"

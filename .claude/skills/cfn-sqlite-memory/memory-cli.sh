@@ -15,14 +15,14 @@ set -euo pipefail
 
 # Detect project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.." && pwd)"
 
 # Path to TypeScript CLI
 MEMORY_CLI_TS="$PROJECT_ROOT/src/cli/memory-cli.ts"
 MEMORY_CLI_DIST="$PROJECT_ROOT/dist/cli/memory-cli.js"
 
 # Configuration
-CONFIG_FILE="$PROJECT_ROOT/.claude/skills/sqlite-memory/config.json"
+CONFIG_FILE="$PROJECT_ROOT/.claude/skills/cfn-sqlite-memory/config.json"
 AGENT_ID="${AGENT_ID:-$(whoami)}"
 
 ###############################################################################

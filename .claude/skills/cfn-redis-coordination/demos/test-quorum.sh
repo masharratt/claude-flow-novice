@@ -28,14 +28,14 @@ signal_task_complete() {
     redis-cli lpush "swarm:redis-phase2-1760875940:tester-2:done" "complete"
 
     # Report to waiting mode
-    ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
         --task-id redis-phase2-1760875940 \
         --agent-id tester-2 \
         --confidence "$confidence" \
         --iteration 1
 
     # Enter waiting mode
-    ./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
         --task-id redis-phase2-1760875940 \
         --agent-id tester-2 \
         --context "task-2-3-complete"

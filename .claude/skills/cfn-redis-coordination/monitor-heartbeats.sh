@@ -79,7 +79,7 @@ handle_agent_failure() {
     redis-cli srem "swarm:${TASK_ID}:active-agents" "$agent_id"
 
     # Trigger emergency recovery
-    ./.claude/skills/redis-coordination/agent-recovery.sh \
+    ./.claude/skills/cfn-redis-coordination/agent-recovery.sh \
         --task-id "$TASK_ID" \
         --agent-id "$agent_id"
 }

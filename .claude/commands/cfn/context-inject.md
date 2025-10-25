@@ -139,7 +139,7 @@ Inject bullets relevant to specific agent types:
 
 ```bash
 # For security specialist agents
-/context-inject --agent-type=security-specialist --target=./.claude/agents/security-specialist.md
+/context-inject --agent-type=security-specialist --target=./.claude/agents/cfn-dev-team/security-specialist.md
 
 # For coder agents
 /context-inject --agent-type=coder --category=pattern --min-helpful=5
@@ -162,7 +162,7 @@ async function preAgentSpawnContext(agentType, taskContext) {
   });
 
   // Inject into agent's instruction file
-  const agentFile = `./.claude/agents/${agentType}.md`;
+  const agentFile = `./.claude/agents/cfn-dev-team/${agentType}.md`;
   await injectBullets(agentFile, bullets, { mode: 'merge' });
 
   // Log usage
@@ -221,7 +221,7 @@ rules:
     action: context-inject
     params:
       agent-type: ${agent_type}
-      target: ./.claude/agents/${agent_type}.md
+      target: ./.claude/agents/cfn-dev-team/${agent_type}.md
       limit: 10
 
   - trigger: task-start

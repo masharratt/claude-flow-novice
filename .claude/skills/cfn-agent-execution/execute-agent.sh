@@ -53,8 +53,8 @@ PROMPT=$(cat "$PROMPT_FILE")
 
 # Determine API provider
 API_PROVIDER="anthropic"
-if [ -f ".claude/config/api-provider.json" ]; then
-  PROVIDER_CONFIG=$(cat .claude/config/api-provider.json)
+if [ -f ".claude/cfn-config/api-provider.json" ]; then
+  PROVIDER_CONFIG=$(cat .claude/cfn-config/api-provider.json)
   if echo "$PROVIDER_CONFIG" | grep -q '"provider".*"zai"'; then
     API_PROVIDER="zai"
   fi
@@ -107,12 +107,12 @@ if [ -n "$TASK_ID" ]; then
   echo ""
   echo "1. Execute task work"
   echo "2. redis-cli lpush \"swarm:${TASK_ID}:${AGENT_ID}:done\" \"complete\""
-  echo "3. ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \\"
+  echo "3. ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \\"
   echo "     --task-id \"$TASK_ID\" \\"
   echo "     --agent-id \"$AGENT_ID\" \\"
   echo "     --confidence 0.85 \\"
   echo "     --iteration $ITERATION"
-  echo "4. ./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \\"
+  echo "4. ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \\"
   echo "     --task-id \"$TASK_ID\" \\"
   echo "     --agent-id \"$AGENT_ID\" \\"
   echo "     --context \"iteration-complete\""

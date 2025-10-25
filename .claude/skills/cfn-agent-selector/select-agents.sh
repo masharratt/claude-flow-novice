@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Paths
-REGISTRY_PATH=".claude/skills/agent-discovery/agents-registry.json"
+REGISTRY_PATH=".claude/skills/cfn-agent-discovery/agents-registry.json"
 LOG_PATH="/tmp/agent_selection_$(date +%s).log"
 
 # Validate inputs

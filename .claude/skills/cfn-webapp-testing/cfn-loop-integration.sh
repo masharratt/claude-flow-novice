@@ -5,7 +5,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.." && pwd)"
 
 # Function: Capture all screenshots for a component
 # Usage: capture_component_screenshots <project> <component> <url> <task-id> <agent-id> [viewports...]
@@ -250,7 +250,7 @@ Available Functions:
   update_all_baselines <task-id> <reason> <approved-by>
 
 Example (Loop 3 - Implementation):
-  source ./.claude/skills/webapp-testing/cfn-loop-integration.sh
+  source ./.claude/skills/cfn-webapp-testing/cfn-loop-integration.sh
   capture_component_screenshots "auth-system" "login-form" "http://localhost:3000/login" "\$TASK_ID" "\$AGENT_ID" "1920x1080" "375x667"
 
 Example (Loop 2 - Validation):

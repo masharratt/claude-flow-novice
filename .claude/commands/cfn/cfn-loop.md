@@ -182,7 +182,7 @@ Task("cfn-v3-coordinator", `
      LOOP3_AGENTS="researcher,backend-dev,devops"
      LOOP2_AGENTS="reviewer,architect,tester,security-specialist"
 
-     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+     ./.claude/skills/cfn-cfn-orchestration/orchestrate.sh \
        --task-id "$TASK_ID" \
        --mode "$MODE" \
        --loop3-agents "$LOOP3_AGENTS" \
@@ -192,8 +192,8 @@ Task("cfn-v3-coordinator", `
 
   2. MONITOR PROGRESS:
      - Use web portal: http://localhost:3000
-     - Query metrics: ./.claude/skills/web-portal/invoke-portal-metrics.sh
-     - Track events: ./.claude/skills/web-portal/invoke-portal-events.sh --phase <phase-name>
+     - Query metrics: ./.claude/skills/cfn-web-portal/invoke-portal-metrics.sh
+     - Track events: ./.claude/skills/cfn-web-portal/invoke-portal-events.sh --phase <phase-name>
 
   3. REPORT RESULTS:
      Return structured result to Main Chat:
@@ -256,16 +256,16 @@ The coordinator runs the orchestrator script internally, which:
 **Real-time monitoring:**
 ```bash
 # View all agents
-./.claude/skills/web-portal/invoke-portal-agents.sh --swarm cfn-<phase-name>
+./.claude/skills/cfn-web-portal/invoke-portal-agents.sh --swarm cfn-<phase-name>
 
 # Track phase events
-./.claude/skills/web-portal/invoke-portal-events.sh --phase <phase-name>
+./.claude/skills/cfn-web-portal/invoke-portal-events.sh --phase <phase-name>
 
 # Get consensus metrics
-./.claude/skills/web-portal/invoke-portal-metrics.sh --view consensus
+./.claude/skills/cfn-web-portal/invoke-portal-metrics.sh --view consensus
 
 # Dashboard summary
-./.claude/skills/web-portal/invoke-portal-dashboard.sh
+./.claude/skills/cfn-web-portal/invoke-portal-dashboard.sh
 ```
 
 **Web UI:**

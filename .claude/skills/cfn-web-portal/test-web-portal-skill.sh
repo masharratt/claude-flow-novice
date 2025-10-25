@@ -8,8 +8,8 @@ trap 'echo "Error: Command failed at line $LINENO"; exit 1' ERR
 # Last Updated: 2025-10-19
 
 # Sourcing common utilities and configuration
-source .claude/skills/shared/utils.sh
-source .claude/config/web-portal.env
+source .claude/skills/cfn-cfn-shared/utils.sh
+source .claude/cfn-config/web-portal.env
 
 # Security Helpers
 sanitize_input() {

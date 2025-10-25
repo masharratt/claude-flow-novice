@@ -8,4 +8,4 @@ cd "$(git rev-parse --show-toplevel)" || exit 1
 ./skills/agent-discovery/discover-agents.py
 
 # Optional: output registry to stdout
-cat .claude/skills/agent-discovery/agents-registry.json
+cat .claude/skills/cfn-agent-discovery/agents-registry.json

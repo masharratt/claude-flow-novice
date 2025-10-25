@@ -46,11 +46,11 @@
 
 ### Skills-Based Coordination
 **Core Skills:**
-- Redis Coordination (`.claude/skills/redis-coordination/SKILL.md`)
-- Agent Spawning (`.claude/skills/agent-spawning/SKILL.md`)
+- Redis Coordination (`.claude/skills/cfn-redis-coordination/SKILL.md`)
+- Agent Spawning (`.claude/skills/cfn-agent-spawning/SKILL.md`)
 - CFN Loop Validation (`.claude/skills/cfn-loop-validation/SKILL.md`)
-- **Product Owner Decision** (`.claude/skills/product-owner-decision/SKILL.md`) - Strategic CFN loop decision execution
-- **Agent Output Processing** (`.claude/skills/agent-output-processing/SKILL.md`) - Universal structured output extraction
+- **Product Owner Decision** (`.claude/skills/cfn-product-owner-decision/SKILL.md`) - Strategic CFN loop decision execution
+- **Agent Output Processing** (`.claude/skills/cfn-agent-output-processing/SKILL.md`) - Universal structured output extraction
 
 **Coordination Principles:**
 * ALL agent communication via explicit Redis pub/sub dependencies
@@ -181,7 +181,7 @@ Task("cfn-v3-coordinator", `
 ### Post-Edit Validation (REQUIRED for all Edit/Write operations on any file type)
 **After ANY Edit/Write/MultiEdit operation on all file types, agents MUST run:**
 ```bash
-./.claude/hooks/invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
+./.claude/hooks/cfn-invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
 ```
 
 **Why:** Prevents errors and disorganization from propagating. Non-blocking by default.
@@ -228,7 +228,7 @@ npx claude-flow-novice swarm "Task Description" \
 ## 3) Coordination Patterns
 
 **Redis Coordination Patterns**
-Refer to `.claude/skills/redis-coordination/SKILL.md` for:
+Refer to `.claude/skills/cfn-redis-coordination/SKILL.md` for:
 - Simple Chain Coordination
 - Hierarchical Broadcast
 - Mesh Hybrid Patterns
@@ -240,7 +240,7 @@ Refer to `.claude/skills/redis-coordination/SKILL.md` for:
 
 **Agent enters waiting mode:**
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --context "iteration-1"
@@ -248,7 +248,7 @@ Refer to `.claude/skills/redis-coordination/SKILL.md` for:
 
 **Coordinator wakes agent:**
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --reason cfn_loop_iteration \
@@ -258,7 +258,7 @@ Refer to `.claude/skills/redis-coordination/SKILL.md` for:
 
 **Agent reports result:**
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.92 \
@@ -267,7 +267,7 @@ Refer to `.claude/skills/redis-coordination/SKILL.md` for:
 
 **Coordinator collects results:**
 ```bash
-CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
   --task-id "$TASK_ID" \
   --agent-ids "coder-1,reviewer-1,tester-1,security-1")
 
@@ -305,7 +305,7 @@ Use zero-token blocking mechanisms (like Redis BLPOP) to create efficient, low-o
 **Option 1: Always Use Full Orchestration (RECOMMENDED)**
 ```bash
 # CORRECT: Use orchestrator for all multi-agent workflows
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+./.claude/skills/cfn-loop-orchestration/cfn-orchestrate.sh \
   --task-id "$TASK_ID" \
   --mode standard \
   --loop3-agents "coder-1,researcher-1" \
@@ -317,7 +317,7 @@ Use zero-token blocking mechanisms (like Redis BLPOP) to create efficient, low-o
 ```bash
 # 1. Spawn agents (they enter waiting mode)
 # 2. Collect confidence scores
-CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
   --task-id "$TASK_ID" --agent-ids "coder-1,researcher-1")
 
 # 3. Check consensus
@@ -326,7 +326,7 @@ if (( $(echo "$CONSENSUS >= 0.90" | bc -l) )); then
   # Agents stay in waiting mode (expected, will timeout)
 else
   # 4. Wake agents for iteration 2
-  ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+  ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
     --task-id "$TASK_ID" \
     --agent-id "coder-1" \
     --reason "improve_quality" \
@@ -338,7 +338,7 @@ fi
 ```bash
 # Agent completion without waiting mode
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.85
@@ -393,7 +393,7 @@ Task("cfn-v3-coordinator", `
 **2. Coordinator invokes orchestrator internally:**
 ```bash
 # Coordinator runs this script (NOT Main Chat)
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+./.claude/skills/cfn-loop-orchestration/cfn-orchestrate.sh \
   --task-id "unique-task-id" \
   --mode standard \
   --loop3-agents "researcher,backend-dev,devops" \
@@ -438,14 +438,14 @@ Each agent MUST signal completion before entering waiting mode:
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 # 3. Report confidence
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.85 \
   --iteration 1
 
 # 4. Enter waiting mode
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --context "iteration-complete"
@@ -516,8 +516,8 @@ Implement comprehensive test suites that validate both functional requirements a
 ## 6) Additional Resources
 
 **Skill References:**
-- Redis Coordination: `.claude/skills/redis-coordination/SKILL.md`
-- Agent Spawning: `.claude/skills/agent-spawning/SKILL.md`
+- Redis Coordination: `.claude/skills/cfn-redis-coordination/SKILL.md`
+- Agent Spawning: `.claude/skills/cfn-agent-spawning/SKILL.md`
 - CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`
 
 **Maintenance Plans:**

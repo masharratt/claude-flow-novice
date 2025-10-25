@@ -6,7 +6,7 @@ AGENT_ID="tester"
 CONTEXT="Relaunch Loop 3: Complete missing 5/8 test cases"
 
 # Enter waiting mode
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --context "$CONTEXT"
@@ -21,7 +21,7 @@ npx claude-flow-novice spawn-agent tester \
   --skills cfn-loop-validation
 
 # Report completion and confidence
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.90 \

@@ -20,10 +20,10 @@ cleanup_redis_keys() {
 }
 
 # Path to scripts under test
-STORE_CONTEXT_SCRIPT="$(dirname "$0")/../store-context.sh"
-RETRIEVE_CONTEXT_SCRIPT="$(dirname "$0")/../retrieve-context.sh"
-SIGNAL_SCRIPT="$(dirname "$0")/../signal.sh"
-COLLECT_RESULTS_SCRIPT="$(dirname "$0")/../collect-results.sh"
+STORE_CONTEXT_SCRIPT="$(dirname "$0")/.claude/skills/cfn-cfn-store-context.sh"
+RETRIEVE_CONTEXT_SCRIPT="$(dirname "$0")/.claude/skills/cfn-cfn-retrieve-context.sh"
+SIGNAL_SCRIPT="$(dirname "$0")/.claude/skills/cfn-cfn-signal.sh"
+COLLECT_RESULTS_SCRIPT="$(dirname "$0")/.claude/skills/cfn-cfn-collect-results.sh"
 
 # 1. Test store-context.sh
 test_store_context_happy_path() {

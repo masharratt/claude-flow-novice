@@ -4,7 +4,7 @@
 # Reusable CLI invocation patterns for common multi-agent scenarios
 #
 # Usage:
-#   source .claude/skills/agent-spawning/spawn-templates.sh
+#   source .claude/skills/cfn-agent-spawning/spawn-templates.sh
 #   spawn_feature_development "Implement user authentication"
 #   spawn_security_audit "Audit payment processing system"
 #
@@ -602,7 +602,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   echo "This script provides reusable templates for common multi-agent spawning patterns."
   echo ""
   echo "Usage:"
-  echo "  source .claude/skills/agent-spawning/spawn-templates.sh"
+  echo "  source .claude/skills/cfn-agent-spawning/spawn-templates.sh"
   echo "  spawn_feature_development 'Implement user authentication'"
   echo ""
   echo "For a complete list of templates:"

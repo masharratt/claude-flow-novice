@@ -84,7 +84,7 @@ Output your decision clearly with reasoning.
 Format: Decision: [PROCEED|ITERATE|ABORT]"
 
 # Inject CFN Loop context if injection script exists
-INJECT_SCRIPT="$SCRIPT_DIR/../cfn-loop-orchestration/inject-loop-context.sh"
+INJECT_SCRIPT="$SCRIPT_DIR/.claude/skills/cfn-cfn-cfn-loop-orchestration/inject-loop-context.sh"
 if [[ -x "$INJECT_SCRIPT" ]]; then
   PO_CONTEXT=$("$INJECT_SCRIPT" "loop4" "$PO_CONTEXT" 2>/dev/null || echo "$PO_CONTEXT")
 fi

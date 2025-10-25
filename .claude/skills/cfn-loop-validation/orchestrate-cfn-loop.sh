@@ -123,7 +123,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
 
   # Step 2: Collect Loop 3 confidence scores
   echo "[Loop 3] Collecting confidence scores..."
-  LOOP3_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+  LOOP3_CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
     --task-id "$TASK_ID" \
     --agent-ids "$LOOP3_AGENTS" | tail -1)
 
@@ -137,7 +137,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     # Wake Loop 3 agents for next iteration
     IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
     for AGENT in "${AGENTS[@]}"; do
-      ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+      ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
         --task-id "$TASK_ID" \
         --agent-id "$AGENT" \
         --reason "gate_failed" \
@@ -174,7 +174,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
 
   # Step 4: Collect Loop 2 consensus scores
   echo "[Loop 2] Collecting consensus scores..."
-  LOOP2_CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+  LOOP2_CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
     --task-id "$TASK_ID" \
     --agent-ids "$LOOP2_AGENTS" | tail -1)
 
@@ -211,7 +211,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
       # Wake all agents with completion signal
       IFS=',' read -ra ALL_AGENTS <<< "$LOOP3_AGENTS,$LOOP2_AGENTS"
       for AGENT in "${ALL_AGENTS[@]}"; do
-        ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+        ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
           --task-id "$TASK_ID" \
           --agent-id "$AGENT" \
           --reason "cfn_complete" \
@@ -237,7 +237,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
   echo "[Coordinator] Waking agents for iteration $((ITERATION + 1))..."
   IFS=',' read -ra ALL_AGENTS <<< "$LOOP3_AGENTS,$LOOP2_AGENTS"
   for AGENT in "${ALL_AGENTS[@]}"; do
-    ./.claude/skills/redis-coordination/invoke-waiting-mode.sh wake \
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
       --task-id "$TASK_ID" \
       --agent-id "$AGENT" \
       --reason "cfn_loop_iteration" \

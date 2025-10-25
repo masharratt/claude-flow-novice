@@ -134,7 +134,7 @@ Merge pending reflections into adaptive_context table. For each reflection:
 **Steps:**
 1. Query pending reflections:
    \`\`\`bash
-   ./.claude/skills/ace-system/query-reflections.sh --status pending --limit 10
+   ./.claude/skills/cfn-ace-system/query-reflections.sh --status pending --limit 10
    \`\`\`
 
 2. For each reflection, check for similar bullets:
@@ -154,7 +154,7 @@ Merge pending reflections into adaptive_context table. For each reflection:
 
 4. Update reflection status:
    \`\`\`bash
-   ./.claude/skills/ace-system/update-reflection.sh \\
+   ./.claude/skills/cfn-ace-system/update-reflection.sh \\
      --reflection-id \${REFL_ID} \\
      --status merged
    \`\`\`

@@ -7,8 +7,8 @@
 set -euo pipefail
 
 # Import testing utilities
-source .claude/skills/common/test-utils.sh
-source .claude/skills/transparency-middleware/middleware-config.sh
+source .claude/skills/cfn-common/test-utils.sh
+source .claude/skills/cfn-transparency-middleware/middleware-config.sh
 
 # Logging configuration
 LOG_FILE="/tmp/transparency-middleware-tests.log"

@@ -13,7 +13,7 @@ command -v redis-cli >/dev/null 2>&1 || { echo "❌ redis-cli not found. Please 
 
 # Environment-independent script directory with fallback
 SCRIPT_DIR="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
-REDIS_COORDINATION_DIR="${SCRIPT_DIR}/../redis-coordination"
+REDIS_COORDINATION_DIR="${SCRIPT_DIR}/.claude/skills/cfn-cfn-redis-coordination"
 
 # Safer unique task ID generation
 TASK_ID="test-timeout-$(date +%Y%m%d%H%M%S)-$$-${RANDOM}"

@@ -18,13 +18,13 @@ spawn_routing_worker() {
 
     case "$channel_type" in
         "redis-pubsub")
-            ./.claude/skills/redis-coordination/spawn-agent.sh \
+            ./.claude/skills/cfn-redis-coordination/spawn-agent.sh \
                 --skill-id "$SKILL_NAME" \
                 --agent-id "routing-worker-$worker_id" \
                 --strategy "$channel_type"
             ;;
         "websocket")
-            ./.claude/skills/agent-spawning/spawn-agent.sh \
+            ./.claude/skills/cfn-agent-spawning/spawn-agent.sh \
                 --skill-id "$SKILL_NAME" \
                 --agent-id "routing-worker-$worker_id" \
                 --strategy "$channel_type"

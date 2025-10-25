@@ -70,7 +70,7 @@ main() {
     fi
 
     # CFN Loop reporting
-    ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
         --task-id "redis-phase1-1760875302" \
         --agent-id "tester-1" \
         --confidence "$confidence" \
@@ -80,7 +80,7 @@ main() {
     redis-cli lpush "swarm:redis-phase1-1760875302:tester-1:done" "complete"
 
     # Enter waiting mode
-    ./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
         --task-id "redis-phase1-1760875302" \
         --agent-id "tester-1" \
         --context "phase1-testing-complete"

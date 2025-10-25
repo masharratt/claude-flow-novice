@@ -17,10 +17,10 @@ handle_error() {
 trap 'handle_error $LINENO' ERR
 
 # Path to Python script
-PYTHON_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/agent-discovery/discover-agents.py"
+PYTHON_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-agent-discovery/discover-agents.py"
 
 # Output file
-OUTPUT_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/agent-discovery/agents-registry.json"
+OUTPUT_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-agent-discovery/agents-registry.json"
 
 # Logging file
 LOG_FILE="/tmp/agent-discovery.log"

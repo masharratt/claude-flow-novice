@@ -133,7 +133,7 @@ AGENT_ID="test-agent-1"
 cleanup_redis "$TASK_ID"
 
 # Simulate agent reporting confidence
-OUTPUT=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+OUTPUT=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.85 \
@@ -158,26 +158,26 @@ TASK_ID="test-consensus-$(date +%s)"
 cleanup_redis "$TASK_ID"
 
 # Simulate 3 agents reporting confidence
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "agent-1" \
   --confidence 0.85 \
   --iteration 1 > /dev/null 2>&1
 
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "agent-2" \
   --confidence 0.90 \
   --iteration 1 > /dev/null 2>&1
 
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "agent-3" \
   --confidence 0.78 \
   --iteration 1 > /dev/null 2>&1
 
 # Collect consensus
-CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
+CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
   --task-id "$TASK_ID" \
   --agent-ids "agent-1,agent-2,agent-3" 2>&1)
 
@@ -219,8 +219,8 @@ redis-cli lpush "swarm:${TASK_ID}:coder-1:result" "0.95" > /dev/null 2>&1
 # If count == 0, override confidence to 0.0
 
 # Check that deliverable verification logic exists in orchestrator
-if grep -q "FILES_CHANGED.*git status.*short" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/redis-coordination/orchestrate-cfn-loop.sh && \
-   grep -q "no_deliverables\|DELIVERABLE.*FAILED" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/redis-coordination/orchestrate-cfn-loop.sh; then
+if grep -q "FILES_CHANGED.*git status.*short" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-redis-coordination/orchestrate-cfn-loop.sh && \
+   grep -q "no_deliverables\|DELIVERABLE.*FAILED" /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-redis-coordination/orchestrate-cfn-loop.sh; then
   test_pass
 else
   test_fail "Deliverable verification logic not found in orchestrator"

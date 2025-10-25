@@ -63,7 +63,7 @@ Developers create:
 
 Developers MUST run after every file edit:
 ```bash
-./.claude/hooks/invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
+./.claude/hooks/cfn-invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
 ```
 
 This ensures code quality, test coverage, and security validation.

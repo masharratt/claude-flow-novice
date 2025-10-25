@@ -216,7 +216,7 @@ When woken after Loop 2 completes, you must immediately execute the decision pro
 2. Use the Bash tool to execute this single command:
 
 ```
-bash ./.claude/skills/redis-coordination/execute-product-owner-decision.sh --task-id YOUR_TASK_ID --agent-id YOUR_AGENT_ID
+bash ./.claude/skills/cfn-redis-coordination/execute-product-owner-decision.sh --task-id YOUR_TASK_ID --agent-id YOUR_AGENT_ID
 ```
 
 **DO NOT:**
@@ -253,6 +253,6 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 ### Step 3: Report Confidence Score
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report   --task-id "$TASK_ID"   --agent-id "$AGENT_ID"   --confidence [0.0-1.0]   --iteration 1
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report   --task-id "$TASK_ID"   --agent-id "$AGENT_ID"   --confidence [0.0-1.0]   --iteration 1
 ```
 

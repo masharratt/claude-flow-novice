@@ -12,7 +12,7 @@ CONFIDENCE_SCORE=${6:-0.0}
 CONTEXT_REDUCTION=${7:-0.0}
 
 # Path to the logging script (adjust as needed)
-LOGGING_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/analytics/log-skill-invocation.js"
+LOGGING_SCRIPT="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-analytics/log-skill-invocation.js"
 
 # Execute logging script
 node "$LOGGING_SCRIPT" \

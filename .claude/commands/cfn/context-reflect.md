@@ -117,7 +117,7 @@ Analyze recent task execution and extract 3-7 high-quality lessons. For each les
    EOF
 
    # Store reflection
-   ./.claude/skills/ace-system/store-reflection.sh \\
+   ./.claude/skills/cfn-ace-system/store-reflection.sh \\
      --reflection-type success \\
      --task-id \${TASK_ID} \\
      --agent-id \${AGENT_ID} \\

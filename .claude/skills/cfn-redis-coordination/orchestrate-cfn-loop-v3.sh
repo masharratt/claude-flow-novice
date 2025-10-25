@@ -96,7 +96,7 @@ function trigger_retrospective() {
 
 # Automatic Playbook Update
 function update_playbook() {
-  ./.claude/skills/playbook-auto-update/update.sh \
+  ./.claude/skills/cfn-playbook-auto-update/update.sh \
     --task-id "$TASK_ID" \
     --mode "$MODE" \
     --context "$CFN_METADATA"

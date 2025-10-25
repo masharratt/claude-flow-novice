@@ -32,7 +32,7 @@ test_dlq_write() {
     local error_details='{"code": 500, "message": "Test Error"}'
 
     # Simulate max retry failure
-    local result=$(./.claude/skills/redis-coordination/write-to-dlq.sh \
+    local result=$(./.claude/skills/cfn-redis-coordination/write-to-dlq.sh \
         --task-id "$task_id" \
         --agent-id "$agent_id" \
         --error "$error_details" \
@@ -57,7 +57,7 @@ test_dlq_ttl() {
     local error_details='{"code": 404, "message": "Resource Not Found"}'
 
     # Write to DLQ
-    ./.claude/skills/redis-coordination/write-to-dlq.sh \
+    ./.claude/skills/cfn-redis-coordination/write-to-dlq.sh \
         --task-id "$task_id" \
         --agent-id "$agent_id" \
         --error "$error_details" \
@@ -73,14 +73,14 @@ test_dlq_query() {
     # Populate test DLQ entries
     local task_ids=("query-test-1" "query-test-2")
     for task_id in "${task_ids[@]}"; do
-        ./.claude/skills/redis-coordination/write-to-dlq.sh \
+        ./.claude/skills/cfn-redis-coordination/write-to-dlq.sh \
             --task-id "$task_id" \
             --agent-id "tester-query" \
             --error '{"code": 503, "message": "Test Query Error"}'
     done
 
     # Query DLQ
-    local query_result=$(./.claude/skills/redis-coordination/query-dlq.sh \
+    local query_result=$(./.claude/skills/cfn-redis-coordination/query-dlq.sh \
         --agent-id "tester-query")
 
     assert_not_empty "$query_result" "DLQ query returned no results"

@@ -26,7 +26,7 @@ Execute the ACE stats script directly:
 
 ```bash
 # Query summary
-./.claude/skills/ace-system/invoke-context-stats.sh --query summary
+./.claude/skills/cfn-ace-system/invoke-context-stats.sh --query summary
 
 # Query all bullets
 sqlite3 ./.artifacts/database/swarm-memory.db "

@@ -41,7 +41,7 @@ if [ -z "$TASK_ID" ] || [ -z "$ITERATION" ] || [ -z "$AGENTS" ]; then
 fi
 
 # Use Redis Coordination skill for wake operations
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.claude/skills/cfn-cfn-.." && pwd)"
 REDIS_COORD_SKILL="$SKILL_DIR/redis-coordination"
 
 echo "Starting Iteration $ITERATION"

@@ -8,8 +8,8 @@ trap 'echo "Error: Command failed at line $LINENO"; exit 1' ERR
 # Last Updated: 2025-10-19
 
 # Sourcing configuration
-source .claude/config/web-portal.env
-source .claude/skills/shared/utils.sh
+source .claude/cfn-config/web-portal.env
+source .claude/skills/cfn-cfn-shared/utils.sh
 
 # Validate Dependencies
 validate_dependencies() {
@@ -34,7 +34,7 @@ test_redis_connection() {
 # Permission Checks
 validate_permissions() {
     local critical_dirs=(
-        ".claude/skills/web-portal"
+        ".claude/skills/cfn-web-portal"
         ".claude/config"
         "/tmp/web-portal-logs"
     )
@@ -51,7 +51,7 @@ validate_permissions() {
 check_integration_hooks() {
     local required_hooks=(
         "/launch-web-dashboard"
-        ".claude/hooks/post-deploy-validation.sh"
+        ".claude/hooks/cfn-post-deploy-validation.sh"
     )
 
     for hook in "${required_hooks[@]}"; do
@@ -65,7 +65,7 @@ check_integration_hooks() {
 # Main Validation Function
 main() {
     # Redis coordination entry
-    .claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
+    .claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
         --task-id "deployment-validation" \
         --agent-id "deployment-checker"
 
@@ -75,7 +75,7 @@ main() {
     check_integration_hooks
 
     # Report successful validation
-    .claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+    .claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
         --task-id "deployment-validation" \
         --agent-id "deployment-checker" \
         --confidence 0.95

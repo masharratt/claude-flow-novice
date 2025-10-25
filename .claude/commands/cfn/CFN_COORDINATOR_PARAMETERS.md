@@ -222,7 +222,7 @@ Product Owner: product-owner
 
 ```bash
 1. INVOKE ORCHESTRATOR:
-   ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+   ./.claude/skills/cfn-cfn-cfn-orchestration/orchestrate.sh \
      --task-id "${taskId}" \
      --mode ${mode} \
      --loop3-agents "${loop3Agents.join(',')}" \
@@ -232,8 +232,8 @@ Product Owner: product-owner
 
 2. MONITOR PROGRESS:
    - Use web portal: http://localhost:3000
-   - Query metrics: ./.claude/skills/web-portal/invoke-portal-metrics.sh
-   - Track events: ./.claude/skills/web-portal/invoke-portal-events.sh --phase ${phaseName}
+   - Query metrics: ./.claude/skills/cfn-cfn-web-portal/invoke-portal-metrics.sh
+   - Track events: ./.claude/skills/cfn-cfn-web-portal/invoke-portal-events.sh --phase ${phaseName}
 
 3. REPORT RESULTS:
    Return structured result to Main Chat:
@@ -406,19 +406,19 @@ Epic-Level Acceptance Criteria:
 
 ```bash
 # Start web portal (if not running)
-./.claude/skills/web-portal/invoke-portal-start.sh
+./.claude/skills/cfn-cfn-web-portal/invoke-portal-start.sh
 
 # View all active agents
-./.claude/skills/web-portal/invoke-portal-agents.sh --status active
+./.claude/skills/cfn-cfn-web-portal/invoke-portal-agents.sh --status active
 
 # Track phase events
-./.claude/skills/web-portal/invoke-portal-events.sh --phase ${PHASE_NAME}
+./.claude/skills/cfn-cfn-web-portal/invoke-portal-events.sh --phase ${PHASE_NAME}
 
 # Get consensus metrics
-./.claude/skills/web-portal/invoke-portal-metrics.sh --view consensus
+./.claude/skills/cfn-cfn-web-portal/invoke-portal-metrics.sh --view consensus
 
 # Dashboard summary
-./.claude/skills/web-portal/invoke-portal-dashboard.sh
+./.claude/skills/cfn-cfn-web-portal/invoke-portal-dashboard.sh
 ```
 
 **Web UI:** http://localhost:3000
@@ -488,7 +488,7 @@ Task("cfn-v3-coordinator", `
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   1. INVOKE ORCHESTRATOR:
-     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
+     ./.claude/skills/cfn-cfn-cfn-orchestration/orchestrate.sh \\
        --task-id "cfn-mvp-registration-1729350000" \\
        --mode mvp \\
        --loop3-agents "backend-dev" \\
@@ -498,7 +498,7 @@ Task("cfn-v3-coordinator", `
 
   2. MONITOR PROGRESS:
      - Web portal: http://localhost:3000
-     - CLI: ./.claude/skills/web-portal/invoke-portal-agents.sh
+     - CLI: ./.claude/skills/cfn-cfn-web-portal/invoke-portal-agents.sh
 
   3. REPORT RESULTS:
      {
@@ -585,7 +585,7 @@ Task("cfn-v3-coordinator", `
   1. CHECK DEPENDENCIES
   2. STORE SCOPE BOUNDARIES (memory)
   3. INVOKE ORCHESTRATOR:
-     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
+     ./.claude/skills/cfn-cfn-cfn-orchestration/orchestrate.sh \\
        --task-id "phase-X-$(date +%s)" \\
        --mode enterprise \\
        --loop3-agents "backend-dev,react-frontend-engineer,devops,security-specialist,researcher" \\
@@ -600,7 +600,7 @@ Task("cfn-v3-coordinator", `
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   Web Portal: http://localhost:3000
-  Per-Phase Monitoring: ./.claude/skills/web-portal/invoke-portal-events.sh --phase phase-X
+  Per-Phase Monitoring: ./.claude/skills/cfn-cfn-web-portal/invoke-portal-events.sh --phase phase-X
 
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   FINAL EPIC REPORT
@@ -647,9 +647,9 @@ Task("cfn-v3-coordinator", `
 
 ## Related Documentation
 
-- **Redis Coordination Skill:** `.claude/skills/redis-coordination/SKILL.md`
-- **Web Portal Skill:** `.claude/skills/web-portal/SKILL.md`
-- **CFN Loop Validation Skill:** `.claude/skills/cfn-loop-validation/SKILL.md`
+- **Redis Coordination Skill:** `.claude/skills/cfn-cfn-redis-coordination/SKILL.md`
+- **Web Portal Skill:** `.claude/skills/cfn-cfn-web-portal/SKILL.md`
+- **CFN Loop Validation Skill:** `.claude/skills/cfn-cfn-cfn-loop-validation/SKILL.md`
 - **Slash Commands:** `.claude/commands/cfn-loop*.md`
 
 ---

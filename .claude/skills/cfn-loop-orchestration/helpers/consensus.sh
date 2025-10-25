@@ -41,7 +41,7 @@ if [ -z "$TASK_ID" ] || [ -z "$AGENTS" ] || [ -z "$THRESHOLD" ] || [ -z "$MIN_QU
 fi
 
 # Use Redis Coordination skill to collect consensus scores
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.claude/skills/cfn-cfn-.." && pwd)"
 REDIS_COORD_SKILL="$SKILL_DIR/redis-coordination"
 
 echo "Consensus Check Configuration:"

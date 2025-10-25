@@ -216,7 +216,7 @@ Task("cfn-v3-coordinator", `
      LOOP3_AGENTS="analyst,architect"
      LOOP2_AGENTS="reviewer,architect"
 
-     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+     ./.claude/skills/cfn-cfn-cfn-orchestration/orchestrate.sh \
        --task-id "$TASK_ID" \
        --mode "$MODE" \
        --loop3-agents "$LOOP3_AGENTS" \
@@ -247,9 +247,9 @@ Task("cfn-v3-coordinator", `
   Web Portal: http://localhost:3000
 
   Per-Phase Monitoring:
-  - Agents: ./.claude/skills/web-portal/invoke-portal-agents.sh --swarm phase-${PHASE_ID}
-  - Events: ./.claude/skills/web-portal/invoke-portal-events.sh --phase phase-${PHASE_ID}
-  - Metrics: ./.claude/skills/web-portal/invoke-portal-metrics.sh
+  - Agents: ./.claude/skills/cfn-cfn-web-portal/invoke-portal-agents.sh --swarm phase-${PHASE_ID}
+  - Events: ./.claude/skills/cfn-cfn-web-portal/invoke-portal-events.sh --phase phase-${PHASE_ID}
+  - Metrics: ./.claude/skills/cfn-cfn-web-portal/invoke-portal-metrics.sh
 
   Epic Progress:
   - Query memory for phase results
