@@ -27,6 +27,19 @@ This is your practical guide to creating, customizing, and maintaining AI agents
 8. [Advanced Concepts](#advanced-concepts)
 9. [Troubleshooting](#troubleshooting)
 
+## CFN Dev Team Specific Resources
+
+### New Agent Structure Documentation
+- [CFN Dev Team README.md](./README.md) - Comprehensive guide to our 23 production agents
+- [agent-builder.md](./developers/agent-builder.md) - Specialized agent for creating new agents
+- [Agent Directory Structure](./README.md#directory-structure) - Detailed overview of agent categories
+
+### Agent Discovery Patterns
+- Recursively search `.claude/agents/cfn-dev-team` subdirectories
+- Use Glob: `**/*.md` to find all agent files
+- Validate against agent-template-validator
+- Maintain agent registry via SQLite database
+
 ---
 
 ## Quick Start - Create Your First Agent
