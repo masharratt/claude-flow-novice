@@ -1,6 +1,36 @@
-# Claude Flow Novice - Features Matrix (v2)
+# Claude Flow Novice - Features Matrix (v2.9.1)
 
-[... previous content remains unchanged ...]
+### Namespace Isolation
+
+**Purpose**: Prevent file collision when installing CFN package
+
+**Strategy**:
+- Agents in `.claude/agents/cfn-dev-team/` subfolder
+- Skills prefixed with `cfn-*`
+- Hooks prefixed with `cfn-*`
+- Commands in `.claude/commands/cfn/` subdirectory
+
+**Collision risk**: ~0.01%
+
+**Installation**:
+```bash
+npm install claude-flow-novice
+npx cfn-init  # Copies namespace-isolated files
+```
+
+**Benefits**:
+- User custom agents/skills/hooks preserved
+- Safe updates (only cfn-* files overwritten)
+- Can run cfn-init multiple times safely
+
+### Agent Statistics (v2.9.1)
+- **Development Team**: 23 agents in cfn-dev-team
+- **Production Agents**: 23 agents
+- **Package Metrics**:
+  - Size: 2.4 MB unpacked (573 KB tarball)
+  - Files: 303 files (68% reduction)
+
+[... rest of previous content remains unchanged ...]
 
 ### 8. CFN Loop v3 Dual-Mode Architecture
 

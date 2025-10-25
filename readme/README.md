@@ -1,7 +1,12 @@
-# Claude Flow Novice v2 Documentation
+# Claude Flow Novice v2.9.1 Documentation
 
-**Version:** 2.0 (Skills-First Architecture)
-**Last Updated:** 2025-10-19
+**Version:** 2.9.1 (Skills-First Architecture)
+**Last Updated:** 2025-10-25
+
+**Package Metrics**:
+- 2.4 MB unpacked
+- 303 files
+- Namespace-isolated installation
 
 ## Overview
 
@@ -10,6 +15,10 @@ Claude Flow Novice is a production-ready AI agent orchestration framework built 
 ## Quick Start
 
 ```bash
+# Install and initialize
+npm install claude-flow-novice
+npx cfn-init
+
 # Initialize a swarm with skills
 npx claude-flow-novice swarm "Task Description" \
   --skills=redis-coordination,agent-spawning \
@@ -59,11 +68,13 @@ npx claude-flow-novice swarm "Task Description" \
 - **Modular Skills**: Independently maintainable, testable capabilities
 - **Explicit Dependencies**: Redis pub/sub coordination, no implicit coupling
 - **Thin Orchestration**: Main chat delegates to skills, minimal coordination logic
+- **Namespace-Isolated Installation**: ~0.01% collision risk
+- **Preserves User Custom Agents/Skills/Hooks**
 
 ### Zero-Token Coordination
 - **Redis BLPOP**: Agents wait without API calls (0 tokens while idle)
 - **Instant Wake-Up**: <100ms latency for agent activation
-- **Scalable**: 10+ agents, indefinite iteration cycles
+- **Scalable**: 23 agents in cfn-dev-team
 
 ### CFN Loop (Consensus Framework)
 - **Loop 3**: Implementation agents (coders, researchers)

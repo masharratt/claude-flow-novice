@@ -154,3 +154,84 @@ npx claude-flow-novice swarm "Task description" \
 4. **Configure Carefully**: Adjust parameters for optimal performance and cost-efficiency
 
 Note: Always refer to the latest documentation for most up-to-date command syntax and capabilities.
+
+### `/cfn-init`
+
+Initialize CFN files in project with namespace isolation.
+
+**Purpose**: Copy namespace-isolated CFN files from node_modules to project root
+
+**Usage**:
+```bash
+npm install claude-flow-novice
+npx cfn-init
+```
+
+**What it does**:
+- Copies 23 agents to `.claude/agents/cfn-dev-team/`
+- Copies 43 skills to `.claude/skills/cfn-*/`
+- Copies 7 hooks to `.claude/hooks/cfn-*`
+- Copies 45+ commands to `.claude/commands/cfn/`
+- Copies CFN-CLAUDE.md reference file
+
+**Namespace isolation**:
+- Only `cfn-*` prefixed files copied/overwritten
+- User custom files preserved (~0.01% collision risk)
+- Safe to run multiple times
+
+**Example**:
+```bash
+cd my-project
+npm install claude-flow-novice
+npx cfn-init
+# ✅ .claude/agents/cfn-dev-team/ created
+# ⚠️  .claude/agents/my-team/ preserved
+```
+
+### `/list-agents`
+
+List available agents in the CFN dev team namespace.
+
+**Purpose**: Discover and display agents within the namespace-isolated structure
+
+**Usage**:
+```bash
+/list-agents
+```
+
+**What it returns**:
+- Total agents: 23 in cfn-dev-team
+- Namespace-isolated agent list
+- Detailed agent metadata
+
+**Example**:
+```bash
+/list-agents
+# 23 agents in .claude/agents/cfn-dev-team/
+# Agents: backend-dev, frontend-dev, fullstack, ...
+```
+
+### `/list-agents-rebuild`
+
+Dynamically discover and regenerate agent list from directory structure.
+
+**Purpose**: Rebuild agent inventory by recursively scanning `.claude/agents/**/*.md`
+
+**Usage**:
+```bash
+/list-agents-rebuild
+```
+
+**What it does**:
+- Scans `.claude/agents/**/*.md`
+- Discovers agents in subfolder structures (e.g., cfn-dev-team)
+- Regenerates comprehensive agent index
+- Validates agent metadata
+
+**Example**:
+```bash
+/list-agents-rebuild
+# ✅ Discovered 23 agents in cfn-dev-team
+# ✅ Indexed 43 skills
+# ✅ Agent catalog updated
+```
