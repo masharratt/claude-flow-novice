@@ -124,15 +124,16 @@ Main Chat → Single coordinator agent → Coordinator spawns workers via CLI �
 ```
 
 **Key Differences:**
-- CLI mode: Main Chat → Coordinator → cfn-loop-orchestration/orchestrate.sh → CLI agents
-- Task mode: Main Chat → Coordinator → JSON → Main Chat spawns Task() agents
+- CLI mode: Main Chat → Coordinator → orchestrate.sh → CLI agents (background)
+- Task mode: Main Chat reads guide → Main Chat spawns Task() agents directly (NO coordinator)
 - CLI agents use Z.ai routing automatically
+- Task mode: All agents use Anthropic (Main Chat provider)
 - Redis context enables swarm recovery (CLI mode)
 
 **Context Storage:**
-- Both modes store context in Redis
+- CLI mode: Coordinator stores context in Redis for agents to retrieve
+- Task mode: Main Chat passes context directly to each Task() spawn (no Redis needed)
 - CLI agents read from Redis: `redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"`
-- Task mode: Main Chat injects directly but also stores in Redis
 
 **Reference:**
 - Implementation details: `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`

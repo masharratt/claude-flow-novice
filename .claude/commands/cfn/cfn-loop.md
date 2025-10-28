@@ -1,6 +1,6 @@
 ---
 description: "Execute autonomous 3-loop self-correcting CFN workflow with automatic retry and consensus validation"
-argument-hint: "<task description> [--phase=name] [--mode=mvp|standard|enterprise] [--max-loop2=10] [--max-loop3=10]"
+argument-hint: "<task description> [--phase=name] [--mode=mvp|standard|enterprise] [--spawn-mode=cli|task] [--max-loop2=10] [--max-loop3=10]"
 allowed-tools: ["Task", "TodoWrite", "Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 ---
 
@@ -25,16 +25,21 @@ LOOP 3: Primary Swarm Execution with subtask iterations
 ## Command Options
 
 ```bash
+# CLI Mode (default - cost-optimized)
 /cfn-loop "Implement JWT authentication" --phase=implementation --mode=standard
 /cfn-loop "Fix security vulnerabilities" --phase=security-audit --mode=enterprise --max-loop2=10
-/cfn-loop "Build MVP feature" --phase=mvp-dev --mode=mvp --max-loop3=5
-/cfn-loop "Refactor API layer" --mode=standard --max-loop3=15
-/cfn-loop "Add test coverage for auth module" --phase=testing --max-loop2=10
+
+# Task Mode (debugging - full visibility)
+/cfn-loop "Build MVP feature" --spawn-mode=task --mode=mvp
+/cfn-loop "Refactor API layer" --spawn-mode=task --mode=standard --max-loop3=15
 ```
 
 **Options:**
 - `--phase=<name>`: Optional phase name for tracking
 - `--mode=<mvp|standard|enterprise>`: Coordinator mode (default: standard)
+- `--spawn-mode=<cli|task>`: Agent spawning method (default: cli)
+  - **cli**: Cost-optimized (95-98% savings), background execution, Redis monitoring
+  - **task**: Full visibility in Main Chat, direct spawning, debugging
 - `--max-loop2=<n>`: Max consensus iterations (default: 10)
 - `--max-loop3=<n>`: Max primary swarm iterations (default: 10)
 
@@ -77,12 +82,40 @@ The coordinator uses CLI spawning (95-98% cost savings) and provides full visibi
 ### Step 1: Parse Command Arguments
 
 Extract parameters from command:
+- `--spawn-mode=cli|task` (default: cli)
 - `--mode=mvp|standard|enterprise` (default: standard)
 - `--phase=<name>` (optional phase identifier)
 - `--max-loop2=<n>` (max consensus iterations, default: 10)
 - `--max-loop3=<n>` (max implementation iterations, default: 10)
 
-### Step 2: Spawn Coordinator Agent (SINGLE AGENT PATTERN)
+### Step 1.5: Load Task Mode Guide (If Applicable)
+
+**If `--spawn-mode=task` detected:**
+
+```javascript
+// Read Task Mode guide for agent specialization and workflow
+const taskModeGuide = await Read('.claude/commands/cfn/CFN_LOOP_TASK_MODE.md');
+
+// Guide provides:
+// - Agent specialization (Loop 3: implementers, Loop 2: validators, Loop 4: PO)
+// - Adaptive validator scaling (2-6 validators based on complexity)
+// - Sprint completion workflow (consensus → deliverables → git → summary)
+// - Product Owner spawning via Task() (NOT execute-decision.sh)
+// - Backlog mechanism and background worker patterns
+
+console.log('Task Mode: Using guide for agent selection and coordination');
+```
+
+**Key Task Mode Differences:**
+- Coordinator spawns agents via Task() (NOT CLI)
+- Product Owner spawned via Task() directly by coordinator
+- Use helper scripts: `parse-decision.sh`, `validate-deliverables.sh`
+- Do NOT use `execute-decision.sh` (it spawns PO via CLI → duplicate agents)
+- Full agent output visible in Main Chat (debugging)
+
+### Step 2: Execute CFN Loop
+
+**CLI Mode (default) - Spawn Coordinator:**
 
 ```javascript
 Task("cfn-v3-coordinator", `
@@ -190,6 +223,13 @@ Task("cfn-v3-coordinator", `
        --product-owner "product-owner" \
        --max-iterations 10
 
+     # Orchestrator handles complete workflow:
+     # - Spawns Loop 3 agents → gate check → iteration if needed
+     # - Spawns Loop 2 validators → consensus check
+     # - Spawns Product Owner → PROCEED/ITERATE/ABORT decision
+     # - On PROCEED: git add/commit/push + sprint summary
+     # - Returns when complete or max iterations reached
+
   2. MONITOR PROGRESS:
      - Use web portal: http://localhost:3000
      - Query metrics: ./.claude/skills/cfn-web-portal/invoke-portal-metrics.sh
@@ -227,7 +267,103 @@ Task("cfn-v3-coordinator", `
 `, "cfn-v3-coordinator")
 ```
 
-### Step 3: Coordinator Autonomous Execution
+**Task Mode (for debugging) - Main Chat Coordinates Directly:**
+
+Main Chat does NOT spawn a coordinator. Instead, it coordinates directly following the guide:
+
+```javascript
+// Step 1: Read Task Mode Guide
+const guide = await Read('.claude/commands/cfn/CFN_LOOP_TASK_MODE.md');
+
+// Step 2: Analyze Task Complexity (from guide)
+const complexity = analyzeComplexity({
+  task: "$ARGUMENTS",
+  files: estimateFileCount(),
+  loc: estimateLOC()
+});
+
+// Step 3: Select Agents (from guide's adaptive scaling)
+const agents = selectAgents(complexity);
+// Simple: 2 validators (reviewer, tester)
+// Standard: 4 validators (+architect, +security-specialist)
+// Complex: 5+ validators (+code-analyzer, +perf/ada)
+
+// Step 4: Loop 3 - Implementation
+let iteration = 1;
+let loop3Confidence = 0;
+
+do {
+  // Spawn Loop 3 agents in parallel
+  const loop3Results = await Promise.all(
+    agents.loop3.map(agent =>
+      Task(agent, `Implement: $ARGUMENTS (iteration ${iteration})`)
+    )
+  );
+
+  loop3Confidence = average(loop3Results.map(r => r.confidence));
+
+  if (loop3Confidence >= 0.75) break;
+
+  iteration++;
+} while (iteration <= maxIterations);
+
+// Step 5: Loop 2 - Validation
+const loop2Results = await Promise.all(
+  agents.loop2.map(validator =>
+    Task(validator, "Review implementation")
+  )
+);
+
+const consensus = average(loop2Results.map(r => r.confidence));
+
+// Step 6: Product Owner Decision
+const poContext = `
+  Iteration ${iteration} complete.
+  Consensus: ${consensus} (threshold: 0.90)
+
+  Decision Framework:
+  - PROCEED: Consensus >= 0.90 AND deliverables verified
+  - ITERATE: Consensus < 0.90 AND iteration < max
+  - ABORT: Max iterations reached
+
+  Output format: Decision: [PROCEED|ITERATE|ABORT]
+`;
+
+const poOutput = Task("product-owner", poContext);
+
+// Step 7: Parse Decision (using helper script)
+const decision = Bash(`./.claude/skills/cfn-product-owner-decision/parse-decision.sh --output "${poOutput}"`);
+
+// Step 8: Validate Deliverables
+const deliverableStatus = Bash(`./.claude/skills/cfn-product-owner-decision/validate-deliverables.sh --task-id "${taskId}"`);
+
+if (deliverableStatus === "FAILED" && taskRequiresImplementation) {
+  decision = "ITERATE";
+}
+
+// Step 9: Execute Decision
+if (decision === "PROCEED") {
+  Bash("git add . && git commit -m 'feat: $ARGUMENTS' && git push");
+  Write(`docs/SPRINT_${iteration}_COMPLETE.md`, generateSummary());
+  console.log("✅ Sprint complete - changes committed and pushed");
+} else if (decision === "ITERATE") {
+  console.log("🔄 Iterating with feedback...");
+  // Repeat from Step 4
+} else {
+  console.log("❌ Max iterations reached - aborting");
+}
+```
+
+**Why No Coordinator in Task Mode:**
+- Main Chat has full visibility already
+- Guide provides all coordination logic
+- Direct Task() spawning is simpler
+- No abstraction layer needed
+- Easier debugging (no coordinator to trace through)
+
+### Step 3: Autonomous Execution (CLI Mode Only)
+
+**This applies to CLI Mode only.** Task Mode follows the workflow above (Step 2).
 
 The coordinator runs the orchestrator script internally, which:
 
@@ -248,7 +384,32 @@ The coordinator runs the orchestrator script internally, which:
 
 **Loop 1: Product Owner**
 - Reviews final consensus and acceptance criteria
-- Makes autonomous go/no-go decision
+- Makes autonomous go/no-go decision (PROCEED/ITERATE/ABORT)
+- **If PROCEED:**
+  - Validates deliverables exist (git status check)
+  - Creates structured git commit:
+    ```bash
+    git add .
+    git commit -m "$(cat <<'EOF'
+    feat(cfn-loop): [task description]
+
+    Deliverables:
+    - [files created/modified]
+
+    Validation:
+    - Consensus: [0.XX]
+    - Iterations: Loop 3: [N], Loop 2: [M]
+    - Tests: [status]
+
+    🤖 Generated with [Claude Code](https://claude.com/claude-code)
+    Co-Authored-By: Claude <noreply@anthropic.com>
+    EOF
+    )"
+    git push origin main
+    ```
+  - Generates sprint summary: `docs/SPRINT_${ITERATION}_COMPLETE.md`
+- **If ITERATE:** Wake agents for iteration N+1
+- **If ABORT:** Exit with error report
 - Returns structured result to Main Chat
 
 ### Step 4: Visibility via Web Portal

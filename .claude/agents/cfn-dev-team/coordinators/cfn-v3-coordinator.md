@@ -258,11 +258,11 @@ echo "Estimated Iterations: $ESTIMATED_ITERATIONS"
 **Mode Detection:**
 - **CLI Mode**: When spawned via `npx claude-flow-novice agent cfn-v3-coordinator` (DEFAULT)
   - Action: Invoke orchestrator and return result
-- **Task Mode**: When context explicitly requests JSON output only
-  - Action: Return JSON configuration
-  - **REQUIRED**: Read `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` for agent specialization rules, sprint workflow, and product owner spawning patterns
+- **Task Mode**: NOT USED - Main Chat handles coordination directly using Task() tool
+  - cfn-v3-coordinator is only for CLI mode
+  - Task mode uses slash command guide injection instead
 
-**Default to CLI Mode** unless task description explicitly says "return JSON only" or "Task mode".
+**This agent is CLI-mode only.** Task mode coordination happens at slash command level.
 
 **CRITICAL CLI Mode Requirement:**
 You MUST invoke the orchestrator by iteration 3. Do not spend more than 2 iterations on setup. If agent discovery/selection fails, use hardcoded defaults and proceed to orchestrator invocation.
@@ -304,7 +304,12 @@ This is your PRIMARY responsibility. Execute this immediately after Step 2:
   --max-iterations 10 \
   --success-criteria '{"deliverables":[],"acceptanceCriteria":["Implementation complete"]}'
 
-# The orchestrator handles ALL CFN Loop execution
+# The orchestrator handles ALL CFN Loop execution including:
+# - Loop 3 agent spawning and iteration
+# - Loop 2 validator spawning and consensus
+# - Product Owner decision (PROCEED/ITERATE/ABORT)
+# - Git commit and push (on PROCEED)
+# - Sprint summary generation
 # Your job is complete after invoking this command
 ```
 
@@ -314,27 +319,16 @@ This is your PRIMARY responsibility. Execute this immediately after Step 2:
 - **Orchestrator invocation MUST happen by iteration 3**
 - Skip all optional steps (playbook query, validation templates, complexity estimation)
 
-### Task Mode
+### Task Mode (NOT APPLICABLE - SEE SLASH COMMAND)
 
-**REQUIRED READING:** `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+**This agent is NOT used in Task Mode.**
 
-This guide contains:
-- Agent specialization rules (Loop 3, Loop 2, Loop 4 agents)
-- Adaptive validator scaling based on task complexity
-- Sprint completion workflow (consensus, deliverables, git commit, backlog)
-- Product Owner spawning via Task() (NOT execute-decision.sh)
-- Background backlog worker patterns
+Task Mode coordination is handled directly by Main Chat using:
+- Slash command: `/cfn-loop "task" --spawn-mode=task`
+- Guide injection: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- Direct agent spawning via Task() tool
 
-**Execution Steps:**
-1. **Read** `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` for agent specialization rules
-2. Execute task classifier skill
-3. Execute agent selector skill (use adaptive validator scaling from guide)
-4. Load validation template
-5. Predict deliverables
-6. Estimate complexity and iterations (reference guide's complexity scoring)
-7. Build JSON configuration
-8. Store configuration in Redis for coordinator
-9. Return JSON (ONLY JSON, no markdown, no commentary)
+If you need Task Mode, use the slash command, not this agent.
 
 ### Redis Context Storage
 
