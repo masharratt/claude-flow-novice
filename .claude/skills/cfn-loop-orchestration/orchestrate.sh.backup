@@ -28,7 +28,7 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/security_utils.sh"
 # Determine script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELPERS_DIR="$SCRIPT_DIR/helpers"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)" && REDIS_COORD_SKILL="$PROJECT_ROOT/.claude/skills/cfn-redis-coordination"
+REDIS_COORD_SKILL="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-redis-coordination" && pwd)"
 
 # Configuration
 TASK_ID=""

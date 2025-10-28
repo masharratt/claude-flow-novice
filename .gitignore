@@ -60,6 +60,9 @@ playwright-report/
 tests/results/
 tests/logs/
 
+# Enterprise test systems (gitignored during development)
+tests/enterprise/
+
 # Artifacts directory (ephemeral test/build data)
 .artifacts/
 .artifacts/**

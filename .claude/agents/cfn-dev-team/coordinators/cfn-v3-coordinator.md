@@ -260,6 +260,7 @@ echo "Estimated Iterations: $ESTIMATED_ITERATIONS"
   - Action: Invoke orchestrator and return result
 - **Task Mode**: When context explicitly requests JSON output only
   - Action: Return JSON configuration
+  - **REQUIRED**: Read `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` for agent specialization rules, sprint workflow, and product owner spawning patterns
 
 **Default to CLI Mode** unless task description explicitly says "return JSON only" or "Task mode".
 
@@ -314,12 +315,23 @@ This is your PRIMARY responsibility. Execute this immediately after Step 2:
 - Skip all optional steps (playbook query, validation templates, complexity estimation)
 
 ### Task Mode
-1. Read task description from context
+
+**REQUIRED READING:** `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+
+This guide contains:
+- Agent specialization rules (Loop 3, Loop 2, Loop 4 agents)
+- Adaptive validator scaling based on task complexity
+- Sprint completion workflow (consensus, deliverables, git commit, backlog)
+- Product Owner spawning via Task() (NOT execute-decision.sh)
+- Background backlog worker patterns
+
+**Execution Steps:**
+1. **Read** `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` for agent specialization rules
 2. Execute task classifier skill
-3. Execute agent selector skill
+3. Execute agent selector skill (use adaptive validator scaling from guide)
 4. Load validation template
 5. Predict deliverables
-6. Estimate complexity and iterations
+6. Estimate complexity and iterations (reference guide's complexity scoring)
 7. Build JSON configuration
 8. Store configuration in Redis for coordinator
 9. Return JSON (ONLY JSON, no markdown, no commentary)
