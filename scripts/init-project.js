@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
+import { spawnSync } from 'child_process';
 import chalk from 'chalk';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -121,6 +122,38 @@ async function copyCfnClaudeMarkdown() {
   }
 }
 
+async function installLizard() {
+  console.log(chalk.blue('\n🔧 Installing lizard (complexity analyzer)...'));
+
+  // Check if lizard is already installed
+  const checkResult = spawnSync('which', ['lizard'], { encoding: 'utf-8' });
+  if (checkResult.status === 0) {
+    console.log(chalk.green('✅ Lizard already installed'));
+    return;
+  }
+
+  // Try to install lizard via pip3
+  const pipCommands = [
+    ['pip3', 'install', '--user', '--break-system-packages', 'lizard'],
+    ['pip3', 'install', '--user', 'lizard'],
+    ['pip', 'install', '--user', 'lizard']
+  ];
+
+  for (const cmd of pipCommands) {
+    const result = spawnSync(cmd[0], cmd.slice(1), { encoding: 'utf-8' });
+    if (result.status === 0) {
+      console.log(chalk.green('✅ Lizard installed successfully'));
+      console.log(chalk.yellow('💡 Add to PATH: export PATH="$HOME/.local/bin:$PATH"'));
+      return;
+    }
+  }
+
+  // If all attempts failed, provide instructions
+  console.log(chalk.yellow('⚠️ Could not auto-install lizard. Manual installation required:'));
+  console.log(chalk.gray('   pip3 install --user lizard'));
+  console.log(chalk.gray('   or run: ./tools/install-lizard.sh'));
+}
+
 async function initializeCfnProject() {
   console.log(chalk.blue('\n🚀 Claude Flow Novice CFN Initialization\n'));
 
@@ -147,6 +180,10 @@ async function initializeCfnProject() {
 
     console.log(chalk.green(`\n✅ CFN Installation Complete`));
     console.log(chalk.blue(`   Copied ${successCount}/${totalPaths} paths successfully`));
+
+    // Install lizard for complexity analysis
+    await installLizard();
+
     console.log(chalk.yellow('\n🔍 Next Steps:'));
     console.log('   1. Review CFN-CLAUDE.md in project root');
     console.log('   2. Run your first CFN Loop: npx cfn-loop "Task description"');

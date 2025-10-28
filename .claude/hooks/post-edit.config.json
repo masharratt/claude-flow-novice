@@ -1,0 +1,12 @@
+{
+  "default_validation": {
+    "file_size": {
+      "min_bytes": 1024,
+      "max_bytes": 1048576
+    },
+    "content_checks": {
+      "required_sections": ["# ", "## ", "### "],
+      "min_sections": 3
+    }
+  }
+}

@@ -422,6 +422,43 @@ cfn-redis          # Redis coordination utilities
 # Hook pipeline orchestration
 ```
 
+### Complexity Analysis Tools
+
+**Built-in Code Quality Monitoring**
+
+**Simple Complexity Analyzer** (~23ms)
+- Fast bash script analyzer
+- Counts decision points (if/loops/case)
+- Ratings: Simple (<10) → Very Complex (≥40)
+
+**Per-Function Analyzer**
+- Function-level complexity breakdown
+- Identifies specific refactor targets
+- Detailed reporting per method
+
+**Lizard (Professional Multi-Language)**
+- Auto-installed during npm install
+- Supports 20+ languages (JS/TS/Python/Java/Go/etc)
+- Industry-standard McCabe complexity metrics
+
+**Automated Monitoring**
+- Triggers on files >200 lines during post-edit
+- Warning at complexity 30-39
+- Critical at complexity ≥40 (auto-spawns refactor agent)
+
+```bash
+# Quick analysis
+./tools/simple-complexity.sh script.sh
+
+# Function-level breakdown
+./tools/calculate-complexity.sh script.sh
+
+# Multi-language professional analysis
+lizard src/module.ts --CCN 30
+```
+
+**See:** `readme/logs-tools.md` for complete documentation
+
 ### Templates & Patterns
 
 - Agent creation templates (simple, standard, advanced)

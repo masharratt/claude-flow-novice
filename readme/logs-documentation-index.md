@@ -82,13 +82,19 @@
    - Post-edit pipeline
    - Lifecycle integration
 
-2. **[logs-functions.md](./logs-functions.md)**
+2. **[logs-tools.md](./logs-tools.md)**
+   - Complexity analysis tools
+   - Simple bash analyzer (~23ms)
+   - Multi-language Lizard integration
+   - Automated refactoring via cyclomatic-complexity-reducer agent
+
+3. **[logs-functions.md](./logs-functions.md)**
    - Utility functions
    - Coordination helpers
    - Performance optimization tools
    - Feedback management (CFN Loop)
 
-3. **[logs-cli-redis.md](./logs-cli-redis.md)**
+4. **[logs-cli-redis.md](./logs-cli-redis.md)**
    - Redis CLI integration
    - State management patterns
    - Feedback storage (CFN Loop iterations)

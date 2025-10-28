@@ -1,0 +1,67 @@
+name: Complexity Report
+
+# DISABLED: Complexity analysis now runs in post-edit pipeline
+# Re-enable by uncommenting the 'on:' section below
+
+# on:
+#   pull_request:
+#   schedule:
+#     - cron: '0 0 * * 0'  # Weekly on Sunday
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  complexity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Lizard
+        run: pip install lizard
+
+      - name: Run Complexity Analysis
+        run: |
+          echo "# Complexity Report" > complexity-report.md
+          echo "" >> complexity-report.md
+          echo "## High Complexity Functions (>20)" >> complexity-report.md
+          echo "" >> complexity-report.md
+          lizard -C 20 src/ .claude/skills/ --exclude "*/node_modules/*" >> complexity-report.md
+
+      - name: Check for High Complexity
+        run: |
+          # Fail if any function has complexity >40
+          HIGH_COMPLEXITY=$(lizard -C 40 src/ .claude/skills/ --exclude "*/node_modules/*" | grep -c "^[^=]" || echo 0)
+
+          if [ "$HIGH_COMPLEXITY" -gt 0 ]; then
+            echo "::error::Found $HIGH_COMPLEXITY functions with complexity >40"
+            lizard -C 40 src/ .claude/skills/ --exclude "*/node_modules/*"
+            exit 1
+          fi
+
+      - name: Upload Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: complexity-report
+          path: complexity-report.md
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('complexity-report.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });

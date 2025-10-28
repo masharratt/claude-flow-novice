@@ -28,6 +28,8 @@
     "!scripts/test-*.sh",
     "!scripts/*-validation.cjs",
     "!scripts/deployment/",
+    "tools/simple-complexity.sh",
+    "tools/install-lizard.sh",
     "README.md",
     "LICENSE",
     ".claude/root-claude-distribute/CFN-CLAUDE.md"
@@ -93,6 +95,11 @@
     "socket.io": "^4.8.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7"
+  },
+  "optionalDependencies": {},
+  "peerDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
   },
   "devDependencies": {
     "@swc/cli": "^0.1.62",

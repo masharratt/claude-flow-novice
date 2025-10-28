@@ -22,6 +22,7 @@ Claude Flow implements a sophisticated, multi-layered hooks system for automated
 - Security scanning
 - Format validation
 - TDD compliance check
+- Cyclomatic complexity analysis
 
 **Example:**
 ```bash
@@ -35,6 +36,7 @@ Claude Flow implements a sophisticated, multi-layered hooks system for automated
 - Non-blocking by default
 - Configurable validation levels
 - Redis coordination support
+- Automatic complexity monitoring
 
 ## Validation Hook Configuration
 
@@ -56,6 +58,51 @@ Claude Flow implements a sophisticated, multi-layered hooks system for automated
     "critical": 0.95
   }
 }
+```
+
+## Cyclomatic Complexity Analysis
+
+**Purpose**: Monitor code complexity to identify refactoring needs
+
+**Trigger Conditions**:
+- Files >200 lines
+- Extensions: `.sh`, `.js`, `.ts`, `.py`, `.java`, `.go`, `.rb`, `.php`, `.c`, `.cpp`
+
+**Thresholds**:
+- **30-39**: Warning (exit code 8)
+- **≥40**: Critical (exit code 7, triggers Lizard analysis)
+
+**Tools**:
+```bash
+# Simple analysis (bash)
+./.claude/hooks/simple-complexity.sh "$FILE"
+
+# Multi-language analysis (Python + Lizard)
+lizard "$FILE" --CCN 30
+```
+
+**Configuration**:
+```json
+{
+  "complexity": {
+    "enabled": true,
+    "minLines": 200,
+    "warnThreshold": 30,
+    "criticalThreshold": 40,
+    "extensions": [".sh", ".js", ".ts", ".py"]
+  }
+}
+```
+
+**Exit Codes**:
+- `7`: Critical complexity (≥40)
+- `8`: Warning complexity (30-39)
+- `0`: Pass (<30)
+
+**Example Output**:
+```
+⚠️ Complexity: 35 (Warning)
+Functions >30: process_data(35), validate_input(32)
 ```
 
 ## Hook Types

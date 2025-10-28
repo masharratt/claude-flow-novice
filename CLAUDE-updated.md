@@ -57,6 +57,7 @@ cp CFN-CLAUDE.md CLAUDE.md      # Activate CFN workflows for CLI agents
 * **ALL agent communication** via Redis pub/sub (no direct file coordination)
 * **NEVER HARDCODE API KEYS**
 * **Sleep on repeat** when monitoring background processes
+* **USE GREP INSTEAD OF FIND** - it's less resource intensive in our WSL2 instances
 
 ### Agent Output Standards
 * **Bug documentation**: `docs/BUG_#_*.md`

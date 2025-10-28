@@ -30,7 +30,69 @@ npx cfn-init  # Copies namespace-isolated files
   - Size: 2.4 MB unpacked (573 KB tarball)
   - Files: 303 files (68% reduction)
 
-[... rest of previous content remains unchanged ...]
+### 7. Cyclomatic Complexity Analysis
+
+#### Purpose
+Automatic code complexity monitoring integrated into post-edit pipeline
+
+#### Features
+- **Automatic Analysis**: Triggers on files >200 lines
+- **Two-Tier Warnings**:
+  - Complexity 30-39: Warning (exit code 8)
+  - Complexity ≥40: Critical + detailed Lizard analysis (exit code 7)
+- **Multi-Language Support**: Bash, JavaScript, TypeScript, Python
+- **Performance**: ~23ms overhead per file
+
+#### Tools
+- **simple-complexity.sh**: Fast bash-native analyzer
+- **Lizard**: Professional multi-language analyzer (auto-installed)
+- **cyclomatic-complexity-reducer agent**: Automated refactoring
+
+#### Integration
+- Post-edit hook runs automatically
+- GitHub Actions workflow (manual trigger)
+- Real-time feedback during development
+
+#### Configuration
+```bash
+# Disable in .claude/hooks/post-edit.config.json
+"complexityChecks": { "enabled": false }
+
+# Adjust thresholds in config/hooks/post-edit-pipeline.js
+if (complexity >= 30) { /* warning */ }
+if (complexity >= 40) { /* critical */ }
+```
+
+#### Output
+**Warning (30-39)**:
+```json
+{
+  "status": "COMPLEXITY_WARNING",
+  "metrics": { "cyclomaticComplexity": 35 },
+  "recommendations": [{
+    "type": "complexity",
+    "priority": "medium",
+    "message": "Cyclomatic complexity is 35 (threshold: 30)",
+    "action": "Consider refactoring to reduce complexity"
+  }]
+}
+```
+
+**Critical (≥40)**:
+```json
+{
+  "status": "COMPLEXITY_CRITICAL",
+  "metrics": { "cyclomaticComplexity": 74 },
+  "complexityAnalysis": {
+    "tool": "lizard",
+    "detailedReport": "NLOC  CCN  token  PARAM  length  location\n..."
+  },
+  "recommendations": [{
+    "priority": "critical",
+    "action": "Run cyclomatic-complexity-reducer agent"
+  }]
+}
+```
 
 ### 8. CFN Loop v3 Dual-Mode Architecture
 

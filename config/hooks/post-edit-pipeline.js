@@ -304,7 +304,7 @@ if (ext.match(/\.(js|ts|jsx|tsx|py|go|rs)$/) && !filePath.match(/\.(test|spec)\.
 }
 
 // ============================================================================
-// PHASE 5: Code Metrics and Coverage
+// PHASE 5: Code Metrics and Complexity Analysis
 // ============================================================================
 
 log('VALIDATING', 'Calculating code metrics');
@@ -325,6 +325,174 @@ results.metrics = {
 };
 
 log('SUCCESS', 'Code metrics calculated', results.metrics);
+
+// ============================================================================
+// PHASE 5.1: Cyclomatic Complexity Analysis
+// ============================================================================
+
+log('VALIDATING', 'Analyzing cyclomatic complexity');
+
+// Only analyze files >200 lines to reduce overhead
+if (lines > 200 && ext.match(/\.(sh|js|ts|jsx|tsx|py)$/)) {
+  try {
+    // Use simple-complexity.sh for bash scripts
+    if (ext === '.sh') {
+      const complexityResult = spawnSync('bash', [
+        'tools/simple-complexity.sh',
+        filePath
+      ], {
+        encoding: 'utf-8',
+        timeout: 5000
+      });
+
+      if (complexityResult.status === 0) {
+        const output = complexityResult.stdout;
+        const complexityMatch = output.match(/Total Complexity:\s*(\d+)/);
+
+        if (complexityMatch) {
+          const complexity = parseInt(complexityMatch[1], 10);
+          results.metrics.cyclomaticComplexity = complexity;
+
+          log('SUCCESS', `Cyclomatic complexity: ${complexity}`, { complexity });
+
+          // Warning threshold: 30
+          if (complexity >= 30 && complexity < 40) {
+            log('COMPLEXITY_WARNING', `Moderate complexity detected: ${complexity}`, {
+              threshold: 30,
+              complexity
+            });
+
+            results.recommendations.push({
+              type: 'complexity',
+              priority: 'medium',
+              message: `Cyclomatic complexity is ${complexity} (threshold: 30)`,
+              action: 'Consider refactoring to reduce complexity'
+            });
+          }
+
+          // Critical threshold: 40 - invoke lizard for detailed analysis
+          if (complexity >= 40) {
+            log('COMPLEXITY_CRITICAL', `High complexity detected: ${complexity}, invoking lizard`, {
+              threshold: 40,
+              complexity
+            });
+
+            // Check if lizard is available
+            const lizardCheck = spawnSync('which', ['lizard'], { encoding: 'utf-8' });
+
+            if (lizardCheck.status === 0) {
+              // Run lizard for detailed analysis
+              const lizardResult = spawnSync('lizard', [
+                filePath,
+                '-C', '15'  // Show functions with complexity >15
+              ], {
+                encoding: 'utf-8',
+                timeout: 10000
+              });
+
+              if (lizardResult.status === 0) {
+                const lizardOutput = lizardResult.stdout;
+
+                log('LIZARD_ANALYSIS', 'Detailed complexity analysis', {
+                  output: lizardOutput
+                });
+
+                results.complexityAnalysis = {
+                  tool: 'lizard',
+                  complexity,
+                  detailedReport: lizardOutput
+                };
+
+                results.recommendations.push({
+                  type: 'complexity',
+                  priority: 'critical',
+                  message: `Critical complexity level: ${complexity} (threshold: 40)`,
+                  action: 'Refactor immediately. Run cyclomatic-complexity-reducer agent',
+                  details: lizardOutput
+                });
+              } else {
+                log('WARN', 'Lizard analysis failed', {
+                  stderr: lizardResult.stderr
+                });
+              }
+            } else {
+              log('WARN', 'Lizard not installed, skipping detailed analysis');
+
+              results.recommendations.push({
+                type: 'complexity',
+                priority: 'critical',
+                message: `Critical complexity level: ${complexity} (threshold: 40)`,
+                action: 'Refactor immediately. Install lizard: ./tools/install-lizard.sh'
+              });
+            }
+          }
+        }
+      } else {
+        log('WARN', 'Complexity analysis failed', {
+          stderr: complexityResult.stderr
+        });
+      }
+    }
+    // For TypeScript/JavaScript, use lizard directly if available
+    else if (ext.match(/\.(js|ts|jsx|tsx)$/)) {
+      const lizardCheck = spawnSync('which', ['lizard'], { encoding: 'utf-8' });
+
+      if (lizardCheck.status === 0) {
+        const lizardResult = spawnSync('lizard', [
+          filePath,
+          '--json'
+        ], {
+          encoding: 'utf-8',
+          timeout: 10000
+        });
+
+        if (lizardResult.status === 0) {
+          try {
+            const lizardData = JSON.parse(lizardResult.stdout);
+
+            // Calculate average complexity
+            let totalComplexity = 0;
+            let functionCount = 0;
+
+            if (lizardData.function_list) {
+              lizardData.function_list.forEach(func => {
+                totalComplexity += func.cyclomatic_complexity || 0;
+                functionCount++;
+              });
+            }
+
+            const avgComplexity = functionCount > 0 ? Math.round(totalComplexity / functionCount) : 0;
+            results.metrics.cyclomaticComplexity = avgComplexity;
+
+            if (avgComplexity >= 30) {
+              log('COMPLEXITY_WARNING', `Average complexity: ${avgComplexity}`, {
+                avgComplexity,
+                functionCount
+              });
+
+              results.recommendations.push({
+                type: 'complexity',
+                priority: avgComplexity >= 40 ? 'critical' : 'medium',
+                message: `Average cyclomatic complexity: ${avgComplexity}`,
+                action: avgComplexity >= 40
+                  ? 'Critical: Refactor high-complexity functions immediately'
+                  : 'Consider refactoring complex functions'
+              });
+            }
+          } catch (parseError) {
+            log('WARN', 'Failed to parse lizard JSON output', {
+              error: parseError.message
+            });
+          }
+        }
+      }
+    }
+  } catch (error) {
+    log('WARN', 'Complexity analysis error', {
+      error: error.message
+    });
+  }
+}
 
 // Check for Rust-specific quality issues
 if (ext === '.rs') {
@@ -384,12 +552,21 @@ log('SUCCESS', `Generated ${results.recommendations.length} recommendations`);
 let exitCode = 0;
 let finalStatus = 'SUCCESS';
 
+// Check for critical complexity issues
+const hasComplexityIssue = results.recommendations.find(r => r.type === 'complexity');
+
 if (results.rootWarning) {
   exitCode = 2;
   finalStatus = 'ROOT_WARNING';
 } else if (results.tddViolation) {
   exitCode = 3;
   finalStatus = 'TDD_VIOLATION';
+} else if (hasComplexityIssue && hasComplexityIssue.priority === 'critical') {
+  exitCode = 7;
+  finalStatus = 'COMPLEXITY_CRITICAL';
+} else if (hasComplexityIssue && hasComplexityIssue.priority === 'medium') {
+  exitCode = 8;
+  finalStatus = 'COMPLEXITY_WARNING';
 } else if (results.rustQuality) {
   exitCode = 5;
   finalStatus = 'RUST_QUALITY';
@@ -422,6 +599,9 @@ if (results.tddViolation) {
 }
 if (results.rustQuality) {
   finalResult.rustQuality = results.rustQuality;
+}
+if (results.complexityAnalysis) {
+  finalResult.complexityAnalysis = results.complexityAnalysis;
 }
 
 log(finalStatus, 'Pipeline validation complete', finalResult);

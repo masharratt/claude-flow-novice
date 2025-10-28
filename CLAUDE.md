@@ -22,6 +22,7 @@
 * **ALL agent communication MUST use Redis pub/sub** - no direct file coordination
 * **NEVER HARDCODE API KEYS**
 * **sleep on repeat** when monitoring a background process. sleep x  minutes, check progress, sleep, repeat
+* **USE GREP INSTEAD OF FIND** - it's less resource intensive in our WSL2 instances
 
 **Agent Output Standards:**
 * **Bug documentation**: `docs/BUG_#_*.md` (investigation, fix summary, validation)
