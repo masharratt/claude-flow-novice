@@ -196,4 +196,4 @@ legacy/v1/**/*.db-wal
 legacy/v1/**/*.db-shm
 legacy/v1/**/build/
 legacy/v1/**/.swc/
-legacy/v1/**/.next/
+legacy/v1/**/.next/planning/global/
