@@ -1,6 +1,14 @@
 {
   "agents": [
     {
+      "name": "api-designer-persona",
+      "description": "Design API architectures and RESTful service specifications in Loop 0.5 Design Consensus.",
+      "type": "planning-consensus",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/architecture/api-designer-persona.md"
+    },
+    {
       "name": "base-template-generator",
       "description": "MUST BE USED when creating foundational templates, boilerplate code, starter configurations, or scaffolding new projects/components/features. use PROACTIVELY for generating component templates, API endpoint skeletons, database model structures, configuration files, test suite scaffolding, documentation templates, build configurations, project initialization, starter kits, module boilerplate. ALWAYS delegate when user asks to \"generate template\", \"create boilerplate\", \"scaffold\", \"initialize project\", \"setup starter\", \"create base structure\", \"generate skeleton\", \"setup configuration\", \"create starter template\". Keywords - template, boilerplate, scaffold, generate, starter, skeleton, base structure, foundational code, setup, initialization, configuration template, component template, API template, model template, test template, documentation template, project setup, module template, starter kit, base configuration",
       "type": "specialist",
@@ -93,12 +101,28 @@
       "file": "cfn-dev-team/dev-ops/github-commit-agent.md"
     },
     {
+      "name": "backend-developer",
+      "description": "MUST BE USED when developing scalable backend services with comprehensive testing.\nUse PROACTIVELY for backend architecture, API design, database optimization, security implementation.\nKeywords - backend, API, database, scalability, security, testing, validation\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/developers/backend-dev.md"
+    },
+    {
       "name": "backend-dev",
       "description": "MUST BE USED when developing robust REST APIs, GraphQL endpoints, backend services.\nUse PROACTIVELY for API routes, controllers, authentication, database queries.\nALWAYS delegate for \"create API\", \"build endpoint\", \"implement REST\", \"GraphQL resolver\".\nKeywords - API, REST, GraphQL, authentication, backend, validation\n",
       "type": "specialist",
       "loop": "strategic",
       "keywords": [],
       "file": "cfn-dev-team/developers/dev-backend-api.md"
+    },
+    {
+      "name": "researcher",
+      "description": "FALLBACK agent for general research when no specialized researcher is available.\nUse ONLY when research doesn't match security-specialist, code-analyzer, or perf-analyzer.\nMUST BE USED for broad research, technology evaluation, documentation analysis.\nUse PROACTIVELY for context analysis, technology comparisons.\nKeywords - general research, investigate, explore, broad analysis, technology comparison\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/developers/researcher.md"
     },
     {
       "name": "rust-developer",
@@ -117,6 +141,14 @@
         "React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module"
       ],
       "file": "cfn-dev-team/developers/frontend/mobile-dev.md"
+    },
+    {
+      "name": "react-frontend-engineer",
+      "description": "MUST BE USED when developing React components and frontend interfaces.\nUse PROACTIVELY for React development, UI implementation, component libraries, state management.\nKeywords - React, frontend, UI, components, TypeScript, state management, responsive design\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/developers/frontend/react-frontend-engineer.md"
     },
     {
       "name": "mobile-dev",
@@ -175,6 +207,28 @@
       "loop": "strategic",
       "keywords": [],
       "file": "cfn-dev-team/documentation/specification.md"
+    },
+    {
+      "name": "accessibility-advocate-persona",
+      "description": "MUST BE USED when evaluating accessibility, WCAG compliance, assistive technology support, and inclusive design.\nUse PROACTIVELY for accessibility audits, ARIA implementation, keyboard navigation, screen reader testing, color contrast validation.\nKeywords - accessibility, WCAG, ARIA, screen reader, keyboard navigation, inclusive design, a11y\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/product-owners/accessibility-advocate-persona.md"
+    },
+    {
+      "name": "cto-agent",
+      "description": "MUST BE USED when evaluating technical architecture, security posture, scalability, and engineering quality.\nUse PROACTIVELY for design reviews, security audits, performance analysis, technical debt assessment, code quality validation.\nALWAYS delegate when user asks to \"review architecture\", \"security audit\", \"technical feasibility\", \"scalability assessment\", \"code review\", \"technical debt analysis\", \"performance evaluation\".\nKeywords - CTO, architecture, security, scalability, performance, technical debt, code quality, engineering standards, feasibility, technology stack, infrastructure\n",
+      "type": "coordinator",
+      "loop": "coordinator",
+      "keywords": [
+        "technology-strategy",
+        "executive-decision",
+        "innovation",
+        "leadership",
+        "technical-vision"
+      ],
+      "file": "cfn-dev-team/product-owners/cto-agent.md"
     },
     {
       "name": "power-user-persona",
@@ -297,6 +351,14 @@
       "file": "cfn-dev-team/testers/playwright-tester.md"
     },
     {
+      "name": "tester",
+      "description": "MUST BE USED when performing comprehensive testing and quality validation.\nUse PROACTIVELY for test strategy design, E2E testing, performance testing, edge case validation.\nKeywords - testing, QA, validation, E2E, performance, quality assurance, test automation\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/testers/tester.md"
+    },
+    {
       "name": "playwright-tester",
       "description": "Automated end-to-end testing agent for web portal testing using Playwright.\nMUST BE USED for comprehensive web interface validation.\nALWAYS include cross-browser, performance, and integration testing.\nkeywords: [\"end-to-end-testing\", \"web-portal-validation\", \"cross-browser-testing\", \"playwright-automation\", \"performance-benchmarking\", \"integration-testing\", \"web-quality-assurance\"]\n",
       "type": "tester",
@@ -361,6 +423,14 @@
       "file": "cfn-dev-team/utility/context-curator.md"
     },
     {
+      "name": "researcher",
+      "description": "FALLBACK agent for general research when no specialized researcher is available.\nUse ONLY when research doesn't match security-specialist, code-analyzer, or perf-analyzer.\nMUST BE USED for broad research, technology evaluation, documentation analysis, web search.\nUse PROACTIVELY for context analysis, technology comparisons.\nKeywords - general research, investigate, explore, broad analysis, technology comparison\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/utility/researcher.md"
+    },
+    {
       "name": "test-mcp-access",
       "description": "Test agent for verifying MCP tool access.\nKeywords - test, mcp, playwright, chrome-devtools\n",
       "type": "specialist",
@@ -377,6 +447,6 @@
       "file": "project-only-agents/npm-package-specialist.md"
     }
   ],
-  "last_updated": "2025-10-29T22:06:45Z",
-  "total_agents": 40
+  "last_updated": "2025-10-29T22:53:48Z",
+  "total_agents": 48
 }

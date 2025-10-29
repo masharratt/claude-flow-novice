@@ -14,8 +14,10 @@ acl_level: 1
 validation_hooks:
   - agent-template-validator
 lifecycle:
-  pre_task: "sqlite-cli exec 'INSERT INTO agents (id, type, status, spawned_at) VALUES ('\''${AGENT_ID}'\'', '\''researcher'\'', '\''active'\'', CURRENT_TIMESTAMP)'"
-  post_task: "sqlite-cli exec 'UPDATE agents SET status = '\''completed'\'', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '\''${AGENT_ID}'\'''"
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'researcher', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 ---
 
 # Researcher Agent

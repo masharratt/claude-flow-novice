@@ -1,3 +1,23 @@
+---
+name: backend-developer
+description: |
+  MUST BE USED when developing scalable backend services with comprehensive testing.
+  Use PROACTIVELY for backend architecture, API design, database optimization, security implementation.
+  Keywords - backend, API, database, scalability, security, testing, validation
+tools: [Read, Write, Edit, Bash, Grep, TodoWrite]
+model: sonnet
+type: specialist
+acl_level: 1
+validation_hooks:
+  - agent-template-validator
+  - test-coverage-validator
+lifecycle:
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'backend-developer', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
+---
+
 # Backend Developer Agent
 
 ## Core Responsibilities

@@ -809,6 +809,50 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
   # Step 9: Execute decision
   case "$FINAL_DECISION" in
     PROCEED)
+      # Launch ACE reflection in background (Loop 5)
+      echo "[Loop 5] Launching reflection in background..."
+
+      # Ensure log directory exists
+      mkdir -p "$PROJECT_ROOT/.artifacts/logs"
+
+      # Build reflection context from CFN Loop execution
+      REFLECTION_CONTEXT=$(cat <<EOF
+{
+  "task_id": "$TASK_ID",
+  "task_type": "cfn_loop",
+  "mode": "$MODE",
+  "iterations_completed": $ITERATIONS_COMPLETED,
+  "loop3_agents": "$LOOP3_AGENTS",
+  "loop2_agents": "$LOOP2_AGENTS",
+  "loop3_confidence": $LOOP3_FINAL_CONFIDENCE,
+  "loop2_consensus": $LOOP2_FINAL_CONSENSUS,
+  "gate_threshold": $GATE,
+  "consensus_threshold": $CONSENSUS,
+  "deliverables_verified": $DELIVERABLES_VERIFIED,
+  "epic_context": $EPIC_CONTEXT,
+  "phase_context": $PHASE_CONTEXT,
+  "success_criteria": $SUCCESS_CRITERIA
+}
+EOF
+)
+
+      # Launch reflection in background (non-blocking)
+      (
+        "$PROJECT_ROOT/.claude/skills/cfn-ace-system/invoke-context-reflect.sh" \
+          --context "$REFLECTION_CONTEXT" \
+          --output "/tmp/reflection-${TASK_ID}.json" 2>&1 | \
+          tee -a "$PROJECT_ROOT/.artifacts/logs/ace-reflection-${TASK_ID}.log"
+
+        # Log completion
+        echo "[$(date -Iseconds)] Reflection complete for task $TASK_ID" >> \
+          "$PROJECT_ROOT/.artifacts/logs/ace-reflection-${TASK_ID}.log"
+      ) &
+
+      REFLECTION_PID=$!
+      echo "[Loop 5] Reflection launched (PID: $REFLECTION_PID)"
+      echo ""
+
+      # Continue with output (don't wait for reflection)
       output_result "success"
       exit 0
       ;;

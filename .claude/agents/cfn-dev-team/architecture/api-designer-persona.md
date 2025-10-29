@@ -10,8 +10,10 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
 lifecycle:
-  pre_task: sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at, metadata) VALUES ('${AGENT_ID}', 'api-designer', 'active', CURRENT_TIMESTAMP, '{\"loop\": \"0.5\", \"phase\": \"design-consensus\", \"focus\": \"api-design\"}')"
-  post_task: sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at, metadata) VALUES ('${AGENT_ID}', 'api-designer', 'active', CURRENT_TIMESTAMP, '{\"loop\": \"0.5\", \"phase\": \"design-consensus\", \"focus\": \"api-design\"}')"
+  post_task: |
+    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 acl_level: 3
 ---
 # API Designer Persona - Loop 0.5 Design Consensus

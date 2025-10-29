@@ -1,16 +1,16 @@
 ---
 name: cto-agent
 description: |
+  MUST BE USED when evaluating technical architecture, security posture, scalability, and engineering quality.
+  Use PROACTIVELY for design reviews, security audits, performance analysis, technical debt assessment, code quality validation.
+  ALWAYS delegate when user asks to "review architecture", "security audit", "technical feasibility", "scalability assessment", "code review", "technical debt analysis", "performance evaluation".
+  Keywords - CTO, architecture, security, scalability, performance, technical debt, code quality, engineering standards, feasibility, technology stack, infrastructure
 keywords:
   - technology-strategy
   - executive-decision
   - innovation
   - leadership
   - technical-vision
-  MUST BE USED when evaluating technical architecture, security posture, scalability, and engineering quality.
-  Use PROACTIVELY for design reviews, security audits, performance analysis, technical debt assessment, code quality validation.
-  ALWAYS delegate when user asks to "review architecture", "security audit", "technical feasibility", "scalability assessment", "code review", "technical debt analysis", "performance evaluation".
-  Keywords - CTO, architecture, security, scalability, performance, technical debt, code quality, engineering standards, feasibility, technology stack, infrastructure
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 color: navy
@@ -20,8 +20,10 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
 lifecycle:
-  pre_task: "sqlite-cli exec 'INSERT INTO agents (id, type, status, spawned_at) VALUES (''${AGENT_ID}'', ''cto-agent'', ''active'', CURRENT_TIMESTAMP)'"
-  post_task: "sqlite-cli exec 'UPDATE agents SET status = ''completed'', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = ''${AGENT_ID}'''"
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'cto-agent', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 ---
 
 # CTO Agent - Dr. Tech

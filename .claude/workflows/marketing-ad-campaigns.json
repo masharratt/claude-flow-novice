@@ -1,0 +1,125 @@
+{
+  "meta": {
+    "name": "Multi-Platform Ad Campaign Management",
+    "version": "1.0.0",
+    "description": "Automated workflow for creating, managing, and tracking ad campaigns across Google, Meta, and LinkedIn"
+  },
+  "nodes": [
+    {
+      "id": "budget-validation",
+      "type": "function",
+      "name": "Budget Validation",
+      "parameters": {
+        "jsCode": "const DAILY_MAX = 500;\nconst LIFETIME_MAX = 5000;\n\nconst dailyBudget = $input.item.json.daily_budget;\nconst lifetimeBudget = $input.item.json.lifetime_budget;\n\nif (dailyBudget > DAILY_MAX) {\n  throw new Error(`Daily budget $${dailyBudget} exceeds maximum $${DAILY_MAX}`);\n}\n\nif (lifetimeBudget > LIFETIME_MAX) {\n  throw new Error(`Lifetime budget $${lifetimeBudget} exceeds maximum $${LIFETIME_MAX}`);\n}\n\nreturn $input.item.json;"
+      }
+    },
+    {
+      "id": "platform-switch",
+      "type": "switch",
+      "name": "Platform Routing",
+      "parameters": {
+        "rules": [
+          {"condition": "{{ $input.item.json.platform === 'google' }}", "output": "google-ads-create"},
+          {"condition": "{{ $input.item.json.platform === 'meta' }}", "output": "meta-ads-create"},
+          {"condition": "{{ $input.item.json.platform === 'linkedin' }}", "output": "linkedin-ads-create"}
+        ]
+      }
+    },
+    {
+      "id": "google-ads-create",
+      "type": "httpRequest",
+      "name": "Google Ads Campaign Creation",
+      "parameters": {
+        "method": "POST",
+        "url": "https://googleads.googleapis.com/v14/campaigns",
+        "authentication": {
+          "type": "OAuth2",
+          "scopesList": ["https://www.googleapis.com/auth/adwords"]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            {"name": "name", "value": "{{ $input.item.json.campaign_name }}"},
+            {"name": "budget", "value": "{{ $input.item.json.daily_budget }}"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "meta-ads-create",
+      "type": "httpRequest",
+      "name": "Meta Ads Campaign Creation",
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/act_{{account_id}}/campaigns",
+        "authentication": {
+          "type": "OAuth2",
+          "scopesList": ["ads_management"]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            {"name": "name", "value": "{{ $input.item.json.campaign_name }}"},
+            {"name": "daily_budget", "value": "{{ $input.item.json.daily_budget }}"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "linkedin-ads-create",
+      "type": "httpRequest",
+      "name": "LinkedIn Ads Campaign Creation",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/adCampaigns",
+        "authentication": {
+          "type": "OAuth2",
+          "scopesList": ["w_ads"]
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            {"name": "name", "value": "{{ $input.item.json.campaign_name }}"},
+            {"name": "budget", "value": "{{ $input.item.json.lifetime_budget }}"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "campaign-performance",
+      "type": "httpRequest",
+      "name": "Campaign Performance Retrieval",
+      "parameters": {
+        "method": "GET",
+        "url": "{{ $input.item.json.performanceEndpoint }}",
+        "authentication": {
+          "type": "inherit"
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {"name": "dateRange", "value": "{{ $input.item.json.dateRange || 'last_7_days' }}"},
+            {"name": "metrics", "value": "impressions,clicks,conversions,spend"}
+          ]
+        }
+      }
+    },
+    {
+      "id": "error-handler",
+      "type": "errorHandler",
+      "name": "Comprehensive Error Handling",
+      "parameters": {
+        "maxRetries": 2,
+        "retryStrategy": "exponentialBackoff",
+        "ignoredErrorCodes": ["budget_validation_error"]
+      }
+    }
+  ],
+  "connections": [
+    {"source": "budget-validation", "destination": "platform-switch"},
+    {"source": "platform-switch", "destination": ["google-ads-create", "meta-ads-create", "linkedin-ads-create"]},
+    {"source": ["google-ads-create", "meta-ads-create", "linkedin-ads-create"], "destination": "campaign-performance"},
+    {"source": "campaign-performance", "destination": "error-handler"}
+  ],
+  "settings": {
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": true,
+    "timezone": "UTC"
+  }
+}

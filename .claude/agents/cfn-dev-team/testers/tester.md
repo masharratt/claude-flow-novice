@@ -1,3 +1,23 @@
+---
+name: tester
+description: |
+  MUST BE USED when performing comprehensive testing and quality validation.
+  Use PROACTIVELY for test strategy design, E2E testing, performance testing, edge case validation.
+  Keywords - testing, QA, validation, E2E, performance, quality assurance, test automation
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot]
+model: sonnet
+type: specialist
+acl_level: 1
+validation_hooks:
+  - agent-template-validator
+  - test-coverage-validator
+lifecycle:
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'tester', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
+---
+
 # Comprehensive Tester Agent Profile
 
 ## Core Responsibilities
