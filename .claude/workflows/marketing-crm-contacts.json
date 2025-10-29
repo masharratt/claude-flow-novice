@@ -1,0 +1,86 @@
+{
+    "name": "Marketing CRM Contacts Workflow",
+    "nodes": [
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Authenticate with HubSpot CRM",
+            "parameters": {
+                "authentication": "OAuth2",
+                "oauthTokenUrl": "${HUBSPOT_TOKEN_URL}",
+                "oauthClientId": "${HUBSPOT_CLIENT_ID}",
+                "oauthClientSecret": "${HUBSPOT_CLIENT_SECRET}",
+                "oauthScopes": ["contacts_read", "contacts_write"]
+            }
+        },
+        {
+            "type": "n8n-nodes-base.set",
+            "name": "Prepare Contact Parameters",
+            "parameters": {
+                "values": {
+                    "contact_email": "{{$json.contact_email}}",
+                    "contact_properties": "{{$json.contact_properties}}",
+                    "segment_name": "{{$json.segment_name}}"
+                }
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Create or Update Contact",
+            "parameters": {
+                "method": "POST",
+                "url": "${HUBSPOT_API_BASE}/contacts/v1/contact",
+                "authentication": "predefinedCredentialType",
+                "errorHandler": {
+                    "mode": "exponentialBackoff",
+                    "maxRetries": 2
+                }
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Add Contact to Segment",
+            "parameters": {
+                "method": "POST",
+                "url": "${HUBSPOT_API_BASE}/contacts/v1/lists/{{$json.segment_id}}/add",
+                "authentication": "predefinedCredentialType"
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Get Contact Details",
+            "parameters": {
+                "method": "GET",
+                "url": "${HUBSPOT_API_BASE}/contacts/v1/contact/email/{{$json.contact_email}}/profile",
+                "authentication": "predefinedCredentialType"
+            }
+        },
+        {
+            "type": "n8n-nodes-base.switch",
+            "name": "Contact Synchronization Status",
+            "parameters": {
+                "rules": [
+                    {
+                        "condition": "{{$json.status === 'synchronized'}}",
+                        "output": "Success Path"
+                    },
+                    {
+                        "condition": "{{$json.status === 'error'}}",
+                        "output": "Error Path"
+                    }
+                ]
+            }
+        }
+    ],
+    "connections": {
+        "Authenticate with HubSpot CRM": {
+            "main": [["Prepare Contact Parameters"]]
+        },
+        "Prepare Contact Parameters": {
+            "main": [["Create or Update Contact"]]
+        }
+    },
+    "settings": {
+        "errorWorkflow": true,
+        "saveExecutionProgress": true
+    }
+}

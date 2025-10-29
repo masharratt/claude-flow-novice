@@ -37,13 +37,41 @@
    - DO NOT report high confidence without visual confirmation
    - Document: "Requires browser testing by Main Chat"
 
-### MCP Tool Usage (Browser Automation)
-**Available Tools**:
+### MCP Tool Access (Task Mode)
+
+**When spawned via Task() tool, you have automatic access to:**
+
+#### Playwright MCP Tools
 - `mcp__playwright__browser_navigate` - Navigate to routes
-- `mcp__playwright__browser_snapshot` - Verify DOM structure
-- `mcp__playwright__browser_console_messages` - Check for errors
-- `mcp__playwright__browser_network_requests` - Verify API calls
+- `mcp__playwright__browser_snapshot` - Capture page state (DOM structure)
+- `mcp__playwright__browser_click` - Click elements
+- `mcp__playwright__browser_fill_form` - Fill form fields
+- `mcp__playwright__browser_type` - Type text into elements
+- `mcp__playwright__browser_take_screenshot` - Capture visual screenshots
+- `mcp__playwright__browser_console_messages` - Check console errors
+- `mcp__playwright__browser_network_requests` - Monitor network calls
+- `mcp__playwright__browser_wait_for` - Wait for conditions
+- `mcp__playwright__browser_evaluate` - Execute JavaScript
+- `mcp__playwright__browser_hover` - Hover over elements
+- `mcp__playwright__browser_select_option` - Select dropdown options
+
+#### Chrome DevTools MCP Tools
 - `mcp__chrome-devtools__take_screenshot` - Visual validation
+- `mcp__chrome-devtools__list_console_messages` - Error detection
+- `mcp__chrome-devtools__get_network_request` - API call validation
+- `mcp__chrome-devtools__take_snapshot` - Accessibility tree snapshot
+- `mcp__chrome-devtools__click` - Click elements
+- `mcp__chrome-devtools__fill` - Fill form fields
+- `mcp__chrome-devtools__navigate_page` - Navigate browser
+- `mcp__chrome-devtools__evaluate_script` - Execute JavaScript
+
+#### Z.ai MCP Tools (Visual Analysis)
+- `mcp__zai-mcp-server__analyze_image` - Compare mockups to screenshots
+- `mcp__zai-mcp-server__analyze_video` - Analyze interaction flows
+
+**Note:** These tools are automatically available in Task mode without explicit listing in `tools:` array. Use them for component validation, visual regression testing, and interaction verification during development.
+
+**CLI Mode:** MCP tool availability in CLI-spawned agents is currently unconfirmed.
 
 **Fallback** (if unavailable):
 - Use Bash tool to check Vite/dev server logs

@@ -1,0 +1,382 @@
+{
+  "agents": [
+    {
+      "name": "base-template-generator",
+      "description": "MUST BE USED when creating foundational templates, boilerplate code, starter configurations, or scaffolding new projects/components/features. use PROACTIVELY for generating component templates, API endpoint skeletons, database model structures, configuration files, test suite scaffolding, documentation templates, build configurations, project initialization, starter kits, module boilerplate. ALWAYS delegate when user asks to \"generate template\", \"create boilerplate\", \"scaffold\", \"initialize project\", \"setup starter\", \"create base structure\", \"generate skeleton\", \"setup configuration\", \"create starter template\". Keywords - template, boilerplate, scaffold, generate, starter, skeleton, base structure, foundational code, setup, initialization, configuration template, component template, API template, model template, test template, documentation template, project setup, module template, starter kit, base configuration",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/architecture/base-template-generator.md"
+    },
+    {
+      "name": "goal-planner",
+      "description": "MUST BE USED for goal-oriented action planning with A* search algorithms.\nUse PROACTIVELY for multi-phase planning, goal decomposition, strategic decision-making.\nKeywords - GOAP, A* search, planning, goal decomposition, adaptive replanning\n",
+      "type": "strategic",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/architecture/goal-planner.md"
+    },
+    {
+      "name": "planner",
+      "description": "MUST BE USED for generic task breakdown, basic coordination, milestone planning.\nFALLBACK agent when no specialized planner (goal-planner, architect, project managers) exists.\nKeywords - task decomposition, coordination, planning, milestone tracking\n",
+      "type": "coordinator",
+      "loop": "coordinator",
+      "keywords": [],
+      "file": "cfn-dev-team/architecture/planner.md"
+    },
+    {
+      "name": "system-architect",
+      "description": "MUST BE USED when designing enterprise-grade system architecture, providing technical leadership for distributed systems, microservices, cloud-native solutions.\nUse PROACTIVELY for architectural design, technical strategy, infrastructure planning.\nKeywords - enterprise architecture, system design, technical leadership, architectural patterns\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/architecture/system-architect.md"
+    },
+    {
+      "name": "cfn-frontend-coordinator",
+      "description": "MUST BE USED for frontend CFN Loops with visual iteration workflow.\nCoordinates mockup analysis, brand guidelines, screenshot/video validation.\nUse PROACTIVELY for UI development, visual design implementation, frontend components.\nKeywords - frontend, UI, mockup, visual, screenshot, video, brand-guidelines, design-first, playwright\n",
+      "type": "coordinator",
+      "loop": "coordinator",
+      "keywords": [],
+      "file": "cfn-dev-team/coordinators/cfn-frontend-coordinator.md"
+    },
+    {
+      "name": "cfn-v3-coordinator",
+      "description": "MUST BE USED when starting CFN Loop v3 execution.\nAnalyzes task and returns optimal configuration for loop execution.\nSupports dual-mode (CLI/Task) with Redis context storage.\n",
+      "type": "coordinator",
+      "loop": "coordinator",
+      "keywords": [
+        "cfn-loop",
+        "task-analysis",
+        "agent-selection",
+        "validation",
+        "orchestration"
+      ],
+      "file": "cfn-dev-team/coordinators/cfn-v3-coordinator.md"
+    },
+    {
+      "name": "consensus-builder",
+      "description": "MUST BE USED when building and managing consensus mechanisms for distributed agent coordination and decision-making across swarms.",
+      "type": "implementer",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/coordinators/consensus-builder.md"
+    },
+    {
+      "name": "multi-sprint-coordinator",
+      "description": "Orchestrates epic execution across multiple sprints with dependency management.\nEnsures sequential sprint execution with clear scope boundaries.\n",
+      "type": "coordinator",
+      "loop": "coordinator",
+      "keywords": [
+        "sprint-coordination",
+        "epic-management",
+        "dependency-tracking",
+        "iteration",
+        "planning"
+      ],
+      "file": "cfn-dev-team/coordinators/multi-sprint-coordinator.md"
+    },
+    {
+      "name": "devops-engineer",
+      "description": "MUST BE USED for cloud infrastructure, DevOps automation, and platform engineering.\nUse PROACTIVELY for CI/CD, containerization, Kubernetes, IaC, monitoring, security automation.\nALWAYS delegate when user asks to deploy, setup infrastructure, configure pipelines.\nKeywords - DevOps, infrastructure, CI/CD, Kubernetes, Docker, Terraform, cloud\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/dev-ops/devops-engineer.md"
+    },
+    {
+      "name": "github-commit-agent",
+      "description": "MUST BE USED when creating git commits with CI/CD monitoring and automated workflows.\nUse PROACTIVELY for commit creation, push operations, pipeline monitoring, conventional commits.\nALWAYS delegate when user asks to \"commit changes\", \"create commit\", \"push to github\", \"monitor CI/CD\".\nKeywords - git commit, github, CI/CD, pipeline, conventional commits, automated workflow\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/dev-ops/github-commit-agent.md"
+    },
+    {
+      "name": "backend-dev",
+      "description": "MUST BE USED when developing robust REST APIs, GraphQL endpoints, backend services.\nUse PROACTIVELY for API routes, controllers, authentication, database queries.\nALWAYS delegate for \"create API\", \"build endpoint\", \"implement REST\", \"GraphQL resolver\".\nKeywords - API, REST, GraphQL, authentication, backend, validation\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/developers/dev-backend-api.md"
+    },
+    {
+      "name": "rust-developer",
+      "description": "MUST BE USED when developing systems programming with Rust language.\nUse PROACTIVELY for performance-critical applications and memory safety.\nKeywords: rust, systems programming, performance optimization\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/developers/rust-developer.md"
+    },
+    {
+      "name": "mobile-dev",
+      "description": "MUST BE USED when developing React Native mobile apps, cross-platform mobile UI, or native module integration. ALWAYS delegate for comprehensive mobile app development.",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [
+        "React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module"
+      ],
+      "file": "cfn-dev-team/developers/frontend/mobile-dev.md"
+    },
+    {
+      "name": "mobile-dev",
+      "description": "MUST BE USED when developing React Native mobile apps, cross-platform features, or mobile UI. use PROACTIVELY for iOS/Android development, mobile navigation, native modules, mobile performance, push notifications, camera integration, geolocation. ALWAYS delegate when user asks to 'build mobile app', 'React Native', 'iOS feature', 'Android development', 'mobile UI', 'cross-platform app', 'Expo project', 'mobile screen', 'mobile navigation', 'native bridge'. Keywords - React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module, mobile UI, TouchableOpacity, FlatList, navigation",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/developers/frontend/spec-mobile-react-native.md"
+    },
+    {
+      "name": "ui-designer",
+      "description": "MUST BE USED when designing user interfaces and user experience for web applications.\nUse PROACTIVELY for responsive design, component libraries, and modern UI/UX patterns.\nALWAYS delegate when user asks to \"UI design\", \"user interface\", \"UX design\", \"component design\".\nKeywords - UI design, user experience, responsive design, component libraries, interface design\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [
+        "UI design",
+        "user experience",
+        "responsive design",
+        "component libraries",
+        "interface design",
+        "accessibility",
+        "WCAG",
+        "mobile-first",
+        "design systems"
+      ],
+      "file": "cfn-dev-team/developers/frontend/ui-designer.md"
+    },
+    {
+      "name": "api-documentation",
+      "description": "Specialized API documentation and developer experience optimization",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/documentation/api-docs.md"
+    },
+    {
+      "name": "api-docs",
+      "description": "MUST BE USED for creating comprehensive API documentation.\nUse PROACTIVELY for OpenAPI specs, endpoint documentation.\nALWAYS delegate for \"document API\", \"create Swagger\", \"API reference\".\nKeywords - OpenAPI, Swagger, API documentation, specification\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/documentation/docs-api-openapi.md"
+    },
+    {
+      "name": "pseudocode",
+      "description": "MUST BE USED when designing algorithms, logic flows, or data structures in SPARC methodology.\nUse PROACTIVELY for algorithm design, pseudocode creation, complexity analysis, data structure selection, logic flow mapping.\nKeywords - SPARC, pseudocode, algorithm, logic flow, complexity analysis, Big-O, optimization\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/documentation/pseudocode.md"
+    },
+    {
+      "name": "specification-agent",
+      "description": "MUST BE USED when defining requirements, specifications, or problem analysis in SPARC methodology.\nUse PROACTIVELY for requirements gathering, constraint identification, acceptance criteria definition,\nscope analysis, stakeholder requirements, domain analysis, use case documentation.\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/documentation/specification.md"
+    },
+    {
+      "name": "power-user-persona",
+      "description": "MUST BE USED when evaluating user experience for power users, advanced workflows, and efficiency optimization.\nUse PROACTIVELY for workflow analysis, keyboard navigation testing, performance feedback, feature completeness validation, power user advocacy.\nALWAYS delegate when user asks to \"test power user features\", \"keyboard shortcuts\", \"workflow efficiency\", \"advanced features\", \"user experience review\", \"performance testing\".\nKeywords - power user, advanced user, workflow, keyboard shortcuts, efficiency, performance, user experience, productivity, features, customization, shortcuts\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/product-owners/power-user-persona.md"
+    },
+    {
+      "name": "product-owner-agent",
+      "description": "Product owner for strategic business decision-making and customer value optimization.",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [
+        "product-strategy",
+        "feature-prioritization",
+        "user-value",
+        "market-alignment",
+        "roadmap-planning"
+      ],
+      "file": "cfn-dev-team/product-owners/product-owner-agent.md"
+    },
+    {
+      "name": "product-owner",
+      "description": "CFN Loop Product Owner using Goal-Oriented Action Planning (GOAP) for autonomous scope enforcement and decision authority.",
+      "type": "strategic",
+      "loop": "strategic",
+      "keywords": [
+        "product-owner",
+        "cfn-loop",
+        "goap",
+        "scope-enforcement",
+        "decision-authority",
+        "strategic-planning",
+        "autonomous-execution",
+        "consensus-validation"
+      ],
+      "file": "cfn-dev-team/product-owners/product-owner.md"
+    },
+    {
+      "name": "reviewer",
+      "description": "MUST BE USED for code quality validation, security review, and consensus building.",
+      "type": "validator",
+      "loop": "loop2",
+      "keywords": [],
+      "file": "cfn-dev-team/reviewers/reviewer.md"
+    },
+    {
+      "name": "code-analyzer",
+      "description": "MUST BE USED for comprehensive code quality assessment. Analyze code quality, performance, and security in implementation phase.",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/reviewers/quality/analyze-code-quality.md"
+    },
+    {
+      "name": "code-quality-validator",
+      "description": "MUST BE USED when performing deep code quality analysis, technical debt assessment, architecture conformance checking.\nUse PROACTIVELY for codebase health analysis, refactoring recommendations, complexity analysis.\nKeywords - code analysis, quality validation, technical debt, code smells, complexity\n",
+      "type": "validator",
+      "loop": "loop2",
+      "keywords": [],
+      "file": "cfn-dev-team/reviewers/quality/code-analyzer.md"
+    },
+    {
+      "name": "cyclomatic-complexity-reducer",
+      "description": "MUST BE USED when reducing cyclomatic complexity in shell scripts and code.\nUse PROACTIVELY for refactoring complex scripts, reducing decision points, improving maintainability.\nKeywords - complexity, refactor, cyclomatic, simplify, maintainability, decision-points\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/reviewers/quality/cyclomatic-complexity-reducer.md"
+    },
+    {
+      "name": "perf-analyzer",
+      "description": "MUST BE USED when analyzing application performance, identifying bottlenecks, profiling code.\nUse PROACTIVELY for performance optimization, load testing, memory analysis.\nKeywords - performance analysis, bottleneck detection, profiling, optimization\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/reviewers/quality/perf-analyzer.md"
+    },
+    {
+      "name": "performance-benchmarker",
+      "description": "Comprehensive performance analysis for distributed consensus protocols",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/reviewers/quality/performance-benchmarker.md"
+    },
+    {
+      "name": "security-specialist",
+      "description": "MUST BE USED when conducting security audits, vulnerability assessments, penetration testing, or implementing security controls.\nPROACTIVELY validates threat models, security architecture, cryptographic implementations, Zero Trust deployment.\nKeywords - security audit, vulnerability, threat model, penetration test, encryption, authentication, CVE, OWASP\n",
+      "type": "validator",
+      "loop": "loop2",
+      "keywords": [],
+      "file": "cfn-dev-team/reviewers/quality/security-specialist.md"
+    },
+    {
+      "name": "interaction-tester",
+      "description": "MUST BE USED for UI, accessibility, integration, and e2e testing.\nUse PROACTIVELY for testing complex user interactions and workflows.\nALWAYS delegate comprehensive testing scenarios.\nKeywords - interaction testing, integration tests, e2e, UI testing, accessibility, user flows\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [
+        "interaction testing",
+        "integration tests",
+        "e2e",
+        "UI testing",
+        "accessibility",
+        "user flows",
+        "WCAG compliance",
+        "component testing"
+      ],
+      "file": "cfn-dev-team/testers/interaction-tester.md"
+    },
+    {
+      "name": "playwright-tester",
+      "description": "MUST BE USED for end-to-end browser testing with Playwright.\nAutomate UI workflows, validate user interactions across browsers.\nkeywords: [\"playwright-testing\", \"end-to-end-automation\", \"browser-validation\", \"ui-workflow-testing\", \"cross-browser-compatibility\", \"test-infrastructure\", \"quality-assurance\"]\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/testers/playwright-tester.md"
+    },
+    {
+      "name": "playwright-tester",
+      "description": "Automated end-to-end testing agent for web portal testing using Playwright.\nMUST BE USED for comprehensive web interface validation.\nALWAYS include cross-browser, performance, and integration testing.\nkeywords: [\"end-to-end-testing\", \"web-portal-validation\", \"cross-browser-testing\", \"playwright-automation\", \"performance-benchmarking\", \"integration-testing\", \"web-quality-assurance\"]\n",
+      "type": "tester",
+      "loop": "loop2",
+      "keywords": [],
+      "file": "cfn-dev-team/testers/e2e/playwright-agent.md"
+    },
+    {
+      "name": "tdd-london-unit-swarm",
+      "description": "Specialized unit testing agent for London School Test-Driven Development.\nUse PROACTIVELY for interaction-focused unit testing, mock verification.\nALWAYS focus on object collaboration and behavior contracts.\nkeywords: [\"unit-testing\", \"london-school-tdd\", \"interaction-testing\", \"mock-verification\", \"behavior-contracts\", \"object-collaboration\", \"test-driven-design\"]\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/testers/unit/tdd-london-swarm.md"
+    },
+    {
+      "name": "validation-production-validator",
+      "description": "MUST BE USED for final validation of production deployments.\nEnsure system reliability, user safety, and organizational compliance.\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [
+        "production-validation",
+        "deployment-readiness",
+        "system-reliability",
+        "compliance-verification",
+        "final-gate-check",
+        "release-assurance",
+        "safety-validation"
+      ],
+      "file": "cfn-dev-team/testers/validation/production-validator.md"
+    },
+    {
+      "name": "agent-identifier",
+      "description": "Clear, concise purpose",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/utility/agent-builder.md"
+    },
+    {
+      "name": "analyst",
+      "description": "MUST BE USED when analyzing code quality, identifying performance bottlenecks, assessing technical debt.\nUse PROACTIVELY for code reviews, vulnerability scanning, dependency analysis, complexity evaluation.\nKeywords - analyze, review, audit, assess, evaluate, inspect, scan, bottlenecks, vulnerabilities, technical debt, performance\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/utility/analyst.md"
+    },
+    {
+      "name": "code-booster",
+      "description": "MUST BE USED when performance-critical code tasks require WASM acceleration. Proactively optimize code, analyze performance, generate high-performance implementations.",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/utility/code-booster.md"
+    },
+    {
+      "name": "context-curator",
+      "description": "MUST BE USED for intelligent context merging and prioritization.\nUse PROACTIVELY for multi-source context integration, cognitive reflection management, adaptive learning.\nKeywords - context, merge, prioritize, reflection, adaptive, learning, strategy\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/utility/context-curator.md"
+    },
+    {
+      "name": "test-mcp-access",
+      "description": "Test agent for verifying MCP tool access.\nKeywords - test, mcp, playwright, chrome-devtools\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "custom/test-mcp-access.md"
+    },
+    {
+      "name": "npm-package-specialist",
+      "description": "MUST BE USED for npm package creation, publishing, and maintenance.\nUse PROACTIVELY for package.json configuration, versioning, dependency management.\nALWAYS delegate when user asks to \"create package\", \"publish npm\", \"setup module\", \"package configuration\".\nKeywords - npm, package, publish, module, versioning, dependencies, registry\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "project-only-agents/npm-package-specialist.md"
+    }
+  ],
+  "last_updated": "2025-10-29T22:06:45Z",
+  "total_agents": 40
+}

@@ -35,6 +35,37 @@ capabilities:
 
 # Interaction Tester Agent
 
+## MCP Tool Access (Task Mode)
+
+**When spawned via Task() tool, you have automatic access to:**
+
+### Playwright MCP Tools
+- `mcp__playwright__browser_navigate` - Navigate to URLs
+- `mcp__playwright__browser_snapshot` - Capture page state (DOM structure)
+- `mcp__playwright__browser_click` - Click elements
+- `mcp__playwright__browser_fill_form` - Fill form fields
+- `mcp__playwright__browser_type` - Type text into elements
+- `mcp__playwright__browser_take_screenshot` - Capture visual screenshots
+- `mcp__playwright__browser_console_messages` - Check console errors
+- `mcp__playwright__browser_network_requests` - Monitor network calls
+- `mcp__playwright__browser_wait_for` - Wait for conditions
+- `mcp__playwright__browser_evaluate` - Execute JavaScript
+- `mcp__playwright__browser_hover` - Hover over elements
+- `mcp__playwright__browser_select_option` - Select dropdown options
+
+### Chrome DevTools MCP Tools
+- `mcp__chrome-devtools__take_screenshot` - Visual validation
+- `mcp__chrome-devtools__list_console_messages` - Error detection
+- `mcp__chrome-devtools__get_network_request` - API call validation
+- `mcp__chrome-devtools__take_snapshot` - Accessibility tree snapshot
+- `mcp__chrome-devtools__click` - Click elements
+- `mcp__chrome-devtools__fill` - Fill form fields
+- `mcp__chrome-devtools__evaluate_script` - Execute JavaScript
+
+**Note:** These tools are automatically available in Task mode without explicit listing in `tools:` array. Use them to complement test scripts for interactive debugging, validation, and user flow testing.
+
+**CLI Mode:** MCP tool availability in CLI-spawned agents is currently unconfirmed.
+
 ## Core Responsibilities
 
 ### Testing Domains

@@ -1,0 +1,97 @@
+{
+  "epicId": "cfn-marketing-n8n-phase4-intelligence",
+  "name": "Phase 4: Intelligence & Optimization",
+  "description": "Deploy 2 MCP servers for competitive intelligence and landing page A/B testing",
+  "status": "not_started",
+  "owner": "Marketing & Infrastructure Team",
+  "estimatedDuration": "4 weeks",
+  "weeks": "13-16",
+  "budget": 15720,
+  "parentEpic": "cfn-marketing-n8n-mcp-integration",
+  "overviewFile": "planning/marketing/EPIC_N8N_PHASE4_INTELLIGENCE.md",
+  "dependencies": ["phase-1-core-infrastructure"],
+
+  "mcpServers": [
+    {
+      "serverId": "marketing-competitive-intel",
+      "name": "Competitive Intelligence MCP Server",
+      "platforms": ["BuzzSumo", "SEMrush", "Ahrefs"],
+      "operations": ["search_brand_mentions", "monitor_competitor", "get_trending_topics", "get_backlink_profile", "get_keyword_rankings"],
+      "weeks": "13-14",
+      "agentsEnabled": 3,
+      "dataRefresh": "daily",
+      "competitors": 5,
+      "sources": "50,000+"
+    },
+    {
+      "serverId": "marketing-landing-pages",
+      "name": "Landing Pages MCP Server",
+      "platforms": ["Unbounce", "Instapage"],
+      "operations": ["create_landing_page", "create_ab_test", "publish_page", "get_page_performance", "unpublish_page"],
+      "weeks": "15-16",
+      "agentsEnabled": 2,
+      "templates": 5,
+      "abTestingFramework": {
+        "minSampleSize": 100,
+        "confidenceLevel": 0.95,
+        "minDuration": "7 days"
+      }
+    }
+  ],
+
+  "successCriteria": {
+    "technical": [
+      "2 MCP servers operational (uptime ≥99.5%)",
+      "Competitive intelligence data refresh: Daily",
+      "Landing page A/B tests: 5+ running simultaneously",
+      "API error rate <1%",
+      "All 9 MCP servers operational (Phases 1-4 complete)"
+    ],
+    "business": [
+      "Weekly competitive intelligence reports: Automated",
+      "Competitor monitoring: 5+ competitors tracked",
+      "Landing page A/B tests launched: 10+",
+      "Conversion rate improvement: +20-40%",
+      "Market trend reports: Weekly",
+      "Agent automation rate: 95%"
+    ],
+    "strategicImpact": [
+      "Proactive vs reactive strategy",
+      "Data-driven optimization (A/B testing)",
+      "Competitive advantage identified (keyword gaps, content opportunities)"
+    ]
+  },
+
+  "integrationTest": {
+    "name": "Competitive Intelligence Drives A/B Test Optimization",
+    "workflow": [
+      "Agent #38 analyzes competitor landing pages (5 competitors)",
+      "Agent #38 discovers urgency-driven headlines trend",
+      "Agent #40 creates A/B test (Variant A: current vs Variant B: urgency)",
+      "Agent #40 launches test, drives traffic for 7 days",
+      "Agent #41 analyzes results (Variant B winner: +40% conversion)",
+      "Agent #40 implements Variant B across all landing pages"
+    ],
+    "acceptanceCriteria": [
+      "Competitive intelligence informs A/B test hypothesis",
+      "A/B test achieves statistical significance (95%+ confidence)",
+      "Conversion rate improvement: ≥20% (achieved: +40%)",
+      "Winner implemented across all landing pages"
+    ],
+    "expectedROI": {
+      "trafficPerMonth": 10000,
+      "baselineConversionRate": 0.035,
+      "optimizedConversionRate": 0.049,
+      "additionalConversions": 140,
+      "customerValue": 500,
+      "additionalRevenue": 70000,
+      "annualizedRevenue": 840000
+    }
+  },
+
+  "epicComplete": {
+    "allServersOperational": 9,
+    "agentsEnabled": 23,
+    "percentageOfMarketingDept": 46
+  }
+}

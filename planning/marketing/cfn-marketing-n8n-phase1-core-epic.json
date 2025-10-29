@@ -1,0 +1,90 @@
+{
+  "epicId": "cfn-marketing-n8n-phase1-core",
+  "name": "Phase 1: Core Marketing Infrastructure",
+  "description": "Deploy 4 core MCP servers (email, social, analytics, CRM) to enable 26 marketing agents",
+  "status": "not_started",
+  "owner": "Marketing & Infrastructure Team",
+  "estimatedDuration": "4 weeks",
+  "weeks": "1-4",
+  "budget": 12324,
+  "parentEpic": "cfn-marketing-n8n-mcp-integration",
+  "overviewFile": "planning/marketing/EPIC_N8N_PHASE1_CORE.md",
+
+  "mcpServers": [
+    {
+      "serverId": "marketing-email-campaigns",
+      "name": "Email Campaigns MCP Server",
+      "platforms": ["Mailchimp", "SendGrid", "HubSpot Email"],
+      "operations": ["create_campaign", "schedule_campaign", "send_test_email", "get_campaign_stats", "list_templates"],
+      "week": 1,
+      "agentsEnabled": 5
+    },
+    {
+      "serverId": "marketing-social-publishing",
+      "name": "Social Publishing MCP Server",
+      "platforms": ["Meta (Facebook/Instagram)", "LinkedIn", "Twitter/X", "TikTok"],
+      "operations": ["create_post", "schedule_post", "upload_media", "get_post_stats", "delete_post"],
+      "week": "1-2",
+      "agentsEnabled": 4
+    },
+    {
+      "serverId": "marketing-analytics-data",
+      "name": "Analytics Data MCP Server",
+      "platforms": ["Google Analytics 4", "Meta Insights", "LinkedIn Analytics", "Mailchimp Reports"],
+      "operations": ["get_website_traffic", "get_social_engagement", "get_email_performance", "get_ad_performance", "get_conversion_funnel"],
+      "week": "2-3",
+      "agentsEnabled": 7
+    },
+    {
+      "serverId": "marketing-crm-contacts",
+      "name": "CRM Contacts MCP Server",
+      "platforms": ["HubSpot CRM", "Salesforce"],
+      "operations": ["create_contact", "update_contact", "get_contact", "add_to_segment", "remove_from_segment"],
+      "week": "3-4",
+      "agentsEnabled": 6
+    }
+  ],
+
+  "successCriteria": {
+    "technical": [
+      "4 MCP servers operational (uptime ≥99%)",
+      "Average response time <500ms",
+      "API error rate <2% (learning period)",
+      "26 agents successfully using MCP servers"
+    ],
+    "business": [
+      "Email campaigns created per week: 10+",
+      "Social posts scheduled per week: 30+",
+      "CRM contacts updated per day: 200+",
+      "Analytics dashboards operational",
+      "Agent automation rate: 70%"
+    ],
+    "timeSavings": [
+      "Email campaign creation: 2 hours → 5 minutes (96%)",
+      "Social media scheduling: 1 hour → 2 minutes (97%)",
+      "CRM contact updates: 30 minutes → 1 minute (97%)"
+    ]
+  },
+
+  "integrationTest": {
+    "name": "Product Launch Campaign (Email + Social + CRM + Analytics)",
+    "description": "Coordinated campaign across all 4 MCP servers",
+    "steps": [
+      "Agent #20 creates CRM segment (1,000 contacts)",
+      "Agent #21 creates email campaign targeting segment",
+      "Agent #2 schedules social posts (Instagram, LinkedIn)",
+      "Email sent, social posts published",
+      "Wait 48 hours",
+      "Agent #7 fetches analytics (email + social + website + conversion)",
+      "Agent #7 generates insights report",
+      "Marketing Director reviews, makes go/no-go for Week 2"
+    ],
+    "acceptanceCriteria": [
+      "All 4 MCP servers operational during test",
+      "Email sent to 1,000 contacts (deliverability ≥98%)",
+      "Social posts published on time",
+      "Analytics data retrieved successfully",
+      "Campaign performance: Open rate ≥25%, Click rate ≥5%, Conversion rate ≥2%"
+    ]
+  }
+}

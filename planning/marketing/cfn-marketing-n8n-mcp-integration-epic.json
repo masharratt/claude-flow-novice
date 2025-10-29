@@ -1,0 +1,520 @@
+{
+  "epicId": "cfn-marketing-n8n-mcp-integration",
+  "name": "n8n MCP Integration for CFN Marketing Department",
+  "description": "Deploy 12 domain-specific MCP servers to enable 57 marketing agents with secure, scalable API access to marketing platforms (email, social, ads, CRM, chatbot, SMS, competitive intel, landing pages, press distribution, media outreach, media monitoring)",
+  "status": "not_started",
+  "owner": "Marketing & Infrastructure Team",
+  "estimatedDuration": "22 weeks",
+  "overviewFile": "planning/marketing/EPIC_N8N_MCP_INTEGRATION.md",
+  "architecturePattern": "domain-specific-mcp-servers",
+  "securityModel": "least-privilege-oauth-scopes",
+
+  "phases": [
+    {
+      "phaseId": "phase-1-core-infrastructure",
+      "name": "Core Marketing Infrastructure",
+      "description": "Deploy 4 core MCP servers: email campaigns, social publishing, analytics data, CRM contacts",
+      "file": "planning/marketing/EPIC_N8N_PHASE1_CORE.md",
+      "configFile": "planning/marketing/cfn-marketing-n8n-phase1-core-epic.json",
+      "status": "not_started",
+      "dependencies": [],
+      "estimatedDuration": "4 weeks",
+      "weeks": "1-4",
+      "mcpServers": 4,
+      "agentsEnabled": 26,
+      "budget": 12324,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "name": "Email Campaigns MCP Server",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 1,
+          "dependencies": [],
+          "deliverables": [
+            "marketing-email-campaigns-mcp.json n8n workflow (7 nodes)",
+            ".claude/skills/cfn-marketing-email-campaigns/ CFN skill",
+            "tests/marketing-email-campaigns-test.sh unit tests",
+            ".claude/playbooks/marketing-email-campaign-creation.md playbook"
+          ],
+          "acceptanceCriteria": [
+            "MCP server operational (uptime ≥99%)",
+            "5 agents successfully create email campaigns",
+            "First email campaign scheduled and sent",
+            "Open rate ≥20%, click rate ≥3%"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "name": "Social Publishing MCP Server",
+          "status": "not_started",
+          "duration": "7 days",
+          "week": "1-2",
+          "dependencies": [],
+          "deliverables": [
+            "marketing-social-publishing-mcp.json n8n workflow (8 nodes)",
+            ".claude/skills/cfn-marketing-social-publishing/ CFN skill",
+            "tests/marketing-social-publishing-test.sh unit tests",
+            ".claude/playbooks/marketing-social-media-campaign.md playbook"
+          ],
+          "acceptanceCriteria": [
+            "MCP server operational (uptime ≥99%)",
+            "4 agents successfully schedule social posts",
+            "First multi-platform campaign published (Instagram + LinkedIn + Twitter/X)",
+            "Engagement rate ≥2%",
+            "Media upload success rate ≥99%"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "name": "Analytics Data MCP Server",
+          "status": "not_started",
+          "duration": "7 days",
+          "week": "2-3",
+          "dependencies": [],
+          "deliverables": [
+            "marketing-analytics-data-mcp.json n8n workflow (6 nodes)",
+            ".claude/skills/cfn-marketing-analytics-data/ CFN skill",
+            "tests/marketing-analytics-data-test.sh unit tests",
+            ".claude/playbooks/marketing-analytics-dashboard.md playbook"
+          ],
+          "acceptanceCriteria": [
+            "MCP server operational (uptime ≥99%)",
+            "7 agents successfully fetch analytics data",
+            "First weekly analytics dashboard generated",
+            "Data accuracy: 100% (verified against platform UIs)",
+            "Dashboard generation time: <5 minutes (vs 2 hours manual)"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.4",
+          "name": "CRM Contacts MCP Server",
+          "status": "not_started",
+          "duration": "7 days",
+          "week": "3-4",
+          "dependencies": [],
+          "deliverables": [
+            "marketing-crm-contacts-mcp.json n8n workflow (7 nodes)",
+            ".claude/skills/cfn-marketing-crm-contacts/ CFN skill",
+            "tests/marketing-crm-contacts-test.sh unit tests",
+            ".claude/playbooks/marketing-lead-nurture-flow.md playbook"
+          ],
+          "acceptanceCriteria": [
+            "MCP server operational (uptime ≥99%)",
+            "6 agents successfully create/update CRM contacts",
+            "First lead nurture flow activated (automated email sequence)",
+            "CRM data quality: 100% (no duplicate emails, all required fields populated)",
+            "Contact update time: <1 minute (vs 30 minutes manual)"
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-2-paid-advertising",
+      "name": "Paid Advertising Management",
+      "description": "Deploy 1 complex MCP server for Google Ads, Meta Ads, LinkedIn Ads campaign management",
+      "file": "planning/marketing/EPIC_N8N_PHASE2_PAID_ADS.md",
+      "configFile": "planning/marketing/cfn-marketing-n8n-phase2-paid-ads-epic.json",
+      "status": "not_started",
+      "dependencies": ["phase-1-core-infrastructure"],
+      "estimatedDuration": "4 weeks",
+      "weeks": "5-8",
+      "mcpServers": 1,
+      "agentsEnabled": 5,
+      "budget": 18240,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "name": "MCP Server Foundation (Google Ads)",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 5,
+          "dependencies": ["sprint-1.4"],
+          "acceptanceCriteria": [
+            "MCP server operational (Google Ads only)",
+            "Budget validation working (rejects campaigns with budget >$500/day)",
+            "First Google Ads campaign created (not yet launched)"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "name": "Campaign Launch & Meta Ads Integration",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 6,
+          "dependencies": ["sprint-2.1"],
+          "acceptanceCriteria": [
+            "First Google Ads campaign launched and running",
+            "Meta Ads platform integrated",
+            "Campaign performance (48 hours): ROAS ≥2:1, Cost per conversion ≤$60",
+            "No policy violations"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "name": "Bid Optimization & LinkedIn Ads",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 7,
+          "dependencies": ["sprint-2.2"],
+          "acceptanceCriteria": [
+            "LinkedIn Ads platform integrated",
+            "Bid optimization running hourly",
+            "CPA optimization working: Average CPA ≤$55",
+            "ROAS improvement: Week 7 ROAS ≥3:1"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.4",
+          "name": "Multi-Platform Campaign & Validation",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 8,
+          "dependencies": ["sprint-2.3"],
+          "acceptanceCriteria": [
+            "Multi-platform campaign launched (Google + Meta + LinkedIn)",
+            "Campaign performance (7 days): Total conversions ≥40, Average ROAS ≥3:1",
+            "Phase 2 complete, ready for Phase 3"
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-3-conversational-marketing",
+      "name": "Conversational Marketing (Chatbot & SMS)",
+      "description": "Deploy 2 MCP servers for real-time chatbot conversations and SMS campaigns",
+      "file": "planning/marketing/EPIC_N8N_PHASE3_CONVERSATIONAL.md",
+      "configFile": "planning/marketing/cfn-marketing-n8n-phase3-conversational-epic.json",
+      "status": "not_started",
+      "dependencies": ["phase-1-core-infrastructure"],
+      "estimatedDuration": "4 weeks",
+      "weeks": "9-12",
+      "mcpServers": 2,
+      "agentsEnabled": 6,
+      "budget": 15540,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "name": "Chatbot Conversations MCP Server - Foundation",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 9,
+          "dependencies": ["sprint-1.4"],
+          "acceptanceCriteria": [
+            "MCP server operational (Intercom integration)",
+            "Agent #33 successfully responds to test conversations (<2 seconds)",
+            "Lead qualification logic working (BANT framework)",
+            "First qualified lead created in CRM (via chatbot)"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "name": "Chatbot Launch & Drift Integration",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 10,
+          "dependencies": ["sprint-3.1"],
+          "acceptanceCriteria": [
+            "Chatbot live on website (Intercom widget installed)",
+            "Conversations per day: ≥20",
+            "Qualification rate: ≥50%",
+            "Demo scheduling rate: ≥30%",
+            "Escalation to human: ≤10%"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "name": "SMS Campaigns MCP Server",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 11,
+          "dependencies": ["sprint-1.4"],
+          "acceptanceCriteria": [
+            "MCP server operational (Twilio integration)",
+            "Compliance checks working (opt-in verified, DNC check passed)",
+            "First SMS campaign sent (100+ recipients)",
+            "Delivery rate: ≥98%",
+            "Opt-out rate: ≤2%",
+            "No compliance violations (TCPA, DNC)"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.4",
+          "name": "Multi-Channel Integration",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 12,
+          "dependencies": ["sprint-3.2", "sprint-3.3"],
+          "acceptanceCriteria": [
+            "Multi-channel nurture operational (chatbot + SMS + email)",
+            "100 test visitors → 60 qualified leads (60% qualification rate)",
+            "60 qualified leads → 18 demo bookings (30% conversion rate)",
+            "Phase 3 complete"
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-4-intelligence-optimization",
+      "name": "Intelligence & Optimization",
+      "description": "Deploy 2 MCP servers for competitive intelligence and landing page A/B testing",
+      "file": "planning/marketing/EPIC_N8N_PHASE4_INTELLIGENCE.md",
+      "configFile": "planning/marketing/cfn-marketing-n8n-phase4-intelligence-epic.json",
+      "status": "not_started",
+      "dependencies": ["phase-1-core-infrastructure"],
+      "estimatedDuration": "4 weeks",
+      "weeks": "13-16",
+      "mcpServers": 2,
+      "agentsEnabled": 8,
+      "budget": 15720,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-4.1",
+          "name": "Competitive Intelligence Foundation",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 13,
+          "dependencies": ["sprint-1.4"],
+          "acceptanceCriteria": [
+            "MCP server operational (BuzzSumo + SEMrush integration)",
+            "5 competitors added to monitoring",
+            "First competitive intelligence report generated",
+            "Data refresh frequency: Daily (automated)"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.2",
+          "name": "Competitive Intelligence Automation",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 14,
+          "dependencies": ["sprint-4.1"],
+          "acceptanceCriteria": [
+            "Ahrefs integration complete",
+            "Automated weekly report generated",
+            "First weekly report delivered to Marketing Director",
+            "20+ influencers identified for partnerships"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.3",
+          "name": "Landing Pages MCP Server",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 15,
+          "dependencies": ["sprint-1.4"],
+          "acceptanceCriteria": [
+            "MCP server operational (Unbounce integration)",
+            "5 landing page templates available",
+            "First landing page created and published",
+            "First A/B test launched (2 variants, 50/50 traffic split)"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.4",
+          "name": "A/B Testing Optimization & Epic Complete",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 16,
+          "dependencies": ["sprint-4.3"],
+          "acceptanceCriteria": [
+            "10 A/B tests launched",
+            "3+ winners declared (conversion rate improvement ≥20%)",
+            "Average conversion rate improvement: +20-40%",
+            "All 9 MCP servers operational (Phases 1-4 complete)",
+            "23 agents enabled (46% of marketing department)"
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-5-pr-media-relations",
+      "name": "PR & Media Relations",
+      "description": "Deploy 3 MCP servers for press distribution, media outreach, and media monitoring",
+      "file": "planning/marketing/EPIC_N8N_PHASE5_PR_MEDIA.md",
+      "configFile": "planning/marketing/cfn-marketing-n8n-phase5-pr-media-epic.json",
+      "status": "not_started",
+      "dependencies": ["phase-1-core-infrastructure"],
+      "estimatedDuration": "6 weeks",
+      "weeks": "17-22",
+      "mcpServers": 3,
+      "agentsEnabled": 12,
+      "budget": 26400,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-5.1",
+          "name": "Press Distribution MCP Server",
+          "status": "not_started",
+          "duration": "10 days",
+          "week": "17-18",
+          "dependencies": ["sprint-1.4"],
+          "acceptanceCriteria": [
+            "MCP server operational (PR Newswire integration)",
+            "First press release distributed (10,000+ outlets)",
+            "Distribution metrics tracked (pickup count, estimated reach)",
+            "Distribution time: <5 minutes",
+            "Press release templates operational (5 templates)"
+          ]
+        },
+        {
+          "sprintId": "sprint-5.2",
+          "name": "Media Outreach MCP Server",
+          "status": "not_started",
+          "duration": "10 days",
+          "week": "19-20",
+          "dependencies": ["sprint-5.1"],
+          "acceptanceCriteria": [
+            "MCP server operational (Muck Rack + Mailshake integration)",
+            "Journalist database populated (500+ contacts)",
+            "First pitch campaign launched (50 journalists)",
+            "Pitch response rate: ≥15%",
+            "HARO responses submitted: 2-5 per day"
+          ]
+        },
+        {
+          "sprintId": "sprint-5.3",
+          "name": "Media Monitoring MCP Server",
+          "status": "not_started",
+          "duration": "10 days",
+          "week": "21-22",
+          "dependencies": [],
+          "acceptanceCriteria": [
+            "MCP server operational (Meltwater/Brandwatch integration)",
+            "Real-time monitoring working (<5 minute latency)",
+            "Crisis detection operational (alerts within 15 minutes)",
+            "First crisis response executed (within 2 hours SLA)",
+            "Daily brand mention reports generated automatically",
+            "All 12 MCP servers operational (Phases 1-5 complete)",
+            "57 agents enabled (complete marketing department)"
+          ]
+        }
+      ]
+    }
+  ],
+
+  "backlog": [
+    {
+      "id": "backlog-001",
+      "description": "Multi-platform failover (auto-switch to backup platform if primary API down)",
+      "priority": "medium",
+      "source": "phase-1-core-infrastructure",
+      "deferredAt": "2025-10-28T00:00:00Z",
+      "reason": "Deferred to v2.0 - focus on core integrations first"
+    },
+    {
+      "id": "backlog-002",
+      "description": "Predictive campaign optimization (AI predicts optimal send time, subject line)",
+      "priority": "medium",
+      "source": "phase-1-core-infrastructure",
+      "deferredAt": "2025-10-28T00:00:00Z",
+      "reason": "Deferred to v2.0 - requires ML model training"
+    },
+    {
+      "id": "backlog-003",
+      "description": "Cross-domain analytics (unified dashboard: email + social + ads + CRM)",
+      "priority": "high",
+      "source": "phase-1-core-infrastructure",
+      "deferredAt": "2025-10-28T00:00:00Z",
+      "reason": "Deferred to v2.0 - requires data aggregation MCP server"
+    },
+    {
+      "id": "backlog-004",
+      "description": "Voice/audio marketing (Spotify Ads, podcast platforms)",
+      "priority": "low",
+      "source": "phase-4-intelligence-optimization",
+      "deferredAt": "2025-10-28T00:00:00Z",
+      "reason": "Deferred to v2.0 - Agent #42 (Podcast Script Generator) not yet using MCP"
+    },
+    {
+      "id": "backlog-005",
+      "description": "International expansion (translation APIs, cultural adaptation)",
+      "priority": "low",
+      "source": "phase-4-intelligence-optimization",
+      "deferredAt": "2025-10-28T00:00:00Z",
+      "reason": "Deferred to v2.0 - Agents #44-45 (localization) not yet using MCP"
+    },
+    {
+      "id": "backlog-006",
+      "description": "Podcast outreach (new MCP server for podcast guest booking)",
+      "priority": "medium",
+      "source": "phase-5-pr-media-relations",
+      "deferredAt": "2025-10-28T00:00:00Z",
+      "reason": "Deferred to v2.0 - PR foundation must be solid first"
+    },
+    {
+      "id": "backlog-007",
+      "description": "Event PR (conference speaking, press events, media tours)",
+      "priority": "medium",
+      "source": "phase-5-pr-media-relations",
+      "deferredAt": "2025-10-28T00:00:00Z",
+      "reason": "Deferred to v2.0 - new agents required"
+    },
+    {
+      "id": "backlog-008",
+      "description": "International PR (expand to UK, Canada, Australia media)",
+      "priority": "low",
+      "source": "phase-5-pr-media-relations",
+      "deferredAt": "2025-10-28T00:00:00Z",
+      "reason": "Deferred to v2.0 - focus on US market first"
+    }
+  ],
+
+  "epicAcceptanceCriteria": [
+    "All 12 MCP servers operational (uptime ≥99.5%)",
+    "All 57 marketing agents enabled and using MCP servers",
+    "Average response time <500ms per operation",
+    "API error rate <1%",
+    "OAuth token refresh success rate ≥99%",
+    "Email campaigns created per week: 20+",
+    "Social posts scheduled per week: 50+",
+    "Ad campaigns managed simultaneously: 10+",
+    "Chatbot conversations per week: 100+",
+    "Lead qualification rate: 60%+",
+    "Weekly competitive intelligence reports: Automated",
+    "A/B tests running: 10+",
+    "Conversion rate improvement: +20-40%",
+    "Press releases distributed: 12/year",
+    "Media coverage secured: 210 articles/year",
+    "Agent automation rate: 80-95% (tasks require no human intervention)",
+    "Total monthly infrastructure cost: $200-400 (excluding ad spend, press distributions)",
+    "Time savings ROI: 94-97% time reduction vs manual execution",
+    "All phases complete with ≥90% Loop 2 consensus validation",
+    "Test coverage ≥85% across all MCP servers"
+  ],
+
+  "metrics": {
+    "totalInvestment": 88224,
+    "monthlyInfrastructure": 400,
+    "mcpServersTotal": 12,
+    "agentsEnabledTotal": 57,
+    "expectedRevenueYear1": 317000,
+    "roiPercentage": 409,
+    "timeReductionPercentage": 96,
+    "automationRate": 85
+  },
+
+  "architecture": {
+    "pattern": "domain-specific-mcp-servers",
+    "securityModel": "least-privilege-oauth-scopes",
+    "platforms": [
+      "Mailchimp", "SendGrid", "Meta", "LinkedIn", "Twitter/X", "TikTok",
+      "Google Analytics 4", "HubSpot CRM", "Salesforce", "Google Ads",
+      "Meta Ads", "LinkedIn Ads", "Intercom", "Drift", "Twilio",
+      "BuzzSumo", "SEMrush", "Ahrefs", "Unbounce", "Instapage",
+      "PR Newswire", "Business Wire", "Muck Rack", "Meltwater", "Brandwatch"
+    ],
+    "n8nWorkflowComplexity": "5-10 nodes per MCP server",
+    "cfnSkillsGenerated": 12,
+    "playbooks": "15+ multi-domain playbooks",
+    "databaseTables": 31
+  }
+}

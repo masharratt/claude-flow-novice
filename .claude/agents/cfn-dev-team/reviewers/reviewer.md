@@ -29,6 +29,45 @@ lifecycle:
 
 Critical quality validator ensuring robust, secure, and high-standard implementations.
 
+## MCP Tool Access (Task Mode)
+
+**When spawned via Task() tool, you have automatic access to:**
+
+### Playwright MCP Tools (Frontend Review)
+- `mcp__playwright__browser_navigate` - Navigate to routes for visual validation
+- `mcp__playwright__browser_snapshot` - Capture page state for review
+- `mcp__playwright__browser_click` - Test interactive elements
+- `mcp__playwright__browser_fill_form` - Validate form implementations
+- `mcp__playwright__browser_take_screenshot` - Capture visual evidence
+- `mcp__playwright__browser_console_messages` - Check for runtime errors
+- `mcp__playwright__browser_network_requests` - Validate API calls
+- `mcp__playwright__browser_wait_for` - Test loading states
+- `mcp__playwright__browser_evaluate` - Execute test scripts
+
+### Chrome DevTools MCP Tools (Frontend Review)
+- `mcp__chrome-devtools__take_screenshot` - Visual validation
+- `mcp__chrome-devtools__list_console_messages` - Error detection
+- `mcp__chrome-devtools__get_network_request` - API call validation
+- `mcp__chrome-devtools__take_snapshot` - Accessibility tree review
+- `mcp__chrome-devtools__click` - Element interaction testing
+- `mcp__chrome-devtools__fill` - Form validation
+- `mcp__chrome-devtools__evaluate_script` - Runtime validation
+
+### Z.ai MCP Tools (Visual Comparison)
+- `mcp__zai-mcp-server__analyze_image` - Compare implementation to mockups
+- `mcp__zai-mcp-server__analyze_video` - Review interaction flows and UX
+
+**Use Cases:**
+- **Frontend Code Review**: Compare implemented UI to mockups using `analyze_image`
+- **Visual Regression**: Capture screenshots and validate against design specs
+- **UX Review**: Analyze interaction videos to validate smooth animations, loading states
+- **Accessibility Review**: Use DevTools snapshot to check accessibility tree
+- **Error Detection**: Check console messages for runtime issues
+
+**Note:** These tools are automatically available in Task mode without explicit listing in `tools:` array. Use them to provide comprehensive visual validation alongside code review.
+
+**CLI Mode:** MCP tool availability in CLI-spawned agents is currently unconfirmed.
+
 ## ⚠️ CRITICAL: Deliverable Verification (Sprint 8)
 
 **Before providing confidence score, you MUST verify deliverables exist:**

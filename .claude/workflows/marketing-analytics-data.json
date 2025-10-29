@@ -1,0 +1,93 @@
+{
+    "name": "Marketing Analytics Data Workflow",
+    "nodes": [
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Authenticate with Analytics Platforms",
+            "parameters": {
+                "authentication": "OAuth2",
+                "oauthTokenUrl": "${GA4_TOKEN_URL}",
+                "oauthClientId": "${GA4_CLIENT_ID}",
+                "oauthClientSecret": "${GA4_CLIENT_SECRET}",
+                "oauthScopes": ["analytics_read"]
+            }
+        },
+        {
+            "type": "n8n-nodes-base.set",
+            "name": "Prepare Analytics Request",
+            "parameters": {
+                "values": {
+                    "start_date": "{{$json.start_date}}",
+                    "end_date": "{{$json.end_date}}",
+                    "report_types": ["website_traffic", "conversion", "engagement"]
+                }
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Get Website Traffic",
+            "parameters": {
+                "method": "GET",
+                "url": "${GA4_API_BASE}/reports:batchGet",
+                "authentication": "predefinedCredentialType",
+                "errorHandler": {
+                    "mode": "exponentialBackoff",
+                    "maxRetries": 2
+                }
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Get Social Engagement",
+            "parameters": {
+                "method": "GET",
+                "url": "${META_INSIGHTS_API}/engagement",
+                "authentication": "predefinedCredentialType"
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Get Email Campaign Performance",
+            "parameters": {
+                "method": "GET",
+                "url": "${MAILCHIMP_API_BASE}/reports",
+                "authentication": "predefinedCredentialType"
+            }
+        },
+        {
+            "type": "n8n-nodes-base.function",
+            "name": "Consolidate Analytics Report",
+            "parameters": {
+                "functionCode": "return Object.assign({}, $input.websiteTraffic, $input.socialEngagement, $input.emailPerformance)"
+            }
+        },
+        {
+            "type": "n8n-nodes-base.switch",
+            "name": "Analytics Data Validation",
+            "parameters": {
+                "rules": [
+                    {
+                        "condition": "{{Object.keys($json).length > 0}}",
+                        "output": "Valid Report"
+                    },
+                    {
+                        "condition": "{{Object.keys($json).length === 0}}",
+                        "output": "Empty Report"
+                    }
+                ]
+            }
+        }
+    ],
+    "connections": {
+        "Authenticate with Analytics Platforms": {
+            "main": [["Prepare Analytics Request"]]
+        },
+        "Prepare Analytics Request": {
+            "main": [["Get Website Traffic"]]
+        }
+    },
+    "settings": {
+        "errorWorkflow": true,
+        "saveExecutionProgress": true
+    }
+}

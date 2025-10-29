@@ -54,6 +54,18 @@
    - Mode comparison (MVP/Standard/Enterprise)
    - Performance and resource considerations
 
+4. **[CFN_LOOP_TASK_MODE.md](../.claude/commands/cfn/CFN_LOOP_TASK_MODE.md)**
+   - Task mode execution guide
+   - Agent specialization rules
+   - Adaptive validator scaling
+   - Sprint workflow and backlog management
+
+5. **[CFN_LOOP_FRONTEND.md](../.claude/commands/cfn/CFN_LOOP_FRONTEND.md)**
+   - Frontend CFN Loop with visual iteration
+   - Mockup integration and brand guidelines
+   - Dual validation (screenshot + video)
+   - Playwright integration for UI testing
+
 ### System Features
 1. **[logs-features.md](./logs-features.md)**
    - Complete feature catalog

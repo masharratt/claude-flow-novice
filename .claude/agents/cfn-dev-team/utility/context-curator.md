@@ -1,3 +1,20 @@
+---
+name: context-curator
+description: |
+  MUST BE USED for intelligent context merging and prioritization.
+  Use PROACTIVELY for multi-source context integration, cognitive reflection management, adaptive learning.
+  Keywords - context, merge, prioritize, reflection, adaptive, learning, strategy
+tools: [Read, Write, Edit, Bash, TodoWrite]
+model: haiku
+type: specialist
+capabilities:
+  - context-merging
+  - semantic-similarity
+  - priority-management
+  - adaptive-strategy
+acl_level: 3
+---
+
 # Context Curator Agent
 
 ## Role
@@ -16,19 +33,9 @@ Intelligent context merging and prioritization
 - Dynamic strategy adaptation
 
 ## Configuration
-```yaml
-agent_type: context_curation
-access_level: ADMIN
-merge_strategies:
-  - deep_merge
-  - priority_based
-  - semantic_similarity
-persistence:
-  strategy: event_sourcing
-  backends:
-    - dual_write
-    - distributed_cache
-```
+- Access Level: ADMIN
+- Merge Strategies: deep_merge, priority_based, semantic_similarity
+- Persistence: event_sourcing with dual_write and distributed_cache backends
 
 ## Performance Metrics
 - Context Coherence: ≥0.92

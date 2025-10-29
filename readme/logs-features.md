@@ -158,4 +158,101 @@ Flexible agent spawning with architectural optimization and context management
 - Granular control over spawning behavior
 - Zero-configuration default settings
 
+### 9. Frontend CFN Loop (Visual Iteration Workflow)
+
+#### Purpose
+Specialized CFN Loop for frontend development with visual validation and brand consistency enforcement
+
+#### Key Features
+- **Design-First Approach**
+  - Mockup integration (PNG/JPG images)
+  - Brand guideline extraction from mockups
+  - Design token management (colors, typography, spacing)
+
+- **Dual Validation System**
+  - Screenshot analysis: Visual fidelity (colors, layout, spacing)
+  - Video analysis: Interaction quality (animations, loading states, error handling)
+  - Combined score threshold: ≥85% required
+
+- **Visual Iteration Loop**
+  - Playwright screenshot capture
+  - Playwright video recording (`video: 'on'` in config)
+  - Image analysis via `mcp__zai-mcp-server__analyze_image`
+  - Video analysis via `mcp__zai-mcp-server__analyze_video`
+  - Structured feedback: static discrepancies + interaction issues
+
+- **Coordinator Orchestration**
+  - Coordinator orchestrates only (does NOT implement code)
+  - Spawns frontend specialists (react-frontend-engineer, accessibility-advocate-persona)
+  - Manages iteration cycles based on combined visual + interaction score
+
+#### Integration
+- Works in both CLI and Task modes
+- Supports `/cfn-loop` with `--spawn-mode` parameter
+- Brand guidelines stored in `.claude/brand-guidelines.json`
+
+#### Configuration
+```bash
+# Task Mode (full visibility)
+/cfn-loop-frontend "Build login UI" \
+  --mockup=/path/to/mockup.png \
+  --brand-guidelines=/path/to/brand.json \
+  --spawn-mode=task
+
+# CLI Mode (production)
+/cfn-loop-frontend "Build dashboard" \
+  --mockup=/path/to/dashboard.png \
+  --mode=enterprise
+```
+
+#### Output Artifacts
+- Screenshots: `tests/screenshots/*.png`
+- Videos: `test-results/**/video.webm`
+- Brand guidelines: `.claude/brand-guidelines.json`
+- Sprint docs: `docs/SPRINT_*.md`
+
+#### Documentation
+- Guide: `.claude/commands/cfn/CFN_LOOP_FRONTEND.md`
+- Covers: Phase 0 planning, brand guidelines, visual iteration, validator coordination
+
+### 10. Task Mode Execution (CFN Loop)
+
+#### Purpose
+Simplified CFN Loop execution with direct agent spawning and full visibility
+
+#### Key Differences from CLI Mode
+- **No coordinator agent**: Main Chat coordinates directly
+- **Task() spawning**: Agents spawned via Task tool (not CLI)
+- **Direct context injection**: Context passed to each agent spawn
+- **Anthropic routing**: All agents use Main Chat provider
+
+#### Agent Specialization
+- **Loop 3 (Implementation)**: backend-dev, researcher, mobile-dev, devops, rust-developer
+- **Loop 2 (Validation)**: reviewer, tester, architect, security-specialist, accessibility-advocate-persona
+- **Loop 4 (Product Owner)**: product-owner, product-owner-agent
+
+#### Adaptive Validator Scaling
+| Complexity | Files | LOC | Validators | Agents | Threshold |
+|------------|-------|-----|------------|--------|-----------|
+| Simple | 1-2 | <200 | 2 | reviewer, tester | 0.85 |
+| Standard | 3-5 | 200-500 | 4 | +architect, +security-specialist | 0.90 |
+| Complex/Enterprise | >5 | >500 | 5+ | +code-analyzer, +perf/ada | 0.92-0.95 |
+
+#### Sprint Workflow
+- Main Chat reads guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- Spawns agents in parallel (Loop 3)
+- Collects confidence scores, checks gate threshold
+- Spawns validators (Loop 2)
+- Product Owner makes PROCEED/ITERATE/ABORT decision
+- Git commit + push on PROCEED
+
+#### Backlog Management
+- **P1 (critical)**: Blocking issues, security fixes
+- **P2 (high)**: Important features, performance improvements
+- **P3 (background)**: Nice-to-have features, cleanup tasks
+
+#### Documentation
+- Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- Covers: Agent selection, adaptive scaling, sprint completion, backlog mechanism
+
 [... rest of previous content remains unchanged ...]

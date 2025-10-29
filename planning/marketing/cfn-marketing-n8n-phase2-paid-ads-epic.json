@@ -1,0 +1,78 @@
+{
+  "epicId": "cfn-marketing-n8n-phase2-paid-ads",
+  "name": "Phase 2: Paid Advertising Management",
+  "description": "Deploy 1 complex MCP server for Google Ads, Meta Ads, LinkedIn Ads campaign management",
+  "status": "not_started",
+  "owner": "Marketing & Infrastructure Team",
+  "estimatedDuration": "4 weeks",
+  "weeks": "5-8",
+  "budget": 18240,
+  "parentEpic": "cfn-marketing-n8n-mcp-integration",
+  "overviewFile": "planning/marketing/EPIC_N8N_PHASE2_PAID_ADS.md",
+  "dependencies": ["phase-1-core-infrastructure"],
+
+  "mcpServers": [
+    {
+      "serverId": "marketing-ad-campaigns",
+      "name": "Ad Campaigns MCP Server",
+      "platforms": ["Google Ads", "Meta Ads", "LinkedIn Ads"],
+      "operations": ["create_campaign", "set_budget", "update_bid_strategy", "pause_campaign", "get_campaign_performance"],
+      "weeks": "5-8",
+      "agentsEnabled": 5,
+      "complexity": "high",
+      "budgetValidation": {
+        "dailyBudgetMax": 500,
+        "lifetimeBudgetMax": 5000,
+        "enforcement": "mandatory"
+      }
+    }
+  ],
+
+  "successCriteria": {
+    "technical": [
+      "MCP server operational (uptime ≥99.5%)",
+      "Multi-platform support: Google Ads, Meta Ads, LinkedIn Ads operational",
+      "Average response time <500ms",
+      "API error rate <1%",
+      "Budget validation enforcement: 100%"
+    ],
+    "business": [
+      "Ad campaigns managed simultaneously: 10+",
+      "First ad campaign launched",
+      "ROAS (Return on Ad Spend): ≥3:1",
+      "Ad spend per week: $1,000-$3,000",
+      "Conversions per week: 50+",
+      "Agent automation rate: 85%"
+    ],
+    "costEfficiency": [
+      "Ad campaign setup: 4 hours → 15 minutes (94%)",
+      "Bid optimization: Daily → Hourly (automated)",
+      "Cost per conversion: ≤$50"
+    ]
+  },
+
+  "integrationTest": {
+    "name": "Multi-Platform Product Launch Campaign",
+    "budget": 2000,
+    "duration": "7 days",
+    "platforms": {
+      "googleAds": 1000,
+      "metaAds": 700,
+      "linkedInAds": 300
+    },
+    "acceptanceCriteria": [
+      "All 3 platforms operational",
+      "Campaigns launched simultaneously",
+      "Bid optimization running hourly",
+      "Total conversions: ≥40",
+      "Average ROAS: ≥3:1",
+      "Average CPA: ≤$50",
+      "No policy violations"
+    ],
+    "expectedResults": {
+      "googleAds": {"roas": 3.2, "cpa": 48},
+      "metaAds": {"roas": 2.8, "cpa": 52},
+      "linkedInAds": {"roas": 2.5, "cpa": 65}
+    }
+  }
+}

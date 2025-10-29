@@ -1,0 +1,95 @@
+{
+  "epicId": "cfn-marketing-n8n-phase3-conversational",
+  "name": "Phase 3: Conversational Marketing",
+  "description": "Deploy 2 MCP servers for real-time chatbot conversations and SMS campaigns",
+  "status": "not_started",
+  "owner": "Marketing & Infrastructure Team",
+  "estimatedDuration": "4 weeks",
+  "weeks": "9-12",
+  "budget": 15540,
+  "parentEpic": "cfn-marketing-n8n-mcp-integration",
+  "overviewFile": "planning/marketing/EPIC_N8N_PHASE3_CONVERSATIONAL.md",
+  "dependencies": ["phase-1-core-infrastructure"],
+
+  "mcpServers": [
+    {
+      "serverId": "marketing-chatbot-conversations",
+      "name": "Chatbot Conversations MCP Server",
+      "platforms": ["Intercom", "Drift"],
+      "operations": ["send_message", "get_conversation_history", "qualify_lead", "schedule_demo", "transfer_to_human"],
+      "weeks": "9-10",
+      "agentsEnabled": 3,
+      "realTime": true,
+      "responseSLA": "2 seconds",
+      "leadQualification": {
+        "framework": "BANT",
+        "threshold": 60,
+        "scoring": {
+          "budget": 40,
+          "authority": 20,
+          "need": 20,
+          "timeline": 20
+        }
+      }
+    },
+    {
+      "serverId": "marketing-sms-campaigns",
+      "name": "SMS Campaigns MCP Server",
+      "platforms": ["Twilio", "Plivo"],
+      "operations": ["send_sms", "create_campaign", "schedule_campaign", "get_delivery_status", "opt_out"],
+      "week": 11,
+      "agentsEnabled": 2,
+      "compliance": {
+        "tcpa": true,
+        "dncRegistry": true,
+        "optInRequired": true,
+        "optOutProcessing": "immediate"
+      }
+    }
+  ],
+
+  "successCriteria": {
+    "technical": [
+      "2 MCP servers operational (uptime ≥99.5%)",
+      "Real-time chatbot responses <2 seconds (average)",
+      "SMS delivery rate ≥98%",
+      "API error rate <1%",
+      "WebSocket support operational"
+    ],
+    "business": [
+      "Chatbot live on website",
+      "Chatbot conversations per week: 100+",
+      "Lead qualification rate: ≥60%",
+      "SMS campaigns per week: 5+",
+      "SMS opt-in rate: ≥25%",
+      "Lead response time: <2 minutes",
+      "Agent automation rate: 90%"
+    ],
+    "costEfficiency": [
+      "Lead qualification cost: $5/lead (vs $50 with human SDRs)",
+      "Response time: 2 hours → 2 minutes (98%)",
+      "Lead throughput: 3x increase"
+    ]
+  },
+
+  "integrationTest": {
+    "name": "Multi-Channel Lead Nurture Campaign",
+    "visitors": 100,
+    "workflow": [
+      "100 visitors land on pricing page",
+      "80 visitors engage with chatbot (80% engagement)",
+      "60 leads qualify as MQL (60% qualification)",
+      "60 MQLs receive welcome email + SMS opt-in request",
+      "45 MQLs opt-in to SMS (75% opt-in)",
+      "7-day nurture sequence (email + SMS)",
+      "18 MQLs book demo (30% conversion)"
+    ],
+    "acceptanceCriteria": [
+      "Chatbot engagement rate: ≥75%",
+      "Lead qualification rate: ≥60%",
+      "SMS opt-in rate: ≥70%",
+      "Demo booking rate: ≥25%",
+      "Compliance: 100% (all SMS recipients opted-in, no DNC violations)"
+    ]
+  }
+}

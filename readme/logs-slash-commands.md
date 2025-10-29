@@ -74,6 +74,43 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, CF
   --output markdown
 ```
 
+### `/cfn-loop-frontend`
+**Purpose**: Execute frontend CFN Loop with visual iteration, mockup integration, and brand guideline enforcement
+
+**Parameters:**
+- `--mockup`: Path to UI mockup (PNG/JPG) for visual validation
+- `--brand-guidelines`: Path to brand guidelines JSON (optional, extracted from mockup if not provided)
+- `--mode`: Quality mode - mvp|standard|enterprise (default: standard)
+- `--spawn-mode`: Agent spawning method - cli|task (default: cli)
+- `--max-iterations`: Max visual iteration cycles (default: 5)
+
+**Example:**
+```bash
+# CLI Mode (production)
+/cfn-loop-frontend "Build login UI" \
+  --mockup=/mockups/login.png \
+  --brand-guidelines=/design/brand.json \
+  --mode=standard
+
+# Task Mode (debugging)
+/cfn-loop-frontend "Build dashboard" \
+  --mockup=/mockups/dashboard.png \
+  --spawn-mode=task \
+  --max-iterations=7
+```
+
+**Visual Validation:**
+- Screenshot analysis (static visual fidelity)
+- Video analysis (interaction quality)
+- Combined score threshold: ≥85% (standard mode)
+- Dual validation: Playwright screenshot + video recording
+
+**Output Artifacts:**
+- Screenshots: `tests/screenshots/*.png`
+- Videos: `test-results/**/video.webm`
+- Brand guidelines: `.claude/brand-guidelines.json`
+- Component docs: `docs/*_IMPLEMENTATION.md`
+
 ## Cost-Savings Mode Commands
 
 ### `/cost-savings`

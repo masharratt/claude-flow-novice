@@ -27,7 +27,7 @@ LOOP_MAPPING = {
     "coder": "loop3",
     "developer": "loop3",
     "api-designer": "loop3",
-    "devops": "loop3",
+    "devops-engineer": "loop3",
     "security-specialist": "loop3",
     "researcher": "loop3",
     "reviewer": "loop2",
