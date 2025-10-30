@@ -57,7 +57,7 @@ fi
 
 # Get project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Create Node.js runner script
 RUNNER_SCRIPT=$(mktemp --suffix=.mjs)
@@ -94,7 +94,7 @@ async function queryContexts() {
     throw new Error('Database not initialized');
   }
 
-  const rows = db.prepare('SELECT * FROM cognitive_reflections ORDER BY timestamp DESC').all();
+  const rows = db.prepare('SELECT * FROM context_reflections ORDER BY timestamp DESC').all();
 
   const results = rows.map(row => {
     const context = JSON.parse(row.context);
@@ -104,10 +104,10 @@ async function queryContexts() {
     return {
       id: row.id,
       timestamp: row.timestamp,
-      complexity: row.complexity,
+      complexity: row.complexity || 0,
       similarity,
       context,
-      insights: JSON.parse(row.insights)
+      insights: row.insights ? JSON.parse(row.insights) : []
     };
   });
 

@@ -101,6 +101,14 @@
       "file": "cfn-dev-team/dev-ops/github-commit-agent.md"
     },
     {
+      "name": "kubernetes-specialist",
+      "description": "MUST BE USED for Kubernetes cluster management, Helm charts, operators, service mesh, and container orchestration.\nUse PROACTIVELY for K8s deployments, autoscaling, ingress, StatefulSets, CRDs, monitoring.\nALWAYS delegate for \"deploy to Kubernetes\", \"Helm chart\", \"K8s operator\", \"service mesh\", \"container orchestration\".\nKeywords - Kubernetes, k8s, Helm, operators, containers, pods, deployments, ingress, service mesh, Istio, autoscaling\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/dev-ops/kubernetes-specialist.md"
+    },
+    {
       "name": "backend-developer",
       "description": "MUST BE USED when developing scalable backend services with comprehensive testing.\nUse PROACTIVELY for backend architecture, API design, database optimization, security implementation.\nKeywords - backend, API, database, scalability, security, testing, validation\n",
       "type": "specialist",
@@ -117,12 +125,12 @@
       "file": "cfn-dev-team/developers/dev-backend-api.md"
     },
     {
-      "name": "researcher",
-      "description": "FALLBACK agent for general research when no specialized researcher is available.\nUse ONLY when research doesn't match security-specialist, code-analyzer, or perf-analyzer.\nMUST BE USED for broad research, technology evaluation, documentation analysis.\nUse PROACTIVELY for context analysis, technology comparisons.\nKeywords - general research, investigate, explore, broad analysis, technology comparison\n",
+      "name": "graphql-specialist",
+      "description": "MUST BE USED for GraphQL schema design, resolver implementation, federation, and performance optimization.\nUse PROACTIVELY for GraphQL APIs, schema stitching, Apollo Server, federation, subscriptions, DataLoader.\nALWAYS delegate for \"GraphQL API\", \"schema design\", \"resolvers\", \"federation\", \"GraphQL subscriptions\".\nKeywords - GraphQL, schema, resolvers, mutations, queries, subscriptions, Apollo, federation, DataLoader, N+1\n",
       "type": "specialist",
       "loop": "strategic",
       "keywords": [],
-      "file": "cfn-dev-team/developers/researcher.md"
+      "file": "cfn-dev-team/developers/graphql-specialist.md"
     },
     {
       "name": "rust-developer",
@@ -131,6 +139,22 @@
       "loop": "strategic",
       "keywords": [],
       "file": "cfn-dev-team/developers/rust-developer.md"
+    },
+    {
+      "name": "data-engineer",
+      "description": "MUST BE USED for data pipeline design, ETL processes, data warehousing, and data quality.\nUse PROACTIVELY for data ingestion, transformation, orchestration, data lakes, streaming.\nALWAYS delegate for \"ETL pipeline\", \"data warehouse\", \"data lake\", \"Apache Airflow\", \"data quality\".\nKeywords - ETL, data pipeline, Airflow, data warehouse, data lake, streaming, Kafka, Spark, dbt, data quality\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/developers/data/data-engineer.md"
+    },
+    {
+      "name": "database-architect",
+      "description": "MUST BE USED for database schema design, migration strategies, query optimization, and data modeling.\nUse PROACTIVELY for relational/NoSQL design, indexing strategies, normalization, data integrity.\nALWAYS delegate for \"design schema\", \"database migration\", \"optimize queries\", \"data modeling\".\nKeywords - database, schema, SQL, PostgreSQL, MongoDB, migrations, indexing, normalization, query optimization\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/developers/database/database-architect.md"
     },
     {
       "name": "mobile-dev",
@@ -343,6 +367,14 @@
       "file": "cfn-dev-team/testers/interaction-tester.md"
     },
     {
+      "name": "load-testing-specialist",
+      "description": "MUST BE USED for load testing, performance benchmarking, scalability testing, and stress testing.\nUse PROACTIVELY for k6, Gatling, JMeter, Artillery, performance analysis, capacity planning.\nALWAYS delegate for \"load test\", \"performance test\", \"stress test\", \"scalability test\", \"benchmark\".\nKeywords - load testing, k6, Gatling, JMeter, performance, scalability, stress test, throughput, latency, RPS\n",
+      "type": "specialist",
+      "loop": "strategic",
+      "keywords": [],
+      "file": "cfn-dev-team/testers/load-testing-specialist.md"
+    },
+    {
       "name": "playwright-tester",
       "description": "MUST BE USED for end-to-end browser testing with Playwright.\nAutomate UI workflows, validate user interactions across browsers.\nkeywords: [\"playwright-testing\", \"end-to-end-automation\", \"browser-validation\", \"ui-workflow-testing\", \"cross-browser-compatibility\", \"test-infrastructure\", \"quality-assurance\"]\n",
       "type": "specialist",
@@ -447,6 +479,6 @@
       "file": "project-only-agents/npm-package-specialist.md"
     }
   ],
-  "last_updated": "2025-10-29T22:53:48Z",
-  "total_agents": 48
+  "last_updated": "2025-10-29T23:14:42Z",
+  "total_agents": 52
 }
