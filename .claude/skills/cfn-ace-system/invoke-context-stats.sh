@@ -88,7 +88,7 @@ async function queryReflections() {
     throw new Error('Database not initialized');
   }
 
-  let sql = 'SELECT * FROM cognitive_reflections';
+  let sql = 'SELECT * FROM context_reflections';
   const whereClauses = [];
   const params = [];
 

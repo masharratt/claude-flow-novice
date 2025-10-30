@@ -25,7 +25,7 @@ export class ACEReflector {
 
     // Create specialized reflection tables
     await this.memorySystem['db']?.exec(`
-      CREATE TABLE IF NOT EXISTS cognitive_reflections (
+      CREATE TABLE IF NOT EXISTS context_reflections (
         id TEXT PRIMARY KEY,
         timestamp INTEGER,
         complexity REAL,
@@ -53,6 +53,19 @@ export class ACEReflector {
       `reflection:${reflection.id}`,
       reflection,
       AccessLevel.SYSTEM
+    );
+
+    // Insert reflection data into SQL table
+    await this.memorySystem['db']?.run(
+      `INSERT INTO context_reflections (id, timestamp, complexity, context, insights)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        reflection.id,
+        reflection.timestamp,
+        reflection.complexity,
+        JSON.stringify(reflection.context),
+        JSON.stringify(reflection.insights)
+      ]
     );
 
     return reflection;
