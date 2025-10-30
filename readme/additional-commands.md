@@ -161,6 +161,108 @@ node src/cli/hybrid-routing/spawn-workers.js "OAuth2 security" \
   --subtasks="Implement OAuth2,Audit token security"
 ```
 
+## n8n Workflow Deployment
+
+Deploy n8n workflows as MCP servers for platform integrations.
+
+### Workflow Structure
+
+**Webhook Trigger Node**:
+- HTTP POST endpoint
+- Authentication: X-N8N-API-KEY header
+- JSON request body
+
+**Platform Integration Nodes**:
+- API authentication (OAuth, API keys)
+- Data transformation
+- Error handling (4xx, 5xx responses)
+
+**Response Node**:
+- JSON success response
+- HTTP status codes (200, 400, 401, 404, 429, 500)
+
+### CFN Skill Integration
+
+**Bash Script Pattern** (`.claude/skills/*/operations/*.sh`):
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Environment validation
+if [[ -z "${N8N_BASE_URL:-}" ]] || [[ -z "${N8N_API_KEY:-}" ]]; then
+  echo '{"error": "Missing N8N environment variables"}' >&2
+  exit 2
+fi
+
+# Build payload with jq
+PAYLOAD=$(jq -n \
+  --arg field "$VALUE" \
+  '{field: $field}')
+
+# Call webhook
+RESPONSE=$(curl -s -w "\n%{http_code}" \
+  -X POST "$N8N_BASE_URL/webhook/endpoint" \
+  -H "X-N8N-API-KEY: $N8N_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD" 2>/dev/null || echo -e "\n000")
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+BODY=$(echo "$RESPONSE" | sed '$d')
+
+# Handle response
+case "$HTTP_CODE" in
+  200|201) echo "$BODY"; exit 0 ;;
+  401) echo '{"error": "Authentication failed"}' >&2; exit 2 ;;
+  429) echo '{"error": "Rate limit exceeded"}' >&2; exit 2 ;;
+  000) echo '{"error": "Network error"}' >&2; exit 2 ;;
+  *) echo '{"error": "API error"}' >&2; exit 2 ;;
+esac
+```
+
+### Compliance Validation
+
+**Exit Code 3 Pattern** (validation failures):
+```bash
+# Example: TCPA opt-in check
+if [[ "$OPT_IN_STATUS" != "confirmed" ]]; then
+  echo '{"error": "TCPA violation - no opt-in"}' >&2
+  exit 3
+fi
+
+# Example: Budget threshold check
+if (( $(echo "$AMOUNT > $BUDGET_LIMIT" | bc -l) )); then
+  echo '{"error": "Budget exceeded"}' >&2
+  exit 3
+fi
+```
+
+**Exit Code Semantics**:
+- `0`: Success
+- `1`: Parameter/input errors
+- `2`: API/network errors
+- `3`: Validation/compliance failures
+
+### Deployment Checklist
+
+1. Create n8n workflow with webhook trigger
+2. Configure platform authentication (OAuth, API keys)
+3. Test webhook endpoint: `curl -X POST $N8N_BASE_URL/webhook/test`
+4. Create CFN skill directory: `.claude/skills/cfn-{domain}-{function}/`
+5. Write operation scripts following exit code pattern
+6. Document in SKILL.md with operation descriptions
+7. Add environment variable requirements to README
+
+### Example Deployment
+
+**Email Campaign Skill**:
+- Workflow: `.claude/workflows/marketing-email-campaigns.json`
+- Skill: `.claude/skills/cfn-marketing-email-campaigns/`
+- Operations: `create-campaign.sh`, `send-email.sh`, `get-metrics.sh`, `manage-list.sh`
+- Platforms: Mailchimp, SendGrid, HubSpot
+- Webhooks: 4 endpoints (/webhook/email-*)
+
+**Reference Implementation**: Phase 1-5 marketing infrastructure (12 workflows, 12 skills, 65 operations)
+
 ## Performance and Optimization
 
 ### WASM Performance Commands

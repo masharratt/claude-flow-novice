@@ -255,4 +255,54 @@ Simplified CFN Loop execution with direct agent spawning and full visibility
 - Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
 - Covers: Agent selection, adaptive scaling, sprint completion, backlog mechanism
 
+### 11. n8n MCP Integration
+
+#### Purpose
+Execute marketing workflows via n8n webhooks, enabling multi-platform automation
+
+#### Architecture
+- CFN Skills invoke n8n workflows via HTTP webhooks
+- n8n workflows serve as MCP servers
+- Bash operation scripts handle webhook authentication (N8N_BASE_URL + N8N_API_KEY)
+- JSON payloads constructed with jq for type safety
+
+#### Implementation Pattern
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# Call n8n webhook
+curl -X POST "$N8N_BASE_URL/webhook/endpoint" \
+  -H "X-N8N-API-KEY: $N8N_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "$PAYLOAD"
+```
+
+#### Platform Integrations
+**34 platforms across 6 categories:**
+- **Email**: Mailchimp, SendGrid, HubSpot
+- **Social**: Meta, LinkedIn, Twitter/X, TikTok
+- **Analytics**: Google Analytics 4, HubSpot CRM, Salesforce
+- **Paid Ads**: Google Ads, Meta Ads, LinkedIn Ads
+- **Conversational**: Intercom, Drift, Twilio, Plivo
+- **Intelligence**: BuzzSumo, SEMrush, Ahrefs, Unbounce, Instapage
+- **PR/Media**: PR Newswire, Business Wire, Muck Rack, HARO, Meltwater, Brandwatch
+
+#### Compliance Frameworks
+- **TCPA**: Opt-in verification, DNC registry check, consent logging (exit code 3 for violations)
+- **A/B Testing**: 95% confidence, 100 min conversions, 7-day minimum duration
+- **Crisis Detection**: <15 min alert latency, 2-hour response SLA
+- **Budget Validation**: Hard-coded spend limits, multi-tier approval
+
+#### Skills Created
+- **12 skills**: 65 operations total
+- **12 workflows**: Across 5 marketing phases
+- **Exit Code Pattern**: 1=params, 2=API/network, 3=validation/compliance
+
+#### Use Cases
+- Marketing department automation (email, social, ads, analytics)
+- Multi-platform campaign orchestration
+- Compliance-enforced communications (TCPA, BANT)
+- Real-time crisis monitoring and alerting
+
 [... rest of previous content remains unchanged ...]
