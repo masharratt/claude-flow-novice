@@ -1,8 +1,8 @@
-# NPM Distribution - v2.9.1 Namespace Isolation ✅
+# NPM Distribution - v2.10.6 Namespace Isolation ✅
 
 ## Summary
 
-The `claude-flow-novice` package is now **production-ready** with **namespace isolation** preventing file conflicts (~0.01% collision risk).
+The `claude-flow-novice` package is **production-ready** with **namespace isolation** preventing file conflicts (~0.01% collision risk). Includes workaround for npm dotfile extraction limitation on Windows/WSL2.
 
 ---
 
@@ -10,9 +10,9 @@ The `claude-flow-novice` package is now **production-ready** with **namespace is
 
 ### Package Details
 - **Name:** `claude-flow-novice`
-- **Version:** `2.9.1`
-- **Size:** 573 KB tarball, 2.4 MB unpacked
-- **Files:** 303 (68% reduction from v2.0.0)
+- **Version:** `2.10.6`
+- **Size:** 1.2 MB tarball, 4.7 MB unpacked
+- **Files:** 1300 (includes all agents, skills, hooks, commands)
 - **License:** MIT
 - **Node.js:** >=18.0.0
 
@@ -20,32 +20,38 @@ The `claude-flow-novice` package is now **production-ready** with **namespace is
 ✅ **Namespace isolation** - All files prefixed with `cfn-`
 ✅ **Safe installation** - ~0.01% collision risk
 ✅ **23 production agents** in `cfn-dev-team/`
-✅ **43 modular skills** - All with `cfn-` prefix
+✅ **61 modular skills** - All with `cfn-` prefix (includes ACE System)
 ✅ **45+ slash commands** in `commands/cfn/`
 ✅ **Project initialization** - `npx cfn-init` command
 ✅ **Zero user file conflicts** - Only overwrites `cfn-*` files
+✅ **Windows/WSL2 compatible** - Auto-generated `claude-assets/` distribution
 
 ---
 
 ## 🎯 What's Included
 
-### Namespace-Isolated Structure
+### Distribution Structure (claude-assets/)
 ```
 dist/                          # Compiled JS (101 files)
-.claude/
+claude-assets/                 # Auto-generated during npm pack
   ├── agents/
   │   └── cfn-dev-team/        # 23 production-ready agents
+  │       ├── architecture/    # system-architect, planner, etc.
   │       ├── coordinators/    # cfn-v3-coordinator, product-owner, etc.
-  │       ├── developers/      # coder, researcher, backend-dev, etc.
-  │       ├── reviewers/       # reviewer, code-quality-validator
-  │       └── testers/         # tester, playwright-tester, etc.
-  ├── skills/                  # 43 cfn-* prefixed skills
+  │       ├── developers/      # backend-dev, frontend, mobile-dev, etc.
+  │       ├── dev-ops/         # devops-engineer, kubernetes-specialist
+  │       ├── documentation/   # api-docs, pseudocode, specification
+  │       ├── product-owners/  # product-owner, cto-agent, etc.
+  │       ├── reviewers/       # reviewer, code-analyzer, security
+  │       ├── testers/         # tester, playwright, load-testing
+  │       └── utility/         # analyst, researcher, claude-code-expert
+  ├── skills/                  # 61 cfn-* prefixed skills
+  │   ├── cfn-ace-system/      # Adaptive Context Extension (NEW)
   │   ├── cfn-redis-coordination/
   │   ├── cfn-agent-spawning/
   │   ├── cfn-loop-validation/
-  │   ├── cfn-playbook/
-  │   ├── cfn-hook-pipeline/
-  │   └── ... (38 more)
+  │   ├── cfn-loop-orchestration/
+  │   └── ... (56 more)
   ├── hooks/                   # 7 cfn-* prefixed hooks
   │   ├── cfn-post-edit.sh
   │   ├── cfn-invoke-post-edit.sh
@@ -56,14 +62,25 @@ dist/                          # Compiled JS (101 files)
   │       ├── cfn-loop-single.md
   │       ├── cfn-loop-epic.md
   │       └── ... (42 more)
-  └── cfn-data/                # SQLite databases, playbook data
+  └── root-claude-distribute/
+      └── CFN-CLAUDE.md        # Project instructions
 scripts/
   ├── init-project.js          # cfn-init installation script
   └── ... (essential scripts)
 README.md                      # User documentation
-CFN-CLAUDE.md                  # Project instructions (copy to CLAUDE.md)
 LICENSE                        # MIT License
 ```
+
+### Why claude-assets/
+**Problem:** npm has dotfile extraction bug on Windows/WSL2
+- `.claude/` directories don't extract from tarballs
+- Affects nested subdirectories like `.claude/skills/cfn-ace-system/`
+
+**Solution:** Auto-generated distribution wrapper
+- `prepack` script: copies `.claude/` → `claude-assets/` before publish
+- Single source of truth: `.claude/` in development (tracked in git)
+- `claude-assets/` auto-generated, not tracked in git
+- `cfn-init` script: copies `claude-assets/` → user's `.claude/` directory
 
 ### What's NOT Included
 ```
@@ -182,18 +199,24 @@ ls .claude/agents/
 
 ## 📊 Package Metrics
 
-### v2.9.1 Statistics
+### v2.10.6 Statistics
 ```
-Total Files:          303 (68% reduction from v2.0.0)
-Unpacked Size:        2.4 MB (84% reduction from v2.0.0)
-Tarball Size:         573 KB
-Agents:               23 (in cfn-dev-team/)
-Skills:               43 (all cfn-* prefixed)
+Total Files:          1300 (complete distribution)
+Unpacked Size:        4.7 MB
+Tarball Size:         1.2 MB
+Agents:               23 (in cfn-dev-team/, 11 subdirectories)
+Skills:               61 (all cfn-* prefixed, includes ACE System)
 Hooks:                7 (all cfn-* prefixed)
 Commands:             45+ (in commands/cfn/)
 Build Time:           <1 second
-Installation Time:    ~8 seconds
+Installation Time:    ~10 seconds
 ```
+
+### v2.10.6 vs v2.9.1
+- **Files:** 1300 vs 303 (+329% - now includes all content)
+- **Size:** 4.7 MB vs 2.4 MB (+96% - complete skill distribution)
+- **Skills:** 61 vs 43 (+18 - ACE System and additional skills)
+- **Extraction:** Works on Windows/WSL2 (claude-assets workaround)
 
 ### File Distribution
 - `.claude/` directory: 150+ files (namespace-isolated)
@@ -326,6 +349,15 @@ npx cfn-loop "Your first task"
 ---
 
 **Status:** ✅ **PUBLISHED TO NPM**
-**Current Version:** 2.9.1
-**Last Updated:** 2025-10-24
+**Current Version:** 2.10.6
+**Last Updated:** 2025-10-30
 **Package URL:** https://www.npmjs.com/package/claude-flow-novice
+
+### Recent Fixes (v2.10.0 - v2.10.6)
+- **v2.10.6:** Complete claude-assets distribution (all .claude content)
+- **v2.10.5:** Single source of truth (.claude/agents restored)
+- **v2.10.4:** claude-assets workaround for npm dotfile bug
+- **v2.10.3:** .npmignore fix attempt (incomplete)
+- **v2.10.2:** Postinstall script fixes
+- **v2.10.1:** Overwrite enforcement
+- **v2.10.0:** ACE System added to package
