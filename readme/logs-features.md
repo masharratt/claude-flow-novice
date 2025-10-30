@@ -158,7 +158,65 @@ Flexible agent spawning with architectural optimization and context management
 - Granular control over spawning behavior
 - Zero-configuration default settings
 
-### 9. Frontend CFN Loop (Visual Iteration Workflow)
+### 9. ACE System (Adaptive Context Extension)
+
+#### Purpose
+Learn from sprint execution to prevent repeating mistakes
+
+#### Core Capabilities
+- Automatic reflection after sprint completion
+- Anti-pattern detection from low-confidence sprints (<0.70)
+- Unified context injection (positive + negative)
+- Relevance scoring with adaptive limits
+- A/B testing and effectiveness tracking
+
+#### Skills
+- `invoke-context-reflect.sh` - Extract lessons from sprints
+- `invoke-context-inject.sh` - Inject adaptive context
+- `query-contexts.sh` - Retrieve strategies/patterns
+- `query-anti-patterns.sh` - Retrieve anti-patterns
+- `format-negative-context.sh` - Format anti-patterns with visual distinction
+- `extract-tags.sh` - Automatic tag extraction from task descriptions
+- `classify-task.sh` - Domain classification (frontend, backend, security, etc.)
+- `score-relevance.sh` - Multi-factor relevance scoring
+- `track-ab-test.sh` - A/B testing analytics
+- `analyze-anti-pattern-effectiveness.sh` - Effectiveness metrics tracking
+- `export-ace-metrics.sh` - Dashboard metrics export
+
+#### Context Types
+- **Strategies (STRAT-XXX)**: High-level approaches proven effective
+- **Patterns (PATTERN-XXX)**: Reusable implementation patterns
+- **Anti-Patterns (ANTI-XXX)**: Practices to avoid based on failures
+
+#### Relevance Scoring
+- Exact tag match: 1.0
+- Partial tag match: 0.6
+- Domain match: 0.3
+- Recency boost: +0.1 (last 30 days)
+- Frequency boost: +0.05 per repetition
+
+#### Adaptive Context Limits
+- High relevance (≥0.8): 10 bullets
+- Medium relevance (0.5-0.79): 5 bullets
+- Low relevance (<0.5): 3 bullets
+
+#### Storage
+- SQLite database: `ace-context.db`
+- Indexed queries: tags, domain, confidence, timestamp
+- Redis analytics tracking
+
+#### Integration
+- CFN Loop orchestrator integration
+- Post-sprint reflection hooks
+- Agent context injection in real-time
+- Dashboard metrics visualization
+
+#### Configuration
+- Reflection modes: automatic, manual, disabled
+- Context limits: adaptive (3-10 bullets based on relevance)
+- A/B testing: enabled/disabled per agent
+
+### 10. Frontend CFN Loop (Visual Iteration Workflow)
 
 #### Purpose
 Specialized CFN Loop for frontend development with visual validation and brand consistency enforcement
@@ -215,7 +273,7 @@ Specialized CFN Loop for frontend development with visual validation and brand c
 - Guide: `.claude/commands/cfn/CFN_LOOP_FRONTEND.md`
 - Covers: Phase 0 planning, brand guidelines, visual iteration, validator coordination
 
-### 10. Task Mode Execution (CFN Loop)
+### 11. Task Mode Execution (CFN Loop)
 
 #### Purpose
 Simplified CFN Loop execution with direct agent spawning and full visibility
@@ -255,7 +313,7 @@ Simplified CFN Loop execution with direct agent spawning and full visibility
 - Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
 - Covers: Agent selection, adaptive scaling, sprint completion, backlog mechanism
 
-### 11. n8n MCP Integration
+### 12. n8n MCP Integration
 
 #### Purpose
 Execute marketing workflows via n8n webhooks, enabling multi-platform automation
