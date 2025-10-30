@@ -97,7 +97,7 @@ async function executeCFNProtocol(
     const confidence = extractConfidence(output);
     console.log(`[CFN Protocol] Step 2: Reporting confidence (${confidence})...`);
 
-    const reportCmd = `./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+    const reportCmd = `./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
       --task-id "${taskId}" \
       --agent-id "${agentId}" \
       --confidence ${confidence} \

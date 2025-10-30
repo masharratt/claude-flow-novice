@@ -1009,7 +1009,78 @@ Now that you understand agent creation, explore:
 
 ---
 
-**Document Version:** 4.0.0 (User-Friendly Edition)
-**Last Updated:** 2025-10-20
+## CFN Loop Completion Protocol (CRITICAL UPDATE)
+
+**Date:** 2025-10-30
+**Status:** Waiting Mode Deprecated
+
+### Current Standard Protocol
+
+All agents participating in CFN Loop workflows MUST follow this protocol:
+
+**Step 1: Complete Work**
+Execute assigned task (implementation, validation, review, etc.)
+
+**Step 2: Signal Completion**
+```bash
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+```
+
+**Step 3: Report Confidence Score and Exit**
+```bash
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence [0.0-1.0] \
+  --iteration 1
+```
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
+
+### Why This Matters
+
+- Orchestrator collects confidence/consensus scores from Redis
+- Enables adaptive agent specialization for next iteration
+- Prevents orchestrator blocking on `wait $PID`
+- Coordinator spawns appropriate specialist based on feedback type
+
+### Deprecated Patterns (DO NOT USE)
+
+❌ **Step 4: Enter Waiting Mode** (REMOVED)
+```bash
+# DEPRECATED - This will cause errors
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
+  --task-id "$TASK_ID" --agent-id "$AGENT_ID"
+```
+
+❌ **Wake Agents for Iteration** (REMOVED)
+```bash
+# DEPRECATED - Spawn fresh agents instead
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
+  --task-id "$TASK_ID" --agent-id "$AGENT_ID"
+```
+
+### Correct Iteration Pattern
+
+**Coordinators:** Spawn fresh agents for each iteration:
+```bash
+# Iteration N+1
+for agent in "${agents[@]}"; do
+  npx claude-flow-novice agent-spawn "$agent" \
+    --task-id "$TASK_ID" \
+    --context "Iteration $iteration: Address feedback [...]"
+done
+```
+
+### Related Documentation
+
+- **Bug Fix Details:** `docs/BUG_WAITING_MODE_FIX.md`
+- **Agent Lifecycle:** `.claude/agents/AGENT_LIFECYCLE.md`
+- **Redis Coordination:** `.claude/skills/cfn-redis-coordination/SKILL.md`
+
+---
+
+**Document Version:** 4.1.0 (Waiting Mode Deprecation Update)
+**Last Updated:** 2025-10-30
 **Maintained By:** Claude Flow Novice Team
 **Feedback:** We'd love to hear how you're using agents! Share your creations.

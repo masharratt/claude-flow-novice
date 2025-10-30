@@ -60,6 +60,15 @@ This document clarifies the complete lifecycle of agents in the CFN Loop system,
 2. **Report confidence:**
    ```bash
    ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
+
+**Why This Matters:**
+- Orchestrator collects confidence/consensus scores from Redis
+- Enables adaptive agent specialization for next iteration
+- Prevents orchestrator blocking on wait $PID
+- Coordinator spawns appropriate specialist based on feedback type
+
      --task-id "$TASK_ID" \
      --agent-id "$AGENT_ID" \
      --confidence [0.0-1.0] \
@@ -105,6 +114,15 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ### Step 3: Report Confidence Score
 ```bash
 ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
+
+**Why This Matters:**
+- Orchestrator collects confidence/consensus scores from Redis
+- Enables adaptive agent specialization for next iteration
+- Prevents orchestrator blocking on wait $PID
+- Coordinator spawns appropriate specialist based on feedback type
+
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence [0.0-1.0] \
@@ -155,6 +173,15 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ### Step 5: Report Consensus Score
 ```bash
 ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
+
+**Why This Matters:**
+- Orchestrator collects confidence/consensus scores from Redis
+- Enables adaptive agent specialization for next iteration
+- Prevents orchestrator blocking on wait $PID
+- Coordinator spawns appropriate specialist based on feedback type
+
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence [0.0-1.0] \
@@ -280,7 +307,6 @@ CONFIDENCE=$(redis-cli get "swarm:${TASK_ID}:${AGENT_ID}:confidence")
 ### ❌ Anti-Pattern 1: Waiting Mode
 ```bash
 # WRONG - DO NOT USE:
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID"
 ```
@@ -328,6 +354,15 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 # Step 2: Report confidence
 ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
+
+**Why This Matters:**
+- Orchestrator collects confidence/consensus scores from Redis
+- Enables adaptive agent specialization for next iteration
+- Prevents orchestrator blocking on wait $PID
+- Coordinator spawns appropriate specialist based on feedback type
+
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.95 \

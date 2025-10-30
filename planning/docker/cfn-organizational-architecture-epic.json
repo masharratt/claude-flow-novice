@@ -1,0 +1,504 @@
+{
+  "epicId": "cfn-organizational-architecture",
+  "name": "AI Organizational Architecture - Docker Migration",
+  "description": "Migrate from ephemeral CLI agents to Docker-based organizational structure with hierarchical teams, coordinators, isolated containers, and persistent playbook-driven knowledge system. Combines short-lived agents with long-term organizational memory via ACE system.",
+  "status": "not_started",
+  "owner": "Infrastructure & Architecture Team",
+  "estimatedDuration": "12 weeks",
+  "dependencies": ["cfn-marketing-n8n-mcp-integration"],
+  "overviewFile": "planning/docker/EPIC_ORGANIZATIONAL_ARCHITECTURE.md",
+  "architecturePattern": "hierarchical-teams-with-ephemeral-agents",
+  "securityModel": "container-isolation-with-per-agent-mcp",
+
+  "phases": [
+    {
+      "phaseId": "phase-1-infrastructure-templates",
+      "name": "Infrastructure Templates & ACE Enhancement",
+      "description": "Create Docker templates, enhance ACE system with scope fields, and prepare migration infrastructure",
+      "file": "planning/docker/PHASE_1_INFRASTRUCTURE.md",
+      "status": "not_started",
+      "dependencies": [],
+      "estimatedDuration": "2 weeks",
+      "weeks": "1-2",
+      "budget": 8000,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "name": "ACE System Enhancement - Scope & Team Support",
+          "status": "not_started",
+          "duration": "3 days",
+          "week": 1,
+          "dependencies": [],
+          "deliverables": [
+            "ACE schema migration: Add scope, owner_id, team_id columns",
+            ".claude/skills/cfn-ace-system/migrate-schema.sh (SQLite → PostgreSQL)",
+            ".claude/skills/cfn-ace-system/invoke-context-inject.sh (enhanced with --scope flag)",
+            ".claude/skills/cfn-ace-system/invoke-context-reflect.sh (enhanced with --scope, --team-id)",
+            "Scope hierarchy: agent > team > org (inheritance logic)",
+            "tests/ace-system/test-scope-isolation.sh (validate team isolation)"
+          ],
+          "acceptanceCriteria": [
+            "PostgreSQL schema created with scope fields",
+            "Context injection supports --scope=agent|team|org",
+            "Agent inherits lessons from team + org scopes",
+            "Team isolation validated (marketing can't see engineering lessons)",
+            "95% backward compatibility with existing ACE queries"
+          ],
+          "technicalNotes": "Scope inheritance: Agent loads personal lessons (scope=agent, owner_id=X) + team lessons (scope=team, team_id=Y) + org lessons (scope=org). Priority: agent > team > org for conflicting lessons."
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "name": "Docker Infrastructure Templates",
+          "status": "not_started",
+          "duration": "4 days",
+          "week": 1,
+          "dependencies": ["sprint-1.1"],
+          "deliverables": [
+            "templates/infrastructure/agent.Dockerfile (base agent container)",
+            "templates/infrastructure/team-compose.yml (team orchestration)",
+            "templates/mcp/agent-mcp-config.json (per-agent MCP isolation)",
+            "templates/agents/team-coordinator.md (coordinator agent template)",
+            "templates/agents/csuite/ceo.md, cto.md, coo.md, cfo.md, ciso.md",
+            "bin/generate-team.sh (template instantiation script)"
+          ],
+          "acceptanceCriteria": [
+            "Dockerfile builds successfully (multi-stage, <500MB image)",
+            "docker-compose creates isolated network for team",
+            "Per-agent MCP config prevents cross-agent access",
+            "Template generator creates complete team structure",
+            "Generated configs pass validation (yamllint, shellcheck)"
+          ],
+          "technicalNotes": "Dockerfile uses multi-stage build: Stage 1 (npm install), Stage 2 (runtime only). Network isolation via Docker networks. MCP config uses agent-specific environment variables."
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "name": "Automatic Context Injection/Reflection",
+          "status": "not_started",
+          "duration": "3 days",
+          "week": 2,
+          "dependencies": ["sprint-1.1"],
+          "deliverables": [
+            ".claude/skills/cfn-loop-orchestration/auto-context-inject.sh (pre-spawn hook)",
+            ".claude/skills/cfn-loop-orchestration/auto-context-reflect.sh (post-completion hook)",
+            ".claude/skills/cfn-ace-system/extract-lessons.sh (parse agent output for lessons)",
+            "Integration with orchestrate.sh (automatic invoke before/after agent spawn)",
+            "tests/ace-system/test-auto-context.sh (validate automatic injection/reflection)"
+          ],
+          "acceptanceCriteria": [
+            "Context automatically injected before every agent spawn",
+            "Lessons automatically extracted from agent output",
+            "Agent receives /tmp/context-{agent-id}.json with relevant lessons",
+            "Post-completion reflection stores new lessons to ACE",
+            "Zero manual invoke required (fully automatic)"
+          ],
+          "technicalNotes": "Tag extraction uses NLP-lite: Extract nouns from task description (authentication → tags: auth, security). Lesson extraction uses regex patterns: 'Learned:', 'Best practice:', 'Anti-pattern:', etc."
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-2-pilot-team",
+      "name": "Pilot Team - Marketing Department",
+      "description": "Deploy Marketing team (10 agents + coordinator) in Docker containers with playbook-driven workflow",
+      "file": "planning/docker/PHASE_2_PILOT_TEAM.md",
+      "status": "not_started",
+      "dependencies": ["phase-1-infrastructure-templates"],
+      "estimatedDuration": "2 weeks",
+      "weeks": "3-4",
+      "budget": 12000,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "name": "Marketing Team Infrastructure Deployment",
+          "status": "not_started",
+          "duration": "3 days",
+          "week": 3,
+          "dependencies": ["sprint-1.3"],
+          "deliverables": [
+            "teams/marketing/docker-compose.yml (generated from template)",
+            "teams/marketing/config/coordinator/mcp.json",
+            "teams/marketing/config/agents/*.json (10 agent configs)",
+            ".claude/agents/coordinators/marketing-coordinator.md",
+            ".env.marketing (team-specific environment variables)",
+            "Deploy: docker-compose -f teams/marketing/docker-compose.yml up -d"
+          ],
+          "acceptanceCriteria": [
+            "Docker network 'marketing-team-net' created",
+            "10 agent containers running (email, social, analytics, etc.)",
+            "1 coordinator container running",
+            "Network isolation validated (agents can't reach other teams)",
+            "Health checks passing for all containers"
+          ],
+          "technicalNotes": "Agents: email-campaigns, social-publishing, analytics-data, crm-contacts, paid-ads, chatbot, sms-campaigns, competitive-intel, landing-pages, press-distribution. Each agent has isolated /dev/shm for tmpfs coordination."
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "name": "Marketing Coordinator Agent Development",
+          "status": "not_started",
+          "duration": "4 days",
+          "week": 3,
+          "dependencies": ["sprint-2.1"],
+          "deliverables": [
+            ".claude/agents/coordinators/marketing-coordinator.md (complete agent)",
+            "Coordinator spawns ephemeral agents for tasks (via CLI in container)",
+            "Task assignment logic (route tasks to specialist agents)",
+            "Team performance monitoring (track agent confidence scores)",
+            "Budget tracking (monitor team API usage vs quota)",
+            "tests/coordinators/test-marketing-coordinator.sh"
+          ],
+          "acceptanceCriteria": [
+            "Coordinator receives task from Main Chat via Redis",
+            "Coordinator spawns appropriate specialist agent (email task → email-campaigns agent)",
+            "Agent loads team playbook (scope=team:marketing)",
+            "Agent completes task, stores lessons, exits",
+            "Coordinator reports result to Main Chat",
+            "Task completion time <5 minutes for simple tasks"
+          ],
+          "technicalNotes": "Coordinator uses .claude/skills/cfn-agent-spawning/spawn-agent.sh to spawn ephemeral agents inside coordinator container. Agents inherit coordinator's network namespace."
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "name": "Playbook-Driven Workflow Validation",
+          "status": "not_started",
+          "duration": "3 days",
+          "week": 4,
+          "dependencies": ["sprint-2.2"],
+          "deliverables": [
+            "Seed marketing playbook with 10 initial lessons",
+            "Execute 5 test tasks through coordinator",
+            "Validate context injection (agents receive playbook)",
+            "Validate lesson accumulation (playbook grows to 15+ lessons)",
+            "Performance benchmarks (task time, playbook load time)",
+            "docs/PLAYBOOK_DRIVEN_WORKFLOW.md (documentation)"
+          ],
+          "acceptanceCriteria": [
+            "Agent 1 executes task with 10 playbook lessons",
+            "Agent 1 stores 2 new lessons (playbook now 12)",
+            "Agent 2 executes task with 12 playbook lessons (sees Agent 1's lessons)",
+            "Agent 5 executes task with 18 playbook lessons (cumulative learning)",
+            "Playbook load time <500ms (fast context injection)",
+            "Lesson storage time <200ms (fast reflection)"
+          ],
+          "technicalNotes": "Seed playbook with marketing-specific lessons: 'Email subject lines <50 chars perform best', 'Social posts with images get 2x engagement', etc. Measure playbook growth rate over 5 tasks."
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-3-full-rollout",
+      "name": "Full Organizational Rollout",
+      "description": "Deploy all teams (Engineering, Sales, Support, Finance) + C-Suite agents",
+      "file": "planning/docker/PHASE_3_FULL_ROLLOUT.md",
+      "status": "not_started",
+      "dependencies": ["phase-2-pilot-team"],
+      "estimatedDuration": "4 weeks",
+      "weeks": "5-8",
+      "budget": 20000,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "name": "Engineering Team Deployment",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 5,
+          "dependencies": ["sprint-2.3"],
+          "deliverables": [
+            "teams/engineering/docker-compose.yml (15 agents + coordinator)",
+            ".claude/agents/coordinators/engineering-coordinator.md",
+            "Engineering playbook seeded (10 technical lessons)",
+            "Engineering-specific MCP configs (GitHub, Docker, K8s)",
+            "tests/teams/test-engineering-team.sh"
+          ],
+          "acceptanceCriteria": [
+            "Engineering team operational (15 agents + coordinator)",
+            "Coordinator routes backend/frontend/devops tasks to specialists",
+            "Team playbook isolated from Marketing team",
+            "Cross-team task execution validated (Engineering helps Marketing with API issue)",
+            "All 15 agents successfully load engineering playbook"
+          ],
+          "technicalNotes": "Engineering agents: backend-dev, frontend-dev, devops-engineer, kubernetes-specialist, database-architect, tester, load-tester, security-specialist, code-reviewer, api-designer, system-architect, performance-analyst, mobile-dev, data-engineer, ui-designer."
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "name": "Sales & Support Teams Deployment",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 6,
+          "dependencies": ["sprint-3.1"],
+          "deliverables": [
+            "teams/sales/docker-compose.yml (8 agents + coordinator)",
+            "teams/support/docker-compose.yml (10 agents + coordinator)",
+            ".claude/agents/coordinators/sales-coordinator.md",
+            ".claude/agents/coordinators/support-coordinator.md",
+            "Sales playbook seeded (prospecting, demos, closing)",
+            "Support playbook seeded (ticket handling, escalation)",
+            "tests/teams/test-sales-team.sh, test-support-team.sh"
+          ],
+          "acceptanceCriteria": [
+            "Sales team operational (8 agents: outbound, inbound, demo, account-mgmt, etc.)",
+            "Support team operational (10 agents: L1, L2, L3, onboarding, etc.)",
+            "Both teams have isolated playbooks",
+            "Cross-team coordination validated (Sales creates ticket → Support agent handles)",
+            "Team-specific MCP configs (Salesforce for Sales, Zendesk for Support)"
+          ],
+          "technicalNotes": "Sales agents: outbound-prospecting, inbound-qualifying, demo-specialist, proposal-writer, negotiator, account-manager, renewal-specialist, upsell-specialist. Support agents: L1-support, L2-support, L3-support, onboarding, training, documentation, bug-triager, escalation-manager, customer-success, retention."
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "name": "Finance Team & C-Suite Deployment",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 7,
+          "dependencies": ["sprint-3.2"],
+          "deliverables": [
+            "teams/finance/docker-compose.yml (5 agents + coordinator)",
+            "teams/csuite/docker-compose.yml (5 C-Suite agents)",
+            ".claude/agents/coordinators/finance-coordinator.md",
+            ".claude/agents/csuite/ceo.md, cto.md, coo.md, cfo.md, ciso.md",
+            "Finance playbook seeded (accounting, FP&A, procurement)",
+            "C-Suite organizational playbook seeded (strategic patterns)",
+            "tests/teams/test-finance-team.sh, test-csuite.sh"
+          ],
+          "acceptanceCriteria": [
+            "Finance team operational (5 agents: accounting, FP&A, procurement, auditing, payroll)",
+            "C-Suite agents operational (CEO, CTO, COO, CFO, CISO)",
+            "C-Suite receives reports from all team coordinators",
+            "Strategic decision workflow validated (Coordinator escalates → C-Suite decides)",
+            "Organization-wide playbook accessible to all teams"
+          ],
+          "technicalNotes": "C-Suite agents are persistent (not ephemeral) - they provide strategic oversight. Team agents are ephemeral (spawn per task). C-Suite has higher priority access to resources."
+        },
+        {
+          "sprintId": "sprint-3.4",
+          "name": "Cross-Team Coordination & Escalation",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 8,
+          "dependencies": ["sprint-3.3"],
+          "deliverables": [
+            ".claude/skills/cfn-cross-team-coordination/ (peer-to-peer coordinator skills)",
+            "Redis channels: coordinators:peer-channel, coordinators:to-csuite",
+            "Escalation paths implemented (agent → coordinator → c-suite)",
+            "Resource sharing protocol (Engineering lends compute to Marketing)",
+            "tests/coordination/test-cross-team-workflow.sh"
+          ],
+          "acceptanceCriteria": [
+            "Marketing Coordinator requests help from Engineering Coordinator",
+            "Engineering Coordinator assigns task to specialist agent",
+            "Result returned to Marketing Coordinator",
+            "Escalation validated: Blocker → Coordinator → COO → CEO decision",
+            "Resource sharing validated: Marketing borrows 2 agents from Engineering",
+            "Cross-team task completion time <10 minutes"
+          ],
+          "technicalNotes": "Cross-team communication via Redis pub/sub. Coordinators subscribe to coordinators:peer-channel. C-Suite subscribes to coordinators:to-csuite. Escalation logic: If coordinator can't resolve in 15 minutes, escalate to C-Suite."
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-4-optimization",
+      "name": "Optimization & Advanced Features",
+      "description": "Cost optimization, performance tuning, advanced playbook features, and production hardening",
+      "file": "planning/docker/PHASE_4_OPTIMIZATION.md",
+      "status": "not_started",
+      "dependencies": ["phase-3-full-rollout"],
+      "estimatedDuration": "4 weeks",
+      "weeks": "9-12",
+      "budget": 16000,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-4.1",
+          "name": "Playbook Intelligence & Curation",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 9,
+          "dependencies": ["sprint-3.4"],
+          "deliverables": [
+            ".claude/skills/cfn-ace-system/analyze-playbook-quality.sh (confidence scoring)",
+            ".claude/skills/cfn-ace-system/merge-duplicate-lessons.sh (deduplication)",
+            ".claude/skills/cfn-ace-system/promote-team-to-org.sh (promote high-confidence lessons)",
+            "Playbook curator agent (.claude/agents/system/playbook-curator.md)",
+            "Automatic playbook cleanup (weekly cron job)",
+            "tests/ace-system/test-playbook-curation.sh"
+          ],
+          "acceptanceCriteria": [
+            "Duplicate lessons merged (same content, different wording)",
+            "Low-confidence lessons archived (<0.70 after 10 uses)",
+            "High-confidence team lessons promoted to org playbook (≥0.95, 50+ uses)",
+            "Playbook curator runs weekly, reports quality metrics",
+            "Playbook size reduced by 30% (deduplication + archival)"
+          ],
+          "technicalNotes": "Lesson similarity detection using TF-IDF cosine similarity (threshold 0.85). Promotion criteria: confidence ≥0.95, success_count ≥50, used by ≥3 teams. Archive criteria: confidence <0.70 after 10 trials."
+        },
+        {
+          "sprintId": "sprint-4.2",
+          "name": "Cost Optimization & Resource Management",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 10,
+          "dependencies": ["sprint-4.1"],
+          "deliverables": [
+            ".claude/skills/cfn-resource-management/track-team-budget.sh",
+            ".claude/skills/cfn-resource-management/scale-team.sh (auto-scaling)",
+            "Budget alerts (notify when team >80% budget consumed)",
+            "Idle container detection (shutdown unused agents after 1 hour)",
+            "Cost dashboard (team-level spending visualization)",
+            "tests/resource-management/test-auto-scaling.sh"
+          ],
+          "acceptanceCriteria": [
+            "Team budget tracking accurate (within $5 variance)",
+            "Auto-scaling triggers at >80% resource utilization",
+            "Idle containers shut down after 1 hour (save $200/month)",
+            "Budget alerts sent to team coordinators",
+            "Cost reduced by 30% vs baseline (target: $15k → $10.5k/month)"
+          ],
+          "technicalNotes": "Budget tracking via API call counts (Redis counters). Auto-scaling uses Docker Swarm or Kubernetes HPA. Idle detection via last-heartbeat timestamp in Redis. Alert threshold: 80% budget, 90% budget, 100% budget."
+        },
+        {
+          "sprintId": "sprint-4.3",
+          "name": "Agent Performance Analytics",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 11,
+          "dependencies": ["sprint-4.2"],
+          "deliverables": [
+            ".claude/skills/cfn-analytics/agent-performance-metrics.sh",
+            "Metrics: task completion time, confidence accuracy, playbook usage",
+            "Performance dashboard (per-agent, per-team, org-wide)",
+            "Underperforming agent detection (confidence <0.70 for 5 tasks)",
+            "Agent training recommendations (suggest playbook improvements)",
+            "tests/analytics/test-performance-metrics.sh"
+          ],
+          "acceptanceCriteria": [
+            "Agent performance tracked (avg confidence, task time, success rate)",
+            "Dashboard shows top 10 / bottom 10 agents by performance",
+            "Underperforming agents flagged (coordinator receives alert)",
+            "Training recommendations generated (e.g., 'Agent needs more authentication lessons')",
+            "Performance trends visualized (improvement over 4 weeks)"
+          ],
+          "technicalNotes": "Performance metrics stored in PostgreSQL time-series table. Dashboard uses Grafana or custom React component. Training recommendations use NLP: identify low-confidence task tags, suggest relevant playbook lessons."
+        },
+        {
+          "sprintId": "sprint-4.4",
+          "name": "Production Hardening & Documentation",
+          "status": "not_started",
+          "duration": "5 days",
+          "week": 12,
+          "dependencies": ["sprint-4.3"],
+          "deliverables": [
+            "Disaster recovery playbook (docs/DISASTER_RECOVERY.md)",
+            "Agent recovery testing (simulate container crash, validate restart)",
+            "Playbook backup & restore (daily PostgreSQL backups to S3)",
+            "Security audit (container isolation, MCP permissions, credential rotation)",
+            "Production deployment guide (docs/PRODUCTION_DEPLOYMENT.md)",
+            "Epic completion report (planning/docker/EPIC_COMPLETION_REPORT.md)"
+          ],
+          "acceptanceCriteria": [
+            "Agent recovery <2 minutes (crash → restart → task resume)",
+            "Playbook backup daily to S3 (7-day retention)",
+            "Security audit passes (zero critical vulnerabilities)",
+            "Production deployment guide validated (dry-run on staging)",
+            "Epic completion report documents all deliverables, metrics, lessons"
+          ],
+          "technicalNotes": "Recovery testing: docker kill <container>, validate coordinator spawns replacement, new agent loads playbook, resumes task from Redis checkpoint. Security audit: Trivy scan for container vulnerabilities, MCP permission review, Redis ACL validation."
+        }
+      ]
+    }
+  ],
+
+  "epicAcceptanceCriteria": [
+    "All 5 teams operational (Marketing, Engineering, Sales, Support, Finance)",
+    "5 C-Suite agents operational (CEO, CTO, COO, CFO, CISO)",
+    "48+ agents across teams, all using playbook-driven workflow",
+    "ACE system supports scope hierarchy (agent > team > org)",
+    "Playbook accumulation validated (100+ lessons after 12 weeks)",
+    "Cross-team coordination working (peer-to-peer + escalation)",
+    "Cost reduced by 30% vs baseline ($15k → $10.5k/month)",
+    "Agent recovery <2 minutes (fault tolerance validated)",
+    "Container isolation validated (security audit passes)",
+    "Production deployment guide complete and validated"
+  ],
+
+  "metrics": {
+    "totalInvestment": 56000,
+    "duration": "12 weeks",
+    "teams": 5,
+    "agents": 48,
+    "csuite": 5,
+    "coordinators": 5,
+    "totalAgentsInOrg": 58,
+    "playbookLessons": 100,
+    "costReduction": "30%",
+    "monthlyOperatingCost": 10500,
+    "agentRecoveryTime": "2 minutes",
+    "crossTeamCoordination": "enabled",
+    "containerIsolation": "validated",
+    "aceSystemScope": "agent-team-org"
+  },
+
+  "architecture": {
+    "pattern": "hierarchical-teams-with-ephemeral-agents",
+    "agentLifecycle": "ephemeral-task-specific",
+    "knowledgePersistence": "playbook-driven-ace-system",
+    "communication": "redis-pubsub",
+    "containerization": "docker-compose-per-team",
+    "orchestration": "coordinator-per-team",
+    "escalation": "agent-coordinator-csuite",
+    "scopeHierarchy": ["agent", "team", "org"],
+    "mcpIsolation": "per-agent-config",
+    "database": "postgresql-with-replication",
+    "backups": "daily-s3-snapshots"
+  },
+
+  "technicalStack": {
+    "containerization": "Docker + Docker Compose",
+    "orchestration": "Docker Swarm (MVP) → Kubernetes (future)",
+    "database": "PostgreSQL 15 (ACE system)",
+    "cache": "Redis 7 (coordination + pub/sub)",
+    "storage": "S3 (playbook backups)",
+    "monitoring": "Prometheus + Grafana",
+    "logging": "ELK stack (Elasticsearch, Logstash, Kibana)"
+  },
+
+  "dependencies": {
+    "marketing_epic": "cfn-marketing-n8n-mcp-integration (must complete first)",
+    "ace_system": ".claude/skills/cfn-ace-system/ (existing, enhance)",
+    "redis_coordination": ".claude/skills/cfn-redis-coordination/ (existing, reuse)",
+    "cfn_loop": ".claude/skills/cfn-loop-orchestration/ (existing, extend)"
+  },
+
+  "risks": [
+    {
+      "id": "risk-1",
+      "description": "Docker network isolation may break Redis coordination",
+      "severity": "medium",
+      "mitigation": "Test Redis pub/sub across Docker networks in Phase 1",
+      "status": "open"
+    },
+    {
+      "id": "risk-2",
+      "description": "PostgreSQL migration may cause ACE system downtime",
+      "severity": "medium",
+      "mitigation": "Dual-write (SQLite + PostgreSQL) during Phase 1, cutover in Phase 2",
+      "status": "open"
+    },
+    {
+      "id": "risk-3",
+      "description": "Coordinator overhead may reduce cost savings",
+      "severity": "low",
+      "mitigation": "Coordinator validated to handle 150 agents, 10-agent teams well within capacity",
+      "status": "mitigated"
+    },
+    {
+      "id": "risk-4",
+      "description": "Playbook growth may slow context injection",
+      "severity": "low",
+      "mitigation": "PostgreSQL indexes on tags, scope, confidence. Target <500ms load time.",
+      "status": "open"
+    }
+  ]
+}

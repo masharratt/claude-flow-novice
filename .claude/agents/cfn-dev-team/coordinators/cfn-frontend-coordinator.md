@@ -225,14 +225,22 @@ if [ "$overallScore" -lt 85 ] && [ "$iteration" -lt "$MAX_ITERATIONS" ]; then
 
   echo "Starting iteration $iteration with visual feedback..."
 
-  # Wake Loop 3 agents with structured feedback
+  # Spawn fresh Loop 3 agents for next iteration with feedback
   for agent in "${loop3Agents[@]}"; do
-    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
+    npx claude-flow-novice agent-spawn "$agent" \
       --task-id "$TASK_ID" \
-      --agent-id "$agent" \
-      --reason "visual_iteration" \
-      --iteration "$iteration" \
-      --feedback "$(echo "$visualFeedback" | jq -r '.staticDiscrepancies[].fix, .interactionIssues[].fix' | paste -sd ',' -)"
+      --context "$(cat <<EOF
+Iteration $iteration: Address visual feedback
+
+Previous iteration score: $overallScore/100
+
+Visual discrepancies to fix:
+$(echo "$visualFeedback" | jq -r '.staticDiscrepancies[].fix, .interactionIssues[].fix')
+
+Reference mockup: ${MOCKUP_PATH}
+Brand guidelines: .claude/brand-guidelines.json
+EOF
+)"
   done
 
   # Repeat Phase 1 → Phase 2

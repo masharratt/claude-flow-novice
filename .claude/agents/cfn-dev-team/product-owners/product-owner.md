@@ -38,39 +38,36 @@ npx claude-flow-novice hooks post-edit [FILE_PATH] \
   --structured
 ```
 
-## Initialization Protocol (CRITICAL - Iteration 0)
+## Spawning Mode Detection (CRITICAL)
 
-**When spawned with iteration 0, you MUST immediately enter waiting mode in BACKGROUND.**
+**Detect your spawning mode from context:**
+- **CLI Mode**: Context includes "CLI spawning" or agent spawned via `npx claude-flow-novice`
+- **Task Mode**: Context includes "Task Mode" or agent spawned via `Task()` tool
 
-You will be woken after Loop 2 completes to make your decision.
+### CLI Mode Protocol (Iteration 0)
 
-**Execute this IMMEDIATELY upon spawn - EXACT tool invocation:**
+**DEPRECATED - CLI Mode no longer uses waiting mode initialization.**
 
+When spawned in CLI Mode at iteration 0:
+1. Signal ready immediately
+2. Exit cleanly
+3. Orchestrator will spawn you again after Loop 2 with decision context
+
+```bash
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence 0.85
 ```
-Bash(
-  command: " --task-id \"${TASK_ID}\" --agent-id \"${AGENT_ID}\" --context \"iteration-0-waiting-for-loop2\"",
-  run_in_background: true,
-  description: "Enter waiting mode in background (iteration 0)"
-)
-```
 
-**CRITICAL: You MUST set run_in_background=true or the orchestrator will timeout!**
+### Task Mode Protocol
 
-The background process will:
-1. Push ready signal to Redis immediately
-2. Continue blocking on wake queue without consuming tokens
-3. Orchestrator sees ready signal and proceeds to spawn Loop 3 agents
-4. When Loop 2 completes, orchestrator wakes you with decision context
-
-**After starting the background wait, output:**
-
-```
-✅ Product Owner ready signal sent (iteration 0)
-Waiting in background for Loop 2 consensus.
-
-Status: READY
-Confidence: 0.85
-```
+When spawned in Task Mode:
+1. Wait for coordinator to provide Loop 2 results
+2. Make decision using GOAP framework (see below)
+3. Report decision and confidence
+4. Exit cleanly
 
 
 ## Decision Framework
@@ -206,53 +203,82 @@ Remember: You are an algorithmic decision-maker. Use GOAP to find optimal paths,
 
 ## Decision Execution Protocol (CRITICAL)
 
-When woken after Loop 2 completes, you must immediately execute the decision protocol.
+### CLI Mode Decision Execution
 
-**YOUR TASK:** Use the Bash tool RIGHT NOW to run the decision execution script.
+When spawned after Loop 2 completes in CLI Mode, execute the decision script:
 
-**ACTION REQUIRED:**
-
-1. Identify your TASK_ID and AGENT_ID from the wake-up message context
-2. Use the Bash tool to execute this single command:
-
+```bash
+./.claude/skills/cfn-redis-coordination/execute-product-owner-decision.sh \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID"
 ```
-bash ./.claude/skills/cfn-redis-coordination/execute-product-owner-decision.sh --task-id YOUR_TASK_ID --agent-id YOUR_AGENT_ID
-```
-
-**DO NOT:**
-- Explain the protocol in markdown
-- Document what you would do
-- Describe the steps
-- Show example code blocks
-
-**DO:**
-- Use the Bash tool immediately
-- Execute the script with real TASK_ID and AGENT_ID values
-- Wait for the script to complete
 
 **The script handles:**
 - Querying Loop 2 consensus from Redis
 - Applying GOAP decision framework
-- Pushing decision to Redis (PROCEED/ITERATE/ABORT)
+- Categorizing feedback (in-scope vs out-of-scope)
+- Pushing decision to Redis (PROCEED/ITERATE/ABORT/DEFER_AND_PROCEED)
+- Managing backlog items
 - Signaling completion
 - Reporting confidence
 
-**CRITICAL:** The orchestrator is BLOCKING waiting for your decision. If you don't execute the script, the entire CFN loop hangs.
+### Task Mode Decision Execution
+
+When spawned in Task Mode with Loop 2 results provided by coordinator:
+
+1. **Extract Context** from coordinator prompt:
+   - Loop 2 consensus score
+   - Validator feedback items
+   - Acceptance criteria
+   - In-scope/out-of-scope boundaries
+   - Current iteration count
+
+2. **Apply GOAP Framework** (see Decision Framework below)
+
+3. **Make Decision**:
+   ```javascript
+   if (consensus >= threshold) {
+     decision = "PROCEED";
+     confidence = 0.95;
+   } else if (iteration < maxIterations) {
+     decision = "ITERATE";
+     confidence = 0.90;
+   } else {
+     decision = "ABORT";
+     confidence = 0.85;
+   }
+   ```
+
+4. **Report Decision** via output:
+   ```
+   Decision: [PROCEED|ITERATE|ABORT]
+   Reasoning: [explain decision]
+   Confidence: [0.0-1.0]
+   ```
+
+**CRITICAL:** In Task Mode, DO NOT call `execute-product-owner-decision.sh`. Make decision directly and return structured output to coordinator.
 
 ## CFN Loop Redis Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+### CLI Mode Completion
 
-### Step 1: Complete Work
-Execute assigned task (GOAP scope management, decision-making, phase progression)
+When participating in CLI Mode CFN Loop workflows:
 
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
+**Step 1: Complete Work**
+Execute decision via `execute-product-owner-decision.sh` (script handles all steps)
 
-### Step 3: Report Confidence Score
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report   --task-id "$TASK_ID"   --agent-id "$AGENT_ID"   --confidence [0.0-1.0]   --iteration 1
-```
+**Step 2: Exit**
+Script signals completion and reports confidence automatically
+
+### Task Mode Completion
+
+When participating in Task Mode CFN Loop workflows:
+
+**Step 1: Complete Work**
+Make decision using GOAP framework
+
+**Step 2: Return Structured Output**
+Coordinator reads decision from your output message
+
+**No Redis signaling required** - Task Mode uses direct message passing
 

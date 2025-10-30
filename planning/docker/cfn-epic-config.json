@@ -1,0 +1,650 @@
+{
+  "epicName": "AI Organizational Architecture - Docker Migration",
+  "epicId": "cfn-organizational-architecture",
+  "version": "1.0.0",
+  "status": "not_started",
+  "created": "2025-10-30",
+  "owner": "Infrastructure & Architecture Team",
+
+  "timeline": {
+    "totalDuration": "12 weeks",
+    "startWeek": 19,
+    "endWeek": 30,
+    "prerequisites": ["cfn-marketing-n8n-mcp-integration"]
+  },
+
+  "investment": {
+    "total": 56000,
+    "phase1": 8000,
+    "phase2": 12000,
+    "phase3": 20000,
+    "phase4": 16000,
+    "currency": "USD"
+  },
+
+  "roi": {
+    "monthlyBaseline": 15000,
+    "monthlyOptimized": 7350,
+    "monthlySavings": 7650,
+    "paybackPeriodMonths": 7.3,
+    "year1NetSavings": 35800,
+    "year2PlusSavings": 91800,
+    "costReductionPercent": 51
+  },
+
+  "architecture": {
+    "pattern": "hierarchical-teams-ephemeral-agents",
+    "agentLifecycle": "ephemeral-task-specific",
+    "knowledgePersistence": "playbook-driven-ace-system",
+    "communication": "redis-pubsub",
+    "containerization": "docker-compose-per-team",
+    "orchestration": "coordinator-per-team",
+    "database": "postgresql-15",
+    "cache": "redis-7",
+    "storage": "s3-backups",
+    "monitoring": "prometheus-grafana"
+  },
+
+  "organization": {
+    "teams": {
+      "marketing": {
+        "agents": 10,
+        "coordinator": 1,
+        "specializations": [
+          "email-campaigns",
+          "social-publishing",
+          "analytics-data",
+          "crm-contacts",
+          "paid-ads",
+          "chatbot-conversations",
+          "sms-campaigns",
+          "competitive-intelligence",
+          "landing-pages",
+          "press-distribution"
+        ]
+      },
+      "engineering": {
+        "agents": 15,
+        "coordinator": 1,
+        "specializations": [
+          "backend-dev",
+          "frontend-dev",
+          "devops-engineer",
+          "kubernetes-specialist",
+          "database-architect",
+          "tester",
+          "load-testing",
+          "security-specialist",
+          "code-reviewer",
+          "api-designer",
+          "system-architect",
+          "performance-analyst",
+          "mobile-dev",
+          "data-engineer",
+          "ui-designer"
+        ]
+      },
+      "sales": {
+        "agents": 8,
+        "coordinator": 1,
+        "specializations": [
+          "outbound-prospecting",
+          "inbound-qualifying",
+          "demo-specialist",
+          "proposal-writer",
+          "negotiator",
+          "account-manager",
+          "renewal-specialist",
+          "upsell-specialist"
+        ]
+      },
+      "support": {
+        "agents": 10,
+        "coordinator": 1,
+        "specializations": [
+          "l1-support",
+          "l2-support",
+          "l3-support",
+          "onboarding",
+          "training",
+          "documentation",
+          "bug-triager",
+          "escalation-manager",
+          "customer-success",
+          "retention"
+        ]
+      },
+      "finance": {
+        "agents": 5,
+        "coordinator": 1,
+        "specializations": [
+          "accounting",
+          "fp-and-a",
+          "procurement",
+          "auditing",
+          "payroll"
+        ]
+      }
+    },
+    "csuite": {
+      "agents": 5,
+      "roles": ["ceo", "cto", "coo", "cfo", "ciso"]
+    },
+    "totals": {
+      "teams": 5,
+      "coordinators": 5,
+      "teamAgents": 48,
+      "csuiteAgents": 5,
+      "totalAgents": 58
+    }
+  },
+
+  "aceSystem": {
+    "database": "postgresql",
+    "currentImplementation": "sqlite",
+    "migrationRequired": true,
+    "scopes": ["agent", "team", "org"],
+    "scopeHierarchy": "agent > team > org",
+    "features": {
+      "contextInjection": "automatic-pre-spawn",
+      "contextReflection": "automatic-post-completion",
+      "lessonExtraction": "nlp-regex-patterns",
+      "deduplication": "tf-idf-similarity",
+      "promotion": "high-confidence-team-to-org",
+      "archival": "low-confidence-removal"
+    },
+    "performance": {
+      "loadTimeTarget": "500ms",
+      "loadTimeActual": "TBD",
+      "storageTimeTarget": "200ms",
+      "storageTimeActual": "TBD"
+    },
+    "metrics": {
+      "expectedLessonsAfter18Weeks": 100,
+      "expectedConfidenceAvg": 0.90,
+      "expectedSuccessRate": 0.94
+    }
+  },
+
+  "phases": [
+    {
+      "phaseId": "phase-1",
+      "name": "Infrastructure Templates & ACE Enhancement",
+      "duration": "2 weeks",
+      "weeks": [19, 20],
+      "budget": 8000,
+      "sprints": [
+        {
+          "id": "sprint-1.1",
+          "name": "ACE System Enhancement",
+          "duration": "3 days",
+          "deliverables": [
+            "PostgreSQL schema with scope fields",
+            "SQLite → PostgreSQL migration script",
+            "Enhanced context injection (--scope flag)",
+            "Enhanced reflection (--team-id flag)",
+            "Scope hierarchy implementation",
+            "Team isolation validation tests"
+          ],
+          "successCriteria": [
+            "PostgreSQL operational",
+            "Scope inheritance working",
+            "Team isolation validated",
+            "95% backward compatibility"
+          ]
+        },
+        {
+          "id": "sprint-1.2",
+          "name": "Docker Infrastructure Templates",
+          "duration": "4 days",
+          "deliverables": [
+            "agent.Dockerfile (multi-stage)",
+            "team-compose.yml template",
+            "agent-mcp-config.json template",
+            "team-coordinator.md template",
+            "C-Suite agent templates (5)",
+            "bin/generate-team.sh script"
+          ],
+          "successCriteria": [
+            "Dockerfile builds (<500MB)",
+            "Isolated network creation",
+            "MCP isolation validated",
+            "Template generator works",
+            "Config validation passes"
+          ]
+        },
+        {
+          "id": "sprint-1.3",
+          "name": "Automatic Context Injection/Reflection",
+          "duration": "3 days",
+          "deliverables": [
+            "auto-context-inject.sh (pre-spawn)",
+            "auto-context-reflect.sh (post-complete)",
+            "extract-lessons.sh (NLP-regex)",
+            "Orchestrator integration",
+            "Auto-context validation tests"
+          ],
+          "successCriteria": [
+            "Automatic injection working",
+            "Automatic reflection working",
+            "Zero manual invoke needed",
+            "Lesson extraction >80% accuracy",
+            "Full orchestrator integration"
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-2",
+      "name": "Pilot Team - Marketing",
+      "duration": "2 weeks",
+      "weeks": [21, 22],
+      "budget": 12000,
+      "sprints": [
+        {
+          "id": "sprint-2.1",
+          "name": "Marketing Team Infrastructure",
+          "duration": "3 days",
+          "deliverables": [
+            "teams/marketing/docker-compose.yml",
+            "10 agent MCP configs",
+            "marketing-coordinator.md",
+            ".env.marketing",
+            "Docker deployment"
+          ],
+          "successCriteria": [
+            "Network isolation validated",
+            "10 agent containers running",
+            "Coordinator operational",
+            "Health checks passing",
+            "MCP isolation working"
+          ]
+        },
+        {
+          "id": "sprint-2.2",
+          "name": "Marketing Coordinator Development",
+          "duration": "4 days",
+          "deliverables": [
+            "Complete coordinator agent",
+            "Task routing logic",
+            "Performance monitoring",
+            "Budget tracking",
+            "Coordinator tests"
+          ],
+          "successCriteria": [
+            "Coordinator spawns agents",
+            "Task routing works",
+            "Playbook loading works",
+            "Task completion <5min",
+            "Result reporting works"
+          ]
+        },
+        {
+          "id": "sprint-2.3",
+          "name": "Playbook-Driven Workflow",
+          "duration": "3 days",
+          "deliverables": [
+            "Seeded playbook (10 lessons)",
+            "5 test tasks executed",
+            "Context injection validation",
+            "Lesson accumulation validation",
+            "Performance benchmarks",
+            "Documentation"
+          ],
+          "successCriteria": [
+            "Playbook grows 10→18 lessons",
+            "Agents see previous lessons",
+            "Load time <500ms",
+            "Storage time <200ms",
+            "Consistency validated"
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-3",
+      "name": "Full Organizational Rollout",
+      "duration": "4 weeks",
+      "weeks": [23, 24, 25, 26],
+      "budget": 20000,
+      "sprints": [
+        {
+          "id": "sprint-3.1",
+          "name": "Engineering Team",
+          "duration": "5 days",
+          "deliverables": [
+            "Engineering team deployment",
+            "15 agents + coordinator",
+            "Engineering playbook",
+            "Engineering MCP configs",
+            "Team validation tests"
+          ],
+          "successCriteria": [
+            "15 agents operational",
+            "Coordinator routing works",
+            "Playbook isolated",
+            "Cross-team validated",
+            "All agents load playbook"
+          ]
+        },
+        {
+          "id": "sprint-3.2",
+          "name": "Sales & Support Teams",
+          "duration": "5 days",
+          "deliverables": [
+            "Sales team (8 agents + coordinator)",
+            "Support team (10 agents + coordinator)",
+            "Sales playbook",
+            "Support playbook",
+            "Team validation tests"
+          ],
+          "successCriteria": [
+            "Both teams operational",
+            "Isolated playbooks",
+            "Cross-team coordination",
+            "Team-specific MCPs"
+          ]
+        },
+        {
+          "id": "sprint-3.3",
+          "name": "Finance & C-Suite",
+          "duration": "5 days",
+          "deliverables": [
+            "Finance team (5 agents + coordinator)",
+            "C-Suite deployment (5 agents)",
+            "Finance playbook",
+            "Org-wide playbook",
+            "C-Suite validation tests"
+          ],
+          "successCriteria": [
+            "Finance operational",
+            "C-Suite operational",
+            "Reports flow to C-Suite",
+            "Escalation works",
+            "Org playbook accessible"
+          ]
+        },
+        {
+          "id": "sprint-3.4",
+          "name": "Cross-Team Coordination",
+          "duration": "5 days",
+          "deliverables": [
+            "Cross-team coordination skills",
+            "Redis peer channels",
+            "Escalation paths",
+            "Resource sharing protocol",
+            "Cross-team workflow tests"
+          ],
+          "successCriteria": [
+            "Peer coordination works",
+            "Escalation validated",
+            "Resource sharing works",
+            "Cross-team tasks <10min",
+            "Full org integration"
+          ]
+        }
+      ]
+    },
+    {
+      "phaseId": "phase-4",
+      "name": "Optimization & Production",
+      "duration": "4 weeks",
+      "weeks": [27, 28, 29, 30],
+      "budget": 16000,
+      "sprints": [
+        {
+          "id": "sprint-4.1",
+          "name": "Playbook Intelligence",
+          "duration": "5 days",
+          "deliverables": [
+            "Playbook quality analysis",
+            "Deduplication script",
+            "Promotion script (team→org)",
+            "Playbook curator agent",
+            "Weekly cleanup automation",
+            "Curation tests"
+          ],
+          "successCriteria": [
+            "Duplicates merged",
+            "Low-confidence archived",
+            "High-confidence promoted",
+            "Weekly curator runs",
+            "30% size reduction"
+          ]
+        },
+        {
+          "id": "sprint-4.2",
+          "name": "Cost Optimization",
+          "duration": "5 days",
+          "deliverables": [
+            "Budget tracking per team",
+            "Auto-scaling implementation",
+            "Budget alerts",
+            "Idle container shutdown",
+            "Cost dashboard",
+            "Auto-scaling tests"
+          ],
+          "successCriteria": [
+            "Budget tracking accurate",
+            "Auto-scaling triggers",
+            "Idle shutdown works",
+            "Alerts sent",
+            "30% cost reduction"
+          ]
+        },
+        {
+          "id": "sprint-4.3",
+          "name": "Performance Analytics",
+          "duration": "5 days",
+          "deliverables": [
+            "Agent performance metrics",
+            "Performance dashboard",
+            "Underperforming detection",
+            "Training recommendations",
+            "Analytics tests"
+          ],
+          "successCriteria": [
+            "Metrics tracked",
+            "Dashboard shows top/bottom",
+            "Alerts for poor performance",
+            "Recommendations generated",
+            "Trends visualized"
+          ]
+        },
+        {
+          "id": "sprint-4.4",
+          "name": "Production Hardening",
+          "duration": "5 days",
+          "deliverables": [
+            "Disaster recovery playbook",
+            "Agent recovery testing",
+            "Daily S3 backups",
+            "Security audit",
+            "Production deployment guide",
+            "Epic completion report"
+          ],
+          "successCriteria": [
+            "Recovery <2 minutes",
+            "Daily backups working",
+            "Security audit passes",
+            "Deployment guide validated",
+            "Epic report complete"
+          ]
+        }
+      ]
+    }
+  ],
+
+  "acceptanceCriteria": {
+    "organizational": {
+      "teamsOperational": 5,
+      "csuiteOperational": 5,
+      "totalAgents": 58,
+      "playbookDriven": true
+    },
+    "technical": {
+      "aceSystemScope": "agent-team-org",
+      "playbookLessons": "100+",
+      "crossTeamCoordination": true,
+      "containerIsolation": true,
+      "agentRecoveryTime": "<2min"
+    },
+    "financial": {
+      "costReduction": "30%",
+      "monthlyOperatingCost": 10500,
+      "paybackPeriod": "7.3 months"
+    },
+    "quality": {
+      "playbookLoadTime": "<500ms",
+      "lessonStorageTime": "<200ms",
+      "securityAuditPass": true,
+      "productionDeploymentGuide": true
+    }
+  },
+
+  "risks": [
+    {
+      "id": "RISK-001",
+      "severity": "medium",
+      "probability": "low",
+      "description": "Docker network isolation breaks Redis coordination",
+      "mitigation": "Test Redis pub/sub across Docker networks in Phase 1",
+      "owner": "Infrastructure Team",
+      "status": "open"
+    },
+    {
+      "id": "RISK-002",
+      "severity": "medium",
+      "probability": "medium",
+      "description": "PostgreSQL migration causes ACE system downtime",
+      "mitigation": "Dual-write (SQLite + PostgreSQL) during transition",
+      "owner": "Database Team",
+      "status": "open"
+    },
+    {
+      "id": "RISK-003",
+      "severity": "low",
+      "probability": "low",
+      "description": "Coordinator overhead reduces cost savings",
+      "mitigation": "Validated 150-agent capacity, 10-agent teams OK",
+      "owner": "Architecture Team",
+      "status": "mitigated"
+    },
+    {
+      "id": "RISK-004",
+      "severity": "low",
+      "probability": "medium",
+      "description": "Playbook growth slows context injection",
+      "mitigation": "PostgreSQL indexes, target <500ms load time",
+      "owner": "Performance Team",
+      "status": "open"
+    }
+  ],
+
+  "dependencies": {
+    "external": [
+      {
+        "name": "Marketing n8n MCP Integration Epic",
+        "id": "cfn-marketing-n8n-mcp-integration",
+        "status": "not_started",
+        "mustCompleteBefore": "phase-1",
+        "estimatedCompletion": "Week 18"
+      }
+    ],
+    "internal": [
+      {
+        "component": "ACE System",
+        "path": ".claude/skills/cfn-ace-system/",
+        "status": "production",
+        "requiredChanges": "Add scope fields, PostgreSQL migration"
+      },
+      {
+        "component": "Redis Coordination",
+        "path": ".claude/skills/cfn-redis-coordination/",
+        "status": "production",
+        "requiredChanges": "None (reuse as-is)"
+      },
+      {
+        "component": "CFN Loop Orchestration",
+        "path": ".claude/skills/cfn-loop-orchestration/",
+        "status": "production",
+        "requiredChanges": "Add automatic context injection hooks"
+      }
+    ]
+  },
+
+  "deliverables": {
+    "infrastructure": [
+      "Docker templates (Dockerfile, compose, MCP configs)",
+      "PostgreSQL ACE system with scope support",
+      "Automatic context injection/reflection hooks",
+      "Team generation script (bin/generate-team.sh)"
+    ],
+    "teams": [
+      "Marketing team (10 agents + coordinator)",
+      "Engineering team (15 agents + coordinator)",
+      "Sales team (8 agents + coordinator)",
+      "Support team (10 agents + coordinator)",
+      "Finance team (5 agents + coordinator)"
+    ],
+    "csuite": [
+      "CEO agent",
+      "CTO agent",
+      "COO agent",
+      "CFO agent",
+      "CISO agent"
+    ],
+    "coordination": [
+      "Cross-team coordination skills",
+      "Escalation path implementation",
+      "Resource sharing protocol"
+    ],
+    "optimization": [
+      "Playbook curator agent",
+      "Budget tracking system",
+      "Auto-scaling implementation",
+      "Performance analytics dashboard"
+    ],
+    "documentation": [
+      "Epic overview (EPIC_ORGANIZATIONAL_ARCHITECTURE.md)",
+      "Playbook architecture guide (PLAYBOOK_DRIVEN_ARCHITECTURE.md)",
+      "Production deployment guide",
+      "Disaster recovery playbook",
+      "Epic completion report"
+    ]
+  },
+
+  "successMetrics": {
+    "week22": {
+      "teamsOperational": 1,
+      "agentsOperational": 11,
+      "playbookLessons": 18,
+      "avgLoadTime": "<500ms",
+      "pilotValidated": true
+    },
+    "week26": {
+      "teamsOperational": 5,
+      "agentsOperational": 58,
+      "playbookLessons": 100,
+      "crossTeamWorking": true,
+      "csuiteOperational": true
+    },
+    "week30": {
+      "costReduction": "30%",
+      "playbookSizeOptimized": true,
+      "agentRecovery": "<2min",
+      "securityAuditPassed": true,
+      "productionReady": true
+    }
+  },
+
+  "files": {
+    "epic": "planning/docker/cfn-organizational-architecture-epic.json",
+    "config": "planning/docker/cfn-epic-config.json",
+    "overview": "planning/docker/EPIC_ORGANIZATIONAL_ARCHITECTURE.md",
+    "architecture": "planning/docker/PLAYBOOK_DRIVEN_ARCHITECTURE.md",
+    "overlap": "planning/documentation/ORG_ARCHITECTURE_OVERLAP_ANALYSIS.md",
+    "gap": "planning/documentation/ORG_ARCHITECTURE_GAP_ANALYSIS.md",
+    "ultrathink": "planning/documentation/AI_ORGANIZATIONAL_ARCHITECTURE_ULTRATHINK.md"
+  }
+}

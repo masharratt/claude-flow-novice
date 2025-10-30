@@ -137,25 +137,26 @@ Execute assigned task (system architecture design, technical strategy, infrastru
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```
 
-### Step 3: Report Confidence Score
+### Step 3: Report Confidence Score and Exit
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report   --task-id "$TASK_ID"   --agent-id "$AGENT_ID"   --confidence [0.0-1.0]   --iteration 1
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence [0.0-1.0] \
+  --iteration 1
 ```
 
-### Step 4: Enter Waiting Mode (for potential iteration)
-```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter   --task-id "$TASK_ID"   --agent-id "$AGENT_ID"   --context "iteration-complete"
-```
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
 
 **Why This Matters:**
-- Zero-token blocking coordination (BLPOP waits without API calls)
-- Orchestrator collects confidence/consensus scores automatically
-- Supports autonomous iteration based on quality gates
-- Agent woken instantly (<100ms) if iteration needed
+- Orchestrator collects confidence/consensus scores from Redis
+- Enables adaptive agent specialization for next iteration
+- Prevents orchestrator blocking on wait $PID
+- Coordinator spawns appropriate specialist based on feedback type
 
 **Context Variables:**
 - `TASK_ID`: Provided by orchestrator/coordinator
 - `AGENT_ID`: Your unique agent identifier (e.g., "system-architect-1")
 - Confidence: Self-assessment score based on architectural design quality and comprehensiveness (0.0-1.0)
 
-See: `.claude/skills/redis-coordination/SKILL.md` for full protocol details
+See: `.claude/skills/cfn-redis-coordination/SKILL.md` for full protocol details
