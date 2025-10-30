@@ -1,98 +1,56 @@
-#!/usr/bin/env bash
-
-# Anti-Pattern Effectiveness Analysis Script
-# Part of Epic-ACE-001 Phase 3.2 - CFN Loop Integration
+#!/bin/bash
+# Extended ACE System Anti-Pattern Effectiveness Analysis
 
 set -euo pipefail
 
-# Configuration
-ANTIPATTERN_STATS_KEY="ace:stats:antipatterns"
-OUTPUT_DIR="/mnt/c/Users/masha/Documents/claude-flow-novice/.artifacts/analytics"
-OUTPUT_FILE="$OUTPUT_DIR/antipattern_effectiveness_$(date +%Y%m%d_%H%M%S).json"
+analyze_ab_test_results() {
+    local task_id="${1:?Task ID required}"
 
-# Ensure output directory exists
-mkdir -p "$OUTPUT_DIR"
+    # Retrieve A/B test results from Redis
+    local ab_results=$(redis-cli KEYS "ace:ab_test:${task_id}:*")
 
-# Function to get domain-specific and global stats
-get_antipattern_stats() {
-    local domain="$1"
-    local domain_key="${ANTIPATTERN_STATS_KEY}:${domain}"
-    local global_key="${ANTIPATTERN_STATS_KEY}:global"
+    # SQLite query to calculate metrics
+    sqlite3 ace_system.db <<EOF
+    WITH ab_test_data AS (
+        SELECT
+            json_extract(data, '$.agent_id') as agent_id,
+            json_extract(data, '$.ace_enabled') as ace_enabled,
+            json_extract(data, '$.first_confidence') as first_confidence,
+            json_extract(data, '$.final_confidence') as final_confidence,
+            json_extract(data, '$.iterations') as iterations
+        FROM ace_effectiveness
+        WHERE task_id = '$task_id'
+    )
+    SELECT
+        CASE WHEN ace_enabled THEN 'ACE' ELSE 'Control' END AS group_name,
+        AVG(first_confidence) AS avg_first_confidence,
+        AVG(final_confidence) AS avg_final_confidence,
+        AVG(iterations) AS avg_iterations,
+        COUNT(*) AS sample_size
+    FROM ab_test_data
+    GROUP BY group_name;
+EOF
+}
 
-    # Retrieve domain-specific and global stats
-    local domain_injected=$(redis-cli HGET "$domain_key" "injected" 2>/dev/null || echo 0)
-    local domain_prevented=$(redis-cli HGET "$domain_key" "prevented" 2>/dev/null || echo 0)
-    local global_injected=$(redis-cli HGET "$global_key" "injected" 2>/dev/null || echo 0)
-    local global_prevented=$(redis-cli HGET "$global_key" "prevented" 2>/dev/null || echo 0)
+calculate_roi() {
+    local task_id="${1:?Task ID required}"
 
-    # Calculate effectiveness rate
-    local effectiveness_rate=0
-    if [[ "$domain_injected" -gt 0 ]]; then
-        effectiveness_rate=$(echo "scale=4; $domain_prevented / $domain_injected" | bc)
-    fi
-
-    # Prepare JSON output
-    jq -n \
-        --arg domain "$domain" \
-        --arg domain_injected "$domain_injected" \
-        --arg domain_prevented "$domain_prevented" \
-        --arg global_injected "$global_injected" \
-        --arg global_prevented "$global_prevented" \
-        --arg effectiveness_rate "$effectiveness_rate" \
-        '{
-            "domain": $domain,
-            "stats": {
-                "domain": {
-                    "injected": ($domain_injected | tonumber),
-                    "prevented": ($domain_prevented | tonumber)
-                },
-                "global": {
-                    "injected": ($global_injected | tonumber),
-                    "prevented": ($global_prevented | tonumber)
-                }
-            },
-            "effectiveness_rate": ($effectiveness_rate | tonumber)
-        }'
+    sqlite3 ace_system.db <<EOF
+    WITH timing_data AS (
+        SELECT
+            json_extract(data, '$.context_injection_time') as injection_time,
+            json_extract(data, '$.iteration_time') as iteration_time
+        FROM ace_performance
+        WHERE task_id = '$task_id'
+    )
+    SELECT
+        AVG(injection_time) as avg_injection_time,
+        AVG(iteration_time) as avg_iteration_time,
+        AVG(iteration_time - injection_time) as time_saved
+    FROM timing_data;
+EOF
 }
 
 # Main execution
-main() {
-    # Initialize output array
-    local results="[]"
-
-    # Predefined list of domains
-    domains=("general" "backend" "frontend" "security" "devops" "testing")
-
-    # Collect stats for each domain
-    for domain in "${domains[@]}"; do
-        local domain_stats
-        domain_stats=$(get_antipattern_stats "$domain")
-        results=$(echo "$results" | jq --argjson stats "$domain_stats" '. + [$stats]')
-    done
-
-    # Calculate overall effectiveness
-    local overall_effectiveness
-    overall_effectiveness=$(echo "$results" | jq 'map(.effectiveness_rate) | add / length')
-
-    # Final output
-    local final_output
-    final_output=$(jq -n \
-        --argjson results "$results" \
-        --arg overall_effectiveness "$overall_effectiveness" \
-        '{
-            "timestamp": "'"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"'",
-            "domains": $results,
-            "overall_effectiveness": ($overall_effectiveness | tonumber)
-        }')
-
-    # Write to output file
-    echo "$final_output" | jq . > "$OUTPUT_FILE"
-
-    # Display results
-    echo "Anti-Pattern Effectiveness Analysis"
-    echo "Output File: $OUTPUT_FILE"
-    echo "$final_output" | jq .
-}
-
-# Execute
-main
+analyze_ab_test_results "$@"
+calculate_roi "$@"

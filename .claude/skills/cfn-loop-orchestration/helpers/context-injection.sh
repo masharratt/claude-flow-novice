@@ -1,97 +1,142 @@
 #!/usr/bin/env bash
 
-# Add these new global variables near the top of the script, with other global declarations
-ANTIPATTERN_STATS_KEY="ace:stats:antipatterns"
-INJECT_ANTIPATTERNS=true  # Toggle for global anti-pattern injection
+#!/usr/bin/env bash
 
-# Add this function in the script, after the logging function
 ##############################################################################
-# Track Anti-Pattern Injection Stats
+# CFN Loop Context Injection Helper - Phase 3.3 Integration
+# Unified ACE context injection using invoke-context-inject.sh
+#
+# Usage:
+#   source context-injection.sh
+#   inject_ace_context "$TASK_DESCRIPTION" "$TASK_TAGS" "$DOMAIN"
 ##############################################################################
-track_antipattern_stats() {
-  local action="$1"  # 'injected' or 'prevented'
-  local domain="${2:-general}"
 
-  if ! command -v redis-cli &> /dev/null; then
-    log "WARN" "redis-cli not available, skipping anti-pattern stats tracking"
-    return 0
+set -euo pipefail
+
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+ACE_INJECT_SCRIPT="${PROJECT_ROOT}/.claude/skills/cfn-ace-system/invoke-context-inject.sh"
+
+##############################################################################
+# Inject ACE Context (Unified Positive + Negative)
+##############################################################################
+inject_ace_context() {
+  local task_description="$1"
+  local task_tags="${2:-}"
+  local domain="${3:-}"
+  local enable_ace="${4:-true}"
+  local output_file="${5:-}"
+
+  # Validate dependencies
+  if [ ! -f "$ACE_INJECT_SCRIPT" ]; then
+    echo "# ACE Context (Unavailable)"
+    echo ""
+    echo "_ACE context injection script not found._"
+    return 1
   fi
 
-  # Increment domain-specific and global stats
-  redis-cli HINCRBY "$ANTIPATTERN_STATS_KEY:$domain" "$action" 1 > /dev/null 2>&1
-  redis-cli HINCRBY "$ANTIPATTERN_STATS_KEY:global" "$action" 1 > /dev/null 2>&1
+  # Build invocation parameters
+  local invoke_params="--task-description \"$task_description\""
 
-  log "INFO" "Anti-pattern stats tracked: $action for domain $domain"
+  if [ -n "$task_tags" ]; then
+    invoke_params="$invoke_params --task-tags \"$task_tags\""
+  fi
+
+  if [ -n "$domain" ]; then
+    invoke_params="$invoke_params --domain \"$domain\""
+  fi
+
+  invoke_params="$invoke_params --enable-ace $enable_ace"
+
+  if [ -n "$output_file" ]; then
+    invoke_params="$invoke_params --output \"$output_file\""
+  fi
+
+  # Execute unified context injection
+  eval "$ACE_INJECT_SCRIPT" $invoke_params 2>/dev/null || {
+    echo "# ACE Context (Error)"
+    echo ""
+    echo "_Failed to retrieve ACE context._"
+    return 1
+  }
+
+  return 0
 }
 
-# Modify the extract_insights function to include anti-pattern severity
-extract_insights() {
-  local filtered_results="$1"
-  local insight_type="$2"
-  local max_count="$3"
+##############################################################################
+# Extract Tags from Context (Helper for Orchestrator)
+##############################################################################
+extract_tags_from_context() {
+  local context_json="$1"
 
-  # Add severity scoring to anti-pattern extraction
-  local insights
-  insights=$(echo "$filtered_results" | jq -r --arg type "$insight_type" '
-    [.[].insights[]? |
-     select(.type == $type) |
-     {
-       text: .text,
-       severity: .severity // 0.5,
-       confidence: .confidence // 0.75
-     }
-   ] |
-   sort_by(.severity) |
-   reverse |
-   .[:'"$max_count"'] |
-   .[] |
-   select(.confidence >= 0.70) |
-   .text
+  # Extract tags from deliverables, acceptance criteria, etc.
+  local extracted_tags
+  extracted_tags=$(echo "$context_json" | jq -r '
+    [
+      (.deliverables // [] | .[]),
+      (.acceptanceCriteria // [] | .[]),
+      (.epicGoal // "" | split(" ") | .[])
+    ] |
+    map(select(. != "")) |
+    unique |
+    join(",")
   ' 2>/dev/null || echo "")
 
-  echo "$insights"
+  echo "$extracted_tags"
 }
 
-# Modify the format_markdown function to handle anti-pattern severity
-format_markdown() {
-  local filtered_results="$1"
+##############################################################################
+# Classify Domain from Task Description (Helper)
+##############################################################################
+classify_domain() {
+  local task_description="$1"
 
-  # Existing function body, but add severity rendering for anti-patterns
-  # Example modification in the anti-patterns section:
-  if [ -n "$anti_patterns" ]; then
-    markdown+="### Anti-Patterns (Sorted by Severity ⚠️)\n"
-    while IFS= read -r line; do
-      local severity=$(echo "$filtered_results" | jq -r --arg text "$line" '
-        .[].insights[]? |
-        select(.type == "anti-pattern" and .text == $text) |
-        .severity // 0.5
-      ')
-      # Render severity with warning symbols
-      if (( $(echo "$severity > 0.8" | bc -l) )); then
-        markdown+="- 🔴 HIGH RISK: $line\n"
-      elif (( $(echo "$severity > 0.5" | bc -l) )); then
-        markdown+="- 🟠 MEDIUM RISK: $line\n"
-      else
-        markdown+="- 🟡 LOW RISK: $line\n"
-      fi
-    done <<< "$anti_patterns"
-    markdown+="\n"
+  local classifier_script="${PROJECT_ROOT}/.claude/skills/cfn-task-classifier/classify-task.sh"
+
+  if [ ! -f "$classifier_script" ]; then
+    echo "general"
+    return
   fi
 
-  echo -e "$markdown"
+  local classification
+  classification=$("$classifier_script" "$task_description" --format json 2>/dev/null || echo '{"domains":["general"]}')
+
+  local primary_domain
+  primary_domain=$(echo "$classification" | jq -r '.domains[0] // "general"')
+
+  echo "$primary_domain"
 }
 
-# Modify the main function to track anti-pattern injection
-main() {
-  # Existing code... but add these lines after formatting markdown
+##############################################################################
+# Main Context Injection Wrapper (For Orchestrator Use)
+##############################################################################
+inject_context_for_agent() {
+  local agent_type="$1"
+  local task_id="$2"
+  local iteration="${3:-1}"
 
-  if [ -n "$anti_patterns" ] && [ "$INJECT_ANTIPATTERNS" = true ]; then
-    # Track anti-pattern injection
-    local anti_pattern_count=$(echo "$anti_patterns" | wc -l | tr -d ' ')
-    track_antipattern_stats "injected" "$domain"
+  # Retrieve task context from Redis
+  local task_context
+  if command -v redis-cli &> /dev/null; then
+    task_context=$(redis-cli HGET "cfn_loop:task:$task_id:context" "task_description" 2>/dev/null || echo "")
+  else
+    task_context=""
   fi
 
-  # Rest of the existing main function...
-}
+  if [ -z "$task_context" ]; then
+    echo "# ACE Context (No Task Description)"
+    echo ""
+    echo "_Task description not available for context injection._"
+    return 1
+  fi
 
-# The rest of the script remains the same...
+  # Extract tags and classify domain
+  local task_tags=$(extract_tags_from_context "$task_context")
+  local domain=$(classify_domain "$task_context")
+
+  # Inject unified context
+  inject_ace_context "$task_context" "$task_tags" "$domain" "true" ""
+
+  return 0
+}
