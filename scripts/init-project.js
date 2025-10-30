@@ -15,7 +15,26 @@ const mkdirAsync = promisify(fs.mkdir);
 const existsAsync = promisify(fs.exists);
 
 // Find the CFN package root (works both in dev and installed contexts)
-const cfnRoot = path.resolve(process.cwd(), 'node_modules', 'claude-flow-novice');
+function findCfnRoot() {
+  // During postinstall, we're inside the package being installed
+  const packageJsonPath = path.resolve(__dirname, '..', 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      if (pkg.name === 'claude-flow-novice') {
+        // We're running from within the claude-flow-novice package (postinstall)
+        return path.resolve(__dirname, '..');
+      }
+    } catch (e) {
+      // Not a valid package.json, continue
+    }
+  }
+
+  // We're running from a project that has installed claude-flow-novice
+  return path.resolve(process.cwd(), 'node_modules', 'claude-flow-novice');
+}
+
+const cfnRoot = findCfnRoot();
 
 // Configuration for CFN initialization paths
 const CFN_PATHS = {
@@ -66,10 +85,24 @@ async function ensureDirectories() {
 }
 
 async function verifyCfnInstallation() {
-  const cfnPath = path.resolve(process.cwd(), 'node_modules', 'claude-flow-novice');
-  if (!fs.existsSync(cfnPath)) {
-    console.error(chalk.red('❌ claude-flow-novice not installed. Please run: npm install claude-flow-novice'));
+  // Check if cfnRoot exists (works during postinstall and after install)
+  if (!fs.existsSync(cfnRoot)) {
+    console.error(chalk.red('❌ claude-flow-novice package root not found'));
+    console.error(chalk.yellow('cfnRoot:', cfnRoot));
     process.exit(1);
+  }
+
+  // Verify critical directories exist
+  const criticalPaths = [
+    path.join(cfnRoot, '.claude/agents/cfn-dev-team'),
+    path.join(cfnRoot, '.claude/skills')
+  ];
+
+  for (const p of criticalPaths) {
+    if (!fs.existsSync(p)) {
+      console.error(chalk.red(`❌ Critical path missing: ${p}`));
+      process.exit(1);
+    }
   }
 }
 
