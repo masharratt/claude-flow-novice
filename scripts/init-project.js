@@ -106,7 +106,7 @@ async function verifyCfnInstallation() {
   }
 }
 
-async function copyFiles(src, dest, pattern) {
+async function copyFiles(src, dest, pattern, forceOverwrite = true) {
   try {
     if (!fs.existsSync(src)) {
       console.warn(chalk.yellow(`⚠️ Source not found: ${src}`));
@@ -121,15 +121,26 @@ async function copyFiles(src, dest, pattern) {
       for (const item of matched) {
         const itemSrc = path.join(src, item);
         const itemDest = path.join(dest, item);
+
+        // For cfn-prefixed items, remove existing to ensure clean update
+        if (forceOverwrite && fs.existsSync(itemDest)) {
+          fs.rmSync(itemDest, { recursive: true, force: true });
+        }
+
         await mkdirAsync(path.dirname(itemDest), { recursive: true });
         await cpAsync(itemSrc, itemDest, { recursive: true, force: true });
       }
-      console.log(chalk.green(`✅ Copied ${matched.length} ${pattern} items from ${src}`));
+      console.log(chalk.green(`✅ Copied ${matched.length} ${pattern} items from ${src} (overwrite: ${forceOverwrite})`));
     } else {
-      // Copy entire directory
+      // Copy entire directory (e.g., cfn-dev-team)
+      // Remove existing destination to ensure clean update
+      if (forceOverwrite && fs.existsSync(dest)) {
+        fs.rmSync(dest, { recursive: true, force: true });
+      }
+
       await mkdirAsync(path.dirname(dest), { recursive: true });
       await cpAsync(src, dest, { recursive: true, force: true });
-      console.log(chalk.green(`✅ Copied ${src} → ${dest}`));
+      console.log(chalk.green(`✅ Copied ${src} → ${dest} (overwrite: ${forceOverwrite})`));
     }
     return true;
   } catch (error) {
