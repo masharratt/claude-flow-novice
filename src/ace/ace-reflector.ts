@@ -23,16 +23,8 @@ export class ACEReflector {
   async initialize(): Promise<void> {
     await this.memorySystem.initialize();
 
-    // Create specialized reflection tables
-    await this.memorySystem['db']?.exec(`
-      CREATE TABLE IF NOT EXISTS context_reflections (
-        id TEXT PRIMARY KEY,
-        timestamp INTEGER,
-        complexity REAL,
-        context BLOB,
-        insights TEXT
-      )
-    `);
+    // Note: Production schema is managed by .claude/skills/cfn-ace-system/schema/001-create-context-reflections.sql
+    // This initialization ensures compatibility with the production schema
   }
 
   async reflect(
@@ -55,16 +47,22 @@ export class ACEReflector {
       AccessLevel.SYSTEM
     );
 
-    // Insert reflection data into SQL table
+    // Insert reflection data into SQL table (production schema)
     await this.memorySystem['db']?.run(
-      `INSERT INTO context_reflections (id, timestamp, complexity, context, insights)
-       VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO context_reflections (
+        id, reflection_type, task_id, swarm_id, execution_trace,
+        feedback_signals, extracted_lessons, metadata, confidence
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         reflection.id,
-        reflection.timestamp,
-        reflection.complexity,
-        JSON.stringify(reflection.context),
-        JSON.stringify(reflection.insights)
+        'strategy',  // Default reflection type
+        reflection.context.task_id || 'unknown',
+        reflection.context.swarm_id || 'default',
+        JSON.stringify({ timestamp: reflection.timestamp, complexity: reflection.complexity }),
+        JSON.stringify({ insights: reflection.insights }),
+        JSON.stringify({ strategies: reflection.insights, antiPatterns: [], edgeCases: [] }),
+        JSON.stringify({ complexity: reflection.complexity }),
+        reflection.complexity  // Use complexity as confidence proxy
       ]
     );
 
