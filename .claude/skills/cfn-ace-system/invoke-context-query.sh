@@ -94,20 +94,32 @@ async function queryContexts() {
     throw new Error('Database not initialized');
   }
 
-  const rows = db.prepare('SELECT * FROM context_reflections ORDER BY timestamp DESC').all();
+  // Query memory_store for reflection entries
+  // Reflections are stored as: reflection:ref-{timestamp} -> JSON
+  const rows = await db.all(
+    "SELECT key, value FROM memory_store WHERE key LIKE 'reflection:%' ORDER BY created_at DESC"
+  );
+
+  if (rows.length === 0) {
+    return [];
+  }
 
   const results = rows.map(row => {
-    const context = JSON.parse(row.context);
+    // Parse the reflection JSON from BLOB/TEXT value
+    const reflection = JSON.parse(row.value);
+
+    // Extract context and keywords
+    const context = reflection.context || {};
     const contextKeywords = extractKeywords(context);
     const similarity = jaccardSimilarity(keywords, contextKeywords);
 
     return {
-      id: row.id,
-      timestamp: row.timestamp,
-      complexity: row.complexity || 0,
+      id: reflection.id,
+      timestamp: reflection.timestamp,
+      complexity: reflection.complexity || 0,
       similarity,
-      context,
-      insights: row.insights ? JSON.parse(row.insights) : []
+      context: reflection.context,
+      insights: reflection.insights || []
     };
   });
 
