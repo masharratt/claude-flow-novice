@@ -43,25 +43,25 @@ const CFN_PATHS = {
     dest: '.claude/agents/cfn-dev-team'
   },
   skills: {
-    src: path.join(cfnRoot, '.claude/skills'),
+    src: path.join(cfnRoot, 'claude-assets/skills'),
     dest: '.claude/skills',
     pattern: 'cfn-*'
   },
   hooks: {
-    src: path.join(cfnRoot, '.claude/hooks'),
+    src: path.join(cfnRoot, 'claude-assets/hooks'),
     dest: '.claude/hooks',
     pattern: 'cfn-*'
   },
   commands: {
-    src: path.join(cfnRoot, '.claude/commands/cfn'),
+    src: path.join(cfnRoot, 'claude-assets/commands/cfn'),
     dest: '.claude/commands/cfn'
   },
   cfnData: {
-    src: path.join(cfnRoot, '.claude/cfn-data'),
+    src: path.join(cfnRoot, 'claude-assets/cfn-data'),
     dest: '.claude/cfn-data'
   },
   cfnAgentsIgnore: {
-    src: path.join(cfnRoot, '.claude/cfn-agents-ignore'),
+    src: path.join(cfnRoot, 'claude-assets/cfn-agents-ignore'),
     dest: '.claude/cfn-agents-ignore'
   }
 };
@@ -95,7 +95,7 @@ async function verifyCfnInstallation() {
   // Verify critical directories exist
   const criticalPaths = [
     path.join(cfnRoot, 'claude-assets/agents/cfn-dev-team'),
-    path.join(cfnRoot, '.claude/skills')
+    path.join(cfnRoot, 'claude-assets/skills')
   ];
 
   for (const p of criticalPaths) {
@@ -150,7 +150,7 @@ async function copyFiles(src, dest, pattern, forceOverwrite = true) {
 }
 
 async function copyCfnClaudeMarkdown() {
-  const cfnClaudeMdPath = path.join(cfnRoot, '.claude/root-claude-distribute/CFN-CLAUDE.md');
+  const cfnClaudeMdPath = path.join(cfnRoot, 'claude-assets/root-claude-distribute/CFN-CLAUDE.md');
   const destPath = path.resolve(process.cwd(), 'CFN-CLAUDE.md');
 
   if (fs.existsSync(cfnClaudeMdPath)) {

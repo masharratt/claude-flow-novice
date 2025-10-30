@@ -17,7 +17,7 @@
   },
   "files": [
     "dist/",
-    "claude-assets/agents/cfn-dev-team/",
+    "claude-assets/",
     ".claude/skills/cfn-ace-system/",
     ".claude/skills/cfn-agent-discovery/",
     ".claude/skills/cfn-agent-execution/",
@@ -94,7 +94,7 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && ./scripts/verify-no-secrets.sh",
     "prepack": "npm run build && npm run copy-claude-assets",
-    "copy-claude-assets": "rm -rf claude-assets && mkdir -p claude-assets/agents && cp -r .claude/agents/cfn-dev-team claude-assets/agents/",
+    "copy-claude-assets": "rm -rf claude-assets && mkdir -p claude-assets && cp -r .claude/agents claude-assets/ && cp -r .claude/skills claude-assets/ && cp -r .claude/hooks claude-assets/ && cp -r .claude/commands claude-assets/ && cp -r .claude/root-claude-distribute claude-assets/",
     "postinstall": "node scripts/init-project.js",
     "verify-package": "npm pack --dry-run",
     "portal:start": "./scripts/start-portal.sh",
