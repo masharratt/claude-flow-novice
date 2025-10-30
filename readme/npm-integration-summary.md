@@ -1,4 +1,4 @@
-# NPM Documentation Integration Summary - v2.9.1
+# NPM Documentation Integration Summary - v2.10.6
 
 ## ✅ Completed Tasks
 
@@ -6,9 +6,15 @@
 
 **NPM Distribution Documentation (4 files):**
 - `command-naming.md` (207 lines) - Binary naming strategy, conflict avoidance
-- `installation-process.md` - Detailed user installation experience (updated for v2.9.1)
-- `npm-distribution-summary.md` - Executive summary with namespace isolation (v2.9.1)
+- `installation-process.md` - Detailed user installation experience (updated for v2.10.6)
+- `npm-distribution-summary.md` - Executive summary with namespace isolation (v2.10.6)
 - `documentation-analysis.md` - Overlap analysis and integration recommendations
+
+**v2.10.6 Updates:**
+- Document claude-assets workaround for npm dotfile extraction bug
+- Update package metrics (1300 files, 4.7 MB unpacked, 1.2 MB tarball)
+- Add ACE System skills (61 total skills)
+- Explain prepack automation and single source of truth pattern
 
 ### 2. **Updated readme/CLAUDE.md**
 
@@ -91,8 +97,9 @@
 - Namespace-safe command design
 
 **[npm-distribution-summary.md](./npm-distribution-summary.md)**
-- Executive summary of npm package v2.9.1 with namespace isolation
-- Package configuration (573 KB tarball, 2.4 MB unpacked, 303 files)
+- Executive summary of npm package v2.10.6 with namespace isolation
+- Package configuration (1.2 MB tarball, 4.7 MB unpacked, 1300 files)
+- claude-assets workaround for npm dotfile extraction limitation
 - Publishing workflow, version management
 - ~0.01% collision risk with cfn- prefix strategy
 
@@ -142,7 +149,7 @@
 
 ---
 
-## 📦 Files Included in NPM Package (v2.9.1)
+## 📦 Files Included in NPM Package (v2.10.6)
 
 ### Documentation in Package
 - ✅ `README.md` - User quick start with CFN v3 features
@@ -150,15 +157,17 @@
 - ✅ `LICENSE` - MIT License
 - ✅ `CHANGELOG.md` - Version history (user-facing)
 
-### Namespace-Isolated Files
-- ✅ `.claude/agents/cfn-dev-team/` - 23 production agents
-- ✅ `.claude/skills/cfn-*/` - 43 skills with cfn- prefix
-- ✅ `.claude/hooks/cfn-*` - 7 hooks with cfn- prefix
-- ✅ `.claude/commands/cfn/` - 45+ slash commands
-- ✅ `.claude/cfn-data/` - SQLite databases, playbook data
+### Distribution Files (claude-assets/)
+- ✅ `claude-assets/agents/cfn-dev-team/` - 23 production agents (11 subdirectories)
+- ✅ `claude-assets/skills/` - 61 skills with cfn- prefix (includes ACE System)
+- ✅ `claude-assets/hooks/` - 7 hooks with cfn- prefix
+- ✅ `claude-assets/commands/cfn/` - 45+ slash commands
+- ✅ `claude-assets/root-claude-distribute/` - CFN-CLAUDE.md
+
+**Note:** `claude-assets/` auto-generated during `npm pack` via `prepack` script. Single source of truth in development is `.claude/` directory.
 
 ### Binaries Included
-- ✅ `cfn-init` - Project initialization script (NEW in v2.9.0)
+- ✅ `cfn-init` - Project initialization script (copies claude-assets → .claude)
 - ✅ `claude-flow-novice` - Main CLI
 - ✅ `cfn-spawn`, `cfn-loop`, `cfn-swarm`, etc. - 7 additional binaries
 
@@ -201,10 +210,10 @@
 - **New for NPM:** 4 files (17% of readme docs)
 
 ### Lines of Documentation
-- **Total:** ~6,500 lines
-- **NPM-specific:** ~1,200 lines (18%)
+- **Total:** ~6,800 lines (updated for v2.10.6)
+- **NPM-specific:** ~1,400 lines (20%)
 - **Largest file:** deprecated-logs-mcp.md (904 lines)
-- **NPM average:** 300 lines per file
+- **NPM average:** 350 lines per file
 
 ---
 
@@ -226,9 +235,10 @@
 ### Accuracy
 - ✅ Package.json bin configuration matches docs (8 binaries including cfn-init)
 - ✅ Command names verified (claude-flow-novice, cfn-spawn, cfn-init)
-- ✅ Package size accurate (573 KB tarball, 2.4 MB unpacked)
-- ✅ File count accurate (303 files - 68% reduction)
+- ✅ Package size accurate (1.2 MB tarball, 4.7 MB unpacked)
+- ✅ File count accurate (1300 files - complete distribution)
 - ✅ Namespace isolation verified (~0.01% collision risk)
+- ✅ claude-assets workaround verified (Windows/WSL2 compatible)
 
 ---
 
@@ -270,22 +280,29 @@
 
 ## 🎉 Summary
 
-**Status:** ✅ **Complete - v2.9.1 Published to NPM**
+**Status:** ✅ **Complete - v2.10.6 Published to NPM**
 
-**Namespace Isolation:** ✅ cfn- prefix strategy (68% size reduction)
+**Namespace Isolation:** ✅ cfn- prefix strategy with claude-assets workaround
 
 **Files Created:** 4 (command-naming, installation-process, npm-distribution-summary, documentation-analysis)
 
-**Updated for v2.9.1:**
-- ✅ npm-distribution-summary.md - Namespace isolation details
-- ✅ npm-integration-summary.md - Updated package metrics
-- ✅ installation-process.md - cfn-init workflow
+**Updated for v2.10.6:**
+- ✅ npm-distribution-summary.md - claude-assets workaround, v2.10.6 metrics
+- ✅ npm-integration-summary.md - Updated package metrics and distribution
+- ✅ logs-features.md - NPM distribution workaround section
 - ✅ COMPONENT_NPM_STATUS.md - Agent counts and structure
 
 **CLAUDE.md Updated:** ✅ Renamed to CFN-CLAUDE.md, new section added, navigation updated
 
 **Overlaps Analyzed:** ✅ Minimal overlap, keep modular structure
 
-**Recommendation:** **Published and production-ready** - All documentation reflects namespace isolation
+**Recommendation:** **Published and production-ready** - All content distributes correctly on Windows/WSL2
 
-**Package Ready:** All 23 agents, 43 skills, and documentation properly indexed with cfn- prefix
+**Package Ready:** All 23 agents (11 subdirectories), 61 skills (includes ACE System), complete documentation with cfn- prefix
+
+### npm Dotfile Extraction Workaround
+- **Problem:** npm doesn't extract `.claude/` directories on Windows/WSL2
+- **Solution:** Auto-generate `claude-assets/` during `npm pack` (prepack script)
+- **Single Source:** `.claude/` tracked in git (development)
+- **Distribution:** `claude-assets/` auto-generated, not tracked
+- **Installation:** `cfn-init` copies `claude-assets/` → `.claude/`
