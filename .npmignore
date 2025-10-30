@@ -1,6 +1,10 @@
 # Source files (only distribute built files)
 src/
 
+# EXPLICITLY INCLUDE .claude/ DIRECTORY
+!.claude/
+!.claude/**
+
 # Build artifacts and temp files
 *.log
 .DS_Store
