@@ -14,6 +14,7 @@ build/
 out/
 *.exe
 .turbo/
+claude-assets/
 
 # Binaries
 bin/claude-flow-*
