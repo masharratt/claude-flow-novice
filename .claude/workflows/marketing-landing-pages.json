@@ -1,0 +1,137 @@
+{
+    "name": "Marketing Landing Page Management",
+    "nodes": [
+        {
+            "parameters": {},
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "position": [0, 0],
+            "webhookId": "landing-page-main"
+        },
+        {
+            "parameters": {
+                "operation": "validateWebhookPayload",
+                "validationRules": {
+                    "platform": ["unbounce", "instapage"],
+                    "operation": ["create-landing-page", "create-ab-test", "publish-page", "get-page-performance", "unpublish-page"]
+                }
+            },
+            "name": "Validate Request",
+            "type": "n8n-nodes-base.function",
+            "position": [200, 0]
+        },
+        {
+            "parameters": {
+                "mode": "chooseBranch"
+            },
+            "name": "Platform Router",
+            "type": "n8n-nodes-base.switch",
+            "position": [400, 0]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.unbounce.com/pages",
+                "authentication": "apiKey",
+                "apiKeyData": "unbounce_api_key"
+            },
+            "name": "Unbounce API Request",
+            "type": "n8n-nodes-base.httpRequest",
+            "position": [600, -200]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.instapage.com/v1/pages",
+                "authentication": "apiKey",
+                "apiKeyData": "instapage_api_key"
+            },
+            "name": "Instapage API Request",
+            "type": "n8n-nodes-base.httpRequest",
+            "position": [600, 200]
+        },
+        {
+            "parameters": {
+                "operation": "validateABTest",
+                "code": "const MIN_SAMPLE_SIZE = 100;\nconst CONFIDENCE_LEVEL = 0.95;\nconst MIN_DURATION_DAYS = 7;\n\nif (sampleSize < MIN_SAMPLE_SIZE) {\n  throw new Error(`Sample size ${sampleSize} below minimum ${MIN_SAMPLE_SIZE}`);\n}"
+            },
+            "name": "AB Test Validation",
+            "type": "n8n-nodes-base.function",
+            "position": [800, 0]
+        },
+        {
+            "parameters": {
+                "operation": "formatApiResponse"
+            },
+            "name": "Format Response",
+            "type": "n8n-nodes-base.function",
+            "position": [1000, 0]
+        },
+        {
+            "parameters": {
+                "operation": "handleApiErrors"
+            },
+            "name": "Error Handling",
+            "type": "n8n-nodes-base.function",
+            "position": [1200, 0]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {"node": "Validate Request", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "Validate Request": {
+            "main": [
+                [
+                    {"node": "Platform Router", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "Platform Router": {
+            "main": [
+                [
+                    {"node": "Unbounce API Request", "type": "main", "index": 0},
+                    {"node": "Instapage API Request", "type": "main", "index": 1}
+                ]
+            ]
+        },
+        "Unbounce API Request": {
+            "main": [
+                [
+                    {"node": "AB Test Validation", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "Instapage API Request": {
+            "main": [
+                [
+                    {"node": "AB Test Validation", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "AB Test Validation": {
+            "main": [
+                [
+                    {"node": "Format Response", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "Format Response": {
+            "main": [
+                [
+                    {"node": "Error Handling", "type": "main", "index": 0}
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "timezone": "UTC",
+        "saveDataErrorExecution": "all",
+        "saveDataSuccessExecution": "all",
+        "executionTimeout": 3600
+    }
+}

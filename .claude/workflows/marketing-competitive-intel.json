@@ -1,0 +1,140 @@
+{
+    "name": "Marketing Competitive Intelligence",
+    "nodes": [
+        {
+            "parameters": {},
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "position": [0, 0],
+            "webhookId": "competitive-intel-main"
+        },
+        {
+            "parameters": {
+                "operation": "validateWebhookPayload",
+                "validationRules": {
+                    "platform": ["buzzsumo", "semrush", "ahrefs"],
+                    "operation": ["search-brand-mentions", "monitor-competitor", "get-trending-topics", "get-backlink-profile", "get-keyword-rankings"]
+                }
+            },
+            "name": "Validate Request",
+            "type": "n8n-nodes-base.function",
+            "position": [200, 0]
+        },
+        {
+            "parameters": {
+                "mode": "chooseBranch"
+            },
+            "name": "Platform Router",
+            "type": "n8n-nodes-base.switch",
+            "position": [400, 0]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.buzzsumo.com/v2/brand-mentions",
+                "authentication": "OAuth2",
+                "oauth2TokenData": "buzzsumo_oauth_token"
+            },
+            "name": "BuzzSumo API Request",
+            "type": "n8n-nodes-base.httpRequest",
+            "position": [600, -200]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "https://api.semrush.com/analytics/v1/",
+                "authentication": "OAuth2",
+                "oauth2TokenData": "semrush_oauth_token"
+            },
+            "name": "SEMrush API Request",
+            "type": "n8n-nodes-base.httpRequest",
+            "position": [600, 0]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "https://api.ahrefs.com/v2/",
+                "authentication": "OAuth2",
+                "oauth2TokenData": "ahrefs_oauth_token"
+            },
+            "name": "Ahrefs API Request",
+            "type": "n8n-nodes-base.httpRequest",
+            "position": [600, 200]
+        },
+        {
+            "parameters": {
+                "operation": "formatApiResponse"
+            },
+            "name": "Format Response",
+            "type": "n8n-nodes-base.function",
+            "position": [800, 0]
+        },
+        {
+            "parameters": {
+                "operation": "handleApiErrors"
+            },
+            "name": "Error Handling",
+            "type": "n8n-nodes-base.function",
+            "position": [1000, 0]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {"node": "Validate Request", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "Validate Request": {
+            "main": [
+                [
+                    {"node": "Platform Router", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "Platform Router": {
+            "main": [
+                [
+                    {"node": "BuzzSumo API Request", "type": "main", "index": 0},
+                    {"node": "SEMrush API Request", "type": "main", "index": 1},
+                    {"node": "Ahrefs API Request", "type": "main", "index": 2}
+                ]
+            ]
+        },
+        "BuzzSumo API Request": {
+            "main": [
+                [
+                    {"node": "Format Response", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "SEMrush API Request": {
+            "main": [
+                [
+                    {"node": "Format Response", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "Ahrefs API Request": {
+            "main": [
+                [
+                    {"node": "Format Response", "type": "main", "index": 0}
+                ]
+            ]
+        },
+        "Format Response": {
+            "main": [
+                [
+                    {"node": "Error Handling", "type": "main", "index": 0}
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "timezone": "UTC",
+        "saveDataErrorExecution": "all",
+        "saveDataSuccessExecution": "all",
+        "executionTimeout": 3600
+    }
+}
