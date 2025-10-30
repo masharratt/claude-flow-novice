@@ -17,7 +17,7 @@
   },
   "files": [
     "dist/",
-    ".claude/agents/cfn-dev-team/",
+    "claude-assets/agents/cfn-dev-team/",
     ".claude/skills/cfn-ace-system/",
     ".claude/skills/cfn-agent-discovery/",
     ".claude/skills/cfn-agent-execution/",

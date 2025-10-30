@@ -39,7 +39,7 @@ const cfnRoot = findCfnRoot();
 // Configuration for CFN initialization paths
 const CFN_PATHS = {
   agents: {
-    src: path.join(cfnRoot, '.claude/agents/cfn-dev-team'),
+    src: path.join(cfnRoot, 'claude-assets/agents/cfn-dev-team'),
     dest: '.claude/agents/cfn-dev-team'
   },
   skills: {
@@ -94,7 +94,7 @@ async function verifyCfnInstallation() {
 
   // Verify critical directories exist
   const criticalPaths = [
-    path.join(cfnRoot, '.claude/agents/cfn-dev-team'),
+    path.join(cfnRoot, 'claude-assets/agents/cfn-dev-team'),
     path.join(cfnRoot, '.claude/skills')
   ];
 
