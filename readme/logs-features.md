@@ -1,4 +1,4 @@
-# Claude Flow Novice - Features Matrix (v2.9.1)
+# Claude Flow Novice - Features Matrix (v2.10.6)
 
 ### Namespace Isolation
 
@@ -18,16 +18,26 @@ npm install claude-flow-novice
 npx cfn-init  # Copies namespace-isolated files
 ```
 
+**NPM Distribution Workaround**:
+- npm has dotfile extraction limitation on Windows/WSL2
+- `.claude/` directories don't extract from tarballs
+- Solution: Auto-generate `claude-assets/` during `npm pack`
+- Single source of truth: `.claude/` in development
+- `prepack` script copies to `claude-assets/` before publish
+- `claude-assets/` not tracked in git (auto-generated only)
+
 **Benefits**:
 - User custom agents/skills/hooks preserved
 - Safe updates (only cfn-* files overwritten)
 - Can run cfn-init multiple times safely
+- All content distributes correctly despite npm limitations
 
-### Agent Statistics (v2.9.1)
+### Agent Statistics (v2.10.6)
 - **Development Team**: 23 agents in cfn-dev-team
 - **Production Agents**: 23 agents
 - **Package Metrics**:
-  - Size: 2.4 MB unpacked (573 KB tarball)
+  - Size: 4.7 MB unpacked (1.2 MB tarball)
+  - Files: 1300 (includes all agents, skills, hooks, commands)
   - Files: 303 files (68% reduction)
 
 ### 7. Cyclomatic Complexity Analysis
