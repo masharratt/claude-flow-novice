@@ -41,6 +41,10 @@ while [[ $# -gt 0 ]]; do
       MEMORY_PATH="$2"
       shift 2
       ;;
+    --show-indexes)
+      QUERY="indexes"
+      shift
+      ;;
     *)
       echo "Unknown option: $1"
       exit 1
@@ -63,7 +67,7 @@ fi
 
 # Get project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Create Node.js runner script
 RUNNER_SCRIPT=$(mktemp --suffix=.mjs)
@@ -94,20 +98,20 @@ async function queryReflections() {
 
   // Apply filters
   if (filter.complexity) {
-    if (filter.complexity.$gt !== undefined) {
+    if (filter.complexity['\$gt'] !== undefined) {
       whereClauses.push('complexity > ?');
-      params.push(filter.complexity.$gt);
+      params.push(filter.complexity['\$gt']);
     }
-    if (filter.complexity.$lt !== undefined) {
+    if (filter.complexity['\$lt'] !== undefined) {
       whereClauses.push('complexity < ?');
-      params.push(filter.complexity.$lt);
+      params.push(filter.complexity['\$lt']);
     }
   }
 
   if (filter.timestamp) {
-    if (filter.timestamp.$gt !== undefined) {
+    if (filter.timestamp['\$gt'] !== undefined) {
       whereClauses.push('timestamp > ?');
-      params.push(filter.timestamp.$gt);
+      params.push(filter.timestamp['\$gt']);
     }
   }
 
@@ -164,6 +168,38 @@ async function querySummary() {
   };
 }
 
+async function queryIndexes() {
+  const db = memorySystem['db'];
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+
+  // Get all indexes on context_reflections table
+  const indexes = await db.all(
+    "SELECT name, sql FROM sqlite_master WHERE type='index' AND tbl_name='context_reflections' AND name NOT LIKE 'sqlite_%'"
+  );
+
+  // Get index usage stats from last query (if available)
+  const totalIndexes = indexes.length;
+
+  return {
+    totalIndexes,
+    indexes: indexes.map(idx => ({
+      name: idx.name,
+      definition: idx.sql || 'auto-index'
+    })),
+    status: totalIndexes >= 6 ? 'optimized' : 'partial',
+    expectedIndexes: [
+      'idx_reflections_tags',
+      'idx_reflections_domain',
+      'idx_reflections_confidence',
+      'idx_reflections_created_at',
+      'idx_reflections_domain_conf_date',
+      'idx_reflections_conf_date'
+    ]
+  };
+}
+
 let result;
 
 switch (queryType) {
@@ -175,6 +211,9 @@ switch (queryType) {
     break;
   case 'summary':
     result = await querySummary();
+    break;
+  case 'indexes':
+    result = await queryIndexes();
     break;
   default:
     throw new Error(`Unknown query type: ${queryType}`);
