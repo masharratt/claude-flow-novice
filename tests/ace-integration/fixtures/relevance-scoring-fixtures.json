@@ -1,0 +1,417 @@
+{
+  "scenarios": [
+    {
+      "id": "scenario-1-perfect-match",
+      "description": "Perfect match across all dimensions",
+      "query": {
+        "keywords": ["authentication", "jwt", "security", "token"],
+        "domains": ["security", "backend"],
+        "agents": ["backend-dev", "security-specialist"]
+      },
+      "context": {
+        "keywords": ["authentication", "jwt", "security", "token"],
+        "domains": ["security", "backend"],
+        "agents": ["backend-dev", "security-specialist"],
+        "created_at": "2025-10-30",
+        "success_rate": 1.0
+      },
+      "expected_score": 1.0,
+      "tolerance": 0.02
+    },
+    {
+      "id": "scenario-2-high-relevance",
+      "description": "High keyword overlap, domain match, recent context",
+      "query": {
+        "keywords": ["oauth", "authentication", "token", "security"],
+        "domains": ["security", "backend"],
+        "agents": ["backend-dev", "security-specialist"]
+      },
+      "context": {
+        "keywords": ["jwt", "auth", "token", "security", "backend"],
+        "domains": ["security", "backend"],
+        "agents": ["backend-dev", "security-specialist"],
+        "created_at": "2025-10-20",
+        "success_rate": 0.88
+      },
+      "expected_score": 0.80,
+      "tolerance": 0.10
+    },
+    {
+      "id": "scenario-3-moderate-relevance",
+      "description": "Partial overlap across dimensions",
+      "query": {
+        "keywords": ["authentication", "api", "security"],
+        "domains": ["security"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["auth", "database", "security"],
+        "domains": ["security", "database"],
+        "agents": ["backend-dev", "database-specialist"],
+        "created_at": "2025-10-15",
+        "success_rate": 0.75
+      },
+      "expected_score": 0.65,
+      "tolerance": 0.10
+    },
+    {
+      "id": "scenario-4-low-relevance",
+      "description": "Minimal overlap, old context",
+      "query": {
+        "keywords": ["frontend", "react", "ui"],
+        "domains": ["frontend"],
+        "agents": ["frontend-dev"]
+      },
+      "context": {
+        "keywords": ["backend", "api", "database"],
+        "domains": ["backend"],
+        "agents": ["backend-dev"],
+        "created_at": "2025-08-01",
+        "success_rate": 0.60
+      },
+      "expected_score": 0.20,
+      "tolerance": 0.10
+    },
+    {
+      "id": "scenario-5-complete-mismatch",
+      "description": "Zero overlap across all dimensions",
+      "query": {
+        "keywords": ["mobile", "ios", "swift"],
+        "domains": ["mobile"],
+        "agents": ["mobile-dev"]
+      },
+      "context": {
+        "keywords": ["database", "postgresql", "migration"],
+        "domains": ["database"],
+        "agents": ["database-specialist"],
+        "created_at": "2025-07-01",
+        "success_rate": 0.50
+      },
+      "expected_score": 0.10,
+      "tolerance": 0.10
+    },
+    {
+      "id": "scenario-6-recency-impact",
+      "description": "Same content, different recency",
+      "query": {
+        "keywords": ["authentication", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["authentication", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"],
+        "created_at": "2025-07-30",
+        "success_rate": 0.85
+      },
+      "expected_score": 0.45,
+      "tolerance": 0.10,
+      "note": "90-day-old context should significantly reduce score"
+    },
+    {
+      "id": "scenario-7-success-rate-boost",
+      "description": "Moderate match with high success rate",
+      "query": {
+        "keywords": ["api", "rest", "backend"],
+        "domains": ["backend"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["api", "graphql", "backend"],
+        "domains": ["backend"],
+        "agents": ["backend-dev"],
+        "created_at": "2025-10-25",
+        "success_rate": 0.95
+      },
+      "expected_score": 0.85,
+      "tolerance": 0.10
+    },
+    {
+      "id": "scenario-8-domain-mismatch",
+      "description": "High keyword similarity but domain mismatch",
+      "query": {
+        "keywords": ["testing", "unit", "coverage"],
+        "domains": ["frontend"],
+        "agents": ["tester"]
+      },
+      "context": {
+        "keywords": ["testing", "unit", "coverage"],
+        "domains": ["backend"],
+        "agents": ["tester"],
+        "created_at": "2025-10-28",
+        "success_rate": 0.80
+      },
+      "expected_score": 0.70,
+      "tolerance": 0.10
+    },
+    {
+      "id": "scenario-9-agent-specialization",
+      "description": "Different agent specializations for same task",
+      "query": {
+        "keywords": ["security", "audit", "compliance"],
+        "domains": ["security"],
+        "agents": ["security-specialist"]
+      },
+      "context": {
+        "keywords": ["security", "audit", "compliance"],
+        "domains": ["security"],
+        "agents": ["compliance-specialist"],
+        "created_at": "2025-10-27",
+        "success_rate": 0.85
+      },
+      "expected_score": 0.85,
+      "tolerance": 0.10
+    },
+    {
+      "id": "scenario-10-real-world-cfn-loop",
+      "description": "Phase 1.5 CFN Loop context",
+      "query": {
+        "keywords": ["context", "injection", "ace-system", "integration"],
+        "domains": ["orchestration", "ace-system"],
+        "agents": ["backend-dev", "tester", "devops"]
+      },
+      "context": {
+        "keywords": ["ace", "context", "redis", "coordination"],
+        "domains": ["orchestration", "ace-system"],
+        "agents": ["backend-dev", "tester"],
+        "created_at": "2025-10-29",
+        "success_rate": 0.92
+      },
+      "expected_score": 0.80,
+      "tolerance": 0.10
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "edge-1-empty-keywords",
+      "description": "Empty keyword arrays",
+      "query": {
+        "keywords": [],
+        "domains": ["security"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": [],
+        "domains": ["security"],
+        "agents": ["backend-dev"],
+        "created_at": "2025-10-30",
+        "success_rate": 0.85
+      },
+      "expected_behavior": "Should handle gracefully, score based on domain/agent match only",
+      "expected_score_range": [0.40, 0.70]
+    },
+    {
+      "id": "edge-2-empty-domains",
+      "description": "Empty domain arrays",
+      "query": {
+        "keywords": ["auth", "jwt"],
+        "domains": [],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["auth", "jwt"],
+        "domains": [],
+        "agents": ["backend-dev"],
+        "created_at": "2025-10-30",
+        "success_rate": 0.85
+      },
+      "expected_behavior": "Should handle gracefully, score based on keyword/agent match only",
+      "expected_score_range": [0.40, 0.70]
+    },
+    {
+      "id": "edge-3-empty-agents",
+      "description": "Empty agent arrays",
+      "query": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": []
+      },
+      "context": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": [],
+        "created_at": "2025-10-30",
+        "success_rate": 0.85
+      },
+      "expected_behavior": "Should handle gracefully, score based on keyword/domain match only",
+      "expected_score_range": [0.40, 0.70]
+    },
+    {
+      "id": "edge-4-invalid-date",
+      "description": "Invalid date format",
+      "query": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"],
+        "created_at": "invalid-date",
+        "success_rate": 0.85
+      },
+      "expected_behavior": "Should default to age=0 (same-day context)",
+      "expected_score_range": [0.70, 1.0]
+    },
+    {
+      "id": "edge-5-future-date",
+      "description": "Future created_at date",
+      "query": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"],
+        "created_at": "2026-01-01",
+        "success_rate": 0.85
+      },
+      "expected_behavior": "Should treat as same-day context (age=0)",
+      "expected_score_range": [0.70, 1.0]
+    },
+    {
+      "id": "edge-6-success-rate-out-of-bounds",
+      "description": "Success rate > 1.0",
+      "query": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"],
+        "created_at": "2025-10-30",
+        "success_rate": 1.5
+      },
+      "expected_behavior": "Should clamp to 1.0",
+      "expected_score_range": [0.70, 1.0]
+    },
+    {
+      "id": "edge-7-negative-success-rate",
+      "description": "Negative success rate",
+      "query": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["auth", "jwt"],
+        "domains": ["security"],
+        "agents": ["backend-dev"],
+        "created_at": "2025-10-30",
+        "success_rate": -0.5
+      },
+      "expected_behavior": "Should use default 0.75",
+      "expected_score_range": [0.70, 1.0]
+    },
+    {
+      "id": "edge-8-all-empty",
+      "description": "All arrays empty",
+      "query": {
+        "keywords": [],
+        "domains": [],
+        "agents": []
+      },
+      "context": {
+        "keywords": [],
+        "domains": [],
+        "agents": [],
+        "created_at": "2025-10-30",
+        "success_rate": 0.85
+      },
+      "expected_behavior": "Should return default score based on success rate only",
+      "expected_score_range": [0.30, 0.70]
+    },
+    {
+      "id": "edge-9-very-long-arrays",
+      "description": "Large arrays (100+ elements)",
+      "query": {
+        "keywords": ["k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9", "k10"],
+        "domains": ["d1", "d2", "d3", "d4", "d5"],
+        "agents": ["a1", "a2", "a3", "a4", "a5"]
+      },
+      "context": {
+        "keywords": ["k1", "k2", "k3", "k100", "k101", "k102", "k103", "k104", "k105", "k106"],
+        "domains": ["d1", "d2", "d10", "d11", "d12"],
+        "agents": ["a1", "a2", "a10", "a11", "a12"],
+        "created_at": "2025-10-30",
+        "success_rate": 0.85
+      },
+      "expected_behavior": "Should handle large arrays without performance degradation",
+      "expected_score_range": [0.40, 0.70]
+    },
+    {
+      "id": "edge-10-special-characters",
+      "description": "Keywords with special characters",
+      "query": {
+        "keywords": ["auth-jwt", "token/bearer", "api_key"],
+        "domains": ["security"],
+        "agents": ["backend-dev"]
+      },
+      "context": {
+        "keywords": ["auth-jwt", "token/bearer", "api_key"],
+        "domains": ["security"],
+        "agents": ["backend-dev"],
+        "created_at": "2025-10-30",
+        "success_rate": 0.85
+      },
+      "expected_behavior": "Should match special characters exactly",
+      "expected_score_range": [0.80, 1.0]
+    }
+  ],
+  "acceptance_criteria_mapping": {
+    "AC1": {
+      "description": "Score range 0.0 to 1.0",
+      "validated_by": ["scenario-1-perfect-match", "scenario-5-complete-mismatch", "edge-6-success-rate-out-of-bounds"]
+    },
+    "AC2": {
+      "description": "Multi-factor scoring (keywords, domains, agents, recency, success rate)",
+      "validated_by": ["scenario-2-high-relevance", "scenario-3-moderate-relevance", "scenario-7-success-rate-boost"]
+    },
+    "AC3": {
+      "description": "Recency weighting using exponential decay",
+      "validated_by": ["scenario-6-recency-impact", "edge-4-invalid-date", "edge-5-future-date"]
+    },
+    "AC4": {
+      "description": "Configurable weights (keyword: 0.35, domain: 0.25, agent: 0.20, recency: 0.15, success: 0.05)",
+      "validated_by": ["scenario-8-domain-mismatch", "scenario-9-agent-specialization"]
+    }
+  },
+  "real_world_cfn_loops": [
+    {
+      "phase": "Phase 1.5",
+      "task": "E2E Integration Test Complete",
+      "keywords": ["ace-system", "context", "injection", "redis", "coordination"],
+      "domains": ["orchestration", "ace-system", "testing"],
+      "agents": ["backend-dev", "tester", "devops"],
+      "created_at": "2025-10-29",
+      "success_rate": 0.95,
+      "notes": "3 iterations to reach 0.95 consensus"
+    },
+    {
+      "phase": "Phase 1.4",
+      "task": "Update Agent Spawning",
+      "keywords": ["agent", "spawning", "cli", "orchestration"],
+      "domains": ["orchestration", "agent-management"],
+      "agents": ["backend-dev", "devops"],
+      "created_at": "2025-10-28",
+      "success_rate": 0.92,
+      "notes": "2 iterations to reach 0.92 consensus"
+    },
+    {
+      "phase": "Sprint 8",
+      "task": "Skill-Based Output Processing",
+      "keywords": ["skill", "output", "processing", "confidence", "parsing"],
+      "domains": ["orchestration", "skill-management"],
+      "agents": ["backend-dev", "architect"],
+      "created_at": "2025-10-27",
+      "success_rate": 0.90,
+      "notes": "Phase 2 loop3/loop2 output processing"
+    }
+  ]
+}
