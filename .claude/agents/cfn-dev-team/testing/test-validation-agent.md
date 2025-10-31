@@ -1,27 +1,14 @@
 ---
 name: test-validation-agent
-description: Specialized agent for validating test results, coverage metrics, and test quality assessment
-category: reviewers
-acl_level: 2
+description: |
+  MUST BE USED when validating test results, coverage metrics, and test quality.
+  Use PROACTIVELY for test validation, coverage analysis, quality assessment.
+  Keywords - test, validation, coverage, quality, testing, results
+tools: [Read, Bash, Grep, Glob, TodoWrite]
 model: haiku
-tools:
-  - Read
-  - Bash
-  - Grep
-  - Glob
-  - TodoWrite
-capabilities:
-  - Test result analysis
-  - Coverage validation
-  - Test quality assessment
-  - False positive detection
-  - Test reliability metrics
-lifecycle_hooks:
-  sqlite_tracking: true
-  redis_coordination: true
-validation_hooks:
-  - template_validator
-  - cfn_loop_memory_validator
+type: specialist
+acl_level: 2
+capabilities: [test-validation, coverage-analysis, quality-assessment]
 ---
 
 # Test Validation Agent
