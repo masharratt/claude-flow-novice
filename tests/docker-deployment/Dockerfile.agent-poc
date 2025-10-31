@@ -1,0 +1,61 @@
+# Docker Agent POC - Minimal Container for Claude Flow Novice Agents
+# Base: Node.js 20 on Alpine for minimal size
+# Purpose: Validate Docker + CLI agent interaction pattern
+
+FROM node:20-alpine AS base
+
+# Install runtime dependencies
+# - bash: Required for agent scripts and Redis CLI operations
+# - redis: CLI client for coordination patterns
+# - curl: Health checks and testing
+RUN apk add --no-cache bash redis curl
+
+WORKDIR /app
+
+# Copy package files for dependency installation
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production
+
+# Copy application source
+COPY . .
+
+# Build TypeScript to JavaScript (if not pre-built)
+RUN npm run build || echo "Build skipped (dist/ already exists)"
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S cfnuser && \
+    adduser -S cfnuser -u 1001 -G cfnuser
+
+# Ensure proper permissions
+RUN chown -R cfnuser:cfnuser /app && \
+    chmod -R 755 /app/.claude
+
+# Create /tmp directory with proper permissions
+RUN mkdir -p /tmp && chmod 1777 /tmp
+
+# Switch to non-root user
+USER cfnuser
+
+# Environment variables (override at runtime)
+ENV NODE_ENV=production \
+    ZAI_API_KEY="" \
+    ZAI_BASE_URL="https://api.z.ai/api/anthropic" \
+    CLAUDE_API_PROVIDER="zai" \
+    REDIS_HOST=host.docker.internal \
+    REDIS_PORT=6379
+
+# Default command: Start agent executor in interactive mode
+# Can be overridden with specific agent spawn commands
+CMD ["node", "dist/cli/index.js", "--help"]
+
+# Health check: Verify Node.js and Redis connectivity
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
+  CMD node -e "console.log('healthy')" || exit 1
+
+# Labels for metadata
+LABEL maintainer="Claude Flow Novice Team" \
+      version="1.0.0-poc" \
+      description="Minimal Docker container for CFN agent POC" \
+      purpose="validate-docker-agent-interaction"

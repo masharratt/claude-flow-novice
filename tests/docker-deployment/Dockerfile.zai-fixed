@@ -1,0 +1,110 @@
+# Docker Agent POC - Z.ai Fixed Authentication
+# Base: Node.js 20 on Alpine for minimal size
+# Purpose: Validate Z.ai API connection with correct auth header
+
+FROM node:20-alpine
+
+# Install runtime dependencies
+RUN apk add --no-cache bash curl jq
+
+WORKDIR /app
+
+# Create Z.ai API test script with CORRECT authentication
+RUN cat > /app/test-zai-connection.sh << 'EOF'
+#!/bin/bash
+set -euo pipefail
+
+echo "=== Z.ai API Connection Test (Fixed Auth) ==="
+echo "Testing Z.ai endpoint: ${ZAI_BASE_URL}"
+echo "Using ANTHROPIC_AUTH_TOKEN header (per Z.ai docs)"
+echo ""
+
+# Test API connection with CORRECT header format
+# Z.ai docs specify: ANTHROPIC_AUTH_TOKEN environment variable
+# This maps to "x-api-key" header in Anthropic-compatible format
+RESPONSE=$(curl -s -w "\n%{http_code}" \
+  --max-time 30 \
+  -X POST "${ZAI_BASE_URL}/v1/messages" \
+  -H "x-api-key: ${ANTHROPIC_AUTH_TOKEN}" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{
+    "model": "claude-3-5-haiku-20241022",
+    "max_tokens": 100,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Reply with exactly: Hello from Docker agent via Z.ai"
+      }
+    ]
+  }')
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+BODY=$(echo "$RESPONSE" | head -n -1)
+
+echo "HTTP Status: $HTTP_CODE"
+echo ""
+echo "Response:"
+echo "$BODY" | jq . 2>/dev/null || echo "$BODY"
+echo ""
+
+if [ "$HTTP_CODE" = "200" ]; then
+  echo "✅ Z.ai API connection successful!"
+  echo ""
+
+  # Extract response text
+  REPLY=$(echo "$BODY" | jq -r '.content[0].text' 2>/dev/null || echo "")
+  if [ -n "$REPLY" ]; then
+    echo "Agent replied: $REPLY"
+  fi
+
+  # Extract usage stats
+  INPUT_TOKENS=$(echo "$BODY" | jq -r '.usage.input_tokens' 2>/dev/null || echo "0")
+  OUTPUT_TOKENS=$(echo "$BODY" | jq -r '.usage.output_tokens' 2>/dev/null || echo "0")
+  TOTAL_TOKENS=$((INPUT_TOKENS + OUTPUT_TOKENS))
+
+  echo ""
+  echo "Token usage:"
+  echo "  Input:  $INPUT_TOKENS tokens"
+  echo "  Output: $OUTPUT_TOKENS tokens"
+  echo "  Total:  $TOTAL_TOKENS tokens"
+  echo ""
+
+  # Calculate cost (Z.ai: $0.50/1M tokens)
+  COST=$(echo "scale=6; $TOTAL_TOKENS * 0.50 / 1000000" | bc)
+  echo "Cost: \$$COST USD"
+
+  # Create test file to prove execution
+  echo "Hello from Docker agent (Z.ai)" > /tmp/docker-test.txt
+  echo ""
+  echo "✅ Test file created: /tmp/docker-test.txt"
+
+  exit 0
+else
+  echo "❌ Z.ai API connection failed"
+  echo ""
+  echo "Troubleshooting:"
+  echo "1. Verify ANTHROPIC_AUTH_TOKEN is set correctly"
+  echo "2. Check API key is valid (https://z.ai/manage-apikey/apikey-list)"
+  echo "3. Verify ZAI_BASE_URL: https://api.z.ai/api/anthropic"
+  echo "4. Check network connectivity to api.z.ai"
+
+  exit 1
+fi
+EOF
+
+RUN chmod +x /app/test-zai-connection.sh
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S cfnuser && \
+    adduser -S cfnuser -u 1001 -G cfnuser && \
+    chown -R cfnuser:cfnuser /app /tmp
+
+USER cfnuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Default command
+CMD ["/app/test-zai-connection.sh"]

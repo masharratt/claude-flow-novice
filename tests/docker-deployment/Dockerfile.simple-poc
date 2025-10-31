@@ -1,0 +1,81 @@
+# Simplified Docker Agent POC - Minimal Test Container
+# Purpose: Validate Z.ai API connection without npm dependencies
+# Build time: <1 minute
+
+FROM node:20-alpine
+
+# Install runtime dependencies only
+RUN apk add --no-cache bash curl jq
+
+WORKDIR /app
+
+# Create simple test script
+RUN cat > /app/test-zai-connection.sh << 'EOF'
+#!/bin/bash
+set -euo pipefail
+
+echo "=== Z.ai API Connection Test ==="
+echo "Testing Z.ai endpoint: ${ZAI_BASE_URL}"
+
+# Test API connection with simple request
+RESPONSE=$(curl -s -w "\n%{http_code}" \
+  -X POST "${ZAI_BASE_URL}/v1/messages" \
+  -H "x-api-key: ${ZAI_API_KEY}" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d '{
+    "model": "claude-3-5-haiku-20241022",
+    "max_tokens": 100,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Reply with exactly: Hello from Docker"
+      }
+    ]
+  }')
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+BODY=$(echo "$RESPONSE" | head -n -1)
+
+echo ""
+echo "HTTP Status: $HTTP_CODE"
+echo "Response:"
+echo "$BODY" | jq . 2>/dev/null || echo "$BODY"
+
+if [ "$HTTP_CODE" = "200" ]; then
+  echo ""
+  echo "✅ Z.ai API connection successful!"
+
+  # Extract response text
+  REPLY=$(echo "$BODY" | jq -r '.content[0].text' 2>/dev/null || echo "")
+  if [ -n "$REPLY" ]; then
+    echo "Agent replied: $REPLY"
+  fi
+
+  # Create test file to prove execution
+  echo "Hello from Docker agent (Z.ai)" > /tmp/docker-test.txt
+  echo "✅ Test file created: /tmp/docker-test.txt"
+
+  exit 0
+else
+  echo ""
+  echo "❌ Z.ai API connection failed"
+  exit 1
+fi
+EOF
+
+RUN chmod +x /app/test-zai-connection.sh
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfnuser && \
+    adduser -S cfnuser -u 1001 -G cfnuser && \
+    chown -R cfnuser:cfnuser /app /tmp
+
+USER cfnuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Default command
+CMD ["/app/test-zai-connection.sh"]

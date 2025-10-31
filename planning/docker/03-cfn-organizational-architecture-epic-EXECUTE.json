@@ -1,0 +1,413 @@
+{
+  "epicId": "cfn-organizational-architecture-hybrid",
+  "name": "AI Organizational Architecture - Hybrid from Start",
+  "description": "Deploy Docker-based organizational structure with hybrid routing (Claude Max coordinators + Z.ai workers) from Day 1. Skips pure Claude validation phase.",
+  "status": "not_started",
+  "owner": "Infrastructure & Architecture Team",
+  "estimatedDuration": "11 weeks",
+  "dependencies": ["cfn-marketing-n8n-mcp-integration"],
+  "overviewFile": "planning/docker/HYBRID_FROM_START_IMPLEMENTATION_PLAN.md",
+  "architecturePattern": "hybrid-coordinators-workers",
+  "securityModel": "container-isolation-with-per-agent-mcp",
+
+  "costModel": {
+    "coordinators": {
+      "provider": "anthropic",
+      "billing": "subscription",
+      "monthlyCost": 100,
+      "count": 5
+    },
+    "workers": {
+      "provider": "zai",
+      "billing": "pay-as-you-go",
+      "estimatedMonthlyCost": 234,
+      "tokenRate": 0.50,
+      "estimatedTokens": 468000000
+    },
+    "totalMonthlyCost": 334,
+    "totalAnnualCost": 4008
+  },
+
+  "phases": [
+    {
+      "phaseId": "phase-1-infrastructure-hybrid",
+      "name": "Infrastructure Templates & Hybrid Routing Setup",
+      "description": "Create Docker templates with hybrid routing (Claude Max coordinators + Z.ai workers) from Day 1. Includes ACE enhancement and validation tests.",
+      "file": "planning/docker/PHASE_1_INFRASTRUCTURE_HYBRID.md",
+      "status": "not_started",
+      "dependencies": [],
+      "estimatedDuration": "2 weeks",
+      "weeks": "1-2",
+      "budget": 8000,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "name": "ACE System Enhancement - Scope & Team Support",
+          "status": "not_started",
+          "duration": "3 days",
+          "week": 1,
+          "dependencies": [],
+          "deliverables": [
+            "ACE schema migration: Add scope, owner_id, team_id columns",
+            ".claude/skills/cfn-ace-system/migrate-schema.sh (SQLite → PostgreSQL)",
+            "tests/ace-system/test-scope-isolation.sh"
+          ],
+          "acceptanceCriteria": [
+            "PostgreSQL schema created with scope fields",
+            "Context injection supports --scope=agent|team|org",
+            "Team isolation validated (marketing can't see engineering lessons)"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "name": "Docker Templates & Hybrid Routing Configuration",
+          "status": "not_started",
+          "duration": "4 days",
+          "week": 1,
+          "dependencies": ["sprint-1.1"],
+          "deliverables": [
+            ".claude/cfn-config/team-providers.json (coordinator/worker split)",
+            ".claude/skills/cfn-agent-execution/execute-agent.sh (role-based routing)",
+            ".claude/skills/cfn-agent-spawning/spawn-worker.sh (Z.ai worker spawning)",
+            "docker-compose.hybrid.yml (5 coordinators + infrastructure)",
+            ".env.hybrid.example (API key template)"
+          ],
+          "acceptanceCriteria": [
+            "team-providers.json includes coordinator (Claude Max) + worker (Z.ai) configs",
+            "execute-agent.sh routes coordinators to Claude Max, workers to Z.ai",
+            "Docker compose syntax valid, all services defined",
+            "Environment template documents all required API keys"
+          ]
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "name": "Hybrid Routing Validation Tests",
+          "status": "not_started",
+          "duration": "3 days",
+          "week": 2,
+          "dependencies": ["sprint-1.2"],
+          "deliverables": [
+            "tests/hybrid-architecture/01-single-worker-spawn.sh",
+            "tests/hybrid-architecture/02-concurrent-workers.sh",
+            "tests/hybrid-architecture/03-cross-team-coordination.sh",
+            "Cost tracking script: scripts/track-zai-costs.sh",
+            "Monitoring dashboard: monitoring/grafana/dashboards/hybrid-costs.json"
+          ],
+          "acceptanceCriteria": [
+            "Single worker spawns successfully with Z.ai provider",
+            "5 concurrent workers per team (25 total) complete without rate limit errors",
+            "Cross-team coordinator communication works (engineering → C-Suite escalation)",
+            "Coordinators use Claude Max, workers use Z.ai (validated via logs)",
+            "Z.ai costs tracked per team in Redis"
+          ]
+        }
+      ],
+
+      "successCriteria": [
+        "Hybrid routing operational: Coordinators (Claude Max) + Workers (Z.ai)",
+        "All 3 validation tests pass (single worker, concurrent, cross-team)",
+        "No rate limit conflicts between coordinators and workers",
+        "Cost tracking functional (Z.ai usage logged per team)",
+        "Docker infrastructure deployed locally, ready for cloud migration"
+      ]
+    },
+
+    {
+      "phaseId": "phase-2-team-deployments",
+      "name": "Gradual Team Deployments (Hybrid Architecture)",
+      "description": "Deploy all 5 teams with hybrid architecture. Marketing pilot week 3, remaining teams weeks 4-6.",
+      "file": "planning/docker/PHASE_2_TEAM_DEPLOYMENTS.md",
+      "status": "not_started",
+      "dependencies": ["phase-1-infrastructure-hybrid"],
+      "estimatedDuration": "4 weeks",
+      "weeks": "3-6",
+      "budget": 16000,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "name": "Marketing Pilot (Hybrid)",
+          "duration": "1 week",
+          "week": 3,
+          "deliverables": [
+            "marketing-coordinator deployed (Claude Max)",
+            "3 test workers spawned (Z.ai)",
+            "48-hour validation report"
+          ],
+          "acceptanceCriteria": [
+            "Marketing coordinator spawns workers successfully",
+            "Workers complete tasks with >0.85 average confidence",
+            "Z.ai costs <$5 for 48-hour test period",
+            "No rate limit errors"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "name": "Engineering Deployment",
+          "duration": "1 week",
+          "week": 4,
+          "deliverables": [
+            "engineering-coordinator deployed (Claude Max)",
+            "5 test workers spawned (Z.ai)",
+            "Complex workflow validation (code review, testing)"
+          ],
+          "acceptanceCriteria": [
+            "Engineering coordinator manages 15 agents",
+            "Code review workflow operational",
+            "Test execution workflow operational",
+            "Z.ai costs <$10 for 1 week"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "name": "Sales + Support Deployment",
+          "duration": "1 week",
+          "week": 5,
+          "deliverables": [
+            "sales-coordinator + support-coordinator deployed (Claude Max)",
+            "Workers for both teams spawned (Z.ai)",
+            "Cross-team escalation test"
+          ],
+          "acceptanceCriteria": [
+            "Both coordinators operational",
+            "Sales → Support escalation works",
+            "Support → Engineering escalation works",
+            "Z.ai costs <$15 for 1 week (2 teams)"
+          ]
+        },
+        {
+          "sprintId": "sprint-2.4",
+          "name": "Finance Deployment",
+          "duration": "1 week",
+          "week": 6,
+          "deliverables": [
+            "finance-coordinator deployed (Claude Max)",
+            "All 5 teams operational",
+            "Full org coordination test"
+          ],
+          "acceptanceCriteria": [
+            "All 5 coordinators running",
+            "Cross-team mesh communication working",
+            "Z.ai costs <$50 for 1 week (all teams)",
+            "No coordinator downtime"
+          ]
+        }
+      ],
+
+      "successCriteria": [
+        "All 5 teams deployed with hybrid architecture",
+        "Coordinators (Claude Max) stable, no crashes",
+        "Workers (Z.ai) spawning reliably (>98% success rate)",
+        "Cost tracking accurate per team",
+        "Cross-team communication operational"
+      ]
+    },
+
+    {
+      "phaseId": "phase-3-csuite-optimization",
+      "name": "C-Suite Deployment & Cost Optimization",
+      "description": "Deploy C-Suite agents, implement cost optimization strategies (model tiering, batching, playbooks).",
+      "file": "planning/docker/PHASE_3_CSUITE_OPTIMIZATION.md",
+      "status": "not_started",
+      "dependencies": ["phase-2-team-deployments"],
+      "estimatedDuration": "3 weeks",
+      "weeks": "7-9",
+      "budget": 12000,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "name": "C-Suite Deployment",
+          "duration": "1 week",
+          "week": 7,
+          "deliverables": [
+            "C-Suite agents deployed (CTO, CMO, CFO, COO, CEO)",
+            "Strategic decision workflow tested",
+            "Escalation from teams to C-Suite validated"
+          ],
+          "acceptanceCriteria": [
+            "All 5 C-Suite agents operational",
+            "Strategic decisions working (PROCEED/ITERATE/ABORT)",
+            "Escalation latency <5 minutes",
+            "Optional 6th subscription OR rotation across teams working"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "name": "Cost Optimization",
+          "duration": "1 week",
+          "week": 8,
+          "deliverables": [
+            "Worker model tiering implemented (Haiku vs Sonnet)",
+            "Batch spawning optimization",
+            "Playbook-driven execution patterns"
+          ],
+          "acceptanceCriteria": [
+            "Simple tasks use Haiku (50% cost reduction)",
+            "Complex tasks use Sonnet (quality maintained)",
+            "Batch spawning reduces orchestration overhead by 20%",
+            "Playbook usage reduces iteration cycles by 30%"
+          ]
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "name": "Monitoring & Dashboards",
+          "duration": "1 week",
+          "week": 9,
+          "deliverables": [
+            "Grafana dashboards operational",
+            "Alerting configured (rate limits, failures, costs)",
+            "Cost anomaly detection active"
+          ],
+          "acceptanceCriteria": [
+            "Per-team Z.ai cost visibility",
+            "Coordinator health metrics tracked",
+            "Alerts trigger on >80% rate limit",
+            "Cost anomaly alerts work (>20% spike)"
+          ]
+        }
+      ],
+
+      "successCriteria": [
+        "C-Suite agents making strategic decisions",
+        "Cost optimization achieving 30-40% reduction",
+        "Monitoring dashboards providing real-time visibility",
+        "Alerting preventing production incidents"
+      ]
+    },
+
+    {
+      "phaseId": "phase-4-operational-hardening",
+      "name": "Production Testing & Operational Hardening",
+      "description": "Load testing, security audit, documentation, handoff to operations.",
+      "file": "planning/docker/PHASE_4_OPERATIONAL_HARDENING.md",
+      "status": "not_started",
+      "dependencies": ["phase-3-csuite-optimization"],
+      "estimatedDuration": "2 weeks",
+      "weeks": "10-11",
+      "budget": 8000,
+
+      "sprints": [
+        {
+          "sprintId": "sprint-4.1",
+          "name": "Production Testing",
+          "duration": "1 week",
+          "week": 10,
+          "deliverables": [
+            "Load test: 50 concurrent workers across all teams",
+            "Failover test: Coordinator restart, Redis connection loss",
+            "Security audit: Container isolation, MCP permissions"
+          ],
+          "acceptanceCriteria": [
+            "System handles 50 concurrent workers (10 per team)",
+            "Coordinator restarts with <30 second downtime",
+            "Redis connection loss recovers automatically",
+            "No container isolation violations",
+            "MCP permissions prevent cross-team access"
+          ]
+        },
+        {
+          "sprintId": "sprint-4.2",
+          "name": "Documentation & Handoff",
+          "duration": "1 week",
+          "week": 11,
+          "deliverables": [
+            "Operational runbooks",
+            "Troubleshooting guides",
+            "Cost optimization playbooks",
+            "Handoff to operations team"
+          ],
+          "acceptanceCriteria": [
+            "Runbooks cover all common operations",
+            "Troubleshooting guide covers 90% of issues",
+            "Cost optimization playbooks documented",
+            "Operations team trained and accepting ownership"
+          ]
+        }
+      ],
+
+      "successCriteria": [
+        "Production testing passed all scenarios",
+        "Security audit clean (no HIGH/CRITICAL findings)",
+        "Documentation complete and validated",
+        "Operations team ready to manage system"
+      ]
+    }
+  ],
+
+  "totalInvestment": 44000,
+  "estimatedAnnualSavings": 91800,
+  "paybackPeriod": "5.8 months",
+  "roi": "208%",
+
+  "keyChanges": [
+    "Hybrid routing from Day 1 (no pure Claude phase)",
+    "Timeline reduced: 12 weeks → 11 weeks (removed migration work)",
+    "Cost model: $334/month ($100 Claude Max + $234 Z.ai workers)",
+    "Production-validated architecture (Sprint 2 CFN Loop tests)",
+    "Rate limit isolation: Coordinators never blocked by worker load",
+    "Z.ai authentication: ANTHROPIC_AUTH_TOKEN environment variable",
+    "Docker POC validated: 0.95 confidence, ready for deployment"
+  ],
+
+  "prerequisites": {
+    "subscriptions": [
+      {
+        "service": "Claude Max",
+        "count": 5,
+        "costPerMonth": 20,
+        "totalMonthly": 100,
+        "purpose": "Team coordinators (marketing, engineering, sales, support, finance)"
+      },
+      {
+        "service": "Z.ai API",
+        "count": 1,
+        "billing": "pay-as-you-go",
+        "estimatedMonthly": 234,
+        "purpose": "All worker agents (48 total)"
+      }
+    ],
+    "infrastructure": [
+      "Docker Engine or Docker Desktop",
+      "Redis server (local or cloud)",
+      "PostgreSQL 16+ (for ACE playbook storage)",
+      "Grafana + Prometheus (monitoring)"
+    ],
+    "apiKeys": [
+      "5 Claude Max API keys (MARKETING_COORDINATOR_API_KEY, etc.)",
+      "1 Z.ai API key (ANTHROPIC_AUTH_TOKEN)",
+      "N8N API key (optional, for n8n MCP integration)"
+    ]
+  },
+
+  "riskMitigation": {
+    "zaiAuthentication": {
+      "risk": "Z.ai auth format unclear",
+      "status": "RESOLVED",
+      "solution": "Use ANTHROPIC_AUTH_TOKEN env var (validated in POC)",
+      "confidence": 0.95
+    },
+    "dockerBuildTimeout": {
+      "risk": "npm ci taking >5 minutes",
+      "status": "RESOLVED",
+      "solution": "Simplified POC without npm dependencies",
+      "confidence": 0.90
+    },
+    "rateLimits": {
+      "risk": "Coordinators blocked by worker load",
+      "status": "MITIGATED",
+      "solution": "Hybrid architecture isolates coordinator rate limits",
+      "confidence": 0.92
+    }
+  },
+
+  "nextSteps": [
+    "Purchase 5 Claude Max subscriptions (Week 1)",
+    "Purchase Z.ai API key (Week 1)",
+    "Implement Sprint 1.1: ACE system enhancement (Days 1-3)",
+    "Implement Sprint 1.2: Docker templates + hybrid routing (Days 4-7)",
+    "Implement Sprint 1.3: Validation tests (Days 8-10)",
+    "Deploy marketing pilot (Week 3)"
+  ]
+}
