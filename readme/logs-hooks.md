@@ -4,6 +4,42 @@
 
 Claude Flow implements a sophisticated, multi-layered hooks system for automated validation, testing, security, coordination, and workflow management.
 
+## Pre-Edit Backup Hook
+
+### `/hooks/cfn-invoke-pre-edit.sh`
+
+**Purpose**: Create backup before file modifications
+
+**Parameters**:
+- `FILE_PATH`: File to backup (required)
+- `--agent-id`: Agent identifier (optional, default: "unknown")
+
+**Output**: Backup directory path
+
+**Backup Location**: `.backups/[agent-id]/[timestamp]_[hash]/`
+
+**Retention**: 24h TTL (configurable via `post-edit.config.json`)
+
+**Example**:
+```bash
+BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "src/file.ts" --agent-id "coder-1")
+echo "Backup created: $BACKUP_PATH"
+```
+
+**Integration**: Call before any Edit/Write operation in agent workflows
+
+**Revert Operations**:
+```bash
+# Revert to most recent backup
+./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "coder-1"
+
+# Interactive mode (select backup)
+./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "coder-1" --interactive
+
+# List available backups
+./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "coder-1" --list-only
+```
+
 ## Post-Edit Validation Hook
 
 ### `/hooks/post-edit.sh`

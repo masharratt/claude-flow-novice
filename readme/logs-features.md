@@ -40,6 +40,38 @@ npx cfn-init  # Copies namespace-isolated files
   - Files: 1300 (includes all agents, skills, hooks, commands)
   - Files: 303 files (68% reduction)
 
+### 6. Pre-Edit Backup System
+
+**Purpose**: Safe file revert without git operations during parallel agent sessions
+
+**Implementation**:
+- Backup location: `.backups/[agent-id]/[timestamp]_[hash]/`
+- SHA-256 file hashing for unique identification
+- JSON metadata with TTL (default 24h)
+- Agent-isolated directories prevent conflicts
+
+**Usage**:
+```bash
+# Create backup before edit
+BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "src/file.ts" --agent-id "coder-1")
+
+# Revert to most recent backup
+./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "coder-1"
+
+# Interactive mode (select backup)
+./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "coder-1" --interactive
+
+# List available backups
+./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "coder-1" --list-only
+```
+
+**Configuration**:
+- TTL: `.claude/hooks/post-edit.config.json` → `pre_edit_backup.default_ttl`
+- Cleanup: Automatic removal after TTL expiration
+- Permissions: 700 (owner-only access)
+
+**Integration**: Required before all Edit/Write operations in agent workflows
+
 ### 7. Cyclomatic Complexity Analysis
 
 #### Purpose

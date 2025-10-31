@@ -98,7 +98,7 @@ npx cfn-init  # Copy namespace-isolated files
 /cfn-loop-sprints "Phase 1: Authentication"
 
 # Task mode (debugging - full Main Chat visibility, no coordinator)
-/cfn-loop "Implement feature" --spawn-mode=task
+/cfn-loop "Implement feature" --spawn-mode=task --ace-reflect  # Optional: Enable ACE reflection
 ```
 
 **Core Coordinators:**
@@ -205,7 +205,33 @@ Task("cfn-v3-coordinator", `
 - Sequential CLI spawning is safe (coordinator manages order)
 - Clean separation: Main Chat → Coordinator → Workers
 
-### Post-Edit Validation (REQUIRED for all Edit/Write operations on any file type)
+### Pre-Edit Backup (REQUIRED before all Edit/Write operations)
+**Before ANY Edit/Write/MultiEdit operation, agents MUST create backup:**
+```bash
+BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id "$AGENT_ID")
+```
+
+**Why:** Enables safe file revert without git operations during parallel sessions.
+**Location:** Backups stored in `.backups/[agent-id]/[timestamp]_[hash]/`
+**Retention:** Default 24h TTL, configurable via `.claude/hooks/post-edit.config.json`
+
+**Revert Instead of Git:**
+```bash
+# ❌ FORBIDDEN - git operations cause issues in parallel sessions
+git checkout -- file.ts
+git revert HEAD
+
+# ✅ REQUIRED - use pre-edit backup system
+./.claude/skills/pre-edit-backup/revert-file.sh "$FILE_PATH" --agent-id "$AGENT_ID"
+
+# Interactive mode (shows available backups)
+./.claude/skills/pre-edit-backup/revert-file.sh "$FILE_PATH" --agent-id "$AGENT_ID" --interactive
+
+# List available backups without reverting
+./.claude/skills/pre-edit-backup/revert-file.sh "$FILE_PATH" --agent-id "$AGENT_ID" --list-only
+```
+
+### Post-Edit Validation (REQUIRED after all Edit/Write operations on any file type)
 **After ANY Edit/Write/MultiEdit operation on all file types, agents MUST run:**
 ```bash
 ./.claude/hooks/cfn-invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
@@ -214,6 +240,23 @@ Task("cfn-v3-coordinator", `
 **Why:** Prevents errors and disorganization from propagating. Non-blocking by default.
 **Config:** `.claude/hooks/post-edit.config.json`
 **Skill:** `.claude/skills/hook-pipeline/SKILL.md`
+
+### Complete Edit Workflow (Pre-Edit + Edit + Post-Edit)
+```bash
+# 1. Pre-Edit: Create backup
+BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "src/file.ts" --agent-id "$AGENT_ID")
+
+# 2. Edit: Perform file modification
+Edit: file_path="src/file.ts" old_string="..." new_string="..."
+
+# 3. Post-Edit: Validate changes
+./.claude/hooks/cfn-invoke-post-edit.sh "src/file.ts" --agent-id "$AGENT_ID"
+
+# 4. (Optional) Revert if validation fails
+if [ $? -ne 0 ]; then
+    ./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "$AGENT_ID"
+fi
+```
 
 ## 2) When Agents Are Mandatory (Triggers)
 

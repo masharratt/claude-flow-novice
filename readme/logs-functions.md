@@ -39,6 +39,79 @@ extract_validator_feedback <task_id> <iteration> <validator_output>
 
 **Returns**: Extracted feedback count
 
+### 6.5. Pre-Edit Backup Utilities
+
+#### `backup.sh`
+```bash
+backup.sh <file_path> <agent_id>
+```
+
+**Purpose**: Create file backup with SHA-256 hash
+
+**Parameters**:
+- `file_path`: File to backup
+- `agent_id`: Agent identifier
+
+**Returns**: Backup directory path
+
+**Example**:
+```bash
+BACKUP_DIR=$(./.claude/skills/pre-edit-backup/backup.sh "src/file.ts" "coder-1")
+```
+
+#### `restore.sh`
+```bash
+restore.sh <backup_dir>
+```
+
+**Purpose**: Restore file from backup
+
+**Parameters**:
+- `backup_dir`: Backup directory path
+
+**Example**:
+```bash
+./.claude/skills/pre-edit-backup/restore.sh "$BACKUP_DIR"
+```
+
+#### `revert-file.sh`
+```bash
+revert-file.sh <file_path> --agent-id <id> [--interactive] [--list-only]
+```
+
+**Purpose**: High-level revert interface (auto/interactive/list modes)
+
+**Parameters**:
+- `file_path`: File to revert
+- `--agent-id`: Agent identifier
+- `--interactive`: Select backup interactively (optional)
+- `--list-only`: List backups without reverting (optional)
+
+**Example**:
+```bash
+# Auto-select most recent
+./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "coder-1"
+
+# Interactive selection
+./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "coder-1" --interactive
+```
+
+#### `cleanup.sh`
+```bash
+cleanup.sh [--dry-run] [--log-file <path>]
+```
+
+**Purpose**: Remove expired backups based on TTL
+
+**Parameters**:
+- `--dry-run`: Preview without deletion (optional)
+- `--log-file`: Log output path (optional)
+
+**Example**:
+```bash
+./.claude/skills/pre-edit-backup/cleanup.sh --dry-run
+```
+
 ### 7. ACE System Utilities
 
 #### `invoke-context-reflect.sh`

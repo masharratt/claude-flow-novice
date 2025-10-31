@@ -1,12 +1,23 @@
 {
-  "default_validation": {
-    "file_size": {
-      "min_bytes": 1024,
-      "max_bytes": 1048576
+    "pre_edit_backup": {
+        "enabled": true,
+        "default_ttl": 86400,
+        "retention_strategy": "oldest_first",
+        "ignore_patterns": [
+            "*.log",
+            "*.tmp",
+            ".backups/*"
+        ]
     },
-    "content_checks": {
-      "required_sections": ["# ", "## ", "### "],
-      "min_sections": 3
+    "post_edit_validation": {
+        "enabled": true,
+        "checks": [
+            "file_integrity",
+            "pre_edit_backup_created"
+        ]
+    },
+    "logging": {
+        "enabled": true,
+        "log_path": ".claude/logs/file_edit_hooks.log"
     }
-  }
 }
