@@ -517,7 +517,6 @@ Before finalizing an agent template, verify:
 - [ ] Workflow/Approach documented
 - [ ] CFN Loop Protocol included (if applicable)
 - [ ] Success Metrics specified
-- [ ] Examples provided where helpful
 
 **Markdown Escaping:**
 - [ ] Code blocks use proper backtick escaping in templates
@@ -525,58 +524,6 @@ Before finalizing an agent template, verify:
 - [ ] Multi-line strings properly indented
 
 ---
-
-### SQLite Lifecycle Tracking
-```python
-def track_agent_lifecycle(agent_id, task_id, status):
-    """
-    Track agent lifecycle in SQLite database
-
-    Args:
-        agent_id (str): Unique agent identifier
-        task_id (str): Current task identifier
-        status (str): Lifecycle status
-    """
-    conn = sqlite3.connect('cfn_agent_lifecycle.db')
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        INSERT INTO agent_lifecycle
-        (agent_id, task_id, status, timestamp)
-        VALUES (?, ?, ?, ?)
-    ''', (agent_id, task_id, status, datetime.now()))
-
-    conn.commit()
-    conn.close()
-```
-
-## Validation Hooks
-
-### Agent Template Validator
-```python
-def validate_agent_template(template):
-    """
-    Comprehensive agent template validation
-
-    Checks:
-    - Required fields present
-    - Tool compatibility
-    - Capability alignment
-    - Lifecycle hook configuration
-    """
-    required_fields = [
-        'name', 'description', 'category',
-        'acl_level', 'model', 'tools',
-        'capabilities', 'lifecycle_hooks'
-    ]
-
-    for field in required_fields:
-        assert field in template, f"Missing required field: {field}"
-
-    # Additional validation logic
-    validate_tools(template['tools'])
-    validate_capabilities(template['capabilities'])
-```
 
 ## Success Metrics
 - Template Completeness: 100%
