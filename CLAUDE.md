@@ -212,23 +212,16 @@ BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id 
 ```
 
 **Why:** Enables safe file revert without git operations during parallel sessions.
-**Location:** Backups stored in `.backups/[agent-id]/[timestamp]_[hash]/`
-**Retention:** Default 24h TTL, configurable via `.claude/hooks/post-edit.config.json`
+**Location:** `.backups/[agent-id]/[timestamp]_[hash]/`
+**Retention:** 24h TTL (configurable)
 
 **Revert Instead of Git:**
 ```bash
-# ❌ FORBIDDEN - git operations cause issues in parallel sessions
+# ❌ FORBIDDEN - git operations cause parallel session issues
 git checkout -- file.ts
-git revert HEAD
 
-# ✅ REQUIRED - use pre-edit backup system
+# ✅ REQUIRED - use backup system
 ./.claude/skills/pre-edit-backup/revert-file.sh "$FILE_PATH" --agent-id "$AGENT_ID"
-
-# Interactive mode (shows available backups)
-./.claude/skills/pre-edit-backup/revert-file.sh "$FILE_PATH" --agent-id "$AGENT_ID" --interactive
-
-# List available backups without reverting
-./.claude/skills/pre-edit-backup/revert-file.sh "$FILE_PATH" --agent-id "$AGENT_ID" --list-only
 ```
 
 ### Post-Edit Validation (REQUIRED after all Edit/Write operations on any file type)
