@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  engineering-coordinator:
+    image: zai/coordinator:v2.2
+    environment:
+      - WORKERS=5
+      - MODE=standard
+      - DEPLOYMENT_PHASE=sprint-2.2
+    volumes:
+      - ./workflow:/app/workflow
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
+  worker-pool:
+    image: zai/worker:v2.2
+    environment:
+      - COORDINATOR_HOST=engineering-coordinator
+      - MAX_CONCURRENT_TASKS=3
+    deploy:
+      replicas: 5
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
+networks:
+  engineering-network:
+    driver: overlay
