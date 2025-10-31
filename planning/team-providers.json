@@ -1,0 +1,90 @@
+{
+  "teams": {
+    "marketing": {
+      "coordinator": {
+        "provider": "anthropic",
+        "apiKeyEnv": "MARKETING_COORDINATOR_API_KEY",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "workers": {
+        "provider": "zai",
+        "apiKeyEnv": "ANTHROPIC_AUTH_TOKEN",
+        "models": {
+          "simple": "claude-3-5-haiku-20241022",
+          "complex": "claude-3-5-sonnet-20241022"
+        }
+      }
+    },
+    "engineering": {
+      "coordinator": {
+        "provider": "anthropic",
+        "apiKeyEnv": "ENGINEERING_COORDINATOR_API_KEY",
+        "model": "claude-opus-4-20250514"
+      },
+      "workers": {
+        "provider": "zai",
+        "apiKeyEnv": "ANTHROPIC_AUTH_TOKEN",
+        "models": {
+          "simple": "claude-3-5-haiku-20241022",
+          "complex": "claude-3-5-sonnet-20241022"
+        }
+      }
+    },
+    "sales": {
+      "coordinator": {
+        "provider": "anthropic",
+        "apiKeyEnv": "SALES_COORDINATOR_API_KEY",
+        "model": "claude-haiku-4-20250514"
+      },
+      "workers": {
+        "provider": "zai",
+        "apiKeyEnv": "ANTHROPIC_AUTH_TOKEN",
+        "models": {
+          "simple": "claude-3-5-haiku-20241022",
+          "complex": "claude-3-5-sonnet-20241022"
+        }
+      }
+    },
+    "support": {
+      "coordinator": {
+        "provider": "anthropic",
+        "apiKeyEnv": "SUPPORT_COORDINATOR_API_KEY",
+        "model": "claude-haiku-4-20250514"
+      },
+      "workers": {
+        "provider": "zai",
+        "apiKeyEnv": "ANTHROPIC_AUTH_TOKEN",
+        "models": {
+          "simple": "claude-3-5-haiku-20241022",
+          "complex": "claude-3-5-sonnet-20241022"
+        }
+      }
+    },
+    "finance": {
+      "coordinator": {
+        "provider": "anthropic",
+        "apiKeyEnv": "FINANCE_COORDINATOR_API_KEY",
+        "model": "claude-sonnet-4-20250514"
+      },
+      "workers": {
+        "provider": "zai",
+        "apiKeyEnv": "ANTHROPIC_AUTH_TOKEN",
+        "models": {
+          "simple": "claude-3-5-haiku-20241022",
+          "complex": "claude-3-5-sonnet-20241022"
+        }
+      }
+    }
+  },
+  "global_settings": {
+    "default_coordinator_provider": "anthropic",
+    "default_worker_provider": "zai",
+    "provider_routing_rules": {
+      "complexity_threshold": {
+        "simple": 0.5,
+        "complex": 0.8
+      },
+      "model_selection_strategy": "dynamic_confidence"
+    }
+  }
+}

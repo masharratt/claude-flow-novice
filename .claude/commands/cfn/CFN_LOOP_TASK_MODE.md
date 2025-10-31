@@ -15,6 +15,23 @@ Task Mode: Main Chat spawns coordinator and agents via Task() tool with full con
 | **Provider** | All Anthropic | CLI uses Z.ai routing |
 | **Cost** | ~$0.150/iteration | ~$0.054/iteration (64% savings) |
 | **Use Case** | Debugging, prototyping, learning | Production, cost optimization |
+| **ACE Reflection** | Optional via `--ace-reflect` flag | Always enabled |
+
+### ACE Reflection Flag
+
+```bash
+# Enable ACE reflection after each sprint (captures lessons learned)
+/cfn-loop "Task description" --spawn-mode=task --ace-reflect
+
+# Without ACE reflection (default for backwards compatibility)
+/cfn-loop "Task description" --spawn-mode=task
+```
+
+**When to use `--ace-reflect`:**
+- Long-running epics (3+ sprints) where learning accumulates
+- Complex tasks with multiple iterations
+- Teams building organizational knowledge
+- Post-mortem analysis and continuous improvement
 
 ---
 
@@ -144,9 +161,30 @@ Iterations: Loop 3: ${L3}, Loop 2: ${L2} | Decision: PROCEED
 EOF
 ```
 
+### 5. ACE Reflection (Optional - If `--ace-reflect` flag enabled)
+```bash
+# Only run if --ace-reflect flag was passed to /cfn-loop command
+if [[ "$ACE_REFLECT_ENABLED" == "true" ]]; then
+  echo "📊 Capturing ACE reflection..."
+  ./.claude/skills/cfn-ace-system/invoke-context-reflect.sh \
+    --task-id "${TASK_ID}" \
+    --sprint-id "${SPRINT_NUM}" \
+    --consensus "${CONSENSUS}" \
+    --iterations-loop3 "${L3}" \
+    --iterations-loop2 "${L2}" \
+    --deliverables "$(git diff HEAD~1 --name-only | tr '\n' ',')"
+
+  # Output: Stores reflection in SQLite with tags, confidence, priority
+  # Categories: PATTERN, STRAT, ANTI, EDGE
+  # Automatic tag extraction and deduplication
+  echo "✅ ACE reflection captured: $(sqlite3 .claude/cfn-data/cfn-loop.db 'SELECT COUNT(*) FROM context_reflections WHERE task_id = \"'${TASK_ID}'\"') bullets"
+fi
+```
+
 **Checklist:**
 - [ ] Consensus ≥ threshold | [ ] Product Owner approved | [ ] Deliverables verified
 - [ ] Tests passing | [ ] Git committed | [ ] Git pushed | [ ] Summary generated
+- [ ] ACE reflection captured (if `--ace-reflect` enabled)
 
 ---
 
@@ -341,12 +379,68 @@ Complex/Enterprise (>5 files, >500 LOC): +code-analyzer
 
 ---
 
+## ACE System Integration
+
+### Reflection After Sprint
+After each sprint completion, Task Mode should capture lessons learned:
+
+```bash
+# Automatic reflection capture (called after git push)
+./.claude/skills/cfn-ace-system/invoke-context-reflect.sh \
+  --task-id "${TASK_ID}" \
+  --sprint-id "${SPRINT_NUM}" \
+  --consensus "${CONSENSUS}" \
+  --iterations-loop3 "${L3}" \
+  --iterations-loop2 "${L2}" \
+  --deliverables "$(git diff HEAD~1 --name-only | tr '\n' ',')"
+```
+
+**What Gets Captured:**
+- Patterns that worked well (consensus ≥0.90, low iterations)
+- Anti-patterns that caused issues (high iterations, deliverable failures)
+- Strategy patterns (agent selection, validator scaling effectiveness)
+- Edge cases (timeout scenarios, race conditions, blocking issues)
+
+**Storage:**
+- SQLite database: `.claude/cfn-data/cfn-loop.db`
+- Table: `context_reflections`
+- Automatic tagging, deduplication, confidence scoring
+
+**Benefits:**
+- Future sprints learn from past mistakes
+- Adaptive validator scaling improves over time
+- Pattern recognition across projects
+- Knowledge accumulation (not lost between sessions)
+
+### Optional: Context Injection (Future Enhancement)
+Before spawning agents, inject relevant lessons:
+```bash
+# Not yet implemented in Task Mode, but available:
+./.claude/skills/cfn-ace-system/invoke-context-inject.sh \
+  --task "${TASK_DESCRIPTION}" \
+  --phase "${PHASE_NAME}" \
+  --tags "validation,consensus,deliverables"
+# Returns: Top N relevant bullets from past reflections
+```
+
+### Optional: Context Curation (Periodic Maintenance)
+Merge and deduplicate reflection data:
+```bash
+# Run monthly or after major epics:
+./.claude/skills/cfn-ace-system/invoke-context-curate.sh \
+  --confidence-threshold 0.85 \
+  --merge-similar-patterns
+```
+
+---
+
 ## Related Documentation
 
 - **CFN Coordinator Parameters**: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 - **Redis Coordination**: `.claude/skills/cfn-redis-coordination/SKILL.md`
 - **Product Owner Decision**: `.claude/skills/cfn-product-owner-decision/SKILL.md`
 - **Agent Output Standards**: `docs/AGENT_OUTPUT_STANDARDS.md`
+- **ACE System**: `.claude/skills/cfn-ace-system/SKILL.md`
 
 ---
 

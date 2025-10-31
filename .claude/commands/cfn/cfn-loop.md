@@ -1,6 +1,6 @@
 ---
 description: "Execute autonomous 3-loop self-correcting CFN workflow with automatic retry and consensus validation"
-argument-hint: "<task description> [--phase=name] [--mode=mvp|standard|enterprise] [--spawn-mode=cli|task] [--max-loop2=10] [--max-loop3=10]"
+argument-hint: "<task description> [--phase=name] [--mode=mvp|standard|enterprise] [--spawn-mode=cli|task] [--max-loop2=10] [--max-loop3=10] [--ace-reflect]"
 allowed-tools: ["Task", "TodoWrite", "Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 ---
 
@@ -38,10 +38,11 @@ LOOP 3: Primary Swarm Execution with subtask iterations
 - `--phase=<name>`: Optional phase name for tracking
 - `--mode=<mvp|standard|enterprise>`: Coordinator mode (default: standard)
 - `--spawn-mode=<cli|task>`: Agent spawning method (default: cli)
-  - **cli**: Cost-optimized (95-98% savings), background execution, Redis monitoring
-  - **task**: Full visibility in Main Chat, direct spawning, debugging
+  - **cli**: Cost-optimized (95-98% savings), background execution, Redis monitoring, ACE always enabled
+  - **task**: Full visibility in Main Chat, direct spawning, debugging, ACE optional via flag
 - `--max-loop2=<n>`: Max consensus iterations (default: 10)
 - `--max-loop3=<n>`: Max primary swarm iterations (default: 10)
+- `--ace-reflect`: Enable ACE reflection after each sprint (Task mode only, captures lessons learned)
 
 ## Coordinator Modes
 
