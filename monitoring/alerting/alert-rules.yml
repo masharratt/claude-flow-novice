@@ -1,0 +1,225 @@
+groups:
+  - name: zai_rate_limits
+    interval: 30s
+    rules:
+      - alert: ZaiRateLimitHigh
+        expr: (zai_rate_limit_used / zai_rate_limit_total) > 0.80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          component: zai-provider
+        annotations:
+          summary: "Z.ai rate limit usage above 80%"
+          description: "Z.ai rate limit is at {{ $value | humanizePercentage }} for {{ $labels.team }}"
+          runbook_url: "https://docs.example.com/runbooks/zai-rate-limit"
+
+      - alert: ZaiRateLimitCritical
+        expr: (zai_rate_limit_used / zai_rate_limit_total) > 0.90
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          component: zai-provider
+        annotations:
+          summary: "Z.ai rate limit CRITICAL - above 90%"
+          description: "Z.ai rate limit is at {{ $value | humanizePercentage }} for {{ $labels.team }}. Throttling imminent."
+          runbook_url: "https://docs.example.com/runbooks/zai-rate-limit-critical"
+
+  - name: zai_failures
+    interval: 30s
+    rules:
+      - alert: ZaiHighErrorRate
+        expr: |
+          (
+            rate(zai_requests_total{status="error"}[5m])
+            /
+            rate(zai_requests_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High Z.ai error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.team }}"
+          runbook_url: "https://docs.example.com/runbooks/zai-high-errors"
+
+      - alert: ZaiProviderDown
+        expr: up{job="zai-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Z.ai provider unavailable"
+          description: "Z.ai metrics exporter has been down for more than 2 minutes"
+          runbook_url: "https://docs.example.com/runbooks/zai-provider-down"
+
+      - alert: ZaiRequestTimeoutHigh
+        expr: |
+          (
+            rate(zai_requests_total{status="timeout"}[5m])
+            /
+            rate(zai_requests_total[5m])
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High Z.ai timeout rate"
+          description: "Timeout rate is {{ $value | humanizePercentage }} for {{ $labels.team }}"
+
+  - name: cost_anomalies
+    interval: 60s
+    rules:
+      - alert: CostAnomalyDetected
+        expr: |
+          (
+            sum by (team) (rate(zai_api_cost_usd[1h]))
+            /
+            sum by (team) (rate(zai_api_cost_usd[1h] offset 24h))
+          ) > 1.20
+        for: 15m
+        labels:
+          severity: warning
+          team: finance
+          component: cost-tracking
+        annotations:
+          summary: "Cost anomaly detected for {{ $labels.team }}"
+          description: "Hourly cost increased by {{ $value | humanizePercentage }} compared to 24h ago"
+          runbook_url: "https://docs.example.com/runbooks/cost-anomaly"
+
+      - alert: DailyCostBudgetExceeded
+        expr: |
+          sum by (team) (increase(zai_api_cost_usd[24h])) > 100
+        for: 1h
+        labels:
+          severity: critical
+          team: finance
+        annotations:
+          summary: "Daily cost budget exceeded for {{ $labels.team }}"
+          description: "24h cost is ${{ $value }} (budget: $100)"
+          runbook_url: "https://docs.example.com/runbooks/budget-exceeded"
+
+      - alert: CostPerRequestAnomaly
+        expr: |
+          (
+            (sum(zai_api_cost_usd) / sum(zai_requests_total))
+            /
+            (sum(zai_api_cost_usd offset 24h) / sum(zai_requests_total offset 24h))
+          ) > 1.50
+        for: 30m
+        labels:
+          severity: warning
+          team: finance
+        annotations:
+          summary: "Cost per request anomaly detected"
+          description: "Cost per request increased by {{ $value | humanizePercentage }} vs 24h ago"
+
+  - name: coordinator_health
+    interval: 30s
+    rules:
+      - alert: CoordinatorUnhealthy
+        expr: coordinator_health_status{status!="healthy"} == 1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Coordinator {{ $labels.coordinator }} unhealthy"
+          description: "Coordinator {{ $labels.coordinator }} has been unhealthy for 5+ minutes"
+          runbook_url: "https://docs.example.com/runbooks/coordinator-unhealthy"
+
+      - alert: CoordinatorTaskQueueHigh
+        expr: coordinator_tasks_pending > 50
+        for: 15m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High task queue for {{ $labels.coordinator }}"
+          description: "Task queue has {{ $value }} pending tasks for 15+ minutes"
+
+      - alert: CoordinatorNoHeartbeat
+        expr: (time() - coordinator_last_heartbeat_timestamp_seconds) > 300
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Coordinator {{ $labels.coordinator }} no heartbeat"
+          description: "No heartbeat received from {{ $labels.coordinator }} for 5+ minutes"
+          runbook_url: "https://docs.example.com/runbooks/coordinator-heartbeat-missing"
+
+  - name: performance_degradation
+    interval: 30s
+    rules:
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (team, le) (rate(zai_request_duration_seconds_bucket[5m]))
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High P95 latency for {{ $labels.team }}"
+          description: "P95 latency is {{ $value }}s (threshold: 5s)"
+
+      - alert: LowSuccessRate
+        expr: |
+          (
+            sum by (team) (rate(zai_requests_total{status="success"}[10m]))
+            /
+            sum by (team) (rate(zai_requests_total[10m]))
+          ) < 0.95
+        for: 15m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Low success rate for {{ $labels.team }}"
+          description: "Success rate is {{ $value | humanizePercentage }} (threshold: 95%)"
+          runbook_url: "https://docs.example.com/runbooks/low-success-rate"
+
+  - name: slo_violations
+    interval: 60s
+    rules:
+      - alert: AvailabilitySLOViolation
+        expr: |
+          (
+            sum(rate(zai_requests_total{status="success"}[30d]))
+            /
+            sum(rate(zai_requests_total[30d]))
+          ) < 0.999
+        for: 1h
+        labels:
+          severity: critical
+          team: sre
+          slo: availability
+        annotations:
+          summary: "Availability SLO violation"
+          description: "30-day availability is {{ $value | humanizePercentage }} (SLO: 99.9%)"
+          runbook_url: "https://docs.example.com/runbooks/slo-availability"
+
+      - alert: ErrorBudgetExhausted
+        expr: |
+          (
+            1 - (
+              sum(rate(zai_requests_total{status="success"}[30d]))
+              /
+              sum(rate(zai_requests_total[30d]))
+            )
+          ) > 0.001
+        for: 2h
+        labels:
+          severity: warning
+          team: sre
+          slo: error-budget
+        annotations:
+          summary: "Error budget exhausted"
+          description: "Monthly error budget exceeded - current error rate: {{ $value | humanizePercentage }}"
+          runbook_url: "https://docs.example.com/runbooks/error-budget"
