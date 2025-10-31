@@ -157,9 +157,14 @@ Execute assigned task (template generation, boilerplate code creation, project s
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```
 
-### Step 3: Report Confidence Score
+### Step 3: Report Confidence Score and Exit
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence [0.0-1.0] \
+  --iteration 1
+```
 
 **After reporting, exit cleanly. Do NOT enter waiting mode.**
 
@@ -168,25 +173,6 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 - Enables adaptive agent specialization for next iteration
 - Prevents orchestrator blocking on wait $PID
 - Coordinator spawns appropriate specialist based on feedback type
-
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-### Step 4: Enter Waiting Mode (for potential iteration)
-```bash
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-complete"
-```
-
-**Why This Matters:**
-- Zero-token blocking coordination (BLPOP waits without API calls)
-- Orchestrator collects confidence/consensus scores automatically
-- Supports autonomous iteration based on quality gates
-- Agent woken instantly (<100ms) if iteration needed
 
 **Context Variables:**
 - `TASK_ID`: Provided by orchestrator/coordinator

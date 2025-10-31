@@ -1,3 +1,23 @@
+---
+name: agent-builder
+description: |
+  MUST BE USED when creating, validating, or designing agent templates and CFN Loop workflows.
+  Use PROACTIVELY for agent architecture, template validation, capability mapping, coordination patterns.
+  Keywords - agent, template, validation, CFN Loop, workflow, coordination, lifecycle
+tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
+model: sonnet
+type: specialist
+acl_level: 4
+validation_hooks:
+  - agent-template-validator
+  - cfn-loop-memory-validator
+lifecycle:
+  pre_task: |
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'agent-builder', 'active', CURRENT_TIMESTAMP)"
+  post_task: |
+    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
+---
+
 # Agent Builder
 
 ## Overview
@@ -16,7 +36,7 @@
 - TodoWrite
 
 ## Model
-- Base Model: Claude 3.5 Haiku
+- Base Model: haiku
 - Specialized Mode: Agent Template Creation
 
 ## Capabilities
@@ -70,18 +90,46 @@ validation_hooks:
 ---
 ```
 
-## CFN Loop Coordination Patterns
+## CFN Loop Redis Completion Protocol
 
-### Redis Coordination
-```bash
-# Signal task start
-redis-cli lpush "cfn:loop:${TASK_ID}:${AGENT_ID}:start" "initiated"
+When creating agent templates, MUST include this exact protocol section:
 
-# Signal task completion
-redis-cli lpush "cfn:loop:${TASK_ID}:${AGENT_ID}:done" "completed"
+```markdown
+## CFN Loop Redis Completion Protocol
 
-# Report confidence score
-redis-cli set "cfn:loop:${TASK_ID}:${AGENT_ID}:confidence" "0.85"
+When participating in CFN Loop workflows, agents MUST follow this protocol:
+
+### Step 1: Complete Work
+Execute assigned task (describe agent's specific task type here)
+
+### Step 2: Signal Completion
+\```bash
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+\```
+
+### Step 3: Report Confidence Score and Exit
+\```bash
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence [0.0-1.0] \
+  --iteration 1
+\```
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
+
+**Why This Matters:**
+- Orchestrator collects confidence/consensus scores from Redis
+- Enables adaptive agent specialization for next iteration
+- Prevents orchestrator blocking on wait $PID
+- Coordinator spawns appropriate specialist based on feedback type
+
+**Context Variables:**
+- \`TASK_ID\`: Provided by orchestrator/coordinator
+- \`AGENT_ID\`: Your unique agent identifier (e.g., "agent-name-1")
+- Confidence: Self-assessment score (0.0-1.0) - explain agent-specific criteria
+
+See: \`.claude/skills/cfn-redis-coordination/SKILL.md\` for full protocol details
 ```
 
 ### SQLite Lifecycle Tracking
