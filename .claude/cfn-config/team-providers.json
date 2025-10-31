@@ -1,0 +1,34 @@
+{
+    "teams": {
+        "marketing": {
+            "coordinator": "claude-max",
+            "workers": "z-ai",
+            "routing_strategy": "dynamic"
+        },
+        "engineering": {
+            "coordinator": "claude-max",
+            "workers": "z-ai",
+            "routing_strategy": "performance"
+        },
+        "sales": {
+            "coordinator": "claude-max",
+            "workers": "z-ai",
+            "routing_strategy": "cost-optimized"
+        },
+        "support": {
+            "coordinator": "claude-max",
+            "workers": "z-ai",
+            "routing_strategy": "reliability"
+        },
+        "finance": {
+            "coordinator": "claude-max",
+            "workers": "z-ai",
+            "routing_strategy": "compliance"
+        }
+    },
+    "global_config": {
+        "max_concurrent_workers": 10,
+        "fallback_provider": "claude-max",
+        "monitoring_enabled": true
+    }
+}

@@ -1,0 +1,85 @@
+# Prometheus Configuration for Hybrid AI Infrastructure
+# Version: 2.0.0
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'hybrid-ai-infrastructure'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+          # - alertmanager:9093
+
+# Rule files (optional)
+rule_files:
+  # - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Redis monitoring
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+        labels:
+          service: 'redis'
+          role: 'coordination'
+
+  # PostgreSQL monitoring (requires postgres_exporter)
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgresql:5432']
+        labels:
+          service: 'postgresql'
+          role: 'storage'
+
+  # Grafana monitoring
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'
+          role: 'visualization'
+
+  # Coordinator monitoring (requires agent health endpoints)
+  - job_name: 'coordinators'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'coordinator_marketing:8080'
+          - 'coordinator_engineering:8080'
+          - 'coordinator_sales:8080'
+          - 'coordinator_support:8080'
+          - 'coordinator_finance:8080'
+        labels:
+          role: 'coordinator'
+          provider: 'claude-max'
+
+  # Worker monitoring (dynamic service discovery recommended for production)
+  - job_name: 'workers'
+    scrape_interval: 60s
+    dns_sd_configs:
+      - names:
+          - 'worker.hybrid_network'
+        type: 'A'
+        port: 8080
+    relabel_configs:
+      - source_labels: [__meta_dns_name]
+        target_label: instance
+      - source_labels: []
+        target_label: role
+        replacement: 'worker'
+      - source_labels: []
+        target_label: provider
+        replacement: 'z-ai'

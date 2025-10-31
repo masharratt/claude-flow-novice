@@ -22,7 +22,6 @@
 * **ALL agent communication MUST use Redis pub/sub** - no direct file coordination
 * **NEVER HARDCODE API KEYS**
 * **sleep on repeat** when monitoring a background process. sleep x  minutes, check progress, sleep, repeat
-* **USE GREP INSTEAD OF FIND** - it's less resource intensive in our WSL2 instances
 
 **Agent Output Standards:**
 * **Bug documentation**: `docs/BUG_#_*.md` (investigation, fix summary, validation)
@@ -92,13 +91,10 @@ npx cfn-init  # Copy namespace-isolated files
 
 **Recommended Usage:**
 ```bash
-# CLI mode (default - cost-optimized, 95-98% savings)
+# Use slash commands (automatically cost-optimized)
 /cfn-loop "Implement feature" --mode=standard
+/cfn-loop-single "Fix bug"
 /cfn-loop-epic "Build system"
-/cfn-loop-sprints "Phase 1: Authentication"
-
-# Task mode (debugging - full Main Chat visibility, no coordinator)
-/cfn-loop "Implement feature" --spawn-mode=task
 ```
 
 **Core Coordinators:**
@@ -127,20 +123,17 @@ Main Chat → Single coordinator agent → Coordinator spawns workers via CLI �
 ```
 
 **Key Differences:**
-- CLI mode: Main Chat → Coordinator → orchestrate.sh → CLI agents (background)
-- Task mode: Main Chat reads guide → Main Chat spawns Task() agents directly (NO coordinator)
+- CLI mode: Main Chat → Coordinator → cfn-loop-orchestration/orchestrate.sh → CLI agents
+- Task mode: Main Chat → Coordinator → JSON → Main Chat spawns Task() agents
 - CLI agents use Z.ai routing automatically
-- Task mode: All agents use Anthropic (Main Chat provider)
 - Redis context enables swarm recovery (CLI mode)
 
 **Context Storage:**
-- CLI mode: Coordinator stores context in Redis for agents to retrieve
-- Task mode: Main Chat passes context directly to each Task() spawn (no Redis needed)
+- Both modes store context in Redis
 - CLI agents read from Redis: `redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"`
+- Task mode: Main Chat injects directly but also stores in Redis
 
-**Reference:**
-- Implementation details: `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
-- **Task Mode guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management)
+**Reference:** See `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
 
 ### Custom Routing (Z.ai Provider Integration)
 
@@ -546,10 +539,6 @@ Implement comprehensive test suites that validate both functional requirements a
 - Redis Coordination: `.claude/skills/cfn-redis-coordination/SKILL.md`
 - Agent Spawning: `.claude/skills/cfn-agent-spawning/SKILL.md`
 - CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`
-
-**CFN Loop Documentation:**
-- **Task Mode Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management, adaptive validator scaling)
-- Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 
 **Maintenance Plans:**
 - Rollback Strategy: `planning/skills/ROLLBACK_PLAN.md`
