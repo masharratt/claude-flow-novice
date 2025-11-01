@@ -195,9 +195,9 @@ Task("cfn-v3-coordinator", `
 ```
 
 **Why This Pattern:**
-- Coordinator controls spawn timing via .claude/skills/cfn-loop-orchestration/orchestrate.sh and CLI (no timeout issues)
+- Coordinator controls spawn timing via orchestrate.sh (no timeout issues)
 - 95-98% cost savings vs Task() spawning
-- Zero-token waiting between iterations (Redis BLPOP)
+- Fresh agents spawned for each iteration (adaptive specialization)
 - Sequential CLI spawning is safe (coordinator manages order)
 - Clean separation: Main Chat → Coordinator → Workers
 
