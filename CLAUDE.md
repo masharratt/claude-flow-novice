@@ -310,58 +310,25 @@ Refer to `.claude/skills/cfn-redis-coordination/SKILL.md` for:
 | Standard | ≥0.75 | ≥0.90 | 10 | 3-4 |
 | Enterprise | ≥0.85 | ≥0.95 | 15 | 5 |
 
-### CFN Loop Dependency Enforcement (MANDATORY)
+### CFN Loop Orchestration Pattern
 
-**All CFN loops use single coordinator pattern (v2):**
+**CLI Mode (Production):**
+Main Chat spawns cfn-v3-coordinator → Coordinator spawns workers via CLI → Workers exit after reporting confidence
 
-**1. Main Chat spawns coordinator:**
-```javascript
-Task("cfn-v3-coordinator", `
-  Execute CFN Loop for: Implement authentication system
+**Task Mode (Debugging):**
+Main Chat spawns all agents directly via Task() → No coordinator → Full visibility
 
-  Use orchestrator for dependency enforcement.
-  Report structured result when complete.
-`)
-```
-
-**2. Coordinator invokes orchestrator internally:**
+**Orchestrator:**
 ```bash
-# Coordinator runs this script (NOT Main Chat)
-./.claude/skills/cfn-loop-orchestration/cfn-orchestrate.sh \
-  --task-id "unique-task-id" \
-  --mode standard \
-  --loop3-agents "researcher,backend-dev,devops" \
-  --loop2-agents "reviewer,architect,tester" \
-  --product-owner "product-owner" \
-  --max-iterations 10 \
-  --phase-id "phase-2" \
-  --epic-context '{"epicGoal":"Build feature X","inScope":["A","B"]}' \
-  --phase-context '{"currentPhase":"Phase 2","deliverables":["Component 1","Component 2"]}' \
-  --success-criteria '{"acceptanceCriteria":["Tests pass","Coverage >80%"],"gateThreshold":0.75}'
-
-# CFN v3 UPDATE: Modular orchestrator (78% code reduction)
-# - Helper scripts for context injection, agent spawning, validation
-# - Stateless context retrieval from Redis
-# - Better agent ID tracking (no BLPOP hangs)
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh
 ```
-
-**3. Orchestrator spawns all agents via CLI:**
-```bash
-# Orchestrator spawns each agent
-npx cfn-spawn agent researcher --task-id "$TASK_ID"
-npx cfn-spawn agent backend-dev --task-id "$TASK_ID"
-# ... etc
-```
-
-**4. Coordinator manages iterations and returns result to Main Chat**
-
-**Why Orchestration is Mandatory:**
-- ✅ Loop 2 validators BLOCKED until Loop 3 complete (BLPOP)
-- ✅ Product Owner BLOCKED until Loop 2 complete (BLPOP)
-- ✅ Prevents premature consensus collection
-- ✅ Automatic iteration management
-- ✅ Zero-token waiting between loops
-- ✅ Coordinator controls entire flow from single agent
+- Spawns Loop 3 agents (implementers)
+- Collects confidence scores
+- Gate check: spawn Loop 2 if ≥threshold
+- Spawns Loop 2 agents (validators)
+- Collects consensus
+- Spawns Product Owner for decision
+- Manages iterations based on PROCEED/ITERATE/ABORT
 
 **Agent Completion Protocol:**
 Each agent MUST signal completion and report confidence, then exit:
