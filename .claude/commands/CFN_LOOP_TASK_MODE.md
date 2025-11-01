@@ -161,7 +161,54 @@ Iterations: Loop 3: ${L3}, Loop 2: ${L2} | Decision: PROCEED
 EOF
 ```
 
-### 5. ACE Reflection (Optional - If `--ace-reflect` flag enabled)
+### 5. Execute Product Owner Suggested Next Steps
+
+**After PROCEED Decision:**
+Product Owner may suggest follow-up tasks (documentation, testing, refactoring). Coordinator (main chat) spawns specialized agents to execute these tasks:
+
+```javascript
+// Parse PO feedback for suggested next steps
+const nextSteps = parseFeedback(poOutput, ["documentation", "integration test", "performance optimization"]);
+
+// Spawn agents for each next step
+for (const step of nextSteps) {
+  if (step.complexity === "simple" && !step.requiresValidation) {
+    // Use backlog background worker for simple tasks
+    Bash(`
+      ./.claude/skills/epic-management/add-backlog-item.sh \
+        --epic-id "${EPIC_ID}" \
+        --title "${step.title}" \
+        --priority "P3" \
+        --reason "Post-sprint cleanup - low validation needs"
+    `, "Defer to background worker");
+  } else {
+    // Spawn specialist agents for complex tasks
+    Task(step.agent, `
+      Execute post-sprint task: ${step.description}
+
+      Context: Sprint ${SPRINT_NUM} completed. ${step.context}
+
+      Deliverables: ${step.deliverables.join(", ")}
+
+      Acceptance: ${step.acceptance}
+    `);
+  }
+}
+```
+
+**Strategic Backlog Worker Usage:**
+- **Use background worker when:**
+  - No overlap with main sprint work (independent tasks)
+  - Simple tasks requiring little validation (linting, formatting, simple docs)
+  - Tasks validatable via compilation/linting (type fixes, import cleanup)
+  - Avoids holding up main CFN Loop (P3 priority items)
+
+- **Use Task() agents when:**
+  - Complex tasks requiring validation (API changes, security updates)
+  - Tasks with dependencies on sprint deliverables
+  - Tasks needing consensus (architectural decisions, breaking changes)
+
+### 6. ACE Reflection (Optional - If `--ace-reflect` flag enabled)
 ```bash
 # Only run if --ace-reflect flag was passed to /cfn-loop command
 if [[ "$ACE_REFLECT_ENABLED" == "true" ]]; then
@@ -183,8 +230,8 @@ fi
 
 **Checklist:**
 - [ ] Consensus ≥ threshold | [ ] Product Owner approved | [ ] Deliverables verified
-- [ ] Tests passing | [ ] Git committed | [ ] Git pushed | [ ] Summary generated
-- [ ] ACE reflection captured (if `--ace-reflect` enabled)
+- [ ] Tests passing | [ ] Next steps executed or deferred | [ ] Git committed | [ ] Git pushed
+- [ ] Summary generated | [ ] ACE reflection captured (if `--ace-reflect` enabled)
 
 ---
 

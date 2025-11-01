@@ -19,6 +19,8 @@
 
 ### Security
 
+- Fixed P1 security vulnerability in intake authentication middleware (2025-11-01)
+  - Impact: Prevents unauthorized session access across intake routes
 ---
 
 ## v2.11.0 - Backlog Management Skill (2025-10-31)
