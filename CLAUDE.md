@@ -90,32 +90,36 @@ npx cfn-init  # Copy namespace-isolated files
 
 ### CFN Loop Execution Modes
 
-**Two modes for different use cases:**
+**User selects mode. Main Chat executes the specified slash command.**
 
-**CLI Mode (Production):**
-```bash
-/cfn-loop-cli "Task description" --mode=standard
-```
-- Main Chat spawns ONLY cfn-v3-coordinator
-- Coordinator spawns workers via CLI (background)
-- Cost: $0.054/iteration (95-98% savings)
-- Use: Production, long tasks, cost-sensitive
+**Default: Task Mode** (if user doesn't specify mode)
 
-**Task Mode (Debugging):**
+**Available modes:**
+
+**1. Task Mode (Default):**
 ```bash
 /cfn-loop-task "Task description" --mode=standard
 ```
 - Main Chat spawns ALL agents via Task()
 - NO coordinator agent
-- Cost: $0.150/iteration (3x CLI)
+- Cost: $0.150/iteration
+- Full visibility in Main Chat
 - Use: Debugging, learning, short tasks (<5 min)
 
-**When to use which:**
-- Production features → `/cfn-loop-cli`
-- Debugging issues → `/cfn-loop-task`
-- Learning CFN Loop → `/cfn-loop-task`
-- Cost-sensitive → `/cfn-loop-cli`
-- Need full visibility → `/cfn-loop-task`
+**2. CLI Mode (Production):**
+```bash
+/cfn-loop-cli "Task description" --mode=standard
+```
+- Main Chat spawns ONLY cfn-v3-coordinator
+- Coordinator spawns workers via CLI (background)
+- Cost: $0.054/iteration (64% savings vs Task)
+- Use: Production, long tasks, cost-sensitive
+
+**Mode selection guidance for users:**
+- "execute cfn loop on X" → `/cfn-loop-task` (default)
+- "use task mode on X" → `/cfn-loop-task`
+- "use cli mode on X" → `/cfn-loop-cli`
+- "production cfn loop on X" → `/cfn-loop-cli`
 
 **Architecture patterns:**
 - CLI: Main Chat → cfn-v3-coordinator → orchestrate.sh → CLI workers (background)
