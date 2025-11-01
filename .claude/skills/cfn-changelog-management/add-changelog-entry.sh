@@ -4,6 +4,10 @@ set -e
 # cfn-changelog-management/add-changelog-entry.sh
 # Adds sparse, structured entries to readme/CHANGELOG.md
 
+# Source shared validation utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/validation.sh"
+
 # Default values
 TYPE=""
 SUMMARY=""
@@ -12,6 +16,7 @@ VERSION=""
 ISSUE=""
 FILES=""
 MIGRATION=""
+CUSTOM_DATE=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -44,6 +49,10 @@ while [[ $# -gt 0 ]]; do
       MIGRATION="$2"
       shift 2
       ;;
+    --date)
+      CUSTOM_DATE="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 1
@@ -68,24 +77,11 @@ if [[ -z "$IMPACT" ]]; then
   exit 1
 fi
 
-# Validate type
-VALID_TYPES="feature|bugfix|breaking|dependency|architecture|performance|security"
-if [[ ! "$TYPE" =~ ^($VALID_TYPES)$ ]]; then
-  echo "Error: --type must be one of: feature, bugfix, breaking, dependency, architecture, performance, security (got: $TYPE)" >&2
-  exit 1
-fi
+# Validate type using shared enum validation
+validate_enum "$TYPE" "type" "feature|bugfix|breaking|dependency|architecture|performance|security" || exit 1
 
-# Validate summary length
-SUMMARY_LENGTH=${#SUMMARY}
-if (( SUMMARY_LENGTH < 10 )); then
-  echo "Error: --summary must be at least 10 characters (got $SUMMARY_LENGTH)" >&2
-  exit 1
-fi
-
-if (( SUMMARY_LENGTH > 100 )); then
-  echo "Error: --summary must be at most 100 characters (got $SUMMARY_LENGTH)" >&2
-  exit 1
-fi
+# Validate summary length using shared validation
+validate_string_length "$SUMMARY" 10 100 "summary" || exit 1
 
 # Validate file limit
 if [[ -n "$FILES" ]]; then
@@ -133,8 +129,14 @@ case "$TYPE" in
     ;;
 esac
 
-# Current date
-CURRENT_DATE=$(date +%Y-%m-%d)
+# Current date (use custom date if provided)
+if [[ -n "$CUSTOM_DATE" ]]; then
+  # Validate date using shared validation
+  validate_date "$CUSTOM_DATE" || exit 1
+  CURRENT_DATE="$CUSTOM_DATE"
+else
+  CURRENT_DATE=$(date +%Y-%m-%d)
+fi
 
 # Build entry
 ENTRY="- $SUMMARY ($CURRENT_DATE)"

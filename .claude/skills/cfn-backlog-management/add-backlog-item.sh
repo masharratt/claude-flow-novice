@@ -4,6 +4,10 @@ set -e
 # cfn-backlog-management/add-backlog-item.sh
 # Adds structured backlog items to readme/BACKLOG.md
 
+# Source shared validation utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-changelog-management/lib/validation.sh"
+
 # Default values
 PRIORITY="P2"
 CATEGORY="Technical-Debt"
@@ -12,6 +16,7 @@ TAGS=""
 ITEM=""
 WHY=""
 SOLUTION=""
+FORCE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -44,6 +49,10 @@ while [[ $# -gt 0 ]]; do
       CATEGORY="$2"
       shift 2
       ;;
+    --force)
+      FORCE=true
+      shift
+      ;;
     *)
       echo "Unknown argument: $1" >&2
       exit 1
@@ -67,30 +76,14 @@ if [[ -z "$SOLUTION" ]]; then
   exit 1
 fi
 
-# Validate item length
-ITEM_LENGTH=${#ITEM}
-if (( ITEM_LENGTH < 10 )); then
-  echo "Error: --item must be at least 10 characters (got $ITEM_LENGTH)" >&2
-  exit 1
-fi
+# Validate item length using shared validation
+validate_string_length "$ITEM" 10 500 "item" || exit 1
 
-if (( ITEM_LENGTH > 500 )); then
-  echo "Error: --item must be at most 500 characters (got $ITEM_LENGTH)" >&2
-  exit 1
-fi
+# Validate priority using shared enum validation
+validate_enum "$PRIORITY" "priority" "P0|P1|P2|P3" || exit 1
 
-# Validate priority
-if [[ ! "$PRIORITY" =~ ^P[0-3]$ ]]; then
-  echo "Error: --priority must be P0, P1, P2, or P3 (got: $PRIORITY)" >&2
-  exit 1
-fi
-
-# Validate category
-VALID_CATEGORIES="Feature|Bug|Technical-Debt|Optimization"
-if [[ ! "$CATEGORY" =~ ^($VALID_CATEGORIES)$ ]]; then
-  echo "Error: --category must be one of: Feature, Bug, Technical-Debt, Optimization (got: $CATEGORY)" >&2
-  exit 1
-fi
+# Validate category using shared enum validation
+validate_enum "$CATEGORY" "category" "Feature|Bug|Technical-Debt|Optimization" || exit 1
 
 # Path to backlog file
 BACKLOG_FILE="readme/BACKLOG.md"
@@ -139,11 +132,16 @@ if grep -qi "$ITEM" "$BACKLOG_PATH" 2>/dev/null; then
   echo "Warning: Similar item may already exist in backlog" >&2
   echo "Existing matches:" >&2
   grep -i "$ITEM" "$BACKLOG_PATH" | head -3 >&2
-  read -p "Continue anyway? (y/n) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Aborted" >&2
-    exit 1
+
+  if [[ "$FORCE" != "true" ]]; then
+    read -p "Continue anyway? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "Aborted" >&2
+      exit 1
+    fi
+  else
+    echo "Force mode enabled, proceeding with duplicate item" >&2
   fi
 fi
 
