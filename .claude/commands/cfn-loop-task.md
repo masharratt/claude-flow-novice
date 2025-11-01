@@ -4,13 +4,21 @@ argument-hint: "<task description> [--mode=mvp|standard|enterprise] [--max-itera
 allowed-tools: ["Task", "TodoWrite", "Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 ---
 
-# CFN Loop Task Mode - Debugging & Learning
+# 🚨 TASK MODE INSTRUCTIONS FOR MAIN CHAT
 
-Execute CFN Loop using Task() spawning for full visibility and debugging.
+**YOU are executing this CFN Loop. These are YOUR instructions.**
 
-🚨 **TASK MODE: Debugging, Learning, Full Transparency**
+**Task to execute**: $ARGUMENTS
 
-**Task**: $ARGUMENTS
+## MODE: Task Mode (Full Visibility, Direct Coordination)
+
+**CRITICAL RULES:**
+1. ❌ **DO NOT spawn cfn-v3-coordinator** - that's for CLI mode
+2. ❌ **DO NOT ask user "which mode?"** - they already chose Task mode
+3. ❌ **DO NOT offer options** - execute these instructions directly
+4. ✅ **YOU spawn all agents** using Task() tool
+5. ✅ **YOU coordinate the entire workflow** step by step
+6. ✅ **Follow the 9-step workflow below** exactly
 
 ## What is Task Mode?
 
@@ -81,17 +89,27 @@ Cost: 3x CLI mode, but full visibility for debugging
 | Standard | ≥0.75 | ≥0.90 | 10 | 3-4 | Production features |
 | Enterprise | ≥0.85 | ≥0.95 | 15 | 5 | Security, compliance, critical systems |
 
-## Execution Instructions
+## 🚨 CRITICAL EXECUTION INSTRUCTIONS
 
-**Main Chat coordinates directly. NO coordinator agent spawned.**
+**YOU ARE MAIN CHAT. YOU COORDINATE THIS ENTIRE WORKFLOW.**
+
+**DO NOT spawn cfn-v3-coordinator or any coordinator agent.**
+**DO NOT ask user which mode to use.**
+**DO NOT offer options.**
+
+You must execute this CFN Loop directly using the Task() tool to spawn agents.
+
+---
 
 ### Step 1: Read Task Mode Guide
 
-```javascript
-const guide = Read('.claude/commands/cfn/CFN_LOOP_TASK_MODE.md');
+Read the complete Task Mode guide for detailed workflow:
 
-console.log('Task Mode: Main Chat coordinating CFN Loop directly');
 ```
+Read('.claude/commands/cfn/CFN_LOOP_TASK_MODE.md')
+```
+
+**Expected output:** Complete guide with agent selection, workflow steps, helper scripts
 
 ### Step 2: Analyze Task Complexity
 

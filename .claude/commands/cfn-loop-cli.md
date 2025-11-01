@@ -75,9 +75,20 @@ Savings: 64% with custom routing, 95-98% vs all-Task
 | Standard | ≥0.75 | ≥0.90 | 10 | 3-4 | Production features |
 | Enterprise | ≥0.85 | ≥0.95 | 15 | 5 | Security, compliance, critical systems |
 
-## Execution Instructions
+## 🚨 CRITICAL EXECUTION INSTRUCTIONS
 
-**Main Chat will spawn ONLY the coordinator. Do NOT spawn workers directly.**
+**YOU ARE MAIN CHAT. YOU SPAWN ONLY ONE AGENT: cfn-v3-coordinator**
+
+**DO NOT spawn Loop 3 agents (backend-dev, researcher, etc.)**
+**DO NOT spawn Loop 2 agents (reviewer, tester, etc.)**
+**DO NOT spawn product-owner**
+**DO NOT ask user which agents to use**
+
+The coordinator handles ALL agent spawning internally via CLI.
+
+---
+
+### Execute This Task() Call:
 
 ```javascript
 Task("cfn-v3-coordinator", `
