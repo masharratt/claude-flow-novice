@@ -291,133 +291,8 @@ Refer to `.claude/skills/cfn-redis-coordination/SKILL.md` for:
 - Simple Chain Coordination
 - Hierarchical Broadcast
 - Mesh Hybrid Patterns
-- **Waiting Mode + Wake-Up** (✅ Operational)
-
-### Redis Waiting Mode (Zero-Token Agent Coordination)
-
-**Use Case:** CFN Loop iterations, long-running tasks, multi-agent consensus
-
-**Agent enters waiting mode:**
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-1"
-```
-
-**Coordinator wakes agent:**
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --reason cfn_loop_iteration \
-  --iteration 2 \
-  --feedback "Add error handling,Improve test coverage"
-```
-
-**Agent reports result:**
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.92 \
-  --iteration 2
-```
-
-**Coordinator collects results:**
-```bash
-CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
-  --task-id "$TASK_ID" \
-  --agent-ids "coder-1,reviewer-1,tester-1,security-1")
-
-if (( $(echo "$CONSENSUS >= 0.90" | bc -l) )); then
-  echo "✅ Consensus reached: $CONSENSUS"
-fi
-```
-
-**Benefits:**
-- 🚀 Zero token cost while waiting (BLPOP blocks, no API calls)
-- 🔄 Context preserved across iterations
-- ⚡ Instant wake-up (<100ms latency)
-- 📈 Scalable (10+ agents, indefinite cycles)
-
-**Key Pattern (STRAT-002):**
-Use zero-token blocking mechanisms (like Redis BLPOP) to create efficient, low-overhead synchronization between agents without incurring API call costs. Validated by 8/8 passing tests in orchestrator test suite.
-
-### ⚠️ Waiting Mode Without Coordinator (CRITICAL)
-
-**Problem:** Agents entering waiting mode without a coordinator will block indefinitely.
-
-**Why This Happens:**
-- `invoke-waiting-mode.sh enter` uses `BLPOP` with timeout=0 (infinite)
-- Agent blocks waiting for wake signal that never arrives
-- No coordinator = no wake signal = agent stuck forever
-- Shell/terminal timeout (typically 2min) may terminate the session
-
-**When This Occurs:**
-1. **Manual agent spawning** without orchestrator (testing, debugging)
-2. **Epic execution** where Main Chat spawns agents directly
-3. **Incomplete orchestration** where coordinator crashes mid-execution
-
-**Solutions:**
-
-**Option 1: Always Use Full Orchestration (RECOMMENDED)**
-```bash
-# CORRECT: Use orchestrator for all multi-agent workflows
-./.claude/skills/cfn-loop-orchestration/cfn-orchestrate.sh \
-  --task-id "$TASK_ID" \
-  --mode standard \
-  --loop3-agents "coder-1,researcher-1" \
-  --loop2-agents "reviewer-1,tester-1" \
-  --product-owner "product-owner-1"
-```
-
-**Option 2: Manual Coordination (For Testing Only)**
-```bash
-# 1. Spawn agents (they enter waiting mode)
-# 2. Collect confidence scores
-CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
-  --task-id "$TASK_ID" --agent-ids "coder-1,researcher-1")
-
-# 3. Check consensus
-if (( $(echo "$CONSENSUS >= 0.90" | bc -l) )); then
-  echo "✅ Complete - no iteration needed"
-  # Agents stay in waiting mode (expected, will timeout)
-else
-  # 4. Wake agents for iteration 2
-  ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
-    --task-id "$TASK_ID" \
-    --agent-id "coder-1" \
-    --reason "improve_quality" \
-    --iteration 2
-fi
-```
-
-**Option 3: Skip Waiting Mode (Quick Testing)**
-```bash
-# Agent completion without waiting mode
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.85
-
-# Skip step 4 (enter waiting mode) - agent exits immediately
-```
-
-**Best Practice (STRAT-006):**
-**Always spawn coordinator + agents together.** Never spawn agents in waiting mode without a coordinator unless you explicitly plan to wake them manually or accept timeout behavior.
-
-```bash
-# FORBIDDEN PATTERN:
-Task("backend-dev", "Task with waiting mode...") # No coordinator!
-
-# REQUIRED PATTERN:
-Task("cfn-loop-coordinator", "Execute CFN Loop with orchestrator...")
-# Coordinator spawns and manages all agents automatically
-```
-
-**Validation:** Agent timeouts during epic execution (Phases 1-3) were expected behavior - agents correctly entered waiting mode but no coordinator was present to wake them. This is acceptable for single-iteration phases where iteration is not needed.
+- Agent completion signaling (Redis LPUSH)
+- Consensus collection (invoke-waiting-mode.sh collect)
 
 ## 4) CFN Loop Overview
 
@@ -489,25 +364,21 @@ npx cfn-spawn agent backend-dev --task-id "$TASK_ID"
 - ✅ Coordinator controls entire flow from single agent
 
 **Agent Completion Protocol:**
-Each agent MUST signal completion before entering waiting mode:
+Each agent MUST signal completion and report confidence, then exit:
 
 ```bash
 # 1. Complete work
 # 2. Signal done
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
-# 3. Report confidence
+# 3. Report confidence and exit
 ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.85 \
   --iteration 1
 
-# 4. Enter waiting mode
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-complete"
+# Agent exits cleanly (no waiting mode)
 ```
 
 **Orchestration Flow (CORRECTED - Self-Validation Pattern):**
@@ -535,13 +406,8 @@ Main Chat should use these commands instead of manually spawning coordinators:
 
 **Single Task:**
 ```bash
-/cfn-loop "Implement JWT authentication" --mode=standard
-/cfn-loop-single "Fix security bug in auth module"
-```
-
-**Multi-Phase Epic:**
-```bash
-/cfn-loop-epic "Build complete authentication system"
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
+/cfn-loop-task "Fix security bug in auth module" --mode=standard
 ```
 
 **What These Commands Do:**
@@ -683,10 +549,10 @@ See `.artifacts/analytics/context-reduction-report.json`
 - **Confidence**: 0.87
 - **Priority**: 8/10
 
-#### PATTERN-022: Agent Lifecycle - Exit vs Waiting Mode
+#### PATTERN-022: Agent Lifecycle - Clean Exit Protocol
 - **Context**: CFN Loop Agent Management
-- **Insight**: When agents enter waiting mode after reporting confidence, they block orchestrator's wait $PID indefinitely. Solution: Remove waiting mode from CFN protocol Step 3, let agents exit cleanly. Enables adaptive agent specialization - orchestrator can spawn different specialist (security-specialist for security issues, not original coder) for next iteration based on feedback type. Pattern validated by BUG #18 fix.
-- **Tags**: waiting-mode, agent-lifecycle, adaptive-specialization, orchestrator-blocking
+- **Insight**: Agents must exit cleanly after reporting confidence. Pattern: (1) Signal done via Redis LPUSH, (2) Report confidence score, (3) Exit immediately. Enables adaptive agent specialization - orchestrator spawns different specialist (security-specialist for security issues) for next iteration based on feedback type. Prevents orchestrator blocking.
+- **Tags**: agent-lifecycle, clean-exit, adaptive-specialization, orchestrator
 - **Confidence**: 0.89
 - **Priority**: 8/10
 
