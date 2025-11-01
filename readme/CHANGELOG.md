@@ -1,5 +1,52 @@
 # Claude Flow Novice Changelog
 
+## [Unreleased]
+
+### Features
+
+- Changelog management skill for sparse structured logging (2025-10-31)
+  - Impact: Agents document changes immediately with 10-100 char summaries, avoiding verbose commit messages
+  - Files: `.claude/skills/cfn-changelog-management/SKILL.md,add-changelog-entry.sh`
+### Bug Fixes
+
+### Breaking Changes
+
+### Dependencies
+
+### Architecture
+
+### Performance
+
+### Security
+
+---
+
+## v2.11.0 - Backlog Management Skill (2025-10-31)
+
+### 🎯 Feature - Systematic Backlog Tracking
+
+**Problem:** Deferred work during CFN sprints is lost in chat history or forgotten entirely.
+
+**Solution:** `cfn-backlog-management` skill with structured capture and centralized tracking.
+
+**Features:**
+- `.claude/skills/cfn-backlog-management/add-backlog-item.sh` - Helper script with validation
+- `readme/BACKLOG.md` - Centralized backlog file organized by priority (P0-P3)
+- Required fields: item description, deferral rationale, proposed solution
+- Optional: sprint, priority, tags, category (Feature/Bug/Technical-Debt/Optimization)
+- Duplicate detection, length validation, category enforcement
+
+**Usage:**
+```bash
+./.claude/skills/cfn-backlog-management/add-backlog-item.sh \
+  --item "Description" --why "Rationale" --solution "Approach" \
+  --priority "P2" --tags "tag1,tag2" --category "Feature"
+```
+
+**Integration:** Loop 2 validators, Product Owner decisions, coordinator context queries
+
+---
+
 ## v2.9.0 - Skill-Based Output Processing (Phases 1 & 2) (2025-10-21)
 
 ### 🚀 Major Feature - Zero Template Enforcement

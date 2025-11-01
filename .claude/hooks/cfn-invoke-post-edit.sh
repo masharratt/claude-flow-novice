@@ -14,7 +14,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_FILE="$SCRIPT_DIR/post-edit.config.json"
+CONFIG_FILE="$SCRIPT_DIR/cfn-post-edit.config.json"
 
 # Parse arguments
 FILE_PATH=""

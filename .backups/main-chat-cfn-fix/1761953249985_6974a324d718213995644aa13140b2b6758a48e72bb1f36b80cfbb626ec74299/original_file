@@ -54,8 +54,7 @@ const CFN_PATHS = {
   },
   commands: {
     src: path.join(cfnRoot, 'claude-assets/commands/cfn'),
-    dest: '.claude/commands',
-    selectiveCopy: true // Copy all files to root, overwriting cfn-prefixed ones
+    dest: '.claude/commands/cfn'
   },
   cfnData: {
     src: path.join(cfnRoot, 'claude-assets/cfn-data'),
@@ -107,7 +106,7 @@ async function verifyCfnInstallation() {
   }
 }
 
-async function copyFiles(src, dest, pattern, forceOverwrite = true, selectiveCopy = false) {
+async function copyFiles(src, dest, pattern, forceOverwrite = true) {
   try {
     if (!fs.existsSync(src)) {
       console.warn(chalk.yellow(`⚠️ Source not found: ${src}`));
@@ -132,34 +131,6 @@ async function copyFiles(src, dest, pattern, forceOverwrite = true, selectiveCop
         await cpAsync(itemSrc, itemDest, { recursive: true, force: true });
       }
       console.log(chalk.green(`✅ Copied ${matched.length} ${pattern} items from ${src} (overwrite: ${forceOverwrite})`));
-    } else if (selectiveCopy) {
-      // Copy all files to dest, but only overwrite files starting with 'cfn-' or 'CFN_'
-      await mkdirAsync(dest, { recursive: true });
-      const items = fs.readdirSync(src);
-      let copiedCount = 0;
-      let skippedCount = 0;
-
-      for (const item of items) {
-        const itemSrc = path.join(src, item);
-        const itemDest = path.join(dest, item);
-        const isCfnFile = item.startsWith('cfn-') || item.startsWith('CFN_');
-
-        // Skip if non-CFN file exists and we shouldn't overwrite
-        if (!isCfnFile && fs.existsSync(itemDest)) {
-          console.log(chalk.yellow(`  ⏭️  Skipped ${item} (non-CFN file exists)`));
-          skippedCount++;
-          continue;
-        }
-
-        // For CFN files, always overwrite
-        if (isCfnFile && fs.existsSync(itemDest)) {
-          fs.rmSync(itemDest, { recursive: true, force: true });
-        }
-
-        await cpAsync(itemSrc, itemDest, { recursive: true, force: true });
-        copiedCount++;
-      }
-      console.log(chalk.green(`✅ Copied ${copiedCount} files to ${dest} (skipped ${skippedCount} existing non-CFN files)`));
     } else {
       // Copy entire directory (e.g., cfn-dev-team)
       // Remove existing destination to ensure clean update
@@ -240,13 +211,7 @@ async function initializeCfnProject() {
 
     // Copy CFN files
     for (const [key, config] of Object.entries(CFN_PATHS)) {
-      const result = await copyFiles(
-        config.src,
-        config.dest,
-        config.pattern,
-        true, // forceOverwrite
-        config.selectiveCopy || false
-      );
+      const result = await copyFiles(config.src, config.dest, config.pattern);
       copyResults.push(result);
     }
 
