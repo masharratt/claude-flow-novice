@@ -94,7 +94,7 @@ npm install -D @playwright/test
 
 ## Execution Pattern
 
-### Step 1: Parse Command Arguments
+### Step 1: Parse Command Arguments & Determine Mode
 
 ```javascript
 const params = {
@@ -107,9 +107,24 @@ const params = {
 };
 
 console.log(`Frontend CFN Loop: ${params.mode} mode, ${params.spawnMode} spawning`);
+
+// MODE DETECTION: Inject mode-specific instructions
+if (params.spawnMode === 'cli') {
+  console.log('━━━ CLI MODE INSTRUCTIONS ━━━');
+  console.log('Main Chat spawns ONLY cfn-frontend-coordinator');
+  console.log('Coordinator handles all visual iteration internally');
+  console.log('CLI agents use Z.ai routing (when enabled)');
+  console.log('Background execution with Redis monitoring');
+} else {
+  console.log('━━━ TASK MODE INSTRUCTIONS ━━━');
+  console.log('Main Chat coordinates entire visual iteration workflow');
+  console.log('NO coordinator agent spawned');
+  console.log('Main Chat spawns all agents via Task()');
+  console.log('Full visibility in Main Chat');
+}
 ```
 
-### Step 2: Mode Selection
+### Step 2: Execute Based on Mode
 
 #### CLI Mode (Default) - Spawn Frontend Coordinator
 

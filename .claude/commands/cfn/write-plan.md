@@ -1,104 +1,275 @@
-# Write Plan Command
+---
+description: "CFN Loop pre-planning: Generate structured implementation plans with TDD approach"
+argument-hint: "<task description> [--mode=mvp|standard|enterprise]"
+allowed-tools: ["Task", "TodoWrite", "Read", "Write", "Bash"]
+---
 
-## Overview
-The `write-plan` command helps create structured, test-driven implementation plans for claude-flow-novice projects, leveraging our CFN Loop workflow and adaptive context strategies.
+# Write Plan - CFN Loop Pre-Planning
 
-## Core Principles
+Generate structured implementation plan BEFORE executing CFN Loop. Outputs plan document for review.
 
-### 1. Test-Driven Development (TDD)
-- Always start with failure scenarios (Red phase)
-- Implement minimal code to pass tests (Green phase)
-- Refactor for quality and maintainability (Refactor phase)
+🎯 **Use this BEFORE /cfn-loop-cli or /cfn-loop-task**
 
-### 2. CFN Loop Integration
-Utilize the CFN Loop workflow for complex implementations:
-- **Loop 3 (Implementation)**: Create detailed implementation plan
-- **Loop 2 (Validation)**: Comprehensive test and review
-- **Product Owner Decision**: Strategic go/no-go checkpoint
+**Task**: $ARGUMENTS
 
-## Plan Structure Template
+## What This Does
 
+**Pre-planning phase for CFN Loop:**
+1. Analyzes task complexity
+2. Selects appropriate agents
+3. Defines test cases and success criteria
+4. Creates implementation roadmap
+5. Outputs plan document for approval
+
+**Then run:**
+```bash
+# After reviewing plan
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
+# OR
+/cfn-loop-task "Implement JWT authentication" --mode=standard
+```
+
+## Command Options
+
+```bash
+# Standard planning
+/write-plan "Implement JWT authentication"
+
+# MVP planning (faster, simpler)
+/write-plan "Build prototype feature" --mode=mvp
+
+# Enterprise planning (comprehensive)
+/write-plan "Production security system" --mode=enterprise
+```
+
+**Options:**
+- `--mode=<mvp|standard|enterprise>`: Planning depth (default: standard)
+
+## Execution Pattern
+
+### Step 1: Analyze Task
+
+```javascript
+Task("planner", `
+  ANALYZE TASK FOR CFN LOOP PLANNING
+
+  Task: $ARGUMENTS
+  Mode: ${mode}
+
+  ANALYSIS REQUIRED:
+  1. Complexity Assessment:
+     - Estimated files: 1-2 (simple) | 3-5 (standard) | >5 (complex)
+     - Estimated LOC: <200 (simple) | 200-500 (standard) | >500 (complex)
+     - Keywords: security, performance, frontend, mobile, etc.
+
+  2. Agent Selection:
+     - Loop 3 (Implementation): Based on task type
+       * Backend: backend-dev, researcher, devops
+       * Full-stack: backend-dev, react-frontend-engineer, devops
+       * Mobile: mobile-dev, backend-dev
+       * Security: security-specialist, backend-dev
+     - Loop 2 (Validation): Scale by complexity
+       * Simple: reviewer, tester
+       * Standard: +architect, +security-specialist
+       * Complex: +code-analyzer, +performance-benchmarker
+
+  3. Test Cases (TDD Approach):
+     - Red Phase: Failure scenarios
+     - Green Phase: Minimal passing implementation
+     - Refactor Phase: Quality improvements
+
+  4. Success Criteria:
+     - Test coverage target (≥80%)
+     - Performance benchmarks (if applicable)
+     - Security requirements (if applicable)
+     - Deliverables list
+
+  OUTPUT: planning/PLAN_${sanitize($ARGUMENTS)}.md
+`)
+```
+
+### Step 2: Generate Plan Document
+
+**Plan Structure:**
 ```markdown
-# [Feature/Task Name]
+# Implementation Plan: [Task Name]
 
-## Objectives
-- Clear, measurable implementation goals
-- Specific deliverables
+## Task Analysis
+- **Complexity**: Simple | Standard | Complex
+- **Estimated Files**: N
+- **Estimated LOC**: N
+- **Mode**: ${mode}
 
-## Context Injection
-- Epic Context
-- Sprint Context
-- Specific Deliverables
+## Agent Configuration
 
-## Coordination Strategy
-- Coordinator: `cost-savings-cfn-loop-coordinator`
-- Agents: Specify roles (backend-dev, researcher, etc.)
-- Iteration Strategy
+### Loop 3 (Implementation)
+- agent-1 (role)
+- agent-2 (role)
+- agent-3 (role)
 
-## Phase 1: Test and Specification
-### Deliverables
-- [ ] Test script (tests/test-[feature].sh)
-- [ ] Specification document
+### Loop 2 (Validation)
+- reviewer (code review)
+- tester (quality assurance)
+[+ architect, security-specialist for standard/enterprise]
 
-### Test Cases
-- Failure scenarios
-- Edge cases
-- Performance expectations
+### Product Owner
+- product-owner (PROCEED/ITERATE/ABORT decision)
 
-## Phase 2: Minimal Implementation
-### Deliverables
+## Test-Driven Development Plan
+
+### Phase 1: Red (Failure Scenarios)
+**Deliverables:**
+- [ ] Test script: tests/test-[feature].sh
+- [ ] Failure test cases defined
+
+**Test Cases:**
+1. [Test case 1 - expected failure]
+2. [Test case 2 - edge case]
+3. [Test case 3 - performance requirement]
+
+### Phase 2: Green (Minimal Implementation)
+**Deliverables:**
 - [ ] Minimal working implementation
-- [ ] Initial test coverage
+- [ ] All test cases passing
 
-## Phase 3: Refactoring and Optimization
-### Deliverables
-- [ ] Improved code quality
-- [ ] Enhanced test coverage
-- [ ] Performance optimization
+**Implementation Steps:**
+1. [Core functionality]
+2. [Basic validation]
+3. [Minimal error handling]
 
-## Redis Coordination Checkpoints
-- Entry point validation
-- Iteration confidence reporting
-- Context extraction verification
+### Phase 3: Refactor (Quality Improvement)
+**Deliverables:**
+- [ ] Code quality improvements
+- [ ] Enhanced test coverage (≥80%)
+- [ ] Documentation
+
+**Refactoring Goals:**
+1. [Code organization]
+2. [Performance optimization]
+3. [Security hardening]
 
 ## Success Criteria
-- Test coverage ≥ 90%
-- Complexity score < 15
-- Meets architectural guidelines
+
+### Quality Gates
+- Loop 3 Gate: ≥${mode === 'enterprise' ? 0.85 : mode === 'standard' ? 0.75 : 0.70}
+- Loop 2 Consensus: ≥${mode === 'enterprise' ? 0.95 : mode === 'standard' ? 0.90 : 0.80}
+
+### Deliverables
+- [ ] All test cases passing
+- [ ] Test coverage ≥80%
+- [ ] Code complexity <15 per function
+- [ ] Security review complete
+- [ ] Documentation updated
+
+### Performance Benchmarks (if applicable)
+- [Benchmark 1]
+- [Benchmark 2]
 
 ## Potential Blockers
-- Identify potential implementation challenges
-- Pre-emptive mitigation strategies
+
+**Technical:**
+- [Potential blocker 1]
+- [Mitigation strategy]
+
+**Dependencies:**
+- [External dependency 1]
+- [Fallback plan]
 
 ## Iteration Strategy
-- Maximum iterations: 10
-- Confidence threshold: ≥ 0.90
-- Adaptive agent spawning based on feedback
+- Max iterations: ${mode === 'enterprise' ? 15 : mode === 'standard' ? 10 : 5}
+- Confidence threshold: ${mode === 'enterprise' ? 0.95 : mode === 'standard' ? 0.90 : 0.80}
+- Adaptive agent spawning: YES
+
+## Next Steps
+
+1. Review this plan
+2. Execute CFN Loop:
+   \`\`\`bash
+   /cfn-loop-cli "$ARGUMENTS" --mode=${mode}
+   # OR for debugging:
+   /cfn-loop-task "$ARGUMENTS" --mode=${mode}
+   \`\`\`
 ```
 
-## Usage Guidelines
+### Step 3: Output Plan
 
-### Spawning Plan Creation
-```bash
-/write-plan "Implement JWT Authentication" \
-  --epic-context '{"goal":"Secure API access"}' \
-  --sprint-context '{"sprint":"Authentication MVP"}' \
-  --agents "backend-dev,security-specialist"
+```javascript
+const planPath = `planning/PLAN_${sanitize($ARGUMENTS)}.md`;
+Write(planPath, planContent);
+
+console.log(`✅ Implementation plan generated: ${planPath}`);
+console.log('');
+console.log('📋 Plan Summary:');
+console.log(`- Complexity: ${complexity}`);
+console.log(`- Loop 3 Agents: ${loop3Agents.length}`);
+console.log(`- Loop 2 Validators: ${loop2Agents.length}`);
+console.log(`- Test Cases: ${testCases.length}`);
+console.log(`- Success Criteria: ${successCriteria.length}`);
+console.log('');
+console.log('Next: Review plan, then execute CFN Loop');
+console.log(`/cfn-loop-cli "$ARGUMENTS" --mode=${mode}`);
 ```
 
-### Example Workflow
-1. Generate initial plan
-2. Review with team via Redis pub/sub
-3. Refine plan based on feedback
-4. Execute using `cost-savings-cfn-loop-coordinator`
+## Integration with CFN Loop
+
+**Workflow:**
+```
+1. /write-plan "Task description" --mode=standard
+   ↓ Generates planning/PLAN_task.md
+
+2. Human reviews plan (optional)
+   ↓ Approve or request changes
+
+3. /cfn-loop-cli "Task description" --mode=standard
+   ↓ Executes implementation following plan
+
+4. CFN Loop autonomously implements following TDD phases
+```
+
+## Mode Comparison
+
+| Mode | Complexity | Agents | Test Coverage | Use Case |
+|------|------------|--------|---------------|----------|
+| MVP | Low | 3-4 total | ≥70% | Prototypes, proof-of-concept |
+| Standard | Medium | 5-7 total | ≥80% | Production features |
+| Enterprise | High | 8-10 total | ≥90% | Critical systems, compliance |
+
+## Example Output
+
+```
+Analyzing task...
+
+✅ Implementation plan generated: planning/PLAN_jwt_authentication.md
+
+📋 Plan Summary:
+- Complexity: Standard
+- Loop 3 Agents: 3 (backend-dev, researcher, devops)
+- Loop 2 Validators: 4 (reviewer, tester, architect, security-specialist)
+- Test Cases: 8
+- Success Criteria: 6
+
+Next: Review plan, then execute CFN Loop
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
+```
 
 ## Best Practices
-- Keep tasks small and focused
-- Prioritize testability
-- Leverage adaptive context injection
-- Use explicit deliverable tracking
 
-## Notes
-- This is a living document
-- Continuously update based on team feedback
-- Align with claude-flow-novice adaptive context strategies
+**When to Use:**
+- ✅ Complex tasks (>3 steps)
+- ✅ Security-critical features
+- ✅ Team collaboration (plan review needed)
+- ✅ Learning CFN Loop workflow
+
+**When to Skip:**
+- Simple bug fixes (go straight to /cfn-loop-cli)
+- Urgent hotfixes (no time for planning)
+- Well-understood patterns (agent knows what to do)
+
+## Related Commands
+
+- **Execute Plan**: `/cfn-loop-cli` (production) or `/cfn-loop-task` (debugging)
+- **Document Results**: `/cfn-loop-document` (after completion)
+
+---
+
+**Version:** 2.0.0 (2025-10-31) - Integrated with CFN Loop v3 architecture

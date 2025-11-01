@@ -330,9 +330,9 @@ Main Chat spawns all agents directly via Task() → No coordinator → Full visi
 - Spawns Product Owner for decision
 - Manages iterations based on PROCEED/ITERATE/ABORT
 
-**Agent Completion Protocol:**
-Each agent MUST signal completion and report confidence, then exit:
+**Agent Completion Protocol (Mode-Specific):**
 
+**CLI Mode** (spawned via `npx claude-flow-novice agent-spawn`):
 ```bash
 # 1. Complete work
 # 2. Signal done
@@ -346,6 +346,14 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
   --iteration 1
 
 # Agent exits cleanly (no waiting mode)
+```
+
+**Task Mode** (spawned via Task() tool in Main Chat):
+```bash
+# Simply complete work and return output
+# Main Chat receives output automatically
+# NO Redis signals required
+# NO explicit completion protocol needed
 ```
 
 **Orchestration Flow (CORRECTED - Self-Validation Pattern):**
@@ -369,7 +377,8 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 **Recommended: Use slash commands for CFN Loop execution**
 
-Main Chat should use these commands instead of manually spawning coordinators:
+Main Chat should use these commands instead of manually spawning coordinators. 
+**IMPORTANT** Subagents must NOT use these these slash commands
 
 **Single Task:**
 ```bash
@@ -538,6 +547,14 @@ See `.artifacts/analytics/context-reduction-report.json`
 - **Tags**: agent-context, specificity, deliverables, telepathy-fallacy, explicitness
 - **Confidence**: 0.91
 - **Priority**: 9/10
+
+#### ANTI-023: Task-Spawned Validators Without Completion Protocol
+- **Context**: Loop 2 Validation (Task Mode)
+- **Insight**: Main Chat spawns validators via Task() without clear scope boundaries or mode-aware completion protocols. Anti-pattern: Validators see CLI-mode completion instructions (Redis signals, `invoke-waiting-mode.sh report`) and attempt to comply using wrong tools (slash commands via Bash, nested CFN Loop spawning). Result: Agents hang indefinitely trying to execute `/cfn-loop-cli` as bash command, memory leak from blocked processes. Task-spawned validators should simply return structured output - Main Chat receives it automatically, no Redis signals needed.
+- **Tags**: task-spawning, validation, completion-protocol, scope-boundaries, memory-leak
+- **Confidence**: 0.95
+- **Priority**: 10/10
+- **Fix**: Mode-specific completion protocols in CLAUDE.md:333-357 and validator agents (reviewer.md:200-258, tester.md:160-217). Explicit scope boundaries prevent nested CFN Loop spawning.
 
 ### Edge Cases & Testing
 

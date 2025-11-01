@@ -139,7 +139,7 @@ Inject bullets relevant to specific agent types:
 
 ```bash
 # For security specialist agents
-/context-inject --agent-type=security-specialist --target=./.claude/agents/cfn-dev-team/security-specialist.md
+/context-inject --agent-type=security-specialist --target=./.claude/agents/security-specialist.md
 
 # For coder agents
 /context-inject --agent-type=coder --category=pattern --min-helpful=5
@@ -162,7 +162,7 @@ async function preAgentSpawnContext(agentType, taskContext) {
   });
 
   // Inject into agent's instruction file
-  const agentFile = `./.claude/agents/cfn-dev-team/${agentType}.md`;
+  const agentFile = `./.claude/agents/${agentType}.md`;
   await injectBullets(agentFile, bullets, { mode: 'merge' });
 
   // Log usage
@@ -172,29 +172,18 @@ async function preAgentSpawnContext(agentType, taskContext) {
 }
 ```
 
-**Dynamic Injection:**
+**Dynamic Injection During Execution:**
 
-```bash
-# Query top bullets for current task
-BULLETS=$(sqlite3 ./.artifacts/database/swarm-memory.db "
-SELECT '**[' || bullet_id || ']** ' || content || ' (confidence: ' || confidence_score || ')'
-FROM adaptive_context
-WHERE is_active = 1
-  AND (tags LIKE '%auth%' OR tags LIKE '%security%')
-  AND confidence_score >= 0.7
-ORDER BY helpful_count DESC, confidence_score DESC
-LIMIT 5;
-")
+```javascript
+// During CFN Loop 3, inject relevant optimization bullets
+Task("coder-1", `
+  Implement authentication system.
 
-# Inject into agent prompt
-Task("coder-1", "
-Implement authentication system.
+  Before you start, check these adaptive context bullets:
+  ${await contextInject({ tags: 'auth,security', limit: 5, format: 'inline' })}
 
-Before you start, review these proven patterns:
-$BULLETS
-
-Follow these patterns to avoid common pitfalls.
-", "coder");
+  Follow these proven patterns to avoid common pitfalls.
+`, "coder");
 ```
 
 **Validation & Safety:**
@@ -221,7 +210,7 @@ rules:
     action: context-inject
     params:
       agent-type: ${agent_type}
-      target: ./.claude/agents/cfn-dev-team/${agent_type}.md
+      target: ./.claude/agents/${agent_type}.md
       limit: 10
 
   - trigger: task-start

@@ -144,19 +144,28 @@ Flexible agent spawning with architectural optimization and context management
 #### Modes of Operation
 1. **CLI Mode (Default)**
    - Routing: Main Chat → Coordinator → Orchestrator Script → CLI Agents
-   - Context Management: Redis-based storage
+   - Context Management: Redis-based storage with full scope injection
    - Cost Optimization: 95-98% savings
 
 2. **Task Mode**
-   - Routing: Main Chat → Coordinator → JSON Config → Task Agent Spawning
+   - Routing: Main Chat → JSON Config File → Direct Task Agent Spawning
+   - Context Management: Shared config file (`.cfn/task-configs/task-[id].json`)
    - Routing Provider: Anthropic native routing
-   - Detailed Tracking: Direct JSON configuration
+   - Detailed Tracking: Full visibility in Main Chat
 
 #### Core Features
-- **Redis Context Storage**
+- **Redis Context Storage** (CLI Mode)
   - Eliminates CLI JSON escaping complexities
   - Enables stateful agent coordination
   - Supports swarm recovery after interruptions
+  - **Full scope injection** (v2.10.7): epicGoal, inScope, outOfScope, deliverables, acceptanceCriteria
+  - Product owner receives complete context for informed decisions
+
+- **Config File Context** (Task Mode)
+  - Structured JSON configuration generated at startup
+  - All agents read from shared config file
+  - Automatic scope extraction from task description
+  - Prevents "consensus on vapor" with explicit deliverable lists
 
 - **Enhanced CLI Context Parsing (v2.9.0)**
   - Automatic JSON-to-markdown conversion
@@ -318,18 +327,62 @@ Specialized CFN Loop for frontend development with visual validation and brand c
 ### 11. Task Mode Execution (CFN Loop)
 
 #### Purpose
-Simplified CFN Loop execution with direct agent spawning and full visibility
+Simplified CFN Loop execution with direct agent spawning, full visibility, and structured scope configuration
+
+#### Task Config Initialization
+**New in v2.10.7**: Automatic config generation at CFN Loop startup
+
+**Location**: `.cfn/task-configs/task-[task-id].json`
+
+**Structure**:
+```json
+{
+  "taskId": "cfn-phase-1730545678",
+  "taskDescription": "Implement JWT authentication",
+  "mode": "standard",
+  "scope": {
+    "epicGoal": "Build authentication system",
+    "inScope": ["JWT token generation", "OAuth2 integration"],
+    "outOfScope": ["Multi-factor auth", "Biometric login"],
+    "deliverables": ["src/auth/jwt.ts", "tests/auth.test.ts"],
+    "directory": "src/auth",
+    "acceptanceCriteria": ["Tokens expire correctly", "Tests pass >80%"]
+  },
+  "agents": {
+    "loop3": ["backend-dev", "researcher"],
+    "loop2": ["reviewer", "tester", "architect", "security-specialist"]
+  },
+  "thresholds": {"gate": 0.75, "consensus": 0.90, "maxIterations": 10}
+}
+```
+
+**Usage**:
+```bash
+# Automatic initialization in /cfn-loop command
+CONFIG_PATH=$(./.claude/skills/cfn-task-config-init/initialize-config.sh \
+  --task-description "Implement JWT auth" \
+  --mode "standard" \
+  --task-id "cfn-phase-1730545678")
+```
+
+**Benefits**:
+- Product owner receives complete scope context
+- Distinguishes sprint vs epic completion
+- Prevents "consensus on vapor" (approving plans without code)
+- All agents receive consistent scope information
+- Enables autonomous sprint transitions
 
 #### Key Differences from CLI Mode
 - **No coordinator agent**: Main Chat coordinates directly
 - **Task() spawning**: Agents spawned via Task tool (not CLI)
-- **Direct context injection**: Context passed to each agent spawn
+- **Config-based context**: All agents read from shared config file
 - **Anthropic routing**: All agents use Main Chat provider
+- **Automatic scope extraction**: Task description analyzed for deliverables/criteria
 
 #### Agent Specialization
 - **Loop 3 (Implementation)**: backend-dev, researcher, mobile-dev, devops, rust-developer
 - **Loop 2 (Validation)**: reviewer, tester, architect, security-specialist, accessibility-advocate-persona
-- **Loop 4 (Product Owner)**: product-owner, product-owner-agent
+- **Loop 4 (Product Owner)**: product-owner (autonomous decision-making, no manual approval)
 
 #### Adaptive Validator Scaling
 | Complexity | Files | LOC | Validators | Agents | Threshold |
@@ -339,12 +392,26 @@ Simplified CFN Loop execution with direct agent spawning and full visibility
 | Complex/Enterprise | >5 | >500 | 5+ | +code-analyzer, +perf/ada | 0.92-0.95 |
 
 #### Sprint Workflow
-- Main Chat reads guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
-- Spawns agents in parallel (Loop 3)
-- Collects confidence scores, checks gate threshold
-- Spawns validators (Loop 2)
-- Product Owner makes PROCEED/ITERATE/ABORT decision
-- Git commit + push on PROCEED
+1. Initialize task config (scope, deliverables, criteria)
+2. Main Chat reads config and guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+3. Spawns Loop 3 agents in parallel with full scope context
+4. Collects confidence scores, checks gate threshold
+5. Spawns Loop 2 validators with acceptance criteria
+6. Product Owner makes autonomous PROCEED/ITERATE/ABORT decision
+7. Git commit + push on PROCEED (no manual approval)
+
+#### Product Owner Autonomous Execution
+**Updated in v2.10.7**: Product owner eliminates manual approval gates
+
+**Decision Output**:
+```
+Decision: PROCEED
+Reasoning: Consensus 0.92 exceeds 0.90 threshold, all deliverables created
+Confidence: 0.95
+Next Action: Proceed to Sprint 2 (epic has 3 sprints remaining)
+```
+
+**No user confirmation prompts** - Product owner determines next action and continues autonomously
 
 #### Backlog Management
 - **P1 (critical)**: Blocking issues, security fixes
@@ -353,7 +420,8 @@ Simplified CFN Loop execution with direct agent spawning and full visibility
 
 #### Documentation
 - Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
-- Covers: Agent selection, adaptive scaling, sprint completion, backlog mechanism
+- Config Init: `.claude/skills/cfn-task-config-init/SKILL.md`
+- Covers: Agent selection, adaptive scaling, sprint completion, scope management, backlog mechanism
 
 ### 12. n8n MCP Integration
 

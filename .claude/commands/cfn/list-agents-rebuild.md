@@ -1,6 +1,6 @@
 ---
 name: list-agents-rebuild
-description: "Regenerate available agents list from .claude/agents/cfn-dev-team/ folder discovery"
+description: "Regenerate available agents list from .claude/agents/ folder discovery"
 argument-hint: "[--output=path] [--format=markdown]"
 allowed-tools: ["Bash", "Read", "Write"]
 ---
@@ -11,12 +11,12 @@ Regenerate `src/cli/hybrid-routing/AVAILABLE-AGENTS.md` from live agent discover
 
 ## Architecture Clarification
 
-**Source of Truth**: `.claude/agents/cfn-dev-team/` folder (50+ agent .md files)
+**Source of Truth**: `.claude/agents/` folder (50+ agent .md files)
 **Live Discovery**: `HybridWorkerSpawner.loadAgentDefinitions()` method
 **Documentation Snapshot**: `src/cli/hybrid-routing/AVAILABLE-AGENTS.md` (generated file)
 
 **When coordinators spawn agents**:
-1. Load agents dynamically from `.claude/agents/cfn-dev-team/` folder
+1. Load agents dynamically from `.claude/agents/` folder
 2. Parse YAML frontmatter from each .md file
 3. Extract keywords, system prompts, categories
 4. In-memory cache for performance
@@ -26,7 +26,7 @@ Regenerate `src/cli/hybrid-routing/AVAILABLE-AGENTS.md` from live agent discover
 - Human-readable reference
 - Documentation for users/coordinators
 - Snapshot of available agents at generation time
-- **NOT** used by the spawning system (system reads .claude/agents/cfn-dev-team/ directly)
+- **NOT** used by the spawning system (system reads .claude/agents/ directly)
 
 ---
 
@@ -34,7 +34,7 @@ Regenerate `src/cli/hybrid-routing/AVAILABLE-AGENTS.md` from live agent discover
 
 ```bash
 # Regenerate agent list
-npx claude-flow-spawn --agents-by-category > src/cli/hybrid-routing/AVAILABLE-AGENTS.md.tmp
+node src/cli/hybrid-routing/spawn-workers.js --agents-by-category > src/cli/hybrid-routing/AVAILABLE-AGENTS.md.tmp
 
 # Parse and format into markdown document
 node << 'EOF'
@@ -52,12 +52,12 @@ let markdown = '';
 markdown += '# Available Specialized Agents\n\n';
 markdown += '**Hybrid Routing System - Dynamic Agent Discovery**\n\n';
 markdown += '**Generated**: ' + new Date().toISOString().split('T')[0] + '\n';
-markdown += '**Source**: `.claude/agents/cfn-dev-team/` folder (live discovery)\n';
-markdown += '**Purpose**: Documentation snapshot - coordinators read from `.claude/agents/cfn-dev-team/` directly\n\n';
+markdown += '**Source**: `.claude/agents/` folder (live discovery)\n';
+markdown += '**Purpose**: Documentation snapshot - coordinators read from `.claude/agents/` directly\n\n';
 
 // Add architecture note
 markdown += '## Architecture\n\n';
-markdown += '**Source of Truth**: `.claude/agents/cfn-dev-team/` folder\n';
+markdown += '**Source of Truth**: `.claude/agents/` folder\n';
 markdown += '- Coordinators use `HybridWorkerSpawner.loadAgentDefinitions()`\n';
 markdown += '- Recursive scanning with YAML frontmatter parsing\n';
 markdown += '- In-memory caching after first load\n';
@@ -72,7 +72,7 @@ const categoriesMatch = rawOutput.match(/(\d+) categories/);
 if (discoveredMatch && loadedMatch) {
   markdown += '## Discovery Statistics\n\n';
   markdown += '```\n';
-  markdown += `🔍 Discovered ${discoveredMatch[1]} agent files in .claude/agents/cfn-dev-team/\n`;
+  markdown += `🔍 Discovered ${discoveredMatch[1]} agent files in .claude/agents/\n`;
   markdown += `✅ Loaded ${loadedMatch[1]} agents (${skippedMatch ? skippedMatch[1] : '?'} skipped)\n`;
   markdown += `📋 ${categoriesMatch ? categoriesMatch[1] : '?'} categories\n`;
   markdown += '```\n\n';
@@ -126,9 +126,9 @@ markdown += '## Usage\n\n';
 markdown += '### CLI Commands\n\n';
 markdown += '```bash\n';
 markdown += '# List all agents (flat view)\n';
-markdown += 'npx claude-flow-spawn --list-agents\n\n';
+markdown += 'node src/cli/hybrid-routing/spawn-workers.js --list-agents\n\n';
 markdown += '# List agents by category\n';
-markdown += 'npx claude-flow-spawn --agents-by-category\n\n';
+markdown += 'node src/cli/hybrid-routing/spawn-workers.js --agents-by-category\n\n';
 markdown += '# Regenerate this documentation file\n';
 markdown += '/list-agents-rebuild\n';
 markdown += '```\n\n';
@@ -136,12 +136,12 @@ markdown += '```\n\n';
 markdown += '### Coordinator Usage\n\n';
 markdown += '```bash\n';
 markdown += '# Automatic selection (keyword-based)\n';
-markdown += 'npx claude-flow-spawn "Build auth" --max-agents=3\n\n';
+markdown += 'node src/cli/hybrid-routing/spawn-workers.js "Build auth" --max-agents=3\n\n';
 markdown += '# Coordinator override (manual agent types)\n';
-markdown += 'npx claude-flow-spawn "Task" \\\n';
+markdown += 'node src/cli/hybrid-routing/spawn-workers.js "Task" \\\n';
 markdown += '  --agents=architect,coder,tester\n\n';
 markdown += '# Full override (custom agents + subtasks)\n';
-markdown += 'npx claude-flow-spawn "Task" \\\n';
+markdown += 'node src/cli/hybrid-routing/spawn-workers.js "Task" \\\n';
 markdown += '  --agents=coder,security-specialist \\\n';
 markdown += '  --subtasks="Subtask 1|Subtask 2"\n';
 markdown += '```\n\n';
@@ -149,10 +149,10 @@ markdown += '```\n\n';
 // Add notes
 markdown += '---\n\n';
 markdown += '## Notes\n\n';
-markdown += '- **Live Discovery**: Coordinators read from `.claude/agents/cfn-dev-team/` folder directly\n';
+markdown += '- **Live Discovery**: Coordinators read from `.claude/agents/` folder directly\n';
 markdown += '- **This File**: Documentation snapshot for human reference\n';
 markdown += '- **Regenerate**: Run `/list-agents-rebuild` to update this documentation\n';
-markdown += '- **Agent Files**: Add/modify agents in `.claude/agents/cfn-dev-team/` folder (auto-discovered)\n';
+markdown += '- **Agent Files**: Add/modify agents in `.claude/agents/` folder (auto-discovered)\n';
 markdown += '- **Caching**: Agent definitions cached after first load (lazy loading)\n';
 markdown += '- **Missing Keywords**: Some agents without keywords can be used via coordinator override\n\n';
 
@@ -184,7 +184,7 @@ echo ""
 echo "📋 Agent list regenerated: src/cli/hybrid-routing/AVAILABLE-AGENTS.md"
 echo ""
 echo "Architecture:"
-echo "  • Source: .claude/agents/cfn-dev-team/ folder (50+ agent .md files)"
+echo "  • Source: .claude/agents/ folder (50+ agent .md files)"
 echo "  • Coordinators: Load agents dynamically via HybridWorkerSpawner"
 echo "  • This file: Documentation snapshot for human reference"
 ```
@@ -199,7 +199,7 @@ echo "  • This file: Documentation snapshot for human reference"
 📋 Agent list regenerated: src/cli/hybrid-routing/AVAILABLE-AGENTS.md
 
 Architecture:
-  • Source: .claude/agents/cfn-dev-team/ folder (50+ agent .md files)
+  • Source: .claude/agents/ folder (50+ agent .md files)
   • Coordinators: Load agents dynamically via HybridWorkerSpawner
   • This file: Documentation snapshot for human reference
 ```

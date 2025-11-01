@@ -65,29 +65,54 @@ if [ -z "$TASK_ID" ] || [ -z "$AGENT_ID" ] || [ -z "$CONSENSUS" ] || \
   exit 1
 fi
 
-# Build Product Owner context
+# Retrieve full context from Redis (if available)
+REDIS_CONTEXT=$(redis-cli HGET "cfn_loop:task:${TASK_ID}:context" "full_context" 2>/dev/null || echo "{}")
+
+# Extract scope from Redis context
+EPIC_GOAL=$(echo "$REDIS_CONTEXT" | jq -r '.epicGoal // "Task completion"')
+IN_SCOPE=$(echo "$REDIS_CONTEXT" | jq -r '.inScope[]?' | sed 's/^/- /' | tr '\n' '\n' || echo "- Core functionality")
+OUT_SCOPE=$(echo "$REDIS_CONTEXT" | jq -r '.outOfScope[]?' | sed 's/^/- /' | tr '\n' '\n' || echo "- Advanced features")
+DELIVERABLES=$(echo "$REDIS_CONTEXT" | jq -r '.deliverables[]?' | sed 's/^/- /' | tr '\n' '\n' || echo "- Implementation files")
+DIRECTORY=$(echo "$REDIS_CONTEXT" | jq -r '.directory // "."')
+ACCEPTANCE=$(echo "$REDIS_CONTEXT" | jq -r '.acceptanceCriteria[]?' | sed 's/^/- /' | tr '\n' '\n' || echo "- Tests pass")
+
+# Build Product Owner context with full scope information
 PO_CONTEXT="CFN Loop iteration $ITERATION complete.
 
+Epic Goal: $EPIC_GOAL
+
+In-Scope:
+$IN_SCOPE
+
+Out-of-Scope:
+$OUT_SCOPE
+
+Deliverables:
+$DELIVERABLES
+
+Directory: $DIRECTORY
+
+Acceptance Criteria:
+$ACCEPTANCE
+
 Loop 2 Consensus: $CONSENSUS (threshold: $THRESHOLD)
-Task ID: $TASK_ID
-Agent ID: $AGENT_ID
+Current Iteration: $ITERATION
 Max Iterations: $MAX_ITERATIONS
 
 Make your strategic decision: PROCEED, ITERATE, or ABORT
 
 Decision Framework:
-- PROCEED: Consensus >= $THRESHOLD AND deliverables verified
+- PROCEED: Consensus >= $THRESHOLD AND deliverables verified AND acceptance criteria met
 - ITERATE: Consensus < $THRESHOLD AND iteration < $MAX_ITERATIONS
 - ABORT: Max iterations reached without consensus
 
-Output your decision clearly with reasoning.
-Format: Decision: [PROCEED|ITERATE|ABORT]"
+Output format:
+Decision: [PROCEED|ITERATE|ABORT]
+Reasoning: [explain using GOAP framework]
+Confidence: [0.0-1.0]
+Next Action: [specific next step - 'proceed to next sprint', 'complete epic', 'iterate on current sprint']
 
-# Inject CFN Loop context if injection script exists
-INJECT_SCRIPT="$SCRIPT_DIR/.claude/skills/cfn-cfn-cfn-loop-orchestration/inject-loop-context.sh"
-if [[ -x "$INJECT_SCRIPT" ]]; then
-  PO_CONTEXT=$("$INJECT_SCRIPT" "loop4" "$PO_CONTEXT" 2>/dev/null || echo "$PO_CONTEXT")
-fi
+CRITICAL: Do NOT ask for user confirmation. Make autonomous decision."
 
 # Get agent timeout (if get_agent_timeout function available)
 if command -v get_agent_timeout &>/dev/null; then

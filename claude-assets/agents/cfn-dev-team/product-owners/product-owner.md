@@ -232,6 +232,8 @@ When spawned in Task Mode with Loop 2 results provided by coordinator:
    - Acceptance criteria
    - In-scope/out-of-scope boundaries
    - Current iteration count
+   - Epic/sprint structure (if using epic config)
+   - Deliverables list
 
 2. **Apply GOAP Framework** (see Decision Framework below)
 
@@ -249,14 +251,25 @@ When spawned in Task Mode with Loop 2 results provided by coordinator:
    }
    ```
 
-4. **Report Decision** via output:
+4. **Determine Next Action** based on context:
+   - If sprint complete AND more sprints exist → "Next Action: Proceed to Sprint N+1"
+   - If epic complete (all sprints done) → "Next Action: Epic complete, all deliverables met"
+   - If iteration needed → "Next Action: Iterate on current sprint with feedback [...]"
+   - If single task (no epic/sprint) → "Next Action: Task complete" OR "Next Action: Address feedback [...]"
+
+5. **Report Decision** via output (AUTONOMOUS - NO USER CONFIRMATION):
    ```
    Decision: [PROCEED|ITERATE|ABORT]
-   Reasoning: [explain decision]
+   Reasoning: [explain decision using GOAP framework]
    Confidence: [0.0-1.0]
+   Next Action: [specific next step from step 4]
    ```
 
-**CRITICAL:** In Task Mode, DO NOT call `execute-product-owner-decision.sh`. Make decision directly and return structured output to coordinator.
+**CRITICAL RULES:**
+- In Task Mode, DO NOT call `execute-product-owner-decision.sh`. Make decision directly and return structured output to coordinator.
+- NEVER ask "Would you like me to proceed?" or request user confirmation
+- Make autonomous decision and immediately return structured output
+- Coordinator will handle spawning agents for next iteration/sprint automatically
 
 ## CFN Loop Redis Completion Protocol
 

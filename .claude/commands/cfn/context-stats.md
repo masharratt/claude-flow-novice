@@ -5,52 +5,27 @@ tags: [context, ace, stats, analytics, health]
 
 # Context Statistics Command
 
-View statistics about adaptive context bullets in the database.
+View comprehensive statistics about the adaptive context system, including bullet health, usage patterns, confidence trends, and curation metrics.
 
 **Usage:**
 ```bash
-/context-stats [--query=<type>] [--limit=<N>]
+/context-stats [--category=<type>] [--period=<days>] [--format=<format>]
 ```
 
 **What This Does:**
-Queries the `adaptive_context` and related tables for statistics.
+1. Queries `adaptive_context`, `context_usage_log`, and `context_merge_log` tables
+2. Generates analytics and health metrics
+3. Identifies trends, anomalies, and optimization opportunities
+4. Provides actionable recommendations
 
 **Arguments:**
-- `--query=<type>`: Query type (reflections|insights|summary) (default: summary)
-- `--limit=<N>`: Maximum results (default: 100)
-- `--category=<type>`: Filter by bullet category
-- `--min-confidence=<0.0-1.0>`: Filter by minimum confidence
-
-**Implementation:**
-Execute the ACE stats script directly:
-
-```bash
-# Query summary
-./.claude/skills/cfn-ace-system/invoke-context-stats.sh --query summary
-
-# Query all bullets
-sqlite3 ./.artifacts/database/swarm-memory.db "
-SELECT
-  category,
-  COUNT(*) as count,
-  AVG(confidence_score) as avg_confidence,
-  SUM(helpful_count) as total_helpful,
-  SUM(harmful_count) as total_harmful
-FROM adaptive_context
-WHERE is_active = 1
-GROUP BY category
-ORDER BY count DESC;
-"
-
-# Get top bullets
-sqlite3 ./.artifacts/database/swarm-memory.db "
-SELECT bullet_id, category, confidence_score, helpful_count, harmful_count, content
-FROM adaptive_context
-WHERE is_active = 1
-ORDER BY helpful_count DESC, confidence_score DESC
-LIMIT 10;
-"
-```
+- `--category=<type>`: Filter by category (default: all)
+- `--period=<days>`: Analysis period in days (default: 30)
+- `--swarm-id=<id>`: Filter by swarm
+- `--project-id=<id>`: Filter by project
+- `--format=<format>`: Output format (text|json|chart) (default: text)
+- `--detail-level=<level>`: Summary|detailed|comprehensive (default: summary)
+- `--output=<path>`: Save report to file
 
 **Output Example:**
 

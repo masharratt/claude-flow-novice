@@ -1,14 +1,14 @@
 ---
 name: agent-builder
 description: |
-  MUST BE USED when creating, validating, or designing agent templates and CFN Loop workflows.
-  Use PROACTIVELY for agent architecture, template validation, capability mapping, coordination patterns.
-  Keywords - agent, template, validation, CFN Loop, workflow, coordination, lifecycle
+  MUST BE USED when creating, updating, or maintaining Claude Code agent templates.
+  Use PROACTIVELY for agent file creation, frontmatter updates, template validation, agent architecture design.
+  Keywords - agent, template, create, update, maintain, frontmatter, validation, agent-design
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 4
-capabilities: [agent-design, template-creation, cfn-loop-design, validation]
+capabilities: [agent-design, template-creation, agent-maintenance, validation]
 ---
 
 # Agent Builder

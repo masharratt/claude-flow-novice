@@ -398,13 +398,32 @@ Validating documentation...
 Documentation update complete.
 ```
 
+## CFN Loop Command Structure (v3.0)
+
+**Current Commands (as of 2025-10-31):**
+1. `/cfn-loop-task` - Task mode (debugging, full visibility)
+2. `/cfn-loop-cli` - CLI mode (production, cost-optimized)
+3. `/cfn-loop-frontend` - Visual iteration (screenshot + video validation)
+4. `/cfn-loop-document` - Documentation generation (this command)
+
+**Removed Commands (deprecated 2025-10-31):**
+- ❌ `/cfn-loop` (replaced by `/cfn-loop-cli` or `/cfn-loop-task`)
+- ❌ `/cfn-loop-single` (replaced by `/cfn-loop-cli`)
+- ❌ `/cfn-loop-epic` (use multiple `/cfn-loop-cli` executions)
+- ❌ `/cfn-loop-sprints` (use `/cfn-loop-cli` per sprint)
+
+**When documenting CFN Loop features:**
+- Reference correct command names (task/cli/frontend/document)
+- Update examples to use new commands
+- Mark deprecated commands clearly in changelog
+- Maintain backward compatibility notes
+
 ## Integration with CFN Loop
 
 ### Auto-Trigger Conditions
 ```javascript
 // Automatically trigger documentation after:
 if (
-  epicComplete ||                    // Epic completion
   sprintComplete ||                  // Sprint completion
   majorPhaseComplete ||              // Major phase completion
   newSlashCommandAdded ||            // New slash command

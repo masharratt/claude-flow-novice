@@ -22,12 +22,15 @@
 * **ALL agent communication MUST use Redis pub/sub** - no direct file coordination
 * **NEVER HARDCODE API KEYS**
 * **sleep on repeat** when monitoring a background process. sleep x  minutes, check progress, sleep, repeat
+* **USE GREP INSTEAD OF FIND** - it's less resource intensive in our WSL2 instances
 
 **Agent Output Standards:**
 * **Bug documentation**: `docs/BUG_#_*.md` (investigation, fix summary, validation)
 * **Test scripts**: `tests/test-*.sh` (persistent, version controlled)
 * **Feature documentation**: `docs/FEATURE_NAME.md` (architecture, process docs)
 * **Temporary files ONLY**: `/tmp/` (ephemeral test fixtures, scratch data)
+* **Backlog items**: Use `.claude/skills/cfn-backlog-management/add-backlog-item.sh` when deferring work (requires: item, why, solution)
+* **Changelog entries**: Use `.claude/skills/cfn-changelog-management/add-changelog-entry.sh` after feature/bugfix/breaking change (10-100 char summary, sparse impact)
 * **Full guidelines**: `docs/AGENT_OUTPUT_STANDARDS.md`
 
 **Consensus thresholds:**
@@ -85,55 +88,55 @@ npx cfn-init  # Copy namespace-isolated files
 * Delegate ALL coordination to skills
 * Use skill-specific configuration for complex workflows
 
-### Cost-Savings Mode (CLI Spawning)
+### CFN Loop Execution Modes
 
-**All CFN Loop slash commands automatically use cost-optimized coordinators.** No manual configuration needed.
+**User selects mode. Main Chat executes the specified slash command.**
 
-**Recommended Usage:**
+**Default: Task Mode** (if user doesn't specify mode)
+
+**Available modes:**
+
+**1. Task Mode (Default):**
 ```bash
-# Use slash commands (automatically cost-optimized)
-/cfn-loop "Implement feature" --mode=standard
-/cfn-loop-single "Fix bug"
-/cfn-loop-epic "Build system"
+/cfn-loop-task "Task description" --mode=standard
 ```
+- Main Chat spawns ALL agents via Task()
+- NO coordinator agent
+- Cost: $0.150/iteration
+- Full visibility in Main Chat
+- Use: Debugging, learning, short tasks (<5 min)
 
-**Core Coordinators:**
-
-| Coordinator | Spawning Method | Cost Savings | Use Case |
-|-------------|----------------|--------------|----------|
-| `cfn-v3-coordinator` | CLI | 95-98% | CFN Loops |
-| `cost-savings-coordinator` | CLI | 95-98% | General tasks |
-
-**Architecture:**
-Main Chat → Single coordinator agent → Coordinator spawns workers via CLI → 95-98% cost savings
-
-## CFN v3 Dual-Mode Architecture
-
-**Two spawning modes:**
-1. **CLI Mode** (default): Cost-optimized, Redis context, Z.ai routing
-2. **Task Mode**: Simplified, direct injection, Anthropic routing
-
-**Mode Selection:**
+**2. CLI Mode (Production):**
 ```bash
-# Default: CLI mode (95-98% savings)
-/cfn-loop "Task description"
-
-# Explicit Task mode (full visibility)
-/cfn-loop "Task description" --spawn-mode=task
+/cfn-loop-cli "Task description" --mode=standard
 ```
+- Main Chat spawns ONLY cfn-v3-coordinator
+- Coordinator spawns workers via CLI (background)
+- Cost: $0.054/iteration (64% savings vs Task)
+- Use: Production, long tasks, cost-sensitive
 
-**Key Differences:**
-- CLI mode: Main Chat → Coordinator → cfn-loop-orchestration/orchestrate.sh → CLI agents
-- Task mode: Main Chat → Coordinator → JSON → Main Chat spawns Task() agents
-- CLI agents use Z.ai routing automatically
-- Redis context enables swarm recovery (CLI mode)
+**Mode selection guidance for users:**
+- "execute cfn loop on X" → `/cfn-loop-task` (default)
+- "use task mode on X" → `/cfn-loop-task`
+- "use cli mode on X" → `/cfn-loop-cli`
+- "production cfn loop on X" → `/cfn-loop-cli`
+
+**Architecture patterns:**
+- CLI: Main Chat → cfn-v3-coordinator → orchestrate.sh → CLI workers (background)
+- Task: Main Chat → Task() agents (no coordinator, full visibility)
+
+**Cost breakdown:**
+- CLI mode: $0.054/iteration (Z.ai routing for workers)
+- Task mode: $0.150/iteration (Anthropic for all agents)
 
 **Context Storage:**
-- Both modes store context in Redis
+- CLI mode: Coordinator stores context in Redis for agents to retrieve
+- Task mode: Main Chat passes context directly to each Task() spawn (no Redis needed)
 - CLI agents read from Redis: `redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"`
-- Task mode: Main Chat injects directly but also stores in Redis
 
-**Reference:** See `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
+**Reference:**
+- Implementation details: `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
+- **Task Mode guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management)
 
 ### Custom Routing (Z.ai Provider Integration)
 
@@ -192,13 +195,32 @@ Task("cfn-v3-coordinator", `
 ```
 
 **Why This Pattern:**
-- Coordinator controls spawn timing via .claude/skills/cfn-loop-orchestration/orchestrate.sh and CLI (no timeout issues)
+- Coordinator controls spawn timing via orchestrate.sh (no timeout issues)
 - 95-98% cost savings vs Task() spawning
-- Zero-token waiting between iterations (Redis BLPOP)
+- Fresh agents spawned for each iteration (adaptive specialization)
 - Sequential CLI spawning is safe (coordinator manages order)
 - Clean separation: Main Chat → Coordinator → Workers
 
-### Post-Edit Validation (REQUIRED for all Edit/Write operations on any file type)
+### Pre-Edit Backup (REQUIRED before all Edit/Write operations)
+**Before ANY Edit/Write/MultiEdit operation, agents MUST create backup:**
+```bash
+BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id "$AGENT_ID")
+```
+
+**Why:** Enables safe file revert without git operations during parallel sessions.
+**Location:** `.backups/[agent-id]/[timestamp]_[hash]/`
+**Retention:** 24h TTL (configurable)
+
+**Revert Instead of Git:**
+```bash
+# ❌ FORBIDDEN - git operations cause parallel session issues
+git checkout -- file.ts
+
+# ✅ REQUIRED - use backup system
+./.claude/skills/pre-edit-backup/revert-file.sh "$FILE_PATH" --agent-id "$AGENT_ID"
+```
+
+### Post-Edit Validation (REQUIRED after all Edit/Write operations on any file type)
 **After ANY Edit/Write/MultiEdit operation on all file types, agents MUST run:**
 ```bash
 ./.claude/hooks/cfn-invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
@@ -207,6 +229,23 @@ Task("cfn-v3-coordinator", `
 **Why:** Prevents errors and disorganization from propagating. Non-blocking by default.
 **Config:** `.claude/hooks/post-edit.config.json`
 **Skill:** `.claude/skills/hook-pipeline/SKILL.md`
+
+### Complete Edit Workflow (Pre-Edit + Edit + Post-Edit)
+```bash
+# 1. Pre-Edit: Create backup
+BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "src/file.ts" --agent-id "$AGENT_ID")
+
+# 2. Edit: Perform file modification
+Edit: file_path="src/file.ts" old_string="..." new_string="..."
+
+# 3. Post-Edit: Validate changes
+./.claude/hooks/cfn-invoke-post-edit.sh "src/file.ts" --agent-id "$AGENT_ID"
+
+# 4. (Optional) Revert if validation fails
+if [ $? -ne 0 ]; then
+    ./.claude/skills/pre-edit-backup/revert-file.sh "src/file.ts" --agent-id "$AGENT_ID"
+fi
+```
 
 ## 2) When Agents Are Mandatory (Triggers)
 
@@ -252,133 +291,8 @@ Refer to `.claude/skills/cfn-redis-coordination/SKILL.md` for:
 - Simple Chain Coordination
 - Hierarchical Broadcast
 - Mesh Hybrid Patterns
-- **Waiting Mode + Wake-Up** (✅ Operational)
-
-### Redis Waiting Mode (Zero-Token Agent Coordination)
-
-**Use Case:** CFN Loop iterations, long-running tasks, multi-agent consensus
-
-**Agent enters waiting mode:**
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-1"
-```
-
-**Coordinator wakes agent:**
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --reason cfn_loop_iteration \
-  --iteration 2 \
-  --feedback "Add error handling,Improve test coverage"
-```
-
-**Agent reports result:**
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.92 \
-  --iteration 2
-```
-
-**Coordinator collects results:**
-```bash
-CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
-  --task-id "$TASK_ID" \
-  --agent-ids "coder-1,reviewer-1,tester-1,security-1")
-
-if (( $(echo "$CONSENSUS >= 0.90" | bc -l) )); then
-  echo "✅ Consensus reached: $CONSENSUS"
-fi
-```
-
-**Benefits:**
-- 🚀 Zero token cost while waiting (BLPOP blocks, no API calls)
-- 🔄 Context preserved across iterations
-- ⚡ Instant wake-up (<100ms latency)
-- 📈 Scalable (10+ agents, indefinite cycles)
-
-**Key Pattern (STRAT-002):**
-Use zero-token blocking mechanisms (like Redis BLPOP) to create efficient, low-overhead synchronization between agents without incurring API call costs. Validated by 8/8 passing tests in orchestrator test suite.
-
-### ⚠️ Waiting Mode Without Coordinator (CRITICAL)
-
-**Problem:** Agents entering waiting mode without a coordinator will block indefinitely.
-
-**Why This Happens:**
-- `invoke-waiting-mode.sh enter` uses `BLPOP` with timeout=0 (infinite)
-- Agent blocks waiting for wake signal that never arrives
-- No coordinator = no wake signal = agent stuck forever
-- Shell/terminal timeout (typically 2min) may terminate the session
-
-**When This Occurs:**
-1. **Manual agent spawning** without orchestrator (testing, debugging)
-2. **Epic execution** where Main Chat spawns agents directly
-3. **Incomplete orchestration** where coordinator crashes mid-execution
-
-**Solutions:**
-
-**Option 1: Always Use Full Orchestration (RECOMMENDED)**
-```bash
-# CORRECT: Use orchestrator for all multi-agent workflows
-./.claude/skills/cfn-loop-orchestration/cfn-orchestrate.sh \
-  --task-id "$TASK_ID" \
-  --mode standard \
-  --loop3-agents "coder-1,researcher-1" \
-  --loop2-agents "reviewer-1,tester-1" \
-  --product-owner "product-owner-1"
-```
-
-**Option 2: Manual Coordination (For Testing Only)**
-```bash
-# 1. Spawn agents (they enter waiting mode)
-# 2. Collect confidence scores
-CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
-  --task-id "$TASK_ID" --agent-ids "coder-1,researcher-1")
-
-# 3. Check consensus
-if (( $(echo "$CONSENSUS >= 0.90" | bc -l) )); then
-  echo "✅ Complete - no iteration needed"
-  # Agents stay in waiting mode (expected, will timeout)
-else
-  # 4. Wake agents for iteration 2
-  ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
-    --task-id "$TASK_ID" \
-    --agent-id "coder-1" \
-    --reason "improve_quality" \
-    --iteration 2
-fi
-```
-
-**Option 3: Skip Waiting Mode (Quick Testing)**
-```bash
-# Agent completion without waiting mode
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.85
-
-# Skip step 4 (enter waiting mode) - agent exits immediately
-```
-
-**Best Practice (STRAT-006):**
-**Always spawn coordinator + agents together.** Never spawn agents in waiting mode without a coordinator unless you explicitly plan to wake them manually or accept timeout behavior.
-
-```bash
-# FORBIDDEN PATTERN:
-Task("backend-dev", "Task with waiting mode...") # No coordinator!
-
-# REQUIRED PATTERN:
-Task("cfn-loop-coordinator", "Execute CFN Loop with orchestrator...")
-# Coordinator spawns and manages all agents automatically
-```
-
-**Validation:** Agent timeouts during epic execution (Phases 1-3) were expected behavior - agents correctly entered waiting mode but no coordinator was present to wake them. This is acceptable for single-iteration phases where iteration is not needed.
+- Agent completion signaling (Redis LPUSH)
+- Consensus collection (invoke-waiting-mode.sh collect)
 
 ## 4) CFN Loop Overview
 
@@ -396,79 +310,50 @@ Task("cfn-loop-coordinator", "Execute CFN Loop with orchestrator...")
 | Standard | ≥0.75 | ≥0.90 | 10 | 3-4 |
 | Enterprise | ≥0.85 | ≥0.95 | 15 | 5 |
 
-### CFN Loop Dependency Enforcement (MANDATORY)
+### CFN Loop Orchestration Pattern
 
-**All CFN loops use single coordinator pattern (v2):**
+**CLI Mode (Production):**
+Main Chat spawns cfn-v3-coordinator → Coordinator spawns workers via CLI → Workers exit after reporting confidence
 
-**1. Main Chat spawns coordinator:**
-```javascript
-Task("cfn-v3-coordinator", `
-  Execute CFN Loop for: Implement authentication system
+**Task Mode (Debugging):**
+Main Chat spawns all agents directly via Task() → No coordinator → Full visibility
 
-  Use orchestrator for dependency enforcement.
-  Report structured result when complete.
-`)
-```
-
-**2. Coordinator invokes orchestrator internally:**
+**Orchestrator:**
 ```bash
-# Coordinator runs this script (NOT Main Chat)
-./.claude/skills/cfn-loop-orchestration/cfn-orchestrate.sh \
-  --task-id "unique-task-id" \
-  --mode standard \
-  --loop3-agents "researcher,backend-dev,devops" \
-  --loop2-agents "reviewer,architect,tester" \
-  --product-owner "product-owner" \
-  --max-iterations 10 \
-  --phase-id "phase-2" \
-  --epic-context '{"epicGoal":"Build feature X","inScope":["A","B"]}' \
-  --phase-context '{"currentPhase":"Phase 2","deliverables":["Component 1","Component 2"]}' \
-  --success-criteria '{"acceptanceCriteria":["Tests pass","Coverage >80%"],"gateThreshold":0.75}'
-
-# CFN v3 UPDATE: Modular orchestrator (78% code reduction)
-# - Helper scripts for context injection, agent spawning, validation
-# - Stateless context retrieval from Redis
-# - Better agent ID tracking (no BLPOP hangs)
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh
 ```
+- Spawns Loop 3 agents (implementers)
+- Collects confidence scores
+- Gate check: spawn Loop 2 if ≥threshold
+- Spawns Loop 2 agents (validators)
+- Collects consensus
+- Spawns Product Owner for decision
+- Manages iterations based on PROCEED/ITERATE/ABORT
 
-**3. Orchestrator spawns all agents via CLI:**
-```bash
-# Orchestrator spawns each agent
-npx cfn-spawn agent researcher --task-id "$TASK_ID"
-npx cfn-spawn agent backend-dev --task-id "$TASK_ID"
-# ... etc
-```
+**Agent Completion Protocol (Mode-Specific):**
 
-**4. Coordinator manages iterations and returns result to Main Chat**
-
-**Why Orchestration is Mandatory:**
-- ✅ Loop 2 validators BLOCKED until Loop 3 complete (BLPOP)
-- ✅ Product Owner BLOCKED until Loop 2 complete (BLPOP)
-- ✅ Prevents premature consensus collection
-- ✅ Automatic iteration management
-- ✅ Zero-token waiting between loops
-- ✅ Coordinator controls entire flow from single agent
-
-**Agent Completion Protocol:**
-Each agent MUST signal completion before entering waiting mode:
-
+**CLI Mode** (spawned via `npx claude-flow-novice agent-spawn`):
 ```bash
 # 1. Complete work
 # 2. Signal done
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
-# 3. Report confidence
+# 3. Report confidence and exit
 ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.85 \
   --iteration 1
 
-# 4. Enter waiting mode
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-complete"
+# Agent exits cleanly (no waiting mode)
+```
+
+**Task Mode** (spawned via Task() tool in Main Chat):
+```bash
+# Simply complete work and return output
+# Main Chat receives output automatically
+# NO Redis signals required
+# NO explicit completion protocol needed
 ```
 
 **Orchestration Flow (CORRECTED - Self-Validation Pattern):**
@@ -492,17 +377,13 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 **Recommended: Use slash commands for CFN Loop execution**
 
-Main Chat should use these commands instead of manually spawning coordinators:
+Main Chat should use these commands instead of manually spawning coordinators. 
+**IMPORTANT** Subagents must NOT use these these slash commands
 
 **Single Task:**
 ```bash
-/cfn-loop "Implement JWT authentication" --mode=standard
-/cfn-loop-single "Fix security bug in auth module"
-```
-
-**Multi-Phase Epic:**
-```bash
-/cfn-loop-epic "Build complete authentication system"
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
+/cfn-loop-task "Fix security bug in auth module" --mode=standard
 ```
 
 **What These Commands Do:**
@@ -539,6 +420,10 @@ Implement comprehensive test suites that validate both functional requirements a
 - Redis Coordination: `.claude/skills/cfn-redis-coordination/SKILL.md`
 - Agent Spawning: `.claude/skills/cfn-agent-spawning/SKILL.md`
 - CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`
+
+**CFN Loop Documentation:**
+- **Task Mode Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management, adaptive validator scaling)
+- Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 
 **Maintenance Plans:**
 - Rollback Strategy: `planning/skills/ROLLBACK_PLAN.md`
@@ -640,10 +525,10 @@ See `.artifacts/analytics/context-reduction-report.json`
 - **Confidence**: 0.87
 - **Priority**: 8/10
 
-#### PATTERN-022: Agent Lifecycle - Exit vs Waiting Mode
+#### PATTERN-022: Agent Lifecycle - Clean Exit Protocol
 - **Context**: CFN Loop Agent Management
-- **Insight**: When agents enter waiting mode after reporting confidence, they block orchestrator's wait $PID indefinitely. Solution: Remove waiting mode from CFN protocol Step 3, let agents exit cleanly. Enables adaptive agent specialization - orchestrator can spawn different specialist (security-specialist for security issues, not original coder) for next iteration based on feedback type. Pattern validated by BUG #18 fix.
-- **Tags**: waiting-mode, agent-lifecycle, adaptive-specialization, orchestrator-blocking
+- **Insight**: Agents must exit cleanly after reporting confidence. Pattern: (1) Signal done via Redis LPUSH, (2) Report confidence score, (3) Exit immediately. Enables adaptive agent specialization - orchestrator spawns different specialist (security-specialist for security issues) for next iteration based on feedback type. Prevents orchestrator blocking.
+- **Tags**: agent-lifecycle, clean-exit, adaptive-specialization, orchestrator
 - **Confidence**: 0.89
 - **Priority**: 8/10
 
@@ -662,6 +547,14 @@ See `.artifacts/analytics/context-reduction-report.json`
 - **Tags**: agent-context, specificity, deliverables, telepathy-fallacy, explicitness
 - **Confidence**: 0.91
 - **Priority**: 9/10
+
+#### ANTI-023: Task-Spawned Validators Without Completion Protocol
+- **Context**: Loop 2 Validation (Task Mode)
+- **Insight**: Main Chat spawns validators via Task() without clear scope boundaries or mode-aware completion protocols. Anti-pattern: Validators see CLI-mode completion instructions (Redis signals, `invoke-waiting-mode.sh report`) and attempt to comply using wrong tools (slash commands via Bash, nested CFN Loop spawning). Result: Agents hang indefinitely trying to execute `/cfn-loop-cli` as bash command, memory leak from blocked processes. Task-spawned validators should simply return structured output - Main Chat receives it automatically, no Redis signals needed.
+- **Tags**: task-spawning, validation, completion-protocol, scope-boundaries, memory-leak
+- **Confidence**: 0.95
+- **Priority**: 10/10
+- **Fix**: Mode-specific completion protocols in CLAUDE.md:333-357 and validator agents (reviewer.md:200-258, tester.md:160-217). Explicit scope boundaries prevent nested CFN Loop spawning.
 
 ### Edge Cases & Testing
 

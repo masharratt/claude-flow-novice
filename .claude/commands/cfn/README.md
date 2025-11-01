@@ -1,157 +1,205 @@
-# CLAUDE.md Slash Command System
+# CFN Loop Commands - Quick Reference
 
-## 🎯 Simple, Focused CLAUDE.md Generation
+## Workflows vs Skills vs Playbooks - When to Use What
 
-A lightweight slash command system for generating CLAUDE.md files with NPX protection.
+### Skills (Most Common) - Building Blocks
+**What:** Single-purpose bash scripts in `.claude/skills/`
+**When:** Most tasks - they're the building blocks
+**Example:** `cfn-redis-coordination`, `cfn-agent-spawning`, `cfn-loop-validation`
 
-## 📋 Features
-
-### ✅ **Simple Slash Command**
 ```bash
-/claude-md                    # Generate CLAUDE.md for current project
-/claude-md --preview         # Show what would be generated
-/claude-md --force           # Overwrite without confirmation
-/claude-md --detect          # Auto-detect project and show recommendations
-/claude-md --no-backup       # Skip backup creation
+# Direct skill invocation
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
+  --task-id "task-123" \
+  --agent-id "coder-1"
 ```
 
-### 🛡️ **NPX Protection System**
-- **Problem**: NPX installs overwrite customized CLAUDE.md files
-- **Solution**: Generate `claude-copy-to-main.md` when existing CLAUDE.md detected
-- **Benefit**: User customizations are never lost
+**Use skills when:**
+- Single, focused operation needed
+- Called by agents or coordinators
+- Part of larger workflow
+- Reusable across different tasks
 
-### 🔄 **Integration Flow**
+### Playbooks (Not Currently Used) - Pre-Configured Sequences
+**What:** JSON files defining skill sequences for common patterns
+**When:** Repeating the same skill sequence often
+**Status:** Not implemented yet, use skills directly
 
-**Normal Usage (Slash Command):**
-1. User runs `/claude-md`
-2. System detects project type
-3. Generates appropriate CLAUDE.md
-4. Creates backup if file exists
+### Workflows - Complex Automation
+**What:** Event-driven, multi-step automation with conditions/branching
+**When:** Complex sequences with conditional logic
+**Example:** CI/CD pipelines, feature development workflows
 
-**NPX Install Protection:**
-1. NPX installs claude-flow-novice
-2. `postinstall` script runs
-3. Detects existing CLAUDE.md
-4. Creates `claude-copy-to-main.md` instead
-5. User manually merges desired changes
+```yaml
+name: "feature-development"
+trigger: "branch-created"
+steps:
+  - name: "analyze"
+    agent: "researcher"
 
-## 🏗️ Architecture
+  - name: "implement"
+    agent: "backend-dev"
+    depends: ["analyze"]
+    parallel: true  # Multiple agents in parallel
 
-### **Files:**
-- `claude-md.js` - Core slash command implementation
-- `register-claude-md.js` - Slash command registration
-- `../npx/claude-md-protection.js` - NPX protection logic
-- `../../scripts/post-install-claude-md.js` - Post-install hook
+  - name: "test"
+    agent: "tester"
+    depends: ["implement"]
+    condition: "if tests_exist"  # Conditional execution
+```
 
-### **Integration Points:**
-- **Existing Generator**: Uses `../language/claude-md-generator.js`
-- **Language Detection**: Uses `../language/language-detector.js`
-- **Preferences**: Reads `.claude-flow-novice/preferences/generation.json`
-- **Package.json**: `postinstall` script triggers protection
+**Use workflows when:**
+- Event-driven automation (git hooks, CI/CD)
+- Conditional branching logic needed
+- Multi-agent parallel execution
+- Long-running background processes
+- Integration with external systems
 
-## 🎮 Usage Examples
+## Decision Tree
 
-### **Basic Generation:**
+```
+Need to automate something?
+├─ Single operation?
+│  └─ Use SKILL directly
+├─ Complex logic (conditionals, events, parallel)?
+│  └─ Create WORKFLOW (YAML via /workflow)
+└─ CFN Loop execution?
+   ├─ Planning first? → /write-plan then /cfn-loop-cli
+   ├─ Production? → /cfn-loop-cli
+   ├─ Debugging? → /cfn-loop-task
+   └─ Frontend? → /cfn-loop-frontend
+```
+
+## Examples
+
+### Example 1: Simple Task (Use Skill)
+**Goal:** Enter waiting mode for agent
+
 ```bash
-# Generate CLAUDE.md for current project
-/claude-md
-
-# Output:
-# 🚀 Generating CLAUDE.md...
-# ✅ CLAUDE.md generated successfully
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
+  --task-id "task-123" --agent-id "coder-1"
 ```
 
-### **Preview Mode:**
+### Example 2: CFN Loop Execution
+**Goal:** Implement JWT authentication
+
+**Option 1: Plan First (Recommended for Complex Tasks)**
 ```bash
-# See what would be generated
-/claude-md --preview
+# Step 1: Generate plan
+/write-plan "Implement JWT authentication" --mode=standard
+# Reviews: planning/PLAN_jwt_authentication.md
 
-# Output:
-# 📄 CLAUDE.md Preview:
-# ══════════════════════════════════════════════════
-# # Claude Code Configuration - JavaScript Project
-# ...
-# ══════════════════════════════════════════════════
-# 📊 Total length: 2,847 characters
+# Step 2: Execute
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
 ```
 
-### **NPX Protection:**
+**Option 2: Direct Execution (Simple Tasks)**
 ```bash
-# When NPX detects existing CLAUDE.md
-npm install claude-flow-novice
+# Production execution (cost-optimized)
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
 
-# Output:
-# 🛡️ NPX Protection Activated
-# 📄 Generated: claude-copy-to-main.md
-# 💡 Your existing CLAUDE.md is protected from overwrite
-# 🔄 Review and merge changes manually as needed
+# OR debugging (full visibility)
+/cfn-loop-task "Implement JWT authentication" --mode=standard
 ```
 
-## 🧠 Smart Detection
+### Example 3: Complex Automation (Use Workflow)
+**Goal:** Full feature development (analyze → implement → test → deploy)
 
-### **Project Type Detection:**
-- Analyzes `package.json`, file patterns, and directory structure
-- Detects frameworks (React, Express, Django, etc.)
-- Suggests appropriate CLAUDE.md configurations
+```bash
+# Create workflow (via /workflow)
+/workflow create feature-pipeline
 
-### **Confidence Levels:**
-- **High (>70%)**: Automatic generation recommended
-- **Medium (30-70%)**: Generate with user confirmation
-- **Low (<30%)**: Manual review suggested
-
-## 🔧 Configuration
-
-### **Generation Preferences:**
-`.claude-flow-novice/preferences/generation.json`:
-```json
-{
-  "autoGenerate": true,
-  "includeFrameworkSpecific": true,
-  "includeBestPractices": true,
-  "backupExisting": true,
-  "confidenceThreshold": 0.3
-}
+# Execute workflow
+/workflow execute feature-pipeline
 ```
 
-### **NPX Detection:**
-- Environment variables (`NPX_INSTALL=true`)
-- Temporary directory patterns (`/.npm/_npx/`)
-- Package.json analysis (fresh installs)
+## Quick Reference Table
 
-## 🎯 Design Principles
-
-### **Keep It Simple:**
-- Single focused command
-- Minimal configuration
-- Clear user feedback
-- No feature bloat
-
-### **Protect User Work:**
-- Never overwrite without permission
-- Always offer backup options
-- Provide clear merge instructions
-- Preserve customizations
-
-### **Smart Defaults:**
-- Auto-detect project type
-- Use appropriate templates
-- Respect user preferences
-- Fail safely
-
-## 🚀 Future Enhancements
-
-### **Potential Improvements (If Needed):**
-- Interactive confirmation prompts
-- Template customization options
-- Multi-project detection
-- Advanced merge assistance
-
-### **Not Planned (Avoiding Bloat):**
-- SQLite analysis integration
-- Multi-file scaffolding
-- Complex workflow automation
-- Enterprise features
+| Type | Files | Complexity | Conditional Logic | Parallel Execution | Event-Driven |
+|------|-------|------------|-------------------|-------------------|--------------|
+| **Skill** | `.sh` scripts | Low | No | No | No |
+| **CFN Loop** | Slash commands | Medium | Yes (built-in) | Yes (agents) | No |
+| **Workflow** | `.yaml` definitions | High | Yes | Yes | Yes |
 
 ---
 
-**Simple, focused, and protective - exactly what CLAUDE.md generation should be!** 🎯
+## CFN Loop Commands (Current)
+
+### Execution Commands
+- `/cfn-loop-task` - Task mode (debugging, full visibility, Main Chat coordinates)
+- `/cfn-loop-cli` - CLI mode (production, cost-optimized, coordinator spawns CLI agents)
+- `/cfn-loop-frontend` - Visual iteration (screenshot + video validation, supports both modes)
+
+### Planning & Documentation
+- `/write-plan` - Pre-planning phase (generates TDD implementation plan)
+- `/cfn-loop-document` - Documentation generation (updates `/readme`)
+
+### Configuration
+- `/cfn-mode` - Toggle CLI vs Task spawning mode
+- `/cfn-optimize-agents` - Agent optimization settings
+- `/cfn-claude-sync` - Sync rules from CLAUDE.md to commands
+
+### Infrastructure
+- `/switch-api` - Switch between Z.ai and Anthropic providers
+
+### Automation
+- `/workflow` - Event-driven workflow automation (complex multi-step)
+
+### Testing & Utilities
+- `/hello-world-tests` - CFN coordination validation tests (4 layers)
+- `/github-commit` - Git commit with CI/CD monitoring
+- `/launch-web-dashboard` - Start web portal (http://localhost:3000)
+- `/list-agents-rebuild` - Regenerate agent list from discovery
+
+### Adaptive Context (ACE System)
+- `/context-stats` - View adaptive context statistics
+- `/context-reflect` - Extract lessons from task execution
+- `/context-query` - Query context bullets by category/tags
+- `/context-inject` - Inject context into CLAUDE.md dynamically
+- `/context-curate` - Merge reflection deltas with deduplication
+
+---
+
+## When to Use Each Command
+
+### /write-plan (Pre-Planning)
+**Use before complex CFN Loop tasks:**
+- Security-critical features
+- Complex architecture decisions
+- Team collaboration (plan review)
+- Learning CFN Loop workflow
+
+### /cfn-loop-cli (Production)
+**Use for:**
+- Production features
+- Long-running tasks (>10 min)
+- Multi-iteration workflows
+- Cost-sensitive projects
+- **Cost:** $0.054/iteration with Z.ai routing
+
+### /cfn-loop-task (Debugging)
+**Use for:**
+- Debugging CFN Loop issues
+- Learning agent interactions
+- Prototyping configurations
+- Short tasks (<5 min)
+- **Cost:** $0.150/iteration (3x CLI, but full visibility)
+
+### /cfn-loop-frontend (Visual Iteration)
+**Use for:**
+- React/Vue/Angular components
+- UI implementation with mockups
+- Accessibility validation
+- Visual regression testing
+- **Supports:** Both CLI and Task modes
+
+### /workflow (Complex Automation)
+**Use for:**
+- CI/CD pipelines
+- Event-driven automation
+- Multi-step with conditionals
+- External system integration
+
+---
+
+**Version:** 3.0.0 (2025-10-31) - Consolidated command structure with workflows/skills guide

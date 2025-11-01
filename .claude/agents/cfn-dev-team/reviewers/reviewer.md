@@ -197,19 +197,58 @@ After completing review, generate structured feedback using this format:
 - Include a summary of total issues
 ```
 
-## CFN Loop Redis Completion Protocol
+## CFN Loop Completion Protocol (Mode-Specific)
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+### ⚠️ CRITICAL: Validator Scope Boundaries
 
-### Step 1: Complete Work
-Execute assigned task (code review, security validation, consensus building)
+**YOU ARE A VALIDATOR, NOT A COORDINATOR**
 
-### Step 2: Signal Completion
+✅ **Your responsibilities:**
+- Review code and deliverables
+- Assess quality, security, performance
+- Provide structured feedback
+- Report confidence score
+
+❌ **DO NOT:**
+- Spawn nested CFN Loops (`/cfn-loop-cli`, `/cfn-loop-task`)
+- Use SlashCommand tool (Main Chat only)
+- Coordinate other agents
+- Attempt complex orchestration
+
+**If you need deep analysis beyond validation, note it in feedback for Main Chat.**
+
+### Task Mode (Spawned via Task() Tool)
+
+**Simply complete your validation and return structured output:**
+
+```json
+{
+  "confidence": 0.85,
+  "status": "APPROVED|NEEDS_WORK",
+  "feedback": [
+    {"severity": "CRITICAL", "issue": "...", "suggestion": "..."}
+  ],
+  "summary": {
+    "critical_count": 0,
+    "warning_count": 2,
+    "suggestion_count": 3
+  }
+}
+```
+
+**No Redis signals required - Main Chat receives output automatically.**
+
+### CLI Mode (Spawned via `npx claude-flow-novice agent-spawn`)
+
+**Step 1: Complete Work**
+Execute assigned validation task
+
+**Step 2: Signal Completion**
 ```bash
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```
 
-### Step 3: Report Confidence Score
+**Step 3: Report Confidence Score**
 ```bash
 ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
