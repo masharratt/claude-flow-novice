@@ -53,7 +53,7 @@ const CFN_PATHS = {
     pattern: 'cfn-*'
   },
   commands: {
-    src: path.join(cfnRoot, 'claude-assets/commands/cfn'),
+    src: path.join(cfnRoot, 'claude-assets/commands'),
     dest: '.claude/commands',
     selectiveCopy: true // Copy all files to root, overwriting cfn-prefixed ones
   },
