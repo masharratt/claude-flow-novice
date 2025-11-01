@@ -29,6 +29,8 @@
 * **Test scripts**: `tests/test-*.sh` (persistent, version controlled)
 * **Feature documentation**: `docs/FEATURE_NAME.md` (architecture, process docs)
 * **Temporary files ONLY**: `/tmp/` (ephemeral test fixtures, scratch data)
+* **Backlog items**: Use `.claude/skills/cfn-backlog-management/add-backlog-item.sh` when deferring work (requires: item, why, solution)
+* **Changelog entries**: Use `.claude/skills/cfn-changelog-management/add-changelog-entry.sh` after feature/bugfix/breaking change (10-100 char summary, sparse impact)
 * **Full guidelines**: `docs/AGENT_OUTPUT_STANDARDS.md`
 
 **Consensus thresholds:**
@@ -86,52 +88,42 @@ npx cfn-init  # Copy namespace-isolated files
 * Delegate ALL coordination to skills
 * Use skill-specific configuration for complex workflows
 
-### Cost-Savings Mode (CLI Spawning)
+### CFN Loop Execution Modes
 
-**All CFN Loop slash commands automatically use cost-optimized coordinators.** No manual configuration needed.
+**Two modes for different use cases:**
 
-**Recommended Usage:**
+**CLI Mode (Production):**
 ```bash
-# CLI mode (default - cost-optimized, 95-98% savings)
-/cfn-loop "Implement feature" --mode=standard
-/cfn-loop-epic "Build system"
-/cfn-loop-sprints "Phase 1: Authentication"
-
-# Task mode (debugging - full Main Chat visibility, no coordinator)
-/cfn-loop "Implement feature" --spawn-mode=task --ace-reflect  # Optional: Enable ACE reflection
+/cfn-loop-cli "Task description" --mode=standard
 ```
+- Main Chat spawns ONLY cfn-v3-coordinator
+- Coordinator spawns workers via CLI (background)
+- Cost: $0.054/iteration (95-98% savings)
+- Use: Production, long tasks, cost-sensitive
 
-**Core Coordinators:**
-
-| Coordinator | Spawning Method | Cost Savings | Use Case |
-|-------------|----------------|--------------|----------|
-| `cfn-v3-coordinator` | CLI | 95-98% | CFN Loops |
-| `cost-savings-coordinator` | CLI | 95-98% | General tasks |
-
-**Architecture:**
-Main Chat → Single coordinator agent → Coordinator spawns workers via CLI → 95-98% cost savings
-
-## CFN v3 Dual-Mode Architecture
-
-**Two spawning modes:**
-1. **CLI Mode** (default): Cost-optimized, Redis context, Z.ai routing
-2. **Task Mode**: Simplified, direct injection, Anthropic routing
-
-**Mode Selection:**
+**Task Mode (Debugging):**
 ```bash
-# Default: CLI mode (95-98% savings)
-/cfn-loop "Task description"
-
-# Explicit Task mode (full visibility)
-/cfn-loop "Task description" --spawn-mode=task
+/cfn-loop-task "Task description" --mode=standard
 ```
+- Main Chat spawns ALL agents via Task()
+- NO coordinator agent
+- Cost: $0.150/iteration (3x CLI)
+- Use: Debugging, learning, short tasks (<5 min)
 
-**Key Differences:**
-- CLI mode: Main Chat → Coordinator → orchestrate.sh → CLI agents (background)
-- Task mode: Main Chat reads guide → Main Chat spawns Task() agents directly (NO coordinator)
-- CLI agents use Z.ai routing automatically
-- Task mode: All agents use Anthropic (Main Chat provider)
-- Redis context enables swarm recovery (CLI mode)
+**When to use which:**
+- Production features → `/cfn-loop-cli`
+- Debugging issues → `/cfn-loop-task`
+- Learning CFN Loop → `/cfn-loop-task`
+- Cost-sensitive → `/cfn-loop-cli`
+- Need full visibility → `/cfn-loop-task`
+
+**Architecture patterns:**
+- CLI: Main Chat → cfn-v3-coordinator → orchestrate.sh → CLI workers (background)
+- Task: Main Chat → Task() agents (no coordinator, full visibility)
+
+**Cost breakdown:**
+- CLI mode: $0.054/iteration (Z.ai routing for workers)
+- Task mode: $0.150/iteration (Anthropic for all agents)
 
 **Context Storage:**
 - CLI mode: Coordinator stores context in Redis for agents to retrieve
