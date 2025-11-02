@@ -1,6 +1,6 @@
 # Claude Flow Novice - Backlog
 
-Last Updated: 2025-11-01
+Last Updated: 2025-11-02
 
 ## Active Items
 
@@ -9,6 +9,16 @@ Last Updated: 2025-11-01
 ### P1 - High Priority
 
 ### P2 - Medium Priority
+
+**[P2] - Enhance System Scalability**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Enhance System Scalability
+- **Rationale**: Architectural assessment revealed partial readiness for large-scale unit simulation
+- **Proposed Solution**: 1. Complete Rayon parallel implementation 2. Develop spatial partitioning strategy 3. Create 500-unit load test infrastructure
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-02
 
 **[P2] - Resolve async-nats dependency**
 - **Sprint Backlogged**: Unknown
@@ -31,6 +41,16 @@ Last Updated: 2025-11-01
 - **Date Added**: 2025-10-31
 
 ### P3 - Low Priority / Nice-to-Have
+
+**[P3] - Test backlog preservation mechanism**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Test backlog preservation mechanism
+- **Rationale**: Verifying AWK logic preserves existing entries
+- **Proposed Solution**: Run script and inspect BACKLOG.md to confirm all previous entries remain
+- **Tags**: `testing`, `validation`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-02
 
 ## Completed Items
 

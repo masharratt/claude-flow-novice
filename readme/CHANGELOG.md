@@ -4,6 +4,8 @@
 
 ### Features
 
+- Test changelog preservation (2025-11-02)
+  - Impact: Verifying existing entries are preserved during new entry addition
 - Add Critical Rules section to CFN Loop Task Mode guide (2025-11-01)
   - Impact: Agents now have clear must-follow standards for sparse language, pre-edit backups, git commits, and PO suggestion execution
   - Files: `claude-assets/commands/CFN_LOOP_TASK_MODE.md`
@@ -32,6 +34,10 @@
 
 ### Security
 
+- Neo4j access monitoring enhanced with comprehensive security logging (2025-11-02)
+  - Impact: Enhanced database connection security with comprehensive access logging and suspicious activity detection
+  - Files: `services/rust-services/graph-service/src/monitoring/neo4j_access_monitor.rs,services/rust-services/graph-service/src/repo/neo4j.rs`
+  - Issue: SECURITY-142
 - Fixed P1 security vulnerability in intake authentication middleware (2025-11-01)
   - Impact: Prevents unauthorized session access across intake routes
 ---
