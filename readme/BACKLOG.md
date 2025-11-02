@@ -1,6 +1,6 @@
 # Claude Flow Novice - Backlog
 
-Last Updated: 2025-10-31
+Last Updated: 2025-11-01
 
 ## Active Items
 
@@ -9,6 +9,16 @@ Last Updated: 2025-10-31
 ### P1 - High Priority
 
 ### P2 - Medium Priority
+
+**[P2] - Resolve async-nats dependency**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Resolve async-nats dependency
+- **Rationale**: Critical infrastructure blocker preventing intake-orchestrator testing
+- **Proposed Solution**: Upgrade or patch async-nats to support 'jetstream' feature
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-01
 
 **[P2] - Implement backlog query interface for coordinators to check ...**
 - **Sprint Backlogged**: Sprint 10 - Backlog Management

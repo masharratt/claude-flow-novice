@@ -164,7 +164,7 @@ EOF
 ### 5. Execute Product Owner Suggested Next Steps
 
 **After PROCEED Decision:**
-Product Owner may suggest follow-up tasks (documentation, testing, refactoring). Coordinator (main chat) must proceed by spawning specialized agents to execute these tasks:
+Product Owner may suggest follow-up tasks (documentation, testing, refactoring). Coordinator (main chat) spawns specialized agents to execute these tasks:
 
 ```javascript
 // Parse PO feedback for suggested next steps
@@ -272,7 +272,7 @@ fi
 ```
 
 ### Prioritization
-- **P1**: Critical, blocks progress → process immediately by launching agents for loop 3
+- **P1**: Critical, blocks progress → process immediately
 - **P2**: High value → next sprint
 - **P3**: Nice to have → background worker
 
@@ -305,7 +305,7 @@ threshold = Math.min(threshold, 0.98); // Cap at 0.98
 ## Background Backlog Worker
 
 ### Architecture
-- **Main Chat**: Spawns Task() agents for Sprint N (foreground)
+- **Main Chat**: Spawns Task() coordinator for Sprint N (foreground)
 - **Background CLI**: Processes P3 backlog items (detached process)
 
 ### Launch Background Worker
@@ -339,9 +339,52 @@ kill $(cat /tmp/backlog-worker.pid)        # Stop worker
 
 ---
 
-### Background Backlog Example
+## Task Mode Examples
 
+### Example 1: Simple Backend API
 ```javascript
+Task("cfn-v3-coordinator", `
+  CFN LOOP TASK MODE - User Profile API
+
+  Complexity: Simple (2 files, ~150 LOC)
+  Loop 3: backend-dev
+  Loop 2: reviewer, tester
+  Consensus: 0.85
+
+  Acceptance:
+  - [ ] GET /profile/:id works
+  - [ ] PUT /profile/:id works
+  - [ ] Tests pass (>80%)
+
+  On Complete: git commit + push + generate docs/SPRINT_1_COMPLETE.md
+`)
+```
+
+### Example 2: Complex Full-Stack
+```javascript
+Task("cfn-v3-coordinator", `
+  CFN LOOP TASK MODE - JWT Authentication
+
+  Complexity: Complex (8 files, ~800 LOC, security-critical)
+  Loop 3: backend-dev, react-frontend-engineer, devops
+  Loop 2: reviewer, tester, architect, security-specialist
+  Consensus: 0.92
+
+  Acceptance:
+  - [ ] JWT generation/validation working
+  - [ ] Refresh token rotation
+  - [ ] Security audit passed
+
+  Backlog: Auto-defer OAuth/MFA as P2
+  On Complete: Security scan + git commit + push + sprint summary
+`)
+```
+
+### Example 3: Background Backlog
+```javascript
+// Foreground: Sprint 2
+Task("cfn-v3-coordinator", `Sprint 2: Authorization & RBAC`)
+
 // Background: Process P3 backlog
 Bash(`
   npx claude-flow-novice agent backlog-worker \

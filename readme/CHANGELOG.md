@@ -4,6 +4,14 @@
 
 ### Features
 
+- Add Critical Rules section to CFN Loop Task Mode guide (2025-11-01)
+  - Impact: Agents now have clear must-follow standards for sparse language, pre-edit backups, git commits, and PO suggestion execution
+  - Files: `claude-assets/commands/CFN_LOOP_TASK_MODE.md`
+- Add comprehensive API gateway documentation (2025-11-01)
+  - Impact: Improved developer experience with complete endpoint documentation
+  - Files: `docs/api/ENDPOINTS.md,docs/api/CURL_EXAMPLES.md,docs/api/README.md,docs/api/VALIDATION_REPORT.md,docs/openapi-gateway.yaml`
+- Pre-edit backup protocol automatically injected into all agent prompts (2025-11-01)
+  - Impact: All agents now see pre-edit backup instructions without manual documentation
 - Changelog management skill for sparse structured logging (2025-10-31)
   - Impact: Agents document changes immediately with 10-100 char summaries, avoiding verbose commit messages
   - Files: `.claude/skills/cfn-changelog-management/SKILL.md,add-changelog-entry.sh`
@@ -15,6 +23,11 @@
 
 ### Architecture
 
+- Externalize story-service URL configuration (2025-11-01)
+  - Impact: Improves containerization support by removing hardcoded URLs
+  - Files: `services/rust-services/intake-orchestrator/src/config.rs,services/rust-services/intake-orchestrator/.env`
+- Added synthetic testing research for AI-driven multi-speaker simulation (2025-11-01)
+  - Impact: Enhanced testing capabilities with advanced AI simulation techniques
 ### Performance
 
 ### Security

@@ -288,32 +288,6 @@ export async function buildAgentPrompt(
   sections.push('5. Report confidence score if applicable');
   sections.push('');
 
-  // 7a. Pre-edit backup requirement (MANDATORY)
-  sections.push('## Pre-Edit Backup Protocol (MANDATORY)');
-  sections.push('');
-  sections.push('**BEFORE ANY Edit/Write/MultiEdit operation, you MUST create a backup:**');
-  sections.push('');
-  sections.push('```bash');
-  sections.push(`BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id "${agentId}")`);
-  sections.push('```');
-  sections.push('');
-  sections.push('**Why:** Enables safe file revert without git operations during parallel sessions.');
-  sections.push('**Location:** `.backups/[agent-id]/[timestamp]_[hash]/`');
-  sections.push('**Retention:** 24h TTL (configurable)');
-  sections.push('');
-  sections.push('**Complete Edit Workflow:**');
-  sections.push('```bash');
-  sections.push('# 1. Pre-Edit: Create backup');
-  sections.push(`BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "src/file.ts" --agent-id "${agentId}")`);
-  sections.push('');
-  sections.push('# 2. Edit: Perform file modification');
-  sections.push('Edit: file_path="src/file.ts" old_string="..." new_string="..."');
-  sections.push('');
-  sections.push('# 3. Post-Edit: Validate changes');
-  sections.push(`./.claude/hooks/cfn-invoke-post-edit.sh "src/file.ts" --agent-id "${agentId}"`);
-  sections.push('```');
-  sections.push('');
-
   // 8. Tool reminder
   if (definition.tools && definition.tools.length > 0) {
     sections.push('## Available Tools');
