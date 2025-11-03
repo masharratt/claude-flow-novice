@@ -4,6 +4,9 @@
 
 ### Features
 
+- SEO Content Pipeline Phase 1 Complete (2025-11-02)
+  - Impact: Foundation for SEO content generation established with config system, validators, and quality modes
+  - Files: `services/seo-automation/config/*.json,services/seo-automation/validation/*.ts,services/seo-automation/validation/*.md`
 - Test changelog preservation (2025-11-02)
   - Impact: Verifying existing entries are preserved during new entry addition
 - Add Critical Rules section to CFN Loop Task Mode guide (2025-11-01)
@@ -25,6 +28,9 @@
 
 ### Architecture
 
+- Asset Generation Crates Audit (2025-11-02)
+  - Impact: Detailed analysis of 3D model generation, generation pipeline, and texture synthesis crates
+  - Files: `crates/legion-3d-model-generation,crates/legion-3d-generation,crates/legion-texture-synthesis`
 - Externalize story-service URL configuration (2025-11-01)
   - Impact: Improves containerization support by removing hardcoded URLs
   - Files: `services/rust-services/intake-orchestrator/src/config.rs,services/rust-services/intake-orchestrator/.env`
