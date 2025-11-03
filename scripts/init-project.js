@@ -228,6 +228,13 @@ async function installLizard() {
 }
 
 async function initializeCfnProject() {
+  // Skip initialization if already initialized (prevents overwrite on every npx call)
+  const markerPath = '.claude/.cfn-initialized';
+  if (fs.existsSync(markerPath)) {
+    // Silently skip - already initialized
+    return;
+  }
+
   console.log(chalk.blue('\n🚀 Claude Flow Novice CFN Initialization\n'));
 
   try {
@@ -262,6 +269,9 @@ async function initializeCfnProject() {
 
     // Install lizard for complexity analysis
     await installLizard();
+
+    // Create marker file to prevent re-initialization
+    fs.writeFileSync('.claude/.cfn-initialized', new Date().toISOString());
 
     console.log(chalk.yellow('\n🔍 Next Steps:'));
     console.log('   1. Review CFN-CLAUDE.md in project root');
