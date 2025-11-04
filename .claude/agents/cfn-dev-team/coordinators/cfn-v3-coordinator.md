@@ -108,7 +108,7 @@ fi
 **Agent Selection:**
 ```bash
 # Query registry and select agents
-AGENTS=$(bash ./.claude/skills/agent-selector/select-agents.sh \
+AGENTS=$(bash ./.claude/skills/cfn-agent-selector/select-agents.sh \
   --task-type "$TASK_TYPE" \
   --description "$TASK_DESCRIPTION" \
   --agent-registry ".claude/skills/agent-discovery/agents-registry.json")
@@ -277,7 +277,7 @@ TASK_TYPE=$(bash ./.claude/skills/task-classifier/classify-task.sh "$TASK_DESCRI
 **STEP 2: Agent Selection with Fallback (1 iteration max)**
 ```bash
 # Try agent selector (fail fast if broken)
-if AGENTS=$(bash ./.claude/skills/agent-selector/select-agents.sh --task-type "$TASK_TYPE" --description "$TASK_DESCRIPTION" 2>/dev/null); then
+if AGENTS=$(bash ./.claude/skills/cfn-agent-selector/select-agents.sh --task-type "$TASK_TYPE" --description "$TASK_DESCRIPTION" 2>/dev/null); then
   LOOP3_AGENTS=$(echo "$AGENTS" | jq -r '.loop3 | join(",")')
   LOOP2_AGENTS=$(echo "$AGENTS" | jq -r '.loop2 | join(",")')
   PRODUCT_OWNER=$(echo "$AGENTS" | jq -r '.loop4')

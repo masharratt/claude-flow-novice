@@ -91,4 +91,4 @@ classify-task.sh "Build ETL pipeline for customer data warehouse"
 
 Used by:
 - `.claude/agents/cfn-v3-coordinator.md` - Task analysis
-- `.claude/skills/agent-selector/select-agents.sh` - Agent recommendation
+- `.claude/skills/cfn-agent-selector/select-agents.sh` - Agent recommendation

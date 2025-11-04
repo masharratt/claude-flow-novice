@@ -55,7 +55,7 @@ test_agent_selection() {
     setup_test_context
 
     # Invoke agent selector
-    agent_list=$(./.claude/skills/agent-selector/select-agents.sh \
+    agent_list=$(./.claude/skills/cfn-agent-selector/select-agents.sh \
         --task-id "$TASK_ID" \
         --task-type "development" \
         --redis-db "$REDIS_TEST_DB")

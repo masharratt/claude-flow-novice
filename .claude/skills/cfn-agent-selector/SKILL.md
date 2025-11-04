@@ -13,7 +13,7 @@ Recommends Loop 3 (producers) and Loop 2 (evaluators) agents based on:
 ## Usage
 
 ```bash
-AGENTS=$(./.claude/skills/agent-selector/select-agents.sh \
+AGENTS=$(./.claude/skills/cfn-agent-selector/select-agents.sh \
   --task-type "software-development" \
   --description "Implement JWT authentication with refresh tokens")
 
@@ -88,3 +88,4 @@ echo "$AGENTS" | jq '.loop2[]'  # ["reviewer", "tester", "security-auditor"]
 
 Used by:
 - `.claude/agents/cfn-v3-coordinator.md` - Agent selection
+- `.claude/skills/cfn-agent-selector/select-agents.sh` - Primary selection script

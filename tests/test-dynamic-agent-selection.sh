@@ -69,7 +69,7 @@ test_software_dev_selection() {
 
     local task="Implement secure JWT authentication with Redis"
     local selection=$(
-        ./.claude/skills/agent-selector/select-specialist-agents.sh \
+        ./.claude/skills/cfn-agent-selector/select-specialist-agents.sh \
         --task "$task" \
         --output-format json \
         --registry "$TEST_DIR/agents-registry.json"
@@ -107,7 +107,7 @@ test_content_creation_selection() {
 
     local task="Write comprehensive documentation for API"
     local selection=$(
-        ./.claude/skills/agent-selector/select-specialist-agents.sh \
+        ./.claude/skills/cfn-agent-selector/select-specialist-agents.sh \
         --task "$task" \
         --output-format json \
         --registry "$TEST_DIR/agents-registry.json"
@@ -130,7 +130,7 @@ test_security_task_selection() {
 
     local task="Security audit of authentication system"
     local selection=$(
-        ./.claude/skills/agent-selector/select-specialist-agents.sh \
+        ./.claude/skills/cfn-agent-selector/select-specialist-agents.sh \
         --task "$task" \
         --output-format json \
         --registry "$TEST_DIR/agents-registry.json"
@@ -176,7 +176,7 @@ test_fallback_selection() {
 
     local task="Completely unknown task type that should trigger fallback"
     local selection=$(
-        ./.claude/skills/agent-selector/select-specialist-agents.sh \
+        ./.claude/skills/cfn-agent-selector/select-specialist-agents.sh \
         --task "$task" \
         --output-format json \
         --registry "$TEST_DIR/agents-registry.json"
