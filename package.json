@@ -34,6 +34,7 @@
     ".claude/skills/cfn-hook-pipeline/",
     ".claude/skills/cfn-hybrid-routing/",
     ".claude/skills/cfn-loop-orchestration/",
+    ".claude/skills/pre-edit-backup/",
     ".claude/skills/cfn-loop-validation/",
     ".claude/skills/cfn-process-lifecycle/",
     ".claude/skills/cfn-product-owner-decision/",

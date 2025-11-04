@@ -1,10 +1,15 @@
 #!/bin/bash
-# Product Owner Decision Skill - Main Execution Wrapper
-# Guarantees decision execution via output parsing (solves BUG #11)
+# Product Owner Decision Execution Script
+# Version: 1.0.0
+# Purpose: Execute Product Owner decision with guaranteed Redis coordination
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
 # Parse arguments
 TASK_ID=""
@@ -14,7 +19,6 @@ THRESHOLD=""
 ITERATION=""
 MAX_ITERATIONS=""
 SUCCESS_CRITERIA=""
-EXPECTED_FILES=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -46,12 +50,8 @@ while [[ $# -gt 0 ]]; do
       SUCCESS_CRITERIA="$2"
       shift 2
       ;;
-    --expected-files)
-      EXPECTED_FILES="$2"
-      shift 2
-      ;;
     *)
-      echo "Unknown option: $1" >&2
+      echo "Unknown parameter: $1"
       exit 1
       ;;
   esac
@@ -60,142 +60,169 @@ done
 # Validate required parameters
 if [ -z "$TASK_ID" ] || [ -z "$AGENT_ID" ] || [ -z "$CONSENSUS" ] || \
    [ -z "$THRESHOLD" ] || [ -z "$ITERATION" ] || [ -z "$MAX_ITERATIONS" ]; then
-  echo "ERROR: Missing required parameters" >&2
-  echo "Usage: $0 --task-id TASK_ID --agent-id AGENT_ID --consensus CONSENSUS --threshold THRESHOLD --iteration ITERATION --max-iterations MAX_ITERATIONS [--success-criteria JSON]" >&2
+  echo -e "${RED}❌ ERROR: Missing required parameters${NC}"
+  echo "Usage: $0 --task-id <id> --agent-id <id> --consensus <score> --threshold <score> --iteration <num> --max-iterations <num>"
   exit 1
 fi
 
-# Retrieve full context from Redis (if available)
-REDIS_CONTEXT=$(redis-cli HGET "cfn_loop:task:${TASK_ID}:context" "full_context" 2>/dev/null || echo "{}")
+echo -e "${GREEN}🎯 Product Owner Decision Execution${NC}"
+echo "Task ID: $TASK_ID"
+echo "Agent ID: $AGENT_ID"
+echo "Consensus: $CONSENSUS"
+echo "Threshold: $THRESHOLD"
+echo "Iteration: $ITERATION / $MAX_ITERATIONS"
 
-# Extract scope from Redis context
-EPIC_GOAL=$(echo "$REDIS_CONTEXT" | jq -r '.epicGoal // "Task completion"')
-IN_SCOPE=$(echo "$REDIS_CONTEXT" | jq -r '.inScope[]?' | sed 's/^/- /' | tr '\n' '\n' || echo "- Core functionality")
-OUT_SCOPE=$(echo "$REDIS_CONTEXT" | jq -r '.outOfScope[]?' | sed 's/^/- /' | tr '\n' '\n' || echo "- Advanced features")
-DELIVERABLES=$(echo "$REDIS_CONTEXT" | jq -r '.deliverables[]?' | sed 's/^/- /' | tr '\n' '\n' || echo "- Implementation files")
-DIRECTORY=$(echo "$REDIS_CONTEXT" | jq -r '.directory // "."')
-ACCEPTANCE=$(echo "$REDIS_CONTEXT" | jq -r '.acceptanceCriteria[]?' | sed 's/^/- /' | tr '\n' '\n' || echo "- Tests pass")
+# Retrieve Loop 2 context from Redis
+echo -e "${YELLOW}📥 Retrieving Loop 2 context...${NC}"
+LOOP2_FEEDBACK=$(redis-cli HGET "swarm:${TASK_ID}:loop2:consensus" "feedback" || echo "")
+TASK_CONTEXT=$(redis-cli HGETALL "swarm:${TASK_ID}:context" || echo "")
 
-# Build Product Owner context with full scope information
-PO_CONTEXT="CFN Loop iteration $ITERATION complete.
+# Build Product Owner context
+PO_CONTEXT="
+You are the Product Owner making a strategic decision for CFN Loop iteration $ITERATION of $MAX_ITERATIONS.
 
-Epic Goal: $EPIC_GOAL
+Loop 2 Consensus: $CONSENSUS
+Threshold: $THRESHOLD
+Success Criteria: ${SUCCESS_CRITERIA:-"Not specified"}
 
-In-Scope:
-$IN_SCOPE
+Loop 2 Feedback:
+$LOOP2_FEEDBACK
 
-Out-of-Scope:
-$OUT_SCOPE
+Task Context:
+$TASK_CONTEXT
 
-Deliverables:
-$DELIVERABLES
-
-Directory: $DIRECTORY
-
-Acceptance Criteria:
-$ACCEPTANCE
-
-Loop 2 Consensus: $CONSENSUS (threshold: $THRESHOLD)
-Current Iteration: $ITERATION
-Max Iterations: $MAX_ITERATIONS
-
-Make your strategic decision: PROCEED, ITERATE, or ABORT
-
-Decision Framework:
-- PROCEED: Consensus >= $THRESHOLD AND deliverables verified AND acceptance criteria met
-- ITERATE: Consensus < $THRESHOLD AND iteration < $MAX_ITERATIONS
-- ABORT: Max iterations reached without consensus
+Make a strategic decision:
+- PROCEED: Quality threshold met, deliverables complete
+- ITERATE: Improvements needed, iterations remaining
+- ABORT: Max iterations reached or unrecoverable failure
 
 Output format:
-Decision: [PROCEED|ITERATE|ABORT]
-Reasoning: [explain using GOAP framework]
+Decision: PROCEED|ITERATE|ABORT
+Reasoning: [your explanation]
 Confidence: [0.0-1.0]
-Next Action: [specific next step - 'proceed to next sprint', 'complete epic', 'iterate on current sprint']
+"
 
-CRITICAL: Do NOT ask for user confirmation. Make autonomous decision."
+# Spawn Product Owner agent
+echo -e "${YELLOW}🚀 Spawning Product Owner agent...${NC}"
+PO_OUTPUT_FILE="/tmp/product-owner-${TASK_ID}-${ITERATION}.log"
 
-# Get agent timeout (if get_agent_timeout function available)
-if command -v get_agent_timeout &>/dev/null; then
-  PO_TIMEOUT=$(get_agent_timeout "product-owner" "$TASK_ID")
-else
-  PO_TIMEOUT=900  # Default 15 minutes
-fi
+# Use timeout from agent config
+PO_TIMEOUT=300  # 5 minutes default
 
-# Spawn Product Owner and capture output
-PO_OUTPUT=$(timeout "$PO_TIMEOUT" npx claude-flow-novice agent product-owner \
+set +e
+timeout "$PO_TIMEOUT" npx claude-flow-novice agent product-owner \
   --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "$PO_CONTEXT" 2>&1 || true)
+  --context "$PO_CONTEXT" > "$PO_OUTPUT_FILE" 2>&1
+PO_EXIT_CODE=$?
+set -e
 
-# Parse decision using skill parser
-DECISION_TYPE=$("$SCRIPT_DIR/parse-decision.sh" --output "$PO_OUTPUT")
-
-if [ -z "$DECISION_TYPE" ]; then
-  echo "❌ ERROR: Could not parse Product Owner decision" >&2
-  echo "Product Owner output:" >&2
-  echo "$PO_OUTPUT" >&2
-
-  # Fallback to ABORT on parse failure
+# Check timeout
+if [ $PO_EXIT_CODE -eq 124 ]; then
+  echo -e "${RED}❌ ERROR: Product Owner timed out after ${PO_TIMEOUT}s${NC}"
   DECISION_TYPE="ABORT"
-  REASONING="Failed to parse Product Owner decision from output"
-  CONFIDENCE=0.50
+  REASONING="Product Owner decision timeout after ${PO_TIMEOUT}s"
+  CONFIDENCE=0.0
 else
-  # Extract reasoning (context around decision)
-  REASONING=$(echo "$PO_OUTPUT" | grep -A5 -i "decision" | tail -5 | tr '\n' ' ' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  CONFIDENCE=0.90
-fi
+  # Parse decision from output
+  PO_OUTPUT=$(cat "$PO_OUTPUT_FILE")
 
-# Validate deliverables for PROCEED decisions
-if [ "$DECISION_TYPE" = "PROCEED" ]; then
-  DELIVERABLE_ARGS="--task-id $TASK_ID"
-  if [ -n "$EXPECTED_FILES" ]; then
-    DELIVERABLE_ARGS="$DELIVERABLE_ARGS --expected-files $EXPECTED_FILES"
+  # Try multiple parsing patterns
+  DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oiE "Decision:\s*(PROCEED|ITERATE|ABORT)" | grep -oiE "(PROCEED|ITERATE|ABORT)" | head -1 | tr '[:lower:]' '[:upper:]' || echo "")
+
+  if [ -z "$DECISION_TYPE" ]; then
+    DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oE "(PROCEED|ITERATE|ABORT)" | head -1 || echo "")
   fi
 
-  DELIVERABLE_STATUS=$("$SCRIPT_DIR/validate-deliverables.sh" $DELIVERABLE_ARGS)
+  if [ -z "$DECISION_TYPE" ]; then
+    DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oiE "(proceed|iterate|abort)" | head -1 | tr '[:lower:]' '[:upper:]' || echo "")
+  fi
 
-  if [ "$DELIVERABLE_STATUS" = "FAILED" ]; then
-    # Retrieve missing files from Redis (if available)
-    MISSING_FILES_JSON=$(redis-cli get "swarm:${TASK_ID}:missing-files" 2>/dev/null || echo "[]")
-    MISSING_FILES_LIST=$(echo "$MISSING_FILES_JSON" | jq -r '.[]' | tr '\n' ', ' | sed 's/,$//')
+  # Parse reasoning
+  REASONING=$(echo "$PO_OUTPUT" | grep -oiE "Reasoning:\s*.*" | sed 's/Reasoning:\s*//' || echo "No reasoning provided")
 
-    # Override PROCEED → ITERATE
-    DECISION_TYPE="ITERATE"
-    if [ -n "$MISSING_FILES_LIST" ]; then
-      REASONING="Deliverable verification failed - missing files: $MISSING_FILES_LIST"
+  # Parse confidence
+  CONFIDENCE=$(echo "$PO_OUTPUT" | grep -oE "Confidence:\s*[0-9]+\.?[0-9]*" | grep -oE "[0-9]+\.?[0-9]*" || echo "0.85")
+fi
+
+# Validate decision parsing
+if [ -z "$DECISION_TYPE" ]; then
+  echo -e "${RED}❌ ERROR: Could not parse decision from Product Owner output${NC}"
+  echo "Output sample:"
+  echo "$PO_OUTPUT" | head -20
+  DECISION_TYPE="ABORT"
+  REASONING="Failed to parse Product Owner decision"
+  CONFIDENCE=0.0
+fi
+
+echo -e "${GREEN}✅ Product Owner Decision: $DECISION_TYPE${NC}"
+echo "Reasoning: $REASONING"
+echo "Confidence: $CONFIDENCE"
+
+# Deliverable verification for PROCEED decisions
+if [ "$DECISION_TYPE" = "PROCEED" ]; then
+  echo -e "${YELLOW}🔍 Verifying deliverables...${NC}"
+
+  # Check if task requires implementation (keywords: create, build, implement, generate)
+  REQUIRES_IMPLEMENTATION=$(echo "$TASK_CONTEXT" | grep -iE "(create|build|implement|generate|write|add)" || echo "")
+
+  if [ -n "$REQUIRES_IMPLEMENTATION" ]; then
+    # Check git status for file changes
+    FILES_CHANGED=$(git status --short | grep -E "^(A|M|\?\?)" | wc -l || echo "0")
+
+    if [ "$FILES_CHANGED" -eq 0 ]; then
+      echo -e "${YELLOW}⚠️  WARNING: No deliverables created (consensus on plans only)${NC}"
+      DECISION_TYPE="ITERATE"
+      REASONING="Override PROCEED → ITERATE: No files created despite implementation task. Validators approved plans without actual code."
+      CONFIDENCE=0.70
+
+      # Add deliverable requirement to feedback
+      DELIVERABLE_FEEDBACK="
+Critical: Task requires implementation but zero files created.
+Next iteration MUST create actual deliverables, not just plans.
+"
+      redis-cli HSET "swarm:${TASK_ID}:loop2:consensus" "deliverable_feedback" "$DELIVERABLE_FEEDBACK"
     else
-      REASONING="Deliverable verification failed - no files created (consensus on plans only)"
+      echo -e "${GREEN}✅ Deliverables verified: $FILES_CHANGED files changed${NC}"
     fi
-    CONFIDENCE=0.75
   fi
 fi
 
 # Build decision JSON
-DECISION_JSON=$(jq -n \
-  --arg decision "$DECISION_TYPE" \
-  --arg reasoning "${REASONING:-Parsed from Product Owner output}" \
-  --arg confidence "$CONFIDENCE" \
-  --arg iteration "$ITERATION" \
-  --arg consensus "$CONSENSUS" \
-  '{
-    decision: $decision,
-    reasoning: $reasoning,
-    confidence: ($confidence | tonumber),
-    iteration: ($iteration | tonumber),
-    consensus: ($consensus | tonumber),
-    timestamp: (now | todate)
-  }')
+DECISION_JSON=$(cat <<EOF
+{
+  "decision": "$DECISION_TYPE",
+  "reasoning": "$REASONING",
+  "confidence": $CONFIDENCE,
+  "iteration": $ITERATION,
+  "consensus": $CONSENSUS,
+  "threshold": $THRESHOLD,
+  "timestamp": $(date +%s)
+}
+EOF
+)
 
-# Push decision to Redis (orchestrator's responsibility, not agent's)
-DECISION_KEY="swarm:${TASK_ID}:${AGENT_ID}:decision"
-echo "$DECISION_JSON" | redis-cli -x LPUSH "$DECISION_KEY" >/dev/null
+# Store decision in Redis
+echo -e "${YELLOW}💾 Storing decision in Redis...${NC}"
+redis-cli SET "swarm:${TASK_ID}:decision" "$DECISION_TYPE" EX 3600
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "decision" "$DECISION_TYPE"
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "reasoning" "$REASONING"
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "confidence" "$CONFIDENCE"
 
-# Signal Product Owner completion
-redis-cli LPUSH "swarm:${TASK_ID}:${AGENT_ID}:done" "complete" >/dev/null
+# Store in metrics
+redis-cli LPUSH "swarm:${TASK_ID}:metrics:product_owner_decisions" "$DECISION_JSON"
+redis-cli INCR "swarm:metrics:decisions:$(echo "$DECISION_TYPE" | tr '[:upper:]' '[:lower:]')"
 
-# Store decision in metrics
-redis-cli LPUSH "swarm:${TASK_ID}:metrics:product_owner_decisions" "$DECISION_JSON" >/dev/null
-redis-cli INCR "swarm:metrics:decisions:$(echo "$DECISION_TYPE" | tr '[:upper:]' '[:lower:]')" >/dev/null
+# Signal completion
+redis-cli LPUSH "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+# Report confidence (for orchestrator collection)
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence "$CONFIDENCE" \
+  --iteration "$ITERATION"
 
 # Output decision JSON for orchestrator
 echo "$DECISION_JSON"
+
+echo -e "${GREEN}✅ Product Owner decision execution complete${NC}"
