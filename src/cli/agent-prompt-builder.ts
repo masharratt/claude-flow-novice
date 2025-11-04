@@ -233,7 +233,8 @@ export async function buildAgentPrompt(
   definition: AgentDefinition,
   context: TaskContext
 ): Promise<string> {
-  const agentId = `${definition.name}-${context.iteration || 1}`;
+  // Use explicit agent ID if provided, otherwise generate from name + iteration
+  const agentId = context.agentId || `${definition.name}-${context.iteration || 1}`;
 
   const sections: string[] = [];
 

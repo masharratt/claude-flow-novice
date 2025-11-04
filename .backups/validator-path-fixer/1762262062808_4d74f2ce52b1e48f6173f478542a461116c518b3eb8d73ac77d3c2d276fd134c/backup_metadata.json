@@ -1,0 +1,8 @@
+{
+  "agent_id": "validator-path-fixer",
+  "original_path": "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-agent-selector/SKILL.md",
+  "backup_timestamp": 1762262062808,
+  "file_hash": "4d74f2ce52b1e48f6173f478542a461116c518b3eb8d73ac77d3c2d276fd134c",
+  "backup_ttl": 86400,
+  "backup_status": "active"
+}

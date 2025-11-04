@@ -1,0 +1,8 @@
+{
+  "agent_id": "validator-path-fixer",
+  "original_path": "/mnt/c/Users/masha/Documents/claude-flow-novice/tests/cfn-v3/test-coordinator-handoffs.sh",
+  "backup_timestamp": 1762262009597,
+  "file_hash": "e9ce0221d72d0880ba9b9b8e02c0b6c552eafb538bac0e87588f4850eacbfb87",
+  "backup_ttl": 86400,
+  "backup_status": "active"
+}

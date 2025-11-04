@@ -3,43 +3,97 @@ import ast
 import sys
 
 class AsyncSafetyVisitor(ast.NodeVisitor):
-    def __init__(self):
+    def __init__(self, debug=False):
         self.async_functions = {}
         self.unsafe_calls = []
+        self.node_parents = {}
+        self.debug = debug
+
+    def visit(self, node):
+        # Recursive parent tracking
+        for child in ast.iter_child_nodes(node):
+            self.node_parents[child] = node
+        super().visit(node)
+
+    def get_parent(self, node, node_type=None):
+        """Recursively find parent of specified type"""
+        current = self.node_parents.get(node)
+        while current:
+            if node_type is None or isinstance(current, node_type):
+                return current
+            current = self.node_parents.get(current)
+        return None
+
+    def is_safe_async_context(self, node):
+        """Determine if async call is in a safe context"""
+        # Safe contexts:
+        # 1. Direct await
+        # 2. create_task/gather
+        # 3. Tracked async operations
+        safe_async_funcs = {'create_task', 'gather'}
+        safe_modules = {'asyncio'}
+
+        # Check for await
+        is_awaited = self.get_parent(node, ast.Await) is not None
+
+        # Check for safe async module functions
+        is_safe_func = (
+            isinstance(node.func, ast.Attribute) and
+            node.func.attr in safe_async_funcs and
+            (node.func.value.id if isinstance(node.func.value, ast.Name) else None) in safe_modules
+        )
+
+        # Detect assignment for later use
+        parent = self.get_parent(node)
+        is_task_creation = (
+            isinstance(parent, ast.Assign)
+        )
+
+        if self.debug and not (is_awaited or is_safe_func or is_task_creation):
+            print(f"Debugging - Unsafe Context: {ast.dump(node)}")
+            print(f"Is Awaited: {is_awaited}, Is Safe Func: {is_safe_func}, Is Task Creation: {is_task_creation}")
+
+        return is_awaited or is_safe_func or is_task_creation
 
     def visit_AsyncFunctionDef(self, node):
-        # Store async function context
+        """Track async function contexts"""
         self.async_functions[node] = {
             'name': node.name,
-            'calls': set()
+            'context': node
         }
         self.generic_visit(node)
 
     def visit_Call(self, node):
-        # Check if this call is inside an async function
-        for func, context in list(self.async_functions.items()):
-            if node in ast.walk(func):
-                # Check if this call is directly inside an async function
-                # and not wrapped in an await
-                parent = next((p for p in ast.iter_child_nodes(func) if node in ast.walk(p)), None)
+        """Detect unsafe async calls"""
+        # Skip if not in async function
+        async_context = next(
+            (func for func, details in self.async_functions.items()
+             if node in ast.walk(details['context'])),
+            None
+        )
+        if not async_context:
+            return
 
-                # Detect if call is not inside an Await node
-                if not any(isinstance(p, ast.Await) for p in ast.walk(parent)):
-                    func_name = (
-                        node.func.attr if isinstance(node.func, ast.Attribute)
-                        else node.func.id if isinstance(node.func, ast.Name)
-                        else 'Unknown'
-                    )
-                    self.unsafe_calls.append(
-                        f"Line {node.lineno}: Async function '{context['name']}' calls '{func_name}' without await"
-                    )
+        # Detect function name
+        func_name = (
+            node.func.attr if isinstance(node.func, ast.Attribute)
+            else node.func.id if isinstance(node.func, ast.Name)
+            else 'Unknown'
+        )
+
+        # Check if call is unsafe
+        if not self.is_safe_async_context(node):
+            self.unsafe_calls.append(
+                f"Line {node.lineno}: Async function '{async_context.name}' calls '{func_name}' without await"
+            )
 
         self.generic_visit(node)
 
-def validate_async_safety(file_path):
+def validate_async_safety(file_path, debug=False):
     try:
         with open(file_path, 'r') as f:
-            tree = ast.parse(f.read(), filename=file_path)
+            content = f.read()
+            tree = ast.parse(content, filename=file_path)
     except SyntaxError as e:
         print(f"Syntax error in {file_path}: {e}")
         return 1
@@ -47,7 +101,7 @@ def validate_async_safety(file_path):
         print(f"File not found: {file_path}")
         return 1
 
-    visitor = AsyncSafetyVisitor()
+    visitor = AsyncSafetyVisitor(debug=debug)
     visitor.visit(tree)
 
     if visitor.unsafe_calls:
@@ -64,7 +118,8 @@ def main():
         return 1
 
     file_path = sys.argv[1]
-    result = validate_async_safety(file_path)
+    debug = "--debug" in sys.argv
+    result = validate_async_safety(file_path, debug=debug)
     sys.exit(result)
 
 if __name__ == '__main__':

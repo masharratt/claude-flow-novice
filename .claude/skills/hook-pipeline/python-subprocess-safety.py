@@ -5,6 +5,15 @@ import sys
 class SubprocessSafetyVisitor(ast.NodeVisitor):
     def __init__(self):
         self.unsafe_calls = []
+        self.allowed_stderr_values = {'Attribute': ['PIPE', 'DEVNULL', 'STDOUT'],
+                                      'Name': ['subprocess.PIPE', 'subprocess.DEVNULL', 'subprocess.STDOUT']}
+
+    def is_safe_stderr(self, node):
+        if isinstance(node, ast.Attribute):
+            return node.attr in self.allowed_stderr_values['Attribute']
+        if isinstance(node, ast.Name):
+            return node.id in self.allowed_stderr_values['Name']
+        return False
 
     def visit_Call(self, node):
         if isinstance(node.func, ast.Attribute):
@@ -16,16 +25,19 @@ class SubprocessSafetyVisitor(ast.NodeVisitor):
                     module_name = node.func.value.id
 
                 if module_name == 'subprocess':
-                    # Check if stderr parameter is missing or not set
+                    # Strategies for safe subprocess calls
                     stderr_found = False
-                    for kw in node.keywords:
-                        if kw.arg == 'stderr':
-                            stderr_found = True
-                            break
+                    capture_output_found = False
 
-                    if not stderr_found:
+                    for kw in node.keywords:
+                        if kw.arg == 'stderr' and self.is_safe_stderr(kw.value):
+                            stderr_found = True
+                        if kw.arg == 'capture_output' and isinstance(kw.value, ast.NameConstant) and kw.value.value is True:
+                            capture_output_found = True
+
+                    if not (stderr_found or capture_output_found):
                         self.unsafe_calls.append(
-                            f"Line {node.lineno}: Subprocess call '{func_name}' without stderr parameter"
+                            f"Line {node.lineno}: Subprocess call '{func_name}' without stderr parameter or capture_output"
                         )
 
         self.generic_visit(node)

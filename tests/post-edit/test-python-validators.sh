@@ -144,7 +144,7 @@ EOF
         report_result "TEST 3: async call without await" "PASS"
     else
         report_result "TEST 3: async call without await" "FAIL" \
-            "Expected exit 2 and warning, got exit $exit_code"
+            "Expected exit 2 and warning, got exit $exit_code. Output: $output"
     fi
 }
 
@@ -176,14 +176,15 @@ EOF
 
     # Run validator
     local exit_code=0
-    "$VALIDATOR_DIR/python-async-safety.py" "$test_file" 2>/dev/null || exit_code=$?
+    "$VALIDATOR_DIR/python-async-safety.py" "$test_file" --debug 2>/dev/null || exit_code=$?
 
     # Expected: Exit 0 (pass)
     if [[ $exit_code -eq 0 ]]; then
         report_result "TEST 4: async call with await" "PASS"
     else
         report_result "TEST 4: async call with await" "FAIL" \
-            "Expected exit 0, got exit $exit_code"
+            "Expected exit 0, got exit $exit_code. Debug output:"
+        "$VALIDATOR_DIR/python-async-safety.py" "$test_file" --debug 2>&1
     fi
 }
 
@@ -218,7 +219,8 @@ EOF
         report_result "TEST 5: missing import detection" "PASS"
     else
         report_result "TEST 5: missing import detection" "FAIL" \
-            "Expected exit 2 and import warning, got exit $exit_code"
+            "Expected exit 2 and import warning, got exit $exit_code. Output: $output"
+        "$VALIDATOR_DIR/python-import-checker.py" "$test_file" --debug 2>&1
     fi
 }
 
