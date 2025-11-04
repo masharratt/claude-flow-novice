@@ -37,22 +37,28 @@ log_warning() {
     echo -e "${YELLOW}[WARN]${NC} $*"
 }
 
-# Wait for Redis key with timeout
+# Wait for Redis key with timeout (BLPOP + fallback)
+# Uses production BLPOP method with timeout wrapper
 wait_for_redis_key() {
     local key="$1"
     local timeout="${2:-60}"
-    local elapsed=0
 
-    log_info "Waiting for Redis key: $key (timeout: ${timeout}s)"
+    log_info "Waiting for Redis key: $key (timeout: ${timeout}s, BLPOP)"
 
-    while [ $elapsed -lt $timeout ]; do
-        if redis-cli exists "$key" | grep -q "1"; then
-            log_success "Key found: $key (after ${elapsed}s)"
-            return 0
-        fi
-        sleep 2
-        ((elapsed+=2))
-    done
+    # Try BLPOP first (production method - instant notification)
+    local result=$(timeout "$timeout" redis-cli BLPOP "$key" "$timeout" 2>/dev/null)
+    local blpop_exit=$?
+
+    if [ $blpop_exit -eq 0 ] && [ -n "$result" ]; then
+        log_success "Key found via BLPOP: $key (production method)"
+        return 0
+    fi
+
+    # Fallback: Check if key exists (for keys created before BLPOP started)
+    if redis-cli exists "$key" 2>/dev/null | grep -q "1"; then
+        log_success "Key found via EXISTS: $key (already existed)"
+        return 0
+    fi
 
     log_error "Timeout waiting for key: $key (${timeout}s)"
     return 1
@@ -64,7 +70,7 @@ check_redis_pattern() {
     local description="$2"
 
     log_info "Checking Redis pattern: $pattern"
-    local count=$(redis-cli keys "$pattern" | wc -l)
+    local count=$(redis-cli keys "$pattern" 2>/dev/null | wc -l)
 
     if [ "$count" -gt 0 ]; then
         log_success "$description: Found $count keys matching $pattern"
@@ -73,6 +79,37 @@ check_redis_pattern() {
         log_error "$description: No keys matching $pattern"
         return 1
     fi
+}
+
+# Wait for Redis pattern to appear (event-driven with exponential backoff)
+wait_for_redis_pattern() {
+    local pattern="$1"
+    local description="$2"
+    local timeout="${3:-60}"
+    local interval=1
+    local max_interval=10
+    local elapsed=0
+
+    log_info "Waiting for pattern: $pattern (timeout: ${timeout}s, adaptive)"
+
+    while [ $elapsed -lt $timeout ]; do
+        local count=$(redis-cli keys "$pattern" 2>/dev/null | wc -l)
+
+        if [ "$count" -gt 0 ]; then
+            log_success "$description: Found $count keys after ${elapsed}s"
+            return 0
+        fi
+
+        sleep $interval
+        ((elapsed+=interval))
+
+        # Exponential backoff with cap
+        ((interval=interval*2))
+        [ $interval -gt $max_interval ] && interval=$max_interval
+    done
+
+    log_error "$description: Pattern timeout after ${timeout}s"
+    return 1
 }
 
 # Get confidence score from Redis
@@ -143,14 +180,8 @@ main() {
     COORDINATOR_PID=$!
     log_info "Coordinator PID: $COORDINATOR_PID"
 
-    # Wait for coordinator to store config
-    sleep 5
-
-    # Check if orchestrator was invoked (Loop 3 agents should exist)
-    log_info "Checking if orchestrator spawned Loop 3 agents..."
-    sleep 15  # Give orchestrator time to spawn agents
-
-    if check_redis_pattern "swarm:${TASK_ID}:*-1:*" "Loop 3 agents spawned"; then
+    # Wait for orchestrator to spawn Loop 3 agents (event-driven)
+    if wait_for_redis_pattern "swarm:${TASK_ID}:*-1:*" "Loop 3 agents spawned" 45; then
         log_success "TEST 1 PASSED: Coordinator successfully invoked orchestrator"
     else
         log_error "TEST 1 FAILED: Orchestrator not invoked or agents not spawned"
@@ -164,13 +195,8 @@ main() {
     echo "TEST 2: Loop 3 → Gate Check Handoff"
     echo "=========================================="
 
-    log_info "Waiting for Loop 3 agents to complete..."
-
-    # Wait for Loop 3 completion markers
-    sleep 20
-
-    # Check if Loop 3 agents reported confidence
-    if check_redis_pattern "swarm:${TASK_ID}:*-1-1:confidence" "Loop 3 confidence scores"; then
+    # Wait for Loop 3 agents to report confidence (event-driven)
+    if wait_for_redis_pattern "swarm:${TASK_ID}:*-1-1:confidence" "Loop 3 confidence scores" 60; then
         log_success "Loop 3 agents reported confidence"
 
         # Check for gate check execution
@@ -199,12 +225,9 @@ main() {
     echo "=========================================="
 
     # Check if gate passed
-    if redis-cli exists "swarm:${TASK_ID}:gate-passed" | grep -q "1"; then
-        log_info "Gate passed, checking Loop 2 spawn..."
-
-        sleep 15  # Give time for Loop 2 to spawn
-
-        if check_redis_pattern "swarm:${TASK_ID}:reviewer*" "Loop 2 validator agents"; then
+    if redis-cli exists "swarm:${TASK_ID}:gate-passed" 2>/dev/null | grep -q "1"; then
+        # Wait for Loop 2 validators to spawn (event-driven)
+        if wait_for_redis_pattern "swarm:${TASK_ID}:reviewer*" "Loop 2 validator agents" 45; then
             log_success "TEST 3 PASSED: Loop 2 validators spawned after gate pass"
         else
             log_error "TEST 3 FAILED: Loop 2 validators not spawned"
@@ -222,16 +245,11 @@ main() {
     echo "TEST 4: Loop 2 → Product Owner Handoff"
     echo "=========================================="
 
-    # Check if Loop 2 validators reported consensus
-    sleep 20
-
-    if check_redis_pattern "swarm:${TASK_ID}:reviewer*:confidence" "Loop 2 confidence scores" || \
-       check_redis_pattern "swarm:${TASK_ID}:tester*:confidence" "Loop 2 confidence scores"; then
-        log_info "Loop 2 validators completed, checking Product Owner spawn..."
-
-        sleep 10
-
-        if check_redis_pattern "swarm:${TASK_ID}:product-owner*" "Product Owner agent"; then
+    # Wait for Loop 2 validators to report confidence (event-driven)
+    if wait_for_redis_pattern "swarm:${TASK_ID}:reviewer*:confidence" "Loop 2 confidence scores" 60 || \
+       wait_for_redis_pattern "swarm:${TASK_ID}:tester*:confidence" "Loop 2 confidence scores" 60; then
+        # Wait for Product Owner to spawn (event-driven)
+        if wait_for_redis_pattern "swarm:${TASK_ID}:product-owner*" "Product Owner agent" 30; then
             log_success "TEST 4 PASSED: Product Owner spawned after Loop 2"
         else
             log_warning "TEST 4: Product Owner may not have spawned yet"
@@ -249,15 +267,11 @@ main() {
     echo "TEST 5: Product Owner Decision Execution"
     echo "=========================================="
 
-    sleep 15
-
-    # Check for Product Owner decision
-    if check_redis_pattern "swarm:${TASK_ID}:product-owner*:result" "Product Owner decision"; then
-        log_info "Checking decision execution..."
-
-        # Check for decision keys
-        if redis-cli exists "swarm:${TASK_ID}:decision" | grep -q "1"; then
-            local decision=$(redis-cli get "swarm:${TASK_ID}:decision")
+    # Wait for Product Owner to complete (event-driven)
+    if wait_for_redis_pattern "swarm:${TASK_ID}:product-owner*:result" "Product Owner decision" 45; then
+        # Wait for decision key using BLPOP (production method)
+        if wait_for_redis_key "swarm:${TASK_ID}:decision" 15; then
+            local decision=$(redis-cli get "swarm:${TASK_ID}:decision" 2>/dev/null)
             log_success "TEST 5 PASSED: Product Owner made decision: $decision"
         else
             log_warning "Product Owner decision key not found in expected location"
@@ -275,10 +289,8 @@ main() {
     echo "TEST 6: Iteration Cycle Management"
     echo "=========================================="
 
-    sleep 10
-
-    # Check for iteration 2 markers
-    if check_redis_pattern "swarm:${TASK_ID}:*-2:*" "Iteration 2 agents"; then
+    # Check for iteration 2 markers (short timeout - may not iterate)
+    if wait_for_redis_pattern "swarm:${TASK_ID}:*-2:*" "Iteration 2 agents" 30; then
         log_success "TEST 6 PASSED: Iteration cycle executed (agents spawned for iteration 2)"
     else
         log_info "No iteration 2 detected (task may have PROCEEDED or ABORTED)"
@@ -330,12 +342,21 @@ main() {
     echo "TEST 8: Deliverables Created"
     echo "=========================================="
 
-    log_info "Checking if deliverables were created..."
+    # Wait for deliverable file to be created (poll file system)
+    local wait_count=0
+    local max_wait=40
+    local file_found=false
 
-    # Wait for coordinator to finish
-    sleep 20
+    while [ $wait_count -lt $max_wait ]; do
+        if [ -f "/tmp/cfn-e2e-test.sh" ]; then
+            file_found=true
+            break
+        fi
+        sleep 1
+        ((wait_count++))
+    done
 
-    if [ -f "/tmp/cfn-e2e-test.sh" ]; then
+    if [ "$file_found" = "true" ]; then
         log_success "TEST 8 PASSED: Deliverable file created: /tmp/cfn-e2e-test.sh"
 
         # Test if the file works
