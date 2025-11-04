@@ -232,6 +232,34 @@ const validatorsByExtension = {
     'bash-pipe-safety.sh',
     'bash-dependency-checker.sh',
     'enforce-lf.sh'
+  ],
+  '.py': [
+    'python-subprocess-safety.py',
+    'python-async-safety.py',
+    'python-import-checker.py',
+    'enforce-lf.sh'
+  ],
+  '.js': [
+    'js-promise-safety.sh',
+    'enforce-lf.sh'
+  ],
+  '.ts': [
+    'js-promise-safety.sh',
+    'enforce-lf.sh'
+  ],
+  '.jsx': [
+    'js-promise-safety.sh',
+    'enforce-lf.sh'
+  ],
+  '.tsx': [
+    'js-promise-safety.sh',
+    'enforce-lf.sh'
+  ],
+  '.rs': [
+    'rust-command-safety.sh',
+    'rust-future-safety.sh',
+    'rust-dependency-checker.sh',
+    'enforce-lf.sh'
   ]
 };
 
@@ -242,7 +270,11 @@ function runValidator(validatorName, targetFile) {
   log('DEBUG', `Executing validator: ${validatorName}`, { targetFile });
 
   try {
-    const result = spawnSync('bash', [validatorPath, targetFile], {
+    // Determine interpreter based on file extension
+    const isPython = validatorName.endsWith('.py');
+    const interpreter = isPython ? 'python3' : 'bash';
+
+    const result = spawnSync(interpreter, [validatorPath, targetFile], {
       encoding: 'utf-8',
       timeout: 5000,
       cwd: process.cwd()

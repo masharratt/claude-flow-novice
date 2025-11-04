@@ -1,0 +1,28 @@
+{
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:promise/recommended"
+  ],
+  "plugins": [
+    "@typescript-eslint",
+    "promise"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "rules": {
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/no-misused-promises": "error",
+    "promise/catch-or-return": "error",
+    "promise/always-return": "warn",
+    "promise/no-nesting": "warn",
+    "no-async-promise-executor": "error",
+    "require-atomic-updates": "error",
+    "no-return-await": "error",
+    "@typescript-eslint/await-thenable": "error"
+  }
+}

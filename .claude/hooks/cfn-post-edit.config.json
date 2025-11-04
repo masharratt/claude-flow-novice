@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "pipeline": "config/hooks/post-edit-pipeline.js",
   "triggerOn": ["Edit", "Write", "MultiEdit"],
-  "fileTypes": [".ts", ".tsx", ".js", ".jsx", ".json", ".md", ".sh", ".bash"],
+  "fileTypes": [".ts", ".tsx", ".js", ".jsx", ".json", ".md", ".sh", ".bash", ".py", ".rs"],
   "blocking": false,
   "exitCodes": {
     "0": "SUCCESS",
