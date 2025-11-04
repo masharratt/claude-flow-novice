@@ -47,8 +47,8 @@ echo "=========================================="
 if command -v npx &> /dev/null; then
     log_success "npx command available"
 
-    if npx claude-flow-novice --version &> /dev/null; then
-        VERSION=$(npx claude-flow-novice --version 2>&1 | head -1)
+    if timeout 10 npx claude-flow-novice --version &> /dev/null; then
+        VERSION=$(timeout 10 npx claude-flow-novice --version 2>&1 | head -1)
         log_success "CLI binary works: $VERSION"
     else
         log_error "CLI binary doesn't work (npx claude-flow-novice --version failed)"
