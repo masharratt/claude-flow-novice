@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# CFN Loop End-to-End Test Script
+# Creates a hello world function and validates CFN Loop functionality
+
+echo "Creating hello world function..."
+
+# Create a simple hello world function
+hello_world() {
+    echo "Hello from CFN Loop!"
+}
+
+echo "CFN Loop Works!"
+
+# Test the function
+hello_world
+
+echo "Test completed successfully!"

@@ -72,7 +72,53 @@ BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "src/file.ts" --agent-id "c
 
 **Integration**: Required before all Edit/Write operations in agent workflows
 
-### 7. Cyclomatic Complexity Analysis
+### 7. Multi-Language Code Validators
+
+#### Purpose
+Detect language-specific bugs before runtime via post-edit hook pipeline
+
+#### Supported Languages
+- **Bash**: Pipe safety, dependency validation, line ending enforcement
+- **Python**: Subprocess safety, async/await validation, import checking
+- **JavaScript/TypeScript**: Promise handling, ESLint integration
+- **Rust**: Command safety, future handling, dependency validation
+
+#### Validators
+
+**Bash** (3 validators, 8/8 tests passing):
+- `bash-pipe-safety.sh` - Unsafe pipe detection with set -o pipefail
+- `bash-dependency-checker.sh` - Validates script dependencies exist
+- `enforce-lf.sh` - Auto-converts CRLF to LF line endings
+
+**Python** (3 validators, 6/6 tests passing):
+- `python-subprocess-safety.py` - AST-based subprocess stderr validation
+- `python-async-safety.py` - Async/await parent tracking for safety
+- `python-import-checker.py` - Third-party import resolution checking
+
+**JavaScript/TypeScript** (2 validators, 4/4 tests passing):
+- `js-promise-safety.sh` - Context-aware unhandled promise detection
+- `.eslintrc.json` - ESLint plugin with no-floating-promises rule
+
+**Rust** (3 validators, 6/6 tests passing):
+- `rust-command-safety.sh` - Command::new stderr validation
+- `rust-future-safety.sh` - Async fn .await detection
+- `rust-dependency-checker.sh` - Cargo.toml dependency validation
+
+#### Exit Code Convention
+- **0**: Pass (validation succeeded)
+- **1**: Error (blocks edit, critical issue)
+- **2**: Warning (non-blocking, logged)
+
+#### Integration
+Automatically triggered via post-edit hook for matching file extensions (.sh, .py, .js, .ts, .rs)
+
+**Configuration**: `.claude/hooks/cfn-post-edit.config.json`
+
+**Test Location**: `tests/post-edit/test-*-validators.sh`
+
+**Documentation**: See [logs-hooks.md](./logs-hooks.md#multi-language-code-validators)
+
+### 8. Cyclomatic Complexity Analysis
 
 #### Purpose
 Automatic code complexity monitoring integrated into post-edit pipeline
@@ -136,7 +182,7 @@ if (complexity >= 40) { /* critical */ }
 }
 ```
 
-### 8. CFN Loop v3 Dual-Mode Architecture
+### 9. CFN Loop v3 Dual-Mode Architecture
 
 #### Purpose
 Flexible agent spawning with architectural optimization and context management

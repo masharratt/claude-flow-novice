@@ -59,6 +59,7 @@ echo "Backup created: $BACKUP_PATH"
 - Format validation
 - TDD compliance check
 - Cyclomatic complexity analysis
+- Multi-language code validators (Bash, Python, JavaScript, Rust)
 
 **Example:**
 ```bash
@@ -140,6 +141,99 @@ lizard "$FILE" --CCN 30
 ⚠️ Complexity: 35 (Warning)
 Functions >30: process_data(35), validate_input(32)
 ```
+
+## Multi-Language Code Validators
+
+**Purpose**: Detect language-specific bugs before runtime
+
+**Supported Languages**: Bash, Python, JavaScript/TypeScript, Rust
+
+**Trigger**: Runs automatically via post-edit hook for matching file extensions
+
+**Configuration**: `.claude/hooks/cfn-post-edit.config.json`
+
+### Bash Validators
+
+**bash-pipe-safety.sh**
+- Detects unsafe pipes without stderr redirect
+- Prevents hangs with `set -o pipefail`
+- Exit: 0=pass, 2=warning
+
+**bash-dependency-checker.sh**
+- Validates script dependencies exist
+- Exit: 0=pass, 1=error
+
+**enforce-lf.sh**
+- Auto-converts CRLF to LF line endings
+- Exit: 0=success
+
+### Python Validators
+
+**python-subprocess-safety.py**
+- Detects subprocess calls without stderr redirect
+- Validates stderr=subprocess.PIPE/DEVNULL/STDOUT
+- Exit: 0=pass, 1=syntax error, 2=warning
+
+**python-async-safety.py**
+- Detects async calls without await
+- Parent tracking for await context
+- Exit: 0=pass, 2=warning
+
+**python-import-checker.py**
+- Detects missing third-party imports
+- Validates json, requests, numpy, pandas
+- Exit: 0=pass, 2=warning
+
+### JavaScript/TypeScript Validators
+
+**js-promise-safety.sh**
+- Context-aware promise detection
+- Detects unhandled promises
+- Exit: 0=pass, 2=warning
+
+**.eslintrc.json**
+- Primary solution via ESLint plugin
+- Rules: no-floating-promises, catch-or-return
+- Auto-runs on .js/.ts files
+
+### Rust Validators
+
+**rust-command-safety.sh**
+- Detects Command::new without stderr
+- Exit: 0=pass, 2=warning
+
+**rust-future-safety.sh**
+- Detects async fn without .await
+- Exit: 0=pass, 2=warning
+
+**rust-dependency-checker.sh**
+- Validates Cargo.toml dependencies
+- Exit: 0=pass, 1=error
+
+### Exit Code Convention
+
+- **0**: Pass (validation succeeded)
+- **1**: Error (blocks edit, critical issue)
+- **2**: Warning (non-blocking, logged)
+
+### Integration
+
+```bash
+# Automatic via post-edit hook
+./.claude/hooks/cfn-invoke-post-edit.sh "src/file.py" --agent-id "coder-1"
+
+# Manual validator execution
+python3 .claude/skills/hook-pipeline/python-subprocess-safety.py "src/file.py"
+```
+
+### Test Coverage
+
+- Bash: 8/8 tests passing
+- Python: 6/6 tests passing
+- JavaScript: 4/4 tests passing
+- Rust: 6/6 tests passing
+
+**Test Location**: `tests/post-edit/test-*-validators.sh`
 
 ## Hook Types
 

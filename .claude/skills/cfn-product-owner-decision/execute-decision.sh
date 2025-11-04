@@ -203,7 +203,7 @@ EOF
 
 # Store decision in Redis
 echo -e "${YELLOW}💾 Storing decision in Redis...${NC}"
-redis-cli SET "swarm:${TASK_ID}:decision" "$DECISION_TYPE" EX 3600
+redis-cli LPUSH "swarm:${TASK_ID}:decision" "$DECISION_TYPE"
 redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "decision" "$DECISION_TYPE"
 redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "reasoning" "$REASONING"
 redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "confidence" "$CONFIDENCE"

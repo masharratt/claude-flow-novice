@@ -174,7 +174,7 @@ main() {
     # Spawn coordinator in background
     npx claude-flow-novice agent cfn-v3-coordinator \
         --task-id "$TASK_ID" \
-        --context "Create a simple hello world function in /tmp/cfn-e2e-test.sh that prints 'CFN Loop Works!'" \
+        --context "Create a simple hello world function in /tmp/cfn-e2e-test.sh that prints CFN Loop Works" \
         --timeout 180000 > /tmp/coordinator-output-$TASK_ID.log 2>&1 &
 
     COORDINATOR_PID=$!
