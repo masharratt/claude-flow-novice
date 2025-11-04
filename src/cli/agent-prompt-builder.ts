@@ -269,8 +269,8 @@ export async function buildAgentPrompt(
   sections.push(definition.content);
   sections.push('');
 
-  // 5. CFN Loop protocol (if agent supports it AND task context includes taskId)
-  if (context.taskId && hasCFNLoopProtocol(definition)) {
+  // 5. CFN Loop protocol (ALWAYS inject when taskId present - enables Redis coordination)
+  if (context.taskId && agentId) {
     sections.push(buildCFNLoopProtocol(context.taskId, agentId));
     sections.push('');
   }
