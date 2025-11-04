@@ -98,13 +98,13 @@ switch_to_zai() {
         CURRENT_SETTINGS='{}'
     fi
 
-    # Add Z.ai env vars to settings
-    NEW_SETTINGS=$(echo "$CURRENT_SETTINGS" | jq '. + {
-      "env": (.env // {}) + {
-        "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-        "ANTHROPIC_AUTH_TOKEN": "cca13d09dcd6407183efe9e24c804cca.QO8R0JxF4fucsoWL"
-      }
-    }')
+    # Add Z.ai env vars to settings (read from .env)
+    ZAI_KEY=$(grep -E "^(ZAI_API_KEY|Z_AI_API_KEY)=" .env | head -1 | cut -d'=' -f2 | sed 's/#.*//' | xargs)
+    if [ -z "$ZAI_KEY" ]; then
+        echo -e "${RED}Error: ZAI_API_KEY not found in .env${NC}"
+        exit 1
+    fi
+    NEW_SETTINGS=$(echo "$CURRENT_SETTINGS" | jq --arg key "$ZAI_KEY" '. + {"env": ((.env // {}) + {"ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic", "ANTHROPIC_AUTH_TOKEN": $key})}')
 
     echo "$NEW_SETTINGS" > "$SETTINGS_FILE"
 

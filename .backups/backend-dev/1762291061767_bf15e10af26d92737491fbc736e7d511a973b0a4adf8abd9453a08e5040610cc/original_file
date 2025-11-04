@@ -197,63 +197,6 @@ Next iteration MUST create actual deliverables, not just plans.
   fi
 fi
 
-# Process deferred items for backlog
-echo -e "${YELLOW}📋 Processing deferred items for backlog...${NC}"
-
-# Extract deferred items from Product Owner output
-# Look for sections: "Out of Scope", "Deferred", "Future Work", "Defer"
-DEFERRED_SECTION=$(echo "$PO_OUTPUT" | grep -iA 20 "out of scope\|deferred\|future work\|defer:" || echo "")
-
-if [ -n "$DEFERRED_SECTION" ]; then
-  echo -e "${YELLOW}Found deferred items section, extracting items...${NC}"
-
-  # Parse deferred items (lines starting with -, *, or bullet points after marker)
-  DEFERRED_ITEMS=$(echo "$DEFERRED_SECTION" | grep -E "^\s*[-*•]" | sed 's/^\s*[-*•]\s*//' || echo "")
-
-  if [ -n "$DEFERRED_ITEMS" ]; then
-    ITEMS_ADDED=0
-
-    # Process each deferred item
-    while IFS= read -r item; do
-      # Skip empty lines or section headers
-      if [ -n "$item" ] && ! echo "$item" | grep -iqE "^(out of scope|deferred|future work)" && [ ${#item} -ge 10 ]; then
-        echo -e "${YELLOW}  Adding to backlog: ${item:0:60}...${NC}"
-
-        # Invoke backlog skill (defensive - don't fail decision on backlog error)
-        set +e
-        /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-backlog-management/add-backlog-item.sh \
-          --item "$item" \
-          --why "Deferred during Product Owner decision (Task: $TASK_ID, Iteration: $ITERATION)" \
-          --solution "To be determined during sprint planning" \
-          --priority "P2" \
-          --category "Technical-Debt" \
-          --sprint "Sprint-Backlog-$ITERATION" \
-          --force >/dev/null 2>&1
-
-        if [ $? -eq 0 ]; then
-          ITEMS_ADDED=$((ITEMS_ADDED + 1))
-        else
-          echo -e "${YELLOW}  Warning: Failed to add backlog item (non-critical)${NC}" >&2
-        fi
-        set -e
-      fi
-    done <<< "$DEFERRED_ITEMS"
-
-    if [ $ITEMS_ADDED -gt 0 ]; then
-      echo -e "${GREEN}✅ Backlog updated with $ITEMS_ADDED deferred item(s)${NC}"
-
-      # Store backlog metadata in Redis
-      redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "backlog_items_added" "$ITEMS_ADDED"
-    else
-      echo -e "${YELLOW}⚠️  No valid backlog items extracted${NC}"
-    fi
-  else
-    echo -e "${YELLOW}⚠️  Deferred section found but no items extracted${NC}"
-  fi
-else
-  echo -e "${GREEN}No deferred items detected in Product Owner output${NC}"
-fi
-
 # Build decision JSON
 DECISION_JSON=$(cat <<EOF
 {

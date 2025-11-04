@@ -286,7 +286,7 @@ if AGENTS=$(bash ./.claude/skills/cfn-agent-selector/select-agents.sh --task-typ
   PRODUCT_OWNER=$(echo "$AGENTS" | jq -r '.loop4')
 else
   # FALLBACK: Use hardcoded defaults for software-development
-  LOOP3_AGENTS="backend-dev"
+  LOOP3_AGENTS="backend-developer"
   LOOP2_AGENTS="reviewer,tester"
   PRODUCT_OWNER="product-owner"
 fi
@@ -294,16 +294,18 @@ fi
 
 **STEP 3: INVOKE ORCHESTRATOR (REQUIRED - NOT OPTIONAL)**
 
-This is your PRIMARY responsibility. Execute this immediately after Step 2:
+**CRITICAL:** You MUST invoke orchestrator by iteration 3. DO NOT complete tasks yourself.
+
+Execute this immediately after Step 2 (use hardcoded fallback if agent selector fails):
 
 ```bash
-# Invoke orchestrator with selected agents
+# ALWAYS invoke orchestrator - do NOT complete task directly
 ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --task-id "$TASK_ID" \
   --mode "standard" \
-  --loop3-agents "$LOOP3_AGENTS" \
-  --loop2-agents "$LOOP2_AGENTS" \
-  --product-owner "$PRODUCT_OWNER" \
+  --loop3-agents "backend-developer" \
+  --loop2-agents "reviewer,tester" \
+  --product-owner "product-owner" \
   --max-iterations 10 \
   --success-criteria '{"deliverables":[],"acceptanceCriteria":["Implementation complete"]}'
 

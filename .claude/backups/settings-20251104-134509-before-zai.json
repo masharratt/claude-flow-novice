@@ -8,7 +8,7 @@
     "CLAUDE_FLOW_CHECKPOINTS_ENABLED": "true",
     "ANTHROPIC_SUBSCRIPTION_LIMIT": "100",
     "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "ANTHROPIC_AUTH_TOKEN": "4089902faf6c4d30baf352a3d144e1a2.SUs3hnpAZAGsQDHX"
+    "ANTHROPIC_AUTH_TOKEN": "cca13d09dcd6407183efe9e24c804cca.QO8R0JxF4fucsoWL"
   },
   "permissions": {
     "allow": [

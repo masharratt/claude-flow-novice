@@ -6,9 +6,7 @@
     "CLAUDE_FLOW_TELEMETRY_ENABLED": "true",
     "CLAUDE_FLOW_REMOTE_EXECUTION": "true",
     "CLAUDE_FLOW_CHECKPOINTS_ENABLED": "true",
-    "ANTHROPIC_SUBSCRIPTION_LIMIT": "100",
-    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "ANTHROPIC_AUTH_TOKEN": "4089902faf6c4d30baf352a3d144e1a2.SUs3hnpAZAGsQDHX"
+    "ANTHROPIC_SUBSCRIPTION_LIMIT": "100"
   },
   "permissions": {
     "allow": [
@@ -127,10 +125,7 @@
   "mcpServers": {
     "n8n-mcp": {
       "command": "npx",
-      "args": [
-        "-y",
-        "n8n-mcp"
-      ],
+      "args": ["-y", "n8n-mcp"],
       "env": {
         "MCP_MODE": "stdio",
         "LOG_LEVEL": "error",
