@@ -31,43 +31,53 @@ function buildCFNLoopProtocol(taskId: string, agentId: string): string {
 
 You are participating in a CFN Loop workflow. Follow this protocol EXACTLY:
 
-### Step 1: Complete Work
+### Step 1: Complete Your Work
 Execute your assigned task (implementation, review, testing, etc.)
 
-### Step 2: Signal Completion
-\`\`\`bash
-redis-cli lpush "swarm:${taskId}:\${AGENT_ID}:done" "complete"
-\`\`\`
+### Step 2: Calculate Confidence Score
+Assess your work quality and assign a confidence score (0.0-1.0):
+- 0.90-1.0: Excellent, production-ready
+- 0.75-0.89: Good, minor issues possible
+- 0.50-0.74: Acceptable, needs review
+- 0.0-0.49: Poor, significant issues
 
-### Step 3: Report Confidence Score
+### Step 3: Report Completion to Redis
 \`\`\`bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \\
+./.claude/skills/cfn-redis-coordination/report-completion.sh \\
   --task-id "${taskId}" \\
-  --agent-id "\${AGENT_ID}" \\
-  --confidence [0.0-1.0] \\
-  --iteration ${taskId.includes('iteration') ? 'CURRENT_ITERATION' : '1'}
+  --agent-id "${agentId}" \\
+  --confidence [YOUR_CONFIDENCE_SCORE] \\
+  --iteration \${ITERATION:-1}
 \`\`\`
 
-### Step 4: Enter Waiting Mode (for potential iteration)
-\`\`\`bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh enter \\
-  --task-id "${taskId}" \\
-  --agent-id "\${AGENT_ID}" \\
-  --context "iteration-complete"
-\`\`\`
+This script automatically:
+- Signals completion via \`swarm:${taskId}:${agentId}:done\`
+- Stores confidence in \`swarm:${taskId}:${agentId}:confidence\`
+- Creates result hash in \`swarm:${taskId}:${agentId}:result\`
+- Updates SQLite persistence layer
 
-**Critical Context Variables:**
+### Step 4: Exit Cleanly
+After reporting, exit immediately. DO NOT enter waiting mode.
+
+The orchestrator will:
+- Collect confidence scores from all agents
+- Run gate check (≥0.75 threshold)
+- Spawn validators if gate passes
+- Spawn fresh agents for iteration N+1 if needed
+
+**Environment Variables Available:**
 - TASK_ID: ${taskId}
-- AGENT_ID: ${agentId} (your unique identifier)
-- Confidence: Your self-assessment score (0.0-1.0)
+- AGENT_ID: ${agentId}
+- ITERATION: Current iteration number (default: 1)
+- CONFIDENCE_SCORE: Your final confidence assessment
 
 **Why This Matters:**
-- Zero-token blocking coordination (BLPOP waits without API calls)
-- Orchestrator collects confidence/consensus scores automatically
-- Supports autonomous iteration based on quality gates
-- Agent woken instantly (<100ms) if iteration needed
+- Enables zero-token coordination (orchestrator uses Redis BLPOP)
+- Supports adaptive agent specialization (spawn different specialist for iteration N+1)
+- Prevents memory leaks (agents exit after reporting)
+- Confidence scores drive gate checks and consensus validation
 
-**IMPORTANT:** You MUST complete all 4 steps in order. The orchestrator is waiting for your completion signal.
+**CRITICAL:** Report completion before exiting. Orchestrator is waiting for your signal.
 `;
 }
 
