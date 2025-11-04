@@ -288,7 +288,7 @@ else
   # FALLBACK: Use hardcoded defaults for software-development
   LOOP3_AGENTS="backend-dev"
   LOOP2_AGENTS="reviewer,tester"
-  PRODUCT_OWNER="product-owner-agent"
+  PRODUCT_OWNER="product-owner"
 fi
 ```
 
