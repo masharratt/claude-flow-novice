@@ -24,36 +24,26 @@ class AsyncSafetyVisitor(ast.NodeVisitor):
             current = self.node_parents.get(current)
         return None
 
-    def is_safe_async_context(self, node):
-        """Determine if async call is in a safe context"""
-        # Safe contexts:
-        # 1. Direct await
-        # 2. create_task/gather
-        # 3. Tracked async operations
+    def is_awaited(self, node):
+        """Check if node is directly inside an Await context"""
+        # Parent chain traversal to find await
+        parent = self.get_parent(node)
+        while parent:
+            if isinstance(parent, ast.Await):
+                return True
+            parent = self.get_parent(parent)
+        return False
+
+    def is_safe_call(self, node):
+        """Detect safe async calls"""
         safe_async_funcs = {'create_task', 'gather'}
         safe_modules = {'asyncio'}
 
-        # Check for await
-        is_awaited = self.get_parent(node, ast.Await) is not None
-
-        # Check for safe async module functions
-        is_safe_func = (
+        return (
             isinstance(node.func, ast.Attribute) and
             node.func.attr in safe_async_funcs and
             (node.func.value.id if isinstance(node.func.value, ast.Name) else None) in safe_modules
         )
-
-        # Detect assignment for later use
-        parent = self.get_parent(node)
-        is_task_creation = (
-            isinstance(parent, ast.Assign)
-        )
-
-        if self.debug and not (is_awaited or is_safe_func or is_task_creation):
-            print(f"Debugging - Unsafe Context: {ast.dump(node)}")
-            print(f"Is Awaited: {is_awaited}, Is Safe Func: {is_safe_func}, Is Task Creation: {is_task_creation}")
-
-        return is_awaited or is_safe_func or is_task_creation
 
     def visit_AsyncFunctionDef(self, node):
         """Track async function contexts"""
@@ -74,6 +64,10 @@ class AsyncSafetyVisitor(ast.NodeVisitor):
         if not async_context:
             return
 
+        # Skip if it's a known safe call
+        if self.is_safe_call(node):
+            return
+
         # Detect function name
         func_name = (
             node.func.attr if isinstance(node.func, ast.Attribute)
@@ -81,8 +75,12 @@ class AsyncSafetyVisitor(ast.NodeVisitor):
             else 'Unknown'
         )
 
-        # Check if call is unsafe
-        if not self.is_safe_async_context(node):
+        # Detect if call is awaited
+        if not self.is_awaited(node):
+            if self.debug:
+                print(f"Debugging - Unsafe Call: {ast.dump(node)}")
+                print(f"Function: {func_name}, Awaited: False")
+
             self.unsafe_calls.append(
                 f"Line {node.lineno}: Async function '{async_context.name}' calls '{func_name}' without await"
             )
