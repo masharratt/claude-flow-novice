@@ -286,7 +286,10 @@ async function initializeCfnProject() {
 
 // Make script executable
 if (import.meta.url === `file://${__filename}`) {
-  initializeCfnProject();
+  initializeCfnProject().catch((error) => {
+    console.error('❌ Initialization error:', error);
+    process.exit(1);
+  });
 }
 
 export default initializeCfnProject;
