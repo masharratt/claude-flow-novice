@@ -423,7 +423,111 @@ Next Action: Proceed to Sprint 2 (epic has 3 sprints remaining)
 - Config Init: `.claude/skills/cfn-task-config-init/SKILL.md`
 - Covers: Agent selection, adaptive scaling, sprint completion, scope management, backlog mechanism
 
-### 12. n8n MCP Integration
+### 12. Test Runner System with Benchmarking
+
+**Purpose**: Automated test execution with SQLite benchmarking and regression detection
+
+**Components**:
+- Test runner: `.claude/skills/cfn-test-runner/run-all-tests.sh`
+- Benchmark storage: `.claude/skills/cfn-test-runner/store-benchmarks.sh`
+- Regression detection: `.claude/skills/cfn-test-runner/detect-regressions.sh`
+- SQLite database: `.test-benchmarks.db`
+
+**Test Coverage**:
+- Hello World: 7 layers (tool validation, coordinator spawning, review handoff, error retry)
+- CFN E2E: 9 tests (coordinator handoff, gate checks, Loop 2/3 validation, Product Owner decision)
+- Total: 13 automated tests
+
+**Benchmarking**:
+- Stores: run timestamp, git commit/branch, test counts, duration, success rate
+- Baseline: 10-run moving average
+- Regression threshold: 10% (configurable)
+- Exit code 1 if regression detected
+
+**Usage**:
+```bash
+# Run all tests with benchmarking
+./.claude/skills/cfn-test-runner/run-all-tests.sh --benchmark --detect-regressions
+
+# Via slash command
+/run-tests --benchmark --detect-regressions --threshold 5
+```
+
+**Integration**: CI/CD ready with exit code validation
+
+### 13. Redis Key Validation
+
+**Purpose**: Enforce consistent Redis key patterns across codebase
+
+**Validator**: `.claude/skills/cfn-test-runner/validate-redis-keys.sh`
+
+**Standard Patterns**:
+- Agent completion: `swarm:${TASK_ID}:${AGENT_ID}:done`
+- Confidence reporting: `swarm:${TASK_ID}:${AGENT_ID}:confidence`
+- Product Owner decision: `swarm:${TASK_ID}:decision`
+- Gate checks: `swarm:${TASK_ID}:gate-passed|gate-failed`
+- Loop 2 consensus: `swarm:${TASK_ID}:loop2:consensus`
+- Metrics (global): `swarm:metrics:decisions:*`
+
+**Validation Checks**:
+- Anti-pattern detection (non-standard keys)
+- Product Owner key validation
+- Namespace consistency (swarm: prefix)
+- TTL enforcement
+
+**Audit Results** (3 independent agents):
+- Overall confidence: 0.92 (High)
+- Consistency: 90%+ adherence
+- Documentation: `docs/REDIS_KEY_CONSISTENCY_AUDIT.md`
+
+**Usage**:
+```bash
+# Manual validation
+./.claude/skills/cfn-test-runner/validate-redis-keys.sh
+
+# Integration with test suite
+/run-tests --validate-redis-keys
+```
+
+**Exit Codes**:
+- 0: PASS (all keys valid)
+- 1: FAIL (violations found)
+
+### 14. Product Owner Decision Automation
+
+**Purpose**: Guarantee Product Owner decision execution and Redis storage
+
+**Implementation**: `.claude/skills/cfn-product-owner-decision/execute-decision.sh`
+
+**Features**:
+- Robust multi-pattern parsing (PROCEED/ITERATE/ABORT)
+- Deliverable verification (prevents "consensus on vapor")
+- TTL management (1 hour expiration)
+- Decision storage: `swarm:${TASK_ID}:decision`
+
+**Decision Logic**:
+```bash
+# Parse from agent output
+DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oiE "Decision:\s*(PROCEED|ITERATE|ABORT)")
+
+# Verify deliverables if PROCEED
+if [ "$DECISION_TYPE" = "PROCEED" ]; then
+  FILES_CHANGED=$(git status --short | grep -E "^(A|M|\?\?)" | wc -l)
+  if [ "$FILES_CHANGED" -eq 0 ]; then
+    DECISION_TYPE="ITERATE"
+    REASONING="No deliverables created"
+  fi
+fi
+
+# Store with TTL
+redis-cli SET "swarm:${TASK_ID}:decision" "$DECISION_TYPE" EX 3600
+```
+
+**Integration**: Orchestrator invokes after Loop 2 consensus (v2.14.6)
+
+**Documentation**: `docs/BUG_11_PRODUCT_OWNER_DECISION_KEY_MISSING.md`
+
+### 15. n8n MCP Integration
 
 #### Purpose
 Execute marketing workflows via n8n webhooks, enabling multi-platform automation

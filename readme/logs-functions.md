@@ -112,6 +112,153 @@ cleanup.sh [--dry-run] [--log-file <path>]
 ./.claude/skills/pre-edit-backup/cleanup.sh --dry-run
 ```
 
+### 6.6. Test Benchmarking Utilities
+
+#### `init-benchmark-db.sh`
+```bash
+./.claude/skills/cfn-test-runner/init-benchmark-db.sh
+```
+
+**Purpose**: Initialize SQLite database for test benchmarking
+
+**Schema**:
+- `test_suites`: Suite definitions (hello-world, cfn-e2e)
+- `test_runs`: Individual run results with git context
+- Metrics: timestamp, commit, branch, success rate, duration
+
+**Database**: `.test-benchmarks.db`
+
+**Returns**: Success confirmation
+
+**Example**:
+```bash
+./.claude/skills/cfn-test-runner/init-benchmark-db.sh
+```
+
+#### `store-benchmarks.sh`
+```bash
+store-benchmarks.sh --suite SUITE --total NUM --passed NUM --failed NUM --duration SECS
+```
+
+**Purpose**: Store test run results in SQLite
+
+**Parameters**:
+- `--suite`: Test suite name (hello-world, cfn-e2e, all)
+- `--total`: Total test count
+- `--passed`: Passed test count
+- `--failed`: Failed test count
+- `--duration`: Execution time in seconds
+
+**Storage**:
+- Captures git commit/branch
+- Calculates success rate
+- Inserts into test_runs table
+
+**Returns**: Run ID
+
+**Example**:
+```bash
+./.claude/skills/cfn-test-runner/store-benchmarks.sh \
+  --suite "all" \
+  --total 13 \
+  --passed 11 \
+  --failed 2 \
+  --duration 234.5
+```
+
+#### `detect-regressions.sh`
+```bash
+detect-regressions.sh [--threshold PERCENT]
+```
+
+**Purpose**: Compare latest run against 10-run baseline
+
+**Parameters**:
+- `--threshold`: Regression threshold (default: 10%)
+
+**Baseline**: Average success rate of last 10 runs
+
+**Detection**:
+- Calculates degradation percentage
+- Exit code 1 if regression exceeds threshold
+- Exit code 0 if no regression
+
+**Returns**: Regression status with detailed metrics
+
+**Example**:
+```bash
+# Default 10% threshold
+./.claude/skills/cfn-test-runner/detect-regressions.sh
+
+# Custom 5% threshold
+./.claude/skills/cfn-test-runner/detect-regressions.sh --threshold 5
+```
+
+#### `run-all-tests.sh`
+```bash
+run-all-tests.sh [--suite SUITE] [--benchmark] [--detect-regressions] [--threshold NUM]
+```
+
+**Purpose**: Execute CFN test suites with benchmarking
+
+**Parameters**:
+- `--suite`: Test suite (all, hello-world, cfn-e2e, default: all)
+- `--benchmark`: Store results in database
+- `--detect-regressions`: Run regression detection
+- `--threshold`: Custom regression threshold (default: 10)
+
+**Test Coverage**:
+- Hello World: 7 layers (13 tests)
+- CFN E2E: 9 tests
+- Total: 13 automated tests
+
+**Returns**: Exit code 0 (pass) or 1 (fail/regression)
+
+**Example**:
+```bash
+# Run all with benchmarking
+./.claude/skills/cfn-test-runner/run-all-tests.sh --benchmark --detect-regressions
+
+# Run specific suite
+./.claude/skills/cfn-test-runner/run-all-tests.sh --suite hello-world
+```
+
+### 6.7. Redis Key Validation Utilities
+
+#### `validate-redis-keys.sh`
+```bash
+./.claude/skills/cfn-test-runner/validate-redis-keys.sh
+```
+
+**Purpose**: Validate Redis key consistency across codebase
+
+**Validation Checks**:
+- Anti-pattern detection (non-standard keys)
+- Product Owner decision key pattern
+- Namespace consistency (swarm: prefix)
+- TTL enforcement
+
+**Standard Patterns**:
+- `swarm:${TASK_ID}:${AGENT_ID}:done`
+- `swarm:${TASK_ID}:${AGENT_ID}:confidence`
+- `swarm:${TASK_ID}:decision`
+- `swarm:${TASK_ID}:gate-passed|gate-failed`
+- `swarm:${TASK_ID}:loop2:consensus`
+
+**Returns**:
+- Exit code 0: PASS (all keys valid)
+- Exit code 1: FAIL (violations found)
+
+**Output**: Violations and warnings with file locations
+
+**Example**:
+```bash
+./.claude/skills/cfn-test-runner/validate-redis-keys.sh
+
+# Integration with test suite
+/run-tests --validate-redis-keys
+```
+
 ### 7. ACE System Utilities
 
 #### `invoke-context-reflect.sh`

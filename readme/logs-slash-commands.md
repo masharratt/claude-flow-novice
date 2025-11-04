@@ -183,6 +183,41 @@ npx claude-flow-novice swarm "Task description" \
 
 **Integration**: Affects `/cfn-loop`, `/cfn-loop-single`, `/cfn-loop-epic`
 
+## Testing Commands
+
+### `/run-tests`
+
+**Purpose**: Execute CFN test suites with automatic benchmarking and regression detection
+
+**Parameters:**
+- `--suite`: Test suite to run (default: "all")
+  - Options: "all", "hello-world", "cfn-e2e"
+- `--benchmark`: Store results in SQLite benchmark database
+- `--detect-regressions`: Compare against baseline (10-run average)
+- `--threshold`: Regression threshold percentage (default: 10)
+
+**Example:**
+```bash
+# Run all tests with benchmarking
+/run-tests --benchmark --detect-regressions
+
+# Run specific suite
+/run-tests --suite hello-world
+
+# Custom regression threshold
+/run-tests --benchmark --threshold 5
+```
+
+**Test Coverage:**
+- Hello World: 7 layers (tool validation, coordinator spawning, review handoff, error retry)
+- CFN E2E: 9 tests (coordinator handoff, gate checks, Loop 2/3 validation, Product Owner decision)
+- Total: 13 automated tests
+
+**Benchmarking:**
+- SQLite storage: `.test-benchmarks.db`
+- Metrics: success rate, duration, test counts
+- Regression detection: 10% threshold (configurable)
+
 ## Best Practices
 
 1. **Start Simple**: Begin with basic commands and add options as needed

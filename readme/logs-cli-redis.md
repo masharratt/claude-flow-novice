@@ -1,5 +1,137 @@
 # Redis Key Patterns for CFN Loop Coordination
 
+## Standard Key Patterns (v2.14.6)
+
+### Agent Completion
+**Pattern**: `swarm:${TASK_ID}:${AGENT_ID}:done`
+
+**Purpose**: Signal agent work completion
+
+**Usage**:
+```bash
+# Signal completion
+redis-cli LPUSH "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+# Wait for completion (blocking)
+redis-cli BLPOP "swarm:${TASK_ID}:${AGENT_ID}:done" 0
+```
+
+### Confidence Reporting
+**Pattern**: `swarm:${TASK_ID}:${AGENT_ID}:confidence`
+
+**Purpose**: Report agent confidence score
+
+**Usage**:
+```bash
+# Store confidence (hash-based)
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "confidence" "0.85"
+
+# Store confidence (list-based)
+redis-cli LPUSH "swarm:${TASK_ID}:confidence" "0.85"
+```
+
+### Product Owner Decision
+**Pattern**: `swarm:${TASK_ID}:decision`
+
+**Purpose**: Store Product Owner decision (PROCEED/ITERATE/ABORT)
+
+**Implementation**: `.claude/skills/cfn-product-owner-decision/execute-decision.sh`
+
+**Usage**:
+```bash
+# Store decision with TTL (1 hour)
+redis-cli SET "swarm:${TASK_ID}:decision" "PROCEED" EX 3600
+
+# Check existence
+redis-cli EXISTS "swarm:${TASK_ID}:decision"
+
+# Get decision
+redis-cli GET "swarm:${TASK_ID}:decision"
+```
+
+**Note**: Task-level key (NOT agent-scoped)
+
+### Gate Check
+**Patterns**:
+- `swarm:${TASK_ID}:gate-passed`
+- `swarm:${TASK_ID}:gate-failed`
+
+**Purpose**: Signal Loop 3 self-validation result
+
+**Usage**:
+```bash
+# Signal gate passed
+redis-cli LPUSH "swarm:${TASK_ID}:gate-passed" "1"
+
+# Signal gate failed (iterate)
+redis-cli LPUSH "swarm:${TASK_ID}:gate-failed" "1"
+
+# Loop 2 waits for gate pass (blocking)
+redis-cli BLPOP "swarm:${TASK_ID}:gate-passed" 0
+```
+
+### Loop 2 Consensus
+**Pattern**: `swarm:${TASK_ID}:loop2:consensus`
+
+**Purpose**: Store validator consensus score
+
+**Usage**:
+```bash
+# Store consensus
+redis-cli SET "swarm:${TASK_ID}:loop2:consensus" "0.93"
+
+# Retrieve
+redis-cli GET "swarm:${TASK_ID}:loop2:consensus"
+```
+
+### Metrics (Global)
+**Patterns**:
+- `swarm:metrics:decisions:proceed`
+- `swarm:metrics:decisions:iterate`
+- `swarm:metrics:decisions:abort`
+
+**Purpose**: Global decision tracking (NOT task-scoped)
+
+**Usage**:
+```bash
+# Increment decision counter
+redis-cli INCR "swarm:metrics:decisions:proceed"
+
+# Get total proceeds
+redis-cli GET "swarm:metrics:decisions:proceed"
+```
+
+## Validation and Consistency
+
+### Automated Validator
+**Script**: `.claude/skills/cfn-test-runner/validate-redis-keys.sh`
+
+**Checks**:
+- Anti-pattern detection (non-standard keys)
+- Product Owner key validation
+- Namespace consistency (swarm: prefix)
+- TTL enforcement
+
+**Usage**:
+```bash
+# Run validator
+./.claude/skills/cfn-test-runner/validate-redis-keys.sh
+
+# Exit codes:
+# 0 = PASS
+# 1 = FAIL (violations found)
+```
+
+### Audit Results
+**Documentation**: `docs/REDIS_KEY_CONSISTENCY_AUDIT.md`
+
+**Findings** (3 independent agents):
+- Overall confidence: 0.92 (High)
+- Consistency: 90%+ adherence
+- Minor inconsistencies: 1 documentation file
+
+**Standard compliance**: 95%+ for runtime patterns
+
 ## Feedback and Validation Keys
 
 ### `swarm:${TASK_ID}:feedback:history`
