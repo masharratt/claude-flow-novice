@@ -3,12 +3,14 @@
   "version": "2.0.0",
   "pipeline": "config/hooks/post-edit-pipeline.js",
   "triggerOn": ["Edit", "Write", "MultiEdit"],
-  "fileTypes": [".ts", ".tsx", ".js", ".jsx", ".json", ".md"],
+  "fileTypes": [".ts", ".tsx", ".js", ".jsx", ".json", ".md", ".sh", ".bash"],
   "blocking": false,
   "exitCodes": {
     "0": "SUCCESS",
     "1": "ERROR",
-    "2": "SYNTAX_ERROR"
+    "2": "SYNTAX_ERROR",
+    "9": "BASH_VALIDATOR_ERROR",
+    "10": "BASH_VALIDATOR_WARNING"
   },
   "redis": {
     "enabled": true,
@@ -26,12 +28,17 @@
       "enabled": true,
       "noEmit": true,
       "skipLibCheck": true
+    },
+    "bash": {
+      "enabled": true,
+      "validators": ["pipe-safety", "dependency-checker", "line-endings"],
+      "timeout": 5000
     }
   },
   "feedback": {
     "provideSuggestions": true,
     "autoFixable": ["LINT_ISSUES"],
-    "nonBlocking": ["TYPE_WARNING", "LINT_ISSUES"],
-    "blocking": ["SYNTAX_ERROR"]
+    "nonBlocking": ["TYPE_WARNING", "LINT_ISSUES", "BASH_VALIDATOR_WARNING"],
+    "blocking": ["SYNTAX_ERROR", "BASH_VALIDATOR_ERROR"]
   }
 }

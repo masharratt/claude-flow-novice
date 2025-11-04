@@ -216,6 +216,143 @@ try {
 }
 
 // ============================================================================
+// PHASE 2.5: Bash Validator Integration
+// ============================================================================
+
+log('VALIDATING', 'Running bash validators');
+
+// Validator mapping by file extension
+const validatorsByExtension = {
+  '.sh': [
+    'bash-pipe-safety.sh',
+    'bash-dependency-checker.sh',
+    'enforce-lf.sh'
+  ],
+  '.bash': [
+    'bash-pipe-safety.sh',
+    'bash-dependency-checker.sh',
+    'enforce-lf.sh'
+  ]
+};
+
+// Helper function to run a single validator
+function runValidator(validatorName, targetFile) {
+  const validatorPath = `.claude/skills/hook-pipeline/${validatorName}`;
+
+  log('DEBUG', `Executing validator: ${validatorName}`, { targetFile });
+
+  try {
+    const result = spawnSync('bash', [validatorPath, targetFile], {
+      encoding: 'utf-8',
+      timeout: 5000,
+      cwd: process.cwd()
+    });
+
+    const exitCode = result.status;
+    const stdout = (result.stdout || '').trim();
+    const stderr = (result.stderr || '').trim();
+
+    log('DEBUG', `Validator ${validatorName} completed`, {
+      exitCode,
+      stdout: stdout.substring(0, 200), // Truncate for logging
+      stderr: stderr.substring(0, 200)
+    });
+
+    // Exit code convention:
+    // 0 = pass (no issues)
+    // 1 = error (blocking issue)
+    // 2 = warning (non-blocking issue)
+    return {
+      validator: validatorName,
+      exitCode,
+      passed: exitCode === 0,
+      isBlocking: exitCode === 1,
+      isWarning: exitCode === 2,
+      message: stderr || stdout || 'Validator passed',
+      stdout,
+      stderr
+    };
+  } catch (error) {
+    log('ERROR', `Validator ${validatorName} execution failed`, {
+      error: error.message,
+      stack: error.stack
+    });
+
+    return {
+      validator: validatorName,
+      exitCode: -1,
+      passed: false,
+      isBlocking: false,
+      isWarning: true,
+      message: `Validator execution failed: ${error.message}`,
+      error: error.message
+    };
+  }
+}
+
+// Run validators for applicable file types
+const applicableValidators = validatorsByExtension[ext] || [];
+
+if (applicableValidators.length > 0) {
+  log('INFO', `Running ${applicableValidators.length} bash validators for ${ext} file`);
+
+  // Sequential execution of validators
+  const validatorResults = applicableValidators.map(validator =>
+    runValidator(validator, filePath)
+  );
+
+  // Process validator results
+  validatorResults.forEach(result => {
+    if (result.isBlocking) {
+      // Blocking error (exit code 1)
+      log('VALIDATOR_ERROR', `Blocking issue detected by ${result.validator}`, {
+        message: result.message
+      });
+
+      results.recommendations.push({
+        type: 'bash-validator',
+        priority: 'critical',
+        message: `${result.validator}: ${result.message}`,
+        action: 'Fix blocking issue before proceeding'
+      });
+    } else if (result.isWarning) {
+      // Warning (exit code 2)
+      log('VALIDATOR_WARNING', `Warning from ${result.validator}`, {
+        message: result.message
+      });
+
+      results.recommendations.push({
+        type: 'bash-safety',
+        priority: 'medium',
+        message: `${result.validator}: ${result.message}`,
+        action: 'Review recommendations and consider fixing'
+      });
+    } else if (result.passed) {
+      // Pass (exit code 0)
+      log('SUCCESS', `Validator ${result.validator} passed`);
+    }
+  });
+
+  // Store validator results for exit code determination
+  results.bashValidators = {
+    executed: validatorResults.length,
+    passed: validatorResults.filter(r => r.passed).length,
+    warnings: validatorResults.filter(r => r.isWarning).length,
+    errors: validatorResults.filter(r => r.isBlocking).length,
+    results: validatorResults
+  };
+
+  log('SUCCESS', `Bash validators completed`, {
+    executed: results.bashValidators.executed,
+    passed: results.bashValidators.passed,
+    warnings: results.bashValidators.warnings,
+    errors: results.bashValidators.errors
+  });
+} else {
+  log('DEBUG', `No bash validators configured for ${ext} files`);
+}
+
+// ============================================================================
 // PHASE 3: Root Directory Detection
 // ============================================================================
 
@@ -555,12 +692,22 @@ let finalStatus = 'SUCCESS';
 // Check for critical complexity issues
 const hasComplexityIssue = results.recommendations.find(r => r.type === 'complexity');
 
-if (results.rootWarning) {
+// Check for bash validator issues
+const hasBashValidatorError = results.bashValidators && results.bashValidators.errors > 0;
+const hasBashValidatorWarning = results.bashValidators && results.bashValidators.warnings > 0;
+
+if (hasBashValidatorError) {
+  exitCode = 9;
+  finalStatus = 'BASH_VALIDATOR_ERROR';
+} else if (results.rootWarning) {
   exitCode = 2;
   finalStatus = 'ROOT_WARNING';
 } else if (results.tddViolation) {
   exitCode = 3;
   finalStatus = 'TDD_VIOLATION';
+} else if (hasBashValidatorWarning) {
+  exitCode = 10;
+  finalStatus = 'BASH_VALIDATOR_WARNING';
 } else if (hasComplexityIssue && hasComplexityIssue.priority === 'critical') {
   exitCode = 7;
   finalStatus = 'COMPLEXITY_CRITICAL';
@@ -596,6 +743,9 @@ if (results.rootWarning) {
 }
 if (results.tddViolation) {
   finalResult.tddViolation = results.tddViolation;
+}
+if (results.bashValidators) {
+  finalResult.bashValidators = results.bashValidators;
 }
 if (results.rustQuality) {
   finalResult.rustQuality = results.rustQuality;
