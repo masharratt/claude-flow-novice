@@ -127,23 +127,6 @@ else
   # Defensive file handling - TEST 5 fix
   if [ -f "$PO_OUTPUT_FILE" ] && [ -s "$PO_OUTPUT_FILE" ]; then
     PO_OUTPUT=$(cat "$PO_OUTPUT_FILE")
-
-    # Try multiple parsing patterns
-    DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oiE "Decision:\s*(PROCEED|ITERATE|ABORT)" | grep -oiE "(PROCEED|ITERATE|ABORT)" | head -1 | tr '[:lower:]' '[:upper:]' || echo "")
-
-    if [ -z "$DECISION_TYPE" ]; then
-      DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oE "(PROCEED|ITERATE|ABORT)" | head -1 || echo "")
-    fi
-
-    if [ -z "$DECISION_TYPE" ]; then
-      DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oiE "(proceed|iterate|abort)" | head -1 | tr '[:lower:]' '[:upper:]' || echo "")
-    fi
-
-    # Parse reasoning
-    REASONING=$(echo "$PO_OUTPUT" | grep -oiE "Reasoning:\s*.*" | sed 's/Reasoning:\s*//' || echo "No reasoning provided")
-
-    # Parse confidence
-    CONFIDENCE=$(echo "$PO_OUTPUT" | grep -oE "Confidence:\s*[0-9]+\.?[0-9]*" | grep -oE "[0-9]+\.?[0-9]*" || echo "0.85")
   else
     echo -e "${RED}❌ ERROR: Product Owner output file missing or empty${NC}"
     echo "Expected: $PO_OUTPUT_FILE"
@@ -152,6 +135,23 @@ else
     REASONING="Product Owner output file missing or empty: $PO_OUTPUT_FILE"
     CONFIDENCE=0.0
   fi
+
+  # Try multiple parsing patterns
+  DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oiE "Decision:\s*(PROCEED|ITERATE|ABORT)" | grep -oiE "(PROCEED|ITERATE|ABORT)" | head -1 | tr '[:lower:]' '[:upper:]' || echo "")
+
+  if [ -z "$DECISION_TYPE" ]; then
+    DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oE "(PROCEED|ITERATE|ABORT)" | head -1 || echo "")
+  fi
+
+  if [ -z "$DECISION_TYPE" ]; then
+    DECISION_TYPE=$(echo "$PO_OUTPUT" | grep -oiE "(proceed|iterate|abort)" | head -1 | tr '[:lower:]' '[:upper:]' || echo "")
+  fi
+
+  # Parse reasoning
+  REASONING=$(echo "$PO_OUTPUT" | grep -oiE "Reasoning:\s*.*" | sed 's/Reasoning:\s*//' || echo "No reasoning provided")
+
+  # Parse confidence
+  CONFIDENCE=$(echo "$PO_OUTPUT" | grep -oE "Confidence:\s*[0-9]+\.?[0-9]*" | grep -oE "[0-9]+\.?[0-9]*" || echo "0.85")
 fi
 
 # Validate decision parsing
