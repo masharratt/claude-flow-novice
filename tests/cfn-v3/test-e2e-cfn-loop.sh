@@ -16,6 +16,23 @@ TESTS_PASSED=0
 TESTS_FAILED=0
 TESTS_TOTAL=0
 
+# Process cleanup tracking
+COORDINATOR_PGID=""
+
+# Cleanup handler - kills entire process tree on exit
+cleanup_processes() {
+    if [ -n "$COORDINATOR_PGID" ]; then
+        echo ""
+        echo -e "${YELLOW}[CLEANUP]${NC} Terminating process group: $COORDINATOR_PGID"
+        kill -TERM -$COORDINATOR_PGID 2>/dev/null || true
+        sleep 1
+        kill -KILL -$COORDINATOR_PGID 2>/dev/null || true
+    fi
+}
+
+# Register cleanup on script exit (success, error, or interrupt)
+trap cleanup_processes EXIT INT TERM
+
 # Logging functions
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $*"
@@ -171,14 +188,18 @@ main() {
 
     log_info "Spawning coordinator with simple task..."
 
-    # Spawn coordinator in background
-    npx claude-flow-novice agent cfn-v3-coordinator \
+    # Spawn coordinator in background with process group
+    # Using setsid to create new process group for clean termination
+    setsid npx claude-flow-novice agent cfn-v3-coordinator \
         --task-id "$TASK_ID" \
         --context "Create a simple hello world function in /tmp/cfn-e2e-test.sh that prints CFN Loop Works" \
         --timeout 180000 > /tmp/coordinator-output-$TASK_ID.log 2>&1 &
 
     COORDINATOR_PID=$!
     log_info "Coordinator PID: $COORDINATOR_PID"
+
+    # Track all spawned process groups for cleanup
+    COORDINATOR_PGID=$(ps -o pgid= -p $COORDINATOR_PID | tr -d ' ')
 
     # Wait for orchestrator to spawn Loop 3 agents (event-driven)
     if wait_for_redis_pattern "swarm:${TASK_ID}:*-1:*" "Loop 3 agents spawned" 45; then
@@ -403,7 +424,14 @@ main() {
         fi
     else
         log_warning "TEST 9: Coordinator still running after timeout (background execution)"
-        kill $COORDINATOR_PID 2>/dev/null || true
+
+        # Kill entire process group (coordinator + orchestrator + agents)
+        log_info "Cleaning up process group: $COORDINATOR_PGID"
+        kill -TERM -$COORDINATOR_PGID 2>/dev/null || true
+        sleep 2
+
+        # Force kill if still alive
+        kill -KILL -$COORDINATOR_PGID 2>/dev/null || true
     fi
     echo ""
 

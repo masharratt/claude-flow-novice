@@ -267,6 +267,9 @@ echo "Estimated Iterations: $ESTIMATED_ITERATIONS"
 **CRITICAL CLI Mode Requirement:**
 You MUST invoke the orchestrator by iteration 3. Do not spend more than 2 iterations on setup. If agent discovery/selection fails, use hardcoded defaults and proceed to orchestrator invocation.
 
+**MANDATORY FOR E2E TESTING:**
+When spawned with --task-id parameter, you MUST ALWAYS invoke the orchestrator to ensure full CFN Loop execution. Even for simple tasks, delegate to orchestrator to test all coordination points (Loop 3, gate check, Loop 2, Product Owner decision).
+
 ### CLI Mode (Streamlined for Orchestrator Invocation)
 
 **STEP 1: Task Classification (1 iteration max)**
@@ -283,9 +286,9 @@ if AGENTS=$(bash ./.claude/skills/cfn-agent-selector/select-agents.sh --task-typ
   PRODUCT_OWNER=$(echo "$AGENTS" | jq -r '.loop4')
 else
   # FALLBACK: Use hardcoded defaults for software-development
-  LOOP3_AGENTS="coder,backend-dev"
+  LOOP3_AGENTS="backend-dev"
   LOOP2_AGENTS="reviewer,tester"
-  PRODUCT_OWNER="product-owner"
+  PRODUCT_OWNER="product-owner-agent"
 fi
 ```
 
