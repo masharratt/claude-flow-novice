@@ -320,7 +320,7 @@ main() {
 
     for pattern in "${patterns[@]}"; do
         ((key_checks++))
-        if redis-cli keys "$pattern" | grep -q "."; then
+        if redis-cli keys "$pattern" 2>/dev/null | grep -q "."; then
             ((key_found++))
             log_info "✓ Found keys matching: $pattern"
         else
