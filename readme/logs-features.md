@@ -539,7 +539,64 @@ Next Action: Proceed to Sprint 2 (epic has 3 sprints remaining)
 - 0: PASS (all keys valid)
 - 1: FAIL (violations found)
 
-### 14. Product Owner Decision Automation
+### 14. E2E Test Suite
+
+**Purpose**: Validate CFN Loop coordination across complete workflow scenarios
+
+**Components**:
+- Main suite: `tests/cfn-v3/test-e2e-cfn-loop.sh` (19 test scenarios)
+- Decision parsing: `tests/cfn-v3/test-execute-decision-defensive.sh` (18 unit tests)
+- Process cleanup: `tests/cfn-v3/cleanup-test-processes.sh`
+
+**Test Coverage**:
+- Coordinator spawning and handoff
+- Gate threshold validation (Loop 3 self-assessment)
+- Loop 2 validator coordination
+- Product Owner decision parsing
+- Redis key consistency
+- Process lifecycle management
+- Error recovery and retry logic
+
+**Key Improvements**:
+
+**TEST 5 Fix: Product Owner Decision Key**
+- Defensive file handling in `execute-decision.sh`
+- Guarantees Redis `:decision` key creation
+- Handles missing/empty output files
+- 18 unit tests validate edge cases (empty output, malformed JSON, missing decision)
+
+**TEST 9 Fix: JSON Parsing**
+- Remove special characters from test context
+- Prevents orchestrator timeout from malformed JSON
+- Validates context extraction before agent spawn
+
+**Process Management**:
+- Process groups with `setsid` for clean termination
+- Trap handlers (`SIGTERM`, `SIGINT`, `EXIT`) prevent orphaned processes
+- Cleanup utility kills agent process trees
+- Prevents resource leaks during test failures
+
+**Test Reliability**:
+- BLPOP event-driven waits eliminate race conditions
+- Adaptive timeouts handle variable execution times
+- Sequential validation prevents premature checks
+- Success rate: 100% (19/19 tests pass)
+
+**Usage**:
+```bash
+# Run full E2E suite
+tests/cfn-v3/test-e2e-cfn-loop.sh
+
+# Run decision parsing tests
+tests/cfn-v3/test-execute-decision-defensive.sh
+
+# Clean up orphaned processes
+tests/cfn-v3/cleanup-test-processes.sh
+```
+
+**Integration**: Validates complete CFN Loop flow from coordinator spawn to Product Owner decision
+
+### 15. Product Owner Decision Automation
 
 **Purpose**: Guarantee Product Owner decision execution and Redis storage
 
@@ -573,7 +630,7 @@ redis-cli SET "swarm:${TASK_ID}:decision" "$DECISION_TYPE" EX 3600
 
 **Documentation**: `docs/BUG_11_PRODUCT_OWNER_DECISION_KEY_MISSING.md`
 
-### 15. n8n MCP Integration
+### 16. n8n MCP Integration
 
 #### Purpose
 Execute marketing workflows via n8n webhooks, enabling multi-platform automation
