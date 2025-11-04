@@ -1,37 +1,49 @@
 #!/usr/bin/env tsx
 /**
- * List all agents discovered from .claude/agents/ directory
+ * List all available agents discovered from .claude/agents/ directory
  */
 
-import { getAllAgents, getAgentCategories } from '../src/agents/agent-loader.js';
+import { loadAllAgentDefinitions } from '../src/agents/agent-loader.js';
 
-function main() {
-  const agents = getAllAgents();
-  const categories = getAgentCategories();
-
-  console.log(`\n📋 Discovered ${agents.length} agents in ${categories.length} categories:\n`);
+async function main() {
+  const agents = await loadAllAgentDefinitions();
+  console.log('🔍 Discovered', agents.length, 'agents\n');
 
   // Group by category
-  const byCategory = new Map<string, typeof agents>();
+  const byCategory: Record<string, any[]> = {};
 
   for (const agent of agents) {
-    const category = agent.type || 'uncategorized';
-    if (!byCategory.has(category)) {
-      byCategory.set(category, []);
+    const category = agent.category || 'uncategorized';
+    if (!byCategory[category]) {
+      byCategory[category] = [];
     }
-    byCategory.get(category)!.push(agent);
+    byCategory[category].push(agent);
   }
 
-  // Sort and display
-  Array.from(byCategory.keys()).sort().forEach(category => {
-    const categoryAgents = byCategory.get(category)!;
-    console.log(`\n📁 ${category.toUpperCase()} (${categoryAgents.length} agents)`);
-    categoryAgents.sort((a, b) => a.name.localeCompare(b.name)).forEach(agent => {
-      console.log(`  • ${agent.name}`);
-    });
-  });
+  // Print by category
+  const categories = Object.keys(byCategory).sort();
+  console.log(`📋 ${categories.length} categories\n`);
 
-  console.log(`\n✅ Total: ${agents.length} agents\n`);
+  for (const category of categories) {
+    const categoryAgents = byCategory[category];
+    console.log(`📁 ${category.toUpperCase()} (${categoryAgents.length} agents)`);
+
+    for (const agent of categoryAgents.sort((a, b) => a.name.localeCompare(b.name))) {
+      console.log(`  • ${agent.name}`);
+
+      // Extract keywords from description
+      if (agent.description) {
+        const keywords = agent.description.match(/Keywords?[\:\s\-]+([^\n]+)/i);
+        if (keywords) {
+          console.log(`    ${keywords[1].trim()}`);
+        }
+      }
+    }
+    console.log('');
+  }
 }
 
-main();
+main().catch((err) => {
+  console.error('Error:', err.message);
+  process.exit(1);
+});

@@ -499,6 +499,41 @@ Before finalizing an agent template, verify:
 - [ ] Bash variables use `\$VARIABLE` in template examples
 - [ ] Multi-line strings properly indented
 
+## Post-Creation Validation
+
+**CRITICAL: After creating or updating any agent file, run agent name validation:**
+
+```bash
+./.claude/skills/agent-name-validation/validate-agent-names.sh
+```
+
+This ensures:
+- Filename matches frontmatter `name:` field
+- Agent can be discovered by spawning system
+- Naming consistency across codebase
+
+**Example:**
+```bash
+# After creating new agent
+Write: file_path=".claude/agents/cfn-dev-team/developers/api-developer.md"
+
+# Validate filename matches frontmatter
+./.claude/skills/agent-name-validation/validate-agent-names.sh
+
+# Check result
+if [ $? -eq 0 ]; then
+  echo "✅ Agent name validation passed"
+else
+  echo "❌ Agent name mismatch detected - review output"
+fi
+```
+
+**Common Issues:**
+- Filename: `backend-dev.md` but frontmatter: `name: backend-developer` ❌
+- Filename: `backend-developer.md` and frontmatter: `name: backend-developer` ✅
+
+See: `.claude/skills/agent-name-validation/SKILL.md` for full documentation
+
 ---
 
 ## Success Metrics
