@@ -688,3 +688,27 @@ Out of Scope:
 - **Priority:** 8
 - **Insight**: Decompose complex systems into independent skills (20 skills in CFN v3: task-classifier, playbook, validation-templates, etc.). Enables reuse, testing isolation, and incremental enhancement.
 - **Tags**: modularity, skills, architecture, reusability
+## Sprint 10 Adaptive Context Lessons (Phase X - Defensive Programming)
+
+### Defensive Programming Patterns
+
+#### PATTERN-025: Comprehensive File Validation
+- **Context**: Defensive File Handling
+- **Insight**: Implement comprehensive file validation techniques that go beyond basic existence checks. Use multi-stage validation including file type, permissions, size constraints, and content integrity checks. Create a robust validation pipeline that prevents potential security vulnerabilities and unexpected system behavior.
+- **Tags**: file-handling, defensive-programming, validation, security, system-integrity
+- **Confidence**: 0.92
+- **Priority**: 9/10
+
+#### PATTERN-026: Shell Strict Mode
+- **Context**: Bash Script Reliability
+- **Insight**: Enable shell strict mode using `set -euo pipefail` to create more robust and predictable shell scripts. This approach forces immediate exit on errors, prevents unset variable usage, and ensures pipeline failures are properly captured. Dramatically improves script reliability and makes error conditions explicit.
+- **Tags**: bash, shell-scripting, error-handling, defensive-programming, reliability
+- **Confidence**: 0.90
+- **Priority**: 9/10
+
+#### PATTERN-028: Process Group Management
+- **Context**: Background Process Handling
+- **Insight**: Implement comprehensive process group management techniques to ensure clean termination and resource cleanup. Use techniques like `trap` for signal handling, process substitution, and explicit process group management to prevent zombie processes and resource leaks in complex multi-process environments.
+- **Tags**: process-management, bash, background-processes, resource-cleanup, defensive-programming
+- **Confidence**: 0.86
+- **Priority**: 8/10
