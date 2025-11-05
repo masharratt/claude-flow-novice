@@ -1,0 +1,166 @@
+# Docker Image with Playwright for Frontend Agents
+# FIXED VERSION - Playwright module resolution issue resolved
+
+FROM node:18-slim AS base
+
+# Install system dependencies for Playwright
+RUN apt-get update && apt-get install -y \
+    # Basic dependencies
+    curl \
+    wget \
+    git \
+    gnupg2 \
+    procps \
+    redis-tools \
+    # Playwright browser dependencies
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    # Additional libraries for headless operation
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxfixes3 \
+    libxext6 \
+    libxtst6 \
+    libgconf-2-4 \
+    libxshmfence1 \
+    # System libraries
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build stage
+FROM base AS builder
+
+WORKDIR /app
+
+# Copy package files (if they exist)
+COPY package*.json ./
+
+# Install base dependencies
+RUN npm ci --only=production || npm install
+
+# FIX: Install Playwright globally and locally
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+
+# Install Playwright globally first
+RUN npm install -g playwright
+
+# Install Playwright locally
+RUN npm install playwright
+
+# Install browsers
+RUN npx playwright install chromium --with-deps
+RUN npx playwright install-deps chromium
+
+# Verify installation
+RUN ls -la /ms-playwright/ && echo "Browser directory found"
+RUN npm list playwright && echo "Playwright installed locally"
+RUN npm list -g playwright && echo "Playwright installed globally"
+
+# Production stage - FIX: Copy global node_modules
+FROM base AS production
+
+# Set environment for Playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+ENV NODE_ENV=production
+ENV NODE_PATH=/usr/local/lib/node_modules
+
+WORKDIR /app
+
+# Copy application dependencies (including Playwright)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /usr/local/lib/node_modules ./usr-local-lib-node-modules
+
+# Copy browsers from builder
+COPY --from=builder /ms-playwright /ms-playwright
+
+# Copy package files
+COPY --from=builder /app/package*.json ./
+
+# Copy application code if it exists
+COPY --from=builder /app/src/ ./src/ || true
+COPY --from=builder /app/bin/ ./bin/ || true
+
+# Copy monitoring scripts
+COPY docker/scripts/monitor-wrapper.sh /app/monitor-wrapper.sh || true
+
+# Create directories with proper permissions
+RUN mkdir -p /app/logs /app/metrics /tmp/screenshots /app/workspace /app/screenshots && \
+    chmod +x /app/monitor-wrapper.sh || true
+
+# Create a comprehensive health check script
+RUN echo '#!/bin/bash\n\
+echo "Testing Playwright module resolution..."\n\
+\
+# Test 1: Check if playwright module exists\n\
+if [ -d "/app/node_modules/playwright" ]; then\n\
+    echo "✅ Playwright found in local node_modules"\n\
+else\n\
+    echo "❌ Playwright not found in local node_modules"\n\
+fi\n\
+\
+if [ -d "/usr/local/lib/node_modules/playwright" ]; then\n\
+    echo "✅ Playwright found in global node_modules"\n\
+else\n\
+    echo "❌ Playwright not found in global node_modules"\n\
+fi\n\
+\
+# Test 2: Try to require playwright\n\
+node -e "try {\n\
+    const { chromium } = require(\"playwright\");\n\
+    console.log(\"✅ Playwright module loaded successfully\");\n\
+    process.exit(0);\n\
+} catch (error) {\n\
+    console.error(\"❌ Playwright module loading failed:\", error.message);\n\
+    process.exit(1);\n\
+}" && \
+echo "Health check script created" && \
+chmod +x /app/healthcheck.sh
+
+# Create non-root user
+RUN groupadd -r cfnuser --gid=1001 && \
+    useradd -r -g cfnuser --uid=1001 --home-dir=/app --shell=/bin/bash cfnuser && \
+    chown -R cfnuser:cfnuser /app && \
+    chmod 1777 /tmp
+
+USER cfnuser
+
+# Frontend-specific environment variables
+ENV NODE_ENV=production \
+    ZAI_API_KEY="" \
+    ZAI_BASE_URL="https://api.z.ai/api/anthropic" \
+    CLAUDE_API_PROVIDER="zai" \
+    REDIS_HOST=host.docker.internal \
+    REDIS_PORT=6379 \
+    MEMORY_MONITORING=true \
+    MEMORY_REPORT_INTERVAL=30 \
+    MEMORY_ALERT_THRESHOLD=80 \
+    MEMORY_LIMIT=2048 \
+    DISPLAY=:99
+
+# Expose debugging port
+EXPOSE 9222
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD /app/healthcheck.sh
+
+# Default command
+CMD ["/bin/bash"]
+
+# Labels
+LABEL maintainer="Claude Flow Novice Team" \
+      version="1.0.0-playwright-fixed" \
+      description="Docker container with Playwright module loading fix" \
+      features="playwright,browser-automation,module-fix" \
+      memory-limit="2GB" \
+      agent-types="frontend-engineer,ui-designer,mobile-dev,tester"

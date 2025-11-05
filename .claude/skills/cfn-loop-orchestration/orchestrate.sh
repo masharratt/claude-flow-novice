@@ -707,6 +707,17 @@ EOF
 # Main CFN Loop
 ##############################################################################
 
+# Validate CLI environment before spawning agents
+echo "🔧 Validating CLI environment..."
+if [ -f "$PROJECT_ROOT/.claude/skills/cfn-cli-setup/validate-cli-environment.sh" ]; then
+  if ! bash "$PROJECT_ROOT/.claude/skills/cfn-cli-setup/validate-cli-environment.sh"; then
+    echo "❌ CLI environment validation failed. Agents may not have required tools."
+    echo "⚠️  Continuing anyway, but expect potential tool failures..."
+  fi
+else
+  echo "⚠️  CLI environment validation script not found. Skipping validation."
+fi
+
 # Store context in Redis
 store_context "$TASK_ID"
 
@@ -764,11 +775,41 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
        --agents "$LOOP3_IDS" \
        --threshold "$GATE" \
        --min-quorum "$MIN_QUORUM_LOOP3"; then
-    # Gate passed - store confidence
-    LOOP3_FINAL_CONFIDENCE=$("$REDIS_COORD_SKILL/invoke-waiting-mode.sh" collect \
-      --task-id "$TASK_ID" \
-      --agent-ids "$LOOP3_IDS" \
-      --min-quorum "$MIN_QUORUM_LOOP3")
+    # Gate passed - validate confidence based on deliverables
+    echo "🔍 Validating agent confidence scores against deliverables..."
+
+    # Re-calculate confidence based on actual deliverables
+    if [ -n "$EXPECTED_FILES" ] && [ -f "$PROJECT_ROOT/.claude/skills/cfn-deliverable-validation/confidence-calculator.sh" ]; then
+      VALIDATED_CONFIDENCE=0
+
+      for agent_id in ${LOOP3_IDS//,/ }; do
+        # Get agent's reported confidence
+        agent_confidence=$(redis-cli get "swarm:${TASK_ID}:${agent_id}:confidence" 2>/dev/null || echo "0.5")
+
+        # Calculate deliverable-based confidence
+        deliverable_confidence=$("$PROJECT_ROOT/.claude/skills/cfn-deliverable-validation/confidence-calculator.sh" \
+          "$TASK_ID" "$agent_id" "$EXPECTED_FILES" "$PROJECT_ROOT")
+
+        echo "  Agent $agent_id: reported=$agent_confidence, deliverable-based=$deliverable_confidence"
+
+        # Use the lower of the two scores (inflation prevention)
+        if (( $(echo "$deliverable_confidence < $agent_confidence" | bc -l) )); then
+          echo "  ⚠️  Downgrading confidence for $agent_id (inflated score detected)"
+          VALIDATED_CONFIDENCE=$deliverable_confidence
+        else
+          VALIDATED_CONFIDENCE=$agent_confidence
+        fi
+      done
+
+      LOOP3_FINAL_CONFIDENCE=$VALIDATED_CONFIDENCE
+      echo "✅ Final validated Loop 3 confidence: $LOOP3_FINAL_CONFIDENCE"
+    else
+      # Store confidence (fallback method)
+      LOOP3_FINAL_CONFIDENCE=$("$REDIS_COORD_SKILL/invoke-waiting-mode.sh" collect \
+        --task-id "$TASK_ID" \
+        --agent-ids "$LOOP3_IDS" \
+        --min-quorum "$MIN_QUORUM_LOOP3")
+    fi
   else
     # Gate failed - iterate Loop 3
     echo "❌ Gate check failed - iterating Loop 3"

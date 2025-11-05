@@ -1,0 +1,72 @@
+# Working Playwright Docker Container - Fixed Module Resolution
+FROM node:18-slim
+
+# Set environment variables
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV NODE_ENV=production
+ENV NODE_PATH=/usr/local/lib/node_modules
+
+# Install system dependencies for Playwright
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    # Playwright browser dependencies
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxfixes3 \
+    libxext6 \
+    libxtst6 \
+    libgconf-2-4 \
+    libxshmfence1 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Playwright globally
+RUN npm install -g playwright
+
+# Install browsers system-wide
+RUN npx playwright install chromium --with-deps
+RUN npx playwright install-deps chromium
+
+# Verify installation
+RUN echo "Verifying Playwright installation..." && \
+    node -e "console.log('✅ Playwright version:', require('playwright/package.json').version)" && \
+    echo "✅ Browser installation:" && \
+    ls -la /ms-playwright/
+
+# Create screenshots directory
+RUN mkdir -p /app/screenshots
+
+# Create health check
+RUN echo '#!/bin/bash\nnode -e "require(\"playwright\"); console.log(\"✅ Playwright health check passed\")"' > /app/healthcheck.sh && \
+    chmod +x /app/healthcheck.sh
+
+# Set working directory
+WORKDIR /app
+
+# Labels
+LABEL maintainer="Claude Flow Novice Team" \
+      version="1.0.0-working" \
+      description="Working Docker container with Playwright module resolution fix" \
+      features="playwright,browser-automation,working" \
+      memory-limit="2GB"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD /app/healthcheck.sh
+
+# Default command
+CMD ["/bin/bash"]

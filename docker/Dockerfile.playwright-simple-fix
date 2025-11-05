@@ -1,0 +1,55 @@
+# Simple Playwright Fix - Install Playwright directly in production stage
+FROM node:18-slim
+
+# Set environment variables
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV NODE_ENV=production
+
+# Install system dependencies for Playwright
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    # Playwright browser dependencies
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxfixes3 \
+    libxext6 \
+    libxtst6 \
+    libgconf-2-4 \
+    libxshmfence1 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Playwright globally and browsers directly
+RUN npm install -g playwright
+RUN npx playwright install chromium --with-deps
+RUN npx playwright install-deps chromium
+
+# Create screenshots directory
+RUN mkdir -p /app/screenshots
+
+# Verify installation
+RUN echo "Verifying Playwright installation..." && \
+    node -e "console.log('Playwright version:', require('playwright/package.json').version)" && \
+    ls -la /ms-playwright/
+
+# Create health check
+RUN echo '#!/bin/bash\nnode -e "require(\"playwright\"); console.log(\"Playwright OK\")"' > /app/healthcheck.sh && \
+    chmod +x /app/healthcheck.sh
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD /app/healthcheck.sh
+
+CMD ["/bin/bash"]

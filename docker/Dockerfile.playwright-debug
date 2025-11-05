@@ -1,0 +1,80 @@
+# Debug Playwright installation step by step
+FROM node:18-slim
+
+# Install system dependencies for Playwright
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    # Playwright browser dependencies
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxfixes3 \
+    libxext6 \
+    libxtst6 \
+    libgconf-2-4 \
+    libxshmfence1 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Playwright globally
+RUN npm install -g playwright
+
+# Check global npm modules location
+RUN ls -la /usr/local/lib/node_modules/ | grep playwright || echo "Playwright not in /usr/local/lib/node_modules"
+
+# Alternative: check other possible global locations
+RUN find /usr -name "*playwright*" -type d 2>/dev/null || echo "No playwright directories found in /usr"
+
+# Check npm global prefix
+RUN npm config get prefix
+
+# List global packages
+RUN npm list -g --depth=0
+
+# Install browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx playwright install chromium --with-deps
+
+# Check if browsers were installed
+RUN ls -la /ms-playwright/ || echo "No browsers installed"
+
+# Check if playwright is available via npx
+RUN npx playwright --version || echo "npx playwright failed"
+
+# Create test script
+RUN echo 'console.log("Node modules path:", process.env.NODE_PATH || "default");\
+console.log("Trying to require playwright...");\
+try {\
+    const playwright = require("playwright");\
+    console.log("Success! Playwright version:", playwright.version);\
+} catch (e) {\
+    console.log("Failed to require playwright:", e.message);\
+    console.log("Trying alternative paths...");\
+    const fs = require("fs");\
+    const paths = [\
+        "/usr/local/lib/node_modules/playwright",\
+        "/app/node_modules/playwright",\
+        "/node_modules/playwright"\
+    ];\
+    paths.forEach(p => {\
+        if (fs.existsSync(p)) {\
+            console.log("Found playwright at:", p);\
+            console.log("Contents:", fs.readdirSync(p));\
+        }\
+    });\
+}' > /app/debug-playwright.js
+
+CMD ["node", "/app/debug-playwright.js"]
