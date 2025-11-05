@@ -14,12 +14,14 @@ Execute CFN Loop using CLI spawning for maximum cost savings (95-98% vs Task too
 
 ## What is CLI Mode?
 
-**CLI Mode Architecture:**
+**CLI Mode Architecture v3.0 (Enhanced):**
 - Main Chat spawns **single coordinator agent** via Task()
-- Coordinator spawns **all workers via CLI** (`npx claude-flow-novice`)
+- Enhanced coordinator spawns **all workers via CLI** with protocol compliance
 - CLI agents use **Z.ai custom routing** (when enabled)
-- Background execution with **Redis monitoring**
+- **Real-time monitoring** with automatic recovery from stuck agents
+- Background execution with **Redis monitoring** and progress visibility
 - **95-98% cost savings** vs Task tool spawning
+- **Enhanced features**: Process health checking, context validation, broadcast protocol
 
 **Cost Breakdown:**
 ```

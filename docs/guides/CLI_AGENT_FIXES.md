@@ -1,4 +1,5 @@
-# CLI Agent Spawning Fixes - 2025-10-20
+# CLI Agent Spawning Fixes - Enhanced v3.0 Updates
+**Last Updated:** 2025-11-05
 
 ## Problem Report
 

@@ -313,40 +313,48 @@ Refer to `.claude/skills/cfn-redis-coordination/SKILL.md` for:
 
 ### CFN Loop Orchestration Pattern
 
-**CLI Mode (Production):**
-Main Chat spawns cfn-v3-coordinator → Coordinator spawns workers via CLI → Workers exit after reporting confidence
+**CLI Mode (Production) - Enhanced v3.0:**
+Main Chat spawns cfn-v3-coordinator → Enhanced orchestrator with monitoring → Workers via CLI with progress tracking → Automatic recovery from stuck agents
 
 **Task Mode (Debugging):**
 Main Chat spawns all agents directly via Task() → No coordinator → Full visibility
 
-**Orchestrator:**
+**Enhanced Orchestrator v3.0:**
 ```bash
 ./.claude/skills/cfn-loop-orchestration/orchestrate.sh
 ```
-- Spawns Loop 3 agents (implementers)
-- Collects confidence scores
-- Gate check: spawn Loop 2 if ≥threshold
-- Spawns Loop 2 agents (validators)
-- Collects consensus
+- ✅ **Enhanced Monitoring**: Real-time agent progress tracking with stuck detection
+- ✅ **Automatic Recovery**: Dead process cleanup and agent restart capabilities
+- ✅ **Protocol Compliance**: Prevents "consensus on vapor" anti-patterns
+- ✅ **Enhanced Spawning**: Context validation and broadcast message injection
+- ✅ **Progress Visibility**: Detailed progress reports with timestamps
+- Spawns Loop 3 agents with protocol enforcement
+- Enhanced waiting with progress tracking and recovery
+- Collects confidence scores with metadata validation
+- Gate check: spawn Loop 2 if ≥threshold (with health verification)
+- Spawns Loop 2 agents (validators) with monitoring
+- Collects consensus with stuck agent detection
 - Spawns Product Owner for decision
-- Manages iterations based on PROCEED/ITERATE/ABORT
+- Manages iterations based on PROCEED/ITERATE/ABORT with timeout handling
 
 **Agent Completion Protocol (Mode-Specific):**
 
-**CLI Mode** (spawned via `npx claude-flow-novice agent-spawn`):
+**CLI Mode v3.0** (spawned via `npx claude-flow-novice agent-spawn`):
 ```bash
-# 1. Complete work
-# 2. Signal done
+# 1. Complete work with enhanced context
+# 2. Automatic context validation (prevents "consensus on vapor")
+# 3. Signal completion
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
-# 3. Report confidence and exit
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+# 4. Report confidence with metadata
+./.claude/skills/cfn-redis-coordination/report-completion.sh \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.85 \
-  --iteration 1
+  --iteration 1 \
+  --result '{"deliverables_created": ["file.ts"], "status": "complete"}'
 
-# Agent exits cleanly (no waiting mode)
+# 5. Agent exits cleanly (orchestrator monitors via enhanced waiting)
 ```
 
 **Task Mode** (spawned via Task() tool in Main Chat):
@@ -356,6 +364,12 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 # NO Redis signals required
 # NO explicit completion protocol needed
 ```
+
+**Enhanced Agent Protocol Requirements:**
+- ✅ **Mandatory completion signaling**: `report-completion.sh` call required
+- ✅ **Context awareness**: Broadcast messages automatically injected
+- ✅ **Metadata tracking**: Agent status and process PID monitored
+- ✅ **Health checking**: Process health validated during execution
 
 **Orchestration Flow (CORRECTED - Self-Validation Pattern):**
 1. Loop 3 agents complete work and report confidence

@@ -162,7 +162,7 @@ User Task Description
 - Easier troubleshooting
 
 ```bash
-# CLI mode (default)
+# CLI mode v3.0 (default - enhanced monitoring)
 /cfn-loop "Task description" --mode=standard
 
 # Task mode (debugging)
@@ -652,7 +652,7 @@ config/
 
 - ✅ **6 domain support** with custom validation
 - ✅ **Dual-mode architecture** (cost vs visibility)
-- ✅ **95-98% cost savings** in CLI mode
+- ✅ **95-98% cost savings** in CLI mode v3.0 with enhanced monitoring
 - ✅ **Self-learning playbook** system
 - ✅ **Real-time intervention** for stuck loops
 - ✅ **Zero-token coordination** via Redis
