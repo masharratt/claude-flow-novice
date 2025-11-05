@@ -79,138 +79,57 @@ Savings: 64% with custom routing, 95-98% vs all-Task
 
 ## 🚨 CRITICAL EXECUTION INSTRUCTIONS
 
-**YOU ARE MAIN CHAT. YOU SPAWN ONLY ONE AGENT: cfn-v3-coordinator**
+**THIS IS A SLASH COMMAND - MAIN CHAT EXECUTES THIS DIRECTLY**
 
+**DO NOT manually spawn Task() agents for CFN Loop workflows**
+**DO NOT spawn cfn-v3-coordinator manually**
 **DO NOT spawn Loop 3 agents (backend-dev, researcher, etc.)**
 **DO NOT spawn Loop 2 agents (reviewer, tester, etc.)**
 **DO NOT spawn product-owner**
-**DO NOT ask user which agents to use**
 
-The coordinator handles ALL agent spawning internally via CLI.
+**Main Chat simply executes the slash command - everything else is automatic**
 
 ---
 
-### Execute This Task() Call:
+## How This Command Works:
 
-```javascript
-Task("cfn-v3-coordinator", `
-  CFN LOOP CLI MODE - PRODUCTION EXECUTION
+When Main Chat executes `/cfn-loop-cli "task description"`, this slash command:
 
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  TASK SPECIFICATION
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. **Automatically spawns cfn-v3-coordinator** with proper parameters
+2. **Coordinator invokes enhanced orchestrator** with monitoring v3.0
+3. **Orchestrator spawns all agents via CLI** (background execution)
+4. **Handles complete CFN Loop workflow** with real-time monitoring
+5. **Returns structured result** to Main Chat when complete
 
-  Task Description: $ARGUMENTS
-  Task ID: cfn-cli-$(date +%s)
-  Mode: ${mode.toUpperCase()}
+## Enhanced Features v3.0:
 
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  SUCCESS CRITERIA
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- ✅ **Real-time monitoring** with automatic stuck agent recovery
+- ✅ **Process health checking** and dead process cleanup
+- ✅ **Protocol compliance** preventing "consensus on vapor" anti-patterns
+- ✅ **Progress visibility** with detailed timestamped reports
+- ✅ **95-98% cost savings** with Z.ai routing optimization
+- ✅ **Background execution** with Redis persistence
 
-  Acceptance Criteria:
-  - [ ] Core functionality implemented
-  - [ ] All tests pass with >80% coverage
-  - [ ] Security review completed
-  - [ ] Documentation updated
-  - [ ] No regression in existing features
+## Main Chat Execution Rules
 
-  Quality Gates (${mode.toUpperCase()} MODE):
-  - Loop 3 Gate Threshold: ${mode === 'enterprise' ? 0.85 : mode === 'standard' ? 0.75 : 0.70}
-  - Loop 2 Consensus Threshold: ${mode === 'enterprise' ? 0.95 : mode === 'standard' ? 0.90 : 0.80}
-  - Max Iterations: ${maxIterations}
+**THIS SLASH COMMAND HANDLES EVERYTHING AUTOMATICALLY**
 
-  Definition of Done:
-  - Consensus ≥ threshold achieved
-  - All acceptance criteria met
-  - Product Owner approval received
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ORCHESTRATION CONFIGURATION
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Mode: ${mode.toUpperCase()}
-
-  Loop 3 Agents (Implementation) - SELECT BASED ON TASK:
-  Examples:
-  - Backend API: backend-dev, researcher, devops
-  - Full-Stack: backend-dev, react-frontend-engineer, devops
-  - Infrastructure: devops, rust-developer, researcher
-  - Security: security-specialist, backend-dev, researcher
-
-  Loop 2 Agents (Validation) - SCALE BY COMPLEXITY:
-  Simple (1-2 files): reviewer, tester
-  Standard (3-5 files): reviewer, tester, architect, security-specialist
-  Complex (>5 files): +code-analyzer, +performance-benchmarker
-
-  Product Owner: product-owner
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  EXECUTION INSTRUCTIONS
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  1. INVOKE ORCHESTRATOR (CLI spawning):
-
-     TASK_ID="cfn-cli-$(date +%s)"
-     MODE="${mode}"
-     LOOP3_AGENTS="backend-dev,researcher,devops"  # Customize for task
-     LOOP2_AGENTS="reviewer,tester,architect,security-specialist"  # Scale by complexity
-
-     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
-       --task-id "$TASK_ID" \\
-       --mode "$MODE" \\
-       --loop3-agents "$LOOP3_AGENTS" \\
-       --loop2-agents "$LOOP2_AGENTS" \\
-       --product-owner "product-owner" \\
-       --max-iterations ${maxIterations}
-
-  2. ORCHESTRATOR HANDLES:
-     - Spawns all agents via CLI (background)
-     - Loop 3: Gate check (≥threshold) → PASS/ITERATE
-     - Loop 2: Consensus check (≥threshold) → COMPLETE/ITERATE
-     - Product Owner: PROCEED/ITERATE/ABORT decision
-     - Git commit/push on PROCEED
-     - Returns structured result to Main Chat
-
-  3. RETURN STRUCTURED RESULT:
-     {
-       "taskId": "cfn-cli-XXXXX",
-       "status": "complete|failed",
-       "iterations": {"loop3": N, "loop2": M},
-       "finalConsensus": 0.XX,
-       "acceptanceCriteria": {
-         "met": [...],
-         "pending": [...]
-       },
-       "deliverables": [...],
-       "recommendations": [...]
-     }
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  CRITICAL RULES
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  - DO NOT spawn agents with Task() - orchestrator uses CLI
-  - ALL agents run in background via npx claude-flow-novice
-  - USE Redis BLPOP for loop dependencies
-  - AGENTS use Z.ai routing automatically (when enabled)
-  - RETURN structured result when complete
-`, "cfn-v3-coordinator")
+**Main Chat simply executes:**
+```bash
+/cfn-loop-cli "Task description" --mode=standard
 ```
 
-## Autonomous Execution Rules
+**The slash command automatically:**
+- ✅ Spawns coordinator with proper parameters
+- ✅ Handles all agent spawning via CLI
+- ✅ Manages complete CFN Loop workflow
+- ✅ Returns structured result when complete
 
-**YOU ARE FORBIDDEN FROM:**
-- ❌ Asking "Should I retry?" (coordinator handles automatically)
-- ❌ Asking "Proceed to consensus?" (orchestrator decides)
-- ❌ Waiting for approval during CFN Loop cycles
-- ❌ Spawning workers with Task() (use coordinator only)
-
-**YOU MUST:**
-- ✅ ALWAYS spawn single coordinator agent
-- ✅ LET coordinator invoke orchestrator internally
-- ✅ COORDINATOR handles all loop execution autonomously
-- ✅ ONLY return to chat when complete or blocked
+**Main Chat should NOT:**
+- ❌ Manually spawn any Task() agents for CFN Loop
+- ❌ Ask about retry/iteration decisions (handled automatically)
+- ❌ Monitor agent progress (slash command handles this)
+- ❌ Coordinate between agents (built-in coordination)
 
 ## CLI Mode Benefits
 
@@ -219,11 +138,15 @@ Task("cfn-v3-coordinator", `
 - 95-98% savings vs Task tool spawning
 - Scales linearly with iterations (Task mode scales exponentially)
 
-**Production Features:**
+**Production Features v3.0:**
 - Background execution (no timeout issues)
 - Redis state persistence (crash recovery)
 - Zero-token waiting (BLPOP blocks without API calls)
 - Web portal visibility (http://localhost:3000)
+- **Enhanced monitoring**: Real-time agent progress tracking
+- **Automatic recovery**: Dead process cleanup and agent restart
+- **Protocol compliance**: Prevents "consensus on vapor" anti-patterns
+- **Progress visibility**: Detailed reports with timestamps and health status
 
 **Performance:**
 - Parallel agent spawning (no sequential bottleneck)
