@@ -48,10 +48,19 @@ package/
 │   └── ... (5 more cfn-* hooks)
 │
 ├── .claude/commands/
-│   └── cfn/                      ← ✅ 45+ commands (subdirectory isolation)
-│       ├── cfn-loop.md
-│       ├── cfn-loop-single.md
-│       └── ... (43 more)
+│   └── cfn/                      ← ✅ 41+ commands (subdirectory isolation)
+│       ├── cfn-loop-cli.md        ← ✅ Production CLI mode
+│       ├── cfn-loop-task.md       ← ✅ Debugging Task mode
+│       ├── cfn-loop-frontend.md   ← ✅ Visual iteration
+│       ├── cfn-loop-document.md   ← ✅ Documentation generation
+│       └── ... (37 more)
+│
+│   └── deprecated/               ← ⚠️ Archived commands (moved 2025-10-31)
+│       ├── cfn-loop.md           ← Moved to deprecated/
+│       ├── cfn-loop-single.md    ← Moved to deprecated/
+│       ├── cfn-loop-epic.md      ← Moved to deprecated/
+│       ├── cfn-loop-sprints.md   ← Moved to deprecated/
+│       └── README.md             ← Migration guidance
 │
 ├── .claude/cfn-data/             ← ✅ Renamed from .claude/data
 │

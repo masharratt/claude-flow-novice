@@ -4,6 +4,10 @@
 
 ### Features
 
+- CFN Expert Update System (2025-11-05)
+  - Impact: Automated knowledge extraction from git commits to keep CFN system expert agent current
+  - Files: `.claude/commands/cfn/CFN_EXPERT_UPDATE.md,.claude/skills/cfn-expert-update/update-expert.sh`
+  - Command: `/cfn-expert-update --dry-run|--since|--force`
 - SEO Content Pipeline Phase 1 Complete (2025-11-02)
   - Impact: Foundation for SEO content generation established with config system, validators, and quality modes
   - Files: `services/seo-automation/config/*.json,services/seo-automation/validation/*.ts,services/seo-automation/validation/*.md`
@@ -23,6 +27,13 @@
 ### Bug Fixes
 
 ### Breaking Changes
+
+- CFN Loop Command Architecture v3.0 (2025-11-05)
+  - Impact: Simplified command structure with 4 current commands, deprecated 4 old commands
+  - Deprecated: `/cfn-loop`, `/cfn-loop-single`, `/cfn-loop-epic`, `/cfn-loop-sprints`
+  - Current: `/cfn-loop-cli` (production), `/cfn-loop-task` (debugging), `/cfn-loop-frontend` (visual), `/cfn-loop-document` (docs)
+  - Files: `.claude/commands/cfn-loop-cli.md,readme/logs-slash-commands.md`
+  - Migration: Use `/cfn-loop-cli` for production workloads, `/cfn-loop-task` for debugging
 
 ### Dependencies
 

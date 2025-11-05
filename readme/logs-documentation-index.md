@@ -5,7 +5,7 @@
 ### 🎯 v2.6.0 - CLI Agent Context Enhancement (2025-10-20)
 - **Major Feature**: CLI agent context parity with Task agents
 - **Implementation**: Three-sprint enhancement (iteration feedback, system prompts, iteration history)
-- **Impact**: 99% cost savings maintained while closing information gap
+- **Impact**: CLI agents achieve feature parity with Task agents
 - **Test Coverage**: 42/42 tests passing
 
 ### 🚀 v2.0.0 Release Overview (2025-10-18)
@@ -16,7 +16,7 @@
   - CFN Loop dependency enforcement
   - Mandatory parallel agent spawning
   - 9 new production skills
-  - Cost-savings mode (95-98% token reduction)
+  - CLI spawning with Redis coordination
 
 ### Key Documentation Links
 - [README.md](./README.md) - v2 system overview

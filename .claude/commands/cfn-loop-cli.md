@@ -15,29 +15,13 @@ Execute CFN Loop using CLI spawning for maximum cost savings (95-98% vs Task too
 ## What is CLI Mode?
 
 **CLI Mode Architecture v3.0 (Enhanced):**
-- Main Chat spawns **single coordinator agent**
+- Main Chat spawns **single coordinator agent** via CLI with background=true
 - Enhanced coordinator spawns **all workers via CLI** with protocol compliance
 - CLI agents use **Z.ai custom routing** (when enabled)
 - **Real-time monitoring** with automatic recovery from stuck agents
 - Background execution with **Redis monitoring** and progress visibility
-- **95-98% cost savings** vs Task tool spawning
 - **Enhanced features**: Process health checking, context validation, broadcast protocol
 
-**Cost Breakdown:**
-```
-┌─────────────────────┬──────────────┬────────────┐
-│ Component           │ Provider     │ Cost/Call  │
-├─────────────────────┼──────────────┼────────────┤
-│ Main Chat           │ Anthropic    │ $0.015     │
-│ Coordinator (Task)  │ Anthropic    │ $0.015     │
-│ Loop 3 Agents (CLI) │ Z.ai         │ $0.003 ea  │
-│ Loop 2 Agents (CLI) │ Z.ai         │ $0.003 ea  │
-│ Product Owner (CLI) │ Z.ai         │ $0.003     │
-└─────────────────────┴──────────────┴────────────┘
-
-Total per iteration: ~$0.054 (vs $0.150 Task mode)
-Savings: 64% with custom routing, 95-98% vs all-Task
-```
 
 ## Prerequisites
 
@@ -79,21 +63,89 @@ Savings: 64% with custom routing, 95-98% vs all-Task
 
 ## How CLI Mode Works
 
-1. **Main Chat** spawns a single `cfn-v3-coordinator` agent
-2. **Coordinator** orchestrates the entire CFN Loop workflow
+1. **Main Chat** spawns a single `cfn-v3-coordinator` agent **via CLI**
+2. **Coordinator** orchestrates the entire CFN Loop workflow in the background
 3. **Loop 3** agents implement the solution and validate against quality gates
 4. **Loop 2** agents review and provide validation feedback
 5. **Product Owner** makes the final decision on deliverables
 6. **Background execution** with Redis coordination for scalability
 
-The coordinator handles all agent spawning internally using optimized CLI processes.
+**CLI Architecture Pattern:**
+- Main Chat → CLI Coordinator (background) → CLI Workers (via Redis coordination)
+- All agents run via CLI with Z.ai routing
+- Coordinator manages all agent spawning internally using optimized CLI processes
+- Background execution enables monitoring and recovery capabilities
+
+## Main Chat Monitoring Instructions
+
+**After spawning the coordinator, Main Chat should:**
+
+### 1. Immediate Verification (First 30 seconds)
+```bash
+# Verify coordinator spawned successfully
+TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
+pgrep -f "cfn-v3-coordinator" && echo "✅ Coordinator running" || echo "❌ Coordinator failed"
+
+# Check Redis context was created
+redis-cli EXISTS "cfn_loop:task:$TASK_ID:context" && echo "✅ Context stored" || echo "❌ No context"
+```
+
+### 2. Progress Monitoring (Every 2-5 minutes for long tasks)
+```bash
+# Check iteration progress and confidence scores
+redis-cli HGETALL "cfn_loop:task:$TASK_ID:context" | grep -E "(iteration|confidence|status)"
+
+# Monitor agent completion status
+redis-cli LRANGE "swarm:${TASK_ID}:agent:status" 0 -1
+
+# Quick health check
+redis-cli HGET "cfn_loop:task:$TASK_ID:health" "coordinator"
+```
+
+### 3. Web Portal Monitoring (Recommended for >10 minute tasks)
+```bash
+# Start monitoring dashboard
+npm run portal:start
+
+# Access real-time progress at http://localhost:3000
+# - Live agent status dashboard
+# - Iteration progress visualization
+# - Confidence score trends
+# - Error rate monitoring
+```
+
+### 4. Background Execution Monitoring Pattern
+```bash
+# For long-running tasks, use this monitoring pattern:
+sleep 300  # Wait 5 minutes
+redis-cli HGETALL "cfn_loop:task:$TASK_ID:context" | grep status
+
+# If still running, continue monitoring
+if [ $? -eq 0 ]; then
+    echo "Task in progress, monitoring..."
+    sleep 300  # Wait another 5 minutes
+    redis-cli HGETALL "cfn_loop:task:$TASK_ID:context" | grep status
+fi
+```
+
+### 5. Troubleshooting If Coordinator Fails
+```bash
+# Investigate missing coordinator
+./.claude/skills/cfn-loop-orchestration/investigate-missing-coordinator.sh "$TASK_ID"
+
+# Check for process issues
+ps aux | grep "claude-flow-novice agent" | grep -v grep
+
+# Verify Redis connectivity
+redis-cli PING
+```
 
 ## CLI Mode Benefits
 
-**Cost Savings:**
-- 64% savings with Z.ai routing vs all-Anthropic
-- 95-98% savings vs Task tool spawning
+**Performance:**
 - Scales linearly with iterations (Task mode scales exponentially)
+- Background execution without timeout limitations
+- Parallel agent spawning for improved throughput
 
 **Production Features v3.0:**
 - Background execution (no timeout issues)
@@ -109,21 +161,6 @@ The coordinator handles all agent spawning internally using optimized CLI proces
 - Parallel agent spawning (no sequential bottleneck)
 - Instant wake-up (<100ms latency)
 - Scalable (10+ agents, indefinite cycles)
-
-## When to Use CLI Mode
-
-**Use CLI Mode for:**
-- ✅ Production features
-- ✅ Long-running tasks (>10 min)
-- ✅ Multi-iteration workflows
-- ✅ Cost-sensitive projects
-- ✅ Background execution
-
-**Use Task Mode for:**
-- Debugging (full visibility needed)
-- Learning CFN Loop workflow
-- Short prototypes (<5 min)
-- Single-iteration tasks
 
 ## Troubleshooting
 
@@ -147,6 +184,112 @@ The coordinator handles all agent spawning internally using optimized CLI proces
 - Monitor real-time agent progress at http://localhost:3000
 - View detailed execution logs and health status
 - Track iteration progress and confidence scores
+
+## Enhanced Monitoring v3.0
+
+CLI mode includes comprehensive monitoring capabilities for production workflows:
+
+### Real-Time Progress Tracking
+- **Agent Status**: Monitor individual agent health and progress
+- **Iteration Progress**: Track confidence scores and gate validation
+- **Resource Usage**: CPU, memory, and Redis connection monitoring
+- **Error Detection**: Automatic identification of stuck or failed agents
+
+### Monitoring Commands
+
+**Check Task Status:**
+```bash
+# View complete task context and progress
+redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"
+
+# Monitor agent completion status
+redis-cli LRANGE "swarm:${TASK_ID}:agent:status" 0 -1
+```
+
+**Agent Health Monitoring:**
+```bash
+# Check if coordinator is running
+pgrep -f "cfn-v3-coordinator" && echo "Coordinator alive" || echo "Coordinator missing"
+
+# Monitor active agent processes
+ps aux | grep "claude-flow-novice agent" | grep -v grep
+
+# Check Redis connectivity
+redis-cli PING
+```
+
+**Progress Monitoring:**
+```bash
+# Real-time agent completion monitoring
+watch -n 5 'redis-cli HGETALL "cfn_loop:task:$TASK_ID:context" | grep -E "(iteration|confidence|status)"'
+
+# Monitor agent signals
+redis-cli PUBLISH "swarm:${TASK_ID}:monitor" "status_check"
+```
+
+### Automatic Recovery Features
+
+**Dead Process Detection:**
+- Automatically detects and reports stuck agents
+- Process health checking with configurable timeouts
+- Automatic cleanup of orphaned Redis connections
+
+**Agent Restart Capability:**
+- Coordinator can restart failed agents automatically
+- Context preservation across agent restarts
+- Iteration state recovery from Redis persistence
+
+**Error Recovery Patterns:**
+- Timeout detection and agent termination
+- Context validation before spawning replacements
+- Graceful degradation with partial agent sets
+
+### Monitoring Dashboard Features
+
+**Web Portal (http://localhost:3000):**
+- Live agent status dashboard
+- Iteration progress visualization
+- Confidence score trends
+- Error rate monitoring
+- Resource usage graphs
+
+**CLI Monitoring Tools:**
+- `cfn-portal` - Start/stop monitoring dashboard
+- `cfn-context` - Query task context and status
+- `cfn-metrics` - View performance analytics
+- `cfn-redis` - Direct Redis inspection tools
+
+### Troubleshooting Monitoring Issues
+
+**Missing Coordinator:**
+```bash
+# Investigate coordinator failure
+./.claude/skills/cfn-loop-orchestration/investigate-missing-coordinator.sh "$TASK_ID"
+
+# Check for namespace mismatches
+redis-cli KEYS "cfn_loop:*" | head -10
+```
+
+**Stuck Agents:**
+```bash
+# Force cleanup of stuck agents
+./.claude/skills/cfn-loop-orchestration/cleanup-stuck-agents.sh "$TASK_ID"
+
+# Monitor agent timeouts
+redis-cli HGET "cfn_loop:task:$TASK_ID:timeouts" "agent_timeouts"
+```
+
+**Redis Connection Issues:**
+```bash
+# Test Redis connectivity
+redis-cli -n 0 PING
+
+# Check Redis memory usage
+redis-cli INFO memory | grep used_memory_human
+
+# Monitor Redis keyspace
+redis-cli DBSIZE
+```
 
 ## Usage Examples
 
@@ -219,29 +362,60 @@ esac
 npx claude-flow-novice agent cfn-v3-coordinator \
   --task-id "$TASK_ID" \
   --context "TASK_DESCRIPTION='$TASK_DESCRIPTION' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS LOOP3_AGENTS='$LOOP3_AGENTS' LOOP2_AGENTS='$LOOP2_AGENTS'" \
-  --timeout 300
+  --timeout 300 \
+  --background=true
 
-# Monitor progress (optional)
+# Monitor progress (required for background tasks)
 # redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"
 ```
 
 **CLI Coordinator Spawning Pattern:**
 
 ```bash
-# Direct CLI coordinator spawning (no Task() involved)
+# Direct CLI coordinator spawning with background execution
 npx claude-flow-novice agent cfn-v3-coordinator \
   --task-id "unique-task-id" \
   --context "task description; mode; max-iterations; agent-config" \
-  --timeout 300
+  --timeout 300 \
+  --background=true
 ```
+
+**Critical Background Execution Instructions:**
+
+1. **Always use `--background=true`** for CLI mode to enable:
+   - Non-blocking coordinator execution
+   - Real-time monitoring capabilities
+   - Redis state persistence
+   - Automatic recovery features
+
+2. **Background execution means:**
+   - Coordinator runs independently of Main Chat
+   - Main Chat can monitor progress via Redis queries
+   - Long-running tasks won't timeout due to Bash tool limitations
+   - Web portal can track agent progress in real-time
+
+3. **Without `--background=true`:**
+   - Coordinator blocks Main Chat execution
+   - No monitoring capabilities
+   - Timeouts after 10 minutes (Bash tool limit)
+   - No recovery or persistence features
 
 **Why This Pattern:**
 - ✅ All execution via CLI (no Task() tool)
-- ✅ Background execution with monitoring
-- ✅ Z.ai routing automatically applied to CLI agents
+- ✅ Background execution with enhanced monitoring
+- ✅ Z.ai routing automatically applied to all CLI agents (including coordinator)
 - ✅ Redis coordination for agent communication
-- ✅ 95-98% cost savings vs Task tool
 - ✅ Enhanced monitoring and recovery capabilities
 - ✅ Clean separation: Main Chat → CLI Coordinator → CLI Workers
+- ✅ Production-ready with real-time progress tracking
+- ✅ No timeout limitations with `--background=true`
 
-**Version:** 3.0.1 (2025-11-05) - Fixed CLI architecture: Correct coordinator spawning pattern via CLI instead of Task()
+**Enhanced Monitoring Benefits:**
+- Real-time agent progress tracking via Redis
+- Automatic recovery from stuck agents
+- Web portal visibility (http://localhost:3000)
+- Process health checking and cleanup
+- Context validation and preservation
+- Performance metrics and analytics
+
+**Version:** 3.1.0 (2025-11-05) - Removed cost information, added Main Chat monitoring instructions, clarified background execution requirements

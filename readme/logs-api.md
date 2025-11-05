@@ -77,7 +77,7 @@ CONSENSUS=$(./.claude/skills/redis-coordination/invoke-waiting-mode.sh collect \
 
 ### 5. Cost-Savings Mode
 ```bash
-# CLI-based spawning (95-98% cost reduction)
+# CLI-based spawning with Redis coordination
 npx claude-flow-novice swarm "Task Description" \
   --cost-savings \
   --skills redis-coordination,agent-spawning
@@ -106,7 +106,7 @@ fi
 ## Performance Characteristics
 - **Latency**: <50ms for agent coordination
 - **Scalability**: 10+ parallel agents
-- **Cost Efficiency**: 95-98% reduction in token usage
+- **Resource Efficiency**: Redis-based coordination reduces token usage
 
 ## Future API Expansion
 - Enhanced machine learning integration

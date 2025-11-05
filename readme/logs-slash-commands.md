@@ -4,112 +4,150 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, CF
 
 ## CFN Loop Commands
 
-### `/cfn-loop`
-**Purpose**: Execute single task through CFN Loop with advanced orchestration
+### `/cfn-loop-task [options]`
 
-**Parameters:**
-- `--mode`: CFN Loop mode (default: "standard")
-  - Options: "mvp", "standard", "enterprise"
-- `--skills`: Redis coordination skills to activate
-- `--max-iterations`: Maximum loop iterations (default varies by mode)
-- `--confidence-gate`: Confidence threshold for loop progression
-- `--consensus-threshold`: Consensus percentage required
+**Purpose**: Execute CFN Loop in Task mode with full visibility
 
-**Example:**
+**Usage**:
 ```bash
-# Basic usage
-/cfn-loop "Implement user authentication"
-
-# Advanced configuration
-/cfn-loop "Design payment gateway" \
-  --mode enterprise \
-  --skills="redis-coordination,agent-spawning" \
-  --max-iterations 15 \
-  --confidence-gate 0.85 \
-  --consensus-threshold 0.95
+/cfn-loop-task "Task description" --mode=standard
 ```
 
-### `/cfn-loop-single`
-**Purpose**: Execute a single, focused task with minimal overhead
+**Flags**:
+- `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
+- `--max-iterations`: Maximum loop iterations (default: varies by mode)
+- `--ace-reflect`: Enable adaptive context reflection
 
-**Parameters:**
-- `--mode`: CFN Loop mode (default: "mvp")
-- `--agent`: Specify primary agent type
+**Output**: Task execution with real-time agent visibility
 
-**Example:**
+**Example**:
 ```bash
-/cfn-loop-single "Update database schema" --agent backend-dev
+/cfn-loop-task "Implement user authentication" --mode=standard
+# Output: Loop 3/Loop 2/Product Owner execution with full visibility
 ```
 
-### `/cfn-loop-epic`
-**Purpose**: Manage complex, multi-phase epic development with comprehensive orchestration
+**Use Cases**: Debugging, learning, short tasks (<5 minutes)
 
-**Parameters:**
-- `--cfn-mode`: CFN Loop mode (default: "auto")
-- `--config`: Path to epic configuration file
-- `--skills`: Additional skills for coordination
-- `--dry-run`: Validate configuration without execution
+### `/cfn-loop-cli [options]`
 
-**Example:**
+**Purpose**: Execute CFN Loop in CLI mode for production workloads
+
+**Usage**:
 ```bash
-/cfn-loop-epic "Build e-commerce platform" \
-  --config ./epic-config.json \
-  --skills="redis-coordination,monitoring" \
-  --cfn-mode standard
+/cfn-loop-cli "Task description" --mode=standard --background=true
 ```
 
-### `/cfn-loop-sprints`
-**Purpose**: Manage sprint-based development with automated iteration tracking
+**Flags**:
+- `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
+- `--spawn-mode`: Agent spawning method - cli|task (default: cli)
+- `--max-iterations`: Maximum loop iterations (default: varies by mode)
+- `--background`: Enable background execution (required for monitoring)
+- `--ace-reflect`: Enable adaptive context reflection
 
-**Parameters:**
-- `--sprint-config`: Sprint planning configuration
-- `--mode`: CFN Loop mode
-- `--output`: Detailed sprint report format
+**Output**: Task execution in background with Redis coordination
 
-**Example:**
+**Example**:
 ```bash
-/cfn-loop-sprints "Q4 Product Roadmap" \
-  --sprint-config ./q4-sprints.yaml \
-  --mode enterprise \
-  --output markdown
+/cfn-loop-cli "Build payment system" --mode=standard --background=true
+# Output: Task ID for monitoring, agents execute in background
 ```
 
-### `/cfn-loop-frontend`
-**Purpose**: Execute frontend CFN Loop with visual iteration, mockup integration, and brand guideline enforcement
+**Use Cases**: Production workloads, long tasks, cost-sensitive execution
 
-**Parameters:**
-- `--mockup`: Path to UI mockup (PNG/JPG) for visual validation
-- `--brand-guidelines`: Path to brand guidelines JSON (optional, extracted from mockup if not provided)
+**Monitoring**: Use `agent-status` or check Redis for progress when `--background=true`
+
+### `/cfn-loop-frontend [options]`
+
+**Purpose**: Execute frontend CFN Loop with visual iteration and mockup validation
+
+**Usage**:
+```bash
+/cfn-loop-frontend "Build login UI" --mockup=/path/to/mockup.png --mode=standard
+```
+
+**Flags**:
+- `--mockup`: Path to UI mockup for visual validation (PNG/JPG)
+- `--brand-guidelines`: Path to brand guidelines JSON (optional)
 - `--mode`: Quality mode - mvp|standard|enterprise (default: standard)
 - `--spawn-mode`: Agent spawning method - cli|task (default: cli)
 - `--max-iterations`: Max visual iteration cycles (default: 5)
 
-**Example:**
-```bash
-# CLI Mode (production)
-/cfn-loop-frontend "Build login UI" \
-  --mockup=/mockups/login.png \
-  --brand-guidelines=/design/brand.json \
-  --mode=standard
+**Output**: Frontend implementation with visual validation artifacts
 
-# Task Mode (debugging)
-/cfn-loop-frontend "Build dashboard" \
-  --mockup=/mockups/dashboard.png \
-  --spawn-mode=task \
-  --max-iterations=7
+**Example**:
+```bash
+/cfn-loop-frontend "Build dashboard" --mockup=/mockups/dashboard.png --mode=standard
+# Output: Screenshots, videos, component documentation
 ```
 
-**Visual Validation:**
-- Screenshot analysis (static visual fidelity)
-- Video analysis (interaction quality)
-- Combined score threshold: ≥85% (standard mode)
-- Dual validation: Playwright screenshot + video recording
-
-**Output Artifacts:**
+**Artifacts**:
 - Screenshots: `tests/screenshots/*.png`
 - Videos: `test-results/**/video.webm`
-- Brand guidelines: `.claude/brand-guidelines.json`
 - Component docs: `docs/*_IMPLEMENTATION.md`
+
+### `/cfn-loop-document [options]`
+
+**Purpose**: Generate documentation for completed sprints/epics/phases
+
+**Usage**:
+```bash
+/cfn-loop-document --sprint=name --epic=name --phase=name
+```
+
+**Flags**:
+- `--sprint`: Generate documentation for specific sprint
+- `--epic`: Generate documentation for specific epic
+- `--phase`: Generate documentation for specific phase
+
+**Output**: Updated documentation files in `/readme` directory
+
+**Example**:
+```bash
+/cfn-loop-document --sprint="P1 Authentication" --epic="User Management"
+# Output: Updated sprint and epic documentation
+```
+
+
+### `/cfn-expert-update`
+
+**Purpose**: Update CFN system expert agent with relevant git commits since last scan
+
+**Parameters**:
+- `--dry-run`: Show updates without applying changes
+- `--since=commit_hash`: Force scan from specific commit
+- `--force`: Ignore last commit tracking and re-scan
+
+**Usage**:
+```bash
+# Standard update (scans since last run)
+/cfn-expert-update
+
+# Preview changes without applying
+/cfn-expert-update --dry-run
+
+# Force scan from specific commit
+/cfn-expert-update --since=abc123def
+
+# Complete re-scan
+/cfn-expert-update --force
+```
+
+**Functionality**:
+- Scans git commits since last tracked update
+- Detects CFN-relevant changes (CLAUDE.md, commands, skills, agents)
+- Extracts knowledge from relevant commits
+- Updates `.claude/agents/custom/cfn-system-expert.md` agent
+- Creates automatic backups before updates
+- Tracks last scanned commit to prevent duplicates
+
+**Relevance Detection**:
+- **High Priority**: `CLAUDE.md`, `/cfn-loop-*` commands, CFN Loop methodology
+- **Medium Priority**: `.claude/skills/cfn-*` patterns, coordination, cost optimization
+- **Low Priority**: Performance improvements, documentation updates
+
+**State Tracking**: `.claude/state/cfn-expert-last-commit`
+
+**Backup Location**: `.claude/backups/cfn-expert/`
 
 ## Cost-Savings Mode Commands
 
@@ -181,7 +219,7 @@ npx claude-flow-novice swarm "Task description" \
 
 **Persistence**: Mode saved to `.cfn-mode.json`
 
-**Integration**: Affects `/cfn-loop`, `/cfn-loop-single`, `/cfn-loop-epic`
+**Integration**: Affects `/cfn-loop-cli`, `/cfn-loop-task`, `/cfn-loop-frontend`
 
 ## Testing Commands
 
@@ -307,3 +345,47 @@ Dynamically discover and regenerate agent list from directory structure.
 # ✅ Indexed 43 skills
 # ✅ Agent catalog updated
 ```
+
+## Deprecated Commands (Removed 2025-10-31)
+
+⚠️ **DEPRECATED COMMANDS MOVED**: See [`.claude/commands/deprecated/`](../../../.claude/commands/deprecated/) for archived command documentation and migration guidance.
+
+### Quick Migration Reference
+
+| Old Command | New Command | Use Case |
+|-------------|-------------|----------|
+| `/cfn-loop` | `/cfn-loop-cli` or `/cfn-loop-task` | General execution |
+| `/cfn-loop-single` | `/cfn-loop-cli --mode=mvp` | Single tasks |
+| `/cfn-loop-epic` | Multiple `/cfn-loop-cli` calls | Multi-phase work |
+| `/cfn-loop-sprints` | Multiple `/cfn-loop-cli` calls | Sprint development |
+
+### Migration Examples
+
+**Basic Migration**:
+```bash
+# Old: /cfn-loop "Implement feature"
+# New: /cfn-loop-cli "Implement feature" --mode=standard
+```
+
+**Epic Migration**:
+```bash
+# Old: /cfn-loop-epic "Build platform"
+# New: Execute individual phases
+/cfn-loop-cli "Phase 1: Core architecture"
+/cfn-loop-cli "Phase 2: User management"
+/cfn-loop-cli "Phase 3: Payment system"
+```
+
+**Sprint Migration**:
+```bash
+# Old: /cfn-loop-sprints "Q4 Roadmap"
+# New: Execute individual sprints
+/cfn-loop-cli "Sprint 1: Authentication"
+/cfn-loop-cli "Sprint 2: User profiles"
+```
+
+### Detailed Documentation
+
+For complete deprecated command documentation, see:
+- [Deprecated Commands README](../../../.claude/commands/deprecated/README.md)
+- [Individual deprecated command files](../../../.claude/commands/deprecated/)

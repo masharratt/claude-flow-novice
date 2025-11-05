@@ -191,7 +191,7 @@ Flexible agent spawning with architectural optimization and context management
 1. **CLI Mode (Default)**
    - Routing: Main Chat → Coordinator → Orchestrator Script → CLI Agents
    - Context Management: Redis-based storage with full scope injection
-   - Cost Optimization: 95-98% savings
+   - Resource Optimization: Redis-based coordination
 
 2. **Task Mode**
    - Routing: Main Chat → JSON Config File → Direct Task Agent Spawning
@@ -246,9 +246,9 @@ Flexible agent spawning with architectural optimization and context management
 
 #### Integration Points
 - Seamless compatibility with:
-  - `/cfn-loop`
-  - `/cfn-loop-single`
-  - `/cfn-loop-epic`
+  - `/cfn-loop-cli`
+  - `/cfn-loop-task`
+  - `/cfn-loop-frontend`
 
 #### Configuration
 - Mode toggling via `/cfn-mode` command
@@ -343,7 +343,7 @@ Specialized CFN Loop for frontend development with visual validation and brand c
 
 #### Integration
 - Works in both CLI and Task modes
-- Supports `/cfn-loop` with `--spawn-mode` parameter
+- Supports `/cfn-loop-cli` and `/cfn-loop-task` with `--spawn-mode` parameter
 - Brand guidelines stored in `.claude/brand-guidelines.json`
 
 #### Configuration
@@ -404,7 +404,7 @@ Simplified CFN Loop execution with direct agent spawning, full visibility, and s
 
 **Usage**:
 ```bash
-# Automatic initialization in /cfn-loop command
+# Automatic initialization in /cfn-loop-cli or /cfn-loop-task command
 CONFIG_PATH=$(./.claude/skills/cfn-task-config-init/initialize-config.sh \
   --task-description "Implement JWT auth" \
   --mode "standard" \

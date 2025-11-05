@@ -1,0 +1,281 @@
+{
+  "version": "1.0.0",
+  "description": "Agent whitelist for MCP server authentication",
+  "lastUpdated": "2025-11-05",
+  "agents": [
+    {
+      "type": "react-frontend-engineer",
+      "displayName": "React Frontend Engineer",
+      "skills": [
+        "ui-development",
+        "react-components",
+        "css-styling",
+        "browser-automation",
+        "accessibility-testing",
+        "screenshot-capture"
+      ],
+      "allowedMcpServers": [
+        "playwright",
+        "browser-tools",
+        "screenshot-analysis"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 1024,
+        "maxRequestsPerMinute": 60,
+        "maxConcurrentRequests": 3
+      },
+      "description": "Frontend development specialist with browser automation capabilities"
+    },
+    {
+      "type": "ui-designer",
+      "displayName": "UI Designer",
+      "skills": [
+        "ui-development",
+        "visual-design",
+        "browser-automation",
+        "screenshot-capture",
+        "color-analysis",
+        "layout-testing"
+      ],
+      "allowedMcpServers": [
+        "playwright",
+        "browser-tools",
+        "screenshot-analysis",
+        "color-palette"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 512,
+        "maxRequestsPerMinute": 30,
+        "maxConcurrentRequests": 2
+      },
+      "description": "UI/UX design specialist with visual testing capabilities"
+    },
+    {
+      "type": "accessibility-validator",
+      "displayName": "Accessibility Validator",
+      "skills": [
+        "accessibility-testing",
+        "browser-automation",
+        "screen-reader-testing",
+        "wcag-compliance",
+        "screenshot-capture"
+      ],
+      "allowedMcpServers": [
+        "playwright",
+        "browser-tools",
+        "accessibility-scanner"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 512,
+        "maxRequestsPerMinute": 40,
+        "maxConcurrentRequests": 2
+      },
+      "description": "Accessibility testing specialist with compliance checking"
+    },
+    {
+      "type": "mobile-dev",
+      "displayName": "Mobile Developer",
+      "skills": [
+        "mobile-development",
+        "responsive-testing",
+        "browser-automation",
+        "device-testing",
+        "screenshot-capture"
+      ],
+      "allowedMcpServers": [
+        "playwright",
+        "browser-tools",
+        "device-emulation"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 768,
+        "maxRequestsPerMinute": 50,
+        "maxConcurrentRequests": 3
+      },
+      "description": "Mobile development specialist with responsive testing"
+    },
+    {
+      "type": "backend-developer",
+      "displayName": "Backend Developer",
+      "skills": [
+        "api-development",
+        "database-design",
+        "redis-operations",
+        "server-testing",
+        "api-validation"
+      ],
+      "allowedMcpServers": [
+        "redis",
+        "postgres",
+        "api-testing",
+        "database-migration"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 512,
+        "maxRequestsPerMinute": 80,
+        "maxConcurrentRequests": 5
+      },
+      "description": "Backend development specialist with database and API tools"
+    },
+    {
+      "type": "database-architect",
+      "displayName": "Database Architect",
+      "skills": [
+        "database-design",
+        "sql-optimization",
+        "schema-management",
+        "data-migration",
+        "performance-tuning"
+      ],
+      "allowedMcpServers": [
+        "postgres",
+        "redis",
+        "database-analyzer",
+        "query-optimizer"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 768,
+        "maxRequestsPerMinute": 40,
+        "maxConcurrentRequests": 3
+      },
+      "description": "Database architecture specialist with optimization tools"
+    },
+    {
+      "type": "api-gateway-specialist",
+      "displayName": "API Gateway Specialist",
+      "skills": [
+        "api-development",
+        "gateway-configuration",
+        "load-balancing",
+        "rate-limiting",
+        "api-testing"
+      ],
+      "allowedMcpServers": [
+        "api-testing",
+        "gateway-config",
+        "traffic-monitoring"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 512,
+        "maxRequestsPerMinute": 60,
+        "maxConcurrentRequests": 4
+      },
+      "description": "API gateway and traffic management specialist"
+    },
+    {
+      "type": "security-specialist",
+      "displayName": "Security Specialist",
+      "skills": [
+        "security-auditing",
+        "vulnerability-scanning",
+        "penetration-testing",
+        "compliance-checking",
+        "threat-analysis"
+      ],
+      "allowedMcpServers": [
+        "security-scanner",
+        "vulnerability-checker",
+        "compliance-validator",
+        "threat-analyzer"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 1024,
+        "maxRequestsPerMinute": 30,
+        "maxConcurrentRequests": 2
+      },
+      "description": "Security testing and vulnerability assessment specialist"
+    },
+    {
+      "type": "performance-tester",
+      "displayName": "Performance Tester",
+      "skills": [
+        "load-testing",
+        "performance-monitoring",
+        "benchmarking",
+        "stress-testing",
+        "metrics-analysis"
+      ],
+      "allowedMcpServers": [
+        "load-generator",
+        "performance-monitor",
+        "metrics-collector",
+        "benchmark-runner"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 1536,
+        "maxRequestsPerMinute": 20,
+        "maxConcurrentRequests": 2
+      },
+      "description": "Performance and load testing specialist"
+    },
+    {
+      "type": "devops-engineer",
+      "displayName": "DevOps Engineer",
+      "skills": [
+        "container-management",
+        "deployment-automation",
+        "infrastructure-monitoring",
+        "log-analysis",
+        "incident-response"
+      ],
+      "allowedMcpServers": [
+        "kubernetes",
+        "docker-orchestration",
+        "monitoring-tools",
+        "log-aggregator"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 1024,
+        "maxRequestsPerMinute": 70,
+        "maxConcurrentRequests": 4
+      },
+      "description": "DevOps and infrastructure management specialist"
+    },
+    {
+      "type": "kubernetes-specialist",
+      "displayName": "Kubernetes Specialist",
+      "skills": [
+        "kubernetes-management",
+        "container-orchestration",
+        "service-mesh",
+        "cluster-monitoring",
+        "resource-optimization"
+      ],
+      "allowedMcpServers": [
+        "kubernetes",
+        "helm",
+        "istio",
+        "cluster-monitor"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 1024,
+        "maxRequestsPerMinute": 50,
+        "maxConcurrentRequests": 3
+      },
+      "description": "Kubernetes and container orchestration specialist"
+    },
+    {
+      "type": "monitoring-specialist",
+      "displayName": "Monitoring Specialist",
+      "skills": [
+        "metrics-collection",
+        "alerting-systems",
+        "dashboard-creation",
+        "log-analysis",
+        "incident-response"
+      ],
+      "allowedMcpServers": [
+        "prometheus",
+        "grafana",
+        "log-aggregator",
+        "alert-manager"
+      ],
+      "resourceLimits": {
+        "maxMemoryMB": 768,
+        "maxRequestsPerMinute": 60,
+        "maxConcurrentRequests": 4
+      },
+      "description": "Monitoring and observability specialist"
+    }
+  ]
+}

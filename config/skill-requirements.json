@@ -1,0 +1,341 @@
+{
+  "version": "1.0.0",
+  "description": "Skill requirements for MCP tools and servers",
+  "lastUpdated": "2025-11-05",
+  "tools": {
+    "take_screenshot": {
+      "displayName": "Take Screenshot",
+      "requiredSkills": [
+        "browser-automation",
+        "screenshot-capture"
+      ],
+      "optionalSkills": [
+        "ui-development",
+        "accessibility-testing"
+      ],
+      "allowedAgentTypes": [
+        "react-frontend-engineer",
+        "ui-designer",
+        "accessibility-validator",
+        "mobile-dev"
+      ],
+      "resourceImpact": {
+        "memoryMB": 256,
+        "cpuUnits": 2,
+        "durationSeconds": 10
+      },
+      "description": "Capture webpage screenshots with Playwright"
+    },
+    "search_google": {
+      "displayName": "Search Google",
+      "requiredSkills": [
+        "browser-automation",
+        "web-search"
+      ],
+      "optionalSkills": [
+        "seo-analysis",
+        "content-research"
+      ],
+      "allowedAgentTypes": [
+        "react-frontend-engineer",
+        "ui-designer",
+        "mobile-dev"
+      ],
+      "resourceImpact": {
+        "memoryMB": 512,
+        "cpuUnits": 3,
+        "durationSeconds": 15
+      },
+      "description": "Search Google and return results"
+    },
+    "navigate_and_interact": {
+      "displayName": "Navigate and Interact",
+      "requiredSkills": [
+        "browser-automation",
+        "web-interaction"
+      ],
+      "optionalSkills": [
+        "form-testing",
+        "user-journey-testing"
+      ],
+      "allowedAgentTypes": [
+        "react-frontend-engineer",
+        "ui-designer",
+        "accessibility-validator",
+        "mobile-dev"
+      ],
+      "resourceImpact": {
+        "memoryMB": 384,
+        "cpuUnits": 3,
+        "durationSeconds": 20
+      },
+      "description": "Navigate web pages and interact with elements"
+    },
+    "redis_get": {
+      "displayName": "Redis Get Operation",
+      "requiredSkills": [
+        "redis-operations"
+      ],
+      "optionalSkills": [
+        "cache-management",
+        "data-retrieval"
+      ],
+      "allowedAgentTypes": [
+        "backend-developer",
+        "database-architect",
+        "api-gateway-specialist",
+        "devops-engineer"
+      ],
+      "resourceImpact": {
+        "memoryMB": 64,
+        "cpuUnits": 1,
+        "durationSeconds": 2
+      },
+      "description": "Retrieve data from Redis cache"
+    },
+    "redis_set": {
+      "displayName": "Redis Set Operation",
+      "requiredSkills": [
+        "redis-operations"
+      ],
+      "optionalSkills": [
+        "cache-management",
+        "data-storage"
+      ],
+      "allowedAgentTypes": [
+        "backend-developer",
+        "database-architect",
+        "api-gateway-specialist",
+        "devops-engineer"
+      ],
+      "resourceImpact": {
+        "memoryMB": 64,
+        "cpuUnits": 1,
+        "durationSeconds": 2
+      },
+      "description": "Store data in Redis cache"
+    },
+    "postgres_query": {
+      "displayName": "PostgreSQL Query",
+      "requiredSkills": [
+        "database-design",
+        "sql-operations"
+      ],
+      "optionalSkills": [
+        "query-optimization",
+        "data-analysis"
+      ],
+      "allowedAgentTypes": [
+        "backend-developer",
+        "database-architect",
+        "api-gateway-specialist"
+      ],
+      "resourceImpact": {
+        "memoryMB": 128,
+        "cpuUnits": 2,
+        "durationSeconds": 5
+      },
+      "description": "Execute PostgreSQL queries"
+    },
+    "api_test_endpoint": {
+      "displayName": "API Endpoint Testing",
+      "requiredSkills": [
+        "api-development",
+        "api-testing"
+      ],
+      "optionalSkills": [
+        "load-testing",
+        "security-testing"
+      ],
+      "allowedAgentTypes": [
+        "backend-developer",
+        "api-gateway-specialist",
+        "security-specialist",
+        "performance-tester"
+      ],
+      "resourceImpact": {
+        "memoryMB": 192,
+        "cpuUnits": 2,
+        "durationSeconds": 8
+      },
+      "description": "Test API endpoints for functionality and performance"
+    },
+    "security_scan": {
+      "displayName": "Security Vulnerability Scan",
+      "requiredSkills": [
+        "security-auditing",
+        "vulnerability-scanning"
+      ],
+      "optionalSkills": [
+        "penetration-testing",
+        "compliance-checking"
+      ],
+      "allowedAgentTypes": [
+        "security-specialist",
+        "backend-developer",
+        "devops-engineer"
+      ],
+      "resourceImpact": {
+        "memoryMB": 512,
+        "cpuUnits": 4,
+        "durationSeconds": 30
+      },
+      "description": "Scan for security vulnerabilities"
+    },
+    "kubernetes_deploy": {
+      "displayName": "Kubernetes Deployment",
+      "requiredSkills": [
+        "kubernetes-management",
+        "container-orchestration"
+      ],
+      "optionalSkills": [
+        "helm-charts",
+        "service-mesh"
+      ],
+      "allowedAgentTypes": [
+        "kubernetes-specialist",
+        "devops-engineer"
+      ],
+      "resourceImpact": {
+        "memoryMB": 256,
+        "cpuUnits": 2,
+        "durationSeconds": 45
+      },
+      "description": "Deploy applications to Kubernetes cluster"
+    },
+    "monitoring_metrics": {
+      "displayName": "Monitoring Metrics Collection",
+      "requiredSkills": [
+        "metrics-collection",
+        "performance-monitoring"
+      ],
+      "optionalSkills": [
+        "alerting-systems",
+        "dashboard-creation"
+      ],
+      "allowedAgentTypes": [
+        "monitoring-specialist",
+        "devops-engineer",
+        "performance-tester",
+        "kubernetes-specialist"
+      ],
+      "resourceImpact": {
+        "memoryMB": 192,
+        "cpuUnits": 2,
+        "durationSeconds": 10
+      },
+      "description": "Collect and analyze monitoring metrics"
+    },
+    "log_analysis": {
+      "displayName": "Log Analysis",
+      "requiredSkills": [
+        "log-analysis",
+        "troubleshooting"
+      ],
+      "optionalSkills": [
+        "incident-response",
+        "pattern-matching"
+      ],
+      "allowedAgentTypes": [
+        "monitoring-specialist",
+        "devops-engineer",
+        "backend-developer",
+        "security-specialist"
+      ],
+      "resourceImpact": {
+        "memoryMB": 384,
+        "cpuUnits": 3,
+        "durationSeconds": 15
+      },
+      "description": "Analyze application and system logs"
+    },
+    "load_test": {
+      "displayName": "Load Testing",
+      "requiredSkills": [
+        "load-testing",
+        "performance-monitoring"
+      ],
+      "optionalSkills": [
+        "stress-testing",
+        "benchmarking"
+      ],
+      "allowedAgentTypes": [
+        "performance-tester",
+        "backend-developer",
+        "devops-engineer"
+      ],
+      "resourceImpact": {
+        "memoryMB": 1024,
+        "cpuUnits": 6,
+        "durationSeconds": 120
+      },
+      "description": "Perform load testing on applications"
+    },
+    "accessibility_audit": {
+      "displayName": "Accessibility Audit",
+      "requiredSkills": [
+        "accessibility-testing",
+        "wcag-compliance"
+      ],
+      "optionalSkills": [
+        "screen-reader-testing",
+        "color-contrast-analysis"
+      ],
+      "allowedAgentTypes": [
+        "accessibility-validator",
+        "ui-designer",
+        "react-frontend-engineer"
+      ],
+      "resourceImpact": {
+        "memoryMB": 384,
+        "cpuUnits": 3,
+        "durationSeconds": 25
+      },
+      "description": "Audit applications for accessibility compliance"
+    },
+    "responsive_test": {
+      "displayName": "Responsive Design Testing",
+      "requiredSkills": [
+        "responsive-testing",
+        "device-testing"
+      ],
+      "optionalSkills": [
+        "mobile-development",
+        "css-testing"
+      ],
+      "allowedAgentTypes": [
+        "mobile-dev",
+        "ui-designer",
+        "react-frontend-engineer"
+      ],
+      "resourceImpact": {
+        "memoryMB": 512,
+        "cpuUnits": 3,
+        "durationSeconds": 20
+      },
+      "description": "Test responsive design across different screen sizes"
+    },
+    "screenshot_analysis": {
+      "displayName": "Screenshot Analysis",
+      "requiredSkills": [
+        "screenshot-capture",
+        "visual-analysis"
+      ],
+      "optionalSkills": [
+        "ui-testing",
+        "regression-testing"
+      ],
+      "allowedAgentTypes": [
+        "ui-designer",
+        "react-frontend-engineer",
+        "accessibility-validator"
+      ],
+      "resourceImpact": {
+        "memoryMB": 768,
+        "cpuUnits": 4,
+        "durationSeconds": 15
+      },
+      "description": "Analyze screenshots for visual differences and issues"
+    }
+  }
+}
