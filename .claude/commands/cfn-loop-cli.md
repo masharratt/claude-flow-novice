@@ -15,7 +15,7 @@ Execute CFN Loop using CLI spawning for maximum cost savings (95-98% vs Task too
 ## What is CLI Mode?
 
 **CLI Mode Architecture v3.0 (Enhanced):**
-- Main Chat spawns **single coordinator agent** via Task()
+- Main Chat spawns **single coordinator agent**
 - Enhanced coordinator spawns **all workers via CLI** with protocol compliance
 - CLI agents use **Z.ai custom routing** (when enabled)
 - **Real-time monitoring** with automatic recovery from stuck agents
@@ -77,130 +77,16 @@ Savings: 64% with custom routing, 95-98% vs all-Task
 | Standard | ≥0.75 | ≥0.90 | 10 | 3-4 | Production features |
 | Enterprise | ≥0.85 | ≥0.95 | 15 | 5 | Security, compliance, critical systems |
 
-## 🚨 CRITICAL EXECUTION INSTRUCTIONS
+## How CLI Mode Works
 
-**YOU ARE MAIN CHAT. YOU SPAWN ONLY THE cfn-v3-coordinator AGENT.**
+1. **Main Chat** spawns a single `cfn-v3-coordinator` agent
+2. **Coordinator** orchestrates the entire CFN Loop workflow
+3. **Loop 3** agents implement the solution and validate against quality gates
+4. **Loop 2** agents review and provide validation feedback
+5. **Product Owner** makes the final decision on deliverables
+6. **Background execution** with Redis coordination for scalability
 
-**DO NOT spawn Loop 3 agents (backend-dev, researcher, etc.)**
-**DO NOT spawn Loop 2 agents (reviewer, tester, etc.)**
-**DO NOT spawn product-owner**
-
-The coordinator handles ALL agent spawning internally via enhanced CLI mode v3.0.
-
----
-
-### Execute This Task() Call:
-
-```javascript
-Task("cfn-v3-coordinator", `
-  CFN LOOP CLI MODE - ENHANCED PRODUCTION EXECUTION v3.0
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  TASK SPECIFICATION
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Task Description: $ARGUMENTS
-  Task ID: cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}
-  Mode: ${mode.toUpperCase()}
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  SUCCESS CRITERIA
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Acceptance Criteria:
-  - [ ] Core functionality implemented
-  - [ ] All tests pass with >80% coverage
-  - [ ] Security review completed
-  - [ ] Documentation updated
-  - [ ] No regression in existing features
-
-  Quality Gates (${mode.toUpperCase()} MODE):
-  - Loop 3 Gate Threshold: ${mode === 'enterprise' ? 0.85 : mode === 'standard' ? 0.75 : 0.70}
-  - Loop 2 Consensus Threshold: ${mode === 'enterprise' ? 0.95 : mode === 'standard' ? 0.90 : 0.80}
-  - Max Iterations: ${maxIterations}
-
-  Definition of Done:
-  - Consensus ≥ threshold achieved
-  - All acceptance criteria met
-  - Product Owner approval received
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ENHANCED ORCHESTRATION CONFIGURATION v3.0
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Mode: ${mode.toUpperCase()}
-
-  Loop 3 Agents (Implementation) - SELECT BASED ON TASK:
-  Examples:
-  - Backend API: backend-dev, researcher, devops
-  - Full-Stack: backend-dev, react-frontend-engineer, devops
-  - Infrastructure: devops, rust-developer, researcher
-  - Security: security-specialist, backend-dev, researcher
-
-  Loop 2 Agents (Validation) - SCALE BY COMPLEXITY:
-  Simple (1-2 files): reviewer, tester
-  Standard (3-5 files): reviewer, tester, architect, security-specialist
-  Complex (>5 files): +code-analyzer, +performance-benchmarker
-
-  Product Owner: product-owner
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ENHANCED EXECUTION INSTRUCTIONS v3.0
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  1. INVOKE ENHANCED ORCHESTRATOR (CLI spawning v3.0):
-
-     TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
-     MODE="${mode}"
-     LOOP3_AGENTS="backend-dev,researcher,devops"  # Customize for task
-     LOOP2_AGENTS="reviewer,tester,architect,security-specialist"  # Scale by complexity
-
-     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
-       --task-id "$TASK_ID" \\
-       --mode "$MODE" \\
-       --loop3-agents "$LOOP3_AGENTS" \\
-       --loop2-agents "$LOOP2_AGENTS" \\
-       --product-owner "product-owner" \\
-       --max-iterations ${maxIterations}
-
-  2. ENHANCED ORCHESTRATOR HANDLES v3.0:
-     - **Real-time monitoring** with automatic stuck agent recovery
-     - **Process health checking** and dead process cleanup
-     - **Protocol compliance** preventing "consensus on vapor" anti-patterns
-     - **Progress visibility** with detailed timestamped reports
-     - Spawns all agents via enhanced CLI (background)
-     - Loop 3: Gate check (≥threshold) → PASS/ITERATE
-     - Loop 2: Consensus check (≥threshold) → COMPLETE/ITERATE
-     - Product Owner: PROCEED/ITERATE/ABORT decision
-     - Git commit/push on PROCEED
-     - Returns structured result to Main Chat
-
-  3. RETURN STRUCTURED RESULT:
-     {
-       "taskId": "cfn-cli-XXXXX",
-       "status": "complete|failed",
-       "iterations": {"loop3": N, "loop2": M},
-       "finalConsensus": 0.XX,
-       "acceptanceCriteria": {
-         "met": [...],
-         "pending": [...]
-       },
-       "deliverables": [...],
-       "recommendations": [...]
-     }
-
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  CRITICAL RULES
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  - DO NOT spawn agents with Task() - orchestrator uses enhanced CLI
-  - ALL agents run in background via npx claude-flow-novice
-  - USE Redis BLPOP for loop dependencies
-  - AGENTS use Z.ai routing automatically (when enabled)
-  - ORCHESTRATOR provides real-time monitoring and recovery
-  - RETURN structured result when complete
-`, "cfn-v3-coordinator")
-```
+The coordinator handles all agent spawning internally using optimized CLI processes.
 
 ## CLI Mode Benefits
 
@@ -257,6 +143,33 @@ Task("cfn-v3-coordinator", `
 - Will force ITERATE if git diff shows zero changes
 - Check coordinator output for validation failures
 
+**Web Portal Access:**
+- Monitor real-time agent progress at http://localhost:3000
+- View detailed execution logs and health status
+- Track iteration progress and confidence scores
+
+## Usage Examples
+
+**Simple API Development:**
+```bash
+/cfn-loop-cli "Build REST API with user authentication"
+```
+
+**Complex Feature with High Quality Requirements:**
+```bash
+/cfn-loop-cli "Implement payment processing with PCI compliance" --mode=enterprise --max-iterations=15
+```
+
+**Quick Prototype:**
+```bash
+/cfn-loop-cli "Build MVP landing page" --mode=mvp
+```
+
+**Infrastructure Deployment:**
+```bash
+/cfn-loop-cli "Set up CI/CD pipeline for microservices"
+```
+
 ## Related Commands
 
 - **Task Mode**: `/cfn-loop-task` (debugging, full visibility)
@@ -272,4 +185,127 @@ Task("cfn-v3-coordinator", `
 
 ---
 
-**Version:** 1.0.0 (2025-10-31) - CLI mode: production execution, cost-optimized, background processing
+## 🚨 EXECUTION INSTRUCTIONS (Internal Use)
+
+**Main Chat: Execute this Task() call after slash command processing:**
+
+```javascript
+Task("cfn-v3-coordinator", `
+  CFN LOOP CLI MODE v3.0 - PRODUCTION EXECUTION WITH ENHANCED MONITORING
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TASK SPECIFICATION
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Task Description: $ARGUMENTS
+  Task ID: cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}
+  Mode: ${mode.toUpperCase()}
+
+  Enhanced Monitoring: Real-time agent tracking, automatic recovery, protocol compliance
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SUCCESS CRITERIA
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Acceptance Criteria:
+  - [ ] Core functionality implemented
+  - [ ] All tests pass with >80% coverage
+  - [ ] Security review completed
+  - [ ] Documentation updated
+  - [ ] No regression in existing features
+
+  Quality Gates (${mode.toUpperCase()} MODE):
+  - Loop 3 Gate Threshold: ${mode === 'enterprise' ? 0.85 : mode === 'standard' ? 0.75 : 0.70}
+  - Loop 2 Consensus Threshold: ${mode === 'enterprise' ? 0.95 : mode === 'standard' ? 0.90 : 0.80}
+  - Max Iterations: ${maxIterations}
+
+  Definition of Done:
+  - Consensus ≥ threshold achieved
+  - All acceptance criteria met
+  - Product Owner approval received
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ENHANCED ORCHESTRATION CONFIGURATION v3.0
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Mode: ${mode.toUpperCase()}
+  Enhanced Features: Real-time monitoring, automatic recovery, protocol compliance
+
+  Loop 3 Agents (Implementation) - SELECT BASED ON TASK:
+  Examples:
+  - Backend API: backend-dev, researcher, devops
+  - Full-Stack: backend-dev, react-frontend-engineer, devops
+  - Infrastructure: devops, rust-developer, researcher
+  - Security: security-specialist, backend-dev, researcher
+
+  Loop 2 Agents (Validation) - SCALE BY COMPLEXITY:
+  Simple (1-2 files): reviewer, tester
+  Standard (3-5 files): reviewer, tester, architect, security-specialist
+  Complex (>5 files): +code-analyzer, +performance-benchmarker
+
+  Product Owner: product-owner
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  EXECUTION INSTRUCTIONS (Enhanced v3.0)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. INVOKE ENHANCED ORCHESTRATOR (CLI spawning with monitoring):
+
+     TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
+     MODE="${mode}"
+     LOOP3_AGENTS="backend-dev,researcher,devops"  # Customize for task
+     LOOP2_AGENTS="reviewer,tester,architect,security-specialist"  # Scale by complexity
+
+     ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \\
+       --task-id "$TASK_ID" \\
+       --mode "$MODE" \\
+       --loop3-agents "$LOOP3_AGENTS" \\
+       --loop2-agents "$LOOP2_AGENTS" \\
+       --product-owner "product-owner" \\
+       --max-iterations ${maxIterations}
+
+  2. ENHANCED ORCHESTRATOR HANDLES v3.0:
+     - ✅ Spawns all agents via CLI (background) with protocol compliance
+     - ✅ Real-time agent progress monitoring and stuck detection
+     - ✅ Automatic recovery from dead processes
+     - ✅ Enhanced context validation prevents "consensus on vapor"
+     - ✅ Loop 3: Gate check (≥threshold) → PASS/ITERATE with health verification
+     - ✅ Loop 2: Consensus check (≥threshold) → COMPLETE/ITERATE
+     - ✅ Product Owner: PROCEED/ITERATE/ABORT decision with deliverable validation
+     - ✅ Git commit/push on PROCEED
+     - ✅ Returns structured result to Main Chat
+
+  3. RETURN STRUCTURED RESULT:
+     {
+       "taskId": "cfn-cli-XXXXX",
+       "status": "complete|failed",
+       "iterations": {"loop3": N, "loop2": M},
+       "finalConsensus": 0.XX,
+       "acceptanceCriteria": {
+         "met": [...],
+         "pending": [...]
+       },
+       "deliverables": [...],
+       "enhancedMonitoring": {
+         "agentHealth": "healthy|recovered",
+         "processRecovery": true,
+         "protocolCompliance": true
+       },
+       "recommendations": [...]
+     }
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CRITICAL ENHANCED RULES v3.0
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  - ✅ USE enhanced orchestration script with real-time monitoring
+  - ✅ ALL agents run in background via npx claude-flow-novice (enhanced v3.0)
+  - ✅ USE Redis BLPOP for loop dependencies (zero-token coordination)
+  - ✅ AGENTS use Z.ai routing automatically (when enabled)
+  - ✅ ENFORCE protocol compliance (prevent "consensus on vapor")
+  - ✅ MONITOR agent health and auto-recover stuck processes
+  - ✅ RETURN structured result with enhanced monitoring data
+`, "cfn-v3-coordinator")
+```
+
+**Version:** 3.0.0 (2025-11-05) - Enhanced CLI mode: production execution with real-time monitoring, automatic recovery, and protocol compliance
