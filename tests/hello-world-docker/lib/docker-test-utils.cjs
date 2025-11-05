@@ -3,9 +3,10 @@
  * Provides utilities for testing container-based CFN Loop execution
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { execSync } from 'child_process';
+const fs = require('fs').promises;
+const path = require('path');
+const { execSync } = require('child_process');
+const RedisTestUtils = require('./redis-test-utils.cjs');
 
 class DockerTestUtils {
     constructor() {
@@ -15,6 +16,7 @@ class DockerTestUtils {
         this.coordinationScript = path.join(this.dockerSkillsDir, 'cfn-docker-redis-coordination/coordinate.sh');
         this.agentSpawningScript = path.join(this.dockerSkillsDir, 'cfn-docker-agent-spawning/spawn-agent.sh');
         this.orchestrationScript = path.join(this.dockerSkillsDir, 'cfn-docker-loop-orchestration/orchestrate.sh');
+        this.redisUtils = new RedisTestUtils();
     }
 
     /**
@@ -127,8 +129,7 @@ class DockerTestUtils {
                 taskId,
                 agentId,
                 '--memory-limit', memoryLimit,
-                '--network', network,
-                '--mcp-auto-select'
+                '--network', network
             ];
 
             if (verbose) {
@@ -212,6 +213,12 @@ class DockerTestUtils {
     async registerAgentInRedis(agentId, agentType, taskId, containerId = null) {
         console.log(`📝 Registering agent ${agentId} (${agentType}) in Redis`);
 
+        // Validate parameters
+        if (!agentId || !agentType || !taskId) {
+            console.error(`❌ Invalid parameters: agentId=${agentId}, agentType=${agentType}, taskId=${taskId}`);
+            return false;
+        }
+
         try {
             const command = `bash "${this.coordinationScript}" register-agent \
                 --agent-id "${agentId}" \
@@ -219,15 +226,22 @@ class DockerTestUtils {
                 --task-id "${taskId}" \
                 ${containerId ? `--container-id "${containerId}"` : ''}`;
 
+            console.log(`   🔄 Executing: ${command}`);
             const result = execSync(command, {
                 encoding: 'utf8',
                 stdio: 'pipe',
                 timeout: 10000
             });
 
-            return result.includes('SUCCESS');
+            console.log(`   📄 Command output: ${result.trim()}`);
+            const success = result.includes('SUCCESS');
+            if (!success) {
+                console.error(`❌ Command failed: ${result}`);
+            }
+            return success;
         } catch (error) {
             console.error(`❌ Failed to register agent ${agentId}:`, error.message);
+            console.error(`❌ Error details:`, error);
             return false;
         }
     }
@@ -452,4 +466,4 @@ class DockerTestUtils {
     }
 }
 
-export default DockerTestUtils;
+module.exports = DockerTestUtils;
