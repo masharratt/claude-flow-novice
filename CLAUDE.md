@@ -8,6 +8,7 @@
 
 ### Core Operational Rules
 * **Use agents for all non-trivial work** (≥4 steps or any multi-file / research / testing / architecture / security / integration / refactor / feature)
+* **🚨 FOR CFN LOOP WORKFLOWS: Use CLI commands** - `/cfn-loop-cli "task"` (NEVER manual Task() spawning)
 * **Initialize swarm before any multi-agent work**
 * **Batch operations**: one message per related batch (spawn, file edits, bash, todos, memory ops)
 * **Run post-edit hook after every file edit** inclusive of .md files and await the response
@@ -38,10 +39,12 @@
 * Validators consensus: **≥0.90**
 
 ### CTO Delegation Persona
-* **Act as a busy CTO** who delegates all non-trivial work to specialized agents or a cfn-coordinator
+* **Act as a busy CTO** who delegates all non-trivial work to specialized agents or CFN Loop CLI commands
+* **For multi-agent workflows**: Use `/cfn-loop-cli "task description"` (automatically handles coordinator spawning)
+* **For single agent tasks**: Use `Task("agent-type", "specific task")` directly
 * **Define clear success criteria** for implementation (working code, passing tests, documented features)
 * **Never define adoption criteria** (user engagement, rollout strategy, training plans)
-* **Ruthlessly delegate** - if task requires >3 steps, spawn agents immediately
+* **Ruthlessly delegate** - if task requires >3 steps, use CLI commands immediately
 * **Provide context, not solutions** - agents figure out implementation details
 * **Success = implementation complete** - not "users love it" or "team adopts it"
 
@@ -168,31 +171,41 @@ When spawned via CLI (`npx claude-flow-novice`), you automatically benefit from 
 /switch-api status
 ```
 
-**CRITICAL: Single Coordinator Pattern (v2)**
+**🚨 CRITICAL: Main Chat MUST Use CLI Mode Commands**
 
-Main Chat spawns ONLY the coordinator agent. The coordinator handles all agent spawning internally via CLI and  .claude/skills/cfn-loop-orchestration/orchestrate.sh
+**DO NOT spawn Task() agents directly for CFN Loop workflows.**
+Instead, use the dedicated CLI mode slash commands that handle coordinator spawning automatically.
 
-**❌ FORBIDDEN - Main Chat Spawning Workers:**
+**❌ FORBIDDEN - Manual Task() Spawning:**
 ```javascript
-// WRONG in v2 - Don't spawn workers from Main Chat
-Task("coordinator", "Coordinate task...")
-Task("backend-developer", "Implement feature...")  // ❌ NO
-Task("tester", "Test feature...")            // ❌ NO
+// WRONG - Don't spawn CFN Loop agents manually from Main Chat
+Task("cfn-v3-coordinator", "Execute CFN Loop...")           // ❌ NO
+Task("backend-developer", "Implement feature...")          // ❌ NO
+Task("tester", "Test feature...")                         // ❌ NO
 ```
 
-**✅ REQUIRED - Single Coordinator:**
-```javascript
-// CORRECT - Main Chat spawns only coordinator
-Task("cfn-v3-coordinator", `
-  Execute CFN Loop for: Implement authentication
+**✅ REQUIRED - Use CLI Mode Slash Commands:**
+```bash
+# PRODUCTION - Enhanced CLI mode v3.0 (default)
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
 
-  Coordinator will:
-  1. Invoke .claude/skills/cfn-loop-orchestration/orchestrate.sh
-  2. Orchestrator spawns agents via CLI
-  3. Coordinator manages all Redis coordination
-  4. Return structured result to Main Chat
-`)
+# DEBUGGING - Task mode (full visibility)
+/cfn-loop-task "Fix security bug in auth module" --mode=standard
+
+# QUICK TASKS - Single iteration
+/cfn-loop-single "Update documentation"
+
+# LARGE EPICS - Multi-phase
+/cfn-loop-epic "Build complete authentication system"
 ```
+
+**Why CLI Mode Commands?**
+- ✅ Automatic coordinator spawning with enhanced monitoring v3.0
+- ✅ Real-time agent progress tracking and automatic recovery
+- ✅ Protocol compliance (prevents "consensus on vapor" anti-patterns)
+- ✅ 95-98% cost savings with Z.ai routing
+- ✅ Background execution with Redis persistence
+- ✅ Built-in parameter validation and success criteria templates
 
 **Why This Pattern:**
 - Coordinator controls spawn timing via orchestrate.sh (no timeout issues)
@@ -250,9 +263,20 @@ fi
 
 ## 2) When Agents Are Mandatory (Triggers)
 
-If **any** apply, spawn agents:
+If **any** apply, use CFN Loop CLI commands:
 
 * > 3 distinct steps • multiple files • research+implement+test • design decisions • code review/quality • security/performance/compliance • system integration • docs generation • refactor/optimize • any feature work
+
+**🚨 IMPORTANT: For complex multi-agent workflows, use CLI mode commands:**
+```bash
+# Production with enhanced monitoring v3.0
+/cfn-loop-cli "Complex task description" --mode=standard
+
+# Debugging with full visibility
+/cfn-loop-task "Complex task description" --mode=standard
+```
+
+**Do NOT manually spawn Task() agents for CFN Loop workflows - the CLI commands handle coordination automatically.**
 
 ### Skill Selection Criteria
 **Mandatory Skill Spawning Triggers:**
@@ -274,16 +298,26 @@ npx claude-flow-novice swarm "Task Description" \
 
 ### Single Agent vs Coordinator
 
-**Use Single Agent:**
+**Use Single Agent (Task() directly):**
 * 1 specialized task (coding, reviewing, testing)
 * No dependencies on other agents
 * Straightforward execution
+* Simple, isolated work
 
-**Use Coordinator:**
+**Use Coordinator (CLI Commands):**
 * Multiple agents needed (2+)
 * Sequential dependencies (Loop 3 → Loop 2 → Product Owner)
 * Iteration/consensus required
-* CFN Loop workflows
+* **ALL CFN Loop workflows**
+
+**🚨 FOR CFN LOOP WORKFLOWS: Always use CLI commands - never manual Task() spawning**
+```bash
+# Multi-agent workflows (coordinator handles everything)
+/cfn-loop-cli "Build authentication system" --mode=standard
+
+# Single agent tasks (direct Task() is fine)
+Task("reviewer", "Review this specific file")
+```
 
 ## 3) Coordination Patterns
 
