@@ -138,6 +138,21 @@
         "N8N_API_URL": "https://n8n.dailyautomations.com",
         "N8N_API_KEY": "${N8N_API_KEY}"
       }
+    },
+    "playwright": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--init",
+        "--name", "mcp-playwright-${AGENT_ID:-agent}",
+        "--memory=1g",
+        "--shm-size=2g",
+        "-e", "AGENT_ID=${AGENT_ID:-agent}",
+        "-e", "NODE_PATH=/usr/local/lib/node_modules",
+        "-e", "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
+        "-v", "${PWD}/screenshots:/app/screenshots",
+        "claude-flow-novice:playwright-working",
+        "node", "/app/scripts/playwright-mcp-server.js"
+      ]
     }
   },
   "tieredRouting": {
