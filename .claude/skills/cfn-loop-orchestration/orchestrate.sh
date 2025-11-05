@@ -697,23 +697,6 @@ EOF
 # Store context in Redis
 store_context "$TASK_ID"
 
-# Validate context completeness (Zone A fix: prevent "consensus on vapor")
-echo "Validating task context completeness..."
-if [[ -n "$SUCCESS_CRITERIA" || -n "$EXPECTED_FILES" ]]; then
-  validation_script="$HELPERS_DIR/validate-task-context.sh"
-  if [[ -f "$validation_script" ]]; then
-    if ! "$validation_script" \
-        --task-id "$TASK_ID" \
-        --success-criteria "$SUCCESS_CRITERIA" \
-        --expected-files "$EXPECTED_FILES"; then
-      echo "⚠️  WARNING: Task context validation failed"
-      echo "⚠️  This may result in 'consensus on vapor' (high confidence, zero deliverables)"
-      echo "⚠️  Consider adding more specific task context"
-      echo ""
-    fi
-  fi
-fi
-
 # Iteration loop
 for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
   echo ""

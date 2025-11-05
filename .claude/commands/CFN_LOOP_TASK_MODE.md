@@ -6,11 +6,11 @@
 
 ## Overview
 
-Task Mode: Main Chat acts as coordinator and spawns agents directly via Task() tool with full context injection and visibility.
+Task Mode: Main Chat spawns coordinator and agents via Task() tool with full context injection and visibility.
 
 | Aspect | Task Mode | CLI Mode |
 |--------|-----------|----------|
-| **Spawning** | Main Chat spawns agents directly via Task() | Coordinator spawns agents via npx CLI |
+| **Spawning** | Main Chat via Task() | Coordinator via npx CLI |
 | **Visibility** | Full transparency in Main Chat | Background, Redis logs |
 | **Provider** | All Anthropic | CLI uses Z.ai routing |
 | **Cost** | ~$0.150/iteration | ~$0.054/iteration (64% savings) |
@@ -32,50 +32,6 @@ Task Mode: Main Chat acts as coordinator and spawns agents directly via Task() t
 - Complex tasks with multiple iterations
 - Teams building organizational knowledge
 - Post-mortem analysis and continuous improvement
-
----
-
-## Task Mode Execution Pattern
-
-**Key Principle: Main Chat IS the coordinator**
-
-In Task Mode, Main Chat directly spawns all agents via Task() tool. No coordinator agent is used.
-
-### Example: Zone A React Router Migration
-
-```javascript
-// ✅ CORRECT - Main Chat spawns agents directly
-Task("backend-developer", `
-  Migrate React Router from v4 to v6 in Zone A components
-  Deliverables: Updated Routes, component fixes, tests
-  Directory: frontend/src/zone-a/
-`);
-
-Task("react-frontend-engineer", `
-  Review and fix any component issues after router migration
-  Focus on route parameters, navigation, and component integration
-`);
-
-Task("tester", `
-  Test React Router v6 migration in Zone A
-  Verify all routes work, navigation functions, no regressions
-`);
-
-// Later: Process outputs, collect confidence, decide next iteration
-```
-
-### What NOT to Do in Task Mode
-
-```javascript
-// ❌ INCORRECT - Don't spawn coordinator agent
-Task("cfn-v3-coordinator", "Coordinate React Router migration");
-
-// ❌ INCORRECT - Don't use CLI commands in Task Mode
-Bash("npx claude-flow-novice swarm 'task description'");
-
-// ❌ INCORRECT - Don't nest CFN Loop calls
-Task("reviewer", "/cfn-loop 'review this code'");  // Causes infinite loops
-```
 
 ---
 
@@ -132,15 +88,15 @@ return validators.slice(0, 6); // Max 6
 ## Sprint Completion Workflow
 
 **Key Difference in Task Mode:**
-- Product Owner spawned via `Task()` by Main Chat acting as coordinator (NOT via `execute-decision.sh`)
+- Product Owner spawned via `Task()` by coordinator (NOT via `execute-decision.sh`)
 - Use helper scripts for parsing/validation: `parse-decision.sh`, `validate-deliverables.sh`
 - CLI Mode uses `execute-decision.sh` which handles spawning + all logic
 
 ### 1. Consensus Validation
 
-**Task Mode** - Main Chat (as coordinator) spawns Product Owner via Task():
+**Task Mode** - Coordinator spawns Product Owner via Task():
 ```javascript
-// Main Chat (as coordinator) builds context and spawns PO
+// Coordinator builds context and spawns PO
 const poContext = `
   CFN Loop iteration ${iteration} complete.
   Loop 2 Consensus: ${consensus} (threshold: ${threshold})
@@ -208,7 +164,7 @@ EOF
 ### 5. Execute Product Owner Suggested Next Steps
 
 **After PROCEED Decision:**
-Product Owner may suggest follow-up tasks (documentation, testing, refactoring). Main Chat (as coordinator) must proceed by spawning specialized agents to execute these tasks:
+Product Owner may suggest follow-up tasks (documentation, testing, refactoring). Coordinator (main chat) must proceed by spawning specialized agents to execute these tasks:
 
 ```javascript
 // Parse PO feedback for suggested next steps
@@ -349,7 +305,7 @@ threshold = Math.min(threshold, 0.98); // Cap at 0.98
 ## Background Backlog Worker
 
 ### Architecture
-- **Main Chat (as coordinator)**: Spawns Task() agents directly for Sprint N (foreground)
+- **Main Chat**: Spawns Task() agents for Sprint N (foreground)
 - **Background CLI**: Processes P3 backlog items (detached process)
 
 ### Launch Background Worker

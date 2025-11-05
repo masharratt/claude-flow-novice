@@ -1,0 +1,198 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--init",
+        "--name", "mcp-playwright-${AGENT_ID:-agent}",
+        "--memory=1g",
+        "--shm-size=2g",
+        "-e", "AGENT_ID=${AGENT_ID:-agent}",
+        "-e", "NODE_PATH=/usr/local/lib/node_modules",
+        "-e", "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
+        "-v", "${PWD}/screenshots:/app/screenshots",
+        "claude-flow-novice:playwright-working",
+        "node", "-e", "
+          const { chromium } = require('playwright');
+          let browser = null;
+          let page = null;
+
+          try {
+            // MCP Server implementation
+            const readline = require('readline');
+            const rl = readline.createInterface({
+              input: process.stdin,
+              output: process.stdout,
+              terminal: false
+            });
+
+            const tools = {
+              take_screenshot: {
+                name: 'take_screenshot',
+                description: 'Take a screenshot of a webpage',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    url: { type: 'string', description: 'URL to capture' },
+                    filename: { type: 'string', description: 'Screenshot filename' },
+                    fullPage: { type: 'boolean', default: false }
+                  },
+                  required: ['url', 'filename']
+                }
+              },
+              search_google: {
+                name: 'search_google',
+                description: 'Search Google and return results',
+                inputSchema: {
+                  type: 'object',
+                  properties: {
+                    query: { type: 'string', description: 'Search query' },
+                    screenshot: { type: 'boolean', default: true }
+                  },
+                  required: ['query']
+                }
+              }
+            };
+
+            // Initialize browser
+            async function initBrowser() {
+              if (!browser) {
+                browser = await chromium.launch({
+                  headless: true,
+                  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                });
+                page = await browser.newPage();
+              }
+            }
+
+            // Tool implementations
+            async function takeScreenshot(args) {
+              await initBrowser();
+              await page.goto(args.url, { waitUntil: 'networkidle', timeout: 15000 });
+
+              const filename = args.filename || 'screenshot-' + Date.now() + '.png';
+              const filepath = '/app/screenshots/' + filename;
+
+              await page.screenshot({
+                path: filepath,
+                fullPage: args.fullPage || false
+              });
+
+              return {
+                success: true,
+                filename: filename,
+                filepath: filepath,
+                url: args.url,
+                title: await page.title()
+              };
+            }
+
+            async function searchGoogle(args) {
+              await initBrowser();
+              await page.goto('https://www.google.com', { waitUntil: 'networkidle', timeout: 15000 });
+
+              // Handle cookies
+              try {
+                await page.waitForSelector('button[aria-label*=\"Accept\"], button[aria-label*=\"agree\"]', { timeout: 3000 });
+                await page.click('button[aria-label*=\"Accept\"], button[aria-label*=\"agree\"]');
+                await page.waitForTimeout(1000);
+              } catch (e) {}
+
+              // Search
+              const searchBox = await page.waitForSelector('textarea[name=\"q\"], input[name=\"q\"]');
+              await searchBox.fill(args.query);
+              await searchBox.press('Enter');
+
+              await page.waitForSelector('[role=\"main\"], #search', { timeout: 15000 });
+
+              const results = await page.\$\$eval('div[data-hveid] h3', elements =>
+                elements.slice(0, 5).map(el => el.textContent.trim())
+              );
+
+              let screenshotInfo = null;
+              if (args.screenshot) {
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const filename = 'google-search-' + args.query.toLowerCase().replace(/\\s+/g, '-') + '-' + timestamp + '.png';
+                await page.screenshot({ path: '/app/screenshots/' + filename });
+                screenshotInfo = { filename, path: '/app/screenshots/' + filename };
+              }
+
+              return {
+                success: true,
+                query: args.query,
+                results: results,
+                resultCount: results.length,
+                screenshot: screenshotInfo,
+                url: page.url()
+              };
+            }
+
+            // MCP Protocol handler
+            rl.on('line', async (line) => {
+              try {
+                const message = JSON.parse(line);
+
+                if (message.method === 'initialize') {
+                  console.log(JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: message.id,
+                    result: {
+                      protocolVersion: '2024-11-05',
+                      capabilities: {
+                        tools: {}
+                      },
+                      serverInfo: {
+                        name: 'playwright-mcp-server',
+                        version: '1.0.0'
+                      }
+                    }
+                  }));
+                } else if (message.method === 'tools/list') {
+                  console.log(JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: message.id,
+                    result: { tools: Object.values(tools) }
+                  }));
+                } else if (message.method === 'tools/call') {
+                  const toolName = message.params.name;
+                  const args = message.params.arguments || {};
+
+                  let result;
+                  if (toolName === 'take_screenshot') {
+                    result = await takeScreenshot(args);
+                  } else if (toolName === 'search_google') {
+                    result = await searchGoogle(args);
+                  } else {
+                    throw new Error('Unknown tool: ' + toolName);
+                  }
+
+                  console.log(JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: message.id,
+                    result: { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+                  }));
+                }
+              } catch (error) {
+                console.log(JSON.stringify({
+                  jsonrpc: '2.0',
+                  id: message.id || null,
+                  error: { code: -32000, message: error.message }
+                }));
+              }
+            });
+
+            // Cleanup on exit
+            process.on('SIGINT', async () => {
+              if (browser) await browser.close();
+              process.exit(0);
+            });
+
+          } catch (error) {
+            console.error('MCP Server error:', error);
+            process.exit(1);
+          }
+        "
+      ]
+    }
+  }
+}

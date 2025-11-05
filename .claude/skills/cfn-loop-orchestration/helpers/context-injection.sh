@@ -116,79 +116,16 @@ inject_context_for_agent() {
   local task_id="$2"
   local iteration="${3:-1}"
 
-  # Retrieve structured task context from Redis
-  local task_context=""
-  local epic_context=""
-  local phase_context=""
-  local success_criteria=""
-  local expected_files=""
-
+  # Retrieve task context from Redis
+  local task_context
   if command -v redis-cli &> /dev/null; then
-    # Get all structured context fields
-    task_context=$(redis-cli HGET "swarm:$task_id:context" "task_description" 2>/dev/null || echo "")
-    epic_context=$(redis-cli HGET "swarm:$task_id:context" "epic-context" 2>/dev/null || echo "")
-    phase_context=$(redis-cli HGET "swarm:$task_id:context" "phase-context" 2>/dev/null || echo "")
-    success_criteria=$(redis-cli HGET "swarm:$task_id:context" "success-criteria" 2>/dev/null || echo "")
-    expected_files=$(redis-cli HGET "swarm:$task_id:context" "expected-files" 2>/dev/null || echo "")
+    task_context=$(redis-cli HGET "cfn_loop:task:$task_id:context" "task_description" 2>/dev/null || echo "")
+  else
+    task_context=""
   fi
-
-  # Build comprehensive task description from all available context
-  local comprehensive_context=""
-
-  # Start with task description if available
-  if [ -n "$task_context" ]; then
-    comprehensive_context="$task_context"
-  fi
-
-  # Add epic context
-  if [ -n "$epic_context" ]; then
-    if [ -n "$comprehensive_context" ]; then
-      comprehensive_context="$comprehensive_context
-
-Epic Context: $epic_context"
-    else
-      comprehensive_context="Epic Context: $epic_context"
-    fi
-  fi
-
-  # Add phase context
-  if [ -n "$phase_context" ]; then
-    if [ -n "$comprehensive_context" ]; then
-      comprehensive_context="$comprehensive_context
-
-Phase Context: $phase_context"
-    else
-      comprehensive_context="Phase Context: $phase_context"
-    fi
-  fi
-
-  # Add success criteria
-  if [ -n "$success_criteria" ]; then
-    if [ -n "$comprehensive_context" ]; then
-      comprehensive_context="$comprehensive_context
-
-Success Criteria: $success_criteria"
-    else
-      comprehensive_context="Success Criteria: $success_criteria"
-    fi
-  fi
-
-  # Add expected files
-  if [ -n "$expected_files" ]; then
-    if [ -n "$comprehensive_context" ]; then
-      comprehensive_context="$comprehensive_context
-
-Expected Files: $expected_files"
-    else
-      comprehensive_context="Expected Files: $expected_files"
-    fi
-  fi
-
-  # Use comprehensive context for further processing
-  task_context="$comprehensive_context"
 
   if [ -z "$task_context" ]; then
-    echo "# CFN Loop Context (No Task Description)"
+    echo "# ACE Context (No Task Description)"
     echo ""
     echo "_Task description not available for context injection._"
     return 1

@@ -112,7 +112,7 @@ npx claude-flow-novice agent-spawn my-first-agent --task-id test-1
 │   ├── tester.md               # Testing & validation
 │   └── coordinator.md          # Multi-agent coordination
 ├── development/                 # Development-focused agents
-│   ├── backend-developer.md
+│   ├── backend-dev.md
 │   ├── react-frontend-engineer.md
 │   └── devops-engineer.md
 ├── security/                    # Security-focused agents
@@ -613,7 +613,7 @@ Agents can work together using Redis pub/sub and CLI spawning:
 ### Agent Spawning Pattern
 ```bash
 # Spawn agents via CLI (coordinators only)
-npx claude-flow-novice agent-spawn backend-developer --task-id "${TASK_ID}"
+npx claude-flow-novice agent-spawn backend-dev --task-id "${TASK_ID}"
 npx claude-flow-novice agent-spawn reviewer --task-id "${TASK_ID}"
 ```
 
@@ -948,7 +948,7 @@ acl_level: 1
 - `.claude/agents/core-agents/coder.md` - Code implementation
 - `.claude/agents/core-agents/reviewer.md` - Code review
 - `.claude/agents/core-agents/tester.md` - Testing & validation
-- `.claude/agents/development/backend-developer.md` - Backend development
+- `.claude/agents/development/backend-dev.md` - Backend development
 - `.claude/agents/security/security-specialist.md` - Security analysis
 
 ### Documentation

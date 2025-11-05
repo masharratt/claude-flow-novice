@@ -15,7 +15,7 @@ The CFN (Claude Flow Novice) development team comprises 23 production agents org
 - **Purpose**: Core implementation and creative problem-solving
 - **Key Agents**:
   - `coder`: Production code implementation
-  - `backend-developer`: Backend system design and implementation
+  - `backend-dev`: Backend system design and implementation
   - `researcher`: Technical research and solution exploration
   - `architect`: System design and architectural planning
   - `agent-builder`: Agent template and workflow design

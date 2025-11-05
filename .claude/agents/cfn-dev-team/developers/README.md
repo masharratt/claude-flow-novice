@@ -5,7 +5,7 @@ Implementation agents focused on building features and components.
 ## Active Agents (7)
 
 **Backend Development:**
-- `backend-developer.md` - Backend services, APIs, server-side logic
+- `backend-dev.md` - Backend services, APIs, server-side logic
 - `dev-backend-api.md` - Specialized REST/GraphQL API development
 
 **Frontend Development:**
@@ -42,12 +42,12 @@ All developers follow:
 Automatically spawned by orchestrator in Loop 3:
 ```bash
 ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
-  --loop3-agents "backend-developer,react-frontend-engineer"
+  --loop3-agents "backend-dev,react-frontend-engineer"
 ```
 
 **Standalone Implementation:**
 ```bash
-npx claude-flow-novice agent-spawn backend-developer --task-id "$TASK_ID"
+npx claude-flow-novice agent-spawn backend-dev --task-id "$TASK_ID"
 ```
 
 ## Deliverables
