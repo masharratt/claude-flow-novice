@@ -28,11 +28,56 @@ if [[ ! -f "$REGISTRY_PATH" ]]; then
     exit 1
 fi
 
+# Smart agent selection for React Router and specialized tasks
+smart_agent_selection() {
+    local description="$1"
+    local task_type="$2"
+
+    # React Router specialization - Zone A fix
+    if [[ "$description" =~ (React Router|react-router|TS2786|jsx.*component|route.*migration) ]]; then
+        echo '["react-frontend-engineer", "reviewer", "tester"]'
+        return 0
+    fi
+
+    # TypeScript/TSX specialization
+    if [[ "$description" =~ (TypeScript|tsx|TS[0-9]+|interface.*error) ]]; then
+        echo '["react-frontend-engineer", "reviewer", "tester"]'
+        return 0
+    fi
+
+    # Frontend UI specialization
+    if [[ "$description" =~ (frontend|ui|component|css|style|responsive) ]]; then
+        echo '["react-frontend-engineer", "reviewer", "accessibility-advocate-persona"]'
+        return 0
+    fi
+
+    # Authentication/Security specialization
+    if [[ "$description" =~ (auth|jwt|token|security|password|login|register) ]]; then
+        echo '["backend-developer", "security-specialist", "reviewer"]'
+        return 0
+    fi
+
+    # API/Backend specialization
+    if [[ "$description" =~ (api|endpoint|server|backend|database|orm|sql) ]]; then
+        echo '["backend-developer", "reviewer", "tester"]'
+        return 0
+    fi
+
+    return 1  # Fall back to registry-based selection
+}
+
 # Score agents function with improved flat namespace matching
 score_agents() {
     local registry_path="$1"
     local description="$2"
     local task_type="$3"
+
+    # Try smart selection first
+    local smart_result
+    if smart_result=$(smart_agent_selection "$description" "$task_type"); then
+        echo "$smart_result"
+        return 0
+    fi
 
     # Complex JQ query for flexible matching
     jq -r --arg desc "$description" --arg task_type "$task_type" '

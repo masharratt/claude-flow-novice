@@ -66,19 +66,6 @@ LOOP3_FINAL_CONFIDENCE=0.0
 LOOP2_FINAL_CONSENSUS=0.0
 DELIVERABLES_VERIFIED=false
 
-# Cleanup Redis keys before exit
-cleanup_redis_keys() {
-  if [ -n "$TASK_ID" ]; then
-    echo "🧹 Cleaning up Redis keys for task $TASK_ID"
-    # Set TTL on remaining task keys (1 hour)
-    redis-cli keys "swarm:${TASK_ID}:*" 2>/dev/null | xargs -I {} redis-cli expire {} 3600 2>/dev/null || true
-    redis-cli keys "cfn_loop:task:${TASK_ID}:*" 2>/dev/null | xargs -I {} redis-cli expire {} 3600 2>/dev/null || true
-  fi
-}
-
-# Trap cleanup on script exit
-trap cleanup_redis_keys EXIT
-
 ##############################################################################
 # Argument Parsing
 ##############################################################################
@@ -707,19 +694,25 @@ EOF
 # Main CFN Loop
 ##############################################################################
 
-# Validate CLI environment before spawning agents
-echo "🔧 Validating CLI environment..."
-if [ -f "$PROJECT_ROOT/.claude/skills/cfn-cli-setup/validate-cli-environment.sh" ]; then
-  if ! bash "$PROJECT_ROOT/.claude/skills/cfn-cli-setup/validate-cli-environment.sh"; then
-    echo "❌ CLI environment validation failed. Agents may not have required tools."
-    echo "⚠️  Continuing anyway, but expect potential tool failures..."
-  fi
-else
-  echo "⚠️  CLI environment validation script not found. Skipping validation."
-fi
-
 # Store context in Redis
 store_context "$TASK_ID"
+
+# Validate context completeness (Zone A fix: prevent "consensus on vapor")
+echo "Validating task context completeness..."
+if [[ -n "$SUCCESS_CRITERIA" || -n "$EXPECTED_FILES" ]]; then
+  validation_script="$HELPERS_DIR/validate-task-context.sh"
+  if [[ -f "$validation_script" ]]; then
+    if ! "$validation_script" \
+        --task-id "$TASK_ID" \
+        --success-criteria "$SUCCESS_CRITERIA" \
+        --expected-files "$EXPECTED_FILES"; then
+      echo "⚠️  WARNING: Task context validation failed"
+      echo "⚠️  This may result in 'consensus on vapor' (high confidence, zero deliverables)"
+      echo "⚠️  Consider adding more specific task context"
+      echo ""
+    fi
+  fi
+fi
 
 # Iteration loop
 for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
@@ -775,41 +768,11 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
        --agents "$LOOP3_IDS" \
        --threshold "$GATE" \
        --min-quorum "$MIN_QUORUM_LOOP3"; then
-    # Gate passed - validate confidence based on deliverables
-    echo "🔍 Validating agent confidence scores against deliverables..."
-
-    # Re-calculate confidence based on actual deliverables
-    if [ -n "$EXPECTED_FILES" ] && [ -f "$PROJECT_ROOT/.claude/skills/cfn-deliverable-validation/confidence-calculator.sh" ]; then
-      VALIDATED_CONFIDENCE=0
-
-      for agent_id in ${LOOP3_IDS//,/ }; do
-        # Get agent's reported confidence
-        agent_confidence=$(redis-cli get "swarm:${TASK_ID}:${agent_id}:confidence" 2>/dev/null || echo "0.5")
-
-        # Calculate deliverable-based confidence
-        deliverable_confidence=$("$PROJECT_ROOT/.claude/skills/cfn-deliverable-validation/confidence-calculator.sh" \
-          "$TASK_ID" "$agent_id" "$EXPECTED_FILES" "$PROJECT_ROOT")
-
-        echo "  Agent $agent_id: reported=$agent_confidence, deliverable-based=$deliverable_confidence"
-
-        # Use the lower of the two scores (inflation prevention)
-        if (( $(echo "$deliverable_confidence < $agent_confidence" | bc -l) )); then
-          echo "  ⚠️  Downgrading confidence for $agent_id (inflated score detected)"
-          VALIDATED_CONFIDENCE=$deliverable_confidence
-        else
-          VALIDATED_CONFIDENCE=$agent_confidence
-        fi
-      done
-
-      LOOP3_FINAL_CONFIDENCE=$VALIDATED_CONFIDENCE
-      echo "✅ Final validated Loop 3 confidence: $LOOP3_FINAL_CONFIDENCE"
-    else
-      # Store confidence (fallback method)
-      LOOP3_FINAL_CONFIDENCE=$("$REDIS_COORD_SKILL/invoke-waiting-mode.sh" collect \
-        --task-id "$TASK_ID" \
-        --agent-ids "$LOOP3_IDS" \
-        --min-quorum "$MIN_QUORUM_LOOP3")
-    fi
+    # Gate passed - store confidence
+    LOOP3_FINAL_CONFIDENCE=$("$REDIS_COORD_SKILL/invoke-waiting-mode.sh" collect \
+      --task-id "$TASK_ID" \
+      --agent-ids "$LOOP3_IDS" \
+      --min-quorum "$MIN_QUORUM_LOOP3")
   else
     # Gate failed - iterate Loop 3
     echo "❌ Gate check failed - iterating Loop 3"
@@ -931,19 +894,6 @@ EOF
       ;;
   esac
 done
-
-# Cleanup Redis keys before exit
-cleanup_redis_keys() {
-  if [ -n "$TASK_ID" ]; then
-    echo "🧹 Cleaning up Redis keys for task $TASK_ID"
-    # Set TTL on remaining task keys (1 hour)
-    redis-cli keys "swarm:${TASK_ID}:*" 2>/dev/null | xargs -I {} redis-cli expire {} 3600 2>/dev/null || true
-    redis-cli keys "cfn_loop:task:${TASK_ID}:*" 2>/dev/null | xargs -I {} redis-cli expire {} 3600 2>/dev/null || true
-  fi
-}
-
-# Trap cleanup on script exit
-trap cleanup_redis_keys EXIT
 
 # Max iterations reached without success
 echo "❌ Max iterations ($MAX_ITERATIONS) reached without PROCEED decision"
