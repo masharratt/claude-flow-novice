@@ -1,0 +1,48 @@
+{
+  "timestamp": "2025-11-04T19:11:46-08:00",
+  "test_configuration": {
+    "image_name": "claude-flow-novice:with-playwright",
+    "redis_host": "host.docker.internal",
+    "iterations": 3,
+    "system_info": {
+      "docker_version": "Docker version 27.5.1, build 27.5.1-0ubuntu3~24.04.2",
+      "host_os": "Linux OfficeDesktop 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux",
+      "available_memory": "               total        used        free      shared  buff/cache   available
+Mem:            62Gi       6.3Gi        48Gi        41Mi       8.2Gi        56Gi
+Swap:          8.0Gi          0B       8.0Gi",
+      "cpu_info": "13th Gen Intel(R) Core(TM) i7-13700KF"
+    }
+  },
+  "results": {
+    "container_cold_start": {
+      "times_ms": [383,376,399],
+      "average_ms": 386,
+      "min_ms": 376,
+      "max_ms": 399,
+      "total_ms": 1158
+    },
+    "container_with_monitoring": {
+      "times_ms": [425,404,430],
+      "average_ms": 419,
+      "min_ms": 404,
+      "max_ms": 430,
+      "total_ms": 1259
+    },
+    "agent_spawn": {
+      "times_ms": [378,392,405],
+      "average_ms": 391,
+      "min_ms": 378,
+      "max_ms": 405,
+      "total_ms": 1175
+    },
+    "monitoring_overhead": {
+      "average_ms": 33,
+      "percentage": 8
+    }
+  },
+  "raw_data": {
+    "container_times_ms": [383,376,399],
+    "monitored_times_ms": [425,404,430],
+    "spawn_times_ms": [378,392,405]
+  }
+}

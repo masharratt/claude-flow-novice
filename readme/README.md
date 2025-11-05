@@ -28,7 +28,7 @@ npx claude-flow-novice swarm "Task Description" \
 ./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
   --task-id "unique-task-id" \
   --mode standard \
-  --loop3-agents "researcher,backend-dev" \
+  --loop3-agents "researcher,backend-developer" \
   --loop2-agents "reviewer,tester"
 ```
 

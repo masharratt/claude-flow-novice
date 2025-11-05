@@ -1,0 +1,43 @@
+# Use official Playwright Docker image
+FROM mcr.microsoft.com/playwright:v1.40.1-focal
+
+WORKDIR /app
+
+# Set environment
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV NODE_ENV=production
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies if needed
+RUN npm ci --only=production 2>/dev/null || npm install --only=production
+
+# Copy application code (minimal for testing)
+COPY docker/tests/test-playwright-functionality.cjs /app/test-playwright.cjs
+
+# Create directories
+RUN mkdir -p /app/screenshots /app/logs
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\necho "=== Playwright Test Starting ==="\necho "Node version: $(node --version)"\necho "Playwright version: $(npx playwright --version)"\necho "Browser location: $PLAYWRIGHT_BROWSERS_PATH"\nls -la $PLAYWRIGHT_BROWSERS_PATH/ || echo "Browser directory not found"\n\n# Run the test\nnode /app/test-playwright.cjs\n\n# Show results\necho "=== Test Results ==="\nif [ -d "/app/screenshots" ]; then\n  ls -la /app/screenshots/\n  echo "Screenshots saved to /app/screenshots/"\nelse\n  echo "No screenshots directory found"\nfi\n\necho "=== Playwright Test Complete ==="' > /app/run-playwright-test.sh && chmod +x /app/run-playwright-test.sh
+
+# Set working directory permissions
+RUN chmod -R 755 /app
+
+# Expose debugging port
+EXPOSE 9222
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD npx playwright --version && ls $PLAYWRIGHT_BROWSERS_PATH/chromium-* >/dev/null 2>&1 || exit 1
+
+# Default command
+CMD ["/app/run-playwright-test.sh"]
+
+# Labels
+LABEL maintainer="Claude Flow Novice Team" \
+      version="1.0.0-playwright-official" \
+      description="Docker container using official Playwright image" \
+      features="playwright,browser-automation,official-image"

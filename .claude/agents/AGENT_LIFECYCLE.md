@@ -96,7 +96,7 @@ This document clarifies the complete lifecycle of agents in the CFN Loop system,
 
 ## CFN Loop Protocol (Complete)
 
-### For Loop 3 Implementers (coder, backend-dev, etc.)
+### For Loop 3 Implementers (coder, backend-developer, etc.)
 
 ```markdown
 ## CFN Loop Redis Completion Protocol
@@ -298,7 +298,7 @@ CONFIDENCE=$(redis-cli get "swarm:${TASK_ID}:${AGENT_ID}:confidence")
 **Key Point:** Each iteration spawns **fresh agents**, enabling adaptive specialization:
 - Iteration 1: coder
 - Iteration 2: rust-developer (if feedback mentions Rust)
-- Iteration 3: backend-dev (if feedback mentions API)
+- Iteration 3: backend-developer (if feedback mentions API)
 
 ---
 
@@ -418,7 +418,7 @@ fi
 
 ### Agent-Level Timeouts
 Agents have role-based timeouts:
-- **Implementers:** 60 minutes (coder, backend-dev)
+- **Implementers:** 60 minutes (coder, backend-developer)
 - **Validators:** 30 minutes (reviewer, tester)
 - **Product Owner:** 15 minutes (strategic decision)
 - **Researchers:** 120 minutes (deep analysis)

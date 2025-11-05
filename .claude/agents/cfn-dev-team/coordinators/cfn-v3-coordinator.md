@@ -149,7 +149,7 @@ LOOP2_AGENTS=("${VERIFIED_LOOP2_AGENTS[@]:-default_loop2_agent}")
 **Agent Selection Rules (Enhanced):**
 
 **Software Development:**
-- Base Loop 3: `backend-dev`, `coder`, `devops-engineer`
+- Base Loop 3: `backend-developer`, `coder`, `devops-engineer`
 - If security keywords → add `security-specialist`
 - If database keywords → add `database-engineer`
 - Base Loop 2: `reviewer`, `tester`, `security-auditor`
@@ -388,7 +388,7 @@ Mode: task
 ```json
 {
   "task_type": "software-development",
-  "loop3_agents": ["backend-dev", "security-specialist"],
+  "loop3_agents": ["backend-developer", "security-specialist"],
   "loop2_agents": ["reviewer", "tester", "security-auditor"],
   "loop4_agent": "product-owner",
   "validation_criteria": {

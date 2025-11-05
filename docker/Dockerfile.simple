@@ -1,0 +1,60 @@
+# Simplified Docker Image for Claude Flow Novice Agents
+# Minimal build with only essential files
+
+FROM node:20-alpine AS base
+
+# Install runtime dependencies
+RUN apk add --no-cache \
+    bash \
+    redis \
+    curl \
+    procps \
+    postgresql-client \
+    mysql-client \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy only essential files
+COPY package*.json ./
+COPY docker/scripts/monitor-wrapper.sh /app/monitor-wrapper.sh
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+
+# Install production dependencies
+RUN npm ci --only=production
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfnuser && \
+    adduser -S cfnuser -u 1001 -G cfnuser
+
+# Setup directories with permissions
+RUN mkdir -p /app/logs /app/metrics /app/workspace && \
+    chown -R cfnuser:cfnuser /app && \
+    chmod 1777 /tmp
+
+USER cfnuser
+
+# Environment variables
+ENV NODE_ENV=production \
+    ZAI_API_KEY="" \
+    ZAI_BASE_URL="https://api.z.ai/api/anthropic" \
+    CLAUDE_API_PROVIDER="zai" \
+    REDIS_HOST=host.docker.internal \
+    REDIS_PORT=6379 \
+    MEMORY_MONITORING=true \
+    MEMORY_REPORT_INTERVAL=30 \
+    MEMORY_ALERT_THRESHOLD=75 \
+    MEMORY_LIMIT=1024
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s \
+  CMD /app/monitor-wrapper.sh health-check || exit 1
+
+# Default command
+CMD ["/app/monitor-wrapper.sh", "start-agent"]
+
+# Labels
+LABEL maintainer="Claude Flow Novice Team" \
+      version="1.0.0-simple" \
+      description="Simplified Docker container for CFN agents"

@@ -453,7 +453,7 @@ Deployment Process:
 ## Agent Selection Guide
 
 **Core Development**: coder, tester, reviewer
-**Backend**: backend-dev, api-docs, system-architect
+**Backend**: backend-developer, api-docs, system-architect
 **Frontend**: coder (specialized), mobile-dev
 **Quality**: tester, reviewer, security-specialist, perf-analyzer
 **Planning**: researcher, planner, architect

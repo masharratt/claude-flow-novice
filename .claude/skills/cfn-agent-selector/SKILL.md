@@ -17,7 +17,7 @@ AGENTS=$(./.claude/skills/cfn-agent-selector/select-agents.sh \
   --task-type "software-development" \
   --description "Implement JWT authentication with refresh tokens")
 
-echo "$AGENTS" | jq '.loop3[]'  # ["backend-dev", "security-specialist"]
+echo "$AGENTS" | jq '.loop3[]'  # ["backend-developer", "security-specialist"]
 echo "$AGENTS" | jq '.loop2[]'  # ["reviewer", "tester", "security-auditor"]
 ```
 
@@ -35,7 +35,7 @@ echo "$AGENTS" | jq '.loop2[]'  # ["reviewer", "tester", "security-auditor"]
 ## Agent Selection Rules
 
 ### Software Development
-**Base Loop 3:** backend-dev, coder
+**Base Loop 3:** backend-developer, coder
 **Add if keywords:**
 - "security", "authentication", "JWT" → security-specialist
 - "database", "SQL", "schema" → database-engineer (if exists)

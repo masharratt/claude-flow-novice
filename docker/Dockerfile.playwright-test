@@ -1,0 +1,70 @@
+# Dockerfile with Playwright - Minimal Version for Testing
+FROM node:18-slim
+
+# Set environment for Playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+# Install system dependencies for headless Chromium
+RUN apt-get update && apt-get install -y \
+    # Basic dependencies
+    curl \
+    wget \
+    git \
+    # Playwright browser dependencies (minimal set)
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxfixes3 \
+    ca-certificates \
+    # Clean up
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package.json first to leverage Docker cache
+COPY package*.json ./
+
+# Install Playwright only (for testing)
+RUN npm install playwright
+
+# Install browsers
+RUN npx playwright install chromium
+
+# Create test directory
+RUN mkdir -p /app/screenshots /app/logs
+
+# Copy test script
+COPY docker/tests/test-playwright-functionality.cjs /app/test-playwright.cjs
+
+# Create a simple entrypoint for testing
+RUN echo '#!/bin/bash\necho "Starting Playwright test..."\nnode /app/test-playwright.cjs\necho "Test completed"' > /app/run-test.sh && chmod +x /app/run-test.sh
+
+# Set permissions
+RUN chmod 1777 /tmp
+
+# Expose debugging port
+EXPOSE 9222
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('playwright').chromium.launch({headless:true}).then(b=>b.close()).catch(e=>process.exit(1))" || exit 1
+
+# Default command - run the test
+CMD ["/app/run-test.sh"]
+
+# Labels
+LABEL maintainer="Claude Flow Novice Team" \
+      version="1.0.0-playwright-test" \
+      description="Minimal Docker container for Playwright testing" \
+      features="playwright,browser-automation"

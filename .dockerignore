@@ -1,0 +1,112 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Node modules (reinstalled in container)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Dependency directories
+.npm
+.yarn-integrity
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Documentation (not needed in container)
+docs/
+readme/
+*.md
+!README.md
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+
+# Temporary files
+.tmp/
+temp/
+*.tmp
+
+# WSL specific
+.vscode-server/
+
+# Build artifacts that will be recreated
+dist/
+build/
+out/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Test files not needed in production
+test/
+tests/
+__tests__/
+*.test.js
+*.spec.js
+
+# Development scripts
+scripts/dev/
+scripts/test/
+
+# Docker files (not needed inside container)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Claude Flow Novice specific - exclude entire .claude directory
+.claude/
+backups/
+.artifacts/
+planning/
+.claude-flow/
+.screenshots/
+.playwright-mcp/
+.logs/
+# Additional exclusions for faster build
+.github/
+.vscode-server/
+

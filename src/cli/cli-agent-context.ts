@@ -85,6 +85,12 @@ async function loadAgentTemplate(agentType: string): Promise<string> {
   try {
     // Search in .claude/agents/ subdirectories
     const searchPaths = [
+      path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'coordinators', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'developers', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'testers', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'specialists', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'frontend', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'security', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'coordinators', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'core-agents', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'developers', `${agentType}.md`),

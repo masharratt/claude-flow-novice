@@ -66,6 +66,19 @@ LOOP3_FINAL_CONFIDENCE=0.0
 LOOP2_FINAL_CONSENSUS=0.0
 DELIVERABLES_VERIFIED=false
 
+# Cleanup Redis keys before exit
+cleanup_redis_keys() {
+  if [ -n "$TASK_ID" ]; then
+    echo "🧹 Cleaning up Redis keys for task $TASK_ID"
+    # Set TTL on remaining task keys (1 hour)
+    redis-cli keys "swarm:${TASK_ID}:*" 2>/dev/null | xargs -I {} redis-cli expire {} 3600 2>/dev/null || true
+    redis-cli keys "cfn_loop:task:${TASK_ID}:*" 2>/dev/null | xargs -I {} redis-cli expire {} 3600 2>/dev/null || true
+  fi
+}
+
+# Trap cleanup on script exit
+trap cleanup_redis_keys EXIT
+
 ##############################################################################
 # Argument Parsing
 ##############################################################################
@@ -877,6 +890,19 @@ EOF
       ;;
   esac
 done
+
+# Cleanup Redis keys before exit
+cleanup_redis_keys() {
+  if [ -n "$TASK_ID" ]; then
+    echo "🧹 Cleaning up Redis keys for task $TASK_ID"
+    # Set TTL on remaining task keys (1 hour)
+    redis-cli keys "swarm:${TASK_ID}:*" 2>/dev/null | xargs -I {} redis-cli expire {} 3600 2>/dev/null || true
+    redis-cli keys "cfn_loop:task:${TASK_ID}:*" 2>/dev/null | xargs -I {} redis-cli expire {} 3600 2>/dev/null || true
+  fi
+}
+
+# Trap cleanup on script exit
+trap cleanup_redis_keys EXIT
 
 # Max iterations reached without success
 echo "❌ Max iterations ($MAX_ITERATIONS) reached without PROCEED decision"

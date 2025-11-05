@@ -395,7 +395,7 @@ Simplified CFN Loop execution with direct agent spawning, full visibility, and s
     "acceptanceCriteria": ["Tokens expire correctly", "Tests pass >80%"]
   },
   "agents": {
-    "loop3": ["backend-dev", "researcher"],
+    "loop3": ["backend-developer", "researcher"],
     "loop2": ["reviewer", "tester", "architect", "security-specialist"]
   },
   "thresholds": {"gate": 0.75, "consensus": 0.90, "maxIterations": 10}
@@ -426,7 +426,7 @@ CONFIG_PATH=$(./.claude/skills/cfn-task-config-init/initialize-config.sh \
 - **Automatic scope extraction**: Task description analyzed for deliverables/criteria
 
 #### Agent Specialization
-- **Loop 3 (Implementation)**: backend-dev, researcher, mobile-dev, devops, rust-developer
+- **Loop 3 (Implementation)**: backend-developer, researcher, mobile-dev, devops, rust-developer
 - **Loop 2 (Validation)**: reviewer, tester, architect, security-specialist, accessibility-advocate-persona
 - **Loop 4 (Product Owner)**: product-owner (autonomous decision-making, no manual approval)
 

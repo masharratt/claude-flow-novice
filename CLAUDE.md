@@ -176,7 +176,7 @@ Main Chat spawns ONLY the coordinator agent. The coordinator handles all agent s
 ```javascript
 // WRONG in v2 - Don't spawn workers from Main Chat
 Task("coordinator", "Coordinate task...")
-Task("backend-dev", "Implement feature...")  // ❌ NO
+Task("backend-developer", "Implement feature...")  // ❌ NO
 Task("tester", "Test feature...")            // ❌ NO
 ```
 

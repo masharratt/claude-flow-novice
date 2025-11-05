@@ -19,7 +19,7 @@ The `epic-creator.md` coordinator agent kept getting deleted from `.claude/agent
 ### Why It Happened
 
 1. `package.json` has `"postinstall": "node scripts/init-project.js"`
-2. Running `npx claude-flow-novice agent backend-dev` triggers postinstall
+2. Running `npx claude-flow-novice agent backend-developer` triggers postinstall
 3. `init-project.js` ran `cfn-init` unconditionally
 4. cfn-init copied package version of cfn-dev-team/, overwriting local files
 5. epic-creator.md (and other local customizations) got deleted
@@ -28,7 +28,7 @@ The `epic-creator.md` coordinator agent kept getting deleted from `.claude/agent
 
 ```bash
 # Each of these triggered cfn-init:
-npx claude-flow-novice agent backend-dev
+npx claude-flow-novice agent backend-developer
 npx claude-flow-novice agent reviewer
 npx claude-flow-novice agent epic-creator
 

@@ -8,6 +8,29 @@ Last Updated: 2025-11-04
 
 ### P1 - High Priority
 
+**[P1] - Create memory Redis dashboard for real-time monitoring**
+- **Sprint Backlogged**: Unknown
+- **Category**: Feature
+- **Description**: Create memory Redis dashboard for real-time monitoring
+- **Rationale**: Need a web dashboard to monitor agent memory usage, container status, and performance metrics from Redis data in production
+- **Proposed Solution**: Build a web dashboard (React/Node) that connects to Redis to display:
+- Real-time memory usage per agent
+- Container status (running/stopped/exited)
+- Memory alerts and thresholds
+- Historical performance charts
+- Agent spawn/destroy events
+- System resource utilization
+
+Implementation:
+1. Redis subscriber for real-time updates
+2. REST API for historical data
+3. React dashboard with charts
+4. WebSocket for live updates
+5. Docker containerization
+- **Tags**: `redis`, `dashboard`, `monitoring`, `memory`, `production`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-04
+
 ### P2 - Medium Priority
 
 **[P2] - GraphQL endpoint**

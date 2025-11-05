@@ -1,0 +1,87 @@
+# Docker Image with Playwright for Frontend Agents
+# Includes browser automation and testing tools
+
+FROM node:20-alpine AS base
+
+# Install system dependencies for Playwright
+RUN apk add --no-cache \
+    bash \
+    redis \
+    curl \
+    procps \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    && rm -rf /var/cache/apk/*
+
+# Install Playwright browsers
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx playwright install chromium
+RUN npx playwright install-deps
+
+WORKDIR /app
+
+# Copy memory monitoring script
+COPY docker/scripts/monitor-wrapper.sh /app/monitor-wrapper.sh
+RUN chmod +x /app/monitor-wrapper.sh
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm ci --only=production
+
+# Copy application source
+COPY . .
+
+# Build TypeScript
+RUN npm run build || echo "Build skipped (dist/ already exists)"
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfnuser && \
+    adduser -S cfnuser -u 1001 -G cfnuser
+
+# Setup directories with permissions
+RUN mkdir -p /app/logs /app/metrics /tmp/screenshots /app/workspace && \
+    chown -R cfnuser:cfnuser /app && \
+    chmod -R 755 /app/.claude && \
+    chmod 1777 /tmp
+
+USER cfnuser
+
+# Frontend-specific environment variables
+ENV NODE_ENV=production \
+    ZAI_API_KEY="" \
+    ZAI_BASE_URL="https://api.z.ai/api/anthropic" \
+    CLAUDE_API_PROVIDER="zai" \
+    REDIS_HOST=host.docker.internal \
+    REDIS_PORT=6379 \
+    MEMORY_MONITORING=true \
+    MEMORY_REPORT_INTERVAL=30 \
+    MEMORY_ALERT_THRESHOLD=80 \
+    MEMORY_LIMIT=2048 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    DISPLAY=:99
+
+# Expose Playwright debugging port (optional)
+EXPOSE 9222
+
+# Health check including Playwright availability
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s \
+  CMD /app/monitor-wrapper.sh health-check && \
+      npx playwright --version >/dev/null 2>&1 || exit 1
+
+# Default command with memory monitoring
+CMD ["/app/monitor-wrapper.sh", "start-agent"]
+
+# Labels
+LABEL maintainer="Claude Flow Novice Team" \
+      version="1.0.0-frontend" \
+      description="Docker container for CFN frontend agents with Playwright" \
+      features="playwright,browser-automation,memory-monitoring" \
+      memory-limit="2GB" \
+      agent-types="frontend-engineer,ui-designer,mobile-dev,tester"

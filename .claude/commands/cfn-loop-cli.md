@@ -149,7 +149,7 @@ Task("cfn-v3-coordinator", `
 
   1. INVOKE ORCHESTRATOR (CLI spawning):
 
-     TASK_ID="cfn-cli-$(date +%s)"
+     TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
      MODE="${mode}"
      LOOP3_AGENTS="backend-dev,researcher,devops"  # Customize for task
      LOOP2_AGENTS="reviewer,tester,architect,security-specialist"  # Scale by complexity

@@ -19,7 +19,7 @@ cp CFN-CLAUDE.md CLAUDE.md
 npx cfn-loop "Implement JWT authentication system" --mode=standard
 
 # Or spawn agents directly
-npx cfn-spawn backend-dev --task-id auth-task
+npx cfn-spawn backend-developer --task-id auth-task
 ```
 
 **What happens on install**:
@@ -76,7 +76,7 @@ User Task Description
 │                                                           │
 │  ┌─────────────────────────────────────────────┐        │
 │  │ Loop 3: Implementation (parallel agents)    │        │
-│  │ • backend-dev, coder, devops-engineer, etc  │        │
+│  │ • backend-developer, coder, devops-engineer, etc  │        │
 │  │ • Each reports confidence score (0.0-1.0)   │        │
 │  └─────────────────┬───────────────────────────┘        │
 │                    ↓                                      │
@@ -240,7 +240,7 @@ User Task Description
 
 **Implementation**
 - `coder` - General-purpose code implementation
-- `backend-dev` - Backend services and APIs
+- `backend-developer` - Backend services and APIs
 - `frontend-dev` - Frontend applications
 - `mobile-dev` - React Native and cross-platform
 - `rust-developer` - Rust language specialist
@@ -348,7 +348,7 @@ cfn-redis          # Redis coordination utilities
 ## 📊 Multi-Domain Support (6 Task Types)
 
 ### 1. Software Development
-**Agents**: backend-dev, coder, devops-engineer, security-specialist
+**Agents**: backend-developer, coder, devops-engineer, security-specialist
 **Validation**: Tests pass, security scan clean, build succeeds, coverage ≥80%
 **Deliverables**: Source files, test files, docs
 

@@ -1,0 +1,126 @@
+# Docker Image with Playwright for Frontend Agents
+# Includes browser automation and testing tools - FIXED VERSION
+
+FROM node:18-slim AS base
+
+# Install system dependencies for Playwright
+RUN apt-get update && apt-get install -y \
+    # Basic dependencies
+    curl \
+    wget \
+    git \
+    gnupg2 \
+    procps \
+    redis-tools \
+    # Playwright browser dependencies
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libxss1 \
+    libasound2 \
+    # Additional libraries for headless operation
+    libgtk-3-0 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxfixes3 \
+    libxext6 \
+    libxtst6 \
+    libgconf-2-4 \
+    libxshmfence1 \
+    # System libraries
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Build stage
+FROM base AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Install Playwright and browsers system-wide
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+RUN npm install playwright
+RUN npx playwright install chromium --with-deps
+RUN npx playwright install-deps chromium
+
+# Verify browser installation
+RUN ls -la /ms-playwright/ || echo "Browser directory not found"
+RUN npx playwright install chromium --dry-run || echo "Browser verification failed"
+
+# Production stage
+FROM base AS production
+
+# Set environment for Playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+# Copy application
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/src/ ./src/
+COPY --from=builder /app/bin/ ./bin/
+
+# Copy browsers to system location
+COPY --from=builder /ms-playwright /ms-playwright
+
+# Copy monitoring scripts
+COPY docker/scripts/monitor-wrapper.sh /app/monitor-wrapper.sh
+
+# Create directories with proper permissions
+RUN mkdir -p /app/logs /app/metrics /tmp/screenshots /app/workspace && \
+    chmod +x /app/monitor-wrapper.sh
+
+# Create health check script
+RUN echo '#!/bin/bash\nnode -e "\ntry {\n  const { chromium } = require(\"playwright\");\n  chromium.launch({ headless: true }).then(() => {\n    console.log(\"Playwright health check passed\");\n    process.exit(0);\n  }).catch((error) => {\n    console.error(\"Playwright health check failed:\", error.message);\n    process.exit(1);\n  });\n} catch (error) {\n  console.error(\"Health check error:\", error.message);\n  process.exit(1);\n}"' > /app/healthcheck.sh && chmod +x /app/healthcheck.sh
+
+# Create non-root user
+RUN groupadd -r cfnuser --gid=1001 && \
+    useradd -r -g cfnuser --uid=1001 --home-dir=/app --shell=/bin/bash cfnuser && \
+    chown -R cfnuser:cfnuser /app && \
+    chmod 1777 /tmp
+
+USER cfnuser
+
+# Frontend-specific environment variables
+ENV NODE_ENV=production \
+    ZAI_API_KEY="" \
+    ZAI_BASE_URL="https://api.z.ai/api/anthropic" \
+    CLAUDE_API_PROVIDER="zai" \
+    REDIS_HOST=host.docker.internal \
+    REDIS_PORT=6379 \
+    MEMORY_MONITORING=true \
+    MEMORY_REPORT_INTERVAL=30 \
+    MEMORY_ALERT_THRESHOLD=80 \
+    MEMORY_LIMIT=2048 \
+    DISPLAY=:99
+
+# Expose Playwright debugging port (optional)
+EXPOSE 9222
+
+# Health check including Playwright availability
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD /app/healthcheck.sh
+
+# Default command with memory monitoring
+CMD ["/app/monitor-wrapper.sh", "start-agent"]
+
+# Labels
+LABEL maintainer="Claude Flow Novice Team" \
+      version="1.0.0-frontend-fixed" \
+      description="Docker container for CFN frontend agents with Playwright - FIXED" \
+      features="playwright,browser-automation,memory-monitoring" \
+      memory-limit="2GB" \
+      agent-types="frontend-engineer,ui-designer,mobile-dev,tester"
