@@ -227,12 +227,65 @@ async function installLizard() {
   console.log(chalk.gray('   or run: ./tools/install-lizard.sh'));
 }
 
+// Parse command line arguments
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const options = {
+    force: false
+  };
+
+  for (const arg of args) {
+    if (arg === '--force' || arg === '-f') {
+      options.force = true;
+    }
+  }
+
+  return options;
+}
+
 async function initializeCfnProject() {
-  // Skip initialization if already initialized (prevents overwrite on every npx call)
+  // Parse command line arguments
+  const options = parseArgs();
+
+  // Check initialization status and handle incomplete setups
   const markerPath = '.claude/.cfn-initialized';
+  const requiredPaths = [
+    '.claude/agents/cfn-dev-team',
+    '.claude/skills',
+    '.claude/hooks',
+    '.claude/commands'
+  ];
+
   if (fs.existsSync(markerPath)) {
-    // Silently skip - already initialized
-    return;
+    // Check if initialization appears complete
+    const missingPaths = requiredPaths.filter(path => !fs.existsSync(path));
+
+    if (missingPaths.length === 0 && !options.force) {
+      console.log(chalk.green('✅ CFN already properly initialized'));
+      console.log(chalk.gray('   Use --force to reinitialize'));
+      return;
+    } else if (options.force) {
+      console.log(chalk.yellow('🚀 Force reinitializing CFN...'));
+      console.log(chalk.gray('Removing previous installation...'));
+      fs.rmSync(markerPath, { force: true });
+      // Remove existing directories for clean reinitialization
+      requiredPaths.forEach(path => {
+        if (fs.existsSync(path)) {
+          fs.rmSync(path, { recursive: true, force: true });
+        }
+      });
+      console.log(chalk.gray('Previous installation removed'));
+    } else {
+      console.log(chalk.yellow('⚠️ CFN initialization incomplete - reinitializing...'));
+      console.log(chalk.gray(`Missing components: ${missingPaths.join(', ')}`));
+      console.log(chalk.gray('Removing incomplete initialization marker...'));
+      fs.rmSync(markerPath, { force: true });
+      // Continue with full initialization
+    }
+  } else {
+    if (options.force) {
+      console.log(chalk.yellow('🚀 Force initializing CFN...'));
+    }
   }
 
   console.log(chalk.blue('\n🚀 Claude Flow Novice CFN Initialization\n'));
