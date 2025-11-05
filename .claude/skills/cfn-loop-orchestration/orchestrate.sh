@@ -317,21 +317,76 @@ function store_context() {
 }
 
 build_agent_context() {
-    local iteration="$1"
-    local agent_type="$2"
-    local feedback="$3"
-    local loop_type="${4:-}"  # NEW: loop3, loop2, or loop4 (optional)
+    local task_id="$1"
+    local iteration="$2"
+    local agent_type="$3"
+    local feedback="$4"
+    local loop_type="${5:-}"  # NEW: loop3, loop2, or loop4 (optional)
 
-    # Extract from SUCCESS_CRITERIA JSON
+    # Initialize context variables
     local task_desc="CFN Loop implementation"
-    local deliverables=$(echo "$SUCCESS_CRITERIA" | jq -r '.deliverables // [] | join(", ")' 2>/dev/null || echo "")
-    local acceptance=$(echo "$SUCCESS_CRITERIA" | jq -r '.acceptanceCriteria // [] | join(", ")' 2>/dev/null || echo "")
+    local deliverables=""
+    local acceptance=""
+    local epic_context=""
+    local phase_context=""
+    local target_files=""
 
-    # Build base context
-    local context="Task: $task_desc | Deliverables: $deliverables | Acceptance: $acceptance | Iteration: $iteration"
+    # Try to retrieve complete context from Redis
+    if command -v "$REDIS_COORD_SKILL/get-context.sh" >/dev/null 2>&1; then
+        if redis_context=$("$REDIS_COORD_SKILL/get-context.sh" --task-id "$task_id" --namespace "swarm" 2>/dev/null); then
+            echo "📥 Retrieved Redis context for task: $task_id" >&2
+
+            # Extract fields from Redis context
+            task_desc=$(echo "$redis_context" | jq -r '.["epic-context"] // .epic_context // "CFN Loop implementation"' 2>/dev/null || echo "CFN Loop implementation")
+            deliverables=$(echo "$redis_context" | jq -r '.deliverables // [] | if type == "array" then join(", ") else . end' 2>/dev/null || echo "")
+            acceptance=$(echo "$redis_context" | jq -r '.acceptanceCriteria // .["acceptance-criteria"] // [] | if type == "array" then join(", ") else . end' 2>/dev/null || echo "")
+            epic_context=$(echo "$redis_context" | jq -r '.["epic-context"] // ""' 2>/dev/null || echo "")
+            phase_context=$(echo "$redis_context" | jq -r '.["phase-context"] // ""' 2>/dev/null || echo "")
+            target_files=$(echo "$redis_context" | jq -r '.["target-files"] // ""' 2>/dev/null || echo "")
+
+            echo "📋 Redis context extracted - Task: $task_desc" >&2
+        else
+            echo "⚠️  Failed to retrieve Redis context, using local SUCCESS_CRITERIA" >&2
+        fi
+    else
+        echo "⚠️  get-context.sh not found, using local SUCCESS_CRITERIA" >&2
+    fi
+
+    # Fallback to local SUCCESS_CRITERIA if Redis retrieval failed or incomplete
+    if [ -z "$deliverables" ] && [ -n "$SUCCESS_CRITERIA" ]; then
+        deliverables=$(echo "$SUCCESS_CRITERIA" | jq -r '.deliverables // [] | join(", ")' 2>/dev/null || echo "")
+        acceptance=$(echo "$SUCCESS_CRITERIA" | jq -r '.acceptanceCriteria // [] | join(", ")' 2>/dev/null || echo "")
+        echo "🔄 Using local SUCCESS_CRITERIA as fallback" >&2
+    fi
+
+    # Build comprehensive context string
+    local context="Task: $task_desc"
+
+    if [ -n "$deliverables" ]; then
+        context="$context | Deliverables: $deliverables"
+    fi
+
+    if [ -n "$acceptance" ]; then
+        context="$context | Acceptance Criteria: $acceptance"
+    fi
+
+    if [ -n "$target_files" ]; then
+        context="$context | Target Files: $target_files"
+    fi
+
+    context="$context | Iteration: $iteration"
 
     if [[ -n "$feedback" ]]; then
         context="$context | Feedback: $feedback"
+    fi
+
+    # Add epic/phase context if available
+    if [ -n "$epic_context" ]; then
+        context="$context | Epic: $epic_context"
+    fi
+
+    if [ -n "$phase_context" ]; then
+        context="$context | Phase: $phase_context"
     fi
 
     # Inject CFN Loop context if injection script exists and loop_type provided
@@ -375,7 +430,7 @@ function spawn_loop3_agents() {
       --task-id "$safe_task_id" \
       --agent-id "$safe_agent_id" \
       --iteration "$iteration" \
-      --context "$(build_agent_context "$iteration" "$safe_agent_type" "" "loop3")" &
+      --context "$(build_agent_context "$safe_task_id" "$iteration" "$safe_agent_type" "" "loop3")" &
 
     # Store PID for monitoring using unique agent ID
     AGENT_PID=$!
@@ -608,7 +663,7 @@ function spawn_loop2_agents() {
       --task-id "$task_id" \
       --agent-id "$UNIQUE_VALIDATOR_ID" \
       --iteration "$iteration" \
-      --context "$(build_agent_context "$iteration" "$agent_type" "" "loop2")" &
+      --context "$(build_agent_context "$task_id" "$iteration" "$agent_type" "" "loop2")" &
 
     # Store PID for monitoring using unique agent ID
     AGENT_PID=$!
