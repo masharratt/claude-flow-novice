@@ -235,12 +235,23 @@ Execute assigned performance analysis (bottleneck detection, optimization recomm
 
 **Step 2: Signal Completion**
 ```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+# Automatic Task Mode detection - will exit if in Task Mode
+detect_task_mode_and_exit() {
+  if [[ -z "${TASK_ID:-}" || -z "${AGENT_ID:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - CLI commands forbidden" >&2
+    echo "🚨 SECURITY: perf-analyzer spawned via Task() tool - use JSON output only" >&2
+    echo "💡 ANTI-023: Preventing memory leak from CLI command execution" >&2
+    exit 1
+  fi
+}
+
+detect_task_mode_and_exit && redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```
 
 **Step 3: Report Confidence Score and Exit**
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
+# Automatic Task Mode detection - will exit if in Task Mode
+detect_task_mode_and_exit && ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence [0.0-1.0] \
