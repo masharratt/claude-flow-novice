@@ -42,6 +42,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
+# Task Mode agents spawn via Task() tool and should NOT use Redis coordination
+if [[ -z "${TASK_ID:-}" || -z "${AGENT_ID:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - Redis coordination forbidden" >&2
+    echo "🚨 ANTI-023: This script is for CLI-spawned agents only" >&2
+    echo "💡 Task Mode agents should return JSON directly to Main Chat" >&2
+    echo "🔧 Agent spawned via Task() tool - use structured JSON output instead" >&2
+    exit 1
+fi
+
 # Validate required parameters
 if [ -z "$TASK_ID" ] || [ -z "$AGENT_ID" ] || [ -z "$CONFIDENCE" ]; then
     echo "Error: Missing required parameters" >&2

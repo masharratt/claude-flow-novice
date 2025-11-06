@@ -5,6 +5,16 @@
 
 set -euo pipefail
 
+# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
+# Task Mode agents spawn via Task() tool and should NOT use agent spawning CLI
+if [[ -z "${1:-}" || -z "${TASK_ID:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - Agent spawning CLI forbidden" >&2
+    echo "🚨 ANTI-023: This script is for CLI-spawned coordinators only" >&2
+    echo "💡 Task Mode agent spawning should be handled directly by Main Chat" >&2
+    echo "🔧 Agent spawned via Task() tool - use Task() tool for spawning instead" >&2
+    exit 1
+fi
+
 # ============================================================================
 # LOGGING FUNCTIONS
 # ============================================================================

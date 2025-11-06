@@ -25,6 +25,16 @@
 
 set -euo pipefail
 
+# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
+# Task Mode agents spawn via Task() tool and should NOT use agent spawning scripts
+if [[ -z "${TASK_ID:-}" || -z "${AGENTS:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - Agent spawning forbidden" >&2
+    echo "🚨 ANTI-023: This script is for CLI-spawned coordinators only" >&2
+    echo "💡 Task Mode agent spawning should be handled directly by Main Chat" >&2
+    echo "🔧 Coordinator spawned via Task() tool - use Task() tool for agent spawning instead" >&2
+    exit 1
+fi
+
 # Script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"

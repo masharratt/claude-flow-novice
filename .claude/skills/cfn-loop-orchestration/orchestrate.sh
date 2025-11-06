@@ -21,6 +21,16 @@
 
 set -euo pipefail
 
+# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
+# Task Mode agents spawn via Task() tool and should NOT use orchestration scripts
+if [[ -z "${TASK_ID:-}" || -z "${LOOP3_AGENTS:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - Orchestration forbidden" >&2
+    echo "🚨 ANTI-023: This script is for CLI-spawned coordinators only" >&2
+    echo "💡 Task Mode coordination should be handled directly by Main Chat" >&2
+    echo "🔧 Coordinator spawned via Task() tool - Main Chat should coordinate directly" >&2
+    exit 1
+fi
+
 # Load security utilities
 # shellcheck source=./security_utils.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/security_utils.sh"

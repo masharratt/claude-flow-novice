@@ -17,6 +17,16 @@
 
 set -euo pipefail
 
+# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
+# Task Mode agents spawn via Task() tool and should NOT use Redis coordination
+if [[ -z "${TASK_ID:-}" || -z "${MIN_QUORUM:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - Consensus coordination forbidden" >&2
+    echo "🚨 ANTI-023: This script is for CLI-spawned orchestrators only" >&2
+    echo "💡 Task Mode consensus should be collected directly from agent outputs" >&2
+    echo "🔧 Coordinator spawned via Task() tool - use direct JSON processing instead" >&2
+    exit 1
+fi
+
 # Parameters
 TASK_ID=""
 AGENTS=""
