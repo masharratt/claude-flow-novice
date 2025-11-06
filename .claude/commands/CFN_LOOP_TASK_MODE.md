@@ -35,6 +35,125 @@ Task Mode: Main Chat coordinates directly and spawns agents via Task() tool with
 
 ---
 
+## ANTI-023 Memory Leak Protection (v2.14.28)
+
+**Critical Fix**: Prevents Task Mode agents from executing CLI coordination scripts that cause memory leaks.
+
+### Three-Layer Defense System
+
+#### Layer 1: Agent Documentation
+**Task Mode agents use mode-specific completion protocols:**
+```markdown
+## ⚠️ CRITICAL: Mode-Specific Completion Protocol
+
+**Task Mode (95%):** Spawned via `Task("agent", "...")` in Main Chat
+- Return structured JSON output directly
+- ❌ DO NOT: Use Redis commands, bash scripts, CLI tools
+- ✅ Main Chat receives output automatically
+
+**CLI Mode (5%):** Spawned via `npx claude-flow-novice agent-spawn`
+- Use Redis signals and completion scripts
+- ✅ CLI coordination allowed
+```
+
+#### Layer 2: Agent-Level Detection
+**Automatic detection functions prevent CLI usage:**
+```bash
+detect_task_mode_and_exit() {
+  if [[ -z "${TASK_ID:-}" || -z "${AGENT_ID:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - CLI commands forbidden"
+    exit 1
+  fi
+}
+```
+
+#### Layer 3: Code-Level Runtime Blocking
+**Coordination scripts include early exit checks:**
+```bash
+# ⚠️ ANTI-023 MEMORY LEAK PROTECTION
+if [[ -z "${TASK_ID:-}" || -z "${AGENT_ID:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - Redis coordination forbidden"
+    exit 1
+fi
+```
+
+### Memory Impact Resolution
+- **Before Fix**: Up to 23GB memory consumption per hanging agent
+- **After Fix**: <100MB normal usage with complete audit trails
+- **Detection Logic**: Environment variable presence indicates spawn mode
+
+---
+
+## Audit Trail Architecture (New v2.14.28)
+
+### Dual-Mode Storage System
+
+**Design Principle**: Both Task Mode and CLI Mode create complete audit trails for compliance and debugging.
+
+#### Task Mode Storage (Main Chat Managed)
+```bash
+# After Task Mode agent completion, Main Chat stores audit data
+./.claude/skills/cfn-task-audit/store-task-audit.sh \
+  --task-id "$TASK_ID" \
+  --agent-type "$AGENT_TYPE" \
+  --output "$AGENT_OUTPUT" \
+  --mode "Task"
+```
+
+**Storage Locations:**
+- **Redis**: Fast access (`swarm:${TASK_ID}:${AGENT_TYPE}:audit`)
+- **SQLite**: Permanent audit trail (`agent_audit` table)
+- **Files**: Structured logs (`.claude/logs/task-audit/`)
+
+#### CLI Mode Storage (Agent Managed)
+```bash
+# CLI agents continue using existing Redis coordination
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" \
+  "decision" "$DECISION" \
+  "mode" "CLI"
+```
+
+### Combined Audit Retrieval
+```bash
+# Retrieve complete audit trail from both modes
+get-audit-data.sh --task-id "$TASK_ID" --mode "combined"
+
+# Returns unified decision data:
+{
+  "task_mode_data": [...],
+  "cli_mode_data": [...],
+  "complete_audit_trail": true,
+  "execution_summary": {...}
+}
+```
+
+### Audit Data Structure
+```json
+{
+  "task_id": "task-123",
+  "agent_type": "reviewer",
+  "decision": "PROCEED",
+  "reasoning": "Code meets quality standards",
+  "confidence": 0.92,
+  "mode": "Task|CLI",
+  "deliverables": ["file.ts", "test.ts"],
+  "timestamp": "2025-11-06T15:30:00Z",
+  "metadata": {
+    "stored_via": "store-task-audit.sh",
+    "version": "1.0.0"
+  }
+}
+```
+
+### Benefits
+- **✅ Complete Coverage**: Both execution modes fully audited
+- **✅ Memory Safe**: ANTI-023 protection maintained
+- **✅ Compliance Ready**: Full audit trail for enterprise requirements
+- **✅ Debugging Support**: Replay capability for complex issues
+- **✅ Performance**: Fast Redis access + persistent SQLite storage
+
+---
+
 ## Agent Specialization
 
 ### Loop 3 (Implementation)

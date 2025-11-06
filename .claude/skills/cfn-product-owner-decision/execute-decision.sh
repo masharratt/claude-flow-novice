@@ -77,10 +77,49 @@ echo -e "${YELLOW}📥 Retrieving Loop 2 context...${NC}"
 LOOP2_FEEDBACK=$(redis-cli HGET "swarm:${TASK_ID}:loop2:consensus" "feedback" || echo "")
 TASK_CONTEXT=$(redis-cli HGETALL "swarm:${TASK_ID}:context" || echo "")
 
-# Build Product Owner context
+# Retrieve comprehensive audit trail data
+echo -e "${YELLOW}🔍 Retrieving audit trail data for informed decision-making...${NC}"
+set +e
+AUDIT_DATA=$(./.claude/skills/cfn-task-audit/get-audit-data.sh \
+  --task-id "$TASK_ID" \
+  --mode combined \
+  --format json 2>/dev/null || echo "[]")
+
+AUDIT_SUMMARY=$(./.claude/skills/cfn-task-audit/get-audit-data.sh \
+  --task-id "$TASK_ID" \
+  --mode combined \
+  --format summary 2>/dev/null || echo "No audit data available")
+set -e
+
+# Analyze audit data for patterns
+AUDIT_INSIGHTS=""
+if [ "$AUDIT_DATA" != "[]" ]; then
+  # Extract key patterns from audit data
+  PREVIOUS_DECISIONS=$(echo "$AUDIT_DATA" | jq -r '.[] | select(.agent_type == "product-owner") | .decision' 2>/dev/null | tr '\n' ', ' | sed 's/,$//' || echo "None")
+  AGENT_PERFORMANCE=$(echo "$AUDIT_DATA" | jq -r 'group_by(.agent_type) | map({agent: .[0].agent_type, avg_confidence: map(.confidence) | add / length}) | sort_by(.avg_confidence) | reverse | .[0:3] | .[] | "\(.agent): \(.avg_confidence)"' 2>/dev/null || echo "No performance data")
+
+  # Check for repeating concerns
+  REPEATING_CONCERNS=$(echo "$AUDIT_DATA" | jq -r '.[] | select(.agent_type == "reviewer" or .agent_type == "tester") | .reasoning | scan("security|performance|scope|quality|bug")' 2>/dev/null | sort | uniq -c | sort -nr | head -3 | awk '{print $2 " (" $1 "x)"}' | tr '\n' ', ' | sed 's/,$//' || echo "No repeating concerns")
+
+  AUDIT_INSIGHTS="
+AUDIT TRAIL INSIGHTS:
+- Previous Product Owner Decisions: $PREVIOUS_DECISIONS
+- Top Performing Agents: $AGENT_PERFORMANCE
+- Repeating Concerns: $REPEATING_CONCERNS
+- Total Audit Records: $(echo "$AUDIT_DATA" | jq '. | length' 2>/dev/null || echo "0")
+
+Audit Summary:
+$AUDIT_SUMMARY
+"
+else
+  AUDIT_INSIGHTS="AUDIT TRAIL: No historical data available for this task."
+fi
+
+# Build enhanced Product Owner context with audit insights
 PO_CONTEXT="
 You are the Product Owner making a strategic decision for CFN Loop iteration $ITERATION of $MAX_ITERATIONS.
 
+CURRENT ITERATION DATA:
 Loop 2 Consensus: $CONSENSUS
 Threshold: $THRESHOLD
 Success Criteria: ${SUCCESS_CRITERIA:-"Not specified"}
@@ -91,15 +130,26 @@ $LOOP2_FEEDBACK
 Task Context:
 $TASK_CONTEXT
 
-Make a strategic decision:
-- PROCEED: Quality threshold met, deliverables complete
-- ITERATE: Improvements needed, iterations remaining
-- ABORT: Max iterations reached or unrecoverable failure
+$AUDIT_INSIGHTS
+
+ENHANCED DECISION FRAMEWORK:
+Use the audit trail insights to inform your decision. Consider:
+- Are there repeating concerns that suggest systematic issues?
+- Which agents have performed well on similar tasks?
+- Do previous decisions show a pattern of success or failure?
+- Are there cross-mode inconsistencies that need attention?
+
+DECISION OPTIONS:
+- PROCEED: Quality threshold met, deliverables complete, audit shows positive trajectory
+- ITERATE: Improvements needed, iterations remaining, audit shows recoverable issues
+- ABORT: Max iterations reached, systematic failure, or audit shows insurmountable barriers
 
 Output format:
 Decision: PROCEED|ITERATE|ABORT
-Reasoning: [your explanation]
+Reasoning: [your explanation + audit insights]
 Confidence: [0.0-1.0]
+Audit Analysis: [brief summary of how audit data influenced your decision]
+Agent Performance: [any observations about agent reliability from audit trail]
 "
 
 # Spawn Product Owner agent
@@ -144,6 +194,12 @@ else
 
     # Parse confidence
     CONFIDENCE=$(echo "$PO_OUTPUT" | grep -oE "Confidence:\s*[0-9]+\.?[0-9]*" | grep -oE "[0-9]+\.?[0-9]*" || echo "0.85")
+
+    # Parse audit analysis (enhanced output)
+    AUDIT_ANALYSIS=$(echo "$PO_OUTPUT" | grep -oiE "Audit Analysis:\s*.*" | sed 's/Audit Analysis:\s*//' || echo "No audit analysis provided")
+
+    # Parse agent performance observations
+    AGENT_PERFORMANCE_OBSERVATIONS=$(echo "$PO_OUTPUT" | grep -oiE "Agent Performance:\s*.*" | sed 's/Agent Performance:\s*//' || echo "No agent performance observations")
   else
     echo -e "${RED}❌ ERROR: Product Owner output file missing or empty${NC}"
     echo "Expected: $PO_OUTPUT_FILE"
@@ -167,6 +223,11 @@ fi
 echo -e "${GREEN}✅ Product Owner Decision: $DECISION_TYPE${NC}"
 echo "Reasoning: $REASONING"
 echo "Confidence: $CONFIDENCE"
+if [ "$AUDIT_DATA" != "[]" ]; then
+  echo -e "${BLUE}📊 Audit Analysis: $AUDIT_ANALYSIS${NC}"
+  echo -e "${BLUE}🏆 Agent Performance: $AGENT_PERFORMANCE_OBSERVATIONS${NC}"
+  echo -e "${BLUE}📈 Audit Records Analyzed: $(echo "$AUDIT_DATA" | jq '. | length' 2>/dev/null || echo "0")${NC}"
+fi
 
 # Deliverable verification for PROCEED decisions
 if [ "$DECISION_TYPE" = "PROCEED" ]; then
@@ -254,7 +315,7 @@ else
   echo -e "${GREEN}No deferred items detected in Product Owner output${NC}"
 fi
 
-# Build decision JSON
+# Build enhanced decision JSON with audit insights
 DECISION_JSON=$(cat <<EOF
 {
   "decision": "$DECISION_TYPE",
@@ -263,17 +324,25 @@ DECISION_JSON=$(cat <<EOF
   "iteration": $ITERATION,
   "consensus": $CONSENSUS,
   "threshold": $THRESHOLD,
-  "timestamp": $(date +%s)
+  "timestamp": $(date +%s),
+  "audit_analysis": "$AUDIT_ANALYSIS",
+  "agent_performance_observations": "$AGENT_PERFORMANCE_OBSERVATIONS",
+  "audit_records_analyzed": $(echo "$AUDIT_DATA" | jq '. | length' 2>/dev/null || echo "0"),
+  "audit_informed": $(if [ "$AUDIT_DATA" != "[]" ]; then echo "true"; else echo "false"; fi)
 }
 EOF
 )
 
-# Store decision in Redis
-echo -e "${YELLOW}💾 Storing decision in Redis...${NC}"
+# Store decision in Redis with audit context
+echo -e "${YELLOW}💾 Storing decision in Redis with audit context...${NC}"
 redis-cli LPUSH "swarm:${TASK_ID}:decision" "$DECISION_TYPE"
 redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "decision" "$DECISION_TYPE"
 redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "reasoning" "$REASONING"
 redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "confidence" "$CONFIDENCE"
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "audit_analysis" "$AUDIT_ANALYSIS"
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "agent_performance_observations" "$AGENT_PERFORMANCE_OBSERVATIONS"
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "audit_records_analyzed" "$(echo "$AUDIT_DATA" | jq '. | length' 2>/dev/null || echo "0")"
+redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" "audit_informed" "$(if [ "$AUDIT_DATA" != "[]" ]; then echo "true"; else echo "false"; fi)"
 
 # Store in metrics
 redis-cli LPUSH "swarm:${TASK_ID}:metrics:product_owner_decisions" "$DECISION_JSON"
@@ -293,3 +362,6 @@ redis-cli LPUSH "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 echo "$DECISION_JSON"
 
 echo -e "${GREEN}✅ Product Owner decision execution complete${NC}"
+if [ "$AUDIT_DATA" != "[]" ]; then
+  echo -e "${BLUE}📊 Decision was informed by audit trail analysis${NC}"
+fi

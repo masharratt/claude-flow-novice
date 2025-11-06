@@ -5,18 +5,6 @@
 
 set -euo pipefail
 
-
-# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Environment Sanitization
-# Load and apply environment sanitization to prevent memory leaks
-# shellcheck source=../cfn-environment-sanitization/sanitize-environment.sh
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/../cfn-environment-sanitization/sanitize-environment.sh" ]]; then
-    source "$SCRIPT_DIR/../cfn-environment-sanitization/sanitize-environment.sh" --strict
-    echo "✅ Agent spawning environment sanitized" >&2
-else
-    echo "⚠️ Environment sanitization not available - proceeding without protection" >&2
-fi
-
 # ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
 # Task Mode agents spawn via Task() tool and should NOT use agent spawning CLI
 if [[ -z "${1:-}" || -z "${TASK_ID:-}" ]]; then

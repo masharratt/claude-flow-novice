@@ -21,10 +21,6 @@
 
 set -euo pipefail
 
-# Determine PROJECT_ROOT first before any other operations
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-
 # ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
 # Task Mode agents spawn via Task() tool and should NOT use orchestration scripts
 if [[ -z "${TASK_ID:-}" || -z "${LOOP3_AGENTS:-}" ]]; then
@@ -35,39 +31,24 @@ if [[ -z "${TASK_ID:-}" || -z "${LOOP3_AGENTS:-}" ]]; then
     exit 1
 fi
 
+# Load security utilities
+
 # ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Environment Sanitization
 # Load and apply environment sanitization to prevent memory leaks
-if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-task-mode-sanitize/task-mode-env-sanitizer.sh" ]]; then
-    source "$PROJECT_ROOT/.claude/skills/cfn-task-mode-sanitize/task-mode-env-sanitizer.sh"
-    sanitize_task_mode_environment "cli"
+# shellcheck source=../cfn-environment-sanitization/sanitize-environment.sh
+if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-environment-sanitization/sanitize-environment.sh" ]]; then
+    source "$PROJECT_ROOT/.claude/skills/cfn-environment-sanitization/sanitize-environment.sh" --strict
     echo "✅ Environment sanitization applied" >&2
 else
     echo "⚠️ Environment sanitization not available - proceeding without protection" >&2
 fi
-
-# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Process Instrumentation
-# Load process instrumentation and monitoring for the orchestrator
-if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-validation-runner-instrumentation/wrapped-executor.sh" ]]; then
-    source "$PROJECT_ROOT/.claude/skills/cfn-validation-runner-instrumentation/wrapped-executor.sh"
-    echo "✅ Orchestrator process instrumentation enabled" >&2
-else
-    echo "⚠️ Process instrumentation not available - proceeding without monitoring" >&2
-fi
-
-# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Environment Configuration
-# Set stabilization environment variables with sensible defaults
-export CFN_VALIDATION_TIMEOUT="${CFN_VALIDATION_TIMEOUT:-300}"   # 5 minutes
-export CFN_MEMORY_LIMIT="${CFN_MEMORY_LIMIT:-2048}"              # 2GB memory limit
-export CFN_CPU_LIMIT="${CFN_CPU_LIMIT:-80}"                      # 80% CPU limit
-export CFN_TELEMETRY_DIR="${CFN_TELEMETRY_DIR:-$PROJECT_ROOT/.artifacts/telemetry}"
-mkdir -p "$CFN_TELEMETRY_DIR"
-
-# Load security utilities
 # shellcheck source=./security_utils.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/security_utils.sh"
 
+# Determine script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HELPERS_DIR="$SCRIPT_DIR/helpers"
-REDIS_COORD_SKILL="$PROJECT_ROOT/.claude/skills/cfn-redis-coordination"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)" && REDIS_COORD_SKILL="$PROJECT_ROOT/.claude/skills/cfn-redis-coordination"
 
 # Configuration
 TASK_ID=""
@@ -279,16 +260,6 @@ if [ -z "$TASK_ID" ] || [ -z "$LOOP3_AGENTS" ] || [ -z "$LOOP2_AGENTS" ] || [ -z
   exit 1
 fi
 
-# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Process Instrumentation
-# Load process instrumentation and monitoring for the orchestrator
-# shellcheck source=../cfn-process-instrumentation/instrument-process.sh
-if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh" ]]; then
-    source "$PROJECT_ROOT/.claude/skills/cfn-process-instrumentation/instrument-process.sh"
-    echo "✅ Orchestrator process instrumentation enabled" >&2
-else
-    echo "⚠️ Process instrumentation not available - proceeding without monitoring" >&2
-fi
-
 # Get thresholds for mode
 # Add additional mode validation with safe fallback
 case "$MODE" in
@@ -474,22 +445,12 @@ function spawn_loop3_agents() {
     safe_task_id=$(sanitize_input "$task_id") || continue
     safe_agent_id=$(sanitize_input "$UNIQUE_AGENT_ID") || continue
 
-    # Spawn agent in background with process instrumentation and memory limits
-    if command -v execute_instrumented >/dev/null 2>&1; then
-        execute_instrumented "npx" "$CFN_VALIDATION_TIMEOUT" "$CFN_MEMORY_LIMIT" \
-          claude-flow-novice agent "$safe_agent_type" \
-          --task-id "$safe_task_id" \
-          --agent-id "$safe_agent_id" \
-          --iteration "$iteration" \
-          --context "$(build_agent_context "$safe_task_id" "$iteration" "$safe_agent_type" "" "loop3")" &
-    else
-        # Fallback to raw spawn if instrumentation unavailable
-        npx claude-flow-novice agent "$safe_agent_type" \
-          --task-id "$safe_task_id" \
-          --agent-id "$safe_agent_id" \
-          --iteration "$iteration" \
-          --context "$(build_agent_context "$safe_task_id" "$iteration" "$safe_agent_type" "" "loop3")" &
-    fi
+    # Spawn agent in background with explicit agent ID
+    npx claude-flow-novice agent "$safe_agent_type" \
+      --task-id "$safe_task_id" \
+      --agent-id "$safe_agent_id" \
+      --iteration "$iteration" \
+      --context "$(build_agent_context "$safe_task_id" "$iteration" "$safe_agent_type" "" "loop3")" &
 
     # Store PID for monitoring using unique agent ID
     AGENT_PID=$!
@@ -498,17 +459,6 @@ function spawn_loop3_agents() {
       --key "${UNIQUE_AGENT_ID}:pid" \
       --value "{\"pid\": $AGENT_PID}" \
       --namespace "swarm" >/dev/null
-
-    # ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Start telemetry monitoring
-    if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-telemetry/collect-metrics.sh" ]]; then
-        MONITOR_PID=$("$PROJECT_ROOT/.claude/skills/cfn-telemetry/collect-metrics.sh" start-monitoring "$UNIQUE_AGENT_ID" "$AGENT_PID" "$iteration" "$safe_agent_type")
-        "$REDIS_COORD_SKILL/store-context.sh" \
-          --task-id "$task_id" \
-          --key "${UNIQUE_AGENT_ID}:monitor_pid" \
-          --value "{\"pid\": $MONITOR_PID}" \
-          --namespace "swarm" >/dev/null
-        echo "🔍 Started monitoring for $UNIQUE_AGENT_ID (Agent PID: $AGENT_PID, Monitor PID: $MONITOR_PID)" >&2
-    fi
 
     # Store agent ID mapping for later retrieval using Redis SADD for set storage
     redis-cli SADD "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" "$UNIQUE_AGENT_ID" >/dev/null
@@ -582,16 +532,6 @@ function wait_for_agents() {
   # This ensures timeout is global (60s total), not per-agent (60s * N)
   for pid in "${pids[@]}"; do
     wait "$pid" 2>/dev/null || true
-  done
-
-  # ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Stop monitoring for all agents
-  echo "  Stopping telemetry monitoring for Loop 3 agents..." >&2
-  for unique_agent_id in "${AGENT_IDS[@]}"; do
-    local monitor_pid=$("$REDIS_COORD_SKILL/get-context.sh" --task-id "$task_id" --key "${unique_agent_id}:monitor_pid" --namespace "swarm" 2>/dev/null | jq -r '.pid // 0' || echo "0")
-    if [[ "$monitor_pid" -gt 0 ]] && kill -0 "$monitor_pid" 2>/dev/null; then
-      "$PROJECT_ROOT/.claude/skills/cfn-telemetry/collect-metrics.sh" stop-monitoring "$monitor_pid" >/dev/null 2>&1 || true
-      echo "    Stopped monitoring for $unique_agent_id (Monitor PID: $monitor_pid)" >&2
-    fi
   done
 
   # Calculate actual elapsed time
@@ -738,22 +678,12 @@ function spawn_loop2_agents() {
 
     echo "  Spawning: $agent_type (ID: $UNIQUE_VALIDATOR_ID)"
 
-    # Spawn validator in background with process instrumentation and memory limits
-    if command -v execute_instrumented >/dev/null 2>&1; then
-        execute_instrumented "npx" "$CFN_VALIDATION_TIMEOUT" "$CFN_MEMORY_LIMIT" \
-          claude-flow-novice agent "$agent_type" \
-          --task-id "$task_id" \
-          --agent-id "$UNIQUE_VALIDATOR_ID" \
-          --iteration "$iteration" \
-          --context "$(build_agent_context "$task_id" "$iteration" "$agent_type" "" "loop2")" &
-    else
-        # Fallback to raw spawn if instrumentation unavailable
-        npx claude-flow-novice agent "$agent_type" \
-          --task-id "$task_id" \
-          --agent-id "$UNIQUE_VALIDATOR_ID" \
-          --iteration "$iteration" \
-          --context "$(build_agent_context "$task_id" "$iteration" "$agent_type" "" "loop2")" &
-    fi
+    # Spawn agent in background with explicit agent ID
+    npx claude-flow-novice agent "$agent_type" \
+      --task-id "$task_id" \
+      --agent-id "$UNIQUE_VALIDATOR_ID" \
+      --iteration "$iteration" \
+      --context "$(build_agent_context "$task_id" "$iteration" "$agent_type" "" "loop2")" &
 
     # Store PID for monitoring using unique agent ID
     AGENT_PID=$!
