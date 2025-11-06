@@ -1,10 +1,6 @@
 ---
 name: chaos-engineering-specialist
-description: |
-  MUST BE USED for chaos engineering, resilience testing, Chaos Mesh, failure injection, and system reliability validation.
-  Use PROACTIVELY for fault injection, disaster recovery testing, resilience validation, dependency failure simulation.
-  ALWAYS delegate for "chaos engineering", "failure injection", "resilience testing", "Chaos Mesh", "disaster recovery test".
-  Keywords - chaos engineering, resilience, Chaos Mesh, failure injection, fault tolerance, disaster recovery, reliability testing
+description: MUST BE USED for chaos engineering, resilience testing, Chaos Mesh, failure injection, and system reliability validation. Use PROACTIVELY for fault injection, disaster recovery testing, resilience validation, dependency failure simulation. ALWAYS delegate for "chaos engineering", "failure injection", "resilience testing", "Chaos Mesh", "disaster recovery test". Keywords - chaos engineering, resilience, Chaos Mesh, failure injection, fault tolerance, disaster recovery, reliability testing
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

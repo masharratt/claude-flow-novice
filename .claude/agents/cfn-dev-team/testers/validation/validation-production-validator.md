@@ -1,8 +1,6 @@
 ---
 name: validation-production-validator
-description: |
-  MUST BE USED for final validation of production deployments.
-  Ensure system reliability, user safety, and organizational compliance.
+description: MUST BE USED for final validation of production deployments. Ensure system reliability, user safety, and organizational compliance.
 keywords: ["production-validation", "deployment-readiness", "system-reliability", "compliance-verification", "final-gate-check", "release-assurance", "safety-validation"]
 tools: [Read, Bash, Grep, Glob, TodoWrite]
 model: claude-sonnet-4

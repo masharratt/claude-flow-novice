@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.14.20",
+  "version": "2.14.22",
   "description": "AI agent orchestration framework with namespace-isolated skills, agents, and CFN Loop validation. Safe installation with ~0.01% collision risk.",
   "main": "dist/index.js",
   "type": "module",
@@ -97,7 +97,7 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && ./scripts/verify-no-secrets.sh",
     "prepack": "npm run build && npm run copy-claude-assets",
-    "copy-claude-assets": "rm -rf claude-assets && mkdir -p claude-assets && cp -r .claude/agents claude-assets/ && cp -r .claude/skills claude-assets/ && cp -r .claude/hooks claude-assets/ && cp -r .claude/commands claude-assets/ && cp -r .claude/root-claude-distribute claude-assets/",
+    "copy-claude-assets": "rm -rf claude-assets && mkdir -p claude-assets && cp -r .claude/agents claude-assets/ && cp -r .claude/skills claude-assets/ && cp -r .claude/hooks claude-assets/ && cp -r .claude/commands claude-assets/ && cp -r .claude/cfn-agents-ignore claude-assets/ && cp -r .claude/root-claude-distribute claude-assets/",
     "postinstall": "node scripts/init-project.js",
     "verify-package": "npm pack --dry-run",
     "portal:start": "./scripts/start-portal.sh",

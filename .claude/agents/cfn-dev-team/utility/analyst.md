@@ -1,9 +1,6 @@
 ---
 name: analyst
-description: |
-  MUST BE USED when analyzing code quality, identifying performance bottlenecks, assessing technical debt.
-  Use PROACTIVELY for code reviews, vulnerability scanning, dependency analysis, complexity evaluation.
-  Keywords - analyze, review, audit, assess, evaluate, inspect, scan, bottlenecks, vulnerabilities, technical debt, performance
+description: MUST BE USED when analyzing code quality, identifying performance bottlenecks, assessing technical debt. Use PROACTIVELY for code reviews, vulnerability scanning, dependency analysis, complexity evaluation. Keywords - analyze, review, audit, assess, evaluate, inspect, scan, bottlenecks, vulnerabilities, technical debt, performance
 tools: [Read, Grep, Glob, Bash, TodoWrite]
 model: haiku
 type: specialist

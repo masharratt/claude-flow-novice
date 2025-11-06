@@ -1,10 +1,6 @@
 ---
 name: api-gateway-specialist
-description: |
-  MUST BE USED for API gateway configuration, Kong, AWS API Gateway, Nginx, rate limiting, authentication, and API management.
-  Use PROACTIVELY for gateway setup, routing rules, OAuth2/JWT configuration, rate limiting, API versioning, load balancing.
-  ALWAYS delegate for "API gateway", "Kong configuration", "rate limiting", "OAuth2 setup", "API routing", "reverse proxy".
-  Keywords - API gateway, Kong, AWS API Gateway, Nginx, reverse proxy, rate limiting, OAuth2, JWT, authentication, routing, load balancing
+description: MUST BE USED for API gateway configuration, Kong, AWS API Gateway, Nginx, rate limiting, authentication, and API management. Use PROACTIVELY for gateway setup, routing rules, OAuth2/JWT configuration, rate limiting, API versioning, load balancing. ALWAYS delegate for "API gateway", "Kong configuration", "rate limiting", "OAuth2 setup", "API routing", "reverse proxy". Keywords - API gateway, Kong, AWS API Gateway, Nginx, reverse proxy, rate limiting, OAuth2, JWT, authentication, routing, load balancing
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

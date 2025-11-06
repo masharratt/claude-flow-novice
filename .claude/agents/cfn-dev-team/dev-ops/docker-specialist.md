@@ -1,10 +1,6 @@
 ---
 name: docker-specialist
-description: |
-  MUST BE USED for Docker containerization, multi-stage builds, image optimization, and container security.
-  Use PROACTIVELY for Dockerfile creation, Docker Compose, container security scanning, image size optimization.
-  ALWAYS delegate for "containerize app", "Docker security", "multi-stage build", "image optimization", "Docker best practices".
-  Keywords - Docker, containerization, Dockerfile, multi-stage builds, docker-compose, security scanning, image optimization, container registry
+description: MUST BE USED for Docker containerization, multi-stage builds, image optimization, and container security. Use PROACTIVELY for Dockerfile creation, Docker Compose, container security scanning, image size optimization. ALWAYS delegate for "containerize app", "Docker security", "multi-stage build", "image optimization", "Docker best practices". Keywords - Docker, containerization, Dockerfile, multi-stage builds, docker-compose, security scanning, image optimization, container registry
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

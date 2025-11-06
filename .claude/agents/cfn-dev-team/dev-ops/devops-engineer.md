@@ -1,10 +1,6 @@
 ---
 name: devops-engineer
-description: |
-  MUST BE USED for cloud infrastructure, DevOps automation, and platform engineering.
-  Use PROACTIVELY for CI/CD, containerization, Kubernetes, IaC, monitoring, security automation.
-  ALWAYS delegate when user asks to deploy, setup infrastructure, configure pipelines.
-  Keywords - DevOps, infrastructure, CI/CD, Kubernetes, Docker, Terraform, cloud
+description: MUST BE USED for cloud infrastructure, DevOps automation, and platform engineering. Use PROACTIVELY for CI/CD, containerization, Kubernetes, IaC, monitoring, security automation. ALWAYS delegate when user asks to deploy, setup infrastructure, configure pipelines. Keywords - DevOps, infrastructure, CI/CD, Kubernetes, Docker, Terraform, cloud
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: green

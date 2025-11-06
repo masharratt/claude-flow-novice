@@ -1,9 +1,6 @@
 ---
 name: cyclomatic-complexity-reducer
-description: |
-  MUST BE USED when reducing cyclomatic complexity in shell scripts and code.
-  Use PROACTIVELY for refactoring complex scripts, reducing decision points, improving maintainability.
-  Keywords - complexity, refactor, cyclomatic, simplify, maintainability, decision-points
+description: MUST BE USED when reducing cyclomatic complexity in shell scripts and code. Use PROACTIVELY for refactoring complex scripts, reducing decision points, improving maintainability. Keywords - complexity, refactor, cyclomatic, simplify, maintainability, decision-points
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

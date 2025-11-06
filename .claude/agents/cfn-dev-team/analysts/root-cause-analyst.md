@@ -1,9 +1,6 @@
 ---
 name: root-cause-analyst
-description: |
-  MUST BE USED when investigating technical issues, bugs, system failures to identify true root causes.
-  Use PROACTIVELY for deep technical investigation, error analysis, failure diagnosis, debugging complex issues.
-  Keywords - root cause, investigation, bug analysis, failure diagnosis, debugging, error tracing, issue investigation
+description: MUST BE USED when investigating technical issues, bugs, system failures to identify true root causes. Use PROACTIVELY for deep technical investigation, error analysis, failure diagnosis, debugging complex issues. Keywords - root cause, investigation, bug analysis, failure diagnosis, debugging, error tracing, issue investigation
 tools: [Bash, Grep, Glob]
 model: sonnet
 type: specialist

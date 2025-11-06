@@ -1,10 +1,6 @@
 ---
 name: kubernetes-specialist
-description: |
-  MUST BE USED for Kubernetes cluster management, Helm charts, operators, service mesh, and container orchestration.
-  Use PROACTIVELY for K8s deployments, autoscaling, ingress, StatefulSets, CRDs, monitoring.
-  ALWAYS delegate for "deploy to Kubernetes", "Helm chart", "K8s operator", "service mesh", "container orchestration".
-  Keywords - Kubernetes, k8s, Helm, operators, containers, pods, deployments, ingress, service mesh, Istio, autoscaling
+description: MUST BE USED for Kubernetes cluster management, Helm charts, operators, service mesh, and container orchestration. Use PROACTIVELY for K8s deployments, autoscaling, ingress, StatefulSets, CRDs, monitoring. ALWAYS delegate for "deploy to Kubernetes", "Helm chart", "K8s operator", "service mesh", "container orchestration". Keywords - Kubernetes, k8s, Helm, operators, containers, pods, deployments, ingress, service mesh, Istio, autoscaling
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

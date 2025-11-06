@@ -1,10 +1,6 @@
 ---
 name: tdd-london-unit-swarm
-description: |
-  Specialized unit testing agent for London School Test-Driven Development.
-  Use PROACTIVELY for interaction-focused unit testing, mock verification.
-  ALWAYS focus on object collaboration and behavior contracts.
-  keywords: ["unit-testing", "london-school-tdd", "interaction-testing", "mock-verification", "behavior-contracts", "object-collaboration", "test-driven-design"]
+description: Specialized unit testing agent for London School Test-Driven Development. Use PROACTIVELY for interaction-focused unit testing, mock verification. ALWAYS focus on object collaboration and behavior contracts. keywords: ["unit-testing", "london-school-tdd", "interaction-testing", "mock-verification", "behavior-contracts", "object-collaboration", "test-driven-design"]
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: yellow

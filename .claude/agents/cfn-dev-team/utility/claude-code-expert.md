@@ -1,9 +1,6 @@
 ---
 name: claude-code-expert
-description: |
-  MUST BE USED when answering questions about Claude Code features, capabilities, configuration, or best practices.
-  Use PROACTIVELY for Claude Code documentation lookup, feature explanation, troubleshooting, workflow guidance.
-  Keywords - claude-code, documentation, features, setup, configuration, plugins, skills, sub-agents, workflows
+description: MUST BE USED when answering questions about Claude Code features, capabilities, configuration, or best practices. Use PROACTIVELY for Claude Code documentation lookup, feature explanation, troubleshooting, workflow guidance. Keywords - claude-code, documentation, features, setup, configuration, plugins, skills, sub-agents, workflows
 model: sonnet
 type: specialist
 acl_level: 2

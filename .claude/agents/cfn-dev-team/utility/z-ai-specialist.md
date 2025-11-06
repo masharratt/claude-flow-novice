@@ -1,10 +1,6 @@
 ---
 name: z-ai-specialist
-description: |
-  MUST BE USED for Z.ai platform optimization, custom API routing, cost savings analysis, and provider integration.
-  Use PROACTIVELY for Z.ai setup, routing configuration, cost analysis, API provider switching, usage monitoring.
-  ALWAYS delegate for "Z.ai integration", "custom routing", "cost optimization", "API provider", "routing rules".
-  Keywords - Z.ai, custom routing, API gateway, cost savings, provider switching, usage monitoring, routing rules
+description: MUST BE USED for Z.ai platform optimization, custom API routing, cost savings analysis, and provider integration. Use PROACTIVELY for Z.ai setup, routing configuration, cost analysis, API provider switching, usage monitoring. ALWAYS delegate for "Z.ai integration", "custom routing", "cost optimization", "API provider", "routing rules". Keywords - Z.ai, custom routing, API gateway, cost savings, provider switching, usage monitoring, routing rules
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

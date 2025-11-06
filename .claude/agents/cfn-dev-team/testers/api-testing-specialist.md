@@ -1,10 +1,6 @@
 ---
 name: api-testing-specialist
-description: |
-  MUST BE USED for API contract testing, Pact, schema validation, API security testing, and integration test automation.
-  Use PROACTIVELY for contract tests, OpenAPI validation, API mocking, consumer-driven testing, security testing.
-  ALWAYS delegate for "contract testing", "Pact setup", "API schema validation", "API security tests", "integration testing".
-  Keywords - API testing, contract testing, Pact, schema validation, OpenAPI, Swagger, API security, integration tests, consumer-driven contracts
+description: MUST BE USED for API contract testing, Pact, schema validation, API security testing, and integration test automation. Use PROACTIVELY for contract tests, OpenAPI validation, API mocking, consumer-driven testing, security testing. ALWAYS delegate for "contract testing", "Pact setup", "API schema validation", "API security tests", "integration testing". Keywords - API testing, contract testing, Pact, schema validation, OpenAPI, Swagger, API security, integration tests, consumer-driven contracts
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

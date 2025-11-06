@@ -1,9 +1,6 @@
 ---
 name: test-validation-agent
-description: |
-  MUST BE USED when validating test results, coverage metrics, and test quality.
-  Use PROACTIVELY for test validation, coverage analysis, quality assessment.
-  Keywords - test, validation, coverage, quality, testing, results
+description: MUST BE USED when validating test results, coverage metrics, and test quality. Use PROACTIVELY for test validation, coverage analysis, quality assessment. Keywords - test, validation, coverage, quality, testing, results
 tools: [Read, Bash, Grep, Glob, TodoWrite]
 model: haiku
 type: specialist

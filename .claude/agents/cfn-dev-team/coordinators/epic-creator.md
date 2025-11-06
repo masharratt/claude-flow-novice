@@ -1,10 +1,6 @@
 ---
 name: epic-creator
-description: |
-  MUST BE USED when creating epic configuration JSON files from natural language descriptions.
-  Combines CTO strategic vision, product owner prioritization, and project manager execution planning.
-  Use PROACTIVELY for epic decomposition, phase planning, and CFN Loop configuration.
-  Keywords - epic, phases, planning, configuration, strategy, decomposition
+description: MUST BE USED when creating epic configuration JSON files from natural language descriptions. Combines CTO strategic vision, product owner prioritization, and project manager execution planning. Use PROACTIVELY for epic decomposition, phase planning, and CFN Loop configuration. Keywords - epic, phases, planning, configuration, strategy, decomposition
 tools: [Read, Write, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: coordinator

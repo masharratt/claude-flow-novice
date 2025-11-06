@@ -1,9 +1,6 @@
 ---
 name: typescript-specialist
-description: |
-  MUST BE USED for TypeScript development, type system design, and type safety implementation.
-  Use PROACTIVELY for type definitions, generics, utility types, advanced TypeScript patterns, and compile-time validation.
-  Keywords - TypeScript types, generics, interfaces, type safety, utility types, advanced patterns, type guards, conditional types
+description: MUST BE USED for TypeScript development, type system design, and type safety implementation. Use PROACTIVELY for type definitions, generics, utility types, advanced TypeScript patterns, and compile-time validation. Keywords - TypeScript types, generics, interfaces, type safety, utility types, advanced patterns, type guards, conditional types
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 type: specialist

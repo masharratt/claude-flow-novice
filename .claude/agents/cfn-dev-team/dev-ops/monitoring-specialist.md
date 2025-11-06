@@ -1,10 +1,6 @@
 ---
 name: monitoring-specialist
-description: |
-  MUST BE USED for observability, metrics collection, Prometheus, Grafana, alerting, and SLI/SLO tracking.
-  Use PROACTIVELY for monitoring setup, dashboard creation, alert configuration, performance tracking, SLO management.
-  ALWAYS delegate for "monitoring setup", "Prometheus metrics", "Grafana dashboard", "alerting rules", "SLI/SLO tracking".
-  Keywords - monitoring, observability, Prometheus, Grafana, metrics, alerting, SLI, SLO, SLA, dashboards, APM, tracing
+description: MUST BE USED for observability, metrics collection, Prometheus, Grafana, alerting, and SLI/SLO tracking. Use PROACTIVELY for monitoring setup, dashboard creation, alert configuration, performance tracking, SLO management. ALWAYS delegate for "monitoring setup", "Prometheus metrics", "Grafana dashboard", "alerting rules", "SLI/SLO tracking". Keywords - monitoring, observability, Prometheus, Grafana, metrics, alerting, SLI, SLO, SLA, dashboards, APM, tracing
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

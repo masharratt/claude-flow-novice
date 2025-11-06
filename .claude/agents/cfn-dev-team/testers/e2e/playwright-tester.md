@@ -1,10 +1,6 @@
 ---
 name: playwright-tester
-description: |
-  Automated end-to-end testing agent for web portal testing using Playwright.
-  MUST BE USED for comprehensive web interface validation.
-  ALWAYS include cross-browser, performance, and integration testing.
-  keywords: ["end-to-end-testing", "web-portal-validation", "cross-browser-testing", "playwright-automation", "performance-benchmarking", "integration-testing", "web-quality-assurance"]
+description: Automated end-to-end testing agent for web portal testing using Playwright. MUST BE USED for comprehensive web interface validation. ALWAYS include cross-browser, performance, and integration testing. keywords: ["end-to-end-testing", "web-portal-validation", "cross-browser-testing", "playwright-automation", "performance-benchmarking", "integration-testing", "web-quality-assurance"]
 tools: [Read, Write, Edit, Bash, Glob, Grep]
 model: haiku
 color: blue

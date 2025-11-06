@@ -1,10 +1,6 @@
 ---
 name: memory-leak-specialist
-description: |
-  MUST BE USED for memory leak detection, heap analysis, memory profiling, and performance debugging (Node.js, Python, Java).
-  Use PROACTIVELY for memory issues, heap dumps, profiling, garbage collection analysis, memory optimization.
-  ALWAYS delegate for "memory leak", "heap dump", "memory profiling", "OOM errors", "garbage collection", "memory optimization".
-  Keywords - memory leak, heap analysis, memory profiling, OOM, garbage collection, Node.js profiling, Python profiling, Java heap dump
+description: MUST BE USED for memory leak detection, heap analysis, memory profiling, and performance debugging (Node.js, Python, Java). Use PROACTIVELY for memory issues, heap dumps, profiling, garbage collection analysis, memory optimization. ALWAYS delegate for "memory leak", "heap dump", "memory profiling", "OOM errors", "garbage collection", "memory optimization". Keywords - memory leak, heap analysis, memory profiling, OOM, garbage collection, Node.js profiling, Python profiling, Java heap dump
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

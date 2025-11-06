@@ -1,9 +1,6 @@
 ---
 name: react-frontend-engineer
-description: |
-  MUST BE USED when developing React components and frontend interfaces.
-  Use PROACTIVELY for React development, UI implementation, component libraries, state management.
-  Keywords - React, frontend, UI, components, TypeScript, state management, responsive design
+description: MUST BE USED when developing React components and frontend interfaces. Use PROACTIVELY for React development, UI implementation, component libraries, state management. Keywords - React, frontend, UI, components, TypeScript, state management, responsive design
 tools: [Read, Write, Edit, Bash, Grep, TodoWrite, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot]
 model: sonnet
 type: specialist

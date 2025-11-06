@@ -1,10 +1,6 @@
 ---
 name: interaction-tester
-description: |
-  MUST BE USED for UI, accessibility, integration, and e2e testing.
-  Use PROACTIVELY for testing complex user interactions and workflows.
-  ALWAYS delegate comprehensive testing scenarios.
-  Keywords - interaction testing, integration tests, e2e, UI testing, accessibility, user flows
+description: MUST BE USED for UI, accessibility, integration, and e2e testing. Use PROACTIVELY for testing complex user interactions and workflows. ALWAYS delegate comprehensive testing scenarios. Keywords - interaction testing, integration tests, e2e, UI testing, accessibility, user flows
 tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
 model: haiku
 color: cyan

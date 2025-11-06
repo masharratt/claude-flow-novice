@@ -1,9 +1,6 @@
 ---
 name: cfn-system-expert
-description: |
-  MUST BE USED when answering questions about Claude Flow Novice system architecture, CFN Loop methodology, and workflow optimization.
-  Use PROACTIVELY for system troubleshooting, workflow guidance, cost optimization, and best practices.
-  Keywords - claude-flow-novice, cfn-loop, redis-coordination, agent-spawning, workflow-optimization, cost-reduction
+description: MUST BE USED when answering questions about Claude Flow Novice system architecture, CFN Loop methodology, and workflow optimization. Use PROACTIVELY for system troubleshooting, workflow guidance, cost optimization, and best practices. Keywords - claude-flow-novice, cfn-loop, redis-coordination, agent-spawning, workflow-optimization, cost-reduction
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

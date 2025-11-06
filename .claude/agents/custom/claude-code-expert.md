@@ -1,9 +1,6 @@
 ---
 name: claude-code-expert
-description: |
-  MUST BE USED when answering questions about Claude Code features, documentation, and best practices.
-  Use PROACTIVELY for Claude Code guidance, sub-agent creation, workflow questions.
-  Keywords - claude-code, sub-agents, documentation, guides, best-practices, workflows
+description: MUST BE USED when answering questions about Claude Code features, documentation, and best practices. Use PROACTIVELY for Claude Code guidance, sub-agent creation, workflow questions. Keywords - claude-code, sub-agents, documentation, guides, best-practices, workflows
 tools: [WebFetch, Read, Grep, Glob]
 model: sonnet
 type: specialist

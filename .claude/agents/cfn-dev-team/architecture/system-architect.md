@@ -1,9 +1,6 @@
 ---
 name: system-architect
-description: |
-  MUST BE USED when designing enterprise-grade system architecture, providing technical leadership for distributed systems, microservices, cloud-native solutions.
-  Use PROACTIVELY for architectural design, technical strategy, infrastructure planning.
-  Keywords - enterprise architecture, system design, technical leadership, architectural patterns
+description: MUST BE USED when designing enterprise-grade system architecture, providing technical leadership for distributed systems, microservices, cloud-native solutions. Use PROACTIVELY for architectural design, technical strategy, infrastructure planning. Keywords - enterprise architecture, system design, technical leadership, architectural patterns
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: seagreen

@@ -177,9 +177,18 @@ lifecycle:
 
 **If you need deep testing beyond validation, note it in feedback for Main Chat.**
 
-### Task Mode (Spawned via Task() Tool)
+### ⚠️ CRITICAL: How to Complete Your Testing
 
-**Simply complete your testing and return structured output:**
+**First, determine how you were spawned:**
+
+- **Task Mode**: You were called via `Task("tester", "...")` in Main Chat
+- **CLI Mode**: You were spawned via `npx claude-flow-novice agent-spawn ...` command
+
+---
+
+### If You Are in Task Mode (95% of cases)
+
+**🎯 YOUR INSTRUCTIONS: Simply return structured test report**
 
 ```markdown
 ## Test Execution Report
@@ -190,11 +199,21 @@ lifecycle:
 - **Status**: PASS|FAIL
 - **Critical Issues**: [List]
 - **Warnings**: [List]
+- **Files Tested**: [file1.ts, file2.test.ts]
 ```
 
-**No Redis signals required - Main Chat receives output automatically.**
+**❌ DO NOT:**
+- Use any Redis commands (redis-cli)
+- Execute bash scripts for completion
+- Run invoke-waiting-mode.sh
+- Use slash commands (/cfn-loop-cli)
+- **Main Chat receives your test report automatically - that's all you need!**
 
-### CLI Mode (Spawned via `npx claude-flow-novice agent-spawn`)
+---
+
+### If You Are in CLI Mode (Rare cases)
+
+**Only use these instructions if spawned via CLI command:**
 
 **Step 1: Complete Testing**
 Execute all test cases and validation
@@ -212,6 +231,8 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
   --confidence [0.0-1.0] \
   --iteration 1
 ```
+
+**🚨 MEMORY LEAK WARNING**: If you try CLI commands in Task Mode, you will hang and cause memory leaks!
 
 **Step 4: Exit Cleanly**
 Agent exits after reporting (no waiting mode)

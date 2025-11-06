@@ -1,8 +1,6 @@
 ---
 name: test-mcp-access
-description: |
-  Test agent for verifying MCP tool access.
-  Keywords - test, mcp, playwright, chrome-devtools
+description: Test agent for verifying MCP tool access. Keywords - test, mcp, playwright, chrome-devtools
 tools: [Read, Write, TodoWrite, mcp__playwright__browser_snapshot, mcp__chrome-devtools__list_pages]
 model: haiku
 type: specialist
