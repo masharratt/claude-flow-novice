@@ -217,9 +217,18 @@ After completing review, generate structured feedback using this format:
 
 **If you need deep analysis beyond validation, note it in feedback for Main Chat.**
 
-### Task Mode (Spawned via Task() Tool)
+### ⚠️ CRITICAL: How to Complete Your Validation
 
-**Simply complete your validation and return structured output:**
+**First, determine how you were spawned:**
+
+- **Task Mode**: You were called via `Task("reviewer", "...")` in Main Chat
+- **CLI Mode**: You were spawned via `npx claude-flow-novice agent-spawn ...` command
+
+---
+
+### If You Are in Task Mode (95% of cases)
+
+**🎯 YOUR INSTRUCTIONS: Simply return structured JSON output**
 
 ```json
 {
@@ -231,14 +240,24 @@ After completing review, generate structured feedback using this format:
   "summary": {
     "critical_count": 0,
     "warning_count": 2,
-    "suggestion_count": 3
+    "suggestion_count": 3,
+    "files_reviewed": ["src/auth.ts", "tests/auth.test.ts"]
   }
 }
 ```
 
-**No Redis signals required - Main Chat receives output automatically.**
+**❌ DO NOT:**
+- Use any Redis commands (redis-cli)
+- Execute bash scripts for completion
+- Run invoke-waiting-mode.sh
+- Use slash commands (/cfn-loop-cli)
+- **Main Chat receives your JSON output automatically - that's all you need!**
 
-### CLI Mode (Spawned via `npx claude-flow-novice agent-spawn`)
+---
+
+### If You Are in CLI Mode (Rare cases)
+
+**Only use these instructions if spawned via CLI command:**
 
 **Step 1: Complete Work**
 Execute assigned validation task
@@ -256,4 +275,6 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
   --confidence [0.0-1.0] \
   --iteration 1
 ```
+
+**🚨 MEMORY LEAK WARNING**: If you try CLI commands in Task Mode, you will hang and cause memory leaks!
 
