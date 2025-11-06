@@ -375,6 +375,36 @@ Specialized CFN Loop for frontend development with visual validation and brand c
 #### Purpose
 Simplified CFN Loop execution with direct agent spawning, full visibility, and structured scope configuration
 
+#### ANTI-023 Memory Leak Protection
+**Critical Fix (v2.14.28)**: Prevents Task Mode agents from executing CLI coordination scripts
+
+**Three-Layer Defense System**:
+1. **Agent Documentation**: Mode-specific completion protocols prevent CLI usage
+2. **Agent-Level Detection**: `detect_task_mode_and_exit()` functions reject CLI calls
+3. **Code-Level Blocking**: Runtime checks in coordination scripts exit immediately
+
+**Detection Logic**:
+```bash
+# Task Mode detection using environment variables
+if [[ -z "${TASK_ID:-}" || -z "${AGENT_ID:-}" ]]; then
+    echo "❌ TASK MODE DETECTED - CLI commands forbidden"
+    exit 1
+fi
+```
+
+**Protected Components**:
+- Validator agents: reviewer, tester, perf-analyzer, security-specialist
+- Coordination scripts: report-completion.sh, consensus.sh, orchestrate.sh
+- Agent spawning: spawn-agent.sh, spawn-agents.sh
+
+**Mode-Specific Behavior**:
+- **Task Mode**: Return structured JSON directly to Main Chat
+- **CLI Mode**: Use Redis coordination and CLI scripts
+
+**Memory Impact**:
+- **Before**: Up to 23GB memory consumption per hanging agent
+- **After**: <100MB normal usage, automatic process cleanup
+
 #### Task Config Initialization
 **New in v2.10.7**: Automatic config generation at CFN Loop startup
 
