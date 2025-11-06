@@ -1,10 +1,6 @@
 ---
 name: database-architect
-description: |
-  MUST BE USED for database schema design, migration strategies, query optimization, and data modeling.
-  Use PROACTIVELY for relational/NoSQL design, indexing strategies, normalization, data integrity.
-  ALWAYS delegate for "design schema", "database migration", "optimize queries", "data modeling".
-  Keywords - database, schema, SQL, PostgreSQL, MongoDB, migrations, indexing, normalization, query optimization
+description: MUST BE USED for database schema design, migration strategies, query optimization, and data modeling. Use PROACTIVELY for relational/NoSQL design, indexing strategies, normalization, data integrity. ALWAYS delegate for "design schema", "database migration", "optimize queries", "data modeling". Keywords - database, schema, SQL, PostgreSQL, MongoDB, migrations, indexing, normalization, query optimization
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

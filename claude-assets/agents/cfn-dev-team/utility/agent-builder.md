@@ -1,9 +1,6 @@
 ---
 name: agent-builder
-description: |
-  MUST BE USED when creating, updating, or maintaining Claude Code agent templates.
-  Use PROACTIVELY for agent file creation, frontmatter updates, template validation, agent architecture design.
-  Keywords - agent, template, create, update, maintain, frontmatter, validation, agent-design
+description: MUST BE USED when creating, updating, or maintaining Claude Code agent templates. Use PROACTIVELY for agent file creation, frontmatter updates, template validation, agent architecture design. Keywords - agent, template, create, update, maintain, frontmatter, validation, agent-design
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
@@ -20,7 +17,7 @@ You are a specialized agent for creating, validating, and designing agent templa
 1. **Agent Template Creation**
    - Generate standardized agent templates with correct YAML frontmatter
    - Ensure comma-separated tool and capability lists
-   - Include proper multi-line descriptions with pipe operator
+   - Include single-line descriptions (no pipes or line breaks for token efficiency)
    - Validate template structure and completeness
 
 2. **CFN Loop Integration**
@@ -51,10 +48,7 @@ You are a specialized agent for creating, validating, and designing agent templa
 ```yaml
 ---
 name: agent-identifier
-description: |
-  MUST BE USED when [specific use case].
-  Use PROACTIVELY for [scenarios].
-  Keywords - [relevant, searchable, terms]
+description: MUST BE USED when [specific use case]. Use PROACTIVELY for [scenarios]. Keywords - [relevant, searchable, terms]
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 type: specialist
@@ -74,13 +68,13 @@ tools:
 # ✅ CORRECT - Comma-separated list in brackets
 tools: [Read, Write, Edit]
 
-# ❌ WRONG - Missing description pipe operator
-description: Single line description
-
-# ✅ CORRECT - Multi-line description with pipe
+# ❌ WRONG - Multi-line description with pipe (causes tokenization issues)
 description: |
   MUST BE USED when specific use case.
   Keywords - relevant, terms
+
+# ✅ CORRECT - Single-line description for optimal tokenization
+description: MUST BE USED when specific use case. Keywords - relevant, terms
 ```
 
 **Field Reference:**
@@ -88,7 +82,7 @@ description: |
 | Field | Required | Format | Example |
 |-------|----------|--------|---------|
 | `name` | Yes | lowercase-with-hyphens | `backend-developer` |
-| `description` | Yes | Multi-line with `\|` | See examples below |
+| `description` | Yes | Single-line, no pipes | `MUST BE USED when [use case]. Keywords - [terms]` |
 | `tools` | Yes | `[Tool1, Tool2, Tool3]` | `[Read, Write, Edit, Bash]` |
 | `model` | Yes | `haiku\|sonnet\|opus` | `haiku` |
 | `type` | Yes | `specialist\|coordinator\|validator` | `specialist` |
@@ -97,11 +91,8 @@ description: |
 
 **Description Best Practices:**
 ```yaml
-# Template for description field
-description: |
-  MUST BE USED when [primary use case].
-  Use PROACTIVELY for [secondary scenarios].
-  Keywords - [searchable, terms, for, discovery]
+# Template for description field (single-line for optimal tokenization)
+description: MUST BE USED when [primary use case]. Use PROACTIVELY for [secondary scenarios]. Keywords - [searchable, terms, for, discovery]
 ```
 
 ## CFN Loop Redis Completion Protocol
@@ -155,10 +146,7 @@ See: \`.claude/skills/cfn-redis-coordination/SKILL.md\` for full protocol detail
 ```markdown
 ---
 name: file-formatter
-description: |
-  MUST BE USED when formatting code files for consistency.
-  Use PROACTIVELY for code style, linting, formatting.
-  Keywords - format, style, lint, prettier, beautify
+description: MUST BE USED when formatting code files for consistency. Use PROACTIVELY for code style, linting, formatting. Keywords - format, style, lint, prettier, beautify
 tools: [Read, Write, Edit]
 model: haiku
 type: specialist
@@ -193,10 +181,7 @@ You format code files according to project style guides.
 ```markdown
 ---
 name: api-developer
-description: |
-  MUST BE USED when implementing REST API endpoints.
-  Use PROACTIVELY for API development, endpoint creation, OpenAPI specs.
-  Keywords - api, rest, endpoint, openapi, swagger, http
+description: MUST BE USED when implementing REST API endpoints. Use PROACTIVELY for API development, endpoint creation, OpenAPI specs. Keywords - api, rest, endpoint, openapi, swagger, http
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 type: specialist
@@ -281,10 +266,7 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```markdown
 ---
 name: security-reviewer
-description: |
-  MUST BE USED when reviewing code for security vulnerabilities.
-  Use PROACTIVELY for security audits, code review, vulnerability scanning.
-  Keywords - security, vulnerability, audit, review, penetration
+description: MUST BE USED when reviewing code for security vulnerabilities. Use PROACTIVELY for security audits, code review, vulnerability scanning. Keywords - security, vulnerability, audit, review, penetration
 tools: [Read, Grep, Glob, TodoWrite]
 model: sonnet
 type: validator
@@ -378,10 +360,7 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```markdown
 ---
 name: feature-coordinator
-description: |
-  MUST BE USED when coordinating multi-agent feature development.
-  Use PROACTIVELY for complex features requiring multiple specialists.
-  Keywords - coordinate, orchestrate, feature, multi-agent, workflow
+description: MUST BE USED when coordinating multi-agent feature development. Use PROACTIVELY for complex features requiring multiple specialists. Keywords - coordinate, orchestrate, feature, multi-agent, workflow
 tools: [Read, Bash, TodoWrite]
 model: sonnet
 type: coordinator
@@ -483,7 +462,7 @@ Before finalizing an agent template, verify:
 **YAML Frontmatter:**
 - [ ] Tools use comma-separated list: `[Read, Write, Edit]`
 - [ ] Capabilities use comma-separated list: `[api-dev, testing]`
-- [ ] Description uses pipe operator `|` for multi-line
+- [ ] Description is single-line (no pipes or line breaks for token efficiency)
 - [ ] Name is lowercase-with-hyphens
 - [ ] Model is one of: `haiku`, `sonnet`, `opus`
 - [ ] Type is one of: `specialist`, `coordinator`, `validator`

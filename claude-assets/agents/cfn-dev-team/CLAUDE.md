@@ -68,9 +68,7 @@ touch .claude/agents/custom/my-first-agent.md
 ```markdown
 ---
 name: my-first-agent
-description: |
-  MUST BE USED when performing [your specific task].
-  Keywords - [relevant, keywords, for, your, task]
+description: MUST BE USED when performing [your specific task]. Keywords - [relevant, keywords, for, your, task]
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 type: specialist
@@ -156,9 +154,7 @@ Every agent has three main parts:
 ```yaml
 ---
 name: agent-name                    # Unique identifier (lowercase, hyphens)
-description: |                      # What the agent does & when to use it
-  MUST BE USED when [use case].
-  Keywords - [searchable, terms]
+description: MUST BE USED when [use case]. Keywords - [searchable, terms]  # Single-line for token efficiency
 tools: [Read, Write, Edit, Bash]    # Available tools (Bash includes Redis CLI)
 model: haiku                        # haiku | sonnet | opus
 type: specialist                    # specialist | coordinator | swarm
@@ -239,10 +235,7 @@ touch .claude/agents/custom/migration-reviewer.md
 ```markdown
 ---
 name: migration-reviewer
-description: |
-  MUST BE USED when reviewing database migrations for security and performance.
-  Use PROACTIVELY for SQL schema changes, migrations, database updates.
-  Keywords - database, migration, schema, SQL, security, performance
+description: MUST BE USED when reviewing database migrations for security and performance. Use PROACTIVELY for SQL schema changes, migrations, database updates. Keywords - database, migration, schema, SQL, security, performance
 tools: [Read, Grep, TodoWrite]
 model: haiku
 type: specialist
@@ -319,9 +312,7 @@ npx claude-flow-novice agent-spawn migration-reviewer \
 ```markdown
 ---
 name: my-implementer
-description: |
-  MUST BE USED when implementing [specific type of code].
-  Keywords - implement, build, create, develop
+description: MUST BE USED when implementing [specific type of code]. Keywords - implement, build, create, develop
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 type: specialist
@@ -357,9 +348,7 @@ You implement [specific type of code] following best practices.
 ```markdown
 ---
 name: my-reviewer
-description: |
-  MUST BE USED for reviewing [specific type of code].
-  Keywords - review, validate, quality, security
+description: MUST BE USED for reviewing [specific type of code]. Keywords - review, validate, quality, security
 tools: [Read, Grep, TodoWrite]
 model: haiku
 type: validator
@@ -407,10 +396,7 @@ Provide confidence score and categorized feedback:
 ```markdown
 ---
 name: my-specialist
-description: |
-  MUST BE USED when [specialized task].
-  Use PROACTIVELY for [scenarios].
-  Keywords - [domain, specific, keywords]
+description: MUST BE USED when [specialized task]. Use PROACTIVELY for [scenarios]. Keywords - [domain, specific, keywords]
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
@@ -744,10 +730,7 @@ Here's a real-world example - a Terraform reviewer agent:
 ```markdown
 ---
 name: terraform-reviewer
-description: |
-  MUST BE USED when reviewing Terraform infrastructure code.
-  Use PROACTIVELY for IaC review, security validation, cost optimization.
-  Keywords - terraform, infrastructure, IaC, cloud, AWS, security
+description: MUST BE USED when reviewing Terraform infrastructure code. Use PROACTIVELY for IaC review, security validation, cost optimization. Keywords - terraform, infrastructure, IaC, cloud, AWS, security
 tools: [Read, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
@@ -912,8 +895,7 @@ acl_level: 3
 ```yaml
 ---
 name: agent-name
-description: |
-  What the agent does and when to use it
+description: What the agent does and when to use it
 tools: [Read, Write]
 model: haiku
 ---
@@ -923,9 +905,7 @@ model: haiku
 ```yaml
 ---
 name: agent-name
-description: |
-  MUST BE USED when [use case]
-  Keywords - [keywords]
+description: MUST BE USED when [use case] Keywords - [keywords]  # Single-line for token efficiency
 tools: [Read, Write, Edit, TodoWrite]
 model: haiku
 type: specialist

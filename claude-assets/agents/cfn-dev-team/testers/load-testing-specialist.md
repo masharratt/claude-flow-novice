@@ -1,10 +1,6 @@
 ---
 name: load-testing-specialist
-description: |
-  MUST BE USED for load testing, performance benchmarking, scalability testing, and stress testing.
-  Use PROACTIVELY for k6, Gatling, JMeter, Artillery, performance analysis, capacity planning.
-  ALWAYS delegate for "load test", "performance test", "stress test", "scalability test", "benchmark".
-  Keywords - load testing, k6, Gatling, JMeter, performance, scalability, stress test, throughput, latency, RPS
+description: MUST BE USED for load testing, performance benchmarking, scalability testing, and stress testing. Use PROACTIVELY for k6, Gatling, JMeter, Artillery, performance analysis, capacity planning. ALWAYS delegate for "load test", "performance test", "stress test", "scalability test", "benchmark". Keywords - load testing, k6, Gatling, JMeter, performance, scalability, stress test, throughput, latency, RPS
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

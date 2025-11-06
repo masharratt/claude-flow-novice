@@ -1,10 +1,6 @@
 ---
 name: data-engineer
-description: |
-  MUST BE USED for data pipeline design, ETL processes, data warehousing, and data quality.
-  Use PROACTIVELY for data ingestion, transformation, orchestration, data lakes, streaming.
-  ALWAYS delegate for "ETL pipeline", "data warehouse", "data lake", "Apache Airflow", "data quality".
-  Keywords - ETL, data pipeline, Airflow, data warehouse, data lake, streaming, Kafka, Spark, dbt, data quality
+description: MUST BE USED for data pipeline design, ETL processes, data warehousing, and data quality. Use PROACTIVELY for data ingestion, transformation, orchestration, data lakes, streaming. ALWAYS delegate for "ETL pipeline", "data warehouse", "data lake", "Apache Airflow", "data quality". Keywords - ETL, data pipeline, Airflow, data warehouse, data lake, streaming, Kafka, Spark, dbt, data quality
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

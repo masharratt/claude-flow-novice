@@ -1,9 +1,6 @@
 ---
 name: pseudocode
-description: |
-  MUST BE USED when designing algorithms, logic flows, or data structures in SPARC methodology.
-  Use PROACTIVELY for algorithm design, pseudocode creation, complexity analysis, data structure selection, logic flow mapping.
-  Keywords - SPARC, pseudocode, algorithm, logic flow, complexity analysis, Big-O, optimization
+description: MUST BE USED when designing algorithms, logic flows, or data structures in SPARC methodology. Use PROACTIVELY for algorithm design, pseudocode creation, complexity analysis, data structure selection, logic flow mapping. Keywords - SPARC, pseudocode, algorithm, logic flow, complexity analysis, Big-O, optimization
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: indigo

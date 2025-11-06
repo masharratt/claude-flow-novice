@@ -1,9 +1,6 @@
 ---
 name: cfn-v3-coordinator
-description: |
-  MUST BE USED when starting CFN Loop v3 execution.
-  Analyzes task and returns optimal configuration for loop execution.
-  Supports dual-mode (CLI/Task) with Redis context storage.
+description: MUST BE USED when starting CFN Loop v3 execution. Analyzes task and returns optimal configuration for loop execution. Supports dual-mode (CLI/Task) with Redis context storage.
 keywords: [cfn-loop, task-analysis, agent-selection, validation, orchestration]
 tools: [Read, Bash, Write, Grep]
 model: sonnet

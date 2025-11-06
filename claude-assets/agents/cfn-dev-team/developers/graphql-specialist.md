@@ -1,10 +1,6 @@
 ---
 name: graphql-specialist
-description: |
-  MUST BE USED for GraphQL schema design, resolver implementation, federation, and performance optimization.
-  Use PROACTIVELY for GraphQL APIs, schema stitching, Apollo Server, federation, subscriptions, DataLoader.
-  ALWAYS delegate for "GraphQL API", "schema design", "resolvers", "federation", "GraphQL subscriptions".
-  Keywords - GraphQL, schema, resolvers, mutations, queries, subscriptions, Apollo, federation, DataLoader, N+1
+description: MUST BE USED for GraphQL schema design, resolver implementation, federation, and performance optimization. Use PROACTIVELY for GraphQL APIs, schema stitching, Apollo Server, federation, subscriptions, DataLoader. ALWAYS delegate for "GraphQL API", "schema design", "resolvers", "federation", "GraphQL subscriptions". Keywords - GraphQL, schema, resolvers, mutations, queries, subscriptions, Apollo, federation, DataLoader, N+1
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist

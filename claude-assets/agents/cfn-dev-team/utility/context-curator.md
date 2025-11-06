@@ -1,9 +1,6 @@
 ---
 name: context-curator
-description: |
-  MUST BE USED for intelligent context merging and prioritization.
-  Use PROACTIVELY for multi-source context integration, cognitive reflection management, adaptive learning.
-  Keywords - context, merge, prioritize, reflection, adaptive, learning, strategy
+description: MUST BE USED for intelligent context merging and prioritization. Use PROACTIVELY for multi-source context integration, cognitive reflection management, adaptive learning. Keywords - context, merge, prioritize, reflection, adaptive, learning, strategy
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 type: specialist
