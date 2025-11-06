@@ -6,11 +6,11 @@
 
 ## Overview
 
-Task Mode: Main Chat spawns coordinator and agents via Task() tool with full context injection and visibility.
+Task Mode: Main Chat coordinates directly and spawns agents via Task() tool with full context injection and visibility. NO coordinator agent is used.
 
 | Aspect | Task Mode | CLI Mode |
 |--------|-----------|----------|
-| **Spawning** | Main Chat via Task() | Coordinator via npx CLI |
+| **Spawning** | Main Chat directly via Task() | Coordinator via npx CLI |
 | **Visibility** | Full transparency in Main Chat | Background, Redis logs |
 | **Provider** | All Anthropic | CLI uses Z.ai routing |
 | **Cost** | ~$0.150/iteration | ~$0.054/iteration (64% savings) |
@@ -88,15 +88,15 @@ return validators.slice(0, 6); // Max 6
 ## Sprint Completion Workflow
 
 **Key Difference in Task Mode:**
-- Product Owner spawned via `Task()` by coordinator (NOT via `execute-decision.sh`)
+- Product Owner spawned via `Task()` by Main Chat directly (NOT via `execute-decision.sh`)
 - Use helper scripts for parsing/validation: `parse-decision.sh`, `validate-deliverables.sh`
 - CLI Mode uses `execute-decision.sh` which handles spawning + all logic
 
 ### 1. Consensus Validation
 
-**Task Mode** - Coordinator spawns Product Owner via Task():
+**Task Mode** - Main Chat spawns Product Owner via Task():
 ```javascript
-// Coordinator builds context and spawns PO
+// Main Chat builds context and spawns PO
 const poContext = `
   CFN Loop iteration ${iteration} complete.
   Loop 2 Consensus: ${consensus} (threshold: ${threshold})
@@ -164,7 +164,7 @@ EOF
 ### 5. Execute Product Owner Suggested Next Steps
 
 **After PROCEED Decision:**
-Product Owner may suggest follow-up tasks (documentation, testing, refactoring). Coordinator (main chat) must proceed by spawning specialized agents to execute these tasks:
+Product Owner may suggest follow-up tasks (documentation, testing, refactoring). Main Chat must proceed by spawning specialized agents to execute these tasks:
 
 ```javascript
 // Parse PO feedback for suggested next steps
