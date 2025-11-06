@@ -145,6 +145,85 @@ This document contains comprehensive information about all test suites in Claude
 | **Security** | Basic | Multi-layer authentication | Enterprise grade |
 | **Monitoring** | Limited | Per-container metrics | Better observability |
 
+#### Specialized Validation Tests
+
+**Location**: `tests/hello-world-docker/specialized/`
+
+**Purpose**: Advanced validation of CFN Loop coordination patterns with Redis state management.
+
+| Test | File | Purpose | Status | Key Features |
+|------|------|---------|--------|-------------|
+| **Context Injection** | `context-injection-between-loops.cjs` | Validates context flow between CFN Loop iterations | ✅ PASSED | Loop 3 → Loop 2 → Product Owner context validation |
+| **Redis Key Structure** | `redis-key-structure-validation.cjs` | Validates Redis key patterns and namespace usage | ✅ PASSED | 100% Redis key pattern validation |
+| **Product Owner Decision** | `product-owner-decision-flow.cjs` | Tests PO decision making with confidence scoring | ✅ PASSED | PROCEED/ITERATE/ABORT scenarios |
+
+##### Test Runner
+
+**File**: `tests/hello-world-docker/specialized/specialized-test-runner.cjs`
+
+```bash
+# Run all specialized tests
+node specialized/specialized-test-runner.cjs
+
+# Run specific test types
+node specialized/specialized-test-runner.cjs --test context
+node specialized/specialized-test-runner.cjs --test redis
+node specialized/specialized-test-runner.cjs --test product-owner
+```
+
+##### Validation Features
+
+**Context Injection Test**:
+- Loop 3 agent registration and context retrieval
+- Loop 2 reviewer context enhancement with feedback integration
+- Product Owner decision context with full flow validation
+- Fallback mechanisms for Redis JSON parsing failures
+- 100% context flow integrity validation
+
+**Redis Key Structure Test**:
+- Validates correct Redis key patterns (`cfn_docker:*` namespace)
+- Agent registration and status tracking
+- Task context storage and retrieval patterns
+- ACL enforcement and access control validation
+- Performance metrics collection and analysis
+
+**Product Owner Decision Flow Test**:
+- Three decision scenarios: PROCEED (≥0.85), ITERATE (0.70-0.85), ABORT (<0.70)
+- Confidence scoring with risk assessment
+- Context integration requirements (Loop 3 feedback, Loop 2 consensus, business context)
+- Edge case handling (missing context, conflicting feedback, consensus failure)
+- Decision execution with appropriate action triggering
+
+##### Test Results Summary
+
+```json
+{
+  "testSuite": "CFN Docker Specialized Tests",
+  "timestamp": "2025-11-05T10:00:00Z",
+  "specializedTests": {
+    "contextInjection": {
+      "status": "✅ PASSED",
+      "loop3Context": "✅ VALIDATED",
+      "loop2Context": "✅ VALIDATED",
+      "productOwnerContext": "✅ VALIDATED"
+    },
+    "redisKeyStructure": {
+      "status": "✅ PASSED",
+      "keyPatterns": "✅ VALIDATED",
+      "agentRegistration": "✅ VALIDATED",
+      "aclEnforcement": "✅ VALIDATED"
+    },
+    "productOwnerDecision": {
+      "status": "✅ PASSED",
+      "proceedScenarios": "✅ VALIDATED",
+      "iterateScenarios": "✅ VALIDATED",
+      "abortScenarios": "✅ VALIDATED"
+    }
+  },
+  "overallSuccessRate": "100.0%"
+}
+```
+
 ---
 
 ## Integration Test Suites

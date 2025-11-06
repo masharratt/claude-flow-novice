@@ -15,9 +15,9 @@ Execute CFN Loop using CLI spawning for maximum cost savings (95-98% vs Task too
 ## What is CLI Mode?
 
 **CLI Mode Architecture v3.0 (Enhanced):**
-- Main Chat spawns **single coordinator agent** via CLI with background=true
-- Enhanced coordinator spawns **all workers via CLI** with protocol compliance
-- CLI agents use **Z.ai custom routing** (when enabled)
+- Main Chat processes **slash command** then spawns coordinator agent via CLI with background=true
+- Coordinator spawns **all workers via CLI** with background=true for cost optimization
+- All CLI agents use **Z.ai custom routing** (when enabled)
 - **Real-time monitoring** with automatic recovery from stuck agents
 - Background execution with **Redis monitoring** and progress visibility
 - **Enhanced features**: Process health checking, context validation, broadcast protocol
@@ -38,7 +38,8 @@ Execute CFN Loop using CLI spawning for maximum cost savings (95-98% vs Task too
 
 ## Command Options
 
-```bash
+**Usage Examples:**
+```
 # Standard mode (recommended)
 /cfn-loop-cli "Implement JWT authentication"
 
@@ -63,17 +64,27 @@ Execute CFN Loop using CLI spawning for maximum cost savings (95-98% vs Task too
 
 ## How CLI Mode Works
 
-1. **Main Chat** spawns a single `cfn-v3-coordinator` agent **via CLI**
-2. **Coordinator** orchestrates the entire CFN Loop workflow in the background
-3. **Loop 3** agents implement the solution and validate against quality gates
-4. **Loop 2** agents review and provide validation feedback
-5. **Product Owner** makes the final decision on deliverables
-6. **Background execution** with Redis coordination for scalability
+1. **Main Chat** invokes `/cfn-loop-cli` slash command
+2. **SlashCommand tool** processes command and returns execution instructions to Main Chat
+3. **Main Chat** spawns `cfn-v3-coordinator` agent via bash with background=true
+4. **Coordinator** orchestrates the entire CFN Loop workflow in the background
+5. **Coordinator** spawns **Loop 3 workers via CLI** with background=true
+6. **Loop 3** agents implement the solution and validate against quality gates
+7. **Coordinator** spawns **Loop 2 workers via CLI** for validation
+8. **Product Owner** makes the final decision on deliverables
+9. **Background execution** with Redis coordination for scalability
 
 **CLI Architecture Pattern:**
-- Main Chat → CLI Coordinator (background) → CLI Workers (via Redis coordination)
-- All agents run via CLI with Z.ai routing
-- Coordinator manages all agent spawning internally using optimized CLI processes
+- Main Chat → SlashCommand (processing) → Main Chat spawns coordinator via bash
+```bash
+npx claude-flow-novice agent cfn-v3-coordinator \
+    --task-id "cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}" \    
+    --context "TASK_DESCRIPTION='Fix core infrastructure
+  dependencies' MODE='standard' MAX_ITERATIONS=10" \
+    --timeout 300 \
+    --background=true
+```
+- All agents spawned via CLI by coordinator with Z.ai routing and background execution
 - Background execution enables monitoring and recovery capabilities
 
 ## Main Chat Monitoring Instructions
@@ -294,22 +305,22 @@ redis-cli DBSIZE
 ## Usage Examples
 
 **Simple API Development:**
-```bash
+```
 /cfn-loop-cli "Build REST API with user authentication"
 ```
 
 **Complex Feature with High Quality Requirements:**
-```bash
+```
 /cfn-loop-cli "Implement payment processing with PCI compliance" --mode=enterprise --max-iterations=15
 ```
 
 **Quick Prototype:**
-```bash
+```
 /cfn-loop-cli "Build MVP landing page" --mode=mvp
 ```
 
 **Infrastructure Deployment:**
-```bash
+```
 /cfn-loop-cli "Set up CI/CD pipeline for microservices"
 ```
 
@@ -330,7 +341,11 @@ redis-cli DBSIZE
 
 ## 🚨 EXECUTION INSTRUCTIONS (Internal Use)
 
-**Main Chat: Spawn coordinator via CLI after slash command processing:**
+**Main Chat: Slash command processing followed by CLI coordinator spawning:**
+
+The SlashCommand tool processes the command and returns execution instructions. Main Chat then spawns the coordinator agent using CLI with background=true for monitoring capabilities.
+
+**Coordinator Spawning Pattern:**
 
 ```bash
 # Generate unique task ID
@@ -338,6 +353,36 @@ TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
 
 # Extract task description and mode from slash command
 TASK_DESCRIPTION="$ARGUMENTS"
+MODE="${mode:-standard}"
+MAX_ITERATIONS="${maxIterations:-10}"
+
+# Spawn coordinator via CLI (background execution)
+npx claude-flow-novice agent cfn-v3-coordinator \
+  --task-id "$TASK_ID" \
+  --context "TASK_DESCRIPTION='$TASK_DESCRIPTION' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS" \
+  --timeout 300 \
+  --background=true
+```
+
+**Main Chat Execution Command:**
+
+```bash
+# Main Chat should execute this command after processing slash command
+npx claude-flow-novice agent cfn-v3-coordinator \
+  --task-id "cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}" \
+  --context "TASK_DESCRIPTION='Fix core infrastructure dependencies - lucide-wrappers.tsx LucideIcon React 18 compatibility, resolve module export errors in types/, establish proper import path resolution' MODE='standard' MAX_ITERATIONS=10" \
+  --timeout 300 \
+  --background=true
+```
+
+**Internal Coordinator Pattern (what the coordinator does):**
+
+```bash
+# Generate unique task ID
+TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
+
+# Extract task description and mode from slash command arguments
+TASK_DESCRIPTION="parsed from $ARGUMENTS"
 MODE="${mode:-standard}"
 MAX_ITERATIONS="${maxIterations:-10}"
 
@@ -358,26 +403,16 @@ case "$TASK_COMPLEXITY" in
     ;;
 esac
 
-# Spawn coordinator via CLI (background execution)
-npx claude-flow-novice agent cfn-v3-coordinator \
+# Coordinator spawns CLI workers (background execution)
+npx claude-flow-novice agent "$LOOP3_AGENT" \
   --task-id "$TASK_ID" \
-  --context "TASK_DESCRIPTION='$TASK_DESCRIPTION' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS LOOP3_AGENTS='$LOOP3_AGENTS' LOOP2_AGENTS='$LOOP2_AGENTS'" \
+  --agent-id "$AGENT_ID" \
+  --context "Complete deliverables and acceptance criteria" \
   --timeout 300 \
   --background=true
 
 # Monitor progress (required for background tasks)
 # redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"
-```
-
-**CLI Coordinator Spawning Pattern:**
-
-```bash
-# Direct CLI coordinator spawning with background execution
-npx claude-flow-novice agent cfn-v3-coordinator \
-  --task-id "unique-task-id" \
-  --context "task description; mode; max-iterations; agent-config" \
-  --timeout 300 \
-  --background=true
 ```
 
 **Critical Background Execution Instructions:**
@@ -401,12 +436,13 @@ npx claude-flow-novice agent cfn-v3-coordinator \
    - No recovery or persistence features
 
 **Why This Pattern:**
-- ✅ All execution via CLI (no Task() tool)
+- ✅ Coordinator via CLI with background=true for monitoring capabilities
+- ✅ All agents via CLI for maximum cost optimization (95-98% savings)
 - ✅ Background execution with enhanced monitoring
-- ✅ Z.ai routing automatically applied to all CLI agents (including coordinator)
+- ✅ Z.ai routing automatically applied to all CLI agents
 - ✅ Redis coordination for agent communication
 - ✅ Enhanced monitoring and recovery capabilities
-- ✅ Clean separation: Main Chat → CLI Coordinator → CLI Workers
+- ✅ Clean separation: Main Chat → SlashCommand (processing) → Main Chat spawns CLI(coordinator) → CLI Workers
 - ✅ Production-ready with real-time progress tracking
 - ✅ No timeout limitations with `--background=true`
 

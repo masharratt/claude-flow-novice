@@ -8,7 +8,7 @@
 
 ### Core Operational Rules
 * **Use agents for all non-trivial work** (≥4 steps or any multi-file / research / testing / architecture / security / integration / refactor / feature)
-* **🚨 FOR CFN LOOP WORKFLOWS: Use CLI commands** - `/cfn-loop-cli "task"` (NEVER manual Task() spawning)
+* **🚨 FOR CFN LOOP CLI WORKFLOWS: Use CLI commands** - `/cfn-loop-cli "task"` (NEVER manual Task() spawning)
 * **Initialize swarm before any multi-agent work**
 * **Batch operations**: one message per related batch (spawn, file edits, bash, todos, memory ops)
 * **Run post-edit hook after every file edit** inclusive of .md files and await the response

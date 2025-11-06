@@ -265,6 +265,110 @@ cfn_loop:task:{TASK_ID}:phase_context    # Phase-level context
 
 **Fallback**: Plain text if not valid JSON
 
+## Docker CFN Coordination Patterns
+
+### `cfn_docker:*` Namespace
+
+**Purpose**: Container-based agent coordination with Redis persistence
+
+**Agent Registration**:
+```bash
+# Register Docker agent with task and type
+redis-cli HSET "cfn_docker:agent:${AGENT_ID}" \
+  "task_id" "${TASK_ID}" \
+  "agent_type" "${AGENT_TYPE}" \
+  "container_id" "${CONTAINER_ID}" \
+  "registered_at" "$(date -Iseconds)"
+```
+
+**Context Storage**:
+```bash
+# Store task context in Redis
+redis-cli SET "cfn_docker:task:${TASK_ID}:context" '{"epicGoal":"...","deliverables":[...]}'
+
+# Retrieve with coordination script
+./.claude/skills/cfn-docker-redis-coordination/coordinate.sh get-context --task-id "${TASK_ID}"
+```
+
+**Agent Status Tracking**:
+```bash
+# Track agent completion
+redis-cli HSET "cfn_docker:agent:${AGENT_ID}:status_history" "$(date -Iseconds)" "WORKING"
+
+# Signal completion
+redis-cli HSET "cfn_docker:agent:${AGENT_ID}" "status" "COMPLETED"
+redis-cli LPUSH "cfn_docker:task:${TASK_ID}:agent:${AGENT_ID}:done" "complete"
+```
+
+### Container Coordination
+
+**Docker Network**: `mcp-network` (bridge driver)
+
+**Implementation**: `tests/hello-world-docker/lib/redis-test-utils.cjs`
+
+```javascript
+// Register agent in Redis with container coordination
+async registerAgentInRedis(agentId, agentType, taskId, containerId) {
+  const command = `bash "${coordinationScript}" register-agent \
+    --agent-id "${agentId}" \
+    --agent-type "${agentType}" \
+    --task-id "${taskId}" \
+    --container-id "${containerId}"`;
+
+  const result = execSync(command, { encoding: 'utf8' });
+  return result.includes('SUCCESS');
+}
+```
+
+### Loop Completion Coordination
+
+**Wait for Loop Completion**:
+```bash
+# Block until all agents complete (30 second timeout)
+./.claude/skills/cfn-docker-redis-coordination/coordinate.sh wait-loop \
+  --task-id "${TASK_ID}" \
+  --loop-number 3 \
+  --agent-count 3 \
+  --timeout 30
+```
+
+**Collect Confidence Scores**:
+```bash
+# Collect consensus for decision making
+./.claude/skills/cfn-docker-redis-coordination/coordinate.sh collect-consensus \
+  --task-id "${TASK_ID}" \
+  --loop-number 3 \
+  --required-consensus 0.90 \
+  --timeout 30
+```
+
+### ACL Enforcement
+
+**Namespace Isolation**: Each task gets isolated Redis keys
+
+```javascript
+// ACL pattern: agents can only access their task data
+const aclKey = `cfn_docker:task:${taskId}:agent:${agentId}`;
+const contextKey = `cfn_docker:task:${taskId}:context`;
+
+// Unauthorized access attempts return empty
+const unauthorizedAccess = redis-cli GET "${unauthorizedKey}"  # returns (nil)
+```
+
+### Performance Metrics
+
+**Redis Commands**:
+```bash
+# Check Redis health and memory usage
+redis-cli info memory,persistence,stats
+
+# Count active agents
+redis-cli keys "cfn_docker:agent:*" | wc -l
+
+# Monitor task completion rate
+redis-cli keys "cfn_docker:task:*:agent:*:done" | wc -l
+```
+
 ## Key Lifecycle Management
 
 - Automatic cleanup after 24 hours

@@ -681,3 +681,48 @@ curl -X POST "$N8N_BASE_URL/webhook/endpoint" \
 - Real-time crisis monitoring and alerting
 
 [... rest of previous content remains unchanged ...]
+
+### CFN Docker Test Infrastructure
+
+**Purpose**: Validate Docker-based agent coordination and Redis-based state management
+
+**Architecture**:
+- 4-layer validation system (tool → mesh → review → error handling)
+- 3 specialized validation tests (context injection, Redis keys, Product Owner decisions)
+- Docker agent image with MCP integration
+- Redis coordination testing with fallback mechanisms
+
+**Test Layers**:
+- **Layer 0**: Docker tool validation and environment setup
+- **Layer 1**: Mesh coordination and agent spawning validation
+- **Layer 2**: Review coordination and consensus validation
+- **Layer 3**: Error handling and retry mechanism validation
+
+**Specialized Tests**:
+- **Context Injection Between CFN Loops**: Validates context flow between Loop 3 → Loop 2 → Product Owner
+- **Redis Key Structure Validation**: Validates correct Redis key patterns and namespace usage
+- **Product Owner Decision Flow**: Tests decision making with confidence scoring and risk assessment
+
+**Components**:
+- DockerTestUtils: Container coordination utilities
+- RedisTestUtils: Redis state management validation
+- SpecializedTestRunner: Orchestrates all validation tests
+
+**Usage**:
+```bash
+# Run complete test suite
+node tests/hello-world-docker/test-runner.cjs
+
+# Run specialized tests only
+node tests/hello-world-docker/specialized/specialized-test-runner.cjs
+
+# Run individual validation layers
+node tests/hello-world-docker/layer0/layer0-docker-tool-validation.cjs
+```
+
+**Integration**:
+- Works with existing CFN Loop coordination skills
+- Validates Redis-based agent coordination patterns
+- Tests MCP authentication and Docker networking
+
+[... rest of previous content remains unchanged ...]

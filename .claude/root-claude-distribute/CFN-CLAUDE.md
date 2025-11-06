@@ -8,6 +8,7 @@
 
 ### Core Operational Rules
 * **Use agents for all non-trivial work** (≥4 steps or any multi-file / research / testing / architecture / security / integration / refactor / feature)
+* **🚨 FOR CFN LOOP CLI WORKFLOWS: Use CLI commands** - `/cfn-loop-cli "task"` (NEVER manual Task() spawning)
 * **Initialize swarm before any multi-agent work**
 * **Batch operations**: one message per related batch (spawn, file edits, bash, todos, memory ops)
 * **Run post-edit hook after every file edit** inclusive of .md files and await the response
@@ -38,10 +39,12 @@
 * Validators consensus: **≥0.90**
 
 ### CTO Delegation Persona
-* **Act as a busy CTO** who delegates all non-trivial work to specialized agents or a cfn-coordinator
+* **Act as a busy CTO** who delegates all non-trivial work to specialized agents or CFN Loop CLI commands
+* **For multi-agent workflows**: Use `/cfn-loop-cli "task description"` (automatically handles coordinator spawning)
+* **For single agent tasks**: Use `Task("agent-type", "specific task")` directly
 * **Define clear success criteria** for implementation (working code, passing tests, documented features)
 * **Never define adoption criteria** (user engagement, rollout strategy, training plans)
-* **Ruthlessly delegate** - if task requires >3 steps, spawn agents immediately
+* **Ruthlessly delegate** - if task requires >3 steps, use CLI commands immediately
 * **Provide context, not solutions** - agents figure out implementation details
 * **Success = implementation complete** - not "users love it" or "team adopts it"
 
@@ -168,31 +171,41 @@ When spawned via CLI (`npx claude-flow-novice`), you automatically benefit from 
 /switch-api status
 ```
 
-**CRITICAL: Single Coordinator Pattern (v2)**
+**🚨 CRITICAL: Main Chat MUST Use CLI Mode Commands**
 
-Main Chat spawns ONLY the coordinator agent. The coordinator handles all agent spawning internally via CLI and  .claude/skills/cfn-loop-orchestration/orchestrate.sh
+**DO NOT spawn Task() agents directly for CFN Loop workflows.**
+Instead, use the dedicated CLI mode slash commands that handle coordinator spawning automatically.
 
-**❌ FORBIDDEN - Main Chat Spawning Workers:**
+**❌ FORBIDDEN - Manual Task() Spawning:**
 ```javascript
-// WRONG in v2 - Don't spawn workers from Main Chat
-Task("coordinator", "Coordinate task...")
-Task("backend-dev", "Implement feature...")  // ❌ NO
-Task("tester", "Test feature...")            // ❌ NO
+// WRONG - Don't spawn CFN Loop agents manually from Main Chat
+Task("cfn-v3-coordinator", "Execute CFN Loop...")           // ❌ NO
+Task("backend-developer", "Implement feature...")          // ❌ NO
+Task("tester", "Test feature...")                         // ❌ NO
 ```
 
-**✅ REQUIRED - Single Coordinator:**
-```javascript
-// CORRECT - Main Chat spawns only coordinator
-Task("cfn-v3-coordinator", `
-  Execute CFN Loop for: Implement authentication
+**✅ REQUIRED - Use CLI Mode Slash Commands:**
+```bash
+# PRODUCTION - Enhanced CLI mode v3.0 (default)
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
 
-  Coordinator will:
-  1. Invoke .claude/skills/cfn-loop-orchestration/orchestrate.sh
-  2. Orchestrator spawns agents via CLI
-  3. Coordinator manages all Redis coordination
-  4. Return structured result to Main Chat
-`)
+# DEBUGGING - Task mode (full visibility)
+/cfn-loop-task "Fix security bug in auth module" --mode=standard
+
+# QUICK TASKS - Single iteration
+/cfn-loop-single "Update documentation"
+
+# LARGE EPICS - Multi-phase
+/cfn-loop-epic "Build complete authentication system"
 ```
+
+**Why CLI Mode Commands?**
+- ✅ Automatic coordinator spawning with enhanced monitoring v3.0
+- ✅ Real-time agent progress tracking and automatic recovery
+- ✅ Protocol compliance (prevents "consensus on vapor" anti-patterns)
+- ✅ 95-98% cost savings with Z.ai routing
+- ✅ Background execution with Redis persistence
+- ✅ Built-in parameter validation and success criteria templates
 
 **Why This Pattern:**
 - Coordinator controls spawn timing via orchestrate.sh (no timeout issues)
@@ -210,6 +223,7 @@ BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id 
 **Why:** Enables safe file revert without git operations during parallel sessions.
 **Location:** `.backups/[agent-id]/[timestamp]_[hash]/`
 **Retention:** 24h TTL (configurable)
+**Injection:** Automatically included in all agent prompts via `src/cli/agent-prompt-builder.ts`
 
 **Revert Instead of Git:**
 ```bash
@@ -249,9 +263,20 @@ fi
 
 ## 2) When Agents Are Mandatory (Triggers)
 
-If **any** apply, spawn agents:
+If **any** apply, use CFN Loop CLI commands:
 
 * > 3 distinct steps • multiple files • research+implement+test • design decisions • code review/quality • security/performance/compliance • system integration • docs generation • refactor/optimize • any feature work
+
+**🚨 IMPORTANT: For complex multi-agent workflows, use CLI mode commands:**
+```bash
+# Production with enhanced monitoring v3.0
+/cfn-loop-cli "Complex task description" --mode=standard
+
+# Debugging with full visibility
+/cfn-loop-task "Complex task description" --mode=standard
+```
+
+**Do NOT manually spawn Task() agents for CFN Loop workflows - the CLI commands handle coordination automatically.**
 
 ### Skill Selection Criteria
 **Mandatory Skill Spawning Triggers:**
@@ -273,16 +298,26 @@ npx claude-flow-novice swarm "Task Description" \
 
 ### Single Agent vs Coordinator
 
-**Use Single Agent:**
+**Use Single Agent (Task() directly):**
 * 1 specialized task (coding, reviewing, testing)
 * No dependencies on other agents
 * Straightforward execution
+* Simple, isolated work
 
-**Use Coordinator:**
+**Use Coordinator (CLI Commands):**
 * Multiple agents needed (2+)
 * Sequential dependencies (Loop 3 → Loop 2 → Product Owner)
 * Iteration/consensus required
-* CFN Loop workflows
+* **ALL CFN Loop workflows**
+
+**🚨 FOR CFN LOOP WORKFLOWS: Always use CLI commands - never manual Task() spawning**
+```bash
+# Multi-agent workflows (coordinator handles everything)
+/cfn-loop-cli "Build authentication system" --mode=standard
+
+# Single agent tasks (direct Task() is fine)
+Task("reviewer", "Review this specific file")
+```
 
 ## 3) Coordination Patterns
 
@@ -312,40 +347,48 @@ Refer to `.claude/skills/cfn-redis-coordination/SKILL.md` for:
 
 ### CFN Loop Orchestration Pattern
 
-**CLI Mode (Production):**
-Main Chat spawns cfn-v3-coordinator → Coordinator spawns workers via CLI → Workers exit after reporting confidence
+**CLI Mode (Production) - Enhanced v3.0:**
+Main Chat spawns cfn-v3-coordinator → Enhanced orchestrator with monitoring → Workers via CLI with progress tracking → Automatic recovery from stuck agents
 
 **Task Mode (Debugging):**
 Main Chat spawns all agents directly via Task() → No coordinator → Full visibility
 
-**Orchestrator:**
+**Enhanced Orchestrator v3.0:**
 ```bash
 ./.claude/skills/cfn-loop-orchestration/orchestrate.sh
 ```
-- Spawns Loop 3 agents (implementers)
-- Collects confidence scores
-- Gate check: spawn Loop 2 if ≥threshold
-- Spawns Loop 2 agents (validators)
-- Collects consensus
+- ✅ **Enhanced Monitoring**: Real-time agent progress tracking with stuck detection
+- ✅ **Automatic Recovery**: Dead process cleanup and agent restart capabilities
+- ✅ **Protocol Compliance**: Prevents "consensus on vapor" anti-patterns
+- ✅ **Enhanced Spawning**: Context validation and broadcast message injection
+- ✅ **Progress Visibility**: Detailed progress reports with timestamps
+- Spawns Loop 3 agents with protocol enforcement
+- Enhanced waiting with progress tracking and recovery
+- Collects confidence scores with metadata validation
+- Gate check: spawn Loop 2 if ≥threshold (with health verification)
+- Spawns Loop 2 agents (validators) with monitoring
+- Collects consensus with stuck agent detection
 - Spawns Product Owner for decision
-- Manages iterations based on PROCEED/ITERATE/ABORT
+- Manages iterations based on PROCEED/ITERATE/ABORT with timeout handling
 
 **Agent Completion Protocol (Mode-Specific):**
 
-**CLI Mode** (spawned via `npx claude-flow-novice agent-spawn`):
+**CLI Mode v3.0** (spawned via `npx claude-flow-novice agent-spawn`):
 ```bash
-# 1. Complete work
-# 2. Signal done
+# 1. Complete work with enhanced context
+# 2. Automatic context validation (prevents "consensus on vapor")
+# 3. Signal completion
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
-# 3. Report confidence and exit
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+# 4. Report confidence with metadata
+./.claude/skills/cfn-redis-coordination/report-completion.sh \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.85 \
-  --iteration 1
+  --iteration 1 \
+  --result '{"deliverables_created": ["file.ts"], "status": "complete"}'
 
-# Agent exits cleanly (no waiting mode)
+# 5. Agent exits cleanly (orchestrator monitors via enhanced waiting)
 ```
 
 **Task Mode** (spawned via Task() tool in Main Chat):
@@ -355,6 +398,12 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 # NO Redis signals required
 # NO explicit completion protocol needed
 ```
+
+**Enhanced Agent Protocol Requirements:**
+- ✅ **Mandatory completion signaling**: `report-completion.sh` call required
+- ✅ **Context awareness**: Broadcast messages automatically injected
+- ✅ **Metadata tracking**: Agent status and process PID monitored
+- ✅ **Health checking**: Process health validated during execution
 
 **Orchestration Flow (CORRECTED - Self-Validation Pattern):**
 1. Loop 3 agents complete work and report confidence
@@ -687,3 +736,27 @@ Out of Scope:
 - **Priority:** 8
 - **Insight**: Decompose complex systems into independent skills (20 skills in CFN v3: task-classifier, playbook, validation-templates, etc.). Enables reuse, testing isolation, and incremental enhancement.
 - **Tags**: modularity, skills, architecture, reusability
+## Sprint 10 Adaptive Context Lessons (Phase X - Defensive Programming)
+
+### Defensive Programming Patterns
+
+#### PATTERN-025: Comprehensive File Validation
+- **Context**: Defensive File Handling
+- **Insight**: Implement comprehensive file validation techniques that go beyond basic existence checks. Use multi-stage validation including file type, permissions, size constraints, and content integrity checks. Create a robust validation pipeline that prevents potential security vulnerabilities and unexpected system behavior.
+- **Tags**: file-handling, defensive-programming, validation, security, system-integrity
+- **Confidence**: 0.92
+- **Priority**: 9/10
+
+#### PATTERN-026: Shell Strict Mode
+- **Context**: Bash Script Reliability
+- **Insight**: Enable shell strict mode using `set -euo pipefail` to create more robust and predictable shell scripts. This approach forces immediate exit on errors, prevents unset variable usage, and ensures pipeline failures are properly captured. Dramatically improves script reliability and makes error conditions explicit.
+- **Tags**: bash, shell-scripting, error-handling, defensive-programming, reliability
+- **Confidence**: 0.90
+- **Priority**: 9/10
+
+#### PATTERN-028: Process Group Management
+- **Context**: Background Process Handling
+- **Insight**: Implement comprehensive process group management techniques to ensure clean termination and resource cleanup. Use techniques like `trap` for signal handling, process substitution, and explicit process group management to prevent zombie processes and resource leaks in complex multi-process environments.
+- **Tags**: process-management, bash, background-processes, resource-cleanup, defensive-programming
+- **Confidence**: 0.86
+- **Priority**: 8/10

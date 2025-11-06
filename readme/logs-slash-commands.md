@@ -149,6 +149,87 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, CF
 
 **Backup Location**: `.claude/backups/cfn-expert/`
 
+## CFN Docker Commands
+
+### `/cfn-docker-loop [options]`
+
+**Purpose**: Execute container-based CFN Loop with skill-based MCP isolation and resource management
+
+**Usage**:
+```bash
+/cfn-docker-loop "Task description" --mode=standard
+```
+
+**Execution Modes**:
+- **Task Mode**: `/cfn-docker-loop-task` - Development, debugging, full visibility
+- **CLI Mode**: `/cfn-docker-loop-cli` - Production, cost optimization (95% savings)
+
+**Flags**:
+- `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
+- `--memory-limit`: Per-agent memory limit (default: 1g)
+- `--network`: Docker network for MCP communication (default: mcp-network)
+- `--timeout`: Execution timeout in seconds (default: varies by mode)
+
+**Key Benefits**:
+- Container isolation for all agents
+- MCP authentication and access control
+- Redis-based swarm recovery
+- 95% cost reduction with CLI mode
+
+**Use Cases**: Production deployment, secure execution, resource management
+
+### `/cfn-docker-loop-task [options]`
+
+**Purpose**: Execute container-based CFN Loop in Task mode for development and debugging
+
+**Usage**:
+```bash
+/cfn-docker-loop-task "Debug authentication issue" --mode=standard --verbose
+```
+
+**Flags**:
+- `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
+- `--debug`: Enable debug mode with detailed logging
+- `--verbose`: Show all agent output and decision-making
+- `--dry-run`: Show configuration without execution
+
+**Output**: Full agent visibility with complete execution transparency
+
+**Example**:
+```bash
+/cfn-docker-loop-task "Implement new feature" --mode=standard --debug
+# Output: Complete agent execution logs, decision-making process, results
+```
+
+**Use Cases**: Development, debugging, learning, algorithm testing
+
+### `/cfn-docker-loop-cli [options]`
+
+**Purpose**: Execute container-based CFN Loop in CLI mode for production workloads
+
+**Usage**:
+```bash
+/cfn-docker-loop-cli "Deploy microservices" --mode=enterprise --timeout=3600
+```
+
+**Flags**:
+- `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
+- `--timeout`: Execution timeout in seconds (default: varies by mode)
+- `--memory-limit`: Per-agent memory limit (default: 1g)
+- `--cpu-limit`: Per-agent CPU limit (default: 1.0)
+- `--recover`: Recover interrupted task with task-id
+- `--monitor`: Enable real-time monitoring
+
+**Output**: Production deployment with 95% cost savings
+
+**Example**:
+```bash
+/cfn-docker-loop-cli "Process data migration" --mode=enterprise --memory-limit=2g
+# Output: Task ID for monitoring, efficient CLI execution
+```
+
+**Use Cases**: Production deployment, cost-sensitive workloads, long-running tasks
+
 ## Cost-Savings Mode Commands
 
 ### `/cost-savings`
