@@ -89,14 +89,14 @@ BRAND=$(echo "$TASK_DESCRIPTION" | grep -oP 'brand:\s*\K.*' || echo "OurStories"
 AUDIENCE=$(echo "$TASK_DESCRIPTION" | grep -oP 'audience:\s*\K.*' || echo "general")
 TARGET_LOCATION=$(echo "$TASK_DESCRIPTION" | grep -oP 'location:\s*\K.*' || echo "")
 
-# Store in Redis for orchestrator
-redis-cli HSET "seo:task:$TASK_ID:context" \
-  target_keyword "$TARGET_KEYWORD" \
-  content_type "$CONTENT_TYPE" \
-  brand "$BRAND" \
-  audience "$AUDIENCE" \
-  target_location "$TARGET_LOCATION" \
-  task_description "$TASK_DESCRIPTION"
+# Store context for orchestrator
+# Context will be passed to orchestration script
+export SEO_CONTEXT_TARGET_KEYWORD="$TARGET_KEYWORD"
+export SEO_CONTEXT_CONTENT_TYPE="$CONTENT_TYPE"
+export SEO_CONTEXT_BRAND="$BRAND"
+export SEO_CONTEXT_AUDIENCE="$AUDIENCE"
+export SEO_CONTEXT_TARGET_LOCATION="$TARGET_LOCATION"
+export SEO_CONTEXT_TASK_DESCRIPTION="$TASK_DESCRIPTION"
 ```
 
 ## DataForSEO API Integration
@@ -179,16 +179,15 @@ exit 0
 
 **Why Exit After Spawning:**
 - Orchestrator runs as background process
-- Uses Redis for coordination
 - Spawns SEO agents via CLI (Z.ai routing)
-- Reports progress to Redis
-- Main Chat monitors via web portal or Redis
+- Reports progress through output monitoring
+- Main Chat monitors via web portal or output logs
 
 ## Validation Thresholds
 
 **Step 7 Validators:**
 - **Individual Gate:** Each validator ≥0.75 confidence
-- **Consensus:** Average of all validators ≥0.95
+- **Average Score:** Average of all validators ≥0.95
 - **Required Validators:**
   - `humanizer-validator` (natural writing)
   - `branding-validator` (OurStories alignment)
@@ -196,19 +195,20 @@ exit 0
 
 **Iteration Logic:**
 ```bash
-# Collect validator scores
-HUMANIZER_SCORE=$(redis-cli HGET "seo:task:$TASK_ID:validation:iteration:$ITERATION" humanizer)
-BRANDING_SCORE=$(redis-cli HGET "seo:task:$TASK_ID:validation:iteration:$ITERATION" branding)
-AUDIENCE_SCORE=$(redis-cli HGET "seo:task:$TASK_ID:validation:iteration:$ITERATION" audience)
+# Collect validator scores from validation results
+# Scores are retrieved from orchestration output or validation results
+HUMANIZER_SCORE=$(cat validation_results.json | jq -r '.humanizer // 0')
+BRANDING_SCORE=$(cat validation_results.json | jq -r '.branding // 0')
+AUDIENCE_SCORE=$(cat validation_results.json | jq -r '.audience // 0')
 
-# Calculate consensus
-CONSENSUS=$(echo "scale=2; ($HUMANIZER_SCORE + $BRANDING_SCORE + $AUDIENCE_SCORE) / 3" | bc)
+# Calculate average
+AVERAGE_SCORE=$(echo "scale=2; ($HUMANIZER_SCORE + $BRANDING_SCORE + $AUDIENCE_SCORE) / 3" | bc)
 
 # Decision
-if (( $(echo "$CONSENSUS >= 0.95" | bc -l) )); then
+if (( $(echo "$AVERAGE_SCORE >= 0.95" | bc -l) )); then
   echo "✅ Validation passed - Proceed to publishing"
 else
-  echo "🔄 Iteration required - Consensus: $CONSENSUS"
+  echo "🔄 Iteration required - Average Score: $AVERAGE_SCORE"
   # Wake Step 5 (writer) with validator feedback
 fi
 ```
@@ -247,7 +247,7 @@ esac
 
 **Coordinator Success:**
 - Task classified correctly
-- Context extracted and stored in Redis
+- Context extracted and passed to orchestrator
 - Orchestrator invoked successfully
 - All required API credentials validated
 - Clean exit after spawning orchestrator
@@ -259,7 +259,7 @@ esac
 - Step 4: Research complete (≥5 sources)
 - Step 5: Draft written (≥1500 words for blog)
 - Step 6: SEO optimized (title tag, meta description, headers, schema)
-- Step 7: Validation consensus ≥0.95
+- Step 7: Validation average ≥0.95
 - Step 8: Published with schema markup
 
 ## Output Format
@@ -283,26 +283,13 @@ Return structured JSON for Main Chat visibility:
     "perplexity": "enabled"
   },
   "estimated_duration": "45-60 minutes",
-  "monitoring": "redis-cli HGETALL seo:task:seo-task-12345:status"
+  "monitoring": "Output logs track progress and agent status"
 }
 ```
 
-## Redis Monitoring Commands
+## Progress Monitoring
 
-**For Main Chat / User:**
-```bash
-# Check overall status
-redis-cli HGETALL "seo:task:$TASK_ID:status"
-
-# Check current step
-redis-cli HGET "seo:task:$TASK_ID:status" current_step
-
-# Check validation scores
-redis-cli HGETALL "seo:task:$TASK_ID:validation:iteration:1"
-
-# Monitor orchestrator logs
-redis-cli LRANGE "seo:task:$TASK_ID:logs" 0 -1
-```
+The pipeline tracks all agent progress and validation results through output logs and status files. Status updates are handled automatically through the orchestration layer.
 
 ## CLI Mode Cost Optimization
 
@@ -329,7 +316,7 @@ npx claude-flow-novice agent-spawn seo-analytics-specialist \
 # Fallback to manual steps
 if [ -z "$DATAFORSEO_EMAIL" ]; then
   echo "Warning: DataForSEO not configured - Manual keyword research required"
-  redis-cli HSET "seo:task:$TASK_ID:warnings" dataforseo "manual_research_required"
+  echo "manual_research_required" > warnings/dataforseo.txt
 fi
 ```
 
@@ -338,27 +325,20 @@ fi
 # Check orchestrator health
 if ! ps -p $ORCHESTRATOR_PID > /dev/null 2>&1; then
   echo "Error: Orchestrator process died unexpectedly"
-  redis-cli HSET "seo:task:$TASK_ID:status" orchestrator_status "failed"
+  echo "failed" > status/orchestrator_status.txt
   exit 1
 fi
 ```
 
-## Integration with CFN Loop
+## SEO Pipeline Characteristics
 
-**Not a CFN Loop Coordinator:**
-- SEO pipeline is specialized (8-step sequential, not 3-loop validation)
-- No Loop 3/Loop 2/Product Owner pattern
-- Uses custom validation (3 validators with ≥0.95 consensus)
-
-**Similarities:**
+**SEO Pipeline Features:**
+- Specialized SEO workflow (8-step sequential process)
+- Custom validation approach (3 validators with ≥0.95 average score)
 - CLI spawning for cost optimization
-- Redis coordination
 - Iteration-based improvement
 - Confidence-based progression
 
-**When to Use CFN Loop vs SEO Pipeline:**
-- CFN Loop: Generic software development, features, bugs
-- SEO Pipeline: SEO content creation specifically
 
 ## Workflow Example
 
@@ -371,7 +351,7 @@ fi
    - Brand: "OurStories"
    - Audience: "families, genealogists" (inferred)
 3. Validate APIs: DataForSEO ✅, OpenRouter ✅
-4. Store context in Redis
+4. Set context environment variables
 5. Invoke orchestrator:
    ```bash
    ./.claude/skills/seo-orchestration/orchestrate-seo.sh \
@@ -391,7 +371,7 @@ fi
 - Step 4: Perplexity research (gather sources)
 - Step 5: Write 1500+ word draft
 - Step 6: SEO optimize (title tag, meta, headers, internal links)
-- Step 7: Validate (humanizer + branding + audience ≥0.95 consensus)
+- Step 7: Validate (humanizer + branding + audience ≥0.95 average)
 - Step 8: Publish with Article schema
 
 **Final Output:** `content/blog/preserve-family-stories.md` with full schema markup
@@ -406,5 +386,5 @@ fi
 ---
 
 **Version:** 1.0.0
-**Last Updated:** 2025-11-01
+**Last Updated:** 2025-11-07
 **Maintained By:** CFN SEO Team

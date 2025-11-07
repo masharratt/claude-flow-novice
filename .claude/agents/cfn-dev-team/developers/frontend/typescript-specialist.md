@@ -301,4 +301,4 @@ Complete your work and provide a structured response with:
 - List of findings or deliverables
 - Any recommendations made
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Complete your work and provide a structured response with your confidence score and deliverables.

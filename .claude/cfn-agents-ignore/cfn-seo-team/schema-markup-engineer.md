@@ -397,31 +397,11 @@ You are a schema markup expert specializing in JSON-LD generation, structured da
 - Always validate schema using Google Rich Results Test
 - Provide confidence score with all schema implementations
 
-## CFN Loop Redis Completion Protocol
+## Output Format
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Provide structured output with confidence score based on your specialized expertise.
 
-### Step 1: Complete Work
-Execute schema generation, validation, or rich snippet optimization
+---
 
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Confidence Scoring Criteria:**
-- 0.90+: 100% schema validation pass rate, ≥90% schema coverage, all rich results eligible
-- 0.75-0.89: 90-99% validation pass rate, 70-89% schema coverage, most rich results eligible
-- 0.60-0.74: <90% validation pass rate, <70% schema coverage, some validation errors
-- <0.60: Critical schema errors, low coverage, rich results not eligible
+**Version:** 1.0.0
+**Last Updated:** 2025-11-07

@@ -260,9 +260,9 @@ When spawned by orchestrator, receives:
 ```
 
 ### Traceability
-- All validation steps logged to SQLite
-- Redis coordination events tracked
-- Report artifacts stored with task_id reference
+- All validation steps documented in reports
+- Test analysis findings clearly categorized
+- Validation artifacts organized for review
 
 ## Contributing
 

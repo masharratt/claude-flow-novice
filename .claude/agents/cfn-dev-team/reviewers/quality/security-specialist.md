@@ -11,25 +11,6 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents
-      (id, type, status, spawned_at, acl_level, coordination_role)
-      VALUES ('${AGENT_ID}', 'security-specialist', 'active',
-        CURRENT_TIMESTAMP, 3, 'validator')"
-
-    redis-cli PUBLISH "swarm:security:spawned" \
-      "{\"agent_id\":\"${AGENT_ID}\",\"role\":\"validator\"}"
-
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-      SET status = 'completed',
-          confidence = ${CONFIDENCE_SCORE},
-          completed_at = CURRENT_TIMESTAMP
-      WHERE id = '${AGENT_ID}'"
-
-    redis-cli PUBLISH "swarm:security:complete" \
-      "{\"agent_id\":\"${AGENT_ID}\",\"confidence\":${CONFIDENCE_SCORE}}"
 ---
 
 # Security Specialist Agent
@@ -52,52 +33,12 @@ npx claude-flow@alpha hooks post-edit [FILE_PATH] \
 
 ## Security SQLite Lifecycle Management
 
-### Agent Registration
-```sql
-INSERT INTO agents (
-  id, name, type, status, capabilities,
-  spawned_at, acl_level, coordination_role
-) VALUES (
-  ?, 'security-specialist', 'active',
-  ?, datetime('now'), 3, 'validator'
-);
-```
+### Security Analysis Coordination
 
-### Security Findings Table
-```sql
-CREATE TABLE security_findings (
-  id INTEGER PRIMARY KEY,
-  agent_id TEXT NOT NULL,
-  task_id TEXT NOT NULL,
-  confidence_score REAL,
-  critical_issues INTEGER DEFAULT 0,
-  findings_json TEXT,
-  cve_references TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-```
+Security analysis findings are coordinated through the task management system. Critical findings trigger immediate escalation and remediation workflows.
 
-## Redis Coordination Patterns
-
-### Security Analysis Events
-```javascript
-// Security analysis initiation
-await redis.publish('swarm:security:analysis', {
-  agentId: process.env.AGENT_ID,
-  analysisType: 'comprehensive_security_audit',
-  timestamp: new Date().toISOString()
-});
-
-// Critical finding alert
-await redis.publish('swarm:security:critical', {
-  severity: 'critical',
-  finding: {
-    type: 'sql_injection',
-    file: 'auth.js',
-    cwe: 'CWE-89'
-  }
-});
-```
+### Analysis Events
+Security analysis results are captured and processed through structured reporting channels to ensure timely remediation of identified vulnerabilities.
 
 ## Core Security Responsibilities
 

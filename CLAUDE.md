@@ -19,8 +19,8 @@
 * **No guides/summaries/reports** unless explicitly asked
 * **Use spartan language and give answers in plain english**
 * **Concise answers only** - no code examples unless requested
-* **Redis persistence enables swarm recovery** - swarm state survives interruptions
-* **ALL agent communication MUST use Redis pub/sub** - no direct file coordination
+* **Persistence enables swarm recovery** - swarm state survives interruptions
+* **ALL agent communication MUST use coordination protocols** - no direct file coordination
 * **NEVER HARDCODE API KEYS**
 * **sleep on repeat** when monitoring a background process. sleep x  minutes, check progress, sleep, repeat
 * **USE GREP INSTEAD OF FIND** - it's less resource intensive in our WSL2 instances
@@ -52,7 +52,7 @@
 
 ### Skills-Based Coordination
 **Core Skills:**
-- Redis Coordination (`.claude/skills/cfn-redis-coordination/SKILL.md`)
+- Coordination Protocols (`.claude/skills/cfn-coordination/SKILL.md`)
 - Agent Spawning (`.claude/skills/cfn-agent-spawning/SKILL.md`)
 - CFN Loop Validation (`.claude/skills/cfn-loop-validation/SKILL.md`)
 - Product Owner Decision (`.claude/skills/cfn-product-owner-decision/SKILL.md`)
@@ -79,11 +79,11 @@ npx cfn-init  # Copy namespace-isolated files
 **Agent Discovery:** Recursive search through `.claude/agents/**/*.md` finds both cfn-dev-team and user custom agents
 
 **Coordination Principles:**
-* ALL agent communication via explicit Redis pub/sub dependencies
+* ALL agent communication via explicit coordination protocol dependencies
 * Modular, independently maintainable skills
 * Minimal, focused coordination logic
 * **Multi-layer enforcement**: When designing distributed systems, implement coordination primitives at multiple layers (technical, skill, cross-reference, agent, system, entry) to ensure consistent behavior across all workflows
-* **Centralized orchestration**: Keep orchestration logic in dedicated coordination skills (e.g., Redis Coordination) rather than distributing it across multiple components
+* **Centralized orchestration**: Keep orchestration logic in dedicated coordination skills rather than distributing it across multiple components
 
 ### Main Chat Role (Thin Orchestration Layer)
 * Spawn ONLY coordinator agent (single Task() call)
@@ -133,9 +133,9 @@ npx cfn-init  # Copy namespace-isolated files
 - Task mode: $0.150/iteration (Anthropic for all agents)
 
 **Context Storage:**
-- CLI mode: Coordinator stores context in Redis for agents to retrieve
-- Task mode: Main Chat passes context directly to each Task() spawn (no Redis needed)
-- CLI agents read from Redis: `redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"`
+- CLI mode: Coordinator stores context in persistence layer for agents to retrieve
+- Task mode: Main Chat passes context directly to each Task() spawn (no persistence needed)
+- CLI agents read from context: coordination protocols retrieve task context
 
 **Reference:**
 - Implementation details: `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
@@ -204,7 +204,7 @@ Task("tester", "Test feature...")                         // ❌ NO
 - ✅ Real-time agent progress tracking and automatic recovery
 - ✅ Protocol compliance (prevents "consensus on vapor" anti-patterns)
 - ✅ 95-98% cost savings with Z.ai routing
-- ✅ Background execution with Redis persistence
+- ✅ Background execution with persistence
 - ✅ Built-in parameter validation and success criteria templates
 
 **Why This Pattern:**
@@ -292,7 +292,7 @@ If **any** apply, use CFN Loop CLI commands:
 ```bash
 # Explicit skill-based agent spawning
 npx claude-flow-novice swarm "Task Description" \
-  --skills=redis-coordination,agent-spawning \
+  --skills=coordination,agent-spawning \
   --strategy development
 ```
 
@@ -321,12 +321,12 @@ Task("reviewer", "Review this specific file")
 
 ## 3) Coordination Patterns
 
-**Redis Coordination Patterns**
-Refer to `.claude/skills/cfn-redis-coordination/SKILL.md` for:
+**Coordination Patterns**
+Refer to `.claude/skills/cfn-coordination/SKILL.md` for:
 - Simple Chain Coordination
 - Hierarchical Broadcast
 - Mesh Hybrid Patterns
-- Agent completion signaling (Redis LPUSH)
+- Agent completion signaling
 - Consensus collection (invoke-waiting-mode.sh collect)
 
 ## 4) CFN Loop Overview
@@ -378,10 +378,10 @@ Main Chat spawns all agents directly via Task() → No coordinator → Full visi
 # 1. Complete work with enhanced context
 # 2. Automatic context validation (prevents "consensus on vapor")
 # 3. Signal completion
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+coordination-signal "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 # 4. Report confidence with metadata
-./.claude/skills/cfn-redis-coordination/report-completion.sh \
+./.claude/skills/cfn-coordination/report-completion.sh \
   --task-id "$TASK_ID" \
   --agent-id "$AGENT_ID" \
   --confidence 0.85 \
@@ -395,7 +395,7 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```bash
 # Simply complete work and return output
 # Main Chat receives output automatically
-# NO Redis signals required
+# NO coordination signals required
 # NO explicit completion protocol needed
 ```
 
@@ -410,13 +410,13 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 2. **Gate Check:** Loop 3 self-validation scores checked
    - IF gate FAILS → Wake Loop 3 for iteration N+1 (skip Loop 2)
    - IF gate PASSES → Signal Loop 2 to start work
-3. Loop 2 validators WAIT for gate pass signal (`redis-cli blpop "swarm:${TASK_ID}:gate-passed" 0`)
+3. Loop 2 validators WAIT for gate pass signal (coordination-wait "swarm:${TASK_ID}:gate-passed")
 4. Loop 2 validators review Loop 3 work and report consensus
 5. **Product Owner Decision (BUG #11 FIX):** Orchestrator spawns Product Owner and parses output
    - Uses `.claude/skills/product-owner-decision/execute-decision.sh`
    - Extracts PROCEED/ITERATE/ABORT from agent output
    - Validates deliverables (prevents "consensus on vapor")
-   - Orchestrator pushes decision to Redis (not agent)
+   - Orchestrator pushes decision to coordination layer (not agent)
 6. **Decision Execution:**
    - IF PROCEED → Task complete
    - IF ITERATE → Wake all agents for iteration N+1
@@ -460,13 +460,13 @@ Main Chat should use these commands instead of manually spawning coordinators.
 - Comprehensive test coverage
 
 **Testing Best Practice (STRAT-005):**
-Implement comprehensive test suites that validate both functional requirements and edge cases, including timeout scenarios and blocking mechanism effectiveness. Example: `.claude/skills/redis-coordination/test-orchestrator.sh` validates BLPOP blocking, agent completion protocol, and consensus collection with 8 targeted tests.
+Implement comprehensive test suites that validate both functional requirements and edge cases, including timeout scenarios and blocking mechanism effectiveness. Example: `.claude/skills/cfn-coordination/test-orchestrator.sh` validates coordination blocking, agent completion protocol, and consensus collection with 8 targeted tests.
 
 
 ## 6) Additional Resources
 
 **Skill References:**
-- Redis Coordination: `.claude/skills/cfn-redis-coordination/SKILL.md`
+- Coordination Protocols: `.claude/skills/cfn-coordination/SKILL.md`
 - Agent Spawning: `.claude/skills/cfn-agent-spawning/SKILL.md`
 - CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`
 
@@ -485,8 +485,8 @@ See `.artifacts/analytics/context-reduction-report.json`
 ### STRAT-007: Background Execution Strategy
 - **Confidence:** 0.95
 - **Priority:** 9
-- **Insight**: Use background execution with Redis monitoring for long-running orchestration workflows (>10 minutes). Bash tool has hard 10-minute timeout that cannot be extended.
-- **Tags**: orchestration, bash-timeout, redis-monitoring, background-execution
+- **Insight**: Use background execution with coordination monitoring for long-running orchestration workflows (>10 minutes). Bash tool has hard 10-minute timeout that cannot be extended.
+- **Tags**: orchestration, bash-timeout, coordination-monitoring, background-execution
 
 ### ANTI-004: Regex Validation Anti-Pattern
 - **Confidence:** 0.92
@@ -562,21 +562,21 @@ See `.artifacts/analytics/context-reduction-report.json`
 
 #### PATTERN-020: Multi-Layer Context Injection
 - **Context**: Coordinator → Orchestrator → Agent Flow
-- **Insight**: When implementing multi-layer coordination (coordinator → orchestrator → agents), ensure context flows through ALL layers. Pattern: Coordinator extracts context from task description, orchestrator retrieves context from Redis and injects into agent spawn parameters, agents receive complete deliverables/acceptance criteria in --context parameter. Breaking this chain causes 'consensus on vapor' (high confidence, zero deliverables).
+- **Insight**: When implementing multi-layer coordination (coordinator → orchestrator → agents), ensure context flows through ALL layers. Pattern: Coordinator extracts context from task description, orchestrator retrieves context from persistence layer and injects into agent spawn parameters, agents receive complete deliverables/acceptance criteria in --context parameter. Breaking this chain causes 'consensus on vapor' (high confidence, zero deliverables).
 - **Tags**: context-injection, cfn-loop, coordination, multi-layer, deliverables
 - **Confidence**: 0.92
 - **Priority**: 9/10
 
 #### PATTERN-021: Context Validation Pipeline
 - **Context**: Multi-Layer Coordination
-- **Insight**: Design context validation pipeline with checkpoints at each layer. Pattern: (1) Coordinator validates extracted context has deliverables/acceptance criteria before spawning orchestrator, (2) Orchestrator validates Redis context retrieval succeeded before spawning agents, (3) Agents validate received context contains required fields before starting work. Each layer logs validation results. Fail-fast prevents cascading context loss.
+- **Insight**: Design context validation pipeline with checkpoints at each layer. Pattern: (1) Coordinator validates extracted context has deliverables/acceptance criteria before spawning orchestrator, (2) Orchestrator validates persistence context retrieval succeeded before spawning agents, (3) Agents validate received context contains required fields before starting work. Each layer logs validation results. Fail-fast prevents cascading context loss.
 - **Tags**: validation, context-injection, fail-fast, multi-layer, checkpoints
 - **Confidence**: 0.87
 - **Priority**: 8/10
 
 #### PATTERN-022: Agent Lifecycle - Clean Exit Protocol
 - **Context**: CFN Loop Agent Management
-- **Insight**: Agents must exit cleanly after reporting confidence. Pattern: (1) Signal done via Redis LPUSH, (2) Report confidence score, (3) Exit immediately. Enables adaptive agent specialization - orchestrator spawns different specialist (security-specialist for security issues) for next iteration based on feedback type. Prevents orchestrator blocking.
+- **Insight**: Agents must exit cleanly after reporting confidence. Pattern: (1) Signal done via coordination protocol, (2) Report confidence score, (3) Exit immediately. Enables adaptive agent specialization - orchestrator spawns different specialist (security-specialist for security issues) for next iteration based on feedback type. Prevents orchestrator blocking.
 - **Tags**: agent-lifecycle, clean-exit, adaptive-specialization, orchestrator
 - **Confidence**: 0.89
 - **Priority**: 8/10
@@ -584,22 +584,22 @@ See `.artifacts/analytics/context-reduction-report.json`
 ### Anti-Patterns
 
 #### ANTI-020: Context Storage Without Injection
-- **Context**: Redis Coordination
-- **Insight**: Avoid storing context in Redis without retrieving and injecting it into agent prompts. Anti-pattern: Orchestrator stores epic-context, phase-context, success-criteria in Redis but spawns agents with generic context ('Loop 3 implementation for iteration N'). Result: Agents have no access to deliverables list, acceptance criteria, or directory paths despite context being 'available'.
-- **Tags**: context-injection, redis, agent-spawning, storage-without-use
+- **Context**: Coordination Systems
+- **Insight**: Avoid storing context in persistence layer without retrieving and injecting it into agent prompts. Anti-pattern: Orchestrator stores epic-context, phase-context, success-criteria in persistence but spawns agents with generic context ('Loop 3 implementation for iteration N'). Result: Agents have no access to deliverables list, acceptance criteria, or directory paths despite context being 'available'.
+- **Tags**: context-injection, coordination, agent-spawning, storage-without-use
 - **Confidence**: 0.88
 - **Priority**: 8/10
 
 #### ANTI-021: Generic Context When Specifics Exist
 - **Context**: Agent Spawning
-- **Insight**: Never pass generic iteration-level context when task-specific deliverables exist. Anti-pattern: Agent receives 'Loop 3 implementation for iteration 2' when Redis contains detailed deliverables list. Agents have no telepathy - they cannot infer '.claude/skills/checkpoint-state/SKILL.md' from 'iteration 2'. Always inject complete deliverables, directory paths, and acceptance criteria even if 'already in Redis'.
+- **Insight**: Never pass generic iteration-level context when task-specific deliverables exist. Anti-pattern: Agent receives 'Loop 3 implementation for iteration 2' when persistence contains detailed deliverables list. Agents have no telepathy - they cannot infer '.claude/skills/checkpoint-state/SKILL.md' from 'iteration 2'. Always inject complete deliverables, directory paths, and acceptance criteria even if 'already available'.
 - **Tags**: agent-context, specificity, deliverables, telepathy-fallacy, explicitness
 - **Confidence**: 0.91
 - **Priority**: 9/10
 
 #### ANTI-023: Task-Spawned Validators Without Completion Protocol
 - **Context**: Loop 2 Validation (Task Mode)
-- **Insight**: Main Chat spawns validators via Task() without clear scope boundaries or mode-aware completion protocols. Anti-pattern: Validators see CLI-mode completion instructions (Redis signals, `invoke-waiting-mode.sh report`) and attempt to comply using wrong tools (slash commands via Bash, nested CFN Loop spawning). Result: Agents hang indefinitely trying to execute `/cfn-loop-cli` as bash command, memory leak from blocked processes. Task-spawned validators should simply return structured output - Main Chat receives it automatically, no Redis signals needed.
+- **Insight**: Main Chat spawns validators via Task() without clear scope boundaries or mode-aware completion protocols. Anti-pattern: Validators see CLI-mode completion instructions (coordination signals, `invoke-waiting-mode.sh report`) and attempt to comply using wrong tools (slash commands via Bash, nested CFN Loop spawning). Result: Agents hang indefinitely trying to execute `/cfn-loop-cli` as bash command, memory leak from blocked processes. Task-spawned validators should simply return structured output - Main Chat receives it automatically, no coordination signals needed.
 - **Tags**: task-spawning, validation, completion-protocol, scope-boundaries, memory-leak
 - **Confidence**: 0.95
 - **Priority**: 10/10
@@ -701,11 +701,11 @@ Out of Scope:
 
 ## Sprint 9 Adaptive Context Lessons (CFN v3 Dual-Mode Implementation)
 
-### STRAT-026: Redis Context Storage Over CLI Parameters
+### STRAT-026: Persistence Context Storage Over CLI Parameters
 - **Confidence:** 0.95
 - **Priority:** 9
-- **Insight**: Use Redis for complex JSON context storage instead of CLI parameters. Eliminates shell escaping issues, enables swarm recovery, and provides single source of truth for agent coordination.
-- **Tags**: redis, context-storage, cli-spawning, swarm-recovery
+- **Insight**: Use persistence layer for complex JSON context storage instead of CLI parameters. Eliminates shell escaping issues, enables swarm recovery, and provides single source of truth for agent coordination.
+- **Tags**: context-storage, persistence, cli-spawning, swarm-recovery
 
 ### PATTERN-023: Dual-Mode Architecture Pattern
 - **Confidence:** 0.92
@@ -728,8 +728,8 @@ Out of Scope:
 ### PATTERN-024: Swarm Recovery via Persistence
 - **Confidence:** 0.93
 - **Priority:** 9
-- **Insight**: Store swarm state in Redis with TTL to enable crash recovery. Agents can resume from last known state using task_id as recovery key. Critical for long-running CFN Loops.
-- **Tags**: recovery, redis, persistence, fault-tolerance, swarm-coordination
+- **Insight**: Store swarm state in persistence layer with TTL to enable crash recovery. Agents can resume from last known state using task_id as recovery key. Critical for long-running CFN Loops.
+- **Tags**: recovery, persistence, fault-tolerance, swarm-coordination
 
 ### STRAT-028: Modular Skill Architecture
 - **Confidence:** 0.91

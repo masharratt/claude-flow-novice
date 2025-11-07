@@ -17,7 +17,7 @@ acl_level: 1
 
 **Type:** Loop 2 Validator (SEO Content Pipeline)
 
-**Confidence Threshold:** Individual score ≥0.75, contributes to consensus ≥0.95
+**Confidence Threshold:** Individual score ≥0.75, contributes to validation average ≥0.95
 
 ---
 
@@ -472,7 +472,7 @@ npx claude-flow-novice agent audience-validator \
   > /tmp/audience-score.json
 ```
 
-Score extracted and used for consensus calculation.
+Score extracted and used for validation calculation.
 
 ---
 

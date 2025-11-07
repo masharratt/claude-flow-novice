@@ -754,12 +754,10 @@ http {
 ```javascript
 // jwt-auth.js
 const jwt = require('jsonwebtoken');
-const redis = require('redis');
 
-const redisClient = redis.createClient({
-  host: process.env.REDIS_HOST,
-  port: process.env.REDIS_PORT
-});
+// In-memory token store (for production, use database or proper cache)
+const tokenStore = new Map();
+const blacklistedTokens = new Set();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '1h';
@@ -779,8 +777,9 @@ function generateTokens(userId, payload = {}) {
     { expiresIn: REFRESH_TOKEN_EXPIRES_IN, issuer: 'api.example.com' }
   );
 
-  // Store refresh token in Redis
-  redisClient.setex(`refresh:${userId}`, 7 * 24 * 60 * 60, refreshToken);
+  // Store refresh token in memory store
+  const expiryTime = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+  tokenStore.set(`refresh:${userId}`, { token: refreshToken, expires: expiryTime });
 
   return { accessToken, refreshToken };
 }
@@ -801,8 +800,7 @@ async function verifyToken(req, res, next) {
     });
 
     // Check if token is blacklisted
-    const blacklisted = await redisClient.get(`blacklist:${token}`);
-    if (blacklisted) {
+    if (blacklistedTokens.has(token)) {
       return res.status(401).json({ error: 'Token revoked' });
     }
 
@@ -827,10 +825,10 @@ async function refreshAccessToken(req, res) {
       return res.status(401).json({ error: 'Invalid refresh token' });
     }
 
-    // Check Redis for valid refresh token
-    const storedToken = await redisClient.get(`refresh:${decoded.userId}`);
-    if (storedToken !== refreshToken) {
-      return res.status(401).json({ error: 'Refresh token not found' });
+    // Check store for valid refresh token
+    const storedData = tokenStore.get(`refresh:${decoded.userId}`);
+    if (!storedData || storedData.token !== refreshToken || Date.now() > storedData.expires) {
+      return res.status(401).json({ error: 'Refresh token not found or expired' });
     }
 
     // Generate new tokens
@@ -850,7 +848,8 @@ async function revokeToken(req, res) {
   const ttl = decoded.exp - Math.floor(Date.now() / 1000);
 
   // Blacklist token until expiration
-  await redisClient.setex(`blacklist:${token}`, ttl, '1');
+  blacklistedTokens.add(token);
+  setTimeout(() => blacklistedTokens.delete(token), ttl * 1000);
 
   res.json({ message: 'Token revoked' });
 }

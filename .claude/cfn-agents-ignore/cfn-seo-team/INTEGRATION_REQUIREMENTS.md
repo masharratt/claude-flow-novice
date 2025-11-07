@@ -265,16 +265,15 @@ This document outlines the API integrations, service dependencies, and external 
 
 ---
 
-### Redis
+### Caching System
 **Required by:**
 - technical-seo-specialist (cache performance metrics)
 - programmatic-seo-engineer (cache rendered templates)
-- All agents (CFN Loop coordination)
 
 **Use cases:**
 - Cache API responses (reduce API costs)
-- Store temporary data during CFN Loop execution
-- Agent coordination via pub/sub
+- Store temporary data during execution
+- Performance optimization for repeated operations
 
 ---
 
@@ -397,7 +396,7 @@ BRIGHTLOCAL_API_KEY=your_key_here
 
 ### Best Practices
 - Implement exponential backoff for rate limit errors
-- Cache API responses in Redis (TTL: 24 hours)
+- Cache API responses in caching system (TTL: 24 hours)
 - Batch API requests when possible
 
 ---
@@ -487,17 +486,13 @@ CREATE TABLE schema_validation (
 );
 ```
 
-### 4. Redis Setup
-```bash
-# Install Redis
-sudo apt-get install redis-server
+### 4. Caching System Setup
+Set up your preferred caching system for performance optimization and temporary data storage.
 
-# Start Redis
-redis-server
-
-# Test connection
-redis-cli ping  # Should return PONG
-```
+**Recommended Options:**
+- High-performance caching system for large-scale operations
+- Simple key-value caching for basic use cases
+- Application-level caching for minimal dependencies
 
 ### 5. n8n Setup (Optional)
 ```bash
@@ -531,10 +526,8 @@ curl -H "Authorization: Bearer YOUR_API_KEY" "https://api.ahrefs.com/v3/site-exp
 psql -h localhost -U postgres -d seo_agent_db -c "SELECT 1;"
 ```
 
-### Redis Connection Test
-```bash
-redis-cli ping
-```
+### Caching System Connection Test
+Test your chosen caching system to ensure it's working properly for agent operations.
 
 ---
 
@@ -548,7 +541,7 @@ redis-cli ping
 - Ensure service account has correct permissions
 
 **2. SE Ranking rate limits**
-- Implement caching (Redis TTL: 24 hours)
+- Implement caching (TTL: 24 hours)
 - Batch requests when possible
 - Upgrade to higher plan if needed
 
@@ -557,10 +550,11 @@ redis-cli ping
 - Verify database credentials in .env
 - Ensure database exists and tables are created
 
-**4. Redis connection errors**
-- Check Redis service is running (`redis-cli ping`)
-- Verify Redis host and port in configuration
-- Check firewall rules if using remote Redis
+**4. Caching system connection errors**
+- Check caching service is running and accessible
+- Verify caching system host and port in configuration
+- Check firewall rules if using remote caching system
+- Validate authentication credentials if required
 
 ---
 
@@ -593,7 +587,7 @@ redis-cli ping
 
 ### technical-seo-specialist
 - Primary APIs: PageSpeed Insights, Google Search Console
-- Heavy user of Redis caching (performance metrics)
+- Heavy user of caching systems (performance metrics)
 - Requires Screaming Frog export data
 
 ### content-seo-strategist
@@ -603,7 +597,7 @@ redis-cli ping
 
 ### programmatic-seo-engineer
 - Primary service: PostgreSQL (source data)
-- Heavy Redis usage (template caching)
+- Heavy caching usage (template caching)
 - Requires Copyscape for duplicate detection
 
 ### geo-optimization-expert

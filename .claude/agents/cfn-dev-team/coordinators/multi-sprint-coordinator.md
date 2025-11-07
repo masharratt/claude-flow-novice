@@ -30,24 +30,14 @@ type: coordinator
 5. Monitor sprint success
 6. Manage epic-level reporting
 
-## Redis Context Management
+## Context Management
 
-Store epic context in Redis for sprint coordination:
+Store epic context for sprint coordination:
 ```bash
 # Store epic configuration
-redis-cli HSET "cfn_loop:epic:$TASK_ID" \
-  "epic_name" "$EPIC_NAME" \
-  "total_sprints" "$TOTAL_SPRINTS" \
-  "current_sprint" "1" \
-  "epic_status" "active"
-
-# Store individual sprint contexts
-for sprint_num in $(seq 1 $TOTAL_SPRINTS); do
-  redis-cli HSET "cfn_loop:epic:$TASK_ID:sprint:$sprint_num" \
-    "sprint_name" "$SPRINT_NAME" \
-    "status" "pending" \
-    "deliverables" "$SPRINT_DELIVERABLES"
-done
+# Configuration managed by coordination layer
+# Individual sprint contexts tracked for sequential execution
+# Sprint status and deliverables preserved
 ```
 
 ## Execution Protocol
@@ -56,31 +46,21 @@ done
 - Dependency-aware progression
 - Iteration limit management
 
-## Redis Coordination
+## Sprint Coordination
 
-Track sprint progress via Redis:
+Track sprint progress and manage sequential execution:
 ```bash
-# Update sprint status
-redis-cli HSET "cfn_loop:epic:$TASK_ID:sprint:$CURRENT_SPRINT" \
-  "status" "in_progress" \
-  "start_time" "$(date +%s)"
-
-# Store sprint completion
-redis-cli HSET "cfn_loop:epic:$TASK_ID:sprint:$CURRENT_SPRINT" \
-  "status" "complete" \
-  "end_time" "$(date +%s)" \
-  "iterations" "$ITERATIONS_USED" \
-  "confidence" "$FINAL_CONFIDENCE"
-
-# Signal sprint completion to coordinator
-redis-cli lpush "swarm:${TASK_ID}:sprint-${CURRENT_SPRINT}:done" "complete"
+# Update sprint status during execution
+# Sprint start time and progress tracked
+# Sprint completion recorded with metrics
+# Dependencies managed between sprints
 ```
 
 ## Error Handling
-- Track sprint failures in Redis
-- Determine retry or abort strategy
-- Store failure reasons and retry attempts
-- Provide comprehensive execution report
+- Track sprint failures and determine retry strategies
+- Document failure reasons and retry attempts
+- Provide comprehensive execution reporting
+- Manage sprint recovery procedures
 
 ## Performance Metrics
 - Total sprints
@@ -88,25 +68,23 @@ redis-cli lpush "swarm:${TASK_ID}:sprint-${CURRENT_SPRINT}:done" "complete"
 - Success/failure rate
 - Dependency resolution effectiveness
 
-## CFN Loop Redis Completion Protocol
+## Task Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your multi-sprint coordination work and provide a structured response with:
 
-### Step 1: Complete Work
-Execute assigned multi-sprint coordination tasks
+1. **Confidence Score** (0.0-1.0) - Self-assessment of coordination effectiveness
+2. **Summary** - Brief overview of epic execution and sprint management
+3. **Deliverables** - List of sprints completed and final outputs
+4. **Status** - COMPLETE or NEEDS_WORK with specific issues
 
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+**Example Output:**
 ```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
+Confidence: 0.90
+Status: COMPLETE
+Summary: Coordinated 5-sprint epic execution with successful dependency management
+Deliverables:
+- sprint-1-deliverables/
+- sprint-2-deliverables/
+- sprint-3-deliverables/
+- epic-execution-report.md
 ```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**

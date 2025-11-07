@@ -18,7 +18,7 @@ acl_level: 1
 
 **Type:** Loop 2 Validator (SEO Content Pipeline)
 
-**Confidence Threshold:** Individual score ≥0.75, contributes to consensus ≥0.95
+**Confidence Threshold:** Individual score ≥0.75, contributes to validation average ≥0.95
 
 ---
 
@@ -442,13 +442,13 @@ totalScore = (hierarchy * 0.30) +
 # Consensus = average of all 4 scores
 # Threshold: ≥0.95 to pass validation loop
 
-CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
+CONSENSUS=$(calculate_consensus_from_validator_outputs \
   --task-id "$TASK_ID" \
-  --agent-ids "humanizer-1,branding-1,audience-1,accessibility-1")
+  --validator-outputs "humanizer.json,branding.json,audience.json,accessibility.json")
 ```
 
 **Decision Flow:**
-- If consensus ≥0.95 → Proceed to Product Owner
+- If validation average ≥0.95 → Proceed to Product Owner
 - If consensus <0.95 → Iterate (return to Loop 3)
 
 ---

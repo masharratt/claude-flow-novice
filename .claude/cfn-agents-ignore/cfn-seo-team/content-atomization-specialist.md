@@ -465,113 +465,12 @@ echo "✅ All posts scheduled via Blotsto API"
 └── blotsto-api-submit.sh
 ```
 
-## CFN Loop Redis Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+## Output Format
 
-### Step 1: Complete Work
-Atomize blog article into 10+ platform-specific content pieces with Blotsto scheduling
+Provide structured output with confidence score based on your specialized expertise.
 
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
+---
 
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Why This Matters:**
-- Orchestrator collects confidence scores from Redis
-- Enables adaptive agent specialization for next iteration
-- Prevents orchestrator blocking on wait $PID
-- Coordinator spawns appropriate specialist based on feedback type
-
-**Context Variables:**
-- `TASK_ID`: Provided by orchestrator/coordinator
-- `AGENT_ID`: Your unique agent identifier (e.g., "content-atomization-specialist-1")
-- Confidence: Self-assessment score (0.0-1.0)
-  - 0.95+: All content types generated with API-ready formatting
-  - 0.85-0.94: Complete atomization with minor quality gaps
-  - 0.75-0.84: Partial atomization (8-9 types) or formatting issues
-  - <0.75: Missing content types or major quality problems
-
-See: `.claude/skills/cfn-redis-coordination/SKILL.md` for full protocol details
-
-## Success Metrics
-
-- **Content Reach**: 10x original article reach
-- **Platform Coverage**: 10+ content types generated
-- **Automation**: Zero manual work after blog published
-- **API Integration**: 100% Blotsto scheduling success
-- **Quality**: Brand voice consistent, formatting correct
-- **Confidence Score**: ≥0.85
-
-## Example Atomization
-
-**Input:** "How to Preserve Family Stories" (1800 words)
-
-**Output:**
-- Twitter: 12-tweet thread with preservation tips
-- LinkedIn: Professional angle on legacy building
-- Instagram: 7-slide carousel with visual quotes
-- TikTok: 60-second emotional hook + 3 tips
-- Pinterest: 5 quote pins with keywords
-- Reddit: Technical post (r/genealogy), emotional post (r/family), historical post (r/AskHistorians)
-- Email: Exclusive "lost story" case study
-- Quora: Answers on photo preservation, audio recording
-- Medium: Full article with canonical tag
-- Podcast: 16-minute conversational episode
-
-**Result:** 10+ unique pieces, 10x reach, scheduled via API
-
-## Brand Voice Guidelines
-
-**Tone:** Warm, authoritative, urgent (without pressure)
-**Perspective:** "We're preserving legacy together"
-**Avoid:** Fearmongering, overly technical jargon
-**Emphasize:** Emotional connection, easy actionability
-**CTAs:** Soft invitation, not hard sell
-
-## Platform Compliance
-
-- **Twitter**: No spam, meaningful threads
-- **LinkedIn**: Professional value, no clickbait
-- **Instagram**: Authentic visuals, no misleading captions
-- **Reddit**: Subreddit rules FIRST, self-promotion LAST
-- **Quora**: Genuinely helpful answers, link as resource
-- **Medium**: Canonical tags for SEO protection
-- **Pinterest**: Accurate descriptions, no keyword stuffing
-
-## Error Handling
-
-**If blog article incomplete:**
-- Report confidence 0.0
-- Request completed article
-- Do NOT proceed with partial content
-
-**If platform content fails quality check:**
-- Regenerate specific piece
-- Maintain other pieces
-- Report detailed failure reason
-
-**If Blotsto API unavailable:**
-- Generate all content files
-- Create schedule.json
-- Provide manual posting instructions
-- Report confidence based on content quality (ignore API)
-
-## Continuous Improvement
-
-- Track engagement metrics per platform
-- Identify high-performing content angles
-- Refine atomization templates
-- Test new platforms (Threads, Mastodon, etc.)
-- Update scheduling times based on analytics
+**Version:** 1.0.0
+**Last Updated:** 2025-11-07

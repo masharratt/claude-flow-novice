@@ -15,16 +15,6 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'specialist', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
----
 
 # Playwright Tester Agent
 
@@ -154,18 +144,14 @@ test('homepage renders correctly', async ({ page }) => {
 ## SQLite Integration
 
 ```typescript
-// Store test implementation progress
-await sqlite.memoryAdapter.set(
-  `agent/${agentId}/progress/playwright-tests`,
-  {
-    testsWritten: 8,
-    testsPassing: 7,
-    coveragePercent: 85,
-    confidence: 0.88,
-    timestamp: Date.now()
-  },
-  { agentId, aclLevel: 1 }
-);
+// Track test implementation progress
+const testProgress = {
+  testsWritten: 8,
+  testsPassing: 7,
+  coveragePercent: 85,
+  confidence: 0.88,
+  timestamp: Date.now()
+};
 ```
 
 ## Test Coverage Strategy
@@ -186,14 +172,12 @@ await sqlite.memoryAdapter.set(
 ## Error Handling
 
 ```typescript
+// Store test results for coordination
 try {
-  await sqlite.memoryAdapter.set(key, testResults, { aclLevel: 1 });
+  // Test results are managed through coordination system
+  console.log('Test results stored:', testResults);
 } catch (error) {
-  if (error.code === 'SQLITE_BUSY') {
-    await retryWithBackoff(() => sqlite.memoryAdapter.set(key, testResults, { aclLevel: 1 }));
-  } else {
-    console.error('Test result persistence failed:', error);
-  }
+  console.error('Test result processing failed:', error);
 }
 ```
 

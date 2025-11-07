@@ -109,10 +109,10 @@ scrape_configs:
     static_configs:
       - targets: ['postgres-exporter:9187']
 
-  # Redis metrics
-  - job_name: 'redis'
+  # Cache metrics
+  - job_name: 'memcached'
     static_configs:
-      - targets: ['redis-exporter:9121']
+      - targets: ['memcached-exporter:9150']
 
   # Blackbox monitoring (external endpoints)
   - job_name: 'blackbox'

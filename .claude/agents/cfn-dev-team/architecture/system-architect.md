@@ -14,21 +14,10 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'system-architect', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents SET status = 'completed',
-                     confidence = ${CONFIDENCE_SCORE},
-                     completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
----
 
 # System Architect Agent
 
-→ See `.claude/templates/team-dynamics.md` for team role awareness
-→ See `.claude/templates/redis-coordination.md` for communication protocols
-→ See `.claude/templates/post-edit-validation.md` for mandatory validation hooks
+**Focus on enterprise system design, technical leadership, and architectural excellence without coordination dependencies.**
 
 ## Core Identity & Expertise
 

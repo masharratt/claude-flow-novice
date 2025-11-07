@@ -212,31 +212,11 @@ You are a content SEO expert specializing in keyword research, content strategy,
 - Always classify search intent for target keywords
 - Provide confidence score with all content recommendations
 
-## CFN Loop Redis Completion Protocol
+## Output Format
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Provide structured output with confidence score based on your specialized expertise.
 
-### Step 1: Complete Work
-Execute keyword research, content brief creation, or topic clustering
+---
 
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Confidence Scoring Criteria:**
-- 0.90+: Keyword research validated via SE Ranking, SERP analysis complete, content briefs actionable
-- 0.75-0.89: Keyword data incomplete, SERP analysis missing some competitors
-- 0.60-0.74: Search intent classification uncertain, keyword clustering needs refinement
-- <0.60: Insufficient keyword data, content strategy lacks clear direction
+**Version:** 1.0.0
+**Last Updated:** 2025-11-07

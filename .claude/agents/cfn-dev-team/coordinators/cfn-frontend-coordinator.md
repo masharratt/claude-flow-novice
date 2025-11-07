@@ -63,20 +63,14 @@ fs.writeFileSync('.claude/brand-guidelines.json', JSON.stringify(brandGuidelines
 If brand guidelines provided, use those directly.
 
 **Step 4: Store Context for Agent Reference**
-Store brand guidelines and context in Redis for agent coordination:
+Store brand guidelines and context for agent coordination:
 ```bash
-# Store brand guidelines in Redis for agents
-redis-cli HSET "cfn_loop:task:$TASK_ID:frontend" \
-  "brand_guidelines" "${BRAND_GUIDELINES}" \
-  "mockup_path" "${MOCKUP_PATH}" \
-  "mode" "${MODE}" \
-  "component_name" "${COMPONENT_NAME}" \
-  "visual_threshold" "85"
-
-# Store brand guidelines file for reference
+# Store brand guidelines for agent reference
 echo "${BRAND_GUIDELINES}" > .claude/frontend-brand-guidelines.json
 echo "${MOCKUP_PATH}" > .claude/frontend-mockup-path.txt
 echo "${MODE}" > .claude/frontend-mode.txt
+echo "${COMPONENT_NAME}" > .claude/frontend-component-name.txt
+echo "85" > .claude/frontend-visual-threshold.txt
 ```
 
 ### Phase 1: Loop 3 - Implementation with Visual Context
@@ -227,11 +221,10 @@ if [ "$overallScore" -lt 85 ] && [ "$iteration" -lt "$MAX_ITERATIONS" ]; then
 
   echo "Starting iteration $iteration with visual feedback..."
 
-  # Store iteration context in Redis
-  redis-cli HSET "cfn_loop:task:$TASK_ID:iteration" \
-    "current_iteration" "$iteration" \
-    "previous_score" "$overallScore" \
-    "visual_feedback" "$(echo "$visualFeedback" | jq -c .)"
+  # Store iteration context for feedback
+  echo "$iteration" > .claude/frontend-current-iteration.txt
+  echo "$overallScore" > .claude/frontend-previous-score.txt
+  echo "$visualFeedback" | jq -c . > .claude/frontend-feedback.json
 
   # Spawn fresh Loop 3 agents for next iteration with feedback
   for agent in "${loop3Agents[@]}"; do
@@ -254,11 +247,9 @@ EOF
   # Repeat Phase 1 → Phase 2
 else
   echo "Visual validation complete or max iterations reached"
-  # Store completion in Redis
-  redis-cli HSET "cfn_loop:task:$TASK_ID:visual" \
-    "validation_complete" "true" \
-    "final_score" "$overallScore" \
-    "total_iterations" "$iteration"
+  # Store completion metrics
+  echo "$overallScore" > .claude/frontend-final-score.txt
+  echo "$iteration" > .claude/frontend-total-iterations.txt
   # Proceed to Phase 3
 fi
 ```
@@ -311,19 +302,17 @@ wait "${VALIDATOR_PIDS[@]}"
 **Collect Consensus:**
 Gather validator feedback and calculate consensus score from their outputs:
 ```bash
-# Store validator context in Redis
-redis-cli HSET "cfn_loop:task:$TASK_ID:validation" \
-  "loop2_agents" "$(echo "${loop2Agents[@]}" | tr ' ' ',')" \
-  "validation_start" "$(date +%s)"
+# Store validator context for coordination
+echo "${loop2Agents[@]}" | tr ' ' ',' > .claude/frontend-validators.txt
+echo "$(date +%s)" > .claude/frontend-validation-start.txt
 
 # Collect validator outputs and calculate consensus
 CONSENSUS_SCORE=$(calculate-consensus-from-outputs.sh "${VALIDATOR_OUTPUTS[@]}")
 echo "Loop 2 consensus: $CONSENSUS_SCORE"
 
 # Store consensus result
-redis-cli HSET "cfn_loop:task:$TASK_ID:validation" \
-  "consensus_score" "$CONSENSUS_SCORE" \
-  "validation_complete" "true"
+echo "$CONSENSUS_SCORE" > .claude/frontend-consensus-score.txt
+echo "true" > .claude/frontend-validation-complete.txt
 ```
 
 ### Phase 4: Loop 4 - Product Owner Decision
@@ -365,13 +354,12 @@ EOF
 DECISION=$(./.claude/skills/cfn-product-owner-decision/parse-decision.sh \
   --output "$PO_OUTPUT")
 
-# Store decision in Redis
-redis-cli HSET "cfn_loop:task:$TASK_ID:decision" \
-  "decision" "$DECISION" \
-  "decision_time" "$(date +%s)" \
-  "final_score" "$overallScore" \
-  "consensus" "$CONSENSUS" \
-  "iterations" "$iteration"
+# Store decision for coordination
+echo "$DECISION" > .claude/frontend-decision.txt
+echo "$(date +%s)" > .claude/frontend-decision-time.txt
+echo "$overallScore" > .claude/frontend-final-score.txt
+echo "$CONSENSUS" > .claude/frontend-final-consensus.txt
+echo "$iteration" > .claude/frontend-final-iterations.txt
 
 if [ "$DECISION" = "PROCEED" ]; then
   echo "✅ Product Owner approved - committing changes"
@@ -395,11 +383,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
   git push origin main
 
-  # Mark epic complete in Redis
-  redis-cli HSET "cfn_loop:task:$TASK_ID:status" \
-    "status" "complete" \
-    "completion_time" "$(date +%s)" \
-    "git_commit" "$(git rev-parse HEAD)"
+  # Mark completion status
+  echo "complete" > .claude/frontend-status.txt
+  echo "$(date +%s)" > .claude/frontend-completion-time.txt
+  echo "$(git rev-parse HEAD)" > .claude/frontend-git-commit.txt
 
   # Generate component documentation
   cat > "docs/${COMPONENT_NAME}_IMPLEMENTATION.md" <<EOF
@@ -430,7 +417,7 @@ elif [ "$DECISION" = "ITERATE" ]; then
 
   if [ "$iteration" -ge "$MAX_ITERATIONS" ]; then
     echo "❌ Max iterations reached, aborting"
-    redis-cli HSET "cfn_loop:task:$TASK_ID:status" "status" "aborted_max_iterations"
+    echo "aborted_max_iterations" > .claude/frontend-status.txt
     exit 1
   fi
 
@@ -439,7 +426,7 @@ elif [ "$DECISION" = "ITERATE" ]; then
 
 else
   echo "❌ Product Owner aborted"
-  redis-cli HSET "cfn_loop:task:$TASK_ID:status" "status" "aborted_by_product_owner"
+  echo "aborted_by_product_owner" > .claude/frontend-status.txt
   exit 1
 fi
 ```
@@ -526,7 +513,7 @@ Return structured JSON result:
 - **Playwright**: Screenshot capture, video recording, E2E tests
 - **Image analysis**: `mcp__zai-mcp-server__analyze_image`
 - **Video analysis**: `mcp__zai-mcp-server__analyze_video`
-- **Redis**: Context storage, agent coordination
+- **File coordination**: Context storage in `.claude/` directory
 - **Git**: Automated commit with visual metrics
 
 ## Configuration
@@ -569,28 +556,26 @@ if ! command -v playwright &> /dev/null; then
 fi
 ```
 
-## CFN Loop Redis Completion Protocol
+## Task Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your frontend coordination work and provide a structured response with:
 
-### Step 1: Complete Work
-Execute assigned coordination tasks
+1. **Confidence Score** (0.0-1.0) - Self-assessment of coordination quality
+2. **Summary** - Brief overview of frontend implementation coordination
+3. **Deliverables** - List of components and files created
+4. **Status** - COMPLETE or NEEDS_WORK with specific issues
 
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+**Example Output:**
 ```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
+Confidence: 0.92
+Status: COMPLETE
+Summary: Coordinated frontend implementation with visual validation workflow
+Deliverables:
+- src/components/LoginForm.tsx
+- tests/frontend/LoginForm.test.tsx
+- docs/LoginForm_IMPLEMENTATION.md
+- visual-validation-report.json
 ```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
 
 ## Related Documentation
 
@@ -598,4 +583,4 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 - Task Mode Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 - Standard CFN Loop: `.claude/commands/cfn/cfn-loop.md`
-- Redis Coordination: `.claude/skills/cfn-redis-coordination/SKILL.md`
+- Agent Coordination: Dynamic coordination layer

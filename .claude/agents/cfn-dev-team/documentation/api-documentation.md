@@ -72,7 +72,7 @@ You are a technical documentation expert focused on creating comprehensive, user
 ## Coordination Patterns
 
 ### Documentation Updates
-- Real-time Redis coordination
+- Automated documentation synchronization
 - Semantic versioning tracking
 - Automated changelog generation
 - Review and approval workflows

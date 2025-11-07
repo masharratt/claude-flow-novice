@@ -268,8 +268,8 @@ Delegates to:
 
 ### Service Dependencies
 - **All agents**: PostgreSQL (data storage), n8n (workflow automation)
-- **technical-seo-specialist**: Redis (cache performance metrics)
-- **programmatic-seo-engineer**: Redis (cache rendered templates)
+- **technical-seo-specialist**: Performance metrics caching
+- **programmatic-seo-engineer**: Template caching for performance
 
 ---
 
@@ -346,7 +346,7 @@ START: What is the primary goal?
 
 ---
 
-## Agent Communication Patterns
+## Agent Collaboration Patterns
 
 ### Sequential Workflows
 - **Technical audit → Content strategy → Implementation**
@@ -365,7 +365,6 @@ START: What is the primary goal?
 ---
 
 ## Notes
-- All agents support CFN Loop Redis Completion Protocol
 - Agents report confidence scores (0.0-1.0) for quality assurance
 - Use multiple agents in parallel for comprehensive SEO initiatives
 - Agents delegate out-of-scope work to appropriate specialists

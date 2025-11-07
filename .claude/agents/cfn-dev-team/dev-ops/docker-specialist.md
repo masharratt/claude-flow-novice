@@ -225,7 +225,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://user:password@db:5432/myapp
-      - REDIS_URL=redis://cache:6379
+      - CACHE_URL=memcached://cache:11211
     env_file:
       - .env.production
     depends_on:
@@ -268,15 +268,13 @@ services:
           memory: 1G
 
   cache:
-    image: redis:7-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - redis-data:/data
+    image: memcached:1.6-alpine
+    command: memcached -m 256
     networks:
       - app-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "nc", "-z", "localhost", "11211"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -304,7 +302,7 @@ services:
 volumes:
   postgres-data:
     driver: local
-  redis-data:
+  cache-data:
     driver: local
 
 networks:

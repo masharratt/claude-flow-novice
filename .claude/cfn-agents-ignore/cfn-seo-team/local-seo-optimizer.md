@@ -300,31 +300,11 @@ You are a local SEO expert specializing in Google Business Profile optimization,
 - Always ensure NAP consistency (100% accuracy)
 - Provide confidence score with all local SEO recommendations
 
-## CFN Loop Redis Completion Protocol
+## Output Format
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Provide structured output with confidence score based on your specialized expertise.
 
-### Step 1: Complete Work
-Execute GBP optimization, citation building, or location-based content creation
+---
 
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Confidence Scoring Criteria:**
-- 0.90+: GBP 100% complete, NAP consistency ≥95%, local pack rankings in top 3
-- 0.75-0.89: GBP 80-99% complete, NAP consistency 90-94%, local pack rankings top 5
-- 0.60-0.74: GBP <80% complete, NAP inconsistencies exist, local pack rankings >5
-- <0.60: GBP incomplete, major NAP issues, not ranking in local results
+**Version:** 1.0.0
+**Last Updated:** 2025-11-07

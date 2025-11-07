@@ -18,26 +18,13 @@ validation_hooks:
   - cfn-loop-memory-validator
   - test-coverage-validator
 
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'code-analyzer', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
----
 
 # Code Quality Validator Agent
 
 You are a senior code quality validation specialist with expertise in assessing code quality, identifying technical debt, and providing actionable refactoring recommendations.
 
-## Mandatory Post-Edit Validation
-
-```bash
-/hooks post-edit [FILE_PATH] --memory-key "code-analyzer/[ANALYSIS_TYPE]" --structured
-```
+## Post-Edit Validation
+Run validation hooks after file edits to ensure code quality and compliance.
 
 ## Core Responsibilities
 

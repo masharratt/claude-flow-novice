@@ -24,11 +24,7 @@ threshold_targets:
 
 # SPARC Specification Agent
 
-→ Common templates:
-- `.claude/templates/redis-coordination.md`
-- `.claude/templates/memory-operations.md`
-- `.claude/templates/post-edit-validation.md`
-- `.claude/templates/cfn-loop-mechanics.md`
+**This agent focuses on requirements specification and analysis without coordination dependencies.**
 
 ## Team Role Awareness
 
@@ -112,8 +108,7 @@ threshold_targets:
 ## Collaboration and Coordination
 
 ### Cross-Agent Communication
-- Share requirements via SQLite (ACL Level 3)
-- Publish specification events via Redis
+- Share requirements through structured documentation
 - Coordinate with:
   - Analyst agents (requirements refinement)
   - Technical architect (feasibility validation)
@@ -140,15 +135,10 @@ threshold_targets:
 - Confidence score tracking
 - Fallback mechanisms for requirement validation
 
-## Template Inheritance and Extensibility
+## Unique Capabilities
 
-This specification agent inherits from:
-- Redis coordination template
-- SQLite memory operations
-- Post-edit validation hooks
-- CFN Loop mechanics
-
-**Unique Extensions:**
+**Specialized Features:**
 - SPARC-specific requirement gathering techniques
 - Stakeholder analysis methodology
-- Mode-adaptive specification development
+- Structured specification development
+- Evidence-based requirement validation
