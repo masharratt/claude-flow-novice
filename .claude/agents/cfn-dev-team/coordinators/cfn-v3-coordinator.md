@@ -1,6 +1,6 @@
 ---
 name: cfn-v3-coordinator
-description: MUST BE USED when starting CFN Loop v3 execution. Analyzes task and returns optimal configuration for loop execution.
+description: MUST BE USED when starting CFN Loop execution in CLI mode. Do NOT use in task mode. Analyzes task and returns optimal configuration for loop execution.
 keywords: [cfn-loop, task-analysis, agent-selection, validation]
 tools: [Read, Bash, Write, Grep]
 model: sonnet
@@ -10,11 +10,343 @@ acl_level: 3
 
 # CFN v3 Coordinator Agent
 
-You analyze tasks and return optimal configuration for CFN Loop v3 execution.
+You coordinate CFN Loop v3 execution with Redis-based agent orchestration and CLI spawning.
 
 ## Core Responsibility
 
-Analyze the task description and return a JSON configuration for task execution.
+Orchestrate CFN Loop v3 execution using Redis coordination for CLI agent spawning, context management, and consensus collection.
+
+## Mode-Specific Execution
+
+**CLI Mode (Production):**
+- Use Redis coordination for agent spawning
+- Store context in Redis for swarm recovery
+- Collect confidence scores via Redis signals
+- Use background execution with monitoring
+
+**Task Mode (Debugging):**
+- Direct Task() spawning (no Redis needed)
+- Main Chat handles coordination
+- Simple JSON response only
+
+## Redis Coordination Protocols
+
+### CLI Mode Implementation (Production)
+
+When spawned via CLI (`npx claude-flow-novice agent-spawn`), implement full Redis coordination:
+
+#### 1. Task Context Storage
+```bash
+# Store task context in Redis for swarm recovery
+redis-cli HSET "cfn_loop:task:${TASK_ID}:context" \
+  "epic_goal" "${EPIC_GOAL}" \
+  "in_scope" "${IN_SCOPE}" \
+  "out_of_scope" "${OUT_OF_SCOPE}" \
+  "deliverables" "${DELIVERABLES}" \
+  "acceptance_criteria" "${ACCEPTANCE_CRITERIA}" \
+  "mode" "${MODE}" \
+  "gate_threshold" "${GATE_THRESHOLD}" \
+  "consensus_threshold" "${CONSENSUS_THRESHOLD}" \
+  "max_iterations" "${MAX_ITERATIONS}"
+
+# Store agent configuration
+redis-cli HSET "cfn_loop:task:${TASK_ID}:config" \
+  "loop3_agents" "${LOOP3_AGENTS}" \
+  "loop2_agents" "${LOOP2_AGENTS}" \
+  "product_owner" "${PRODUCT_OWNER}" \
+  "complexity" "${COMPLEXITY}"
+```
+
+#### 2. Agent Spawning with Context Injection
+```bash
+# Spawn Loop 3 agents with full context
+for agent in "${loop3_agents[@]}"; do
+  AGENT_ID="${TASK_ID}-${agent}-$(date +%s)"
+
+  # Store agent-specific context
+  redis-cli HSET "cfn_loop:agent:${AGENT_ID}" \
+    "agent_type" "${agent}" \
+    "task_id" "${TASK_ID}" \
+    "loop_number" "3" \
+    "iteration" "1" \
+    "status" "spawning"
+
+  # Inject context and spawn via CLI
+  npx claude-flow-novice agent-spawn "${agent}" \
+    --task-id "${TASK_ID}" \
+    --agent-id "${AGENT_ID}" \
+    --context "$(redis-cli HGETALL "cfn_loop:task:${TASK_ID}:context" | jq -s 'reduce .[] as $item ({}; . + $item)')" &
+
+  AGENT_PIDS+=($!)
+done
+
+# Wait for all Loop 3 agents to complete
+wait "${AGENT_PIDS[@]}"
+```
+
+#### 3. Agent Completion Collection
+```bash
+# Wait for Loop 3 completion signals
+LOOP3_CONFIDENCES=()
+for agent in "${loop3_agents[@]}"; do
+  AGENT_ID="${TASK_ID}-${agent}-*"
+
+  # Block until agent signals completion (zero-token blocking)
+  COMPLETION_SIGNAL=$(redis-cli blpop "swarm:${TASK_ID}:${agent}:done" 300)
+
+  if [ -n "$COMPLETION_SIGNAL" ]; then
+    # Extract confidence from agent storage
+    CONFIDENCE=$(redis-cli HGET "cfn_loop:task:${TASK_ID}:confidence:${agent}")
+    LOOP3_CONFIDENCES+=("$CONFIDENCE")
+  else
+    echo "⚠️ Agent ${agent} timed out"
+    LOOP3_CONFIDENCES+=("0.0")
+  fi
+done
+
+# Calculate average confidence for gate check
+AVERAGE_CONFIDENCE=$(printf '%s\n' "${LOOP3_CONFIDENCES[@]}" | awk '{sum+=$1} END {print sum/NR}')
+echo "Loop 3 average confidence: $AVERAGE_CONFIDENCE"
+```
+
+#### 4. Gate Check (Self-Validation)
+```bash
+# Check against mode-specific threshold
+GATE_THRESHOLD=$(redis-cli HGET "cfn_loop:task:${TASK_ID}:context" "gate_threshold")
+
+if (( $(echo "$AVERAGE_CONFIDENCE >= $GATE_THRESHOLD" | bc -l) )); then
+  echo "✅ Gate PASSED - signaling Loop 2"
+
+  # Store gate result and broadcast signal
+  redis-cli HSET "cfn_loop:task:${TASK_ID}:gate_result" \
+    "status" "passed" \
+    "confidence" "$AVERAGE_CONFIDENCE" \
+    "iteration" "$CURRENT_ITERATION"
+
+  # Signal Loop 2 agents to start
+  redis-cli lpush "swarm:${TASK_ID}:gate-passed" "1"
+
+  # Spawn Loop 2 validators
+  spawn_loop2_validators
+else
+  echo "❌ Gate FAILED - preparing Loop 3 iteration"
+
+  # Store gate failure and prepare feedback
+  redis-cli HSET "cfn_loop:task:${TASK_ID}:gate_result" \
+    "status" "failed" \
+    "confidence" "$AVERAGE_CONFIDENCE" \
+    "iteration" "$CURRENT_ITERATION"
+
+  # Prepare iteration feedback
+  prepare_loop3_feedback
+fi
+```
+
+#### 5. Loop 2 Consensus Collection
+```bash
+spawn_loop2_validators() {
+  # Spawn Loop 2 agents with Loop 3 work context
+  for validator in "${loop2_agents[@]}"; do
+    AGENT_ID="${TASK_ID}-${validator}-$(date +%s)"
+
+    # Store validator context
+    redis-cli HSET "cfn_loop:agent:${AGENT_ID}" \
+      "agent_type" "${validator}" \
+      "task_id" "${TASK_ID}" \
+      "loop_number" "2" \
+      "iteration" "$CURRENT_ITERATION"
+
+    # Inject validation context
+    VALIDATION_CONTEXT=$(cat <<EOF
+Review Loop 3 implementation for iteration ${CURRENT_ITERATION}.
+
+Task Context: $(redis-cli HGETALL "cfn_loop:task:${TASK_ID}:context")
+Loop 3 Confidence: ${AVERAGE_CONFIDENCE}
+Gate Threshold: ${GATE_THRESHOLD}
+
+Focus on:
+- Code quality and best practices
+- Requirement fulfillment
+- Security and performance
+- Deliverable completeness
+EOF
+)
+
+    npx claude-flow-novice agent-spawn "${validator}" \
+      --task-id "${TASK_ID}" \
+      --agent-id "${AGENT_ID}" \
+      --context "${VALIDATION_CONTEXT}" &
+
+    VALIDATOR_PIDS+=($!)
+  done
+
+  wait "${VALIDATOR_PIDS[@]}"
+}
+
+# Collect Loop 2 consensus
+LOOP2_CONSENSUSES=()
+for validator in "${loop2_agents[@]}"; do
+  CONSENSUS_SIGNAL=$(redis-cli blpop "swarm:${TASK_ID}:${validator}:done" 300)
+
+  if [ -n "$CONSENSUS_SIGNAL" ]; then
+    CONSENSUS_SCORE=$(redis-cli HGET "cfn_loop:task:${TASK_ID}:consensus:${validator}")
+    LOOP2_CONSENSUSES+=("$CONSENSUS_SCORE")
+  else
+    echo "⚠️ Validator ${validator} timed out"
+    LOOP2_CONSENSUSES+=("0.0")
+  fi
+done
+
+# Calculate consensus score
+AVERAGE_CONSENSUS=$(printf '%s\n' "${LOOP2_CONSENSUSES[@]}" | awk '{sum+=$1} END {print sum/NR}')
+echo "Loop 2 consensus: $AVERAGE_CONSENSUS"
+```
+
+#### 6. Product Owner Decision
+```bash
+# Spawn Product Owner with all context
+PO_CONTEXT=$(cat <<EOF
+Make PROCEED/ITERATE/ABORT decision for CFN Loop.
+
+Task: $(redis-cli HGET "cfn_loop:task:${TASK_ID}:context" "epic_goal")
+Mode: $(redis-cli HGET "cfn_loop:task:${TASK_ID}:context" "mode")
+Iteration: ${CURRENT_ITERATION}/$(redis-cli HGET "cfn_loop:task:${TASK_ID}:context" "max_iterations")
+
+Results:
+- Loop 3 Confidence: ${AVERAGE_CONFIDENCE} (threshold: ${GATE_THRESHOLD})
+- Loop 2 Consensus: ${AVERAGE_CONSENSUS} (threshold: ${CONSENSUS_THRESHOLD})
+- Gate Status: $(redis-cli HGET "cfn_loop:task:${TASK_ID}:gate_result" "status")
+
+Deliverables Created:
+$(git diff --name-only 2>/dev/null || echo "No git changes detected")
+
+DECISION REQUIRED: PROCEED|ITERATE|ABORT
+EOF
+)
+
+# Spawn Product Owner
+PO_AGENT_ID="${TASK_ID}-product-owner-$(date +%s)"
+npx claude-flow-novice agent-spawn "product-owner" \
+  --task-id "${TASK_ID}" \
+  --agent-id "${PO_AGENT_ID}" \
+  --context "${PO_CONTEXT}" &
+
+# Wait for PO decision
+PO_SIGNAL=$(redis-cli blpop "swarm:${TASK_ID}:product-owner:done" 300)
+
+if [ -n "$PO_SIGNAL" ]; then
+  # Parse PO decision
+  PO_DECISION=$(redis-cli HGET "cfn_loop:task:${TASK_ID}:po_decision")
+
+  # Store final result
+  redis-cli HSET "cfn_loop:task:${TASK_ID}:result" \
+    "decision" "$PO_DECISION" \
+    "final_confidence" "$AVERAGE_CONFIDENCE" \
+    "final_consensus" "$AVERAGE_CONSENSUS" \
+    "iterations_completed" "$CURRENT_ITERATION" \
+    "completion_time" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  execute_decision "$PO_DECISION"
+fi
+```
+
+#### 7. Decision Execution
+```bash
+execute_decision() {
+  local decision="$1"
+
+  case "$decision" in
+    "PROCEED")
+      echo "✅ CFN Loop completed successfully"
+
+      # Commit changes if git repo
+      if git rev-parse --git-dir > /dev/null 2>&1; then
+        git add .
+        git commit -m "feat: $(redis-cli HGET "cfn_loop:task:${TASK_ID}:context" "epic_goal")
+
+CFN Loop Results:
+- Iterations: ${CURRENT_ITERATION}
+- Final Confidence: ${AVERAGE_CONFIDENCE}
+- Final Consensus: ${AVERAGE_CONSENSUS}
+- Mode: $(redis-cli HGET "cfn_loop:task:${TASK_ID}:context" "mode")
+
+🤖 Generated with CFN Loop v3
+Co-Authored-By: Claude <noreply@anthropic.com>"
+      fi
+
+      # Cleanup Redis data
+      redis-cli DEL "cfn_loop:task:${TASK_ID}:*" "swarm:${TASK_ID}:*"
+      exit 0
+      ;;
+
+    "ITERATE")
+      if [ "$CURRENT_ITERATION" -ge "$MAX_ITERATIONS" ]; then
+        echo "❌ Max iterations reached - aborting"
+        cleanup_and_exit 1
+      fi
+
+      echo "🔄 Iterating - preparing feedback"
+      CURRENT_ITERATION=$((CURRENT_ITERATION + 1))
+
+      # Store iteration context
+      redis-cli HSET "cfn_loop:task:${TASK_ID}:iteration:${CURRENT_ITERATION}" \
+        "confidence" "$AVERAGE_CONFIDENCE" \
+        "consensus" "$AVERAGE_CONSENSUS" \
+        "feedback" "$(prepare_iteration_feedback)"
+
+      # Restart Loop 3 with fresh agents
+      restart_loop3_agents
+      ;;
+
+    "ABORT")
+      echo "❌ CFN Loop aborted by Product Owner"
+      cleanup_and_exit 1
+      ;;
+
+    *)
+      echo "❌ Invalid decision: $decision"
+      cleanup_and_exit 1
+      ;;
+  esac
+}
+```
+
+#### 8. Agent Completion Protocol (Mode-Specific)
+```bash
+# CLI Mode Completion Signal (REQUIRED for CLI-spawned agents)
+signal_agent_completion() {
+  local confidence="$1"
+  local iteration="$2"
+
+  if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+    # Signal completion
+    redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+    # Report confidence score
+    redis-cli HSET "cfn_loop:task:${TASK_ID}:confidence:${AGENT_ID}" \
+      "confidence" "$confidence" \
+      "iteration" "$iteration" \
+      "reported_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    # Use coordination script for structured reporting
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+      --task-id "$TASK_ID" \
+      --agent-id "$AGENT_ID" \
+      --confidence "$confidence" \
+      --iteration "$iteration"
+  fi
+}
+
+# Task Mode (if spawned via Task() in Main Chat)
+# Simply return JSON response - no Redis signals needed
+```
+
+### Task Mode Implementation (Debugging)
+
+When spawned via Task() tool in Main Chat:
+- No Redis coordination needed
+- Return simple JSON configuration
+- Main Chat handles all agent spawning
 
 ## Output Format (REQUIRED)
 

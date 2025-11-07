@@ -287,9 +287,274 @@ Return structured JSON for Main Chat visibility:
 }
 ```
 
+## Redis Coordination System
+
+The SEO coordinator uses Redis-based coordination for CLI-mode SEO agent orchestration. This enables swarm recovery, progress tracking, and cost optimization.
+
+### SEO-Specific Redis Context Storage
+
+Store SEO campaign parameters and pipeline state:
+
+```bash
+# SEO Campaign Context Storage
+redis-cli HSET "seo_campaign:${TASK_ID}:context" \
+  "campaign_type" "${CONTENT_TYPE}" \
+  "target_keyword" "${TARGET_KEYWORD}" \
+  "brand" "${BRAND}" \
+  "audience" "${AUDIENCE}" \
+  "target_location" "${TARGET_LOCATION}" \
+  "content_type" "${CONTENT_TYPE}" \
+  "pipeline_steps" "${PIPELINE_STEPS}" \
+  "iteration" "1"
+
+# SEO Pipeline Configuration
+redis-cli HSET "seo_campaign:${TASK_ID}:config" \
+  "dataforseo_api" "${DATAFORSEO_API_KEY:-UNSET}" \
+  "openrouter_api" "${OPENROUTER_API_KEY:-UNSET}" \
+  "specialists" "${SEO_SPECIALISTS}" \
+  "validation_threshold" "0.95" \
+  "cost_optimization" "enabled"
+
+# Store step-specific context for each SEO specialist
+for step in ${PIPELINE_STEPS}; do
+  redis-cli HSET "seo_campaign:${TASK_ID}:step:${step}" \
+    "status" "pending" \
+    "agent_type" "${step}" \
+    "iteration" "1"
+done
+```
+
+### SEO Specialist Agent Spawning with Context
+
+```bash
+# Spawn SEO specialists with campaign context
+SEO_SPECIALISTS=("seo-analytics-specialist" "content-seo-strategist" "technical-seo-specialist" "schema-markup-engineer")
+
+for specialist in "${SEO_SPECIALISTS[@]}"; do
+  AGENT_ID="${TASK_ID}-${specialist}-$(date +%s)"
+
+  # Store specialist-specific SEO context
+  redis-cli HSET "seo_agent:${AGENT_ID}" \
+    "agent_type" "${specialist}" \
+    "task_id" "${TASK_ID}" \
+    "campaign_type" "${CONTENT_TYPE}" \
+    "target_keyword" "${TARGET_KEYWORD}" \
+    "brand" "${BRAND}" \
+    "pipeline_step" "${specialist}" \
+    "status" "spawning"
+
+  # Inject SEO context and spawn via CLI (cost-optimized Z.ai routing)
+  SEO_CONTEXT=$(cat <<EOF
+SEO Campaign Execution for ${CONTENT_TYPE}
+
+Campaign Parameters:
+- Target Keyword: ${TARGET_KEYWORD}
+- Brand: ${BRAND}
+- Audience: ${AUDIENCE}
+- Content Type: ${CONTENT_TYPE}
+- Pipeline Step: ${specialist}
+
+Specialist Instructions: $(redis-cli HGET "seo_campaign:${TASK_ID}:specialist_instructions" "${specialist}")
+EOF
+  )
+
+  npx claude-flow-novice agent-spawn "${specialist}" \
+    --task-id "${TASK_ID}" \
+    --agent-id "${AGENT_ID}" \
+    --context "${SEO_CONTEXT}" &
+
+  SEO_AGENT_PIDS+=($!)
+done
+
+# Wait for all SEO specialists to complete
+wait "${SEO_AGENT_PIDS[@]}"
+```
+
+### SEO Pipeline Completion Collection
+
+```bash
+# Collect SEO specialist completion signals
+SEO_CONFIDENCES=()
+SEO_DELIVERABLES=()
+
+for specialist in "${SEO_SPECIALISTS[@]}"; do
+  # Block for specialist completion (zero-token blocking)
+  COMPLETION_SIGNAL=$(redis-cli blpop "swarm:${TASK_ID}:${specialist}:done" 300)
+
+  if [ -n "$COMPLETION_SIGNAL" ]; then
+    # Extract specialist confidence
+    CONFIDENCE=$(redis-cli HGET "seo_campaign:${TASK_ID}:confidence:${specialist}")
+    SEO_CONFIDENCES+=("$CONFIDENCE")
+
+    # Track deliverables created by this specialist
+    DELIVERABLES_JSON=$(redis-cli HGET "seo_campaign:${TASK_ID}:deliverables:${specialist}")
+    SEO_DELIVERABLES+=("$DELIVERABLES_JSON")
+
+    echo "✅ ${specialist} completed with confidence: ${CONFIDENCE}"
+  else
+    echo "⚠️ SEO specialist ${specialist} timed out"
+    SEO_CONFIDENCES+=("0.0")
+  fi
+done
+
+# Calculate SEO pipeline confidence
+AVERAGE_SEO_CONFIDENCE=$(printf '%s\n' "${SEO_CONFIDENCES[@]}" | awk '{sum+=$1} END {print sum/NR}')
+echo "SEO Pipeline average confidence: $AVERAGE_SEO_CONFIDENCE"
+```
+
+### SEO Content Strategy Consensus
+
+For content strategy decisions (keyword selection, content structure, optimization strategy):
+
+```bash
+# Content Strategy Consensus Collection
+STRATEGY_VALIDATORS=("competitive-seo-analyst" "content-seo-strategist" "technical-seo-specialist")
+STRATEGY_CONSENSUSES=()
+
+for validator in "${STRATEGY_VALIDATORS[@]}"; do
+  # Collect strategy consensus signals
+  CONSENSUS_SIGNAL=$(redis-cli blpop "swarm:${TASK_ID}:${validator}:strategy_done" 180)
+
+  if [ -n "$CONSENSUS_SIGNAL" ]; then
+    STRATEGY_SCORE=$(redis-cli HGET "seo_campaign:${TASK_ID}:strategy_consensus:${validator}")
+    STRATEGY_CONSENSUSES+=("$STRATEGY_SCORE")
+  else
+    STRATEGY_CONSENSUSES+=("0.0")
+  fi
+done
+
+# Calculate strategy consensus for SEO decisions
+STRATEGY_AVERAGE=$(printf '%s\n' "${STRATEGY_CONSENSUSES[@]}" | awk '{sum+=$1} END {print sum/NR}')
+```
+
+### SEO Validation Gate (Content Quality)
+
+SEO content must pass validation gate before publishing:
+
+```bash
+# SEO Validation Gate Check
+VALIDATION_THRESHOLD=0.95
+
+if (( $(echo "$AVERAGE_SEO_CONFIDENCE >= $VALIDATION_THRESHOLD" | bc -l) )); then
+  echo "✅ SEO Content Quality Gate PASSED"
+
+  # Store gate result and signal schema generation
+  redis-cli HSET "seo_campaign:${TASK_ID}:validation_gate" \
+    "status" "passed" \
+    "confidence" "$AVERAGE_SEO_CONFIDENCE" \
+    "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  # Signal schema-markup-engineer to create structured data
+  redis-cli lpush "swarm:${TASK_ID}:seo-validation-passed" "1"
+
+  # Trigger schema generation and publishing
+  spawn_schema_generation
+else
+  echo "❌ SEO Content Quality Gate FAILED - requires optimization"
+
+  # Store failure and prepare optimization feedback
+  redis-cli HSET "seo_campaign:${TASK_ID}:validation_gate" \
+    "status" "failed" \
+    "confidence" "$AVERAGE_SEO_CONFIDENCE" \
+    "optimization_needed" "true"
+
+  # Prepare content optimization feedback
+  prepare_seo_optimization_feedback
+fi
+```
+
+### SEO Specialist Completion Protocol (Mode-Specific)
+
+```bash
+# CLI Mode Completion Signal (REQUIRED for CLI-spawned SEO specialists)
+signal_seo_specialist_completion() {
+  local confidence="$1"
+  local deliverables="$2"
+  local specialist_type="$3"
+
+  if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+    # Signal specialist completion
+    redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+    # Store SEO-specific confidence and deliverables
+    redis-cli HSET "seo_campaign:${TASK_ID}:confidence:${AGENT_ID}" \
+      "confidence" "$confidence" \
+      "specialist_type" "$specialist_type" \
+      "deliverables_created" "$deliverables" \
+      "reported_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    # Use coordination script for structured reporting
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+      --task-id "$TASK_ID" \
+      --agent-id "$AGENT_ID" \
+      --confidence "$confidence" \
+      --iteration 1 \
+      --result '{"deliverables": '"$deliverables"', "specialist_type": "'"$specialist_type"'"}'
+  fi
+}
+
+# Task Mode (if spawned via Task() in Main Chat)
+# Simply return JSON response - no Redis signals needed
+```
+
+### SEO Pipeline Progress Monitoring
+
+```bash
+# Monitor SEO pipeline progress in real-time
+monitor_seo_pipeline_progress() {
+  local task_id="$1"
+
+  while true; do
+    echo "=== SEO Pipeline Status ==="
+
+    # Check each pipeline step
+    for step in keyword-research competitor-analysis content-outline research seo-writing seo-optimization validation schema-generation; do
+      step_status=$(redis-cli HGET "seo_campaign:${task_id}:step:${step}" "status" 2>/dev/null || echo "not_started")
+      echo "  ${step}: ${step_status}"
+    done
+
+    # Overall pipeline confidence
+    overall_confidence=$(redis-cli HGET "seo_campaign:${task_id}:validation_gate" "confidence" 2>/dev/null || echo "0.00")
+    echo "  Overall Confidence: ${overall_confidence}"
+
+    # Cost optimization status
+    cost_savings=$(redis-cli HGET "seo_campaign:${task_id}:config" "cost_optimization")
+    echo "  Cost Optimization: ${cost_savings:-disabled}"
+
+    echo ""
+    sleep 30
+  done
+}
+
+# Enable swarm recovery for SEO campaigns
+recover_seo_campaign() {
+  local task_id="$1"
+
+  # Restore campaign context
+  CAMPAIGN_CONTEXT=$(redis-cli HGETALL "seo_campaign:${task_id}:context" | jq -s 'reduce .[] as $item ({}; . + $item)')
+
+  echo "🔄 Recovering SEO Campaign: $(echo "$CAMPAIGN_CONTEXT" | jq -r '.target_keyword')"
+  echo "   Campaign Type: $(echo "$CAMPAIGN_CONTEXT" | jq -r '.campaign_type')"
+  echo "   Last Iteration: $(echo "$CAMPAIGN_CONTEXT" | jq -r '.iteration')"
+
+  # Resume from last completed step
+  LAST_COMPLETED_STEP=$(redis-cli HGETALL "seo_campaign:${task_id}:step:*" | grep "completed" | tail -1 | cut -d: -f3)
+  if [ -n "$LAST_COMPLETED_STEP" ]; then
+    echo "   Resuming from: ${LAST_COMPLETED_STEP}"
+  fi
+}
+```
+
 ## Progress Monitoring
 
-The pipeline tracks all agent progress and validation results through output logs and status files. Status updates are handled automatically through the orchestration layer.
+The Redis coordination system tracks all SEO specialist progress and validation results in real-time:
+
+- **Specialist Progress**: Track each SEO pipeline step completion status
+- **Confidence Scores**: Monitor quality gate thresholds for content validation
+- **Cost Optimization**: Z.ai routing enabled for all SEO specialists (95% cost savings)
+- **Swarm Recovery**: SEO campaign state survives disconnections and can be resumed
+
+Status updates and progress monitoring are handled automatically through the Redis coordination layer.
 
 ## CLI Mode Cost Optimization
 
