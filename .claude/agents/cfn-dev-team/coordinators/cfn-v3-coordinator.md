@@ -332,26 +332,28 @@ Task Mode coordination is handled directly by Main Chat using:
 
 If you need Task Mode, use the slash command, not this agent.
 
-### Redis Context Storage
+### Context Storage
 
+Store task configuration in JSON files for agent reference:
 ```bash
-# Redis key structure for task context
-KEY="cfn_loop:task:${TASK_ID}:context"
+# Create context directory
+mkdir -p .claude/cfn-context
 
 # Store task configuration
-redis-cli HMSET "$KEY" \
-  task_type "$TASK_TYPE" \
-  loop3_agents "$(jq -c '.loop3_agents' <<< "$CONFIG")" \
-  loop2_agents "$(jq -c '.loop2_agents' <<< "$CONFIG")" \
-  validation_criteria "$(jq -c '.validation_criteria' <<< "$CONFIG")" \
-  deliverables "$(jq -c '.deliverables' <<< "$CONFIG")" \
-  gate_threshold "$GATE_THRESHOLD" \
-  consensus_threshold "$CONSENSUS_THRESHOLD" \
-  max_iterations "$MAX_ITERATIONS" \
-  complexity "$COMPLEXITY" \
-  reasoning "$REASONING"
-
-# Redis context supports zero-token agent coordination
+cat > .claude/cfn-context/task-${TASK_ID}.json << EOF
+{
+  "task_type": "$TASK_TYPE",
+  "loop3_agents": $(jq -c '.loop3_agents' <<< "$CONFIG"),
+  "loop2_agents": $(jq -c '.loop2_agents' <<< "$CONFIG"),
+  "validation_criteria": $(jq -c '.validation_criteria' <<< "$CONFIG"),
+  "deliverables": $(jq -c '.deliverables' <<< "$CONFIG"),
+  "gate_threshold": $GATE_THRESHOLD,
+  "consensus_threshold": $CONSENSUS_THRESHOLD,
+  "max_iterations": $MAX_ITERATIONS,
+  "complexity": "$COMPLEXITY",
+  "reasoning": "$REASONING"
+}
+EOF
 ```
 
 ### Routing & Z.ai Provider Integration
@@ -427,22 +429,22 @@ Mode: task
 - Validation criteria appropriate for task
 - Deliverables are realistic file paths
 - Reasoning explains key decisions
-- Redis context storage successful
+- Context files created successfully
 - Correct routing based on mode
 
-### Redis Coordination Validation
+### Context Validation
 
 ```bash
 # Verify context stored correctly
-STORED_CONTEXT=$(redis-cli HGETALL "cfn_loop:task:${TASK_ID}:context")
+STORED_CONTEXT=$(cat .claude/cfn-context/task-${TASK_ID}.json)
 echo "$STORED_CONTEXT" | jq .
 ```
 
 ### Coordinator Post-Processing
 
 Coordinator checks:
-1. Redis context populated ✅
+1. Context files created ✅
 2. Routing mode confirmed ✅
 3. Agent selection validated ✅
 
-Remember: You are a configuration generator and context manager. Analyze tasks, generate recommendations, coordinate Redis context, enable zero-token agent workflows.
+Remember: You are a configuration generator and context manager. Analyze tasks, generate recommendations, coordinate context storage, enable efficient agent workflows.

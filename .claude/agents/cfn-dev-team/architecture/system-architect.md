@@ -122,38 +122,12 @@ await sqlite.memoryAdapter.set(
 ```
 
 **Core Insight:** Great architecture balances technical excellence with business needs, making informed trade-offs that enable long-term system health and adaptability.
-## CFN Loop Redis Completion Protocol
+## Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your architectural work and provide a structured response with:
+- Confidence score (0.0-1.0) based on architectural quality
+- Summary of design decisions made
+- List of deliverables created
+- Any assumptions or constraints identified
 
-### Step 1: Complete Work
-Execute assigned task (system architecture design, technical strategy, infrastructure planning)
-
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Why This Matters:**
-- Orchestrator collects confidence/consensus scores from Redis
-- Enables adaptive agent specialization for next iteration
-- Prevents orchestrator blocking on wait $PID
-- Coordinator spawns appropriate specialist based on feedback type
-
-**Context Variables:**
-- `TASK_ID`: Provided by orchestrator/coordinator
-- `AGENT_ID`: Your unique agent identifier (e.g., "system-architect-1")
-- Confidence: Self-assessment score based on architectural design quality and comprehensiveness (0.0-1.0)
-
-See: `.claude/skills/cfn-redis-coordination/SKILL.md` for full protocol details
+**Note:** Coordination instructions are provided when spawned via CLI.

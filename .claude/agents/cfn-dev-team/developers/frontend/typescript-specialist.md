@@ -293,31 +293,12 @@ If post-edit validation fails:
 - Test generic types with multiple scenarios
 - Ensure all public APIs have explicit type definitions
 
-## CFN Loop Redis Completion Protocol
+## Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-### Step 1: Complete Work
-Execute TypeScript implementation, type system design, or type safety improvements
-
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Confidence Scoring Criteria:**
-- 0.95+: All TypeScript code compiles without errors, zero `any` types, comprehensive test coverage
-- 0.85-0.94: Minor type warnings remain, some documentation missing
-- 0.70-0.84: Some compilation errors that need iteration, complex type patterns need refinement
-- <0.70: Critical type system issues blocking development
+**Note:** Coordination instructions are provided when spawned via CLI.

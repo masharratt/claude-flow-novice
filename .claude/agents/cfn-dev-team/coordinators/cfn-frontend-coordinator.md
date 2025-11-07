@@ -62,14 +62,13 @@ fs.writeFileSync('.claude/brand-guidelines.json', JSON.stringify(brandGuidelines
 
 If brand guidelines provided, use those directly.
 
-**Step 4: Store Context in Redis**
+**Step 4: Store Context for Agent Reference**
+Store brand guidelines and context in temporary files for agent reference:
 ```bash
-# Store epic/phase context
-redis-cli hset "cfn_loop:task:${TASK_ID}:context" \
-  "mockupPath" "${MOCKUP_PATH}" \
-  "brandGuidelines" "$(cat .claude/brand-guidelines.json)" \
-  "visualThreshold" "85" \
-  "mode" "${MODE}"
+# Store brand guidelines for agents
+echo "${BRAND_GUIDELINES}" > .claude/frontend-brand-guidelines.json
+echo "${MOCKUP_PATH}" > .claude/frontend-mockup-path.txt
+echo "${MODE}" > .claude/frontend-mode.txt
 ```
 
 ### Phase 1: Loop 3 - Implementation with Visual Context
@@ -208,9 +207,8 @@ if (overallScore >= 85) {
     ]
   };
 
-  // Store feedback in Redis for next iteration
-  redis-cli hset "cfn_loop:task:${TASK_ID}:feedback" \
-    "iteration_${iteration}" "$(echo "$visualFeedback" | jq -c .)"
+  // Store feedback for next iteration
+  echo "$visualFeedback" | jq -c . > .claude/frontend-feedback-iteration-${iteration}.json
 }
 ```
 
@@ -292,12 +290,11 @@ wait "${VALIDATOR_PIDS[@]}"
 ```
 
 **Collect Consensus:**
+Gather validator feedback and calculate consensus score from their outputs:
 ```bash
-CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
-  --task-id "$TASK_ID" \
-  --agent-ids "$(IFS=,; echo "${loop2Agents[*]}")")
-
-echo "Loop 2 consensus: $CONSENSUS"
+# Collect validator outputs and calculate consensus
+CONSENSUS_SCORE=$(calculate-consensus-from-outputs.sh "${VALIDATOR_OUTPUTS[@]}")
+echo "Loop 2 consensus: $CONSENSUS_SCORE"
 ```
 
 ### Phase 4: Loop 4 - Product Owner Decision
@@ -318,7 +315,7 @@ Deliverables:
 $(git diff --name-only HEAD | grep -E '\.(tsx?|jsx?|css)$')
 
 Validation results:
-$(redis-cli hget "cfn_loop:task:${TASK_ID}:validation" "loop2_results")
+$(cat .claude/frontend-validation-results.json 2>/dev/null || echo "Validation results pending")
 
 DECISION CRITERIA:
 - Visual + interaction score ≥85%
@@ -407,13 +404,12 @@ fi
 **You MUST use the orchestrator script for dependency enforcement:**
 
 ```bash
-# Store all context in Redis first
-redis-cli hset "cfn_loop:task:${TASK_ID}:context" \
-  "mockupPath" "${MOCKUP_PATH}" \
-  "brandGuidelines" "$(cat .claude/brand-guidelines.json)" \
-  "visualThreshold" "85" \
-  "componentName" "${COMPONENT_NAME}" \
-  "taskDescription" "${TASK_DESCRIPTION}"
+# Store all context for orchestrator
+echo "${MOCKUP_PATH}" > .claude/frontend-mockup-path.txt
+cat .claude/brand-guidelines.json > .claude/frontend-brand-guidelines.json
+echo "85" > .claude/frontend-visual-threshold.txt
+echo "${COMPONENT_NAME}" > .claude/frontend-component-name.txt
+echo "${TASK_DESCRIPTION}" > .claude/frontend-task-description.txt
 
 # Invoke orchestrator (handles all spawning + dependency coordination)
 ./.claude/skills/cfn-loop-orchestration/cfn-orchestrate.sh \

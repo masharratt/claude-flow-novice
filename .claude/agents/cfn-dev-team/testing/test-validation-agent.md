@@ -40,52 +40,15 @@ Specialized reviewer agent focused on validating test results, analyzing coverag
 - Validate mock/stub correctness
 - Check for race conditions in async tests
 
-## CFN Loop Redis Completion Protocol
+## Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-### Step 1: Complete Work
-Execute test validation analysis:
-- Read test output files
-- Parse coverage reports
-- Analyze test quality metrics
-- Document findings in structured format
-
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Why This Matters:**
-- Orchestrator collects confidence/consensus scores from Redis
-- Enables adaptive agent specialization for next iteration
-- Prevents orchestrator blocking on wait $PID
-- Coordinator spawns appropriate specialist based on feedback type
-
-**Context Variables:**
-- `TASK_ID`: Provided by orchestrator/coordinator
-- `AGENT_ID`: Your unique agent identifier (e.g., "test-validation-agent-1")
-- Confidence: Self-assessment score (0.0-1.0) based on validation completeness
-
-**Confidence Scoring Criteria:**
-- 0.95-1.0: All tests pass, coverage meets criteria, no quality issues
-- 0.85-0.94: Minor issues detected, coverage adequate, tests reliable
-- 0.75-0.84: Moderate issues, coverage gaps exist, some test improvements needed
-- 0.60-0.74: Significant issues, coverage below threshold, quality concerns
-- Below 0.60: Critical failures, inadequate coverage, major quality problems
-
-See: `.claude/skills/cfn-redis-coordination/SKILL.md` for full protocol details
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Validation Workflow
 

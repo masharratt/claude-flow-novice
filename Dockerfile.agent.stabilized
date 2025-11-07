@@ -1,0 +1,99 @@
+# CFN Stabilized Agent - Docker-Native Memory Leak Protection
+FROM node:18-alpine AS base
+
+# Install system dependencies
+RUN apk add --no-cache \
+    bash \
+    curl \
+    jq \
+    redis \
+    && rm -rf /var/cache/apk
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfn && \
+    adduser -S cfn -u 1001 -G cfn
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Install CLI globally
+RUN npm install -g .
+
+# Create container mode detection script
+RUN cat > /app/container-mode-detection.sh << 'EOF'
+#!/bin/bash
+
+# Container-aware mode detection for Docker environments
+detect_container_mode() {
+    # Check if Task/CLI mode indicators are present
+    if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+        echo "container-task"
+        return 0
+    fi
+
+    # Check if CLI mode indicators are present
+    if [[ -n "${CFN_SWARM_ID:-}" && -n "${CFN_REDIS_URL:-}" ]]; then
+        echo "container-cli"
+        return 0
+    fi
+
+    # Default to task mode for containers
+    echo "container-task"
+    return 0
+}
+
+# Export mode for other scripts
+export CFN_CONTAINER_MODE=$(detect_container_mode)
+EOF
+
+RUN chmod +x /app/container-mode-detection.sh
+
+# Create entrypoint script
+RUN cat > /app/entrypoint.sh << 'EOF'
+#!/bin/bash
+
+# Source container mode detection
+source /app/container-mode-detection.sh
+
+# Set Node.js options based on container mode
+case "$CFN_CONTAINER_MODE" in
+    "container-task")
+        export NODE_OPTIONS="--max-old-space-size=2048 --optimize-for-size"
+        ;;
+    "container-cli")
+        export NODE_OPTIONS="--max-old-space-size=4096"
+        ;;
+esac
+
+# Execute the main command
+exec "$@"
+EOF
+
+RUN chmod +x /app/entrypoint.sh
+
+# Switch to non-root user
+USER cfn
+
+# Set environment variables for container operation
+ENV NODE_ENV=production
+ENV CFN_DOCKER_CONTAINER=true
+
+# Use entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Default command - start agent
+CMD ["npx", "claude-flow-novice"]
+
+# Task mode target (lower resources)
+FROM base AS task-mode
+ENV CFN_MODE=task
+ENV NODE_OPTIONS="--max-old-space-size=2048 --optimize-for-size"
+
+# CLI mode target (higher resources)
+FROM base AS cli-mode
+ENV CFN_MODE=cli
+ENV NODE_OPTIONS="--max-old-space-size=4096"

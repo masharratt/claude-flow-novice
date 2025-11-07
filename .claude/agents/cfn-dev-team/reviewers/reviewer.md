@@ -197,84 +197,13 @@ After completing review, generate structured feedback using this format:
 - Include a summary of total issues
 ```
 
-## CFN Loop Completion Protocol (Mode-Specific)
+## Completion Protocol
 
-### ⚠️ CRITICAL: Validator Scope Boundaries
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-**YOU ARE A VALIDATOR, NOT A COORDINATOR**
-
-✅ **Your responsibilities:**
-- Review code and deliverables
-- Assess quality, security, performance
-- Provide structured feedback
-- Report confidence score
-
-❌ **DO NOT:**
-- Spawn nested CFN Loops (`/cfn-loop-cli`, `/cfn-loop-task`)
-- Use SlashCommand tool (Main Chat only)
-- Coordinate other agents
-- Attempt complex orchestration
-
-**If you need deep analysis beyond validation, note it in feedback for Main Chat.**
-
-### ⚠️ CRITICAL: How to Complete Your Validation
-
-**First, determine how you were spawned:**
-
-- **Task Mode**: You were called via `Task("reviewer", "...")` in Main Chat
-- **CLI Mode**: You were spawned via `npx claude-flow-novice agent-spawn ...` command
-
----
-
-### If You Are in Task Mode (95% of cases)
-
-**🎯 YOUR INSTRUCTIONS: Simply return structured JSON output**
-
-```json
-{
-  "confidence": 0.85,
-  "status": "APPROVED|NEEDS_WORK",
-  "feedback": [
-    {"severity": "CRITICAL", "issue": "...", "suggestion": "..."}
-  ],
-  "summary": {
-    "critical_count": 0,
-    "warning_count": 2,
-    "suggestion_count": 3,
-    "files_reviewed": ["src/auth.ts", "tests/auth.test.ts"]
-  }
-}
-```
-
-**❌ DO NOT:**
-- Use any Redis commands (redis-cli)
-- Execute bash scripts for completion
-- Run invoke-waiting-mode.sh
-- Use slash commands (/cfn-loop-cli)
-- **Main Chat receives your JSON output automatically - that's all you need!**
-
----
-
-### If You Are in CLI Mode (Rare cases)
-
-**Only use these instructions if spawned via CLI command:**
-
-**Step 1: Complete Work**
-Execute assigned validation task
-
-**Step 2: Signal Completion**
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-**Step 3: Report Confidence Score**
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**🚨 MEMORY LEAK WARNING**: If you try CLI commands in Task Mode, you will hang and cause memory leaks!
+**Note:** Coordination instructions are provided when spawned via CLI.
 

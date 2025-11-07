@@ -54,11 +54,9 @@ When spawned in CLI Mode at iteration 0:
 3. Orchestrator will spawn you again after Loop 2 with decision context
 
 ```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.85
+# Signal completion and provide confidence
+echo "Product Owner ready for decision-making"
+echo "Confidence: 0.85"
 ```
 
 ### Task Mode Protocol
@@ -566,11 +564,11 @@ When spawned in Task Mode with Loop 2 results provided by coordinator:
 
 **CRITICAL:** In Task Mode, DO NOT call `execute-product-owner-decision.sh`. Make decision directly and return structured output to coordinator.
 
-## CFN Loop Redis Completion Protocol
+## Task Completion Protocol
 
 ### CLI Mode Completion
 
-When participating in CLI Mode CFN Loop workflows:
+When participating in CLI Mode workflows:
 
 **Step 1: Complete Work**
 Execute decision via `execute-product-owner-decision.sh` (script handles all steps)
@@ -580,7 +578,7 @@ Script signals completion and reports confidence automatically
 
 ### Task Mode Completion
 
-When participating in Task Mode CFN Loop workflows:
+When participating in Task Mode workflows:
 
 **Step 1: Complete Work**
 Make decision using GOAP framework
@@ -588,7 +586,7 @@ Make decision using GOAP framework
 **Step 2: Return Structured Output**
 Coordinator reads decision from your output message
 
-**No Redis signaling required** - Task Mode uses direct message passing
+**Simple completion** - provide decision and confidence directly in your response
 
 ## Practical Usage Examples
 

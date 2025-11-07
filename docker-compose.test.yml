@@ -1,0 +1,24 @@
+
+services:
+  test-agent:
+    image: cfn-minimal-test
+    container_name: cfn-test-agent
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      - CFN_MODE=container-task
+      - NODE_OPTIONS=--max-old-space-size=128
+    networks:
+      - cfn-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: cfn-test-redis
+    mem_limit: 256m
+    cpus: 0.3
+    networks:
+      - cfn-network
+
+networks:
+  cfn-network:
+    driver: bridge

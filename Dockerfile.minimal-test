@@ -1,0 +1,19 @@
+# Minimal test image for Docker-native stabilization
+FROM node:18-alpine
+
+# Install minimal dependencies
+RUN apk add --no-cache bash && rm -rf /var/cache/apk
+
+# Create test user
+RUN addgroup -g 1001 -S test && adduser -S test -u 1001 -G test
+
+USER test
+WORKDIR /app
+
+# Simple test script
+RUN echo '#!/bin/bash' > test.sh && \
+    echo 'echo "🐳 CFN Docker-native test successful"' >> test.sh && \
+    echo 'echo "Memory limit: $(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)"' >> test.sh && \
+    chmod +x test.sh
+
+CMD ["./test.sh"]

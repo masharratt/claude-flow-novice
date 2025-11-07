@@ -153,71 +153,12 @@ const calculateTechnicalDebtScore = (items: TechnicalDebtItem[]): number => {
 - [x] Persisted results to SQLite with appropriate ACL
 
 Remember: Code analysis reveals improvement opportunities. Focus on actionable, prioritized recommendations that balance impact with effort.
-## ⚠️ CRITICAL: Mode-Specific Completion Protocol (ANTI-023 MEMORY LEAK FIX)
+## Completion Protocol
 
-**First, determine how you were spawned:**
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on code quality analysis
+- Summary of quality assessment completed
+- List of code smells and technical debt items identified
+- Refactoring recommendations and complexity metrics
 
-**Task Mode (95%):** You were called via `Task("code-quality-validator", "...")` in Main Chat
-- Simply complete your code quality analysis and return structured JSON output
-- **❌ DO NOT:** Use Redis commands, execute bash scripts, signal completion via CLI tools
-- Main Chat receives your output automatically
-
-**CLI Mode (5%):** You were spawned via `npx claude-flow-novice agent-spawn ...` command
-- Use Redis signals and completion scripts as outlined below
-
-### Task Mode (Spawned via Task() tool in Main Chat)
-
-**Simply complete your work and return structured output.**
-
-```json
-{
-  "confidence": 0.85,
-  "status": "COMPLETE|NEEDS_WORK",
-  "summary": "Code quality analysis completed",
-  "deliverables": ["quality-report.md", "technical-debt-assessment.json"],
-  "analysis": {
-    "complexity_score": 7.2,
-    "maintainability_index": 85,
-    "technical_debt_items": 12,
-    "code_smells": 5
-  }
-}
-```
-
-**❌ FORBIDDEN in Task Mode:**
-- **DO NOT** run `redis-cli` commands
-- **DO NOT** execute `invoke-waiting-mode.sh` scripts
-- **DO NOT** use bash completion scripts
-- **DO NOT** signal completion via CLI tools
-- **Main Chat receives your output automatically - no coordination needed**
-
-### CLI Mode (Spawned via `npx claude-flow-novice agent-spawn`)
-
-**Step 1: Complete Work**
-Execute assigned task (code analysis, technical debt assessment, quality validation)
-
-**Step 2: Signal Completion**
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-**Step 3: Report Confidence Score and Exit**
-```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**Why This Matters:**
-- **ANTI-023 MEMORY LEAK:** Task Mode agents attempting CLI commands hang indefinitely
-- Task Mode uses direct JSON output, CLI Mode uses Redis coordination
-- Mixing protocols causes memory leaks and process hanging
-- **Check your spawn method FIRST before using any completion protocol**
-
-### How to Tell Which Mode You're In
-
-- **Task Mode**: You see a direct task assignment in Main Chat context
-- **CLI Mode**: You have TASK_ID and AGENT_ID environment variables
-- **When in doubt, assume Task Mode and return structured JSON output**
+**Note:** Coordination instructions are provided when spawned via CLI.

@@ -1,0 +1,41 @@
+apiVersion: 1
+
+# Docker-native CFN Monitoring Datasource
+datasources:
+  docker-native-cfn:
+    name: Docker Native CFN
+    type: docker
+    access: proxy
+    isDefault: true
+    uid: docker-native-cfn
+    url: http://docker-proxy:2375
+    readOnly: true
+
+  # Redis for CFN coordination metrics
+  redis-cfn-metrics:
+    name: CFN Redis Metrics
+    type: redis
+    access: proxy
+    uid: redis-cfn-metrics
+    url: redis://redis:6379
+    database: 0
+    jsonData: true
+
+  # File-based telemetry from containers
+  file-cfn-telemetry:
+    name: CFN Container Telemetry
+    type: file
+    uid: file-cfn-telemetry
+    path: /var/lib/grafana/data/telemetry
+    orgId: 1
+    # This path will be volume-mounted from host
+
+  # System metrics from host
+  system-metrics:
+    name: System Metrics
+    type: prometheus
+    uid: system-metrics
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    jsonData: false

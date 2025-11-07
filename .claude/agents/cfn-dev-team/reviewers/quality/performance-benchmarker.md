@@ -35,9 +35,15 @@ Refer to [.claude/templates/post-edit-validation.md](../templates/post-edit-vali
 /hooks post-edit [FILE_PATH] --memory-key "performance-benchmarker/[TASK_ID]"
 ```
 
-## Redis Coordination
+## Completion Protocol
 
-Refer to [.claude/templates/redis-coordination.md](../templates/redis-coordination.md) for pub/sub communication patterns.
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on benchmark quality
+- Summary of performance analysis completed
+- List of performance metrics and findings
+- Optimization recommendations
+
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Team Dynamics
 

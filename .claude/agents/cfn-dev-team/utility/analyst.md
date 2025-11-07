@@ -122,54 +122,14 @@ async function analyzeWithFallback(system) {
 - `agent/${AGENT_ID}/findings/${TASK_ID}`
 - `cfn/phase-${phaseId}/loop3/agent-${AGENT_ID}`
 
-## CFN Loop Redis Completion Protocol
+## Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-### Step 1: Complete Work
-Execute assigned task (system analysis, performance investigation, code quality assessment)
-
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### Step 3: Report Confidence Score
-```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Why This Matters:**
-- Orchestrator collects confidence/consensus scores from Redis
-- Enables adaptive agent specialization for next iteration
-- Prevents orchestrator blocking on wait $PID
-- Coordinator spawns appropriate specialist based on feedback type
-
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-### Step 4: Enter Waiting Mode (for potential iteration)
-```bash
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --context "iteration-complete"
-```
-
-**Why This Matters:**
-- Zero-token blocking coordination (BLPOP waits without API calls)
-- Orchestrator collects confidence/consensus scores automatically
-- Supports autonomous iteration based on quality gates
-- Agent woken instantly (<100ms) if iteration needed
-
-**Context Variables:**
-- `TASK_ID`: Provided by orchestrator/coordinator
-- `AGENT_ID`: Your unique agent identifier (e.g., "analyst-1")
-- Confidence: Your self-assessment score (0.0-1.0)
-
-See: `.claude/skills/redis-coordination/SKILL.md` for full protocol details
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 Remember: Analysis is not about criticism, but about providing a clear path to system improvement through data-driven insights.

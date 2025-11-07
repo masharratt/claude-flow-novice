@@ -1,0 +1,190 @@
+version: '3.8'
+
+services:
+  # CFN Orchestrator (CLI Mode - Production)
+  cfn-orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    image: claude-flow-novice:orchestrator-latest
+    container_name: cfn-orchestrator
+    environment:
+      - CFN_MODE=cli
+      - REDIS_URL=redis://redis:6379
+      - CFN_TELEMETRY_ENABLED=true
+      - CFN_LOG_LEVEL=info
+    deploy:
+      resources:
+        limits:
+          memory: ${CFN_ORCHESTRATOR_MEMORY_LIMIT:-8192M}
+          cpus: '${CFN_ORCHESTRATOR_CPU_LIMIT:-2.0}'
+        reservations:
+          memory: 2048M
+          cpus: '0.5'
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./artifacts:/app/artifacts
+      - ./logs:/app/logs
+    networks:
+      - cfn-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # CFN Agent Pool (Task Mode - Default)
+  cfn-agent-task:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent.stabilized
+      target: task-mode
+    image: claude-flow-novice:agent-task-latest
+    environment:
+      - CFN_MODE=task
+      - NODE_OPTIONS=--max-old-space-size=2048
+      - CFN_MEMORY_LIMIT=2048
+      - CFN_CPU_LIMIT=80
+      - CFN_TIMEOUT=300
+    deploy:
+      resources:
+        limits:
+          memory: ${CFN_TASK_MEMORY_LIMIT:-2048M}
+          cpus: '${CFN_TASK_CPU_LIMIT:-1.0}'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    restart: unless-stopped
+    volumes:
+      - ./artifacts:/app/artifacts
+    networks:
+      - cfn-network
+    healthcheck:
+      test: ["CMD", "node", "/app/healthcheck.js"]
+      interval: 60s
+      timeout: 5s
+      retries: 2
+
+  # CFN Agent Pool (CLI Mode - Performance)
+  cfn-agent-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent.stabilized
+      target: cli-mode
+    image: claude-flow-novice:agent-cli-latest
+    environment:
+      - CFN_MODE=cli
+      - NODE_OPTIONS=--max-old-space-size=4096
+      - CFN_MEMORY_LIMIT=4096
+      - CFN_CPU_LIMIT=100
+      - REDIS_URL=redis://redis:6379
+    deploy:
+      resources:
+        limits:
+          memory: ${CFN_CLI_MEMORY_LIMIT:-4096M}
+          cpus: '${CFN_CLI_CPU_LIMIT:-1.5}'
+        reservations:
+          memory: 1024M
+          cpus: '0.5'
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./artifacts:/app/artifacts
+    networks:
+      - cfn-network
+
+  # Redis for CLI Mode Coordination
+  redis:
+    image: redis:7-alpine
+    container_name: cfn-redis
+    command: >
+    sh -c "
+    echo 'maxmemory $${CFN_REDIS_MAXMEMORY:-256mb}' >> /tmp/redis.conf &&
+    echo 'maxmemory-policy $${CFN_REDIS_MAXMEMORY_POLICY:-allkeys-lru}' >> /tmp/redis.conf &&
+    cat /usr/local/etc/redis/redis.conf /tmp/redis.conf > /tmp/redis-final.conf &&
+    redis-server /tmp/redis-final.conf
+    "
+    deploy:
+      resources:
+        limits:
+          memory: ${CFN_REDIS_MEMORY_LIMIT:-1G}
+          cpus: '${CFN_REDIS_CPU_LIMIT:-0.3}'
+        reservations:
+          memory: 256M
+    volumes:
+      - redis-data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - cfn-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Telemetry Collector
+  cfn-telemetry:
+    build:
+      context: .
+      dockerfile: Dockerfile.telemetry
+    image: claude-flow-novice:telemetry-latest
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - TELEMETRY_INTERVAL=30
+      - TELEMETRY_RETENTION_DAYS=7
+    deploy:
+      resources:
+        limits:
+          memory: ${CFN_TELEMETRY_MEMORY_LIMIT:-512M}
+          cpus: '${CFN_TELEMETRY_CPU_LIMIT:-0.5}'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./artifacts/telemetry:/app/telemetry
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for monitoring
+    networks:
+      - cfn-network
+
+  # Monitoring Dashboard (Optional)
+  cfn-dashboard:
+    image: grafana/grafana:latest
+    container_name: cfn-dashboard
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    deploy:
+      resources:
+        limits:
+          memory: ${CFN_GRAFANA_MEMORY_LIMIT:-512M}
+          cpus: '${CFN_GRAFANA_CPU_LIMIT:-0.5}'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - cfn-network
+
+volumes:
+  redis-data:
+  grafana-data:
+
+networks:
+  cfn-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

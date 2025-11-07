@@ -1,0 +1,183 @@
+# CFN Docker-native Telemetry Collector
+FROM node:18-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    curl \
+    jq \
+    bash \
+    tzdata \
+    docker-cli \
+    python3 \
+    py3-pip \
+    && rm -rf /var/cache/apk
+
+# Install Python dependencies for analytics
+RUN pip3 --no-cache install \
+    psutil \
+    docker-compose
+
+# Set timezone
+ENV TZ=UTC
+
+# Application directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Create non-root user
+RUN addgroup -g 1001 -S telemetry && \
+    adduser -S telemetry -u 1001 -G telemetry
+
+# Copy application code
+COPY --chown=telemetry:telemetry . ./
+RUN npm install -g .
+
+# Switch to telemetry user
+USER telemetry
+
+# Environment variables
+ENV NODE_ENV=production
+ENV TELEMETRY_INTERVAL=30
+ENV TELEMETRY_RETENTION_DAYS=7
+ENV REDIS_URL=redis://redis:6379
+
+# Create simple telemetry collector
+RUN cat > /app/simple-telemetry-collector.js << 'EOF'
+const { createClient } = require('redis');
+const { readFileSync } = require('fs');
+
+class SimpleTelemetryCollector {
+    constructor() {
+        this.redis = null;
+        this.interval = parseInt(process.env.TELEMETRY_INTERVAL) * 1000 || 30000;
+        this.initRedis();
+        this.startCollection();
+    }
+
+    async initRedis() {
+        try {
+            this.redis = createClient({
+                url: process.env.REDIS_URL || 'redis://localhost:6379'
+            });
+            await this.redis.connect();
+            console.log('✅ Redis connected successfully');
+        } catch (error) {
+            console.error('❌ Redis connection failed:', error);
+            // Retry connection after delay
+            setTimeout(() => this.initRedis(), 5000);
+        }
+    }
+
+    async collectSystemMetrics() {
+        try {
+            // Read memory info from /proc/meminfo (standard on Alpine)
+            const meminfo = readFileSync('/proc/meminfo', 'utf8');
+            const memLines = meminfo.split('\n');
+
+            let memTotal = 0;
+            let memAvailable = 0;
+            let memFree = 0;
+
+            for (const line of memLines) {
+                if (line.startsWith('MemTotal:')) {
+                    memTotal = parseInt(line.split(/\s+/)[1]) || 0;
+                } else if (line.startsWith('MemAvailable:')) {
+                    memAvailable = parseInt(line.split(/\s+/)[1]) || 0;
+                } else if (line.startsWith('MemFree:')) {
+                    memFree = parseInt(line.split(/\s+/)[1]) || 0;
+                }
+            }
+
+            const used = memTotal - memAvailable;
+            const usedPercent = (used / memTotal) * 100;
+
+            // Read load average
+            const loadavg = readFileSync('/proc/loadavg', 'utf8').trim().split(' ');
+            const loadAverage = parseFloat(loadavg[0]);
+
+            // Read uptime
+            const uptime = parseFloat(readFileSync('/proc/uptime', 'utf8').split(' ')[0]);
+
+            const metrics = {
+                timestamp: new Date().toISOString(),
+                system: {
+                    memory_total_kb: memTotal,
+                    memory_used_kb: used,
+                    memory_available_kb: memAvailable,
+                    memory_free_kb: memFree,
+                    memory_percent: usedPercent,
+                    load_average: loadAverage,
+                    uptime: uptime
+                }
+            };
+
+            return metrics;
+        } catch (error) {
+            console.error('Error collecting system metrics:', error);
+            return null;
+        }
+    }
+
+    async storeMetrics(metrics) {
+        try {
+            await this.redis.setex(
+                'metrics:system:latest',
+                3600, // 1 hour TTL
+                JSON.stringify(metrics)
+            );
+            console.log('📊 Metrics stored successfully');
+        } catch (error) {
+            console.error('Error storing metrics:', error);
+        }
+    }
+
+    startCollection() {
+        console.log('🚀 Starting simple telemetry collection...');
+
+        setInterval(async () => {
+            const metrics = await this.collectSystemMetrics();
+            if (metrics && this.redis) {
+                await this.storeMetrics(metrics);
+            } else if (!this.redis) {
+                console.log('⚠️ Redis not connected, skipping metrics collection');
+            }
+        }, this.interval);
+
+        console.log(`✅ Telemetry collection started (interval: ${this.interval}ms)`);
+    }
+}
+
+// Start collector
+const collector = new SimpleTelemetryCollector();
+EOF
+
+# Create health check endpoint
+RUN cat > /app/health-check.js << 'EOF'
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            service: 'cfn-telemetry'
+        }));
+    } else {
+        res.writeHead(404);
+        res.end();
+    }
+});
+
+server.listen(3000, '0.0.0.0', () => {
+    console.log('🏥 Health check server listening on port 3000');
+});
+EOF
+
+EXPOSE 3000
+
+# Start both telemetry collector and health check
+CMD ["sh", "-c", "node /app/simple-telemetry-collector.js & node /app/health-check.js"]

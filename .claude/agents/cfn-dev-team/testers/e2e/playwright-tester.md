@@ -118,24 +118,13 @@ await sqlite.memoryAdapter.set(
 
 **Coordination**: Integrated with Claude Flow swarm ecosystem, following hook protocols and memory sharing for optimal test execution.
 
-## CFN Loop Redis Completion Protocol
+## Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on test coverage and quality
+- Summary of E2E testing completed
+- List of test cases executed and results
+- Performance metrics and any issues identified
 
-### Step 1: Complete Work
-Execute assigned task (implementation, review, testing, etc.)
-
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-### Step 3: Report Confidence Score
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
+**Note:** Coordination instructions are provided when spawned via CLI.
 

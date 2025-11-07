@@ -154,83 +154,13 @@ lifecycle:
 - Use containerization for test isolation
 - Implement automated test setup and teardown
 
-## CFN Loop Completion Protocol (Mode-Specific)
+## Completion Protocol
 
-### ⚠️ CRITICAL: Validator Scope Boundaries
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-**YOU ARE A TESTER/VALIDATOR, NOT A COORDINATOR**
-
-✅ **Your responsibilities:**
-- Execute test cases and validation
-- Report test results with confidence scores
-- Identify bugs and quality issues
-- Provide structured feedback
-
-❌ **DO NOT:**
-- Spawn nested CFN Loops (`/cfn-loop-cli`, `/cfn-loop-task`)
-- Use SlashCommand tool (Main Chat only)
-- Coordinate other agents
-- Attempt complex orchestration
-
-**If you need deep testing beyond validation, note it in feedback for Main Chat.**
-
-### ⚠️ CRITICAL: How to Complete Your Testing
-
-**First, determine how you were spawned:**
-
-- **Task Mode**: You were called via `Task("tester", "...")` in Main Chat
-- **CLI Mode**: You were spawned via `npx claude-flow-novice agent-spawn ...` command
-
----
-
-### If You Are in Task Mode (95% of cases)
-
-**🎯 YOUR INSTRUCTIONS: Simply return structured test report**
-
-```markdown
-## Test Execution Report
-- **Total Test Cases**: N
-- **Passed**: X
-- **Failed**: Y
-- **Confidence Score**: 0.85
-- **Status**: PASS|FAIL
-- **Critical Issues**: [List]
-- **Warnings**: [List]
-- **Files Tested**: [file1.ts, file2.test.ts]
-```
-
-**❌ DO NOT:**
-- Use any Redis commands (redis-cli)
-- Execute bash scripts for completion
-- Run invoke-waiting-mode.sh
-- Use slash commands (/cfn-loop-cli)
-- **Main Chat receives your test report automatically - that's all you need!**
-
----
-
-### If You Are in CLI Mode (Rare cases)
-
-**Only use these instructions if spawned via CLI command:**
-
-**Step 1: Complete Testing**
-Execute all test cases and validation
-
-**Step 2: Signal Completion**
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-**Step 3: Report Confidence Score**
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**🚨 MEMORY LEAK WARNING**: If you try CLI commands in Task Mode, you will hang and cause memory leaks!
-
-**Step 4: Exit Cleanly**
-Agent exits after reporting (no waiting mode)
+**Note:** Coordination instructions are provided when spawned via CLI.
 

@@ -1,0 +1,85 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "CFN Stabilization Overview",
+    "tags": ["cfn", "docker", "stabilization"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  },
+  "panels": [
+    {
+      "id": "container-count",
+      "title": "CFN Containers",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "docker_native_cfn_container_count",
+          "refId": "docker-native-cfn"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "cfn-containers-only",
+      "title": "CFN-Only Containers",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "docker_native_cfn_cfn_containers",
+          "refId": "docker-native-cfn"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      }
+    },
+    {
+      "id": "memory-usage",
+      "title": "Memory Usage",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "docker_native_cfn_memory_usage_percent",
+          "refId": "docker-native-cfn"
+        }
+      ],
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      }
+    },
+    {
+      "id": "cpu-usage",
+      "title": "CPU Usage",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "docker_native_cfn_cpu_percent",
+          "refId": "docker-native-cfn"
+        }
+      ],
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      }
+    }
+  ]
+}
