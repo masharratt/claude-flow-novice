@@ -6,17 +6,6 @@
 
 ## Overview
 
-Task Mode: Main Chat coordinates directly and spawns agents via Task() tool with full context injection and visibility. NO coordinator agent is used.
-
-| Aspect | Task Mode | CLI Mode |
-|--------|-----------|----------|
-| **Spawning** | Main Chat directly via Task() | Coordinator via npx CLI |
-| **Visibility** | Full transparency in Main Chat | Background, Redis logs |
-| **Provider** | All Anthropic | CLI uses Z.ai routing |
-| **Cost** | ~$0.150/iteration | ~$0.054/iteration (64% savings) |
-| **Use Case** | Debugging, prototyping, learning | Production, cost optimization |
-| **ACE Reflection** | Optional via `--ace-reflect` flag | Always enabled |
-
 ### ACE Reflection Flag
 
 ```bash
@@ -39,7 +28,7 @@ Task Mode: Main Chat coordinates directly and spawns agents via Task() tool with
 
 **Critical Fix**: Prevents Task Mode agents from executing CLI coordination scripts that cause memory leaks.
 
-### Three-Layer Defense System
+### Defense System
 
 #### Layer 1: Agent Documentation
 **Task Mode agents use mode-specific completion protocols:**
@@ -56,26 +45,7 @@ Task Mode: Main Chat coordinates directly and spawns agents via Task() tool with
 - ✅ CLI coordination allowed
 ```
 
-#### Layer 2: Agent-Level Detection
-**Automatic detection functions prevent CLI usage:**
-```bash
-detect_task_mode_and_exit() {
-  if [[ -z "${TASK_ID:-}" || -z "${AGENT_ID:-}" ]]; then
-    echo "❌ TASK MODE DETECTED - CLI commands forbidden"
-    exit 1
-  fi
-}
-```
-
-#### Layer 3: Code-Level Runtime Blocking
-**Coordination scripts include early exit checks:**
-```bash
-# ⚠️ ANTI-023 MEMORY LEAK PROTECTION
-if [[ -z "${TASK_ID:-}" || -z "${AGENT_ID:-}" ]]; then
-    echo "❌ TASK MODE DETECTED - Redis coordination forbidden"
-    exit 1
-fi
-```
+`
 
 ### Memory Impact Resolution
 - **Before Fix**: Up to 23GB memory consumption per hanging agent

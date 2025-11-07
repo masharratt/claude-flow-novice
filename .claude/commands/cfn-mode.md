@@ -15,6 +15,6 @@ Check `.cfn-mode.json` or run `/cfn-mode status`
 
 **Mode Details:**
 - **CLI Mode**: Coordinator → orchestrator → CLI agents (Z.ai routing)
-- **Task Mode**: Coordinator → JSON → Main Chat spawns Task() agents (Anthropic)
+- **Task Mode**: main chat is Coordinator → JSON → Main Chat spawns Task() agents (Anthropic)
 
-Both modes use Redis context storage for swarm recovery.
+Only CLI mode use Redis context storage for swarm recovery.
