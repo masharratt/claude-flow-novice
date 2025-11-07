@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.14.30",
+  "version": "2.14.31",
   "description": "AI agent orchestration framework with namespace-isolated skills, agents, and CFN Loop validation. Safe installation with ~0.01% collision risk.",
   "main": "dist/index.js",
   "type": "module",
