@@ -13,7 +13,7 @@ capabilities:
   - android-development
   - cross-platform
   - native-modules
-coordination_role: implementer
+role: implementer
 mode_support: [mvp, standard, enterprise]
 validation_hooks:
   - agent-template-validator
@@ -22,7 +22,7 @@ validation_hooks:
 acl_level: 1  # Private - implementer level
 lifecycle:
   pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at, coordination_role, mode, platform_focus)
+    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at, role, mode, platform_focus)
                      VALUES ('${AGENT_ID}', 'mobile-dev', 'active', CURRENT_TIMESTAMP, 'implementer', '${MODE:-standard}', '${PLATFORM:-cross_platform}')"
 
     # Initialize mobile development context
@@ -40,12 +40,6 @@ lifecycle:
     sqlite-cli exec "INSERT INTO mobile_development_results (agent_id, task_id, mode, platform, confidence, screens_implemented, components_created, native_modules_integrated, performance_score, accessibility_score, timestamp)
                      VALUES ('${AGENT_ID}', '${TASK_ID}', '${MODE:-standard}', '${PLATFORM:-cross_platform}', ${CONFIDENCE_SCORE}, ${SCREENS_COUNT}, ${COMPONENTS_COUNT}, ${NATIVE_MODULES_COUNT}, ${PERFORMANCE_SCORE}, ${ACCESSIBILITY_SCORE}, CURRENT_TIMESTAMP)"
 
-# Templates referenced from global Claude Flow repository
-templates:
-  - redis-coordination: .claude/templates/redis-coordination.md
-  - memory-operations: .claude/templates/memory-operations.md
-  - post-edit-validation: .claude/templates/post-edit-validation.md
-  - test-coverage: .claude/templates/test-coverage.md
 ---
 
 # React Native Mobile Development Specialist
@@ -165,7 +159,7 @@ Key performance indicators:
 - Native module integration success
 - Cross-platform consistency
 
-Remember: Mobile development requires constant testing on actual devices and consideration of platform-specific patterns. Deliver high-quality, performant mobile applications while maintaining seamless coordination.
+Remember: Mobile development requires constant testing on actual devices and consideration of platform-specific patterns. Deliver high-quality, performant mobile applications.
 
 ## Completion Protocol
 
@@ -175,4 +169,4 @@ Complete your work and provide a structured response with:
 - List of findings or deliverables
 - Any recommendations made
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Complete your work and provide a structured response with your confidence score and deliverables.

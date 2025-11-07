@@ -603,13 +603,17 @@ npx claude-flow-novice agent-spawn backend-dev --task-id "${TASK_ID}"
 npx claude-flow-novice agent-spawn reviewer --task-id "${TASK_ID}"
 ```
 
-### Signaling Pattern
+### Signaling Pattern (CLI Mode Only)
 ```bash
-# Signal completion
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+# CLI Mode: Signal completion
+if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+  redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+fi
 
-# Wait for other agent (zero-token blocking)
-redis-cli blpop "swarm:${TASK_ID}:other-agent:done" 30
+# CLI Mode: Wait for other agent (zero-token blocking)
+if [[ -n "${TASK_ID:-}" ]]; then
+  redis-cli blpop "swarm:${TASK_ID}:other-agent:done" 30
+fi
 ```
 ```
 
@@ -1022,18 +1026,24 @@ Agents MUST use different completion protocols based on how they were spawned:
 **Step 1: Complete Work**
 Execute assigned task (implementation, validation, review, etc.)
 
-**Step 2: Signal Completion**
+**Step 2: Signal Completion (CLI Mode Only)**
 ```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+# CLI Mode: Signal completion
+if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+  redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+fi
 ```
 
-**Step 3: Report Confidence Score and Exit**
+**Step 3: Report Confidence Score and Exit (CLI Mode Only)**
 ```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
+# CLI Mode: Report confidence
+if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+  ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+    --task-id "$TASK_ID" \
+    --agent-id "$AGENT_ID" \
+    --confidence [0.0-1.0] \
+    --iteration 1
+fi
 ```
 
 ### How to Tell Which Mode You're In

@@ -10,24 +10,6 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'interaction-tester', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed',
-                         confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
-acl_level: 3  # Swarm access for test results
-capabilities:
-  - integration_testing
-  - e2e_testing
-  - accessibility_testing
-  - ui_component_testing
-  - interaction_testing
----
 
 # Interaction Tester Agent
 
@@ -97,17 +79,8 @@ tests/
 
 ## SQLite Memory Persistence
 
-### Test Results Storage
-```typescript
-await sqlite.memoryAdapter.set(
-  `cfn/phase-${phaseId}/loop3/interaction-tests`,
-  {
-    confidence: 0.90,
-    files: [
-      'tests/integration/auth.test.js',
-      'tests/e2e/user-flow.spec.js',
-      'tests/accessibility/wcag.test.js'
-    ],
+### Test Results Management
+Test results and interaction validation are managed through the coordination system for team collaboration and progress tracking.
     metrics: {
       testCoverage: { line: 88, branch: 85, function: 90 },
       testsWritten: 45,

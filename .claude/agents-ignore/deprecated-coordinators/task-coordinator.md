@@ -12,12 +12,6 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - blocking-coordination-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'task-coordinator', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 ---
 
 # Task Coordinator Agent
@@ -103,3 +97,13 @@ async function orchestrateTask(objective) {
 3. Track dependencies carefully
 4. Validate progress early and often
 5. Maintain weighted confidence aggregation
+
+## Completion Protocol
+
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
+
+**Note:** Coordination instructions are provided when spawned via CLI.

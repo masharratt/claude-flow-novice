@@ -22,7 +22,7 @@
 * **Persistence enables swarm recovery** - swarm state survives interruptions
 * **ALL agent communication MUST use coordination protocols** - no direct file coordination
 * **NEVER HARDCODE API KEYS**
-* **sleep on repeat** when monitoring a background process. sleep x  minutes, check progress, sleep, repeat
+* **sleep on repeat** when monitoring a background process. sleep x minutes, check progress, sleep, repeat
 * **USE GREP INSTEAD OF FIND** - it's less resource intensive in our WSL2 instances
 
 **Agent Output Standards:**
@@ -42,54 +42,11 @@
 * **Act as a busy CTO** who delegates all non-trivial work to specialized agents or CFN Loop CLI commands
 * **For multi-agent workflows**: Use `/cfn-loop-cli "task description"` (automatically handles coordinator spawning)
 * **For single agent tasks**: Use `Task("agent-type", "specific task")` directly
-* **For SQLite lifecycle tracking**: Include explicit lifecycle instructions in Task prompts when auditing is required
 * **Define clear success criteria** for implementation (working code, passing tests, documented features)
 * **Never define adoption criteria** (user engagement, rollout strategy, training plans)
 * **Ruthlessly delegate** - if task requires >3 steps, use CLI commands immediately
 * **Provide context, not solutions** - agents figure out implementation details
 * **Success = implementation complete** - not "users love it" or "team adopts it"
-
-### Task Mode SQLite Lifecycle Execution
-
-**When auditing is required for Task() agents, include explicit lifecycle instructions:**
-
-```javascript
-// REQUIRED: Include lifecycle execution in Task prompt
-Task("docker-specialist", `
-  Read the LICENSE file and return the license type.
-
-  LIFECYCLE EXECUTION (REQUIRED):
-  1. Generate agent ID: AGENT_ID="docker-$(date +%s)-$$"
-  2. Register spawn:
-     sqlite3 "./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db" \
-       "CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, type TEXT, status TEXT, confidence REAL, spawned_at TEXT, completed_at TEXT, metadata TEXT);" && \
-     sqlite3 "$DB_PATH" "INSERT OR REPLACE INTO agents (id, type, status, spawned_at, metadata) VALUES ('$AGENT_ID', 'docker-specialist', 'spawned', datetime('now'), '{\"source\": \"task_mode\"}');"
-  3. Complete task...
-  4. Mark completion:
-     sqlite3 "$DB_PATH" "UPDATE agents SET status = 'completed', confidence = <CONFIDENCE_SCORE>, completed_at = datetime('now') WHERE id = '$AGENT_ID';"
-
-  Return results with confidence score 0.85-0.95.
-`)
-```
-
-**Database Location:** `./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db`
-
-**Required Table Schema:**
-```sql
-CREATE TABLE IF NOT EXISTS agents (
-    id TEXT PRIMARY KEY,
-    type TEXT NOT NULL,
-    status TEXT NOT NULL,
-    confidence REAL,
-    spawned_at TEXT,
-    completed_at TEXT,
-    metadata TEXT
-);
-```
-
-**CFN Loop Gate:** Confidence ≥0.75 required to pass Loop 3 gate.
-
-**Anti-Pattern Prevention:** NEVER include CLI coordination commands that expect Redis or external services in Task mode. Use SQLite only for local audit trails.
 
 ---
 
@@ -138,11 +95,20 @@ npx cfn-init  # Copy namespace-isolated files
 
 **User selects mode. Main Chat executes the specified slash command.**
 
-**Default: Task Mode** (if user doesn't specify mode)
-
 **Available modes:**
 
-**1. Task Mode (Default):**
+**1. CLI Mode (Production):**
+```bash
+/cfn-loop-cli "Task description" --mode=standard
+```
+- Main Chat spawns ONLY cfn-v3-coordinator
+- Coordinator spawns workers via CLI (background)
+- Cost: $0.054/iteration (64% savings vs Task)
+- Use: Production, long tasks, cost-sensitive
+- Automatic recovery from stuck agents
+- Real-time agent progress tracking
+
+**2. Task Mode (Debugging):**
 ```bash
 /cfn-loop-task "Task description" --mode=standard
 ```
@@ -152,16 +118,7 @@ npx cfn-init  # Copy namespace-isolated files
 - Full visibility in Main Chat
 - Use: Debugging, learning, short tasks (<5 min)
 
-**2. CLI Mode (Production):**
-```bash
-/cfn-loop-cli "Task description" --mode=standard
-```
-- Main Chat spawns ONLY cfn-v3-coordinator
-- Coordinator spawns workers via CLI (background)
-- Cost: $0.054/iteration (64% savings vs Task)
-- Use: Production, long tasks, cost-sensitive
-
-**Mode selection guidance for users:**
+**Mode selection guidance:**
 - "execute cfn loop on X" → `/cfn-loop-task` (default)
 - "use task mode on X" → `/cfn-loop-task`
 - "use cli mode on X" → `/cfn-loop-cli`
@@ -370,7 +327,7 @@ Refer to `.claude/skills/cfn-coordination/SKILL.md` for:
 - Hierarchical Broadcast
 - Mesh Hybrid Patterns
 - Agent completion signaling
-- Consensus collection (invoke-waiting-mode.sh collect)
+- Consensus collection
 
 ## 4) CFN Loop Overview
 
@@ -469,7 +426,7 @@ coordination-signal "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
 **Recommended: Use slash commands for CFN Loop execution**
 
-Main Chat should use these commands instead of manually spawning coordinators. 
+Main Chat should use these commands instead of manually spawning coordinators.
 **IMPORTANT** Subagents must NOT use these these slash commands
 
 **Single Task:**
@@ -502,9 +459,8 @@ Main Chat should use these commands instead of manually spawning coordinators.
 - Minimal external dependencies
 - Comprehensive test coverage
 
-**Testing Best Practice (STRAT-005):**
-Implement comprehensive test suites that validate both functional requirements and edge cases, including timeout scenarios and blocking mechanism effectiveness. Example: `.claude/skills/cfn-coordination/test-orchestrator.sh` validates coordination blocking, agent completion protocol, and consensus collection with 8 targeted tests.
-
+**Testing Best Practice:**
+Implement comprehensive test suites that validate both functional requirements and edge cases, including timeout scenarios and blocking mechanism effectiveness. Example: `.claude/skills/cfn-coordination/test-orchestrator.sh` validates coordination blocking, agent completion protocol, and consensus collection with targeted tests.
 
 ## 6) Additional Resources
 
@@ -523,283 +479,51 @@ Implement comprehensive test suites that validate both functional requirements a
 
 **Migration Analytics:**
 See `.artifacts/analytics/context-reduction-report.json`
-## Sprint 7 Adaptive Context Lessons
 
-### STRAT-007: Background Execution Strategy
-- **Confidence:** 0.95
-- **Priority:** 9
-- **Insight**: Use background execution with coordination monitoring for long-running orchestration workflows (>10 minutes). Bash tool has hard 10-minute timeout that cannot be extended.
-- **Tags**: orchestration, bash-timeout, coordination-monitoring, background-execution
+## Key Patterns & Anti-Patterns
 
-### ANTI-004: Regex Validation Anti-Pattern
-- **Confidence:** 0.92
-- **Priority:** 8
-- **Insight**: Avoid simplistic regex matching for agent validation. Pattern `[[ $AGENTS =~ $AGENTS ]]` always returns true (self-matching).
-- **Tags**: regex, validation, bug-prevention, orchestration
-
-### PATTERN-008: Product Owner Decision Flow
-- **Confidence:** 0.90
-- **Priority:** 8
-- **Insight**: Implement explicit Product Owner decision flow after Loop 2 consensus to prevent validator scope creep and enforce strategic boundaries.
-- **Tags**: cfn-loop, product-owner, scope-management, decision-flow
-
-## Sprint 8 Adaptive Context Lessons (Phase 1 & 2 - Skill-Based Output Processing)
-
-### PATTERN-009: Multi-Pattern Confidence Parsing
-- **Confidence:** 0.95
-- **Priority:** 9
-- **Insight**: Implement multi-pattern confidence parsing with fallback strategies. Design interfaces that gracefully handle multiple input formats, with explicit confidence scoring for each parsing attempt. Patterns: explicit numeric (0.85), percentage (85%), qualitative (high/medium/low), calculated defaults.
-- **Tags**: parsing, confidence, strategy, error-handling, skill-based-processing
-- **Applied in**: Loop 3 output processing, Loop 2 feedback extraction
-- **Impact**: 100% confidence extraction success rate, eliminates 0.0 defaults
-
-### STRAT-014: Skill Interface Consistency
-- **Confidence:** 0.90
-- **Priority:** 8
-- **Insight**: Design skill interfaces with consistent parameter structures across skills. Use named parameters (--agent-type, --task-id, --agent-id, --context, --iteration, --timeout) with explicit type definitions, default values, and clear error messaging to improve skill reusability and reduce integration complexity. Enabled 95% code reuse between Loop 3 and Loop 2 implementations.
-- **Tags**: interface, skill-design, consistency, reusability, pattern-reuse
-- **Applied in**: loop3-output-processing, loop2-output-processing skills
-- **Impact**: Phase 2 took 1.2h vs 3h from scratch (36% time savings)
-
-### PATTERN-010: Parallel Execution with Temp Files
-- **Confidence:** 0.93
-- **Priority:** 9
-- **Insight**: Use background processes with temporary files to eliminate race conditions in parallel agent coordination. Pattern: spawn all agents in background with `(skill-execution > /tmp/output-file) &`, collect PIDs, use `wait` to synchronize, read results from temp files after completion. Eliminates polling wait and guarantees synchronous output capture.
-- **Tags**: parallel-execution, race-conditions, temp-files, background-processes, coordination
-- **Applied in**: .claude/skills/cfn-loop-orchestration/orchestrate.sh (modular helper scripts)
-- **Impact**: 3x speedup for 3 agents, zero race conditions
-
-## Adaptive Context Extensions: CLI Agent Spawning Insights (v2.5.2)
-
-### Strategy Patterns
-
-#### PATTERN-001: Environment Configuration
-- **Context**: CLI Entrypoints
-- **Insight**: Always explicitly load environment configurations using 'import dotenv/config' to ensure provider-specific settings are correctly read and applied across different execution contexts.
-- **Tags**: environment, configuration, cli, dotenv
-- **Confidence**: 0.95
-- **Priority**: 9/10
-
-
-## Adaptive Context Extensions: CFN Loop Context Injection Insights (BUG #20)
-
-### Strategy Patterns
-
-#### STRAT-020: Mandatory Deliverable Verification
-- **Context**: CFN Loop Consensus Validation
-- **Insight**: Implement mandatory deliverable verification with forced iteration when no files created. After Loop 2 consensus, check git status for file changes. If task requires implementation (keywords: create/build/implement) but git shows zero changes, override consensus and force ITERATE with explicit deliverable requirements in feedback. Prevents 'consensus on vapor' where validators approve plans without actual code.
-- **Tags**: deliverable-verification, consensus-validation, git-diff, cfn-loop, quality-gate
-- **Confidence**: 0.95
-- **Priority**: 10/10
-- **Validation**: Core implementation in `.claude/skills/cfn-loop-validation/validate-deliverables.sh`
-- **Retry Pattern**: Limited to 3 iterations, escalate to Product Owner if still no deliverables
-
-#### STRAT-021: Standardized Context Extraction Templates
-- **Context**: Coordinator Design
-- **Insight**: Use standardized context extraction templates in coordinators. Template structure: epicGoal (1-2 sentences), inScope (list), outOfScope (list), deliverables (file paths), directory (creation path), acceptanceCriteria (measurable requirements). Extract using bash text processing (grep, sed, jq) with reasonable defaults for missing fields. Prevents minimal context ('Checkpoint' + '4.1') that causes wrong deliverables.
-- **Tags**: context-extraction, coordinator, templates, standardization, parsing
-- **Confidence**: 0.93
-- **Priority**: 9/10
-
-### Implementation Patterns
-
-#### PATTERN-020: Multi-Layer Context Injection
+### Critical Patterns
+#### **PATTERN-020: Multi-Layer Context Injection**
 - **Context**: Coordinator → Orchestrator → Agent Flow
 - **Insight**: When implementing multi-layer coordination (coordinator → orchestrator → agents), ensure context flows through ALL layers. Pattern: Coordinator extracts context from task description, orchestrator retrieves context from persistence layer and injects into agent spawn parameters, agents receive complete deliverables/acceptance criteria in --context parameter. Breaking this chain causes 'consensus on vapor' (high confidence, zero deliverables).
 - **Tags**: context-injection, cfn-loop, coordination, multi-layer, deliverables
 - **Confidence**: 0.92
 - **Priority**: 9/10
 
-#### PATTERN-021: Context Validation Pipeline
+#### **PATTERN-021: Context Validation Pipeline**
 - **Context**: Multi-Layer Coordination
 - **Insight**: Design context validation pipeline with checkpoints at each layer. Pattern: (1) Coordinator validates extracted context has deliverables/acceptance criteria before spawning orchestrator, (2) Orchestrator validates persistence context retrieval succeeded before spawning agents, (3) Agents validate received context contains required fields before starting work. Each layer logs validation results. Fail-fast prevents cascading context loss.
 - **Tags**: validation, context-injection, fail-fast, multi-layer, checkpoints
 - **Confidence**: 0.87
 - **Priority**: 8/10
 
-#### PATTERN-022: Agent Lifecycle - Clean Exit Protocol
+#### **PATTERN-022: Agent Lifecycle - Clean Exit Protocol**
 - **Context**: CFN Loop Agent Management
 - **Insight**: Agents must exit cleanly after reporting confidence. Pattern: (1) Signal done via coordination protocol, (2) Report confidence score, (3) Exit immediately. Enables adaptive agent specialization - orchestrator spawns different specialist (security-specialist for security issues) for next iteration based on feedback type. Prevents orchestrator blocking.
 - **Tags**: agent-lifecycle, clean-exit, adaptive-specialization, orchestrator
 - **Confidence**: 0.89
 - **Priority**: 8/10
 
-### Anti-Patterns
+### Critical Anti-Patterns
 
-#### ANTI-020: Context Storage Without Injection
+#### **ANTI-020: Context Storage Without Injection**
 - **Context**: Coordination Systems
 - **Insight**: Avoid storing context in persistence layer without retrieving and injecting it into agent prompts. Anti-pattern: Orchestrator stores epic-context, phase-context, success-criteria in persistence but spawns agents with generic context ('Loop 3 implementation for iteration N'). Result: Agents have no access to deliverables list, acceptance criteria, or directory paths despite context being 'available'.
 - **Tags**: context-injection, coordination, agent-spawning, storage-without-use
 - **Confidence**: 0.88
 - **Priority**: 8/10
 
-#### ANTI-021: Generic Context When Specifics Exist
+#### **ANTI-021: Generic Context When Specifics Exist**
 - **Context**: Agent Spawning
 - **Insight**: Never pass generic iteration-level context when task-specific deliverables exist. Anti-pattern: Agent receives 'Loop 3 implementation for iteration 2' when persistence contains detailed deliverables list. Agents have no telepathy - they cannot infer '.claude/skills/checkpoint-state/SKILL.md' from 'iteration 2'. Always inject complete deliverables, directory paths, and acceptance criteria even if 'already available'.
 - **Tags**: agent-context, specificity, deliverables, telepathy-fallacy, explicitness
 - **Confidence**: 0.91
 - **Priority**: 9/10
 
-#### ANTI-023: Task-Spawned Validators Without Completion Protocol
+#### **ANTI-022: Task-Spawned Validators Without Completion Protocol**
 - **Context**: Loop 2 Validation (Task Mode)
 - **Insight**: Main Chat spawns validators via Task() without clear scope boundaries or mode-aware completion protocols. Anti-pattern: Validators see CLI-mode completion instructions (coordination signals, `invoke-waiting-mode.sh report`) and attempt to comply using wrong tools (slash commands via Bash, nested CFN Loop spawning). Result: Agents hang indefinitely trying to execute `/cfn-loop-cli` as bash command, memory leak from blocked processes. Task-spawned validators should simply return structured output - Main Chat receives it automatically, no coordination signals needed.
 - **Tags**: task-spawning, validation, completion-protocol, scope-boundaries, memory-leak
 - **Confidence**: 0.95
 - **Priority**: 10/10
-- **Fix**: Mode-specific completion protocols in CLAUDE.md:333-357 and validator agents (reviewer.md:200-258, tester.md:160-217). Explicit scope boundaries prevent nested CFN Loop spawning.
-
-### Edge Cases & Testing
-
-#### EDGE-020: Comparative Agent Spawn Testing
-- **Context**: Context Debugging
-- **Insight**: When debugging context issues, use comparative agent spawn testing. Edge case discovered: Agents succeed when spawned manually with explicit context ('Create /tmp/test.sh') but fail in CFN Loop with generic context ('Loop 3 implementation'). This reveals context injection failure rather than tool/API issues. Test pattern: Manual spawn with explicit deliverables → verify file created → confirms agent capability → proves orchestrator context gap.
-- **Tags**: debugging, context-testing, manual-spawn, comparative-testing, isolation
-- **Confidence**: 0.90
-- **Priority**: 7/10
-
-## Sprint Execution in Claude Flow Novice
-
-### Sprint Context Injection
-
-#### Purpose
-Decompose large epics into focused, manageable sprints with clear deliverables and scope boundaries.
-
-#### Key Principles
-1. **Focused Scope**: Each sprint targets a specific subset of epic requirements
-2. **Incremental Progress**: Sprints build upon each other
-3. **Precise Deliverables**: Create only sprint-specific files
-4. **Context Specificity**: Agents receive sprint-level, not epic-level context
-
-#### Sprint Context Structure
-
-```json
-{
-  "sprint_name": "P1 Coordinator Monitoring",
-  "sprint_num": 1,
-  "total_sprints": 7,
-  "deliverables": [
-    "test-p1-monitoring.sh",
-    "docs/P1_MONITORING_RESULTS.md"
-  ],
-  "in_scope": [
-    "P1 coordinator monitoring validation",
-    "Test timeout mechanisms",
-    "Logging verification"
-  ],
-  "out_of_scope": [
-    "P2-P7 monitoring",
-    "Cross-priority integration",
-    "Epic-level summary"
-  ],
-  "directory": "/mnt/c/Users/masha/Documents/claude-flow-novice/tests/p1"
-}
-```
-
-#### Sprint Execution Tool: `execute-sprint-task.sh`
-
-Enables sprint-aware agent execution with focused context injection.
-
-**Usage:**
-```bash
-./.claude/skills/sprint-execution/execute-sprint-task.sh \
-  [AGENT_TYPE] \
-  [TASK_ID] \
-  [AGENT_ID] \
-  [SPRINT_ID]
-```
-
-### Sprint vs Epic Implementation
-
-**Epic Context (Broad)**:
-```
-Validate P1-P7 monitoring across entire system
-Deliverables:
-- Comprehensive test suite
-- System-wide monitoring report
-```
-
-**Sprint Context (Focused)**:
-```
-Sprint: 1.1 - P1 Coordinator Monitoring
-Deliverables:
-- test-p1-monitoring.sh
-- docs/P1_MONITORING_RESULTS.md
-
-Scope:
-- P1 coordinator timeout verification
-- Basic logging checks
-
-Out of Scope:
-- P2-P7 monitoring
-- Cross-priority tests
-```
-
-### Confidence Reporting
-
-- Report confidence based on **sprint deliverable completion**
-- 0.90+ confidence means sprint objectives met
-- Do NOT report confidence for entire epic
-- when monitoring something, sleep for X minutes on repeat with check in between
-### STRAT-025: Explicit Deliverable Tracking
-
-## Sprint 9 Adaptive Context Lessons (CFN v3 Dual-Mode Implementation)
-
-### STRAT-026: Persistence Context Storage Over CLI Parameters
-- **Confidence:** 0.95
-- **Priority:** 9
-- **Insight**: Use persistence layer for complex JSON context storage instead of CLI parameters. Eliminates shell escaping issues, enables swarm recovery, and provides single source of truth for agent coordination.
-- **Tags**: context-storage, persistence, cli-spawning, swarm-recovery
-
-### PATTERN-023: Dual-Mode Architecture Pattern
-- **Confidence:** 0.92
-- **Priority:** 9
-- **Insight**: Implement dual execution modes (optimized vs simplified) sharing core logic. CLI mode for production (cost-optimized), Task mode for debugging (full visibility), both using same coordinator and context structure.
-- **Tags**: architecture, dual-mode, debugging, production
-
-### STRAT-027: Consensus Validation for Architecture
-- **Confidence:** 0.90
-- **Priority:** 8
-- **Insight**: Use specialized consensus teams (reviewer + tester) to validate implementations before deployment. Achieved 0.92-0.95 confidence scores, caught design issues early.
-- **Tags**: validation, consensus, testing, quality-assurance
-
-### ANTI-022: Premature Optimization (Context Pruning)
-- **Confidence:** 0.88
-- **Priority:** 7
-- **Insight**: Avoid implementing optimization features (like context pruning) before validating necessity. CFN v3 removed pruning after determining context small enough without it, saving implementation complexity.
-- **Tags**: optimization, yagni, context-management, simplification
-
-### PATTERN-024: Swarm Recovery via Persistence
-- **Confidence:** 0.93
-- **Priority:** 9
-- **Insight**: Store swarm state in persistence layer with TTL to enable crash recovery. Agents can resume from last known state using task_id as recovery key. Critical for long-running CFN Loops.
-- **Tags**: recovery, persistence, fault-tolerance, swarm-coordination
-
-### STRAT-028: Modular Skill Architecture
-- **Confidence:** 0.91
-- **Priority:** 8
-- **Insight**: Decompose complex systems into independent skills (20 skills in CFN v3: task-classifier, playbook, validation-templates, etc.). Enables reuse, testing isolation, and incremental enhancement.
-- **Tags**: modularity, skills, architecture, reusability
-## Sprint 10 Adaptive Context Lessons (Phase X - Defensive Programming)
-
-### Defensive Programming Patterns
-
-#### PATTERN-025: Comprehensive File Validation
-- **Context**: Defensive File Handling
-- **Insight**: Implement comprehensive file validation techniques that go beyond basic existence checks. Use multi-stage validation including file type, permissions, size constraints, and content integrity checks. Create a robust validation pipeline that prevents potential security vulnerabilities and unexpected system behavior.
-- **Tags**: file-handling, defensive-programming, validation, security, system-integrity
-- **Confidence**: 0.92
-- **Priority**: 9/10
-
-#### PATTERN-026: Shell Strict Mode
-- **Context**: Bash Script Reliability
-- **Insight**: Enable shell strict mode using `set -euo pipefail` to create more robust and predictable shell scripts. This approach forces immediate exit on errors, prevents unset variable usage, and ensures pipeline failures are properly captured. Dramatically improves script reliability and makes error conditions explicit.
-- **Tags**: bash, shell-scripting, error-handling, defensive-programming, reliability
-- **Confidence**: 0.90
-- **Priority**: 9/10
-
-#### PATTERN-028: Process Group Management
-- **Context**: Background Process Handling
-- **Insight**: Implement comprehensive process group management techniques to ensure clean termination and resource cleanup. Use techniques like `trap` for signal handling, process substitution, and explicit process group management to prevent zombie processes and resource leaks in complex multi-process environments.
-- **Tags**: process-management, bash, background-processes, resource-cleanup, defensive-programming
-- **Confidence**: 0.86
-- **Priority**: 8/10
+- **Fix**: Mode-specific completion protocols in CLAUDE.md and validator agents. Explicit scope boundaries prevent nested CFN Loop spawning.

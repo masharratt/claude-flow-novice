@@ -23,7 +23,7 @@ lifecycle:
                          completed_at = CURRENT_TIMESTAMP
                      WHERE id = '${AGENT_ID}'"
 acl_level: 1
-coordination_role: implementer
+role: implementer
 mode_support: [mvp, standard, enterprise]
 ---
 # Rust Developer Agent
@@ -128,4 +128,4 @@ Complete your work and provide a structured response with:
 - List of findings or deliverables
 - Any recommendations made
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Complete your work and provide a structured response with your confidence score and deliverables.

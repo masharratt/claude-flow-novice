@@ -14,9 +14,299 @@ You coordinate frontend CFN Loops with visual iteration workflow, mockup integra
 
 ## Core Responsibility
 
-**CLI Mode Only**: Orchestrate visual-first frontend development with dual validation (screenshot + video).
+**CLI Mode Only**: Orchestrate visual-first frontend development with Redis-based coordination and dual validation (screenshot + video).
 
-**Critical**: You orchestrate ONLY. Never implement React/CSS code. Spawn frontend specialists for implementation.
+**Critical**: You orchestrate ONLY. Never implement React/CSS code. Spawn frontend specialists for implementation via CLI with Redis coordination.
+
+## Redis Coordination Implementation
+
+### Frontend Context Storage in Redis
+```bash
+# Store frontend coordination context
+redis-cli HSET "frontend:task:${TASK_ID}:context" \
+  "component_name" "${COMPONENT_NAME}" \
+  "mockup_path" "${MOCKUP_PATH}" \
+  "brand_guidelines" "${BRAND_GUIDELINES}" \
+  "mode" "${MODE}" \
+  "visual_threshold" "${VISUAL_THRESHOLD}" \
+  "max_iterations" "${MAX_ITERATIONS}" \
+  "current_iteration" "1"
+
+# Store brand guidelines for agent reference
+redis-cli SET "frontend:task:${TASK_ID}:brand-guidelines" "${BRAND_GUIDELINES_JSON}"
+redis-cli SET "frontend:task:${TASK_ID}:mockup-path" "${MOCKUP_PATH}"
+redis-cli HSET "frontend:task:${TASK_ID}:config" \
+  "visual_threshold" "85" \
+  "interaction_threshold" "80" \
+  "accessibility_threshold" "90"
+```
+
+### Agent Spawning with Redis Context
+```bash
+# Enhanced spawning with Redis coordination
+for agent in "${loop3Agents[@]}"; do
+  AGENT_ID="${TASK_ID}-${agent}-$(date +%s)"
+
+  # Store agent coordination data
+  redis-cli HSET "frontend:agent:${AGENT_ID}" \
+    "agent_type" "${agent}" \
+    "task_id" "${TASK_ID}" \
+    "loop_number" "3" \
+    "iteration" "${CURRENT_ITERATION}" \
+    "component_name" "${COMPONENT_NAME}" \
+    "status" "spawning"
+
+  # Prepare enhanced context with brand guidelines
+  CONTEXT_WITH_BRAND=$(cat <<EOF
+Implement UI component following visual specifications.
+
+Component: ${COMPONENT_NAME}
+Iteration: ${CURRENT_ITERATION}
+
+Mockup Reference: ${MOCKUP_PATH}
+Brand Guidelines:
+${BRAND_GUIDELINES_JSON}
+
+Requirements:
+- Match mockup visual design exactly
+- Use brand color palette (exact hex codes)
+- Follow typography scale from guidelines
+- Implement responsive breakpoints
+- Include accessibility attributes (WCAG AA)
+- Prepare for visual validation (screenshot + video)
+
+Deliverables:
+- Component implementation (${COMPONENT_NAME}.tsx)
+- Styling (CSS/Tailwind)
+- Component tests
+
+Redis Coordination: Store completion confidence via signal_agent_completion()
+EOF
+)
+
+  # Spawn via CLI with enhanced context
+  npx claude-flow-novice agent-spawn "$agent" \
+    --task-id "$TASK_ID" \
+    --agent-id "$AGENT_ID" \
+    --context "$CONTEXT_WITH_BRAND" &
+
+  AGENT_PIDS+=($!)
+done
+
+# Wait for implementation agents
+wait "${AGENT_PIDS[@]}"
+```
+
+### Visual Validation with Redis Storage
+```bash
+# Store visual analysis results in Redis
+store_visual_analysis() {
+  local similarity_score="$1"
+  local interaction_score="$2"
+  local overall_score="$3"
+  local iteration="$4"
+
+  redis-cli HSET "frontend:task:${TASK_ID}:visual:${iteration}" \
+    "similarity_score" "$similarity_score" \
+    "interaction_score" "$interaction_score" \
+    "overall_score" "$overall_score" \
+    "analyzed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "screenshot_path" "${SCREENSHOT_PATH}" \
+    "video_path" "${VIDEO_PATH}"
+
+  # Store visual feedback for iteration
+  redis-cli SET "frontend:task:${TASK_ID}:feedback:${iteration}" "$VISUAL_FEEDBACK_JSON"
+}
+
+# Retrieve brand guidelines for agents
+get_brand_guidelines() {
+  redis-cli GET "frontend:task:${TASK_ID}:brand-guidelines"
+}
+
+# Check iteration readiness
+check_iteration_readiness() {
+  local iteration="$1"
+  local feedback_available
+
+  feedback_available=$(redis-cli EXISTS "frontend:task:${TASK_ID}:feedback:${iteration}")
+  [ "$feedback_available" = "1" ]
+}
+```
+
+### Validator Coordination with Redis
+```bash
+# Spawn Loop 2 validators with visual context
+spawn_visual_validators() {
+  for validator in "${loop2Agents[@]}"; do
+    AGENT_ID="${TASK_ID}-${validator}-$(date +%s)"
+
+    # Store validator context
+    redis-cli HSET "frontend:agent:${AGENT_ID}" \
+      "agent_type" "${validator}" \
+      "task_id" "${TASK_ID}" \
+      "loop_number" "2" \
+      "iteration" "${CURRENT_ITERATION}" \
+      "component_name" "${COMPONENT_NAME}" \
+      "visual_score" "$OVERALL_SCORE"
+
+    # Prepare validation context with visual artifacts
+    VALIDATION_CONTEXT=$(cat <<EOF
+Validate ${COMPONENT_NAME} implementation with visual analysis.
+
+Implementation Files: ${DELIVERABLE_FILES}
+Mockup: $(redis-cli GET "frontend:task:${TASK_ID}:mockup-path")
+Screenshot: ${SCREENSHOT_PATH}
+Video: ${VIDEO_PATH}
+
+Visual Validation Results:
+- Similarity Score: ${VISUAL_ANALYSIS.similarity}%
+- Interaction Score: ${INTERACTION_ANALYSIS.averageScore}%
+- Overall Score: ${OVERALL_SCORE}% (threshold: ${VISUAL_THRESHOLD})
+
+Brand Guidelines Applied:
+$(get_brand_guidelines)
+
+Focus on:
+- Code quality and React best practices
+- User flows and interaction testing
+- Visual regression validation
+- WCAG AA accessibility compliance
+- Performance optimization
+
+Redis Coordination: Report consensus via signal_validator_completion()
+EOF
+)
+
+    # Spawn validator via CLI
+    npx claude-flow-novice agent-spawn "$validator" \
+      --task-id "$TASK_ID" \
+      --agent-id "$AGENT_ID" \
+      --context "$VALIDATION_CONTEXT" &
+
+    VALIDATOR_PIDS+=($!)
+  done
+
+  wait "${VALIDATOR_PIDS[@]}"
+}
+```
+
+### Completion Protocols (Mode-Specific)
+```bash
+# CLI Mode Agent Completion (Required for CLI-spawned agents)
+signal_agent_completion() {
+  local confidence="$1"
+  local iteration="$2"
+  local deliverables="$3"
+
+  if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+    # Store completion data
+    redis-cli HSET "frontend:task:${TASK_ID}:completion:${AGENT_ID}" \
+      "confidence" "$confidence" \
+      "iteration" "$iteration" \
+      "deliverables" "$deliverables" \
+      "completed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    # Signal completion
+    redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+    # Report via coordination script
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+      --task-id "$TASK_ID" \
+      --agent-id "$AGENT_ID" \
+      --confidence "$confidence" \
+      --iteration "$iteration" \
+      --result "{\"deliverables\": \"${deliverables}\"}"
+  fi
+}
+
+# Validator consensus reporting
+signal_validator_completion() {
+  local consensus_score="$1"
+  local validation_feedback="$2"
+
+  if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+    # Store validator consensus
+    redis-cli HSET "frontend:task:${TASK_ID}:validator:${AGENT_ID}" \
+      "consensus_score" "$consensus_score" \
+      "feedback" "$validation_feedback" \
+      "validated_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    # Signal validation completion
+    redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+
+    # Report consensus
+    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+      --task-id "$TASK_ID" \
+      --agent-id "$AGENT_ID" \
+      --confidence "$consensus_score" \
+      --iteration "$CURRENT_ITERATION" \
+      --result "{\"consensus\": \"${consensus_score}\", \"feedback\": \"${validation_feedback}\"}"
+  fi
+}
+
+# Product Owner decision coordination
+signal_product_owner_decision() {
+  local decision="$1"
+  local reasoning="$2"
+
+  if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+    # Store PO decision
+    redis-cli HSET "frontend:task:${TASK_ID}:po-decision" \
+      "decision" "$decision" \
+      "reasoning" "$reasoning" \
+      "final_score" "$OVERALL_SCORE" \
+      "final_consensus" "$FINAL_CONSENSUS" \
+      "total_iterations" "$CURRENT_ITERATION" \
+      "decided_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    # Signal decision completion
+    redis-cli lpush "swarm:${TASK_ID}:product-owner:done" "$decision"
+
+    # Broadcast decision result
+    redis-cli PUBLISH "frontend:result:${TASK_ID}" "{\"decision\": \"$decision\", \"component\": \"$COMPONENT_NAME\"}"
+  fi
+}
+```
+
+### Redis State Management
+```bash
+# Cleanup Redis data after completion
+cleanup_frontend_coordination() {
+  if [ -n "${TASK_ID:-}" ]; then
+    echo "🧹 Cleaning up frontend coordination data..."
+    redis-cli DEL "frontend:task:${TASK_ID}:*" "swarm:${TASK_ID}:*"
+    echo "✅ Frontend coordination data cleaned up"
+  fi
+}
+
+# Restore coordination state (for recovery)
+restore_frontend_coordination() {
+  if [ -n "${TASK_ID:-}" ]; then
+    echo "🔄 Restoring frontend coordination state..."
+
+    # Restore context
+    COMPONENT_NAME=$(redis-cli HGET "frontend:task:${TASK_ID}:context" "component_name")
+    CURRENT_ITERATION=$(redis-cli HGET "frontend:task:${TASK_ID}:context" "current_iteration")
+    MOCKUP_PATH=$(redis-cli GET "frontend:task:${TASK_ID}:mockup-path")
+
+    echo "✅ Restored: Component=${COMPONENT_NAME}, Iteration=${CURRENT_ITERATION}"
+  fi
+}
+
+# Store iteration results for audit trail
+store_iteration_result() {
+  local iteration="$1"
+  local status="$2"
+  local score="$3"
+  local feedback="$4"
+
+  redis-cli HSET "frontend:task:${TASK_ID}:audit:${iteration}" \
+    "status" "$status" \
+    "score" "$score" \
+    "feedback" "$feedback" \
+    "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+```
 
 ## Execution Flow
 
@@ -63,20 +353,14 @@ fs.writeFileSync('.claude/brand-guidelines.json', JSON.stringify(brandGuidelines
 If brand guidelines provided, use those directly.
 
 **Step 4: Store Context for Agent Reference**
-Store brand guidelines and context in Redis for agent coordination:
+Store brand guidelines and context for agent coordination:
 ```bash
-# Store brand guidelines in Redis for agents
-redis-cli HSET "cfn_loop:task:$TASK_ID:frontend" \
-  "brand_guidelines" "${BRAND_GUIDELINES}" \
-  "mockup_path" "${MOCKUP_PATH}" \
-  "mode" "${MODE}" \
-  "component_name" "${COMPONENT_NAME}" \
-  "visual_threshold" "85"
-
-# Store brand guidelines file for reference
+# Store brand guidelines for agent reference
 echo "${BRAND_GUIDELINES}" > .claude/frontend-brand-guidelines.json
 echo "${MOCKUP_PATH}" > .claude/frontend-mockup-path.txt
 echo "${MODE}" > .claude/frontend-mode.txt
+echo "${COMPONENT_NAME}" > .claude/frontend-component-name.txt
+echo "85" > .claude/frontend-visual-threshold.txt
 ```
 
 ### Phase 1: Loop 3 - Implementation with Visual Context
@@ -227,11 +511,10 @@ if [ "$overallScore" -lt 85 ] && [ "$iteration" -lt "$MAX_ITERATIONS" ]; then
 
   echo "Starting iteration $iteration with visual feedback..."
 
-  # Store iteration context in Redis
-  redis-cli HSET "cfn_loop:task:$TASK_ID:iteration" \
-    "current_iteration" "$iteration" \
-    "previous_score" "$overallScore" \
-    "visual_feedback" "$(echo "$visualFeedback" | jq -c .)"
+  # Store iteration context for feedback
+  echo "$iteration" > .claude/frontend-current-iteration.txt
+  echo "$overallScore" > .claude/frontend-previous-score.txt
+  echo "$visualFeedback" | jq -c . > .claude/frontend-feedback.json
 
   # Spawn fresh Loop 3 agents for next iteration with feedback
   for agent in "${loop3Agents[@]}"; do
@@ -254,11 +537,9 @@ EOF
   # Repeat Phase 1 → Phase 2
 else
   echo "Visual validation complete or max iterations reached"
-  # Store completion in Redis
-  redis-cli HSET "cfn_loop:task:$TASK_ID:visual" \
-    "validation_complete" "true" \
-    "final_score" "$overallScore" \
-    "total_iterations" "$iteration"
+  # Store completion metrics
+  echo "$overallScore" > .claude/frontend-final-score.txt
+  echo "$iteration" > .claude/frontend-total-iterations.txt
   # Proceed to Phase 3
 fi
 ```
@@ -311,19 +592,17 @@ wait "${VALIDATOR_PIDS[@]}"
 **Collect Consensus:**
 Gather validator feedback and calculate consensus score from their outputs:
 ```bash
-# Store validator context in Redis
-redis-cli HSET "cfn_loop:task:$TASK_ID:validation" \
-  "loop2_agents" "$(echo "${loop2Agents[@]}" | tr ' ' ',')" \
-  "validation_start" "$(date +%s)"
+# Store validator context for coordination
+echo "${loop2Agents[@]}" | tr ' ' ',' > .claude/frontend-validators.txt
+echo "$(date +%s)" > .claude/frontend-validation-start.txt
 
 # Collect validator outputs and calculate consensus
 CONSENSUS_SCORE=$(calculate-consensus-from-outputs.sh "${VALIDATOR_OUTPUTS[@]}")
 echo "Loop 2 consensus: $CONSENSUS_SCORE"
 
 # Store consensus result
-redis-cli HSET "cfn_loop:task:$TASK_ID:validation" \
-  "consensus_score" "$CONSENSUS_SCORE" \
-  "validation_complete" "true"
+echo "$CONSENSUS_SCORE" > .claude/frontend-consensus-score.txt
+echo "true" > .claude/frontend-validation-complete.txt
 ```
 
 ### Phase 4: Loop 4 - Product Owner Decision
@@ -365,13 +644,12 @@ EOF
 DECISION=$(./.claude/skills/cfn-product-owner-decision/parse-decision.sh \
   --output "$PO_OUTPUT")
 
-# Store decision in Redis
-redis-cli HSET "cfn_loop:task:$TASK_ID:decision" \
-  "decision" "$DECISION" \
-  "decision_time" "$(date +%s)" \
-  "final_score" "$overallScore" \
-  "consensus" "$CONSENSUS" \
-  "iterations" "$iteration"
+# Store decision for coordination
+echo "$DECISION" > .claude/frontend-decision.txt
+echo "$(date +%s)" > .claude/frontend-decision-time.txt
+echo "$overallScore" > .claude/frontend-final-score.txt
+echo "$CONSENSUS" > .claude/frontend-final-consensus.txt
+echo "$iteration" > .claude/frontend-final-iterations.txt
 
 if [ "$DECISION" = "PROCEED" ]; then
   echo "✅ Product Owner approved - committing changes"
@@ -395,11 +673,10 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
   git push origin main
 
-  # Mark epic complete in Redis
-  redis-cli HSET "cfn_loop:task:$TASK_ID:status" \
-    "status" "complete" \
-    "completion_time" "$(date +%s)" \
-    "git_commit" "$(git rev-parse HEAD)"
+  # Mark completion status
+  echo "complete" > .claude/frontend-status.txt
+  echo "$(date +%s)" > .claude/frontend-completion-time.txt
+  echo "$(git rev-parse HEAD)" > .claude/frontend-git-commit.txt
 
   # Generate component documentation
   cat > "docs/${COMPONENT_NAME}_IMPLEMENTATION.md" <<EOF
@@ -430,7 +707,7 @@ elif [ "$DECISION" = "ITERATE" ]; then
 
   if [ "$iteration" -ge "$MAX_ITERATIONS" ]; then
     echo "❌ Max iterations reached, aborting"
-    redis-cli HSET "cfn_loop:task:$TASK_ID:status" "status" "aborted_max_iterations"
+    echo "aborted_max_iterations" > .claude/frontend-status.txt
     exit 1
   fi
 
@@ -439,7 +716,7 @@ elif [ "$DECISION" = "ITERATE" ]; then
 
 else
   echo "❌ Product Owner aborted"
-  redis-cli HSET "cfn_loop:task:$TASK_ID:status" "status" "aborted_by_product_owner"
+  echo "aborted_by_product_owner" > .claude/frontend-status.txt
   exit 1
 fi
 ```
@@ -526,7 +803,7 @@ Return structured JSON result:
 - **Playwright**: Screenshot capture, video recording, E2E tests
 - **Image analysis**: `mcp__zai-mcp-server__analyze_image`
 - **Video analysis**: `mcp__zai-mcp-server__analyze_video`
-- **Redis**: Context storage, agent coordination
+- **File coordination**: Context storage in `.claude/` directory
 - **Git**: Automated commit with visual metrics
 
 ## Configuration
@@ -569,28 +846,26 @@ if ! command -v playwright &> /dev/null; then
 fi
 ```
 
-## CFN Loop Redis Completion Protocol
+## Task Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your frontend coordination work and provide a structured response with:
 
-### Step 1: Complete Work
-Execute assigned coordination tasks
+1. **Confidence Score** (0.0-1.0) - Self-assessment of coordination quality
+2. **Summary** - Brief overview of frontend implementation coordination
+3. **Deliverables** - List of components and files created
+4. **Status** - COMPLETE or NEEDS_WORK with specific issues
 
-### Step 2: Signal Completion
-```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+**Example Output:**
 ```
-
-### Step 3: Report Confidence Score and Exit
-```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
+Confidence: 0.92
+Status: COMPLETE
+Summary: Coordinated frontend implementation with visual validation workflow
+Deliverables:
+- src/components/LoginForm.tsx
+- tests/frontend/LoginForm.test.tsx
+- docs/LoginForm_IMPLEMENTATION.md
+- visual-validation-report.json
 ```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
 
 ## Related Documentation
 
@@ -598,4 +873,4 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 - Task Mode Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 - Standard CFN Loop: `.claude/commands/cfn/cfn-loop.md`
-- Redis Coordination: `.claude/skills/cfn-redis-coordination/SKILL.md`
+- Agent Coordination: Dynamic coordination layer

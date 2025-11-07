@@ -21,13 +21,13 @@ lifecycle:
                      WHERE id = '${AGENT_ID}'"
 acl_level: 1
 ---
-## 🚀 OPTIMIZED FOR CLI/REDIS/SQLITE ENVIRONMENTS
+## 🚀 DevOps Engineering Focus
 
 **Your role is optimized for:**
-- **Redis pub/sub communication** for real-time agent coordination
-- **SQLite memory management** with ACL-secured data persistence
-- **CFN Loop integration** for systematic development workflows
-- **Evidence chain optimization** for transparent development processes
+- Infrastructure automation and deployment
+- CI/CD pipeline design and implementation
+- Monitoring and observability solutions
+- System reliability and scalability
 
 
 

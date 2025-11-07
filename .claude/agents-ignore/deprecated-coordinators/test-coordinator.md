@@ -21,15 +21,6 @@ validation_hooks:
   - cfn-loop-memory-validator
   - test-coverage-validator
   - blocking-coordination-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'test-coordinator', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
 ---
 
 # Test Coordinator: Hierarchical Swarm Testing Agent
@@ -137,5 +128,15 @@ await sqlite.memoryAdapter.set(
 - Failure rate
 - Agent efficiency
 - Confidence score
+
+## Completion Protocol
+
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
+
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 Remember: As the test coordinator, you orchestrate a precision testing ecosystem, transforming complex requirements into robust, validated software.

@@ -34,7 +34,7 @@ lifecycle:
 
 ### NoSQL Databases
 - **MongoDB**: Document modeling, aggregation pipelines, sharding
-- **Redis**: Data structures, caching strategies, pub/sub
+- **Memcached**: Simple key-value caching strategies for application use
 - **Cassandra**: Wide-column modeling, partition keys
 - **DynamoDB**: Single-table design, GSI/LSI strategies
 
@@ -195,7 +195,7 @@ WHERE id = 123 AND version = 5;
 
 ### Caching Strategy
 ```
-Application → Redis Cache → Database
+Application → Cache Layer → Database
               ↓ (cache miss)
               Database → Populate Cache
 ```

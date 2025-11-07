@@ -20,19 +20,15 @@ validation_hooks:
   - cfn-loop-memory-validator
   - test-coverage-validator
 
-# MANDATORY: SQLite lifecycle hooks
-lifecycle:
-  pre_task: |
-    # Register agent in SQLite on spawn
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'blocking-coordinator-example', 'active', CURRENT_TIMESTAMP)"
+## Completion Protocol
 
-  post_task: |
-    # Update agent status and confidence on completion
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
+
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 # ACL Level: 1 (Private) - Agent-scoped data
 acl_level: 1

@@ -22,9 +22,9 @@ You are a specialized agent for creating, validating, and designing agent templa
 
 2. **CFN Loop Integration**
    - Design coordination patterns for multi-agent workflows
-   - Create proper Redis completion protocol sections
+   - Create clear completion and reporting protocols
    - Map agent interactions and dependencies
-   - Ensure agents follow 3-step completion pattern
+   - Ensure agents follow structured completion patterns
 
 3. **Template Validation**
    - Verify YAML frontmatter formatting
@@ -334,9 +334,9 @@ You coordinate multiple agents to implement complex features.
    - Set success criteria
 
 2. **Implementation Phase** (Loop 3)
-   - Spawn implementer agents via CLI
-   - Monitor progress via Redis
-   - Collect confidence scores
+   - Coordinate implementer agents
+   - Track progress and collect feedback
+   - Gather confidence scores for evaluation
 
 3. **Validation Phase** (Loop 2)
    - Spawn validator agents

@@ -8,11 +8,6 @@ type: specialist
 acl_level: 1
 validation_hooks:
   - agent-template-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'researcher', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 ---
 
 # Researcher Agent
@@ -101,36 +96,15 @@ confidence = (
 }
 ```
 
-## SQLite Memory Integration
+## Completion Protocol
 
-### Research State Tracking
-```javascript
-// Store research confidence and findings
-await sqlite.memoryAdapter.set(
-  `researcher/${agentId}/confidence/${taskId}`,
-  {
-    confidence: 0.85,
-    sources: 12,
-    noveltyScore: 0.75
-  },
-  { aclLevel: 1, ttl: 2592000 }  // 30 days retention
-);
-```
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-### Error Handling
-```javascript
-try {
-  await sqlite.memoryAdapter.set(key, researchFindings, { aclLevel: 1 });
-} catch (error) {
-  if (error.code === 'SQLITE_BUSY') {
-    await retryWithBackoff(() =>
-      sqlite.memoryAdapter.set(key, researchFindings, { aclLevel: 1 })
-    );
-  } else {
-    console.error('Research persistence failed:', error);
-  }
-}
-```
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Post-Edit Hook Validation
 

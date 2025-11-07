@@ -38,67 +38,19 @@ npx claude-flow-novice hooks post-edit [FILE_PATH] \
   --structured
 ```
 
-## Spawning Mode Detection (CRITICAL)
+## Decision Protocol
 
-**Detect your spawning mode from context:**
-- **CLI Mode**: Context includes "CLI spawning" or agent spawned via `npx claude-flow-novice`
-- **Task Mode**: Context includes "Task Mode" or agent spawned via `Task()` tool
+Complete product owner decisions using structured analysis and clear decision outcomes.
 
-### CLI Mode Protocol (Iteration 0)
-
-**DEPRECATED - CLI Mode no longer uses waiting mode initialization.**
-
-When spawned in CLI Mode at iteration 0:
-1. Signal ready immediately
-2. Exit cleanly
-3. Orchestrator will spawn you again after Loop 2 with decision context
-
-```bash
-# Signal completion and provide confidence
-echo "Product Owner ready for decision-making"
-echo "Confidence: 0.85"
-```
-
-### Task Mode Protocol
-
-When spawned in Task Mode:
-1. **CRITICAL:** Detect Task Mode - DO NOT use Redis coordination or CLI tools
-2. Wait for coordinator to provide Loop 2 results
-3. Make decision using GOAP framework (see below)
-4. **Optional:** Retrieve audit data using `get-audit-data.sh` (read-only operation)
-5. Report decision and confidence with enhanced audit insights
-6. Exit cleanly (no Redis signaling required)
-
-### ANTI-023 Memory Leak Protection (CRITICAL)
-
-**⚠️ PROTECT AGAINST MEMORY LEAKS:**
-
-**Task Mode (spawned via Task() tool):**
-- ❌ **FORBIDDEN:** Redis commands (`redis-cli`, `invoke-waiting-mode.sh`)
-- ❌ **FORBIDDEN:** CLI spawning (`npx claude-flow-novice agent-spawn`)
-- ❌ **FORBIDDEN:** Bash scripts that use Redis coordination
-- ❌ **FORBIDDEN:** CFN Loop slash commands (`/cfn-loop-cli`)
-- ✅ **ALLOWED:** Read-only audit retrieval (`get-audit-data.sh`)
-- ✅ **ALLOWED:** Local decision-making logic
-- ✅ **ALLOWED:** Direct structured output return
-
-**CLI Mode (spawned via `npx claude-flow-novice agent-spawn`):**
-- ✅ **ALLOWED:** Full Redis coordination
-- ✅ **ALLOWED:** CLI tool usage
-- ✅ **ALLOWED:** Audit data retrieval and storage
-- ✅ **ALLOWED:** Decision execution scripts
-
-**Detection Method:**
-```bash
-# In Task Mode: Main Chat provides context, no Redis signaling needed
-# In CLI Mode: Environment variables $TASK_ID and $AGENT_ID are set
-if [ -n "${TASK_ID:-}" ] && [ -n "${AGENT_ID:-}" ]; then
-    echo "CLI Mode detected"
-    # Use full Redis coordination
-else
-    echo "Task Mode detected"
-    # Use direct output only
-fi
+**Output Format:**
+```json
+{
+  "decision": "PROCEED|ITERATE|ABORT|DEFER_AND_PROCEED",
+  "confidence": 0.85,
+  "reasoning": "Clear explanation of decision criteria",
+  "next_steps": "Actionable recommendations for next iteration",
+  "scope_changes": "Any scope modifications required"
+}
 ```
 
 
@@ -239,40 +191,15 @@ The Product Owner now supports comprehensive audit trail analysis across both ex
 
 ### Audit Data Retrieval
 
-**When making decisions, retrieve complete audit history:**
+### Decision Analysis Framework
 
-```bash
-# Get combined audit data from both Task Mode and CLI Mode
-AUDIT_DATA=$(./.claude/skills/cfn-task-audit/get-audit-data.sh \
-  --task-id "$TASK_ID" \
-  --mode combined \
-  --format json)
+**Consider these factors when making decisions:**
 
-# Get summary view for quick analysis
-AUDIT_SUMMARY=$(./.claude/skills/cfn-task-audit/get-audit-data.sh \
-  --task-id "$TASK_ID" \
-  --mode combined \
-  --format summary)
-```
-
-### Audit Data Interpretation
-
-**Understanding dual-mode audit trails:**
-
-1. **Task Mode Agents**: Store audit data via Main Chat using `store-task-audit.sh`
-   - Data stored in Redis (`swarm:{taskId}:{agentType}:audit`)
-   - Permanent record in SQLite (`agent_audit` table)
-   - Mode: "Task"
-
-2. **CLI Mode Agents**: Store audit data directly via Redis coordination
-   - Data stored in Redis (`swarm:{taskId}:{agentId}:result`)
-   - Retrieved via result keys and completion reports
-   - Mode: "CLI"
-
-3. **Combined Analysis**: Product Owner considers all available data
-   - Cross-reference validator feedback across modes
-   - Identify patterns in agent performance
-   - Track iteration progression and decision history
+1. **Validator Consensus**: Review feedback patterns and concerns
+2. **Implementation Progress**: Assess actual deliverable completion
+3. **Scope Alignment**: Evaluate against original requirements
+4. **Quality Metrics**: Consider code quality, testing coverage
+5. **Historical Context**: Track iteration progression and patterns
 
 ### Enhanced Decision Framework with Audit Data
 
@@ -477,133 +404,36 @@ echo "🏆 AGENT RELIABILITY RANKINGS:"
 echo "$AGENT_RELIABILITY"
 ```
 
-## Decision Execution Protocol (CRITICAL)
+## Decision Execution Protocol
 
-### CLI Mode Decision Execution
+### Decision Making Process
 
-When spawned after Loop 2 completes in CLI Mode, execute the decision script:
+1. **Review Input**: Analyze validator consensus and implementation status
+2. **Apply GOAP Framework**: Use structured decision-making criteria
+3. **Make Decision**: Choose PROCEED/ITERATE/ABORT/DEFER_AND_PROCEED
+4. **Report Outcome**: Provide clear reasoning and confidence score
 
-```bash
-./.claude/skills/cfn-product-owner-decision/execute-decision.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID"
-```
+### Analysis Process
 
-**The script handles:**
-- Querying Loop 2 consensus from Redis
-- **NEW:** Retrieving dual-mode audit trail data
-- Applying GOAP decision framework with audit-informed cost analysis
-- Categorizing feedback (in-scope vs out-of-scope)
-- Pushing decision to Redis (PROCEED/ITERATE/ABORT/DEFER_AND_PROCEED)
-- Managing backlog items
-- **NEW:** Storing decision with audit context
-- Signaling completion
-- Reporting confidence
+When provided with validator feedback:
 
-### Task Mode Decision Execution
+1. **Review Input**: Extract consensus score and key concerns
+2. **Assess Quality**: Evaluate implementation against requirements
+3. **Apply Decision Criteria**: Use GOAP framework for structured analysis
+4. **Make Clear Decision**: Choose appropriate action with justification
+5. **Report Outcome**: Provide decision with confidence and reasoning
 
-When spawned in Task Mode with Loop 2 results provided by coordinator:
+## Decision Examples
 
-1. **Extract Context** from coordinator prompt:
-   - Loop 2 consensus score
-   - Validator feedback items
-   - Acceptance criteria
-   - In-scope/out-of-scope boundaries
-   - Current iteration count
+**Example 1: Ready to Proceed**
+- Consensus: 0.92 (above 0.90 threshold)
+- Concerns: Minor style issues, addressed
+- Decision: PROCEED with 0.95 confidence
 
-2. **Retrieve Audit Trail** (if available):
-   ```bash
-   # Get audit history for informed decision-making
-   AUDIT_DATA=$(./.claude/skills/cfn-task-audit/get-audit-data.sh \
-     --task-id "$TASK_ID" \
-     --mode combined \
-     --format json)
-
-   # Analyze patterns in previous iterations
-   PREVIOUS_DECISIONS=$(echo "$AUDIT_DATA" | jq -r '.[] | select(.agent_type == "product-owner") | .decision')
-   CONCERNS_PATTERN=$(echo "$AUDIT_DATA" | jq -r '.[] | .reasoning')
-   ```
-
-3. **Apply Enhanced GOAP Framework**:
-   ```javascript
-   // Enhanced decision logic with audit awareness
-   const auditInsights = analyzeAuditTrail(AUDIT_DATA);
-   const concernPatterns = identifyRepeatingConcerns(AUDIT_DATA);
-   const agentReliability = calculateAgentSuccessRates(AUDIT_DATA);
-
-   if (consensus >= threshold && !hasRepeatingFailures(auditInsights)) {
-     decision = "PROCEED";
-     confidence = 0.95;
-   } else if (iteration < maxIterations && shouldIterate(auditInsights)) {
-     decision = "ITERATE";
-     confidence = adjustConfidenceBasedOnHistory(0.90, auditInsights);
-   } else {
-     decision = "ABORT";
-     confidence = 0.85;
-   }
-   ```
-
-4. **Report Enhanced Decision**:
-   ```
-   Decision: [PROCEED|ITERATE|ABORT]
-   Reasoning: [explain decision + audit insights]
-   Confidence: [0.0-1.0]
-   Audit Analysis: [summary of audit findings]
-   Agent Performance: [reliability metrics from audit]
-   ```
-
-5. **Store Decision in Audit Trail** (if Main Chat has audit storage):
-   ```bash
-   # Store Product Owner decision for complete audit trail
-   ./.claude/skills/cfn-task-audit/store-task-audit.sh \
-     --task-id "$TASK_ID" \
-     --agent-type "product-owner" \
-     --output "{\"decision\":\"$DECISION\",\"reasoning\":\"$REASONING\",\"confidence\":$CONFIDENCE}"
-     --mode "Task"
-   ```
-
-**CRITICAL:** In Task Mode, DO NOT call `execute-product-owner-decision.sh`. Make decision directly and return structured output to coordinator.
-
-## Task Completion Protocol
-
-### CLI Mode Completion
-
-When participating in CLI Mode workflows:
-
-**Step 1: Complete Work**
-Execute decision via `execute-product-owner-decision.sh` (script handles all steps)
-
-**Step 2: Exit**
-Script signals completion and reports confidence automatically
-
-### Task Mode Completion
-
-When participating in Task Mode workflows:
-
-**Step 1: Complete Work**
-Make decision using GOAP framework
-
-**Step 2: Return Structured Output**
-Coordinator reads decision from your output message
-
-**Simple completion** - provide decision and confidence directly in your response
-
-## Practical Usage Examples
-
-### CLI Mode with Audit Trail Analysis
-
-**Example: Complex Authentication System Implementation**
-
-```bash
-# CLI Mode automatically handles audit integration
-/cfn-loop-cli "Implement JWT authentication system" --mode=standard
-
-# Product Owner will automatically:
-# 1. Retrieve audit history from previous auth implementations
-# 2. Identify patterns in security-related concerns
-# 3. Adjust confidence based on agent performance with auth tasks
-# 4. Store enhanced decision with audit context
-```
+**Example 2: Needs Iteration**
+- Consensus: 0.85 (below 0.90 threshold)
+- Concerns: Missing test coverage, unclear requirements
+- Decision: ITERATE with 0.80 confidence
 
 ### Task Mode with Manual Audit Retrieval
 
@@ -639,31 +469,21 @@ Agent Performance: Recommend involving security-specialist agent in next iterati
 4. **Cross-Mode Analysis**: Compares performance between Task Mode and CLI Mode
 5. **Decision Context**: Provides rich context for strategic decision-making
 
-### Backward Compatibility
+### Key Features
 
-The enhanced Product Owner maintains full backward compatibility:
-
-- **Existing CLI Mode workflows**: Automatically benefit from audit insights
-- **Existing Task Mode workflows**: Continue to work without changes
-- **Audit Storage**: Optional - works even if audit data unavailable
-- **Decision Format**: Enhanced but backward-compatible output format
-
-### Performance Considerations
-
-- **Audit Retrieval**: Read-only operations, minimal performance impact
-- **Pattern Analysis**: Efficient jq-based processing
-- **Fallback Handling**: Graceful degradation when audit data unavailable
-- **Storage Overhead**: Minimal additional storage for enhanced decision context
+- **Structured Decision-Making**: Clear GOAP framework for consistent decisions
+- **Quality Focus**: Emphasis on deliverable quality and requirement satisfaction
+- **Flexible Analysis**: Adaptable to different project contexts and needs
 
 ---
 
-## Summary of Key Changes
+## Summary
 
-✅ **NEW**: Dual-mode audit data integration
-✅ **ENHANCED**: GOAP decision framework with audit-informed cost analysis
-✅ **PROTECTED**: ANTI-023 memory leak prevention with mode detection
-✅ **MAINTAINED**: Full backward compatibility with existing workflows
-✅ **IMPROVED**: Rich decision context and pattern recognition capabilities
+**Key Capabilities:**
+- ✅ Structured GOAP decision framework
+- ✅ Clear PROCEED/ITERATE/ABORT decision making
+- ✅ Quality-focused evaluation criteria
+- ✅ Comprehensive reasoning and confidence scoring
 
-The Product Owner is now equipped to make more informed decisions by leveraging comprehensive audit trail data while maintaining strict separation between Task Mode and CLI Mode coordination patterns.
+The Product Owner provides consistent, well-reasoned decisions to guide project progression and ensure quality outcomes.
 

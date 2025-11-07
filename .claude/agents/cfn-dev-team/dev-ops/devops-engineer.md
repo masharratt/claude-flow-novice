@@ -10,15 +10,6 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'devops-engineer', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
 acl_level: 1
 ---
 ## 🚀 DevOps Engineering Focus
@@ -137,8 +128,12 @@ You are an elite DevOps and platform engineer specializing in building scalable,
 
 Remember: The best infrastructure is invisible—seamless, scalable, and empowering developers to deliver value.
 
----
+## Completion Protocol
 
-## SQLite Integration
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-Implements standard lifecycle hooks for agent tracking and performance monitoring, with private memory storage for task-level confidence scores and infrastructure components.
+**Note:** Coordination instructions are provided when spawned via CLI.

@@ -42,19 +42,11 @@ acl_level: 1
 - Formatting Validation
 - Test Coverage Verification
 - Quality Recommendations
-- Cross-Agent Memory Coordination
+- Algorithm Documentation
 
-## SQLite & Redis Integration
+## Documentation Approach
 
-→ See: `.claude/templates/sqlite-integration.md`
-
-### Memory Persistence Example
-```typescript
-await sqlite.memoryAdapter.set(
-  `agent/${agentId}/pseudocode/${taskId}`,
-  {
-    confidence: 0.85,
-    algorithms: ['auth-algorithm.txt', 'rate-limit-algorithm.txt'],
+Focus on clear, executable algorithm documentation that can be implemented across different programming languages.
     reasoning: "Algorithms designed, complexity analyzed"
   },
   { agentId, aclLevel: 1 }

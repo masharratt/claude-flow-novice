@@ -12,24 +12,67 @@
 
 Claude Flow Novice is a production-ready AI agent orchestration framework built on a skills-first architecture with Redis-based coordination, zero-token waiting mechanisms, and multi-loop consensus validation (CFN Loop).
 
+## CFN Loop Execution Modes
+
+### Task Mode (Debugging - Full Visibility)
+- **Spawn Method**: Main Chat spawns Task() agents directly
+- **Cost**: $0.150/iteration (Anthropic provider)
+- **Visibility**: Complete agent output in Main Chat
+- **Use Case**: Debugging, learning, short tasks (<5 minutes)
+- **Memory**: ANTI-023 protection prevents memory leaks
+- **Audit**: Automatic audit trail storage in SQLite and Redis
+
+### CLI Mode (Production - Cost Optimized)
+- **Spawn Method**: Coordinator spawns CLI agents via `npx claude-flow-novice`
+- **Cost**: $0.054/iteration (64% savings vs Task mode)
+- **Visibility**: Background execution with progress tracking
+- **Use Case**: Production, long tasks, cost-sensitive workflows
+- **Memory**: Redis-based coordination with recovery capabilities
+- **Custom Routing**: Optional 5x cost reduction with Z.ai provider
+
+### Mode Selection Guide
+- **Use Task Mode when**: Debugging issues, learning CFN Loop, short tasks requiring full visibility
+- **Use CLI Mode when**: Production work, cost optimization, long-running tasks, background execution
+- **Custom Routing**: `/custom-routing-activate` for 95-98% total cost savings when using CLI mode
+
+### Slash Commands
+- **`/cfn-loop-task`**: Task mode execution (Main Chat → Task() agents)
+- **`/cfn-loop-cli`**: CLI mode execution (Main Chat → coordinator → CLI agents)
+- **Mode Parameters**: `--mode=mvp|standard|enterprise` with different confidence thresholds
+
+### Cost Comparison
+- **Task Mode**: $0.150/iteration (full visibility, debugging)
+- **CLI Mode**: $0.054/iteration (64% savings, production)
+- **With Custom Routing**: $0.004-0.010/iteration (95-98% total savings)
+
 ## Quick Start
 
+### Task Mode (Debugging - Full Visibility)
 ```bash
 # Install and initialize
 npm install claude-flow-novice
 npx cfn-init
 
-# Initialize a swarm with skills
+# Execute CFN Loop - Main Chat spawns Task() agents directly
+/cfn-loop-task "Implement JWT authentication" --mode=standard
+
+# Custom routing available for 5x cost reduction
+/custom-routing-activate
+```
+
+### CLI Mode (Production - Cost Optimized)
+```bash
+# Install and initialize
+npm install claude-flow-novice
+npx cfn-init
+
+# Execute CFN Loop - Coordinator spawns CLI agents in background
+/cfn-loop-cli "Implement JWT authentication" --mode=standard
+
+# Initialize swarm with skills
 npx claude-flow-novice swarm "Task Description" \
   --skills=redis-coordination,agent-spawning \
   --strategy development
-
-# Execute CFN Loop with orchestration
-./.claude/skills/redis-coordination/orchestrate-cfn-loop.sh \
-  --task-id "unique-task-id" \
-  --mode standard \
-  --loop3-agents "researcher,backend-developer" \
-  --loop2-agents "reviewer,tester"
 ```
 
 ## Documentation Index
@@ -37,6 +80,7 @@ npx claude-flow-novice swarm "Task Description" \
 ### Core Concepts
 - **[Skills System](log-skills.md)** - Modular, reusable agent capabilities
 - **[CFN Loop](cfn-loop-modes.md)** - Three-loop consensus validation framework
+- **[CFN Loop Task Mode](claude-assets/commands/CFN_LOOP_TASK_MODE.md)** - Task execution guide with agent specialization
 - **[Redis Coordination](logs-cli-redis.md)** - Zero-token agent coordination
 
 ### User Guides
@@ -83,17 +127,24 @@ npx claude-flow-novice swarm "Task Description" \
 - **Adaptive Modes**: MVP (fast), Standard (balanced), Enterprise (rigorous)
 
 ### Cost Optimization
-- **CLI Spawning Mode**: 95-98% cost savings vs Task tool
-- **Configurable**: `COST_SAVINGS_MODE=yes` in CLAUDE.md
-- **Safe Default**: Task tool spawning when disabled
+- **CLI Mode**: 64% savings vs Task mode ($0.054 vs $0.150/iteration)
+- **Custom Routing**: Optional 5x reduction with Z.ai provider (95-98% total savings)
+- **Mode-Aware Architecture**: Task Mode agents use clean exit, CLI Mode uses Redis coordination
+- **Memory Safety**: ANTI-023 protection prevents memory leaks in Task Mode
 
 ## Architecture Principles
 
 1. **Skills-Based Coordination**: All agent communication via explicit Redis dependencies
 2. **Multi-Layer Enforcement**: Coordination primitives at technical, skill, agent, and system layers
 3. **Centralized Orchestration**: Keep orchestration in dedicated skills, not distributed across components
-4. **Post-Edit Validation**: All Edit/Write operations trigger validation hooks
-5. **Parallel Agent Spawning**: All Task-based coordinators require parallel spawning (single message, multiple Task calls)
+4. **Mode-Aware Architecture**: Task Mode (direct Task() spawning) vs CLI Mode (coordinator-driven)
+5. **Post-Edit Validation**: All Edit/Write operations trigger validation hooks
+6. **Parallel Agent Spawning**: All Task-based coordinators require parallel spawning (single message, multiple Task calls)
+
+### Mode-Agent Profile Specialization
+- **Task Mode Agents**: Clean exit protocol, direct Main Chat communication, audit trail storage
+- **CLI Mode Agents**: Redis coordination, completion signaling, background execution
+- **Coordinators**: Enhanced monitoring with recovery capabilities, progress tracking
 
 ## Migration Notes
 
@@ -102,7 +153,13 @@ npx claude-flow-novice swarm "Task Description" \
 - Added: Skills system, Redis coordination, zero-token waiting, orchestrate-cfn-loop.sh
 - Breaking: CFN Loop now requires orchestrator (no manual Task spawning)
 
-See [CHANGELOG.md](CHANGELOG.md) for full migration guide.
+**v2.14 Changes:**
+- **Dual-Mode Architecture**: Task Mode (Main Chat Task() spawning) vs CLI Mode (coordinator-driven)
+- **Custom Routing**: Z.ai integration for 5x cost reduction in CLI mode
+- **Memory Safety**: ANTI-023 protection prevents memory leaks in Task Mode
+- **Enhanced Coordinators**: Progress tracking, recovery capabilities, multi-layer enforcement
+
+See [CHANGELOG.md](CHANGELOG.md) and [CFN Loop Task Mode Guide](claude-assets/commands/CFN_LOOP_TASK_MODE.md) for migration details.
 
 ## Support
 

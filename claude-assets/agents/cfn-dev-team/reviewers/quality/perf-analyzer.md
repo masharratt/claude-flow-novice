@@ -17,17 +17,6 @@ validation_hooks:
   - cfn-loop-memory-validator
   - test-coverage-validator
 
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'perf-analyzer', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
-acl_level: 1  # Private agent-scoped data
----
 
 # Performance Analyzer Agent
 

@@ -15,15 +15,6 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'npm-package-specialist', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
 acl_level: 1
 coordination_role: implementer
 mode_support: [mvp, standard, enterprise]
@@ -311,23 +302,15 @@ npm publish --tag beta
 - [ ] Documentation accessible
 - [ ] npm registry page displays correctly
 
-## SQLite Memory Integration
+## Completion Protocol
 
-```javascript
-// Store package configuration
-await sqlite.memoryAdapter.set(
-  `npm-package/${agentId}/config`,
-  packageConfig,
-  { aclLevel: 1, ttl: 2592000 }  // 30 days
-);
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-// Store publish metadata
-await sqlite.memoryAdapter.set(
-  `npm-package/${agentId}/publish/${version}`,
-  publishMetadata,
-  { aclLevel: 1, ttl: 31536000 }  // 1 year
-);
-```
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Success Metrics
 

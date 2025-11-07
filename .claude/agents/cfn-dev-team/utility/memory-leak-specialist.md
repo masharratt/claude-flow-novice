@@ -16,11 +16,6 @@ acl_level: 1
 validation_hooks:
   - agent-template-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'memory-leak-specialist', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 ---
 
 # Memory Leak Specialist Agent
@@ -745,6 +740,16 @@ Before reporting high confidence:
 - GC pause times within SLO
 - Heap utilization optimized (<80% of max)
 - Confidence score ≥ 0.90
+
+## Completion Protocol
+
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
+
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Skill References
 → **Node.js Profiling**: `.claude/skills/nodejs-memory-profiling/SKILL.md`

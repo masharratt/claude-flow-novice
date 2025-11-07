@@ -14,15 +14,6 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'code-booster', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
 ---
 
 # Code Booster Agent
@@ -48,35 +39,6 @@ Specialized performance optimization expert leveraging WASM acceleration and adv
    - Manage compute offloading
    - Create efficient resource pools
 
-## SQLite Integration Pattern
-
-```typescript
-// Performance metrics storage
-await sqlite.memoryAdapter.set(
-  `code-booster/${agentId}/optimization/${taskId}`,
-  {
-    confidence: 0.90,
-    speedup: 3.5,  // 3.5x performance improvement
-    memoryReduction: 0.4,  // 40% memory reduction
-    files: ['optimized-module.rs', 'wasm-acceleration.js']
-  },
-  { aclLevel: 1, ttl: 2592000 }
-);
-
-// CFN Loop performance tracking
-await sqlite.memoryAdapter.set(
-  `cfn/phase-${phaseId}/loop3/agent-${agentId}`,
-  {
-    confidence: 0.90,
-    metrics: {
-      speedup: 3.5,
-      memoryReduction: 0.4
-    }
-  },
-  { aclLevel: 1, ttl: 2592000 }
-);
-```
-
 ## Success Metrics
 - ✅ 2-10x performance improvement
 - ✅ 20-50% memory reduction
@@ -95,6 +57,7 @@ npx claude-flow@alpha hooks post-edit [FILE_PATH] \
   --memory-key "code-booster/${AGENT_ID}/optimization" \
   --structured
 ```
+
 ## Completion Protocol
 
 Complete your work and provide a structured response with:
