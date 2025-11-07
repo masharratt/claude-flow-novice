@@ -377,9 +377,10 @@ Simplified CFN Loop execution with direct agent spawning, full visibility, and s
 
 #### ANTI-023 Memory Leak Protection
 **Critical Fix (v2.14.28)**: Prevents Task Mode agents from executing CLI coordination scripts
+**Problem Solved**: System architect agent caused 25GB memory usage when spawned via Task tool due to embedded Redis protocols
 
 **Three-Layer Defense System**:
-1. **Agent Documentation**: Mode-specific completion protocols prevent CLI usage
+1. **Agent Documentation**: Clean completion protocols without Redis commands (29 agent files updated)
 2. **Agent-Level Detection**: `detect_task_mode_and_exit()` functions reject CLI calls
 3. **Code-Level Blocking**: Runtime checks in coordination scripts exit immediately
 

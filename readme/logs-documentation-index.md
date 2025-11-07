@@ -52,6 +52,7 @@
 
 3. **[cfn-loop-modes.md](./cfn-loop-modes.md)**
    - Mode comparison (MVP/Standard/Enterprise)
+   - Task Mode vs CLI Mode execution and cost optimization
    - Performance and resource considerations
 
 4. **[CFN_LOOP_TASK_MODE.md](../.claude/commands/cfn/CFN_LOOP_TASK_MODE.md)**
@@ -86,7 +87,8 @@
 
 2. **[logs-slash-commands.md](./logs-slash-commands.md)**
    - Comprehensive command reference
-   - CFN Loop and agent management commands
+   - CFN Loop, Docker, and agent management commands
+   - Task Mode vs CLI Mode execution commands
 
 ### System Configuration
 1. **[logs-hooks.md](./logs-hooks.md)**

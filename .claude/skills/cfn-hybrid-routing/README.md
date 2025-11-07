@@ -20,7 +20,7 @@ Refer to `config.json` for detailed routing configuration parameters.
 
 ### Spawning Workers
 ```bash
-./spawn-worker.sh
+./scripts/spawn-worker.sh
 ```
 
 ### Dependency Check

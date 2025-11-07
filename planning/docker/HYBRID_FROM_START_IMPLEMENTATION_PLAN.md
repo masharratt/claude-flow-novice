@@ -645,11 +645,11 @@ ZAI_ALERT_THRESHOLD=0.8  # Alert at 80% of budget
 # Called by coordinators when executing tasks.
 #
 # Usage:
-#   ./spawn-worker.sh AGENT_TYPE TASK_ID AGENT_ID [TASK_COMPLEXITY]
+#   ./scripts/spawn-worker.sh AGENT_TYPE TASK_ID AGENT_ID [TASK_COMPLEXITY]
 #
 # Examples:
-#   ./spawn-worker.sh marketing-content-writer task-123 writer-1 simple
-#   ./spawn-worker.sh engineering-backend-dev task-456 backend-1 complex
+#   ./scripts/spawn-worker.sh marketing-content-writer task-123 writer-1 simple
+#   ./scripts/spawn-worker.sh engineering-backend-dev task-456 backend-1 complex
 ##############################################################################
 
 set -euo pipefail

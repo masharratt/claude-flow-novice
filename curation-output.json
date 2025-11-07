@@ -1,0 +1,73 @@
+{
+  "curation_actions": [
+    {
+      "action": "merge_similar",
+      "bullet_id": "STRAT-029",
+      "target_bullet_id": "STRAT-001",
+      "similarity_score": 0.87,
+      "reasoning": "STRAT-029 (mode-specific protocol injection) complements STRAT-001 (multi-layer enforcement) by adding protocol layer separation to the existing coordination framework. Both use multi-layer approaches but STRAT-029 specifically addresses execution mode boundaries that STRAT-001 doesn't cover. Merge creates enhanced coordination pattern covering both technical and protocol layers.",
+      "priority": 9
+    },
+    {
+      "action": "new_bullet",
+      "bullet_id": "PATTERN-027",
+      "target_bullet_id": null,
+      "similarity_score": null,
+      "reasoning": "PATTERN-027 (dynamic protocol injection in prompt builder) represents a novel approach that shifts from static protocol embedding to dynamic injection. This pattern has no semantic overlap with existing bullets and introduces a new paradigm for agent profile management. High confidence (0.92) and strong evidence from Redis Protocol Cleanup implementation.",
+      "priority": 9
+    },
+    {
+      "action": "new_bullet",
+      "bullet_id": "PATTERN-028",
+      "target_bullet_id": null,
+      "similarity_score": null,
+      "reasoning": "PATTERN-028 (three-layer defense system) introduces critical fail-safety mechanisms for memory leak prevention. This pattern is unique in providing defense-in-depth with documentation, detection, and blocking layers. No semantic overlap with existing patterns. High priority due to 25GB memory leak evidence.",
+      "priority": 10
+    },
+    {
+      "action": "new_bullet",
+      "bullet_id": "STRAT-030",
+      "target_bullet_id": null,
+      "similarity_score": null,
+      "reasoning": "STRAT-030 (documentation boundaries between execution modes) addresses the human factors aspect of mode separation. Complements technical patterns with clear documentation standards. No semantic overlap with existing bullets. Addresses user confusion that contributed to the memory leak issue.",
+      "priority": 8
+    },
+    {
+      "action": "new_bullet",
+      "bullet_id": "ANTI-024",
+      "target_bullet_id": null,
+      "similarity_score": null,
+      "reasoning": "ANTI-024 (avoid embedding execution-mode-specific protocols) documents a critical anti-pattern that was the root cause of the 25GB memory leak. This anti-pattern identification has no semantic equivalent in existing bullets and serves as crucial guidance for future development. High confidence (0.93) from actual implementation experience.",
+      "priority": 10
+    },
+    {
+      "action": "new_bullet",
+      "bullet_id": "EDGE-021",
+      "target_bullet_id": null,
+      "similarity_score": null,
+      "reasoning": "EDGE-021 (CLI agents spawned in Task Mode cause memory leaks) documents a critical edge case that caused 25GB memory accumulation. This edge case detection is unique and provides specific failure mode identification that helps prevent similar issues. No semantic overlap with existing bullets.",
+      "priority": 9
+    },
+    {
+      "action": "new_bullet",
+      "bullet_id": "PATTERN-029",
+      "target_bullet_id": null,
+      "similarity_score": null,
+      "reasoning": "PATTERN-029 (use taskId as mode indicator) introduces a simple but elegant pattern for mode detection. This provides a single source of truth for protocol injection decisions. No semantic overlap with existing patterns. High confidence (0.89) from successful implementation in prompt builder.",
+      "priority": 8
+    },
+    {
+      "action": "increment_helpful",
+      "bullet_id": "PATTERN-017",
+      "target_bullet_id": null,
+      "similarity_score": null,
+      "reasoning": "PATTERN-017 was identified as helpful in the reflection data. Increment helpful count to recognize its value in API pagination patterns, though it's not directly related to the current memory leak prevention work.",
+      "priority": 7
+    }
+  ],
+  "validation_required": [
+    "STRAT-029 merge implementation in CLAUDE.md coordination principles",
+    "PATTERN-028 three-layer defense system documentation completeness"
+  ],
+  "summary": "Curated 7 lessons: 6 new bullets focused on agent execution mode separation and protocol management, 1 merge with existing STRAT-001 to enhance multi-layer enforcement with protocol separation, 1 helpful count increment for PATTERN-017. High-priority patterns (8-10) address critical memory leak prevention with strong evidence from 25GB incident and 58-file cleanup."
+}

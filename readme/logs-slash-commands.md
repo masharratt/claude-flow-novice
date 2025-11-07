@@ -28,6 +28,69 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, CF
 
 **Use Cases**: Debugging, learning, short tasks (<5 minutes)
 
+### `/cfn-docker-loop [options]`
+
+**Purpose**: Execute container-based CFN Loop with skill-based MCP isolation and resource management
+
+**Usage**:
+```bash
+/cfn-docker-loop "Task description" --mode=standard
+```
+
+**Flags**:
+- `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
+- `--memory-limit`: Per-agent memory limit (default: 1g)
+- `--network`: Docker network for MCP communication (default: mcp-network)
+- `--timeout`: Execution timeout in seconds (default: varies by mode)
+
+**Key Benefits**:
+- Container isolation for all agents
+- MCP authentication and access control
+- Redis-based swarm recovery
+- 95% cost reduction with CLI mode
+
+**Use Cases**: Production deployment, secure execution, resource management
+
+### `/cfn-docker-task [options]`
+
+**Purpose**: Execute container-based CFN Loop in Task mode for development and debugging
+
+**Usage**:
+```bash
+/cfn-docker-task "Debug authentication issue" --mode=standard --debug
+```
+
+**Flags**:
+- `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
+- `--debug`: Enable debug mode with detailed logging
+- `--verbose`: Show all agent output and decision-making
+- `--dry-run`: Show configuration without execution
+
+**Output**: Full agent visibility with complete execution transparency
+
+**Use Cases**: Development, debugging, learning, algorithm testing
+
+### `/cfn-docker-cli [options]`
+
+**Purpose**: Execute container-based CFN Loop in CLI mode for production workloads
+
+**Usage**:
+```bash
+/cfn-docker-cli "Deploy microservices" --mode=enterprise --timeout=3600
+```
+
+**Flags**:
+- `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
+- `--timeout`: Execution timeout in seconds (default: varies by mode)
+- `--memory-limit`: Per-agent memory limit (default: 1g)
+- `--cpu-limit`: Per-agent CPU limit (default: 1.0)
+- `--recover`: Recover interrupted task with task-id
+- `--monitor`: Enable real-time monitoring
+
+**Output**: Production deployment with 95% cost savings
+
+**Use Cases**: Production deployment, cost-sensitive workloads, long-running tasks
+
 ### `/cfn-loop-cli [options]`
 
 **Purpose**: Execute CFN Loop in CLI mode for production workloads

@@ -105,6 +105,51 @@ You embody three complementary personas:
 }
 ```
 
+## Redis Context Storage
+
+Store epic configuration in Redis for coordinator reference:
+```bash
+# Store epic configuration
+redis-cli HSET "cfn_loop:epic:$TASK_ID:config" \
+  "epic_name" "$EPIC_NAME" \
+  "epic_goal" "$EPIC_GOAL" \
+  "total_phases" "$TOTAL_PHASES" \
+  "mode" "$MODE"
+
+# Store phase configurations
+for phase_num in $(seq 1 $TOTAL_PHASES); do
+  redis-cli HSET "cfn_loop:epic:$TASK_ID:phase:$phase_num" \
+    "phase_name" "$PHASE_NAME" \
+    "deliverables" "$PHASE_DELIVERABLES" \
+    "loop3_agents" "$LOOP3_AGENTS" \
+    "loop2_agents" "$LOOP2_AGENTS" \
+    "loop4_agent" "$LOOP4_AGENT" \
+    "gate_threshold" "$GATE_THRESHOLD" \
+    "consensus_threshold" "$CONSENSUS_THRESHOLD" \
+    "max_iterations" "$MAX_ITERATIONS"
+done
+
+# Store success criteria
+redis-cli HSET "cfn_loop:epic:$TASK_ID:criteria" \
+  "critical" "$CRITICAL_CRITERIA" \
+  "important" "$IMPORTANT_CRITERIA" \
+  "nice_to_have" "$NICE_TO_HAVE_CRITERIA"
+```
+
+## Context Retrieval
+
+Coordinators retrieve epic context from Redis:
+```bash
+# Get epic configuration
+redis-cli HGETALL "cfn_loop:epic:$TASK_ID:config"
+
+# Get specific phase configuration
+redis-cli HGETALL "cfn_loop:epic:$TASK_ID:phase:$PHASE_NUM"
+
+# Get success criteria
+redis-cli HGETALL "cfn_loop:epic:$TASK_ID:criteria"
+```
+
 ## Success Metrics
 
 - Valid JSON configuration generated
@@ -114,3 +159,27 @@ You embody three complementary personas:
 - Realistic iteration estimates
 - Clear scope boundaries
 - Mode-appropriate thresholds
+- Redis context stored successfully
+
+## CFN Loop Redis Completion Protocol
+
+When participating in CFN Loop workflows, agents MUST follow this protocol:
+
+### Step 1: Complete Work
+Execute assigned epic configuration tasks
+
+### Step 2: Signal Completion
+```bash
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+```
+
+### Step 3: Report Confidence Score and Exit
+```bash
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence [0.0-1.0] \
+  --iteration 1
+```
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**

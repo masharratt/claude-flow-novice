@@ -1,5 +1,19 @@
 # Redis Key Patterns for CFN Loop Coordination
 
+## Execution Mode Separation (v2.14.28)
+
+### Task Mode (No Redis Coordination)
+- Spawns agents via Task tool directly
+- No Redis protocols or coordination
+- Simple completion: structured output to Main Chat
+- Memory safe: prevents connection storms
+
+### CLI Mode (Redis Coordination)
+- Spawns agents via CLI with coordinator
+- Redis-based coordination and messaging
+- Background execution with swarm recovery
+- 95-98% cost savings with custom routing
+
 ## Standard Key Patterns (v2.14.6)
 
 ### Agent Completion

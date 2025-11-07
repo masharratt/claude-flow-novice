@@ -100,7 +100,7 @@ CFN_CLI_CPU_LIMIT=2.0
 
 When you run the deployment command:
 ```bash
-./docker-deploy.stabilization.sh deploy
+./docker/scripts/docker-deploy.stabilization.sh deploy
 ```
 
 Here's what happens:
@@ -385,10 +385,10 @@ nano docker.stabilization.env
 
 ```bash
 # Build and start all containers
-./docker-deploy.stabilization.sh deploy
+./docker/scripts/docker-deploy.stabilization.sh deploy
 
 # Check that everything is running
-./docker-deploy.stabilization.sh validate
+./docker/scripts/docker-deploy.stabilization.sh validate
 ```
 
 ### 3. Use CFN Loops
@@ -422,7 +422,7 @@ docker stats
 
 ```bash
 # Stop and remove containers
-./docker-deploy.stabilization.sh cleanup
+./docker/scripts/docker-deploy.stabilization.sh cleanup
 ```
 
 ---
@@ -461,7 +461,7 @@ docker events --filter container=cfn-agent-task
 ### Getting Help
 
 1. **Check logs:** Each container writes detailed logs
-2. **Validate configuration:** Run `./docker-deploy.stabilization.sh validate`
+2. **Validate configuration:** Run `./docker/scripts/docker-deploy.stabilization.sh validate`
 3. **Check resource usage:** Use `docker stats` to monitor live usage
 4. **Review Redis:** Check coordination messages in Redis
 
@@ -1130,4 +1130,4 @@ This provides comprehensive visibility into the entire CFN coordination system, 
 
 ---
 
-**Ready to start?** Run `./docker-deploy.stabilization.sh deploy` to get your coordinated, memory-safe CFN Loop system running with full monitoring!
+**Ready to start?** Run `./docker/scripts/docker-deploy.stabilization.sh deploy` to get your coordinated, memory-safe CFN Loop system running with full monitoring!

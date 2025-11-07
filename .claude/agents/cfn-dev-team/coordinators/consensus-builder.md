@@ -74,22 +74,26 @@ await sqlite.memoryAdapter.set(
 );
 ```
 
-## Blocking Coordination
+## Redis Blocking Coordination
 
-```javascript
-// Send vote request to participants
-for (const agentId of participantAgents) {
-  await signals.sendSignal('VOTE_REQUEST', agentId, {
-    proposal: consensusProposal,
-    deadline: Date.now() + 30000
-  });
-}
+```bash
+# Send vote request to participants via Redis pub/sub
+for agent_id in "${participantAgents[@]}"; do
+  redis-cli publish "swarm:${agent_id}:vote-request" "$consensusProposal"
+  redis-cli HSET "cfn_loop:vote:${proposalId}:${agent_id}" \
+    "proposal" "$consensusProposal" \
+    "deadline" "$(( $(date +%s) + 30 ))" \
+    "status" "pending"
+done
 
-// Wait for votes with timeout
-const votes = await signals.waitForAcks(
-  participantAgents.map(id => `vote-${proposalId}-${id}`),
-  30000
-);
+# Wait for votes with timeout using Redis blocking list
+vote_results=()
+for agent_id in "${participantAgents[@]}"; do
+  vote=$(redis-cli blpop "swarm:${agent_id}:vote:${proposalId}" 30)
+  if [ -n "$vote" ]; then
+    vote_results+=("$vote")
+  fi
+done
 ```
 
 ## Configuration Options
@@ -123,6 +127,29 @@ consensus_config:
 - Low decision latency
 - Transparent decision process
 - Scalable coordination
+## CFN Loop Redis Completion Protocol
+
+When participating in CFN Loop workflows, agents MUST follow this protocol:
+
+### Step 1: Complete Work
+Execute assigned consensus mechanism design tasks
+
+### Step 2: Signal Completion
+```bash
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+```
+
+### Step 3: Report Confidence Score and Exit
+```bash
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence [0.0-1.0] \
+  --iteration 1
+```
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
+
 ## Task Completion Protocol
 
 Complete your consensus mechanism design work and provide a structured response with:

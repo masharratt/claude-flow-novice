@@ -54,7 +54,7 @@ echo ""
 
 # Step 3: Spawn Z.ai workers
 echo "[3/4] Spawning Z.ai workers for testing..."
-./spawn-worker.sh zai 3
+./scripts/spawn-worker.sh zai 3
 echo ""
 
 # Step 4: Test worker tasks

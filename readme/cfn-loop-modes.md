@@ -1,12 +1,30 @@
-# CFN Loop Modes (v2)
+# CFN Loop Modes (v3)
 
-## Mode Comparison Overview
+## Execution Mode Selection
 
-| Mode       | Description | Gate Threshold | Consensus Threshold | Max Iterations | Ideal Use Case | Validators |
-|------------|-------------|----------------|---------------------|----------------|----------------|------------|
-| MVP        | Rapid Prototyping | ≥0.65 | ≥0.85 | 5 | Proof of Concept | 2 |
-| Standard   | Production Features | ≥0.75 | ≥0.90 | 10 | General Development | 4 |
-| Enterprise | Mission-Critical Systems | ≥0.85 | ≥0.95 | 15 | High-Stakes Projects | 5 |
+### Task Mode vs CLI Mode
+
+**Task Mode** (`/cfn-loop-task`):
+- Direct agent spawning via Task tool
+- Full visibility in Main Chat
+- No Redis coordination protocols
+- Use for debugging, learning, short tasks
+- Cost: $0.150/iteration (Anthropic)
+
+**CLI Mode** (`/cfn-loop-cli`):
+- Coordinator spawns agents via CLI
+- Background execution with Redis coordination
+- 95-98% cost savings with custom routing
+- Use for production, long tasks, cost-sensitive work
+- Cost: $0.054/iteration (Z.ai)
+
+## CFN Loop Mode Comparison
+
+| Mode       | Gate Threshold | Consensus Threshold | Max Iterations | Ideal Use Case | Validators |
+|------------|----------------|---------------------|----------------|----------------|------------|
+| MVP        | ≥0.65 | ≥0.85 | 5 | Proof of Concept | 2 |
+| Standard   | ≥0.75 | ≥0.90 | 10 | General Development | 4 |
+| Enterprise | ≥0.85 | ≥0.95 | 15 | High-Stakes Projects | 5 |
 
 ## Detailed Mode Breakdown
 

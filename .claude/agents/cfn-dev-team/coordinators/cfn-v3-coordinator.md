@@ -332,28 +332,39 @@ Task Mode coordination is handled directly by Main Chat using:
 
 If you need Task Mode, use the slash command, not this agent.
 
-### Context Storage
+### Redis Context Storage
 
-Store task configuration in JSON files for agent reference:
+Store task configuration in Redis for agent coordination:
 ```bash
-# Create context directory
-mkdir -p .claude/cfn-context
+# Store epic context
+redis-cli HSET "cfn_loop:task:$TASK_ID:context" \
+  "task_type" "$TASK_TYPE" \
+  "loop3_agents" "$(jq -c '.loop3_agents' <<< "$CONFIG")" \
+  "loop2_agents" "$(jq -c '.loop2_agents' <<< "$CONFIG")" \
+  "validation_criteria" "$(jq -c '.validation_criteria' <<< "$CONFIG")" \
+  "deliverables" "$(jq -c '.deliverables' <<< "$CONFIG")" \
+  "gate_threshold" "$GATE_THRESHOLD" \
+  "consensus_threshold" "$CONSENSUS_THRESHOLD" \
+  "max_iterations" "$MAX_ITERATIONS" \
+  "complexity" "$COMPLEXITY" \
+  "reasoning" "$REASONING"
 
-# Store task configuration
-cat > .claude/cfn-context/task-${TASK_ID}.json << EOF
-{
-  "task_type": "$TASK_TYPE",
-  "loop3_agents": $(jq -c '.loop3_agents' <<< "$CONFIG"),
-  "loop2_agents": $(jq -c '.loop2_agents' <<< "$CONFIG"),
-  "validation_criteria": $(jq -c '.validation_criteria' <<< "$CONFIG"),
-  "deliverables": $(jq -c '.deliverables' <<< "$CONFIG"),
-  "gate_threshold": $GATE_THRESHOLD,
-  "consensus_threshold": $CONSENSUS_THRESHOLD,
-  "max_iterations": $MAX_ITERATIONS,
-  "complexity": "$COMPLEXITY",
-  "reasoning": "$REASONING"
-}
-EOF
+# Store phase context
+redis-cli HSET "cfn_loop:task:$TASK_ID:phase" \
+  "current_phase" "1" \
+  "total_phases" "1" \
+  "phase_name" "Implementation"
+```
+
+### Context Retrieval
+
+Agents retrieve context from Redis:
+```bash
+# Get task context
+redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"
+
+# Get current phase
+redis-cli HGET "cfn_loop:task:$TASK_ID:phase" "current_phase"
 ```
 
 ### Routing & Z.ai Provider Integration
@@ -440,11 +451,34 @@ STORED_CONTEXT=$(cat .claude/cfn-context/task-${TASK_ID}.json)
 echo "$STORED_CONTEXT" | jq .
 ```
 
+## CFN Loop Redis Completion Protocol
+
+When participating in CFN Loop workflows, agents MUST follow this protocol:
+
+### Step 1: Complete Work
+Execute assigned coordination tasks
+
+### Step 2: Signal Completion
+```bash
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
+```
+
+### Step 3: Report Confidence Score and Exit
+```bash
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence [0.0-1.0] \
+  --iteration 1
+```
+
+**After reporting, exit cleanly. Do NOT enter waiting mode.**
+
 ### Coordinator Post-Processing
 
 Coordinator checks:
-1. Context files created ✅
-2. Routing mode confirmed ✅
+1. Redis context stored ✅
+2. Orchestrator invoked ✅
 3. Agent selection validated ✅
 
-Remember: You are a configuration generator and context manager. Analyze tasks, generate recommendations, coordinate context storage, enable efficient agent workflows.
+Remember: You are a configuration generator and context manager. Analyze tasks, generate recommendations, coordinate Redis context storage, enable efficient agent workflows.
