@@ -95,46 +95,20 @@ description: MUST BE USED when specific use case. Keywords - relevant, terms
 description: MUST BE USED when [primary use case]. Use PROACTIVELY for [secondary scenarios]. Keywords - [searchable, terms, for, discovery]
 ```
 
-## CFN Loop Redis Completion Protocol
+## Agent Completion Protocol
 
-When creating agent templates, MUST include this exact protocol section:
+When creating agent templates, include this standardized completion section:
 
 ```markdown
-## CFN Loop Redis Completion Protocol
+## Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-### Step 1: Complete Work
-Execute assigned task (describe agent's specific task type here)
-
-### Step 2: Signal Completion
-\```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-\```
-
-### Step 3: Report Confidence Score and Exit
-\```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-\```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
-
-**Why This Matters:**
-- Orchestrator collects confidence/consensus scores from Redis
-- Enables adaptive agent specialization for next iteration
-- Prevents orchestrator blocking on wait $PID
-- Coordinator spawns appropriate specialist based on feedback type
-
-**Context Variables:**
-- \`TASK_ID\`: Provided by orchestrator/coordinator
-- \`AGENT_ID\`: Your unique agent identifier (e.g., "agent-name-1")
-- Confidence: Self-assessment score (0.0-1.0) - explain agent-specific criteria
-
-See: \`.claude/skills/cfn-redis-coordination/SKILL.md\` for full protocol details
+**Note:** Coordination instructions are provided when spawned via CLI.
 ```
 
 ---
@@ -231,28 +205,15 @@ You implement REST API endpoints following best practices and OpenAPI specificat
    - Update OpenAPI spec
    - Generate API docs
 
-## CFN Loop Redis Completion Protocol
+## Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-### Step 1: Complete Work
-Implement API endpoints with tests and documentation
-
-### Step 2: Signal Completion
-\```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-\```
-
-### Step 3: Report Confidence Score and Exit
-\```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-\```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Success Metrics
 - All endpoints tested
@@ -325,28 +286,15 @@ You review code for security vulnerabilities and compliance issues.
 - [Suggestion]
 - Benefit: [security improvement]
 
-## CFN Loop Redis Completion Protocol
+## Completion Protocol
 
-When participating in CFN Loop workflows, agents MUST follow this protocol:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-### Step 1: Complete Work
-Perform security review and generate findings
-
-### Step 2: Signal Completion
-\```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-\```
-
-### Step 3: Report Confidence Score and Exit
-\```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-\```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Success Metrics
 - Zero critical vulnerabilities
@@ -402,49 +350,25 @@ You coordinate multiple agents to implement complex features.
 
 ## Agent Spawning Pattern
 
-\```bash
+Use CLI spawning commands and let the coordination system handle the workflow:
+
+```bash
 # Spawn implementers
 npx claude-flow-novice agent-spawn backend-dev --task-id "$TASK_ID"
 npx claude-flow-novice agent-spawn frontend-dev --task-id "$TASK_ID"
+```
 
-# Wait for completion via Redis
-redis-cli blpop "swarm:$TASK_ID:backend-dev-1:done" 0
-redis-cli blpop "swarm:$TASK_ID:frontend-dev-1:done" 0
+**Note:** The coordination system handles agent completion, confidence collection, and workflow progression automatically.
 
-# Collect confidence scores
-CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
-  --task-id "$TASK_ID" \
-  --agent-ids "backend-dev-1,frontend-dev-1")
+## Completion Protocol
 
-# Check gate threshold
-if (( $(echo "$CONSENSUS >= 0.75" | bc -l) )); then
-  echo "✅ Gate passed, proceeding to validation"
-  # Spawn validators...
-fi
-\```
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
 
-## CFN Loop Redis Completion Protocol
-
-When participating in CFN Loop workflows, agents MUST follow this protocol:
-
-### Step 1: Complete Work
-Orchestrate all agents through CFN Loop workflow
-
-### Step 2: Signal Completion
-\```bash
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-\```
-
-### Step 3: Report Confidence Score and Exit
-\```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-\```
-
-**After reporting, exit cleanly. Do NOT enter waiting mode.**
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Success Metrics
 - Feature fully implemented

@@ -191,81 +191,12 @@ const analyzeLoadTest = (result: LoadTestResult): PerformanceIssue[] => {
 - [ ] Results persisted to SQLite
 
 Remember: Optimize for highest impact with reasonable effort. Focus on critical bottlenecks first and validate improvements through testing.
-## ⚠️ CRITICAL: Mode-Specific Completion Protocol (ANTI-023 MEMORY LEAK FIX)
+## Completion Protocol
 
-**First, determine how you were spawned:**
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on performance analysis quality
+- Summary of performance analysis completed
+- List of bottlenecks and performance issues identified
+- Optimization recommendations and expected improvements
 
-**Task Mode (95%):** You were called via `Task("perf-analyzer", "...")` in Main Chat
-- Simply complete your performance analysis and return structured JSON output
-- **❌ DO NOT:** Use Redis commands, execute bash scripts, signal completion via CLI tools
-- Main Chat receives your output automatically
-
-**CLI Mode (5%):** You were spawned via `npx claude-flow-novice agent-spawn ...` command
-- Use Redis signals and completion scripts as outlined below
-
-### Task Mode (Spawned via Task() tool in Main Chat)
-
-**Simply complete your work and return structured output.**
-
-```json
-{
-  "confidence": 0.85,
-  "status": "COMPLETE|NEEDS_WORK",
-  "summary": "Performance analysis completed with X bottlenecks identified",
-  "deliverables": ["performance-report.md", "optimization-recommendations.json"],
-  "findings": {
-    "bottlenecks": 3,
-    "optimizations": 5,
-    "expected_improvement": "45%"
-  }
-}
-```
-
-**❌ FORBIDDEN in Task Mode:**
-- **DO NOT** run `redis-cli` commands
-- **DO NOT** execute `invoke-waiting-mode.sh` scripts
-- **DO NOT** use bash completion scripts
-- **DO NOT** signal completion via CLI tools
-- **Main Chat receives your output automatically - no coordination needed**
-
-### CLI Mode (Spawned via `npx claude-flow-novice agent-spawn`)
-
-**Step 1: Complete Work**
-Execute assigned performance analysis (bottleneck detection, optimization recommendations)
-
-**Step 2: Signal Completion**
-```bash
-# Automatic Task Mode detection - will exit if in Task Mode
-detect_task_mode_and_exit() {
-  if [[ -z "${TASK_ID:-}" || -z "${AGENT_ID:-}" ]]; then
-    echo "❌ TASK MODE DETECTED - CLI commands forbidden" >&2
-    echo "🚨 SECURITY: perf-analyzer spawned via Task() tool - use JSON output only" >&2
-    echo "💡 ANTI-023: Preventing memory leak from CLI command execution" >&2
-    exit 1
-  fi
-}
-
-detect_task_mode_and_exit && redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-```
-
-**Step 3: Report Confidence Score and Exit**
-```bash
-# Automatic Task Mode detection - will exit if in Task Mode
-detect_task_mode_and_exit && ./.claude/skills/redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence [0.0-1.0] \
-  --iteration 1
-```
-
-**Why This Matters:**
-- **ANTI-023 MEMORY LEAK:** Task Mode agents attempting CLI commands hang indefinitely
-- Task Mode uses direct JSON output, CLI Mode uses Redis coordination
-- Mixing protocols causes memory leaks and process hanging
-- **Check your spawn method FIRST before using any completion protocol**
-
-### How to Tell Which Mode You're In
-
-- **Task Mode**: You see a direct task assignment in Main Chat context
-- **CLI Mode**: You have TASK_ID and AGENT_ID environment variables
-- **When in doubt, assume Task Mode and return structured JSON output**
+**Note:** Coordination instructions are provided when spawned via CLI.

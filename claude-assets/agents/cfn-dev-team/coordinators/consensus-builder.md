@@ -74,22 +74,26 @@ await sqlite.memoryAdapter.set(
 );
 ```
 
-## Blocking Coordination
+## Redis Blocking Coordination
 
-```javascript
-// Send vote request to participants
-for (const agentId of participantAgents) {
-  await signals.sendSignal('VOTE_REQUEST', agentId, {
-    proposal: consensusProposal,
-    deadline: Date.now() + 30000
-  });
-}
+```bash
+# Send vote request to participants via Redis pub/sub
+for agent_id in "${participantAgents[@]}"; do
+  redis-cli publish "swarm:${agent_id}:vote-request" "$consensusProposal"
+  redis-cli HSET "cfn_loop:vote:${proposalId}:${agent_id}" \
+    "proposal" "$consensusProposal" \
+    "deadline" "$(( $(date +%s) + 30 ))" \
+    "status" "pending"
+done
 
-// Wait for votes with timeout
-const votes = await signals.waitForAcks(
-  participantAgents.map(id => `vote-${proposalId}-${id}`),
-  30000
-);
+# Wait for votes with timeout using Redis blocking list
+vote_results=()
+for agent_id in "${participantAgents[@]}"; do
+  vote=$(redis-cli blpop "swarm:${agent_id}:vote:${proposalId}" 30)
+  if [ -n "$vote" ]; then
+    vote_results+=("$vote")
+  fi
+done
 ```
 
 ## Configuration Options
@@ -128,40 +132,40 @@ consensus_config:
 When participating in CFN Loop workflows, agents MUST follow this protocol:
 
 ### Step 1: Complete Work
-Execute assigned task (consensus mechanism design, distributed decision-making, voting coordination)
+Execute assigned consensus mechanism design tasks
 
 ### Step 2: Signal Completion
 ```bash
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```
 
-### Step 3: Report Confidence Score
+### Step 3: Report Confidence Score and Exit
 ```bash
-./.claude/skills/redis-coordination/invoke-waiting-mode.sh report   --task-id "$TASK_ID"   --agent-id "$AGENT_ID"   --confidence [0.0-1.0]   --iteration 1
+./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence [0.0-1.0] \
+  --iteration 1
+```
 
 **After reporting, exit cleanly. Do NOT enter waiting mode.**
 
-**Why This Matters:**
-- Orchestrator collects confidence/consensus scores from Redis
-- Enables adaptive agent specialization for next iteration
-- Prevents orchestrator blocking on wait $PID
-- Coordinator spawns appropriate specialist based on feedback type
+## Task Completion Protocol
 
+Complete your consensus mechanism design work and provide a structured response with:
+
+1. **Confidence Score** (0.0-1.0) - Self-assessment of consensus effectiveness
+2. **Summary** - Brief overview of consensus approach and decisions
+3. **Deliverables** - List of files or mechanisms created
+4. **Status** - COMPLETE or NEEDS_WORK with specific issues
+
+**Example Output:**
 ```
-
-### Step 4: Enter Waiting Mode (for potential iteration)
-```bash
+Confidence: 0.88
+Status: COMPLETE
+Summary: Designed Byzantine fault tolerant consensus algorithm for distributed decision-making
+Deliverables:
+- consensus-algorithm.md
+- validation-rules.md
+- voting-mechanism.sh
 ```
-
-**Why This Matters:**
-- Zero-token blocking coordination (BLPOP waits without API calls)
-- Orchestrator collects confidence/consensus scores automatically
-- Supports autonomous iteration based on quality gates
-- Agent woken instantly (<100ms) if iteration needed
-
-**Context Variables:**
-- `TASK_ID`: Provided by orchestrator/coordinator
-- `AGENT_ID`: Your unique agent identifier (e.g., "consensus-builder-1")
-- Confidence: Self-assessment score of consensus mechanism effectiveness (0.0-1.0)
-
-See: `.claude/skills/redis-coordination/SKILL.md` for full protocol details
