@@ -20,25 +20,8 @@ validation_hooks:
   - cfn-loop-memory-validator
   - test-coverage-validator
 acl_level: 1  # Private - implementer level
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at, role, mode, platform_focus)
-                     VALUES ('${AGENT_ID}', 'mobile-dev', 'active', CURRENT_TIMESTAMP, 'implementer', '${MODE:-standard}', '${PLATFORM:-cross_platform}')"
-
-    # Initialize mobile development context
-    sqlite-cli exec "INSERT INTO mobile_development_context (agent_id, task_id, mode, platform, created_at)
-                     VALUES ('${AGENT_ID}', '${TASK_ID}', '${MODE:-standard}', '${PLATFORM:-cross_platform}', CURRENT_TIMESTAMP)"
-
-  post_task: |
-    # Update agent status with comprehensive mobile metrics
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP, mode = '${MODE:-standard}'
-                     WHERE id = '${AGENT_ID}'"
-
-    # Store comprehensive mobile development results
-    sqlite-cli exec "INSERT INTO mobile_development_results (agent_id, task_id, mode, platform, confidence, screens_implemented, components_created, native_modules_integrated, performance_score, accessibility_score, timestamp)
-                     VALUES ('${AGENT_ID}', '${TASK_ID}', '${MODE:-standard}', '${PLATFORM:-cross_platform}', ${CONFIDENCE_SCORE}, ${SCREENS_COUNT}, ${COMPONENTS_COUNT}, ${NATIVE_MODULES_COUNT}, ${PERFORMANCE_SCORE}, ${ACCESSIBILITY_SCORE}, CURRENT_TIMESTAMP)"
+completion_protocol: |
+  Complete your work and provide a structured response with confidence score.
 
 ---
 

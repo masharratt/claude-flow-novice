@@ -19,6 +19,9 @@ export interface AgentCommandOptions {
   agentId?: string;
   list?: boolean;
   help?: boolean;
+  memoryLimit?: number;
+  enableProfiling?: boolean;
+  debug?: boolean;
 }
 
 /**
@@ -42,6 +45,9 @@ Options:
   --mode <mode>          Execution mode (cli, api, hybrid)
   --priority <n>         Task priority (1-10)
   --parent-task-id <id>  Parent task identifier
+  --memory-limit <mb>    Set memory limit in MB (default: 8192)
+  --enable-profiling     Enable heap profiling for debugging
+  --debug                Enable debug mode with profiling
   --list                 List all available agents
   --help                 Show this help message
 
@@ -49,14 +55,31 @@ Examples:
   # Simple agent spawn
   npx claude-flow-novice agent coder --context "Implement JWT auth"
 
-  # CFN Loop agent
+  # CFN Loop agent with memory limits
   npx claude-flow-novice agent rust-enterprise-developer \\
     --task-id task-123 \\
     --iteration 1 \\
-    --mode standard
+    --mode standard \\
+    --memory-limit 4096
+
+  # Debug mode with profiling
+  npx claude-flow-novice agent tester \\
+    --context "Test authentication system" \\
+    --debug \\
+    --enable-profiling
 
   # List available agents
   npx claude-flow-novice agent --list
+
+Memory Management:
+  Claude automatically applies memory limits to prevent leaks:
+  - Default limit: 8GB (reduced from 16GB)
+  - Use --memory-limit to set custom limits
+  - Use --debug to enable profiling and monitoring
+  - Memory profiles saved to /tmp/claude-memory-profiles/
+
+  For advanced memory management:
+  ./scripts/memory-leak-prevention.sh --help
 
 Available Agents:
   Agents are defined in .claude/agents/ directory:
@@ -134,7 +157,32 @@ export async function agentCommand(
   }
 
   try {
+    // Apply memory management options
+    if (options.memoryLimit) {
+      console.log(`[agent-command] Setting memory limit: ${options.memoryLimit}MB`);
+      const currentOptions = process.env.NODE_OPTIONS || '';
+      const newOptions = currentOptions.replace(/--max-old-space-size=\d+/, `--max-old-space-size=${options.memoryLimit}`);
+      process.env.NODE_OPTIONS = newOptions || `--max-old-space-size=${options.memoryLimit}`;
+    }
+
+    if (options.enableProfiling || options.debug) {
+      console.log(`[agent-command] Enabling memory profiling`);
+      if (!process.env.NODE_OPTIONS.includes('heap-prof')) {
+        process.env.NODE_OPTIONS += ' --heap-prof';
+      }
+      if (!process.env.NODE_OPTIONS.includes('inspect') && options.debug) {
+        process.env.NODE_OPTIONS += ' --inspect=0.0.0.0:9229';
+      }
+    }
+
+    if (options.debug) {
+      console.log(`[agent-command] Debug mode enabled`);
+      process.env.CLAUDE_DEBUG = 'true';
+      process.env.CLAUDE_MEMORY_MONITORING = 'true';
+    }
+
     console.log(`[agent-command] Spawning agent: ${agentType}`);
+    console.log(`[agent-command] Memory settings: ${process.env.NODE_OPTIONS}`);
     console.log('');
 
     // Step 1: Parse agent definition

@@ -8,11 +8,6 @@ acl_level: 1
 validation_hooks:
   - agent-template-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'react-frontend-engineer', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 ---
 
 # React Frontend Engineer Agent Profile
@@ -164,3 +159,13 @@ lifecycle:
 - Create storybook documentation
 - Implement micro-interactions
 - Progressive enhancement techniques
+
+## Completion Protocol
+
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
+
+**Note:** Coordination instructions are provided when spawned via CLI.

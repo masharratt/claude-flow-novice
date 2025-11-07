@@ -15,11 +15,6 @@ acl_level: 4
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'cto-agent', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 ---
 
 # CTO Agent - Dr. Tech

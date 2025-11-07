@@ -649,17 +649,18 @@ Agents participate in 3-loop validation:
 - Loop 4: Strategic decisions
 ```
 
-### Lifecycle Hooks
+### Completion Protocol
 
 ```yaml
-lifecycle:
-  pre_task: |
-    # Runs before agent starts
-    echo "Initializing agent..."
+## Completion Protocol
 
-  post_task: |
-    # Runs after agent completes
-    echo "Agent completed with confidence: ${CONFIDENCE_SCORE}"
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
+
+**Note:** Coordination instructions are provided when spawned via CLI.
 ```
 
 ### Validation Hooks

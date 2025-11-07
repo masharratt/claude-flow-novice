@@ -8,11 +8,6 @@ acl_level: 1
 validation_hooks:
   - agent-template-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at) VALUES ('${AGENT_ID}', 'graphql-specialist', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents SET status = 'completed', confidence = ${CONFIDENCE_SCORE}, completed_at = CURRENT_TIMESTAMP WHERE id = '${AGENT_ID}'"
 ---
 
 # GraphQL Specialist Agent
@@ -609,3 +604,13 @@ describe('User resolvers', () => {
 - Verifying DataLoader batching effectiveness
 - Testing federation if using Apollo Federation
 - Security review of authorization logic
+
+## Completion Protocol
+
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
+
+**Note:** Coordination instructions are provided when spawned via CLI.

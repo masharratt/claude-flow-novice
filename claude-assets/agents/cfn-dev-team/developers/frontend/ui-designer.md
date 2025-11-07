@@ -10,15 +10,6 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-lifecycle:
-  pre_task: |
-    sqlite-cli exec "INSERT INTO agents (id, type, status, spawned_at)
-                     VALUES ('${AGENT_ID}', 'ui-designer', 'active', CURRENT_TIMESTAMP)"
-  post_task: |
-    sqlite-cli exec "UPDATE agents
-                     SET status = 'completed', confidence = ${CONFIDENCE_SCORE},
-                         completed_at = CURRENT_TIMESTAMP
-                     WHERE id = '${AGENT_ID}'"
 ---
 
 # UI Designer Agent
@@ -53,20 +44,15 @@ npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "ui-designer/cont
 - Touch-friendly interfaces
 - Performance-aware design
 
-## SQLite Integration
+## Completion Protocol
 
-```javascript
-// Persist design system details
-await sqlite.memoryAdapter.set(
-  `ui-designer/${agentId}/design-system/${projectName}`,
-  {
-    colorPalette: colorTokens,
-    typography: typographyScale,
-    accessibilityScore: 0.92
-  },
-  { aclLevel: 1, ttl: 2592000 }  // 30 days retention
-);
-```
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of analysis/review completed
+- List of findings or deliverables
+- Any recommendations made
+
+**Note:** Coordination instructions are provided when spawned via CLI.
 
 ## Technology Stack
 
