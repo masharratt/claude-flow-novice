@@ -112,7 +112,8 @@ class DockerTestUtils {
         const {
             memoryLimit = '1g',
             network = 'mcp-network',
-            verbose = false
+            verbose = false,
+            image = 'claude-flow-novice:minimal'
         } = options;
 
         const agentIds = [];
@@ -129,7 +130,8 @@ class DockerTestUtils {
                 taskId,
                 agentId,
                 '--memory-limit', memoryLimit,
-                '--network', network
+                '--network', network,
+                '--image', image
             ];
 
             if (verbose) {
@@ -144,30 +146,27 @@ class DockerTestUtils {
                         timeout: 60000
                     });
 
-                    if (result.includes('Agent ID:')) {
-                        const actualAgentId = result.match(/Agent ID: ([^\s]+)/);
-                        if (actualAgentId && actualAgentId[1]) {
-                            resolve({
-                                agentId: actualAgentId[1],
-                                agentType,
-                                success: true,
-                                output: result
-                            });
-                        } else {
-                            resolve({
-                                agentId: agentId,
-                                agentType,
-                                success: false,
-                                error: 'Could not extract agent ID from output',
-                                output: result
-                            });
-                        }
+                    // Extract container ID and agent ID from output
+                    const containerIdMatch = result.match(/Container ID: ([^\s]+)/);
+                    const agentIdMatch = result.match(/Agent ID: ([^\s]+)/);
+
+                    if (containerIdMatch && containerIdMatch[1]) {
+                        const containerId = containerIdMatch[1];
+                        const actualAgentId = agentIdMatch && agentIdMatch[1] ? agentIdMatch[1] : agentId;
+
+                        resolve({
+                            agentId: actualAgentId,
+                            agentType,
+                            containerId: containerId,
+                            success: true,
+                            output: result
+                        });
                     } else {
                         resolve({
                             agentId: agentId,
                             agentType,
                             success: false,
-                            error: 'Spawn command did not return expected output',
+                            error: 'Could not extract container ID from output',
                             output: result
                         });
                     }

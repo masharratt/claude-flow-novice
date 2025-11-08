@@ -21,6 +21,18 @@ npx cfn-loop "Implement JWT authentication system" --mode=standard
 # Or spawn agents directly
 npx cfn-spawn backend-developer --task-id auth-task
 ```
+**Installation:**
+```bash
+npm install claude-flow-novice
+npx cfn-init  # Copy namespace-isolated files
+```
+
+**Collision Risk:** ~0.01% (user custom files preserved)
+
+**Package:** 573 KB tarball, 2.4 MB unpacked, 303 files (68% reduction from v2.0.0)
+
+**Agent Discovery:** Recursive search through `.claude/agents/**/*.md` finds both cfn-dev-team and user custom agents
+
 
 **What happens on install**:
 - Copies 23 agents to `.claude/agents/cfn-dev-team/`
@@ -170,6 +182,89 @@ User Task Description
 ```
 
 ---
+
+### CFN Loop Execution Modes
+
+**User selects mode. Main Chat executes the specified slash command.**
+
+**Default: Task Mode** (default mode when user doesn't specify)
+
+**Available modes:**
+
+**1. Task Mode (Default):**
+```bash
+/cfn-loop-task "Task description" --mode=standard
+```
+- Main Chat spawns ALL agents via Task()
+- NO coordinator agent
+- Cost: $0.150/iteration
+- Full visibility in Main Chat
+- Use: Debugging, learning, short tasks (<5 min)
+
+**2. CLI Mode (Production):**
+```bash
+/cfn-loop-cli "Task description" --mode=standard
+```
+- Main Chat spawns ONLY cfn-v3-coordinator
+- Coordinator spawns workers via CLI (background)
+- Cost: $0.054/iteration (64% savings vs Task)
+- Use: Production, long tasks, cost-sensitive
+
+**Mode selection guidance for users:**
+- "execute cfn loop on X" → `/cfn-loop-task` (default)
+- "use task mode on X" → `/cfn-loop-task`
+- "use cli mode on X" → `/cfn-loop-cli`
+- "production cfn loop on X" → `/cfn-loop-cli`
+
+**Architecture patterns:**
+- CLI: Main Chat → cfn-v3-coordinator → orchestrate.sh → CLI workers (background)
+- Task: Main Chat → Task() agents (no coordinator, full visibility)
+
+**Cost breakdown:**
+- CLI mode: $0.054/iteration (Z.ai routing for workers)
+- Task mode: $0.150/iteration (Anthropic for all agents)
+
+**Context Storage:**
+- CLI mode: Coordinator stores context in persistence layer for agents to retrieve
+- Task mode: Main Chat passes context directly to each Task() spawn (no persistence needed)
+- CLI agents read from context: coordination protocols retrieve task context
+
+**Reference:**
+- Implementation details: `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
+- **Task Mode guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management)
+
+### Custom Routing (Z.ai Provider Integration)
+
+**Provider Routing Model:**
+- **Task() agents** → Use Main Chat provider (Anthropic)
+- **CLI-spawned agents** → Use custom routing (Z.ai when enabled)
+
+**Enable Custom Routing (One-Time Setup):**
+```bash
+/custom-routing-activate
+```
+
+**Switch Provider to Z.ai or Claude Subscription**
+```bash
+/switch-api status
+```
+```bash
+/switch-api zai
+```
+```bash
+/switch-api max
+```
+
+**Cost Impact:**
+```
+Without Custom Routing:
+- CLI agents use Anthropic ($3-15/1M tokens)
+
+With Custom Routing:
+- CLI agents use Z.ai ($0.50/1M tokens)
+- ~5x cost reduction per CLI agent call
+- Combined with CLI spawning: 95-98% total savings vs Task tool
+```
 
 ## 🧠 AI-Driven Intelligence (43 Modular Skills)
 
