@@ -1,224 +1,255 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+##############################################################################
 # CFN Task Mode Environment Sanitizer
-# Sanitizes and enforces Task-mode environment variables to prevent mode confusion
+# Prevents memory leaks and environment contamination in CFN Loop execution
+#
+# Usage:
+#   source task-mode-env-sanitizer.sh
+#   sanitize_task_mode_environment <mode>
+#
+# Modes:
+#   cli - CLI mode execution (production)
+#   task - Task mode execution (debugging)
+##############################################################################
 
 set -euo pipefail
 
-# Script configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# Global state tracking
+declare -A CFN_SANITIZER_STATE
+CFN_SANITIZER_STATE["initialized"]=false
+CFN_SANITIZER_STATE["mode"]=""
+CFN_SANITIZER_STATE["start_time"]=$(date +%s)
 
-# Environment sanitization rules
+# Memory leak prevention thresholds
+readonly MAX_AGENT_PROCESSES=50
+readonly MAX_MEMORY_MB=4096
+readonly MAX_RUNTIME_SECONDS=3600  # 1 hour
+
+##############################################################################
+# Core Sanitization Functions
+##############################################################################
+
 sanitize_task_mode_environment() {
-    local mode="${1:-auto}"
+    local mode="${1:-task}"
 
-    echo "🧹 Sanitizing Task-mode environment..." >&2
+    # Initialize sanitizer state
+    CFN_SANITIZER_STATE["mode"]="$mode"
+    CFN_SANITIZER_STATE["initialized"]=true
 
-    # 1. Force CFN_MODE=task for Task mode
-    if [[ "$mode" == "task" || "$mode" == "auto" ]]; then
-        export CFN_MODE="task"
-        echo "✅ CFN_MODE forced to: $CFN_MODE" >&2
-    fi
+    echo "🧹 CFN Environment Sanitizer v1.0.0" >&2
+    echo "   Mode: $mode" >&2
+    echo "   PID: $$" >&2
+    echo "   Start: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >&2
 
-    # 2. Clear inherited CLI-mode variables that could cause mode confusion
-    local inherited_vars=(
-        "TASK_ID"
-        "AGENT_ID"
-        "LOOP3_AGENTS"
-        "LOOP2_VALIDATORS"
-        "PRODUCT_OWNER_ID"
-        "COORDINATOR_ID"
-        "__CFN_CLI_SPAWN"
-        "CFN_CLI_CONTEXT"
-    )
+    # Apply mode-specific sanitization
+    case "$mode" in
+        "cli")
+            sanitize_cli_environment
+            ;;
+        "task")
+            sanitize_task_environment
+            ;;
+        *)
+            echo "⚠️ Unknown mode: $mode, applying default sanitization" >&2
+            sanitize_default_environment
+            ;;
+    esac
 
-    for var in "${inherited_vars[@]}"; do
-        if [[ -n "${!var:-}" ]]; then
-            echo "🗑️  Clearing inherited variable: $var (was: ${!var})" >&2
-            unset "$var"
-        fi
-    done
+    # Setup monitoring and cleanup hooks
+    setup_environment_monitoring
+    setup_cleanup_hooks
 
-    # 3. Set Task-mode specific environment
-    export __CFN_TASK_MODE="1"
-    export __CFN_MODE_ENFORCED="1"
-
-    # 4. Right-size Node.js heap for Task mode (prevent 16GB default)
-    if [[ -z "${NODE_OPTIONS:-}" ]]; then
-        export NODE_OPTIONS="--max-old-space-size=2048"
-    else
-        # Replace any larger heap size with Task-mode appropriate size
-        if echo "$NODE_OPTIONS" | grep -q "max-old-space-size"; then
-            export NODE_OPTIONS=$(echo "$NODE_OPTIONS" | sed 's/--max-old-space-size=[0-9]*/--max-old-space-size=2048/g')
-        else
-            export NODE_OPTIONS="$NODE_OPTIONS --max-old-space-size=2048"
-        fi
-    fi
-    echo "✅ NODE_OPTIONS set for Task mode: $NODE_OPTIONS" >&2
-
-    # 5. Configure Task-mode specific settings
-    export CFN_MEMORY_LIMIT="2048"  # MB
-    export CFN_TIMEOUT="300"       # 5 minutes
-    export CFN_COORDINATION="file"  # Use file-based coordination
-
-    echo "🎯 Task-mode environment sanitized and locked" >&2
+    echo "✅ Environment sanitization complete" >&2
 }
 
-# Validate environment is in Task mode
-validate_task_mode_environment() {
-    local errors=0
+sanitize_cli_environment() {
+    echo "   Applying CLI mode sanitization..." >&2
 
-    echo "🔍 Validating Task-mode environment..." >&2
+    # Clear any previous agent state
+    unset AGENT_ID 2>/dev/null || true
+    unset TASK_ID 2>/dev/null || true
+    unset SWARM_ID 2>/dev/null || true
 
-    # Check CFN_MODE
-    if [[ "${CFN_MODE:-}" != "task" ]]; then
-        echo "❌ CFN_MODE should be 'task', got: ${CFN_MODE:-unset}" >&2
-        ((errors++))
+    # Optimize for production CLI execution
+    export CFN_MODE="cli"
+    export CFN_SANITIZER_ACTIVE=true
+
+    # Set conservative resource limits
+    ulimit -u $MAX_AGENT_PROCESSES 2>/dev/null || true
+    ulimit -v $((MAX_MEMORY_MB * 1024)) 2>/dev/null || true
+
+    # Disable debug features in production
+    export CFN_DEBUG=false
+    export CFN_VERBOSE=false
+}
+
+sanitize_task_environment() {
+    echo "   Applying Task mode sanitization..." >&2
+
+    # Task mode allows more debugging
+    export CFN_MODE="task"
+    export CFN_SANITIZER_ACTIVE=true
+
+    # More permissive limits for debugging
+    ulimit -u $((MAX_AGENT_PROCESSES * 2)) 2>/dev/null || true
+    ulimit -v $((MAX_MEMORY_MB * 1024 * 2)) 2>/dev/null || true
+
+    # Enable debug features for task mode
+    export CFN_DEBUG=${CFN_DEBUG:-true}
+    export CFN_VERBOSE=${CFN_VERBOSE:-true}
+}
+
+sanitize_default_environment() {
+    echo "   Applying default sanitization..." >&2
+
+    # Basic sanitization for unknown modes
+    export CFN_MODE="unknown"
+    export CFN_SANITIZER_ACTIVE=true
+
+    # Conservative limits
+    ulimit -u $MAX_AGENT_PROCESSES 2>/dev/null || true
+}
+
+##############################################################################
+# Environment Monitoring
+##############################################################################
+
+setup_environment_monitoring() {
+    # Start background monitoring if available
+    if command -v timeout >/dev/null 2>&1; then
+        (
+            sleep $MAX_RUNTIME_SECONDS
+            if [[ "${CFN_SANITIZER_STATE[initialized]}" == "true" ]]; then
+                echo "⚠️ CFN Environment timeout reached, forcing cleanup" >&2
+                force_environment_cleanup
+            fi
+        ) &
+        echo "   Started runtime monitoring (${MAX_RUNTIME_SECONDS}s)" >&2
     fi
+}
 
-    # Check Task-mode markers
-    if [[ "${__CFN_TASK_MODE:-}" != "1" ]]; then
-        echo "❌ __CFN_TASK_MODE not set" >&2
-        ((errors++))
-    fi
+setup_cleanup_hooks() {
+    # Setup cleanup trap for graceful shutdown
+    trap 'environment_cleanup_on_exit' EXIT
+    trap 'environment_cleanup_on_signal INT' INT
+    trap 'environment_cleanup_on_signal TERM' TERM
+    trap 'environment_cleanup_on_signal HUP' HUP
+}
 
-    # Check for prohibited CLI variables
-    local prohibited_vars=(
-        "TASK_ID"
-        "AGENT_ID"
-        "LOOP3_AGENTS"
-        "__CFN_CLI_SPAWN"
-    )
+environment_cleanup_on_exit() {
+    echo "🧹 CFN Environment cleanup on exit" >&2
 
-    for var in "${prohibited_vars[@]}"; do
-        if [[ -n "${!var:-}" ]]; then
-            echo "❌ Prohibited CLI variable found: $var=${!var}" >&2
-            ((errors++))
+    # Calculate runtime
+    local end_time=$(date +%s)
+    local runtime=$((end_time - CFN_SANITIZER_STATE["start_time"]))
+    echo "   Runtime: ${runtime}s" >&2
+
+    # Mode-specific cleanup
+    case "${CFN_SANITIZER_STATE[mode]}" in
+        "cli")
+            cleanup_cli_environment
+            ;;
+        "task")
+            cleanup_task_environment
+            ;;
+    esac
+
+    # Clear sanitizer state
+    CFN_SANITIZER_STATE["initialized"]=false
+    echo "✅ Environment cleanup complete" >&2
+}
+
+environment_cleanup_on_signal() {
+    local signal="$1"
+    echo "🧹 CFN Environment cleanup on signal: $signal" >&2
+    environment_cleanup_on_exit
+    exit 130
+}
+
+cleanup_cli_environment() {
+    echo "   CLI mode cleanup..." >&2
+
+    # Clean up any lingering agent processes
+    if command -v pgrep >/dev/null 2>&1; then
+        local agent_pids=$(pgrep -f "claude-flow-novice.*agent" 2>/dev/null || true)
+        if [[ -n "$agent_pids" ]]; then
+            echo "   Warning: Found agent processes: $agent_pids" >&2
         fi
-    done
+    fi
+}
 
-    # Check Node heap size
-    if echo "$NODE_OPTIONS" | grep -q "max-old-space-size"; then
-        local heap_size=$(echo "$NODE_OPTIONS" | grep -o "max-old-space-size=[0-9]*" | cut -d= -f2)
-        if [[ "$heap_size" -gt 4096 ]]; then
-            echo "❌ Node heap size too large for Task mode: ${heap_size}MB" >&2
-            ((errors++))
-        fi
-    else
-        echo "⚠️  No Node heap size specified (should be set to 2048MB)" >&2
+cleanup_task_environment() {
+    echo "   Task mode cleanup..." >&2
+    # Task mode cleanup - more permissive
+}
+
+force_environment_cleanup() {
+    echo "🚨 Force cleanup triggered!" >&2
+
+    # Kill any remaining processes in this process group
+    if [[ -n "${CFN_PROCESS_GROUP:-}" ]]; then
+        kill -TERM -$CFN_PROCESS_GROUP 2>/dev/null || true
+        sleep 2
+        kill -KILL -$CFN_PROCESS_GROUP 2>/dev/null || true
     fi
 
-    if [[ $errors -eq 0 ]]; then
-        echo "✅ Task-mode environment validation passed" >&2
-        return 0
-    else
-        echo "❌ Task-mode environment validation failed ($errors errors)" >&2
+    # Force exit
+    exit 1
+}
+
+##############################################################################
+# Utility Functions
+##############################################################################
+
+check_environment_health() {
+    local mode="${1:-${CFN_SANITIZER_STATE[mode]}}"
+
+    if [[ "${CFN_SANITIZER_STATE[initialized]}" != "true" ]]; then
+        echo "❌ Environment sanitizer not initialized" >&2
         return 1
     fi
-}
 
-# Execute command in sanitized Task-mode environment
-exec_task_mode_sanitized() {
-    local command="$1"
-    shift
-
-    echo "🚀 Executing in sanitized Task-mode environment: $command" >&2
-
-    # Sanitize environment
-    sanitize_task_mode_environment "task"
-
-    # Validate environment
-    if ! validate_task_mode_environment; then
-        echo "❌ Environment validation failed, aborting execution" >&2
-        return 1
-    fi
-
-    # Execute command with timeout
-    local timeout="${CFN_TIMEOUT:-300}"
-    echo "⏱️  Timeout set to ${timeout}s" >&2
-
-    if timeout "$timeout" "$command" "$@"; then
-        echo "✅ Command completed successfully" >&2
-        return 0
-    else
-        local exit_code=$?
-        if [[ $exit_code -eq 124 ]]; then
-            echo "⏰ Command timed out after ${timeout}s" >&2
-        else
-            echo "❌ Command failed with exit code: $exit_code" >&2
+    # Check memory usage
+    if command -v ps >/dev/null 2>&1; then
+        local memory_mb=$(ps -o rss= -p $$ 2>/dev/null | awk '{print $1/1024}' || echo "0")
+        if (( $(echo "$memory_mb > $MAX_MEMORY_MB" | bc -l 2>/dev/null || echo "0") )); then
+            echo "⚠️ High memory usage: ${memory_mb}MB" >&2
         fi
-        return $exit_code
-    fi
-}
-
-# Show usage
-show_usage() {
-    cat <<'EOF'
-CFN Task Mode Environment Sanitizer
-
-USAGE:
-    source "$(dirname "${BASH_SOURCE[0]}")/task-mode-env-sanitizer.sh"
-
-    # Environment Sanitization
-    sanitize_task_mode_environment [mode]     # Sanitize environment (auto|task|cli)
-    validate_task_mode_environment             # Validate current environment
-
-    # Command Execution
-    exec_task_mode_sanitized <command> [args...]  # Execute command in sanitized environment
-
-EXAMPLES:
-    # Sanitize current shell
-    sanitize_task_mode_environment task
-
-    # Execute validator with sanitized environment
-    exec_task_mode_sanitized node validate-code.js
-
-    # Run with environment validation
-    if validate_task_mode_environment; then
-        echo "Environment is safe for Task mode"
     fi
 
-ENVIRONMENT VARIABLES:
-    CFN_MODE               # Forced to 'task' for Task mode
-    __CFN_TASK_MODE        # Set to '1' in Task mode
-    NODE_OPTIONS           # Limited to 2048MB heap in Task mode
-    CFN_MEMORY_LIMIT       # Memory limit in MB (default: 2048)
-    CFN_TIMEOUT            # Command timeout in seconds (default: 300)
-    CFN_COORDINATION       # Coordination method: 'file' for Task mode
+    # Check process count
+    if command -v ps >/dev/null 2>&1; then
+        local process_count=$(ps -eo pid=,ppid= | grep -c "^[[:space:]]*$$[[:space:]]" || echo "0")
+        if (( process_count > MAX_AGENT_PROCESSES )); then
+            echo "⚠️ High process count: $process_count" >&2
+        fi
+    fi
 
-EOF
+    echo "✅ Environment health check passed" >&2
+    return 0
 }
 
-# Main execution block
+get_sanitizer_info() {
+    echo "CFN Environment Sanitizer Info:"
+    echo "  Initialized: ${CFN_SANITIZER_STATE[initialized]}"
+    echo "  Mode: ${CFN_SANITIZER_STATE[mode]}"
+    echo "  Start Time: ${CFN_SANITIZER_STATE[start_time]}"
+    echo "  PID: $$"
+    echo "  Runtime: $(($(date +%s) - CFN_SANITIZER_STATE[start_time]))s"
+}
+
+##############################################################################
+# Auto-initialization for safety
+##############################################################################
+
+# If script is sourced (not executed), make sanitizer available
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    echo "🔧 CFN Environment Sanitizer loaded" >&2
+    echo "   Use: sanitize_task_mode_environment <mode>" >&2
+fi
+
+# If script is executed directly, run with default mode
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        show_usage
-        exit 0
-    fi
-
-    # Execute operation if provided
-    if [[ $# -gt 0 ]]; then
-        case "$1" in
-            "sanitize")
-                sanitize_task_mode_environment "${2:-auto}"
-                ;;
-            "validate")
-                validate_task_mode_environment
-                ;;
-            "exec")
-                shift
-                exec_task_mode_sanitized "$@"
-                ;;
-            *)
-                echo "Unknown operation: $1" >&2
-                echo "Use --help for usage information" >&2
-                exit 1
-                ;;
-        esac
-    else
-        echo "CFN Task Mode Environment Sanitizer" >&2
-        echo "Current mode: ${CFN_MODE:-unset}" >&2
-        echo "Node options: ${NODE_OPTIONS:-unset}" >&2
-        echo "Use --help for usage information" >&2
-    fi
+    sanitize_task_mode_environment "${1:-task}"
 fi

@@ -1,327 +1,289 @@
-#!/bin/bash
-# CFN Validation Runner Instrumentation
-# Wraps Bun/Node/Playwright invocations with logging, timeouts, and cleanup
+#!/usr/bin/env bash
+
+##############################################################################
+# CFN Validation Runner Process Instrumentation
+# Provides process wrapping, monitoring, and instrumentation for CFN agents
+#
+# Usage:
+#   source wrapped-executor.sh
+#   wrap_execution <command> <timeout> <log_prefix>
+#
+# Example:
+#   wrap_execution "npx claude-flow-novice agent coder" 300 "agent-execution"
+##############################################################################
 
 set -euo pipefail
 
-# Script configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# Instrumentation state
+declare -A CFN_INSTRUMENT_STATE
+CFN_INSTRUMENT_STATE["active"]=false
+CFN_INSTRUMENT_STATE["start_time"]=0
+CFN_INSTRUMENT_STATE["pid"]=0
+CFN_INSTRUMENT_STATE["timeout"]=0
+CFN_INSTRUMENT_STATE["log_prefix"]=""
 
-# Configuration defaults
-DEFAULT_TIMEOUT="${CFN_VALIDATION_TIMEOUT:-300}"  # 5 minutes
-DEFAULT_MEMORY="${CFN_VALIDATION_MEMORY:-2048}"  # 2GB
-LOG_DIR="${CFN_VALIDATION_LOG_DIR:-$PROJECT_ROOT/.claude/logs/validation}"
-MONITOR_INTERVAL="${CFN_MONITOR_INTERVAL:-30}"  # 30 seconds
+# Default timeouts (seconds)
+readonly DEFAULT_TIMEOUT=300        # 5 minutes
+readonly MAX_TIMEOUT=3600           # 1 hour
+readonly WARNING_TIMEOUT=240        # 4 minutes
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Resource limits
+readonly MAX_MEMORY_MB=2048
+readonly MAX_CPU_PERCENT=80
 
-# Logging functions
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
-}
+##############################################################################
+# Core Instrumentation Functions
+##############################################################################
 
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
-}
-
-# Process monitoring
-monitor_process() {
-    local pid="$1"
-    local timeout="$2"
-    local command_name="$3"
-    local log_file="$4"
-
-    local elapsed=0
-    while kill -0 "$pid" 2>/dev/null; do
-        if [[ $elapsed -ge $timeout ]]; then
-            log_warning "Process $pid ($command_name) exceeded timeout ${timeout}s, terminating..."
-
-            # Get memory usage before termination
-            local memory_usage=$(ps -o rss= -p "$pid" 2>/dev/null | tr -d ' ' || echo "unknown")
-            log_error "Memory usage at termination: ${memory_usage}KB"
-
-            # Terminate the process gracefully
-            kill -TERM "$pid" 2>/dev/null || true
-            sleep 5
-
-            # Force kill if still running
-            if kill -0 "$pid" 2>/dev/null; then
-                log_error "Force killing process $pid ($command_name)"
-                kill -KILL "$pid" 2>/dev/null || true
-            fi
-
-            return 124  # Timeout exit code
-        fi
-
-        # Log periodic status
-        if [[ $((elapsed % MONITOR_INTERVAL)) -eq 0 && $elapsed -gt 0 ]]; then
-            local memory_usage=$(ps -o rss= -p "$pid" 2>/dev/null | tr -d ' ' || echo "unknown")
-            log_info "Process $pid ($command_name) running: ${elapsed}s elapsed, ${memory_usage}KB memory"
-        fi
-
-        sleep 1
-        ((elapsed++))
-    done
-
-    return 0
-}
-
-# Instrumented execution wrapper
-execute_instrumented() {
+wrap_execution() {
     local command="$1"
     local timeout="${2:-$DEFAULT_TIMEOUT}"
-    local memory_limit="${3:-$DEFAULT_MEMORY}"
-    shift 3
-    local args=("$@")
+    local log_prefix="${3:-cfn-execution}"
 
-    # Create log directory
-    mkdir -p "$LOG_DIR"
-
-    # Generate unique execution ID
-    local execution_id="exec_$(date +%Y%m%d_%H%M%S)_$$"
-    local log_file="$LOG_DIR/${execution_id}.log"
-    export LOG_FILE="$log_file"
-
-    # Extract command name for logging
-    local command_name=$(basename "$command")
-    local full_command="$command ${args[*]}"
-
-    # Start execution logging
-    log_info "=== Starting Instrumented Execution ==="
-    log_info "Execution ID: $execution_id"
-    log_info "Command: $full_command"
-    log_info "Timeout: ${timeout}s"
-    log_info "Memory Limit: ${memory_limit}MB"
-    log_info "Working Directory: $(pwd)"
-    log_info "Environment: CFN_MODE=${CFN_MODE:-unset}, NODE_OPTIONS=${NODE_OPTIONS:-unset}"
-
-    # Set up resource limits
-    local memory_limit_kb=$((memory_limit * 1024))
-
-    # Start the command with resource limits
-    local start_time=$(date +%s)
-    log_info "Starting process at $(date)"
-
-    # Launch command in background with resource limits
-    (
-        # Apply memory limit
-        ulimit -v "$memory_limit_kb" 2>/dev/null || {
-            log_warning "Could not set memory limit via ulimit"
-        }
-
-        # Apply Node.js specific memory limit
-        if [[ "$command_name" == "node" || "$command_name" == "bun" ]]; then
-            export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=$memory_limit"
-            log_info "Set NODE_OPTIONS: $NODE_OPTIONS"
-        fi
-
-        # Execute the command
-        exec "$command" "${args[@]}" 2>&1
-    ) &
-
-    local pid=$!
-    log_info "Process started with PID: $pid"
-
-    # Start monitoring in background
-    monitor_process "$pid" "$timeout" "$command_name" "$log_file" &
-    local monitor_pid=$!
-
-    # Wait for command completion
-    local exit_code=0
-    if wait "$pid" 2>/dev/null; then
-        exit_code=$?
-        log_success "Process $pid ($command_name) completed successfully"
-    else
-        exit_code=$?
-        if [[ $exit_code -eq 124 ]]; then
-            log_error "Process $pid ($command_name) timed out after ${timeout}s"
-        else
-            log_error "Process $pid ($command_name) failed with exit code: $exit_code"
-        fi
+    # Validate timeout
+    if (( timeout > MAX_TIMEOUT )); then
+        timeout=$MAX_TIMEOUT
+        echo "⚠️ Timeout capped at ${MAX_TIMEOUT}s" >&2
     fi
 
-    # Stop monitoring
-    kill "$monitor_pid" 2>/dev/null || true
-    wait "$monitor_pid" 2>/dev/null || true
+    # Initialize instrumentation state
+    CFN_INSTRUMENT_STATE["active"]=true
+    CFN_INSTRUMENT_STATE["start_time"]=$(date +%s)
+    CFN_INSTRUMENT_STATE["timeout"]=$timeout
+    CFN_INSTRUMENT_STATE["log_prefix"]="$log_prefix"
 
-    # Calculate execution time
-    local end_time=$(date +%s)
-    local duration=$((end_time - start_time))
+    echo "🔧 CFN Process Instrumentation v1.0.0" >&2
+    echo "   Command: $command" >&2
+    echo "   Timeout: ${timeout}s" >&2
+    echo "   PID: $$" >&2
+    echo "   Start: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >&2
 
-    # Final status logging
-    log_info "=== Execution Summary ==="
-    log_info "Command: $full_command"
-    log_info "Exit Code: $exit_code"
-    log_info "Duration: ${duration}s"
-    log_info "Memory Limit: ${memory_limit}MB"
+    # Setup monitoring
+    setup_process_monitoring "$timeout" "$log_prefix"
 
-    # Log resource usage summary if available
-    if command -v ps >/dev/null 2>&1; then
-        local final_memory=$(ps -o rss= -p "$pid" 2>/dev/null | tr -d ' ' || echo "unknown")
-        log_info "Final Memory: ${final_memory}KB"
-    fi
+    # Execute with instrumentation
+    local result
+    result=$(execute_with_monitoring "$command" "$timeout" "$log_prefix")
+    local exit_code=$?
 
-    # Cleanup if process is still running
-    if kill -0 "$pid" 2>/dev/null; then
-        log_warning "Cleaning up still-running process $pid"
-        kill -TERM "$pid" 2>/dev/null || true
-        sleep 2
-        kill -KILL "$pid" 2>/dev/null || true
-    fi
-
-    # Archive log if successful
-    if [[ $exit_code -eq 0 ]]; then
-        local archive_log="$LOG_DIR/${execution_id}_success.log"
-        mv "$log_file" "$archive_log" 2>/dev/null || true
-        log_success "Log archived: $archive_log"
-    else
-        local archive_log="$LOG_DIR/${execution_id}_failed.log"
-        mv "$log_file" "$archive_log" 2>/dev/null || true
-        log_error "Failed log archived: $archive_log"
-    fi
+    # Cleanup and report
+    cleanup_instrumentation "$exit_code"
 
     return $exit_code
 }
 
-# Specific wrappers for common tools
-execute_node() {
-    local timeout="${1:-$DEFAULT_TIMEOUT}"
-    shift
-    log_info "Executing Node.js with instrumentation"
-    execute_instrumented "node" "$timeout" "$DEFAULT_MEMORY" "$@"
+setup_process_monitoring() {
+    local timeout="$1"
+    local log_prefix="$2"
+
+    echo "   Setting up process monitoring..." >&2
+
+    # Start resource monitoring in background
+    (
+        local monitor_interval=30  # Check every 30 seconds
+        local elapsed=0
+
+        while (( elapsed < timeout )); do
+            sleep $monitor_interval
+            elapsed=$((elapsed + monitor_interval))
+
+            if [[ "${CFN_INSTRUMENT_STATE[active]}" == "true" ]]; then
+                check_resource_usage "$log_prefix" "$elapsed"
+            else
+                break
+            fi
+        done
+
+        # Timeout warning
+        if [[ "${CFN_INSTRUMENT_STATE[active]}" == "true" ]]; then
+            echo "⚠️ [$log_prefix] Approaching timeout: ${elapsed}s" >&2
+        fi
+    ) &
+
+    echo "   Resource monitoring started (interval: 30s)" >&2
 }
 
-execute_bun() {
-    local timeout="${1:-$DEFAULT_TIMEOUT}"
-    shift
-    log_info "Executing Bun with instrumentation"
-    execute_instrumented "bun" "$timeout" "$DEFAULT_MEMORY" "$@"
-}
+check_resource_usage() {
+    local log_prefix="$1"
+    local elapsed="$2"
 
-execute_playwright() {
-    local timeout="${1:-$DEFAULT_TIMEOUT}"
-    shift
-    # Playwright may need more memory
-    local playwright_memory="${CFN_PLAYWRIGHT_MEMORY:-4096}"
-    log_info "Executing Playwright with instrumentation"
-    execute_instrumented "npx" "$timeout" "$playwright_memory" "playwright" "$@"
-}
+    # Check memory usage
+    if command -v ps >/dev/null 2>&1; then
+        local memory_mb=$(ps -o rss= -p $$ 2>/dev/null | awk '{print int($1/1024)}' || echo "0")
 
-execute_npx() {
-    local timeout="${1:-$DEFAULT_TIMEOUT}"
-    shift
-    log_info "Executing NPX with instrumentation"
-    execute_instrumented "npx" "$timeout" "$DEFAULT_MEMORY" "$@"
-}
-
-# Cleanup old logs
-cleanup_logs() {
-    local max_days="${CFN_LOG_RETENTION_DAYS:-7}"
-    log_info "Cleaning up logs older than $max_days days"
-
-    find "$LOG_DIR" -name "*.log" -type f -mtime "+$max_days" -delete 2>/dev/null || true
-    log_info "Log cleanup completed"
-}
-
-# Show usage
-show_usage() {
-    cat <<'EOF'
-CFN Validation Runner Instrumentation
-
-USAGE:
-    source "$(dirname "${BASH_SOURCE[0]}")/wrapped-executor.sh"
-
-    # Generic Execution
-    execute_instrumented <command> [timeout] [memory_limit] [args...]
-
-    # Tool-Specific Wrappers
-    execute_node [timeout] [args...]           # Execute Node.js
-    execute_bun [timeout] [args...]            # Execute Bun
-    execute_playwright [timeout] [args...]     # Execute Playwright
-    execute_npx [timeout] [args...]            # Execute NPX
-
-    # Maintenance
-    cleanup_logs                               # Clean up old logs
-
-ENVIRONMENT VARIABLES:
-    CFN_VALIDATION_TIMEOUT      # Default timeout in seconds (default: 300)
-    CFN_VALIDATION_MEMORY       # Default memory limit in MB (default: 2048)
-    CFN_VALIDATION_LOG_DIR      # Log directory (default: ./.claude/logs/validation)
-    CFN_MONITOR_INTERVAL        # Monitoring interval in seconds (default: 30)
-    CFN_PLAYWRIGHT_MEMORY       # Playwright memory limit in MB (default: 4096)
-    CFN_LOG_RETENTION_DAYS      # Log retention in days (default: 7)
-
-EXAMPLES:
-    # Execute Node.js script with default settings
-    execute_node validate.js
-
-    # Execute Bun with custom timeout
-    execute_bun 600 build.ts
-
-    # Execute Playwright with longer timeout
-    execute_playwright 900 test.spec.js
-
-    # Generic execution with custom memory limit
-    execute_instrumented custom-tool 300 4096 --arg1 --arg2
-
-OUTPUT:
-    All executions generate detailed logs in ./.claude/logs/validation/
-    Logs include: start time, end time, memory usage, exit codes, timeouts
-
-EOF
-}
-
-# Main execution block
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-        show_usage
-        exit 0
+        if (( memory_mb > MAX_MEMORY_MB )); then
+            echo "⚠️ [$log_prefix] High memory: ${memory_mb}MB (limit: ${MAX_MEMORY_MB}MB)" >&2
+        fi
     fi
 
-    # Execute operation if provided
-    if [[ $# -gt 0 ]]; then
-        case "$1" in
-            "node")
-                shift
-                execute_node "$@"
-                ;;
-            "bun")
-                shift
-                execute_bun "$@"
-                ;;
-            "playwright")
-                shift
-                execute_playwright "$@"
-                ;;
-            "npx")
-                shift
-                execute_npx "$@"
-                ;;
-            "cleanup")
-                cleanup_logs
-                ;;
-            *)
-                echo "Unknown command: $1" >&2
-                echo "Use --help for usage information" >&2
-                exit 1
-                ;;
-        esac
+    # Check CPU usage (basic check)
+    if command -v top >/dev/null 2>&1; then
+        local cpu_percent=$(top -b -n 1 -p $$ 2>/dev/null | awk 'NR>7 {print $9}' | head -1 || echo "0")
+
+        if (( $(echo "$cpu_percent > $MAX_CPU_PERCENT" | bc -l 2>/dev/null || echo "0") )); then
+            echo "⚠️ [$log_prefix] High CPU: ${cpu_percent}%" >&2
+        fi
+    fi
+
+    # Warning timeout check
+    if (( elapsed > WARNING_TIMEOUT )); then
+        echo "⏰ [$log_prefix] Long running: ${elapsed}s" >&2
+    fi
+}
+
+execute_with_monitoring() {
+    local command="$1"
+    local timeout="$2"
+    local log_prefix="$3"
+
+    echo "   Executing: $command" >&2
+
+    # Store command PID for monitoring
+    local child_pid
+
+    # Execute command with timeout
+    if command -v timeout >/dev/null 2>&1; then
+        # Use system timeout if available
+        timeout "$timeout" bash -c "$command" &
+        child_pid=$!
+        CFN_INSTRUMENT_STATE["pid"]=$child_pid
+
+        echo "   Process PID: $child_pid" >&2
+
+        # Wait for completion with monitoring
+        local wait_result=0
+        while kill -0 $child_pid 2>/dev/null; do
+            sleep 5
+
+            # Check if we're approaching timeout
+            local elapsed=$(($(date +%s) - CFN_INSTRUMENT_STATE[start_time]))
+            if (( elapsed > timeout - 10 )); then
+                echo "⚠️ [$log_prefix] Approaching hard timeout, preparing graceful shutdown" >&2
+            fi
+        done
+
+        wait $child_pid
+        wait_result=$?
+
     else
-        echo "CFN Validation Runner Instrumentation" >&2
-        echo "Use --help for usage information" >&2
+        # Fallback without system timeout
+        echo "   Running without system timeout (not available)" >&2
+        bash -c "$command" &
+        child_pid=$!
+        CFN_INSTRUMENT_STATE["pid"]=$child_pid
+
+        # Basic wait (less safe)
+        wait $child_pid
+        wait_result=$?
+    fi
+
+    return $wait_result
+}
+
+cleanup_instrumentation() {
+    local exit_code="$1"
+    local elapsed=$(($(date +%s) - CFN_INSTRUMENT_STATE[start_time]))
+
+    echo "🧹 Process instrumentation cleanup" >&2
+    echo "   Exit code: $exit_code" >&2
+    echo "   Duration: ${elapsed}s" >&2
+
+    # Kill any remaining background processes
+    if [[ -n "${CFN_INSTRUMENT_STATE[pid]:-}" ]] && kill -0 "${CFN_INSTRUMENT_STATE[pid]}" 2>/dev/null; then
+        echo "   Terminating child process: ${CFN_INSTRUMENT_STATE[pid]}" >&2
+        kill -TERM "${CFN_INSTRUMENT_STATE[pid]}" 2>/dev/null || true
+        sleep 2
+        kill -KILL "${CFN_INSTRUMENT_STATE[pid]}" 2>/dev/null || true
+    fi
+
+    # Clear state
+    CFN_INSTRUMENT_STATE["active"]=false
+    CFN_INSTRUMENT_STATE["pid"]=0
+
+    echo "✅ Instrumentation cleanup complete" >&2
+}
+
+##############################################################################
+# Utility Functions
+##############################################################################
+
+get_instrumentation_status() {
+    if [[ "${CFN_INSTRUMENT_STATE[active]}" == "true" ]]; then
+        local elapsed=$(($(date +%s) - CFN_INSTRUMENT_STATE[start_time]))
+        echo "CFN Instrumentation Status: ACTIVE"
+        echo "  PID: $$"
+        echo "  Child PID: ${CFN_INSTRUMENT_STATE[pid]}"
+        echo "  Elapsed: ${elapsed}s"
+        echo "  Timeout: ${CFN_INSTRUMENT_STATE[timeout]}s"
+        echo "  Log Prefix: ${CFN_INSTRUMENT_STATE[log_prefix]}"
+    else
+        echo "CFN Instrumentation Status: INACTIVE"
+    fi
+}
+
+force_kill_execution() {
+    local signal="${1:-TERM}"
+
+    if [[ "${CFN_INSTRUMENT_STATE[active]}" == "true" ]] && [[ -n "${CFN_INSTRUMENT_STATE[pid]:-}" ]]; then
+        echo "🚨 Force killing execution: ${CFN_INSTRUMENT_STATE[pid]} (signal: $signal)" >&2
+        kill -"$signal" "${CFN_INSTRUMENT_STATE[pid]}" 2>/dev/null || true
+
+        if [[ "$signal" == "TERM" ]]; then
+            sleep 2
+            if kill -0 "${CFN_INSTRUMENT_STATE[pid]}" 2>/dev/null; then
+                kill -KILL "${CFN_INSTRUMENT_STATE[pid]}" 2>/dev/null || true
+            fi
+        fi
+    fi
+}
+
+##############################################################################
+# Signal Handlers
+##############################################################################
+
+setup_signal_handlers() {
+    trap 'handle_instrumentation_signal INT' INT
+    trap 'handle_instrumentation_signal TERM' TERM
+    trap 'handle_instrumentation_signal HUP' HUP
+}
+
+handle_instrumentation_signal() {
+    local signal="$1"
+    echo "🛑 Instrumentation received signal: $signal" >&2
+
+    if [[ "${CFN_INSTRUMENT_STATE[active]}" == "true" ]]; then
+        force_kill_execution TERM
+        cleanup_instrumentation 130
+    fi
+
+    exit 130
+}
+
+##############################################################################
+# Auto-initialization
+##############################################################################
+
+# If script is sourced, make instrumentation available
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+    echo "🔧 CFN Process Instrumentation loaded" >&2
+    echo "   Use: wrap_execution <command> <timeout> <log_prefix>" >&2
+    setup_signal_handlers
+fi
+
+# If script is executed directly, show usage
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    echo "CFN Process Instrumentation v1.0.0"
+    echo ""
+    echo "Usage:"
+    echo "  source wrapped-executor.sh"
+    echo "  wrap_execution \"command\" timeout log_prefix"
+    echo ""
+    echo "Example:"
+    echo "  wrap_execution \"npx claude-flow-novice agent coder\" 300 \"agent-execution\""
+    echo ""
+
+    # Test run if arguments provided
+    if [[ $# -gt 0 ]]; then
+        wrap_execution "$@"
     fi
 fi
