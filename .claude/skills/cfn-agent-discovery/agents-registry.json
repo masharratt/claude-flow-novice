@@ -145,7 +145,7 @@
         "validation",
         "orchestration"
       ],
-      "file": "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/coordinators/cfn-v3-coordinator.md"
+      "file": "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md"
     },
     {
       "name": "multi-sprint-coordinator",
@@ -374,19 +374,20 @@
       "file": "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/planners/analyst.md"
     },
     {
-      "name": "architect",
-      "description": "MUST BE USED for system architecture design, technical planning, and infrastructure strategy. Use PROACTIVELY for scalable, maintainable system design.",
-      "type": "coordinator",
-      "loop": "coordinator",
+      "name": "system-architect",
+      "description": "MUST BE USED when designing enterprise-grade system architecture, providing technical leadership for distributed systems, microservices, cloud-native solutions. Use PROACTIVELY for architectural design, technical strategy, infrastructure planning.",
+      "type": "specialist",
+      "loop": "loop3",
       "keywords": [
+        "enterprise-architecture",
         "system-design",
-        "architecture-planning",
-        "infrastructure-strategy",
-        "scalability",
         "technical-leadership",
-        "component-integration"
+        "architectural-patterns",
+        "distributed-systems",
+        "microservices",
+        "cloud-native"
       ],
-      "file": "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/planners/architect.md"
+      "file": "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-dev-team/architecture/system-architect.md"
     },
     {
       "name": "planner",

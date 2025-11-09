@@ -46,6 +46,7 @@ function parseFrontmatter(content: string): { frontmatter: Record<string, any>; 
 
   const [, yamlContent, body] = match;
 
+  
   // Simple YAML parser (handles basic key-value pairs, arrays, and objects)
   const frontmatter: Record<string, any> = {};
   const lines = yamlContent.split('\n');
@@ -188,6 +189,7 @@ export async function parseAgentDefinition(agentType: string): Promise<AgentDefi
   // Read file content
   const content = await fs.readFile(filePath, 'utf-8');
 
+  
   // Parse frontmatter and body
   const { frontmatter, body } = parseFrontmatter(content);
 
@@ -197,6 +199,7 @@ export async function parseAgentDefinition(agentType: string): Promise<AgentDefi
     ? relativePath.split('/')[0]
     : undefined;
 
+  
   // Build agent definition
   const definition: AgentDefinition = {
     name: frontmatter.name || agentType,
