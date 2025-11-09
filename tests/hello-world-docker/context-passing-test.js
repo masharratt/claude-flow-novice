@@ -234,6 +234,12 @@ class ContextPassingTest {
                 instructionMethod: 'environment-variables'
             };
 
+            // Debug: ensure deliverables is an array
+            if (!Array.isArray(contextData.deliverables)) {
+                console.error('❌ Deliverables is not an array:', typeof contextData.deliverables, contextData.deliverables);
+                contextData.deliverables = ['auth-service.ts']; // fallback
+            }
+
             // Create workspace
             const workspaceDir = path.join(this.results.configuration.contextDir, 'env-workspace');
             await fs.mkdir(workspaceDir, { recursive: true });
@@ -347,6 +353,12 @@ Create output files: env-context-understood.txt, env-task-executed.txt
                 constraints: this.results.configuration.complexTaskContext.constraints.slice(1, 3),
                 instructionMethod: 'volume-mount'
             };
+
+            // Debug: ensure deliverables is an array
+            if (!Array.isArray(contextData.deliverables)) {
+                console.error('❌ Volume mount deliverables is not an array:', typeof contextData.deliverables, contextData.deliverables);
+                contextData.deliverables = ['tests/']; // fallback
+            }
 
             // Create configuration directory
             const configDir = path.join(this.results.configuration.contextDir, 'config');

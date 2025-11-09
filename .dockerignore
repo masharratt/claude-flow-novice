@@ -75,6 +75,15 @@ analysis
 .artifacts
 planning
 
+# Legacy and archived directories (2.2GB)
+legacy
+web-portal
+packages
+agents
+shellcheck-v0.8.0
+shellcheck.tar.xz
+*.tgz
+
 # Monitoring
 monitoring
 
