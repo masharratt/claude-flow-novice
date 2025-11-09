@@ -1,0 +1,143 @@
+# Production CFN Loop Agent Dockerfile
+# Multi-stage build for optimized, secure container images
+
+FROM node:20-alpine AS dependencies
+
+# Build arguments for version control
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+ARG CLAUDE_FLOW_VERSION=4.0.0
+
+# Labels for metadata
+LABEL maintainer="Claude Flow Novice Team" \
+      org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.name="claude-flow-novice" \
+      org.label-schema.description="Production CFN Loop Agent Container" \
+      org.label-schema.url="https://github.com/claude-flow-novice" \
+      org.label-schema.vcs-ref=$VCS_REF \
+      org.label-schema.vcs-url="https://github.com/claude-flow-novice" \
+      org.label-schema.vendor="Claude Flow Novice" \
+      org.label-schema.version=$VERSION \
+      org.label-schema.schema-version="1.0"
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for production
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates \
+    bash \
+    jq \
+    redis \
+    && rm -rf /var/cache/apk/*
+
+# Copy scripts directory first (needed for postinstall script)
+COPY scripts ./scripts
+
+# Install npm dependencies with security audit
+RUN npm ci --only=production --no-optional \
+    && npm cache clean --force \
+    && npm audit --audit-level high
+
+# Security scanning
+RUN npm audit fix --audit-level high \
+    && npm audit --audit-level moderate
+
+# Development stage (for building if needed)
+FROM dependencies AS development
+
+# Install all dependencies for development
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build TypeScript if needed
+RUN npm run build \
+    && npm run test:unit
+
+# Production stage
+FROM node:20-alpine AS production
+
+# Security hardening
+RUN addgroup -g 1001 -S cfn-agent \
+    && adduser -u 1001 -S cfn-agent -G cfn-agent
+
+# Install production system dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates \
+    bash \
+    jq \
+    redis \
+    && rm -rf /var/cache/apk/* \
+    && rm -rf /tmp/*
+
+# Create non-root user directories
+RUN mkdir -p /app/workspace \
+    && mkdir -p /app/.claude \
+    && chown -R cfn-agent:cfn-agent /app
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependencies from builder stage
+COPY --from=dependencies --chown=cfn-agent:cfn-agent /app/node_modules ./node_modules
+
+# Copy application files
+COPY --chown=cfn-agent:cfn-agent . .
+
+# Ensure proper permissions
+RUN chmod +x ./.claude/skills/**/*.sh \
+    && chmod +x ./.claude/hooks/**/*.sh \
+    && chmod +x ./.claude/commands/**/*.sh
+
+# Switch to non-root user
+USER cfn-agent
+
+# Environment variables for production
+ENV NODE_ENV=production \
+    CFN_MODE=production \
+    CFN_LOG_LEVEL=info \
+    CFN_WORKSPACE_DIR=/app/workspace \
+    CFN_REDIS_URL=${REDIS_URL:-redis://localhost:6379} \
+    CFN_COORDINATION_MODE=redis \
+    CFN_TIMEOUT_MS=300000 \
+    CFN_MAX_AGENTS=10
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "const Redis = require('ioredis'); const redis = new Redis('redis://localhost:6379'); redis.ping().then(() => process.exit(0)).catch(() => process.exit(1))" || \
+    curl -f http://localhost:3000/health || exit 1
+
+# Expose ports (if needed for monitoring)
+EXPOSE 3000
+
+# Set entrypoint for security
+ENTRYPOINT ["dumb-init", "--"]
+
+# Default command - orchestrator
+CMD ["node", "tests/docker/production-agent-orchestrator.js"]
+
+# Alternative commands for different use cases
+# - Agent execution: CMD ["node", "-e", "console.log('Agent ready for task execution')"]
+# - CLI mode: CMD ["npx", "claude-flow-novice", "agent", "--help"]
+# - Interactive shell: CMD ["/bin/bash"]
+
+# Volume mounts for workspace and configuration
+VOLUME ["/app/workspace", "/app/.claude/logs"]
+
+# Resource limits (for reference - actual limits set by orchestrator)
+# LABEL resources.memory="1g" \
+#       resources.cpu="0.5" \
+#       resources.disk="2g"
+
+# Security labels
+LABEL security.scan="enabled" \
+      security.user="non-root" \
+      security.base-image="node:20-alpine" \
+      security.audit="current"

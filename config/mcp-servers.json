@@ -1,0 +1,152 @@
+{
+  "version": "1.0.0",
+  "description": "MCP server configuration for specialized tool access",
+  "lastUpdated": "2025-06-17",
+  "servers": {
+    "playwright": {
+      "endpoint": "http://mcp-playwright:8081",
+      "required_skills": ["browser-automation", "testing", "screenshot-capture", "accessibility-testing"],
+      "auth": {
+        "type": "token",
+        "header": "X-MCP-Token"
+      },
+      "health_check": "/health",
+      "timeout_ms": 30000,
+      "retry_attempts": 3,
+      "resource_limits": {
+        "max_memory_mb": 512,
+        "max_cpu_percent": 50,
+        "max_concurrent_sessions": 3
+      },
+      "capabilities": [
+        "browser_automation",
+        "screenshot_capture",
+        "page_interaction",
+        "accessibility_testing",
+        "performance_testing"
+      ]
+    },
+    "redis-tools": {
+      "endpoint": "http://mcp-redis-tools:8082",
+      "required_skills": ["redis-operations", "database-management", "caching"],
+      "auth": {
+        "type": "token",
+        "header": "X-MCP-Token"
+      },
+      "health_check": "/health",
+      "timeout_ms": 15000,
+      "retry_attempts": 3,
+      "resource_limits": {
+        "max_memory_mb": 256,
+        "max_cpu_percent": 25,
+        "max_connections": 10
+      },
+      "capabilities": [
+        "redis_operations",
+        "key_value_management",
+        "cache_analysis",
+        "performance_monitoring",
+        "data_migration"
+      ]
+    },
+    "n8n": {
+      "endpoint": "http://mcp-n8n:8083",
+      "required_skills": ["workflow-automation", "api-integration", "data-pipeline"],
+      "auth": {
+        "type": "token",
+        "header": "X-MCP-Token"
+      },
+      "health_check": "/healthz",
+      "timeout_ms": 45000,
+      "retry_attempts": 2,
+      "resource_limits": {
+        "max_memory_mb": 1024,
+        "max_cpu_percent": 75,
+        "max_workflows": 5
+      },
+      "capabilities": [
+        "workflow_automation",
+        "api_integration",
+        "data_transformation",
+        "scheduled_tasks",
+        "webhook_handling"
+      ]
+    },
+    "security-scanner": {
+      "endpoint": "http://mcp-security-scanner:8084",
+      "required_skills": ["security-auditing", "vulnerability-scanning", "compliance-checking"],
+      "auth": {
+        "type": "token",
+        "header": "X-MCP-Token"
+      },
+      "health_check": "/health",
+      "timeout_ms": 120000,
+      "retry_attempts": 1,
+      "resource_limits": {
+        "max_memory_mb": 2048,
+        "max_cpu_percent": 80,
+        "max_scan_duration": 600000
+      },
+      "capabilities": [
+        "vulnerability_scanning",
+        "dependency_analysis",
+        "code_security_audit",
+        "compliance_checking",
+        "threat_modeling"
+      ]
+    }
+  },
+  "global_settings": {
+    "default_timeout_ms": 30000,
+    "max_retry_attempts": 3,
+    "connection_pool_size": 10,
+    "health_check_interval_ms": 30000,
+    "circuit_breaker_threshold": 5,
+    "metrics_enabled": true,
+    "logging": {
+      "level": "info",
+      "format": "json",
+      "include_sensitive_data": false
+    },
+    "security": {
+      "token_refresh_interval_ms": 3600000,
+      "max_token_age_ms": 86400000,
+      "rate_limiting": {
+        "requests_per_minute": 100,
+        "burst_size": 20
+      }
+    }
+  },
+  "skill_to_mcp_mapping": {
+    "browser-automation": ["playwright"],
+    "testing": ["playwright"],
+    "screenshot-capture": ["playwright"],
+    "accessibility-testing": ["playwright"],
+    "redis-operations": ["redis-tools"],
+    "database-management": ["redis-tools"],
+    "caching": ["redis-tools"],
+    "workflow-automation": ["n8n"],
+    "api-integration": ["n8n"],
+    "data-pipeline": ["n8n"],
+    "security-auditing": ["security-scanner"],
+    "vulnerability-scanning": ["security-scanner"],
+    "compliance-checking": ["security-scanner"],
+    "penetration-testing": ["security-scanner"],
+    "threat-analysis": ["security-scanner"]
+  },
+  "network_configuration": {
+    "mcp_network": {
+      "name": "mcp-network",
+      "subnet": "172.31.0.0/16",
+      "isolated": true,
+      "allowed_egress": ["cfn-network", "internet"]
+    }
+  },
+  "monitoring": {
+    "prometheus_metrics": true,
+    "health_check_endpoints": true,
+    "performance_tracking": true,
+    "error_reporting": true,
+    "alert_channels": ["redis-coordinator"]
+  }
+}

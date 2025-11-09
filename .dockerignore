@@ -1,28 +1,41 @@
-# Git
+# Production Dockerignore - Optimized for minimal context
+
+# Version Control (472MB)
 .git
 .gitignore
 .gitattributes
 
-# Node modules (reinstalled in container)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Dependencies - will be installed in container (247MB)
+node_modules
+npm-debug.log
+yarn-error.log
 
-# Test coverage
-coverage/
-*.lcov
-.nyc_output/
+# Build artifacts
+dist
+build
+*.tsbuildinfo
 
-# Dependency directories
-.npm
-.yarn-integrity
+# Testing
+coverage
+.nyc_output
+tests
+test
+*.test.js
+*.spec.js
+*.test.ts
+*.spec.ts
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# Documentation
+docs
+*.md
+!README.md
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+*~
 
 # Logs
 logs
@@ -31,82 +44,59 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Documentation (not needed in container)
-docs/
-readme/
-*.md
-!README.md
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Backup files
-*.backup
-*.bak
-
 # Temporary files
-.tmp/
-temp/
-*.tmp
+tmp
+temp
+.tmp
+.backups
 
-# WSL specific
-.vscode-server/
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# Build artifacts that will be recreated
-dist/
-build/
-out/
-
-# Environment files (secrets)
+# Environment files
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
 
-# Cache directories
-.cache/
-.parcel-cache/
-
-# Test files not needed in production
-test/
-tests/
-__tests__/
-*.test.js
-*.spec.js
-
-# Development scripts
-scripts/dev/
-scripts/test/
-
-# Docker files (not needed inside container)
+# Docker files (not needed in build context)
 Dockerfile*
-docker-compose*.yml
-.dockerignore
+docker-compose*
 
-# Claude Flow Novice specific - exclude entire .claude directory
-.claude/
-backups/
-.artifacts/
-planning/
-.claude-flow/
-.screenshots/
-.playwright-mcp/
-.logs/
-# Additional exclusions for faster build
-.github/
-.vscode-server/
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+.circleci
 
+# Analysis and reports
+analysis
+.artifacts
+planning
+
+# Monitoring
+monitoring
+
+# Config files not needed
+.editorconfig
+.eslintrc*
+.prettierrc*
+jest.config.js
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.zip
+*.tar.gz
+*.rar
+
+# Essential files to include (negations)
+!package.json
+!package-lock.json
+!.claude
+!claude-assets
+!scripts
+!config
+!src
