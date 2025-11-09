@@ -313,7 +313,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 else
     # When sourced, automatically instrument current process
     init_telemetry
-    local monitor_pid=$(start_monitoring)
+    # BUG #12 FIX: Removed local to prevent bash from blocking on background process
+    # The function sets global MONITOR_PID which is used by cleanup traps
+    start_monitoring >/dev/null
 
     # Set up cleanup traps
     trap 'stop_monitoring; generate_report $?' EXIT

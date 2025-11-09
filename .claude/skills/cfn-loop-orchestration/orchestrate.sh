@@ -23,6 +23,7 @@ set -euo pipefail
 
 # Determine PROJECT_ROOT first before any other operations
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Fixed path resolution - go up 4 levels from cfn-loop-orchestration to project root (.claude/skills/cfn-loop-orchestration -> .claude/skills -> .claude -> project root)
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # ⚠️ ANTI-023 MEMORY LEAK PROTECTION:
