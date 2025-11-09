@@ -75,8 +75,12 @@ sanitize_cli_environment() {
     export CFN_MODE="cli"
     export CFN_SANITIZER_ACTIVE=true
 
-    # Set conservative resource limits
-    ulimit -u $MAX_AGENT_PROCESSES 2>/dev/null || true
+    # NOTE: DO NOT set ulimit -u as it causes fork failures
+    # The MAX_AGENT_PROCESSES constant is for monitoring only, not for ulimit
+    # Setting ulimit -u to a low value (50) when 200+ processes exist causes all forks to fail
+    # Instead, we monitor process count and warn if exceeded
+
+    # Set conservative memory limit only
     ulimit -v $((MAX_MEMORY_MB * 1024)) 2>/dev/null || true
 
     # Disable debug features in production
@@ -92,7 +96,7 @@ sanitize_task_environment() {
     export CFN_SANITIZER_ACTIVE=true
 
     # More permissive limits for debugging
-    ulimit -u $((MAX_AGENT_PROCESSES * 2)) 2>/dev/null || true
+    # NOTE: DO NOT set ulimit -u (see CLI mode comment above)
     ulimit -v $((MAX_MEMORY_MB * 1024 * 2)) 2>/dev/null || true
 
     # Enable debug features for task mode
@@ -108,7 +112,7 @@ sanitize_default_environment() {
     export CFN_SANITIZER_ACTIVE=true
 
     # Conservative limits
-    ulimit -u $MAX_AGENT_PROCESSES 2>/dev/null || true
+    # NOTE: DO NOT set ulimit -u (see CLI mode comment above)
 }
 
 ##############################################################################
@@ -170,12 +174,20 @@ environment_cleanup_on_signal() {
 cleanup_cli_environment() {
     echo "   CLI mode cleanup..." >&2
 
-    # Clean up any lingering agent processes
-    if command -v pgrep >/dev/null 2>&1; then
-        local agent_pids=$(pgrep -f "claude-flow-novice.*agent" 2>/dev/null || true)
-        if [[ -n "$agent_pids" ]]; then
-            echo "   Warning: Found agent processes: $agent_pids" >&2
+    # Clean up any lingering agent processes (using /proc to avoid fork)
+    # This approach reads /proc directly instead of calling external pgrep command
+    # to prevent kernel fork rate limiting in nested process chains
+    local agent_pids=""
+    for pid in /proc/[0-9]*/; do
+        [[ -e "$pid/cmdline" ]] || continue
+        if grep -q "claude-flow-novice.*agent" "$pid/cmdline" 2>/dev/null; then
+            local pid_num=$(basename "$pid")
+            agent_pids="$agent_pids $pid_num"
         fi
+    done
+
+    if [[ -n "$agent_pids" ]]; then
+        echo "   Warning: Found agent processes:$agent_pids" >&2
     fi
 }
 
