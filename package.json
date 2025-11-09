@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.14.31",
+  "version": "2.14.33",
   "description": "AI agent orchestration framework with namespace-isolated skills, agents, and CFN Loop validation. Safe installation with ~0.01% collision risk.",
   "main": "dist/index.js",
   "type": "module",
@@ -24,6 +24,10 @@
     ".claude/skills/cfn-agent-output-processing/",
     ".claude/skills/cfn-agent-selector/",
     ".claude/skills/cfn-agent-spawning/",
+    ".claude/skills/cfn-docker-agent-spawning/",
+    ".claude/skills/cfn-docker-loop-orchestration/",
+    ".claude/skills/cfn-docker-redis-coordination/",
+    ".claude/skills/cfn-docker-skill-mcp-selection/",
     ".claude/skills/cfn-analytics/",
     ".claude/skills/cfn-backlog-management/",
     ".claude/skills/cfn-changelog-management/",
@@ -70,7 +74,11 @@
     "automation",
     "cli",
     "consensus",
-    "validation"
+    "validation",
+    "docker",
+    "containers",
+    "memory-leaks",
+    "concurrent-execution"
   ],
   "author": "Claude Flow Novice Team",
   "license": "MIT",
@@ -105,7 +113,17 @@
     "portal:restart": "npm run portal:stop && npm run portal:start",
     "portal:status": "./scripts/portal-status.sh",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "docker:build": "docker build -f Dockerfile.production -t claude-flow-novice:production .",
+    "docker:deploy": "./scripts/deploy-production.sh",
+    "docker:stop": "docker-compose -f docker-compose.production.yml down",
+    "docker:logs": "docker-compose -f docker-compose.production.yml logs -f",
+    "docker:status": "docker-compose -f docker-compose.production.yml ps",
+    "docker:test": "node tests/docker/production-deployment-test.js",
+    "docker:orchestrator": "node tests/docker/production-agent-orchestrator.js",
+    "test:docker:redis-coordination": "node tests/docker/cfn-coordination-test.js",
+    "test:docker:concurrent": "node tests/hello-world-docker/concurrent-agent-test.js",
+    "test:docker:container": "bash tests/docker/container-test-runner.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
@@ -115,14 +133,13 @@
     "commander": "^11.1.0",
     "dotenv": "^17.2.3",
     "glob": "^11.0.3",
+    "ioredis": "^5.8.2",
     "lodash": "^4.17.21",
     "redis": "^5.8.3",
     "socket.io": "^4.8.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7"
   },
-  "optionalDependencies": {},
-  "peerDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   },
