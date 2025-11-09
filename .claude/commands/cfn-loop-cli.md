@@ -6,9 +6,44 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Bash"]
 
 # CFN Loop CLI Mode - Production Execution
 
-Execute CFN Loop using CLI spawning for maximum cost savings (95-98% vs Task tool).
+🚨 **IMPORTANT: This slash command MUST auto-execute the coordinator spawn via Bash tool.**
 
-🚨 **CLI MODE: Production, Cost-Optimized, Background Execution**
+**DO NOT just show instructions. EXECUTE the bash command immediately after reading this.**
+
+---
+
+## Execution Instructions (AUTO-EXECUTE)
+
+**Step 1: Parse Arguments**
+```
+TASK_DESCRIPTION: $ARGUMENTS (extract task, remove flags)
+MODE: Parse from --mode flag or default to "standard"
+MAX_ITERATIONS: Parse from --max-iterations flag or default to 10
+```
+
+**Step 2: Generate Task ID**
+```bash
+TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
+```
+
+**Step 3: Spawn Coordinator (REQUIRED - Execute this command now via Bash tool)**
+```bash
+npx claude-flow-novice agent cfn-v3-coordinator \
+  --task-id "$TASK_ID" \
+  --context "TASK_DESCRIPTION='$TASK_DESCRIPTION' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS" \
+  --timeout 300 \
+  --background=true
+```
+
+**Step 4: Inform User**
+After spawning coordinator, tell user:
+- ✅ CFN Loop coordinator spawned with task ID: $TASK_ID
+- 📊 Monitor progress: `redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"`
+- 🌐 Web dashboard: http://localhost:3000
+
+---
+
+## Background Information (DO NOT show this to user unless they ask)
 
 **Task**: $ARGUMENTS
 

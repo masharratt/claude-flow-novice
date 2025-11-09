@@ -263,16 +263,40 @@ If **any** apply, use CFN Loop CLI commands:
 
 * > 3 distinct steps • multiple files • research+implement+test • design decisions • code review/quality • security/performance/compliance • system integration • docs generation • refactor/optimize • any feature work
 
-**🚨 IMPORTANT: For complex multi-agent workflows, use CLI mode commands:**
+**🚨 CRITICAL: Slash Command Auto-Execution Requirements:**
+
+**CLI Mode (`/cfn-loop-cli`):**
+1. SlashCommand tool expands command content
+2. **IMMEDIATELY execute** the coordinator spawn via Bash tool
+3. Use exact command shown in "Step 3: Spawn Coordinator"
+4. DO NOT just show instructions - EXECUTE them
+5. Inform user after coordinator spawns with task ID
+
+**Task Mode (`/cfn-loop-task`):**
+1. SlashCommand tool expands command content
+2. **IMMEDIATELY execute** workflow via Task() tool spawning
+3. Main Chat coordinates all agents directly
+4. Follow 9-step workflow exactly as documented
+
+**Examples:**
 ```bash
-# Production with enhanced monitoring v3.0
+# Production with enhanced monitoring v3.0 (auto-executes coordinator via Bash)
 /cfn-loop-cli "Complex task description" --mode=standard
 
-# Debugging with full visibility
+# Debugging with full visibility (auto-executes agents via Task())
 /cfn-loop-task "Complex task description" --mode=standard
 ```
 
-**Do NOT manually spawn Task() agents for CFN Loop workflows - the CLI commands handle coordination automatically.**
+**Anti-Pattern:**
+❌ Reading slash command content and stopping
+❌ Showing bash commands without executing them
+❌ Asking user what to do next
+❌ Manually spawning Task() agents for CLI mode
+
+**Correct Pattern:**
+✅ Read slash command → immediately auto-execute → inform user
+✅ CLI mode: Bash tool for coordinator spawn
+✅ Task mode: Task() tool for agent spawn
 
 ### Skill Selection Criteria
 **Mandatory Skill Spawning Triggers:**
