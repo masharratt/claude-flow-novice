@@ -25,15 +25,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
-# Task Mode agents spawn via Task() tool and should NOT use orchestration scripts
-if [[ -z "${TASK_ID:-}" || -z "${LOOP3_AGENTS:-}" ]]; then
-    echo "❌ TASK MODE DETECTED - Orchestration forbidden" >&2
-    echo "🚨 ANTI-023: This script is for CLI-spawned coordinators only" >&2
-    echo "💡 Task Mode coordination should be handled directly by Main Chat" >&2
-    echo "🔧 Coordinator spawned via Task() tool - Main Chat should coordinate directly" >&2
-    exit 1
-fi
+# ⚠️ ANTI-023 MEMORY LEAK PROTECTION:
+# Task Mode validation moved to after argument parsing at line 276
+# This allows proper CLI argument processing before validation
 
 # ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Environment Sanitization
 # Load and apply environment sanitization to prevent memory leaks
