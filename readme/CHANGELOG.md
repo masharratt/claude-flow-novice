@@ -4,6 +4,14 @@
 
 ### Features
 
+- Redis Coordination Testing Complete (2025-11-09)
+  - Impact: 100% validation of Docker Redis coordination for CFN Loop production use
+  - Tests: Pub/sub messaging, priority queues, cross-container communication, concurrent coordination, error handling
+  - Files: `tests/docker/redis-coordination-test-coordinator.js, tests/docker/redis-coordination-test-agent.js`
+- Docker CFN Loop Infrastructure (2025-11-09)
+  - Impact: Complete containerized agent execution with MCP server integration
+  - Components: MCP configuration, docker-compose, build/test scripts, production Dockerfile
+  - Files: `config/mcp-servers.json, docker-compose.production.yml, scripts/docker-build-mcp.sh, scripts/docker-test-mcp.sh, Dockerfile.production`
 - CFN Expert Update System (2025-11-05)
   - Impact: Automated knowledge extraction from git commits to keep CFN system expert agent current
   - Files: `.claude/commands/cfn/CFN_EXPERT_UPDATE.md,.claude/skills/cfn-expert-update/update-expert.sh`
@@ -25,6 +33,13 @@
   - Impact: Agents document changes immediately with 10-100 char summaries, avoiding verbose commit messages
   - Files: `.claude/skills/cfn-changelog-management/SKILL.md,add-changelog-entry.sh`
 ### Bug Fixes
+
+- CFN Loop Orchestrator Hang (BUG #12) (2025-11-09)
+  - Impact: Orchestrator blocked indefinitely during process instrumentation
+  - Root Cause: Bash variable scoping bug - `local` with command substitution blocks on background processes
+  - Fix: Removed `local` keyword from monitor_pid assignment in `instrument-process.sh:316`
+  - Files: `.claude/skills/cfn-process-instrumentation/instrument-process.sh`
+  - Validation: Orchestrator spawns Loop 3 agents successfully
 
 ### Breaking Changes
 

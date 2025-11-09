@@ -3,8 +3,8 @@
 /**
  * Container Cleanup Validator
  *
- * 专门验证容器清理机制的测试工具
- * 确保所有容器都能正确清理，不留下孤儿容器
+ * Specialized test tool to verify container cleanup mechanisms
+ * Ensures all containers are properly cleaned up without leaving orphaned containers
  */
 
 import { execSync } from 'child_process';
@@ -49,32 +49,32 @@ class ContainerCleanupValidator {
     }
 
     /**
-     * 主要测试执行
+     * Main test execution
      */
     async run() {
         console.log('🧹 Container Cleanup Validator');
         console.log('=' .repeat(50));
 
         try {
-            // 步骤1: 记录测试前的状态
+            // Step 1: Record pre-test state
             await this.recordBeforeState();
 
-            // 步骤2: 创建测试容器和workspace
+            // Step 2: Create test containers and workspaces
             await this.createTestResources();
 
-            // 步骤3: 模拟容器生命周期和清理
+            // Step 3: Simulate container lifecycle and cleanup
             await this.simulateContainerLifecycle();
 
-            // 步骤4: 验证自动清理
+            // Step 4: Validate automatic cleanup
             await this.validateAutomaticCleanup();
 
-            // 步骤5: 手动清理剩余资源
+            // Step 5: Manual cleanup of remaining resources
             await this.manualCleanupRemaining();
 
-            // 步骤6: 计算结果
+            // Step 6: Calculate results
             this.calculateResults();
 
-            // 步骤7: 打印详细报告
+            // Step 7: Print detailed report
             this.printDetailedReport();
 
             return this.results.summary.validationPassed;
@@ -87,12 +87,12 @@ class ContainerCleanupValidator {
     }
 
     /**
-     * 记录测试前的系统状态
+     * Record system state before test
      */
     async recordBeforeState() {
         console.log('\n📊 Recording pre-test state...');
 
-        // 记录现有容器
+        // Record existing containers
         try {
             const existingContainers = execSync(
                 'docker ps -a --filter "name=agent-" --format "{{.ID}}\t{{.Names}}\t{{.Status}}"',
@@ -106,10 +106,10 @@ class ContainerCleanupValidator {
                 });
             }
         } catch (error) {
-            // 没有现有容器，这是正常的
+            // No existing containers - this is normal
         }
 
-        // 记录现有workspace目录
+        // Record existing workspace directories
         try {
             const existingWorkspaces = execSync(
                 'find /tmp -name "agent-workspace-*" -type d 2>/dev/null',
@@ -123,7 +123,7 @@ class ContainerCleanupValidator {
                 }));
             }
         } catch (error) {
-            // 没有现有workspace，这是正常的
+            // No existing workspaces - this is normal
         }
 
         console.log(`   Pre-existing containers: ${this.results.containers.beforeTest.length}`);
@@ -131,7 +131,7 @@ class ContainerCleanupValidator {
     }
 
     /**
-     * 创建测试资源
+     * Create test resources
      */
     async createTestResources() {
         console.log('\n🏗️ Creating test resources...');
@@ -139,13 +139,13 @@ class ContainerCleanupValidator {
         const testContainers = [];
         const testWorkspaces = [];
 
-        // 创建5个测试容器
+        // Create 5 test containers
         for (let i = 1; i <= 5; i++) {
             const containerName = `agent-test-cleanup-${Date.now()}-${i}`;
             const workspaceDir = `/tmp/agent-workspace-test-cleanup-${Date.now()}-${i}`;
 
             try {
-                // 创建workspace目录 with proper permissions
+                // Create workspace directory with proper permissions
                 await fs.mkdir(workspaceDir, { recursive: true });
                 // Set permissions to allow container to write
                 execSync(`chmod 777 "${workspaceDir}"`, { stdio: 'pipe' });
@@ -154,7 +154,7 @@ class ContainerCleanupValidator {
                     `Test file for container ${i}\nCreated at: ${new Date().toISOString()}`
                 );
 
-                // 创建容器
+                // Create container
                 const dockerCmd = [
                     'docker run -d',
                     '--name', containerName,
@@ -173,7 +173,7 @@ class ContainerCleanupValidator {
                     name: containerName,
                     workspaceDir: workspaceDir,
                     createdAt: Date.now(),
-                    expectedCleanupAt: Date.now() + 15000, // 15秒后期望清理
+                    expectedCleanupAt: Date.now() + 15000, // Expected cleanup after 15 seconds
                     testNumber: i
                 };
 
@@ -197,21 +197,21 @@ class ContainerCleanupValidator {
     }
 
     /**
-     * 模拟容器生命周期
+     * Simulate container lifecycle
      */
     async simulateContainerLifecycle() {
         console.log('\n⏳ Simulating container lifecycle...');
 
-        // 等待容器完成执行
+        // Wait for containers to complete execution
         console.log('   Waiting for containers to complete execution...');
-        await new Promise(resolve => setTimeout(resolve, 15000)); // 等待15秒
+        await new Promise(resolve => setTimeout(resolve, 15000)); // Wait 15 seconds
 
-        // 手动停止容器（模拟agent完成任务）
+        // Manually stop containers (simulating agent task completion)
         console.log('   Stopping containers (simulating agent task completion)...');
 
         for (const container of this.results.containers.created) {
             try {
-                // 检查容器是否还在运行
+                // Check if container is still running
                 const status = execSync(
                     `docker inspect --format '{{.State.Status}}' ${container.id}`,
                     { encoding: 'utf8', stdio: 'pipe' }
@@ -222,15 +222,15 @@ class ContainerCleanupValidator {
                     console.log(`   🛑 Stopped container: ${container.name}`);
                 }
 
-                // 模拟自动清理 - 在实际实现中，这应该由spawn-agent.sh完成
+                // Simulate automatic cleanup - in actual implementation, this should be done by spawn-agent.sh
                 setTimeout(() => {
                     try {
                         execSync(`docker rm ${container.id}`, { stdio: 'pipe' });
                         console.log(`   🗑️ Removed container: ${container.name}`);
                     } catch (error) {
-                        // 容器可能已经被清理
+                        // Container may already be cleaned up
                     }
-                }, 2000); // 2秒延迟后清理
+                }, 2000); // 2 second delay before cleanup
 
                 container.expectedCleanup = true;
                 this.results.containers.expectedCleanup.push(container);
@@ -240,13 +240,13 @@ class ContainerCleanupValidator {
             }
         }
 
-        // 等待清理完成
+        // Wait for cleanup to complete
         console.log('   Waiting for cleanup to complete...');
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 等待5秒
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
     }
 
     /**
-     * 验证自动清理
+     * Validate automatic cleanup
      */
     async validateAutomaticCleanup() {
         console.log('\n🔍 Validating automatic cleanup...');
@@ -254,29 +254,29 @@ class ContainerCleanupValidator {
         let automaticContainerCleanup = 0;
         let automaticWorkspaceCleanup = 0;
 
-        // 检查容器清理状态
+        // Check container cleanup status
         for (const container of this.results.containers.expectedCleanup) {
             try {
-                // 检查容器是否还存在
+                // Check if container still exists
                 execSync(`docker inspect ${container.id}`, { stdio: 'pipe' });
 
-                // 容器还存在 - 清理失败
+                // Container still exists - cleanup failed
                 this.results.containers.orphaned.push(container);
                 console.warn(`   ⚠️ Container not cleaned: ${container.name} (${container.id})`);
 
             } catch (error) {
-                // 容器不存在 - 清理成功
+                // Container doesn't exist - cleanup successful
                 automaticContainerCleanup++;
                 console.log(`   ✅ Container automatically cleaned: ${container.name}`);
             }
         }
 
-        // 检查workspace清理状态
+        // Check workspace cleanup status
         for (const workspaceDir of this.results.workspaces.created) {
             try {
                 await fs.access(workspaceDir);
 
-                // workspace还存在 - 清理失败
+                // Workspace still exists - cleanup failed
                 this.results.workspaces.orphaned.push({
                     path: workspaceDir,
                     existedBeforeTest: false
@@ -284,7 +284,7 @@ class ContainerCleanupValidator {
                 console.warn(`   ⚠️ Workspace not cleaned: ${workspaceDir}`);
 
             } catch (error) {
-                // workspace不存在 - 清理成功
+                // Workspace doesn't exist - cleanup successful
                 automaticWorkspaceCleanup++;
                 console.log(`   ✅ Workspace automatically cleaned: ${workspaceDir}`);
             }
@@ -293,8 +293,8 @@ class ContainerCleanupValidator {
         this.results.summary.containersCleanedAutomatically = automaticContainerCleanup;
         this.results.summary.workspacesCleanedAutomatically = automaticWorkspaceCleanup;
 
-        // 检查清理是否及时
-        const maxCleanupDelay = 30000; // 30秒最大清理延迟
+        // Check if cleanup is timely
+        const maxCleanupDelay = 30000; // 30 second maximum cleanup delay
         const cleanupDelays = this.results.containers.expectedCleanup.map(container => {
             const actualCleanupTime = Date.now();
             const delay = actualCleanupTime - container.expectedCleanupAt;
@@ -310,7 +310,7 @@ class ContainerCleanupValidator {
     }
 
     /**
-     * 手动清理剩余资源
+     * Manual cleanup of remaining resources
      */
     async manualCleanupRemaining() {
         console.log('\n🧹 Manual cleanup of remaining resources...');
@@ -318,10 +318,10 @@ class ContainerCleanupValidator {
         let manualContainerCleanup = 0;
         let manualWorkspaceCleanup = 0;
 
-        // 手动清理孤儿容器
+        // Manually clean orphaned containers
         for (const container of this.results.containers.orphaned) {
             try {
-                // 强制停止和删除
+                // Force stop and remove
                 execSync(`docker stop -f ${container.id}`, { stdio: 'pipe' });
                 execSync(`docker rm -f ${container.id}`, { stdio: 'pipe' });
 
@@ -334,7 +334,7 @@ class ContainerCleanupValidator {
             }
         }
 
-        // 手动清理孤儿workspace
+        // Manually clean orphaned workspaces
         for (const workspace of this.results.workspaces.orphaned) {
             try {
                 await fs.rm(workspace.path, { recursive: true, force: true });
@@ -353,34 +353,34 @@ class ContainerCleanupValidator {
     }
 
     /**
-     * 计算验证结果
+     * Calculate validation results
      */
     calculateResults() {
         const { validation, summary, containers, workspaces } = this.results;
 
-        // 验证所有容器都被清理
+        // Verify all containers were cleaned
         const totalContainersCreated = containers.created.length;
         const totalContainersCleaned = summary.containersCleanedAutomatically + summary.containersRequiringManualCleanup;
         validation.allContainersCleaned = totalContainersCleaned === totalContainersCreated;
 
-        // 验证所有workspace都被清理
+        // Verify all workspaces were cleaned
         const totalWorkspacesCreated = workspaces.created.length;
         const totalWorkspacesCleaned = summary.workspacesCleanedAutomatically + summary.workspacesRequiringManualCleanup;
         validation.allWorkspacesCleaned = totalWorkspacesCleaned === totalWorkspacesCreated;
 
-        // 检查是否有资源泄漏
+        // Check for resource leaks
         validation.resourcesLeaking = containers.orphaned.length > 0 || workspaces.orphaned.length > 0;
 
-        // 总体验证通过条件
+        // Overall validation pass condition
         validation.validationPassed = validation.allContainersCleaned &&
                                    validation.allWorkspacesCleaned &&
                                    validation.cleanupTimely &&
                                    !validation.resourcesLeaking;
 
-        // 更新总结
+        // Update summary
         summary.validationPassed = validation.validationPassed;
 
-        // 计算清理效率
+        // Calculate cleanup efficiency
         summary.containerCleanupEfficiency = totalContainersCreated > 0 ?
             (summary.containersCleanedAutomatically / totalContainersCreated) * 100 : 0;
 
@@ -389,7 +389,7 @@ class ContainerCleanupValidator {
     }
 
     /**
-     * 打印详细报告
+     * Print detailed report
      */
     printDetailedReport() {
         const { containers, workspaces, validation, summary } = this.results;
@@ -416,7 +416,7 @@ class ContainerCleanupValidator {
         console.log(`   Cleanup Timely: ${validation.cleanupTimely ? '✅' : '❌'}`);
         console.log(`   Resources Leaking: ${validation.resourcesLeaking ? '❌ Yes' : '✅ No'}`);
 
-        // 显示孤儿资源详情
+        // Display orphaned resource details
         if (containers.orphaned.length > 0) {
             console.log(`\n⚠️ Orphaned Containers (requiring manual cleanup):`);
             containers.orphaned.forEach(container => {
@@ -448,7 +448,7 @@ class ContainerCleanupValidator {
             }
         }
 
-        // 推荐修复措施
+        // Recommended fixes
         if (!validation.validationPassed) {
             console.log(`\n🔧 Recommended Fixes:`);
 
@@ -469,13 +469,13 @@ class ContainerCleanupValidator {
     }
 
     /**
-     * 紧急清理 - 测试失败时清理所有资源
+     * Emergency cleanup - clean all resources when test fails
      */
     async emergencyCleanup() {
         console.log('\n🚨 Emergency cleanup in progress...');
 
         try {
-            // 清理所有agent-test容器
+            // Clean all agent-test containers
             const testContainers = execSync(
                 'docker ps -a --filter "name=agent-test-cleanup" --format "{{.ID}}"',
                 { encoding: 'utf8', stdio: 'pipe' }
@@ -489,12 +489,12 @@ class ContainerCleanupValidator {
                         execSync(`docker rm -f ${containerId}`, { stdio: 'pipe' });
                         console.log(`   🚨 Emergency cleanup: ${containerId}`);
                     } catch (error) {
-                        // 忽略清理错误
+                        // Ignore cleanup errors
                     }
                 }
             }
 
-            // 清理所有测试workspace
+            // Clean all test workspaces
             const testWorkspaces = execSync(
                 'find /tmp -name "agent-workspace-test-cleanup-*" -type d 2>/dev/null',
                 { encoding: 'utf8', stdio: 'pipe' }
@@ -507,7 +507,7 @@ class ContainerCleanupValidator {
                         await fs.rm(workspacePath.trim(), { recursive: true, force: true });
                         console.log(`   🚨 Emergency workspace cleanup: ${workspacePath.trim()}`);
                     } catch (error) {
-                        // 忽略清理错误
+                        // Ignore cleanup errors
                     }
                 }
             }
@@ -520,7 +520,7 @@ class ContainerCleanupValidator {
     }
 }
 
-// 运行测试
+// Run test
 if (import.meta.url === `file://${process.argv[1]}`) {
     const validator = new ContainerCleanupValidator();
     validator.run()

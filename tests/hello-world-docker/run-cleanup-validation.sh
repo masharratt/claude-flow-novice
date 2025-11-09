@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Container Cleanup Validation Test Runner
-# 验证容器清理机制的专用测试工具
+# Specialized test tool for verifying container cleanup mechanisms
 
 set -euo pipefail
 
@@ -54,15 +54,15 @@ Options:
   --help                 Show this help message
 
 Description:
-  验证容器清理机制，确保没有孤儿容器和workspace泄漏。
+  Verify container cleanup mechanisms to ensure no orphaned containers or workspace leaks.
 
   Tests:
-  1. 记录测试前的系统状态
-  2. 创建测试容器和workspace
-  3. 模拟容器生命周期和清理
-  4. 验证自动清理机制
-  5. 手动清理剩余资源
-  6. 生成详细的清理报告
+  1. Record system state before test
+  2. Create test containers and workspaces
+  3. Simulate container lifecycle and cleanup
+  4. Verify automatic cleanup mechanisms
+  5. Manually clean remaining resources
+  6. Generate detailed cleanup report
 
 EOF
             exit 0
@@ -81,7 +81,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 log "🧹 Container Cleanup Validation"
 log "Project root: ${PROJECT_ROOT}"
 
-# 检查Docker是否可用
+# Check if Docker is available
 if ! command -v docker &> /dev/null; then
     log_error "Docker not found."
     exit 1
@@ -92,66 +92,66 @@ if ! docker info &> /dev/null; then
     exit 1
 fi
 
-# 仅执行紧急清理
+# Execute emergency cleanup only
 if [[ "$EMERGENCY_CLEANUP" == true ]]; then
     log "🚨 Performing emergency cleanup only..."
 
-    # 清理测试容器
-    log "清理测试容器..."
+    # Clean test containers
+    log "Cleaning test containers..."
     docker ps -a --filter "name=agent-test-cleanup" --format "{{.ID}} {{.Names}}" 2>/dev/null | while read -r container_id name; do
         if [[ -n "$container_id" ]]; then
-            log "停止并删除: $name ($container_id)"
+            log "Stopping and removing: $name ($container_id)"
             docker stop "$container_id" 2>/dev/null || true
             docker rm "$container_id" 2>/dev/null || true
         fi
     done
 
-    # 清理测试workspace
-    log "清理测试workspace..."
+    # Clean test workspaces
+    log "Cleaning test workspaces..."
     find /tmp -name "agent-workspace-test-cleanup-*" -type d 2>/dev/null | while read -r workspace; do
         if [[ -n "$workspace" ]]; then
-            log "删除workspace: $workspace"
+            log "Removing workspace: $workspace"
             rm -rf "$workspace" 2>/dev/null || true
         fi
     done
 
-    # 清理context测试资源
-    log "清理context测试资源..."
+    # Clean context test resources
+    log "Cleaning context test resources..."
     find /tmp -name "context-test-workspace" -type d 2>/dev/null | while read -r workspace; do
         if [[ -n "$workspace" ]]; then
-            log "删除context workspace: $workspace"
+            log "Removing context workspace: $workspace"
             rm -rf "$workspace" 2>/dev/null || true
         fi
     done
 
-    # 清理并发测试资源
-    log "清理并发测试资源..."
+    # Clean concurrent test resources
+    log "Cleaning concurrent test resources..."
     find /tmp -name "concurrent-test-workspace" -type d 2>/dev/null | while read -r workspace; do
         if [[ -n "$workspace" ]]; then
-            log "删除concurrent workspace: $workspace"
+            log "Removing concurrent workspace: $workspace"
             rm -rf "$workspace" 2>/dev/null || true
         fi
     done
 
-    log_success "紧急清理完成"
+    log_success "Emergency cleanup complete"
     exit 0
 fi
 
-# 创建测试结果目录
+# Create test results directory
 TEST_RESULTS_DIR="${PROJECT_ROOT}/test-results/cleanup-validation"
 mkdir -p "$TEST_RESULTS_DIR"
 
-# 记录测试前的系统状态
-log "📊 记录测试前状态..."
+# Record system state before test
+log "📊 Recording pre-test state..."
 
 BEFORE_CONTAINERS=$(docker ps -a --filter "name=agent-" --format "{{.ID}}\t{{.Names}}\t{{.Status}}" 2>/dev/null | wc -l)
 BEFORE_WORKSPACES=$(find /tmp -name "agent-workspace-*" -type d 2>/dev/null | wc -l)
 
-log "测试前状态:"
-log "  现有agent容器: $BEFORE_CONTAINERS"
-log "  现有workspace: $BEFORE_WORKSPACES"
+log "Pre-test state:"
+log "  Existing agent containers: $BEFORE_CONTAINERS"
+log "  Existing workspaces: $BEFORE_WORKSPACES"
 
-# 保存测试前状态
+# Save pre-test state
 cat > "${TEST_RESULTS_DIR}/before-state.json" << EOF
 {
   "timestamp": "$(date -Iseconds)",
@@ -166,40 +166,40 @@ cat > "${TEST_RESULTS_DIR}/before-state.json" << EOF
 }
 EOF
 
-# 运行清理验证测试
-log "🧪 运行容器清理验证测试..."
+# Run cleanup validation test
+log "🧪 Running container cleanup validation test..."
 cd "$PROJECT_ROOT"
 
-# 设置环境变量
+# Set environment variables
 export NODE_OPTIONS="--max-old-space-size=2048"
 
-# 执行测试
+# Execute test
 TEST_START_TIME=$(date +%s)
 
 if node "${SCRIPT_DIR}/container-cleanup-validator.js" 2>&1 | tee "${TEST_RESULTS_DIR}/validation-output.log"; then
     TEST_EXIT_CODE=0
     TEST_STATUS="PASSED"
-    log_success "容器清理验证通过"
+    log_success "Container cleanup validation passed"
 else
     TEST_EXIT_CODE=$?
     TEST_STATUS="FAILED"
-    log_error "容器清理验证失败 (exit code: $TEST_EXIT_CODE)"
+    log_error "Container cleanup validation failed (exit code: $TEST_EXIT_CODE)"
 fi
 
 TEST_END_TIME=$(date +%s)
 TEST_DURATION=$((TEST_END_TIME - TEST_START_TIME))
 
-# 记录测试后的状态
-log "📊 记录测试后状态..."
+# Record post-test state
+log "📊 Recording post-test state..."
 
 AFTER_CONTAINERS=$(docker ps -a --filter "name=agent-" --format "{{.ID}}\t{{.Names}}\t{{.Status}}" 2>/dev/null | wc -l)
 AFTER_WORKSPACES=$(find /tmp -name "agent-workspace-*" -type d 2>/dev/null | wc -l)
 
-log "测试后状态:"
-log "  剩余agent容器: $AFTER_CONTAINERS"
-log "  剩余workspace: $AFTER_WORKSPACES"
+log "Post-test state:"
+log "  Remaining agent containers: $AFTER_CONTAINERS"
+log "  Remaining workspaces: $AFTER_WORKSPACES"
 
-# 保存测试后状态
+# Save post-test state
 cat > "${TEST_RESULTS_DIR}/after-state.json" << EOF
 {
   "timestamp": "$(date -Iseconds)",
@@ -214,7 +214,7 @@ cat > "${TEST_RESULTS_DIR}/after-state.json" << EOF
 }
 EOF
 
-# 保存测试总结
+# Save test summary
 cat > "${TEST_RESULTS_DIR}/test-summary.json" << EOF
 {
   "testSuite": "Container Cleanup Validation",
@@ -239,48 +239,48 @@ cat > "${TEST_RESULTS_DIR}/test-summary.json" << EOF
 }
 EOF
 
-log "📊 测试完成，用时 ${TEST_DURATION} 秒"
-log "📄 结果保存到: ${TEST_RESULTS_DIR}/"
+log "📊 Test completed in ${TEST_DURATION} seconds"
+log "📄 Results saved to: ${TEST_RESULTS_DIR}/"
 
-# 显示最终状态
+# Display final status
 if [[ $TEST_EXIT_CODE -eq 0 ]]; then
-    log_success "✅ 容器清理验证通过"
+    log_success "✅ Container cleanup validation passed"
     echo ""
-    echo "验证结果:"
-    echo "  - 容器自动清理机制: 正常工作"
-    echo "  - Workspace自动清理: 正常工作"
-    echo "  - 清理及时性: 符合要求"
-    echo "  - 无资源泄漏: 验证通过"
+    echo "Validation results:"
+    echo "  - Container auto-cleanup mechanism: Working normally"
+    echo "  - Workspace auto-cleanup: Working normally"
+    echo "  - Cleanup timeliness: Meets requirements"
+    echo "  - No resource leaks: Verified"
     echo ""
-    echo "建议:"
-    echo "  - 定期运行此测试验证清理机制"
-    echo "  - 在CI/CD中集成此测试"
-    echo "  - 监控生产环境的容器清理"
+    echo "Recommendations:"
+    echo "  - Run this test regularly to verify cleanup mechanisms"
+    echo "  - Integrate this test into CI/CD"
+    echo "  - Monitor production environment container cleanup"
 else
-    log_error "❌ 容器清理验证失败"
+    log_error "❌ Container cleanup validation failed"
     echo ""
-    echo "问题检测:"
-    echo "  - 容器清理机制可能存在问题"
-    echo "  - Workspace清理不完整"
-    echo "  - 清理延迟过长"
-    echo "  - 资源泄漏风险"
+    echo "Issues detected:"
+    echo "  - Container cleanup mechanism may have problems"
+    echo "  - Workspace cleanup incomplete"
+    echo "  - Cleanup delay too long"
+    echo "  - Resource leak risk"
     echo ""
-    echo "立即行动:"
-    echo "  - 检查详细日志: ${TEST_RESULTS_DIR}/validation-output.log"
-    echo "  - 手动清理剩余资源: ${SCRIPT_DIR}/run-cleanup-validation.sh --emergency-cleanup"
-    echo "  - 修复spawn-agent.sh中的清理机制"
-    echo "  - 添加容器生命周期管理"
+    echo "Immediate actions:"
+    echo "  - Check detailed log: ${TEST_RESULTS_DIR}/validation-output.log"
+    echo "  - Manual cleanup of remaining resources: ${SCRIPT_DIR}/run-cleanup-validation.sh --emergency-cleanup"
+    echo "  - Fix cleanup mechanism in spawn-agent.sh"
+    echo "  - Add container lifecycle management"
 fi
 
-# 如果有资源泄漏，警告用户
+# If resource leaks detected, warn user
 if [[ $(($AFTER_CONTAINERS - $BEFORE_CONTAINERS)) -gt 0 ]] || [[ $(($AFTER_WORKSPACES - $BEFORE_WORKSPACES)) -gt 0 ]]; then
-    log_warning "⚠️ 检测到资源泄漏！"
+    log_warning "⚠️ Resource leak detected!"
     echo ""
-    echo "资源泄漏详情:"
-    echo "  新增容器: $(($AFTER_CONTAINERS - $BEFORE_CONTAINERS))"
-    echo "  新增workspace: $(($AFTER_WORKSPACES - $BEFORE_WORKSPACES))"
+    echo "Resource leak details:"
+    echo "  New containers: $(($AFTER_CONTAINERS - $BEFORE_CONTAINERS))"
+    echo "  New workspaces: $(($AFTER_WORKSPACES - $BEFORE_WORKSPACES))"
     echo ""
-    echo "紧急清理命令:"
+    echo "Emergency cleanup command:"
     echo "  ${SCRIPT_DIR}/run-cleanup-validation.sh --emergency-cleanup"
 fi
 
