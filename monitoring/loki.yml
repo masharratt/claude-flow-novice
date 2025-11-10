@@ -1,0 +1,110 @@
+# Loki Configuration for CFN Loop Log Aggregation
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+ingester:
+  lifecycler:
+    address: 127.0.0.1
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    final_sleep: 0s
+  chunk_idle_period: 1h
+  max_chunk_age: 1h
+  chunk_target_size: 1048576
+  chunk_retain_period: 30s
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  boltdb_shipper:
+    active_index_directory: /loki/boltdb-shipper-active
+    cache_location: /loki/boltdb-shipper-cache
+    shared_store: filesystem
+  filesystem:
+    directory: /loki/chunks
+
+limits_config:
+  enforce_metric_name: false
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+chunk_store_config:
+  max_look_back_period: 0s
+
+table_manager:
+  retention_deletes_enabled: false
+  retention_period: 0s
+
+# Configure ruler for alerting rules
+ruler:
+  storage:
+    type: local
+    local:
+      directory: /loki/rules
+  rule_path: /loki/rules-temp
+  alertmanager_url: http://alertmanager:9093
+  ring:
+    kvstore:
+      store: inmemory
+  enable_api: true
+  enable_alertmanager_v2: true
+
+# Multi-tenant configuration (disabled for single tenant)
+multitenancy_enabled: false
+
+# Configure limits for performance
+per_stream_rate_limit: 16MB
+ingestion_rate_mb: 16
+ingestion_burst_size_mb: 32
+
+# Configure compaction
+compactor:
+  working_directory: /loki/compactor
+  shared_store: filesystem
+  compaction_interval: 10m
+  retention_enabled: true
+  delete_request_cancel_period: 24h
+  retention_delete_delay: 2h
+
+# Configure frontend for query optimization
+frontend:
+  max_outstanding_per_tenant: 2048
+  compress_responses: true
+
+# Configure query scheduler
+query_scheduler:
+  max_outstanding_requests_per_tenant: 100
+
+# Configure querier
+querier:
+  max_concurrent: 10
+
+# Configure query range
+query_range:
+  split_queries_by_interval: 15m
+  align_queries_with_step: true
+  cache_results: true
+  results_cache:
+    cache:
+      enable_fifocache: true
+      fifocache:
+        max_size_items: 1024
+        ttl: 5m
+
+# Configure analytics reporter (optional)
+analytics:
+  reporting_enabled: false

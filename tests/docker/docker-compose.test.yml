@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # Redis coordination service
+  redis-coordination:
+    image: redis:7-alpine
+    container_name: cfn-test-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    networks:
+      - cfn-test-network
+    mem_limit: 256m
+    cpus: 0.3
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis-test-data:/data
+
+  # Test coordinator container
+  cfn-coordinator:
+    image: cfn-minimal-test:latest
+    container_name: cfn-test-coordinator
+    restart: "no"
+    networks:
+      - cfn-test-network
+    mem_limit: 512m
+    cpus: 0.5
+    environment:
+      - CFN_MODE=coordinator
+      - REDIS_URL=redis://redis-coordination:6379
+      - NODE_OPTIONS=--max-old-space-size=256
+      - CFN_COORDINATION_ID=coordinator-test-${TIMESTAMP}
+    volumes:
+      - ${PWD}:/app
+      - /tmp/cfn-test:/tmp/cfn-test
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      redis-coordination:
+        condition: service_healthy
+
+  # Agent test containers (parallel execution)
+  agent-test-1:
+    image: cfn-minimal-test:latest
+    container_name: cfn-agent-test-1
+    restart: "no"
+    networks:
+      - cfn-test-network
+    mem_limit: 256m
+    cpus: 0.3
+    environment:
+      - CFN_MODE=agent
+      - REDIS_URL=redis://redis-coordination:6379
+      - NODE_OPTIONS=--max-old-space-size=128
+      - AGENT_ID=test-agent-1-${TIMESTAMP}
+      - AGENT_TYPE=backend-developer
+    volumes:
+      - ${PWD}:/app
+      - /tmp/cfn-test:/tmp/cfn-test
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      redis-coordination:
+        condition: service_healthy
+
+  agent-test-2:
+    image: cfn-minimal-test:latest
+    container_name: cfn-agent-test-2
+    restart: "no"
+    networks:
+      - cfn-test-network
+    mem_limit: 256m
+    cpus: 0.3
+    environment:
+      - CFN_MODE=agent
+      - REDIS_URL=redis://redis-coordination:6379
+      - NODE_OPTIONS=--max-old-space-size=128
+      - AGENT_ID=test-agent-2-${TIMESTAMP}
+      - AGENT_TYPE=tester
+    volumes:
+      - ${PWD}:/app
+      - /tmp/cfn-test:/tmp/cfn-test
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      redis-coordination:
+        condition: service_healthy
+
+  agent-test-3:
+    image: cfn-minimal-test:latest
+    container_name: cfn-agent-test-3
+    restart: "no"
+    networks:
+      - cfn-test-network
+    mem_limit: 256m
+    cpus: 0.3
+    environment:
+      - CFN_MODE=agent
+      - REDIS_URL=redis://redis-coordination:6379
+      - NODE_OPTIONS=--max-old-space-size=128
+      - AGENT_ID=test-agent-3-${TIMESTAMP}
+      - AGENT_TYPE=documentation
+    volumes:
+      - ${PWD}:/app
+      - /tmp/cfn-test:/tmp/cfn-test
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      redis-coordination:
+        condition: service_healthy
+
+  # Performance monitoring
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.46.0
+    container_name: cfn-test-cadvisor
+    restart: unless-stopped
+    ports:
+      - "9280:8080"
+    networks:
+      - cfn-test-network
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+
+volumes:
+  redis-test-data:
+    driver: local
+
+networks:
+  cfn-test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16

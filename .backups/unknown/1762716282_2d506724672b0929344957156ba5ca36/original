@@ -1,0 +1,363 @@
+# Production CFN Loop Orchestration Configuration
+# Multi-container setup with monitoring, logging, and scaling
+
+version: '3.8'
+
+services:
+  # Redis Coordination Service
+  redis-coordinator:
+    image: redis:7-alpine
+    container_name: cfn-redis-coordinator
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    networks:
+      - cfn-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    labels:
+      - "cfn.service=redis"
+      - "cfn.tier=coordination"
+      - "cfn.env=production"
+
+  # Main Orchestrator Service
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}
+        VERSION: ${VERSION:-4.0.0}
+        CLAUDE_FLOW_VERSION: ${CLAUDE_FLOW_VERSION:-4.0.0}
+    container_name: cfn-orchestrator
+    restart: unless-stopped
+    ports:
+      - "3001:3000"  # Health check and metrics endpoint
+    volumes:
+      - ./workspaces:/app/workspace
+      - ./.claude:/app/.claude:ro
+      - ./logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis-coordinator:6379
+      - CFN_MODE=production
+      - CFN_LOG_LEVEL=${LOG_LEVEL:-info}
+      - CFN_MAX_CONCURRENT_AGENTS=${MAX_AGENTS:-10}
+      - CFN_AGENT_TIMEOUT_MS=${AGENT_TIMEOUT:-300000}
+      - CFN_MEMORY_LIMIT=${MEMORY_LIMIT:-1g}
+      - CFN_CPU_LIMIT=${CPU_LIMIT:-0.5}
+      - CFN_NETWORK_NAME=cfn-network
+    networks:
+      - cfn-network
+    depends_on:
+      redis-coordinator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "const Redis = require('ioredis'); const redis = new Redis('redis://redis-coordinator:6379'); redis.ping().then(() => process.exit(0)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    labels:
+      - "cfn.service=orchestrator"
+      - "cfn.tier=management"
+      - "cfn.env=production"
+
+  # Agent Pool Service (for scalable agent execution)
+  agent-pool:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}
+        VERSION: ${VERSION:-4.0.0}
+    restart: unless-stopped
+    volumes:
+      - ./workspaces:/app/workspace
+      - ./.claude:/app/.claude:ro
+      - ./logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis-coordinator:6379
+      - CFN_MODE=production
+      - CFN_AGENT_TYPE=worker
+      - CFN_LOG_LEVEL=${LOG_LEVEL:-info}
+      - CFN_WORKER_POOL_SIZE=${WORKER_POOL_SIZE:-5}
+    networks:
+      - cfn-network
+    depends_on:
+      redis-coordinator:
+        condition: service_healthy
+      orchestrator:
+        condition: service_healthy
+    deploy:
+      replicas: ${AGENT_REPLICAS:-3}
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    labels:
+      - "cfn.service=agent-pool"
+      - "cfn.tier=worker"
+      - "cfn.env=production"
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cfn-prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    networks:
+      - cfn-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    labels:
+      - "cfn.service=prometheus"
+      - "cfn.tier=monitoring"
+      - "cfn.env=production"
+
+  # Grafana Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cfn-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_INSTALL_PLUGINS=redis-datasource
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_LOG_LEVEL=info
+    networks:
+      - cfn-network
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    labels:
+      - "cfn.service=grafana"
+      - "cfn.tier=monitoring"
+      - "cfn.env=production"
+
+  # Redis Exporter for Prometheus
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: cfn-redis-exporter
+    restart: unless-stopped
+    ports:
+      - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis://redis-coordinator:6379
+      # - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    networks:
+      - cfn-network
+    depends_on:
+      redis-coordinator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9121/metrics || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+        reservations:
+          memory: 64M
+          cpus: '0.05'
+    labels:
+      - "cfn.service=redis-exporter"
+      - "cfn.tier=monitoring"
+      - "cfn.env=production"
+
+  # Nginx Reverse Proxy (optional, for external access)
+  nginx:
+    image: nginx:alpine
+    container_name: cfn-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - cfn-network
+    depends_on:
+      - orchestrator
+      - grafana
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    labels:
+      - "cfn.service=nginx"
+      - "cfn.tier=gateway"
+      - "cfn.env=production"
+
+  # Log Management (Loki for log aggregation)
+  loki:
+    image: grafana/loki:latest
+    container_name: cfn-loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - cfn-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    labels:
+      - "cfn.service=loki"
+      - "cfn.tier=logging"
+      - "cfn.env=production"
+
+# Network configuration
+networks:
+  cfn-network:
+    driver: bridge
+    name: cfn-production
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+    labels:
+      - "cfn.network=production"
+      - "cfn.managed=true"
+
+# Volume definitions
+volumes:
+  redis-data:
+    driver: local
+    name: cfn-redis-data
+    labels:
+      - "cfn.volume=redis-data"
+      - "cfn.env=production"
+
+  prometheus-data:
+    driver: local
+    name: cfn-prometheus-data
+    labels:
+      - "cfn.volume=prometheus-data"
+      - "cfn.env=production"
+
+  grafana-data:
+    driver: local
+    name: cfn-grafana-data
+    labels:
+      - "cfn.volume=grafana-data"
+      - "cfn.env=production"
+
+  loki-data:
+    driver: local
+    name: cfn-loki-data
+    labels:
+      - "cfn.volume=loki-data"
+      - "cfn.env=production"

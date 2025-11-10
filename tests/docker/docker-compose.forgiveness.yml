@@ -1,0 +1,349 @@
+version: '3.8'
+
+services:
+  # Redis coordination service for forgiveness testing
+  redis-forgiveness:
+    image: redis:7-alpine
+    container_name: cfn-forgiveness-redis
+    restart: unless-stopped
+    ports:
+      - "6381:6379"
+    networks:
+      - cfn-forgiveness-network
+    mem_limit: 256m
+    cpus: 0.3
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - redis-forgiveness-data:/data
+      - ./redis-forgiveness.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_MAXMEMORY=128mb
+      - REDIS_MAXMEMORY_POLICY=allkeys-lru
+
+  # CFN Forgiveness Coordinator
+  cfn-forgiveness-coordinator:
+    build:
+      context: ../../
+      dockerfile: Dockerfile.minimal
+    image: cfn-forgiveness-coordinator:latest
+    container_name: cfn-forgiveness-coordinator
+    restart: "no"
+    networks:
+      - cfn-forgiveness-network
+    mem_limit: 512m
+    cpus: 0.5
+    environment:
+      - CFN_MODE=coordinator
+      - CFN_FORGIVENESS_TEST_MODE=true
+      - REDIS_URL=redis://redis-forgiveness:6379
+      - NODE_OPTIONS=--max-old-space-size=256
+      - CFN_COORDINATION_ID=coordinator-forgiveness-${TIMESTAMP}
+      - CFN_TEST_RESULTS_DIR=/tmp/forgiveness-test-results
+      - CFN_ADAPTIVE_TIMEOUT=true
+      - CFN_SELF_HEALING=true
+      - CFN_GRACEFUL_SHUTDOWN=true
+    volumes:
+      - ${PWD}:/app:ro
+      - /tmp/cfn-forgiveness-test:/tmp/cfn-forgiveness-test
+      - ./forgiveness-results:/tmp/forgiveness-test-results
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      redis-forgiveness:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/coordinator-ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Forgiveness Test Agent - Memory Constrained
+  agent-memory-test:
+    build:
+      context: ../../
+      dockerfile: Dockerfile.minimal
+    image: cfn-forgiveness-agent:latest
+    container_name: cfn-forgiveness-agent-memory
+    restart: "no"
+    networks:
+      - cfn-forgiveness-network
+    mem_limit: 128m
+    cpus: 0.2
+    environment:
+      - CFN_MODE=agent
+      - CFN_FORGIVENESS_TEST_MODE=true
+      - REDIS_URL=redis://redis-forgiveness:6379
+      - NODE_OPTIONS=--max-old-space-size=64
+      - AGENT_ID=forgiveness-agent-memory-${TIMESTAMP}
+      - AGENT_TYPE=backend-developer
+      - CFN_MEMORY_LIMIT=64m
+      - CFN_TEST_SCENARIO=memory_constraint
+    volumes:
+      - ${PWD}:/app:ro
+      - /tmp/cfn-forgiveness-test:/tmp/cfn-forgiveness-test
+      - ./forgiveness-results:/tmp/forgiveness-test-results
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      redis-forgiveness:
+        condition: service_healthy
+      cfn-forgiveness-coordinator:
+        condition: service_healthy
+
+  # Forgiveness Test Agent - CPU Constrained
+  agent-cpu-test:
+    build:
+      context: ../../
+      dockerfile: Dockerfile.minimal
+    image: cfn-forgiveness-agent:latest
+    container_name: cfn-forgiveness-agent-cpu
+    restart: "no"
+    networks:
+      - cfn-forgiveness-network
+    mem_limit: 256m
+    cpus: 0.1
+    environment:
+      - CFN_MODE=agent
+      - CFN_FORGIVENESS_TEST_MODE=true
+      - REDIS_URL=redis://redis-forgiveness:6379
+      - NODE_OPTIONS=--max-old-space-size=128
+      - AGENT_ID=forgiveness-agent-cpu-${TIMESTAMP}
+      - AGENT_TYPE=tester
+      - CFN_CPU_LIMIT=0.1
+      - CFN_TEST_SCENARIO=cpu_constraint
+    volumes:
+      - ${PWD}:/app:ro
+      - /tmp/cfn-forgiveness-test:/tmp/cfn-forgiveness-test
+      - ./forgiveness-results:/tmp/forgiveness-test-results
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      redis-forgiveness:
+        condition: service_healthy
+      cfn-forgiveness-coordinator:
+        condition: service_healthy
+
+  # Forgiveness Test Agent - Network Constrained
+  agent-network-test:
+    build:
+      context: ../../
+      dockerfile: Dockerfile.minimal
+    image: cfn-forgiveness-agent:latest
+    container_name: cfn-forgiveness-agent-network
+    restart: "no"
+    networks:
+      - cfn-forgiveness-network
+    mem_limit: 256m
+    cpus: 0.3
+    environment:
+      - CFN_MODE=agent
+      - CFN_FORGIVENESS_TEST_MODE=true
+      - REDIS_URL=redis://redis-forgiveness:6379
+      - NODE_OPTIONS=--max-old-space-size=128
+      - AGENT_ID=forgiveness-agent-network-${TIMESTAMP}
+      - AGENT_TYPE=documentation
+      - CFN_NETWORK_TIMEOUT=5
+      - CFN_TEST_SCENARIO=network_constraint
+    volumes:
+      - ${PWD}:/app:ro
+      - /tmp/cfn-forgiveness-test:/tmp/cfn-forgiveness-test
+      - ./forgiveness-results:/tmp/forgiveness-test-results
+    working_dir: /app
+    command: tail -f /dev/null
+    depends_on:
+      redis-forgiveness:
+        condition: service_healthy
+      cfn-forgiveness-coordinator:
+        condition: service_healthy
+
+  # Resource Stress Generator
+  stress-generator:
+    image: polinux/stress
+    container_name: cfn-forgiveness-stress
+    restart: "no"
+    networks:
+      - cfn-forgiveness-network
+    mem_limit: 128m
+    cpus: 0.5
+    environment:
+      - STRESS_TIMEOUT=300
+      - STRESS_MEMORY=2
+      - STRESS_MEMORY_SIZE=64m
+      - STRESS_CPU=1
+      - STRESS_CPU_LOAD=80
+    profiles:
+      - stress
+
+  # Network Partition Simulator
+  network-partition:
+    image: alpine:latest
+    container_name: cfn-forgiveness-network-partition
+    restart: "no"
+    networks:
+      - cfn-forgiveness-network
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - BLOCKED_SERVICES=redis-forgiveness,cfn-forgiveness-coordinator
+    command: |
+      sh -c "
+        apk add --no-cache iptables
+        echo 'Simulating network partition...'
+        iptables -A OUTPUT -p tcp --dport 6379 -j DROP
+        iptables -A OUTPUT -p tcp --dport 6379 -j REJECT
+        sleep 60
+        echo 'Removing network partition...'
+        iptables -D OUTPUT -p tcp --dport 6379 -j DROP
+        iptables -D OUTPUT -p tcp --dport 6379 -j REJECT
+      "
+    profiles:
+      - network-test
+
+  # Volume Mount Test Service
+  volume-test:
+    build:
+      context: ../../
+      dockerfile: Dockerfile.minimal
+    image: cfn-forgiveness-volume-test:latest
+    container_name: cfn-forgiveness-volume-test
+    restart: "no"
+    networks:
+      - cfn-forgiveness-network
+    mem_limit: 128m
+    cpus: 0.2
+    environment:
+      - CFN_MODE=agent
+      - CFN_FORGIVENESS_TEST_MODE=true
+      - CFN_TEST_SCENARIO=volume_mount_failure
+      - AGENT_ID=forgiveness-agent-volume-${TIMESTAMP}
+      - AGENT_TYPE=backend-developer
+    volumes:
+      - ${PWD}:/app:ro
+      - ./test-volume:/app/test-volume:rw
+      - /non-existent-volume:/app/non-existent:rw  # This should trigger volume failure
+      - /tmp/cfn-forgiveness-test:/tmp/cfn-forgiveness-test
+    working_dir: /app
+    command: tail -f /dev/null
+    profiles:
+      - volume-test
+
+  # Docker Daemon Failure Simulator
+  docker-failure-simulator:
+    image: alpine:latest
+    container_name: cfn-forgiveness-docker-failure
+    restart: "no"
+    networks:
+      - cfn-forgiveness-network
+    privileged: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: |
+      sh -c "
+        apk add --no-cache docker
+        echo 'Simulating Docker daemon issues...'
+        # Simulate API rate limiting
+        for i in \$(seq 1 20); do
+          docker ps >/dev/null 2>&1 || echo 'Docker API call failed'
+          sleep 0.1
+        done
+        echo 'Docker failure simulation completed'
+      "
+    profiles:
+      - docker-failure
+
+  # Container Lifecycle Test
+  lifecycle-test:
+    build:
+      context: ../../
+      dockerfile: Dockerfile.minimal
+    image: cfn-forgiveness-lifecycle-test:latest
+    container_name: cfn-forgiveness-lifecycle-test
+    restart: unless-stopped
+    networks:
+      - cfn-forgiveness-network
+    mem_limit: 64m
+    cpus: 0.1
+    environment:
+      - CFN_MODE=agent
+      - CFN_FORGIVENESS_TEST_MODE=true
+      - CFN_TEST_SCENARIO=lifecycle_failure
+      - AGENT_ID=forgiveness-agent-lifecycle-${TIMESTAMP}
+      - AGENT_TYPE=tester
+      - CFN_SELF_HEALING=true
+      - CFN_MAX_RESTARTS=3
+    volumes:
+      - ${PWD}:/app:ro
+      - /tmp/cfn-forgiveness-test:/tmp/cfn-forgiveness-test
+      - ./lifecycle-test-data:/app/lifecycle-data
+    working_dir: /app
+    command: |
+      sh -c "
+        echo 'Starting lifecycle test container...'
+        # Simulate random failures
+        if [ \$((RANDOM % 3)) -eq 0 ]; then
+          echo 'Simulating container failure...'
+          exit 1
+        fi
+        echo 'Lifecycle test running successfully...'
+        sleep 30
+      "
+    profiles:
+      - lifecycle-test
+
+  # Monitoring and Metrics Collection
+  monitoring:
+    image: gcr.io/cadvisor/cadvisor:v0.46.0
+    container_name: cfn-forgiveness-monitoring
+    restart: unless-stopped
+    ports:
+      - "9281:8080"
+    networks:
+      - cfn-forgiveness-network
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    profiles:
+      - monitoring
+
+  # Log Aggregator
+  log-aggregator:
+    image: fluent/fluent-bit:latest
+    container_name: cfn-forgiveness-logs
+    restart: unless-stopped
+    ports:
+      - "24224:24224"
+    networks:
+      - cfn-forgiveness-network
+    volumes:
+      - ./forgiveness-results:/fluent-bit/logs
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    profiles:
+      - monitoring
+
+volumes:
+  redis-forgiveness-data:
+    driver: local
+  test-volume:
+    driver: local
+  lifecycle-test-data:
+    driver: local
+
+networks:
+  cfn-forgiveness-network:
+    driver: bridge
+    name: cfn-forgiveness-network
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1

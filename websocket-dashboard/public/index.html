@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="CFN Loop WebSocket Dashboard - Real-time monitoring of CFN Loop swarms and agent coordination"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Tailwind CSS CDN for quick setup -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <title>CFN Loop Dashboard</title>
+
+    <style>
+      /* Prevent flash of unstyled content */
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f3f4f6;
+      }
+
+      /* Loading screen */
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        transition: opacity 0.5s ease;
+      }
+
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .loading-text {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .loading-subtext {
+        font-size: 14px;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <!-- Loading screen -->
+    <div id="loading">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">🚀 CFN Loop Dashboard</div>
+      <div class="loading-subtext">Connecting to WebSocket server...</div>
+    </div>
+
+    <!-- React app root -->
+    <div id="root"></div>
+
+    <script>
+      // Hide loading screen when React app is ready
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const loading = document.getElementById('loading');
+          if (loading) {
+            loading.style.opacity = '0';
+            setTimeout(function() {
+              loading.style.display = 'none';
+            }, 500);
+          }
+        }, 1000); // Keep loading screen visible for at least 1 second
+        });
+      });
+
+      // Global error handling for WebSocket connection issues
+      window.addEventListener('error', function(e) {
+        console.error('Dashboard error:', e.error);
+      });
+
+      // WebSocket connection status indicator in title
+      let wsConnected = false;
+      const originalTitle = document.title;
+
+      function updateTitle(connected) {
+        wsConnected = connected;
+        if (connected) {
+          document.title = originalTitle;
+        } else {
+          document.title = '⚠️ ' + originalTitle;
+        }
+      }
+
+      // Make updateTitle available to React app
+      window.updateDashboardTitle = updateTitle;
+    </script>
+  </body>
+</html>

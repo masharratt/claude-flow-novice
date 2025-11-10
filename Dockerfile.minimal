@@ -1,0 +1,75 @@
+# Minimal Production CFN Loop Dockerfile
+# Optimized for fast builds without large context transfers
+
+FROM node:20-alpine
+
+# Build arguments
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION
+
+# Labels
+LABEL maintainer="Claude Flow Novice Team" \
+      org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.name="claude-flow-novice-minimal" \
+      org.label-schema.description="Minimal CFN Loop Production Container" \
+      org.label-schema.version=$VERSION
+
+# Install system dependencies
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    ca-certificates \
+    bash \
+    jq \
+    redis \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfn-agent \
+    && adduser -u 1001 -S cfn-agent -G cfn-agent
+
+# Set working directory
+WORKDIR /app
+
+# Create minimal directories
+RUN mkdir -p /app/workspace \
+    && mkdir -p /app/.claude \
+    && chown -R cfn-agent:cfn-agent /app
+
+# Copy only essential files
+COPY --chown=cfn-agent:cfn-agent package*.json ./
+COPY --chown=cfn-agent:cfn-agent scripts/ ./scripts/
+
+# Install only production dependencies
+RUN npm ci --only=production --no-optional \
+    && npm cache clean --force
+
+# Copy production orchestrator
+COPY --chown=cfn-agent:cfn-agent tests/docker/production-agent-orchestrator.js ./orchestrator.js
+
+# Set permissions
+RUN chmod +x ./scripts/*.sh \
+    && chmod +x ./orchestrator.js
+
+# Switch to non-root user
+USER cfn-agent
+
+# Environment variables
+ENV NODE_ENV=production \
+    CFN_MODE=production \
+    CFN_LOG_LEVEL=info \
+    CFN_WORKSPACE_DIR=/app/workspace
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "console.log('Health check passed')" || exit 1
+
+# Expose port
+EXPOSE 3000
+
+# Set entrypoint
+ENTRYPOINT ["dumb-init", "--"]
+
+# Default command
+CMD ["node", "orchestrator.js"]

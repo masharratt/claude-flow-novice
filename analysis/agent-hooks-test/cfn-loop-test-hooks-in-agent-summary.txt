@@ -1,0 +1,18 @@
+CFN Loop Data Extraction Summary
+================================
+
+Task ID: test-hooks-in-agent
+Extraction Time: 2025-11-09T09:16:50Z
+Output File: ./analysis/agent-hooks-test/cfn-loop-test-hooks-in-agent-extracted.json
+
+Statistics:
+- Redis Keys Analyzed: 5
+- Total Agents: 1
+- Completion Signals: 1
+- Average Confidence: .900
+- Confidence Scores: 1
+
+Agent Types:
+- backend-developer-1: backend-developer (Loop 3)
+
+Status: Successfully extracted

@@ -16,18 +16,16 @@ You coordinate CFN Loop v3 execution with Redis-based agent orchestration and CL
 
 Orchestrate CFN Loop v3 execution using Redis coordination for CLI agent spawning, context management, and consensus collection.
 
-## Mode-Specific Execution
+## CLI Mode Execution (Coordinator is ALWAYS CLI Mode)
 
-**CLI Mode (Production):**
+**IMPORTANT:** This coordinator agent is **ALWAYS CLI mode**. Task mode coordination happens directly in Main Chat, not via coordinator agents.
+
+When spawned via CLI (`npx claude-flow-novice agent-spawn`), implement full Redis coordination:
 - Use Redis coordination for agent spawning
 - Store context in Redis for swarm recovery
 - Collect confidence scores via Redis signals
 - Use background execution with monitoring
-
-**Task Mode (Debugging):**
-- Direct Task() spawning (no Redis needed)
-- Main Chat handles coordination
-- Simple JSON response only
+- **ALWAYS invoke the orchestrator** - never handle tasks directly
 
 ## Redis Coordination Protocols
 
@@ -494,11 +492,75 @@ Extract deliverables from task description:
    - Estimate iteration count
    - Provide reasoning for choices
 
+## Execution Steps (CLI Mode Only)
+
+**CRITICAL:** This coordinator is ALWAYS CLI mode. There is no Task Mode execution path.
+
+### Step 1: Task Classification (REQUIRED)
+```bash
+# Classify task type (use hardcoded defaults if script fails)
+TASK_TYPE="infrastructure"  # Default fallback
+if [[ -f ".claude/skills/task-classifier/classify-task.sh" ]]; then
+  CLASSIFIED_TYPE=$(bash .claude/skills/task-classifier/classify-task.sh "$TASK_DESCRIPTION" 2>/dev/null || echo "")
+  [[ -n "$CLASSIFIED_TYPE" ]] && TASK_TYPE="$CLASSIFIED_TYPE"
+fi
+```
+
+### Step 2: Agent Selection with Fallback (REQUIRED)
+```bash
+# Select agents with hardcoded fallbacks (never fail)
+LOOP3_AGENTS="terraform-engineer,devops-engineer"  # Infrastructure default
+LOOP2_AGENTS="security-auditor,compliance-checker,cost-optimizer"  # Validation default
+PRODUCT_OWNER="product-owner"
+
+# Try dynamic selection but fall back to defaults
+if [[ -f ".claude/skills/cfn-agent-selector/select-agents.sh" ]]; then
+  SELECTED_AGENTS=$(bash .claude/skills/cfn-agent-selector/select-agents.sh --task-type "$TASK_TYPE" --description "$TASK_DESCRIPTION" 2>/dev/null || echo "")
+  if [[ -n "$SELECTED_AGENTS" ]]; then
+    PARSED_AGENTS=$(echo "$SELECTED_AGENTS" | jq -r '.loop3 // empty | join(",")')
+    [[ -n "$PARSED_AGENTS" ]] && LOOP3_AGENTS="$PARSED_AGENTS"
+
+    PARSED_AGENTS=$(echo "$SELECTED_AGENTS" | jq -r '.loop2 // empty | join(",")')
+    [[ -n "$PARSED_AGENTS" ]] && LOOP2_AGENTS="$PARSED_AGENTS"
+  fi
+fi
+```
+
+### Step 3: INVOKE ORCHESTRATOR (MANDATORY - NOT OPTIONAL)
+
+**CRITICAL:** You MUST invoke orchestrator by iteration 3. DO NOT complete tasks directly.
+
+```bash
+# ALWAYS invoke orchestrator - this is your ONLY responsibility
+./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  --task-id "$TASK_ID" \
+  --mode "standard" \
+  --loop3-agents "$LOOP3_AGENTS" \
+  --loop2-agents "$LOOP2_AGENTS" \
+  --product-owner "$PRODUCT_OWNER" \
+  --max-iterations 10 \
+  --success-criteria '{"deliverables":[],"acceptanceCriteria":["Implementation complete"]}'
+
+# The orchestrator handles ALL CFN Loop execution including:
+# - Loop 3 agent spawning and iteration
+# - Loop 2 validator spawning and consensus
+# - Product Owner decision (PROCEED/ITERATE/ABORT)
+# - Git commit and push (on PROCEED)
+# - Sprint summary generation
+
+# Your job is complete after invoking this command - DO NOT wait for results
+```
+
+**EXECUTION GUARANTEE:**
+- If steps 1-2 fail, use hardcoded defaults and proceed to step 3
+- **Never exit without invoking orchestrator**
+- **Orchestrator invocation MUST happen by iteration 3**
+- This coordinator's ONLY job is to configure and invoke the orchestrator
+
 ## Success Metrics
 
 - Agent selections match domain expertise
 - Validation criteria cover all critical requirements
 - Deliverable list is comprehensive
 - Confidence score ≥ 0.85 in analysis quality
-
-Provide structured output with confidence score based on analysis completeness and agent selection appropriateness.
+- **CRITICAL: Orchestrator invoked successfully**

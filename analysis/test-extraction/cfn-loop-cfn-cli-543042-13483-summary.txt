@@ -1,0 +1,28 @@
+CFN Loop Data Extraction Summary
+================================
+
+Task ID: cfn-cli-543042-13483
+Extraction Time: 2025-11-09T05:48:11Z
+Output File: ./analysis/test-extraction/cfn-loop-cfn-cli-543042-13483-extracted.json
+
+Statistics:
+- Redis Keys Analyzed: 45
+- Total Agents: 11
+- Completion Signals: 11
+- Average Confidence: .821
+- Confidence Scores: 11
+
+Agent Types:
+- cfn-cli-543042-13483-backend-developer-1: cfn-cli-543042-13483-backend-developer (Loop 3)
+- cfn-cli-543042-13483-code-quality-validator: cfn-cli-543042-13483-code-quality-validator (Loop unknown)
+- cfn-cli-543042-13483-devops-engineer-1: cfn-cli-543042-13483-devops-engineer (Loop 3)
+- cfn-cli-543042-13483-performance-benchmarker-1: cfn-cli-543042-13483-performance-benchmarker (Loop 3)
+- cfn-cli-543042-13483-performance-benchmarker-validation: cfn-cli-543042-13483-performance-benchmarker (Loop 2)
+- cfn-cli-543042-13483-product-owner: product-owner (Loop 4)
+- cfn-cli-543042-13483-react-frontend-engineer-1: cfn-cli-543042-13483-react-frontend-engineer (Loop 3)
+- cfn-cli-543042-13483-reviewer: cfn-cli-543042-13483-reviewer (Loop unknown)
+- cfn-cli-543042-13483-security-specialist-1: cfn-cli-543042-13483-security-specialist (Loop 3)
+- cfn-cli-543042-13483-security-specialist-validation: cfn-cli-543042-13483-security-specialist (Loop 2)
+- cfn-v3-coordinator-1: coordinator (Loop coordination)
+
+Status: Successfully extracted

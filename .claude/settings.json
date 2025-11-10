@@ -6,9 +6,7 @@
     "CLAUDE_FLOW_TELEMETRY_ENABLED": "true",
     "CLAUDE_FLOW_REMOTE_EXECUTION": "true",
     "CLAUDE_FLOW_CHECKPOINTS_ENABLED": "true",
-    "ANTHROPIC_SUBSCRIPTION_LIMIT": "100",
-    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "ANTHROPIC_AUTH_TOKEN": "4089902faf6c4d30baf352a3d144e1a2.SUs3hnpAZAGsQDHX"
+    "ANTHROPIC_SUBSCRIPTION_LIMIT": "100"
   },
   "permissions": {
     "allow": [
@@ -35,11 +33,7 @@
       "Bash(npm run build:*)",
       "Bash(node:*)",
       "Bash(npm run build:types:*)",
-      "mcp__ruv-swarm",
-      "mcp__claude-flow@alpha",
-      "mcp__flow-nexus",
-      "WebSearch",
-      "mcp__claude-flow-novice__swarm_init"
+      "WebSearch"
     ],
     "deny": [
       "Bash(rm -rf /)",
@@ -120,7 +114,6 @@
   },
   "includeCoAuthoredBy": true,
   "enabledMcpjsonServers": [
-    "claude-flow-novice",
     "supabase",
     "n8n-mcp"
   ],
@@ -142,16 +135,25 @@
     "playwright": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm", "--init",
-        "--name", "mcp-playwright-${AGENT_ID:-agent}",
+        "run",
+        "-i",
+        "--rm",
+        "--init",
+        "--name",
+        "mcp-playwright-${AGENT_ID:-agent}",
         "--memory=1g",
         "--shm-size=2g",
-        "-e", "AGENT_ID=${AGENT_ID:-agent}",
-        "-e", "NODE_PATH=/usr/local/lib/node_modules",
-        "-e", "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
-        "-v", "${PWD}/screenshots:/app/screenshots",
+        "-e",
+        "AGENT_ID=${AGENT_ID:-agent}",
+        "-e",
+        "NODE_PATH=/usr/local/lib/node_modules",
+        "-e",
+        "PLAYWRIGHT_BROWSERS_PATH=/ms-playwright",
+        "-v",
+        "${PWD}/screenshots:/app/screenshots",
         "claude-flow-novice:playwright-working",
-        "node", "/app/scripts/playwright-mcp-server.js"
+        "node",
+        "/app/scripts/playwright-mcp-server.js"
       ]
     }
   },

@@ -1,6 +1,6 @@
 # Claude Flow Novice - Backlog
 
-Last Updated: 2025-11-06
+Last Updated: 2025-11-09
 
 ## Active Items
 
@@ -38,6 +38,16 @@ Last Updated: 2025-11-06
 
 ### P1 - High Priority
 
+**[P1] - Fix 50 remaining TS2353 errors (unknown properties in stores...**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Fix 50 remaining TS2353 errors (unknown properties in stores/services)
+- **Rationale**: Remaining errors require architectural changes to store state management (11), performance metrics (10), and auth/service interfaces (29)
+- **Proposed Solution**: Refactor store state interfaces, enhance performance metrics types, align auth hooks with backend contracts. Cross-service coordination required.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-09
+
 **[P1] - Create memory Redis dashboard for real-time monitoring**
 - **Sprint Backlogged**: Unknown
 - **Category**: Feature
@@ -62,6 +72,16 @@ Implementation:
 - **Date Added**: 2025-11-04
 
 ### P2 - Medium Priority
+
+**[P2] - Fix 30 remaining TS2305 errors (TypeScript module exports)**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Fix 30 remaining TS2305 errors (TypeScript module exports)
+- **Rationale**: These errors are NOT lucide-react imports - they require TypeScript module/interface export definitions across multiple service files
+- **Proposed Solution**: Create missing type exports in auth, analytics, and service modules. Requires coordination with backend type definitions.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-09
 
 **[P2] - GraphQL endpoint**
 - **Sprint Backlogged**: Unknown

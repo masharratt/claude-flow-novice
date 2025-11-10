@@ -1,0 +1,5 @@
+[0;31m❌ FAIL[0m: Sufficient memory no adjustment
+   Expected: 3600s 3600s pass
+        elif [ 58797 -lt 1024 ] && [ 3600 -gt 3600 ]; then
+            test_result Low
+   Actual: memory

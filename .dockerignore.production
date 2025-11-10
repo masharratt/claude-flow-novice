@@ -1,0 +1,8 @@
+# Production Dockerignore - Minimal context for fast builds
+
+# Include only essential files
+package*.json
+scripts/
+
+# Exclude everything else
+**

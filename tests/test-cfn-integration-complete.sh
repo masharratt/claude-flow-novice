@@ -207,3 +207,8 @@ generate_report() {
 
 ## Integration Status
 
+EOF
+
+    log_success "Report generated: $report_file"
+}
+

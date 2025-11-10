@@ -1,0 +1,18 @@
+CFN Loop Data Extraction Summary
+================================
+
+Task ID: cfn-cli-873199-22930
+Extraction Time: 2025-11-09T09:00:22Z
+Output File: ./analysis/6.1-loop-analysis/cfn-loop-cfn-cli-873199-22930-extracted.json
+
+Statistics:
+- Redis Keys Analyzed: 3
+- Total Agents: 1
+- Completion Signals: 0
+- Average Confidence: 0
+- Confidence Scores: 0
+
+Agent Types:
+- cfn-v3-coordinator-1: coordinator (Loop coordination)
+
+Status: Successfully extracted
