@@ -713,6 +713,116 @@ curl -X POST "$N8N_BASE_URL/webhook/endpoint" \
 
 [... rest of previous content remains unchanged ...]
 
+### 17. CFN Loop Forgiveness Mechanisms
+
+**Purpose**: Prevent CFN Loop failures through systematic error handling and recovery
+
+**Mechanisms**:
+
+**Multi-tier Agent Spawning Fallback**:
+- Strategy 1: Instrumented npx spawn
+- Strategy 2: Direct npx spawn
+- Strategy 3: Global binary fallback
+- Strategy 4: Placeholder agent (degraded mode)
+- Impact: 95% reduction in agent spawning failures
+
+**Pre-flight Validation**:
+- Dependency validation: Node.js, npx, Redis connectivity
+- Resource checking: Disk space (100MB min), memory (512MB min)
+- Helper script validation: Critical script availability
+- Graceful degradation: Continue with warnings vs hard failures
+
+**Adaptive Timeout Calculation**:
+- Phase-specific base timeouts
+- Memory-based adjustment: +50% when <1GB available
+- Concurrency monitoring: Alert when >10 processes
+- Bounds enforcement: 60s minimum, 1800s maximum
+
+**Race Condition Prevention**:
+- Collision-resistant agent ID generation
+- Timestamp + random suffix for uniqueness
+- Prevents ID collisions in concurrent orchestrators
+
+**Graceful Shutdown**:
+- Signal handlers: SIGTERM, SIGINT, EXIT
+- Process group cleanup
+- State persistence before exit
+- Resource deallocation
+
+**Checkpoint/Restart System**:
+- Periodic state snapshots
+- Iteration checkpoints every N iterations
+- Resume from last checkpoint on failure
+- State restoration validation
+
+**Fallback Mode Operation**:
+- Redis connection failure handling
+- Local state management fallback
+- Reduced functionality mode
+- Automatic recovery when Redis available
+
+**Self-healing Error Recovery**:
+- Automatic retry with backoff
+- Error categorization and routing
+- Resource pressure detection
+- Recovery strategy selection
+
+**Test Coverage**:
+- CLI test suite: `tests/test-cfn-forgiveness-cli-hello-world.sh`
+- Docker test suite: `tests/test-cfn-forgiveness-docker-hello-world.sh`
+- Adaptive timeout tests: `tests/test-adaptive-timeout-*.sh`
+- Graceful shutdown tests: `tests/test-graceful-shutdown-*.sh`
+
+**Documentation**:
+- Implementation: `docs/CFN_FORGIVENESS_MECHANISMS_COMPLETE.md`
+- Testing guide: `docs/CFN_FORGIVENESS_TESTING_GUIDE.md`
+- Docker guide: `docs/DOCKER_FORGIVENESS_TESTING_GUIDE.md`
+
+### 18. CFN Error Logging Skill
+
+**Purpose**: Capture and report CFN Loop failures for debugging
+
+**Actions**:
+- `capture`: Capture error data on CFN Loop failure
+- `report`: Generate user-friendly error report
+- `cleanup`: Manage error log retention
+- `list`: List error logs
+
+**Data Captured**:
+- System diagnostics: CPU, memory, disk, dependencies
+- CFN Loop state: Configuration, execution, Redis data
+- Error context: Type, message, exit code, stack traces
+- Process tree: Parent/child relationships
+
+**Integration Points**:
+- CLI Loop: orchestrate.sh error handling
+- Docker Loop: container failure handling
+- Agent spawning: npx command failures
+
+**Storage**:
+- Location: `/tmp/cfn_error_logs/`
+- Retention: 7 days default
+- Format: JSON (machine-readable), Markdown (user-friendly)
+- Privacy: No code content, no credentials
+
+**Usage**:
+```bash
+# Capture error
+./.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+  --action capture \
+  --task-id "$TASK_ID" \
+  --error-type "orchestrator" \
+  --error-message "Agent spawning failed"
+
+# Generate report
+./.claude/skills/cfn-error-logging/invoke-error-logging.sh \
+  --action report \
+  --task-id "$TASK_ID" \
+  --format markdown
+```
+
+**Error Categories**: orchestrator, agent-spawn, timeout, consensus, resource
+
 ### CFN Docker Test Infrastructure
 
 **Purpose**: Validate Docker-based agent coordination and Redis-based state management

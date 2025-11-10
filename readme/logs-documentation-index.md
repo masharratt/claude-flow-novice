@@ -73,11 +73,19 @@
    - Configuration options
    - Performance metrics
    - Testing frameworks
+   - CFN Loop forgiveness mechanisms (17 features)
+   - CFN Error logging skill
 
 2. **[additional-commands.md](./additional-commands.md)**
    - Specialized commands
    - Fullstack development tools
    - Enterprise operations
+
+3. **CFN Loop Reliability**
+   - **[../docs/CFN_FORGIVENESS_MECHANISMS_COMPLETE.md](../docs/CFN_FORGIVENESS_MECHANISMS_COMPLETE.md)** - Forgiveness implementation details
+   - **[../docs/CFN_FORGIVENESS_TESTING_GUIDE.md](../docs/CFN_FORGIVENESS_TESTING_GUIDE.md)** - CLI testing guide
+   - **[../docs/DOCKER_FORGIVENESS_TESTING_GUIDE.md](../docs/DOCKER_FORGIVENESS_TESTING_GUIDE.md)** - Docker testing guide
+   - **[../docs/DOCKER_FORGIVENESS_IMPLEMENTATION_SUMMARY.md](../docs/DOCKER_FORGIVENESS_IMPLEMENTATION_SUMMARY.md)** - Docker implementation summary
 
 ### API and Integration
 1. **[logs-api.md](./logs-api.md)**

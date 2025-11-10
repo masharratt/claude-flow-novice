@@ -1,0 +1,493 @@
+{
+  "epicId": "cross-platform-windows-support",
+  "name": "Cross-Platform Dockerized Subagents",
+  "description": "Run every Claude Flow Novice subagent inside a Docker container to guarantee memory controls while keeping identical behavior on Windows, macOS, Linux, WSL2, and CI.",
+  "status": "not_started",
+  "owner": "Platform Engineering Team",
+  "estimatedDuration": "4 weeks (160 hours)",
+  "overviewFile": "planning/windows/EXECUTIVE_SUMMARY.md",
+  "architectureFile": "planning/windows/architecture/platform-abstraction-layer.md",
+  "timelineFile": "planning/windows/migration/migration-timeline.md",
+  "checklistFile": "planning/windows/IMPLEMENTATION_CHECKLIST.md",
+  "businessCase": {
+    "roi": "5x",
+    "investment": "$20,000 (engineering labor)",
+    "expectedValue": "$100,000+ (user acquisition + retention)",
+    "marketExpansion": "+30% potential users (Windows developers)",
+    "performanceGains": "10-30% faster on Windows native vs WSL2 due to reduced host process overhead",
+    "reliabilityImprovements": "Deterministic container memory limits instead of best-effort process management"
+  },
+  "phases": [
+    {
+      "phaseId": "phase-1-docker-foundation",
+      "name": "Docker Runtime Foundation",
+      "description": "Detect Docker availability, automate prerequisite installation, and gate CI on a healthy container runtime.",
+      "file": "planning/windows/migration/migration-timeline.md#week-1-runtime-foundation-40-hours",
+      "status": "not_started",
+      "dependencies": [],
+      "estimatedDuration": "1 week (40 hours)",
+      "daysInPhase": "5 days (Day 1-5)",
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "name": "Docker Runtime Detection Module",
+          "status": "not_started",
+          "duration": "2 days (16 hours)",
+          "dependencies": [],
+          "agents": ["typescript-specialist", "tester"],
+          "acceptanceCriteria": [
+            "Runtime detector created: src/runtime/docker-runtime.ts (250 lines)",
+            "Runtime types defined: src/runtime/runtime-types.ts (120 lines)",
+            "Detects Docker Desktop, Docker Engine, and containerd-backed CI environments",
+            "Validates minimum versions, resource quotas, and WSL2 backend availability on Windows",
+            "Provides actionable remediation messages when Docker is unavailable",
+            "Unit tests with 100% coverage: src/runtime/docker-runtime.test.ts (200 lines)"
+          ],
+          "deliverables": [
+            "src/runtime/docker-runtime.ts",
+            "src/runtime/runtime-types.ts",
+            "src/runtime/docker-runtime.test.ts"
+          ],
+          "mode": "standard",
+          "maxIterations": 3
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "name": "Host Prerequisite Automation",
+          "status": "not_started",
+          "duration": "2 days (16 hours)",
+          "dependencies": ["sprint-1.1"],
+          "agents": ["devops-engineer", "documentation-specialist"],
+          "acceptanceCriteria": [
+            "Installer/validation scripts created: scripts/windows/install-docker.ps1, scripts/macos/install-docker.sh, scripts/linux/install-docker.sh",
+            "Scripts verify Hyper-V/WSL features, Docker Desktop memory settings, and Linux cgroup v2 configuration",
+            "Documentation created: docs/docker-runtime-setup.md with screenshots and troubleshooting guides",
+            "Smoke test command `npm run verify:docker` executes and reports status",
+            "Validated on clean Windows 10/11, macOS 13+, Ubuntu 22.04 environments"
+          ],
+          "deliverables": [
+            "scripts/windows/install-docker.ps1",
+            "scripts/macos/install-docker.sh",
+            "scripts/linux/install-docker.sh",
+            "docs/docker-runtime-setup.md",
+            "package-scripts/verify-docker.ts"
+          ],
+          "mode": "standard",
+          "maxIterations": 2
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "name": "CI/CD Container Gate",
+          "status": "not_started",
+          "duration": "1 day (8 hours)",
+          "dependencies": ["sprint-1.1", "sprint-1.2"],
+          "agents": ["devops-engineer", "tester"],
+          "acceptanceCriteria": [
+            "GitHub Actions workflow updated: .github/workflows/cross-platform-test.yml with docker sanity step",
+            "Matrix: [ubuntu-latest, macos-latest, windows-latest] × [node-18, node-20, node-22]",
+            "Runtime detector invoked in CI and fails fast when Docker is unavailable",
+            "Baseline resource report generated: .artifacts/docker-baseline.json",
+            "Week 1 checkpoint report published"
+          ],
+          "deliverables": [
+            ".github/workflows/cross-platform-test.yml",
+            ".github/actions/check-docker/action.yml",
+            ".artifacts/docker-baseline.json",
+            "planning/windows/WEEK_1_COMPLETION_REPORT.md"
+          ],
+          "mode": "standard",
+          "maxIterations": 2
+        }
+      ],
+      "phaseAcceptanceCriteria": [
+        "Docker runtime detector passes on Windows/macOS/Linux/CI",
+        "Installer scripts validated on clean machines",
+        "CI pipeline blocks merges when Docker is unhealthy",
+        "Week 1 checkpoint approved"
+      ]
+    },
+    {
+      "phaseId": "phase-2-agent-image-coordination",
+      "name": "Agent Image & Coordination Layer",
+      "description": "Build the claude-agent container image, migrate critical scripts inside it, and replace redis-cli/sqlite3 calls with Node adapters shared between host and container.",
+      "file": "planning/windows/migration/migration-timeline.md#week-2-agent-image--coordination-40-hours",
+      "status": "not_started",
+      "dependencies": ["phase-1-docker-foundation"],
+      "estimatedDuration": "1 week (40 hours)",
+      "daysInPhase": "5 days (Day 6-10)",
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "name": "Agent Base Image",
+          "status": "not_started",
+          "duration": "2 days (16 hours)",
+          "dependencies": ["sprint-1.3"],
+          "agents": ["backend-developer", "devops-engineer"],
+          "acceptanceCriteria": [
+            "Dockerfile created: docker/agent/Dockerfile (120 lines)",
+            "Multi-stage build with Node 20, bash tooling, redis-cli, sqlite3, jq, rsync, git",
+            "Entrypoints defined for orchestration, worker, and maintenance flows",
+            "Image published to ghcr.io/claude-flow/agent:<sha>",
+            "Image build automation added to CI"
+          ],
+          "deliverables": [
+            "docker/agent/Dockerfile",
+            "docker/agent/entrypoint.sh",
+            ".github/workflows/agent-image.yml"
+          ],
+          "mode": "standard",
+          "maxIterations": 3
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "name": "Script Migration into Image",
+          "status": "not_started",
+          "duration": "1 day (8 hours)",
+          "dependencies": ["sprint-2.1"],
+          "agents": ["backend-developer", "tester"],
+          "acceptanceCriteria": [
+            "Top 20 critical bash scripts copied into /opt/cfn/scripts inside the image",
+            "Scripts parameterized via env vars and documented in planning/windows/SCRIPT_INVENTORY.md",
+            "Legacy host scripts updated to delegate to `docker exec` equivalents",
+            "Integration smoke tests confirm scripts run identically inside container"
+          ],
+          "deliverables": [
+            "docker/agent/scripts/*.sh",
+            "planning/windows/SCRIPT_INVENTORY.md",
+            "tests/integration/agent-script-smoke.test.ts"
+          ],
+          "mode": "standard",
+          "maxIterations": 2
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "name": "Redis & SQLite Node Adapters",
+          "status": "not_started",
+          "duration": "2 days (16 hours)",
+          "dependencies": ["sprint-2.1"],
+          "agents": ["backend-developer", "database-architect", "tester"],
+          "acceptanceCriteria": [
+            "Redis adapter created: src/coordination/redis-coordinator.ts (350 lines) using ioredis",
+            "SQLite adapter created: src/coordination/sqlite-adapter.ts (300 lines) using better-sqlite3",
+            "All 531 redis-cli/sqlite3 shell calls removed from host path",
+            "Adapters exposed to containers via mounted socket or HTTP bridge",
+            "Integration tests pass on Windows/macOS/Linux/CI"
+          ],
+          "deliverables": [
+            "src/coordination/redis-coordinator.ts",
+            "src/coordination/sqlite-adapter.ts",
+            "tests/integration/redis-coordination.test.ts",
+            "tests/integration/sqlite-adapter.test.ts"
+          ],
+          "mode": "standard",
+          "maxIterations": 3
+        },
+        {
+          "sprintId": "sprint-2.4",
+          "name": "Week 2 Checkpoint",
+          "status": "not_started",
+          "duration": "1 day (8 hours)",
+          "dependencies": ["sprint-2.2", "sprint-2.3"],
+          "agents": ["tester", "product-owner"],
+          "acceptanceCriteria": [
+            "End-to-end CFN Loop runs with containers on Windows/macOS/Linux",
+            "No shell fallbacks to redis-cli/sqlite3 remain",
+            "Image publishing pipeline green across all branches",
+            "Week 2 completion report approved"
+          ],
+          "deliverables": [
+            "planning/windows/WEEK_2_COMPLETION_REPORT.md",
+            ".artifacts/week2-e2e-report.json"
+          ],
+          "mode": "standard",
+          "maxIterations": 2
+        }
+      ],
+      "phaseAcceptanceCriteria": [
+        "Agent image built/published with signed digest",
+        "Redis/SQLite adapters replace shell commands completely",
+        "Containers can execute orchestrator workflows on all platforms",
+        "Week 2 checkpoint approved"
+      ]
+    },
+    {
+      "phaseId": "phase-3-container-orchestration",
+      "name": "Container Orchestration & Memory Controls",
+      "description": "Replace host-level process management with a Docker-based worker runner that enforces resource limits and emits telemetry.",
+      "file": "planning/windows/migration/migration-timeline.md#week-3-container-orchestration-40-hours",
+      "status": "not_started",
+      "dependencies": ["phase-2-agent-image-coordination"],
+      "estimatedDuration": "1 week (40 hours)",
+      "daysInPhase": "5 days (Day 11-15)",
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "name": "Docker Worker Runner",
+          "status": "not_started",
+          "duration": "2 days (16 hours)",
+          "dependencies": ["sprint-2.4"],
+          "agents": ["backend-developer", "typescript-specialist", "tester"],
+          "acceptanceCriteria": [
+            "Worker runner created: src/agents/docker-worker-runner.ts (500 lines)",
+            "Supports spawn(), stop(), status(), and log streaming via Docker Engine SDK",
+            "Handles Windows/macOS/Linux path translation and volume mounts",
+            "Ensures cleanup of containers/volumes even on crash",
+            "Unit tests + mocked engine tests passing"
+          ],
+          "deliverables": [
+            "src/agents/docker-worker-runner.ts",
+            "tests/unit/docker-worker-runner.test.ts"
+          ],
+          "mode": "standard",
+          "maxIterations": 3
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "name": "Resource Policies & Telemetry",
+          "status": "not_started",
+          "duration": "2 days (16 hours)",
+          "dependencies": ["sprint-3.1"],
+          "agents": ["backend-developer", "monitoring-specialist"],
+          "acceptanceCriteria": [
+            "Resource policy definitions added: config/resource-policies.json for MVP/Standard/Enterprise modes",
+            "Docker runner enforces --memory, --memory-swap, --cpus flags per policy",
+            "OOMKilled detection + retry logic implemented",
+            "Telemetry collector created: src/monitoring/docker-telemetry.ts (collects runtime, RSS, exit code)",
+            "Metrics exported to existing monitoring sink; alert on repeated OOM events"
+          ],
+          "deliverables": [
+            "config/resource-policies.json",
+            "src/monitoring/docker-telemetry.ts",
+            "tests/integration/resource-policy.test.ts"
+          ],
+          "mode": "standard",
+          "maxIterations": 2
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "name": "Developer Experience Enhancements",
+          "status": "not_started",
+          "duration": "1 day (8 hours)",
+          "dependencies": ["sprint-3.2"],
+          "agents": ["devex-engineer", "documentation-specialist"],
+          "acceptanceCriteria": [
+            "VS Code tasks/devcontainer updated for Docker-based agents",
+            "make/npm scripts updated (`npm run agent:start`, `npm run agent:logs`)",
+            "Troubleshooting guide for common Docker Desktop issues published",
+            "Week 3 checkpoint completed"
+          ],
+          "deliverables": [
+            ".vscode/tasks.json",
+            ".devcontainer/devcontainer.json",
+            "docs/docker-troubleshooting.md",
+            "planning/windows/WEEK_3_COMPLETION_REPORT.md"
+          ],
+          "mode": "mvp",
+          "maxIterations": 1
+        }
+      ],
+      "phaseAcceptanceCriteria": [
+        "All agent launches go through docker-worker-runner when flag enabled",
+        "Resource policies enforce memory/CPU budgets",
+        "Telemetry + alerts operational",
+        "Week 3 checkpoint approved"
+      ]
+    },
+    {
+      "phaseId": "phase-4-validation-rollout",
+      "name": "Validation & Rollout",
+      "description": "Execute cross-platform validation, long-running memory tests, documentation updates, and feature-flagged rollout.",
+      "file": "planning/windows/migration/migration-timeline.md#week-4-validation--rollout-40-hours",
+      "status": "not_started",
+      "dependencies": ["phase-3-container-orchestration"],
+      "estimatedDuration": "1 week (40 hours)",
+      "daysInPhase": "5 days (Day 16-20)",
+      "sprints": [
+        {
+          "sprintId": "sprint-4.1",
+          "name": "Cross-Platform & Memory Testing",
+          "status": "not_started",
+          "duration": "2 days (16 hours)",
+          "dependencies": ["sprint-3.3"],
+          "agents": ["tester", "performance-specialist"],
+          "acceptanceCriteria": [
+            "Full CFN Loop suite passes on Windows/macOS/Linux/CI with Docker flag on",
+            "1000-cycle memory leak test finishes with <0.1% growth and zero orphaned containers",
+            "Performance regression <10% vs baseline on Linux/Mac; Windows sees ≥10% I/O improvement",
+            "Artifacts produced: .artifacts/perf-comparison.json, .artifacts/memory-leak.json"
+          ],
+          "deliverables": [
+            "tests/e2e/cfn-loop-docker.test.ts",
+            "tests/performance/memory-leak-docker.test.ts",
+            ".artifacts/perf-comparison.json",
+            ".artifacts/memory-leak.json"
+          ],
+          "mode": "enterprise",
+          "maxIterations": 2
+        },
+        {
+          "sprintId": "sprint-4.2",
+          "name": "Documentation & Migration Guide",
+          "status": "not_started",
+          "duration": "1 day (8 hours)",
+          "dependencies": ["sprint-4.1"],
+          "agents": ["documentation-specialist", "product-owner"],
+          "acceptanceCriteria": [
+            "README + CHANGELOG updated with Docker requirements",
+            "User migration guide created: planning/windows/USER_DOCKER_MIGRATION_GUIDE.md",
+            "Support playbook updated with troubleshooting + rollback steps",
+            "Internal enablement session delivered"
+          ],
+          "deliverables": [
+            "README.md",
+            "CHANGELOG.md",
+            "planning/windows/USER_DOCKER_MIGRATION_GUIDE.md",
+            "planning/windows/WEEK_4_COMPLETION_REPORT.md"
+          ],
+          "mode": "standard",
+          "maxIterations": 2
+        },
+        {
+          "sprintId": "sprint-4.3",
+          "name": "Feature Flag Rollout",
+          "status": "not_started",
+          "duration": "2 days (16 hours)",
+          "dependencies": ["sprint-4.2"],
+          "agents": ["devops-engineer", "support-specialist"],
+          "acceptanceCriteria": [
+            "Feature flag CFN_USE_DOCKER_SUBAGENTS defaulted to true in canary channels",
+            "Beta release published: v2.15.0-beta.1 with Docker mode enabled",
+            "Monitoring dashboards configured for canary cohort",
+            "Rollout criteria + rollback steps documented",
+            "Go/No-Go meeting completed"
+          ],
+          "deliverables": [
+            "BETA_RELEASE_NOTES.md",
+            "planning/windows/GO_NO_GO_DECISION.md",
+            "npm: claude-flow-novice@2.15.0-beta.1"
+          ],
+          "mode": "mvp",
+          "maxIterations": 1
+        }
+      ],
+      "phaseAcceptanceCriteria": [
+        "All Docker-enabled tests pass across platforms",
+        "Memory/performance targets met",
+        "Documentation + migration assets complete",
+        "Feature flag rollout plan approved",
+        "Week 4 checkpoint approved"
+      ]
+    }
+  ],
+  "backlog": [
+    {
+      "id": "backlog-001",
+      "description": "Support container orchestrators beyond Docker Desktop/Engine (e.g., Podman, Kubernetes).",
+      "priority": "medium",
+      "source": "phase-3-container-orchestration",
+      "deferredAt": "Week 3",
+      "reason": "Out of scope for initial release; revisit after Docker GA."
+    },
+    {
+      "id": "backlog-002",
+      "description": "Add automated pruning of stale images and volumes on developer machines.",
+      "priority": "low",
+      "source": "phase-4-validation-rollout",
+      "deferredAt": "Week 4",
+      "reason": "Helpful for DX but not required for GA."
+    },
+    {
+      "id": "backlog-003",
+      "description": "Provide an offline installer bundle for environments without direct Docker Desktop access.",
+      "priority": "low",
+      "source": "phase-1-docker-foundation",
+      "deferredAt": "Week 1",
+      "reason": "Can be tackled post-GA based on user demand."
+    }
+  ],
+  "epicAcceptanceCriteria": [
+    "Docker runtime detector + installers validated on supported platforms",
+    "100% of subagents run inside containers when feature flag is enabled",
+    "Memory leak test (<0.1% growth) and performance targets achieved",
+    "CI/CD matrix passes with Docker-enabled suites",
+    "Feature flag rollout completed with positive beta feedback",
+    "Documentation + migration guide published"
+  ],
+  "successMetrics": {
+    "functional": {
+      "dockerLaunchCoverage": "100% subagents containerized",
+      "legacyFallback": "Available via feature flag",
+      "platformSupport": "Windows/macOS/Linux/WSL2/CI fully supported"
+    },
+    "performance": {
+      "memoryLeakGrowth": "<0.1% over 1000 container cycles",
+      "windowsFileIO": ">=1.1x vs WSL baseline",
+      "processSpawnLatency": "<150ms overhead vs legacy",
+      "oomRate": "<1% across 10k launches"
+    },
+    "quality": {
+      "testPassRate": "100% on CI matrix",
+      "coverageDockerModules": ">=80%",
+      "criticalBugs": "0 at GA",
+      "docsCompleteness": "100%"
+    },
+    "business": {
+      "marketExpansion": "+30% potential users",
+      "userSatisfaction": ">=80%",
+      "roi": "5x"
+    }
+  },
+  "rollbackPlan": {
+    "triggers": [
+      "Docker runtime failures affecting >10% of users",
+      "Performance regression >20% on any platform",
+      "Memory leaks leading to repeated OOM events",
+      "Security vulnerability in container image"
+    ],
+    "procedure": [
+      "1. Toggle feature flag CFN_USE_DOCKER_SUBAGENTS=false",
+      "2. Revert to latest non-Docker npm release",
+      "3. Prune containers/images created by the rollout",
+      "4. Investigate and patch the root cause",
+      "5. Re-enable feature flag after validation"
+    ],
+    "targetRollbackTime": "<1 hour from decision",
+    "validationTime": "<4 hours to verify stability"
+  },
+  "riskAssessment": {
+    "high": [
+      {
+        "risk": "Users lack required virtualization support (Hyper-V/WSL/cgroups)",
+        "probability": "Medium",
+        "impact": "High",
+        "mitigation": "Prerequisite installers, runtime detector, detailed troubleshooting docs"
+      }
+    ],
+    "medium": [
+      {
+        "risk": "Docker Desktop resource caps too low for CFN workloads",
+        "probability": "Medium",
+        "impact": "Medium",
+        "mitigation": "Runtime detector inspects available memory, docs instruct users to raise limits, orchestrator warns when budgets cannot be met"
+      },
+      {
+        "risk": "Image size growth slows down updates",
+        "probability": "Medium",
+        "impact": "Medium",
+        "mitigation": "Multi-stage builds, nightly pruning, artifact compression"
+      }
+    ],
+    "low": [
+      {
+        "risk": "Developer confusion switching between legacy and Docker modes",
+        "probability": "Low",
+        "impact": "Low",
+        "mitigation": "Feature flag toggle command, clear migration guide, telemetry to detect mixed usage"
+      }
+    ]
+  },
+  "tags": ["cross-platform", "windows", "docker", "performance", "infrastructure", "platform-engineering"],
+  "createdAt": "2025-01-10T00:00:00Z",
+  "updatedAt": "2025-01-15T00:00:00Z",
+  "version": "2.0"
+}
