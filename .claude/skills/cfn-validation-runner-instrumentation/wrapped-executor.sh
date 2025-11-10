@@ -28,7 +28,9 @@ readonly MAX_TIMEOUT=3600           # 1 hour
 readonly WARNING_TIMEOUT=240        # 4 minutes
 
 # Resource limits
-readonly MAX_MEMORY_MB=2048
+# Note: MAX_MEMORY_MB may be set by task-mode-env-sanitizer.sh (4096)
+# Only set if not already defined
+: "${MAX_MEMORY_MB:=2048}"
 readonly MAX_CPU_PERCENT=80
 
 ##############################################################################
