@@ -208,8 +208,12 @@ if ! docker image inspect "$IMAGE" &> /dev/null; then
     exit 1
 fi
 
-# Get project root directory
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
+# Get project root directory (use git root for reliability)
+PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$PROJECT_ROOT" ]]; then
+    # Fallback to script-relative path
+    PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd -P)"
+fi
 cd "$PROJECT_ROOT"
 
 # Create workspace directory with proper permissions
@@ -328,14 +332,28 @@ DOCKER_CMD="$DOCKER_CMD --env AGENT_TYPE=${AGENT_TYPE}"
 DOCKER_CMD="$DOCKER_CMD --env TASK_ID=${TASK_ID}"
 DOCKER_CMD="$DOCKER_CMD --env PROJECT_ROOT=/app"
 
-# Add Redis URL if Redis is available
-if command -v redis-cli &> /dev/null && redis-cli ping &> /dev/null; then
-    DOCKER_CMD="$DOCKER_CMD --env REDIS_URL=redis://redis:6379"
-fi
+# Add Redis URL for container-to-container networking
+# Always set Redis URL regardless of host Redis status
+DOCKER_CMD="$DOCKER_CMD --env REDIS_URL=redis://redis:6379"
 
 # Add MCP tokens file path if tokens generated
 if [[ -n "$TOKENS_FILE" ]]; then
     DOCKER_CMD="$DOCKER_CMD --env MCP_TOKENS_FILE=/app/workspace/mcp-tokens.json"
+fi
+
+# Add provider routing environment variables (custom routing support)
+source .claude/skills/cfn-agent-spawning/get-agent-provider-env.sh "$AGENT_TYPE"
+if [[ -n "${ANTHROPIC_BASE_URL:-}" ]]; then
+    DOCKER_CMD="$DOCKER_CMD --env ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}"
+fi
+if [[ -n "${ANTHROPIC_AUTH_TOKEN:-}" ]]; then
+    DOCKER_CMD="$DOCKER_CMD --env ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN}"
+fi
+if [[ -n "${ANTHROPIC_MODEL:-}" ]]; then
+    DOCKER_CMD="$DOCKER_CMD --env ANTHROPIC_MODEL=${ANTHROPIC_MODEL}"
+fi
+if [[ -n "${ANTHROPIC_SMALL_FAST_MODEL:-}" ]]; then
+    DOCKER_CMD="$DOCKER_CMD --env ANTHROPIC_SMALL_FAST_MODEL=${ANTHROPIC_SMALL_FAST_MODEL}"
 fi
 
 # Add custom environment variables

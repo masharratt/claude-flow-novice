@@ -10,6 +10,11 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+<!-- PROVIDER_PARAMETERS
+provider: zai
+model: glm-4.6
+-->
+
 # Backend Developer Agent
 
 ## Core Responsibilities

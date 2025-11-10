@@ -210,6 +210,37 @@ Task("tester", "Test feature...")                         // ❌ NO
 - Sequential CLI spawning is safe (coordinator manages order)
 - Clean separation: Main Chat → Coordinator → Workers
 
+### Custom Provider Routing
+
+**NEW in v2.15**: Agents can now use different AI providers (Z.ai, Kimi, OpenRouter, Anthropic) based on agent-specific configuration.
+
+**Quick Start:**
+```bash
+# 1. Enable custom routing (defaults to Z.ai + glm-4.6)
+echo "CFN_CUSTOM_ROUTING=true" >> .env
+
+# 2. Configure Main Chat provider (optional)
+/switch-api kimi  # or zai, openrouter, max
+
+# 3. Add provider parameters to agent profiles (optional)
+<!-- PROVIDER_PARAMETERS
+provider: openrouter
+model: anthropic/claude-sonnet-4.5
+-->
+```
+
+**Default Behavior:**
+- `CFN_CUSTOM_ROUTING=false`: All agents use Main Chat settings
+- `CFN_CUSTOM_ROUTING=true`: Agents without provider params default to **Z.ai + glm-4.6**
+
+**Provider Options:**
+- `zai` - Cost-optimized ($0.50/1M tokens, default)
+- `kimi` - Mid-range ($2/1M tokens)
+- `openrouter` - Access 400+ models (varies)
+- `anthropic` - Premium ($15/1M tokens)
+
+**See:** `docs/CUSTOM_PROVIDER_ROUTING.md` for complete guide
+
 ### Pre-Edit Backup (REQUIRED before all Edit/Write operations)
 **Before ANY Edit/Write/MultiEdit operation, agents MUST create backup:**
 ```bash

@@ -2,12 +2,14 @@
 ##############################################################################
 # Claude API Switcher - Main Chat & Task Tool Provider Routing
 #
-# Usage: scripts/switch-api.sh [zai|max|status]
+# Usage: scripts/switch-api.sh [zai|kimi|openrouter|max|status]
 #
 # What it does:
-#   - zai:    Main Chat + Task tool use Z.ai (add env vars to settings.json)
-#   - max:    Main Chat + Task tool use Anthropic (remove env vars, requires re-login)
-#   - CLI:    Always uses Z.ai (controlled by .env CLAUDE_API_PROVIDER=zai)
+#   - zai:        Main Chat + Task tool use Z.ai
+#   - kimi:       Main Chat + Task tool use Moonshot Kimi
+#   - openrouter: Main Chat + Task tool use OpenRouter
+#   - max:        Main Chat + Task tool use Anthropic (requires re-login)
+#   - CLI:        Respects custom routing when enabled (see agent profiles)
 #
 # Settings file: .claude/settings.json (project local)
 ##############################################################################
@@ -43,14 +45,25 @@ show_status() {
         return
     fi
 
-    # Check for Z.ai env vars in settings
+    # Check for custom provider env vars in settings
     if grep -q "ANTHROPIC_BASE_URL" "$SETTINGS_FILE" 2>/dev/null; then
         BASE_URL=$(jq -r '.env.ANTHROPIC_BASE_URL // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
+        MODEL=$(jq -r '.env.ANTHROPIC_MODEL // empty' "$SETTINGS_FILE" 2>/dev/null || echo "")
 
         if [[ "$BASE_URL" == *"z.ai"* ]]; then
             echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} Z.ai"
             echo "  Base URL: $BASE_URL"
             echo "  Cost: \$0.50/1M tokens"
+        elif [[ "$BASE_URL" == *"moonshot.ai"* ]]; then
+            echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} Moonshot Kimi"
+            echo "  Base URL: $BASE_URL"
+            echo "  Model: $MODEL"
+            echo "  Cost: ~\$2/1M tokens"
+        elif [[ "$BASE_URL" == *"openrouter.ai"* ]]; then
+            echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} OpenRouter"
+            echo "  Base URL: $BASE_URL"
+            echo "  Model: $MODEL"
+            echo "  Cost: Varies by model"
         else
             echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} Custom"
             echo "  Base URL: $BASE_URL"
@@ -130,6 +143,107 @@ switch_to_zai() {
 }
 
 ##############################################################################
+# Switch to Kimi for Main Chat and Task Tool
+##############################################################################
+switch_to_kimi() {
+    echo -e "${BLUE}Switching Main Chat/Task Tool to Moonshot Kimi...${NC}"
+    echo ""
+
+    # Backup current settings
+    if [ -f "$SETTINGS_FILE" ]; then
+        BACKUP_NAME="settings-$(date +%Y%m%d-%H%M%S)-before-kimi.json"
+        cp "$SETTINGS_FILE" "$BACKUP_DIR/$BACKUP_NAME"
+        echo -e "${GREEN}✓${NC} Backed up: $BACKUP_DIR/$BACKUP_NAME"
+    fi
+
+    # Read current settings or create empty object
+    if [ -f "$SETTINGS_FILE" ]; then
+        CURRENT_SETTINGS=$(cat "$SETTINGS_FILE")
+    else
+        CURRENT_SETTINGS='{}'
+    fi
+
+    # Add Kimi env vars to settings (read from .env)
+    KIMI_KEY=$(grep -E "^KIMI_API_KEY=" .env | head -1 | cut -d'=' -f2 | sed 's/#.*//' | xargs)
+    if [ -z "$KIMI_KEY" ]; then
+        echo -e "${RED}Error: KIMI_API_KEY not found in .env${NC}"
+        exit 1
+    fi
+    NEW_SETTINGS=$(echo "$CURRENT_SETTINGS" | jq --arg key "$KIMI_KEY" '. + {"env": ((.env // {}) + {"ANTHROPIC_BASE_URL": "https://api.moonshot.ai/anthropic", "ANTHROPIC_AUTH_TOKEN": $key, "ANTHROPIC_MODEL": "kimi-k2-turbo-preview", "ANTHROPIC_SMALL_FAST_MODEL": "kimi-k2-turbo-preview"})}')
+
+    echo "$NEW_SETTINGS" > "$SETTINGS_FILE"
+
+    echo ""
+    echo -e "${GREEN}═══════════════════════════════════════${NC}"
+    echo -e "${GREEN}✓ Switched to Moonshot Kimi${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${GREEN}Main Chat + Task Tool:${NC} Kimi"
+    echo "  • All Task() spawned agents use Kimi"
+    echo "  • Cost: ~\$2/1M tokens"
+    echo "  • No login required"
+    echo ""
+    echo -e "${YELLOW}Next Steps:${NC}"
+    echo "  1. Restart Claude desktop (if running)"
+    echo "  2. Test: Main Chat should use Kimi"
+    echo ""
+}
+
+##############################################################################
+# Switch to OpenRouter for Main Chat and Task Tool
+##############################################################################
+switch_to_openrouter() {
+    echo -e "${BLUE}Switching Main Chat/Task Tool to OpenRouter...${NC}"
+    echo ""
+
+    # Backup current settings
+    if [ -f "$SETTINGS_FILE" ]; then
+        BACKUP_NAME="settings-$(date +%Y%m%d-%H%M%S)-before-openrouter.json"
+        cp "$SETTINGS_FILE" "$BACKUP_DIR/$BACKUP_NAME"
+        echo -e "${GREEN}✓${NC} Backed up: $BACKUP_DIR/$BACKUP_NAME"
+    fi
+
+    # Read current settings or create empty object
+    if [ -f "$SETTINGS_FILE" ]; then
+        CURRENT_SETTINGS=$(cat "$SETTINGS_FILE")
+    else
+        CURRENT_SETTINGS='{}'
+    fi
+
+    # Add OpenRouter env vars to settings (read from .env)
+    OPENROUTER_KEY=$(grep -E "^OPENROUTER_API_KEY=" .env | head -1 | cut -d'=' -f2 | sed 's/#.*//' | xargs)
+    if [ -z "$OPENROUTER_KEY" ]; then
+        echo -e "${RED}Error: OPENROUTER_API_KEY not found in .env${NC}"
+        exit 1
+    fi
+    # Default to Claude Sonnet 4.5 on OpenRouter
+    NEW_SETTINGS=$(echo "$CURRENT_SETTINGS" | jq --arg key "$OPENROUTER_KEY" '. + {"env": ((.env // {}) + {"ANTHROPIC_BASE_URL": "https://openrouter.ai/api/v1", "ANTHROPIC_AUTH_TOKEN": $key, "ANTHROPIC_MODEL": "anthropic/claude-sonnet-4.5", "ANTHROPIC_SMALL_FAST_MODEL": "anthropic/claude-sonnet-4.5"})}')
+
+    echo "$NEW_SETTINGS" > "$SETTINGS_FILE"
+
+    echo ""
+    echo -e "${GREEN}═══════════════════════════════════════${NC}"
+    echo -e "${GREEN}✓ Switched to OpenRouter${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${GREEN}Main Chat + Task Tool:${NC} OpenRouter"
+    echo "  • All Task() spawned agents use OpenRouter"
+    echo "  • Default Model: anthropic/claude-sonnet-4.5"
+    echo "  • Cost: Varies by model"
+    echo "  • No login required"
+    echo ""
+    echo -e "${BLUE}Available Models:${NC}"
+    echo "  • 400+ models from 60+ providers"
+    echo "  • Change model in .claude/settings.json"
+    echo "  • Visit: https://openrouter.ai/models"
+    echo ""
+    echo -e "${YELLOW}Next Steps:${NC}"
+    echo "  1. Restart Claude desktop (if running)"
+    echo "  2. Test: Main Chat should use OpenRouter"
+    echo ""
+}
+
+##############################################################################
 # Switch to Anthropic Max for Main Chat and Task Tool
 ##############################################################################
 switch_to_max() {
@@ -197,6 +311,16 @@ case "${1:-status}" in
         show_status
         ;;
 
+    kimi|moonshot)
+        switch_to_kimi
+        show_status
+        ;;
+
+    openrouter|or)
+        switch_to_openrouter
+        show_status
+        ;;
+
     max|claude|anthropic)
         switch_to_max
         show_status
@@ -208,17 +332,21 @@ case "${1:-status}" in
         echo "Usage: $0 [command]"
         echo ""
         echo "Commands:"
-        echo "  status    Show current API configuration (default)"
-        echo "  zai       Switch Main Chat/Task tool to Z.ai"
-        echo "  max       Switch Main Chat/Task tool to Anthropic"
+        echo "  status      Show current API configuration (default)"
+        echo "  zai         Switch Main Chat/Task tool to Z.ai"
+        echo "  kimi        Switch Main Chat/Task tool to Moonshot Kimi"
+        echo "  openrouter  Switch Main Chat/Task tool to OpenRouter"
+        echo "  max         Switch Main Chat/Task tool to Anthropic"
         echo ""
         echo "Examples:"
-        echo "  $0              # Show current status"
-        echo "  $0 zai          # Use Z.ai for Main Chat"
-        echo "  $0 max          # Use Anthropic for Main Chat (requires re-login)"
+        echo "  $0                # Show current status"
+        echo "  $0 zai            # Use Z.ai for Main Chat (\$0.50/1M tokens)"
+        echo "  $0 kimi           # Use Moonshot Kimi (~\$2/1M tokens)"
+        echo "  $0 openrouter     # Use OpenRouter (varies by model)"
+        echo "  $0 max            # Use Anthropic (\$15/1M tokens, requires re-login)"
         echo ""
         echo "Notes:"
-        echo "  • CLI agents always use Z.ai (from .env CLAUDE_API_PROVIDER=zai)"
+        echo "  • CLI agents respect custom routing when enabled"
         echo "  • Main Chat routing affects Task() spawned agents"
         echo "  • Settings file: .claude/settings.json"
         echo "  • Backups saved to: .claude/backups/"

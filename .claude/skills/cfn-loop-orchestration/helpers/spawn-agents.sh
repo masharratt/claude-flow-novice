@@ -190,15 +190,24 @@ spawn_agents_with_context() {
       ((injection_success_count++))
     fi
 
-    # Spawn agent in background with enriched context
-    npx claude-flow-novice agent "$safe_agent_type" \
-      --task-id "$safe_task_id" \
-      --agent-id "$safe_agent_id" \
-      --iteration "$iteration" \
-      --context "$context_to_use" &
+    # Set provider environment variables for this agent (custom routing support)
+    # Spawn in subshell to isolate provider env vars per agent
+    (
+      source .claude/skills/cfn-agent-spawning/get-agent-provider-env.sh "$safe_agent_type"
 
-    # Store PID for monitoring
-    AGENT_PID=$!
+      # Spawn agent in background with enriched context and custom provider
+      npx claude-flow-novice agent "$safe_agent_type" \
+        --task-id "$safe_task_id" \
+        --agent-id "$safe_agent_id" \
+        --iteration "$iteration" \
+        --context "$context_to_use" &
+
+      AGENT_PID=$!
+      echo $AGENT_PID
+    )
+
+    # Capture PID from subshell output
+    AGENT_PID=$(jobs -p | tail -1)
     "$REDIS_COORD_SKILL/store-context.sh" \
       --task-id "$task_id" \
       --key "${UNIQUE_AGENT_ID}:pid" \
