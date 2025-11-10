@@ -19,9 +19,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Default limits
-DEFAULT_MEMORY_LIMIT="2G"
-DEFAULT_CPU_LIMIT="80%"
-DEFAULT_TIMEOUT="600"
+# Note: DEFAULT_TIMEOUT may be set by wrapped-executor.sh (300)
+# Only set if not already defined
+: "${DEFAULT_MEMORY_LIMIT:="2G"}"
+: "${DEFAULT_CPU_LIMIT:="80%"}"
+: "${DEFAULT_TIMEOUT:="600"}"
 
 # Process tracking
 AGENT_ID="${AGENT_ID:-$(hostname)-$$}"
