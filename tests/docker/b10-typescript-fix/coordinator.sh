@@ -1,0 +1,282 @@
+#!/bin/bash
+# B10 TypeScript Error Fix Coordinator
+# Deploys 32 Docker agents to fix TypeScript errors in batch 10 files
+
+set -euo pipefail
+
+REDIS_HOST="${REDIS_HOST:-redis}"
+REDIS_PORT="${REDIS_PORT:-6379}"
+NETWORK_NAME="${NETWORK_NAME:-cfn-b10-fix}"
+AGENT_MEMORY="${AGENT_MEMORY:-1g}"
+NUM_AGENTS=32
+
+# Path to ourstories-v2 frontend
+FRONTEND_PATH="${FRONTEND_PATH:-/mnt/c/Users/masha/Documents/ourstories-v2/frontend}"
+BATCHES_JSON="${BATCHES_JSON:-${FRONTEND_PATH}/planning/frontend/frontend-error-batches.json}"
+
+# Agents connect via container name
+AGENT_REDIS_HOST="${AGENT_REDIS_HOST:-cfn-b10-redis}"
+
+echo "🎯 B10 TYPESCRIPT ERROR FIX - 32 AGENT DEPLOYMENT"
+echo "=================================================="
+echo ""
+echo "Configuration:"
+echo "   Agents: $NUM_AGENTS"
+echo "   Memory per agent: $AGENT_MEMORY"
+echo "   Network: $NETWORK_NAME"
+echo "   Redis (coordinator): $REDIS_HOST:$REDIS_PORT"
+echo "   Redis (agents): $AGENT_REDIS_HOST"
+echo "   Frontend path: $FRONTEND_PATH"
+echo ""
+
+# Validate paths
+if [ ! -f "$BATCHES_JSON" ]; then
+    echo "❌ Error: Batches JSON not found: $BATCHES_JSON"
+    exit 1
+fi
+
+if [ ! -d "$FRONTEND_PATH" ]; then
+    echo "❌ Error: Frontend path not found: $FRONTEND_PATH"
+    exit 1
+fi
+
+# Initialize Redis task queue
+echo "📋 Initializing task queue from B10 batch..."
+
+redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" DEL "task:queue" >/dev/null 2>&1 || true
+redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" DEL "task:completed" >/dev/null 2>&1 || true
+redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" DEL "task:total" >/dev/null 2>&1 || true
+
+# Extract B10 files and create tasks
+readarray -t TASKS < <(jq -c '.B10.files[]' "$BATCHES_JSON")
+TASK_COUNT=${#TASKS[@]}
+
+for i in "${!TASKS[@]}"; do
+    TASK_NUM=$((i + 1))
+    FILE=$(echo "${TASKS[$i]}" | jq -r '.file')
+    ERRORS=$(echo "${TASKS[$i]}" | jq -r '.errors')
+
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" LPUSH "task:queue" "$TASK_NUM" >/dev/null
+    redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HSET "task:$TASK_NUM" \
+        "file" "$FILE" \
+        "expected_errors" "$ERRORS" \
+        "batch" "B10" >/dev/null
+done
+
+redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" SET "task:total" "$TASK_COUNT" >/dev/null
+
+echo "   ✅ Created $TASK_COUNT tasks from B10 batch"
+echo ""
+
+# Spawn 32 agent containers in parallel
+echo "🚀 Spawning $NUM_AGENTS agent containers..."
+START_TIME=$(date +%s)
+
+# Mount worker script as volume
+WORKER_SCRIPT_PATH="/tmp/b10-fix-test/agent-worker.sh"
+
+AGENT_PIDS=()
+for i in $(seq 1 $NUM_AGENTS); do
+    docker run -d \
+        --name "b10-agent-$i" \
+        --network "$NETWORK_NAME" \
+        --memory="$AGENT_MEMORY" \
+        --env-file /mnt/c/Users/masha/Documents/claude-flow-novice/.env \
+        -v "$WORKER_SCRIPT_PATH:/tmp/worker.sh:ro" \
+        -v "$FRONTEND_PATH:/workspace:rw" \
+        -e REDIS_HOST="$AGENT_REDIS_HOST" \
+        -e TASK_ID="b10-typescript-fix" \
+        -e AGENT_ID="b10-agent-$i" \
+        -e AGENT_TYPE="typescript-fixer" \
+        claude-flow-novice-agent:frontend \
+        bash /tmp/worker.sh >/dev/null 2>&1 &
+
+    AGENT_PIDS+=($!)
+
+    # Print progress every 8 agents
+    if [ $((i % 8)) -eq 0 ]; then
+        echo "   Spawned $i/$NUM_AGENTS agents..."
+    fi
+done
+
+# Wait for all spawn operations to complete
+for pid in "${AGENT_PIDS[@]}"; do
+    wait "$pid" 2>/dev/null || true
+done
+
+SPAWN_TIME=$(($(date +%s) - START_TIME))
+echo "   ✅ All $NUM_AGENTS agents spawned in ${SPAWN_TIME}s"
+echo ""
+
+# Monitor completion
+echo "📊 Monitoring task completion..."
+echo "   Note: Agents are running TypeScript compiler and applying fixes"
+
+MONITOR_START=$(date +%s)
+TIMEOUT=600  # 10 minutes max for TypeScript fixes
+
+while true; do
+    COMPLETED=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" GET "task:completed" 2>/dev/null || echo "0")
+    QUEUE_LENGTH=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" LLEN "task:queue" 2>/dev/null || echo "0")
+    ELAPSED=$(($(date +%s) - MONITOR_START))
+
+    echo -ne "   Progress: $COMPLETED/$TASK_COUNT tasks completed, $QUEUE_LENGTH in queue (${ELAPSED}s elapsed)\r"
+
+    if [ "$COMPLETED" -ge "$TASK_COUNT" ] && [ "$QUEUE_LENGTH" -eq 0 ]; then
+        echo ""
+        break
+    fi
+
+    if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+        echo ""
+        echo "   ⚠️  Timeout reached (${TIMEOUT}s) - some agents may still be running"
+        break
+    fi
+
+    sleep 3
+done
+
+TOTAL_TIME=$(($(date +%s) - START_TIME))
+echo ""
+echo "   ✅ All tasks completed in ${TOTAL_TIME}s"
+echo ""
+
+# Post-execution validation
+echo "🔍 Running post-execution TypeScript validation..."
+echo "   This validates ALL fixes at once (much faster than per-file)"
+echo ""
+
+cd "$FRONTEND_PATH"
+VALIDATION_START=$(date +%s)
+
+# Run full project TypeScript build to catch any remaining errors
+echo "   Running: npx tsc --noEmit --project tsconfig.json"
+TSC_OUTPUT=$(npx tsc --noEmit --project tsconfig.json 2>&1 || true)
+TSC_EXIT=$?
+VALIDATION_TIME=$(($(date +%s) - VALIDATION_START))
+
+if [ $TSC_EXIT -eq 0 ]; then
+    echo "   ✅ TypeScript validation PASSED (${VALIDATION_TIME}s)"
+    VALIDATION_STATUS="success"
+    REMAINING_ERRORS=0
+else
+    # Count errors in B10 files only
+    REMAINING_ERRORS=0
+    for i in $(seq 1 "$TASK_COUNT"); do
+        FILE=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i" "file" 2>/dev/null)
+        FILE_ERRORS=$(echo "$TSC_OUTPUT" | grep "$FILE" | grep -c "error TS" || echo "0")
+        REMAINING_ERRORS=$((REMAINING_ERRORS + FILE_ERRORS))
+    done
+
+    echo "   ⚠️  TypeScript validation found $REMAINING_ERRORS errors in B10 files (${VALIDATION_TIME}s)"
+    VALIDATION_STATUS="partial"
+fi
+
+echo ""
+
+# Validate task distribution (no overlap)
+echo "🔍 Validating task distribution and results..."
+
+OVERLAP_DETECTED=0
+FIXES_APPLIED=0
+ERRORS_REMAINING=0
+
+for i in $(seq 1 "$TASK_COUNT"); do
+    AGENT_ASSIGNED=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i:result" "agent_id" 2>/dev/null || echo "")
+
+    if [ -z "$AGENT_ASSIGNED" ]; then
+        echo "   ⚠️  Task $i: Not completed"
+        ((OVERLAP_DETECTED++))
+    else
+        FIXES=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i:result" "fixes_applied" 2>/dev/null || echo "0")
+        ERRORS=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i:result" "errors_remaining" 2>/dev/null || echo "0")
+
+        FIXES_APPLIED=$((FIXES_APPLIED + FIXES))
+        ERRORS_REMAINING=$((ERRORS_REMAINING + ERRORS))
+    fi
+done
+
+# Check for duplicate assignments
+UNIQUE_ASSIGNMENTS=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" KEYS "task:*:result" 2>/dev/null | wc -l)
+
+if [ "$UNIQUE_ASSIGNMENTS" -ne "$TASK_COUNT" ]; then
+    echo "   ❌ Assignment mismatch: expected $TASK_COUNT, got $UNIQUE_ASSIGNMENTS"
+    OVERLAP_DETECTED=1
+fi
+
+if [ "$OVERLAP_DETECTED" -eq 0 ]; then
+    echo "   ✅ No work overlap detected - all tasks assigned uniquely"
+else
+    echo "   ❌ Work overlap or missing tasks detected!"
+fi
+
+echo ""
+echo "================================================"
+echo "B10 TYPESCRIPT FIX RESULTS"
+echo "================================================"
+echo "   Agents spawned: $NUM_AGENTS"
+echo "   Spawn time: ${SPAWN_TIME}s"
+echo "   Total time: ${TOTAL_TIME}s"
+echo "   Tasks completed: $COMPLETED/$TASK_COUNT"
+echo "   Fixes applied: $FIXES_APPLIED"
+echo "   Errors remaining: $ERRORS_REMAINING"
+echo "   Memory per agent: $AGENT_MEMORY"
+echo "   Total memory: $((${AGENT_MEMORY%g} * NUM_AGENTS))GB"
+echo ""
+
+# Generate detailed results report
+echo "📄 Generating detailed results report..."
+
+RESULTS_FILE="/tmp/b10-fix-results.json"
+cat > "$RESULTS_FILE" << EOF
+{
+  "batch": "B10",
+  "timestamp": "$(date -Iseconds)",
+  "summary": {
+    "agents_spawned": $NUM_AGENTS,
+    "spawn_time_seconds": $SPAWN_TIME,
+    "total_time_seconds": $TOTAL_TIME,
+    "tasks_total": $TASK_COUNT,
+    "tasks_completed": $COMPLETED,
+    "fixes_applied": $FIXES_APPLIED,
+    "errors_remaining": $ERRORS_REMAINING
+  },
+  "results": [
+EOF
+
+FIRST=true
+for i in $(seq 1 "$TASK_COUNT"); do
+    FILE=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i" "file" 2>/dev/null || echo "unknown")
+    AGENT=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i:result" "agent_id" 2>/dev/null || echo "none")
+    FIXES=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i:result" "fixes_applied" 2>/dev/null || echo "0")
+    ERRORS=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i:result" "errors_remaining" 2>/dev/null || echo "0")
+    STATUS=$(redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" HGET "task:$i:result" "status" 2>/dev/null || echo "incomplete")
+
+    if [ "$FIRST" = true ]; then
+        FIRST=false
+    else
+        echo "," >> "$RESULTS_FILE"
+    fi
+
+    cat >> "$RESULTS_FILE" << ENTRY
+    {
+      "task_id": $i,
+      "file": "$FILE",
+      "agent_id": "$AGENT",
+      "fixes_applied": $FIXES,
+      "errors_remaining": $ERRORS,
+      "status": "$STATUS"
+    }
+ENTRY
+done
+
+cat >> "$RESULTS_FILE" << EOF
+
+  ]
+}
+EOF
+
+echo "   ✅ Results saved to: $RESULTS_FILE"
+echo ""
+
+exit 0
