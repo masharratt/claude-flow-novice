@@ -23,7 +23,7 @@ trap cleanup EXIT
 
 # Test 7: Each Agent Receives Single Atomic Task
 test_each_agent_receives_single_atomic_task() {
-  log_test_header "Test 7: One task per agent assignment"
+  log_step "Test 7: One task per agent assignment"
 
   # Skip if no API key available
   if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
@@ -144,7 +144,7 @@ EOF
 
 # Test 8: Task Context File Format Validation
 test_task_context_matches_specification() {
-  log_test_header "Test 8: Task context file format specification"
+  log_step "Test 8: Task context file format specification"
 
   # GIVEN task context file from previous test
   log_step "GIVEN task context files from coordinator"
@@ -233,12 +233,12 @@ test_task_context_matches_specification() {
 }
 
 # Execute tests
-log_section "Coordinator V3 - Atomic Task Assignment Tests (P1)"
+log_step "Coordinator V3 - Atomic Task Assignment Tests (P1)"
 log_info "Testing atomic task scoping and context format"
 echo ""
 
 test_each_agent_receives_single_atomic_task
 test_task_context_matches_specification
 
-log_section "All Atomic Task Tests Complete"
+log_step "All Atomic Task Tests Complete"
 log_success "2/2 tests executed"

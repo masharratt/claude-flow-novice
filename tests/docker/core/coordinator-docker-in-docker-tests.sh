@@ -22,7 +22,7 @@ trap cleanup EXIT
 
 # Test 4: Docker Socket Access Validation
 test_coordinator_has_docker_access() {
-  log_test_header "Test 4: Coordinator Docker socket access"
+  log_step "Test 4: Coordinator Docker socket access"
 
   # GIVEN coordinator container with Docker socket mounted
   log_step "GIVEN coordinator with /var/run/docker.sock mounted"
@@ -49,7 +49,7 @@ test_coordinator_has_docker_access() {
 
 # Test 5: Worker Container Spawning
 test_coordinator_spawns_worker_containers() {
-  log_test_header "Test 5: Worker container spawning validation"
+  log_step "Test 5: Worker container spawning validation"
 
   # Skip if no API key available
   if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
@@ -155,7 +155,7 @@ test_coordinator_spawns_worker_containers() {
 
 # Test 6: Worker Lifecycle Management
 test_workers_execute_and_cleanup() {
-  log_test_header "Test 6: Worker lifecycle and cleanup"
+  log_step "Test 6: Worker lifecycle and cleanup"
 
   # Skip if no API key available
   if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
@@ -217,7 +217,7 @@ test_workers_execute_and_cleanup() {
 }
 
 # Execute tests
-log_section "Coordinator V3 - Docker-in-Docker Tests (P0)"
+log_step "Coordinator V3 - Docker-in-Docker Tests (P0)"
 log_info "Testing coordinator Docker-in-Docker spawning capabilities"
 echo ""
 
@@ -225,5 +225,5 @@ test_coordinator_has_docker_access
 test_coordinator_spawns_worker_containers
 test_workers_execute_and_cleanup
 
-log_section "All Docker-in-Docker Tests Complete"
+log_step "All Docker-in-Docker Tests Complete"
 log_success "3/3 tests executed"

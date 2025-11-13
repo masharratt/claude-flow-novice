@@ -5,7 +5,7 @@
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 echo "🎯 INTELLIGENT TYPESCRIPT ERROR COORDINATOR TEST"
 echo "================================================"

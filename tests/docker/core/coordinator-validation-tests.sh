@@ -18,7 +18,7 @@ trap cleanup EXIT
 
 # Test 10: Invalid Plan Rejection
 test_coordinator_rejects_invalid_plan() {
-  log_test_header "Test 10: Invalid plan rejection"
+  log_step "Test 10: Invalid plan rejection"
 
   # GIVEN plan file with missing agent_type
   log_step "GIVEN invalid plan (missing agent_type)"
@@ -75,7 +75,7 @@ EOF
 
 # Test 11: Dependency Ordering (Conceptual - requires orchestrate.sh changes)
 test_tasks_execute_in_dependency_order() {
-  log_test_header "Test 11: Task dependency ordering"
+  log_step "Test 11: Task dependency ordering"
 
   # NOTE: This test validates that the plan STRUCTURE supports dependencies
   # Full execution validation requires orchestrate.sh dependency logic
@@ -170,7 +170,7 @@ EOF
 
 # Test 12: Environment Validation
 test_entrypoint_validates_requirements() {
-  log_test_header "Test 12: Entrypoint environment validation"
+  log_step "Test 12: Entrypoint environment validation"
 
   # WHEN coordinator starts without required env vars
   log_step "WHEN coordinator starts without TASK_ID"
@@ -201,7 +201,7 @@ test_entrypoint_validates_requirements() {
 
 # Test 13: Docker Socket Validation
 test_entrypoint_checks_docker_access() {
-  log_test_header "Test 13: Docker socket access validation"
+  log_step "Test 13: Docker socket access validation"
 
   # WHEN coordinator starts without docker socket mount
   log_step "WHEN coordinator starts without Docker socket"
@@ -235,7 +235,7 @@ test_entrypoint_checks_docker_access() {
 
 # Test 14: Redis Connectivity Validation
 test_entrypoint_checks_redis() {
-  log_test_header "Test 14: Redis connectivity validation"
+  log_step "Test 14: Redis connectivity validation"
 
   # WHEN coordinator starts with invalid Redis host
   log_step "WHEN coordinator starts with invalid Redis host"
@@ -270,7 +270,7 @@ test_entrypoint_checks_redis() {
 }
 
 # Execute tests
-log_section "Coordinator V3 - Validation and Error Handling Tests (P1)"
+log_step "Coordinator V3 - Validation and Error Handling Tests (P1)"
 log_info "Testing coordinator validation logic and entrypoint checks"
 echo ""
 
@@ -280,5 +280,5 @@ test_entrypoint_validates_requirements
 test_entrypoint_checks_docker_access
 test_entrypoint_checks_redis
 
-log_section "All Validation Tests Complete"
+log_step "All Validation Tests Complete"
 log_success "5/5 tests executed"

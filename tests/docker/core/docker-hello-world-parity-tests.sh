@@ -7,7 +7,7 @@
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -125,7 +125,7 @@ cat > "$temp_agent_spawn_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test Docker agent container spawn and execution
 
@@ -178,7 +178,7 @@ cat > "$temp_redis_connectivity_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test Docker agent Redis connectivity
 CONTAINER_NAME="cfn-test-agent-$(date +%s)"
@@ -231,7 +231,7 @@ cat > "$temp_coordination_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test Docker agent coordination via Redis
 CONTAINER_NAME="cfn-test-agent-coord-$(date +%s)"
@@ -294,7 +294,7 @@ cat > "$temp_broadcast_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test Docker agent message broadcasting
 SUBSCRIBER_NAME="cfn-test-subscriber-$(date +%s)"
@@ -372,7 +372,7 @@ cat > "$temp_resource_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test Docker agent resource monitoring
 CONTAINER_NAME="cfn-test-agent-resource-$(date +%s)"
@@ -480,7 +480,7 @@ cat > "$temp_docker_mode_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test CFN_DOCKER_MODE detection
 export CFN_DOCKER_MODE="true"
@@ -526,7 +526,7 @@ cat > "$temp_cli_fallback_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test CLI fallback
 export CFN_DOCKER_MODE="false"
@@ -572,7 +572,7 @@ cat > "$temp_socket_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test Docker socket detection (no explicit CFN_DOCKER_MODE)
 unset CFN_DOCKER_MODE
@@ -625,7 +625,7 @@ cat > "$temp_coordinator_export_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Check if cfn-docker-v3-coordinator documentation includes CFN_DOCKER_MODE export
 coordinator_file="claude-assets/agents/docker-coordinators/cfn-docker-v3-coordinator.md"
@@ -663,7 +663,7 @@ cat > "$temp_image_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Check if Docker agent image exists
 IMAGE_EXISTS=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "claude-flow-novice:agent" || true)
@@ -707,7 +707,7 @@ cat > "$temp_agent_exec_test" << 'EOF'
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Test agent help command
 HELP_OUTPUT=$(docker run --rm claude-flow-novice:agent --help 2>&1)

@@ -13,7 +13,7 @@ DOCKER_TEST_HELPERS_LOADED=1
 set -euo pipefail
 
 # Source base test utilities
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 # ============================================================================

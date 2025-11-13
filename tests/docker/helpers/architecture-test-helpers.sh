@@ -13,8 +13,8 @@ ARCHITECTURE_TEST_HELPERS_LOADED=1
 set -euo pipefail
 
 # Source base Docker test helpers
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-source "$PROJECT_ROOT/tests/docker/test-helpers.sh"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+source "$PROJECT_ROOT/tests/docker/helpers/test-helpers.sh"
 
 # ============================================================================
 # ENVIRONMENT VARIABLE VALIDATION HELPERS
