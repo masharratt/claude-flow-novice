@@ -1,0 +1,185 @@
+# Dockerfile.cfn-coordinator
+# CFN Docker V3 Coordinator - Invokes coordinator agent which plans and spawns workers
+
+FROM node:18-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    bash \
+    git \
+    jq \
+    curl \
+    docker-cli \
+    redis
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfn && \
+    adduser -S cfn -u 1001 -G cfn
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files and install claude-flow-novice CLI
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Install CLI globally in container
+RUN npm install -g .
+
+# Create coordinator entrypoint script
+RUN cat > /app/coordinator-entrypoint.sh << 'ENTRYPOINT_EOF'
+#!/bin/bash
+set -euo pipefail
+
+# Validate required environment variables
+: "${TASK_ID:?TASK_ID environment variable required}"
+: "${TASK_DESCRIPTION:?TASK_DESCRIPTION environment variable required}"
+: "${MODE:=standard}"
+
+echo "🚀 CFN Docker V3 Coordinator Starting"
+echo "   Task ID: ${TASK_ID}"
+echo "   Mode: ${MODE}"
+echo "   Description: ${TASK_DESCRIPTION}"
+
+# Verify Docker socket access (for Docker-in-Docker)
+if ! docker ps > /dev/null 2>&1; then
+    echo "❌ Cannot access Docker daemon. Ensure /var/run/docker.sock is mounted."
+    exit 1
+fi
+echo "✅ Docker access verified"
+
+# Verify Redis connectivity
+if ! redis-cli -h "${CFN_REDIS_HOST:-cfn-redis}" -p "${CFN_REDIS_PORT:-6379}" ping > /dev/null 2>&1; then
+    echo "❌ Cannot connect to Redis at ${CFN_REDIS_HOST:-cfn-redis}:${CFN_REDIS_PORT:-6379}"
+    exit 1
+fi
+echo "✅ Redis connection verified"
+
+# Set codebase path for agent
+export PROJECT_ROOT=/app/codebase
+cd "$PROJECT_ROOT"
+
+# Verify agent definition exists
+AGENT_FILE="$PROJECT_ROOT/.claude/agents/docker-coordinators/cfn-docker-v3-coordinator.md"
+if [[ ! -f "$AGENT_FILE" ]]; then
+    echo "❌ Coordinator agent not found at: $AGENT_FILE"
+    echo "   Ensure codebase is mounted at /app/codebase"
+    exit 1
+fi
+echo "✅ Coordinator agent located"
+
+# Create task context file for agent
+CONTEXT_FILE="/tmp/task-context-${TASK_ID}.json"
+cat > "$CONTEXT_FILE" << CONTEXT_EOF
+{
+  "task_id": "${TASK_ID}",
+  "task_description": "${TASK_DESCRIPTION}",
+  "mode": "${MODE}",
+  "agents": "${AGENTS:-}",
+  "max_iterations": ${MAX_ITERATIONS:-10},
+  "gate_threshold": ${GATE_THRESHOLD:-0.75},
+  "consensus_threshold": ${CONSENSUS_THRESHOLD:-0.90},
+  "memory_limit": "${MEMORY_LIMIT:-1g}",
+  "network": "${NETWORK:-mcp-network}",
+  "redis_host": "${CFN_REDIS_HOST:-cfn-redis}",
+  "redis_port": ${CFN_REDIS_PORT:-6379},
+  "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+CONTEXT_EOF
+
+echo "✅ Task context created: $CONTEXT_FILE"
+
+# Set environment for Docker mode (coordinator should spawn via Docker)
+export CFN_DOCKER_MODE=true
+export CFN_DOCKER_CONTAINER=true
+
+# Invoke coordinator agent
+# The agent will:
+# 1. Read task context
+# 2. Perform planning phase (decompose into atomic tasks)
+# 3. Write plan to /tmp/cfn-docker-plan-${TASK_ID}.json
+# 4. Invoke orchestrate.sh which spawns worker agents via Docker
+echo "📋 Invoking coordinator agent..."
+echo ""
+
+# Run agent with proper prompting
+AGENT_PROMPT="You are the cfn-docker-v3-coordinator agent.
+
+Task Context: ${CONTEXT_FILE}
+
+Your responsibilities:
+1. **Planning Phase (MANDATORY)**: Decompose the task into atomic units (15-30 min each)
+2. **Write Plan**: Output to /tmp/cfn-docker-plan-${TASK_ID}.json
+3. **Execute**: Invoke orchestrate.sh to spawn worker agents via Docker
+4. **Monitor**: Track progress and report results
+
+Task: ${TASK_DESCRIPTION}
+Mode: ${MODE}
+
+Begin execution."
+
+# Invoke agent (Note: This requires claude-flow-novice CLI to support agent execution)
+# For now, invoke orchestrate.sh directly with planning prompt
+# TODO: Replace with proper agent invocation when CLI supports it
+
+echo "⚠️  Direct agent invocation not yet supported by CLI"
+echo "    Falling back to orchestrate.sh with planning phase"
+
+ORCHESTRATE_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh"
+
+if [[ ! -f "$ORCHESTRATE_SCRIPT" ]]; then
+    echo "❌ orchestrate.sh not found at: $ORCHESTRATE_SCRIPT"
+    exit 1
+fi
+
+chmod +x "$ORCHESTRATE_SCRIPT"
+
+# Execute orchestration with planning enabled
+"$ORCHESTRATE_SCRIPT" execute \
+    --task-id "$TASK_ID" \
+    --task-description "$TASK_DESCRIPTION" \
+    --mode "$MODE" \
+    --agents "${AGENTS:-}" \
+    --max-iterations "${MAX_ITERATIONS:-10}" \
+    --gate-threshold "${GATE_THRESHOLD:-0.75}" \
+    --consensus-threshold "${CONSENSUS_THRESHOLD:-0.90}" \
+    --memory-limit "${MEMORY_LIMIT:-1g}" \
+    --network "${NETWORK:-mcp-network}" \
+    --context-file "$CONTEXT_FILE" \
+    --verbose
+
+EXIT_CODE=$?
+
+if [[ $EXIT_CODE -eq 0 ]]; then
+    echo "✅ CFN Loop execution completed successfully"
+else
+    echo "❌ CFN Loop execution failed with code: $EXIT_CODE"
+fi
+
+exit $EXIT_CODE
+ENTRYPOINT_EOF
+
+RUN chmod +x /app/coordinator-entrypoint.sh
+
+# Switch to non-root user
+USER cfn
+
+# Environment variables
+ENV NODE_ENV=production
+ENV CFN_DOCKER_CONTAINER=true
+ENV CFN_DOCKER_MODE=true
+ENV CFN_MODE=coordinator
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD pgrep -f coordinator-entrypoint || exit 1
+
+# Use coordinator entrypoint
+ENTRYPOINT ["/app/coordinator-entrypoint.sh"]
+
+# Labels
+LABEL maintainer="Claude Flow Novice"
+LABEL description="CFN Docker V3 Coordinator - Invokes agent with planning phase"
+LABEL version="3.0.0"
+LABEL architecture="docker-in-docker"
+LABEL planning="atomic-task-decomposition"

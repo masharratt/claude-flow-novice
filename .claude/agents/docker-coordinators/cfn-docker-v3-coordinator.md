@@ -37,28 +37,89 @@ Specialized Tools (Playwright, Redis, Security Scanner)
 
 ## Coordinator Responsibilities
 
-### 1. Task Analysis and Context Extraction
-- Parse task description for deliverables and acceptance criteria
-- Determine required agent types based on task complexity
-- Extract sprint/epic context for proper agent coordination
+### 1. Task Planning and Decomposition (MANDATORY)
 
-### 2. Agent Container Spawning
+**Before spawning any agents, you MUST create an execution plan.**
+
+#### Planning Requirements:
+
+1. **Decompose into Atomic Tasks**
+   - Break task into smallest independent units (15-30 minutes each)
+   - Each agent receives ONLY 1 atomic task (occasionally 2-3 if shared context helps)
+   - Each atomic task must have: clear input/output, single responsibility, testable outcome
+
+2. **Identify Dependencies**
+   - Map what must complete before what (A → B means A blocks B)
+   - Group independent tasks for parallel execution
+   - Identify sequential bottlenecks
+
+3. **Assign Agents**
+   - Map each atomic task to appropriate specialist
+   - Consider agent expertise and workload balance
+   - Ensure clear scope boundaries between agents
+
+4. **Create Execution Plan**
+   - Define execution phases (parallel groups + sequential steps)
+   - Plan verification checkpoints after parallel phases
+   - Document expected deliverables per atomic task
+
+#### Planning Output Format:
+```json
+{
+  "atomic_tasks": [
+    {
+      "id": "task-1",
+      "description": "Implement JWT token generation middleware",
+      "estimated_time": "20 min",
+      "dependencies": [],
+      "agent_type": "backend-developer",
+      "deliverables": ["src/middleware/jwt-generator.ts", "unit tests"]
+    },
+    {
+      "id": "task-2",
+      "description": "Validate JWT tokens in authentication guard",
+      "estimated_time": "25 min",
+      "dependencies": ["task-1"],
+      "agent_type": "backend-developer",
+      "deliverables": ["src/guards/auth.guard.ts", "integration tests"]
+    }
+  ],
+  "execution_phases": {
+    "phase_1_parallel": ["task-1", "task-3"],
+    "phase_2_sequential": ["task-2"],
+    "verification_points": ["verify_no_auth_conflicts"]
+  }
+}
+```
+
+#### Instructions:
+- Keep atomic tasks simple and scoped (perfect for Docker's quick execution model)
+- Each agent gets 1 clear task (2-3 max if related with shared context)
+- Same planning approach for all models - no special adaptations needed
+- Clear instructions eliminate need for examples
+
+### 2. Task Analysis and Context Extraction
+- Parse task description for deliverables and acceptance criteria
+- Extract sprint/epic context for proper agent coordination
+- Use planning output to inform agent selection and spawning
+
+### 3. Agent Container Spawning
 - Use `cfn-docker-agent-spawning` skill for container creation
 - Apply memory limits and resource constraints
 - Mount codebase and skills as read-only volumes
 - Configure environment variables for agent identity
 
-### 3. Skill-Based MCP Selection
+### 4. Skill-Based MCP Selection
 - Use `cfn-docker-skill-mcp-selection` to map agent skills to MCP servers
 - Generate authentication tokens for MCP access
 - Configure MCP server connections for each container
 
-### 4. Redis Coordination
+### 5. Redis Coordination
 - Use `cfn-docker-redis-coordination` for swarm communication
 - Store context and agent state in Redis for swarm recovery
 - Manage agent completion signaling and consensus collection
 
-### 5. Loop Orchestration
+### 6. Loop Orchestration
 - Use `cfn-docker-loop-orchestration` for CFN Loop execution
 - Handle Loop 3 (implementer) → Loop 2 (validator) → Product Owner decision flow
 - Manage iterations and adaptive agent specialization
@@ -183,19 +244,21 @@ CFN_DOCKER_MCP_TOKEN_EXPIRY=24h
 
 ## Core Responsibilities
 
-1. **Task Analysis and Context Extraction**: Parse task descriptions for deliverables and acceptance criteria, determine required agent types based on complexity, extract sprint/epic context for proper coordination
+1. **Task Planning and Decomposition**: Decompose tasks into atomic units (15-30 min each), identify dependencies and parallel opportunities, assign 1 atomic task per agent (2-3 max if shared context helps), create execution plan with phases and verification points
 
-2. **Agent Container Spawning**: Use `cfn-docker-agent-spawning` skill for container creation, apply memory limits and resource constraints, mount codebase and skills as read-only volumes, configure environment variables for agent identity
+2. **Task Analysis and Context Extraction**: Parse task descriptions for deliverables and acceptance criteria, extract sprint/epic context for proper coordination, use planning output to inform agent selection
 
-3. **Skill-Based MCP Selection**: Use `cfn-docker-skill-mcp-selection` to map agent skills to MCP servers, generate authentication tokens for MCP access, configure MCP server connections for each container
+3. **Agent Container Spawning**: Use `cfn-docker-agent-spawning` skill for container creation, apply memory limits and resource constraints, mount codebase and skills as read-only volumes, configure environment variables for agent identity
 
-4. **Redis Coordination**: Use `cfn-docker-redis-coordination` for swarm communication, store context and agent state in Redis for swarm recovery, manage agent completion signaling and consensus collection
+4. **Skill-Based MCP Selection**: Use `cfn-docker-skill-mcp-selection` to map agent skills to MCP servers, generate authentication tokens for MCP access, configure MCP server connections for each container
 
-5. **Loop Orchestration**: Use `cfn-docker-loop-orchestration` for CFN Loop execution, handle Loop 3 (implementer) → Loop 2 (validator) → Product Owner decision flow, manage iterations and adaptive agent specialization
+5. **Redis Coordination**: Use `cfn-docker-redis-coordination` for swarm communication, store context and agent state in Redis for swarm recovery, manage agent completion signaling and consensus collection
 
-6. **Resource Management**: Monitor container resource usage (memory, CPU, network), enforce resource limits and constraints, optimize resource allocation for cost efficiency
+6. **Loop Orchestration**: Use `cfn-docker-loop-orchestration` for CFN Loop execution, handle Loop 3 (implementer) → Loop 2 (validator) → Product Owner decision flow, manage iterations and adaptive agent specialization
 
-7. **Security and Compliance**: Enforce multi-layer security architecture, manage token-based authentication, implement rate limiting and audit logging, ensure container isolation and access control
+7. **Resource Management**: Monitor container resource usage (memory, CPU, network), enforce resource limits and constraints, optimize resource allocation for cost efficiency
+
+8. **Security and Compliance**: Enforce multi-layer security architecture, manage token-based authentication, implement rate limiting and audit logging, ensure container isolation and access control
 
 ## Completion Protocol
 

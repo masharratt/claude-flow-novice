@@ -40,7 +40,14 @@ NOT_FOUND_COUNT=0
 
 remove_if_exists() {
     local file="$1"
-    local search_paths=("tests/docker/$file" "tests/$file")
+    local search_paths=(
+        "tests/cfn-v3/$file"
+        "tests/integration/$file"
+        "tests/ace-integration/$file"
+        "tests/cfn-v3-orchestration/$file"
+        "tests/docker/$file"
+        "tests/$file"
+    )
     local found=false
 
     for path in "${search_paths[@]}"; do
@@ -69,7 +76,14 @@ remove_if_exists() {
 move_if_exists() {
     local file="$1"
     local dest_dir="$2"
-    local search_paths=("tests/docker/$file" "tests/$file")
+    local search_paths=(
+        "tests/cfn-v3/$file"
+        "tests/integration/$file"
+        "tests/ace-integration/$file"
+        "tests/cfn-v3-orchestration/$file"
+        "tests/docker/$file"
+        "tests/$file"
+    )
     local found=false
 
     if [[ "$DRY_RUN" == "false" ]]; then
@@ -102,7 +116,14 @@ move_if_exists() {
 archive_if_exists() {
     local file="$1"
     local archive_dir="tests/archive/historical/ace"
-    local search_paths=("tests/docker/$file" "tests/$file")
+    local search_paths=(
+        "tests/cfn-v3/$file"
+        "tests/integration/$file"
+        "tests/ace-integration/$file"
+        "tests/cfn-v3-orchestration/$file"
+        "tests/docker/$file"
+        "tests/$file"
+    )
     local found=false
 
     if [[ "$DRY_RUN" == "false" ]]; then

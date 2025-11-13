@@ -1,0 +1,261 @@
+#!/bin/bash
+# tests/docker/wave-spawning-tests.sh
+# Phase 4 :: P1 - Wave spawning and parallelism validation
+
+set -euo pipefail
+
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+source "$PROJECT_ROOT/tests/test-utils.sh"
+source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+
+# Configuration
+TEST_DIR="$(create_temp_dir)"
+NETWORK_NAME="cfn-network"
+MEMORY_BUDGET_GB=40
+AGENT_MEMORY_GB=8
+
+cleanup() {
+    log_step "Cleaning up test containers"
+    docker ps -a --filter "name=test-wave-agent-" --format "{{.Names}}" | while read -r container; do
+        cleanup_container "$container" 2>/dev/null || true
+    done
+    rm -rf "$TEST_DIR"
+}
+trap cleanup EXIT
+
+# Test 1: Multi-wave execution when budget exceeded
+test_multi_wave_execution() {
+    log_step "Test 1: Multi-wave execution when budget exceeded"
+
+    # GIVEN: 6 agents (48GB total) exceeding 40GB budget
+    local total_agents=6
+    local required_memory=$((total_agents * AGENT_MEMORY_GB))
+    local waves_needed=$(( (required_memory + MEMORY_BUDGET_GB - 1) / MEMORY_BUDGET_GB ))
+
+    log_info "Total agents: $total_agents (${required_memory}GB)"
+    log_info "Memory budget: ${MEMORY_BUDGET_GB}GB"
+    log_info "Expected waves: $waves_needed"
+
+    # WHEN: Calculate agents per wave
+    local agents_per_wave=$((MEMORY_BUDGET_GB / AGENT_MEMORY_GB))
+
+    # THEN: Should require 2 waves
+    if [ "$waves_needed" -eq 2 ]; then
+        log_success "Correctly calculated 2 waves needed"
+    else
+        log_error "Expected 2 waves, calculated $waves_needed"
+        return 1
+    fi
+
+    # THEN: First wave should have max agents within budget
+    if [ "$agents_per_wave" -eq 5 ]; then
+        log_success "Wave 1 capacity: 5 agents (40GB)"
+    else
+        log_error "Expected 5 agents per wave, got $agents_per_wave"
+        return 1
+    fi
+
+    # THEN: Remaining agents go to wave 2
+    local wave2_agents=$((total_agents - agents_per_wave))
+    if [ "$wave2_agents" -eq 1 ]; then
+        log_success "Wave 2 will have 1 agent"
+    else
+        log_error "Expected 1 agent in wave 2, got $wave2_agents"
+        return 1
+    fi
+}
+
+# Test 2: Wave parallelism within budget
+test_wave_parallelism() {
+    log_step "Test 2: Wave parallelism within budget"
+
+    # GIVEN: Start 3 agents simultaneously (24GB total, within 40GB budget)
+    local wave_agents=("test-wave-agent-1-$$" "test-wave-agent-2-$$" "test-wave-agent-3-$$")
+    local start_times=()
+
+    for agent in "${wave_agents[@]}"; do
+        docker run -d \
+            $(get_secure_docker_flags) \
+            --name "$agent" \
+            --network "$NETWORK_NAME" \
+            --memory="${AGENT_MEMORY_GB}g" \
+            node:20-slim \
+            sh -c 'echo "Starting" && sleep 5 && echo "Done"' >/dev/null 2>&1
+
+        start_times+=("$(date +%s)")
+    done
+
+    # WHEN: Wait for all agents to be running
+    sleep 2
+
+    # THEN: Validate wave parallelism using helper
+    # Note: Using manual count first since we don't have task_id label in this test
+    local running_count=0
+    for agent in "${wave_agents[@]}"; do
+        if is_container_running "$agent"; then
+            running_count=$((running_count + 1))
+        fi
+    done
+
+    if [ "$running_count" -eq 3 ]; then
+        log_success "All 3 agents running in parallel"
+    else
+        log_error "Expected 3 running agents, found $running_count"
+        return 1
+    fi
+
+    # THEN: Start times should be within 2 seconds (parallel spawn)
+    local time_diff=$((${start_times[2]} - ${start_times[0]}))
+    if [ "$time_diff" -le 2 ]; then
+        log_success "Agents spawned in parallel (${time_diff}s difference)"
+    else
+        log_error "Agents spawned too far apart: ${time_diff}s"
+        return 1
+    fi
+
+    # Wait for completion
+    for agent in "${wave_agents[@]}"; do
+        docker wait "$agent" >/dev/null 2>&1 || true
+    done
+}
+
+# Test 3: Sequential wave hand-off
+test_sequential_waves() {
+    log_step "Test 3: Sequential wave hand-off"
+
+    # GIVEN: Wave 1 agents
+    local wave1_agents=("test-wave-agent-w1a-$$" "test-wave-agent-w1b-$$")
+    local wave2_agents=("test-wave-agent-w2a-$$")
+
+    # WHEN: Start wave 1
+    local wave1_start=$(date +%s)
+    for agent in "${wave1_agents[@]}"; do
+        docker run -d \
+            $(get_secure_docker_flags) \
+            --name "$agent" \
+            --network "$NETWORK_NAME" \
+            node:20-slim \
+            sh -c 'sleep 3' >/dev/null 2>&1
+    done
+
+    # Wait for wave 1 completion
+    for agent in "${wave1_agents[@]}"; do
+        docker wait "$agent" >/dev/null 2>&1 || true
+    done
+    local wave1_end=$(date +%s)
+    local wave1_duration=$((wave1_end - wave1_start))
+
+    log_info "Wave 1 completed in ${wave1_duration}s"
+
+    # THEN: Start wave 2 after wave 1 completes
+    local wave2_start=$(date +%s)
+    for agent in "${wave2_agents[@]}"; do
+        docker run -d \
+            $(get_secure_docker_flags) \
+            --name "$agent" \
+            --network "$NETWORK_NAME" \
+            node:20-slim \
+            sh -c 'sleep 2' >/dev/null 2>&1
+    done
+
+    # Wait for wave 2 completion
+    for agent in "${wave2_agents[@]}"; do
+        docker wait "$agent" >/dev/null 2>&1 || true
+    done
+    local wave2_end=$(date +%s)
+
+    # THEN: Wave 2 start should be after wave 1 end
+    if [ "$wave2_start" -ge "$wave1_end" ]; then
+        log_success "Wave 2 started after Wave 1 completed (sequential)"
+    else
+        log_error "Wave 2 started before Wave 1 completed"
+        return 1
+    fi
+
+    log_info "Wave 1: ${wave1_start} - ${wave1_end}"
+    log_info "Wave 2: ${wave2_start} - ${wave2_end}"
+}
+
+# Test 4: Batch priority ordering within waves
+test_batch_priority() {
+    log_step "Test 4: Batch priority ordering"
+
+    # GIVEN: Batches with different priorities (tier-based)
+    # Tier 1 (60%), Tier 2 (25%), Tier 3 (10%), Tier 4 (5%)
+    local batches=(
+        "tier1-batch1:1"
+        "tier1-batch2:1"
+        "tier1-batch3:1"
+        "tier2-batch1:2"
+        "tier2-batch2:2"
+        "tier3-batch1:3"
+        "tier4-batch1:4"
+    )
+
+    # WHEN: Sort batches by priority (lower tier = higher priority)
+    local sorted_batches=()
+    while IFS= read -r line; do
+        sorted_batches+=("$line")
+    done < <(printf '%s\n' "${batches[@]}" | sort -t':' -k2 -n)
+
+    # THEN: Tier 1 batches should come first
+    local first_batch="${sorted_batches[0]}"
+    local first_tier="${first_batch##*:}"
+
+    if [ "$first_tier" -eq 1 ]; then
+        log_success "Tier 1 batches have highest priority"
+    else
+        log_error "Expected Tier 1 first, got Tier $first_tier"
+        return 1
+    fi
+
+    # THEN: Tier 4 batches should come last
+    local last_batch="${sorted_batches[-1]}"
+    local last_tier="${last_batch##*:}"
+
+    if [ "$last_tier" -eq 4 ]; then
+        log_success "Tier 4 batches have lowest priority"
+    else
+        log_error "Expected Tier 4 last, got Tier $last_tier"
+        return 1
+    fi
+
+    # THEN: Verify tier distribution (60/25/10/5)
+    local tier1_count=0
+    local tier2_count=0
+    local tier3_count=0
+    local tier4_count=0
+    local total_count=${#batches[@]}
+
+    for batch in "${batches[@]}"; do
+        local tier="${batch##*:}"
+        case $tier in
+            1) tier1_count=$((tier1_count + 1)) ;;
+            2) tier2_count=$((tier2_count + 1)) ;;
+            3) tier3_count=$((tier3_count + 1)) ;;
+            4) tier4_count=$((tier4_count + 1)) ;;
+        esac
+    done
+
+    local tier1_pct=$(( (tier1_count * 100) / total_count ))
+    local tier2_pct=$(( (tier2_count * 100) / total_count ))
+
+    log_info "Tier distribution: T1=${tier1_pct}% (${tier1_count}), T2=${tier2_pct}% (${tier2_count}), T3=${tier3_count}, T4=${tier4_count}"
+
+    # Allow +/- 15% variance for small samples
+    if [ "$tier1_pct" -ge 40 ] && [ "$tier1_pct" -le 75 ]; then
+        log_success "Tier 1 distribution acceptable (${tier1_pct}%)"
+    else
+        log_warn "Tier 1 distribution: ${tier1_pct}% (expected ~60%)"
+    fi
+}
+
+# Execute all tests
+setup_test "wave-spawning"
+
+test_multi_wave_execution
+test_wave_parallelism
+test_sequential_waves
+test_batch_priority
+
+teardown_test

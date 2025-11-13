@@ -247,8 +247,154 @@ done
 cd "$PROJECT_ROOT"
 
 # Operation implementations
+
+# Planning phase: Decompose task into atomic units
+plan_task() {
+    local task_description="$1"
+    local task_id="$2"
+
+    if [[ -z "$task_description" ]]; then
+        log_error "Task description is required for planning"
+        return 1
+    fi
+
+    log "Planning phase: Decomposing task into atomic units"
+    log "Task: $task_description"
+
+    # Create plan file
+    local plan_file="/tmp/cfn-docker-plan-${task_id}.json"
+
+    # Check if plan file already exists (from pre-planning)
+    if [[ -f "$plan_file" ]]; then
+        log "Using existing plan file: $plan_file"
+
+        # Validate plan structure
+        if ! jq -e '.atomic_tasks' "$plan_file" > /dev/null 2>&1; then
+            log_error "Invalid existing plan format: missing atomic_tasks"
+            return 1
+        fi
+
+        log_success "Task planning complete: $(jq -r '.atomic_tasks | length' "$plan_file") atomic tasks"
+
+        # Extract agent assignments from plan
+        local agents
+        agents=$(jq -r '.atomic_tasks[].agent_type' "$plan_file" | sort -u | tr '\n' ' ')
+        echo "$agents"
+        return 0
+    fi
+
+    # Generate plan via LLM API call (for Docker mode)
+    if [[ -n "${ANTHROPIC_API_KEY:-}" ]]; then
+        log "Generating plan via Anthropic API..."
+
+        # Create planning prompt
+        local planning_prompt="You are a task planning expert. Decompose this task into atomic units for parallel execution.
+
+Task: ${task_description}
+
+Requirements:
+1. Break task into 15-30 minute atomic units
+2. Each atomic task should have: description, estimated time, dependencies, agent type, deliverables
+3. Agent types available: backend-developer, react-frontend-engineer, security-specialist, tester, reviewer, devops-engineer
+4. Assign 1 atomic task per agent (2-3 max if shared context helps)
+5. Identify which tasks can run in parallel vs sequential
+6. Use simple dependency notation: [] for no dependencies, [\"task-1\"] for dependencies
+
+Output ONLY valid JSON in this exact format:
+{
+  \"atomic_tasks\": [
+    {
+      \"id\": \"task-1\",
+      \"description\": \"Implement JWT token generation middleware\",
+      \"estimated_time\": \"20 min\",
+      \"dependencies\": [],
+      \"agent_type\": \"backend-developer\",
+      \"deliverables\": [\"src/middleware/jwt.ts\", \"tests\"]
+    }
+  ],
+  \"execution_phases\": {
+    \"phase_1_parallel\": [\"task-1\", \"task-3\"],
+    \"phase_2_sequential\": [\"task-2\"]
+  }
+}"
+
+        # Call Anthropic API
+        local api_response
+        api_response=$(curl -s -X POST https://api.anthropic.com/v1/messages \
+            -H "x-api-key: ${ANTHROPIC_API_KEY}" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "{
+                \"model\": \"claude-sonnet-4-20250514\",
+                \"max_tokens\": 2048,
+                \"messages\": [{
+                    \"role\": \"user\",
+                    \"content\": $(echo "$planning_prompt" | jq -Rs .)
+                }]
+            }")
+
+        # Extract plan from response
+        local plan_content
+        plan_content=$(echo "$api_response" | jq -r '.content[0].text' 2>/dev/null)
+
+        if [[ -z "$plan_content" || "$plan_content" == "null" ]]; then
+            log_error "Failed to get plan from API"
+            log_warning "API response: $(echo "$api_response" | head -100)"
+            return 1
+        fi
+
+        # Clean JSON (remove markdown code blocks if present)
+        plan_content=$(echo "$plan_content" | sed -n '/^{/,/^}/p')
+
+        # Save plan file
+        echo "$plan_content" > "$plan_file"
+
+        # Validate plan structure
+        if ! jq -e '.atomic_tasks' "$plan_file" > /dev/null 2>&1; then
+            log_error "Invalid plan format from API: missing atomic_tasks"
+            log_warning "Plan content: $(cat "$plan_file" | head -50)"
+            return 1
+        fi
+
+        log_success "Task planning complete via API: $(jq -r '.atomic_tasks | length' "$plan_file") atomic tasks"
+
+        # Extract agent assignments from plan
+        local agents
+        agents=$(jq -r '.atomic_tasks[].agent_type' "$plan_file" | sort -u | tr '\n' ' ')
+        echo "$agents"
+        return 0
+    fi
+
+    # No API key - wait for external plan file (Task mode)
+    log_warning "No ANTHROPIC_API_KEY found, waiting for external plan file..."
+    local wait_count=0
+    while [[ ! -f "$plan_file" && $wait_count -lt 30 ]]; do
+        sleep 1
+        ((wait_count++))
+    done
+
+    if [[ ! -f "$plan_file" ]]; then
+        log_warning "No plan file created, falling back to analyze_task"
+        return 1
+    fi
+
+    # Validate plan structure
+    if ! jq -e '.atomic_tasks' "$plan_file" > /dev/null 2>&1; then
+        log_error "Invalid plan format: missing atomic_tasks"
+        return 1
+    fi
+
+    log_success "Task planning complete: $(jq -r '.atomic_tasks | length' "$plan_file") atomic tasks"
+
+    # Extract agent assignments from plan
+    local agents
+    agents=$(jq -r '.atomic_tasks[].agent_type' "$plan_file" | sort -u | tr '\n' ' ')
+    echo "$agents"
+}
+
 analyze_task() {
     local task_description="$1"
+    local task_id="${2:-}"
 
     if [[ -z "$task_description" ]]; then
         log_error "Task description is required for task analysis"
@@ -257,7 +403,18 @@ analyze_task() {
 
     log "Analyzing task: $task_description"
 
-    # Simple keyword-based agent selection (can be enhanced with ML)
+    # Try planning first if task_id provided
+    if [[ -n "$task_id" ]]; then
+        local planned_agents
+        if planned_agents=$(plan_task "$task_description" "$task_id" 2>/dev/null); then
+            log "Using planned agent assignments: $planned_agents"
+            echo "$planned_agents"
+            return 0
+        fi
+    fi
+
+    # Fallback: Simple keyword-based agent selection
+    log_warning "Using fallback keyword-based agent selection"
     local selected_agents=()
 
     if [[ "$task_description" =~ (frontend|ui|user.interface|react|vue|angular) ]]; then
@@ -345,40 +502,66 @@ spawn_loop3() {
     log_loop "Spawning Loop 3 implementers (iteration $iteration)"
     log "Agents: $agents"
 
-    # Store task context for agents
-    local context_file="/tmp/task-context-${task_id}-loop3-${iteration}.json"
+    # Check for execution plan
+    local plan_file="/tmp/cfn-docker-plan-${task_id}.json"
+    local has_plan=false
+    if [[ -f "$plan_file" ]] && jq -e '.atomic_tasks' "$plan_file" > /dev/null 2>&1; then
+        has_plan=true
+        log "Using execution plan with $(jq -r '.atomic_tasks | length' "$plan_file") atomic tasks"
+    fi
 
-    # Create enhanced context with loop information
-    cat > "$context_file" << EOF
+    # Spawn agents
+    IFS=',' read -ra AGENT_ARRAY <<< "$agents"
+    local agent_ids=()
+    local task_index=0
+
+    for agent_type in "${AGENT_ARRAY[@]}"; do
+        agent_type=$(echo "$agent_type" | xargs)  # trim whitespace
+
+        # Get atomic task assignment from plan (if available)
+        local atomic_task_desc="$TASK_DESCRIPTION"
+        local atomic_task_deliverables=""
+
+        if [[ "$has_plan" == true ]]; then
+            # Find atomic tasks assigned to this agent type
+            atomic_task_desc=$(jq -r ".atomic_tasks[] | select(.agent_type == \"$agent_type\") | .description" "$plan_file" | head -1)
+            atomic_task_deliverables=$(jq -r ".atomic_tasks[] | select(.agent_type == \"$agent_type\") | .deliverables | join(\", \")" "$plan_file" | head -1)
+
+            if [[ -n "$atomic_task_desc" && "$atomic_task_desc" != "null" ]]; then
+                log "Atomic task for $agent_type: $atomic_task_desc"
+            else
+                log_warning "No atomic task found in plan for $agent_type, using full task description"
+                atomic_task_desc="$TASK_DESCRIPTION"
+            fi
+        fi
+
+        # Store task context for this specific agent
+        local context_file="/tmp/task-context-${task_id}-loop3-${iteration}-${agent_type}.json"
+
+        # Create enhanced context with atomic task assignment
+        cat > "$context_file" << EOF
 {
   "task_id": "$task_id",
   "loop_number": 3,
   "iteration": $iteration,
   "mode": "$MODE",
   "role": "implementer",
-  "task_description": "$TASK_DESCRIPTION",
+  "agent_type": "$agent_type",
+  "atomic_task": "$atomic_task_desc",
+  "expected_deliverables": "$atomic_task_deliverables",
   "gate_threshold": $GATE_THRESHOLD,
   "max_iterations": $MAX_ITERATIONS,
-  "instructions": "Implement the required solution according to the task description. Focus on creating working, high-quality code that meets the acceptance criteria. Report your confidence in the implementation (0.0-1.0).",
+  "instructions": "Complete your assigned atomic task (15-30 min scope). Focus on: $atomic_task_desc. Deliver working, tested code. Report confidence (0.0-1.0).",
   "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
 
-    # Get task context from Redis if available
-    if [[ -n "$CONTEXT_FILE" ]]; then
-        # Merge with existing context
-        local merged_context=$(jq -s '.[0] * .[1]' "$CONTEXT_FILE" "$context_file")
-        echo "$merged_context" > "$context_file"
-    fi
-
-    # Spawn agents
-    IFS=',' read -ra AGENT_ARRAY <<< "$agents"
-    local agent_ids=()
-
-    for agent_type in "${AGENT_ARRAY[@]}"; do
-        agent_type=$(echo "$agent_type" | xargs)  # trim whitespace
-
-        log "Spawning agent: $agent_type"
+        # Get task context from Redis if available
+        if [[ -n "$CONTEXT_FILE" ]]; then
+            # Merge with existing context
+            local merged_context=$(jq -s '.[0] * .[1]' "$CONTEXT_FILE" "$context_file")
+            echo "$merged_context" > "$context_file"
+        fi
 
         if [[ "$DRY_RUN" == false ]]; then
             local agent_id
@@ -702,9 +885,9 @@ execute() {
     log "Description: $task_description"
     log "Mode: $MODE"
 
-    # Analyze task and select agents if not specified
+    # Analyze task and select agents if not specified (includes planning phase)
     if [[ -z "$AGENTS" ]]; then
-        AGENTS=$(analyze_task "$task_description")
+        AGENTS=$(analyze_task "$task_description" "$task_id")
     fi
 
     # Initialize orchestration
