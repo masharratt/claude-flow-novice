@@ -480,6 +480,10 @@ export async function executeAgentAPI(
   let heartbeatInterval: NodeJS.Timeout | null = null;
   const taskId = process.env.TASK_ID;
 
+  // Bug #6 Fix: Read Redis connection parameters from process.env and interpolate in TypeScript
+  const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+  const redisPort = process.env.CFN_REDIS_PORT || '6379';
+
   try {
     console.log(`[anthropic-client] Executing agent: ${agentType}`);
     console.log(`[anthropic-client] Agent ID: ${agentId}`);
@@ -491,7 +495,7 @@ export async function executeAgentAPI(
     if (taskId) {
       heartbeatInterval = setInterval(async () => {
         try {
-          await execAsync(`redis-cli hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "working"`);
+          await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "working"`);
         } catch (err) {
           console.error('[heartbeat] Error sending heartbeat:', err);
         }
@@ -550,7 +554,7 @@ export async function executeAgentAPI(
       clearInterval(heartbeatInterval);
 
       if (taskId) {
-        await execAsync(`redis-cli hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "complete"`);
+        await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "complete"`);
         console.log(`[heartbeat] Monitoring stopped - agent ${agentId} complete`);
       }
     }
@@ -569,7 +573,7 @@ export async function executeAgentAPI(
 
       if (taskId) {
         try {
-          await execAsync(`redis-cli hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "error"`);
+          await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} hset "swarm:${taskId}:agent:${agentId}" heartbeat "${Date.now()}" status "error"`);
           console.log(`[heartbeat] Monitoring stopped - agent ${agentId} error`);
         } catch (err) {
           // Ignore heartbeat errors during error handling

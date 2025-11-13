@@ -1,0 +1,504 @@
+{
+  "epic_name": "Docker Test Suite Implementation",
+  "epic_goal": "Align test suite with intelligent Docker coordinator architecture by removing obsolete tests, adding missing coverage, and validating production readiness with 73 targeted tests achieving 95% coordinator functionality coverage.",
+  "total_phases": 7,
+  "mode": "standard",
+  "prerequisites": {
+    "blocking_bugs": [
+      {
+        "bug_id": "BUG-4",
+        "title": "Docker Coordinator Architecture Mismatch",
+        "status": "FIXED",
+        "description": "Coordinator now uses Docker container status tracking instead of Redis queue polling",
+        "blocking_phases": []
+      },
+      {
+        "bug_id": "BUG-6",
+        "title": "Node.js CLI Redis Variable Name Mismatch",
+        "status": "ACTIVE",
+        "description": "Node.js CLI uses hardcoded REDIS_HOST/PORT instead of CFN_REDIS_HOST/PORT environment variables",
+        "blocking_phases": [2, 3, 4, 5, 6, 7],
+        "impact": "Agents fail to connect to Redis coordination layer with 'Connection refused at 127.0.0.1:6379'",
+        "locations": [
+          "src/cli/agent-spawn.ts:141,149,157",
+          "src/cli/anthropic-client.ts:494,553,572"
+        ],
+        "fix_required": "Change all REDIS_HOST/PORT references to CFN_REDIS_HOST/CFN_REDIS_PORT"
+      }
+    ],
+    "required_dependencies": [
+      ".env.clean file with no inline comments",
+      "Docker network cfn-network configured",
+      "Redis container cfn-redis running",
+      "Coordinator image cfn-intelligent-coordinator:latest built",
+      "Agent image claude-flow-novice-agent:frontend built"
+    ]
+  },
+  "phases": [
+    {
+      "phase_name": "P0 Prerequisites - Fix Bug #6",
+      "phase_num": 0,
+      "description": "Fix Node.js CLI Redis variable name mismatch to unblock all test phases. Update src/cli files to use CFN_REDIS_HOST/CFN_REDIS_PORT instead of REDIS_HOST/PORT.",
+      "deliverables": [
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/src/cli/agent-spawn.ts",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/src/cli/anthropic-client.ts",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/docs/bugs/BUG_6_REDIS_VARIABLE_MISMATCH.md"
+      ],
+      "in_scope": [
+        "Replace REDIS_HOST with CFN_REDIS_HOST in agent-spawn.ts (3 locations)",
+        "Replace REDIS_HOST with CFN_REDIS_HOST in anthropic-client.ts (3 locations)",
+        "Replace REDIS_PORT with CFN_REDIS_PORT in both files",
+        "Document fix in BUG_6 markdown file",
+        "Validate agents can connect to Redis at cfn-redis:6379"
+      ],
+      "out_of_scope": [
+        "Refactoring Redis client initialization patterns",
+        "Adding Redis connection pooling",
+        "Implementing Redis failover logic",
+        "Changing Docker network architecture"
+      ],
+      "loop3_agents": ["backend-developer", "docker-specialist"],
+      "loop2_agents": ["code-reviewer", "security-specialist", "tester"],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 2,
+      "directory": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a",
+      "entry_criteria": [
+        "Bug #6 documented in SESSION_2025-11-12_FINDINGS.md",
+        "Root cause identified in src/cli files"
+      ],
+      "exit_criteria": [
+        "All REDIS_HOST references changed to CFN_REDIS_HOST",
+        "All REDIS_PORT references changed to CFN_REDIS_PORT",
+        "Agents successfully connect to Redis in test environment",
+        "BUG_6 documentation complete with validation steps"
+      ],
+      "success_metrics": [
+        "Zero 'Connection refused at 127.0.0.1:6379' errors in agent logs",
+        "Agents report heartbeat to Redis coordination layer",
+        "Test agent completes task and increments task:completed counter"
+      ]
+    },
+    {
+      "phase_name": "P1 Test Cleanup - Remove Obsolete Tests",
+      "phase_num": 1,
+      "description": "Remove 22 obsolete test files that are duplicates or test functionality not in Docker coordinator architecture. Execute cleanup script and validate removal.",
+      "deliverables": [
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/cleanup/remove-obsolete-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/cleanup/removal-manifest.txt"
+      ],
+      "in_scope": [
+        "Remove 22 obsolete test files (duplicates, mode detection, timeout variants)",
+        "Create removal script with file existence checks",
+        "Generate removal manifest documenting deleted files",
+        "Move CLI/Task mode tests to subdirectories instead of deleting",
+        "Archive ACE tests to tests/archive/historical/"
+      ],
+      "out_of_scope": [
+        "Updating existing tests (covered in later phases)",
+        "Creating new tests (covered in phases 2-4)",
+        "Refactoring test infrastructure",
+        "Changing test naming conventions"
+      ],
+      "loop3_agents": ["tester", "devops-docker-specialist"],
+      "loop2_agents": ["code-reviewer", "technical-writer", "qa-lead"],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 2,
+      "directory": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker",
+      "entry_criteria": [
+        "TEST_SUITE_MAINTENANCE_PLAN.md reviewed and approved",
+        "Backup of tests/ directory created"
+      ],
+      "exit_criteria": [
+        "22 obsolete tests removed",
+        "CLI/Task mode tests moved to subdirectories",
+        "ACE tests archived with README",
+        "Removal manifest generated",
+        "Git status shows 22 deletions, 0 untracked files"
+      ],
+      "success_metrics": [
+        "Test count reduced from 107 to 85 (22 removed)",
+        "No working tests deleted accidentally",
+        "Removal script runs idempotently"
+      ]
+    },
+    {
+      "phase_name": "P2 Test Cleanup - Archive Historical Tests",
+      "phase_num": 2,
+      "description": "Archive 7 historical test files (marketing features, Sprint 5) to tests/archive/historical/ with manifest. Keep for reference but exclude from active test suite.",
+      "deliverables": [
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/cleanup/archive-historical-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/archive/historical/README.md",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/archive/historical/MANIFEST.json"
+      ],
+      "in_scope": [
+        "Archive 7 historical test files (4 marketing + 3 Sprint 5)",
+        "Create archive directory structure",
+        "Generate archive manifest with metadata (date, reason, restoration instructions)",
+        "Document quarterly deletion policy (12 months retention)",
+        "Validate archived tests can be restored if needed"
+      ],
+      "out_of_scope": [
+        "Running archived tests to verify functionality",
+        "Updating archived test logic",
+        "Creating new archive categories",
+        "Archiving tests from other sprints"
+      ],
+      "loop3_agents": ["tester", "technical-writer"],
+      "loop2_agents": ["qa-lead", "code-reviewer"],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 1,
+      "directory": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests",
+      "entry_criteria": [
+        "Phase 1 complete (obsolete tests removed)",
+        "Archive directory structure designed"
+      ],
+      "exit_criteria": [
+        "7 tests archived to tests/archive/historical/",
+        "Archive README and MANIFEST created",
+        "Archive script runs successfully",
+        "Original test files removed from tests/ directory"
+      ],
+      "success_metrics": [
+        "All 7 historical tests archived",
+        "Archive manifest includes restoration instructions",
+        "Quarterly deletion policy documented"
+      ]
+    },
+    {
+      "phase_name": "P3 Critical Tests - P0 New Test Creation",
+      "phase_num": 3,
+      "description": "Create 5 critical P0 tests: Redis coordination, coordinator iteration loop, memory budget enforcement, dependency clustering, and agent lifecycle. These tests validate core coordinator functionality.",
+      "deliverables": [
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/redis-coordination-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/coordinator-iteration-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/memory-budget-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/clustering-accuracy-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/agent-lifecycle-tests.sh"
+      ],
+      "in_scope": [
+        "Test 1: Redis coordination (client connectivity, heartbeat, completion, pub/sub) - 4 test cases",
+        "Test 2: Coordinator iteration loop (convergence, max iterations, error delta, decision gates) - 4 test cases",
+        "Test 3: Memory budget enforcement (wave spawning, tier allocation, OOM prevention, sequential waves) - 4 test cases",
+        "Test 4: Dependency clustering (tier distribution, import graph, coordinated batching, file isolation) - 4 test cases",
+        "Test 5: Agent lifecycle (spawn-to-exit, metadata capture, auto-removal, orphan detection) - 4 test cases",
+        "Follow tests/claude.md template (shebang, cleanup trap, helper sourcing)",
+        "Include Bug #6 fix validation in Redis coordination tests",
+        "Validate ACTUAL coordinator behavior (container status tracking, not queue claiming)"
+      ],
+      "out_of_scope": [
+        "Updating existing tests (covered in Phase 5)",
+        "P1/P2 priority tests (covered in Phase 4)",
+        "Test infrastructure refactoring",
+        "CI/CD pipeline integration"
+      ],
+      "loop3_agents": ["tester", "backend-developer"],
+      "loop2_agents": ["qa-lead", "docker-specialist", "code-reviewer", "technical-writer"],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 4,
+      "directory": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker",
+      "entry_criteria": [
+        "Bug #6 fixed (Phase 0 complete)",
+        "Phase 1-2 cleanup complete",
+        "TEST_SUITE_EXECUTION_PLAYBOOK.md reviewed",
+        "Coordinator image built and tested manually"
+      ],
+      "exit_criteria": [
+        "5 P0 test files created with 20 total test cases",
+        "All tests follow tests/claude.md template",
+        "100% pass rate on all P0 tests",
+        "Tests validate actual coordinator behavior (not queue claiming pattern)",
+        "Bug #6 fix validated in Redis coordination tests"
+      ],
+      "success_metrics": [
+        "20/20 test cases passing (100% pass rate)",
+        "95% Redis coordination coverage",
+        "100% iteration loop coverage",
+        "100% memory budget coverage",
+        "Test execution time <15 minutes"
+      ]
+    },
+    {
+      "phase_name": "P4 Architecture Alignment - P1 New Test Creation",
+      "phase_num": 4,
+      "description": "Create 7 P1 architecture alignment tests: environment variable propagation, wave spawning, TypeScript error analysis, CFN Loop pattern compliance, build/sync validation, coordinator fault tolerance, and provider authentication.",
+      "deliverables": [
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/env-propagation-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/wave-spawning-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/typescript-analysis-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/cfn-loop-compliance-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/build-sync-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/coordinator-fault-tolerance-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/provider-auth-tests.sh"
+      ],
+      "in_scope": [
+        "Test 6: Environment variable propagation (.env handling, inline comments, required vars, runtime overrides)",
+        "Test 7: Wave spawning and parallelism (multi-wave execution, parallelism, sequential waves, batch priority)",
+        "Test 8: TypeScript error analysis (error parsing accuracy, count validation, file-to-error mapping)",
+        "Test 9: CFN Loop pattern compliance (Loop 3 gate, Loop 2 consensus, Product Owner decision, iteration metadata)",
+        "Test 10: Build and sync validation (build freshness, rsync exclusion, image layer caching, Linux native build)",
+        "Test 11: Coordinator fault tolerance (restart recovery, Redis state persistence, agent orphan detection)",
+        "Test 12: API authentication and provider routing (multi-provider auth, failover, cost tracking, rate limiting)",
+        "Follow tests/claude.md template for all new tests"
+      ],
+      "out_of_scope": [
+        "Updating existing tests (covered in Phase 5)",
+        "Creating test infrastructure tooling",
+        "Implementing CI/CD pipeline",
+        "Performance benchmarking automation"
+      ],
+      "loop3_agents": ["tester", "backend-developer", "docker-specialist"],
+      "loop2_agents": ["qa-lead", "security-specialist", "code-reviewer", "technical-writer"],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 5,
+      "directory": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker",
+      "entry_criteria": [
+        "Phase 3 complete (P0 tests created and passing)",
+        "Coordinator fault tolerance scenarios documented",
+        "Provider authentication patterns validated manually"
+      ],
+      "exit_criteria": [
+        "7 P1 test files created",
+        "All tests follow tests/claude.md template",
+        "90% pass rate on P1 tests",
+        "Environment variable propagation fully covered",
+        "CFN Loop compliance validated"
+      ],
+      "success_metrics": [
+        "100% environment variable propagation coverage",
+        "100% CFN Loop pattern coverage",
+        "Coordinator fault tolerance validated (restart recovery)",
+        "Multi-provider auth tested (Z.ai, Kimi, OpenRouter, Anthropic)",
+        "Test execution time <10 minutes"
+      ]
+    },
+    {
+      "phase_name": "P5 Test Updates - Align Existing Tests to Docker Architecture",
+      "phase_num": 5,
+      "description": "Update 12 existing tests to align with Docker coordinator architecture. Remove CLI-specific assumptions, add tier batching validation, update iteration loop testing, and validate container lifecycle management.",
+      "deliverables": [
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/intelligent-coordinator-test.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/test-provider-routing.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/b10-typescript-fix-test.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/50-agent-parallel-test.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/test-graceful-shutdown-comprehensive.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/test-memory-leak-prevention.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/simple-load-test.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/synthetic-load-test.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/test-cfn-loop-integration.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/test-cfn-stabilization-e2e.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/test-comprehensive-stabilization.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/test-ace-workflow.sh"
+      ],
+      "in_scope": [
+        "Update intelligent-coordinator-test.sh (add Redis heartbeat, multi-iteration, product owner decision, .env.clean validation, tier distribution)",
+        "Update test-provider-routing.sh (add container auth propagation, multi-provider key forwarding, coordinator env filtering)",
+        "Update b10-typescript-fix-test.sh (remove manual batching, add tier assignment, wave spawning, iteration loop)",
+        "Update 50-agent-parallel-test.sh (test 40GB budget enforcement, sequential wave execution)",
+        "Update test-graceful-shutdown-comprehensive.sh (coordinator SIGTERM handling, agent cleanup, Redis state persistence)",
+        "Update test-memory-leak-prevention.sh (Docker container memory isolation, coordinator memory stability, agent memory release)",
+        "Update simple-load-test.sh (wave spawning under load, tier-based batching performance, Redis coordination scalability)",
+        "Update synthetic-load-test.sh (40GB budget constraints, 100+ batch wave spawning, coordinator iteration performance)",
+        "Update test-cfn-loop-integration.sh (Docker coordinator instead of CLI, Loop 3→Loop 2→Product Owner flow, iteration until errors=0)",
+        "Update test-cfn-stabilization-e2e.sh (Docker coordinator workflow, coordinator stability, error convergence)",
+        "Update test-comprehensive-stabilization.sh (coordinator fault tolerance, recovery from restart, Redis state recovery)",
+        "Update test-ace-workflow.sh (verify coordinator doesn't require ACE, document ACE not integrated)"
+      ],
+      "out_of_scope": [
+        "Rewriting tests from scratch (incremental updates only)",
+        "Adding new test coverage (use Phase 3-4 for new tests)",
+        "Refactoring test infrastructure",
+        "Performance optimization of test execution"
+      ],
+      "loop3_agents": ["tester", "backend-developer"],
+      "loop2_agents": ["qa-lead", "code-reviewer", "docker-specialist", "technical-writer"],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 4,
+      "directory": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests",
+      "entry_criteria": [
+        "Phase 3-4 complete (P0/P1 tests created)",
+        "12 target tests identified for updates",
+        "Docker coordinator behavior documented"
+      ],
+      "exit_criteria": [
+        "12 tests updated to align with Docker coordinator architecture",
+        "All updated tests pass with 90% success rate",
+        "Tests validate actual coordinator behavior (container status tracking)",
+        "ACE workflow test documents ACE not integrated"
+      ],
+      "success_metrics": [
+        "12/12 tests updated successfully",
+        "90% pass rate on updated tests",
+        "No CLI-specific assumptions remaining",
+        "Container lifecycle management validated in all relevant tests"
+      ]
+    },
+    {
+      "phase_name": "P6 Validation - Full Test Suite Execution",
+      "phase_num": 6,
+      "description": "Execute full test suite (73 tests: 61 main + 12 docker) and validate success metrics. Generate coverage report, identify flaky tests, and document test execution order for CI/CD.",
+      "deliverables": [
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/run-all-docker-tests.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/generate-coverage-report.sh",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/test-execution-report.json",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/coverage-report.html"
+      ],
+      "in_scope": [
+        "Create run-all-docker-tests.sh master test runner",
+        "Execute all 73 tests in dependency-aware order (smoke→unit→integration→system)",
+        "Generate coverage report (95% target for coordinator functionality)",
+        "Identify and document flaky tests (>2 failures in 10 runs)",
+        "Create test execution report with pass/fail rates, execution time, error logs",
+        "Validate success metrics (100% pass rate, <30min execution, 95% coverage)"
+      ],
+      "out_of_scope": [
+        "Fixing failing tests (defer to Phase 7)",
+        "CI/CD pipeline integration (future epic)",
+        "Performance optimization of slow tests",
+        "Adding new tests based on coverage gaps"
+      ],
+      "loop3_agents": ["tester", "qa-lead"],
+      "loop2_agents": ["code-reviewer", "technical-writer", "docker-specialist"],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 3,
+      "directory": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker",
+      "entry_criteria": [
+        "Phase 5 complete (all test updates done)",
+        "All 73 tests exist and are executable",
+        "Docker environment configured (network, Redis, images)"
+      ],
+      "exit_criteria": [
+        "All 73 tests executed successfully",
+        "Coverage report generated showing ≥95% coordinator coverage",
+        "Test execution report documents pass/fail rates and execution time",
+        "Zero flaky tests identified (or documented for fixing in Phase 7)",
+        "Total execution time ≤30 minutes"
+      ],
+      "success_metrics": [
+        "100% test pass rate (73/73 tests passing)",
+        "95% coordinator functionality coverage",
+        "Test execution time <30 minutes",
+        "Zero critical failures",
+        "Coverage report validates all success criteria from TEST_SUITE_OVERVIEW.md"
+      ]
+    },
+    {
+      "phase_name": "P7 Stabilization - Fix Failures and Document Maintenance",
+      "phase_num": 7,
+      "description": "Fix any failing or flaky tests identified in Phase 6. Document test maintenance schedule (weekly/monthly/quarterly), create test suite README, and establish test quality baseline for future development.",
+      "deliverables": [
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/README.md",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/TEST_MAINTENANCE_SCHEDULE.md",
+        "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/QUALITY_BASELINE.md"
+      ],
+      "in_scope": [
+        "Fix all failing tests identified in Phase 6",
+        "Stabilize flaky tests (retries, timeouts, race conditions)",
+        "Create tests/docker/README.md (overview, execution instructions, troubleshooting)",
+        "Document test maintenance schedule (weekly review, monthly coverage check, quarterly cleanup)",
+        "Establish quality baseline (100% pass rate, 95% coverage, <30min execution)",
+        "Create troubleshooting guide for common test failures"
+      ],
+      "out_of_scope": [
+        "Adding new tests (future epics)",
+        "Refactoring test infrastructure (future epics)",
+        "CI/CD pipeline integration (future epics)",
+        "Performance benchmarking automation (future epics)"
+      ],
+      "loop3_agents": ["tester", "technical-writer"],
+      "loop2_agents": ["qa-lead", "code-reviewer", "docker-specialist"],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 3,
+      "directory": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker",
+      "entry_criteria": [
+        "Phase 6 complete (full test suite executed)",
+        "Test execution report identifies failing/flaky tests",
+        "Root causes of failures documented"
+      ],
+      "exit_criteria": [
+        "100% test pass rate (all failures fixed)",
+        "Zero flaky tests remaining",
+        "README, maintenance schedule, and quality baseline documented",
+        "Test suite ready for production use"
+      ],
+      "success_metrics": [
+        "100% test pass rate (73/73 tests passing)",
+        "Zero flaky tests (10 consecutive successful runs)",
+        "Test maintenance schedule documented (weekly/monthly/quarterly)",
+        "Quality baseline established (100% pass, 95% coverage, <30min)",
+        "Troubleshooting guide covers 10 most common failure scenarios"
+      ]
+    }
+  ],
+  "success_criteria": {
+    "critical": [
+      "All 7 phases complete",
+      "73 total tests (61 main + 12 docker)",
+      "100% test pass rate",
+      "Bug #6 (Redis variable mismatch) fixed and validated",
+      "95% coordinator functionality coverage",
+      "Test execution time <30 minutes",
+      "Zero flaky tests"
+    ],
+    "important": [
+      "Test maintenance schedule documented",
+      "Quality baseline established",
+      "Coverage report generated",
+      "Troubleshooting guide created",
+      "CLI/Task mode tests moved to subdirectories (not deleted)",
+      "ACE tests archived (not deleted)"
+    ],
+    "nice_to_have": [
+      "Automated coverage report generation",
+      "Test performance benchmarking",
+      "CI/CD integration guide",
+      "Quarterly test cleanup automation"
+    ]
+  },
+  "metadata": {
+    "created_date": "2025-11-13",
+    "created_by": "epic-creator-agent",
+    "source_documents": [
+      "tests/docker/TEST_SUITE_OVERVIEW.md",
+      "tests/docker/TEST_SUITE_MAINTENANCE_PLAN.md",
+      "tests/docker/TEST_SUITE_EXECUTION_PLAYBOOK.md",
+      "tests/claude.md"
+    ],
+    "estimated_total_iterations": 24,
+    "estimated_duration": "5-7 days (1 day per phase, with Phase 0 and Phase 3-5 requiring more iterations)",
+    "blocking_dependencies": [
+      "Bug #6 must be fixed before Phase 3-7 can execute",
+      "Docker environment must be configured (network, Redis, images)",
+      ".env.clean file must exist with no inline comments"
+    ],
+    "risk_factors": [
+      "Bug #6 fix complexity may exceed estimates",
+      "Test failures in Phase 6 may require additional debugging iterations",
+      "Flaky test stabilization in Phase 7 may uncover deeper architectural issues",
+      "Manual test execution in Phase 6 may reveal gaps in test coverage"
+    ]
+  }
+}

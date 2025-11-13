@@ -10,6 +10,10 @@
 import { execSync } from 'child_process';
 import { randomBytes } from 'crypto';
 
+// Bug #6 Fix: Read Redis connection parameters from process.env
+const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+const redisPort = process.env.CFN_REDIS_PORT || '6379';
+
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -38,7 +42,7 @@ export async function storeMessage(
   const messageJson = JSON.stringify(message);
 
   try {
-    execSync(`redis-cli rpush "${key}" '${messageJson.replace(/'/g, "'\\''")}'`, {
+    execSync(`redis-cli -h ${redisHost} -p ${redisPort} rpush "${key}" '${messageJson.replace(/'/g, "'\\''")}'`, {
       encoding: 'utf8'
     });
   } catch (error) {
@@ -60,7 +64,7 @@ export async function loadMessages(
     : `swarm:${taskId}:${agentId}:messages`;
 
   try {
-    const output = execSync(`redis-cli lrange "${key}" 0 -1`, {
+    const output = execSync(`redis-cli -h ${redisHost} -p ${redisPort} lrange "${key}" 0 -1`, {
       encoding: 'utf8'
     }).trim();
 
@@ -102,7 +106,7 @@ export async function createFork(
 
   for (const message of forkMessages) {
     const messageJson = JSON.stringify(message);
-    execSync(`redis-cli rpush "${forkKey}" '${messageJson.replace(/'/g, "'\\''")}'`, {
+    execSync(`redis-cli -h ${redisHost} -p ${redisPort} rpush "${forkKey}" '${messageJson.replace(/'/g, "'\\''")}'`, {
       encoding: 'utf8'
     });
   }
@@ -118,13 +122,13 @@ export async function createFork(
   };
 
   const metaKey = `swarm:${taskId}:${agentId}:fork:${forkId}:meta`;
-  execSync(`redis-cli setex "${metaKey}" 86400 '${JSON.stringify(metadata)}'`, {
+  execSync(`redis-cli -h ${redisHost} -p ${redisPort} setex "${metaKey}" 86400 '${JSON.stringify(metadata)}'`, {
     encoding: 'utf8'
   });
 
   // Set as current fork
   const currentForkKey = `swarm:${taskId}:${agentId}:current-fork`;
-  execSync(`redis-cli setex "${currentForkKey}" 86400 "${forkId}"`, {
+  execSync(`redis-cli -h ${redisHost} -p ${redisPort} setex "${currentForkKey}" 86400 "${forkId}"`, {
     encoding: 'utf8'
   });
 
@@ -143,7 +147,7 @@ export async function getCurrentFork(
   const key = `swarm:${taskId}:${agentId}:current-fork`;
 
   try {
-    const forkId = execSync(`redis-cli get "${key}"`, {
+    const forkId = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "${key}"`, {
       encoding: 'utf8'
     }).trim();
 
@@ -168,7 +172,7 @@ export async function getForkMetadata(
   const key = `swarm:${taskId}:${agentId}:fork:${forkId}:meta`;
 
   try {
-    const metaJson = execSync(`redis-cli get "${key}"`, {
+    const metaJson = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "${key}"`, {
       encoding: 'utf8'
     }).trim();
 
@@ -192,14 +196,14 @@ export async function listForks(
   const pattern = `swarm:${taskId}:${agentId}:fork:*:meta`;
 
   try {
-    const keys = execSync(`redis-cli keys "${pattern}"`, {
+    const keys = execSync(`redis-cli -h ${redisHost} -p ${redisPort} keys "${pattern}"`, {
       encoding: 'utf8'
     }).trim().split('\n').filter(k => k);
 
     const forks: ForkMetadata[] = [];
 
     for (const key of keys) {
-      const metaJson = execSync(`redis-cli get "${key}"`, {
+      const metaJson = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "${key}"`, {
         encoding: 'utf8'
       }).trim();
 
@@ -229,7 +233,7 @@ export async function deleteFork(
   const metaKey = `swarm:${taskId}:${agentId}:fork:${forkId}:meta`;
 
   try {
-    execSync(`redis-cli del "${messagesKey}" "${metaKey}"`, {
+    execSync(`redis-cli -h ${redisHost} -p ${redisPort} del "${messagesKey}" "${metaKey}"`, {
       encoding: 'utf8'
     });
 
@@ -250,7 +254,7 @@ export async function clearCurrentFork(
   const key = `swarm:${taskId}:${agentId}:current-fork`;
 
   try {
-    execSync(`redis-cli del "${key}"`, {
+    execSync(`redis-cli -h ${redisHost} -p ${redisPort} del "${key}"`, {
       encoding: 'utf8'
     });
   } catch (error) {

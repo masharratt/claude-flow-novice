@@ -12,7 +12,7 @@ class MCPAuthMiddleware {
   constructor(options = {}) {
     this.redis = null;
     this.options = {
-      redisUrl: options.redisUrl || 'redis://localhost:6379',
+      redisUrl: options.redisUrl || process.env.CFN_REDIS_URL || process.env.MCP_REDIS_URL || `redis://${process.env.CFN_REDIS_HOST || 'cfn-redis'}:${process.env.CFN_REDIS_PORT || 6379}`,
       tokenExpiry: options.tokenExpiry || '24h',
       authRequired: options.authRequired !== false,
       rateLimitWindow: options.rateLimitWindow || 60, // seconds

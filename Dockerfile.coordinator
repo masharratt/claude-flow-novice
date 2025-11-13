@@ -35,6 +35,10 @@ COPY docker/coordinator/lib ./lib
 # Copy Redis coordination skills (required for agent communication)
 COPY .claude/skills/cfn-redis-coordination ./.claude/skills/cfn-redis-coordination
 
+# Copy runtime environment setup script
+COPY docker/runtime/cfn-runtime.sh ./docker/runtime/cfn-runtime.sh
+RUN chmod +x ./docker/runtime/cfn-runtime.sh
+
 # Environment variables (can be overridden at runtime)
 ENV NODE_ENV=production
 ENV MEMORY_BUDGET=40g
@@ -48,8 +52,8 @@ ENV AGENT_IMAGE=claude-flow-novice-agent:frontend
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD node -e "console.log('Coordinator healthy')" || exit 1
 
-# Entrypoint
-ENTRYPOINT ["node", "src/coordinator.js"]
+# Entrypoint - sources cfn-runtime.sh for environment standardization
+ENTRYPOINT ["/bin/bash", "-c", "source ./docker/runtime/cfn-runtime.sh && exec node src/coordinator.js"]
 
 # Default command (can be overridden)
 CMD []

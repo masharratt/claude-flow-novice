@@ -1,0 +1,161 @@
+{
+  "version": "1.0",
+  "generated": "2025-11-13T10:18:25.600Z",
+  "variables": {
+    "CFN_REDIS_HOST": {
+      "value": "cfn-redis",
+      "description": "Redis server hostname",
+      "required": false
+    },
+    "CFN_REDIS_PORT": {
+      "value": "6379",
+      "description": "Redis server port",
+      "required": false
+    },
+    "CFN_REDIS_URL": {
+      "value": "",
+      "description": "Complete Redis connection URL (overrides host:port)",
+      "required": false
+    },
+    "CFN_REDIS_PASSWORD": {
+      "value": "",
+      "description": "Redis authentication password - STRONGLY RECOMMENDED in production",
+      "required": false
+    },
+    "CFN_AGENT_ID": {
+      "value": "auto-generated",
+      "description": "Unique identifier for the agent instance",
+      "required": false
+    },
+    "CFN_AGENT_TYPE": {
+      "value": "unknown",
+      "description": "Type/role of the agent",
+      "required": false
+    },
+    "CFN_AGENT_IMAGE": {
+      "value": "claude-flow-novice-agent:latest",
+      "description": "Docker image URI for agent containers",
+      "required": false
+    },
+    "CFN_AGENT_REGISTRY": {
+      "value": "docker.io",
+      "description": "Container registry for agent images",
+      "required": false
+    },
+    "CFN_TASK_ID": {
+      "value": "auto-generated",
+      "description": "Unique identifier for the current task/swarm",
+      "required": false
+    },
+    "CFN_TASK_TIMEOUT": {
+      "value": "3600",
+      "description": "Maximum execution time for task in seconds",
+      "required": false
+    },
+    "CFN_ITERATION_LIMIT": {
+      "value": "10",
+      "description": "Maximum number of iterations in CFN Loop",
+      "required": false
+    },
+    "CFN_MEMORY_BUDGET": {
+      "value": "40g",
+      "description": "Memory allocation for coordinator container",
+      "required": false
+    },
+    "CFN_CPU_LIMIT": {
+      "value": "4",
+      "description": "CPU allocation for coordinator container",
+      "required": false
+    },
+    "CFN_MAX_PARALLEL_AGENTS": {
+      "value": "4",
+      "description": "Maximum number of agents to spawn simultaneously",
+      "required": false
+    },
+    "CFN_SPAWN_INTERVAL_MS": {
+      "value": "500",
+      "description": "Delay between agent spawns in milliseconds",
+      "required": false
+    },
+    "CFN_ORCHESTRATOR_MODE": {
+      "value": "standard",
+      "description": "Orchestration mode for CFN Loop",
+      "required": false
+    },
+    "CFN_GATE_CONFIDENCE_THRESHOLD": {
+      "value": "0.75",
+      "description": "Minimum confidence score to pass CFN Loop gate",
+      "required": false
+    },
+    "CFN_CONSENSUS_THRESHOLD": {
+      "value": "0.90",
+      "description": "Minimum consensus score for validator agreement",
+      "required": false
+    },
+    "CFN_API_HOST": {
+      "value": "0.0.0.0",
+      "description": "Host for CFN coordination API",
+      "required": false
+    },
+    "CFN_API_PORT": {
+      "value": "9000",
+      "description": "Port for CFN coordination API",
+      "required": false
+    },
+    "CFN_API_KEY": {
+      "value": "auto-generated",
+      "description": "API authentication key",
+      "required": false
+    },
+    "CFN_CUSTOM_ROUTING": {
+      "value": "false",
+      "description": "Enable custom AI provider routing",
+      "required": false
+    },
+    "CFN_DEFAULT_PROVIDER": {
+      "value": "zai",
+      "description": "Default AI provider for agents",
+      "required": false
+    },
+    "CFN_LOG_LEVEL": {
+      "value": "info",
+      "description": "Global logging level",
+      "required": false
+    },
+    "CFN_LOG_FORMAT": {
+      "value": "json",
+      "description": "Log output format",
+      "required": false
+    },
+    "CFN_CONTAINER_MODE": {
+      "value": "false",
+      "description": "Whether running in containerized environment",
+      "required": false
+    },
+    "CFN_DOCKER_SOCKET": {
+      "value": "/var/run/docker.sock",
+      "description": "Path to Docker socket for container spawning",
+      "required": false
+    },
+    "CFN_NETWORK_NAME": {
+      "value": "cfn-network",
+      "description": "Docker network name for agent containers",
+      "required": false
+    },
+    "CFN_ENABLE_PROGRESS_TRACKING": {
+      "value": "true",
+      "description": "Enable detailed progress tracking",
+      "required": false
+    },
+    "CFN_ENABLE_HEALTH_CHECKS": {
+      "value": "true",
+      "description": "Enable container health checks",
+      "required": false
+    },
+    "CFN_ENABLE_METRICS": {
+      "value": "true",
+      "description": "Enable metrics collection",
+      "required": false
+    }
+  }
+}

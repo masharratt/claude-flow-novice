@@ -136,9 +136,13 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
     try {
       const { execSync } = await import('child_process');
 
+      // Bug #6 Fix: Read Redis connection parameters from process.env and interpolate in TypeScript
+      const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+      const redisPort = process.env.CFN_REDIS_PORT || '6379';
+
       // Try to read epic-level context from Redis
       try {
-        epicContext = execSync(`redis-cli get "swarm:${taskId}:epic-context"`, { encoding: 'utf8' }).trim();
+        epicContext = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:epic-context"`, { encoding: 'utf8' }).trim();
         if (epicContext === '(nil)') epicContext = '';
       } catch (e) {
         // Redis not available or key doesn't exist
@@ -146,7 +150,7 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
 
       // Try to read phase-specific context
       try {
-        phaseContext = execSync(`redis-cli get "swarm:${taskId}:phase-context"`, { encoding: 'utf8' }).trim();
+        phaseContext = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:phase-context"`, { encoding: 'utf8' }).trim();
         if (phaseContext === '(nil)') phaseContext = '';
       } catch (e) {
         // Redis not available or key doesn't exist
@@ -154,7 +158,7 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
 
       // Try to read success criteria
       try {
-        successCriteria = execSync(`redis-cli get "swarm:${taskId}:success-criteria"`, { encoding: 'utf8' }).trim();
+        successCriteria = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:success-criteria"`, { encoding: 'utf8' }).trim();
         if (successCriteria === '(nil)') successCriteria = '';
       } catch (e) {
         // Redis not available or key doesn't exist
@@ -168,21 +172,62 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
     }
   }
 
-  // Add environment variables for agent context
-  const env = {
-    ...process.env,
-    AGENT_TYPE: agentType,
-    TASK_ID: taskId || '',
-    ITERATION: iteration?.toString() || '1',
-    CONTEXT: context || '',
-    MODE: mode || 'cli',
-    PRIORITY: priority?.toString() || '5',
-    PARENT_TASK_ID: parentTaskId || '',
-    // Epic-level context from Redis
-    EPIC_CONTEXT: epicContext,
-    PHASE_CONTEXT: phaseContext,
-    SUCCESS_CRITERIA: successCriteria
-  };
+  // Add environment variables for agent context - WHITELIST ONLY APPROACH
+  // SECURITY FIX: Do not use ...process.env spread which exposes ALL variables including secrets
+  // Instead, explicitly whitelist safe variables to pass to spawned process
+  const safeEnvVars = [
+    'CFN_REDIS_HOST',
+    'CFN_REDIS_PORT',
+    'CFN_REDIS_URL',
+    'CFN_MEMORY_BUDGET',
+    'CFN_API_HOST',
+    'CFN_API_PORT',
+    'CFN_LOG_LEVEL',
+    'CFN_LOG_FORMAT',
+    'CFN_CONTAINER_MODE',
+    'CFN_DOCKER_SOCKET',
+    'CFN_NETWORK_NAME',
+    'CFN_CUSTOM_ROUTING',
+    'CFN_DEFAULT_PROVIDER',
+    'NODE_ENV',
+    'PATH',
+    'HOME'
+  ];
+
+  // Build whitelist-only env object
+  const env: Record<string, string> = {};
+
+  // Add whitelisted CFN variables
+  for (const key of safeEnvVars) {
+    const value = process.env[key];
+    if (value !== undefined) {
+      env[key] = value;
+    }
+  }
+
+  // Add API key only when explicitly needed (with strict validation)
+  if (process.env.ANTHROPIC_API_KEY) {
+    // Validate format: should start with "sk-" or "sk-ant-"
+    if (process.env.ANTHROPIC_API_KEY.match(/^sk-[a-zA-Z0-9-]+$/)) {
+      env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    } else {
+      console.warn('[cfn-spawn] Warning: ANTHROPIC_API_KEY format invalid, not passing to agent');
+    }
+  }
+
+  // Add task and execution context variables
+  env.AGENT_TYPE = agentType;
+  env.TASK_ID = taskId || '';
+  env.ITERATION = iteration?.toString() || '1';
+  env.CONTEXT = context || '';
+  env.MODE = mode || 'cli';
+  env.PRIORITY = priority?.toString() || '5';
+  env.PARENT_TASK_ID = parentTaskId || '';
+
+  // Epic-level context from Redis (sanitized)
+  env.EPIC_CONTEXT = epicContext;
+  env.PHASE_CONTEXT = phaseContext;
+  env.SUCCESS_CRITERIA = successCriteria;
 
   console.log(`[cfn-spawn] Executing: npx ${claudeArgs.join(' ')}`);
 

@@ -27,6 +27,10 @@ import os from 'os';
 
 const execAsync = promisify(exec);
 
+// Bug #6 Fix: Read Redis connection parameters from process.env
+const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+const redisPort = process.env.CFN_REDIS_PORT || '6379';
+
 export interface AgentExecutionResult {
   success: boolean;
   agentId: string;
@@ -90,7 +94,7 @@ async function executeCFNProtocol(
   try {
     // Step 1: Signal completion
     console.log('[CFN Protocol] Step 1: Signaling completion...');
-    await execAsync(`redis-cli -h "\${REDIS_HOST:-localhost}" -p "\${REDIS_PORT:-6379}" lpush "swarm:${taskId}:${agentId}:done" "complete"`);
+    await execAsync(`redis-cli -h "${redisHost}" -p "${redisPort}" lpush "swarm:${taskId}:${agentId}:done" "complete"`);
     console.log('[CFN Protocol] ✓ Completion signaled');
 
     // Step 2: Extract and report confidence
@@ -316,18 +320,54 @@ async function executeViaScript(
   return new Promise((resolve) => {
     const scriptPath = path.join('.claude', 'skills', 'agent-execution', 'execute-agent.sh');
 
-    // Build environment variables
-    const env = {
-      ...process.env,
-      AGENT_TYPE: definition.name,
-      AGENT_ID: agentId,
-      AGENT_MODEL: definition.model,
-      AGENT_TOOLS: definition.tools.join(','),
-      TASK_ID: context.taskId || '',
-      ITERATION: String(context.iteration || 1),
-      MODE: context.mode || 'cli',
-      PROMPT_FILE: promptFile,
-    };
+    // Build environment variables - WHITELIST ONLY APPROACH
+    // SECURITY FIX: Do not use ...process.env spread which exposes ALL variables including secrets
+    // Instead, explicitly whitelist safe variables to pass to spawned process
+    const safeEnvVars = [
+      'CFN_REDIS_HOST',
+      'CFN_REDIS_PORT',
+      'CFN_REDIS_URL',
+      'CFN_MEMORY_BUDGET',
+      'CFN_API_HOST',
+      'CFN_API_PORT',
+      'CFN_LOG_LEVEL',
+      'CFN_LOG_FORMAT',
+      'CFN_CONTAINER_MODE',
+      'CFN_DOCKER_SOCKET',
+      'CFN_NETWORK_NAME',
+      'CFN_CUSTOM_ROUTING',
+      'CFN_DEFAULT_PROVIDER',
+      'NODE_ENV',
+      'PATH',
+      'HOME'
+    ];
+
+    const env: Record<string, string> = {};
+
+    // Add whitelisted variables
+    for (const key of safeEnvVars) {
+      const value = process.env[key];
+      if (value !== undefined) {
+        env[key] = value;
+      }
+    }
+
+    // Add API key only when explicitly needed (with strict validation)
+    if (process.env.ANTHROPIC_API_KEY) {
+      if (process.env.ANTHROPIC_API_KEY.match(/^sk-[a-zA-Z0-9-]+$/)) {
+        env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+      }
+    }
+
+    // Add agent execution context (safe values)
+    env.AGENT_TYPE = definition.name;
+    env.AGENT_ID = agentId;
+    env.AGENT_MODEL = definition.model;
+    env.AGENT_TOOLS = definition.tools.join(',');
+    env.TASK_ID = context.taskId || '';
+    env.ITERATION = String(context.iteration || 1);
+    env.MODE = context.mode || 'cli';
+    env.PROMPT_FILE = promptFile;
 
     // Check if execute script exists
     fs.access(scriptPath)

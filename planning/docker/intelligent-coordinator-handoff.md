@@ -249,7 +249,7 @@ Product Owner: ITERATE or PROCEED based on error count
 
 ---
 
-## Current Status
+## Current Status (Updated 2025-11-13 - Session 2)
 
 ### ✅ Completed
 1. Architecture design and documentation
@@ -261,8 +261,11 @@ Product Owner: ITERATE or PROCEED based on error count
 7. **Critical bug fixes:**
    - API key propagation to agent containers (Bug #1 - FIXED)
    - .env inline comment handling (Bug #2 - WORKAROUND)
-   - Build process source syncing
+   - Build process source syncing (Bug #3 - FIXED: Linux native builds)
+   - TSC error detection regex (Bug #5 - FIXED: Now correctly detects all error lines)
+   - Redis package added to agent Dockerfile (Bug #6 - PARTIAL FIX)
 8. **Comprehensive test findings documented** (see `docs/DOCKER_COORDINATOR_INTEGRATION_TEST_FINDINGS.md`)
+9. **Build process standardized to Linux-native builds** (per user feedback)
 
 ### ✅ Validated (Integration Test Results)
 1. ✅ Agent spawning and lifecycle management working
@@ -270,6 +273,59 @@ Product Owner: ITERATE or PROCEED based on error count
 3. ✅ TypeScript error processing (484K input tokens, 20 iterations)
 4. ✅ Memory-based batching (Tier 1-4) applied correctly
 5. ✅ Wave spawning (9.8GB / 40GB budget, single wave)
+6. ✅ Error detection (coordinator correctly identifies 14 actual error lines vs 140 total grep matches)
+7. ✅ Init script Redis coordination working (agent initialization succeeds)
+
+### 🔴 BLOCKING Issues
+
+#### Bug #6: Node.js CLI Redis Connection (CRITICAL - BLOCKING ALL AGENT EXECUTION)
+**Status:** ❌ ROOT CAUSE IDENTIFIED - NOT YET FIXED (as of 2025-11-13 Session 2)
+**Severity:** CRITICAL - Prevents all agent task execution
+**Impact:** Agents spawn successfully, init script completes, but CLI immediately fails
+
+**Root Cause Chain:**
+1. ✅ Coordinator correctly passes `REDIS_HOST=cfn-redis` environment variable (docker/coordinator/src/coordinator.js:290-291)
+2. ✅ Agent init script correctly uses `$REDIS_HOST` for coordination signal (scripts/docker-agent-init.sh:7-8, 20-45)
+3. ✅ Init script successfully writes to Redis using `redis-cli -h "$REDIS_HOST"`
+4. ✅ Init script successfully starts Node.js CLI process
+5. ❌ **FAILURE POINT**: Node.js CLI uses hardcoded `127.0.0.1` instead of reading `process.env.REDIS_HOST`
+6. ❌ Result: Agent exits with code 1 after 3 seconds
+
+**Evidence from Agent Logs:**
+```
+🐳 Docker Agent Initializing
+Agent ID: wave1-agent1
+Redis: cfn-redis:6379                                          ← Env var correctly set
+✅ Coordination signal written to Redis                        ← Init script succeeds
+Claude Flow Novice v2.0 - Clean Architecture                  ← CLI starts
+[agent-command] Spawning agent: typescript-specialist
+Could not connect to Redis at 127.0.0.1:6379: Connection refused  ← CLI fails with hardcoded localhost
+```
+
+**Required Fix:**
+Find Redis client initialization in Node.js CLI and update to use environment variables:
+
+```typescript
+// Current (WRONG):
+const redisClient = redis.createClient({
+  host: '127.0.0.1',  // ❌ Hardcoded localhost
+  port: 6379
+});
+
+// Required (CORRECT):
+const redisClient = redis.createClient({
+  host: process.env.REDIS_HOST || 'cfn-redis',  // ✅ Read from environment
+  port: parseInt(process.env.REDIS_PORT || '6379')
+});
+```
+
+**Likely Location:**
+- `src/cli/anthropic-client.ts` or related Redis connection initialization
+- Search for: `redis.createClient`, `127.0.0.1`, `localhost` in src/cli/
+
+**Estimated Effort:** 1-2 hours (find + fix + rebuild + test)
+
+**Priority:** P0 - Must fix before any functional testing can proceed
 
 ---
 
@@ -628,3 +684,137 @@ The intelligent coordinator is **ready for execution**. All implementation is co
 ---
 
 **Handoff complete. Ready to proceed.**
+BUG VALIDATION REPORT - Iteration 2
+====================================
+
+## BUG #4: Coordinator Coordination Pattern Mismatch
+
+**Original Issue:** Coordinator uses Redis queue (RPOP) but agents use env vars → infinite wait loop
+
+**Status:** ✅ FIXED (already addressed in Iteration 1)
+
+**Evidence:**
+1. Coordinator NO LONGER uses Redis queue pattern
+   - No rPush operations found in coordinator.js
+   - No task:queue operations found
+   - waitForCompletion() now uses Docker container status tracking (line 350)
+
+2. Verification commands:
+   ```bash
+   grep -n "rPush\|RPUSH\|task:queue" docker/coordinator/src/coordinator.js
+   # Result: No matches found
+   
+   grep -n "waitForCompletion" docker/coordinator/src/coordinator.js
+   # Result: Line 350 - uses Docker container status, not Redis queue
+   ```
+
+3. Coordinator waits by polling Docker API for container state (running/exited)
+4. This matches agent completion pattern (agents signal via Redis, coordinator polls Docker)
+
+**Confidence:** 0.95 - Code inspection confirms pattern alignment
+
+---
+
+## BUG #6: Node.js CLI Hardcoded Redis Connection
+
+**Original Issue:** Node.js CLI uses hardcoded 127.0.0.1 instead of reading process.env.REDIS_HOST
+
+**Status:** ❌ PARTIALLY FIXED - Environment variable name mismatch
+
+**Root Cause:** CLI code uses REDIS_HOST, but coordinator passes CFN_REDIS_HOST
+
+**Files with REDIS_HOST usage (should be CFN_REDIS_HOST):**
+1. src/cli/agent-spawn.ts:141 - Epic context fetch
+2. src/cli/agent-spawn.ts:149 - Phase context fetch  
+3. src/cli/agent-spawn.ts:157 - Success criteria fetch
+4. src/cli/anthropic-client.ts:494 - Heartbeat update
+5. src/cli/anthropic-client.ts:553 - Final heartbeat
+
+**Current Pattern (INCONSISTENT):**
+```typescript
+// Coordinator passes CFN_REDIS_HOST (line 306-307)
+`CFN_REDIS_HOST=${CONFIG.redisHost}`,
+`CFN_REDIS_PORT=${CONFIG.redisPort}`,
+
+// But CLI reads REDIS_HOST (wrong variable!)
+execSync(`redis-cli -h \${REDIS_HOST:-cfn-redis}...`)
+```
+
+**Required Fix:**
+Replace all REDIS_HOST with CFN_REDIS_HOST in CLI files:
+- src/cli/agent-spawn.ts (3 instances)
+- src/cli/anthropic-client.ts (2 instances)
+
+**Impact:** HIGH - Agents will always connect to cfn-redis (default) even if coordinator configured differently
+
+---
+
+## COORDINATOR REFACTOR VALIDATION
+
+**File:** docker/coordinator/src/coordinator.js
+
+### 1. CONFIG uses CFN_* environment variables
+✅ VERIFIED - Lines 46-47:
+```javascript
+redisHost: process.env.CFN_REDIS_HOST || process.env.REDIS_HOST || 'cfn-redis',
+redisPort: parseInt(process.env.CFN_REDIS_PORT || process.env.REDIS_PORT || '6379'),
+```
+
+### 2. TASK_ID and AGENT_TYPE passed to agents
+✅ VERIFIED - Lines 290-291:
+```javascript
+`TASK_ID=${CONFIG.taskId}`,
+`AGENT_TYPE=${agentType}`,
+```
+
+### 3. Runtime config loading graceful
+✅ VERIFIED - Lines 26-37:
+```javascript
+let runtimeConfig = { canonicalKeys: [] };
+try {
+  const configPath = '/opt/cfn/runtime-env.json';
+  if (fs.existsSync(configPath)) {
+    runtimeConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  }
+} catch (err) {
+  console.log('Runtime config not available, using defaults');
+}
+```
+
+### 4. CFN_REDIS_HOST/PORT propagated to agents
+✅ VERIFIED - Lines 306-307:
+```javascript
+`CFN_REDIS_HOST=${CONFIG.redisHost}`,
+`CFN_REDIS_PORT=${CONFIG.redisPort}`,
+```
+
+---
+
+## SUMMARY
+
+### Issues Status:
+- BUG #4: ✅ FIXED (coordinator pattern aligned)
+- BUG #6: ⚠️ PARTIALLY FIXED (environment variable name mismatch)
+- Coordinator Refactor: ✅ COMPLETE (all changes verified)
+
+### Blocking Issue:
+**BUG #6 Environment Variable Mismatch** prevents agents from respecting custom Redis configuration.
+
+### Next Action Required:
+Fix 5 instances of REDIS_HOST → CFN_REDIS_HOST in CLI files:
+1. src/cli/agent-spawn.ts (lines 141, 149, 157)
+2. src/cli/anthropic-client.ts (lines 494, 553)
+
+---
+
+**Validation Confidence:** 0.88
+- High confidence in Bug #4 fix verification (code inspection clear)
+- Medium confidence in Bug #6 assessment (requires code change + rebuild + runtime test)
+- High confidence in coordinator refactor validation (all changes present)
+
+**Estimated Fix Time:** 30 minutes (edit 2 files, rebuild agent image, test)
+
+
+---
+
+**Bug Validation Report Appended:** Thu Nov 13 02:10:04 PST 2025

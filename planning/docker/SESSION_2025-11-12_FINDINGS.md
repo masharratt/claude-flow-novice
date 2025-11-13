@@ -49,15 +49,15 @@ This session focused on resolving critical bugs discovered during integration te
 
 ---
 
-## Critical Issue Discovered (NOT YET FIXED)
+## Critical Issues Discovered
 
-### Architectural Mismatch: Task Distribution vs Execution
+### Issue 1: Architectural Mismatch - Container Tracking (FIXED ✅)
 
-**Problem:** Agents aren't claiming tasks from Redis queue despite coordinator successfully spawning them.
+**Problem:** Coordinator waited forever despite agents completing work.
 
 **Root Cause Analysis (Confidence: 0.95):**
 
-The coordinator has TWO conflicting task distribution patterns:
+The coordinator had TWO conflicting task distribution patterns:
 
 #### Pattern 1: Redis Queue (IMPLEMENTED but UNUSED)
 ```javascript
@@ -94,65 +94,85 @@ Cmd: ['node', '/app/dist/cli/index.js', 'agent', 'typescript-specialist', prompt
 
 **Impact:** Coordinator cannot detect agent completion, causing infinite wait loops.
 
+**Fix Implemented:** Removed Redis queue operations, replaced with Docker container status tracking (see coordinator.js changes).
+
+**Status:** ✅ **FIXED** - Coordinator now detects agent completion correctly
+
+---
+
+### Issue 2: Agent Redis Connection Failure (ROOT CAUSE ❌)
+
+**Problem:** All 16 agents fail with exit code 1 after 49-371 seconds of execution.
+
+**Root Cause Analysis (Confidence: 1.0):**
+
+Agent containers cannot connect to Redis for completion signaling:
+
+```
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+```
+
+**Evidence:**
+1. Agent log shows: `[heartbeat] Monitoring started for agent typescript-specialist-1 (30s interval)`
+2. Immediately followed by: `Could not connect to Redis at 127.0.0.1:6379: Connection refused`
+3. Agent uses hardcoded localhost Redis connection in heartbeat monitoring
+4. Redis is on Docker network at `cfn-redis:6379`, NOT at localhost
+5. Same issue as coordinator Redis fix, but in agent Docker image
+
+**Impact:**
+- Agents can't report completion to Redis
+- Agents fail with exit code 1 during execution
+- 0/16 agents complete successfully
+- Coordinator correctly detects 16 failed agents
+
+**Files Requiring Fix:**
+- Agent Docker image (Dockerfile.agent) - needs REDIS_HOST propagation
+- Agent heartbeat monitoring code - likely hardcodes localhost redis-cli
+- Agent entrypoint.sh - needs to pass REDIS_HOST to heartbeat script
+
+**Status:** ❌ **NOT YET FIXED** - Agent image needs Redis host/port fix
+
 ---
 
 ## Recommended Fix (NOT IMPLEMENTED)
 
-### Option B: Remove Unused Queue Pattern
-
-**Rationale:**
-- Current environment variable pattern works
-- Queue adds unnecessary complexity
-- Breaking changes avoided (no agent code changes needed)
+### Fix Agent Redis Connection
 
 **Required Changes:**
 
-#### 1. Remove Queue Operations (`docker/coordinator/src/coordinator.js`)
-```javascript
-// DELETE lines ~167-195
-- await redisClient.del('task:queue');
-- await redisClient.rPush('task:queue', taskNum.toString());
-- await redisClient.set('task:total', taskIds.length);
-- await redisClient.set('task:completed', 0);
+#### 1. Identify Agent Heartbeat Code
+Find where agent containers call redis-cli for heartbeat monitoring. Likely locations:
+- `docker/agents/entrypoint.sh`
+- `src/cli/agent-heartbeat.ts`
+- Any script spawned for periodic health checks
+
+#### 2. Add REDIS_HOST/PORT Flags
+Same pattern as coordinator fix:
+```bash
+# BEFORE
+redis-cli lpush "heartbeat:${AGENT_ID}" "alive"
+
+# AFTER
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" lpush "heartbeat:${AGENT_ID}" "alive"
 ```
 
-#### 2. Replace Wait Logic (lines ~296-350)
+#### 3. Pass REDIS_HOST to Agent Containers
+Update coordinator.js to pass REDIS_HOST environment variable when spawning agents:
 ```javascript
-// BEFORE: Check Redis queue/counters
-const completed = parseInt(await redisClient.get('task:completed') || '0');
-const queueLength = await redisClient.lLen('task:queue');
-
-// AFTER: Check Docker container status
-const containers = await docker.listContainers({
-  filters: { name: ['wave'] },
-  all: true
-});
-
-const exitedContainers = containers.filter(c => c.State === 'exited');
-const runningContainers = containers.filter(c => c.State === 'running');
-
-if (runningContainers.length === 0) {
-  console.log(`\n   ✅ All ${exitedContainers.length} agents completed`);
-  break;
-}
+Env: [
+  `REDIS_HOST=${process.env.REDIS_HOST || 'cfn-redis'}`,
+  `REDIS_PORT=${process.env.REDIS_PORT || '6379'}`,
+  // ... existing env vars
+]
 ```
 
-#### 3. Add Per-Agent Status Tracking
-```javascript
-// Enhanced completion detection
-for (const container of exitedContainers) {
-  const inspect = await docker.getContainer(container.Id).inspect();
-  
-  if (inspect.State.ExitCode !== 0) {
-    console.warn(`⚠️  Agent ${container.Names[0]} failed (exit code ${inspect.State.ExitCode})`);
-    failedAgents.push(container.Names[0]);
-  } else {
-    completedAgents.push(container.Names[0]);
-  }
-}
+#### 4. Rebuild Agent Images
+```bash
+# Rebuild all agent images with Redis fix
+docker build -f Dockerfile.agent -t cfn-agent:latest .
 ```
 
-**Estimated Effort:** 2-3 hours for implementation + testing
+**Estimated Effort:** 1-2 hours for implementation + testing
 
 ---
 
@@ -188,6 +208,7 @@ for (const container of exitedContainers) {
 3. `.claude/skills/cfn-redis-coordination/complete-swarm.sh` - Added REDIS_HOST/-PORT flags
 4. `.claude/skills/cfn-loop-orchestration/orchestrate.sh` - Added REDIS_HOST/-PORT flags
 5. `src/cli/agent-executor.ts` - Added host/port to redis-cli calls
+6. `docker/coordinator/src/coordinator.js` - Removed Redis queue, added container status tracking
 
 ### Documentation Created
 1. `docs/DOCKER_COORDINATOR_INTEGRATION_TEST_FINDINGS.md` - Detailed test findings
@@ -197,35 +218,37 @@ for (const container of exitedContainers) {
 
 ## Next Steps (Priority Order)
 
-### Priority 1: Fix Architectural Mismatch
-**Task:** Implement Option B (remove unused queue, use container status tracking)
+### Priority 1: Fix Agent Redis Connection ⚠️ **CRITICAL**
+**Task:** Add REDIS_HOST/PORT propagation to agent containers
 
 **Files to Modify:**
-- `docker/coordinator/src/coordinator.js` (lines 167-195, 296-350)
+1. Identify agent heartbeat code location (entrypoint.sh, agent-heartbeat.ts)
+2. Add `-h` and `-p` flags to all redis-cli commands in agent code
+3. Update coordinator.js to pass REDIS_HOST/PORT environment variables to agents
+4. Rebuild agent Docker image
 
 **Validation:**
-- Run integration test on historical commit
-- Verify agents complete and coordinator detects completion
-- Confirm iteration proceeds correctly
-
-### Priority 2: Rebuild and Test
-**Task:** Rebuild coordinator image with architectural fix
-
-**Commands:**
 ```bash
-export DOCKERFILE="Dockerfile.coordinator"
-export IMAGE_NAME="cfn-intelligent-coordinator"
-export IMAGE_TAG="latest"
-./scripts/docker/build-from-linux.sh
+# Rebuild agent image with Redis fix
+docker build -f Dockerfile.agent -t cfn-agent:latest .
 
-# Test with short iteration
+# Test with 1 iteration
 FRONTEND_PATH="/tmp/frontend-test-worktree/frontend" \
   MAX_ITERATIONS=1 \
   bash tests/docker/intelligent-coordinator-test.sh
 ```
 
-### Priority 3: Update Documentation
-**Task:** Update planning docs with new container-based completion tracking
+**Expected Result:**
+- Agents connect to Redis successfully
+- Agents complete work with exit code 0
+- Coordinator detects successful completions
+- Progress shows N completed agents (not N failed)
+
+### Priority 2: Update Documentation
+**Task:** Update planning docs with:
+- Container-based completion tracking (already implemented)
+- Agent Redis connection requirements
+- Complete testing workflow
 
 **Files to Update:**
 - `planning/docker/intelligent-coordinator-architecture.md`
@@ -328,7 +351,15 @@ FRONTEND_PATH="/tmp/frontend-test-worktree/frontend" \
 ---
 
 **Session Date:** 2025-11-12
-**Session Duration:** ~2 hours
-**Status:** ⚠️ **PARTIALLY COMPLETE** - Critical fixes implemented, architectural issue identified but not yet resolved
+**Session Duration:** ~2.5 hours
+**Status:** ⚠️ **PARTIALLY COMPLETE** - 3 critical fixes implemented, 1 remaining
 
-**Next Action:** Implement container-based completion tracking in `docker/coordinator/src/coordinator.js`
+**Completed:**
+- ✅ Redis heartbeat fix (coordinator + CLI scripts)
+- ✅ .env Docker compatibility
+- ✅ Container-based completion tracking
+
+**Remaining:**
+- ❌ Agent Redis connection fix (root cause of 16/16 agent failures)
+
+**Next Action:** Fix agent Redis connection by adding REDIS_HOST/PORT propagation to agent Docker image

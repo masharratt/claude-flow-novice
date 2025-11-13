@@ -21,6 +21,10 @@ import { promisify } from 'util';
 
 const execAsync = promisify(exec);
 
+// Bug #6 Fix: Read Redis connection parameters from process.env
+const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+const redisPort = process.env.CFN_REDIS_PORT || '6379';
+
 // ============================================================================
 // Epic Context Interfaces (for CLI Agent System Prompts)
 // ============================================================================
@@ -79,7 +83,7 @@ export interface SuccessCriteriaData {
  */
 export async function loadEpicContext(taskId: string): Promise<EpicContextData | null> {
   try {
-    const { stdout } = await execAsync(`redis-cli get "swarm:${taskId}:epic-context"`);
+    const { stdout } = await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:epic-context"`);
     const result = stdout.trim();
 
     if (result === '(nil)' || !result) {
@@ -100,7 +104,7 @@ export async function loadEpicContext(taskId: string): Promise<EpicContextData |
  */
 export async function loadPhaseContext(taskId: string): Promise<PhaseContextData | null> {
   try {
-    const { stdout } = await execAsync(`redis-cli get "swarm:${taskId}:phase-context"`);
+    const { stdout } = await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:phase-context"`);
     const result = stdout.trim();
 
     if (result === '(nil)' || !result) {
@@ -121,7 +125,7 @@ export async function loadPhaseContext(taskId: string): Promise<PhaseContextData
  */
 export async function loadSuccessCriteria(taskId: string): Promise<SuccessCriteriaData | null> {
   try {
-    const { stdout } = await execAsync(`redis-cli get "swarm:${taskId}:success-criteria"`);
+    const { stdout } = await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:success-criteria"`);
     const result = stdout.trim();
 
     if (result === '(nil)' || !result) {
@@ -144,7 +148,7 @@ export async function loadSuccessCriteria(taskId: string): Promise<SuccessCriter
 export async function storeEpicContext(taskId: string, context: EpicContextData): Promise<boolean> {
   try {
     const contextJson = JSON.stringify(context);
-    await execAsync(`redis-cli setex "swarm:${taskId}:epic-context" 604800 '${contextJson.replace(/'/g, "\\'")}'`);
+    await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} setex "swarm:${taskId}:epic-context" 604800 '${contextJson.replace(/'/g, "\\'")}'`);
     console.log(`[cfn-context] Stored epic context for task ${taskId}`);
     return true;
   } catch (error) {
@@ -162,7 +166,7 @@ export async function storeEpicContext(taskId: string, context: EpicContextData)
 export async function storePhaseContext(taskId: string, context: PhaseContextData): Promise<boolean> {
   try {
     const contextJson = JSON.stringify(context);
-    await execAsync(`redis-cli setex "swarm:${taskId}:phase-context" 604800 '${contextJson.replace(/'/g, "\\'")}'`);
+    await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} setex "swarm:${taskId}:phase-context" 604800 '${contextJson.replace(/'/g, "\\'")}'`);
     console.log(`[cfn-context] Stored phase context for task ${taskId}`);
     return true;
   } catch (error) {
@@ -180,7 +184,7 @@ export async function storePhaseContext(taskId: string, context: PhaseContextDat
 export async function storeSuccessCriteria(taskId: string, criteria: SuccessCriteriaData): Promise<boolean> {
   try {
     const criteriaJson = JSON.stringify(criteria);
-    await execAsync(`redis-cli setex "swarm:${taskId}:success-criteria" 604800 '${criteriaJson.replace(/'/g, "\\'")}'`);
+    await execAsync(`redis-cli -h ${redisHost} -p ${redisPort} setex "swarm:${taskId}:success-criteria" 604800 '${criteriaJson.replace(/'/g, "\\'")}'`);
     console.log(`[cfn-context] Stored success criteria for task ${taskId}`);
     return true;
   } catch (error) {

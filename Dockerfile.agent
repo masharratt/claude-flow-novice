@@ -26,11 +26,13 @@ COPY dist/ ./dist/
 COPY .claude/ ./.claude/
 COPY claude-assets/ ./claude-assets/
 COPY scripts/ ./scripts/
+COPY docker/runtime/ ./docker/runtime/
 COPY CLAUDE.md ./
 COPY README.md LICENSE ./
 
-# Make init script executable
-RUN chmod +x ./scripts/docker-agent-init.sh
+# Make init scripts executable
+RUN chmod +x ./scripts/docker-agent-init.sh && \
+    chmod +x ./docker/runtime/cfn-runtime.sh
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S cfn && \
@@ -54,7 +56,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "console.log('healthy')" || exit 1
 
 # Use init script as entrypoint for Redis coordination
-ENTRYPOINT ["/bin/bash", "/app/scripts/docker-agent-init.sh"]
+# Sources cfn-runtime.sh for environment standardization before agent execution
+ENTRYPOINT ["/bin/bash", "-c", "source /app/docker/runtime/cfn-runtime.sh && exec /app/scripts/docker-agent-init.sh \"$@\"", "--"]
 
 # Default CMD (agent execution)
 CMD ["node", "dist/cli/index.js", "agent", "--help"]

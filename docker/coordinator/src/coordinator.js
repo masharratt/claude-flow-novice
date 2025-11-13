@@ -18,16 +18,76 @@
 const { execSync } = require('child_process');
 const Docker = require('dockerode');
 const redis = require('redis');
+const fs = require('fs');
+const path = require('path');
 
-// Configuration from environment
+// SECURITY: Secret filtering utility for logs
+// Prevents accidental exposure of API keys, passwords, and tokens
+function filterSecrets(text) {
+  if (!text || typeof text !== 'string') return text;
+
+  const secretPatterns = [
+    { name: 'ANTHROPIC_API_KEY', pattern: /(ANTHROPIC_API_KEY)[\s:=]+([^\s\n"']+)/gi },
+    { name: 'CFN_API_KEY', pattern: /(CFN_API_KEY)[\s:=]+([^\s\n"']+)/gi },
+    { name: 'REDIS_PASSWORD', pattern: /(CFN_REDIS_PASSWORD|REDIS_PASSWORD)[\s:=]+([^\s\n"']+)/gi },
+    { name: 'GITHUB_TOKEN', pattern: /(GITHUB_TOKEN|github_token)[\s:=]+([^\s\n"']+)/gi },
+    { name: 'BEARER_TOKEN', pattern: /(Bearer|bearer)\s+([A-Za-z0-9._\-]+)/g }
+  ];
+
+  let filtered = text;
+  for (const { name, pattern } of secretPatterns) {
+    if (pattern.test(filtered)) {
+      filtered = filtered.replace(pattern, (match) => {
+        const parts = match.split(/[\s:=]+/);
+        return parts.length >= 2 ? `${parts[0]}=***${name}_REDACTED***` : `***${name}_REDACTED***`;
+      });
+    }
+  }
+  return filtered;
+}
+
+// Safe logging wrapper
+function safeLog(...args) {
+  const filtered = args.map(arg =>
+    typeof arg === 'string' ? filterSecrets(arg) : arg
+  );
+  console.log(...filtered);
+}
+
+function safeError(...args) {
+  const filtered = args.map(arg =>
+    typeof arg === 'string' ? filterSecrets(arg) : arg
+  );
+  console.error(...filtered);
+}
+
+// Import runtime config (gracefully handle missing file)
+let runtimeConfig = { canonicalKeys: [] };
+try {
+  const configPath = path.join('/opt/cfn/runtime-env.json');
+  if (fs.existsSync(configPath)) {
+    runtimeConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  }
+} catch (error) {
+  console.warn('⚠️  Runtime config not found, using default canonical keys');
+  // Default canonical keys for filtering
+  runtimeConfig.canonicalKeys = [
+    'CFN_REDIS_HOST', 'CFN_REDIS_PORT', 'CFN_MEMORY_BUDGET', 'CFN_MAX_ITERATIONS',
+    'CFN_AGENT_IMAGE', 'ANTHROPIC_API_KEY', 'CLAUDE_API_PROVIDER',
+    'ZAI_API_KEY', 'Z_AI_API_KEY', 'KIMI_API_KEY'
+  ];
+}
+
+// Configuration from environment (CFN_* canonical names with legacy fallback)
 const CONFIG = {
   workspace: '/workspace',
-  memoryBudget: process.env.MEMORY_BUDGET || '40g',
-  maxIterations: parseInt(process.env.MAX_ITERATIONS) || 10,
-  redisHost: process.env.REDIS_HOST || 'cfn-redis',
-  redisPort: parseInt(process.env.REDIS_PORT) || 6379,
+  memoryBudget: process.env.CFN_MEMORY_BUDGET || process.env.MEMORY_BUDGET || '40g',
+  maxIterations: parseInt(process.env.CFN_MAX_ITERATIONS || process.env.MAX_ITERATIONS || '10'),
+  redisHost: process.env.CFN_REDIS_HOST || process.env.REDIS_HOST || 'cfn-redis',
+  redisPort: parseInt(process.env.CFN_REDIS_PORT || process.env.REDIS_PORT || '6379'),
   networkName: process.env.NETWORK_NAME || 'cfn-network',
-  agentImage: process.env.AGENT_IMAGE || 'claude-flow-novice-agent:frontend',
+  agentImage: process.env.CFN_AGENT_IMAGE || process.env.AGENT_IMAGE || 'claude-flow-novice-agent:frontend',
+  taskId: process.env.TASK_ID || 'unknown',
   tierMemory: {
     1: '512m',  // Independent files
     2: '600m',  // Small clusters (2-3 files)
@@ -66,37 +126,56 @@ async function analyzeAllErrors() {
       { encoding: 'utf8', cwd: '/workspace' }
     );
 
-    // Parse errors: "src/file.tsx(10,5): error TS2345: ..."
-    const errorPattern = /(.+?)\(\d+,\d+\): error (TS\d+):/g;
+    // Count all lines containing "error TS" (same method as test script)
+    const errorLines = output.split('\n').filter(line => /error TS\d+:/.test(line));
+    const totalErrors = errorLines.length;
+
+    console.log(`   Debug: Total error lines found: ${totalErrors}`);
+
+    // Parse file paths from matched lines for batching
     const errorsByFile = new Map();
+    errorLines.forEach(line => {
+      const match = line.match(/(.+?)\(\d+,\d+\):/);
+      if (match) {
+        const file = match[1];
+        errorsByFile.set(file, (errorsByFile.get(file) || 0) + 1);
+      }
+    });
 
-    let match;
-    while ((match = errorPattern.exec(output)) !== null) {
-      const file = match[1];
-      errorsByFile.set(file, (errorsByFile.get(file) || 0) + 1);
-    }
-
-    const totalErrors = Array.from(errorsByFile.values()).reduce((sum, count) => sum + count, 0);
     console.log(`   Found ${totalErrors} errors across ${errorsByFile.size} files`);
 
     return errorsByFile;
 
   } catch (error) {
-    // tsc returns non-zero if errors found, parse stdout anyway
-    const output = error.stdout || '';
-    const errorPattern = /(.+?)\(\d+,\d+\): error (TS\d+):/g;
-    const errorsByFile = new Map();
+    // TSC returns non-zero when errors exist - this is expected
+    // With encoding:'utf8' and 2>&1 redirect, output is in error.stdout + error.stderr
+    const output = (error.stdout || '') + (error.stderr || '');
+    console.log(`   Debug: Captured ${output.length} chars of TSC output`);
 
-    let match;
-    while ((match = errorPattern.exec(output)) !== null) {
-      const file = match[1];
-      errorsByFile.set(file, (errorsByFile.get(file) || 0) + 1);
+    // Count all lines containing "error TS" (same method as test script)
+    const errorLines = output.split('\n').filter(line => /error TS\d+:/.test(line));
+    const totalErrors = errorLines.length;
+
+    console.log(`   Debug: Total error lines found: ${totalErrors}`);
+
+    // Parse file paths from matched lines for batching
+    const errorsByFile = new Map();
+    errorLines.forEach(line => {
+      const match = line.match(/(.+?)\(\d+,\d+\):/);
+      if (match) {
+        const file = match[1];
+        errorsByFile.set(file, (errorsByFile.get(file) || 0) + 1);
+      }
+    });
+
+    console.log(`   Found ${totalErrors} errors across ${errorsByFile.size} files`);
+
+    // Validate parsed count matches expected
+    if (totalErrors > 0 && process.env.DEBUG) {
+      console.log(`   First 500 chars of TSC output: ${output.substring(0, 500)}`);
     }
 
-    const totalErrors = Array.from(errorsByFile.values()).reduce((sum, count) => sum + count, 0);
-
     if (totalErrors > 0) {
-      console.log(`   Found ${totalErrors} errors across ${errorsByFile.size} files`);
       return errorsByFile;
     }
 
@@ -249,6 +328,7 @@ async function spawnAgents(clusters) {
  * Spawn single agent container
  */
 async function spawnAgent(batch, agentId) {
+  const agentType = batch.tier === 1 ? 'typescript-specialist' : 'typescript-specialist';
   const promptText = batch.tier === 1
     ? `Fix TypeScript errors in /workspace/${batch.files[0]}\n\nExpected errors: ${batch.errors}`
     : `Fix TypeScript errors in coordinated cluster:\n${
@@ -256,6 +336,33 @@ async function spawnAgent(batch, agentId) {
       }\n\nTotal errors: ${batch.errors}\nThese files may share dependencies. Ensure type changes are consistent.`;
 
   try {
+    // Build environment variables with canonical names and runtime config filtering
+    const envVars = [
+      `TASK_PROMPT=${promptText}`,
+      `AGENT_ID=${agentId}`,
+      `TASK_ID=${CONFIG.taskId}`,
+      `AGENT_TYPE=${agentType}`,
+      `BATCH_TIER=${batch.tier}`,
+      `CFN_REDIS_HOST=${CONFIG.redisHost}`,
+      `CFN_REDIS_PORT=${CONFIG.redisPort}`,
+      // Filter environment using runtime config canonical keys
+      ...Object.entries(process.env)
+        .filter(([k]) => {
+          // If runtime config has canonical keys, use them; otherwise use legacy pattern
+          if (runtimeConfig.canonicalKeys.length > 0) {
+            return runtimeConfig.canonicalKeys.includes(k);
+          }
+          // Fallback to legacy pattern matching
+          return k.startsWith('ANTHROPIC_') ||
+                 k.startsWith('CFN_') ||
+                 k.startsWith('ZAI_') ||
+                 k.startsWith('Z_AI_') ||
+                 k.startsWith('KIMI_') ||
+                 k === 'CLAUDE_API_PROVIDER';
+        })
+        .map(([k, v]) => `${k}=${v}`)
+    ];
+
     const container = await docker.createContainer({
       Image: CONFIG.agentImage,
       name: agentId,
@@ -264,23 +371,8 @@ async function spawnAgent(batch, agentId) {
         NetworkMode: CONFIG.networkName,
         Binds: ['/workspace:/workspace:rw']
       },
-      Env: [
-        `TASK_PROMPT=${promptText}`,
-        `AGENT_ID=${agentId}`,
-        `BATCH_TIER=${batch.tier}`,
-        `REDIS_HOST=${CONFIG.redisHost}`,
-        ...Object.entries(process.env)
-          .filter(([k]) =>
-            k.startsWith('ANTHROPIC_') ||
-            k.startsWith('CFN_') ||
-            k.startsWith('ZAI_') ||
-            k.startsWith('Z_AI_') ||
-            k.startsWith('KIMI_') ||
-            k === 'CLAUDE_API_PROVIDER'
-          )
-          .map(([k, v]) => `${k}=${v}`)
-      ],
-      Cmd: ['node', '/app/dist/cli/index.js', 'agent', 'typescript-specialist', promptText]
+      Env: envVars,
+      Cmd: ['node', '/app/dist/cli/index.js', 'agent', agentType, promptText]
     });
 
     await container.start();
@@ -405,9 +497,9 @@ async function cleanupAgents() {
 async function main() {
   console.log('🎯 INTELLIGENT TYPESCRIPT ERROR COORDINATOR');
   console.log('===========================================');
-  console.log(`Memory budget: ${CONFIG.memoryBudget}`);
-  console.log(`Max iterations: ${CONFIG.maxIterations}`);
-  console.log(`Workspace: ${CONFIG.workspace}`);
+  safeLog(`Memory budget: ${CONFIG.memoryBudget}`);
+  safeLog(`Max iterations: ${CONFIG.maxIterations}`);
+  safeLog(`Workspace: ${CONFIG.workspace}`);
   console.log('');
 
   // Connect to Redis
@@ -416,7 +508,7 @@ async function main() {
   });
 
   await redisClient.connect();
-  console.log(`✅ Connected to Redis at ${CONFIG.redisHost}:${CONFIG.redisPort}\n`);
+  safeLog(`✅ Connected to Redis at ${CONFIG.redisHost}:${CONFIG.redisPort}\n`);
 
   // CFN Loop: Iterate until errors = 0
   for (let iteration = 1; iteration <= CONFIG.maxIterations; iteration++) {

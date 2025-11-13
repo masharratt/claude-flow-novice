@@ -3,12 +3,12 @@
 # Handles Redis coordination data writing for containerized agents
 set -euo pipefail
 
-# Configuration from environment variables
-REDIS_HOST="${REDIS_HOST:-redis}"
-REDIS_PORT="${REDIS_PORT:-6379}"
-TASK_ID="${TASK_ID:-unknown}"
-AGENT_ID="${AGENT_ID:-docker-$(date +%s)-$$}"
-AGENT_TYPE="${AGENT_TYPE:-unknown}"
+# Configuration from environment variables - uses CFN standard with fallback to legacy variables
+REDIS_HOST="${CFN_REDIS_HOST:-${REDIS_HOST:-cfn-redis}}"
+REDIS_PORT="${CFN_REDIS_PORT:-${REDIS_PORT:-6379}}"
+TASK_ID="${CFN_TASK_ID:-${TASK_ID:-unknown}}"
+AGENT_ID="${CFN_AGENT_ID:-${AGENT_ID:-docker-$(date +%s)-$$}}"
+AGENT_TYPE="${CFN_AGENT_TYPE:-${AGENT_TYPE:-unknown}}"
 
 # Coordination key patterns
 SIGNAL_KEY="swarm:${TASK_ID}:${AGENT_ID}:signal"

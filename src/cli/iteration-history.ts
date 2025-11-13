@@ -13,6 +13,10 @@
 
 import { execSync } from 'child_process';
 
+// Bug #6 Fix: Read Redis connection parameters from process.env
+const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+const redisPort = process.env.CFN_REDIS_PORT || '6379';
+
 export interface IterationResult {
   iteration: number;
   result: string;
@@ -41,7 +45,7 @@ export async function loadIterationHistory(
     try {
       // Load result data
       const resultKey = `swarm:${taskId}:${agentId}:result:iteration-${i}`;
-      const resultJson = execSync(`redis-cli get "${resultKey}"`, { encoding: 'utf8' }).trim();
+      const resultJson = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "${resultKey}"`, { encoding: 'utf8' }).trim();
 
       if (resultJson === '(nil)' || !resultJson) {
         // No result for this iteration (shouldn't happen in normal flow)
@@ -55,7 +59,7 @@ export async function loadIterationHistory(
       let feedback: string | undefined;
 
       try {
-        const feedbackJson = execSync(`redis-cli get "${feedbackKey}"`, { encoding: 'utf8' }).trim();
+        const feedbackJson = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "${feedbackKey}"`, { encoding: 'utf8' }).trim();
         if (feedbackJson !== '(nil)' && feedbackJson) {
           const feedbackData = JSON.parse(feedbackJson);
           feedback = feedbackData.feedback || feedbackData.comments;
@@ -109,7 +113,7 @@ export async function storeIterationResult(
 
   try {
     // Store with 24 hour TTL
-    execSync(`redis-cli setex "${resultKey}" 86400 '${resultJson.replace(/'/g, "'\\''")}'`, {
+    execSync(`redis-cli -h ${redisHost} -p ${redisPort} setex "${resultKey}" 86400 '${resultJson.replace(/'/g, "'\\''")}'`, {
       encoding: 'utf8'
     });
     console.log(`[iteration-history] Stored result for iteration ${iteration}`);
@@ -202,7 +206,7 @@ export async function hasIterationHistory(
 ): Promise<boolean> {
   try {
     const pattern = `swarm:${taskId}:${agentId}:result:iteration-*`;
-    const keys = execSync(`redis-cli --scan --pattern "${pattern}"`, { encoding: 'utf8' }).trim();
+    const keys = execSync(`redis-cli -h ${redisHost} -p ${redisPort} --scan --pattern "${pattern}"`, { encoding: 'utf8' }).trim();
     return keys.length > 0;
   } catch (err) {
     return false;
@@ -222,7 +226,7 @@ export async function getLatestIteration(
 ): Promise<number> {
   try {
     const pattern = `swarm:${taskId}:${agentId}:result:iteration-*`;
-    const keys = execSync(`redis-cli --scan --pattern "${pattern}"`, { encoding: 'utf8' })
+    const keys = execSync(`redis-cli -h ${redisHost} -p ${redisPort} --scan --pattern "${pattern}"`, { encoding: 'utf8' })
       .trim()
       .split('\n')
       .filter((k) => k.length > 0);

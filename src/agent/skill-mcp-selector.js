@@ -268,7 +268,7 @@ class SkillMCPSelector {
           '--cpus', `${serverConfig.resourceRequirements?.cpuUnits || 1}`,
           '-e', `MCP_SERVER=${serverName}`,
           '-e', `MCP_AUTH_REQUIRED=true`,
-          '-e', `MCP_REDIS_URL=${process.env.MCP_REDIS_URL || 'redis://localhost:6379'}`,
+          '-e', `MCP_REDIS_URL=${process.env.CFN_REDIS_URL || process.env.MCP_REDIS_URL || `redis://${process.env.CFN_REDIS_HOST || 'cfn-redis'}:${process.env.CFN_REDIS_PORT || 6379}`}`,
           serverConfig.containerImage,
           'node', `/app/mcp-${serverName}-server.js`
         ]

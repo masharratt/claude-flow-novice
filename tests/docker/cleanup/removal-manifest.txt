@@ -1,0 +1,20 @@
+# Test Cleanup Manifest
+# Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+# Phase: 1 - Remove Obsolete Tests per TEST_SUITE_MAINTENANCE_PLAN.md
+
+## Summary
+- Tests Removed: TBD
+- Tests Moved: TBD
+- Tests Archived: TBD
+- Total Actions: TBD
+
+## Rationale
+Remove duplicate, obsolete, or Docker-incompatible tests.
+Move CLI/Task mode tests to subdirectories instead of deleting.
+Archive ACE tests for potential future integration.
+
+---
+
+REMOVED: /mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/docker/run-redis-coordination-tests-fixed.sh
+  Reason: Superseded by run-redis-coordination-tests.sh
+

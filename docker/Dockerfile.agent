@@ -1,0 +1,18 @@
+# Use existing CFN agent image as base
+FROM claude-flow-novice-agent:latest
+
+# Set working directory
+WORKDIR /workspace
+
+# Agent will receive these environment variables from coordinator:
+# - TASK_PROMPT: The error fixing task
+# - AGENT_ID: Unique agent identifier
+# - BATCH_TIER: Memory tier (1-4)
+# - REDIS_HOST: Redis connection
+# - REDIS_PORT: Redis port
+
+# Default entrypoint from base image handles agent execution
+# No custom entrypoint needed - base image already configured
+
+# For testing, this image will spawn actual CFN agents
+# that can fix TypeScript errors

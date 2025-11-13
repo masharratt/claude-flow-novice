@@ -12,7 +12,11 @@ const path = require('path');
 
 class AgentTokenManager {
   constructor(options = {}) {
-    this.redisUrl = options.redisUrl || process.env.MCP_REDIS_URL || 'redis://localhost:6379';
+    // Support CFN standard variables with fallback to legacy MCP_REDIS_URL
+    const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+    const redisPort = process.env.CFN_REDIS_PORT || '6379';
+    const defaultUrl = `redis://${redisHost}:${redisPort}`;
+    this.redisUrl = options.redisUrl || process.env.CFN_REDIS_URL || process.env.MCP_REDIS_URL || defaultUrl;
     this.redis = null;
     this.agentConfigPath = options.agentConfigPath || './config/agent-whitelist.json';
     this.defaultExpiry = options.defaultExpiry || '24h';

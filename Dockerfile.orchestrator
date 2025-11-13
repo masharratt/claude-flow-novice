@@ -23,12 +23,21 @@ RUN npm ci --only=production && npm cache clean --force
 # Install CLI globally
 RUN npm install -g .
 
+# Copy runtime environment setup script
+COPY docker/runtime/cfn-runtime.sh ./docker/runtime/cfn-runtime.sh
+RUN chmod +x ./docker/runtime/cfn-runtime.sh
+
 # Create orchestrator entrypoint
 RUN cat > /app/orchestrator-entrypoint.sh << 'EOF'
 #!/bin/bash
 
-# Source container mode detection
-source /app/container-mode-detection.sh
+# Source CFN runtime environment setup for standardized configuration
+source /app/docker/runtime/cfn-runtime.sh
+
+# Source container mode detection if available
+if [ -f /app/container-mode-detection.sh ]; then
+    source /app/container-mode-detection.sh
+fi
 
 # Set orchestrator-specific Node.js options
 export NODE_OPTIONS="--max-old-space-size=8192"
@@ -36,13 +45,13 @@ export CFN_MODE=orchestrator
 export CFN_DOCKER_CONTAINER=true
 
 # Ensure Redis connectivity
-echo "🔗 Checking Redis connection..."
-if ! redis-cli -u "${CFN_REDIS_URL:-redis://redis:6379}" ping; then
-    echo "❌ Redis connection failed"
+echo "Checking Redis connection to $CFN_REDIS_HOST:$CFN_REDIS_PORT..."
+if ! redis-cli -h "$CFN_REDIS_HOST" -p "$CFN_REDIS_PORT" ping > /dev/null 2>&1; then
+    echo "Redis connection failed"
     exit 1
 fi
 
-echo "✅ Redis connected successfully"
+echo "Redis connected successfully"
 
 # Execute orchestrator
 exec npx claude-flow-novice orchestrator "$@"
