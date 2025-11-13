@@ -1,450 +1,242 @@
-# Docker Agent Deployment - Proof of Concept
+# Docker CFN Loop Test Suite
 
-**Status:** Ready for Testing
-**Purpose:** Validate Docker + Claude agent interaction pattern
-**Date Created:** 2025-10-30
+Comprehensive regression test suite validating the Docker-based CFN Loop v3 architecture, coordinator workflows, Docker infrastructure, and Redis coordination patterns.
 
----
+**Purpose:** Ensure that code changes don't break the Docker CFN Loop process or underlying Docker infrastructure.
 
-## Overview
+## Directory Structure
 
-This POC tests whether Claude Flow Novice agents can be deployed and executed within Docker containers. This is a critical validation for the hybrid architecture strategy (Claude Max coordinators + Z.ai workers in Docker).
+```
+tests/docker/
+├── core/                    # Essential process validation tests (13 test files)
+│   ├── coordinator-planning-tests.sh
+│   ├── coordinator-docker-in-docker-tests.sh
+│   ├── coordinator-atomic-task-tests.sh
+│   ├── coordinator-validation-tests.sh
+│   ├── coordinator-iteration-tests.sh
+│   ├── coordinator-fault-tolerance-tests.sh
+│   ├── intelligent-coordinator-test.sh
+│   ├── docker-hello-world-parity-tests.sh
+│   ├── redis-coordination-tests.sh
+│   ├── agent-lifecycle-tests.sh
+│   ├── memory-budget-tests.sh
+│   ├── cfn-loop-compliance-tests.sh
+│   └── env-propagation-tests.sh
+└── README.md               # This file
+```
 
-**Key Question:** Can we package, deploy, and interact with agents via Docker?
+## Core Tests Overview
 
----
+The core test suite validates the entire Docker CFN Loop execution path from task decomposition to agent completion. Run these tests after ANY code changes to ensure the process still works.
 
-## Quick Start
+### Coordinator V3 Features (6 tests)
 
-### Prerequisites
+**1. Dynamic Planning (`coordinator-planning-tests.sh`)**
+- **What:** Validates coordinator's ability to decompose tasks via Anthropic API
+- **Coverage:** orchestrate.sh:252-393 (plan_task function)
+- **Validates:**
+  - API calls to Anthropic for task decomposition
+  - Plan file generation (`/tmp/cfn-docker-plan-*.json`)
+  - Atomic task scoping (15-30 min time bounds)
+  - Fallback to keyword matching without API key
+- **Test Count:** 4 test cases
 
-1. **Docker installed and running**
-   ```bash
-   docker --version  # Should be 20.x or higher
-   ```
+**2. Docker-in-Docker Worker Spawning (`coordinator-docker-in-docker-tests.sh`)**
+- **What:** Validates coordinator spawning worker containers
+- **Coverage:** spawn-agent.sh, Docker-in-Docker architecture
+- **Validates:**
+  - Coordinator Docker socket access (`/var/run/docker.sock`)
+  - Worker container configuration (network, environment, image)
+  - Worker lifecycle: spawn → execute → cleanup
+- **Test Count:** 3 test cases
 
-2. **Redis running on localhost**
-   ```bash
-   redis-cli ping  # Should return "PONG"
-   # If not running: redis-server
-   ```
+**3. Atomic Task Assignment (`coordinator-atomic-task-tests.sh`)**
+- **What:** Validates one task per agent assignment pattern
+- **Coverage:** orchestrate.sh:451-509 (spawn_loop3 function)
+- **Validates:**
+  - Each agent receives exactly ONE atomic task
+  - Task context files contain required fields (task_id, agent_type, atomic_task, deliverables)
+- **Test Count:** 2 test cases
 
-3. **Z.ai API key set**
-   ```bash
-   export ZAI_API_KEY="your-zai-api-key"
-   # OR: copy .env.poc.example to .env.poc and fill in your key
-   # Z.ai provides 95-98% cost savings vs Anthropic API
-   ```
+**4. Validation and Error Handling (`coordinator-validation-tests.sh`)**
+- **What:** Validates plan validation and entrypoint checks
+- **Coverage:** coordinator-entrypoint.sh, plan validation
+- **Validates:**
+  - Invalid plan rejection
+  - Dependency ordering enforcement
+  - Entrypoint validation (env vars, Docker socket, Redis connectivity)
+- **Test Count:** 5 test cases
 
-4. **Claude Flow Novice project cloned**
-   ```bash
-   cd /path/to/claude-flow-novice
-   ```
+**5. Iteration Management (`coordinator-iteration-tests.sh`)**
+- **What:** Validates multi-iteration CFN Loop execution
+- **Validates:**
+  - Iteration tracking and metadata storage
+  - Product Owner decision enforcement (PROCEED/ITERATE/ABORT)
+  - Max iteration limits
 
-### Run the POC
+**6. Fault Tolerance (`coordinator-fault-tolerance-tests.sh`)**
+- **What:** Validates coordinator resilience to failures
+- **Validates:**
+  - Agent failure recovery
+  - Redis connection loss handling
+  - Partial plan completion handling
+
+### Intelligent Coordinator (1 test)
+
+**7. Intelligent Coordinator Integration (`intelligent-coordinator-test.sh`)**
+- **What:** End-to-end validation of coordinator v3 workflow
+- **Validates:**
+  - Complete flow: planning → spawning → iteration → decision
+  - Integration between all coordinator components
+  - Real task execution with actual agent spawning
+
+### Docker Infrastructure (2 tests)
+
+**8. Hello-World Parity (`docker-hello-world-parity-tests.sh`)**
+- **What:** Validates basic Docker agent execution (Bug #6 fix validation)
+- **Coverage:** Container-based parity with CLI hello-world tests
+- **Validates:**
+  - Docker container spawning
+  - Basic agent functionality in containers
+  - Parity between CLI and Docker execution modes
+- **Test Count:** Multiple parity checks
+
+**9. Agent Lifecycle Management (`agent-lifecycle-tests.sh`)**
+- **What:** Validates agent spawn-to-exit cycle
+- **Coverage:** Agent lifecycle patterns
+- **Validates:**
+  - Agent spawn with environment-based task assignment (Bug #4 pattern)
+  - Metadata capture during execution
+  - Auto-removal on completion
+  - Orphan agent detection and cleanup
+- **Test Count:** 4 test cases
+
+### Redis Coordination (1 test)
+
+**10. Redis Coordination Patterns (`redis-coordination-tests.sh`)**
+- **What:** Validates Redis-based coordination (Bug #6 fix validation)
+- **Coverage:** Node.js Redis client connectivity
+- **Validates:**
+  - Node.js Redis client connectivity with CFN_REDIS_HOST/PORT
+  - Heartbeat mechanism for agent health tracking
+  - Completion tracking and pub/sub patterns
+  - Redis key expiration and cleanup
+- **Test Count:** 4 test cases
+
+### Resource Management (1 test)
+
+**11. Memory Budget Enforcement (`memory-budget-tests.sh`)**
+- **What:** Validates wave spawning and memory limits
+- **Coverage:** Memory budget enforcement patterns
+- **Validates:**
+  - Wave spawning when tasks exceed 40GB budget
+  - Tier allocation (T1: 256MB, T2: 512MB, T3: 1GB, T4: 2GB)
+  - OOM prevention through memory limits
+  - Batch size calculations
+- **Test Count:** 4 test cases
+
+### CFN Loop Patterns (1 test)
+
+**12. CFN Loop Compliance (`cfn-loop-compliance-tests.sh`)**
+- **What:** Validates CFN Loop gate/consensus/decision patterns
+- **Coverage:** Loop 3, Loop 2, Product Owner workflow
+- **Validates:**
+  - Loop 3 gate check (≥0.75 confidence threshold)
+  - Loop 2 consensus collection (≥0.90 threshold)
+  - Product Owner decision parsing (PROCEED/ITERATE/ABORT)
+  - Iteration metadata tracking
+- **Test Count:** 4 test cases
+
+### Environment Management (1 test)
+
+**13. Environment Propagation (`env-propagation-tests.sh`)**
+- **What:** Validates environment variable handling (Bug #4 / Bug #6 fix validation)
+- **Coverage:** .env file validation, runtime propagation
+- **Validates:**
+  - .env.clean file format (no inline comments)
+  - Required variable validation (CFN_REDIS_HOST, ANTHROPIC_API_KEY)
+  - Runtime environment variable propagation to containers
+  - Credential redaction in logs
+- **Test Count:** 4 test cases
+
+## Test Execution
+
+### Run Full Regression Suite
 
 ```bash
-# Execute the test script
-./tests/docker-deployment/test-docker-agent-interaction.sh
+# Run all core tests (comprehensive regression)
+for test in tests/docker/core/*.sh; do
+    bash "$test"
+done
 ```
 
-**Expected Output:**
-- 7 test results (image build, runtime, agent execution, tools, Redis, output, coordination)
-- Final result: PASSED or FAILED
-- Detailed logs saved to `/tmp/docker-agent-logs-{task-id}.txt`
+### Run Individual Test Categories
 
-**Duration:** ~2-3 minutes (includes Docker build, agent execution, cleanup)
-
----
-
-## Files in This Directory
-
-| File | Purpose | Size |
-|------|---------|------|
-| `Dockerfile.agent-poc` | Minimal Docker image for agent execution | 60 lines |
-| `test-docker-agent.md` | Simple test agent definition | 62 lines |
-| `test-docker-agent-interaction.sh` | Automated test script | 274 lines |
-| `POC_RESULTS.md` | Results documentation template | 398 lines |
-| `.env.poc.example` | Environment variables example | 34 lines |
-| `README.md` | This file | You are here |
-
-**Total:** ~830 lines of code/documentation
-
----
-
-## What Gets Tested
-
-### 1. Docker Image Build
-- ✅ Image builds without errors
-- ✅ Image size < 500MB (target)
-- ✅ Dependencies installed correctly
-
-### 2. Container Runtime
-- ✅ Container starts successfully
-- ✅ Non-root user can execute tasks
-- ✅ Health check passes
-- ✅ Container exits cleanly
-
-### 3. Agent Execution
-- ✅ Agent receives task from CLI
-- ✅ Agent executes task (creates test file)
-- ✅ Agent reports confidence score
-- ✅ Agent completes within timeout
-
-### 4. Tool Access
-- ✅ Bash tool works (file creation)
-- ✅ Redis CLI accessible
-- ✅ /tmp directory writable
-
-### 5. Redis Coordination
-- ✅ Agent signals completion
-- ✅ Agent reports confidence to Redis
-- ✅ Signals visible from host
-
-### 6. Output & Logging
-- ✅ Agent output captured
-- ✅ Confidence score visible
-- ✅ Logs extractable
-
----
-
-## Architecture
-
-### POC Design
-
-```
-┌─────────────────────────────────────────────┐
-│ Host Machine                                │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │ Redis (localhost:6379)               │  │
-│  │ - Coordination signals               │  │
-│  │ - Confidence scores                  │  │
-│  └──────────────────────────────────────┘  │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │ Docker Container (cfn-agent-poc)     │  │
-│  │                                      │  │
-│  │  ┌────────────────────────────────┐ │  │
-│  │  │ Node.js 20 (Alpine)            │ │  │
-│  │  ├────────────────────────────────┤ │  │
-│  │  │ Claude Flow Novice (npm)       │ │  │
-│  │  ├────────────────────────────────┤ │  │
-│  │  │ Agent: test-docker-agent       │ │  │
-│  │  ├────────────────────────────────┤ │  │
-│  │  │ Tools: Bash, Write, Redis CLI  │ │  │
-│  │  ├────────────────────────────────┤ │  │
-│  │  │ User: cfnuser (non-root)       │ │  │
-│  │  └────────────────────────────────┘ │  │
-│  └──────────────────────────────────────┘  │
-│                                             │
-│  ┌──────────────────────────────────────┐  │
-│  │ Test Script                          │  │
-│  │ - Builds image                       │  │
-│  │ - Runs container                     │  │
-│  │ - Verifies results                   │  │
-│  │ - Cleans up                          │  │
-│  └──────────────────────────────────────┘  │
-└─────────────────────────────────────────────┘
-```
-
-### Communication Flow
-
-1. **Test Script** → Builds Docker image
-2. **Test Script** → Runs container with CLI spawn command
-3. **Container** → Agent executor spawns `test-docker-agent`
-4. **Agent** → Calls Z.ai API (via ZAI_API_KEY and ZAI_BASE_URL)
-5. **Agent** → Uses Bash tool to create `/tmp/docker-test.txt`
-6. **Agent** → Signals completion to Redis (via Redis CLI)
-7. **Agent** → Reports confidence score to Redis
-8. **Container** → Exits with code 0 (if successful)
-9. **Test Script** → Extracts logs from container
-10. **Test Script** → Verifies Redis signals
-11. **Test Script** → Reports results
-
----
-
-## Customization
-
-### Change Agent Behavior
-
-Edit `test-docker-agent.md` to:
-- Test different tools (Grep, Glob, TodoWrite)
-- Create multiple files
-- Perform more complex operations
-- Test error handling
-
-### Modify Docker Image
-
-Edit `Dockerfile.agent-poc` to:
-- Change base image (e.g., debian-slim)
-- Add additional packages
-- Configure resource limits
-- Implement multi-stage build
-
-### Adjust Test Parameters
-
-Edit `test-docker-agent-interaction.sh` to:
-- Change timeout values
-- Add more test cases
-- Modify Redis key patterns
-- Adjust log verbosity
-
----
-
-## Troubleshooting
-
-### Issue: Docker build fails with "npm install" error
-
-**Solution:**
 ```bash
-# Clear npm cache and rebuild
-docker builder prune -a
-docker build --no-cache -f tests/docker-deployment/Dockerfile.agent-poc -t cfn-agent-poc:latest .
+# Coordinator v3 features only
+bash tests/docker/core/coordinator-planning-tests.sh
+bash tests/docker/core/coordinator-docker-in-docker-tests.sh
+bash tests/docker/core/coordinator-atomic-task-tests.sh
+bash tests/docker/core/coordinator-validation-tests.sh
+
+# Docker infrastructure only
+bash tests/docker/core/docker-hello-world-parity-tests.sh
+bash tests/docker/core/agent-lifecycle-tests.sh
+
+# Redis coordination only
+bash tests/docker/core/redis-coordination-tests.sh
+
+# CFN Loop patterns only
+bash tests/docker/core/cfn-loop-compliance-tests.sh
+bash tests/docker/core/memory-budget-tests.sh
+
+# Environment management only
+bash tests/docker/core/env-propagation-tests.sh
+
+# End-to-end integration
+bash tests/docker/core/intelligent-coordinator-test.sh
 ```
 
-### Issue: Container cannot access Redis
-
-**Symptom:** "Could not connect to Redis at localhost:6379"
-
-**Solution 1:** Use `--network host` (POC approach)
-```bash
-docker run --network host ...
-```
-
-**Solution 2:** Use host.docker.internal (Mac/Windows)
-```bash
-docker run -e REDIS_HOST=host.docker.internal ...
-```
-
-**Solution 3:** Run Redis in container with custom network (production approach)
-```bash
-docker network create cfn-network
-docker run --name cfn-redis --network cfn-network redis:alpine
-docker run --name cfn-agent --network cfn-network -e REDIS_HOST=cfn-redis ...
-```
-
-### Issue: Agent hangs indefinitely
-
-**Symptom:** Container runs for >2 minutes without completing
-
-**Possible Causes:**
-1. Z.ai API key not set correctly (ZAI_API_KEY)
-2. Z.ai endpoint unreachable (check ZAI_BASE_URL)
-3. Agent waiting for user input (shouldn't happen)
-4. Infinite loop in agent logic
-5. Redis BLPOP blocking without wake signal
-
-**Debug Steps:**
-```bash
-# Check container logs
-docker logs cfn-agent-test-XXXX
-
-# Inspect container environment (verify Z.ai config)
-docker inspect cfn-agent-test-XXXX | grep -A 10 Env
-
-# Check Redis keys
-redis-cli keys "*docker-test*"
-
-# Force stop container
-docker stop cfn-agent-test-XXXX
-```
-
-### Issue: "Permission denied" in container
-
-**Symptom:** "bash: /tmp/docker-test.txt: Permission denied"
-
-**Solution:** Verify /tmp permissions in Dockerfile
-```dockerfile
-RUN mkdir -p /tmp && chmod 1777 /tmp
-```
-
-### Issue: Image size exceeds 500MB
-
-**Symptom:** Image size is 600MB+
-
-**Solutions:**
-1. Implement multi-stage build (separate builder stage)
-2. Use alpine variants of packages
-3. Remove build tools after npm install
-4. Use `.dockerignore` to exclude unnecessary files
-
-**Example `.dockerignore`:**
-```
-node_modules
-tests
-legacy
-docs
-planning
-*.md
-.git
-```
-
----
-
-## Next Steps After POC
-
-### If POC Passes (all 6 tests successful)
-
-1. **Multi-Stage Dockerfile**
-   - Create optimized production Dockerfile
-   - Target size: <200MB (with multi-stage)
-
-2. **Docker Compose**
-   - Define multi-container setup (agent + Redis + coordinator)
-   - Implement custom networks and volumes
-
-3. **Security Hardening**
-   - Run security scans (Trivy, Docker Scout)
-   - Implement read-only filesystem
-   - Add resource limits
-
-4. **CI/CD Integration**
-   - Automate builds on git push
-   - Implement automated testing
-   - Push to container registry
-
-5. **Production Deployment**
-   - Deploy to Kubernetes or Docker Swarm
-   - Implement load balancing
-   - Set up monitoring and logging
-
-### If POC Fails (major blockers)
-
-1. **Analyze Root Cause**
-   - Review logs in `/tmp/docker-agent-logs-*.txt`
-   - Check `POC_RESULTS.md` for error details
-   - Identify specific failure points
-
-2. **Consider Alternatives**
-   - VM-based deployment (if Docker adds too much complexity)
-   - Serverless functions (Lambda, Cloud Functions)
-   - Process-based isolation (systemd, supervisord)
-   - Hybrid approach (coordinators on host, workers in containers)
-
-3. **Iterate on Blockers**
-   - Fix critical issues one at a time
-   - Re-run POC after each fix
-   - Document workarounds
-
----
-
-## Performance Expectations
-
-| Metric | Target | Acceptable | Concern |
-|--------|--------|------------|---------|
-| Image Size | <500MB | <800MB | >1GB |
-| Build Time | <5 min | <10 min | >15 min |
-| Container Startup | <10s | <30s | >60s |
-| Agent Execution | <60s | <120s | >180s |
-| Total Test Time | <3 min | <5 min | >10 min |
-
----
-
-## Security Considerations
-
-### POC Simplifications (NOT production-safe)
-
-- ⚠️ Using `--network host` (bypasses Docker networking isolation)
-- ⚠️ API key passed via environment variable (visible in `docker inspect`)
-- ⚠️ No TLS encryption for Redis connections
-- ⚠️ No resource limits (CPU, memory)
-- ⚠️ No container scanning (vulnerabilities not checked)
-
-### Production Requirements
-
-- ✅ Custom Docker network with service isolation
-- ✅ Secrets management (Vault, AWS Secrets Manager, Docker Secrets)
-- ✅ TLS encryption for all service communication
-- ✅ Resource limits (--cpus, --memory flags)
-- ✅ Security scanning integrated into CI/CD
-- ✅ Read-only root filesystem with explicit RW volumes
-- ✅ Non-root user (already implemented)
-- ✅ Minimal base image (already using Alpine)
-
----
-
-## Cost Analysis
-
-### POC Costs (minimal)
-
-- Docker CE (free)
-- Redis (free, self-hosted)
-- Local compute (your machine)
-- API calls to Z.ai (~$0.001 per test run with haiku - 95% cheaper than Anthropic)
-
-**Total POC Cost:** ~$0.005-0.01 for testing (Z.ai pricing)
-
-### Production Costs (estimated)
-
-**Compute:**
-- Container overhead: ~50-100MB RAM, 0.1 CPU per agent
-- Z.ai workers: $0.50/1M tokens (in Docker) - 95-98% cost savings
-- Claude Max coordinator: $3-15/1M tokens (on host, if using hybrid architecture)
-
-**Infrastructure:**
-- Container registry: ~$5-10/month (Docker Hub Pro, ECR)
-- Load balancer: ~$20/month (if scaling)
-- Persistent storage: ~$0.10/GB/month
-
-**Total Estimated Savings:**
-- Without Docker + Z.ai: 100% Anthropic API ($3-15/1M tokens)
-- With Docker + Z.ai: ~95-98% cost savings ($0.50/1M tokens)
-
-**Break-even:** If running >1000 agent tasks/month, Docker deployment is cost-effective
-
----
-
-## Additional Resources
-
-### Documentation
-
-- **Planning:** `/planning/docker/HYBRID_FROM_START_IMPLEMENTATION_PLAN.md`
-- **Analysis:** `/planning/docker/HYBRID_COORDINATOR_WORKERS_ANALYSIS.md`
-- **Strategy:** `/planning/docker/MULTI_SUBSCRIPTION_STRATEGY.md`
-
-### Agent Guides
-
-- **Docker Specialist:** `.claude/agents/cfn-dev-team/dev-ops/docker-specialist.md`
-- **Agent Creation:** `.claude/agents/CLAUDE.md`
-
-### Skills
-
-- **Redis Coordination:** `.claude/skills/cfn-redis-coordination/SKILL.md`
-- **Agent Spawning:** `.claude/skills/cfn-agent-spawning/SKILL.md`
-
-### Docker Resources
-
-- **Best Practices:** https://docs.docker.com/develop/dev-best-practices/
-- **Multi-Stage Builds:** https://docs.docker.com/build/building/multi-stage/
-- **Security Scanning:** https://docs.docker.com/scout/
-
----
-
-## Support
-
-### Getting Help
-
-1. Check this README for troubleshooting steps
-2. Review `POC_RESULTS.md` for detailed findings
-3. Examine logs in `/tmp/docker-agent-logs-*.txt`
-4. Check existing issues in GitHub repository
-5. Open new issue with POC results attached
-
-### Reporting Issues
-
-When reporting POC failures, include:
-- Full output of `test-docker-agent-interaction.sh`
-- Contents of `/tmp/docker-agent-logs-*.txt`
-- Docker version (`docker --version`)
-- Redis version (`redis-cli --version`)
-- OS and architecture
-- ZAI_API_KEY status (set/not set, don't include actual key)
-- ZAI_BASE_URL value
-
----
-
-**Document Version:** 1.0.0
-**Last Updated:** 2025-10-30
-**Maintained By:** Docker Specialist Agent
-**Questions?** Review planning documents or open an issue
+## Prerequisites
+
+**Docker Environment:**
+- Docker daemon running
+- mcp-network: `docker network create mcp-network`
+- Redis: `docker run -d --name cfn-redis --network mcp-network redis:alpine`
+
+**Images:**
+- Coordinator: `docker build -f Dockerfile.cfn-coordinator -t cfn-coordinator:v3 .`
+- Agent: `docker build -f Dockerfile.agent -t cfn-agent:latest .`
+
+**Environment Variables:**
+- ANTHROPIC_API_KEY set (for planning tests)
+- Z_AI_API_KEY set (optional, for custom routing tests)
+
+## Coverage Summary
+
+| Category | Test Files | Test Cases | Coverage |
+|----------|-----------|------------|----------|
+| Coordinator v3 | 6 | 20+ | 100% |
+| Docker Infrastructure | 2 | 8+ | 100% |
+| Redis Coordination | 1 | 4 | 100% |
+| Resource Management | 1 | 4 | 100% |
+| CFN Loop Patterns | 1 | 4 | 100% |
+| Environment Management | 1 | 4 | 100% |
+| Integration | 1 | E2E | 100% |
+| **Total** | **13** | **44+** | **100%** |
+
+## Bug Fix Validation
+
+These tests validate fixes for documented bugs:
+
+- **Bug #4:** Agent task assignment pattern (validated by agent-lifecycle-tests.sh)
+- **Bug #6:** Redis environment variable propagation (validated by redis-coordination-tests.sh, env-propagation-tests.sh)
+
+## Related Documentation
+
+- **Implementation:** `docs/DOCKER_COORDINATOR_FINAL.md`
+- **Test Gaps:** `tests/docker/COORDINATOR_V3_TEST_GAPS.md`
+- **Test Standards:** `tests/CLAUDE.md`
+- **Suite Overview:** `tests/docker/TEST_SUITE_OVERVIEW.md`
+- **Maintenance:** `tests/docker/TEST_SUITE_MAINTENANCE_PLAN.md`
+- **Execution Playbook:** `tests/docker/TEST_SUITE_EXECUTION_PLAYBOOK.md`

@@ -367,6 +367,46 @@ npx claude-flow-novice swarm "Task description" \
 
 ## Testing Commands
 
+### `/cfn-docker-core-test-suite [options]`
+
+**Purpose**: Run comprehensive Docker CFN Loop core test suite validating coordinator v3, infrastructure, and Redis coordination
+
+**Flags**:
+- `--category`: Run specific test category
+  - Options: coordinator|infrastructure|redis|cfn-loop|integration|all (default: all)
+- `--test`: Run single test file (e.g., redis-coordination-tests.sh)
+- `--verbose`: Show detailed test output
+- `--quick`: Skip long-running tests (~100 min → ~70 min)
+
+**Example:**
+```bash
+# Full regression suite
+/cfn-docker-core-test-suite
+
+# Specific category
+/cfn-docker-core-test-suite --category coordinator
+
+# Single test with verbose output
+/cfn-docker-core-test-suite --test redis-coordination-tests.sh --verbose
+
+# Quick validation
+/cfn-docker-core-test-suite --quick
+```
+
+**Test Coverage:**
+- Coordinator v3: 6 tests (planning, spawning, validation, iteration, fault tolerance)
+- Docker Infrastructure: 2 tests (hello-world parity, agent lifecycle)
+- Redis Coordination: 1 test (Node.js client connectivity, heartbeat, pub/sub)
+- Resource Management: 1 test (wave spawning, memory limits, tier allocation)
+- CFN Loop Patterns: 1 test (gate, consensus, decision)
+- Environment Management: 1 test (environment variable handling)
+- Integration: 1 test (end-to-end coordinator workflow)
+- **Total: 13 test files, 44+ test cases, 100% coverage**
+
+**Prerequisites**: Automatically validates and setups Docker daemon, mcp-network, Redis container, required images
+
+**Bug Fix Validation**: Validates Bug #4 (agent task assignment) and Bug #6 (Redis environment variables)
+
 ### `/run-tests`
 
 **Purpose**: Execute CFN test suites with automatic benchmarking and regression detection
