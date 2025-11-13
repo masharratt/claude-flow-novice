@@ -318,7 +318,7 @@ redis-cli LPUSH "cfn_docker:task:${TASK_ID}:agent:${AGENT_ID}:done" "complete"
 
 **Docker Network**: `mcp-network` (bridge driver)
 
-**Implementation**: `tests/hello-world/lib/redis-test-utils.cjs`
+**Implementation**: `tests/hello-world-docker/lib/redis-test-utils.cjs`
 
 ```javascript
 // Register agent in Redis with container coordination

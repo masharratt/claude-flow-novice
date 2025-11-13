@@ -1,6 +1,6 @@
 # Docker Test Suite Implementation Plan
 
-**Date:** 2025-01-15
+**Date:** 2025-01-15 (REVIEWED: 2025-11-12)
 **Context:** Align test suite with intelligent Docker coordinator architecture
 **Goal:** Remove redundant tests, add missing coverage, update stale tests
 
@@ -12,6 +12,11 @@ Based on integration test findings and architecture review:
 - **Current state:** 107 total tests (90 main + 17 docker)
 - **Target state:** 73 tests after cleanup (61 main + 12 docker + 12 new)
 - **Net change:** -22 removed, -7 archived, +12 added, +12 updated
+
+**💬 REVIEW COMMENT (2025-11-12):**
+✅ **AGREE** - Numbers look reasonable. 32% cleanup is aggressive but justified given architectural shift from CLI/Task mode to pure Docker coordinator.
+
+⚠️ **CONCERN** - Plan assumes coordinator architecture fix (container-based completion tracking) is implemented. Currently blocked by Bug #4 (architectural mismatch). Should add "Prerequisites" section noting this dependency.
 
 ---
 
@@ -41,6 +46,11 @@ rm tests/test_mode_simple.sh
 rm tests/test-mode-detection-anti023.sh
 ```
 **Reason:** Docker coordinator runs containerized, doesn't need mode detection.
+
+**💬 REVIEW COMMENT:**
+⚠️ **PARTIALLY AGREE** - These tests are CLI-specific, BUT the main CFN Loop system still uses CLI/Task mode detection (see CLAUDE.md lines 167-188). Docker coordinator is ONE execution path, not THE ONLY path.
+
+**RECOMMENDATION:** Move these to `tests/cli-mode/` instead of deleting. They validate critical CFN Loop infrastructure that Task mode still uses.
 
 ---
 
@@ -85,6 +95,11 @@ rm tests/test-task-mode-complete.sh
 ```
 **Reason:** All agents spawn via Docker containers, not Task() tool.
 
+**💬 REVIEW COMMENT:**
+❌ **DISAGREE** - Task mode is STILL USED in main CFN Loop system (`/cfn-loop-task` command). See `SESSION_2025-11-12_FINDINGS.md` - Task mode provides "full visibility in Main Chat" and is the default debugging mode.
+
+**VERDICT:** **MOVE to tests/task-mode/** - Don't delete. These validate critical Task() spawning patterns that Main Chat uses daily.
+
 ---
 
 #### 1.7 Duplicate Simple/Complete Test Variants
@@ -105,6 +120,11 @@ rm tests/test-ace-context-lookup.sh
 rm tests/test_ace_reflection_hook.sh
 ```
 **Reason:** Architecture doc doesn't mention ACE integration.
+
+**💬 REVIEW COMMENT:**
+✅ **AGREE** - ACE (Adaptive Context Engine) is separate from Docker coordinator. These tests belong in main CFN Loop test suite.
+
+**RECOMMENDATION:** Archive instead of delete. ACE is valuable context management system that may integrate later.
 
 ---
 
@@ -293,6 +313,17 @@ Align existing tests with Docker coordinator architecture, tier batching, wave s
 4. Validate `.env.clean` file is used (Bug #2)
 5. Add tier distribution validation (60% T1, 25% T2, 10% T3, 5% T4)
 
+**💬 REVIEW COMMENT:**
+⚠️ **BLOCKED** - Test assumes Bug #4 (architectural mismatch) is fixed. Currently agents don't report completion, causing infinite waits.
+
+**PREREQUISITES NEEDED:**
+1. ✅ Bug #1 fixed (API key propagation) - DONE
+2. ✅ Bug #2 fixed (.env inline comments) - DONE
+3. ✅ Bug #3 fixed (Redis REDIS_HOST) - DONE
+4. ❌ **Bug #4 (architectural mismatch)** - NOT FIXED - coordinator uses Redis queue but agents use environment variables
+
+**RECOMMENDATION:** Add "Prerequisites" section at top of plan noting Bug #4 must be fixed first.
+
 **Updated test structure:**
 ```bash
 #!/bin/bash
@@ -333,6 +364,10 @@ test_redis_heartbeat_protocol() {
     docker exec cfn-redis redis-cli SET "task:queue" "test-task-1"
     docker exec cfn-redis redis-cli SET "task:total" "1"
     docker exec cfn-redis redis-cli SET "task:completed" "0"
+
+    # 💬 REVIEW COMMENT: This test validates Bug #3 fix (Redis REDIS_HOST), not Node.js client usage.
+    # The actual fix was adding `-h "${REDIS_HOST}" -p "${REDIS_PORT}"` to redis-cli commands,
+    # not replacing redis-cli with Node.js client. Test name is misleading.
 
     # Spawn agent
     docker run -d \
@@ -945,6 +980,19 @@ Address gaps identified in integration test findings and architecture requiremen
 **File:** `tests/docker/redis-coordination-tests.sh`
 
 **Purpose:** Validate Redis client connectivity, heartbeat reporting, task completion protocol.
+
+**💬 REVIEW COMMENT:**
+⚠️ **GOOD COVERAGE but WRONG PATTERN** - Tests validate Redis operations but use the WRONG architectural pattern (task queue claiming) that coordinator doesn't actually implement.
+
+**CURRENT REALITY (from Bug #4 findings):**
+- Coordinator pushes to `task:queue` but agents NEVER claim from it
+- Agents receive tasks via **environment variables** (TASK_PROMPT, AGENT_ID)
+- Task queue is ORPHANED code that creates infinite wait loops
+
+**RECOMMENDATION:** Rewrite tests to validate ACTUAL pattern:
+1. Test coordinator spawns agents with environment variables
+2. Test agents use environment-embedded tasks (not queue claiming)
+3. Test coordinator detects completion via Docker container status (not Redis counters)
 
 ```bash
 #!/bin/bash
@@ -1943,8 +1991,20 @@ These tests are still relevant and don't need updates for Docker coordinator.
 
 ## Part 6: Execution Plan
 
+**💬 REVIEW COMMENT - EXECUTION ORDER:**
+❌ **WRONG ORDER** - Plan starts with test cleanup BEFORE fixing Bug #4 (architectural mismatch). This will create tests for broken coordinator.
+
+**CORRECT ORDER:**
+1. **Week 0 (PREREQUISITE):** Fix Bug #4 - Implement container-based completion tracking in coordinator.js
+2. **Week 1:** Cleanup obsolete tests (can proceed in parallel with Bug #4 fix)
+3. **Week 2-6:** Add/update tests validating FIXED coordinator behavior
+
+**BLOCKING ISSUE:** All new Docker coordinator tests will fail until Bug #4 is resolved. Agents complete work but coordinator waits forever for Redis queue that's never consumed.
+
 ### Phase 1: Immediate Cleanup (Week 1)
 **Objective:** Remove obsolete tests, archive historical tests
+
+**⚠️ PREREQUISITE:** This phase can proceed independently, but Phases 2-6 are BLOCKED until Bug #4 is fixed.
 
 ```bash
 # Day 1: Create cleanup scripts
@@ -2199,6 +2259,96 @@ git commit -m "test: Remove obsolete tests and archive historical tests
 ---
 
 **End of Implementation Plan**
+
+---
+
+## FINAL REVIEW SUMMARY (2025-11-12)
+
+### Overall Assessment
+
+**Grade: B- (75/100)**
+
+**Strengths:**
+- ✅ Comprehensive test coverage plan (12 new tests, 12 updates)
+- ✅ Good organizational structure (P0/P1/P2 prioritization)
+- ✅ Detailed test specifications with code examples
+- ✅ Reasonable cleanup scope (32% reduction)
+
+**Critical Issues:**
+
+1. **❌ BLOCKING DEPENDENCY NOT ADDRESSED**
+   - Plan assumes Bug #4 (architectural mismatch) is fixed
+   - **REALITY:** Coordinator has infinite wait loop (agents don't report completion)
+   - **IMPACT:** All 12 new tests will fail until coordinator.js is rewritten
+   - **FIX NEEDED:** Add "Week 0: Fix Bug #4" as Phase 0
+
+2. **⚠️ WRONG ARCHITECTURAL ASSUMPTIONS**
+   - Tests validate Redis queue claiming pattern that coordinator doesn't use
+   - Agents receive tasks via environment variables, not queue
+   - Completion tracking should use Docker container status, not Redis counters
+   - **FIX NEEDED:** Rewrite Test 1-3 to match actual coordinator behavior
+
+3. **❌ INAPPROPRIATE DELETIONS**
+   - Deleting CLI/Task mode tests despite system still using both modes
+   - Docker coordinator is ONE execution path, not THE ONLY path
+   - **FIX NEEDED:** Move CLI/Task tests to subdirectories instead of deleting
+
+4. **⚠️ MISLEADING TEST NAMES**
+   - "Redis heartbeat using Node.js client" actually tests redis-cli with host flags
+   - Actual Bug #3 fix was NOT replacing redis-cli with Node.js client
+   - **FIX NEEDED:** Rename tests to match what they actually validate
+
+### Recommended Changes
+
+**BEFORE EXECUTING THIS PLAN:**
+
+1. **Add Phase 0 (Week 0):**
+   ```
+   Phase 0: Fix Coordinator Architecture (Week 0)
+   - Implement container-based completion tracking
+   - Remove unused Redis queue operations
+   - Update waitForCompletion() to poll Docker container status
+   - Test fix with historical commit integration test
+   ```
+
+2. **Revise Deletion Strategy:**
+   - Move `test-*-mode-*.sh` to `tests/cli-mode/` (don't delete)
+   - Move `test-task-mode-*.sh` to `tests/task-mode/` (don't delete)
+   - Archive ACE tests instead of deleting
+
+3. **Rewrite Tests 1-3 to Match Reality:**
+   - Remove queue claiming validation
+   - Add environment variable task passing tests
+   - Add Docker container status tracking tests
+
+4. **Update Prerequisites Section:**
+   ```markdown
+   ## Prerequisites (MUST BE COMPLETE BEFORE PHASE 2)
+
+   ### Bug #4: Architectural Mismatch Fix
+   **Status:** ❌ NOT FIXED (as of 2025-11-12)
+   **Blocker for:** Phases 2-6 (all test updates/additions)
+   **See:** planning/docker/SESSION_2025-11-12_FINDINGS.md
+
+   Fix coordinator.js to:
+   - Remove Redis queue operations (task:queue, task:completed, task:total)
+   - Replace waitForCompletion() with Docker container status polling
+   - Track completion when all wave containers have exited
+   ```
+
+### Verdict
+
+**PLAN IS SOUND but EXECUTION IS PREMATURE**
+
+- Don't execute Phases 2-6 until Bug #4 is fixed
+- Phase 1 (cleanup) can proceed independently
+- Rewrite tests to match ACTUAL coordinator behavior, not idealized pattern
+
+**NEXT ACTIONS:**
+1. Fix Bug #4 in coordinator.js (2-3 hours estimated)
+2. Rebuild coordinator image with fix
+3. Run integration test to validate fix
+4. THEN proceed with test suite implementation
 
 ---
 

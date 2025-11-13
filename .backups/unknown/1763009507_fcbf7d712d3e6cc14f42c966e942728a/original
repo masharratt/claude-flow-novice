@@ -259,10 +259,15 @@ Product Owner: ITERATE or PROCEED based on error count
 5. Directory structure creation
 6. **Integration testing on historical commit** (1147 errors across 65 files)
 7. **Critical bug fixes:**
-   - API key propagation to agent containers (Bug #1 - FIXED)
-   - .env inline comment handling (Bug #2 - WORKAROUND)
+   - API key propagation to agent containers
+   - .env inline comment handling
    - Build process source syncing
 8. **Comprehensive test findings documented** (see `docs/DOCKER_COORDINATOR_INTEGRATION_TEST_FINDINGS.md`)
+
+### ⏳ In Progress
+1. **Redis heartbeat fix** - Replace `redis-cli` with Node.js Redis client
+   - Status: Root cause identified, fix not yet implemented
+   - Impact: Agents complete work but cannot report completion
 
 ### ✅ Validated (Integration Test Results)
 1. ✅ Agent spawning and lifecycle management working
@@ -270,95 +275,44 @@ Product Owner: ITERATE or PROCEED based on error count
 3. ✅ TypeScript error processing (484K input tokens, 20 iterations)
 4. ✅ Memory-based batching (Tier 1-4) applied correctly
 5. ✅ Wave spawning (9.8GB / 40GB budget, single wave)
-
----
-
-## Critical Bug #4: Architectural Mismatch (BLOCKING)
-
-**Status:** ❌ NOT FIXED (as of 2025-11-12)
-**Severity:** CRITICAL - Blocks all production deployment
-**Root Cause:** Coordinator uses Redis queue pattern but agents use environment variables
-
-### The Problem
-- Coordinator pushes tasks to `task:queue` via rPush (`docker/coordinator/src/coordinator.js` lines 167-195)
-- Coordinator waits for queue to empty and counters to increment
-- **BUT** agents receive tasks via `TASK_PROMPT` environment variable (line 272)
-- **AND** agents execute immediately using embedded task (line 287)
-- **RESULT:** Infinite wait loop - queue never consumed, progress stuck at 0/N
-
-### Evidence
-- Integration test: 15+ minutes with "0/16 tasks, 16 queued"
-- Agent logs show successful completion (484K tokens processed, 20 iterations)
-- Coordinator logs show waiting forever (polling Redis queue that never changes)
-- Agents never interact with Redis queue (no RPOP/BLPOP calls in agent code)
-- Root cause analysis confidence: 0.95
-
-### Required Fix (Option B - Remove Queue Pattern)
-1. Remove Redis queue operations (lines 167-195):
-   - `await redisClient.del('task:queue');`
-   - `await redisClient.rPush('task:queue', taskNum.toString());`
-   - `await redisClient.set('task:total', taskIds.length);`
-   - `await redisClient.set('task:completed', 0);`
-
-2. Replace `waitForCompletion()` (lines ~296-350) to poll Docker container status:
-   ```javascript
-   // Check container status instead of Redis
-   const containers = await docker.listContainers({
-     filters: { name: ['wave'] },
-     all: true
-   });
-
-   const running = containers.filter(c => c.State === 'running');
-   if (running.length === 0) break; // All completed
-   ```
-
-3. Track completion when all wave containers exit with code 0
-
-4. Estimated effort: 2-3 hours
-
-**See:** `planning/docker/SESSION_2025-11-12_FINDINGS.md` for detailed analysis
+6. ⚠️ Completion reporting blocked by Redis localhost hardcode
 
 ---
 
 ## Next Steps
 
-### Priority 1: BLOCKING Issues (Must Fix Before Test Suite)
+### Immediate (Critical Fix Required)
 
-#### 1. Fix Bug #4: Architectural Mismatch (CRITICAL - REQUIRED FOR ALL FUNCTIONALITY)
-**Problem:** Coordinator uses Redis queue pattern but agents use environment variables, causing infinite wait loops.
+#### 1. Fix Redis Heartbeat Localhost Hardcode
+**Problem:** Agents use `redis-cli` command which ignores `REDIS_HOST` environment variable and defaults to `127.0.0.1:6379`.
 
-**Impact:** Coordinator cannot detect agent completion. All integration tests blocked.
+**Impact:** Agents successfully execute tasks but cannot report completion back to coordinator.
 
-**Solution:** Remove unused Redis queue pattern, replace with Docker container status polling.
+**Solution:** Replace `redis-cli` shell commands with Node.js Redis client in agent heartbeat code.
 
-**Location:** `docker/coordinator/src/coordinator.js` lines 167-195 (queue ops) and 296-350 (wait logic).
+**Location:** Agent completion protocol in CLI agent execution flow.
 
-**Prerequisite:** This fix MUST be completed before test suite implementation can begin.
+**Expected code change:**
+```javascript
+// BEFORE (broken - uses redis-cli)
+execSync(`redis-cli hset "swarm:${TASK_ID}:${AGENT_ID}" heartbeat "${Date.now()}" status "complete"`);
 
-**See:** Critical Bug #4 section above for detailed fix plan.
+// AFTER (fixed - uses Node.js Redis client)
+const redis = require('redis');
+const client = redis.createClient({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: process.env.REDIS_PORT || 6379
+});
+await client.hSet(`swarm:${TASK_ID}:${AGENT_ID}`, 'heartbeat', Date.now().toString());
+await client.hSet(`swarm:${TASK_ID}:${AGENT_ID}`, 'status', 'complete');
+```
 
----
+#### 2. Clean Production .env File
+**Problem:** Docker's `--env-file` flag doesn't support inline comments.
 
-### Priority 2: Completed Fixes (Needs Commit)
+**Current workaround:** Created `/tmp/frontend-test-worktree/.env.clean` for testing.
 
-#### 2. Redis Heartbeat Connection Fix (FIXED - Bug #3)
-**Status:** ✅ FIXED - All Redis commands now respect REDIS_HOST environment variable
-
-**Changes made:**
-- Added `-h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}"` to all redis-cli commands
-- Modified files: report-completion.sh, complete-swarm.sh, orchestrate.sh, agent-executor.ts
-
-**Action needed:** Commit these changes to repository
-
-#### 3. .env Inline Comments (FIXED - Bug #2)
-**Status:** ✅ FIXED - .env file cleaned of inline comments
-
-**Changes made:**
-- Removed all inline comments from .env file
-- Reduced from 100 lines to 51 lines
-- Backup created: `.env.backup-20251112-190754`
-
-**Action needed:** Commit cleaned .env file
+**Permanent fix:** Remove all inline comments from production `.env` file.
 
 **Commands:**
 ```bash

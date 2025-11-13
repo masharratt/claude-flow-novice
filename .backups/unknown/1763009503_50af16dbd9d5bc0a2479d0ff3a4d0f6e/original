@@ -49,7 +49,7 @@
 ### Test Results
 
 **Docker POC:**
-- `../tests/docker/POC_TEST_RESULTS.md` - Docker agent deployment validated (0.95 confidence)
+- `../tests/docker-deployment/POC_TEST_RESULTS.md` - Docker agent deployment validated (0.95 confidence)
 - Key finding: Z.ai auth requires `ANTHROPIC_AUTH_TOKEN` env var
 - Result: 18MB Alpine image, <30 second build, $0.00001 per task
 
@@ -72,7 +72,7 @@ export FINANCE_COORDINATOR_API_KEY="sk-ant-api03-xxx"
 export ANTHROPIC_AUTH_TOKEN="your-zai-api-key"  # Z.ai workers
 
 # 3. Verify Docker POC working
-cd tests/docker
+cd tests/docker-deployment
 docker build -f Dockerfile.simple-poc -t cfn-agent-poc:simple .
 docker run --rm \
   -e "ANTHROPIC_AUTH_TOKEN=$ANTHROPIC_AUTH_TOKEN" \
@@ -87,7 +87,7 @@ docker run --rm \
 # Deliverables:
 # - .claude/skills/cfn-ace-system/migrate-schema.sh
 # - PostgreSQL with scope fields (agent, team, org)
-# - tests/ace-integration/test-scope-isolation.sh
+# - tests/ace-system/test-scope-isolation.sh
 
 # Sprint 1.2: Docker Templates + Hybrid Routing (Days 4-7)
 # Deliverables:
@@ -98,9 +98,9 @@ docker run --rm \
 
 # Sprint 1.3: Validation Tests (Days 8-10)
 # Deliverables:
-# - tests/cfn-v3-orchestration/01-single-worker-spawn.sh
-# - tests/cfn-v3-orchestration/02-concurrent-workers.sh (25 workers)
-# - tests/cfn-v3-orchestration/03-cross-team-coordination.sh
+# - tests/hybrid-architecture/01-single-worker-spawn.sh
+# - tests/hybrid-architecture/02-concurrent-workers.sh (25 workers)
+# - tests/hybrid-architecture/03-cross-team-coordination.sh
 # - scripts/track-zai-costs.sh
 ```
 

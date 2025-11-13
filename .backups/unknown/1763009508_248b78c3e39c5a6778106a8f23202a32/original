@@ -114,15 +114,11 @@ START
 │    SET task:total = N               │
 │    SET task:completed = 0           │
 │    LPUSH task:queue [tasks...]      │
-│    ⚠️  BROKEN: Unused, agents don't│
-│       claim from queue (see Issue #1)│
 │                                     │
 │ 7. Spawn agents in waves           │
 │    (respecting 40GB budget)         │
 │                                     │
 │ 8. WAIT for completion             │
-│    ⚠️  BROKEN: Uses Redis queue    │
-│       polling (see Known Issues #1) │
 │    WHILE task:completed < task:total│
 │      SLEEP 5s                       │
 │                                     │
@@ -507,97 +503,6 @@ docker logs -f cfn-coordinator
 **Priority 3: Nice to Have**
 1. Update build scripts to sync code before building
 2. Fix error count display multiplier (cosmetic)
-
----
-
-## Known Issues and Limitations
-
-### Issue #1: Task Distribution Architecture Mismatch (CRITICAL)
-
-**Status:** Active bug, blocks production use
-**Discovered:** 2025-11-12 integration testing
-**Severity:** P0 - BLOCKING
-
-**The Mismatch:**
-```javascript
-// IMPLEMENTED: Coordinator pushes to queue (lines 167-195)
-await redisClient.del('task:queue');
-await redisClient.rPush('task:queue', taskNum.toString());
-await redisClient.set('task:total', taskIds.length);
-await redisClient.set('task:completed', 0);
-
-// IMPLEMENTED: Agents spawned with embedded task (lines 272, 287)
-Env: [`TASK_PROMPT=${promptText}`, ...]
-Cmd: ['node', '/app/dist/cli/index.js', 'agent', 'typescript-specialist', promptText]
-
-// PROBLEM: These patterns are mutually exclusive
-// - Coordinator expects agents to claim from queue (RPOP task:queue)
-// - Agents receive task via environment and execute immediately
-// - Agents never interact with Redis queue
-// - Result: Queue never consumed, completion never detected
-```
-
-**Impact:**
-- Agents complete work successfully (484K tokens processed, fixes applied)
-- Coordinator never detects completion (infinite wait loop)
-- Progress stuck at "0/16 tasks, 16 queued" indefinitely
-- Memory leak (agent containers accumulate without cleanup)
-- All integration testing blocked
-
-**Evidence:**
-- Integration test: 15+ minutes with no progress detected
-- Agent logs: Successful completion, 20 iterations, exit code 0
-- Coordinator logs: Polling Redis queue forever (queue length never changes)
-- Code analysis: No RPOP/BLPOP calls in agent execution flow
-- Confidence level: 0.95
-
-**Correct Pattern (Post-Fix):**
-```javascript
-// Coordinator spawns agents with environment variables (keep current pattern)
-docker.createContainer({
-  Env: [`TASK_PROMPT=${promptText}`, `AGENT_ID=${agentId}`],
-  Cmd: ['node', '/app/dist/cli/index.js', 'agent', 'typescript-specialist', promptText]
-});
-
-// Coordinator waits by polling Docker container status (replace queue polling)
-async function waitForCompletion(waveContainerNames) {
-  while (true) {
-    const containers = await docker.listContainers({
-      filters: { name: waveContainerNames },
-      all: true
-    });
-
-    const running = containers.filter(c => c.State === 'running');
-
-    if (running.length === 0) {
-      // All containers exited
-      const exited = containers.filter(c => c.State === 'exited');
-      const failed = exited.filter(c => {
-        const inspect = await docker.getContainer(c.Id).inspect();
-        return inspect.State.ExitCode !== 0;
-      });
-
-      if (failed.length > 0) {
-        console.warn(`⚠️  ${failed.length} agents failed`);
-      }
-
-      break; // All completed
-    }
-
-    await sleep(2000); // Poll every 2 seconds
-  }
-}
-```
-
-**Fix Priority:** P0 - Required before any test suite work or production deployment
-
-**Estimated Effort:** 2-3 hours
-- Remove Redis queue operations (lines 167-195)
-- Replace waitForCompletion() logic (lines 296-350)
-- Add container status tracking
-- Test with integration suite
-
-**See:** `planning/docker/SESSION_2025-11-12_FINDINGS.md` for detailed root cause analysis
 
 ---
 

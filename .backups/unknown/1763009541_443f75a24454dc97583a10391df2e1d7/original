@@ -69,7 +69,7 @@ This document contains comprehensive information about all test suites in Claude
 
 ### Docker Hello World Tests
 
-**Location**: `tests/hello-world/`
+**Location**: `tests/hello-world-docker/`
 
 **Purpose**: Validate container-based CFN Loop execution with Redis coordination and MCP authentication.
 
@@ -147,7 +147,7 @@ This document contains comprehensive information about all test suites in Claude
 
 #### Specialized Validation Tests
 
-**Location**: `tests/hello-world/specialized/`
+**Location**: `tests/hello-world-docker/specialized/`
 
 **Purpose**: Advanced validation of CFN Loop coordination patterns with Redis state management.
 
@@ -159,7 +159,7 @@ This document contains comprehensive information about all test suites in Claude
 
 ##### Test Runner
 
-**File**: `tests/hello-world/specialized/specialized-test-runner.cjs`
+**File**: `tests/hello-world-docker/specialized/specialized-test-runner.cjs`
 
 ```bash
 # Run all specialized tests
@@ -392,13 +392,13 @@ Overall Success Rate: 100% (20/20 tests)
 
 ```bash
 # Run all docker tests
-node tests/hello-world/test-runner.cjs
+node tests/hello-world-docker/test-runner.cjs
 
 # Run specific layer
-node tests/hello-world/layer0/layer0-docker-tool-validation.cjs
-node tests/hello-world/layer1/layer1-docker-mesh-coordination.cjs
-node tests/hello-world/layer2/layer2-docker-review-coordination.cjs
-node tests/hello-world/layer3/layer3-docker-error-retry.cjs
+node tests/hello-world-docker/layer0/layer0-docker-tool-validation.cjs
+node tests/hello-world-docker/layer1/layer1-docker-mesh-coordination.cjs
+node tests/hello-world-docker/layer2/layer2-docker-review-coordination.cjs
+node tests/hello-world-docker/layer3/layer3-docker-error-retry.cjs
 
 # Build docker agent image
 bash scripts/build-agent-image.sh
@@ -489,7 +489,7 @@ cat test-results/hello-world-docker/layer*-results.json
 
 | Date | Test Suite | Report Location | Status |
 |------|------------|-----------------|--------|
-| 2025-11-05 | Docker Hello World | `test-results/hello-world/` | ✅ PASSED |
+| 2025-11-05 | Docker Hello World | `test-results/hello-world-docker/` | ✅ PASSED |
 | 2025-11-03 | Standard Hello World | `test-results/hello-world/` | ✅ PASSED |
 | 2025-10-24 | ACE Integration | `test-results/ace-integration/` | ✅ PASSED |
 | 2025-10-20 | CFN v3 Performance | `test-results/cfn-v3/` | ✅ PASSED |

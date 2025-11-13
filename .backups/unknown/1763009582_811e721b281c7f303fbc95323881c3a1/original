@@ -852,13 +852,13 @@ curl -X POST "$N8N_BASE_URL/webhook/endpoint" \
 **Usage**:
 ```bash
 # Run complete test suite
-node tests/hello-world/test-runner.cjs
+node tests/hello-world-docker/test-runner.cjs
 
 # Run specialized tests only
-node tests/hello-world/specialized/specialized-test-runner.cjs
+node tests/hello-world-docker/specialized/specialized-test-runner.cjs
 
 # Run individual validation layers
-node tests/hello-world/layer0/layer0-docker-tool-validation.cjs
+node tests/hello-world-docker/layer0/layer0-docker-tool-validation.cjs
 ```
 
 **Integration**:

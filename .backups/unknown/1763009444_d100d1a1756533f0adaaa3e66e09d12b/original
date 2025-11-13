@@ -122,7 +122,7 @@
     "docker:test": "node tests/docker/production-deployment-test.js",
     "docker:orchestrator": "node tests/docker/production-agent-orchestrator.js",
     "test:docker:redis-coordination": "node tests/docker/cfn-coordination-test.js",
-    "test:docker:concurrent": "node tests/hello-world/concurrent-agent-test.js",
+    "test:docker:concurrent": "node tests/hello-world-docker/concurrent-agent-test.js",
     "test:docker:container": "bash tests/docker/container-test-runner.sh"
   },
   "dependencies": {

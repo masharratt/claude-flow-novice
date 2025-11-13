@@ -158,17 +158,20 @@ async function clusterFiles(errorsByFile) {
 }
 
 /**
- * Phase 4-5: Prepare task batches (metadata storage only - no queue)
+ * Phase 4-5: Prepare task batches (no Redis queue - direct agent tracking)
  */
 async function prepareTaskBatches(clusters, iteration) {
   console.log('\n📋 Phase 4-5: Preparing task batches...');
+
+  // Store batch metadata for reference (not for queue)
+  await redisClient.del('iteration:agents');
 
   let taskNum = 0;
 
   for (const cluster of clusters) {
     taskNum++;
 
-    // Store metadata for monitoring/debugging only (not used for task distribution)
+    // Store metadata for monitoring only
     const batch = {
       batch_id: `iter${iteration}-cluster${taskNum}`,
       tier: cluster.tier,
@@ -178,14 +181,13 @@ async function prepareTaskBatches(clusters, iteration) {
       iteration
     };
 
-    await redisClient.hSet(`task:iter${iteration}:${taskNum}`, {
+    await redisClient.hSet(`task:${taskNum}`, {
       batch_id: batch.batch_id,
       tier: batch.tier.toString(),
       memory: batch.memory,
       files: JSON.stringify(batch.files),
       total_errors: batch.total_errors.toString(),
-      iteration: iteration.toString(),
-      created_at: new Date().toISOString()
+      iteration: iteration.toString()
     });
   }
 
@@ -296,83 +298,132 @@ async function spawnAgent(batch, agentId) {
  * Monitors container exit status instead of Redis queue
  */
 async function waitForCompletion(containerNames, timeout = 1800000) {
-  const startTime = Date.now();
-  const completedAgents = [];
-  const failedAgents = [];
-  let lastCheck = new Set();
-
-  console.log(`\n⏳ Phase 7: Waiting for agent completion...`);
+  console.log('\n⏳ Phase 7: Waiting for agent completion...');
 
   if (!containerNames || containerNames.length === 0) {
     console.log('   ⚠️  No agents spawned (no tasks to complete)');
-    return { completed: 0, failed: 0, total: 0 };
+    return { completed: 0, failed: 0, timeout: 0 };
   }
 
+  const startTime = Date.now();
+  const containerStatus = new Map();
+
+  // Initialize tracking
+  for (const name of containerNames) {
+    containerStatus.set(name, { status: 'running', exitCode: null, lastChecked: Date.now() });
+  }
+
+  let lastProgressUpdate = 0;
+
   while (true) {
-    // List all containers matching our agent names
-    const containers = await docker.listContainers({
-      all: true,
-      filters: { name: containerNames }
-    });
+    const elapsed = Date.now() - startTime;
+    let completed = 0;
+    let failed = 0;
+    let running = 0;
 
-    // Categorize by status
-    const running = containers.filter(c => c.State === 'running');
-    const exited = containers.filter(c => c.State === 'exited');
+    // Check each container status
+    for (const containerName of containerNames) {
+      const status = containerStatus.get(containerName);
 
-    // Check for newly completed agents
-    for (const container of exited) {
-      const name = container.Names[0].replace('/', '');
-      if (!lastCheck.has(name)) {
-        const inspect = await docker.getContainer(container.Id).inspect();
+      // Skip if already completed or failed
+      if (status.status === 'completed' || status.status === 'failed') {
+        if (status.status === 'completed') completed++;
+        if (status.status === 'failed') failed++;
+        continue;
+      }
 
-        if (inspect.State.ExitCode === 0) {
-          completedAgents.push(name);
-          console.log(`   ✅ ${name} completed successfully`);
-        } else {
-          failedAgents.push(name);
-          console.warn(`   ❌ ${name} failed (exit code ${inspect.State.ExitCode})`);
+      try {
+        // Get container by name
+        const containers = await docker.listContainers({
+          all: true,
+          filters: { name: [containerName] }
+        });
+
+        if (containers.length === 0) {
+          console.log(`\n   ⚠️  Container ${containerName} not found`);
+          status.status = 'failed';
+          status.exitCode = -1;
+          failed++;
+          continue;
         }
 
-        lastCheck.add(name);
+        const containerInfo = containers[0];
+
+        if (containerInfo.State === 'exited') {
+          const container = docker.getContainer(containerInfo.Id);
+          const inspect = await container.inspect();
+
+          if (inspect.State.ExitCode === 0) {
+            status.status = 'completed';
+            status.exitCode = 0;
+            completed++;
+            console.log(`\n   ✅ ${containerName} completed successfully`);
+          } else {
+            status.status = 'failed';
+            status.exitCode = inspect.State.ExitCode;
+            failed++;
+            console.log(`\n   ❌ ${containerName} failed with exit code ${inspect.State.ExitCode}`);
+          }
+        } else if (containerInfo.State === 'running') {
+          running++;
+          status.lastChecked = Date.now();
+        }
+
+      } catch (error) {
+        console.log(`\n   ⚠️  Error checking ${containerName}: ${error.message}`);
+        status.status = 'failed';
+        status.exitCode = -1;
+        failed++;
       }
     }
 
-    // Progress update
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    console.log(`   Progress: ${completedAgents.length} completed, ${failedAgents.length} failed, ${running.length} running (${elapsed}s elapsed)`);
+    // Progress update every 5 seconds
+    const now = Date.now();
+    if (now - lastProgressUpdate > 5000) {
+      const elapsedSec = Math.round(elapsed / 1000);
+      process.stdout.write(`   Progress: ${completed} completed, ${failed} failed, ${running} running (${elapsedSec}s elapsed)\r`);
+      lastProgressUpdate = now;
+    }
 
-    // Check completion
-    if (running.length === 0) {
-      console.log(`\n   ✅ All agents finished: ${completedAgents.length} completed, ${failedAgents.length} failed`);
+    // Check if all containers finished
+    if (completed + failed >= containerNames.length) {
+      console.log(`\n   ✅ All agents finished: ${completed} succeeded, ${failed} failed`);
       break;
     }
 
     // Check timeout
-    if (Date.now() - startTime > timeout) {
-      console.error(`\n   ⏱️  Timeout after ${timeout/1000}s - killing remaining agents`);
+    if (elapsed > timeout) {
+      console.log(`\n   ⚠️  Timeout reached (${Math.round(timeout/60000)} minutes)`);
+      console.log('   Killing remaining agents...');
 
-      // Kill remaining running containers
-      for (const container of running) {
-        try {
-          await docker.getContainer(container.Id).kill();
-          console.warn(`   Killed ${container.Names[0]}`);
-        } catch (err) {
-          console.warn(`   Failed to kill ${container.Names[0]}: ${err.message}`);
+      // Kill still-running containers
+      for (const [containerName, status] of containerStatus.entries()) {
+        if (status.status === 'running') {
+          try {
+            const containers = await docker.listContainers({
+              filters: { name: [containerName] }
+            });
+            if (containers.length > 0) {
+              const container = docker.getContainer(containers[0].Id);
+              await container.kill();
+              console.log(`   Killed ${containerName}`);
+            }
+          } catch (err) {
+            console.log(`   Failed to kill ${containerName}: ${err.message}`);
+          }
         }
       }
 
-      throw new Error(`Timeout: ${running.length} agents still running after ${timeout/1000}s`);
+      return { completed, failed, timeout: running };
     }
 
-    // Poll every 2 seconds
-    await sleep(2000);
+    await sleep(2000); // Poll every 2 seconds
   }
 
-  return {
-    completed: completedAgents.length,
-    failed: failedAgents.length,
-    total: containerNames.length
-  };
+  const totalTime = Math.round((Date.now() - startTime) / 1000);
+  console.log(`   Total time: ${Math.floor(totalTime / 60)}m ${totalTime % 60}s`);
+
+  return { completed, failed, timeout: 0 };
 }
 
 
@@ -455,16 +506,16 @@ async function main() {
 
     await prepareTaskBatches(clusters, iteration);
     const containerNames = await spawnAgents(clusters);
-    const results = await waitForCompletion(containerNames);
+    const result = await waitForCompletion(containerNames);
 
     // Log results
-    console.log(`\n📊 Iteration ${iteration} results: ${results.completed}/${results.total} succeeded, ${results.failed} failed`);
+    console.log(`\n📊 Iteration ${iteration} results: ${result.completed} succeeded, ${result.failed} failed`);
 
     // Fail fast if too many agents failed
-    if (results.failed > results.total * 0.5) {
-      console.error(`\n❌ Aborting: ${results.failed}/${results.total} agents failed (>50% failure rate)`);
+    if (result.failed > 0 && result.failed / containerNames.length > 0.5) {
+      console.log('\n❌ More than 50% of agents failed - aborting');
       await cleanupAgents();
-      process.exit(1);
+      break;
     }
 
     await cleanupAgents();

@@ -174,7 +174,7 @@ CFN Docker: Redis cfn_docker:coordination:*
 Create docker-aware versions of Hello World tests:
 
 ```bash
-tests/hello-world/
+tests/hello-world-docker/
 ├── layer0-docker-tool-validation.js      # MCP tool validation
 ├── layer1-docker-mesh-coordination.js   # Redis coordination
 ├── layer2-docker-review-coordination.js  # Container-based reviewers
