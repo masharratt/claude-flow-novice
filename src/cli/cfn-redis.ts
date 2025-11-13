@@ -11,6 +11,10 @@
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 
+// Bug #6 Fix: Read Redis connection parameters from process.env
+const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+const redisPort = process.env.CFN_REDIS_PORT || '6379';
+
 interface RedisOptions {
   taskId?: string;
   agentId?: string;
@@ -120,7 +124,7 @@ async function executeRedis(subcommand: string, pattern: string | undefined, opt
       console.log('[cfn-redis] Monitoring Redis events...');
 
       // Subscribe to Redis pub/sub events
-      const proc = spawn('redis-cli', ['SUBSCRIBE', 'swarm:events', 'swarm:coordination'], { stdio: 'inherit' });
+      const proc = spawn('redis-cli', ['-h', redisHost, '-p', redisPort, 'SUBSCRIBE', 'swarm:events', 'swarm:coordination'], { stdio: 'inherit' });
 
       proc.on('exit', (code) => process.exit(code || 0));
       proc.on('error', (err) => {

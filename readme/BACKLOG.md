@@ -1,6 +1,6 @@
 # Claude Flow Novice - Backlog
 
-Last Updated: 2025-11-12
+Last Updated: 2025-11-13
 
 ## Active Items
 
@@ -72,6 +72,16 @@ Implementation:
 - **Date Added**: 2025-11-04
 
 ### P2 - Medium Priority
+
+**[P2] - Error clustering algorithm for TypeScript errors**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Error clustering algorithm for TypeScript errors
+- **Rationale**: Coordinator feature to intelligently group errors by complexity (60% T1, 25% T2, 10% T3, 5% T4) and assign to agent tiers for parallel processing. Currently using simple sequential spawning. User has other ideas for this approach.
+- **Proposed Solution**: Implement error analysis module (4h), clustering algorithm (2h), dynamic agent assignment (2h), test validation (1h). Total: 9 hours. See tests/docker/clustering-accuracy-tests.sh for expected behavior.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-13
 
 **[P2] - Add Kimi and OpenRouter provider support to Docker agents fo...**
 - **Sprint Backlogged**: Unknown

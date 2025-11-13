@@ -11,6 +11,10 @@
 import { spawn } from 'child_process';
 import { resolve } from 'path';
 
+// Bug #6 Fix: Read Redis connection parameters from process.env
+const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+const redisPort = process.env.CFN_REDIS_PORT || '6379';
+
 interface MetricsOptions {
   agentId?: string;
   taskId?: string;
@@ -84,12 +88,12 @@ async function executeMetrics(subcommand: string, options: MetricsOptions): Prom
 
       // Query Redis for consensus data
       const redisKey = `swarm:${options.taskId}:consensus:*`;
-      const proc = spawn('redis-cli', ['--scan', '--pattern', redisKey], { stdio: 'inherit' });
+      const proc = spawn('redis-cli', ['-h', redisHost, '-p', redisPort, '--scan', '--pattern', redisKey], { stdio: 'inherit' });
 
       proc.on('exit', (code) => {
         if (code === 0) {
           console.log('\nTo see consensus values, run:');
-          console.log(`  redis-cli get swarm:${options.taskId}:consensus:loop2`);
+          console.log(`  redis-cli -h ${redisHost} -p ${redisPort} get swarm:${options.taskId}:consensus:loop2`);
         }
         process.exit(code || 0);
       });
