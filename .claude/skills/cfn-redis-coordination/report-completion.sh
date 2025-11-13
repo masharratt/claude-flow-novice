@@ -66,31 +66,31 @@ if ! awk -v conf="$CONFIDENCE" 'BEGIN { if (conf < 0 || conf > 1) exit 1 }'; the
 fi
 
 # Step 1: Signal completion (LPUSH for BLPOP coordination)
-redis-cli LPUSH "swarm:${TASK_ID}:${AGENT_ID}:done" "complete" > /dev/null
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" LPUSH "swarm:${TASK_ID}:${AGENT_ID}:done" "complete" > /dev/null
 
 # Step 2: Store confidence score (STRING key for fast access)
-redis-cli SET "swarm:${TASK_ID}:${AGENT_ID}:confidence" "$CONFIDENCE" EX 3600 > /dev/null
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SET "swarm:${TASK_ID}:${AGENT_ID}:confidence" "$CONFIDENCE" EX 3600 > /dev/null
 
 # Step 3: Store result in hash (structured data)
 if [ -n "$RESULT" ]; then
-    redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" \
+    redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" HSET "swarm:${TASK_ID}:${AGENT_ID}:result" \
         "confidence" "$CONFIDENCE" \
         "iteration" "$ITERATION" \
         "result" "$RESULT" \
         "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /dev/null
 else
-    redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" \
+    redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" HSET "swarm:${TASK_ID}:${AGENT_ID}:result" \
         "confidence" "$CONFIDENCE" \
         "iteration" "$ITERATION" \
         "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /dev/null
 fi
 
 # Step 4: Add to agent completion list (for orchestrator tracking)
-redis-cli LPUSH "swarm:${TASK_ID}:completed_agents" "$AGENT_ID" > /dev/null
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" LPUSH "swarm:${TASK_ID}:completed_agents" "$AGENT_ID" > /dev/null
 
 # Set TTL on hash
-redis-cli EXPIRE "swarm:${TASK_ID}:${AGENT_ID}:result" 3600 > /dev/null
-redis-cli EXPIRE "swarm:${TASK_ID}:${AGENT_ID}:done" 3600 > /dev/null
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" EXPIRE "swarm:${TASK_ID}:${AGENT_ID}:result" 3600 > /dev/null
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" EXPIRE "swarm:${TASK_ID}:${AGENT_ID}:done" 3600 > /dev/null
 
 echo "✅ Reported completion for agent: $AGENT_ID (confidence: $CONFIDENCE)"
 exit 0

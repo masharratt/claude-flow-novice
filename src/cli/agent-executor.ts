@@ -90,7 +90,7 @@ async function executeCFNProtocol(
   try {
     // Step 1: Signal completion
     console.log('[CFN Protocol] Step 1: Signaling completion...');
-    await execAsync(`redis-cli lpush "swarm:${taskId}:${agentId}:done" "complete"`);
+    await execAsync(`redis-cli -h "\${REDIS_HOST:-localhost}" -p "\${REDIS_PORT:-6379}" lpush "swarm:${taskId}:${agentId}:done" "complete"`);
     console.log('[CFN Protocol] ✓ Completion signaled');
 
     // Step 2: Extract and report confidence

@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "n8n-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--init",
+        "-e", "MCP_MODE=stdio",
+        "-e", "LOG_LEVEL=error",
+        "-e", "DISABLE_CONSOLE_OUTPUT=true",
+        "-e", "N8N_API_URL=https://n8n.dailyautomations.com",
+        "-e", "N8N_API_KEY=${N8N_API_KEY}",
+        "ghcr.io/czlonkowski/n8n-mcp:latest"
+      ]
+    }
+  }
+}

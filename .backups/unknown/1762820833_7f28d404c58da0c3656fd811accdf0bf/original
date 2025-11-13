@@ -1,0 +1,52 @@
+# Claude Flow Novice Agent Container
+FROM node:18-alpine
+
+# Install required system packages
+RUN apk add --no-cache \
+    bash \
+    jq \
+    curl \
+    git \
+    redis \
+    docker
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install Claude Flow Novice globally
+RUN npm install -g .
+
+# Create app directory
+RUN mkdir -p /app/.claude
+
+# Copy only the necessary skill files
+COPY .claude/skills/ /app/.claude/skills/
+COPY .claude/agents/ /app/.claude/agents/
+
+# Set permissions
+RUN chmod +x /app/.claude/skills/*/*.sh
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfn-agent && \
+    adduser -S agent -u 1001 -G cfn-agent
+
+# Change ownership
+RUN chown -R agent:cfn-agent /app
+
+# Switch to agent user
+USER agent
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV CFN_MODE=cli
+ENV CFN_AGENT_MODE=container
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node --version || exit 1
+
+# Default command (will be overridden by agent spawning)
+CMD ["tail", "-f", "/dev/null"]

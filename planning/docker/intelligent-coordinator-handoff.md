@@ -257,64 +257,99 @@ Product Owner: ITERATE or PROCEED based on error count
 3. Dockerfile.coordinator with all dependencies
 4. Test script for full frontend
 5. Directory structure creation
+6. **Integration testing on historical commit** (1147 errors across 65 files)
+7. **Critical bug fixes:**
+   - API key propagation to agent containers
+   - .env inline comment handling
+   - Build process source syncing
+8. **Comprehensive test findings documented** (see `docs/DOCKER_COORDINATOR_INTEGRATION_TEST_FINDINGS.md`)
 
 ### ⏳ In Progress
-1. **Coordinator Docker image build**
-   - Command: Already configured with Linux build script
-   - Status: Ready to execute
-   - Expected time: 2-3 minutes
+1. **Redis heartbeat fix** - Replace `redis-cli` with Node.js Redis client
+   - Status: Root cause identified, fix not yet implemented
+   - Impact: Agents complete work but cannot report completion
 
-### ❌ Not Started
-1. Execute coordinator test on full frontend
-2. Monitor iteration progress
-3. Analyze results and error reduction
-4. Document actual vs expected performance
+### ✅ Validated (Integration Test Results)
+1. ✅ Agent spawning and lifecycle management working
+2. ✅ API authentication with Z.ai custom provider routing
+3. ✅ TypeScript error processing (484K input tokens, 20 iterations)
+4. ✅ Memory-based batching (Tier 1-4) applied correctly
+5. ✅ Wave spawning (9.8GB / 40GB budget, single wave)
+6. ⚠️ Completion reporting blocked by Redis localhost hardcode
 
 ---
 
 ## Next Steps
 
-### Immediate (Next Session)
+### Immediate (Critical Fix Required)
 
-#### 1. Build Coordinator Image
+#### 1. Fix Redis Heartbeat Localhost Hardcode
+**Problem:** Agents use `redis-cli` command which ignores `REDIS_HOST` environment variable and defaults to `127.0.0.1:6379`.
+
+**Impact:** Agents successfully execute tasks but cannot report completion back to coordinator.
+
+**Solution:** Replace `redis-cli` shell commands with Node.js Redis client in agent heartbeat code.
+
+**Location:** Agent completion protocol in CLI agent execution flow.
+
+**Expected code change:**
+```javascript
+// BEFORE (broken - uses redis-cli)
+execSync(`redis-cli hset "swarm:${TASK_ID}:${AGENT_ID}" heartbeat "${Date.now()}" status "complete"`);
+
+// AFTER (fixed - uses Node.js Redis client)
+const redis = require('redis');
+const client = redis.createClient({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: process.env.REDIS_PORT || 6379
+});
+await client.hSet(`swarm:${TASK_ID}:${AGENT_ID}`, 'heartbeat', Date.now().toString());
+await client.hSet(`swarm:${TASK_ID}:${AGENT_ID}`, 'status', 'complete');
+```
+
+#### 2. Clean Production .env File
+**Problem:** Docker's `--env-file` flag doesn't support inline comments.
+
+**Current workaround:** Created `/tmp/frontend-test-worktree/.env.clean` for testing.
+
+**Permanent fix:** Remove all inline comments from production `.env` file.
+
+**Commands:**
 ```bash
 cd /mnt/c/Users/masha/Documents/claude-flow-novice
-
-export DOCKERFILE="Dockerfile.coordinator"
-export IMAGE_NAME="cfn-intelligent-coordinator"
-export IMAGE_TAG="latest"
-./scripts/docker/build-from-linux.sh
+grep -v "^#" .env | grep -v "^$" | sed 's/#.*//' | sed 's/[[:space:]]*$//' > .env.tmp
+mv .env.tmp .env
 ```
 
-**Expected output:** `cfn-intelligent-coordinator:latest` image
+#### 3. Update Build Scripts
+**Problem:** Building from `/tmp/cfn-build` with stale code.
 
-**Validation:**
-```bash
-docker image inspect cfn-intelligent-coordinator:latest
-```
+**Fix:** Update `scripts/docker/build-from-linux.sh` to always sync fresh code from main directory before building.
 
-#### 2. Run Full Frontend Test
-```bash
-cd /mnt/c/Users/masha/Documents/claude-flow-novice
-bash tests/docker/intelligent-coordinator-test.sh
-```
+**Recommendation:** Add explicit sync step at beginning of build script.
 
-**What to monitor:**
-- Initial error count (~400 expected)
-- Iteration count (target: 2-3 iterations)
-- Total execution time (estimate: 15-30 minutes for 400 errors)
-- Final error count (target: 0)
-- Memory usage (should stay under 40GB)
+### Integration Test Results (Historical Commit d0049cbf)
 
-#### 3. Capture Results
-**Metrics to record:**
-- Initial errors: `_____`
-- Final errors: `_____`
-- Iterations needed: `_____`
-- Total time: `_____`
-- Peak memory: `_____`
-- Batches created: `_____`
-- Tier distribution: T1=___, T2=___, T3=___, T4=___
+**Test Environment:**
+- Commit: d0049cbf (November 1, 2025)
+- Errors: 1147 across 65 files
+- Worktree: `/tmp/frontend-test-worktree`
+
+**Metrics Captured:**
+- Initial errors: **1147**
+- Batches created: **16**
+- Tier distribution: T1=9, T2=3, T3=3, T4=1
+- Memory allocation: **9.8GB / 40GB budget** (24% utilization)
+- Wave count: **1 wave** (all agents fit in single wave)
+- Agent execution: **484K input tokens, 1.4K output tokens, 20 iterations**
+- Completion reporting: **BLOCKED** (Redis localhost issue)
+
+**Key Findings:**
+1. ✅ Coordinator analysis phase working correctly
+2. ✅ Dependency clustering producing optimal batches
+3. ✅ Wave spawning respecting memory budget
+4. ✅ Agents authenticating and processing errors
+5. ⚠️ Completion reporting blocked by Redis connection issue
 
 ### Short-Term (1-2 Days)
 

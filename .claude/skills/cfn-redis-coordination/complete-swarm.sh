@@ -53,7 +53,7 @@ fi
 METADATA_KEY="swarm:${SWARM_ID}:metadata"
 
 # Check if swarm exists
-if ! redis-cli exists "$METADATA_KEY" | grep -q "1"; then
+if ! redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" exists "$METADATA_KEY" | grep -q "1"; then
   echo "Error: Swarm not found: $SWARM_ID"
   exit 1
 fi
@@ -61,14 +61,14 @@ fi
 echo "[Swarm] Completing swarm: $SWARM_ID"
 
 # Update status
-redis-cli hset "$METADATA_KEY" \
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" hset "$METADATA_KEY" \
   status "completed" \
   completed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /dev/null
 
 # Add final metrics
 for KEY in "${!FINAL_METRICS[@]}"; do
   VALUE="${FINAL_METRICS[$KEY]}"
-  redis-cli hset "$METADATA_KEY" "$KEY" "$VALUE" > /dev/null
+  redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" hset "$METADATA_KEY" "$KEY" "$VALUE" > /dev/null
   echo "[Swarm] Stored metric: $KEY = $VALUE"
 done
 

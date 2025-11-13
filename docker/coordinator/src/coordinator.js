@@ -158,21 +158,20 @@ async function clusterFiles(errorsByFile) {
 }
 
 /**
- * Phase 4-5: Create batches and push to Redis
+ * Phase 4-5: Prepare task batches (no Redis queue - direct agent tracking)
  */
-async function pushTasksToRedis(clusters, iteration) {
-  console.log('\n📋 Phase 4-5: Pushing tasks to Redis...');
+async function prepareTaskBatches(clusters, iteration) {
+  console.log('\n📋 Phase 4-5: Preparing task batches...');
 
-  // Clear previous iteration
-  await redisClient.del('task:queue');
-  await redisClient.del('task:completed');
+  // Store batch metadata for reference (not for queue)
+  await redisClient.del('iteration:agents');
 
   let taskNum = 0;
 
   for (const cluster of clusters) {
     taskNum++;
 
-    // Create batch metadata
+    // Store metadata for monitoring only
     const batch = {
       batch_id: `iter${iteration}-cluster${taskNum}`,
       tier: cluster.tier,
@@ -182,10 +181,6 @@ async function pushTasksToRedis(clusters, iteration) {
       iteration
     };
 
-    // Push to queue
-    await redisClient.rPush('task:queue', taskNum.toString());
-
-    // Store metadata
     await redisClient.hSet(`task:${taskNum}`, {
       batch_id: batch.batch_id,
       tier: batch.tier.toString(),
@@ -196,16 +191,14 @@ async function pushTasksToRedis(clusters, iteration) {
     });
   }
 
-  await redisClient.set('task:total', taskNum.toString());
-  await redisClient.set('task:completed', '0');
+  console.log(`   ✅ Prepared ${taskNum} batches for iteration ${iteration}`);
 
-  console.log(`   ✅ Created ${taskNum} tasks for iteration ${iteration}`);
-
-  return taskNum;
+  return clusters;
 }
 
 /**
  * Phase 6: Spawn agents in waves (respecting memory budget)
+ * Returns: Array of container names for tracking
  */
 async function spawnAgents(clusters) {
   console.log('\n🚀 Phase 6: Spawning agent waves...');
@@ -213,6 +206,7 @@ async function spawnAgents(clusters) {
   const budgetBytes = parseMemory(CONFIG.memoryBudget);
   let currentWave = 1;
   const batchQueue = [...clusters];
+  const allContainerNames = [];
 
   while (batchQueue.length > 0) {
     const wave = [];
@@ -235,18 +229,22 @@ async function spawnAgents(clusters) {
     const budgetMB = Math.round(budgetBytes / (1024 * 1024));
     console.log(`   Wave ${currentWave}: Spawning ${wave.length} agents (${waveMemoryMB}MB / ${budgetMB}MB budget)`);
 
-    // Spawn all agents in wave
-    const spawnPromises = wave.map((batch, i) =>
-      spawnAgent(batch, `wave${currentWave}-agent${i + 1}`)
-    );
+    // Spawn all agents in wave and collect container names
+    const containerNames = [];
+    for (let i = 0; i < wave.length; i++) {
+      const containerName = `wave${currentWave}-agent${i + 1}`;
+      await spawnAgent(wave[i], containerName);
+      containerNames.push(containerName);
+      allContainerNames.push(containerName);
+    }
 
-    await Promise.all(spawnPromises);
-    console.log(`   ✅ Wave ${currentWave} spawned successfully`);
+    console.log(`   ✅ Wave ${currentWave} spawned successfully: ${containerNames.join(', ')}`);
 
     currentWave++;
   }
 
   console.log(`   ✅ All ${clusters.length} agents spawned across ${currentWave - 1} waves`);
+  return allContainerNames;
 }
 
 /**
@@ -296,92 +294,138 @@ async function spawnAgent(batch, agentId) {
 }
 
 /**
- * Phase 7: Wait for all agents to complete (passive Redis polling)
- * Includes agent health monitoring and stuck agent detection
+ * Phase 7: Wait for all agents to complete (Docker container status tracking)
+ * Monitors container exit status instead of Redis queue
  */
-async function waitForCompletion() {
+async function waitForCompletion(containerNames, timeout = 1800000) {
   console.log('\n⏳ Phase 7: Waiting for agent completion...');
 
-  const totalTasks = parseInt(await redisClient.get('task:total') || '0');
-
-  // Priority 3 Fix: Handle empty task list
-  if (totalTasks === 0) {
-    console.log('   ⚠️  No tasks created (no errors to fix)');
-    return;
+  if (!containerNames || containerNames.length === 0) {
+    console.log('   ⚠️  No agents spawned (no tasks to complete)');
+    return { completed: 0, failed: 0, timeout: 0 };
   }
 
   const startTime = Date.now();
-  const agentTimeout = 180; // 3 minutes per agent (Priority 2 Fix)
-  const coordinatorTimeout = 1800; // 30 minutes total
+  const containerStatus = new Map();
+
+  // Initialize tracking
+  for (const name of containerNames) {
+    containerStatus.set(name, { status: 'running', exitCode: null, lastChecked: Date.now() });
+  }
+
+  let lastProgressUpdate = 0;
 
   while (true) {
-    const completed = parseInt(await redisClient.get('task:completed') || '0');
-    const queueLength = await redisClient.lLen('task:queue');
-    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const elapsed = Date.now() - startTime;
+    let completed = 0;
+    let failed = 0;
+    let running = 0;
 
-    // Priority 3 Fix: Safe progress display
-    if (totalTasks > 0) {
-      process.stdout.write(`   Progress: ${completed}/${totalTasks} tasks, ${queueLength} queued (${elapsed}s elapsed)\r`);
+    // Check each container status
+    for (const containerName of containerNames) {
+      const status = containerStatus.get(containerName);
+
+      // Skip if already completed or failed
+      if (status.status === 'completed' || status.status === 'failed') {
+        if (status.status === 'completed') completed++;
+        if (status.status === 'failed') failed++;
+        continue;
+      }
+
+      try {
+        // Get container by name
+        const containers = await docker.listContainers({
+          all: true,
+          filters: { name: [containerName] }
+        });
+
+        if (containers.length === 0) {
+          console.log(`\n   ⚠️  Container ${containerName} not found`);
+          status.status = 'failed';
+          status.exitCode = -1;
+          failed++;
+          continue;
+        }
+
+        const containerInfo = containers[0];
+
+        if (containerInfo.State === 'exited') {
+          const container = docker.getContainer(containerInfo.Id);
+          const inspect = await container.inspect();
+
+          if (inspect.State.ExitCode === 0) {
+            status.status = 'completed';
+            status.exitCode = 0;
+            completed++;
+            console.log(`\n   ✅ ${containerName} completed successfully`);
+          } else {
+            status.status = 'failed';
+            status.exitCode = inspect.State.ExitCode;
+            failed++;
+            console.log(`\n   ❌ ${containerName} failed with exit code ${inspect.State.ExitCode}`);
+          }
+        } else if (containerInfo.State === 'running') {
+          running++;
+          status.lastChecked = Date.now();
+        }
+
+      } catch (error) {
+        console.log(`\n   ⚠️  Error checking ${containerName}: ${error.message}`);
+        status.status = 'failed';
+        status.exitCode = -1;
+        failed++;
+      }
     }
 
-    // Priority 2 Fix: Agent health monitoring
-    await monitorAgentHealth(agentTimeout);
+    // Progress update every 5 seconds
+    const now = Date.now();
+    if (now - lastProgressUpdate > 5000) {
+      const elapsedSec = Math.round(elapsed / 1000);
+      process.stdout.write(`   Progress: ${completed} completed, ${failed} failed, ${running} running (${elapsedSec}s elapsed)\r`);
+      lastProgressUpdate = now;
+    }
 
-    if (completed >= totalTasks && queueLength === 0) {
-      console.log('\n   ✅ All tasks completed');
+    // Check if all containers finished
+    if (completed + failed >= containerNames.length) {
+      console.log(`\n   ✅ All agents finished: ${completed} succeeded, ${failed} failed`);
       break;
     }
 
-    // Safety timeout (30 minutes)
-    if (elapsed > coordinatorTimeout) {
-      console.log('\n   ⚠️  Coordinator timeout reached (30 minutes)');
-      console.log('   Killing all agents and exiting...');
-      await cleanupAgents();
-      throw new Error('Coordinator timeout');
+    // Check timeout
+    if (elapsed > timeout) {
+      console.log(`\n   ⚠️  Timeout reached (${Math.round(timeout/60000)} minutes)`);
+      console.log('   Killing remaining agents...');
+
+      // Kill still-running containers
+      for (const [containerName, status] of containerStatus.entries()) {
+        if (status.status === 'running') {
+          try {
+            const containers = await docker.listContainers({
+              filters: { name: [containerName] }
+            });
+            if (containers.length > 0) {
+              const container = docker.getContainer(containers[0].Id);
+              await container.kill();
+              console.log(`   Killed ${containerName}`);
+            }
+          } catch (err) {
+            console.log(`   Failed to kill ${containerName}: ${err.message}`);
+          }
+        }
+      }
+
+      return { completed, failed, timeout: running };
     }
 
-    await sleep(5000); // Poll every 5s
+    await sleep(2000); // Poll every 2 seconds
   }
 
   const totalTime = Math.round((Date.now() - startTime) / 1000);
   console.log(`   Total time: ${Math.floor(totalTime / 60)}m ${totalTime % 60}s`);
+
+  return { completed, failed, timeout: 0 };
 }
 
-/**
- * Monitor agent health and kill stuck agents
- * Priority 2 Fix: Prevent agents from hanging indefinitely
- */
-async function monitorAgentHealth(timeoutSeconds) {
-  try {
-    const containers = await docker.listContainers({
-      filters: {
-        name: ['wave']
-      }
-    });
-
-    for (const containerInfo of containers) {
-      const startedAt = new Date(containerInfo.State === 'running' ? containerInfo.Created * 1000 : 0);
-      const elapsed = (Date.now() - startedAt.getTime()) / 1000;
-
-      if (elapsed > timeoutSeconds) {
-        const containerName = containerInfo.Names[0].replace('/', '');
-        console.log(`\n   ⚠️  Agent ${containerName} stuck for ${Math.round(elapsed)}s (timeout: ${timeoutSeconds}s)`);
-        console.log(`   Killing stuck agent...`);
-
-        try {
-          const container = docker.getContainer(containerInfo.Id);
-          await container.kill();
-          await container.remove({ force: true });
-          console.log(`   ✅ Stuck agent ${containerName} killed`);
-        } catch (killError) {
-          console.log(`   ⚠️  Failed to kill ${containerName}: ${killError.message}`);
-        }
-      }
-    }
-  } catch (error) {
-    // Ignore monitoring errors (don't block main workflow)
-  }
-}
 
 /**
  * Phase 8: Cleanup agent containers
@@ -460,9 +504,20 @@ async function main() {
       break;
     }
 
-    await pushTasksToRedis(clusters, iteration);
-    await spawnAgents(clusters);
-    await waitForCompletion();
+    await prepareTaskBatches(clusters, iteration);
+    const containerNames = await spawnAgents(clusters);
+    const result = await waitForCompletion(containerNames);
+
+    // Log results
+    console.log(`\n📊 Iteration ${iteration} results: ${result.completed} succeeded, ${result.failed} failed`);
+
+    // Fail fast if too many agents failed
+    if (result.failed > 0 && result.failed / containerNames.length > 0.5) {
+      console.log('\n❌ More than 50% of agents failed - aborting');
+      await cleanupAgents();
+      break;
+    }
+
     await cleanupAgents();
 
     console.log(`\n✅ Iteration ${iteration} complete`);

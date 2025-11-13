@@ -429,6 +429,83 @@ docker logs -f cfn-coordinator
 
 ---
 
+## Integration Test Results (2025-11-13)
+
+### Test Environment
+- **Test commit:** d0049cbf (November 1, 2025)
+- **Error count:** 1147 errors across 65 files
+- **Worktree:** `/tmp/frontend-test-worktree`
+- **Document:** `docs/DOCKER_COORDINATOR_INTEGRATION_TEST_FINDINGS.md`
+
+### Bugs Discovered and Fixed
+
+#### Bug #1: API Key Propagation (FIXED)
+**Problem:** Coordinator only forwarded `ANTHROPIC_*` and `CFN_*` environment variables to agents, missing provider-specific keys (Z.ai, Kimi, OpenRouter).
+
+**Fix:** Expanded filter in `docker/coordinator/src/coordinator.js:277-284` to include all provider variables.
+
+**Status:** ✅ Fixed and committed
+
+#### Bug #2: .env Inline Comments (WORKAROUND)
+**Problem:** Docker's `--env-file` doesn't support inline comments. Comments are included in variable values.
+
+**Workaround:** Created cleaned `.env.clean` file without inline comments.
+
+**Permanent Fix Needed:** Remove inline comments from production `.env` file.
+
+#### Bug #3: Redis Localhost Hardcode (IDENTIFIED)
+**Problem:** Agents use `redis-cli` command which ignores `REDIS_HOST` environment variable and defaults to `localhost:6379`.
+
+**Impact:** Agents complete work successfully but cannot report completion to coordinator.
+
+**Fix Required:** Replace `redis-cli` with Node.js Redis client in agent heartbeat code.
+
+**Status:** ⚠️ Root cause identified, fix not yet implemented
+
+### Validation Successes
+
+✅ **Core Functionality Working:**
+1. Agent spawning and lifecycle management
+2. API authentication with Z.ai custom provider routing
+3. TypeScript error processing (484K input tokens, 1.4K output tokens, 20 iterations)
+4. Memory-based batching correctly applied (Tier 1-4)
+5. Wave spawning respecting 40GB budget (9.8GB / 40GB = 24% utilization)
+
+### Test Metrics
+
+**Coordinator Analysis (Iteration 1):**
+- Initial errors: 1147 across 65 files
+- Batches created: 16 batches
+  - Tier 1: 9 (independent files)
+  - Tier 2: 3 (small clusters)
+  - Tier 3: 3 (medium clusters)
+  - Tier 4: 1 (large clusters)
+- Memory allocation: 9.8GB / 40GB budget (24% utilization)
+- Agents spawned: 16 in Wave 1
+
+**Agent Execution (example: wave1-agent13):**
+- Input tokens: 484,369
+- Output tokens: 1,486
+- Iterations: 20 (max reached)
+- Stop reason: max_tokens
+- Runtime: ~2 minutes
+- Result: Fixed files successfully, but failed to report completion
+
+### Recommended Fixes Priority
+
+**Priority 1: Critical Blockers**
+1. Fix Redis heartbeat to use Node.js client instead of `redis-cli`
+2. Clean inline comments from production `.env` file
+
+**Priority 2: Already Fixed**
+1. ✅ API key propagation fixed in coordinator.js (needs commit)
+
+**Priority 3: Nice to Have**
+1. Update build scripts to sync code before building
+2. Fix error count display multiplier (cosmetic)
+
+---
+
 ## Future Enhancements
 
 1. **Adaptive memory allocation**: Learn optimal memory per tier based on actual usage
@@ -437,3 +514,5 @@ docker logs -f cfn-coordinator
 4. **Incremental validation**: Validate files as agents complete (early termination)
 5. **Cost tracking**: Monitor API costs per iteration
 6. **Progress webhooks**: Real-time progress updates to external systems
+7. **Redis heartbeat fix**: Replace `redis-cli` with Node.js Redis client (CRITICAL)
+8. **Production .env cleanup**: Remove all inline comments for Docker compatibility

@@ -32,6 +32,9 @@ COPY docker/coordinator/src ./src
 # Copy utility libraries
 COPY docker/coordinator/lib ./lib
 
+# Copy Redis coordination skills (required for agent communication)
+COPY .claude/skills/cfn-redis-coordination ./.claude/skills/cfn-redis-coordination
+
 # Environment variables (can be overridden at runtime)
 ENV NODE_ENV=production
 ENV MEMORY_BUDGET=40g

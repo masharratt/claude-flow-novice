@@ -535,7 +535,7 @@ function spawn_loop3_agents() {
     fi
 
     # Store agent ID mapping for later retrieval using Redis SADD for set storage
-    redis-cli SADD "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" "$UNIQUE_AGENT_ID" >/dev/null
+    redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SADD "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" "$UNIQUE_AGENT_ID" >/dev/null
   done
 
   echo "[Loop 3] All agents spawned"
@@ -552,7 +552,7 @@ function wait_for_agents() {
 
   # Retrieve actual agent IDs from Redis (stored during spawn using SADD)
   local stored_ids
-  stored_ids=$(redis-cli SMEMBERS "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  stored_ids=$(redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SMEMBERS "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
   # If stored IDs exist, use them; otherwise fallback to generating from agent types
   local -a AGENT_IDS
@@ -591,7 +591,7 @@ function wait_for_agents() {
     # Spawn BLPOP in background, write result to temp file
     (
       local result
-      if redis-cli blpop "swarm:${task_id}:${unique_agent_id}:done" "$timeout" >/dev/null 2>&1; then
+      if redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" blpop "swarm:${task_id}:${unique_agent_id}:done" "$timeout" >/dev/null 2>&1; then
         echo "success" > "$temp_file"
       else
         echo "timeout" > "$temp_file"
@@ -660,7 +660,7 @@ function wait_for_loop2_agents() {
 
   # Retrieve actual agent IDs from Redis (stored during spawn using SADD)
   local stored_ids
-  stored_ids=$(redis-cli SMEMBERS "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  stored_ids=$(redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SMEMBERS "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
   # If stored IDs exist, use them; otherwise fallback to generating from agent types
   local -a VALIDATOR_IDS
@@ -694,7 +694,7 @@ function wait_for_loop2_agents() {
 
     # Spawn BLPOP in background
     (
-      if redis-cli blpop "swarm:${task_id}:${unique_validator_id}:done" "$timeout" >/dev/null 2>&1; then
+      if redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" blpop "swarm:${task_id}:${unique_validator_id}:done" "$timeout" >/dev/null 2>&1; then
         echo "success" > "$temp_file"
       else
         echo "timeout" > "$temp_file"
@@ -788,7 +788,7 @@ function spawn_loop2_agents() {
       --namespace "swarm" >/dev/null
 
     # Store agent ID mapping for later retrieval using Redis SADD for set storage
-    redis-cli SADD "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" "$UNIQUE_VALIDATOR_ID" >/dev/null
+    redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SADD "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" "$UNIQUE_VALIDATOR_ID" >/dev/null
   done
 
   echo "[Loop 2] All agents spawned"
@@ -908,7 +908,7 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
 
   # Step 4: Gate check (Loop 3 self-validation)
   # Retrieve actual Loop 3 agent IDs for validation
-  LOOP3_IDS=$(redis-cli SMEMBERS "swarm:${TASK_ID}:loop3:agent_ids:iteration${ITERATION}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  LOOP3_IDS=$(redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SMEMBERS "swarm:${TASK_ID}:loop3:agent_ids:iteration${ITERATION}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
   if [ -z "$LOOP3_IDS" ]; then
     echo "⚠️  WARNING: No Loop 3 agent IDs found in Redis, using agent types as fallback"
@@ -944,7 +944,7 @@ for ((ITERATION=1; ITERATION<=MAX_ITERATIONS; ITERATION++)); do
 
   # Step 7: Consensus check (Loop 2 validation)
   # Retrieve actual Loop 2 agent IDs for validation
-  LOOP2_IDS=$(redis-cli SMEMBERS "swarm:${TASK_ID}:loop2:agent_ids:iteration${ITERATION}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  LOOP2_IDS=$(redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SMEMBERS "swarm:${TASK_ID}:loop2:agent_ids:iteration${ITERATION}" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
   if [ -z "$LOOP2_IDS" ]; then
     echo "⚠️  WARNING: No Loop 2 agent IDs found in Redis, using agent types as fallback"

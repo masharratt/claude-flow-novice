@@ -12,7 +12,7 @@ echo ""
 REDIS_PORT=6379
 NETWORK_NAME="cfn-network"
 COORDINATOR_IMAGE="cfn-intelligent-coordinator:latest"
-FRONTEND_PATH="/mnt/c/Users/masha/Documents/ourstories-v2/frontend"
+FRONTEND_PATH="${FRONTEND_PATH:-/mnt/c/Users/masha/Documents/ourstories-v2/frontend}"
 
 # Verify frontend path exists
 if [ ! -d "$FRONTEND_PATH" ]; then
@@ -105,20 +105,29 @@ echo "   ───────────────────────�
 
 START_TIME=$(date +%s)
 
-docker run --rm \
+# Build docker run command
+DOCKER_RUN_CMD="docker run --rm \
     --name cfn-coordinator \
     --memory=2g \
-    --network "$NETWORK_NAME" \
+    --network $NETWORK_NAME \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v "$FRONTEND_PATH:/workspace:rw" \
+    -v $FRONTEND_PATH:/workspace:rw \
     -e MEMORY_BUDGET=40g \
     -e MAX_ITERATIONS=5 \
     -e REDIS_HOST=cfn-redis \
     -e REDIS_PORT=$REDIS_PORT \
     -e NETWORK_NAME=$NETWORK_NAME \
-    -e AGENT_IMAGE=claude-flow-novice-agent:frontend \
-    --env-file .env \
-    "$COORDINATOR_IMAGE"
+    -e AGENT_IMAGE=claude-flow-novice-agent:frontend"
+
+# Add --env-file only if .env exists
+if [ -f .env ]; then
+    DOCKER_RUN_CMD="$DOCKER_RUN_CMD --env-file .env"
+fi
+
+DOCKER_RUN_CMD="$DOCKER_RUN_CMD $COORDINATOR_IMAGE"
+
+# Run coordinator
+eval "$DOCKER_RUN_CMD"
 
 COORDINATOR_EXIT=$?
 TOTAL_TIME=$(($(date +%s) - START_TIME))
