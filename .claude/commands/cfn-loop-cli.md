@@ -30,7 +30,7 @@ TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
 ```bash
 npx claude-flow-novice agent cfn-v3-coordinator \
   --task-id "$TASK_ID" \
-  --context "TASK_DESCRIPTION='$TASK_DESCRIPTION' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS" \
+  --context "TASK_DESCRIPTION='$TASK_DESCRIPTION' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS CFN_DOCKER_MODE='true'" \
   --timeout 300 \
   --background=true
 ```

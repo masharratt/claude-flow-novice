@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Redis for agent coordination
+  redis:
+    image: redis:7-alpine
+    container_name: cfn-redis
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    ports:
+      - "6379:6379"
+
+  # Playwright for browser automation
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.40.0-focal
+    container_name: cfn-playwright
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    environment:
+      - NODE_ENV=production
+    shm_size: '2gb'
+    healthcheck:
+      test: ["CMD", "node", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL for data persistence (optional)
+  postgres:
+    image: postgres:15-alpine
+    container_name: cfn-postgres
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    environment:
+      POSTGRES_DB: cfn_loop
+      POSTGRES_USER: cfn_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cfn_dev_password_change_in_production}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cfn_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+networks:
+  mcp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  redis-data:
+    driver: local
+  postgres-data:
+    driver: local
+
+# Example usage:
+# docker-compose up -d                    # Start all services
+# docker-compose ps                       # Check status
+# docker-compose logs -f redis            # View Redis logs
+# docker-compose down                     # Stop all services
+# docker-compose down -v                  # Stop and remove volumes

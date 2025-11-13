@@ -354,7 +354,9 @@ OPENROUTER_API_KEY=your-openrouter-key-here
 
 ### Main Chat Settings
 
-Location: `.claude/settings.json`
+Location: `.claude/settings.local.json` (preferred) or `.claude/settings.json`
+
+**Note:** The switch-api script automatically detects which file exists and uses `settings.local.json` if available.
 
 Example (Z.ai):
 ```json

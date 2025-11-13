@@ -215,15 +215,46 @@ function buildEnvironmentContext(context: TaskContext): string {
   if (context.priority) env.push(`PRIORITY=${context.priority}`);
   if (context.parentTaskId) env.push(`PARENT_TASK_ID=${context.parentTaskId}`);
 
-  if (env.length === 0) return '';
+  // Docker workspace detection
+  const isDockerEnv = process.env.DOCKER_AGENT === 'true' || process.env.WORKSPACE_ROOT;
+  const workspaceRoot = process.env.WORKSPACE_ROOT || '/workspace';
 
-  return `
+  if (isDockerEnv) {
+    env.push(`WORKSPACE_ROOT=${workspaceRoot}`);
+  }
+
+  // Always include Docker context if detected, even if env array is empty
+  if (isDockerEnv && env.length === 0) {
+    env.push(`WORKSPACE_ROOT=${workspaceRoot}`);
+  }
+
+  if (env.length === 0 && !isDockerEnv) return '';
+
+  let contextText = `
 ## Environment Variables
 
 \`\`\`bash
 ${env.join('\n')}
 \`\`\`
 `;
+
+  // Add Docker workspace notice if detected
+  if (isDockerEnv) {
+    contextText += `
+
+## Docker Container Environment
+
+**CRITICAL:** You are running inside a Docker container.
+
+- **Working Directory:** \`${workspaceRoot}\`
+- **File Paths:** All file operations use \`${workspaceRoot}/\` prefix
+- **Example:** To read \`src/file.ts\`, use \`${workspaceRoot}/src/file.ts\`
+
+**DO NOT** use paths from your training data or Main Chat context. Use \`${workspaceRoot}/\` for all file operations.
+`;
+  }
+
+  return contextText;
 }
 
 /**

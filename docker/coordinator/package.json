@@ -1,0 +1,27 @@
+{
+  "name": "cfn-intelligent-coordinator",
+  "version": "1.0.0",
+  "description": "Intelligent Docker coordinator for TypeScript error fixing with CFN Loop pattern",
+  "main": "src/coordinator.js",
+  "scripts": {
+    "start": "node src/coordinator.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "docker",
+    "typescript",
+    "coordinator",
+    "cfn-loop",
+    "agent-orchestration"
+  ],
+  "author": "Claude Flow Novice",
+  "license": "MIT",
+  "dependencies": {
+    "dockerode": "^4.0.2",
+    "redis": "^4.6.13",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

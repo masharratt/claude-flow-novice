@@ -1,52 +1,66 @@
-# Claude Flow Novice Agent Container
+# Single-stage Dockerfile for CFN Loop Agent Containers
+# Optimized for production use - uses prebuilt dist/ directory
+
 FROM node:18-alpine
 
-# Install required system packages
+WORKDIR /app
+
+# Install runtime dependencies including Redis client
 RUN apk add --no-cache \
     bash \
-    jq \
-    curl \
     git \
-    redis \
-    docker
-
-# Set working directory
-WORKDIR /app
+    curl \
+    ca-certificates \
+    redis
 
 # Copy package files
 COPY package*.json ./
 
-# Install Claude Flow Novice globally
-RUN npm install -g .
+# Install production dependencies only (skip scripts to avoid build issues)
+RUN npm ci --production --ignore-scripts
 
-# Create app directory
-RUN mkdir -p /app/.claude
+# Copy prebuilt dist/ directory (no TypeScript build needed)
+COPY dist/ ./dist/
 
-# Copy only the necessary skill files
-COPY .claude/skills/ /app/.claude/skills/
-COPY .claude/agents/ /app/.claude/agents/
+# Copy essential project files
+COPY .claude/ ./.claude/
+COPY claude-assets/ ./claude-assets/
+COPY scripts/ ./scripts/
+COPY CLAUDE.md ./
+COPY README.md LICENSE ./
 
-# Set permissions
-RUN chmod +x /app/.claude/skills/*/*.sh
+# Make init script executable
+RUN chmod +x ./scripts/docker-agent-init.sh
 
-# Create non-root user
-RUN addgroup -g 1001 -S cfn-agent && \
-    adduser -S agent -u 1001 -G cfn-agent
+# Create non-root user for security
+RUN addgroup -g 1001 -S cfn && \
+    adduser -u 1001 -S cfn -G cfn && \
+    chown -R cfn:cfn /app
 
-# Change ownership
-RUN chown -R agent:cfn-agent /app
+# Create workspace directory for agent execution
+RUN mkdir -p /app/workspace && \
+    chown -R cfn:cfn /app/workspace
 
-# Switch to agent user
-USER agent
+# Switch to non-root user
+USER cfn
 
 # Set environment variables
-ENV NODE_ENV=production
-ENV CFN_MODE=cli
-ENV CFN_AGENT_MODE=container
+ENV NODE_ENV=production \
+    PATH="/app/node_modules/.bin:${PATH}" \
+    CFN_CONTAINER_MODE=true
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node --version || exit 1
+    CMD node -e "console.log('healthy')" || exit 1
 
-# Default command (will be overridden by agent spawning)
-CMD ["tail", "-f", "/dev/null"]
+# Use init script as entrypoint for Redis coordination
+ENTRYPOINT ["/bin/bash", "/app/scripts/docker-agent-init.sh"]
+
+# Default CMD (agent execution)
+CMD ["node", "dist/cli/index.js", "agent", "--help"]
+
+# Labels for metadata
+LABEL maintainer="CFN Loop Team"
+LABEL version="2.15.0"
+LABEL description="Claude Flow Novice agent container for CFN Loop orchestration"
+LABEL org.opencontainers.image.source="https://github.com/masharri/claude-flow-novice"

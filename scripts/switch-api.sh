@@ -11,12 +11,17 @@
 #   - max:        Main Chat + Task tool use Anthropic (requires re-login)
 #   - CLI:        Respects custom routing when enabled (see agent profiles)
 #
-# Settings file: .claude/settings.json (project local)
+# Settings file: .claude/settings.local.json (preferred) or .claude/settings.json
 ##############################################################################
 
 set -euo pipefail
 
-SETTINGS_FILE=".claude/settings.json"
+# Detect which settings file to use (prefer settings.local.json)
+if [ -f ".claude/settings.local.json" ]; then
+    SETTINGS_FILE=".claude/settings.local.json"
+else
+    SETTINGS_FILE=".claude/settings.json"
+fi
 BACKUP_DIR=".claude/backups"
 
 # Create backup directory
@@ -37,10 +42,12 @@ show_status() {
     echo -e "${BLUE}   Claude API Provider Status${NC}"
     echo -e "${BLUE}═══════════════════════════════════════${NC}"
     echo ""
+    echo -e "${BLUE}Settings File:${NC} $SETTINGS_FILE"
+    echo ""
 
     if [ ! -f "$SETTINGS_FILE" ]; then
         echo -e "${YELLOW}⚠️  Settings file not found${NC}"
-        echo "   File: $SETTINGS_FILE"
+        echo "   Will be created on first switch"
         echo ""
         return
     fi
@@ -348,7 +355,7 @@ case "${1:-status}" in
         echo "Notes:"
         echo "  • CLI agents respect custom routing when enabled"
         echo "  • Main Chat routing affects Task() spawned agents"
-        echo "  • Settings file: .claude/settings.json"
+        echo "  • Settings file: .claude/settings.local.json (preferred) or .claude/settings.json"
         echo "  • Backups saved to: .claude/backups/"
         echo ""
         ;;

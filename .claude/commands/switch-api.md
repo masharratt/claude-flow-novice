@@ -25,28 +25,30 @@ Switch Main Chat and Task() tool API provider between multiple AI providers.
 **What This Does:**
 
 `/switch-api zai`:
-- Adds Z.ai env vars to `.claude/settings.json`
+- Adds Z.ai env vars to `.claude/settings.local.json` (or settings.json)
 - Main Chat + Task() agents use Z.ai
 - Cost: $0.50/1M tokens (97% savings)
 - No login required
 
 `/switch-api kimi`:
-- Adds Kimi env vars to `.claude/settings.json`
+- Adds Kimi env vars to `.claude/settings.local.json` (or settings.json)
 - Main Chat + Task() agents use Moonshot Kimi
 - Cost: ~$2/1M tokens
 - Requires `KIMI_API_KEY` in root `.env`
 
 `/switch-api openrouter`:
-- Adds OpenRouter env vars to `.claude/settings.json`
+- Adds OpenRouter env vars to `.claude/settings.local.json` (or settings.json)
 - Main Chat + Task() agents use OpenRouter
 - Cost: Varies by model
 - Requires `OPENROUTER_API_KEY` in root `.env`
 
 `/switch-api max`:
-- Removes env vars from `.claude/settings.json`
+- Removes env vars from `.claude/settings.local.json` (or settings.json)
 - Main Chat + Task() agents use Anthropic
 - Cost: $15/1M tokens (or $0 with unlimited plan)
 - **Requires** running `claude login`
+
+**Note:** Script automatically detects and uses `.claude/settings.local.json` if it exists, otherwise uses `.claude/settings.json`.
 
 **Combined Architecture:**
 ```

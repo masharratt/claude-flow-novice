@@ -469,25 +469,54 @@ function spawn_loop3_agents() {
     safe_task_id=$(sanitize_input "$task_id") || continue
     safe_agent_id=$(sanitize_input "$UNIQUE_AGENT_ID") || continue
 
-    # Spawn agent in background with process instrumentation and memory limits
-    if command -v execute_instrumented >/dev/null 2>&1; then
-        execute_instrumented "npx" "$CFN_VALIDATION_TIMEOUT" "$CFN_MEMORY_LIMIT" \
-          claude-flow-novice agent "$safe_agent_type" \
-          --task-id "$safe_task_id" \
-          --agent-id "$safe_agent_id" \
-          --iteration "$iteration" \
-          --context "$(build_agent_context "$safe_task_id" "$iteration" "$safe_agent_type" "" "loop3")" &
+    # Dual-mode agent spawning: Docker or CLI
+    # Docker mode: CFN_DOCKER_MODE=true or Docker socket available
+    # CLI mode: Default (uses npx)
+    if [[ "${CFN_DOCKER_MODE:-false}" == "true" ]] || [[ -S /var/run/docker.sock ]]; then
+        # Docker-based spawning (prevents WebAssembly OOM)
+        echo "  → Docker mode: spawning via container" >&2
+
+        docker run --detach \
+          --name "agent-${safe_agent_id}" \
+          --memory "${CFN_MEMORY_LIMIT:-2g}" \
+          --cpus 1.5 \
+          --network "${CFN_DOCKER_NETWORK:-mcp-network}" \
+          --env REDIS_URL=redis://redis:6379 \
+          --env AGENT_ID="${safe_agent_id}" \
+          --env AGENT_TYPE="${safe_agent_type}" \
+          --env TASK_ID="${safe_task_id}" \
+          --env ITERATION="${iteration}" \
+          --volume "${PROJECT_ROOT}/.claude:/app/.claude:ro" \
+          --volume "${PROJECT_ROOT}/packages:/app/packages" \
+          --volume "/tmp/agent-workspace-${safe_agent_id}:/app/workspace" \
+          "${CFN_DOCKER_IMAGE:-claude-flow-novice:agent}" \
+          sh -c "npx claude-flow-novice agent \"${safe_agent_type}\" --task-id \"${safe_task_id}\" --agent-id \"${safe_agent_id}\" --iteration \"${iteration}\"" >/dev/null 2>&1 &
+
+        AGENT_PID=$!
     else
-        # Fallback to raw spawn if instrumentation unavailable
-        npx claude-flow-novice agent "$safe_agent_type" \
-          --task-id "$safe_task_id" \
-          --agent-id "$safe_agent_id" \
-          --iteration "$iteration" \
-          --context "$(build_agent_context "$safe_task_id" "$iteration" "$safe_agent_type" "" "loop3")" &
+        # CLI-based spawning (traditional approach)
+        echo "  → CLI mode: spawning via npx" >&2
+
+        if command -v execute_instrumented >/dev/null 2>&1; then
+            execute_instrumented "npx" "$CFN_VALIDATION_TIMEOUT" "$CFN_MEMORY_LIMIT" \
+              claude-flow-novice agent "$safe_agent_type" \
+              --task-id "$safe_task_id" \
+              --agent-id "$safe_agent_id" \
+              --iteration "$iteration" \
+              --context "$(build_agent_context "$safe_task_id" "$iteration" "$safe_agent_type" "" "loop3")" &
+        else
+            # Fallback to raw spawn if instrumentation unavailable
+            npx claude-flow-novice agent "$safe_agent_type" \
+              --task-id "$safe_task_id" \
+              --agent-id "$safe_agent_id" \
+              --iteration "$iteration" \
+              --context "$(build_agent_context "$safe_task_id" "$iteration" "$safe_agent_type" "" "loop3")" &
+        fi
+
+        AGENT_PID=$!
     fi
 
     # Store PID for monitoring using unique agent ID
-    AGENT_PID=$!
     "$REDIS_COORD_SKILL/store-context.sh" \
       --task-id "$task_id" \
       --key "${UNIQUE_AGENT_ID}:pid" \

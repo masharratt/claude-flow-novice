@@ -1,6 +1,6 @@
 # Claude Flow Novice - Backlog
 
-Last Updated: 2025-11-09
+Last Updated: 2025-11-12
 
 ## Active Items
 
@@ -72,6 +72,25 @@ Implementation:
 - **Date Added**: 2025-11-04
 
 ### P2 - Medium Priority
+
+**[P2] - Add Kimi and OpenRouter provider support to Docker agents fo...**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Add Kimi and OpenRouter provider support to Docker agents for per-agent API routing
+- **Rationale**: Enable cost optimization by allowing mixed provider usage across agent swarms. Z.ai (/bin/bash.50/1M) for bulk tasks, Kimi (/1M) for medium complexity, OpenRouter for specialized models, Anthropic (5/1M) for premium work. Currently only Z.ai and Anthropic are supported.
+- **Proposed Solution**: 1. Extend src/cli/anthropic-client.ts getAPIConfig() to handle 'kimi' and 'openrouter' providers
+2. Add provider-specific configurations:
+   - Kimi: baseURL='https://api.moonshot.cn/v1', apiKey from KIMI_API_KEY
+   - OpenRouter: baseURL='https://openrouter.ai/api/v1', apiKey from OPENROUTER_API_KEY
+3. Update model mapping for each provider (Kimi uses moonshot-v1-*, OpenRouter supports 400+ models)
+4. Test per-agent provider switching: docker run -e CLAUDE_API_PROVIDER=kimi
+5. Document cost optimization strategies in docs/MULTI_PROVIDER_ROUTING.md
+6. Update Dockerfile.agent if needed (already copies .env via --env-file)
+7. Rebuild dist/ and Docker image
+8. Add integration tests for all 4 providers
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-12
 
 **[P2] - Fix 30 remaining TS2305 errors (TypeScript module exports)**
 - **Sprint Backlogged**: Unknown

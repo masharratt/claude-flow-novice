@@ -15,7 +15,7 @@ import { executeTool, type ToolUse, type ToolResult } from './tool-executor.js';
 const execAsync = promisify(exec);
 
 export interface APIConfig {
-  provider: 'anthropic' | 'zai';
+  provider: 'anthropic' | 'zai' | 'kimi' | 'openrouter';
   apiKey?: string;
   baseURL?: string;
 }
@@ -46,11 +46,28 @@ export interface MessageResponse {
 export async function getAPIConfig(): Promise<APIConfig> {
   // Check environment variable
   const envProvider = process.env.CLAUDE_API_PROVIDER;
+
   if (envProvider === 'zai') {
     return {
       provider: 'zai',
       apiKey: process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY,
       baseURL: process.env.ZAI_BASE_URL || 'https://api.z.ai/api/anthropic',
+    };
+  }
+
+  if (envProvider === 'kimi') {
+    return {
+      provider: 'kimi',
+      apiKey: process.env.KIMI_API_KEY,
+      baseURL: process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
+    };
+  }
+
+  if (envProvider === 'openrouter') {
+    return {
+      provider: 'openrouter',
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
     };
   }
 
@@ -64,6 +81,22 @@ export async function getAPIConfig(): Promise<APIConfig> {
         provider: 'zai',
         apiKey: config.apiKey || process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY,
         baseURL: config.baseURL || process.env.ZAI_BASE_URL || 'https://api.z.ai/api/anthropic',
+      };
+    }
+
+    if (config.provider === 'kimi') {
+      return {
+        provider: 'kimi',
+        apiKey: config.apiKey || process.env.KIMI_API_KEY,
+        baseURL: config.baseURL || process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
+      };
+    }
+
+    if (config.provider === 'openrouter') {
+      return {
+        provider: 'openrouter',
+        apiKey: config.apiKey || process.env.OPENROUTER_API_KEY,
+        baseURL: config.baseURL || process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
       };
     }
   } catch {
@@ -323,7 +356,7 @@ async function executeWithTools(
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let fullTextContent = '';
-  const MAX_ITERATIONS = 10; // Prevent infinite loops
+  const MAX_ITERATIONS = 20; // Prevent infinite loops (increased for exploration phase)
   let iteration = 0;
 
   while (iteration < MAX_ITERATIONS) {

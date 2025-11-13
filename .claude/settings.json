@@ -114,8 +114,7 @@
   },
   "includeCoAuthoredBy": true,
   "enabledMcpjsonServers": [
-    "supabase",
-    "n8n-mcp"
+    "supabase"
   ],
   "mcpServers": {
     "n8n-mcp": {

@@ -7,7 +7,12 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { glob } from 'glob';
+
+// ES Module compatibility
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export interface AgentDefinition {
   // YAML frontmatter fields
@@ -35,9 +40,10 @@ export interface AgentDefinition {
 
 /**
  * Parse YAML frontmatter from markdown content
+ * Supports both Unix (LF) and Windows (CRLF) line endings
  */
 function parseFrontmatter(content: string): { frontmatter: Record<string, any>; body: string } {
-  const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
+  const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
   const match = content.match(frontmatterRegex);
 
   if (!match) {
@@ -147,28 +153,45 @@ function parseFrontmatter(content: string): { frontmatter: Record<string, any>; 
 
 /**
  * Find agent definition file by agent type/name
+ * Searches multiple locations for agent definitions
  */
 async function findAgentFile(agentType: string, baseDir: string = '.claude/agents'): Promise<string | null> {
   // Normalize agent type (handle both kebab-case and underscores)
   const normalizedType = agentType.toLowerCase().replace(/_/g, '-');
 
-  // Search patterns (in order of priority)
-  const patterns = [
-    // Exact match in any subdirectory
-    `${baseDir}/**/${normalizedType}.md`,
-    // Match with different casing
-    `${baseDir}/**/*${normalizedType}*.md`,
+  // Search locations (in order of priority)
+  const searchLocations = [
+    baseDir,                                    // Current working directory
+    '.claude/agents',                           // Standard location
+    path.join(__dirname, '../../.claude/agents'), // CLI installation directory
+    '/app/.claude/agents',                      // Docker container location
   ];
 
-  for (const pattern of patterns) {
-    const files = await glob(pattern, { nodir: true, absolute: true });
-    if (files.length > 0) {
-      // Prefer exact match over partial match
-      const exactMatch = files.find(f => {
-        const basename = path.basename(f, '.md').toLowerCase();
-        return basename === normalizedType;
-      });
-      return exactMatch || files[0];
+  // Search patterns (in order of priority)
+  const searchPatterns = [
+    // Exact match in any subdirectory
+    (loc: string) => `${loc}/**/${normalizedType}.md`,
+    // Match with different casing
+    (loc: string) => `${loc}/**/*${normalizedType}*.md`,
+  ];
+
+  for (const location of searchLocations) {
+    for (const patternFn of searchPatterns) {
+      const pattern = patternFn(location);
+      try {
+        const files = await glob(pattern, { nodir: true, absolute: true });
+        if (files.length > 0) {
+          // Prefer exact match over partial match
+          const exactMatch = files.find(f => {
+            const basename = path.basename(f, '.md').toLowerCase();
+            return basename === normalizedType;
+          });
+          return exactMatch || files[0];
+        }
+      } catch (error) {
+        // Skip location if it doesn't exist
+        continue;
+      }
     }
   }
 

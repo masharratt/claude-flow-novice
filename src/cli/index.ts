@@ -39,10 +39,16 @@ function parseArgs(args: string[]): { command: string; agentType?: string; optio
   const agentType = args[1] && !args[1].startsWith('--') ? args[1] : undefined;
   const options: AgentCommandOptions = {};
 
-  // Parse options
+  // Parse options and capture positional context argument
   for (let i = agentType ? 2 : 1; i < args.length; i++) {
     const arg = args[i];
     const value = args[i + 1];
+
+    // Capture non-flag positional arguments as context (before any flags)
+    if (!arg.startsWith('--') && !options.context) {
+      options.context = arg;
+      continue;
+    }
 
     switch (arg) {
       case '--task-id':

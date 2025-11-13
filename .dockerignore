@@ -1,111 +1,78 @@
-# Production Dockerignore - Optimized for minimal context
-
-# Version Control (472MB)
-.git
-.gitignore
-.gitattributes
-
-# Dependencies - will be installed in container (247MB)
-node_modules
+# Node modules (will be installed in container)
+node_modules/
 npm-debug.log
 yarn-error.log
 
-# Build artifacts
-dist
-build
+# Build artifacts (will be built in container)
+# dist/ - COMMENTED OUT: Using prebuilt dist/ directory in production image
 *.tsbuildinfo
 
-# Testing
-coverage
-.nyc_output
-tests
-test
-*.test.js
-*.spec.js
+# Development files
+.git/
+.github/
+.vscode/
+.idea/
+
+# Test files
+tests/
 *.test.ts
+*.test.js
 *.spec.ts
+*.spec.js
+__tests__/
 
 # Documentation
-docs
+docs/
+
+# Exclude markdown files EXCEPT essential ones
+# NOTE: Wildcard MUST come BEFORE negations in Docker
 *.md
 !README.md
+!CLAUDE.md
+!.claude/**/*.md
+!claude-assets/**/*.md
 
-# Development files
-.vscode
-.idea
-*.swp
-*.swo
-*~
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Temporary files
-tmp
-temp
-.tmp
-.backups
-
-# OS files
-.DS_Store
-Thumbs.db
-desktop.ini
+# License file (explicitly include)
+!LICENSE
 
 # Environment files
 .env
 .env.local
 .env.*.local
 
-# Docker files (not needed in build context)
-Dockerfile*
-docker-compose*
+# Logs
+logs/
+*.log
+.logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+.artifacts/
+.backups/
+.screenshots/
 
 # CI/CD
-.github
-.gitlab-ci.yml
+.github/
+.circleci/
 .travis.yml
-.circleci
 
-# Analysis and reports
-analysis
-.artifacts
-planning
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Legacy and archived directories (2.2GB)
-legacy
-web-portal
-packages
-agents
-shellcheck-v0.8.0
-shellcheck.tar.xz
-*.tgz
+# OS files
+.DS_Store
+Thumbs.db
 
-# Monitoring
-monitoring
+# Coverage
+coverage/
+.nyc_output/
 
-# Config files not needed
-.editorconfig
-.eslintrc*
-.prettierrc*
-jest.config.js
-
-# Large media files
-*.mp4
-*.mov
-*.avi
-*.zip
-*.tar.gz
-*.rar
-
-# Essential files to include (negations)
-!package.json
-!package-lock.json
-!.claude
-!claude-assets
-!scripts
-!config
-!src
+# Misc
+.swarm/
+.playwright-mcp/
