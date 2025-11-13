@@ -1,0 +1,296 @@
+#!/bin/bash
+# tests/docker/redis-coordination-tests.sh
+# Phase 3 :: Redis coordination validation with Node.js client connectivity (Bug #6 fix validation)
+
+set -euo pipefail
+
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+source "$PROJECT_ROOT/tests/test-utils.sh"
+source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+
+# Configuration
+NETWORK_NAME="cfn-network"
+REDIS_SERVICE="cfn-redis"
+TEST_TASK_ID="redis-test-$(date +%s)"
+
+cleanup() {
+    log_step "GIVEN cleanup of test containers"
+    docker rm -f test-redis-client-agent 2>/dev/null || true
+    docker rm -f test-heartbeat-agent 2>/dev/null || true
+    docker rm -f test-completion-agent-{1..3} 2>/dev/null || true
+    docker rm -f test-subscriber-agent 2>/dev/null || true
+    docker exec "$REDIS_SERVICE" redis-cli DEL "swarm:${TEST_TASK_ID}:test-agent" "task:total" "task:completed" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Test 1: Redis client connectivity (Node.js client, not redis-cli) - Bug #6 validation
+test_redis_client_connectivity() {
+    log_step "Test 1: Node.js Redis client connectivity with CFN_REDIS_HOST/PORT"
+
+    # GIVEN: Redis container running on cfn-network
+    if ! docker ps | grep -q "$REDIS_SERVICE"; then
+        log_fail "Redis container not running"
+        return 1
+    fi
+
+    # WHEN: Agent connects using Node.js client with process.env.CFN_REDIS_HOST
+    # Bug #6 Fix Validation: Test ONLY CFN_REDIS_HOST/PORT (not REDIS_HOST/PORT fallback)
+    docker run -d \
+        --name test-redis-client-agent \
+        --network "$NETWORK_NAME" \
+        -e CFN_REDIS_HOST="$REDIS_SERVICE" \
+        -e CFN_REDIS_PORT=6379 \
+        node:20-slim \
+        sh -c "
+        npm install redis 2>/dev/null &&
+        node -e \"
+        const redis = require('redis');
+        const client = redis.createClient({
+            socket: {
+                host: process.env.CFN_REDIS_HOST || process.env.REDIS_HOST,
+                port: parseInt(process.env.CFN_REDIS_PORT || process.env.REDIS_PORT)
+            }
+        });
+        client.on('error', (err) => {
+            console.error('Redis connection error:', err);
+            process.exit(1);
+        });
+        client.connect().then(() => {
+            console.log('Redis connected successfully');
+            return client.ping();
+        }).then((pong) => {
+            console.log('Redis PING:', pong);
+            return client.quit();
+        }).then(() => {
+            process.exit(0);
+        }).catch((err) => {
+            console.error('Redis operation failed:', err);
+            process.exit(1);
+        });
+        \"
+        " > /tmp/redis-client-test.log 2>&1 &
+
+    # Wait for connection attempt
+    sleep 5
+
+    # Validate required environment variables using helper
+    check_required_vars "test-redis-client-agent" "CFN_REDIS_HOST" "CFN_REDIS_PORT" || {
+        log_fail "Required environment variables not set in container"
+        return 1
+    }
+
+    # THEN: Connection succeeds and PING returns PONG
+    LOGS=$(docker logs test-redis-client-agent 2>&1)
+
+    if echo "$LOGS" | grep -q "Redis connected successfully" && echo "$LOGS" | grep -q "PONG"; then
+        log_pass "Node.js Redis client connected using CFN_REDIS_HOST/PORT"
+    else
+        log_fail "Node.js Redis client connection failed"
+        echo "$LOGS"
+        return 1
+    fi
+}
+
+# Test 2: Heartbeat reporting to swarm:task:agent
+test_heartbeat_reporting() {
+    log_step "Test 2: Agent heartbeat reporting to Redis hash"
+
+    AGENT_ID="test-agent-heartbeat"
+
+    # GIVEN: Agent container with Redis client
+    docker run -d \
+        --name test-heartbeat-agent \
+        --network "$NETWORK_NAME" \
+        -e CFN_REDIS_HOST="$REDIS_SERVICE" \
+        -e CFN_REDIS_PORT=6379 \
+        -e TASK_ID="$TEST_TASK_ID" \
+        -e AGENT_ID="$AGENT_ID" \
+        node:20-slim \
+        sh -c "
+        npm install redis 2>/dev/null &&
+        node -e \"
+        const redis = require('redis');
+        const client = redis.createClient({
+            socket: {
+                host: process.env.CFN_REDIS_HOST,
+                port: parseInt(process.env.CFN_REDIS_PORT)
+            }
+        });
+
+        async function reportHeartbeat() {
+            await client.connect();
+            const key = \\\`swarm:\\\${process.env.TASK_ID}:\\\${process.env.AGENT_ID}\\\`;
+            await client.hSet(key, 'heartbeat', Date.now().toString());
+            await client.hSet(key, 'status', 'alive');
+            console.log('Heartbeat reported to', key);
+            await client.quit();
+        }
+
+        reportHeartbeat().catch(console.error);
+        \"
+        " > /tmp/heartbeat-test.log 2>&1
+
+    # WHEN: Agent reports heartbeat
+    sleep 5
+
+    # Validate environment variables
+    check_required_vars "test-heartbeat-agent" "CFN_REDIS_HOST" "CFN_REDIS_PORT" "TASK_ID" "AGENT_ID" || {
+        log_fail "Required environment variables not set"
+        return 1
+    }
+
+    # THEN: Heartbeat exists in Redis using helper (max_age_seconds = 10)
+    if check_coordinator_heartbeat "$TEST_TASK_ID" 10; then
+        HEARTBEAT=$(docker exec "$REDIS_SERVICE" redis-cli HGET "swarm:${TEST_TASK_ID}:${AGENT_ID}" heartbeat)
+        log_pass "Heartbeat reported successfully (timestamp: $HEARTBEAT)"
+    else
+        log_fail "Heartbeat check failed or not fresh"
+        return 1
+    fi
+}
+
+# Test 3: Task completion protocol (increment task:completed)
+test_task_completion_protocol() {
+    log_step "Test 3: Agents increment task:completed counter"
+
+    # GIVEN: Redis counters initialized
+    docker exec "$REDIS_SERVICE" redis-cli SET "task:total" "3"
+    docker exec "$REDIS_SERVICE" redis-cli SET "task:completed" "0"
+
+    # WHEN: 3 agents complete tasks
+    for i in {1..3}; do
+        docker run -d \
+            --name "test-completion-agent-$i" \
+            --network "$NETWORK_NAME" \
+            -e CFN_REDIS_HOST="$REDIS_SERVICE" \
+            -e CFN_REDIS_PORT=6379 \
+            node:20-slim \
+            sh -c "
+            npm install redis 2>/dev/null &&
+            node -e \"
+            const redis = require('redis');
+            const client = redis.createClient({
+                socket: {
+                    host: process.env.CFN_REDIS_HOST,
+                    port: parseInt(process.env.CFN_REDIS_PORT)
+                }
+            });
+
+            async function completeTask() {
+                await client.connect();
+                const completed = await client.incr('task:completed');
+                console.log('Task completed, counter:', completed);
+                await client.quit();
+            }
+
+            completeTask().catch(console.error);
+            \"
+            " > /dev/null 2>&1
+    done
+
+    # Wait for all agents to complete
+    sleep 7
+
+    # Validate environment variables for all agents
+    for i in {1..3}; do
+        check_required_vars "test-completion-agent-$i" "CFN_REDIS_HOST" "CFN_REDIS_PORT" || {
+            log_fail "Required environment variables not set in agent $i"
+            return 1
+        }
+    done
+
+    # THEN: Counter incremented to 3
+    COMPLETED=$(docker exec "$REDIS_SERVICE" redis-cli GET "task:completed")
+
+    if [ "$COMPLETED" = "3" ]; then
+        log_pass "All 3 agents incremented task:completed counter"
+    else
+        log_fail "Expected 3, got $COMPLETED"
+        return 1
+    fi
+}
+
+# Test 4: Redis pub/sub messaging
+test_redis_pubsub_messaging() {
+    log_step "Test 4: Coordinator broadcasts to agents via Redis pub/sub"
+
+    CHANNEL="test:broadcast:${TEST_TASK_ID}"
+    MESSAGE="Hello from coordinator"
+
+    # GIVEN: Subscriber agent listening on channel
+    docker run -d \
+        --name test-subscriber-agent \
+        --network "$NETWORK_NAME" \
+        -e CFN_REDIS_HOST="$REDIS_SERVICE" \
+        -e CFN_REDIS_PORT=6379 \
+        -e CHANNEL="$CHANNEL" \
+        node:20-slim \
+        sh -c "
+        npm install redis 2>/dev/null &&
+        node -e \"
+        const redis = require('redis');
+        const subscriber = redis.createClient({
+            socket: {
+                host: process.env.CFN_REDIS_HOST,
+                port: parseInt(process.env.CFN_REDIS_PORT)
+            }
+        });
+
+        async function subscribe() {
+            await subscriber.connect();
+            console.log('Subscribed to', process.env.CHANNEL);
+
+            await subscriber.subscribe(process.env.CHANNEL, (message) => {
+                console.log('Received message:', message);
+                process.exit(0);
+            });
+        }
+
+        subscribe().catch(console.error);
+
+        // Timeout after 15 seconds
+        setTimeout(() => {
+            console.error('Timeout: No message received');
+            process.exit(1);
+        }, 15000);
+        \"
+        " > /dev/null 2>&1 &
+
+    # Wait for subscriber to connect
+    sleep 4
+
+    # Validate environment variables
+    check_required_vars "test-subscriber-agent" "CFN_REDIS_HOST" "CFN_REDIS_PORT" "CHANNEL" || {
+        log_fail "Required environment variables not set in subscriber"
+        return 1
+    }
+
+    # WHEN: Coordinator publishes message
+    docker exec "$REDIS_SERVICE" redis-cli PUBLISH "$CHANNEL" "$MESSAGE"
+
+    # Wait for message delivery
+    sleep 3
+
+    # THEN: Subscriber received message
+    LOGS=$(docker logs test-subscriber-agent 2>&1)
+
+    if echo "$LOGS" | grep -q "Received message: $MESSAGE"; then
+        log_pass "Pub/sub messaging working correctly"
+    else
+        log_fail "Message not received by subscriber"
+        echo "$LOGS"
+        return 1
+    fi
+}
+
+# Run all tests
+log_step "Starting Redis Coordination Tests"
+echo ""
+
+test_redis_client_connectivity
+test_heartbeat_reporting
+test_task_completion_protocol
+test_redis_pubsub_messaging
+
+echo ""
+print_test_summary

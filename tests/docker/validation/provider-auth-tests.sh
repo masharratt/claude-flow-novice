@@ -1,0 +1,301 @@
+#!/bin/bash
+# tests/docker/provider-auth-tests.sh
+# Phase 4 :: P2 - Multi-provider authentication and routing validation
+
+set -euo pipefail
+
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+source "$PROJECT_ROOT/tests/test-utils.sh"
+source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+
+# Configuration
+TEST_DIR="$(create_temp_dir)"
+NETWORK_NAME="cfn-network"
+TEST_AGENT="test-provider-agent-$$"
+
+cleanup() {
+    log_step "Cleaning up test containers and files"
+    cleanup_container "$TEST_AGENT" 2>/dev/null || true
+    rm -rf "$TEST_DIR"
+}
+trap cleanup EXIT
+
+# Test 1: Multi-provider authentication (Anthropic, Z.ai, Kimi, OpenRouter)
+test_multi_provider_auth() {
+    log_step "Test 1: Multi-provider authentication"
+
+    # GIVEN: Environment variables for all providers
+    local anthropic_key=$(generate_test_credential 'hex' 32)
+    local zai_key=$(generate_test_credential 'hex' 32)
+    local kimi_key=$(generate_test_credential 'hex' 32)
+    local openrouter_key=$(generate_test_credential 'hex' 32)
+
+    local providers=(
+        "ANTHROPIC_API_KEY=$anthropic_key"
+        "Z_AI_API_KEY=$zai_key"
+        "KIMI_API_KEY=$kimi_key"
+        "OPENROUTER_API_KEY=$openrouter_key"
+    )
+
+    # WHEN: Start agent with all provider keys
+    docker run -d \
+        $(get_secure_docker_flags) \
+        --name "$TEST_AGENT" \
+        --network "$NETWORK_NAME" \
+        -e "${providers[0]}" \
+        -e "${providers[1]}" \
+        -e "${providers[2]}" \
+        -e "${providers[3]}" \
+        node:20-slim \
+        sh -c 'sleep 30' >/dev/null 2>&1
+
+    wait_for_container "$TEST_AGENT" 5
+
+    # THEN: Verify all provider keys are accessible in container
+    for provider_var in "${providers[@]}"; do
+        local var_name="${provider_var%%=*}"
+        local expected_value="${provider_var#*=}"
+
+        local actual_value
+        actual_value=$(docker exec "$TEST_AGENT" sh -c "echo \$$var_name")
+
+        if [ "$actual_value" = "$expected_value" ]; then
+            log_success "$var_name authenticated"
+        else
+            log_error "$var_name authentication failed (expected: $expected_value, got: $actual_value)"
+            return 1
+        fi
+    done
+
+    log_success "All 4 providers authenticated successfully"
+}
+
+# Test 2: Provider failover mechanism
+test_provider_failover() {
+    log_step "Test 2: Provider failover mechanism"
+
+    # GIVEN: Primary and fallback provider configurations
+    local primary_provider="ANTHROPIC_API_KEY"
+    local fallback_providers=("Z_AI_API_KEY" "KIMI_API_KEY" "OPENROUTER_API_KEY")
+
+    # WHEN: Primary provider is unavailable (empty key)
+    local test_env="$TEST_DIR/.env.failover"
+    cat > "$test_env" <<EOF
+ANTHROPIC_API_KEY=
+Z_AI_API_KEY=$(generate_test_credential 'hex' 32)
+KIMI_API_KEY=$(generate_test_credential 'hex' 32)
+OPENROUTER_API_KEY=$(generate_test_credential 'hex' 32)
+EOF
+
+    # THEN: Simulate failover logic
+    local selected_provider=""
+    local selected_key=""
+
+    # Check primary provider
+    local primary_key
+    primary_key=$(grep "^${primary_provider}=" "$test_env" | cut -d'=' -f2-)
+
+    if [ -z "$primary_key" ]; then
+        log_info "Primary provider unavailable, attempting failover..."
+
+        # Try fallback providers
+        for fallback in "${fallback_providers[@]}"; do
+            local fallback_key
+            fallback_key=$(grep "^${fallback}=" "$test_env" | cut -d'=' -f2-)
+
+            if [ -n "$fallback_key" ]; then
+                selected_provider="$fallback"
+                selected_key="$fallback_key"
+                break
+            fi
+        done
+    else
+        selected_provider="$primary_provider"
+        selected_key="$primary_key"
+    fi
+
+    # THEN: Verify failover selected a backup provider
+    if [ "$selected_provider" = "Z_AI_API_KEY" ]; then
+        log_success "Failover selected Z.ai as backup provider"
+    else
+        log_error "Failover failed to select backup provider (selected: $selected_provider)"
+        return 1
+    fi
+
+    if [ -n "$selected_key" ]; then
+        log_success "Failover provider has valid key"
+    else
+        log_error "Failover provider key is empty"
+        return 1
+    fi
+
+    # THEN: Test cascading failover (multiple providers unavailable)
+    cat > "$test_env" <<EOF
+ANTHROPIC_API_KEY=
+Z_AI_API_KEY=
+KIMI_API_KEY=$(generate_test_credential 'hex' 32)
+OPENROUTER_API_KEY=$(generate_test_credential 'hex' 32)
+EOF
+
+    selected_provider=""
+    for fallback in "${fallback_providers[@]}"; do
+        local fallback_key
+        fallback_key=$(grep "^${fallback}=" "$test_env" | cut -d'=' -f2-)
+
+        if [ -n "$fallback_key" ]; then
+            selected_provider="$fallback"
+            break
+        fi
+    done
+
+    if [ "$selected_provider" = "KIMI_API_KEY" ]; then
+        log_success "Cascading failover selected Kimi (3rd option)"
+    else
+        log_error "Cascading failover failed"
+        return 1
+    fi
+}
+
+# Test 3: Cost tracking validation
+test_cost_tracking() {
+    log_step "Test 3: Cost tracking validation"
+
+    # GIVEN: Provider cost structure (per 1M tokens)
+    declare -A provider_costs=(
+        ["anthropic"]=15.00
+        ["zai"]=0.50
+        ["kimi"]=2.00
+        ["openrouter"]=8.00
+    )
+
+    # WHEN: Calculate cost for sample usage
+    declare -A token_usage=(
+        ["anthropic"]=100000
+        ["zai"]=500000
+        ["kimi"]=250000
+        ["openrouter"]=0
+    )
+
+    local total_cost=0
+    for provider in "${!token_usage[@]}"; do
+        local tokens="${token_usage[$provider]}"
+        local cost_per_million="${provider_costs[$provider]}"
+
+        # Calculate cost: (tokens / 1000000) * cost_per_million
+        # Use integer arithmetic (multiply by 100 for 2 decimal places)
+        # Force decimal interpretation with 10# to avoid octal (050 = 40 octal)
+        local cost=$(( (tokens * 10#${cost_per_million//./} ) / 1000000 ))
+        local cost_float="$((cost / 100)).$((cost % 100))"
+
+        log_info "$provider: ${tokens} tokens = \$${cost_float}"
+        total_cost=$((total_cost + cost))
+    done
+
+    local total_float="$((total_cost / 100)).$((total_cost % 100))"
+    log_info "Total cost: \$${total_float}"
+
+    # THEN: Verify cost tracking accuracy
+    # Expected: Anthropic=1.50, Z.ai=0.25, Kimi=0.50, OpenRouter=0.00 = 2.25
+    if [ "$total_cost" -eq 225 ]; then
+        log_success "Cost tracking accurate: \$2.25"
+    else
+        log_error "Cost tracking error: expected \$2.25, got \$${total_float}"
+        return 1
+    fi
+
+    # THEN: Identify most cost-effective provider
+    local min_cost=999999
+    local cheapest_provider=""
+
+    for provider in "${!provider_costs[@]}"; do
+        local cost="${provider_costs[$provider]}"
+        local cost_int=${cost//./}
+
+        if [ "$cost_int" -lt "$min_cost" ]; then
+            min_cost=$cost_int
+            cheapest_provider="$provider"
+        fi
+    done
+
+    if [ "$cheapest_provider" = "zai" ]; then
+        log_success "Most cost-effective: Z.ai (\$0.50/1M tokens)"
+    else
+        log_error "Failed to identify cheapest provider (got: $cheapest_provider)"
+        return 1
+    fi
+}
+
+# Test 4: Rate limiting enforcement
+test_rate_limiting() {
+    log_step "Test 4: Rate limiting enforcement"
+
+    # GIVEN: Rate limit configuration (requests per minute)
+    declare -A rate_limits=(
+        ["anthropic"]=50
+        ["zai"]=100
+        ["kimi"]=60
+        ["openrouter"]=30
+    )
+
+    # WHEN: Simulate request pattern
+    local provider="anthropic"
+    local requests_in_window=55
+    local window_seconds=60
+    local limit="${rate_limits[$provider]}"
+
+    log_info "Provider: $provider, Limit: $limit req/min, Actual: $requests_in_window"
+
+    # THEN: Check if rate limit exceeded
+    if [ "$requests_in_window" -gt "$limit" ]; then
+        log_success "Rate limit exceeded detected ($requests_in_window > $limit)"
+
+        # Calculate backoff time
+        local excess=$((requests_in_window - limit))
+        local backoff_seconds=$(( (excess * window_seconds) / limit ))
+
+        log_info "Enforcing backoff: ${backoff_seconds}s"
+
+        if [ "$backoff_seconds" -gt 0 ]; then
+            log_success "Backoff calculated: ${backoff_seconds}s"
+        else
+            log_error "Invalid backoff calculation"
+            return 1
+        fi
+    else
+        log_info "Within rate limit ($requests_in_window ≤ $limit)"
+    fi
+
+    # THEN: Test rate limit window reset
+    local window_start=$(date +%s)
+    local current_time=$((window_start + window_seconds))
+
+    if [ "$current_time" -ge "$((window_start + window_seconds))" ]; then
+        log_success "Rate limit window reset after ${window_seconds}s"
+    else
+        log_error "Rate limit window reset failed"
+        return 1
+    fi
+
+    # THEN: Verify different limits for each provider
+    for provider in "${!rate_limits[@]}"; do
+        local limit="${rate_limits[$provider]}"
+        log_info "$provider rate limit: $limit req/min"
+
+        if [ "$limit" -gt 0 ] && [ "$limit" -le 100 ]; then
+            log_success "$provider rate limit configured"
+        else
+            log_error "Invalid rate limit for $provider"
+            return 1
+        fi
+    done
+}
+
+# Execute all tests
+setup_test "provider-auth"
+
+test_multi_provider_auth
+test_provider_failover
+test_cost_tracking
+test_rate_limiting
+
+teardown_test

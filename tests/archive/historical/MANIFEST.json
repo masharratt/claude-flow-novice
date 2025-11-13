@@ -1,0 +1,94 @@
+{
+  "archive_metadata": {
+    "archive_date": "2025-11-13T12:29:56Z",
+    "archive_phase": "Phase 2 - Historical Tests",
+    "total_files": 7,
+    "archived_count": 7,
+    "retention_policy": "12 months from archive date",
+    "deletion_date": "2026-11-13T12:29:56Z"
+  },
+  "archived_tests": [
+    {
+      "filename": "marketing-analytics-data-test.sh",
+      "original_path": "tests/integration/marketing-analytics-data-test.sh",
+      "archive_path": "tests/archive/historical/marketing-analytics-data-test.sh",
+      "reason": "Historical marketing feature test - no longer maintained",
+      "archived_at": "2025-11-13T12:29:56Z",
+      "file_size": "2925",
+      "restoration_command": "cp tests/archive/historical/marketing-analytics-data-test.sh tests/integration/marketing-analytics-data-test.sh"
+    }
+,
+    {
+      "filename": "marketing-crm-contacts-test.sh",
+      "original_path": "tests/integration/marketing-crm-contacts-test.sh",
+      "archive_path": "tests/archive/historical/marketing-crm-contacts-test.sh",
+      "reason": "Historical marketing feature test - no longer maintained",
+      "archived_at": "2025-11-13T12:29:56Z",
+      "file_size": "2694",
+      "restoration_command": "cp tests/archive/historical/marketing-crm-contacts-test.sh tests/integration/marketing-crm-contacts-test.sh"
+    }
+,
+    {
+      "filename": "marketing-email-campaigns-test.sh",
+      "original_path": "tests/integration/marketing-email-campaigns-test.sh",
+      "archive_path": "tests/archive/historical/marketing-email-campaigns-test.sh",
+      "reason": "Historical marketing feature test - no longer maintained",
+      "archived_at": "2025-11-13T12:29:56Z",
+      "file_size": "2657",
+      "restoration_command": "cp tests/archive/historical/marketing-email-campaigns-test.sh tests/integration/marketing-email-campaigns-test.sh"
+    }
+,
+    {
+      "filename": "marketing-social-publishing-test.sh",
+      "original_path": "tests/integration/marketing-social-publishing-test.sh",
+      "archive_path": "tests/archive/historical/marketing-social-publishing-test.sh",
+      "reason": "Historical marketing feature test - no longer maintained",
+      "archived_at": "2025-11-13T12:29:56Z",
+      "file_size": "2811",
+      "restoration_command": "cp tests/archive/historical/marketing-social-publishing-test.sh tests/integration/marketing-social-publishing-test.sh"
+    }
+,
+    {
+      "filename": "test-sprint-5-functions-unix.sh",
+      "original_path": "tests/cfn-v3/test-sprint-5-functions-unix.sh",
+      "archive_path": "tests/archive/historical/test-sprint-5-functions-unix.sh",
+      "reason": "Sprint 5 completed - superseded by newer test architecture",
+      "archived_at": "2025-11-13T12:29:56Z",
+      "file_size": "1394",
+      "restoration_command": "cp tests/archive/historical/test-sprint-5-functions-unix.sh tests/cfn-v3/test-sprint-5-functions-unix.sh"
+    }
+,
+    {
+      "filename": "test-sprint-5-functions.sh",
+      "original_path": "tests/cfn-v3/test-sprint-5-functions.sh",
+      "archive_path": "tests/archive/historical/test-sprint-5-functions.sh",
+      "reason": "Sprint 5 completed - superseded by newer test architecture",
+      "archived_at": "2025-11-13T12:29:56Z",
+      "file_size": "2093",
+      "restoration_command": "cp tests/archive/historical/test-sprint-5-functions.sh tests/cfn-v3/test-sprint-5-functions.sh"
+    }
+,
+    {
+      "filename": "test-sprint-5-integration.sh",
+      "original_path": "tests/cfn-v3/test-sprint-5-integration.sh",
+      "archive_path": "tests/archive/historical/test-sprint-5-integration.sh",
+      "reason": "Sprint 5 completed - superseded by newer test architecture",
+      "archived_at": "2025-11-13T12:29:56Z",
+      "file_size": "3784",
+      "restoration_command": "cp tests/archive/historical/test-sprint-5-integration.sh tests/cfn-v3/test-sprint-5-integration.sh"
+    }
+
+  ],
+  "restoration_instructions": {
+    "single_file": "cp tests/archive/historical/FILENAME ORIGINAL_PATH",
+    "all_files": "bash tests/archive/historical/restore-all.sh",
+    "verification": "Run tests after restoration to verify functionality"
+  },
+  "notes": [
+    "These tests are archived for historical reference",
+    "Scheduled for deletion after 12-month retention period",
+    "Contact DevOps before restoration to verify dependencies",
+    "Marketing tests may require feature re-enablement",
+    "Sprint 5 tests may be incompatible with current architecture"
+  ]
+}

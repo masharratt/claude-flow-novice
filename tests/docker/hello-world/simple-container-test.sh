@@ -3,6 +3,10 @@
 # Simple CFN Loop Container Test
 set -e
 
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+source "$PROJECT_ROOT/tests/test-utils.sh"
+source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
+
 echo "=== CFN Loop Container Integration Test ==="
 echo "Starting Phase 1 validation..."
 

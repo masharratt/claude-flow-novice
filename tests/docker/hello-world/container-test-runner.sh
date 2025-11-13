@@ -4,6 +4,9 @@
 # Phase 1: Container Integration Validation
 
 set -euo pipefail
+\nPROJECT_ROOT=$(git rev-parse --show-toplevel)
+source "$PROJECT_ROOT/tests/test-utils.sh"
+source "$PROJECT_ROOT/tests/docker/architecture-test-helpers.sh"
 
 # Configuration
 TIMESTAMP=$(date +%s)

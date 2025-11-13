@@ -39,6 +39,14 @@ COPY .claude/skills/cfn-redis-coordination ./.claude/skills/cfn-redis-coordinati
 COPY docker/runtime/cfn-runtime.sh ./docker/runtime/cfn-runtime.sh
 RUN chmod +x ./docker/runtime/cfn-runtime.sh
 
+# Create non-root user for security
+RUN addgroup -g 1001 -S cfn && \
+    adduser -u 1001 -S cfn -G cfn && \
+    chown -R cfn:cfn /app
+
+# Switch to non-root user
+USER cfn
+
 # Environment variables (can be overridden at runtime)
 ENV NODE_ENV=production
 ENV MEMORY_BUDGET=40g
