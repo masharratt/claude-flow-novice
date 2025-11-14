@@ -61,9 +61,9 @@ const CFN_PATHS = {
     src: path.join(cfnRoot, 'claude-assets/cfn-data'),
     dest: '.claude/cfn-data'
   },
-  cfnAgentsIgnore: {
-    src: path.join(cfnRoot, 'claude-assets/cfn-agents-ignore'),
-    dest: '.claude/cfn-agents-ignore'
+  cfnExtras: {
+    src: path.join(cfnRoot, 'claude-assets/cfn-extras'),
+    dest: '.claude/cfn-extras'
   }
 };
 
@@ -74,7 +74,7 @@ async function ensureDirectories() {
     '.claude/hooks',
     '.claude/commands',
     '.claude/cfn-data',
-    '.claude/cfn-agents-ignore'
+    '.claude/cfn-extras'
   ];
 
   for (const dir of dirs) {
