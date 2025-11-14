@@ -2,13 +2,19 @@
 set -euo pipefail
 
 # Validate required environment variables
-: "${TASK_ID:?TASK_ID environment variable required}"
-: "${TASK_DESCRIPTION:?TASK_DESCRIPTION environment variable required}"
-: "${MODE:=standard}"
+if [ -z "${TASK_ID:-}" ]; then
+    echo "❌ ERROR: TASK_ID environment variable required"
+    exit 1
+fi
+
+if [ -z "${TASK_DESCRIPTION:-}" ]; then
+    echo "❌ ERROR: TASK_DESCRIPTION environment variable required"
+    exit 1
+fi
 
 echo "🚀 CFN Docker V3 Coordinator Starting"
 echo "   Task ID: ${TASK_ID}"
-echo "   Mode: ${MODE}"
+echo "   Mode: docker"
 echo "   Description: ${TASK_DESCRIPTION}"
 
 # Verify Docker socket access (for Docker-in-Docker)
@@ -44,13 +50,12 @@ cat > "$CONTEXT_FILE" << CONTEXT_EOF
 {
   "task_id": "${TASK_ID}",
   "task_description": "${TASK_DESCRIPTION}",
-  "mode": "${MODE}",
   "agents": "${AGENTS:-}",
   "max_iterations": ${MAX_ITERATIONS:-10},
   "gate_threshold": ${GATE_THRESHOLD:-0.75},
   "consensus_threshold": ${CONSENSUS_THRESHOLD:-0.90},
   "memory_limit": "${MEMORY_LIMIT:-1g}",
-  "network": "${NETWORK:-mcp-network}",
+  "network": "${NETWORK:-cfn-network}",
   "redis_host": "${CFN_REDIS_HOST:-cfn-redis}",
   "redis_port": ${CFN_REDIS_PORT:-6379},
   "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -87,13 +92,12 @@ fi
 # Execute orchestration with planning enabled
 "$ORCHESTRATE_SCRIPT" execute "$TASK_ID" \
     --task-description "$TASK_DESCRIPTION" \
-    --mode "$MODE" \
     --agents "${AGENTS:-}" \
     --max-iterations "${MAX_ITERATIONS:-10}" \
     --gate-threshold "${GATE_THRESHOLD:-0.75}" \
     --consensus-threshold "${CONSENSUS_THRESHOLD:-0.90}" \
     --memory-limit "${MEMORY_LIMIT:-1g}" \
-    --network "${NETWORK:-mcp-network}" \
+    --network "${NETWORK:-cfn-network}" \
     --context-file "$CONTEXT_FILE" \
     --verbose
 

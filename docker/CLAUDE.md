@@ -7,15 +7,79 @@
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
-2. [Coordinator Pattern (Option C)](#coordinator-pattern-option-c)
-3. [Docker Agent Spawning](#docker-agent-spawning)
-4. [Image Building](#image-building)
-5. [Memory Management](#memory-management)
-6. [Redis Coordination](#redis-coordination)
-7. [Testing Patterns](#testing-patterns)
-8. [CFN Loop Integration](#cfn-loop-integration)
-9. [Skills and Tools](#skills-and-tools)
-10. [Troubleshooting](#troubleshooting)
+2. [Environment Variable Contract](#environment-variable-contract)
+3. [Coordinator Pattern (Option C)](#coordinator-pattern-option-c)
+4. [Docker Agent Spawning](#docker-agent-spawning)
+5. [Image Building](#image-building)
+6. [Memory Management](#memory-management)
+7. [Redis Coordination](#redis-coordination)
+8. [Testing Patterns](#testing-patterns)
+9. [CFN Loop Integration](#cfn-loop-integration)
+10. [Skills and Tools](#skills-and-tools)
+11. [Troubleshooting](#troubleshooting)
+
+---
+
+## Environment Variable Contract
+
+**Reference:** `docker/runtime/cfn-runtime.contract.yml`
+
+All Docker-based CFN components (agents, coordinators, orchestrators) use a standardized environment variable contract. This contract defines variable names, types, defaults, scopes, and legacy aliases.
+
+### Key Variables for Coordinator
+
+**Task Configuration:**
+- `CFN_TASK_ID` (legacy: `TASK_ID`) - Unique task identifier (auto-generated)
+- `CFN_TASK_TIMEOUT` - Task execution timeout in seconds (default: 3600)
+- `CFN_ITERATION_LIMIT` - Max CFN Loop iterations (default: 10)
+
+**Coordinator Resources:**
+- `CFN_MEMORY_BUDGET` (legacy: `MEMORY_BUDGET`) - Memory allocation (default: "40g")
+- `CFN_CPU_LIMIT` - CPU allocation (default: "4")
+- `CFN_MAX_PARALLEL_AGENTS` - Max concurrent agents (default: 4)
+- `CFN_SPAWN_INTERVAL_MS` - Delay between spawns in ms (default: 500)
+
+**Redis Coordination:**
+- `CFN_REDIS_HOST` (legacy: `REDIS_HOST`) - Redis hostname (default: "cfn-redis")
+- `CFN_REDIS_PORT` (legacy: `REDIS_PORT`) - Redis port (default: 6379)
+- `CFN_REDIS_PASSWORD` - Redis auth password (**REQUIRED in production**)
+
+**Container Runtime:**
+- `CFN_DOCKER_SOCKET` - Docker socket path (default: "/var/run/docker.sock")
+- `CFN_NETWORK_NAME` - Docker network name (default: "cfn-network")
+- `CFN_CONTAINER_MODE` - Running in container (default: false)
+
+**Provider Configuration:**
+- `CFN_CUSTOM_ROUTING` - Enable custom AI provider routing (default: false)
+- `CFN_DEFAULT_PROVIDER` - Default AI provider (default: "zai")
+
+### Variable Precedence
+
+Variables are resolved in this order (first set wins):
+1. Explicitly passed environment variables
+2. CFN_ prefixed variables (standard)
+3. Legacy variables (with warnings)
+4. Defaults specified in contract
+5. Hard-coded defaults in code
+
+### Usage Example
+
+```bash
+docker run --rm \
+  --name cfn-coordinator \
+  --memory=2g \
+  -e CFN_TASK_ID="task-$(date +%s)" \
+  -e CFN_MEMORY_BUDGET="40g" \
+  -e CFN_ITERATION_LIMIT="10" \
+  -e CFN_REDIS_HOST="cfn-redis" \
+  -e CFN_REDIS_PASSWORD="secure-password" \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /path/to/workspace:/workspace:rw \
+  --network cfn-network \
+  cfn-coordinator:v3
+```
+
+**See:** `docker/runtime/cfn-runtime.contract.yml` for complete contract specification.
 
 ---
 
@@ -270,25 +334,44 @@ docker build -f Dockerfile.agent -t claude-flow-novice-agent:latest .
 - Fast I/O available
 - No Windows mount issues
 
-#### Option 2: Linux Native Build (Robust, OOM-resistant)
+#### Option 2: Linux Native Build (Recommended - 96% faster)
+
+**Using docker-build skill:**
 
 ```bash
-export DOCKERFILE="Dockerfile.coordinator"
-export IMAGE_NAME="cfn-intelligent-coordinator"
-export IMAGE_TAG="latest"
-./scripts/docker/build-from-linux.sh
+# Standard agent image build (most common)
+./.claude/skills/docker-build/build.sh
+
+# Custom Dockerfile and tag
+./.claude/skills/docker-build/build.sh \
+  --dockerfile Dockerfile.coordinator \
+  --tag cfn-intelligent-coordinator:latest
+
+# Force rebuild without cache
+./.claude/skills/docker-build/build.sh --no-cache
 ```
+
+**Performance Benefits:**
+- Build Time: 755s → <20s (96% faster)
+- Context Transfer: 0.1s vs 755s on Windows mounts
+- Method: rsync to Linux native storage (`/tmp/cfn-build`)
+- Prevents exit code 137 (OOM) on large contexts
 
 **Why this works:**
 - Syncs files to `/tmp/cfn-build` (Linux native storage)
 - Fast I/O (no Windows mount overhead)
 - Uses rsync with exclusion patterns (minimal context)
-- Prevents exit code 137 (OOM) on large contexts
+- BuildKit optimization enabled
 
 **Use when:**
 - Large Docker context (>500MB)
 - Building from WSL2 with Windows mounts
 - Previous direct builds failed with OOM
+- After modifying agent templates
+- After source code or dependency changes
+- When standard Docker build is too slow
+
+**See:** `.claude/skills/docker-build/SKILL.md` for complete documentation
 
 ### Dockerfile Patterns
 
@@ -768,11 +851,13 @@ RESULT: 3 iterations, 6 minutes total
 5. Completion reporting to Redis
 6. Queue loop (continues until empty)
 
-### Utility Scripts
+### Utility Scripts and Skills
 
-**Build from Linux:**
-- `scripts/docker/build-from-linux.sh`
+**Build from Linux (docker-build skill):**
+- `.claude/skills/docker-build/build.sh` - 96% faster builds using Linux native storage
+- Wrapper for `scripts/docker/build-from-linux.sh`
 - Syncs to `/tmp/cfn-build` for fast I/O
+- See `.claude/skills/docker-build/SKILL.md` for complete documentation
 
 **Docker Utils:**
 - `scripts/docker-utils/cleanup-agents.sh` - Remove all agent containers
@@ -789,9 +874,22 @@ RESULT: 3 iterations, 6 minutes total
 
 **Cause:** Large Docker context on Windows mount
 
-**Solution:**
+**Solution - Use docker-build skill (96% faster):**
 ```bash
-# Use Linux native build
+# Standard build with default agent image
+./.claude/skills/docker-build/build.sh
+
+# Custom Dockerfile and tag
+./.claude/skills/docker-build/build.sh \
+  --dockerfile Dockerfile.coordinator \
+  --tag cfn-intelligent-coordinator:latest
+
+# Force rebuild without cache
+./.claude/skills/docker-build/build.sh --no-cache
+```
+
+**Alternative - Direct script:**
+```bash
 export DOCKERFILE="Dockerfile.coordinator"
 export IMAGE_NAME="cfn-intelligent-coordinator"
 ./scripts/docker/build-from-linux.sh
@@ -897,8 +995,10 @@ ANTHROPIC_API_KEY=<key>    # Required for Claude Code CLI
 ### Build and Run Coordinator
 
 ```bash
-# Build image
-./scripts/docker/build-from-linux.sh
+# Build image using docker-build skill (96% faster)
+./.claude/skills/docker-build/build.sh \
+  --dockerfile Dockerfile.coordinator \
+  --tag cfn-intelligent-coordinator:latest
 
 # Run coordinator
 docker run --rm \

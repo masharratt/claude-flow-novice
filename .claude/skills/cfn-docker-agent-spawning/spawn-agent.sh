@@ -9,7 +9,7 @@ set -euo pipefail
 DEFAULT_MEMORY_LIMIT="1g"
 DEFAULT_CPU_LIMIT="1.0"
 DEFAULT_NETWORK="mcp-network"
-DEFAULT_IMAGE="claude-flow-novice:agent"
+DEFAULT_IMAGE="claude-flow-novice-agent:latest"
 
 # Colors for output
 RED='\033[0;31m'
@@ -239,7 +239,7 @@ get_mcp_config() {
 if [[ -z "$MCP_SERVERS" ]]; then
     log "Auto-selecting MCP servers for agent type: $AGENT_TYPE"
     MCP_CONFIG=$(get_mcp_config "$AGENT_TYPE")
-    MCP_SERVERS=$(echo "$MCP_CONFIG" | jq -r '.selectedMCPServers[]' | tr '\n' ',' | sed 's/,$//')
+    MCP_SERVERS=$(echo "$MCP_CONFIG" | jq -r '.selectedMCPServers[]? // empty' | tr '\n' ',' | sed 's/,$//')
 
     if [[ "$VERBOSE" == true ]]; then
         log "Auto-selected MCP servers: ${MCP_SERVERS:-'none'}"
@@ -377,31 +377,37 @@ else
     log "CFN mode detected - using agent coordination with shell wrapper"
 fi
 
+# Prepare context file if specified
+CONTEXT_ARG=""
+if [[ -n "$CONTEXT_FILE" ]]; then
+    if [[ -f "$CONTEXT_FILE" ]]; then
+        # Copy context file to workspace so it's accessible inside container
+        CONTEXT_FILENAME="context-${AGENT_ID}.json"
+        cp "$CONTEXT_FILE" "${WORKSPACE_DIR}/${CONTEXT_FILENAME}"
+
+        # Prepare context argument for agent-spawn command
+        CONTEXT_ARG="--context /app/workspace/${CONTEXT_FILENAME}"
+    else
+        log_error "Context file not found: $CONTEXT_FILE"
+        exit 1
+    fi
+fi
+
 # Add image and command
 DOCKER_CMD="$DOCKER_CMD $IMAGE"
 
 # Add the shell command
 if [[ "${TASK_ID}" =~ concurrent-.* || "${TASK_ID}" =~ test-.* || "${TASK_ID}" =~ context-.* ]]; then
-    # Test mode command
+    # Test mode command (context not used)
     DOCKER_CMD="$DOCKER_CMD sh -c 'cd /app/workspace && echo \"Task: ${TASK_ID}\" > task-info.txt && echo \"Agent: ${AGENT_TYPE}\" >> task-info.txt && echo \"Starting task execution...\" >> task-info.txt && sleep 3 && echo \"${AGENT_TYPE} task completed\" > ${AGENT_TYPE}-task-result.txt && echo \"Workspace verified\" > ${AGENT_TYPE}-workspace-check.txt && echo \"Task completed\" > ${AGENT_TYPE}-completion-log.txt && echo \"All files created successfully\" && ls -la && sleep 2'"
 else
-    # Full CFN mode command
-    DOCKER_CMD="$DOCKER_CMD sh -c 'cd /app && npx claude-flow-novice agent-spawn --type ${AGENT_TYPE} --task-id ${TASK_ID} --agent-id ${AGENT_ID}'"
+    # Full CFN mode command with optional context
+    DOCKER_CMD="$DOCKER_CMD sh -c 'cd /app && npx claude-flow-novice agent-spawn --type ${AGENT_TYPE} --task-id ${TASK_ID} --agent-id ${AGENT_ID} ${CONTEXT_ARG}'"
 fi
 
 # Remove container on exit for interactive mode (not needed for test mode with --rm)
 if [[ "$INTERACTIVE" == true && ! "${TASK_ID}" =~ concurrent-.* && ! "${TASK_ID}" =~ test-.* && ! "${TASK_ID}" =~ context-.* ]]; then
     DOCKER_CMD="$DOCKER_CMD --rm"
-fi
-
-# Add context file if specified
-if [[ -n "$CONTEXT_FILE" ]]; then
-    if [[ -f "$CONTEXT_FILE" ]]; then
-        DOCKER_CMD="$DOCKER_CMD --context $(cat "$CONTEXT_FILE")"
-    else
-        log_error "Context file not found: $CONTEXT_FILE"
-        exit 1
-    fi
 fi
 
 # Display configuration

@@ -99,6 +99,15 @@ task:
     required: false
     example: "cfn-task-12345"
 
+  CFN_TASK_DESCRIPTION:
+    description: "Human-readable task description"
+    default: null
+    type: "string"
+    scope: ["coordinator", "orchestrator"]
+    legacy_aliases: ["TASK_DESCRIPTION"]
+    required: true
+    example: "Fix TypeScript errors in frontend codebase"
+
   CFN_TASK_TIMEOUT:
     description: "Maximum execution time for task in seconds"
     default: "3600"
@@ -112,6 +121,7 @@ task:
     default: "10"
     type: "integer"
     scope: ["coordinator", "orchestrator"]
+    legacy_aliases: ["MAX_ITERATIONS"]
     required: false
     example: "5"
 
@@ -150,6 +160,24 @@ coordinator:
     required: false
     example: "1000"
 
+  CFN_AGENTS_LIST:
+    description: "Comma-separated list of agent types to spawn"
+    default: null
+    type: "string"
+    scope: ["coordinator", "orchestrator"]
+    legacy_aliases: ["AGENTS"]
+    required: false
+    example: "coder,reviewer,tester"
+
+  CFN_AGENT_MEMORY_LIMIT:
+    description: "Memory limit for individual agent containers"
+    default: "1g"
+    type: "string"
+    scope: ["coordinator"]
+    legacy_aliases: ["MEMORY_LIMIT"]
+    required: false
+    example: "2g"
+
 # Orchestrator Configuration
 orchestrator:
   CFN_ORCHESTRATOR_MODE:
@@ -165,6 +193,7 @@ orchestrator:
     default: "0.75"
     type: "float"
     scope: ["orchestrator"]
+    legacy_aliases: ["GATE_THRESHOLD", "GATE_CONFIDENCE_THRESHOLD"]
     required: false
     example: "0.85"
 
@@ -173,6 +202,7 @@ orchestrator:
     default: "0.90"
     type: "float"
     scope: ["orchestrator"]
+    legacy_aliases: ["CONSENSUS_THRESHOLD"]
     required: false
     example: "0.80"
 
@@ -259,6 +289,7 @@ container:
     default: "cfn-network"
     type: "string"
     scope: ["coordinator"]
+    legacy_aliases: ["NETWORK"]
     required: false
     example: "cfn-prod"
 
