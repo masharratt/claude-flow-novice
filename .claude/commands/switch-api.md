@@ -61,10 +61,22 @@ CLI spawn → Workers (custom routing when enabled, see agent profiles)
 
 **Execute:**
 ```bash
-bash "$(git rev-parse --show-toplevel 2>/dev/null || pwd)/scripts/switch-api.sh" {{args}}
+# Find project root (traverse up looking for scripts/switch-api.sh)
+SCRIPT_DIR="$PWD"
+while [ "$SCRIPT_DIR" != "/" ]; do
+    if [ -f "$SCRIPT_DIR/scripts/switch-api.sh" ]; then
+        break
+    fi
+    SCRIPT_DIR="$(dirname "$SCRIPT_DIR")"
+done
+if [ ! -f "$SCRIPT_DIR/scripts/switch-api.sh" ]; then
+    echo "Error: switch-api.sh not found. Please ensure you're in a project with CFN installed."
+    exit 1
+fi
+bash "$SCRIPT_DIR/scripts/switch-api.sh" {{args}}
 ```
 
-**Note:** Script automatically resolves to project root directory.
+**Note:** Script automatically detects and uses `.claude/settings.local.json` if it exists, otherwise uses `.claude/settings.json`.
 
 **Examples:**
 ```bash
