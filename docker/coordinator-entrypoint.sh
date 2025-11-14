@@ -26,14 +26,14 @@ fi
 echo "✅ Redis connection verified"
 
 # Set codebase path for agent
-export PROJECT_ROOT=/app/codebase
+export PROJECT_ROOT=/workspace
 cd "$PROJECT_ROOT"
 
 # Verify agent definition exists
 AGENT_FILE="$PROJECT_ROOT/.claude/agents/docker-coordinators/cfn-docker-v3-coordinator.md"
 if [[ ! -f "$AGENT_FILE" ]]; then
     echo "❌ Coordinator agent not found at: $AGENT_FILE"
-    echo "   Ensure codebase is mounted at /app/codebase"
+    echo "   Ensure codebase is mounted at /workspace"
     exit 1
 fi
 echo "✅ Coordinator agent located"
@@ -77,11 +77,15 @@ if [[ ! -f "$ORCHESTRATE_SCRIPT" ]]; then
     exit 1
 fi
 
-chmod +x "$ORCHESTRATE_SCRIPT"
+# Skip chmod on mounted volumes (CIFS restrictions prevent permission changes)
+# File has 0777 permissions from host - chmod would fail on Docker mounts
+if ! chmod +x "$ORCHESTRATE_SCRIPT" 2>/dev/null; then
+    echo "⚠️  chmod skipped (mounted filesystem with restricted permissions)"
+    echo "    File will execute with current permissions (0777 from host)"
+fi
 
 # Execute orchestration with planning enabled
-"$ORCHESTRATE_SCRIPT" execute \
-    --task-id "$TASK_ID" \
+"$ORCHESTRATE_SCRIPT" execute "$TASK_ID" \
     --task-description "$TASK_DESCRIPTION" \
     --mode "$MODE" \
     --agents "${AGENTS:-}" \
