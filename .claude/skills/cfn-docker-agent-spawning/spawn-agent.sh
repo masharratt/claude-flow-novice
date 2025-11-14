@@ -219,7 +219,7 @@ cd "$PROJECT_ROOT"
 # Create workspace directory with proper permissions
 WORKSPACE_DIR="/tmp/agent-workspace-${AGENT_ID}"
 mkdir -p "$WORKSPACE_DIR"
-chmod 777 "$WORKSPACE_DIR"
+chmod 777 "$WORKSPACE_DIR" 2>/dev/null || true  # Suppress errors on WSL2 bind mounts
 
 # Function to get MCP configuration for agent type
 get_mcp_config() {
@@ -288,6 +288,9 @@ fi
 
 # Build Docker command
 DOCKER_CMD="docker run"
+
+# Override hardcoded entrypoint (image has coordinator entrypoint, we need shell)
+DOCKER_CMD="$DOCKER_CMD --entrypoint /bin/sh"
 
 # Add container options
 if [[ "$DETACH" == true ]]; then
