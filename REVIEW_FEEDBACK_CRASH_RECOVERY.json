@@ -1,0 +1,163 @@
+{
+  "review_metadata": {
+    "review_date": "2025-11-14",
+    "reviewer_role": "Code Review Agent",
+    "files_reviewed": 7,
+    "total_lines_analyzed": 2463,
+    "focus_areas": ["crash_recovery", "memory_validation", "integration_quality"]
+  },
+  "feedback": [
+    {
+      "severity": "CRITICAL",
+      "issue": "Redis SADD command called with invalid EX parameter - SADD does not support EX flag in Redis",
+      "location": "save-checkpoint.sh:115-120",
+      "code_snippet": "redis-cli ... SADD \"cfn:wave:checkpoints:${task_id}\" \"$wave_number\" EX \"${CHECKPOINT_TTL:-3600}\"",
+      "impact": "Checkpoint index tracking completely fails silently; recovery detection will miss valid checkpoints despite successful main checkpoint save",
+      "suggestion": "Use separate EXPIRE command: (1) Execute SADD command to add wave_number to set, (2) Execute EXPIRE command on the set key with TTL. Fix: redis-cli ... SADD \"cfn:wave:checkpoints:${task_id}\" \"$wave_number\" && redis-cli ... EXPIRE \"cfn:wave:checkpoints:${task_id}\" \"${CHECKPOINT_TTL:-3600}\""
+    },
+    {
+      "severity": "CRITICAL",
+      "issue": "Checkpoint saved AFTER wave monitoring instead of immediately after spawn - violates recovery safety",
+      "location": "orchestrate.sh:1345-1350",
+      "code_snippet": "spawn_wave() -> monitor_wave() -> save_wave_checkpoint() - incorrect order",
+      "impact": "If orchestrator crashes during wave monitoring, checkpoint is never saved, losing recovery capability for that wave",
+      "suggestion": "Reorder execution flow to save checkpoint immediately after successful spawn, before monitoring begins. This ensures crash during monitoring can still be recovered. Code should be: (1) spawn_wave(), (2) save_wave_checkpoint() with container IDs, (3) monitor_wave(). Update execute_waves() function lines 1337-1350 to call save_wave_checkpoint() immediately after spawn_wave() succeeds"
+    },
+    {
+      "severity": "CRITICAL",
+      "issue": "Container ID extraction silently fails with no error handling or validation",
+      "location": "orchestrate.sh:1345-1346",
+      "code_snippet": "container_ids=$(docker ps -a --filter ... --format \"{{.ID}}\" 2>/dev/null | tr '\\n' ',')",
+      "impact": "If docker command fails or returns no results, empty string is passed to save_wave_checkpoint(), creating incomplete checkpoint that prevents recovery",
+      "suggestion": "Add validation and error handling: (1) Capture docker ps output with error checking, (2) Validate container_ids is non-empty before checkpoint save, (3) Log error and abort wave if container extraction fails. Example: if [[ -z \"$container_ids\" ]]; then log_error \"Failed to extract container IDs\"; return 1; fi"
+    },
+    {
+      "severity": "HIGH",
+      "issue": "No integration tests for end-to-end crash recovery scenarios - critical recovery path untested",
+      "location": "tests/docker/core/test-wave-orchestration-recovery.sh",
+      "code_snippet": "Test suite validates checkpoint creation but NOT actual crash recovery or resumption",
+      "impact": "Recovery mechanism may fail in production despite passing unit tests; operator confidence is low",
+      "suggestion": "Add integration tests that: (1) Simulate orchestrator crash during wave monitoring, (2) Verify checkpoints persist correctly, (3) Simulate recovery process and verify containers resume, (4) Verify logs are preserved after cleanup, (5) Test partial container failure scenarios. Minimum 4 new test cases for full coverage"
+    },
+    {
+      "severity": "HIGH",
+      "issue": "Memory calculation vulnerable to integer overflow with large container counts",
+      "location": "orchestrate.sh:950-966",
+      "code_snippet": "wave_memory=$((containers_in_wave * memory_per_container)) ; total_memory=$((total_memory + wave_memory))",
+      "impact": "With wave counts exceeding ~4000 containers, arithmetic overflows and reports incorrect memory requirements, allowing OOM scenarios",
+      "suggestion": "Add overflow detection and use safer arithmetic: (1) Validate container_in_wave < 10000, (2) Use bc or Python for safe decimal arithmetic instead of bash arithmetic, (3) Add pre-flight check: if [[ $containers_in_wave -gt 10000 ]]; then log_error \"Wave too large\"; return 1; fi. Consider refactoring to use jq with safe numeric operations"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "JQ parsing operations lack error validation - silent failures on malformed data",
+      "location": "resume-wave.sh:115, cleanup-orphans.sh:148, multiple locations",
+      "code_snippet": "container_ids=$(echo \"$checkpoint_data\" | jq -r '.container_ids | join(\",\")' || echo \"\")",
+      "impact": "Malformed JSON in Redis checkpoint causes silent empty string assignment; distinction lost between valid empty array and parse failure",
+      "suggestion": "Add explicit error handling for all jq operations: (1) Capture stderr separately, (2) Validate jq exit code before using output, (3) Log parse errors distinctly. Example: if ! checkpoint_json=$(jq -r '.container_ids' <<< \"$data\" 2>&1); then log_error \"Failed to parse checkpoint JSON: $checkpoint_json\"; return 1; fi"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Race condition in container existence verification - docker ps check doesn't guarantee container state",
+      "location": "resume-wave.sh:140-155",
+      "code_snippet": "docker ps -a --filter \"id=$container_id\" ... checks for existence but container may be removed before next operation",
+      "impact": "Reported container status may be stale; recovery process may attempt to reuse containers that have been cleaned",
+      "suggestion": "Implement robust state verification: (1) Add locking mechanism with container ID to prevent concurrent cleanup, (2) Use docker events API instead of polling, (3) Add timestamp checks - if container hasn't been updated in X minutes, assume it's stale, (4) Verify container labels and metadata match checkpoint, not just ID match"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Docker info format parsing lacks robustness for version differences",
+      "location": "orchestrate.sh:933",
+      "code_snippet": "available_memory=$(docker info --format '{{.MemTotal}}' 2>/dev/null || echo \"0\")",
+      "impact": "Different Docker versions return different formats; fallback to 0 bytes bypasses memory validation entirely",
+      "suggestion": "Implement multi-format Docker parsing: (1) Try --format flag first, (2) Fallback to grep/awk on 'MemTotal:' from docker info text output, (3) Validate returned value is numeric and > 0, (4) Log warning if unable to determine memory instead of silently using 0. Add: if [[ \"$available_memory\" -eq 0 ]]; then log_warning \"Cannot validate memory - proceeding anyway\"; fi"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Container cleanup lacks retry logic for transient Docker daemon failures",
+      "location": "cleanup-orphans.sh:184-192",
+      "code_snippet": "docker stop/rm commands execute once with no retry on failure",
+      "impact": "Temporary Docker daemon issues cause orphaned containers to persist indefinitely",
+      "suggestion": "Add exponential backoff retry: (1) Implement retry loop with max 3 attempts, (2) Wait 2 seconds between attempts, (3) Log each retry attempt, (4) After final failure, record cleanup failure in persistent log for operator intervention. Example: for attempt in {1..3}; do docker rm -f \"$container_id\" && break; sleep 2; done || log_error \"Failed to remove container after 3 attempts\""
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "No disk space validation before log preservation - could fail silently and leave containers",
+      "location": "cleanup-orphans.sh:161-170",
+      "code_snippet": "mkdir -p \"$log_dir\" && docker logs \"$container_id\" > \"$log_file\"",
+      "impact": "If disk full, log preservation fails; containers remain in system and aren't cleaned up",
+      "suggestion": "Add pre-flight disk space check: (1) Check available space in log directory before cleanup begins, (2) Abort cleanup if < 100MB free (configurable), (3) Log clear warning about disk space issue, (4) Alternative: stream logs to remote storage or use compressed storage. Code: available_space=$(df \"$LOG_PRESERVE_DIR\" | awk 'NR==2 {print $4}') && if [[ $available_space -lt 102400 ]]; then log_error \"Insufficient disk space\"; return 1; fi"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Batching plan structure not validated before memory calculation",
+      "location": "orchestrate.sh:929-930",
+      "code_snippet": "wave_count=$(jq '.waves | length' \"$plan_file\" 2>/dev/null || echo \"0\")",
+      "impact": "Invalid plan file silently converted to 0 waves; validation skipped entirely and execution continues unsafely",
+      "suggestion": "Add schema validation for batching plan: (1) Validate 'waves' key exists as array, (2) Validate each wave has required 'batch_count' and 'tier' fields, (3) Validate batch_count and tier are numeric and in valid ranges, (4) Use jq schema validation or add explicit checks. Code: if ! jq -e '.waves | type == \"array\" and length > 0' \"$plan_file\" >/dev/null 2>&1; then log_error \"Invalid plan file structure\"; return 1; fi"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Error messages lack context for operator diagnostics - too generic",
+      "location": "resume-wave.sh:84",
+      "code_snippet": "log_warning \"No checkpoints found for task=$task_id\"",
+      "impact": "Operator cannot distinguish between: Redis unavailable, no checkpoints created yet, or task ID typo - complicates troubleshooting",
+      "suggestion": "Enhance error messages with diagnostic context: (1) Check Redis availability explicitly and report separately, (2) Distinguish 'no checkpoints created' vs 'checkpoints expired', (3) Suggest next steps based on root cause. Code: if ! check_redis_connection; then log_error \"Redis unavailable - cannot check for checkpoints\"; elif [[ $checkpoint_count -eq 0 ]]; then log_warning \"No checkpoints found - task may not have started wave execution yet\"; fi"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Missing negative test cases - error scenarios not validated",
+      "location": "tests/docker/core/test-wave-orchestration-recovery.sh",
+      "code_snippet": "Test suite only covers happy paths - no corruption, failure, or edge case tests",
+      "impact": "Production failures with corrupted checkpoints or partial failures will have no test precedent",
+      "suggestion": "Add negative test coverage: (1) Test corrupted JSON in Redis checkpoint, (2) Test partial container cleanup (some succeed, some fail), (3) Test concurrent operations on same task ID, (4) Test memory overflow with massive plan, (5) Test disk full scenario during log preservation. Minimum 5 additional test cases"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Orphan cleanup inconsistency - not called on all failure paths",
+      "location": "orchestrate.sh:1356-1358",
+      "code_snippet": "Cleanup called on spawn_wave and monitor_wave failures but not on overall timeout",
+      "impact": "Some failure scenarios leave containers lingering until next manual cleanup",
+      "suggestion": "Ensure cleanup called on all failure paths: (1) Add cleanup to timeout handler, (2) Add cleanup to validate_memory_budget failure, (3) Wrap execute_waves in try/catch pattern with guaranteed cleanup, (4) Use trap handler for automatic cleanup on exit"
+    },
+    {
+      "severity": "MEDIUM",
+      "issue": "Missing operational runbook documentation - operators lack recovery procedures",
+      "location": "All documentation",
+      "code_snippet": "SKILL.md and implementation doc lack operator procedures",
+      "impact": "Production incidents will require code reading to resolve; operators lack clear procedures",
+      "suggestion": "Create operational runbook with: (1) Manual checkpoint recovery procedure, (2) Diagnostics for checkpoint corruption, (3) Recovery from partial cleanup failures, (4) Monitoring checkpoint health, (5) Troubleshooting guide for common scenarios. Document at ops/CHECKPOINT_OPERATIONS_RUNBOOK.md"
+    }
+  ],
+  "summary": {
+    "total_issues": 15,
+    "critical_count": 3,
+    "high_count": 2,
+    "medium_count": 10,
+    "architecture_assessment": "Well-designed system with clear separation of concerns, but critical implementation bugs and missing test coverage prevent production deployment",
+    "production_readiness": "NOT READY - Must address 3 critical issues and 2 high-priority issues before production release",
+    "test_coverage_assessment": "Baseline coverage adequate (70% happy paths), but missing critical negative tests and integration tests (50% total coverage)",
+    "documentation_quality": "Good architecture documentation, missing operational runbooks (75% complete)"
+  },
+  "overall_assessment": {
+    "code_quality_score": 7.0,
+    "architecture_quality_score": 8.5,
+    "test_coverage_score": 5.5,
+    "documentation_score": 7.0,
+    "production_readiness_score": 5.5,
+    "consensus_confidence": 0.68
+  },
+  "immediate_blockers": [
+    "Critical: Fix Redis SADD EX parameter - breaks checkpoint detection",
+    "Critical: Fix checkpoint save timing - must save immediately after spawn, not after monitoring",
+    "Critical: Add container ID extraction validation - prevents incomplete checkpoints",
+    "High: Implement integration tests for crash recovery scenarios",
+    "High: Add memory calculation overflow protection for large wave counts"
+  ],
+  "next_steps": [
+    "Address 3 critical issues and deploy fixes",
+    "Add 4+ integration tests for crash scenarios",
+    "Create operational runbook for operators",
+    "Add negative test cases for error conditions",
+    "After fixes complete, re-assess for production readiness"
+  ]
+}

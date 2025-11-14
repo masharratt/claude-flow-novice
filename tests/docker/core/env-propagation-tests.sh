@@ -11,7 +11,7 @@ source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 # Configuration
 TEST_ENV_DIR="$(create_temp_dir)"
 TEST_COORDINATOR="test-env-coordinator-$$"
-NETWORK_NAME="cfn-network"
+NETWORK_NAME="mcp-network"
 
 cleanup() {
     log_step "Cleaning up test environment"

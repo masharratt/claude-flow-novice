@@ -1,3 +1,5 @@
+---
+
 # Agent Profile Validation Tool
 
 A comprehensive validation script that checks agent profiles against CLAUDE.md standards and provides actionable feedback.

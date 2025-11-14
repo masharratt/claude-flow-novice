@@ -1,0 +1,57 @@
+# CRITICAL: MUST use Linux build script for 96% faster builds (755s → 20s)
+# Build: DOCKERFILE="Dockerfile.coordinator" IMAGE_NAME="<image-name>" ./scripts/docker/build-from-linux.sh
+# See: CLAUDE.md lines 60-90, .claude/skills/docker-build/SKILL.md
+
+# ============================================================================
+# CFN Coordinator - Wave Coordination
+# ============================================================================
+# Manages wave-based execution for error fixing workflows
+# Specialized for error batching and coordination
+#
+# Usage:
+#   docker run --rm --network mcp-network \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     -v /workspace:/workspace:rw \
+#     -e CFN_TASK_ID=task-123 \
+#     -e CFN_MEMORY_BUDGET=40g \
+#     -e CFN_REDIS_HOST=cfn-redis \
+#     cfn-coordinator:latest
+# ============================================================================
+
+# Use cfn-agent as base
+FROM cfn-agent:latest AS base
+
+# Switch to root for additional installations
+USER root
+
+# Install additional tools for coordination
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    redis-tools \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Skills are already copied from base cfn-agent image
+
+# Copy coordinator entrypoint (if it exists, otherwise skip)
+# COPY docker/coordinator-entrypoint.sh /app/coordinator-entrypoint.sh
+
+# Ensure scripts are executable
+RUN find ./.claude/skills -name "*.sh" -type f -exec chmod +x {} \;
+
+# Switch back to cfnagent user
+USER cfnagent
+
+# Environment variables for coordination
+ENV CFN_MEMORY_BUDGET=40g
+ENV CFN_ITERATION_LIMIT=10
+ENV CFN_MAX_PARALLEL_AGENTS=4
+ENV CFN_SPAWN_INTERVAL_MS=500
+ENV CFN_REDIS_HOST=cfn-redis
+ENV CFN_REDIS_PORT=6379
+ENV CFN_NETWORK_NAME=mcp-network
+ENV CFN_AGENT_IMAGE=cfn-agent:latest
+
+# Entrypoint is the coordinator script
+ENTRYPOINT ["/app/coordinator-entrypoint.sh"]
+CMD ["--help"]

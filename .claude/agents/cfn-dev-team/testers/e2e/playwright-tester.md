@@ -15,7 +15,7 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - test-coverage-validator
-
+---
 
 # Playwright E2E Testing Agent
 

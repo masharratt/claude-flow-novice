@@ -9,7 +9,7 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Configuration
-NETWORK_NAME="cfn-network"
+NETWORK_NAME="mcp-network"
 REDIS_SERVICE="cfn-redis"
 TEST_TASK_ID="redis-test-$(date +%s)"
 
@@ -103,8 +103,8 @@ test_heartbeat_reporting() {
         --network "$NETWORK_NAME" \
         -e CFN_REDIS_HOST="$REDIS_SERVICE" \
         -e CFN_REDIS_PORT=6379 \
-        -e TASK_ID="$TEST_TASK_ID" \
-        -e AGENT_ID="$AGENT_ID" \
+        -e CFN_TASK_ID="$TEST_TASK_ID" \
+        -e CFN_AGENT_ID="$AGENT_ID" \
         node:20-slim \
         sh -c "
         npm install redis 2>/dev/null &&

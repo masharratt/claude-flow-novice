@@ -1,0 +1,8 @@
+{
+  "timestamp": "1763153020",
+  "agent_id": "unknown",
+  "original_file": "tests/docker/core/agent-lifecycle-tests.sh",
+  "file_hash": "0d0486f5ddbcedff62e1ce856a446de3",
+  "backup_path": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/07aeb8858acfc14cd70e5e5d575647f39b02ab16b12b9d5bf41d95931ba267b3/.backups/unknown/1763153020_0d0486f5ddbcedff62e1ce856a446de3",
+  "created_at": "2025-11-14T20:43:40Z"
+}

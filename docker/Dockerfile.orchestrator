@@ -1,0 +1,52 @@
+# CRITICAL: MUST use Linux build script for 96% faster builds (755s → 20s)
+# Build: DOCKERFILE="Dockerfile.orchestrator" IMAGE_NAME="<image-name>" ./scripts/docker/build-from-linux.sh
+# See: CLAUDE.md lines 60-90, .claude/skills/docker-build/SKILL.md
+
+# ============================================================================
+# CFN Orchestrator - Loop Orchestration
+# ============================================================================
+# Handles Loop 3 → Loop 2 → Product Owner flow
+# Spawns agent containers via Docker socket
+#
+# Usage:
+#   docker run --rm --network mcp-network \
+#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     -v /workspace:/workspace:rw \
+#     -e CFN_TASK_ID=task-123 \
+#     -e CFN_REDIS_HOST=cfn-redis \
+#     cfn-orchestrator:latest
+# ============================================================================
+
+# Use cfn-agent as base
+FROM cfn-agent:latest AS base
+
+# Switch to root for additional installations
+USER root
+
+# Install additional tools for orchestration
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    redis-tools \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy orchestration scripts (they're already in /app from base image)
+# Skills are copied from base cfn-agent image, no need to copy again
+
+# Ensure orchestration scripts are executable
+RUN find ./.claude/skills -name "*.sh" -type f -exec chmod +x {} \;
+
+# Switch back to cfnagent user
+USER cfnagent
+
+# Environment variables for orchestration
+ENV CFN_MODE=standard
+ENV CFN_ITERATION_LIMIT=10
+ENV CFN_REDIS_HOST=cfn-redis
+ENV CFN_REDIS_PORT=6379
+ENV CFN_NETWORK_NAME=mcp-network
+ENV CFN_AGENT_IMAGE=cfn-agent:latest
+
+# Entrypoint is the orchestration script
+ENTRYPOINT ["./.claude/skills/cfn-loop-orchestration/orchestrate.sh"]
+CMD ["--help"]

@@ -15,6 +15,8 @@ validation_hooks:
   - test-coverage-validator
 
 
+---
+
 # Performance Benchmarker Agent
 
 ## 🚨 Mandatory Post-Edit Validation

@@ -1,18 +1,101 @@
-# Use existing CFN agent image as base
-FROM claude-flow-novice-agent:latest
+# CRITICAL: MUST use Linux build script for 96% faster builds (755s → 20s)
+# Build: DOCKERFILE="Dockerfile.agent" IMAGE_NAME="<image-name>" ./scripts/docker/build-from-linux.sh
+# See: CLAUDE.md lines 60-90, .claude/skills/docker-build/SKILL.md
 
-# Set working directory
-WORKDIR /workspace
+# ============================================================================
+# CFN Agent - General Purpose Agent Image
+# ============================================================================
+# Single image for ALL agent types (react-frontend-engineer, backend-developer,
+# reviewer, tester, product-owner, etc.)
+#
+# Usage:
+#   docker run --rm --network mcp-network \
+#     -e AGENT_TYPE=react-frontend-engineer \
+#     -e TASK_ID=test-123 \
+#     -e AGENT_ID=agent-test \
+#     -e REDIS_URL=redis://cfn-redis:6379 \
+#     -v /workspace:/app/workspace \
+#     cfn-agent:latest
+# ============================================================================
 
-# Agent will receive these environment variables from coordinator:
-# - TASK_PROMPT: The error fixing task
-# - AGENT_ID: Unique agent identifier
-# - BATCH_TIER: Memory tier (1-4)
-# - REDIS_HOST: Redis connection
-# - REDIS_PORT: Redis port
+# Stage 1: Dependencies
+FROM node:20-slim AS deps
 
-# Default entrypoint from base image handles agent execution
-# No custom entrypoint needed - base image already configured
+WORKDIR /app
 
-# For testing, this image will spawn actual CFN agents
-# that can fix TypeScript errors
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install all dependencies (skip postinstall - not needed in Docker)
+RUN npm ci --ignore-scripts
+
+# ============================================================================
+# Stage 2: Build
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+# Install bash and dos2unix for build script
+RUN apt-get update && apt-get install -y bash dos2unix && rm -rf /var/lib/apt/lists/*
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package*.json ./
+
+# Copy source code
+COPY src ./src
+COPY tsconfig.json ./
+COPY .swcrc ./
+
+# Build TypeScript to JavaScript
+RUN npm run build
+
+# Verify spawn.js was built successfully
+RUN test -f dist/cli/spawn.js || (echo "ERROR: dist/cli/spawn.js not found after build!" && ls -la dist/cli/ && exit 1)
+RUN echo "Build verification: spawn.js successfully compiled" && ls -lh dist/cli/spawn.js
+
+# ============================================================================
+# Stage 3: Production Runtime
+FROM node:20-slim
+
+WORKDIR /app
+
+# Install runtime dependencies and tools
+RUN apt-get update && apt-get install -y \
+    bash \
+    curl \
+    jq \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install global dependencies
+RUN npm install -g typescript ts-node
+
+# Copy built artifacts from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package*.json ./
+
+# Copy CFN configuration and agents
+COPY .claude ./.claude
+
+# Create workspace directory
+RUN mkdir -p /app/workspace
+
+# Create non-root user for security
+RUN groupadd -g 1001 cfnagent && \
+    useradd -r -u 1001 -g cfnagent cfnagent && \
+    chown -R cfnagent:cfnagent /app
+
+# Switch to non-root user
+USER cfnagent
+
+# Environment variables (can be overridden at runtime)
+ENV NODE_ENV=production
+ENV PROJECT_ROOT=/app
+ENV WORKSPACE_PATH=/app/workspace
+
+# Default command (can be overridden)
+# Usage: node dist/cli/spawn.js --type $AGENT_TYPE --task-id $TASK_ID --agent-id $AGENT_ID
+CMD ["node", "dist/cli/spawn.js", "--help"]

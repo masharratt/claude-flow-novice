@@ -57,6 +57,37 @@ BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id 
 * **sleep on repeat** when monitoring a background process. sleep x  minutes, check progress, sleep, repeat
 * **USE GREP INSTEAD OF FIND** - it's less resource intensive in our WSL2 instances
 
+### Docker Build Requirements (WSL2 Performance)
+
+**CRITICAL: Always use Linux native storage for Docker builds**
+
+* **96% faster builds**: Linux native storage vs Windows mounts (755s → <20s)
+* **Use docker-build skill**: `./.claude/skills/docker-build/build.sh`
+* **Manual builds**: Use `scripts/docker/build-from-linux.sh` (not direct `docker build`)
+* **Required for**: All CFN Docker images (cfn-agent, cfn-orchestrator, cfn-coordinator)
+
+**Quick Reference:**
+```bash
+# Build any Docker image (correct - 96% faster)
+./.claude/skills/docker-build/build.sh --dockerfile docker/Dockerfile.agent --tag cfn-agent:latest
+
+# Build using manual script (also correct)
+DOCKERFILE="docker/Dockerfile.agent" IMAGE_NAME="cfn-agent" ./scripts/docker/build-from-linux.sh
+
+# ❌ NEVER DO THIS (755s build time on WSL2)
+docker build -f docker/Dockerfile.agent -t cfn-agent:latest .
+```
+
+**Why This Matters:**
+- Windows mounts in WSL2 have severe I/O performance penalties
+- Docker build context transfer: 0.1s (Linux) vs 755s (Windows)
+- Linux build script: syncs to `/tmp/cfn-build`, builds there, returns image
+
+**Agent Requirement:**
+- docker-specialist MUST use Linux build scripts
+- All Dockerfiles MUST document this requirement
+- Build failures = check if Linux build was used
+
 **Agent Output Standards:**
 * **Bug documentation**: `docs/BUG_#_*.md` (investigation, fix summary, validation)
 * **Test scripts**: `tests/test-*.sh` (persistent, version controlled)

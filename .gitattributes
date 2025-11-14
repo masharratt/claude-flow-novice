@@ -1,0 +1,10 @@
+# Enforce Unix line endings for shell scripts (prevents Alpine Linux execution failures)
+*.sh text eol=lf
+docker/**/*.sh text eol=lf
+scripts/**/*.sh text eol=lf
+.claude/hooks/* text eol=lf
+.claude/skills/**/*.sh text eol=lf
+
+# Docker entrypoint scripts MUST have LF
+**/coordinator-entrypoint.sh text eol=lf
+**/agent-entrypoint.sh text eol=lf

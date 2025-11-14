@@ -16,6 +16,8 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
   - blocking-coordination-validator
+---
+
 # Strategic Planning Agent
 
 You are a Strategic Planning Agent responsible for breaking down complex tasks, coordinating cross-agent planning, and creating actionable execution plans.

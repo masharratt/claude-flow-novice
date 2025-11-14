@@ -66,6 +66,7 @@ Options:
   --confidence NUM       Confidence score (0.0-1.0)
   --iteration NUM        Loop iteration number
   --loop-number NUM      Loop number (1-4)
+  --agent-count NUM      Expected number of agents for wait-loop
   --context-file PATH    JSON context file
   --timeout SECONDS      Operation timeout
   --ttl SECONDS          Data TTL
@@ -99,17 +100,26 @@ check_redis_connection() {
     fi
 
     local redis_cmd="redis-cli -h $host -p $port"
+
+    # Try with password first if provided
     if [[ -n "$password" ]]; then
-        redis_cmd="$redis_cmd -a $password"
+        local redis_cmd_with_pass="$redis_cmd -a $password"
+        # Test with password, suppress stderr to avoid AUTH error warnings
+        if $redis_cmd_with_pass ping &> /dev/null; then
+            REDIS_CMD="$redis_cmd_with_pass"
+            return 0
+        fi
+        # Password failed, try without password (some Redis instances don't require auth)
     fi
 
-    if ! $redis_cmd ping &> /dev/null; then
-        log_error "Cannot connect to Redis at $host:$port"
-        return 1
+    # Try without password
+    if $redis_cmd ping &> /dev/null; then
+        REDIS_CMD="$redis_cmd"
+        return 0
     fi
 
-    REDIS_CMD="$redis_cmd"
-    return 0
+    log_error "Cannot connect to Redis at $host:$port"
+    return 1
 }
 
 # Parse command line arguments
@@ -121,6 +131,7 @@ CONTAINER_ID=""
 CONFIDENCE=""
 ITERATION=""
 LOOP_NUMBER=""
+AGENT_COUNT=""
 CONTEXT_FILE=""
 TIMEOUT="${DEFAULT_TIMEOUT}"
 TTL="${DEFAULT_TTL}"
@@ -159,6 +170,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --loop-number)
             LOOP_NUMBER="$2"
+            shift 2
+            ;;
+        --agent-count)
+            AGENT_COUNT="$2"
             shift 2
             ;;
         --context-file)

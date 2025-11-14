@@ -619,7 +619,7 @@ EOF
                 "" \
                 --context "$context_file" \
                 --memory-limit "${MEMORY_LIMIT:-1g}" \
-                --network "${NETWORK:-mcp-network}" 2>&1 | grep -o 'Agent ID: [^[:space:]]*' | cut -d' ' -f3)
+                --network "${NETWORK:-mcp-network}" 2>&1 | grep -o '^Agent ID: [^[:space:]]*' | cut -d' ' -f3)
 
             if [[ -n "$agent_id" ]]; then
                 agent_ids+=("$agent_id")
@@ -797,7 +797,7 @@ EOF
                 "" \
                 --context "$context_file" \
                 --memory-limit "${MEMORY_LIMIT:-1g}" \
-                --network "${NETWORK:-mcp-network}" 2>&1 | grep -o 'Agent ID: [^[:space]]' | cut -d' ' -f3)
+                --network "${NETWORK:-mcp-network}" 2>&1 | grep -o '^Agent ID: [^[:space]]*' | cut -d' ' -f3)
 
             if [[ -n "$validator_id" ]]; then
                 validator_ids+=("$validator_id")
@@ -900,7 +900,7 @@ EOF
             "" \
             --context "$context_file" \
             --memory-limit "${MEMORY_LIMIT:-1g}" \
-            --network "${NETWORK:-mcp-network}" 2>&1 | grep -o 'Agent ID: [^[:space:]]*' | cut -d' ' -f3)
+            --network "${NETWORK:-mcp-network}" 2>&1 | grep -o '^Agent ID: [^[:space:]]*' | cut -d' ' -f3)
 
         if [[ -n "$po_id" ]]; then
             log_success "Product Owner spawned: $po_id"

@@ -106,7 +106,7 @@ fi
 COORDINATOR_IMAGE="cfn-coordinator:v3"
 REDIS_CONTAINER="cfn-redis"
 TEST_TASK_ID="e2e-test-$(date +%s)"
-TEST_NETWORK="cfn-network"
+TEST_NETWORK="mcp-network"
 TEST_TIMEOUT=120
 TMP_DIR=""
 COORDINATOR_CONTAINER=""
@@ -342,9 +342,9 @@ test_launch_sequence() {
         --network "$TEST_NETWORK" \
         --memory=2g \
         --memory-swap=2g \
-        -e REDIS_HOST="$REDIS_CONTAINER" \
+        -e CFN_REDIS_HOST="$REDIS_CONTAINER" \
         -e REDIS_PORT=6379 \
-        -e TASK_ID="$TEST_TASK_ID" \
+        -e CFN_TASK_ID="$TEST_TASK_ID" \
         -e TASK_DESCRIPTION="$TASK_DESCRIPTION" \
         -e MODE="$MODE" \
         -e MAX_ITERATIONS="$MAX_ITERATIONS" \
@@ -525,8 +525,8 @@ test_docker_socket_access() {
         --name "$SOCKET_TEST_CONTAINER" \
         --network "$TEST_NETWORK" \
         --memory=512m \
-        -e REDIS_HOST="$REDIS_CONTAINER" \
-        -e TASK_ID="socket-test" \
+        -e CFN_REDIS_HOST="$REDIS_CONTAINER" \
+        -e CFN_TASK_ID="socket-test" \
         -v /var/run/docker.sock:/var/run/docker.sock \
         --entrypoint=/bin/sh \
         "$COORDINATOR_IMAGE" \
@@ -567,7 +567,7 @@ test_workspace_mount() {
         --name "$MOUNT_TEST_CONTAINER" \
         --network "$TEST_NETWORK" \
         --memory=512m \
-        -e TASK_ID="mount-test" \
+        -e CFN_TASK_ID="mount-test" \
         -v "$PROJECT_ROOT:/workspace:rw" \
         --entrypoint=/bin/sh \
         "$COORDINATOR_IMAGE" \

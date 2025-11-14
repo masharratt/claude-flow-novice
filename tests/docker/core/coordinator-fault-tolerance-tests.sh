@@ -9,7 +9,7 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Configuration
-NETWORK_NAME="cfn-network"
+NETWORK_NAME="mcp-network"
 REDIS_SERVICE="cfn-redis"
 TEST_COORDINATOR="test-fault-coordinator-$$"
 TEST_DIR="$(create_temp_dir)"

@@ -9,7 +9,7 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 source "$PROJECT_ROOT/tests/docker/helpers/architecture-test-helpers.sh"
 
 # Configuration
-NETWORK_NAME="cfn-network"
+NETWORK_NAME="mcp-network"
 REDIS_SERVICE="cfn-redis"
 TEST_TASK_ID="lifecycle-test-$(date +%s)"
 DEBUG_DIR="/tmp/cfn-debug"
@@ -37,14 +37,15 @@ test_agent_spawn_to_exit_lifecycle() {
     # This validates the ACTUAL coordinator pattern from Bug #4 findings
     docker run -d \
         --name "$AGENT_ID" \
-        --network "$NETWORK_NAME" \
+        --entrypoint /bin/bash \
+        --network mcp-network \
         -e CFN_REDIS_HOST="$REDIS_SERVICE" \
         -e CFN_REDIS_PORT=6379 \
-        -e TASK_ID="$TEST_TASK_ID" \
-        -e AGENT_ID="$AGENT_ID" \
+        -e CFN_TASK_ID="$TEST_TASK_ID" \
+        -e CFN_AGENT_ID="$AGENT_ID" \
         -e TASK_PROMPT="$TASK_PROMPT" \
-        node:20-slim \
-        sh -c "
+        cfn-agent:latest \
+        -c "
         npm install redis 2>/dev/null &&
         node -e \"
         const redis = require('redis');
@@ -122,11 +123,12 @@ test_container_metadata_capture() {
     AGENT_ID="lifecycle-agent-metadata"
     CONTAINER_ID=$(docker run -d \
         --name "$AGENT_ID" \
-        --network "$NETWORK_NAME" \
-        -e TASK_ID="$TEST_TASK_ID" \
-        -e AGENT_ID="$AGENT_ID" \
-        node:20-slim \
-        sh -c "echo 'Agent task complete'; sleep 2; exit 0")
+        --entrypoint /bin/bash \
+        --network mcp-network \
+        -e CFN_TASK_ID="$TEST_TASK_ID" \
+        -e CFN_AGENT_ID="$AGENT_ID" \
+        cfn-agent:latest \
+        -c "echo 'Agent task complete'; sleep 2; exit 0")
 
     # Wait for completion
     sleep 4
@@ -178,9 +180,10 @@ test_auto_removal_after_completion() {
     AGENT_ID="lifecycle-agent-removal"
     CONTAINER_ID=$(docker run -d \
         --name "$AGENT_ID" \
-        --network "$NETWORK_NAME" \
-        node:20-slim \
-        sh -c "echo 'Done'; exit 0")
+        --entrypoint /bin/bash \
+        --network mcp-network \
+        cfn-agent:latest \
+        -c "echo 'Done'; exit 0")
 
     # Wait for completion
     sleep 3
@@ -215,8 +218,9 @@ test_orphaned_container_detection() {
     AGENT_ID="lifecycle-agent-orphan"
     docker run -d \
         --name "$AGENT_ID" \
-        --network "$NETWORK_NAME" \
-        node:20-slim \
+        --entrypoint /bin/bash \
+        --network mcp-network \
+        cfn-agent:latest \
         sleep 300 > /dev/null 2>&1
 
     # Wait for container to start
@@ -260,9 +264,10 @@ test_container_status_tracking() {
         CMD="${AGENTS[$agent_name]}"
         docker run -d \
             --name "lifecycle-$agent_name" \
-            --network "$NETWORK_NAME" \
-            node:20-slim \
-            sh -c "$CMD" > /dev/null 2>&1
+            --entrypoint /bin/bash \
+        --network mcp-network \
+            cfn-agent:latest \
+            -c "$CMD" > /dev/null 2>&1
     done
 
     # Wait for status to stabilize
@@ -310,9 +315,10 @@ test_coordinator_wait_pattern() {
 
         docker run -d \
             --name "$AGENT_ID" \
-            --network "$NETWORK_NAME" \
-            node:20-slim \
-            sh -c "sleep $((i * 2)); exit 0" > /dev/null 2>&1
+            --entrypoint /bin/bash \
+        --network mcp-network \
+            cfn-agent:latest \
+            -c "sleep $((i * 2)); exit 0" > /dev/null 2>&1
     done
 
     # WHEN: Coordinator waits for all containers to exit (simulated)

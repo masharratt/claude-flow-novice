@@ -1,3 +1,5 @@
+---
+
 # Agent Type Guidelines
 
 **Version:** 2.0.0

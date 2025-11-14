@@ -1,0 +1,313 @@
+#!/bin/bash
+# validate-redis-connection.sh
+# Comprehensive Redis connection validation for CFN Docker agents
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+echo "🧪 Redis Connection Validation Test Suite"
+echo "=========================================="
+echo "Project Root: $PROJECT_ROOT"
+echo ""
+
+# Configuration
+NETWORK_NAME="mcp-network"
+REDIS_SERVICE="cfn-redis"
+TEST_TASK_ID="test-redis-$(date +%s)"
+FAILED_TESTS=0
+TOTAL_TESTS=0
+
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Helper function for test results
+test_result() {
+    local test_name="$1"
+    local result="$2"
+    local details="${3:-}"
+
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+    if [ "$result" = "pass" ]; then
+        echo -e "${GREEN}✅ PASS${NC}: $test_name"
+        [ -n "$details" ] && echo "   $details"
+    else
+        echo -e "${RED}❌ FAIL${NC}: $test_name"
+        [ -n "$details" ] && echo "   $details"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    fi
+    echo ""
+}
+
+# Cleanup function
+cleanup() {
+    echo "🧹 Cleaning up test containers..."
+    docker rm -f redis-test-agent 2>/dev/null || true
+}
+trap cleanup EXIT
+
+echo "Phase 1: Infrastructure Validation"
+echo "-----------------------------------"
+
+# Test 1: Network connectivity
+echo "Test 1: Verify $NETWORK_NAME exists"
+if docker network ls | grep -q "$NETWORK_NAME"; then
+    NETWORK_ID=$(docker network ls --filter "name=$NETWORK_NAME" --format "{{.ID}}")
+    test_result "Network exists" "pass" "Network ID: $NETWORK_ID"
+else
+    test_result "Network exists" "fail" "Network $NETWORK_NAME not found"
+    echo "💡 Fix: Run 'docker-compose up -d' to create network"
+    exit 1
+fi
+
+# Test 2: Redis service health
+echo "Test 2: Check Redis container health"
+docker-compose up -d redis
+sleep 5
+
+if docker exec "$REDIS_SERVICE" redis-cli ping 2>/dev/null | grep -q PONG; then
+    REDIS_VERSION=$(docker exec "$REDIS_SERVICE" redis-cli --version | grep -oP '\d+\.\d+\.\d+')
+    test_result "Redis service health" "pass" "Redis version: $REDIS_VERSION"
+else
+    test_result "Redis service health" "fail" "Redis not responding to PING"
+    echo "💡 Fix: Check Redis container logs: docker logs $REDIS_SERVICE"
+    exit 1
+fi
+
+# Test 3: Redis memory configuration
+echo "Test 3: Check Redis memory limits"
+MAX_MEMORY=$(docker exec "$REDIS_SERVICE" redis-cli CONFIG GET maxmemory | tail -1)
+if [ "$MAX_MEMORY" != "0" ]; then
+    MAX_MEMORY_MB=$((MAX_MEMORY / 1024 / 1024))
+    test_result "Redis memory config" "pass" "Max memory: ${MAX_MEMORY_MB}MB"
+else
+    test_result "Redis memory config" "fail" "No memory limit set"
+fi
+
+echo ""
+echo "Phase 2: Agent Network Connectivity"
+echo "------------------------------------"
+
+# Test 4: Agent can resolve Redis hostname
+echo "Test 4: Agent DNS resolution test"
+DNS_RESULT=$(docker run --rm --network "$NETWORK_NAME" \
+    claude-flow-novice-agent:latest \
+    sh -c "nslookup $REDIS_SERVICE 2>&1" || echo "FAILED")
+
+if echo "$DNS_RESULT" | grep -q "Address:"; then
+    REDIS_IP=$(echo "$DNS_RESULT" | grep -A1 "Name:" | tail -1 | awk '{print $2}')
+    test_result "DNS resolution" "pass" "Resolved to: $REDIS_IP"
+else
+    test_result "DNS resolution" "fail" "Cannot resolve $REDIS_SERVICE hostname"
+    echo "💡 DNS Result: $DNS_RESULT"
+fi
+
+# Test 5: Agent can connect to Redis port
+echo "Test 5: Agent TCP connection test"
+TCP_TEST=$(docker run --rm --network "$NETWORK_NAME" \
+    claude-flow-novice-agent:latest \
+    sh -c "nc -z -w3 $REDIS_SERVICE 6379 && echo 'CONNECTED' || echo 'FAILED'")
+
+if echo "$TCP_TEST" | grep -q "CONNECTED"; then
+    test_result "TCP connection" "pass" "Port 6379 reachable"
+else
+    test_result "TCP connection" "fail" "Cannot connect to port 6379"
+fi
+
+# Test 6: Agent can execute Redis commands
+echo "Test 6: Agent Redis command execution"
+REDIS_CMD_TEST=$(docker run --rm --network "$NETWORK_NAME" \
+    -e REDIS_HOST="$REDIS_SERVICE" \
+    -e REDIS_PORT=6379 \
+    claude-flow-novice-agent:latest \
+    redis-cli -h "$REDIS_SERVICE" -p 6379 ping 2>&1 || echo "FAILED")
+
+if echo "$REDIS_CMD_TEST" | grep -q PONG; then
+    test_result "Redis command execution" "pass" "redis-cli operational"
+else
+    test_result "Redis command execution" "fail" "redis-cli error: $REDIS_CMD_TEST"
+fi
+
+echo ""
+echo "Phase 3: Coordination Protocol Validation"
+echo "------------------------------------------"
+
+# Test 7: Agent init script coordination write
+echo "Test 7: Init script coordination write test"
+AGENT_ID="agent-redis-test-$RANDOM"
+SIGNAL_KEY="swarm:${TEST_TASK_ID}:${AGENT_ID}:signal"
+
+WRITE_TEST=$(docker run --rm --network "$NETWORK_NAME" \
+    -e TASK_ID="$TEST_TASK_ID" \
+    -e AGENT_ID="$AGENT_ID" \
+    -e AGENT_TYPE="typescript-specialist" \
+    -e REDIS_HOST="$REDIS_SERVICE" \
+    -e REDIS_PORT=6379 \
+    claude-flow-novice-agent:latest \
+    bash -c "
+        redis-cli -h $REDIS_SERVICE -p 6379 SET '$SIGNAL_KEY' 'spawned' EX 60
+        redis-cli -h $REDIS_SERVICE -p 6379 GET '$SIGNAL_KEY'
+    " 2>&1 || echo "FAILED")
+
+if echo "$WRITE_TEST" | grep -q "spawned"; then
+    test_result "Coordination write" "pass" "Signal key written successfully"
+
+    # Verify key exists in Redis
+    VERIFY=$(docker exec "$REDIS_SERVICE" redis-cli GET "$SIGNAL_KEY" 2>/dev/null || echo "")
+    if [ "$VERIFY" = "spawned" ]; then
+        echo "   ✓ Signal key verified in Redis"
+    fi
+else
+    test_result "Coordination write" "fail" "Cannot write to Redis: $WRITE_TEST"
+fi
+
+# Test 8: Agent completion data write (HSET)
+echo "Test 8: Agent completion hash write test"
+COMPLETION_KEY="swarm:${TEST_TASK_ID}:${AGENT_ID}:done"
+
+HASH_TEST=$(docker run --rm --network "$NETWORK_NAME" \
+    -e REDIS_HOST="$REDIS_SERVICE" \
+    -e REDIS_PORT=6379 \
+    claude-flow-novice-agent:latest \
+    bash -c "
+        redis-cli -h $REDIS_SERVICE -p 6379 HSET '$COMPLETION_KEY' \
+            'status' 'complete' \
+            'confidence' '0.90' \
+            'timestamp' '\$(date -Iseconds)' \
+            'agent_type' 'typescript-specialist'
+        redis-cli -h $REDIS_SERVICE -p 6379 HGET '$COMPLETION_KEY' status
+    " 2>&1 || echo "FAILED")
+
+if echo "$HASH_TEST" | grep -q "complete"; then
+    test_result "Completion hash write" "pass" "Hash data written successfully"
+
+    # Verify hash exists in Redis
+    STATUS=$(docker exec "$REDIS_SERVICE" redis-cli HGET "$COMPLETION_KEY" status 2>/dev/null || echo "")
+    CONFIDENCE=$(docker exec "$REDIS_SERVICE" redis-cli HGET "$COMPLETION_KEY" confidence 2>/dev/null || echo "")
+    if [ "$STATUS" = "complete" ]; then
+        echo "   ✓ Completion data verified: status=$STATUS, confidence=$CONFIDENCE"
+    fi
+else
+    test_result "Completion hash write" "fail" "Cannot write hash: $HASH_TEST"
+fi
+
+# Test 9: Init script full lifecycle simulation
+echo "Test 9: Full agent lifecycle simulation"
+LIFECYCLE_AGENT_ID="agent-lifecycle-$RANDOM"
+
+LIFECYCLE_TEST=$(docker run --rm --network "$NETWORK_NAME" \
+    --name redis-test-agent \
+    -e TASK_ID="$TEST_TASK_ID" \
+    -e AGENT_ID="$LIFECYCLE_AGENT_ID" \
+    -e AGENT_TYPE="typescript-specialist" \
+    -e REDIS_HOST="$REDIS_SERVICE" \
+    -e REDIS_PORT=6379 \
+    claude-flow-novice-agent:latest \
+    bash -c "
+        # Simulate init script spawn signal
+        redis-cli -h $REDIS_SERVICE -p 6379 SET 'swarm:${TEST_TASK_ID}:${LIFECYCLE_AGENT_ID}:signal' 'spawned' EX 60
+
+        # Simulate agent work (sleep 2 seconds)
+        sleep 2
+
+        # Simulate completion
+        redis-cli -h $REDIS_SERVICE -p 6379 HSET 'swarm:${TEST_TASK_ID}:${LIFECYCLE_AGENT_ID}:done' \
+            'status' 'complete' \
+            'confidence' '0.85' \
+            'timestamp' '\$(date -Iseconds)'
+
+        # Verify both keys exist
+        redis-cli -h $REDIS_SERVICE -p 6379 GET 'swarm:${TEST_TASK_ID}:${LIFECYCLE_AGENT_ID}:signal'
+        redis-cli -h $REDIS_SERVICE -p 6379 HGET 'swarm:${TEST_TASK_ID}:${LIFECYCLE_AGENT_ID}:done' status
+    " 2>&1 || echo "FAILED")
+
+if echo "$LIFECYCLE_TEST" | grep -q "spawned" && echo "$LIFECYCLE_TEST" | grep -q "complete"; then
+    test_result "Full lifecycle simulation" "pass" "Agent lifecycle completed successfully"
+else
+    test_result "Full lifecycle simulation" "fail" "Lifecycle incomplete: $LIFECYCLE_TEST"
+fi
+
+echo ""
+echo "Phase 4: Coordinator Integration"
+echo "---------------------------------"
+
+# Test 10: Coordinator can connect to Redis (if coordinator image exists)
+echo "Test 10: Coordinator Redis connection test"
+if docker images | grep -q "cfn-intelligent-coordinator"; then
+    COORDINATOR_TEST=$(docker run --rm --network "$NETWORK_NAME" \
+        -e REDIS_HOST="$REDIS_SERVICE" \
+        -e REDIS_PORT=6379 \
+        cfn-intelligent-coordinator:latest \
+        node -e "
+            const redis = require('redis');
+            const client = redis.createClient({ host: '$REDIS_SERVICE', port: 6379 });
+            client.on('connect', () => {
+                console.log('COORDINATOR_CONNECTED');
+                client.quit();
+            });
+            client.on('error', (err) => {
+                console.error('COORDINATOR_ERROR:', err.message);
+                process.exit(1);
+            });
+        " 2>&1 || echo "FAILED")
+
+    if echo "$COORDINATOR_TEST" | grep -q "COORDINATOR_CONNECTED"; then
+        test_result "Coordinator Redis connection" "pass" "Coordinator connected successfully"
+    else
+        test_result "Coordinator Redis connection" "fail" "Coordinator connection error: $COORDINATOR_TEST"
+    fi
+else
+    echo "⏭️  Skipping coordinator test (image not found)"
+    echo ""
+fi
+
+echo ""
+echo "Phase 5: Cleanup and Summary"
+echo "----------------------------"
+
+# Cleanup test keys
+echo "Cleaning up test keys in Redis..."
+docker exec "$REDIS_SERVICE" redis-cli --scan --pattern "swarm:${TEST_TASK_ID}:*" | \
+    xargs -r docker exec "$REDIS_SERVICE" redis-cli DEL 2>/dev/null || true
+
+KEY_COUNT=$(docker exec "$REDIS_SERVICE" redis-cli DBSIZE | grep -oP '\d+')
+echo "   Redis keys remaining: $KEY_COUNT"
+echo ""
+
+# Final summary
+echo "=========================================="
+echo "📊 Test Results Summary"
+echo "=========================================="
+echo "Total Tests: $TOTAL_TESTS"
+echo "Passed: $((TOTAL_TESTS - FAILED_TESTS))"
+echo "Failed: $FAILED_TESTS"
+echo ""
+
+if [ $FAILED_TESTS -eq 0 ]; then
+    echo -e "${GREEN}✅ ALL TESTS PASSED!${NC}"
+    echo ""
+    echo "🎯 Redis connection validation complete"
+    echo "🚀 Ready for production CFN Loop execution"
+    echo ""
+    echo "Next steps:"
+    echo "  1. Run integration test: ./tests/docker/intelligent-coordinator-test.sh"
+    echo "  2. Deploy production CFN Loop: docker-compose up -d"
+    echo "  3. Execute real task: docker run cfn-intelligent-coordinator ..."
+    exit 0
+else
+    echo -e "${RED}❌ SOME TESTS FAILED${NC}"
+    echo ""
+    echo "💡 Troubleshooting steps:"
+    echo "  1. Check Docker logs: docker logs $REDIS_SERVICE"
+    echo "  2. Verify network: docker network inspect $NETWORK_NAME"
+    echo "  3. Check agent init script: cat scripts/docker-agent-init.sh"
+    echo "  4. Review rebuild plan: planning/docker/docker-agent-redis-rebuild-plan.md"
+    echo ""
+    echo "📝 Detailed test output above for debugging"
+    exit 1
+fi

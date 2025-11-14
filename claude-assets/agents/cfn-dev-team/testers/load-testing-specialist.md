@@ -9,6 +9,8 @@ validation_hooks:
   - agent-template-validator
   - test-coverage-validator
 
+---
+
 # Load Testing Specialist Agent
 
 ## Core Responsibilities

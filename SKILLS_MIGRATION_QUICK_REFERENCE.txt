@@ -1,0 +1,236 @@
+================================================================================
+                    SKILLS MIGRATION QUICK REFERENCE
+================================================================================
+
+CORE SKILLS TO RETAIN IN .claude/skills/ (15 total)
+================================================================================
+
+AGENT LIFECYCLE (3):
+  1. cfn-agent-spawning
+  2. cfn-process-lifecycle
+  3. agent-lifecycle
+
+OUTPUT PROCESSING (3):
+  4. cfn-agent-output-processing
+  5. cfn-loop2-output-processing
+  6. cfn-loop3-output-processing
+
+LOOP CONTROL & VALIDATION (4):
+  7. cfn-loop-orchestration
+  8. cfn-loop-validation
+  9. cfn-product-owner-decision
+  10. cfn-defense-in-depth
+
+STATE & FILE SAFETY (5):
+  11. cfn-sqlite-memory
+  12. cfn-memory-management
+  13. cfn-standardized-error-handling
+  14. cfn-hook-pipeline
+  15. pre-edit-backup
+
+================================================================================
+SKILLS TO MOVE TO cfn-extras (72 total)
+================================================================================
+
+Docker Deployment (10 skills)
+  cfn-docker-agent-spawning
+  cfn-docker-loop-orchestration
+  cfn-docker-redis-coordination
+  cfn-docker-skill-mcp-selection
+  cfn-docker-wave-execution
+  cfn-wave-checkpoint
+  cfn-redis-coordination
+  cfn-redis-cleanup
+  cfn-redis-data-extraction
+  docker-build
+
+Testing & QA (4 skills)
+  cfn-test-execution
+  cfn-test-runner
+  cfn-webapp-testing
+  cfn-validation-runner-instrumentation
+
+Analytics & Monitoring (6 skills)
+  cfn-analytics
+  cfn-memory-monitoring
+  cfn-telemetry
+  cfn-improvement-recommender
+  cfn-retrospective-report
+  cfn-pattern-extraction
+
+UI & Portal (4 skills)
+  cfn-web-portal
+  cfn-chrome-devtools
+  cfn-playwright-testing
+  cfn-shadcn-components
+
+Project Management (7 skills)
+  cfn-sprint-planner
+  cfn-sprint-execution
+  cfn-epic-decomposer
+  cfn-task-classifier
+  cfn-complexity-estimator
+  cfn-scope-simplifier
+  cfn-dependency-extractor
+
+Documentation & Workflow (5 skills)
+  cfn-backlog-management
+  cfn-changelog-management
+  cfn-playbook
+  cfn-playbook-auto-update
+  cfn-skill-builder
+
+Advanced Features (29 skills)
+  cfn-agent-swap
+  cfn-automatic-memory-persistence
+  cfn-checkpoint-state
+  cfn-config-management
+  cfn-context-pruner
+  cfn-deliverable-validation
+  cfn-environment-sanitization
+  cfn-error-batching-strategy
+  cfn-error-logging
+  cfn-event-bus
+  cfn-expert-update
+  cfn-fleet-manager
+  cfn-hybrid-routing
+  cfn-intervention-detector
+  cfn-intervention-orchestrator
+  cfn-mcp-container-selector
+  cfn-multi-coordinator-planning
+  cfn-node-heap-sizer
+  cfn-process-instrumentation
+  cfn-specialist-injection
+  cfn-task-audit
+  cfn-task-config-init
+  cfn-task-decomposition
+  cfn-task-mode-safety
+  cfn-task-mode-sanitize
+  cfn-transparency-middleware
+  cfn-validation-templates
+  cfn-vision-analysis
+
+================================================================================
+DEPRECATED SKILLS (5 total) → cfn-extras/deprecated/
+================================================================================
+
+  cfn-agent-discovery        [Replaced by agent directory scanning]
+  cfn-agent-selector         [Replaced by cfn-task-classifier]
+  cfn-ace-system             [Replaced by modern agents]
+  cfn-cli-setup              [Stale setup utility]
+  cfn-simplified-agent-lifecycle [Replaced by agent-lifecycle]
+
+================================================================================
+ISSUES TO RESOLVE BEFORE MIGRATION
+================================================================================
+
+Skills Lacking SKILL.md (11 total):
+  - hook-pipeline (consolidate with cfn-hook-pipeline?)
+  - pre-edit-backup (consolidate with backup.sh?)
+  - cfn-redis-coordination (needs docs or consolidate)
+  - cfn-redis-cleanup (needs docs)
+  - cfn-analytics (needs SKILL.md)
+  - cfn-telemetry (needs SKILL.md)
+  - cfn-chrome-devtools (needs SKILL.md)
+  - cfn-playwright-testing (overlaps with cfn-webapp-testing)
+  - cfn-shadcn-components (needs SKILL.md)
+  - cfn-validation-runner-instrumentation (needs SKILL.md)
+  - cfn-vision-analysis (needs SKILL.md)
+  - And others: cfn-checkpoint-state, cfn-deliverable-validation,
+               cfn-expert-update, cfn-node-heap-sizer, cfn-task-audit,
+               cfn-task-mode-safety, cfn-task-mode-sanitize,
+               cfn-task-decomposition, cfn-cli-setup,
+               cfn-simplified-agent-lifecycle
+
+Uncategorized (2):
+  - cfn-agent-execution (no SKILL.md, needs review)
+  - cfn-api-validation (no SKILL.md, needs review)
+
+================================================================================
+CFNEXTRAS DIRECTORY STRUCTURE
+================================================================================
+
+cfn-extras/
+├── docker-deployment/
+│   ├── README.md
+│   └── skills/
+│       ├── cfn-docker-agent-spawning/
+│       ├── cfn-docker-loop-orchestration/
+│       └── ... (7 more)
+├── testing/
+│   └── skills/
+│       ├── cfn-test-execution/
+│       ├── cfn-test-runner/
+│       └── ... (2 more)
+├── analytics/
+│   └── skills/
+│       ├── cfn-analytics/
+│       ├── cfn-memory-monitoring/
+│       └── ... (4 more)
+├── web-portal/
+│   └── skills/
+│       ├── cfn-web-portal/
+│       ├── cfn-chrome-devtools/
+│       └── ... (2 more)
+├── project-management/
+│   └── skills/
+│       ├── cfn-sprint-planner/
+│       ├── cfn-sprint-execution/
+│       └── ... (5 more)
+├── documentation/
+│   └── skills/
+│       ├── cfn-backlog-management/
+│       ├── cfn-changelog-management/
+│       └── ... (3 more)
+├── advanced-features/
+│   └── skills/
+│       ├── cfn-agent-swap/
+│       ├── cfn-error-batching-strategy/
+│       └── ... (27 more)
+└── deprecated/
+    └── skills/
+        ├── cfn-agent-discovery/
+        ├── cfn-agent-selector/
+        └── ... (3 more)
+
+================================================================================
+DECISION CHECKLIST
+================================================================================
+
+[ ] Review core skills list with team
+[ ] Verify no core dependencies on optional skills
+[ ] Decide on backward compatibility approach (shims or not)
+[ ] Decide on Redis coordination strategy (keep Docker-only or deprecate)
+[ ] Schedule deprecated skill archive date
+[ ] Decide: separate repo or monorepo for cfn-extras
+[ ] Create SKILL.md for orphaned skills (11 total)
+[ ] Consolidate duplicate skills (hook-pipeline, pre-edit-backup)
+[ ] Document cfn-agent-execution and cfn-api-validation
+[ ] Create migration guide template
+[ ] Set up testing framework for "core-only" validation
+
+================================================================================
+IMPACT SUMMARY
+================================================================================
+
+Repository Size:
+  Before:  ~15MB in .claude/skills/
+  After:   ~6MB in .claude/skills/ + ~9MB in cfn-extras/
+  Net:     ~84% of content moved to optional package
+
+Complexity Reduction:
+  Before:  87 skill directories to scan, load, and maintain
+  After:   15 core skills in primary repo
+  Impact:  83% reduction in core skill complexity
+
+CFN Loop Independence:
+  Before:  Tightly coupled with optional features
+  After:   Pure CFN Loop without Docker/Analytics/UI dependencies
+  Benefit: Cleaner testing and faster startup
+
+User Customization:
+  Before:  All features in one repo
+  After:   Pick only the cfn-extras packages you need
+  Benefit: Modular deployments for specific use cases
+
+================================================================================

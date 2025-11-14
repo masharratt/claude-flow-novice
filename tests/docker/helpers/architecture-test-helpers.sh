@@ -667,10 +667,63 @@ create_error_map() {
 }
 
 # ============================================================================
+# DEBIAN CONTAINER EXECUTION HELPERS (Alpine → Debian Migration)
+# ============================================================================
+
+# Run agent container with proper Debian entry point and CFN environment variables
+# Usage: run_agent_container "agent-id" "command-to-run" ["task-id"]
+run_agent_container() {
+    local agent_id="$1"
+    local task_cmd="$2"
+    local task_id="${3:-task-$(date +%s)}"
+
+    docker run --rm \
+        --entrypoint /bin/bash \
+        --network mcp-network \
+        -e CFN_AGENT_ID="$agent_id" \
+        -e CFN_TASK_ID="$task_id" \
+        -e CFN_REDIS_HOST="${CFN_REDIS_HOST:-cfn-redis}" \
+        cfn-agent:latest \
+        -c "$task_cmd"
+}
+
+# Run coordinator container with proper Debian entry point
+# Usage: run_coordinator_container "task-id" "command-to-run"
+run_coordinator_container() {
+    local task_id="$1"
+    local task_cmd="$2"
+
+    docker run --rm \
+        --entrypoint /bin/bash \
+        --network mcp-network \
+        -e CFN_TASK_ID="$task_id" \
+        -e CFN_REDIS_HOST="${CFN_REDIS_HOST:-cfn-redis}" \
+        cfn-coordinator:latest \
+        -c "$task_cmd"
+}
+
+# Run orchestrator container with proper Debian entry point
+# Usage: run_orchestrator_container "task-id" "command-to-run"
+run_orchestrator_container() {
+    local task_id="$1"
+    local task_cmd="$2"
+
+    docker run --rm \
+        --entrypoint /bin/bash \
+        --network mcp-network \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -e CFN_TASK_ID="$task_id" \
+        -e CFN_REDIS_HOST="${CFN_REDIS_HOST:-cfn-redis}" \
+        cfn-orchestrator:latest \
+        -c "$task_cmd"
+}
+
+# ============================================================================
 # EXPORT FUNCTIONS
 # ============================================================================
 
 export -f env_var_exists validate_env_file check_required_vars validate_runtime_override
+export -f run_agent_container run_coordinator_container run_orchestrator_container
 export -f validate_gate_threshold validate_consensus parse_po_decision validate_iteration_metadata
 export -f wait_for_coordinator get_coordinator_status parse_coordinator_logs check_coordinator_heartbeat count_spawned_agents
 export -f validate_provider_auth test_provider_failover validate_custom_routing

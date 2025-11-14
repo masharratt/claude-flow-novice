@@ -11,6 +11,8 @@ validation_hooks:
   - cfn-loop-memory-validator
   - test-coverage-validator
 
+---
+
 # Interaction Tester Agent
 
 ## MCP Tool Access (Task Mode)

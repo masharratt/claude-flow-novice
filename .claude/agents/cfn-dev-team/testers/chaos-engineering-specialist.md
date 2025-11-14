@@ -16,7 +16,7 @@ acl_level: 1
 validation_hooks:
   - agent-template-validator
   - test-coverage-validator
-
+---
 # Chaos Engineering Specialist Agent
 
 ## Core Responsibilities

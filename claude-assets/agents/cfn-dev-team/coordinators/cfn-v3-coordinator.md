@@ -531,12 +531,6 @@ fi
 **CRITICAL:** You MUST invoke orchestrator by iteration 3. DO NOT complete tasks directly.
 
 ```bash
-# Export CFN_DOCKER_MODE if provided in context (enables Docker agent spawning)
-if [[ -n "${CFN_DOCKER_MODE:-}" ]]; then
-  export CFN_DOCKER_MODE="true"
-  echo "🐳 Docker mode enabled for agent spawning" >&2
-fi
-
 # ALWAYS invoke orchestrator - this is your ONLY responsibility
 ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --task-id "$TASK_ID" \
