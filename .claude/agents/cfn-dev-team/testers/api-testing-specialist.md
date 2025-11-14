@@ -17,6 +17,8 @@ validation_hooks:
   - agent-template-validator
   - test-coverage-validator
 
+---
+
 # API Testing Specialist Agent
 
 ## Core Responsibilities

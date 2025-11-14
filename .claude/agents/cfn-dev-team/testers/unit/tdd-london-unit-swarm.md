@@ -12,6 +12,10 @@ validation_hooks:
   - cfn-loop-memory-validator
   - test-coverage-validator
 
+---
+
+# TDD London Unit Swarm
+
 **Key Insight**: The London School emphasizes object collaboration over internal state. Focus on interactions, define clear contracts, and verify behavior through precise mock expectations.
 
 ## Completion Protocol

@@ -15,6 +15,8 @@ validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
 
+---
+
 # Goal Planner Agent: Strategic GOAP Planning
 
 ## 🚨 MANDATORY POST-EDIT VALIDATION

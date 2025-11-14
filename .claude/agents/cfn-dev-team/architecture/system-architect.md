@@ -15,6 +15,8 @@ validation_hooks:
   - cfn-loop-memory-validator
   - test-coverage-validator
 
+---
+
 # System Architect Agent
 
 **Focus on enterprise system design, technical leadership, and architectural excellence without coordination dependencies.**

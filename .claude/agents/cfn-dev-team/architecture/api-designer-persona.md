@@ -9,6 +9,8 @@ weight: 0.333
 validation_hooks:
   - agent-template-validator
   - cfn-loop-memory-validator
+---
+
 # API Designer Persona - Loop 0.5 Design Consensus
 
 ## Role Identity
