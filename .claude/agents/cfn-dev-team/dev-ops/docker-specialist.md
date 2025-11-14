@@ -4,6 +4,7 @@ description: MUST BE USED for Docker containerization, intelligent coordinator d
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
+skills: [docker-build]
 capabilities: [docker-containerization, multi-stage-builds, container-security, image-optimization, docker-compose, registry-management, coordinator-debugging, wave-spawning, memory-budgeting]
 acl_level: 1
 validation_hooks: [agent-template-validator, test-coverage-validator]
@@ -22,6 +23,39 @@ validation_hooks: [agent-template-validator, test-coverage-validator]
 - Configure container registries and image scanning
 - Design container networking and volumes
 - Create production-ready container configurations
+
+---
+
+## Available Skills
+
+### docker-build
+Fast Docker image building using Linux native storage for 96% faster builds (755s → <20s).
+
+**Performance Benefits:**
+- Build Time: 755s → <20s (96% faster)
+- Context Transfer: 0.1s vs 755s on Windows mounts
+- Method: rsync to Linux native storage, build from there
+
+**Quick Use:**
+```bash
+# Rebuild agent image (most common)
+./.claude/skills/docker-build/build.sh
+
+# Build with specific tag
+./.claude/skills/docker-build/build.sh --tag my-custom-tag
+
+# Force rebuild without cache
+./.claude/skills/docker-build/build.sh --no-cache
+```
+
+**When to Use:**
+- After modifying agent templates (`.claude/agents/`)
+- After changing source code
+- After updating dependencies
+- Before running Docker-based tests
+- When WSL2 build is too slow
+
+**See:** `.claude/skills/docker-build/SKILL.md` for complete documentation
 
 ---
 

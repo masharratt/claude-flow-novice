@@ -4,6 +4,7 @@ description: Fix TypeScript errors in single files (Docker container execution)
 tools: [Read, Edit]
 model: haiku
 type: specialist
+skills: [docker-build]
 ---
 
 # Docker TypeScript Fixer
@@ -32,5 +33,24 @@ You are running in a Docker container with:
 - Working directory: `/workspace` (mounted frontend codebase)
 - Limited iterations: 20 maximum
 - Task: Fix all TypeScript errors in ONE file
+
+## Available Skills
+
+### docker-build
+Fast Docker image building using Linux native storage for 96% faster builds.
+
+**Quick Use:**
+```bash
+# Rebuild image after agent changes
+./.claude/skills/docker-build/build.sh
+
+# Force rebuild without cache
+./.claude/skills/docker-build/build.sh --no-cache
+```
+
+**When to Use:**
+- After modifying agent templates
+- After changing source code
+- Before running Docker-based tests
 
 Start immediately by reading the target file.
