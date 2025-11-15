@@ -44,7 +44,7 @@ REQUIRED_FIELDS=(
 )
 
 for field in "${REQUIRED_FIELDS[@]}"; do
-  value=$(yq "$field" "$CONFIG_FILE" 2>/dev/null || echo "null")
+  value=$(yq -r "$field" "$CONFIG_FILE" 2>/dev/null || echo "null")
   if [[ "$value" == "null" || -z "$value" ]]; then
     echo "  ✗ Missing required field: $field"
     ((ERRORS++))
@@ -56,7 +56,7 @@ echo ""
 
 # Validate team ID format
 echo "Validating team ID format..."
-TEAM_ID=$(yq '.team.id' "$CONFIG_FILE")
+TEAM_ID=$(yq -r '.team.id' "$CONFIG_FILE")
 if [[ "$TEAM_ID" =~ ^[a-z][a-z0-9-]*$ ]]; then
   echo "  ✓ Team ID format valid: $TEAM_ID"
 else
@@ -67,7 +67,7 @@ echo ""
 
 # Validate subnet ID range
 echo "Validating network configuration..."
-SUBNET_ID=$(yq '.team.network.subnet_id' "$CONFIG_FILE")
+SUBNET_ID=$(yq -r '.team.network.subnet_id' "$CONFIG_FILE")
 if [[ "$SUBNET_ID" -ge 1 && "$SUBNET_ID" -le 254 ]]; then
   echo "  ✓ Subnet ID in valid range: $SUBNET_ID"
 else
@@ -76,7 +76,7 @@ else
 fi
 
 # Validate coordinator IP matches subnet
-COORDINATOR_IP=$(yq '.team.network.coordinator_ip' "$CONFIG_FILE")
+COORDINATOR_IP=$(yq -r '.team.network.coordinator_ip' "$CONFIG_FILE")
 EXPECTED_NETWORK="172.18.0"
 if [[ "$COORDINATOR_IP" == "$EXPECTED_NETWORK."* ]]; then
   echo "  ✓ Coordinator IP in coordination network: $COORDINATOR_IP"
@@ -88,9 +88,9 @@ echo ""
 
 # Validate resource allocations
 echo "Validating resource allocations..."
-MEMORY=$(yq '.team.resources.memory' "$CONFIG_FILE")
-CPU_CORES=$(yq '.team.resources.cpu_cores' "$CONFIG_FILE")
-MAX_AGENTS=$(yq '.team.resources.max_agents' "$CONFIG_FILE")
+MEMORY=$(yq -r '.team.resources.memory' "$CONFIG_FILE")
+CPU_CORES=$(yq -r '.team.resources.cpu_cores' "$CONFIG_FILE")
+MAX_AGENTS=$(yq -r '.team.resources.max_agents' "$CONFIG_FILE")
 
 if [[ "$MEMORY" =~ ^[0-9]+GB$ ]]; then
   echo "  ✓ Memory format valid: $MEMORY"
@@ -116,7 +116,7 @@ echo ""
 
 # Validate allowed_skills is an array
 echo "Validating skills configuration..."
-SKILLS_COUNT=$(yq '.team.allowed_skills | length' "$CONFIG_FILE" 2>/dev/null || echo "0")
+SKILLS_COUNT=$(yq -r '.team.allowed_skills | length' "$CONFIG_FILE" 2>/dev/null || echo "0")
 if [[ "$SKILLS_COUNT" -gt 0 ]]; then
   echo "  ✓ Found $SKILLS_COUNT allowed skill(s)"
 else
