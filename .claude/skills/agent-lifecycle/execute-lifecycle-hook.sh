@@ -110,6 +110,9 @@ spawn_agent() {
     local agent_name="${4:-$agent_id}"
 
     validate_agent_id "$agent_id"
+    # Escape single quotes by doubling them for SQL safety
+    agent_name="${agent_name//\'/\'\'}"
+    agent_type="${agent_type//\'/\'\'}"
 
     if [[ ! "$acl_level" =~ ^[1-6]$ ]]; then
         log_error "Invalid ACL level: $acl_level (must be 1-6)"
