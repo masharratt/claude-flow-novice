@@ -1,13 +1,21 @@
 # CFN Loop Docker Infrastructure - Requirements Specification
 
-**Document Version:** 1.0.0
-**Date:** 2025-11-14
-**Status:** Draft for Review
-**Purpose:** Define comprehensive requirements for multi-runtime CFN Loop Docker infrastructure standardization
+**Document Version:** 2.0.0 (Corporate Alignment)
+**Date:** 2025-11-15
+**Status:** Phase 0A Complete - Ready for Implementation
+**Purpose:** Define comprehensive requirements for multi-runtime, multi-team CFN Loop Docker infrastructure with organizational isolation
 
 ---
 
 ## Executive Summary
+
+### Phase 0A: Corporate Alignment Complete
+
+**Document Status:**
+- SPARC technical specs + Corporate organizational requirements = **UNIFIED**
+- Multi-runtime support + Multi-team isolation = **ALIGNED**
+- Physical resource budgets + Team provisioning = **DEFINED**
+- Hierarchical coordination protocol = **SPECIFIED**
 
 ### Current State Analysis
 
@@ -18,18 +26,35 @@
 - Environment contract exists but incomplete alignment
 - No formal image contract specification
 - No cross-runtime coordination tests
+- **No team isolation** (NEW GAP)
+- **No skill-based access control** (NEW GAP)
+- **No hierarchical coordination** (NEW GAP)
 
-**Critical Gaps:**
+**Critical Gaps (Updated with Corporate Requirements):**
+
+**Technical Gaps (Original SPARC):**
 1. **Runtime Support:** Only Node.js supported; no Python, Rust, Go, Java
 2. **Image Contract:** Missing standardized interface across runtimes
 3. **Testing Strategy:** No build-time validation gates
 4. **Protocol Versioning:** No cross-runtime coordination tests
 5. **Operational Readiness:** No versioning strategy or compatibility matrices
 
-**Business Impact:**
+**Organizational Gaps (Corporate Alignment):**
+6. **Team Isolation:** No workspace/network/skill isolation between teams
+7. **Skill Permissions:** All agents have access to all skills (security risk)
+8. **Hierarchical Coordination:** No Main Coordinator → Team Coordinator protocol
+9. **Knowledge Persistence:** Agent knowledge only in Redis (ephemeral, data loss risk)
+10. **Resource Management:** No per-team physical resource budgets
+11. **Operational Logging:** No troubleshooting logs (debugging difficult)
+
+**Business Impact (Expanded):**
 - Cannot support ML/data processing use cases (need Python)
 - Cannot support high-performance use cases (need Rust, Go)
 - Cannot support enterprise Java-based workflows
+- Cannot deploy multi-team organizations (SEO, marketing, frontend, backend, devops, qa, csuite)
+- Frontend agents can access backend code (security breach)
+- Agents have unrestricted MCP access (compliance violation)
+- No visibility into agent behavior (troubleshooting impossible)
 - Risk of runtime drift causing coordination failures
 - No rollback strategy for broken images
 
@@ -152,6 +177,148 @@ LABEL com.claudeflownovice.version="3.0.0" \
    - **Gate:** Warning if not handled correctly
 
 **Implementation:** `tests/docker/contract/test-image-contract.sh <image-name>`
+
+### 1.4 Team Workspace Isolation
+
+**MUST-HAVE (P0) - Security Critical:**
+
+#### 1.4.1 Team-Specific Workspaces
+- **Requirement:** Each team has isolated workspace directory
+  - SEO: `/workspace/seo`
+  - Marketing: `/workspace/marketing`
+  - Frontend: `/workspace/frontend`
+  - Backend: `/workspace/backend`
+  - DevOps: `/workspace/infrastructure`
+  - QA: `/workspace/tests`
+  - C-Suite: `/workspace/csuite`
+- **Rationale:** Prevent cross-team data access, enable team-specific permissions
+- **Validation:** Agent from Team A cannot read files from Team B workspace
+
+#### 1.4.2 Volume Mount Permissions
+- **Requirement:** Team agents mount only their team's workspace
+  ```bash
+  # Frontend agent
+  docker run -v /workspace/frontend:/workspace:rw cfn-docker-agent-nodejs
+
+  # Backend agent (read-only to frontend for API contract validation)
+  docker run -v /workspace/backend:/workspace:rw \
+             -v /workspace/frontend:/workspace-readonly/frontend:ro \
+             cfn-docker-agent-nodejs
+  ```
+- **Rationale:** Filesystem-level isolation prevents accidental or malicious access
+- **Validation:** Test agent cannot write to read-only mounts
+
+#### 1.4.3 Skill Directory Isolation
+- **Requirement:** Skills copied to team workspace during provisioning
+  ```bash
+  /workspace/seo/
+    ├── code/              # Team's work output
+    └── skills/            # Team's allowed skills (copied)
+        ├── content-generation/
+        ├── keyword-research/
+        └── database-readonly/
+  ```
+- **Rationale:** Teams can only execute skills they're authorized for
+- **Validation:** SEO team cannot access `stripe-payments/` skill
+
+### 1.5 Skill-Based Access Control
+
+**MUST-HAVE (P0) - Security Critical:**
+
+#### 1.5.1 Skill Variants
+- **Requirement:** Read-only and read-write variants for sensitive resources
+  - `database-readonly/` - SELECT queries only
+  - `database-readwrite/` - Full CRUD operations
+  - `docker-readonly/` - Inspect containers only
+  - `docker-readwrite/` - Full Docker API access
+- **Rationale:** Principle of least privilege
+- **Implementation:**
+  ```bash
+  /skills/database-readonly/
+    ├── config.json     # DB credentials: readonly_user
+    ├── query.sh        # SELECT queries only
+    └── README.md
+
+  /skills/database-readwrite/
+    ├── config.json     # DB credentials: admin_user
+    ├── query.sh        # All operations
+    ├── migrate.sh      # Schema migrations
+    └── README.md
+  ```
+
+#### 1.5.2 Team Skill Allowlists
+- **Requirement:** Team config defines allowed skills
+  ```yaml
+  # config/teams/seo.yaml
+  team:
+    id: seo
+    allowed_skills:
+      - content-generation
+      - keyword-research
+      - database-readonly   # ← Read-only variant only
+  ```
+- **Rationale:** Explicit permission model, auditable
+- **Validation:** Team provisioning only copies allowed skills
+
+#### 1.5.3 MCP Server Permissions (Future)
+- **Note:** MCP servers disabled for initial implementation
+- **Future:** Per-team MCP server configuration with permission model
+- **Placeholder:** Reserve architecture for MCP permission system
+
+### 1.6 Network Segmentation Architecture
+
+**MUST-HAVE (P0) - Isolation Required:**
+
+#### 1.6.1 Network Topology
+- **Requirement:** Isolated Docker networks per team + coordination network
+  ```
+  cfn-coordination (172.18.0.0/24)
+    ├── cfn-docker-main-coordinator (172.18.0.10)
+    ├── cfn-docker-team-coordinator-seo (172.18.0.15)
+    ├── cfn-docker-team-coordinator-marketing (172.18.0.16)
+    ├── cfn-docker-team-coordinator-frontend (172.18.0.11)
+    ├── cfn-docker-team-coordinator-backend (172.18.0.12)
+    ├── cfn-docker-team-coordinator-devops (172.18.0.13)
+    ├── cfn-docker-team-coordinator-qa (172.18.0.14)
+    ├── cfn-docker-team-coordinator-csuite (172.18.0.17)
+    ├── cfn-redis-shared (172.18.0.20)
+    └── cfn-postgres (172.18.0.30)
+
+  team-seo (172.18.5.0/24)
+  team-marketing (172.18.6.0/24)
+  team-frontend (172.18.1.0/24)
+  team-backend (172.18.2.0/24)
+  team-devops (172.18.3.0/24)
+  team-qa (172.18.4.0/24)
+  team-csuite (172.18.7.0/24)
+  ```
+- **Rationale:** Network-level isolation prevents cross-team communication
+- **Validation:** Agent in team-frontend cannot ping agent in team-backend
+
+#### 1.6.2 Network Creation Script
+- **Implementation:** `scripts/create-networks.sh`
+  ```bash
+  docker network create --driver bridge --subnet 172.18.0.0/24 cfn-coordination
+  docker network create --driver bridge --subnet 172.18.1.0/24 team-frontend
+  docker network create --driver bridge --subnet 172.18.2.0/24 team-backend
+  docker network create --driver bridge --subnet 172.18.3.0/24 team-devops
+  docker network create --driver bridge --subnet 172.18.4.0/24 team-qa
+  docker network create --driver bridge --subnet 172.18.5.0/24 team-seo
+  docker network create --driver bridge --subnet 172.18.6.0/24 team-marketing
+  docker network create --driver bridge --subnet 172.18.7.0/24 team-csuite
+  ```
+
+#### 1.6.3 Firewall Rules (iptables)
+- **Requirement:** Block cross-team communication
+  ```bash
+  # Allow agents → team coordinator
+  iptables -A DOCKER-USER -s 172.18.1.11/28 -d 172.18.1.10 -j ACCEPT
+
+  # Block agents → other team networks
+  iptables -A DOCKER-USER -s 172.18.1.11/28 -d 172.18.2.0/24 -j DROP
+  ```
+- **Rationale:** Defense in depth, prevents network-level attacks
+- **Validation:** Network isolation test suite
 
 ---
 
@@ -614,6 +781,114 @@ LABEL com.claudeflownovice.version="3.0.0" \
 - **Rationale:** Enables schema evolution without breaking changes
 - **Validation:** Message parsing version test
 
+### 4.4 Hierarchical Coordination Protocol
+
+**MUST-HAVE (P0) - Architecture Required:**
+
+#### 4.4.1 Three-Tier Architecture
+- **Requirement:** Main Coordinator → Team Coordinators → Agents
+  ```
+  cfn-docker-main-coordinator
+    ├── cfn-docker-team-coordinator-seo
+    │   ├── cfn-agent-seo-001
+    │   ├── cfn-agent-seo-002
+    │   └── cfn-agent-seo-003
+    ├── cfn-docker-team-coordinator-frontend
+    │   ├── cfn-agent-frontend-001
+    │   └── cfn-agent-frontend-002
+    └── ... (5 more team coordinators)
+  ```
+- **Rationale:** Enables team isolation, resource allocation, cross-team coordination
+- **Validation:** Hierarchical message routing test
+
+#### 4.4.2 Main Coordinator ↔ Team Coordinator Protocol
+- **Requirement:** Standardized message format for coordinator communication
+- **Channels:**
+  - `main:directives` - Main → All Team Coordinators (broadcast)
+  - `coordinator:{team_id}:inbox` - Main → Specific Team Coordinator
+  - `main:escalations` - Team Coordinators → Main (resource requests, failures)
+  - `coordination:cross-team` - Inter-team coordination requests
+
+- **Message Types:**
+  ```json
+  {
+    "message_type": "directive|escalation|resource_request|status_update",
+    "from": {
+      "type": "main_coordinator|team_coordinator",
+      "id": "coordinator_id"
+    },
+    "to": {
+      "type": "main_coordinator|team_coordinator",
+      "team_id": "team_id (optional)"
+    },
+    "payload": {
+      "action": "spawn_team|shutdown_team|allocate_resources|report_failure",
+      "data": {}
+    },
+    "timestamp": "ISO-8601"
+  }
+  ```
+
+#### 4.4.3 Team Coordinator ↔ Agent Protocol
+- **Requirement:** Team coordinators manage agent lifecycle
+- **Channels:**
+  - `agent:{team_id}:inbox:{agent_id}` - Team → Agent (task assignment)
+  - `coordinator:{team_id}:inbox` - Agent → Team (status updates)
+  - `team:{team_id}:monitoring:heartbeats` - Agent heartbeats
+
+- **Task Assignment Message:**
+  ```json
+  {
+    "message_id": "uuid",
+    "correlation_id": "task_id",
+    "from": {
+      "type": "coordinator",
+      "team": "team_id",
+      "id": "coordinator"
+    },
+    "to": {
+      "type": "agent",
+      "team": "team_id",
+      "id": "agent_id"
+    },
+    "message_type": "task",
+    "priority": "low|medium|high|critical",
+    "payload": {
+      "task_id": "uuid",
+      "description": "Task description",
+      "files": ["file1.ts", "file2.ts"],
+      "deadline": "ISO-8601 (optional)"
+    }
+  }
+  ```
+
+#### 4.4.4 Escalation Protocol
+- **Requirement:** Team coordinators escalate to main coordinator
+- **Escalation Triggers:**
+  - Physical resource exceeded (memory >90%, CPU >90%)
+  - Agent failure rate >20% (3+ failures in 1 hour)
+  - Task queue depth >50 (team overloaded)
+  - Network isolation failure detected
+
+- **Escalation Message:**
+  ```json
+  {
+    "message_type": "escalation",
+    "from": {"type": "team_coordinator", "team": "team_id"},
+    "to": {"type": "main_coordinator"},
+    "payload": {
+      "escalation_type": "resource_exceeded|agent_failures|queue_overload",
+      "severity": "warning|critical",
+      "context": {
+        "memory_used_gb": 14.5,
+        "memory_limit_gb": 12.0,
+        "failed_agents": ["agent-001", "agent-002"]
+      },
+      "requested_action": "allocate_more_memory|restart_agents|redistribute_tasks"
+    }
+  }
+  ```
+
 ---
 
 ## 5. Operational Requirements
@@ -755,6 +1030,219 @@ LABEL com.claudeflownovice.version="3.0.0" \
 - **Rationale:** Enables production monitoring and alerting
 - **Implementation:** Prometheus exporter sidecar
 
+### 5.4 Knowledge Persistence Strategy
+
+**MUST-HAVE (P0) - Data Loss Prevention:**
+
+#### 5.4.1 Multi-Tier Storage Architecture
+- **Requirement:** Three-tier storage for agent knowledge and task history
+  ```
+  Layer 1: Redis (Hot Storage)
+    ├── TTL: 7 days
+    ├── Purpose: Real-time agent state, recent knowledge
+    └── Namespace: team:{team_id}:agent:{role}:{id}:*
+
+  Layer 2: PostgreSQL (Warm Storage)
+    ├── Retention: Permanent
+    ├── Purpose: Agent profiles, playbooks, knowledge base, task history
+    └── Tables: agents, playbooks, knowledge_entries, task_history
+
+  Layer 3: S3/MinIO (Cold Storage - Future)
+    ├── Retention: 7 years
+    ├── Purpose: Historical playbooks (>180 days), old task logs (>90 days)
+    └── Lifecycle: Archive after 180 days
+  ```
+- **Rationale:** Balance performance (Redis), durability (PostgreSQL), cost (S3)
+- **Validation:** Data persistence test (agent crash → knowledge restored)
+
+#### 5.4.2 PostgreSQL Schema
+- **Requirement:** Standardized schema for all teams
+  ```sql
+  CREATE TABLE agents (
+      id UUID PRIMARY KEY,
+      team_id VARCHAR(50) NOT NULL,
+      role VARCHAR(100) NOT NULL,
+      status VARCHAR(20) NOT NULL,
+      spawned_at TIMESTAMP NOT NULL,
+      last_heartbeat TIMESTAMP,
+      total_tasks_completed INTEGER DEFAULT 0,
+      avg_confidence DECIMAL(3, 2),
+      metadata JSONB,
+      INDEX idx_team_status (team_id, status)
+  );
+
+  CREATE TABLE playbooks (
+      id UUID PRIMARY KEY,
+      agent_id UUID REFERENCES agents(id),
+      team_id VARCHAR(50) NOT NULL,
+      playbook_name VARCHAR(200) NOT NULL,
+      playbook_content JSONB NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      success_rate DECIMAL(5, 2),
+      times_used INTEGER DEFAULT 0,
+      created_at TIMESTAMP NOT NULL,
+      updated_at TIMESTAMP NOT NULL,
+      UNIQUE (agent_id, playbook_name, version)
+  );
+
+  CREATE TABLE knowledge_entries (
+      id UUID PRIMARY KEY,
+      owner_id UUID REFERENCES agents(id),
+      team_id VARCHAR(50) NOT NULL,
+      scope VARCHAR(20) NOT NULL,  -- agent|team|org
+      category VARCHAR(100) NOT NULL,
+      content JSONB NOT NULL,
+      confidence DECIMAL(3, 2),
+      created_at TIMESTAMP NOT NULL,
+      INDEX idx_team_scope (team_id, scope)
+  );
+
+  CREATE TABLE task_history (
+      id UUID,
+      agent_id UUID REFERENCES agents(id),
+      team_id VARCHAR(50) NOT NULL,
+      task_description TEXT,
+      start_time TIMESTAMP NOT NULL,
+      end_time TIMESTAMP,
+      duration_seconds INTEGER,
+      status VARCHAR(20) NOT NULL,
+      confidence_reported DECIMAL(3, 2),
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      metadata JSONB,
+      PRIMARY KEY (id, start_time)
+  ) PARTITION BY RANGE (start_time);
+  ```
+
+#### 5.4.3 Redis → PostgreSQL Migration
+- **Requirement:** Automatic migration of knowledge from Redis to PostgreSQL
+- **Trigger:** Every 24 hours (cron job)
+- **Process:**
+  1. Scan Redis keys matching `team:*:agent:*:knowledge:*`
+  2. Extract knowledge entries with confidence >0.70
+  3. Insert into `knowledge_entries` table (ON CONFLICT UPDATE confidence)
+  4. Delete from Redis if successfully persisted
+- **Rationale:** Prevents knowledge loss on Redis restart
+- **Implementation:** `scripts/migrate-knowledge-to-postgres.sh`
+
+#### 5.4.4 Playbook Management
+- **Requirement:** Agents create and evolve playbooks based on task success
+- **Playbook Creation Criteria:**
+  - Task completed with confidence ≥0.90
+  - No existing playbook for task category
+  - Task took >3 steps (non-trivial)
+- **Playbook Structure:**
+  ```json
+  {
+    "playbook_name": "implement-react-component",
+    "description": "Create new React component from specification",
+    "steps": [
+      {"action": "read_spec", "input": "spec_file"},
+      {"action": "create_component", "template": "react-tsx"},
+      {"action": "write_tests", "framework": "jest"},
+      {"action": "validate_types", "tool": "tsc"}
+    ],
+    "success_criteria": ["tests_pass", "types_valid", "no_linter_errors"],
+    "version": 1
+  }
+  ```
+- **Versioning:** Increment version on playbook update (track evolution)
+
+#### 5.4.5 Agent Failure Recovery
+- **Requirement:** Restore agent state from PostgreSQL on crash
+- **Recovery Process:**
+  1. Detect agent failure (heartbeat timeout 90s)
+  2. Query PostgreSQL for agent's last known state
+  3. Spawn new agent container with same agent_id
+  4. Restore knowledge from `knowledge_entries` to Redis
+  5. Restore playbooks from `playbooks` table
+  6. Resume task from last checkpoint (if applicable)
+- **Rationale:** Minimize data loss, enable seamless failover
+- **Validation:** Agent crash recovery test
+
+### 5.5 Operational Logging (Troubleshooting)
+
+**MUST-HAVE (P0) - Promoted Priority:**
+
+#### 5.5.1 Operational Log Events
+- **Requirement:** Log key events for troubleshooting
+- **Event Types:**
+  - `agent_spawn` - Agent container created
+  - `agent_terminate` - Agent container stopped
+  - `task_start` - Task execution began
+  - `task_complete` - Task execution finished
+  - `task_fail` - Task execution failed
+  - `skill_used` - Agent executed specific skill
+  - `memory_warning` - Memory usage >80%
+  - `network_error` - Network connectivity issue
+  - `coordination_failure` - Redis communication failed
+
+#### 5.5.2 Log Storage Schema
+- **Requirement:** PostgreSQL table for operational logs
+  ```sql
+  CREATE TABLE operational_logs (
+      id UUID PRIMARY KEY,
+      timestamp TIMESTAMP NOT NULL,
+      team_id VARCHAR(50),
+      agent_id VARCHAR(100),
+      log_level VARCHAR(20),  -- DEBUG|INFO|WARN|ERROR
+      event_type VARCHAR(50),
+      message TEXT,
+      context JSONB,  -- {task_id, skill_name, memory_mb, etc.}
+      INDEX idx_timestamp (timestamp DESC),
+      INDEX idx_team_agent (team_id, agent_id),
+      INDEX idx_event_type (event_type)
+  ) PARTITION BY RANGE (timestamp);
+  ```
+
+#### 5.5.3 Log Retention Policy
+- **Requirement:** 7-day retention for operational logs
+- **Implementation:**
+  ```sql
+  CREATE OR REPLACE FUNCTION delete_old_operational_logs()
+  RETURNS void AS $$
+  BEGIN
+      DELETE FROM operational_logs
+      WHERE timestamp < NOW() - INTERVAL '7 days';
+  END;
+  $$ LANGUAGE plpgsql;
+
+  -- Run daily at 2 AM
+  SELECT cron.schedule('delete-old-logs', '0 2 * * *',
+    'SELECT delete_old_operational_logs()');
+  ```
+- **Rationale:** Balance troubleshooting needs with storage costs
+- **Future:** Archive to S3 for long-term compliance (if needed)
+
+#### 5.5.4 Log Query Patterns
+- **Common Queries:**
+  ```sql
+  -- Why did this agent fail?
+  SELECT * FROM operational_logs
+  WHERE agent_id = 'agent-123' AND log_level = 'ERROR'
+  ORDER BY timestamp DESC LIMIT 10;
+
+  -- What skills did this agent use?
+  SELECT context->>'skill_name', COUNT(*)
+  FROM operational_logs
+  WHERE agent_id = 'agent-123' AND event_type = 'skill_used'
+  GROUP BY context->>'skill_name';
+
+  -- How much memory did this task consume?
+  SELECT context->>'memory_mb', timestamp
+  FROM operational_logs
+  WHERE context->>'task_id' = 'task-456'
+  ORDER BY timestamp;
+
+  -- Which team spawned the most agents?
+  SELECT team_id, COUNT(*)
+  FROM operational_logs
+  WHERE event_type = 'agent_spawn'
+  AND timestamp > NOW() - INTERVAL '24 hours'
+  GROUP BY team_id
+  ORDER BY COUNT(*) DESC;
+  ```
+
 ---
 
 ## 6. Constraints
@@ -851,6 +1339,82 @@ LABEL com.claudeflownovice.version="3.0.0" \
 - **Rationale:** Prevents disk exhaustion
 - **Implementation:** `--storage-opt size=10G` flag in docker create
 - **Validation:** Disk quota enforcement test
+
+#### 6.3.4 Team Resource Budgets (Physical Resources)
+- **Constraint:** Each team has dedicated physical resource allocation
+- **Team Allocations:**
+  ```yaml
+  teams:
+    seo:
+      memory: 12GB
+      cpu_cores: 4
+      max_agents: 5
+      disk_quota: 50GB
+
+    marketing:
+      memory: 10GB
+      cpu_cores: 3
+      max_agents: 4
+      disk_quota: 40GB
+
+    frontend:
+      memory: 12GB
+      cpu_cores: 4
+      max_agents: 5
+      disk_quota: 50GB
+
+    backend:
+      memory: 16GB
+      cpu_cores: 5
+      max_agents: 6
+      disk_quota: 100GB
+
+    devops:
+      memory: 12GB
+      cpu_cores: 4
+      max_agents: 4
+      disk_quota: 75GB
+
+    qa:
+      memory: 10GB
+      cpu_cores: 3
+      max_agents: 4
+      disk_quota: 50GB
+
+    csuite:
+      memory: 8GB
+      cpu_cores: 2
+      max_agents: 3
+      disk_quota: 30GB
+
+  total:
+    memory: 80GB (+ 10GB coordinators = 90GB host requirement)
+    cpu_cores: 25
+    max_agents: 31
+    disk_quota: 395GB
+  ```
+- **Rationale:** Prevents one team from exhausting host resources
+- **Implementation:** Team coordinator tracks allocation, prevents spawning beyond budget
+- **Validation:** Resource budget enforcement test per team
+
+#### 6.3.5 Resource Exhaustion Handling
+- **Requirement:** Team coordinators handle resource exhaustion gracefully
+- **Exhaustion Scenarios:**
+  1. **Memory >90% of team budget:**
+     - Log warning
+     - Escalate to main coordinator
+     - Queue new tasks instead of spawning agents
+  2. **CPU >90% of team allocation:**
+     - Log warning
+     - Throttle agent spawning (backoff)
+  3. **Disk >90% of team quota:**
+     - Log error
+     - Block new agent spawns
+     - Escalate for cleanup
+- **Recovery Actions:**
+  - Main coordinator can temporarily increase team budget (manual approval)
+  - Team coordinator can terminate idle agents to free resources
+  - Automatic cleanup of old workspaces (>30 days inactive)
 
 ### 6.4 Compatibility Constraints
 
