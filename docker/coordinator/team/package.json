@@ -1,0 +1,20 @@
+{
+  "name": "cfn-docker-team-coordinator",
+  "version": "3.0.0",
+  "description": "CFN Docker Team Coordinator - Team-specific agent lifecycle and resource tracking",
+  "main": "coordinator.js",
+  "scripts": {
+    "start": "node coordinator.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "redis": "^4.6.0",
+    "pg": "^8.11.0",
+    "dockerode": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "author": "CFN Team",
+  "license": "MIT"
+}

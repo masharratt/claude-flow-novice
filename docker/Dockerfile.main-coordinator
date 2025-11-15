@@ -1,0 +1,58 @@
+# CFN Docker Main Coordinator
+# Manages cross-team resource allocation and escalations
+
+FROM node:20-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    postgresql-client \
+    redis-tools \
+    jq \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CLI (for spawning team coordinators)
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
+    sh get-docker.sh && \
+    rm get-docker.sh
+
+# Create cfnagent user (UID 1000)
+RUN groupadd -g 1000 cfnagent && \
+    useradd -u 1000 -g cfnagent -m -s /bin/bash cfnagent
+
+# Create application directories
+RUN mkdir -p /app /app/coordinator /app/scripts && \
+    chown -R cfnagent:cfnagent /app
+
+# Set working directory
+WORKDIR /app
+
+# Copy coordinator scripts
+COPY docker/coordinator/main/entrypoint.sh /app/entrypoint.sh
+COPY docker/coordinator/main/coordinator.js /app/coordinator/coordinator.js
+COPY docker/coordinator/main/escalation-handler.js /app/coordinator/escalation-handler.js
+
+# Install Node.js dependencies
+COPY docker/coordinator/main/package.json /app/package.json
+RUN npm install --production && \
+    chown -R cfnagent:cfnagent /app/node_modules
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
+# Switch to non-root user
+USER cfnagent
+
+# Container metadata
+LABEL com.claudeflownovice.version="3.0.0" \
+      com.claudeflownovice.component="main-coordinator" \
+      com.claudeflownovice.contract.version="1.0.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD /app/entrypoint.sh --health-check
+
+# Entry point
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["start"]
