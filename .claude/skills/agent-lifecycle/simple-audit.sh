@@ -27,8 +27,8 @@ sqlite3 "$DB_PATH" "CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, type
 }
 
 # Escape single quotes for SQL safety
-SAFE_AGENT_ID="${AGENT_ID//'/''}"
-SAFE_AGENT_TYPE="${AGENT_TYPE//'/''}"
+SAFE_AGENT_ID="${AGENT_ID//\'/\'\'}"
+SAFE_AGENT_TYPE="${AGENT_TYPE//\'/\'\'}"
 
 # Record agent activity
 case "$STATUS" in

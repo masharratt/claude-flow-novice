@@ -4,10 +4,33 @@
 
 # Determine PROJECT_ROOT portably
 if [[ -z "$PROJECT_ROOT" ]]; then
-    # Try to derive from script location (resolve symlinks)
-    SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
-    # Go up from .claude/hooks to project root
-    export PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    # Resolve script location (handle symlinks)
+    SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+    if [[ -L "$SCRIPT_SOURCE" ]]; then
+        SCRIPT_SOURCE="$(readlink -f "$SCRIPT_SOURCE" 2>/dev/null)" || {
+            echo "❌ Failed to resolve symlink for ${BASH_SOURCE[0]}" >&2
+            exit 1
+        }
+    fi
+
+    # Get script directory
+    SCRIPT_DIR="$(dirname "$SCRIPT_SOURCE")"
+    if ! cd "$SCRIPT_DIR" 2>/dev/null; then
+        echo "❌ Failed to cd to script directory: $SCRIPT_DIR" >&2
+        exit 1
+    fi
+    SCRIPT_DIR="$(pwd)"
+
+    # Navigate to project root (.claude/hooks -> ../..)
+    if ! cd "$SCRIPT_DIR/../.." 2>/dev/null; then
+        echo "❌ Failed to navigate to project root from $SCRIPT_DIR" >&2
+        exit 1
+    fi
+
+    export PROJECT_ROOT="$(pwd)"
+
+    # Return to original directory (optional, for safety)
+    cd - >/dev/null || true
 fi
 
 # Validate script permissions
