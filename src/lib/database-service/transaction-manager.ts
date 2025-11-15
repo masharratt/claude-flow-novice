@@ -19,7 +19,12 @@ export class TransactionManager {
     operations: Array<(adapter: IDatabaseAdapter) => Promise<T>>
   ): Promise<T[]> {
     if (adapters.length !== operations.length) {
-      throw new Error(`Adapter count (${adapters.length}) must match operation count (${operations.length})`);
+      throw createDatabaseError(
+        DatabaseErrorCode.VALIDATION_FAILED,
+        `Adapters and operations arrays must be the same length`,
+        undefined,
+        { adaptersLength: adapters.length, operationsLength: operations.length }
+      );
     }
 
     const contexts: TransactionContext[] = [];
