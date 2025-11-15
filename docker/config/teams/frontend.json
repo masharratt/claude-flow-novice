@@ -1,0 +1,31 @@
+{
+  "team": {
+    "id": "frontend",
+    "name": "Frontend Team",
+    "description": "React/TypeScript development, Playwright testing, and UI/UX implementation",
+    "workspace": {
+      "path": "/workspace/frontend",
+      "disk_quota": "50GB"
+    },
+    "resources": {
+      "memory": "12GB",
+      "cpu_cores": 4,
+      "max_agents": 5
+    },
+    "allowed_skills": [
+      "playwright",
+      "browser-devtools",
+      "database-readonly",
+      "react-development"
+    ],
+    "network": {
+      "subnet_id": 1,
+      "coordinator_ip": "172.18.0.11"
+    }
+  },
+  "_migration": {
+    "source_file": "frontend.yaml",
+    "migrated_at": "2025-11-15T07:25:13Z",
+    "format_version": "1.0"
+  }
+}

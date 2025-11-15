@@ -1,0 +1,26 @@
+# Backend Team Configuration
+# Purpose: API development, database management, and backend services
+
+team:
+  id: backend
+  name: "Backend Team"
+  description: "API development, database operations, GraphQL, and backend architecture"
+
+  workspace:
+    path: /workspace/backend
+    disk_quota: 100GB
+
+  resources:
+    memory: 16GB
+    cpu_cores: 5
+    max_agents: 6
+
+  allowed_skills:
+    - database-readwrite
+    - docker-readonly
+    - api-design
+    - graphql-development
+
+  network:
+    subnet_id: 2  # 172.18.2.0/24
+    coordinator_ip: 172.18.0.12

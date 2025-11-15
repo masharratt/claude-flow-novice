@@ -1,0 +1,26 @@
+# DevOps Team Configuration
+# Purpose: Infrastructure, deployment, and operational tooling
+
+team:
+  id: devops
+  name: "DevOps Team"
+  description: "Docker/Kubernetes infrastructure, CI/CD pipelines, and deployment automation"
+
+  workspace:
+    path: /workspace/infrastructure
+    disk_quota: 75GB
+
+  resources:
+    memory: 12GB
+    cpu_cores: 4
+    max_agents: 4
+
+  allowed_skills:
+    - docker-readwrite
+    - kubernetes
+    - database-readonly
+    - cicd-pipelines
+
+  network:
+    subnet_id: 3  # 172.18.3.0/24
+    coordinator_ip: 172.18.0.13
