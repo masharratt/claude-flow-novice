@@ -1,0 +1,114 @@
+Subject: [CFN Workflow] New Skill Ready for Review: {{SKILL_NAME}}
+
+Hi {{EXPERT_NAME}},
+
+A new skill has been generated from a detected workflow pattern and is ready for your review.
+
+═══════════════════════════════════════════════════════════════════
+
+SKILL DETAILS
+═══════════════════════════════════════════════════════════════════
+
+Skill Name:          {{SKILL_NAME}}
+Pattern ID:          {{PATTERN_ID}}
+Priority:            {{PRIORITY}}
+Team:                {{PRIMARY_TEAM}}
+Estimated Savings:   ${{ESTIMATED_SAVINGS}}/month
+
+WORKFLOW PATTERN
+═══════════════════════════════════════════════════════════════════
+
+Occurrence Count:    {{OCCURRENCE_COUNT}} times in the last 90 days
+Teams Affected:      {{TEAMS_AFFECTED}}
+Confidence Score:    {{CONFIDENCE_SCORE}}
+Similarity Score:    {{SIMILARITY_SCORE}}
+
+Workflow Steps:
+{{WORKFLOW_STEPS}}
+
+GENERATED ARTIFACTS
+═══════════════════════════════════════════════════════════════════
+
+Location: .claude/skills/staging/codified-{{SKILL_ID}}/
+
+Files Generated:
+- execute.sh       Main skill execution script
+- validate.sh      Input validation script
+- test.sh          Test suite ({{TEST_COUNT}} tests)
+- SKILL.md         Documentation
+- edge-cases.json  Known edge cases ({{EDGE_CASE_COUNT}} cases)
+- metadata.json    Skill metadata
+
+REVIEW INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════
+
+1. Review the generated code:
+   cd .claude/skills/staging/codified-{{SKILL_ID}}/
+   cat execute.sh validate.sh
+
+2. Review documentation:
+   cat SKILL.md
+
+3. Run the test suite:
+   ./test.sh
+
+4. Check for security issues:
+   - No hardcoded secrets
+   - Proper input validation
+   - Safe file operations
+   - Error handling
+
+5. Verify shellcheck compliance:
+   shellcheck -x execute.sh validate.sh test.sh
+
+6. Take action using the review CLI:
+
+   APPROVE (if everything looks good):
+   ./.claude/skills/workflow-codification/review-skill.sh \
+     --skill-id "{{SKILL_ID}}" \
+     --action approve \
+     --feedback "Optional approval comment"
+
+   REJECT (if fundamentally flawed):
+   ./.claude/skills/workflow-codification/review-skill.sh \
+     --skill-id "{{SKILL_ID}}" \
+     --action reject \
+     --feedback "Reason for rejection (required)"
+
+   REQUEST CORRECTION (if needs minor fixes):
+   ./.claude/skills/workflow-codification/review-skill.sh \
+     --skill-id "{{SKILL_ID}}" \
+     --action correct \
+     --feedback "What needs to be corrected (required)"
+
+SLA REQUIREMENT
+═══════════════════════════════════════════════════════════════════
+
+Priority: {{PRIORITY}}
+SLA:      {{SLA_DEADLINE}}
+
+Please review within {{SLA_HOURS}} hours. The system will auto-escalate
+to the Product Owner if the SLA is exceeded.
+
+BUSINESS IMPACT
+═══════════════════════════════════════════════════════════════════
+
+If approved, this skill will:
+- Reduce AI invocation costs by ~60-80% for this workflow
+- Execute in ~10 seconds vs ~200 seconds for AI agent execution
+- Save approximately ${{ESTIMATED_SAVINGS}}/month
+- Benefit {{TEAMS_AFFECTED_COUNT}} team(s)
+
+QUESTIONS OR ISSUES?
+═══════════════════════════════════════════════════════════════════
+
+- View all pending reviews: ./.claude/skills/workflow-codification/review-skill.sh --list-pending
+- Check SLA status: ./.claude/skills/workflow-codification/review-skill.sh --check-sla
+- Contact: CFN System Administrator
+
+═══════════════════════════════════════════════════════════════════
+
+Thank you for your expertise!
+
+CFN Workflow Codification System
+Automated Skill Generation & Approval Pipeline

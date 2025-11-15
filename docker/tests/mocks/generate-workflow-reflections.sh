@@ -1,0 +1,173 @@
+#!/bin/bash
+# Generate Mock Workflow Reflections for Testing Pattern Detection
+# Creates realistic workflow reflection data for Phase 4 testing
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+OUTPUT_DIR="${1:-${SCRIPT_DIR}/data}"
+
+mkdir -p "$OUTPUT_DIR"
+
+# Generate multiple workflow reflections with patterns
+cat > "$OUTPUT_DIR/workflow-reflections.json" <<'EOF'
+{
+  "reflections": [
+    {
+      "id": "refl-001",
+      "team": "frontend",
+      "timestamp": "2025-11-10T10:30:00Z",
+      "workflow": "deploy_frontend",
+      "steps": [
+        {"action": "npm install", "duration": 45},
+        {"action": "npm run build", "duration": 120},
+        {"action": "docker build -t frontend .", "duration": 180},
+        {"action": "docker push frontend:latest", "duration": 60}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-002",
+      "team": "frontend",
+      "timestamp": "2025-11-11T14:20:00Z",
+      "workflow": "deploy_frontend",
+      "steps": [
+        {"action": "npm install", "duration": 50},
+        {"action": "npm run build", "duration": 115},
+        {"action": "docker build -t frontend .", "duration": 175},
+        {"action": "docker push frontend:latest", "duration": 65}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-003",
+      "team": "frontend",
+      "timestamp": "2025-11-12T09:15:00Z",
+      "workflow": "deploy_frontend",
+      "steps": [
+        {"action": "npm install", "duration": 48},
+        {"action": "npm run build", "duration": 118},
+        {"action": "docker build -t frontend .", "duration": 182},
+        {"action": "docker push frontend:latest", "duration": 58}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-004",
+      "team": "frontend",
+      "timestamp": "2025-11-13T16:45:00Z",
+      "workflow": "deploy_frontend",
+      "steps": [
+        {"action": "npm install", "duration": 52},
+        {"action": "npm run build", "duration": 122},
+        {"action": "docker build -t frontend .", "duration": 178},
+        {"action": "docker push frontend:latest", "duration": 62}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-005",
+      "team": "frontend",
+      "timestamp": "2025-11-14T11:30:00Z",
+      "workflow": "deploy_frontend",
+      "steps": [
+        {"action": "npm install", "duration": 46},
+        {"action": "npm run build", "duration": 119},
+        {"action": "docker build -t frontend .", "duration": 181},
+        {"action": "docker push frontend:latest", "duration": 59}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-006",
+      "team": "backend",
+      "timestamp": "2025-11-10T15:00:00Z",
+      "workflow": "database_migration",
+      "steps": [
+        {"action": "backup database", "duration": 300},
+        {"action": "run migrations", "duration": 120},
+        {"action": "verify schema", "duration": 60}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-007",
+      "team": "backend",
+      "timestamp": "2025-11-12T10:00:00Z",
+      "workflow": "database_migration",
+      "steps": [
+        {"action": "backup database", "duration": 310},
+        {"action": "run migrations", "duration": 115},
+        {"action": "verify schema", "duration": 65}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-008",
+      "team": "backend",
+      "timestamp": "2025-11-14T14:30:00Z",
+      "workflow": "database_migration",
+      "steps": [
+        {"action": "backup database", "duration": 295},
+        {"action": "run migrations", "duration": 125},
+        {"action": "verify schema", "duration": 58}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-009",
+      "team": "devops",
+      "timestamp": "2025-11-11T08:00:00Z",
+      "workflow": "provision_team",
+      "steps": [
+        {"action": "create database", "duration": 45},
+        {"action": "setup redis", "duration": 30},
+        {"action": "configure coordinator", "duration": 60},
+        {"action": "deploy agents", "duration": 90}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-010",
+      "team": "devops",
+      "timestamp": "2025-11-13T09:30:00Z",
+      "workflow": "provision_team",
+      "steps": [
+        {"action": "create database", "duration": 42},
+        {"action": "setup redis", "duration": 28},
+        {"action": "configure coordinator", "duration": 65},
+        {"action": "deploy agents", "duration": 88}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-011",
+      "team": "frontend",
+      "timestamp": "2025-11-15T12:00:00Z",
+      "workflow": "ad_hoc_task",
+      "steps": [
+        {"action": "investigate bug", "duration": 600},
+        {"action": "manual fix", "duration": 300}
+      ],
+      "outcome": "success"
+    },
+    {
+      "id": "refl-012",
+      "team": "backend",
+      "timestamp": "2025-11-15T13:00:00Z",
+      "workflow": "one_off_script",
+      "steps": [
+        {"action": "run custom script", "duration": 180}
+      ],
+      "outcome": "success"
+    }
+  ]
+}
+EOF
+
+echo "Generated workflow reflections: $OUTPUT_DIR/workflow-reflections.json"
+echo "Patterns:"
+echo "  - deploy_frontend (5 occurrences, 4 steps)"
+echo "  - database_migration (3 occurrences, 3 steps)"
+echo "  - provision_team (2 occurrences, 4 steps - below threshold)"
+echo "  - ad_hoc_task, one_off_script (1 occurrence each - non-deterministic)"
