@@ -21,8 +21,8 @@ This directory contains team configuration templates for CFN Docker infrastructu
 ### Provisioning a Team
 
 ```bash
-./scripts/provision-team.sh \
-  --config config/teams/seo.yaml \
+./docker/scripts/provision-team.sh \
+  --config docker/config/teams/seo.yaml \
   --create-workspace \
   --create-network \
   --spawn-redis \
@@ -32,17 +32,17 @@ This directory contains team configuration templates for CFN Docker infrastructu
 ### Deprovisioning a Team
 
 ```bash
-./scripts/deprovision-team.sh --team seo
+./docker/scripts/deprovision-team.sh --team seo
 ```
 
 ### Validating Configuration
 
 ```bash
 # Check YAML syntax
-yamllint config/teams/seo.yaml
+yamllint docker/config/teams/seo.yaml
 
 # Validate against schema
-./scripts/validate-team-config.sh config/teams/seo.yaml
+./docker/scripts/validate-team-config.sh docker/config/teams/seo.yaml
 ```
 
 ## Configuration Schema
@@ -94,6 +94,6 @@ team:
 
 ## Related Documentation
 
-- [Team Provisioning Guide](../../docker/docs/SPARC/CFN_DOCKER_TEAM_PROVISIONING_GUIDE.md)
-- [Organizational Architecture](../../docker/docs/SPARC/CFN_DOCKER_ORGANIZATIONAL_ARCHITECTURE.md)
-- [Requirements Specification](../../docker/docs/SPARC/CFN_DOCKER_INFRASTRUCTURE_REQUIREMENTS_SPEC.md)
+- [Team Provisioning Guide](../docs/SPARC/CFN_DOCKER_TEAM_PROVISIONING_GUIDE.md)
+- [Organizational Architecture](../docs/SPARC/CFN_DOCKER_ORGANIZATIONAL_ARCHITECTURE.md)
+- [Requirements Specification](../docs/SPARC/CFN_DOCKER_INFRASTRUCTURE_REQUIREMENTS_SPEC.md)
