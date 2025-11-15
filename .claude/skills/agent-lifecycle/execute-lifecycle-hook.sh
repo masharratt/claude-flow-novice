@@ -334,8 +334,8 @@ show_usage() {
     echo ""
     echo "Examples:"
     echo "  $0 spawn --agent-id docker-1 --agent-type docker-specialist --acl-level 1"
-    echo "  $0 update --agent-id docker-1 --confidence 0.85 --reasoning 'Implementation complete'"
-    echo "  $0 complete --agent-id docker-1 --confidence 0.90 --output 'Docker setup complete'"
+    echo "  $0 update --agent-id docker-1 --confidence 0.85 --reasoning \"Implementation complete\""
+    echo "  $0 complete --agent-id docker-1 --confidence 0.90 --output \"Docker setup complete\""
     echo "  $0 status --agent-id docker-1"
 }
 
