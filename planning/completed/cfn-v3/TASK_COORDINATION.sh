@@ -6,7 +6,9 @@
 execute_modularization_task() {
     local TASK_ID="$1"
     local PHASE="$2"
-    local AGENTS=("$3")
+    # Capture all remaining arguments as agents (variadic)
+    shift 2
+    local AGENTS=("$@")
 
     # Redis-based context storage
     redis-cli hmset "modularization:${TASK_ID}:context" \
@@ -39,4 +41,4 @@ execute_modularization_task() {
 execute_modularization_task \
     "ms-task-001" \
     "phase1-function-extraction" \
-    ["coder-1", "coder-2", "architect"]
+    "coder-1" "coder-2" "architect"

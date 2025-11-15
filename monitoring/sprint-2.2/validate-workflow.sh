@@ -41,7 +41,13 @@ fi
 # Calculate overall confidence
 TOTAL_TASKS=$((CODE_REVIEW_TASKS + TEST_TASKS))
 PASSED_TASKS=$((CODE_REVIEW_PASSED + TEST_PASSED))
-CONFIDENCE=$(echo "scale=2; $PASSED_TASKS / $TOTAL_TASKS" | bc)
+
+# Guard against division by zero
+if [[ -z "$TOTAL_TASKS" || "$TOTAL_TASKS" -eq 0 ]]; then
+    CONFIDENCE="0.00"
+else
+    CONFIDENCE=$(echo "scale=2; $PASSED_TASKS / $TOTAL_TASKS" | bc)
+fi
 
 echo "## Overall Confidence" >> "$REPORT_FILE"
 echo "- Confidence Score: $CONFIDENCE" >> "$REPORT_FILE"

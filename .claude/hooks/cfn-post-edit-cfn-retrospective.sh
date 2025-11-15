@@ -2,6 +2,14 @@
 
 # Post-Edit Hook for CFN Retrospective Skills
 
+# Determine PROJECT_ROOT portably
+if [[ -z "$PROJECT_ROOT" ]]; then
+    # Try to derive from script location (resolve symlinks)
+    SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
+    # Go up from .claude/hooks to project root
+    export PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+fi
+
 # Validate script permissions
 validate_script_permissions() {
     local script_path="$1"
@@ -23,7 +31,7 @@ validate_json_syntax() {
 
 # Specific validation for retrospective components
 validate_retrospective_skills() {
-    local base_path="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills"
+    local base_path="${PROJECT_ROOT}/.claude/skills"
     local skills=(
         "pattern-extraction/extract-patterns.sh"
         "playbook-auto-update/auto-update-playbook.sh"
@@ -49,7 +57,7 @@ validate_retrospective_skills() {
 
 # Validate playbook JSON
 validate_playbook() {
-    local playbook_path="/mnt/c/Users/masha/Documents/claude-flow-novice/docs/PLAYBOOK.json"
+    local playbook_path="${PROJECT_ROOT}/docs/PLAYBOOK.json"
     validate_json_syntax "$playbook_path"
 }
 
