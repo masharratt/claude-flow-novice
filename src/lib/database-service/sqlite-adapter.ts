@@ -422,11 +422,15 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         return `${field} <= ?`;
       }
       case 'in': {
-        if (!Array.isArray(filter.value) || filter.value.length === 0) {
-          throw new Error(`'in' operator requires a non-empty array`);
+        if (!Array.isArray(filter.value)) {
+          throw new TypeError(`Field '${String(filter.field)}' with operator 'in' requires an array value`);
         }
-        const placeholders = (filter.value as any[]).map(() => '?').join(', ');
-        params.push(...(filter.value as any[]));
+        if (filter.value.length === 0) {
+          // Empty IN list - return false condition without invalid SQL
+          return '1=0';
+        }
+        const placeholders = filter.value.map(() => '?').join(', ');
+        params.push(...filter.value);
         return `${field} IN (${placeholders})`;
       }
       case 'like': {
@@ -434,8 +438,11 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         return `${field} LIKE ?`;
       }
       case 'between': {
-        if (!Array.isArray(filter.value) || filter.value.length !== 2) {
-          throw new Error(`'between' operator requires an array with exactly 2 elements`);
+        if (!Array.isArray(filter.value)) {
+          throw new TypeError(`Field '${String(filter.field)}' with operator 'between' requires an array value`);
+        }
+        if (filter.value.length !== 2) {
+          throw new TypeError(`Field '${String(filter.field)}' with operator 'between' requires exactly 2 elements, got ${filter.value.length}`);
         }
         params.push(filter.value[0], filter.value[1]);
         return `${field} BETWEEN ? AND ?`;
