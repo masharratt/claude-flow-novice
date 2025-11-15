@@ -124,7 +124,7 @@ export class DatabaseService implements IDatabaseService {
     if (this.adapters.has('redis')) {
       promises.push(
         this.adapters.get('redis')!.get<T>(correlationKeyString)
-          .then(data => { if (data) result.redis = data; })
+          .then(data => { if (data !== null && data !== undefined) result.redis = data; })
           .catch(err => console.warn('Redis lookup failed:', err))
       );
     }
@@ -132,7 +132,7 @@ export class DatabaseService implements IDatabaseService {
     if (this.adapters.has('sqlite')) {
       promises.push(
         this.adapters.get('sqlite')!.get<T>(correlationKeyString)
-          .then(data => { if (data) result.sqlite = data; })
+          .then(data => { if (data !== null && data !== undefined) result.sqlite = data; })
           .catch(err => console.warn('SQLite lookup failed:', err))
       );
     }
@@ -140,7 +140,7 @@ export class DatabaseService implements IDatabaseService {
     if (this.adapters.has('postgres')) {
       promises.push(
         this.adapters.get('postgres')!.get<T>(correlationKeyString)
-          .then(data => { if (data) result.postgres = data; })
+          .then(data => { if (data !== null && data !== undefined) result.postgres = data; })
           .catch(err => console.warn('PostgreSQL lookup failed:', err))
       );
     }

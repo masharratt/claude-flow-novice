@@ -65,11 +65,26 @@ export interface OperationResult<T = any> {
  * Database error with context
  */
 export interface DatabaseError {
-  code: string;
+  code: DatabaseErrorCode | string; // DatabaseErrorCode for known errors, string for custom errors
   message: string;
   originalError?: Error;
   query?: string;
   context?: Record<string, any>;
+}
+
+/**
+ * Database error codes (imported from errors.ts for type safety)
+ */
+export enum DatabaseErrorCode {
+  CONNECTION_FAILED = 'DB_CONNECTION_FAILED',
+  QUERY_FAILED = 'DB_QUERY_FAILED',
+  TRANSACTION_FAILED = 'DB_TRANSACTION_FAILED',
+  VALIDATION_FAILED = 'DB_VALIDATION_FAILED',
+  NOT_FOUND = 'DB_NOT_FOUND',
+  DUPLICATE_KEY = 'DB_DUPLICATE_KEY',
+  TIMEOUT = 'DB_TIMEOUT',
+  CONSTRAINT_VIOLATION = 'DB_CONSTRAINT_VIOLATION',
+  UNKNOWN_ERROR = 'DB_UNKNOWN_ERROR',
 }
 
 /**

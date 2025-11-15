@@ -43,8 +43,8 @@ export class TransactionManager {
 
       return results;
     } catch (err) {
-      // Rollback all transactions
-      for (let i = 0; i < adapters.length; i++) {
+      // Rollback all transactions (only those that were successfully started)
+      for (let i = 0; i < contexts.length; i++) {
         try {
           await adapters[i].rollbackTransaction(contexts[i]);
           this.activeTransactions.delete(contexts[i].id);

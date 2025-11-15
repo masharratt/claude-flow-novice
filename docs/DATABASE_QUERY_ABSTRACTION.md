@@ -111,7 +111,7 @@ const activeSessions = await redis.query('session:*', [
 - Automatic JSON serialization/deserialization
 - Pattern-based key lookup with `KEYS` command
 - Client-side filtering for queries
-- Transaction support via `MULTI/EXEC`
+- **Transaction Limitations:** Redis adapter provides placeholder transaction methods for interface compliance but does not implement full MULTI/EXEC atomic transactions. For true atomic operations across Redis, use the raw Redis client or cross-database transactions will only guarantee atomicity for SQL databases.
 
 ### SQLite Adapter
 
@@ -256,6 +256,33 @@ const results = await adapter.list('tasks', {
   offset: 0,
 });
 ```
+
+### Database-Specific Operator Support
+
+While all adapters implement the same filter interface, operator support varies by database:
+
+| Operator | Redis | SQLite | PostgreSQL | Notes |
+|----------|-------|--------|------------|-------|
+| `eq` | ✅ | ✅ | ✅ | |
+| `ne` | ✅ | ✅ | ✅ | |
+| `gt` | ✅ | ✅ | ✅ | |
+| `gte` | ✅ | ✅ | ✅ | |
+| `lt` | ✅ | ✅ | ✅ | |
+| `lte` | ✅ | ✅ | ✅ | |
+| `in` | ✅ | ✅ | ✅ | |
+| `like` | ✅ | ✅ | ✅ | |
+| `between` | ❌ | ✅ | ✅ | Redis uses client-side filtering, `between` not implemented |
+
+**Redis Limitations:**
+- Redis adapter performs **client-side filtering** after retrieving data
+- The `between` operator is not implemented for Redis
+- For large datasets, consider using Redis data structures or caching strategies
+- Ordering is applied client-side after retrieval
+
+**SQLite/PostgreSQL:**
+- Full **server-side filtering** with database query optimization
+- All operators supported natively
+- Ordering and pagination performed at database level
 
 ---
 

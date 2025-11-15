@@ -114,7 +114,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
       // Apply filters
       if (options?.filters && options.filters.length > 0) {
         const whereClauses = options.filters.map(filter => {
-          return this.buildWhereClause(filter, params, paramIndex++);
+          return this.buildWhereClause(filter, params);
         });
         query += ` WHERE ${whereClauses.join(' AND ')}`;
       }
@@ -376,38 +376,57 @@ export class PostgresAdapter implements IDatabaseAdapter {
     return identifier.replace(/[^a-zA-Z0-9_]/g, '');
   }
 
-  private buildWhereClause<T>(filter: QueryFilter<T>, params: any[], paramIndex: number): string {
+  private buildWhereClause<T>(filter: QueryFilter<T>, params: any[]): string {
     const field = this.sanitizeIdentifier(String(filter.field));
 
     switch (filter.operator) {
-      case 'eq':
+      case 'eq': {
+        const paramIndex = params.length + 1;
         params.push(filter.value);
         return `${field} = $${paramIndex}`;
-      case 'ne':
+      }
+      case 'ne': {
+        const paramIndex = params.length + 1;
         params.push(filter.value);
         return `${field} != $${paramIndex}`;
-      case 'gt':
+      }
+      case 'gt': {
+        const paramIndex = params.length + 1;
         params.push(filter.value);
         return `${field} > $${paramIndex}`;
-      case 'gte':
+      }
+      case 'gte': {
+        const paramIndex = params.length + 1;
         params.push(filter.value);
         return `${field} >= $${paramIndex}`;
-      case 'lt':
+      }
+      case 'lt': {
+        const paramIndex = params.length + 1;
         params.push(filter.value);
         return `${field} < $${paramIndex}`;
-      case 'lte':
+      }
+      case 'lte': {
+        const paramIndex = params.length + 1;
         params.push(filter.value);
         return `${field} <= $${paramIndex}`;
-      case 'in':
-        const placeholders = (filter.value as any[]).map((_, i) => `$${paramIndex + i}`).join(', ');
-        params.push(...(filter.value as any[]));
+      }
+      case 'in': {
+        const startIndex = params.length + 1;
+        const values = filter.value as any[];
+        const placeholders = values.map((_, i) => `$${startIndex + i}`).join(', ');
+        params.push(...values);
         return `${field} IN (${placeholders})`;
-      case 'like':
+      }
+      case 'like': {
+        const paramIndex = params.length + 1;
         params.push(`%${filter.value}%`);
         return `${field} LIKE $${paramIndex}`;
-      case 'between':
+      }
+      case 'between': {
+        const paramIndex = params.length + 1;
         params.push(filter.value[0], filter.value[1]);
         return `${field} BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
+      }
       default:
         return '1=1';
     }

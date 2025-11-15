@@ -374,34 +374,43 @@ export class SQLiteAdapter implements IDatabaseAdapter {
     const field = this.sanitizeIdentifier(String(filter.field));
 
     switch (filter.operator) {
-      case 'eq':
+      case 'eq': {
         params.push(filter.value);
         return `${field} = ?`;
-      case 'ne':
+      }
+      case 'ne': {
         params.push(filter.value);
         return `${field} != ?`;
-      case 'gt':
+      }
+      case 'gt': {
         params.push(filter.value);
         return `${field} > ?`;
-      case 'gte':
+      }
+      case 'gte': {
         params.push(filter.value);
         return `${field} >= ?`;
-      case 'lt':
+      }
+      case 'lt': {
         params.push(filter.value);
         return `${field} < ?`;
-      case 'lte':
+      }
+      case 'lte': {
         params.push(filter.value);
         return `${field} <= ?`;
-      case 'in':
+      }
+      case 'in': {
         const placeholders = (filter.value as any[]).map(() => '?').join(', ');
         params.push(...(filter.value as any[]));
         return `${field} IN (${placeholders})`;
-      case 'like':
+      }
+      case 'like': {
         params.push(`%${filter.value}%`);
         return `${field} LIKE ?`;
-      case 'between':
+      }
+      case 'between': {
         params.push(filter.value[0], filter.value[1]);
         return `${field} BETWEEN ? AND ?`;
+      }
       default:
         return '1=1';
     }

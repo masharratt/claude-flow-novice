@@ -253,7 +253,7 @@ export class RedisAdapter implements IDatabaseAdapter {
     }
   }
 
-  async delete(key: string): Promise<OperationResult<void>> {
+  async delete(_table: string, key: string): Promise<OperationResult<void>> {
     this.ensureConnected();
 
     try {
