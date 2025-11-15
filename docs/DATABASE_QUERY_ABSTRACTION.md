@@ -292,7 +292,7 @@ Correlation keys enable unified data lookup across multiple databases.
 
 ### Format
 
-```
+```text
 {type}:{id}:{entity}:{subtype}
 ```
 

@@ -73,7 +73,7 @@ export interface DatabaseError {
 }
 
 /**
- * Database error codes (imported from errors.ts for type safety)
+ * Database error codes
  */
 export enum DatabaseErrorCode {
   CONNECTION_FAILED = 'DB_CONNECTION_FAILED',

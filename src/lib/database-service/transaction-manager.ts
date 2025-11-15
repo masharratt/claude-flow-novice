@@ -18,6 +18,10 @@ export class TransactionManager {
     adapters: IDatabaseAdapter[],
     operations: Array<(adapter: IDatabaseAdapter) => Promise<T>>
   ): Promise<T[]> {
+    if (adapters.length !== operations.length) {
+      throw new Error(`Adapter count (${adapters.length}) must match operation count (${operations.length})`);
+    }
+
     const contexts: TransactionContext[] = [];
     const results: T[] = [];
 

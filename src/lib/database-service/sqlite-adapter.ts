@@ -422,6 +422,9 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         return `${field} <= ?`;
       }
       case 'in': {
+        if (!Array.isArray(filter.value) || filter.value.length === 0) {
+          throw new Error(`'in' operator requires a non-empty array`);
+        }
         const placeholders = (filter.value as any[]).map(() => '?').join(', ');
         params.push(...(filter.value as any[]));
         return `${field} IN (${placeholders})`;
@@ -431,6 +434,9 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         return `${field} LIKE ?`;
       }
       case 'between': {
+        if (!Array.isArray(filter.value) || filter.value.length !== 2) {
+          throw new Error(`'between' operator requires an array with exactly 2 elements`);
+        }
         params.push(filter.value[0], filter.value[1]);
         return `${field} BETWEEN ? AND ?`;
       }

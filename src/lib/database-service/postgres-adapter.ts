@@ -424,6 +424,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
         return `${field} <= $${paramIndex}`;
       }
       case 'in': {
+        if (!Array.isArray(filter.value) || filter.value.length === 0) {
+          throw new Error(`'in' operator requires a non-empty array`);
+        }
         const startIndex = params.length + 1;
         const values = filter.value as any[];
         const placeholders = values.map((_, i) => `$${startIndex + i}`).join(', ');
@@ -436,6 +439,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
         return `${field} LIKE $${paramIndex}`;
       }
       case 'between': {
+        if (!Array.isArray(filter.value) || filter.value.length !== 2) {
+          throw new Error(`'between' operator requires an array with exactly 2 elements`);
+        }
         const paramIndex = params.length + 1;
         params.push(filter.value[0], filter.value[1]);
         return `${field} BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
