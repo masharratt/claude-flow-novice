@@ -1,0 +1,31 @@
+{
+  "team": {
+    "id": "qa",
+    "name": "QA Team",
+    "description": "End-to-end testing, load testing, security scanning, and quality validation",
+    "workspace": {
+      "path": "/workspace/tests",
+      "disk_quota": "50GB"
+    },
+    "resources": {
+      "memory": "10GB",
+      "cpu_cores": 3,
+      "max_agents": 4
+    },
+    "allowed_skills": [
+      "playwright",
+      "load-testing",
+      "database-readonly",
+      "security-scanning"
+    ],
+    "network": {
+      "subnet_id": 4,
+      "coordinator_ip": "172.18.0.14"
+    }
+  },
+  "_migration": {
+    "source_file": "qa.yaml",
+    "migrated_at": "2025-11-15T07:25:14Z",
+    "format_version": "1.0"
+  }
+}
