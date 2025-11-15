@@ -384,6 +384,43 @@ const results = await dbService.executeTransaction([
 - **Isolation**: Each database maintains its own transaction isolation
 - **Cleanup**: Automatic cleanup of stale transactions (60s timeout)
 
+### Known Limitations
+
+**PostgreSQL Transaction Routing:**
+Individual CRUD operations (`get`, `list`, `insert`, `update`, `delete`) execute against the connection pool and do not automatically route through active transaction clients. This means:
+
+- Operations called outside `executeTransaction()` work correctly
+- Operations called **inside** `executeTransaction()` operations may not be atomic with the transaction context
+- **Workaround**: Use the `raw()` method with explicit SQL within transaction operations for guaranteed transactional behavior
+- **Future Fix**: Requires architectural refactor to add AsyncLocalStorage or optional TransactionContext parameters to all CRUD methods
+
+**Example (Current Limitation):**
+```typescript
+// ❌ May not be atomic - CRUD methods bypass transaction client
+await dbService.executeTransaction([
+  {
+    database: 'postgres',
+    operation: async (adapter) => {
+      // This insert may not participate in the transaction!
+      return adapter.insert('users', { id: '1', name: 'Test' });
+    }
+  }
+]);
+
+// ✅ Guaranteed atomic - using raw SQL
+await dbService.executeTransaction([
+  {
+    database: 'postgres',
+    operation: async (adapter) => {
+      return adapter.raw('INSERT INTO users (id, name) VALUES ($1, $2)', ['1', 'Test']);
+    }
+  }
+]);
+```
+
+**SQLite Nested Transactions:**
+SQLite doesn't support nested transactions. The `insertMany()` method now checks for active transactions before issuing `BEGIN TRANSACTION` to prevent errors. When called within an active transaction, it skips `BEGIN/COMMIT` and uses the parent transaction.
+
 ---
 
 ## Error Handling

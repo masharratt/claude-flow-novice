@@ -81,11 +81,14 @@ export class PostgresAdapter implements IDatabaseAdapter {
     this.ensureConnected();
 
     try {
-      // Assume key format is table:id
-      const [table, id] = key.split(':');
+      // Parse correlation key format: table:id or table:id:entity:subtype
+      // For SQL adapters, we use only table:id for lookup
+      const parts = key.split(':');
+      const table = parts[0];
+      const id = parts.slice(1).join(':'); // Rejoin remaining parts as ID
 
       if (!table || !id) {
-        throw new Error('Invalid key format. Expected "table:id"');
+        throw new Error('Invalid key format. Expected "table:id" or "table:id:entity:subtype"');
       }
 
       const query = `SELECT * FROM ${this.sanitizeIdentifier(table)} WHERE id = $1`;
@@ -374,6 +377,16 @@ export class PostgresAdapter implements IDatabaseAdapter {
   private sanitizeIdentifier(identifier: string): string {
     // Remove any characters that aren't alphanumeric or underscore
     return identifier.replace(/[^a-zA-Z0-9_]/g, '');
+  }
+
+  /**
+   * Get client for query execution (transaction client if available, otherwise pool)
+   */
+  private getQueryClient(): { client: Pool | PoolClient; isTransaction: boolean } {
+    // Check if there's an active transaction for the current context
+    // For now, we'll use the pool unless explicitly in a transaction
+    // TODO: Add transaction context to method signatures or use async local storage
+    return { client: this.pool!, isTransaction: false };
   }
 
   private buildWhereClause<T>(filter: QueryFilter<T>, params: any[]): string {

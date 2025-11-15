@@ -79,11 +79,14 @@ export class SQLiteAdapter implements IDatabaseAdapter {
     this.ensureConnected();
 
     try {
-      // Assume key format is table:id
-      const [table, id] = key.split(':');
+      // Parse correlation key format: table:id or table:id:entity:subtype
+      // For SQL adapters, we use only table:id for lookup
+      const parts = key.split(':');
+      const table = parts[0];
+      const id = parts.slice(1).join(':'); // Rejoin remaining parts as ID
 
       if (!table || !id) {
-        throw new Error('Invalid key format. Expected "table:id"');
+        throw new Error('Invalid key format. Expected "table:id" or "table:id:entity:subtype"');
       }
 
       const query = `SELECT * FROM ${this.sanitizeIdentifier(table)} WHERE id = ?`;
@@ -179,8 +182,14 @@ export class SQLiteAdapter implements IDatabaseAdapter {
   async insertMany<T = any>(table: string, data: T[]): Promise<OperationResult<T[]>> {
     this.ensureConnected();
 
+    // Check if we're already in an active transaction (SQLite doesn't support nested transactions)
+    const hasActiveTransaction = this.transactions.size > 0;
+
     try {
-      await this.db!.run('BEGIN TRANSACTION');
+      // Only begin transaction if not already in one
+      if (!hasActiveTransaction) {
+        await this.db!.run('BEGIN TRANSACTION');
+      }
 
       let totalChanges = 0;
 
@@ -197,11 +206,17 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         totalChanges += result.changes || 0;
       }
 
-      await this.db!.run('COMMIT');
+      // Only commit if we started the transaction
+      if (!hasActiveTransaction) {
+        await this.db!.run('COMMIT');
+      }
 
       return createSuccessResult(data, totalChanges);
     } catch (err) {
-      await this.db!.run('ROLLBACK');
+      // Only rollback if we started the transaction
+      if (!hasActiveTransaction) {
+        await this.db!.run('ROLLBACK');
+      }
 
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
       return createFailedResult(createDatabaseError(
@@ -332,9 +347,13 @@ export class SQLiteAdapter implements IDatabaseAdapter {
       );
     }
 
-    await this.db!.run('COMMIT');
-    context.status = 'committed';
-    this.transactions.delete(context.id);
+    try {
+      await this.db!.run('COMMIT');
+      context.status = 'committed';
+    } finally {
+      // Always cleanup transaction from map, even if commit fails
+      this.transactions.delete(context.id);
+    }
   }
 
   async rollbackTransaction(context: TransactionContext): Promise<void> {
@@ -349,9 +368,13 @@ export class SQLiteAdapter implements IDatabaseAdapter {
       );
     }
 
-    await this.db!.run('ROLLBACK');
-    context.status = 'rolled_back';
-    this.transactions.delete(context.id);
+    try {
+      await this.db!.run('ROLLBACK');
+      context.status = 'rolled_back';
+    } finally {
+      // Always cleanup transaction from map, even if rollback fails
+      this.transactions.delete(context.id);
+    }
   }
 
   private ensureConnected(): void {
