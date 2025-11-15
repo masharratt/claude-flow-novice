@@ -1,0 +1,462 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude-flow-novice.local/schemas/agent-output-v1.json",
+  "title": "CFN Agent Output Schema v1.0",
+  "description": "Standardized JSON schema for all CFN agent outputs (Loop 3, Loop 2, Product Owner)",
+  "version": "1.0.0",
+  "type": "object",
+  "definitions": {
+    "deliverable": {
+      "type": "object",
+      "description": "Artifact created or modified by agent",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Absolute or relative file path",
+          "minLength": 1,
+          "examples": ["src/file.ts", "/home/user/project/test.ts"]
+        },
+        "type": {
+          "type": "string",
+          "enum": ["implementation", "test", "documentation", "config", "schema", "script", "other"],
+          "description": "Deliverable type"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["created", "modified", "deleted", "validated", "pending"],
+          "description": "Deliverable status"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "description": "File size in bytes",
+          "minimum": 0
+        },
+        "lines": {
+          "type": "integer",
+          "description": "Number of lines (for text files)",
+          "minimum": 0
+        },
+        "checksum": {
+          "type": "string",
+          "description": "SHA-256 checksum for integrity validation"
+        }
+      },
+      "required": ["path", "type", "status"],
+      "additionalProperties": false
+    },
+    "issue": {
+      "type": "object",
+      "description": "Issue found during validation",
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "info"],
+          "description": "Issue severity level"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["security", "performance", "quality", "style", "documentation", "testing", "architecture", "other"],
+          "description": "Issue category"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable issue description",
+          "minLength": 1
+        },
+        "location": {
+          "type": "string",
+          "description": "File path and line number (e.g., 'src/file.ts:45')"
+        },
+        "recommendation": {
+          "type": "string",
+          "description": "Suggested fix or improvement"
+        },
+        "code": {
+          "type": "string",
+          "description": "Error code or rule identifier"
+        }
+      },
+      "required": ["severity", "category", "message"],
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Quantitative metrics from implementation",
+      "properties": {
+        "files_created": {
+          "type": "integer",
+          "description": "Number of files created",
+          "minimum": 0
+        },
+        "files_modified": {
+          "type": "integer",
+          "description": "Number of files modified",
+          "minimum": 0
+        },
+        "files_deleted": {
+          "type": "integer",
+          "description": "Number of files deleted",
+          "minimum": 0
+        },
+        "lines_of_code": {
+          "type": "integer",
+          "description": "Total lines of code written",
+          "minimum": 0
+        },
+        "test_coverage": {
+          "type": "number",
+          "description": "Test coverage percentage (0.0-1.0)",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "tests_passed": {
+          "type": "integer",
+          "description": "Number of tests passed",
+          "minimum": 0
+        },
+        "tests_failed": {
+          "type": "integer",
+          "description": "Number of tests failed",
+          "minimum": 0
+        },
+        "execution_time_ms": {
+          "type": "integer",
+          "description": "Execution time in milliseconds",
+          "minimum": 0
+        },
+        "memory_usage_mb": {
+          "type": "number",
+          "description": "Memory usage in megabytes",
+          "minimum": 0
+        },
+        "custom_metrics": {
+          "type": "object",
+          "description": "Additional custom metrics (extensible numeric values)",
+          "additionalProperties": {
+            "type": "number"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "error": {
+      "type": "object",
+      "description": "Error encountered during execution",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Error code",
+          "examples": ["VALIDATION_FAILED", "FILE_NOT_FOUND", "TIMEOUT"]
+        },
+        "message": {
+          "type": "string",
+          "description": "Error message",
+          "minLength": 1
+        },
+        "stack": {
+          "type": "string",
+          "description": "Stack trace (optional)"
+        },
+        "context": {
+          "type": "object",
+          "description": "Additional error context",
+          "additionalProperties": true
+        }
+      },
+      "required": ["code", "message"],
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Agent execution metadata",
+      "properties": {
+        "agent_type": {
+          "type": "string",
+          "description": "Type of agent that produced output",
+          "examples": ["backend-developer", "reviewer", "tester", "product-owner"]
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Unique agent instance ID"
+        },
+        "execution_time_ms": {
+          "type": "integer",
+          "description": "Total execution time in milliseconds",
+          "minimum": 0
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp"
+        },
+        "swarm_id": {
+          "type": "string",
+          "description": "Swarm/task identifier"
+        },
+        "iteration": {
+          "type": "integer",
+          "description": "CFN Loop iteration number",
+          "minimum": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["mvp", "standard", "enterprise"],
+          "description": "CFN Loop execution mode"
+        },
+        "context": {
+          "type": "object",
+          "description": "Additional execution context",
+          "additionalProperties": true
+        }
+      },
+      "required": ["agent_type"],
+      "additionalProperties": true
+    },
+    "baseOutput": {
+      "type": "object",
+      "description": "Base output common to all agent types",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether execution was successful"
+        },
+        "confidence": {
+          "type": "number",
+          "description": "Confidence score (0.0-1.0)",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "iteration": {
+          "type": "integer",
+          "description": "CFN Loop iteration number",
+          "minimum": 1
+        },
+        "errors": {
+          "type": "array",
+          "description": "Errors encountered during execution",
+          "items": {
+            "$ref": "#/definitions/error"
+          },
+          "default": []
+        },
+        "metadata": {
+          "$ref": "#/definitions/metadata"
+        }
+      },
+      "required": ["success", "confidence", "iteration", "metadata"]
+    },
+    "loop3Output": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/baseOutput"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "output_type": {
+              "type": "string",
+              "const": "loop3",
+              "description": "Discriminator for Loop 3 implementer output"
+            },
+            "deliverables": {
+              "type": "array",
+              "description": "Artifacts created or modified",
+              "items": {
+                "$ref": "#/definitions/deliverable"
+              },
+              "minItems": 0
+            },
+            "metrics": {
+              "$ref": "#/definitions/metrics"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Brief summary of implementation work"
+            }
+          },
+          "required": ["output_type", "deliverables"]
+        }
+      ]
+    },
+    "loop2Output": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/baseOutput"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "output_type": {
+              "type": "string",
+              "const": "loop2",
+              "description": "Discriminator for Loop 2 validator output"
+            },
+            "validation_type": {
+              "type": "string",
+              "enum": ["review", "test", "security", "architecture", "performance", "compliance"],
+              "description": "Type of validation performed"
+            },
+            "issues": {
+              "type": "array",
+              "description": "Issues found during validation",
+              "items": {
+                "$ref": "#/definitions/issue"
+              },
+              "default": []
+            },
+            "recommendations": {
+              "type": "array",
+              "description": "Recommendations for improvement",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            },
+            "approved": {
+              "type": "boolean",
+              "description": "Whether work is approved (consensus vote)"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Brief summary of validation findings"
+            }
+          },
+          "required": ["output_type", "validation_type", "approved"]
+        }
+      ]
+    },
+    "productOwnerOutput": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/baseOutput"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "output_type": {
+              "type": "string",
+              "const": "product_owner",
+              "description": "Discriminator for Product Owner output"
+            },
+            "decision": {
+              "type": "string",
+              "enum": ["PROCEED", "ITERATE", "ABORT"],
+              "description": "Product Owner decision"
+            },
+            "rationale": {
+              "type": "string",
+              "description": "Explanation for decision",
+              "minLength": 1
+            },
+            "deliverables_validated": {
+              "type": "boolean",
+              "description": "Whether deliverables were validated"
+            },
+            "next_action": {
+              "type": "string",
+              "description": "Next action to take",
+              "examples": ["mark_task_complete", "start_iteration_2", "abort_task"]
+            },
+            "consensus_score": {
+              "type": "number",
+              "description": "Consensus score from Loop 2 validators (0.0-1.0)",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "gate_score": {
+              "type": "number",
+              "description": "Gate score from Loop 3 implementers (0.0-1.0)",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "required": ["output_type", "decision", "rationale", "deliverables_validated", "next_action"]
+        }
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/definitions/loop3Output"
+    },
+    {
+      "$ref": "#/definitions/loop2Output"
+    },
+    {
+      "$ref": "#/definitions/productOwnerOutput"
+    }
+  ],
+  "examples": [
+    {
+      "output_type": "loop3",
+      "success": true,
+      "confidence": 0.85,
+      "deliverables": [
+        {
+          "path": "src/auth.ts",
+          "type": "implementation",
+          "status": "created",
+          "size_bytes": 4567,
+          "lines": 120
+        }
+      ],
+      "metrics": {
+        "files_created": 1,
+        "lines_of_code": 120,
+        "test_coverage": 0.92
+      },
+      "iteration": 1,
+      "errors": [],
+      "metadata": {
+        "agent_type": "backend-developer",
+        "execution_time_ms": 1234,
+        "timestamp": "2025-11-15T08:00:00Z"
+      }
+    },
+    {
+      "output_type": "loop2",
+      "success": true,
+      "confidence": 0.90,
+      "validation_type": "review",
+      "issues": [
+        {
+          "severity": "medium",
+          "category": "security",
+          "message": "SQL injection risk in query builder",
+          "location": "src/db.ts:45",
+          "recommendation": "Use parameterized queries"
+        }
+      ],
+      "recommendations": [
+        "Add input validation",
+        "Implement rate limiting"
+      ],
+      "approved": false,
+      "iteration": 1,
+      "errors": [],
+      "metadata": {
+        "agent_type": "reviewer",
+        "execution_time_ms": 890,
+        "timestamp": "2025-11-15T08:02:00Z"
+      }
+    },
+    {
+      "output_type": "product_owner",
+      "success": true,
+      "confidence": 0.95,
+      "decision": "PROCEED",
+      "rationale": "All deliverables complete, consensus achieved at 0.93",
+      "deliverables_validated": true,
+      "next_action": "mark_task_complete",
+      "consensus_score": 0.93,
+      "gate_score": 0.87,
+      "iteration": 2,
+      "errors": [],
+      "metadata": {
+        "agent_type": "product-owner",
+        "execution_time_ms": 567,
+        "timestamp": "2025-11-15T08:05:00Z"
+      }
+    }
+  ]
+}

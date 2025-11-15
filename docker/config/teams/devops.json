@@ -1,0 +1,31 @@
+{
+  "team": {
+    "id": "devops",
+    "name": "DevOps Team",
+    "description": "Docker/Kubernetes infrastructure, CI/CD pipelines, and deployment automation",
+    "workspace": {
+      "path": "/workspace/infrastructure",
+      "disk_quota": "75GB"
+    },
+    "resources": {
+      "memory": "12GB",
+      "cpu_cores": 4,
+      "max_agents": 4
+    },
+    "allowed_skills": [
+      "docker-readwrite",
+      "kubernetes",
+      "database-readonly",
+      "cicd-pipelines"
+    ],
+    "network": {
+      "subnet_id": 3,
+      "coordinator_ip": "172.18.0.13"
+    }
+  },
+  "_migration": {
+    "source_file": "devops.yaml",
+    "migrated_at": "2025-11-15T07:25:13Z",
+    "format_version": "1.0"
+  }
+}

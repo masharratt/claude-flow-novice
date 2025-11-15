@@ -1,0 +1,31 @@
+{
+  "team": {
+    "id": "marketing",
+    "name": "Marketing Team",
+    "description": "Email campaigns, marketing analytics, and content distribution",
+    "workspace": {
+      "path": "/workspace/marketing",
+      "disk_quota": "40GB"
+    },
+    "resources": {
+      "memory": "10GB",
+      "cpu_cores": 3,
+      "max_agents": 4
+    },
+    "allowed_skills": [
+      "email-campaigns",
+      "analytics",
+      "database-readonly",
+      "content-generation"
+    ],
+    "network": {
+      "subnet_id": 6,
+      "coordinator_ip": "172.18.0.16"
+    }
+  },
+  "_migration": {
+    "source_file": "marketing.yaml",
+    "migrated_at": "2025-11-15T07:25:13Z",
+    "format_version": "1.0"
+  }
+}

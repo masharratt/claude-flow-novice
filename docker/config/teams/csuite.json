@@ -1,0 +1,31 @@
+{
+  "team": {
+    "id": "csuite",
+    "name": "C-Suite Team",
+    "description": "Executive analytics, business intelligence, reporting, and data visualization",
+    "workspace": {
+      "path": "/workspace/csuite",
+      "disk_quota": "30GB"
+    },
+    "resources": {
+      "memory": "8GB",
+      "cpu_cores": 2,
+      "max_agents": 3
+    },
+    "allowed_skills": [
+      "analytics",
+      "reporting",
+      "database-readonly",
+      "data-visualization"
+    ],
+    "network": {
+      "subnet_id": 7,
+      "coordinator_ip": "172.18.0.17"
+    }
+  },
+  "_migration": {
+    "source_file": "csuite.yaml",
+    "migrated_at": "2025-11-15T07:25:12Z",
+    "format_version": "1.0"
+  }
+}
