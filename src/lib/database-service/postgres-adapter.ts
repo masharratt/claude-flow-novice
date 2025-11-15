@@ -379,28 +379,6 @@ export class PostgresAdapter implements IDatabaseAdapter {
     return identifier.replace(/[^a-zA-Z0-9_]/g, '');
   }
 
-  /**
-   * Get client for query execution (transaction client if available, otherwise pool)
-   *
-   * ⚠️ CRITICAL CORRECTNESS ISSUE (Priority: HIGH)
-   * Currently always returns pool client, bypassing active transaction contexts.
-   * This causes CRUD operations to execute outside transactions, creating data integrity risks.
-   * Operations intended to be atomic can silently fail to participate in transactions.
-   *
-   * Required Fix: Implement transaction-aware query routing via:
-   * - Option A: AsyncLocalStorage to track current transaction context
-   * - Option B: Add optional TransactionContext parameter to all CRUD methods
-   * - Option C: Maintain thread-local transaction state map
-   *
-   * Impact: HIGH - Silent data integrity violations in production
-   * Workaround: Use raw() method for transactional operations (see docs)
-   */
-  private getQueryClient(): { client: Pool | PoolClient; isTransaction: boolean } {
-    // TODO(CRITICAL): Implement transaction-aware client routing
-    // Issue tracked in: docs/DATABASE_QUERY_ABSTRACTION.md (Known Limitations)
-    return { client: this.pool!, isTransaction: false };
-  }
-
   private buildWhereClause<T>(filter: QueryFilter<T>, params: any[]): string {
     const field = this.sanitizeIdentifier(String(filter.field));
 
