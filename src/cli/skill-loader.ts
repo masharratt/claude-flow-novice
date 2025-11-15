@@ -65,6 +65,7 @@ export interface SkillLoadResult {
   loadTimeMs: number;
   cacheHitCount: number;
   cacheMissCount: number;
+  cacheInvalidationCount: number;
   totalSkills: number;
   bootstrapCount: number;
 }
@@ -97,9 +98,9 @@ export class SkillLoader {
     skillsBasePath?: string
   ) {
     this.logger = logger ?? createLogger('skill-loader');
-    this.validator = new SkillCacheValidator(this.logger);
-    this.cache = new Map();
     this.dbService = dbService;
+    this.validator = new SkillCacheValidator(this.logger, dbService);
+    this.cache = new Map();
     this.skillsBasePath = skillsBasePath ?? path.join(process.cwd(), '.claude/skills');
   }
 
@@ -134,11 +135,37 @@ export class SkillLoader {
       loadTimeMs: 0,
       cacheHitCount: 0,
       cacheMissCount: 0,
+      cacheInvalidationCount: 0,
       totalSkills: 0,
       bootstrapCount: 0,
     };
 
     try {
+      // Validate cache integrity with bulk hash check (if database available)
+      if (this.dbService && this.cache.size > 0) {
+        const cachedEntries = Array.from(this.cache.values()).map((entry) => entry.data);
+        const validation = await this.validator.validateCachedSkills(cachedEntries);
+
+        if (!validation.isValid) {
+          // Invalidate cache entries with hash mismatches
+          for (const skillId of validation.invalidSkillIds) {
+            this.cache.delete(skillId);
+            result.cacheInvalidationCount++;
+          }
+
+          this.logger.warn('Cache invalidated due to hash mismatches', {
+            invalidatedCount: validation.invalidCount,
+            invalidSkillIds: validation.invalidSkillIds,
+            validationDurationMs: validation.durationMs,
+          });
+        } else {
+          this.logger.debug('Cache validation passed', {
+            validCount: validation.validCount,
+            validationDurationMs: validation.durationMs,
+          });
+        }
+      }
+
       // Load bootstrap skills first (always included unless explicitly disabled)
       if (includeBootstrap) {
         const bootstrapSkills = await this.loadBootstrapSkills();
@@ -173,6 +200,7 @@ export class SkillLoader {
         agentSkills: result.totalSkills - result.bootstrapCount,
         cacheHits: result.cacheHitCount,
         cacheMisses: result.cacheMissCount,
+        cacheInvalidations: result.cacheInvalidationCount,
         loadTimeMs: result.loadTimeMs,
       });
 
@@ -500,6 +528,50 @@ export class SkillLoader {
       maxSize: this.cacheMaxSize,
       ttlMinutes: this.cacheTTLMinutes,
     };
+  }
+
+  /**
+   * Validate all cached entries against database
+   *
+   * Useful for cache integrity checks and monitoring.
+   *
+   * @returns Validation result with invalidated skill IDs
+   */
+  async validateCache(): Promise<{
+    isValid: boolean;
+    invalidSkillIds: string[];
+    validCount: number;
+    invalidCount: number;
+    durationMs: number;
+  }> {
+    if (!this.dbService) {
+      this.logger.warn('Database service not configured - cannot validate cache');
+      return {
+        isValid: true,
+        invalidSkillIds: [],
+        validCount: 0,
+        invalidCount: 0,
+        durationMs: 0,
+      };
+    }
+
+    const cachedEntries = Array.from(this.cache.values()).map((entry) => entry.data);
+    const validation = await this.validator.validateCachedSkills(cachedEntries);
+
+    // Automatically invalidate entries with hash mismatches
+    if (!validation.isValid) {
+      for (const skillId of validation.invalidSkillIds) {
+        this.cache.delete(skillId);
+      }
+
+      this.logger.info('Cache validation found and removed stale entries', {
+        invalidatedCount: validation.invalidCount,
+        invalidSkillIds: validation.invalidSkillIds,
+        durationMs: validation.durationMs,
+      });
+    }
+
+    return validation;
   }
 
   /**

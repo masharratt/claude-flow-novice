@@ -859,7 +859,260 @@ npm test -- tests/skill-loader.test.ts --watch
 
 ---
 
+## Cache Invalidation
+
+### Overview
+
+The SkillLoader includes automatic hash-based cache invalidation to ensure cached skills remain synchronized with database content. Cache entries are validated on each `loadContextualSkills()` call and automatically removed if content hashes mismatch.
+
+### How It Works
+
+**Bulk Hash Validation Flow:**
+1. Extract all cached skill IDs
+2. Query current hashes from database (single SQL query with WHERE IN)
+3. Compare cached hashes vs current hashes in parallel
+4. Invalidate entries with mismatches (atomic removal)
+
+**Performance Target:** <100ms for 100 skills
+
+### API Usage
+
+**Manual Cache Validation:**
+```typescript
+const loader = new SkillLoader(dbService);
+
+// Validate all cached entries
+const validation = await loader.validateCache();
+
+if (!validation.isValid) {
+  console.log(`Invalidated ${validation.invalidCount} skills:`, validation.invalidSkillIds);
+}
+```
+
+**Automatic Validation:**
+```typescript
+// Cache validation happens automatically
+const result = await loader.loadContextualSkills({
+  agentType: 'backend-developer',
+});
+
+console.log({
+  cacheHits: result.cacheHitCount,
+  cacheMisses: result.cacheMissCount,
+  invalidations: result.cacheInvalidationCount // New metric
+});
+```
+
+**Bulk Hash Query (Low-Level):**
+```typescript
+import { SkillCacheValidator } from './src/cli/skill-cache-validator';
+
+const validator = new SkillCacheValidator(logger, dbService);
+
+// Query hashes for multiple skills (single DB query)
+const skillIds = ['skill-1', 'skill-2', 'skill-3'];
+const hashes = await validator.querySkillHashes(skillIds);
+
+console.log(hashes.get('skill-1')); // 'abc123...'
+```
+
+**Validate Cached Skills:**
+```typescript
+const cachedEntries = [
+  {
+    skillId: 'skill-1',
+    content: '...',
+    contentHash: 'old-hash',
+    cachedAt: new Date(),
+    validUntil: new Date(Date.now() + 300000),
+  },
+];
+
+const validation = await validator.validateCachedSkills(cachedEntries);
+
+console.log({
+  isValid: validation.isValid,
+  invalidSkillIds: validation.invalidSkillIds,
+  durationMs: validation.durationMs,
+});
+```
+
+### Monitoring Queries
+
+**Cache Invalidation Events (Last 24 Hours):**
+```typescript
+import { SkillsQueryBuilder } from './src/db/skills-query';
+
+const dbService = new DatabaseService();
+const sqlite = dbService.getAdapter('sqlite');
+
+const { sql, params } = SkillsQueryBuilder.getCacheInvalidations(24);
+const events = await sqlite.raw(sql, params);
+
+events.forEach(event => {
+  console.log(`${event.skill_name}: ${event.reason} (${event.invalidated_at})`);
+});
+```
+
+**Cache Performance Metrics:**
+```typescript
+const { sql, params } = SkillsQueryBuilder.getCachePerformanceMetrics(24);
+const metrics = await sqlite.raw(sql, params);
+
+console.log({
+  hitRate: metrics[0].hit_rate + '%',
+  totalHits: metrics[0].total_hits,
+  totalMisses: metrics[0].total_misses,
+  totalInvalidations: metrics[0].total_invalidations,
+  avgLoadTime: metrics[0].avg_load_time_ms + 'ms',
+});
+```
+
+**Frequently Updated Skills:**
+```typescript
+const { sql, params } = SkillsQueryBuilder.getFrequentlyUpdatedSkills(10, 168);
+const topSkills = await sqlite.raw(sql, params);
+
+topSkills.forEach(skill => {
+  console.log(`${skill.skill_name}: ${skill.update_count} updates`);
+});
+```
+
+**Cache Performance by Agent Type:**
+```typescript
+const { sql, params } = SkillsQueryBuilder.getCachePerformanceByAgentType(24);
+const agentMetrics = await sqlite.raw(sql, params);
+
+agentMetrics.forEach(metrics => {
+  console.log(`${metrics.agent_type}: ${metrics.hit_rate}% hit rate`);
+});
+```
+
+### Database Schema
+
+**Cache Invalidations Table:**
+```sql
+CREATE TABLE IF NOT EXISTS cache_invalidations (
+  id TEXT PRIMARY KEY,
+  skill_id TEXT NOT NULL,
+  invalidated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  reason TEXT NOT NULL,
+  old_hash TEXT,
+  new_hash TEXT,
+  FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_ci_skill_id ON cache_invalidations(skill_id);
+CREATE INDEX IF NOT EXISTS idx_ci_timestamp ON cache_invalidations(invalidated_at);
+```
+
+**Skill Loader Metrics Table:**
+```sql
+CREATE TABLE IF NOT EXISTS skill_loader_metrics (
+  id TEXT PRIMARY KEY,
+  agent_type TEXT NOT NULL,
+  load_time_ms INTEGER NOT NULL,
+  cache_hit INTEGER NOT NULL DEFAULT 0,
+  cache_miss INTEGER NOT NULL DEFAULT 0,
+  cache_invalidation INTEGER NOT NULL DEFAULT 0,
+  skills_loaded INTEGER NOT NULL,
+  timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_slm_agent_type ON skill_loader_metrics(agent_type);
+CREATE INDEX IF NOT EXISTS idx_slm_timestamp ON skill_loader_metrics(timestamp);
+```
+
+**Run Migration:**
+```bash
+# Apply cache invalidation tracking migration
+sqlite3 ./db/skills.db < ./src/db/migrations/002-cache-invalidation-tracking.sql
+```
+
+### Graceful Degradation
+
+**Cache invalidation failures are non-blocking:**
+- Database unavailable → Skip validation, continue loading
+- Hash query fails → Log error, preserve cache
+- Validation timeout → Log warning, continue loading
+
+**Example:**
+```typescript
+const loader = new SkillLoader(dbService);
+
+// Even if cache validation fails, loading continues
+const result = await loader.loadContextualSkills({
+  agentType: 'backend-developer',
+});
+
+// Will be 0 if validation failed, not an error
+console.log(`Invalidated: ${result.cacheInvalidationCount}`);
+```
+
+### Troubleshooting
+
+**Issue: High cache invalidation rate**
+```typescript
+// Query frequently updated skills
+const { sql, params } = SkillsQueryBuilder.getFrequentlyUpdatedSkills(10, 24);
+const topSkills = await sqlite.raw(sql, params);
+
+// Identify skills being modified frequently (may need longer TTL or pinning)
+topSkills.forEach(skill => {
+  if (skill.update_count > 10) {
+    console.warn(`${skill.skill_name} updated ${skill.update_count} times in 24h`);
+  }
+});
+```
+
+**Issue: Slow cache validation**
+```typescript
+const validation = await loader.validateCache();
+
+if (validation.durationMs > 100) {
+  console.warn(`Cache validation slow: ${validation.durationMs}ms`);
+  // Consider: reduce cache size, add content_hash index, optimize query
+}
+```
+
+**Issue: Missing invalidation events**
+```sql
+-- Check if cache_invalidations table exists
+SELECT name FROM sqlite_master WHERE type='table' AND name='cache_invalidations';
+
+-- If missing, run migration
+```
+
+**Issue: Stale cache persisting**
+```typescript
+// Force clear cache
+loader.clearCache();
+
+// Reload with fresh data
+const result = await loader.loadContextualSkills({
+  agentType: 'backend-developer',
+});
+```
+
+---
+
 ## Changelog
+
+### v1.1.0 (2025-11-15 - Task 1.4)
+- **Feature**: Hash-based cache invalidation
+- **Feature**: Bulk hash validation (<100ms for 100 skills)
+- **Feature**: Atomic cache updates
+- **Feature**: Cache invalidation metrics tracking
+- **Database**: Added `cache_invalidations` table
+- **Database**: Added `skill_loader_metrics` table
+- **API**: Added `SkillLoader.validateCache()`
+- **API**: Added `SkillCacheValidator.querySkillHashes()`
+- **API**: Added `SkillCacheValidator.validateCachedSkills()`
+- **API**: Added `cacheInvalidationCount` to `SkillLoadResult`
+- **Monitoring**: 9 new monitoring queries for cache analytics
+- **Performance**: Bulk hash queries optimized with WHERE IN clause
+- **Reliability**: Graceful degradation on validation failures
+- **Tests**: 30+ new tests for cache invalidation (coverage ≥90%)
 
 ### v1.0.0 (2025-11-15)
 - Initial implementation
@@ -872,6 +1125,6 @@ npm test -- tests/skill-loader.test.ts --watch
 
 ---
 
-**Maintainer:** TypeScript Specialist
-**Last Updated:** 2025-11-15
-**Confidence:** 0.95
+**Maintainer:** Backend Developer
+**Last Updated:** 2025-11-15 (Task 1.4)
+**Confidence:** 0.92

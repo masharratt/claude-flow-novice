@@ -386,4 +386,241 @@ export class SkillsQueryBuilder {
       CREATE INDEX IF NOT EXISTS idx_sul_loaded_at ON skill_usage_log(loaded_at);
     `;
   }
+
+  /**
+   * Create cache_invalidations table schema
+   *
+   * Tracks cache invalidation events for monitoring and analytics.
+   */
+  static createCacheInvalidationsTableSchema(): string {
+    return `
+      CREATE TABLE IF NOT EXISTS cache_invalidations (
+        id TEXT PRIMARY KEY,
+        skill_id TEXT NOT NULL,
+        invalidated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        reason TEXT NOT NULL,
+        old_hash TEXT,
+        new_hash TEXT,
+        FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_ci_skill_id ON cache_invalidations(skill_id);
+      CREATE INDEX IF NOT EXISTS idx_ci_timestamp ON cache_invalidations(invalidated_at);
+    `;
+  }
+
+  /**
+   * Create skill_loader_metrics table schema
+   *
+   * Tracks skill loader performance metrics for monitoring.
+   */
+  static createSkillLoaderMetricsTableSchema(): string {
+    return `
+      CREATE TABLE IF NOT EXISTS skill_loader_metrics (
+        id TEXT PRIMARY KEY,
+        agent_type TEXT NOT NULL,
+        load_time_ms INTEGER NOT NULL,
+        cache_hit INTEGER NOT NULL DEFAULT 0,
+        cache_miss INTEGER NOT NULL DEFAULT 0,
+        cache_invalidation INTEGER NOT NULL DEFAULT 0,
+        skills_loaded INTEGER NOT NULL,
+        timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_slm_agent_type ON skill_loader_metrics(agent_type);
+      CREATE INDEX IF NOT EXISTS idx_slm_timestamp ON skill_loader_metrics(timestamp);
+    `;
+  }
+
+  /**
+   * Get cache invalidation events (last N hours)
+   *
+   * @param hours - Number of hours to look back (default: 24)
+   * @returns SQL query for cache invalidations
+   */
+  static getCacheInvalidations(hours: number = 24): { sql: string; params: any[] } {
+    return {
+      sql: `
+        SELECT
+          ci.skill_id,
+          s.name as skill_name,
+          ci.invalidated_at,
+          ci.reason,
+          ci.old_hash,
+          ci.new_hash
+        FROM cache_invalidations ci
+        LEFT JOIN skills s ON ci.skill_id = s.id
+        WHERE ci.invalidated_at > datetime('now', '-' || ? || ' hours')
+        ORDER BY ci.invalidated_at DESC
+      `,
+      params: [hours],
+    };
+  }
+
+  /**
+   * Get cache invalidation count (last N hours)
+   *
+   * @param hours - Number of hours to look back (default: 24)
+   * @returns SQL query for invalidation count
+   */
+  static getCacheInvalidationCount(hours: number = 24): { sql: string; params: any[] } {
+    return {
+      sql: `
+        SELECT COUNT(*) as invalidations
+        FROM cache_invalidations
+        WHERE invalidated_at > datetime('now', '-' || ? || ' hours')
+      `,
+      params: [hours],
+    };
+  }
+
+  /**
+   * Get skills with frequent updates (top N)
+   *
+   * Identifies skills that are frequently modified based on invalidation events.
+   *
+   * @param limit - Number of top skills to return (default: 10)
+   * @param hours - Number of hours to look back (default: 168 = 7 days)
+   * @returns SQL query for frequently updated skills
+   */
+  static getFrequentlyUpdatedSkills(
+    limit: number = 10,
+    hours: number = 168
+  ): { sql: string; params: any[] } {
+    return {
+      sql: `
+        SELECT
+          ci.skill_id,
+          s.name as skill_name,
+          COUNT(*) as update_count,
+          MAX(ci.invalidated_at) as last_update
+        FROM cache_invalidations ci
+        LEFT JOIN skills s ON ci.skill_id = s.id
+        WHERE ci.invalidated_at > datetime('now', '-' || ? || ' hours')
+        GROUP BY ci.skill_id, s.name
+        ORDER BY update_count DESC
+        LIMIT ?
+      `,
+      params: [hours, limit],
+    };
+  }
+
+  /**
+   * Get cache hit/miss/invalidation ratio
+   *
+   * Calculates cache performance metrics over the last N hours.
+   *
+   * @param hours - Number of hours to look back (default: 24)
+   * @returns SQL query for cache performance metrics
+   */
+  static getCachePerformanceMetrics(hours: number = 24): { sql: string; params: any[] } {
+    return {
+      sql: `
+        SELECT
+          SUM(cache_hit) as total_hits,
+          SUM(cache_miss) as total_misses,
+          SUM(cache_invalidation) as total_invalidations,
+          ROUND(100.0 * SUM(cache_hit) / NULLIF(SUM(cache_hit) + SUM(cache_miss), 0), 2) as hit_rate,
+          ROUND(AVG(load_time_ms), 2) as avg_load_time_ms,
+          COUNT(*) as total_loads
+        FROM skill_loader_metrics
+        WHERE timestamp > datetime('now', '-' || ? || ' hours')
+      `,
+      params: [hours],
+    };
+  }
+
+  /**
+   * Get cache performance by agent type
+   *
+   * Breaks down cache performance metrics per agent type.
+   *
+   * @param hours - Number of hours to look back (default: 24)
+   * @returns SQL query for agent-specific cache metrics
+   */
+  static getCachePerformanceByAgentType(hours: number = 24): { sql: string; params: any[] } {
+    return {
+      sql: `
+        SELECT
+          agent_type,
+          SUM(cache_hit) as hits,
+          SUM(cache_miss) as misses,
+          SUM(cache_invalidation) as invalidations,
+          ROUND(100.0 * SUM(cache_hit) / NULLIF(SUM(cache_hit) + SUM(cache_miss), 0), 2) as hit_rate,
+          ROUND(AVG(load_time_ms), 2) as avg_load_time_ms,
+          COUNT(*) as load_count
+        FROM skill_loader_metrics
+        WHERE timestamp > datetime('now', '-' || ? || ' hours')
+        GROUP BY agent_type
+        ORDER BY load_count DESC
+      `,
+      params: [hours],
+    };
+  }
+
+  /**
+   * Record cache invalidation event
+   *
+   * @param skillId - Skill ID that was invalidated
+   * @param reason - Reason for invalidation
+   * @param oldHash - Old content hash
+   * @param newHash - New content hash
+   * @returns SQL query for inserting invalidation record
+   */
+  static recordCacheInvalidation(
+    skillId: string,
+    reason: string,
+    oldHash?: string,
+    newHash?: string
+  ): { sql: string; params: any[] } {
+    return {
+      sql: `
+        INSERT INTO cache_invalidations (id, skill_id, reason, old_hash, new_hash)
+        VALUES (?, ?, ?, ?, ?)
+      `,
+      params: [
+        `ci-${skillId}-${Date.now()}`,
+        skillId,
+        reason,
+        oldHash || null,
+        newHash || null,
+      ],
+    };
+  }
+
+  /**
+   * Record skill loader metrics
+   *
+   * @param agentType - Agent type that loaded skills
+   * @param loadTimeMs - Load time in milliseconds
+   * @param cacheHit - Cache hit count (0 or 1)
+   * @param cacheMiss - Cache miss count (0 or 1)
+   * @param cacheInvalidation - Cache invalidation count
+   * @param skillsLoaded - Number of skills loaded
+   * @returns SQL query for inserting metrics record
+   */
+  static recordSkillLoaderMetrics(
+    agentType: string,
+    loadTimeMs: number,
+    cacheHit: number,
+    cacheMiss: number,
+    cacheInvalidation: number,
+    skillsLoaded: number
+  ): { sql: string; params: any[] } {
+    return {
+      sql: `
+        INSERT INTO skill_loader_metrics (id, agent_type, load_time_ms, cache_hit, cache_miss, cache_invalidation, skills_loaded)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      params: [
+        `slm-${agentType}-${Date.now()}`,
+        agentType,
+        loadTimeMs,
+        cacheHit,
+        cacheMiss,
+        cacheInvalidation,
+        skillsLoaded,
+      ],
+    };
+  }
 }

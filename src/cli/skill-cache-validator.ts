@@ -10,6 +10,7 @@
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import { createLogger, Logger } from '../lib/logging';
+import { DatabaseService } from '../lib/database-service';
 
 /**
  * Cache validation result
@@ -51,9 +52,11 @@ export interface CachedSkillEntry {
 export class SkillCacheValidator {
   private logger: Logger;
   private hashAlgorithm: string = 'sha256';
+  private dbService?: DatabaseService;
 
-  constructor(logger?: Logger) {
+  constructor(logger?: Logger, dbService?: DatabaseService) {
     this.logger = logger ?? createLogger('skill-cache-validator');
+    this.dbService = dbService;
   }
 
   /**
@@ -350,6 +353,171 @@ export class SkillCacheValidator {
     }
 
     return invalidSkills;
+  }
+
+  /**
+   * Query skill content hashes from database in bulk
+   *
+   * Optimized single query with WHERE IN clause for performance.
+   * Performance target: <100ms for 100 skills
+   *
+   * @param skillIds - Array of skill IDs to query
+   * @returns Map of skill ID to content hash
+   */
+  async querySkillHashes(skillIds: string[]): Promise<Map<string, string>> {
+    if (!this.dbService) {
+      this.logger.warn('Database service not configured - cannot query skill hashes');
+      return new Map();
+    }
+
+    if (skillIds.length === 0) {
+      return new Map();
+    }
+
+    const startTime = Date.now();
+    const hashes = new Map<string, string>();
+
+    try {
+      // Get SQLite adapter
+      const sqlite = this.dbService.getAdapter('sqlite');
+
+      // Build bulk query with WHERE IN clause
+      const placeholders = skillIds.map(() => '?').join(',');
+      const sql = `
+        SELECT id, content_hash
+        FROM skills
+        WHERE id IN (${placeholders})
+      `;
+
+      // Execute query
+      const records = await sqlite.raw<Array<{ id: string; content_hash: string }>>(
+        sql,
+        skillIds
+      );
+
+      // Build hash map
+      for (const record of records) {
+        hashes.set(record.id, record.content_hash);
+      }
+
+      const duration = Date.now() - startTime;
+
+      this.logger.debug('Bulk hash query completed', {
+        skillCount: skillIds.length,
+        foundCount: hashes.size,
+        durationMs: duration,
+        avgMs: duration / skillIds.length,
+      });
+
+      // Log performance warning if exceeding target
+      if (duration > 100) {
+        this.logger.warn('Bulk hash query exceeded 100ms target', {
+          durationMs: duration,
+          skillCount: skillIds.length,
+          target: 100,
+        });
+      }
+
+      return hashes;
+    } catch (error) {
+      this.logger.error('Failed to query skill hashes', error as Error, {
+        skillIds,
+      });
+
+      return new Map();
+    }
+  }
+
+  /**
+   * Validate cached skills against database hashes in bulk
+   *
+   * Optimized for performance with single database query.
+   * Performance target: <100ms for 100 skills
+   *
+   * @param cachedSkills - Array of cached skills to validate
+   * @returns Bulk validation result with invalid skill IDs
+   */
+  async validateCachedSkills(
+    cachedSkills: CachedSkillEntry[]
+  ): Promise<{
+    isValid: boolean;
+    invalidSkillIds: string[];
+    validCount: number;
+    invalidCount: number;
+    durationMs: number;
+  }> {
+    const startTime = Date.now();
+
+    if (cachedSkills.length === 0) {
+      return {
+        isValid: true,
+        invalidSkillIds: [],
+        validCount: 0,
+        invalidCount: 0,
+        durationMs: 0,
+      };
+    }
+
+    // Extract skill IDs
+    const skillIds = cachedSkills.map((skill) => skill.skillId);
+
+    // Bulk query current hashes from database (single query)
+    const currentHashes = await this.querySkillHashes(skillIds);
+
+    // Compare cached vs current hashes in parallel
+    const invalidSkillIds: string[] = [];
+    const comparisons = cachedSkills.map((skill) => {
+      const currentHash = currentHashes.get(skill.skillId);
+
+      if (!currentHash) {
+        // Skill not found in database - consider invalid
+        invalidSkillIds.push(skill.skillId);
+        return false;
+      }
+
+      if (currentHash !== skill.contentHash) {
+        // Hash mismatch - cache invalid
+        invalidSkillIds.push(skill.skillId);
+        this.logger.debug('Cache invalidated for skill', {
+          skillId: skill.skillId,
+          cachedHash: skill.contentHash,
+          currentHash,
+        });
+        return false;
+      }
+
+      return true;
+    });
+
+    const validCount = comparisons.filter((match) => match === true).length;
+    const invalidCount = invalidSkillIds.length;
+    const isValid = invalidCount === 0;
+    const durationMs = Date.now() - startTime;
+
+    this.logger.debug('Bulk cache validation completed', {
+      totalSkills: cachedSkills.length,
+      validCount,
+      invalidCount,
+      durationMs,
+      avgMs: durationMs / cachedSkills.length,
+    });
+
+    // Log performance warning if exceeding target
+    if (durationMs > 100 && cachedSkills.length <= 100) {
+      this.logger.warn('Bulk cache validation exceeded 100ms target', {
+        durationMs,
+        skillCount: cachedSkills.length,
+        target: 100,
+      });
+    }
+
+    return {
+      isValid,
+      invalidSkillIds,
+      validCount,
+      invalidCount,
+      durationMs,
+    };
   }
 }
 
