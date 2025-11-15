@@ -160,7 +160,7 @@ allowed_skills:
 3. Feedback loop on campaign performance → **BLOCKED (no coordination)**
 
 **Current Infrastructure:**
-```
+```text
 Frontend Agent (Sales Team)  ←→  Marketing Agent (Marketing Team)
        ↓ (blocked by firewall)         ↓ (different Redis namespace)
    172.18.1.11                     172.18.6.11
@@ -509,7 +509,7 @@ done
 |----------|----------------|-----------|
 | **MVP (3-6 month timeline)** | ✅ **GO on Phase 1 only** | Proves cross-team coordination viability, low risk |
 | **Production (6-12 months)** | ✅ **GO on Phases 1+2** | Covers 85% of workflows, manageable complexity |
-| **Enterprise (12-18 months)** | ⚠️ **CONDITIONAL GO on Phase 3** | High value but requires dedicated platform team |
+| **Enterprise (12-18 months)** | ⚠️ **CONDITIONAL GO on Phase 3** | High value but requires the platform team to be dedicated |
 | **Current State (no changes)** | ❌ **NO-GO** | Infrastructure cannot support real workflows |
 
 ### 9.2 Exec Summary for Stakeholders
