@@ -1,0 +1,10 @@
+{
+  "backup_id": "task-123-agent-456-1763185360",
+  "task_id": "task-123",
+  "agent_id": "agent-456",
+  "original_path": "/tmp/test-file.txt",
+  "file_name": "test-file.txt",
+  "content_hash": "d2a84f4b8b650937ec8f73cd8be2c74add5a911ba64df27458ed8229da804a26",
+  "backup_timestamp": "2025-11-15T05:42:40Z",
+  "file_size": 12
+}
