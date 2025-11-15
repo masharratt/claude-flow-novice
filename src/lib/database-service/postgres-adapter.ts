@@ -77,7 +77,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     return this.connected && this.pool !== null;
   }
 
-  async get<T = any>(key: string): Promise<T | null> {
+  async get<T = any>(key: string, transactionId?: string): Promise<T | null> {
     this.ensureConnected();
 
     try {
@@ -92,7 +92,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       }
 
       const query = `SELECT * FROM ${this.sanitizeIdentifier(table)} WHERE id = $1`;
-      const result = await this.pool!.query<T>(query, [id]);
+      const client = this.getQueryClient(transactionId);
+      const result = await client.query<T>(query, [id]);
 
       return result.rows.length > 0 ? result.rows[0] : null;
     } catch (err) {
@@ -106,7 +107,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
   }
 
-  async list<T = any>(table: string, options?: QueryOptions<T>): Promise<T[]> {
+  async list<T = any>(table: string, options?: QueryOptions<T>, transactionId?: string): Promise<T[]> {
     this.ensureConnected();
 
     try {
@@ -139,7 +140,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         params.push(options.offset);
       }
 
-      const result = await this.pool!.query<T>(query, params);
+      const client = this.getQueryClient(transactionId);
+      const result = await client.query<T>(query, params);
       return result.rows;
     } catch (err) {
       const errorCode = mapPostgresError(err);
@@ -152,11 +154,11 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
   }
 
-  async query<T = any>(table: string, filters: QueryFilter<T>[]): Promise<T[]> {
-    return this.list(table, { filters });
+  async query<T = any>(table: string, filters: QueryFilter<T>[], transactionId?: string): Promise<T[]> {
+    return this.list(table, { filters }, transactionId);
   }
 
-  async insert<T = any>(table: string, data: T): Promise<OperationResult<T>> {
+  async insert<T = any>(table: string, data: T, transactionId?: string): Promise<OperationResult<T>> {
     this.ensureConnected();
 
     try {
@@ -168,7 +170,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
       const query = `INSERT INTO ${this.sanitizeIdentifier(table)} (${columns}) VALUES (${placeholders}) RETURNING *`;
 
-      const result = await this.pool!.query<T>(query, values);
+      const client = this.getQueryClient(transactionId);
+      const result = await client.query<T>(query, values);
 
       return createSuccessResult(result.rows[0], result.rowCount || 0, result.rows[0] ? (result.rows[0] as any).id : undefined);
     } catch (err) {
@@ -182,13 +185,18 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
   }
 
-  async insertMany<T = any>(table: string, data: T[]): Promise<OperationResult<T[]>> {
+  async insertMany<T = any>(table: string, data: T[], transactionId?: string): Promise<OperationResult<T[]>> {
     this.ensureConnected();
 
-    const client = await this.pool!.connect();
+    // Check if we're already in a transaction
+    const hasActiveTransaction = transactionId && this.transactions.has(transactionId);
+    const client = hasActiveTransaction ? this.getQueryClient(transactionId) as PoolClient : await this.pool!.connect();
 
     try {
-      await client.query('BEGIN');
+      // Only begin transaction if not already in one
+      if (!hasActiveTransaction) {
+        await client.query('BEGIN');
+      }
 
       const results: T[] = [];
 
@@ -205,11 +213,17 @@ export class PostgresAdapter implements IDatabaseAdapter {
         results.push(result.rows[0]);
       }
 
-      await client.query('COMMIT');
+      // Only commit if we started the transaction
+      if (!hasActiveTransaction) {
+        await client.query('COMMIT');
+      }
 
       return createSuccessResult(results, results.length);
     } catch (err) {
-      await client.query('ROLLBACK');
+      // Only rollback if we started the transaction
+      if (!hasActiveTransaction) {
+        await client.query('ROLLBACK');
+      }
 
       const errorCode = mapPostgresError(err);
       return createFailedResult(createDatabaseError(
@@ -219,11 +233,14 @@ export class PostgresAdapter implements IDatabaseAdapter {
         { table, count: data.length }
       ));
     } finally {
-      client.release();
+      // Only release client if we acquired it (not using existing transaction client)
+      if (!hasActiveTransaction) {
+        client.release();
+      }
     }
   }
 
-  async update<T = any>(table: string, key: string, data: Partial<T>): Promise<OperationResult<T>> {
+  async update<T = any>(table: string, key: string, data: Partial<T>, transactionId?: string): Promise<OperationResult<T>> {
     this.ensureConnected();
 
     try {
@@ -234,7 +251,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
       const query = `UPDATE ${this.sanitizeIdentifier(table)} SET ${setClauses} WHERE id = $${keys.length + 1} RETURNING *`;
 
-      const result = await this.pool!.query<T>(query, [...values, key]);
+      const client = this.getQueryClient(transactionId);
+      const result = await client.query<T>(query, [...values, key]);
 
       if (result.rowCount === 0) {
         return createFailedResult(createDatabaseError(
@@ -257,13 +275,14 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
   }
 
-  async delete(table: string, key: string): Promise<OperationResult<void>> {
+  async delete(table: string, key: string, transactionId?: string): Promise<OperationResult<void>> {
     this.ensureConnected();
 
     try {
       const query = `DELETE FROM ${this.sanitizeIdentifier(table)} WHERE id = $1`;
 
-      const result = await this.pool!.query(query, [key]);
+      const client = this.getQueryClient(transactionId);
+      const result = await client.query(query, [key]);
 
       if (result.rowCount === 0) {
         return createFailedResult(createDatabaseError(
@@ -286,11 +305,12 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
   }
 
-  async raw<T = any>(query: string, params?: any[]): Promise<T> {
+  async raw<T = any>(query: string, params?: any[], transactionId?: string): Promise<T> {
     this.ensureConnected();
 
     try {
-      const result = await this.pool!.query<T>(query, params);
+      const client = this.getQueryClient(transactionId);
+      const result = await client.query<T>(query, params);
       return result.rows as T;
     } catch (err) {
       const errorCode = mapPostgresError(err);
@@ -377,6 +397,19 @@ export class PostgresAdapter implements IDatabaseAdapter {
   private sanitizeIdentifier(identifier: string): string {
     // Remove any characters that aren't alphanumeric or underscore
     return identifier.replace(/[^a-zA-Z0-9_]/g, '');
+  }
+
+  /**
+   * Get client for query execution (transaction client if available, otherwise pool)
+   */
+  private getQueryClient(transactionId?: string): Pool | PoolClient {
+    if (transactionId) {
+      const transaction = this.transactions.get(transactionId);
+      if (transaction) {
+        return transaction.client;
+      }
+    }
+    return this.pool!;
   }
 
   private buildWhereClause<T>(filter: QueryFilter<T>, params: any[]): string {
