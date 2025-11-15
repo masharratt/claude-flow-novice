@@ -311,7 +311,7 @@ npx claude-flow-novice agent-spawn \
 
 **Location:** `.claude/skills/workflow-codification/approval-workflow.sh`
 
-**State Machine:**
+**State Machine (Enhanced with Approval Tiers):**
 
 ```
 DETECTED
@@ -322,16 +322,50 @@ GENERATING (Skill generator spawned)
     ├─> GENERATION_FAILED (Validation errors) [Terminal]
     │
     ▼
-PENDING_REVIEW (Expert notified)
+TIER_ASSESSMENT (Automatic risk assessment based on approval_tier_rules)
     │
-    ├─> APPROVED ──> DEPLOYING ──> DEPLOYED [Terminal]
-    │                    │
-    │                    └─> DEPLOYMENT_FAILED (Retry or escalate)
+    ├─> approval_tier = 'auto' ──> AUTO_APPROVED ──> DEPLOYING ──> DEPLOYED [Terminal]
+    │                                    │
+    │                                    └─> Notification sent (informational only)
     │
-    ├─> REJECTED ──> ARCHIVED [Terminal]
+    ├─> approval_tier = 'escalate' ──> PENDING_COORDINATOR_REVIEW (Team Coordinator notified)
+    │                                         │
+    │                                         ├─> APPROVED_BY_COORDINATOR ──> DEPLOYING ──> DEPLOYED
+    │                                         │
+    │                                         ├─> ESCALATED_TO_EXPERT ──> PENDING_EXPERT_REVIEW
+    │                                         │
+    │                                         └─> REJECTED_BY_COORDINATOR ──> ARCHIVED [Terminal]
     │
-    └─> NEEDS_CORRECTION ──> CORRECTING ──> [Back to PENDING_REVIEW]
+    └─> approval_tier = 'human_required' ──> PENDING_EXPERT_REVIEW (Expert notified)
+                                                   │
+                                                   ├─> APPROVED ──> DEPLOYING ──> DEPLOYED [Terminal]
+                                                   │                    │
+                                                   │                    └─> DEPLOYMENT_FAILED (Retry or escalate)
+                                                   │
+                                                   ├─> REJECTED ──> ARCHIVED [Terminal]
+                                                   │
+                                                   └─> NEEDS_CORRECTION ──> CORRECTING ──> [Back to PENDING_EXPERT_REVIEW]
 ```
+
+**Tier-Based Workflow Logic:**
+
+1. **AUTO (Tier 1):** Skill automatically approved after tier assessment, deployed immediately
+   - Notification sent to team (informational)
+   - SLA: Immediate deployment (< 60 seconds)
+   - Use cases: Read-only operations, validation checks, content generation
+
+2. **ESCALATE (Tier 2):** Skill requires Team Coordinator review
+   - Team Coordinator notified via Slack (low-friction notification)
+   - Coordinator can: Approve, Escalate to Expert, or Reject
+   - SLA: 24 hours for coordinator review
+   - Use cases: Constrained writes, authenticated API calls, team-scoped MCP invocations
+
+3. **HUMAN_REQUIRED (Tier 3):** Skill requires Expert human approval
+   - Expert notified via Email + Slack (high-priority notification)
+   - Expert performs deep code review
+   - Expert can: Approve, Reject, or Request Corrections
+   - SLA: 48 hours (high priority) / 7 days (medium/low priority)
+   - Use cases: Cross-team writes, production file modifications, security-sensitive operations
 
 **Notification System:**
 
@@ -748,6 +782,8 @@ CREATE TABLE workflow_patterns (
     estimated_savings_usd DECIMAL(10,2),
     priority VARCHAR(20) CHECK (priority IN ('high', 'medium', 'low')),
     status VARCHAR(50) DEFAULT 'DETECTED',   -- DETECTED, GENERATING, PENDING_REVIEW, APPROVED, REJECTED, DEPLOYED
+    approval_tier VARCHAR(20) DEFAULT 'escalate' CHECK (approval_tier IN ('auto', 'escalate', 'human_required')),
+    risk_level VARCHAR(20) CHECK (risk_level IN ('low', 'medium', 'high', 'critical')),
     tags TEXT[],
     domain TEXT[],
     production_path TEXT,
@@ -761,6 +797,8 @@ CREATE TABLE workflow_patterns (
 
 CREATE INDEX idx_workflow_patterns_status ON workflow_patterns(status);
 CREATE INDEX idx_workflow_patterns_priority ON workflow_patterns(priority);
+CREATE INDEX idx_workflow_patterns_approval_tier ON workflow_patterns(approval_tier);
+CREATE INDEX idx_workflow_patterns_risk_level ON workflow_patterns(risk_level);
 CREATE INDEX idx_workflow_patterns_teams ON workflow_patterns USING GIN(teams_affected);
 CREATE INDEX idx_workflow_patterns_tags ON workflow_patterns USING GIN(tags);
 
@@ -775,15 +813,61 @@ CREATE TABLE skill_metadata (
     parameters JSONB,                        -- [{"name": "param1", "type": "string", ...}]
     test_coverage DECIMAL(3,2),
     edge_cases_count INTEGER DEFAULT 0,
+    approval_tier VARCHAR(20) CHECK (approval_tier IN ('auto', 'escalate', 'human_required')),
+    risk_assessment JSONB,                   -- {"categories": ["database-write", "external-api"], "score": 0.75}
     generated_at TIMESTAMP,
     approved_at TIMESTAMP,
     approved_by VARCHAR(255),
+    auto_approved BOOLEAN DEFAULT FALSE,
     rejected_at TIMESTAMP,
     rejected_by VARCHAR(255),
     rejection_reason TEXT
 );
 
 CREATE INDEX idx_skill_metadata_pattern ON skill_metadata(pattern_id);
+CREATE INDEX idx_skill_metadata_approval_tier ON skill_metadata(approval_tier);
+
+-- ============================================================================
+-- APPROVAL TIER RULES TABLE
+-- ============================================================================
+CREATE TABLE approval_tier_rules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    rule_name VARCHAR(255) NOT NULL UNIQUE,
+    tier VARCHAR(20) NOT NULL CHECK (tier IN ('auto', 'escalate', 'human_required')),
+    risk_category VARCHAR(100) NOT NULL,     -- e.g., "database-write", "external-api", "file-modification"
+    condition JSONB NOT NULL,                -- Rule conditions (e.g., {"operation": "read-only", "scope": "team-isolated"})
+    description TEXT,
+    priority INTEGER NOT NULL,               -- Lower number = higher priority (checked first)
+    enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_approval_tier_rules_tier ON approval_tier_rules(tier);
+CREATE INDEX idx_approval_tier_rules_category ON approval_tier_rules(risk_category);
+CREATE INDEX idx_approval_tier_rules_priority ON approval_tier_rules(priority);
+
+-- Default approval tier rules
+INSERT INTO approval_tier_rules (rule_name, tier, risk_category, condition, description, priority) VALUES
+-- AUTO-APPROVAL TIER (Tier 1 - Low Risk)
+('content-generation-readonly', 'auto', 'content-generation', '{"operation": "read-only"}', 'Read-only content generation (docs, reports, summaries)', 10),
+('database-readonly', 'auto', 'database', '{"operation": "read", "scope": "team-isolated"}', 'Database read operations within team scope', 20),
+('validation-checks', 'auto', 'validation', '{"operation": "check"}', 'Validation and linting operations (no side effects)', 30),
+('file-readonly', 'auto', 'file-system', '{"operation": "read"}', 'File system read operations', 40),
+
+-- ESCALATE TIER (Tier 2 - Medium Risk, Team Coordinator Approval)
+('api-calls-readonly', 'escalate', 'external-api', '{"operation": "read", "authentication": "required"}', 'External API read operations with authentication', 100),
+('file-write-limited', 'escalate', 'file-system', '{"operation": "write", "scope": "temp-directory"}', 'File writes limited to temporary directories', 110),
+('database-write-constrained', 'escalate', 'database', '{"operation": "write", "scope": "team-isolated", "validation": "required"}', 'Database writes within team scope with validation', 120),
+('mcp-invocation', 'escalate', 'mcp-server', '{"operation": "invoke", "server": "team-approved"}', 'MCP server invocations for team-approved servers', 130),
+
+-- HUMAN REQUIRED TIER (Tier 3 - High Risk, Expert Human Approval Required)
+('database-write-unrestricted', 'human_required', 'database', '{"operation": "write", "scope": "cross-team"}', 'Database writes affecting multiple teams', 1000),
+('file-system-privileged', 'human_required', 'file-system', '{"operation": "write", "scope": "production"}', 'File system writes to production directories', 1010),
+('external-api-write', 'human_required', 'external-api', '{"operation": "write"}', 'External API write/modify operations', 1020),
+('docker-operations', 'human_required', 'docker', '{"operation": "any"}', 'Docker container management operations', 1030),
+('kubernetes-operations', 'human_required', 'kubernetes', '{"operation": "any"}', 'Kubernetes cluster operations', 1040),
+('security-sensitive', 'human_required', 'security', '{"operation": "any", "scope": "authentication-authorization"}', 'Security-sensitive operations (auth, secrets, credentials)', 1050);
 
 -- ============================================================================
 -- APPROVAL REQUESTS TABLE
