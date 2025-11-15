@@ -95,11 +95,8 @@ describe('Database Service', () => {
     const redis = dbService.getAdapter('redis');
     const keys = await redis.raw<string[]>('KEYS', ['test:*']);
     if (Array.isArray(keys) && keys.length > 0) {
-      for (const key of keys) {
-        // Redis adapter delete signature: (_table: string, key: string)
-        // Table parameter is unused for Redis (hence underscore prefix)
-        await redis.delete('', key);
-      }
+      // Bulk delete all test keys with a single DEL command
+      await redis.raw('DEL', keys);
     }
   });
 
