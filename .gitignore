@@ -200,3 +200,4 @@ legacy/v1/**/build/
 legacy/v1/**/.swc/
 legacy/v1/**/.next/planning/global/
 \n# Pre-Edit Backup System\n.backups/\n
+*.backup

@@ -1,8 +1,0 @@
-{
-  "timestamp": "1763053862",
-  "agent_id": "unknown",
-  "original_file": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/tests/test-utils.sh",
-  "file_hash": "203316e65a0a6794bd5b7d8ee028ce9a",
-  "backup_path": "/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/8a5edab282632443219e051e4ade2d1d5bbc671c781051bf1437897cbdfea0f1/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/4e3b97e9b870b161e96f8ea28ee15c14250435af077f58a26cc2018ea1bb954a/.backups/unknown/1763053862_203316e65a0a6794bd5b7d8ee028ce9a",
-  "created_at": "2025-11-13T17:11:02Z"
-}
