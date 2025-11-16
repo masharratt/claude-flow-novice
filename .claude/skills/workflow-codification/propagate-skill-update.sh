@@ -57,10 +57,10 @@
 #   0 - Success
 #   1 - Invalid parameters
 #   2 - File not found
-#   3 - Skill not found in database
-#   4 - Invalid version increment
-#   5 - Content hash unchanged (no update needed)
-#   6 - Database error
+#   3 - Database error
+#   4 - Skill not found in database
+#   5 - Invalid version increment
+#   6 - Content hash unchanged (no update needed)
 #
 # Environment Variables:
 #   CFN_SKILLS_DB_PATH         - Path to Skills DB (default: ./.claude/skills-database/skills.db)
@@ -132,46 +132,89 @@ error_exit() {
 # Validation functions
 #######################################
 validate_parameters() {
-    if [[ $# -lt 3 ]]; then
-        error_exit 1 "Usage: propagate-skill-update.sh SKILL_NAME NEW_VERSION UPDATE_PATH [CHANGE_TYPE] [NOTIFY_AGENTS]"
-    fi
-
     local skill_name="$1"
     local new_version="$2"
     local update_path="$3"
 
-    # Validate skill name
-    if [[ -z "$skill_name" ]]; then
-        error_exit 1 "SKILL_NAME cannot be empty"
+    # Validate required parameters
+    if [[ -z "$skill_name" ]] || [[ -z "$new_version" ]] || [[ -z "$update_path" ]]; then
+        echo "[ERROR] Missing required parameters" >&2
+        echo "Usage: propagate-skill-update.sh SKILL_NAME NEW_VERSION UPDATE_PATH [CHANGE_TYPE] [NOTIFY_AGENTS]" >&2
+        echo "" >&2
+        echo "Example:" >&2
+        echo "  propagate-skill-update.sh jwt-authentication 1.0.1 ./skill-v1.0.1.md patch true" >&2
+        exit 1
     fi
 
     # Validate version format (semantic versioning)
     if ! [[ "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-        error_exit 1 "NEW_VERSION must follow semantic versioning (e.g., 1.2.3): $new_version"
+        echo "[ERROR] Invalid version format: $new_version" >&2
+        echo "Expected format: MAJOR.MINOR.PATCH (e.g., 1.0.1)" >&2
+        exit 1
     fi
 
-    # Validate file exists
+    # Validate update file exists
     if [[ ! -f "$update_path" ]]; then
-        error_exit 2 "UPDATE_PATH file not found: $update_path"
+        echo "[ERROR] Update file not found: $update_path" >&2
+        exit 2
+    fi
+
+    # Validate update file is readable
+    if [[ ! -r "$update_path" ]]; then
+        echo "[ERROR] Update file is not readable: $update_path" >&2
+        echo "Check file permissions." >&2
+        exit 2
     fi
 
     # Validate database exists
     if [[ ! -f "$CFN_SKILLS_DB_PATH" ]]; then
-        error_exit 6 "Skills database not found: $CFN_SKILLS_DB_PATH"
+        echo "[ERROR] Skills database not found: $CFN_SKILLS_DB_PATH" >&2
+        exit 3
+    fi
+
+    # Validate skill exists in database (before attempting update)
+    local skill_count
+    skill_count=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name='$skill_name'" 2>/dev/null || echo "0")
+    
+    if [[ "$skill_count" -eq 0 ]]; then
+        echo "[ERROR] Skill not found in database: $skill_name" >&2
+        echo "Available skills:" >&2
+        sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT name FROM skills ORDER BY name" 2>/dev/null || echo "  (could not retrieve skills list)" >&2
+        exit 4
     fi
 }
 
 validate_change_type() {
     local change_type="$1"
 
-    case "$change_type" in
-        patch|minor|major)
-            return 0
-            ;;
-        *)
-            error_exit 1 "CHANGE_TYPE must be one of: patch, minor, major (got: $change_type)"
-            ;;
-    esac
+    # Validate CHANGE_TYPE if provided
+    if [[ -n "$change_type" ]] && ! [[ "$change_type" =~ ^(patch|minor|major)$ ]]; then
+        echo "[ERROR] Invalid CHANGE_TYPE: $change_type" >&2
+        echo "Valid values: patch, minor, major" >&2
+        exit 1
+    fi
+}
+
+#######################################
+# Frontmatter parsing functions
+#######################################
+parse_frontmatter() {
+    local file_path="$1"
+    local key="$2"
+
+    # Extract frontmatter between --- markers
+    local frontmatter=$(sed -n '/^---$/,/^---$/p' "$file_path" | sed '1d;$d')
+
+    # Parse specific key
+    local value=$(echo "$frontmatter" | grep "^${key}:" | cut -d: -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    # Handle array format [tag1, tag2] → convert to JSON array
+    if [[ "$value" =~ ^\[.*\]$ ]]; then
+        # Convert [tag1, tag2] to ["tag1", "tag2"]
+        value=$(echo "$value" | sed 's/\[//;s/\]//' | awk -F', *' '{printf "["; for(i=1;i<=NF;i++) {if(i>1) printf ","; printf "\"" $i "\""} printf "]"}')
+    fi
+
+    echo "$value"
 }
 
 #######################################
@@ -271,7 +314,7 @@ EOF
 )
 
     if [[ -z "$result" ]]; then
-        error_exit 3 "Skill not found in database: $skill_name"
+        error_exit 4 "Skill not found in database: $skill_name"
     fi
 
     echo "$result"
@@ -292,6 +335,10 @@ update_skill_record() {
     local new_version="$2"
     local new_hash="$3"
     local update_path="$4"
+    local new_tags="$5"
+    local new_category="$6"
+    local new_owner="$7"
+    local new_approval_level="$8"
 
     log_info "Updating skill record (ID: $skill_id)"
 
@@ -300,6 +347,10 @@ UPDATE skills
 SET version = '$new_version',
     content_hash = '$new_hash',
     content_path = '$update_path',
+    tags = '$new_tags',
+    category = '$new_category',
+    owner = '$new_owner',
+    approval_level = '$new_approval_level',
     updated_at = datetime('now')
 WHERE id = $skill_id;
 EOF
@@ -309,6 +360,11 @@ EOF
     fi
 
     log_debug "Skill record updated successfully"
+    log_info "Metadata refreshed from frontmatter:"
+    log_info "  Tags: $new_tags"
+    log_info "  Category: $new_category"
+    log_info "  Owner: $new_owner"
+    log_info "  Approval Level: $new_approval_level"
 }
 
 record_approval_history() {
@@ -488,10 +544,39 @@ main() {
     log_success "Content hash calculated and differs from current"
     echo ""
 
-    # Step 5: Update skill record
-    log_info "Step 5: Updating skill record in database"
-    update_skill_record "$skill_id" "$new_version" "$new_hash" "$update_path"
-    log_success "Skill record updated"
+    # Step 5: Parse frontmatter metadata and update skill record
+    log_info "Step 5: Parsing frontmatter metadata from updated skill"
+    local new_tags new_category new_owner new_approval_level
+
+    new_tags=$(parse_frontmatter "$update_path" "tags")
+    new_category=$(parse_frontmatter "$update_path" "category")
+    new_owner=$(parse_frontmatter "$update_path" "owner")
+    new_approval_level=$(parse_frontmatter "$update_path" "approval_level")
+
+    # Use existing values if not found in frontmatter
+    if [[ -z "$new_tags" ]]; then
+        new_tags=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT tags FROM skills WHERE id=$skill_id")
+        log_debug "Tags not found in frontmatter, using existing: $new_tags"
+    fi
+
+    if [[ -z "$new_category" ]]; then
+        new_category=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT category FROM skills WHERE id=$skill_id")
+        log_debug "Category not found in frontmatter, using existing: $new_category"
+    fi
+
+    if [[ -z "$new_owner" ]]; then
+        new_owner=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT owner FROM skills WHERE id=$skill_id")
+        log_debug "Owner not found in frontmatter, using existing: $new_owner"
+    fi
+
+    if [[ -z "$new_approval_level" ]]; then
+        new_approval_level=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT approval_level FROM skills WHERE id=$skill_id")
+        log_debug "Approval level not found in frontmatter, using existing: $new_approval_level"
+    fi
+
+    log_info "Updating skill record in database"
+    update_skill_record "$skill_id" "$new_version" "$new_hash" "$update_path" "$new_tags" "$new_category" "$new_owner" "$new_approval_level"
+    log_success "Skill record updated with refreshed metadata"
     echo ""
 
     # Step 6: Record approval history
@@ -523,6 +608,11 @@ main() {
     log_info "Change Type: $change_type"
     log_info "Content Hash: ${new_hash:0:16}..."
     log_info "Update Path: $update_path"
+    log_info "Metadata Refreshed: Yes"
+    log_info "  Tags: $new_tags"
+    log_info "  Category: $new_category"
+    log_info "  Owner: $new_owner"
+    log_info "  Approval Level: $new_approval_level"
     log_info "=========================================="
 
     exit 0

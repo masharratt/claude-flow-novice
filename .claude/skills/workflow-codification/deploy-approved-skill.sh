@@ -104,24 +104,40 @@ validate_inputs() {
     local skill_name="$2"
     local content_path="$3"
 
-    # Check all required parameters
-    if [ -z "$pattern_id" ] || [ -z "$skill_name" ] || [ -z "$content_path" ]; then
-        error_exit 1 "Missing required parameters. Usage: deploy-approved-skill.sh PATTERN_ID SKILL_NAME CONTENT_PATH [CATEGORY] [TEAM_IDS]"
+    # Validate required parameters
+    if [[ -z "$pattern_id" ]] || [[ -z "$skill_name" ]] || [[ -z "$content_path" ]]; then
+        echo "[ERROR] Missing required parameters" >&2
+        echo "Usage: deploy-approved-skill.sh PATTERN_ID SKILL_NAME CONTENT_PATH [CATEGORY] [TEAM_IDS]" >&2
+        echo "" >&2
+        echo "Example:" >&2
+        echo "  deploy-approved-skill.sh 42 jwt-authentication ./skill.md domain backend-developer" >&2
+        exit 1
     fi
 
-    # Validate pattern ID is numeric
+    # Validate PATTERN_ID is numeric
     if ! [[ "$pattern_id" =~ ^[0-9]+$ ]]; then
-        error_exit 1 "PATTERN_ID must be numeric, got: '$pattern_id'"
+        echo "[ERROR] PATTERN_ID must be numeric: $pattern_id" >&2
+        exit 1
     fi
 
-    # Verify content path exists
-    if [ ! -f "$content_path" ]; then
-        error_exit 2 "Content file not found: $content_path"
+    # Validate content file exists
+    if [[ ! -f "$content_path" ]]; then
+        echo "[ERROR] Content file not found: $content_path" >&2
+        exit 2
     fi
 
-    # Verify Skills DB exists
-    if [ ! -f "$CFN_SKILLS_DB_PATH" ]; then
-        error_exit 3 "Skills database not found: $CFN_SKILLS_DB_PATH"
+    # Validate content file is readable
+    if [[ ! -r "$content_path" ]]; then
+        echo "[ERROR] Content file is not readable: $content_path" >&2
+        echo "Check file permissions." >&2
+        exit 2
+    fi
+
+    # Validate database exists
+    if [[ ! -f "$CFN_SKILLS_DB_PATH" ]]; then
+        echo "[ERROR] Skills database not found: $CFN_SKILLS_DB_PATH" >&2
+        echo "Run schema initialization first." >&2
+        exit 3
     fi
 }
 
