@@ -1,0 +1,116 @@
+groups:
+  - name: error_rate_alerts
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          component: integration
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 1%)"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: ErrorRateWarning
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) > 0.001
+        for: 10m
+        labels:
+          severity: warning
+          component: integration
+        annotations:
+          summary: "Elevated error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 0.1%)"
+
+      - alert: DatabaseErrorRate
+        expr: |
+          (sum(rate(db_queries_failed_total[5m])) / sum(rate(db_queries_total[5m]))) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "High database error rate"
+          description: "Database error rate is {{ $value | humanizePercentage }}"
+          runbook_url: "docs/ROLLBACK_RUNBOOK.md"
+
+      - alert: CoordinationProtocolErrors
+        expr: |
+          (sum(rate(coordination_protocol_errors_total[5m])) / sum(rate(coordination_messages_total[5m]))) > 0.05
+        for: 5m
+        labels:
+          severity: high
+          component: coordination
+        annotations:
+          summary: "High coordination protocol error rate"
+          description: "Protocol error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      - alert: IntegrationPointFailures
+        expr: |
+          sum(rate(integration_point_failures_total[5m])) > 5
+        for: 5m
+        labels:
+          severity: high
+          component: integration
+        annotations:
+          summary: "Integration point failures detected"
+          description: "{{ $value }} integration point failures per second"
+
+      - alert: SkillExecutionFailures
+        expr: |
+          (sum(rate(skill_executions_failed_total[5m])) / sum(rate(skill_executions_total[5m]))) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          component: skill_deployment
+        annotations:
+          summary: "Elevated skill execution failure rate"
+          description: "Skill failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: DataValidationErrors
+        expr: |
+          sum(rate(data_validation_errors_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: critical
+          component: data_integrity
+        annotations:
+          summary: "Data validation errors detected"
+          description: "{{ $value }} validation errors per second - possible data corruption"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: TransactionRollbacks
+        expr: |
+          sum(rate(db_transactions_rolled_back_total[5m])) > 50
+        for: 10m
+        labels:
+          severity: high
+          component: database
+        annotations:
+          summary: "High transaction rollback rate"
+          description: "{{ $value }} transactions rolled back per second"
+
+      - alert: ArtifactStorageErrors
+        expr: |
+          (sum(rate(artifact_storage_errors_total[5m])) / sum(rate(artifact_storage_operations_total[5m]))) > 0.01
+        for: 5m
+        labels:
+          severity: high
+          component: artifact_storage
+        annotations:
+          summary: "Artifact storage errors detected"
+          description: "{{ $value | humanizePercentage }} of operations failed"
+
+      - alert: MetricCollectionErrors
+        expr: |
+          sum(rate(metrics_collection_errors_total[5m])) > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: metrics
+        annotations:
+          summary: "Metrics collection failures"
+          description: "{{ $value }} metric collection errors per second"
