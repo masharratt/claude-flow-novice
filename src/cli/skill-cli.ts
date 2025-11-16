@@ -19,6 +19,7 @@
 import { createRequire } from 'module';
 import { existsSync, readFileSync } from 'fs';
 import { createHash } from 'crypto';
+import { fileURLToPath } from 'url';
 import path from 'path';
 
 const require = createRequire(import.meta.url);
@@ -150,14 +151,21 @@ function parseArgs(args: string[]): Record<string, string | boolean> {
     const arg = args[i];
 
     if (arg.startsWith('--')) {
-      const key = arg.slice(2);
-      const nextArg = args[i + 1];
-
-      if (nextArg && !nextArg.startsWith('--')) {
-        parsed[key] = nextArg;
-        i++;
+      // Handle --key=value format
+      if (arg.includes('=')) {
+        const [key, ...valueParts] = arg.slice(2).split('=');
+        parsed[key] = valueParts.join('='); // Rejoin in case value contains '='
       } else {
-        parsed[key] = true;
+        // Handle --key value format
+        const key = arg.slice(2);
+        const nextArg = args[i + 1];
+
+        if (nextArg && !nextArg.startsWith('--')) {
+          parsed[key] = nextArg;
+          i++;
+        } else {
+          parsed[key] = true;
+        }
       }
     }
   }
@@ -959,8 +967,8 @@ Examples:
   }
 }
 
-// Run CLI
-if (require.main === module) {
+// Run CLI (ESM-compatible check)
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch(error => {
     console.error(chalk.red(`Fatal error: ${error.message}`));
     process.exit(1);
