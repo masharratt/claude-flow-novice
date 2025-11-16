@@ -654,8 +654,9 @@ Return ONLY this JSON structure, nothing else:
 
 **1. Software Development**
 - loop3_agents: ["backend-developer", "frontend-developer", "qa-tester"]
-- loop2_agents: ["reviewer", "tester", "code-quality-validator"]
+- loop2_agents: ["reviewer", "security-specialist", "contract-tester", "integration-tester", "mutation-testing-specialist"]
 - loop4_agent: "product-owner"
+- Note: Phase 5 enhanced validators (contract, integration, mutation) ensure comprehensive quality validation
 
 **2. Infrastructure**
 - loop3_agents: ["devops-engineer", "security-specialist", "cloud-architect"]
