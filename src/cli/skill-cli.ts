@@ -728,10 +728,13 @@ async function cmdAnalytics(options: Record<string, string | boolean>, subcomman
   if (!subcommand) {
     console.error(chalk.red('Error: Analytics subcommand required'));
     console.log('\nAvailable subcommands:');
-    console.log('  effectiveness    - Skill effectiveness by approval level');
-    console.log('  velocity        - Approval velocity and SLA compliance');
-    console.log('  bottlenecks     - Identify approval bottlenecks');
-    console.log('  by-approval     - Skills grouped by approval level');
+    console.log('  effectiveness              - Skill effectiveness by approval level');
+    console.log('  velocity                   - Approval velocity and SLA compliance');
+    console.log('  bottlenecks                - Identify approval bottlenecks');
+    console.log('  by-approval                - Skills grouped by approval level');
+    console.log('  effectiveness-by-approval  - Effectiveness metrics grouped by approval level');
+    console.log('  phase4-performance         - Performance of Phase4-generated skills');
+    console.log('  approval-efficiency        - Approval workflow efficiency metrics');
     process.exit(1);
   }
 
@@ -747,6 +750,15 @@ async function cmdAnalytics(options: Record<string, string | boolean>, subcomman
       break;
     case 'by-approval':
       await analyticsByApproval(db, options);
+      break;
+    case 'effectiveness-by-approval':
+      await analyticsEffectivenessByApproval(db, options);
+      break;
+    case 'phase4-performance':
+      await analyticsPhase4Performance(db, options);
+      break;
+    case 'approval-efficiency':
+      await analyticsApprovalEfficiency(db, options);
       break;
     default:
       console.error(chalk.red(`Error: Unknown analytics subcommand: ${subcommand}`));
@@ -882,6 +894,225 @@ async function analyticsByApproval(db: Database.Database, options: Record<string
       console.log(`  ${stat.status}: ${stat.count}`);
     });
   });
+}
+
+// ============================================================================
+// Command: analytics - Phase 6.2 New Subcommands
+// ============================================================================
+
+async function analyticsEffectivenessByApproval(db: Database.Database, options: Record<string, string | boolean>): Promise<void> {
+  const days = parseInt(options.days as string || '30');
+
+  console.log(chalk.bold(`\nSkill Effectiveness by Approval Level (${days} days)`));
+  console.log(`${'─'.repeat(70)}\n`);
+
+  const approvalLevels = ['auto', 'human', 'escalate'];
+
+  for (const level of approvalLevels) {
+    // Get stats for this approval level
+    const stats = db.prepare(`
+      SELECT
+        COUNT(DISTINCT sul.skill_id) as skill_count,
+        COUNT(*) as usage_count,
+        AVG(sul.confidence_after - sul.confidence_before) as avg_confidence_impact,
+        AVG(sul.execution_time_ms) as avg_execution_time,
+        SUM(CASE WHEN (sul.confidence_after - sul.confidence_before) > 0.05 THEN 1 ELSE 0 END) as success_count
+      FROM skill_usage_log sul
+      JOIN skills s ON s.id = sul.skill_id
+      WHERE s.approval_level = ?
+        AND sul.loaded_at >= datetime('now', '-${days} days')
+        AND sul.confidence_before IS NOT NULL
+        AND sul.confidence_after IS NOT NULL
+    `).get(level) as any;
+
+    if (!stats || stats.usage_count === 0) {
+      console.log(chalk.bold(`${level.charAt(0).toUpperCase() + level.slice(1)}-approved skills:`));
+      console.log(chalk.dim('  No usage data available\n'));
+      continue;
+    }
+
+    const successRate = stats.usage_count > 0 ? (stats.success_count / stats.usage_count) * 100 : 0;
+
+    console.log(chalk.bold(`${level.charAt(0).toUpperCase() + level.slice(1)}-approved skills:`));
+    console.log(`  Avg confidence impact: ${stats.avg_confidence_impact ? chalk.green(`+${stats.avg_confidence_impact.toFixed(2)}`) : 'N/A'}`);
+    console.log(`  Usage count: ${chalk.cyan(stats.usage_count.toLocaleString())}`);
+    console.log(`  Success rate: ${chalk.green(`${successRate.toFixed(1)}%`)} (${stats.success_count}/${stats.usage_count} usages)`);
+    console.log(`  Avg execution time: ${stats.avg_execution_time ? `${stats.avg_execution_time.toFixed(1)}ms` : 'N/A'}\n`);
+  }
+}
+
+async function analyticsPhase4Performance(db: Database.Database, options: Record<string, string | boolean>): Promise<void> {
+  const days = parseInt(options.days as string || '30');
+
+  console.log(chalk.bold(`\nPhase 4 Generated Skills Performance (${days} days)`));
+  console.log(`${'─'.repeat(70)}\n`);
+
+  // Get overall Phase4 stats
+  const overallStats = db.prepare(`
+    SELECT
+      COUNT(DISTINCT sul.skill_id) as skill_count,
+      COUNT(*) as total_usages,
+      AVG(sul.execution_time_ms) as avg_execution_time,
+      AVG(sul.confidence_after - sul.confidence_before) as avg_confidence_impact
+    FROM skill_usage_log sul
+    JOIN skills s ON s.id = sul.skill_id
+    WHERE s.is_auto_generated = 1
+      AND s.generated_by = 'phase4'
+      AND sul.loaded_at >= datetime('now', '-${days} days')
+      AND sul.confidence_before IS NOT NULL
+      AND sul.confidence_after IS NOT NULL
+  `).get() as any;
+
+  if (!overallStats || overallStats.total_usages === 0) {
+    console.log(chalk.yellow('No Phase4 skill usage data found in the specified timeframe.'));
+    console.log(chalk.dim('Phase4 skills may not have been used recently, or usage logging may not be enabled.\n'));
+    return;
+  }
+
+  console.log(chalk.bold('Overall Metrics:'));
+  console.log(`  Total Phase4 skill usages: ${chalk.cyan(overallStats.total_usages.toLocaleString())}`);
+  console.log(`  Unique Phase4 skills used: ${chalk.cyan(overallStats.skill_count)}`);
+  console.log(`  Avg execution time: ${overallStats.avg_execution_time ? `${overallStats.avg_execution_time.toFixed(1)}ms` : 'N/A'}`);
+  console.log(`  Avg confidence impact: ${overallStats.avg_confidence_impact ? chalk.green(`+${overallStats.avg_confidence_impact.toFixed(2)}`) : 'N/A'}`);
+  console.log(chalk.dim('  Cost savings: N/A (requires cost tracking implementation)\n'));
+
+  // Get top 5 Phase4 skills
+  const topSkills = db.prepare(`
+    SELECT
+      s.name,
+      COUNT(*) as usage_count,
+      AVG(sul.confidence_after - sul.confidence_before) as avg_confidence_impact,
+      AVG(sul.execution_time_ms) as avg_execution_time
+    FROM skill_usage_log sul
+    JOIN skills s ON s.id = sul.skill_id
+    WHERE s.is_auto_generated = 1
+      AND s.generated_by = 'phase4'
+      AND sul.loaded_at >= datetime('now', '-${days} days')
+      AND sul.confidence_before IS NOT NULL
+      AND sul.confidence_after IS NOT NULL
+    GROUP BY s.id, s.name
+    ORDER BY usage_count DESC
+    LIMIT 5
+  `).all() as any[];
+
+  if (topSkills.length > 0) {
+    console.log(chalk.bold('Top 5 Phase4 Skills:'));
+    topSkills.forEach((skill, index) => {
+      const impact = skill.avg_confidence_impact ? `+${skill.avg_confidence_impact.toFixed(2)}` : 'N/A';
+      console.log(`  ${index + 1}. ${chalk.cyan(skill.name)} (${skill.usage_count} uses, ${chalk.green(impact)} confidence)`);
+    });
+    console.log('');
+  }
+}
+
+async function analyticsApprovalEfficiency(db: Database.Database, options: Record<string, string | boolean>): Promise<void> {
+  console.log(chalk.bold('\nApproval Workflow Efficiency'));
+  console.log(`${'─'.repeat(70)}\n`);
+
+  // Get approval counts and timing by level
+  const approvalStats = db.prepare(`
+    SELECT
+      approval_level,
+      COUNT(*) as total_count,
+      AVG(review_duration_minutes) as avg_review_time_minutes,
+      SUM(CASE WHEN decision = 'approved' THEN 1 ELSE 0 END) as approved_count,
+      SUM(CASE WHEN decision = 'rejected' THEN 1 ELSE 0 END) as rejected_count,
+      SUM(CASE WHEN decision = 'escalated' THEN 1 ELSE 0 END) as escalated_count
+    FROM approval_history
+    GROUP BY approval_level
+    ORDER BY approval_level
+  `).all() as any[];
+
+  if (approvalStats.length === 0) {
+    console.log(chalk.yellow('No approval history found in the database.'));
+    console.log(chalk.dim('Approvals may not have been logged yet.\n'));
+    return;
+  }
+
+  // Display approval stats by level
+  console.log(chalk.bold('Approval Statistics by Level:\n'));
+
+  const slaTargets: Record<string, number> = {
+    'auto': 0, // instant
+    'human': 10080, // 7 days in minutes
+    'escalate': 2880 // 2 days in minutes
+  };
+
+  approvalStats.forEach(stat => {
+    const approvalRate = stat.total_count > 0 ? (stat.approved_count / stat.total_count) * 100 : 0;
+    const rejectionRate = stat.total_count > 0 ? (stat.rejected_count / stat.total_count) * 100 : 0;
+
+    let avgTimeDisplay = 'N/A';
+    if (stat.avg_review_time_minutes !== null) {
+      if (stat.approval_level === 'auto') {
+        avgTimeDisplay = 'instant';
+      } else if (stat.avg_review_time_minutes < 60) {
+        avgTimeDisplay = `${stat.avg_review_time_minutes.toFixed(1)} minutes`;
+      } else if (stat.avg_review_time_minutes < 1440) {
+        avgTimeDisplay = `${(stat.avg_review_time_minutes / 60).toFixed(1)} hours`;
+      } else {
+        avgTimeDisplay = `${(stat.avg_review_time_minutes / 1440).toFixed(1)} days`;
+      }
+    }
+
+    const slaTarget = slaTargets[stat.approval_level];
+    const slaDisplay = stat.approval_level === 'auto' ? 'instant' :
+      stat.approval_level === 'human' ? '7 days' : '2 days';
+
+    console.log(chalk.bold(`${stat.approval_level.charAt(0).toUpperCase() + stat.approval_level.slice(1)}-approved:`));
+    console.log(`  Total: ${chalk.cyan(stat.total_count.toString())} (avg time: ${avgTimeDisplay}, SLA: ${slaDisplay})`);
+    console.log(`  Approval rate: ${chalk.green(`${approvalRate.toFixed(1)}%`)} (${stat.approved_count} approved)`);
+    if (stat.rejected_count > 0) {
+      console.log(`  Rejection rate: ${chalk.red(`${rejectionRate.toFixed(1)}%`)} (${stat.rejected_count} rejected)`);
+    }
+    if (stat.escalated_count > 0) {
+      console.log(`  Escalated: ${chalk.yellow(stat.escalated_count.toString())}`);
+    }
+    console.log('');
+  });
+
+  // Check for bottlenecks (pending approvals exceeding SLA)
+  const bottlenecks = db.prepare(`
+    SELECT
+      s.name,
+      s.approval_level,
+      julianday('now') - julianday(s.created_at) as days_pending,
+      s.created_at
+    FROM skills s
+    LEFT JOIN approval_history ah ON ah.skill_id = s.id AND ah.decision = 'approved'
+    WHERE ah.id IS NULL
+      AND s.approval_level != 'auto'
+      AND s.status = 'active'
+      AND (
+        (s.approval_level = 'human' AND julianday('now') - julianday(s.created_at) > 7)
+        OR
+        (s.approval_level = 'escalate' AND julianday('now') - julianday(s.created_at) > 2)
+      )
+    ORDER BY days_pending DESC
+  `).all() as any[];
+
+  if (bottlenecks.length > 0) {
+    console.log(chalk.bold('Bottlenecks (Approvals Exceeding SLA):\n'));
+    bottlenecks.forEach((skill, index) => {
+      const daysOver = skill.approval_level === 'human' ? skill.days_pending - 7 : skill.days_pending - 2;
+      console.log(`  ${index + 1}. ${chalk.yellow(skill.name)} (${skill.approval_level})`);
+      console.log(`     Pending: ${Math.floor(skill.days_pending)} days (${chalk.red(`${daysOver.toFixed(1)} days over SLA`)})`);
+    });
+    console.log('');
+
+    const humanOverdue = bottlenecks.filter(b => b.approval_level === 'human').length;
+    const escalateOverdue = bottlenecks.filter(b => b.approval_level === 'escalate').length;
+
+    if (humanOverdue > 0) {
+      console.log(chalk.yellow(`⚠ ${humanOverdue} human approval${humanOverdue > 1 ? 's' : ''} > 7 days (escalate recommended)`));
+    }
+    if (escalateOverdue > 0) {
+      console.log(chalk.red(`⚠ ${escalateOverdue} escalated approval${escalateOverdue > 1 ? 's' : ''} > 2 days (expert review needed)`));
+    }
+    console.log('');
+  } else {
+    console.log(chalk.green('✓ No bottlenecks found - all pending approvals are within SLA\n'));
+  }
 }
 
 // ============================================================================

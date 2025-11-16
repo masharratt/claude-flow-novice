@@ -71,6 +71,10 @@ export interface SkillUsageLog {
   confidenceBefore?: number;
   confidenceAfter?: number;
   executionTimeMs: number;
+
+  // Phase 6.1: Approval metadata for analytics
+  approvalLevels?: string[];    // ['auto', 'human', 'escalate'] - parallel to skillIds
+  phase4Generated?: boolean[];  // [false, true, false] - parallel to skillIds
 }
 
 export interface SkillMetrics {
@@ -439,6 +443,7 @@ export class SkillLoader {
 
   /**
    * Log skill usage for analytics
+   * Phase 6.1: Enhanced with approval metadata tracking
    */
   async logSkillUsage(usage: SkillUsageLog): Promise<void> {
     // Note: This creates a writable connection temporarily for logging
@@ -448,11 +453,23 @@ export class SkillLoader {
       const stmt = logDb.prepare(`
         INSERT INTO skill_usage_log (
           agent_id, agent_type, skill_id, task_id, phase,
-          loaded_at, confidence_before, confidence_after, execution_time_ms
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          loaded_at, confidence_before, confidence_after, execution_time_ms,
+          approval_level, phase4_generated
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      for (const skillId of usage.skillIds) {
+      for (let i = 0; i < usage.skillIds.length; i++) {
+        const skillId = usage.skillIds[i];
+
+        // Get approval metadata for this skill (with bounds checking)
+        const approvalLevel = usage.approvalLevels && i < usage.approvalLevels.length
+          ? usage.approvalLevels[i]
+          : null;
+
+        const phase4Generated = usage.phase4Generated && i < usage.phase4Generated.length
+          ? (usage.phase4Generated[i] ? 1 : 0)
+          : null;
+
         stmt.run(
           usage.agentId,
           usage.agentType,
@@ -462,7 +479,9 @@ export class SkillLoader {
           usage.loadedAt.toISOString(),
           usage.confidenceBefore || null,
           usage.confidenceAfter || null,
-          usage.executionTimeMs
+          usage.executionTimeMs,
+          approvalLevel,
+          phase4Generated
         );
       }
     } finally {
