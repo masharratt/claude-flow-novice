@@ -967,7 +967,7 @@ Chaos Engineering Test Summary:
 - Recovery time <SLO targets
 - Zero data loss during failures
 - Graceful degradation verified
-- Confidence score ≥ 0.90
+- Test pass rate ≥ 0.90 (chaos injection + recovery validation)
 
 ## Skill References
 → **Chaos Mesh**: `.claude/skills/chaos-mesh-config/SKILL.md`

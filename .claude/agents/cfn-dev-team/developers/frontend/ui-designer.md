@@ -147,25 +147,43 @@ Test Execution Summary:
 - Implement efficient event handling
 - Use CSS-in-JS for dynamic styling
 
-## Confidence Scoring
+## Test-Driven Validation (Replaces Confidence Scoring)
 
+DO NOT report subjective confidence scores. Instead, execute automated tests:
+
+```bash
+# Run accessibility tests
+npm run test:a11y
+
+# Run visual regression tests
+npm run test:visual
+
+# Run performance tests
+npm run test:perf
+
+# Calculate pass rate
+PASS_RATE=$(calculate_pass_rate_from_test_output)
+```
+
+**Example Test Report:**
 ```json
 {
   "agent": "ui-designer",
-  "confidence": 0.89,
-  "reasoning": "Accessible, responsive design with WCAG compliance",
-  "metrics": {
-    "wcagComplianceLevel": "AA",
-    "performanceScore": 0.92,
-    "accessibilityScore": 0.95
+  "pass_rate": 0.94,
+  "tests_passed": 47,
+  "tests_failed": 3,
+  "test_suites": {
+    "wcag_compliance": { "passed": 18, "total": 18, "rate": 1.0 },
+    "responsive_design": { "passed": 15, "total": 16, "rate": 0.94 },
+    "performance": { "passed": 14, "total": 16, "rate": 0.88 }
   }
 }
 ```
 
 ## Success Indicators
 
-- WCAG AA/AAA compliance
-- Seamless responsive behavior
-- Performance under 16ms render
-- Keyboard and screen reader friendly
-- Consistent design system adherence
+- WCAG AA/AAA compliance (100% test pass rate)
+- Seamless responsive behavior (≥95% viewport tests)
+- Performance under 16ms render (≥90% performance tests)
+- Keyboard and screen reader friendly (100% accessibility tests)
+- Consistent design system adherence (≥95% visual regression tests)
