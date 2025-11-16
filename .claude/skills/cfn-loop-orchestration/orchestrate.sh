@@ -71,6 +71,7 @@ LOOP3_AGENTS=""
 LOOP2_AGENTS=""
 PRODUCT_OWNER=""
 MAX_ITERATIONS=10
+MAX_ALLOWED_ITERATIONS=100  # Security: Prevent resource exhaustion via unbounded iterations
 MIN_QUORUM_LOOP3="0.66"
 MIN_QUORUM_LOOP2="0.66"
 EPIC_CONTEXT=""
@@ -162,9 +163,20 @@ while [[ $# -gt 0 ]]; do
         echo "Max iterations must be a positive integer"
         exit 1
       fi
+      # SECURITY FIX: Enforce upper bound to prevent resource exhaustion
+      if [[ "$2" -gt "$MAX_ALLOWED_ITERATIONS" ]]; then
+        echo "❌ MAX_ITERATIONS=$2 exceeds limit of $MAX_ALLOWED_ITERATIONS" >&2
+        echo "   (Use --max-iterations <N> where N <= $MAX_ALLOWED_ITERATIONS)" >&2
+        exit 1
+      fi
+      if [[ "$2" -lt 1 ]]; then
+        echo "❌ MAX_ITERATIONS must be at least 1" >&2
+        exit 1
+      fi
       MAX_ITERATIONS="$2"
       shift 2
       ;;
+
     --min-quorum-loop3)
       if [[ $# -lt 2 ]]; then
         echo "Error: --min-quorum-loop3 requires a value"
@@ -502,32 +514,62 @@ function spawn_loop3_agents() {
         # Docker-based spawning (prevents WebAssembly OOM)
         echo "  → Docker mode: spawning via container" >&2
 
-        # Build Docker command with optional AGENT_SUCCESS_CRITERIA
-        DOCKER_CMD="docker run --detach \
-          --name \"agent-${safe_agent_id}\" \
-          --memory \"${CFN_MEMORY_LIMIT:-2g}\" \
-          --cpus 1.5 \
-          --network \"${CFN_DOCKER_NETWORK:-mcp-network}\" \
-          --env REDIS_URL=redis://redis:6379 \
-          --env AGENT_ID=\"${safe_agent_id}\" \
-          --env AGENT_TYPE=\"${safe_agent_type}\" \
-          --env TASK_ID=\"${safe_task_id}\" \
-          --env ITERATION=\"${iteration}\""
+        # SECURITY FIX: Sanitize Docker environment variables to prevent command injection
+        CFN_DOCKER_IMAGE_SAFE=$(sanitize_docker_var "${CFN_DOCKER_IMAGE:-claude-flow-novice:agent}") || {
+          echo "❌ Invalid CFN_DOCKER_IMAGE" >&2
+          exit 1
+        }
+        CFN_DOCKER_NETWORK_SAFE=$(sanitize_docker_var "${CFN_DOCKER_NETWORK:-mcp-network}") || {
+          echo "❌ Invalid CFN_DOCKER_NETWORK" >&2
+          exit 1
+        }
+        CFN_MEMORY_LIMIT_SAFE=$(sanitize_docker_var "${CFN_MEMORY_LIMIT:-2g}") || {
+          echo "❌ Invalid CFN_MEMORY_LIMIT" >&2
+          exit 1
+        }
+
+        # Build Docker command as array (prevents injection, no eval needed)
+        DOCKER_CMD=(
+          docker run --detach
+          --name "agent-${safe_agent_id}"
+          --memory "$CFN_MEMORY_LIMIT_SAFE"
+          --cpus 1.5
+          --network "$CFN_DOCKER_NETWORK_SAFE"
+          --env REDIS_URL=redis://redis:6379
+          --env "AGENT_ID=${safe_agent_id}"
+          --env "AGENT_TYPE=${safe_agent_type}"
+          --env "TASK_ID=${safe_task_id}"
+          --env "ITERATION=${iteration}"
+        )
 
         # SECURITY FIX: Base64-encode success criteria to prevent shell injection
         if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
           ENCODED_CRITERIA=$(echo -n "$AGENT_SUCCESS_CRITERIA" | base64 -w 0)
-          DOCKER_CMD="$DOCKER_CMD --env AGENT_SUCCESS_CRITERIA_B64='${ENCODED_CRITERIA}'"
+
+          # SECURITY FIX: Validate size AFTER encoding to prevent expansion bypass (10MB → 13.9MB)
+          ENCODED_SIZE=$(echo -n "$ENCODED_CRITERIA" | wc -c)
+          MAX_ENCODED_SIZE=10485760  # 10MB
+
+          if [[ "$ENCODED_SIZE" -gt "$MAX_ENCODED_SIZE" ]]; then
+            echo "❌ Encoded success criteria exceeds 10MB limit: ${ENCODED_SIZE} bytes" >&2
+            echo "   (Original: $(echo -n "$AGENT_SUCCESS_CRITERIA" | wc -c) bytes, Expanded: +33% via base64)" >&2
+            exit 1
+          fi
+
+          DOCKER_CMD+=(--env "AGENT_SUCCESS_CRITERIA_B64=${ENCODED_CRITERIA}")
         fi
 
-        DOCKER_CMD="$DOCKER_CMD \
-          --volume \"${PROJECT_ROOT}/.claude:/app/.claude:ro\" \
-          --volume \"${PROJECT_ROOT}/packages:/app/packages\" \
-          --volume \"/tmp/agent-workspace-${safe_agent_id}:/app/workspace\" \
-          \"${CFN_DOCKER_IMAGE:-claude-flow-novice:agent}\" \
-          sh -c \"npx claude-flow-novice agent \\\"${safe_agent_type}\\\" --task-id \\\"${safe_task_id}\\\" --agent-id \\\"${safe_agent_id}\\\" --iteration \\\"${iteration}\\\"\" >/dev/null 2>&1 &"
+        # Add volumes and image
+        DOCKER_CMD+=(
+          --volume "${PROJECT_ROOT}/.claude:/app/.claude:ro"
+          --volume "${PROJECT_ROOT}/packages:/app/packages"
+          --volume "/tmp/agent-workspace-${safe_agent_id}:/app/workspace"
+          "$CFN_DOCKER_IMAGE_SAFE"
+          sh -c "npx claude-flow-novice agent \"${safe_agent_type}\" --task-id \"${safe_task_id}\" --agent-id \"${safe_agent_id}\" --iteration \"${iteration}\""
+        )
 
-        eval "$DOCKER_CMD"
+        # Execute safely without eval (prevents command injection)
+        "${DOCKER_CMD[@]}" >/dev/null 2>&1 &
 
         AGENT_PID=$!
     else
