@@ -12,10 +12,6 @@
 
 set -euo pipefail
 
-# Source centralized Redis functions (provides graceful fallback for Task mode)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/redis-functions.sh"
-
 # Color codes for terminal output
 COLOR_RESET="\033[0m"
 COLOR_DEBUG="\033[0;36m"   # Cyan
