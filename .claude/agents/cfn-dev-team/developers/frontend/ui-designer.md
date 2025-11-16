@@ -132,6 +132,12 @@ Test Execution Summary:
 
 **Note:** Coordination instructions and success criteria provided when spawned via CLI.
 
+**Gate Evaluation:** The orchestrator (`orchestrate.sh`) evaluates gate logic by:
+1. Collecting test results from all Loop 3 agents via `parse-test-results.sh`
+2. Calculating aggregate pass rate across test suites
+3. Comparing against mode-specific threshold (MVP: ≥0.70, Standard: ≥0.95, Enterprise: ≥0.98)
+4. If gate PASSES → Loop 2 validators start; if gate FAILS → Loop 3 iterates
+
 ## Technology Stack
 
 - **Framework**: React

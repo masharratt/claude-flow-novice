@@ -117,12 +117,19 @@ echo "  Total Tests: $LOOP3_TOTAL_TESTS"
 
 **2. Identify Test Files:**
 ```bash
-# Find all test files created by Loop 3
-TEST_FILES=$(find . -type f \( -name "*.test.ts" -o -name "*.spec.ts" -o -name "test_*.py" \))
+# Find all test files created by Loop 3 (exclude build artifacts and dependencies)
+TEST_FILES=$(find . -type f \
+  \( -name "*.test.ts" -o -name "*.spec.ts" -o -name "test_*.py" \) \
+  -not -path "*/node_modules/*" \
+  -not -path "*/.git/*" \
+  -not -path "*/dist/*" \
+  -not -path "*/build/*" \
+  -not -path "*/.next/*" \
+  -not -path "*/coverage/*")
 
 echo "Test Files to Validate:"
 for file in $TEST_FILES; do
-  TEST_COUNT=$(grep -c "it\|test\|def test_" "$file")
+  TEST_COUNT=$(grep -c "it\|test\|def test_" "$file" 2>/dev/null || echo "0")
   echo "  - $file ($TEST_COUNT tests)"
 done
 ```

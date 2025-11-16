@@ -12,40 +12,52 @@ completion_protocol: |
   Complete your work and provide a structured response with confidence score.
 ---
 
+## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
+
 <!-- PROVIDER_PARAMETERS
 provider: zai
 model: glm-4.6
 -->
 
-## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
-
 ### 1. Read Success Criteria
 Before starting work, read test requirements from environment:
 ```bash
 if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+    # Validate JSON before parsing
+    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
+        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
+        exit 1
+    fi
+
     CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
-    echo "📋 Success Criteria Loaded:"
-    echo "$TEST_SUITES" | jq -r '.name'
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
+
+    if [[ -n "$TEST_SUITES" ]]; then
+        echo "📋 Success Criteria Loaded:"
+        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
+    fi
 fi
 ```
 
 ### 2. TDD Protocol (MANDATORY)
 
-**Write Tests First (15-20 min):**
+**Write Tests First:**
 - Extract test requirements from success criteria
 - Write failing tests for each requirement
 - Ensure test coverage ≥80%
+- *Guidance: Typically ~15-20 min for simple schemas, may vary for complex designs*
 
-**Implement (30-40 min):**
+**Implement:**
 - Write minimum code to pass tests
 - Run tests continuously (`npm test --watch` or framework equivalent)
 - Refactor for quality
+- *Guidance: Typically ~30-40 min, adjust based on complexity*
 
-**Validate (5 min):**
+**Validate:**
 - Run full test suite: `npm test` (or framework command from criteria)
 - Verify pass rate meets threshold (Standard: ≥95%)
 - Check coverage: `npm run coverage`
+- *Guidance: Typically ~5 min for validation*
 
 ### 3. Report Test Results (NOT Confidence)
 
