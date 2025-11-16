@@ -105,6 +105,82 @@ export interface DetailedHealthReport {
 }
 
 /**
+ * Aggregated health statistics from all services
+ */
+export interface AggregatedHealthStats {
+  /**
+   * Timestamp when stats were collected
+   */
+  timestamp: Date;
+
+  /**
+   * Overall system health status
+   */
+  overallStatus: 'healthy' | 'degraded' | 'unhealthy';
+
+  /**
+   * Total aggregation latency in milliseconds
+   */
+  latency: number;
+
+  /**
+   * Average latency across all services in milliseconds
+   */
+  averageServiceLatency: number;
+
+  /**
+   * Service count summary
+   */
+  serviceCount: {
+    total: number;
+    healthy: number;
+    degraded: number;
+    unhealthy: number;
+  };
+
+  /**
+   * Individual service summaries
+   */
+  services: {
+    database: {
+      status: 'healthy' | 'degraded' | 'unhealthy';
+      latency: number;
+      message?: string;
+    };
+    redis: {
+      status: 'healthy' | 'degraded' | 'unhealthy';
+      latency: number;
+      message?: string;
+    };
+    filesystem: {
+      status: 'healthy' | 'degraded' | 'unhealthy';
+      latency: number;
+      message?: string;
+    };
+    agents: {
+      status: 'healthy' | 'degraded' | 'unhealthy';
+      latency: number;
+      message?: string;
+    };
+  };
+
+  /**
+   * Detailed metadata from all services
+   */
+  metadata: Record<string, any>;
+
+  /**
+   * Warning messages from degraded services
+   */
+  warnings: string[];
+
+  /**
+   * Error messages from unhealthy services
+   */
+  errors: string[];
+}
+
+/**
  * Health check system configuration
  */
 export interface HealthCheckConfig {
@@ -522,6 +598,241 @@ export class HealthCheckSystem {
     }
 
     return report;
+  }
+
+  /**
+   * Fast ping check for basic connectivity
+   * Returns in <100ms for Kubernetes probes and dashboards
+   *
+   * This is a lightweight check that verifies the system is responsive
+   * without performing expensive operations like database queries.
+   *
+   * @param timeout - Optional timeout in milliseconds (default: 100ms)
+   * @returns HealthCheck with basic connectivity status
+   * @throws StandardError if ping fails or timeout exceeded
+   */
+  async ping(timeout: number = 100): Promise<HealthCheck> {
+    const startTime = Date.now();
+
+    try {
+      // Create a timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(
+          new StandardError(
+            ErrorCode.OPERATION_TIMEOUT,
+            `Ping timeout after ${timeout}ms`,
+            { timeout }
+          )
+        ), timeout)
+      );
+
+      // Race between basic checks and timeout
+      await Promise.race([
+        // Minimal checks - just verify system is responsive
+        (async () => {
+          // Check if we can access Date (basic runtime check)
+          const now = Date.now();
+
+          // Verify process is alive
+          if (typeof process === 'undefined') {
+            throw new StandardError(
+              ErrorCode.UNKNOWN_ERROR,
+              'Process runtime not available',
+              { check: 'ping' }
+            );
+          }
+
+          // Verify we have memory available
+          const memUsage = process.memoryUsage();
+          if (memUsage.heapUsed > memUsage.heapTotal * 0.95) {
+            throw new StandardError(
+              ErrorCode.UNKNOWN_ERROR,
+              'Memory critically low',
+              {
+                heapUsed: memUsage.heapUsed,
+                heapTotal: memUsage.heapTotal,
+                percentUsed: (memUsage.heapUsed / memUsage.heapTotal) * 100
+              }
+            );
+          }
+        })(),
+        timeoutPromise,
+      ]);
+
+      const latency = Date.now() - startTime;
+
+      // Ensure we're under the target response time
+      if (latency >= timeout) {
+        throw new StandardError(
+          ErrorCode.OPERATION_TIMEOUT,
+          `Ping exceeded target response time: ${latency}ms >= ${timeout}ms`,
+          { latency, timeout }
+        );
+      }
+
+      return {
+        name: 'ping',
+        status: HealthStatus.HEALTHY,
+        latency,
+        message: 'System responsive',
+        timestamp: new Date(),
+        metadata: {
+          responseTime: latency,
+          memoryUsage: process.memoryUsage(),
+          uptime: process.uptime(),
+        },
+      };
+    } catch (error) {
+      const latency = Date.now() - startTime;
+
+      if (error instanceof StandardError) {
+        throw error;
+      }
+
+      const message = error instanceof Error ? error.message : 'Unknown ping error';
+
+      throw new StandardError(
+        ErrorCode.UNKNOWN_ERROR,
+        `Ping failed: ${message}`,
+        { latency, timeout },
+        error instanceof Error ? error : undefined
+      );
+    }
+  }
+
+  /**
+   * Get aggregated health statistics from all endpoints
+   * Provides a comprehensive view of system health metrics
+   *
+   * @param timeout - Optional timeout in milliseconds (default: 5000ms)
+   * @returns AggregatedHealthStats with metrics from all services
+   */
+  async getAggregateStats(timeout: number = 5000): Promise<AggregatedHealthStats> {
+    const startTime = Date.now();
+
+    try {
+      // Create a timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(
+          new StandardError(
+            ErrorCode.OPERATION_TIMEOUT,
+            `Aggregate stats timeout after ${timeout}ms`,
+            { timeout }
+          )
+        ), timeout)
+      );
+
+      // Race between collecting all stats and timeout
+      const result = await Promise.race([
+        (async () => {
+          // Collect all health checks in parallel
+          const [database, redis, filesystem, agents] = await Promise.all([
+            this.checkDatabase(),
+            this.checkRedis(),
+            this.checkFileSystem(),
+            this.checkAgents(),
+          ]);
+
+          return { database, redis, filesystem, agents };
+        })(),
+        timeoutPromise,
+      ]);
+
+      const latency = Date.now() - startTime;
+
+      // Calculate aggregate metrics
+      const services = [result.database, result.redis, result.filesystem, result.agents];
+      const healthyCount = services.filter((s) => s.status === HealthStatus.HEALTHY).length;
+      const degradedCount = services.filter((s) => s.status === HealthStatus.DEGRADED).length;
+      const unhealthyCount = services.filter((s) => s.status === HealthStatus.UNHEALTHY).length;
+
+      // Determine overall status
+      let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = HealthStatus.HEALTHY;
+      if (unhealthyCount > 0) {
+        overallStatus = HealthStatus.UNHEALTHY;
+      } else if (degradedCount > 0) {
+        overallStatus = HealthStatus.DEGRADED;
+      }
+
+      // Calculate average latency
+      const totalLatency = services.reduce((sum, s) => sum + s.latency, 0);
+      const averageLatency = totalLatency / services.length;
+
+      // Collect metadata from all services
+      const metadata: Record<string, any> = {
+        database: result.database.metadata,
+        redis: result.redis.metadata,
+        filesystem: result.filesystem.metadata,
+        agents: result.agents.metadata,
+      };
+
+      // Build warnings list
+      const warnings: string[] = [];
+      if (degradedCount > 0) {
+        const degradedServices = services.filter((s) => s.status === HealthStatus.DEGRADED);
+        warnings.push(...degradedServices.map((s) => `${s.name}: ${s.message}`));
+      }
+
+      // Build errors list
+      const errors: string[] = [];
+      if (unhealthyCount > 0) {
+        const unhealthyServices = services.filter((s) => s.status === HealthStatus.UNHEALTHY);
+        errors.push(...unhealthyServices.map((s) => `${s.name}: ${s.message}`));
+      }
+
+      return {
+        timestamp: new Date(),
+        overallStatus,
+        latency,
+        averageServiceLatency: averageLatency,
+        serviceCount: {
+          total: services.length,
+          healthy: healthyCount,
+          degraded: degradedCount,
+          unhealthy: unhealthyCount,
+        },
+        services: {
+          database: {
+            status: result.database.status,
+            latency: result.database.latency,
+            message: result.database.message,
+          },
+          redis: {
+            status: result.redis.status,
+            latency: result.redis.latency,
+            message: result.redis.message,
+          },
+          filesystem: {
+            status: result.filesystem.status,
+            latency: result.filesystem.latency,
+            message: result.filesystem.message,
+          },
+          agents: {
+            status: result.agents.status,
+            latency: result.agents.latency,
+            message: result.agents.message,
+          },
+        },
+        metadata,
+        warnings,
+        errors,
+      };
+    } catch (error) {
+      const latency = Date.now() - startTime;
+
+      if (error instanceof StandardError) {
+        throw error;
+      }
+
+      const message = error instanceof Error ? error.message : 'Unknown aggregation error';
+
+      throw new StandardError(
+        ErrorCode.UNKNOWN_ERROR,
+        `Failed to aggregate health stats: ${message}`,
+        { latency, timeout },
+        error instanceof Error ? error : undefined
+      );
+    }
   }
 
   /**

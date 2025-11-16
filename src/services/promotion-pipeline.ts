@@ -24,6 +24,7 @@ import { EventEmitter } from 'events';
 import { DatabaseService } from '../lib/database-service';
 import { StandardError, ErrorCode } from '../lib/errors';
 import { createLogger } from '../lib/logging';
+import { AuthMiddleware, RBACEnforcer, UserContext, PromotionOperation } from '../middleware/auth-middleware';
 
 const execAsync = promisify(exec);
 const fsRename = promisify(fs.rename);
@@ -114,7 +115,10 @@ export interface PipelineConfig {
 }
 
 /**
- * Promotion Pipeline
+ * Promotion Pipeline with RBAC
+ *
+ * SECURITY: All promotion operations are protected by role-based access control.
+ * Users must be authenticated and have appropriate permissions for each stage.
  */
 export class PromotionPipeline extends EventEmitter {
   private dbService: DatabaseService;
@@ -123,8 +127,11 @@ export class PromotionPipeline extends EventEmitter {
   private autoApprovalThreshold: number;
   private testTimeoutMs: number;
   private skillLocks: Map<string, Promise<void>>;
+  private authMiddleware: AuthMiddleware;
+  private rbacEnforcer: RBACEnforcer;
+  private userContext?: UserContext;
 
-  constructor(dbService: DatabaseService, config: PipelineConfig = {}) {
+  constructor(dbService: DatabaseService, config: PipelineConfig = {}, jwtSecret?: string) {
     super();
 
     this.dbService = dbService;
@@ -133,6 +140,66 @@ export class PromotionPipeline extends EventEmitter {
     this.autoApprovalThreshold = config.autoApprovalConfidenceThreshold || 0.9;
     this.testTimeoutMs = config.testTimeoutMs || 120000; // 2 minutes
     this.skillLocks = new Map();
+
+    // Initialize authentication and RBAC
+    this.authMiddleware = new AuthMiddleware(jwtSecret);
+    this.rbacEnforcer = new RBACEnforcer(this.authMiddleware);
+  }
+
+  /**
+   * Set authenticated user context (REQUIRED before calling any promotion operations)
+   *
+   * @param authHeader - JWT token or "Bearer <token>"
+   * @param sessionId - Optional session ID for fallback authentication
+   * @throws StandardError if authentication fails
+   */
+  setUserContext(authHeader?: string, sessionId?: string): void {
+    try {
+      this.userContext = this.authMiddleware.extractUserContext(authHeader, sessionId);
+      logger.info('User context set for promotion pipeline', {
+        userId: this.userContext.userId,
+        role: this.userContext.role,
+      });
+    } catch (error) {
+      logger.warn('Failed to set user context', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Get current user context
+   */
+  getUserContext(): UserContext | undefined {
+    return this.userContext;
+  }
+
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated(): boolean {
+    return this.userContext !== undefined;
+  }
+
+  /**
+   * Ensure user is authenticated
+   * @throws StandardError if user is not authenticated
+   */
+  private ensureAuthenticated(): void {
+    if (!this.userContext) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        'Authentication required for promotion operations. Call setUserContext() first.'
+      );
+    }
+  }
+
+  /**
+   * Require specific permission for operation
+   * @throws StandardError if user lacks permission
+   */
+  private requirePermission(operation: PromotionOperation, skillId?: string): void {
+    this.ensureAuthenticated();
+    this.rbacEnforcer.enforcePermission(this.userContext!, operation, skillId);
   }
 
   /**
@@ -164,6 +231,8 @@ export class PromotionPipeline extends EventEmitter {
 
   /**
    * Stage 1: Validate skill structure and compliance
+   *
+   * SECURITY: Requires VALIDATE permission
    */
   async validateStage(
     skillPath: string,
@@ -173,6 +242,9 @@ export class PromotionPipeline extends EventEmitter {
     const errors: string[] = [];
 
     try {
+      // SECURITY: Check authorization
+      this.requirePermission(PromotionOperation.VALIDATE, request.skillId);
+
       logger.info('Starting validation stage', { skillId: request.skillId });
 
       // Check if skill path exists
@@ -269,6 +341,8 @@ export class PromotionPipeline extends EventEmitter {
 
   /**
    * Stage 2: Execute tests
+   *
+   * SECURITY: Requires TEST permission
    */
   async testStage(
     skillPath: string,
@@ -278,6 +352,9 @@ export class PromotionPipeline extends EventEmitter {
     const errors: string[] = [];
 
     try {
+      // SECURITY: Check authorization
+      this.requirePermission(PromotionOperation.TEST, request.skillId);
+
       logger.info('Starting test stage', { skillId: request.skillId });
 
       const testScriptPath = path.join(skillPath, 'test.sh');
@@ -383,12 +460,17 @@ export class PromotionPipeline extends EventEmitter {
 
   /**
    * Stage 3: Approval gate
+   *
+   * SECURITY: Requires APPROVE permission (admin only)
+   * This stage is critical - only admins can approve promotions
    */
   async approvalStage(
     request: PromotionRequest,
     stageResults: Array<{ stage: string; confidence: number; passed: boolean }>
   ): Promise<ApprovalResult> {
     try {
+      // SECURITY: Check authorization - APPROVE is admin-only
+      this.requirePermission(PromotionOperation.APPROVE, request.skillId);
       // If any stage failed, reject
       if (stageResults.some(s => !s.passed)) {
         return {
@@ -449,16 +531,35 @@ export class PromotionPipeline extends EventEmitter {
 
   /**
    * Manual approval override
+   *
+   * SECURITY: Requires APPROVE permission (admin only)
+   * This is critical - prevents unauthorized users from manually approving promotions
    */
   async approveManually(
     request: PromotionRequest,
     approver: string,
     reason: string
   ): Promise<ApprovalResult> {
+    // SECURITY: Check authorization - manual approval requires APPROVE permission
+    this.requirePermission(PromotionOperation.APPROVE, request.skillId);
+
+    // SECURITY: Validate that the approver matches authenticated user
+    if (this.userContext && this.userContext.userId !== approver && this.userContext.username !== approver) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        'Approver identity does not match authenticated user',
+        {
+          authenticatedUser: this.userContext.userId,
+          requestedApprover: approver,
+        }
+      );
+    }
+
     logger.info('Manual approval recorded', {
       skillId: request.skillId,
       approver,
       reason,
+      userId: this.userContext?.userId,
     });
 
     return {
@@ -473,6 +574,9 @@ export class PromotionPipeline extends EventEmitter {
 
   /**
    * Stage 4: Deploy to production
+   *
+   * SECURITY: Requires DEPLOY permission (admin only)
+   * This is the most critical stage - prevents unauthorized production deployments
    */
   async deployStage(
     skillPath: string,
@@ -481,9 +585,13 @@ export class PromotionPipeline extends EventEmitter {
     const startTime = Date.now();
 
     try {
+      // SECURITY: Check authorization - DEPLOY is admin-only
+      this.requirePermission(PromotionOperation.DEPLOY, request.skillId);
+
       logger.info('Starting deployment stage', {
         skillId: request.skillId,
         toVersion: request.toVersion,
+        deployedBy: this.userContext?.userId,
       });
 
       // Verify staging skill exists
@@ -568,6 +676,9 @@ export class PromotionPipeline extends EventEmitter {
 
   /**
    * Execute full promotion pipeline
+   *
+   * SECURITY: Requires INITIATE permission
+   * Each stage also performs its own authorization checks
    */
   async promote(
     request: PromotionRequest,
@@ -576,12 +687,17 @@ export class PromotionPipeline extends EventEmitter {
     const submittedAt = new Date().toISOString();
 
     try {
+      // SECURITY: Check authorization - user must be authenticated
+      this.ensureAuthenticated();
+      this.requirePermission(PromotionOperation.INITIATE, request.skillId);
+
       // Acquire lock to prevent concurrent promotions
       await this.acquireLock(request.skillId);
 
       logger.info('Starting promotion pipeline', {
         skillId: request.skillId,
         version: request.toVersion,
+        initiatedBy: this.userContext?.userId,
       });
 
       const stages: StageResult[] = [];
@@ -740,6 +856,9 @@ export class PromotionPipeline extends EventEmitter {
 
   /**
    * Rollback to previous version
+   *
+   * SECURITY: Requires ROLLBACK permission (admin only)
+   * Rollback is a critical operation that requires admin authentication
    */
   async rollback(
     skillId: string,
@@ -749,11 +868,27 @@ export class PromotionPipeline extends EventEmitter {
     reason: string
   ): Promise<{ success: boolean; message: string; error?: string }> {
     try {
+      // SECURITY: Check authorization - ROLLBACK is admin-only
+      this.requirePermission(PromotionOperation.ROLLBACK, skillId);
+
+      // SECURITY: Validate that the roller-back matches authenticated user
+      if (this.userContext && this.userContext.userId !== rolledBackBy && this.userContext.username !== rolledBackBy) {
+        throw new StandardError(
+          ErrorCode.VALIDATION_FAILED,
+          'Rollback requester identity does not match authenticated user',
+          {
+            authenticatedUser: this.userContext.userId,
+            requestedRoller: rolledBackBy,
+          }
+        );
+      }
+
       logger.info('Starting rollback', {
         skillId,
         fromVersion,
         toVersion,
         reason,
+        rolledBackBy: this.userContext?.userId,
       });
 
       // In a real implementation, you would restore from a backup

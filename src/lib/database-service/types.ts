@@ -48,6 +48,7 @@ export interface TransactionContext {
   databases: Array<'redis' | 'sqlite' | 'postgres'>;
   startTime: Date;
   status: 'pending' | 'committed' | 'rolled_back';
+  connection?: any; // Optional connection reference for pool management
 }
 
 /**

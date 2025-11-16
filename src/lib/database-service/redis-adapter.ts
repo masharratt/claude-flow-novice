@@ -3,6 +3,9 @@
  *
  * Implements IDatabaseAdapter for Redis key-value store.
  * Part of Task 0.4: Database Query Abstraction Layer (MVP)
+ *
+ * UPDATED: Now uses ConnectionPoolManager for proper connection pool initialization,
+ * health checks, automatic reconnection with exponential backoff, and connection metrics.
  */
 
 import { createClient, RedisClientType } from 'redis';
@@ -21,8 +24,10 @@ import {
   createFailedResult,
   mapRedisError,
 } from './errors';
+import { ConnectionPoolManager } from './connection-pool-manager';
 
 export class RedisAdapter implements IDatabaseAdapter {
+  private poolManager: ConnectionPoolManager | null = null;
   private client: RedisClientType | null = null;
   private config: DatabaseConfig;
   private connected: boolean = false;
@@ -37,17 +42,16 @@ export class RedisAdapter implements IDatabaseAdapter {
 
   async connect(): Promise<void> {
     try {
-      const url = this.config.connectionString ||
-        `redis://${this.config.host || 'localhost'}:${this.config.port || 6379}`;
+      // Initialize connection pool manager
+      this.poolManager = new ConnectionPoolManager(this.config);
+      await this.poolManager.initialize();
 
-      this.client = createClient({
-        url,
-        socket: {
-          connectTimeout: this.config.timeout || 5000,
-        },
-      });
+      // Get the Redis client from pool manager
+      this.client = await this.poolManager.acquire();
 
-      await this.client.connect();
+      // Start health checks (ping every 30s)
+      this.poolManager.startHealthChecks();
+
       this.connected = true;
     } catch (err) {
       const error = createDatabaseError(
@@ -61,15 +65,23 @@ export class RedisAdapter implements IDatabaseAdapter {
   }
 
   async disconnect(): Promise<void> {
-    if (this.client) {
-      await this.client.quit();
+    if (this.poolManager) {
+      await this.poolManager.shutdown();
+      this.poolManager = null;
       this.client = null;
       this.connected = false;
     }
   }
 
   isConnected(): boolean {
-    return this.connected && this.client !== null;
+    return this.connected && this.poolManager !== null && this.client !== null;
+  }
+
+  /**
+   * Get connection pool statistics
+   */
+  getPoolStats() {
+    return this.poolManager?.getStats();
   }
 
   async get<T = any>(key: string): Promise<T | null> {

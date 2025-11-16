@@ -294,6 +294,153 @@ export class HealthEndpoints {
       const statusCode = check.status === 'healthy' ? 200 : 503;
       res.status(statusCode).json(response);
     });
+
+    /**
+     * GET /health/ping - Fast connectivity check
+     *
+     * Ultra-fast ping endpoint for basic connectivity checks.
+     * Returns in <100ms for Kubernetes probes and dashboards.
+     *
+     * Query parameters:
+     *   - timeout: Optional timeout in milliseconds (default: 100)
+     *
+     * Response time: <100ms
+     * Status codes:
+     *   200: System responsive
+     *   503: System unresponsive or timeout
+     */
+    this.router.get('/health/ping', async (req: Request, res: Response) => {
+      const startTime = Date.now();
+
+      try {
+        // Parse optional timeout parameter
+        const timeout = req.query.timeout
+          ? parseInt(req.query.timeout as string, 10)
+          : 100;
+
+        // Validate timeout
+        if (isNaN(timeout) || timeout < 1 || timeout > 1000) {
+          res.status(400).json({
+            error: 'Invalid timeout parameter',
+            message: 'Timeout must be between 1 and 1000 milliseconds',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        const check = await this.healthCheckSystem.ping(timeout);
+        const responseTime = Date.now() - startTime;
+
+        const response = {
+          status: check.status,
+          latency: responseTime,
+          message: check.message,
+          metadata: check.metadata,
+          timestamp: new Date().toISOString(),
+        };
+
+        res.status(200).json(response);
+      } catch (error: any) {
+        const responseTime = Date.now() - startTime;
+
+        const response = {
+          status: 'unhealthy',
+          latency: responseTime,
+          message: error.message || 'Ping failed',
+          error: error.code || 'UNKNOWN_ERROR',
+          timestamp: new Date().toISOString(),
+        };
+
+        res.status(503).json(response);
+      }
+    });
+
+    /**
+     * GET /health/aggregate - Aggregated health statistics
+     *
+     * Returns comprehensive aggregated health metrics from all services.
+     * Includes service counts, average latency, warnings, and errors.
+     *
+     * Query parameters:
+     *   - timeout: Optional timeout in milliseconds (default: 5000)
+     *
+     * Response time: <5s (default)
+     * Status codes:
+     *   200: Stats collected successfully
+     *   503: Timeout or aggregation failure
+     */
+    this.router.get('/health/aggregate', async (req: Request, res: Response) => {
+      const startTime = Date.now();
+
+      try {
+        // Parse optional timeout parameter
+        const timeout = req.query.timeout
+          ? parseInt(req.query.timeout as string, 10)
+          : 5000;
+
+        // Validate timeout
+        if (isNaN(timeout) || timeout < 100 || timeout > 30000) {
+          res.status(400).json({
+            error: 'Invalid timeout parameter',
+            message: 'Timeout must be between 100 and 30000 milliseconds',
+            timestamp: new Date().toISOString(),
+          });
+          return;
+        }
+
+        const stats = await this.healthCheckSystem.getAggregateStats(timeout);
+        const responseTime = Date.now() - startTime;
+
+        const response = {
+          timestamp: stats.timestamp.toISOString(),
+          overallStatus: stats.overallStatus,
+          latency: responseTime,
+          totalLatency: stats.latency,
+          averageServiceLatency: stats.averageServiceLatency,
+          serviceCount: stats.serviceCount,
+          services: {
+            database: {
+              status: stats.services.database.status,
+              latency: stats.services.database.latency,
+              message: stats.services.database.message,
+            },
+            redis: {
+              status: stats.services.redis.status,
+              latency: stats.services.redis.latency,
+              message: stats.services.redis.message,
+            },
+            filesystem: {
+              status: stats.services.filesystem.status,
+              latency: stats.services.filesystem.latency,
+              message: stats.services.filesystem.message,
+            },
+            agents: {
+              status: stats.services.agents.status,
+              latency: stats.services.agents.latency,
+              message: stats.services.agents.message,
+            },
+          },
+          metadata: stats.metadata,
+          warnings: stats.warnings,
+          errors: stats.errors,
+        };
+
+        const statusCode = stats.overallStatus === 'healthy' ? 200 : 503;
+        res.status(statusCode).json(response);
+      } catch (error: any) {
+        const responseTime = Date.now() - startTime;
+
+        const response = {
+          status: 'error',
+          latency: responseTime,
+          message: error.message || 'Failed to aggregate health stats',
+          error: error.code || 'UNKNOWN_ERROR',
+          timestamp: new Date().toISOString(),
+        };
+
+        res.status(503).json(response);
+      }
+    });
   }
 
   /**

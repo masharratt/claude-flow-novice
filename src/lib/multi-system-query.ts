@@ -34,6 +34,11 @@ import {
 import { CorrelationCache } from './correlation-cache';
 import { createLogger, Logger } from './logging';
 import { createDatabaseError } from './database-service/errors';
+import {
+  ErrorAggregator,
+  createErrorAggregator,
+  ErrorSeverity,
+} from './error-aggregator';
 
 /**
  * Database system type
@@ -94,6 +99,7 @@ export class MultiSystemQuery {
   private dbService: DatabaseService;
   private cache?: CorrelationCache;
   private logger: Logger;
+  private errorAggregator?: ErrorAggregator;
 
   // Query configuration
   private correlationKey?: CorrelationKey;
@@ -104,6 +110,7 @@ export class MultiSystemQuery {
   private useCache: boolean = false;
   private timeout: number = 2000; // 2 seconds
   private filters: QueryFilter[] = [];
+  private strictMode: boolean = false; // Fail operation if any system fails
 
   constructor(config: QueryBuilderConfig) {
     this.dbService = config.dbService;
@@ -258,15 +265,37 @@ export class MultiSystemQuery {
   }
 
   /**
+   * Set whether to fail on partial errors
+   *
+   * @param fail - Fail if any system fails
+   * @returns Query builder (fluent)
+   */
+  failOnPartialError(fail: boolean = true): this {
+    this.strictMode = fail;
+    return this;
+  }
+
+  /**
    * Execute multi-system query
    *
    * @returns Multi-system query results
+   * @throws {DatabaseError} If all systems fail or critical error occurs
    */
   async execute<T = any>(): Promise<MultiSystemResult<T>> {
     const startTime = Date.now();
 
     // Validate query configuration
     this.validateQuery();
+
+    // Initialize error aggregator with correlation ID
+    this.errorAggregator = createErrorAggregator();
+    const correlationId = this.errorAggregator.getCorrelationId();
+
+    this.logger.info('Starting multi-system query', {
+      correlationId,
+      systems: this.systems,
+      priority: this.priority,
+    });
 
     // Build cache key
     const cacheKey = this.buildCacheKey();
@@ -275,7 +304,7 @@ export class MultiSystemQuery {
     if (this.useCache && this.cache) {
       const cached = this.cache.get<MultiSystemResult<T>>(cacheKey);
       if (cached) {
-        this.logger.debug('Cache hit', { cacheKey });
+        this.logger.debug('Cache hit', { cacheKey, correlationId });
         return {
           ...cached,
           cacheHit: true,
@@ -284,7 +313,87 @@ export class MultiSystemQuery {
     }
 
     // Execute query based on priority
-    const result = await this.executeByPriority<T>();
+    let result: MultiSystemResult<T>;
+    try {
+      result = await this.executeByPriority<T>();
+    } catch (error) {
+      // Critical error during execution
+      this.logger.error(
+        'Critical error during query execution',
+        error instanceof Error ? error : undefined,
+        {
+          correlationId,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        }
+      );
+
+      throw createDatabaseError(
+        DatabaseErrorCode.QUERY_FAILED,
+        'Multi-system query failed with critical error',
+        error instanceof Error ? error : undefined,
+        { correlationId, systems: this.systems }
+      );
+    }
+
+    // Check if we should fail based on errors
+    if (this.errorAggregator.shouldFailOperation(this.systems)) {
+      const errorReport = this.errorAggregator.createReport();
+      this.logger.error(
+        'Multi-system query failed',
+        undefined,
+        {
+          correlationId,
+          errorReport,
+        }
+      );
+
+      const aggregationResult = this.errorAggregator.getResult(this.systems);
+
+      throw createDatabaseError(
+        aggregationResult.hasCriticalErrors
+          ? DatabaseErrorCode.QUERY_FAILED
+          : DatabaseErrorCode.QUERY_FAILED,
+        aggregationResult.allSystemsFailed
+          ? 'All database systems failed'
+          : 'Critical errors occurred during query execution',
+        undefined,
+        {
+          correlationId,
+          errorCount: aggregationResult.totalErrors,
+          failedSystems: Object.keys(aggregationResult.errorsBySystem),
+          errors: aggregationResult.allErrors.map(e => ({
+            system: e.system,
+            code: e.error.code,
+            message: e.error.message,
+            severity: e.severity,
+          })),
+        }
+      );
+    }
+
+    // Check for partial errors
+    if (this.strictMode && result.errors && result.errors.length > 0) {
+      const errorReport = this.errorAggregator.createReport();
+      this.logger.error(
+        'Query failed due to partial errors',
+        undefined,
+        {
+          correlationId,
+          errorCount: result.errors.length,
+          errorReport,
+        }
+      );
+
+      throw createDatabaseError(
+        DatabaseErrorCode.QUERY_FAILED,
+        `Query failed with ${result.errors.length} error(s)`,
+        undefined,
+        {
+          correlationId,
+          errors: result.errors,
+        }
+      );
+    }
 
     // Merge and deduplicate results
     result.merged = this.mergeResults(result);
@@ -297,10 +406,19 @@ export class MultiSystemQuery {
     // Validate performance requirement (<2s)
     if (result.executionTime >= this.timeout) {
       this.logger.warn('Query exceeded timeout', {
+        correlationId,
         executionTime: result.executionTime,
         timeout: this.timeout,
       });
     }
+
+    // Log success
+    this.logger.info('Multi-system query completed', {
+      correlationId,
+      executionTime: result.executionTime,
+      resultCount: result.merged.length,
+      errorCount: result.errors?.length || 0,
+    });
 
     // Store in cache
     if (this.useCache && this.cache) {
@@ -341,19 +459,41 @@ export class MultiSystemQuery {
    * Execute fastest strategy (stop on first result)
    */
   private async executeFastest<T>(result: MultiSystemResult<T>): Promise<MultiSystemResult<T>> {
+    if (!this.errorAggregator) {
+      throw new Error('Error aggregator not initialized');
+    }
+
     // Query in priority order: Redis → SQLite → PostgreSQL
     const orderedSystems = this.getOrderedSystems();
 
     for (const system of orderedSystems) {
+      // Check circuit breaker
+      if (this.errorAggregator.isCircuitOpen(system)) {
+        this.logger.warn(`Circuit breaker open for ${system}, skipping`, {
+          correlationId: this.errorAggregator.getCorrelationId(),
+        });
+        const error = this.createError(system, new Error('Circuit breaker open'));
+        result.errors?.push(error);
+        this.errorAggregator.addError(system, error, { strategy: 'fastest' });
+        continue;
+      }
+
       try {
         const data = await this.querySystem<T>(system);
+        this.errorAggregator.recordSuccess(system);
+
         if (data && data.length > 0) {
           result[system] = data;
           return result; // Stop on first non-empty result
         }
       } catch (error) {
-        this.logger.warn(`Query failed for ${system}`, { error });
-        result.errors?.push(this.createError(system, error));
+        const dbError = this.createError(system, error);
+        this.logger.warn(`Query failed for ${system}`, {
+          error: dbError,
+          correlationId: this.errorAggregator.getCorrelationId(),
+        });
+        result.errors?.push(dbError);
+        this.errorAggregator.addError(system, dbError, { strategy: 'fastest' });
       }
     }
 
@@ -364,16 +504,38 @@ export class MultiSystemQuery {
    * Execute balanced strategy (priority-ordered parallel)
    */
   private async executeBalanced<T>(result: MultiSystemResult<T>): Promise<MultiSystemResult<T>> {
+    if (!this.errorAggregator) {
+      throw new Error('Error aggregator not initialized');
+    }
+
     const orderedSystems = this.getOrderedSystems();
     const promises = orderedSystems.map(async (system) => {
+      // Check circuit breaker
+      if (this.errorAggregator!.isCircuitOpen(system)) {
+        this.logger.warn(`Circuit breaker open for ${system}, skipping`, {
+          correlationId: this.errorAggregator!.getCorrelationId(),
+        });
+        const error = this.createError(system, new Error('Circuit breaker open'));
+        result.errors?.push(error);
+        this.errorAggregator!.addError(system, error, { strategy: 'balanced' });
+        return;
+      }
+
       try {
         const data = await this.querySystem<T>(system);
+        this.errorAggregator!.recordSuccess(system);
+
         if (data && data.length > 0) {
           result[system] = data;
         }
       } catch (error) {
-        this.logger.warn(`Query failed for ${system}`, { error });
-        result.errors?.push(this.createError(system, error));
+        const dbError = this.createError(system, error);
+        this.logger.warn(`Query failed for ${system}`, {
+          error: dbError,
+          correlationId: this.errorAggregator!.getCorrelationId(),
+        });
+        result.errors?.push(dbError);
+        this.errorAggregator!.addError(system, dbError, { strategy: 'balanced' });
       }
     });
 
@@ -385,13 +547,35 @@ export class MultiSystemQuery {
    * Execute comprehensive strategy (all systems in parallel)
    */
   private async executeComprehensive<T>(result: MultiSystemResult<T>): Promise<MultiSystemResult<T>> {
+    if (!this.errorAggregator) {
+      throw new Error('Error aggregator not initialized');
+    }
+
     const promises = this.systems.map(async (system) => {
+      // Check circuit breaker
+      if (this.errorAggregator!.isCircuitOpen(system)) {
+        this.logger.warn(`Circuit breaker open for ${system}, skipping`, {
+          correlationId: this.errorAggregator!.getCorrelationId(),
+        });
+        const error = this.createError(system, new Error('Circuit breaker open'));
+        result.errors?.push(error);
+        this.errorAggregator!.addError(system, error, { strategy: 'comprehensive' });
+        result[system] = [];
+        return;
+      }
+
       try {
         const data = await this.querySystem<T>(system);
+        this.errorAggregator!.recordSuccess(system);
         result[system] = data || [];
       } catch (error) {
-        this.logger.warn(`Query failed for ${system}`, { error });
-        result.errors?.push(this.createError(system, error));
+        const dbError = this.createError(system, error);
+        this.logger.warn(`Query failed for ${system}`, {
+          error: dbError,
+          correlationId: this.errorAggregator!.getCorrelationId(),
+        });
+        result.errors?.push(dbError);
+        this.errorAggregator!.addError(system, dbError, { strategy: 'comprehensive' });
         result[system] = [];
       }
     });
@@ -418,11 +602,12 @@ export class MultiSystemQuery {
           if (data) results.push(data);
         }
       } else {
-        // For SQLite/PostgreSQL, use query with LIKE
-        const data = await adapter.query<T>(`
-          SELECT * FROM correlation_data WHERE key LIKE ?
-        `, [pattern.replace('*', '%')]);
-        results.push(...data);
+        // For SQLite/PostgreSQL, use raw query with LIKE
+        const data = await adapter.raw<T>(
+          'SELECT * FROM correlation_data WHERE key LIKE ?',
+          [pattern.replace('*', '%')]
+        );
+        results.push(...(Array.isArray(data) ? data : []));
       }
     } else if (this.correlationKey) {
       // Query specific entities for correlation key
@@ -456,7 +641,7 @@ export class MultiSystemQuery {
     // Use SCAN command for efficient key iteration
     let cursor = '0';
     do {
-      const result = await adapter.query<any>('SCAN', [cursor, 'MATCH', pattern, 'COUNT', '100']);
+      const result = await adapter.raw<any>('SCAN', [cursor, 'MATCH', pattern, 'COUNT', '100']);
       cursor = result[0];
       keys.push(...result[1]);
     } while (cursor !== '0');

@@ -138,6 +138,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
     "@types/chokidar": "^1.7.5",
+    "@types/jsonwebtoken": "^9.0.10",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "better-sqlite3": "^12.4.1",
@@ -149,6 +150,7 @@
     "glob": "^11.0.3",
     "ioredis": "^5.8.2",
     "js-yaml": "^4.1.1",
+    "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "redis": "^5.8.3",
     "socket.io": "^4.8.1",

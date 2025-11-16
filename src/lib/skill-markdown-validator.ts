@@ -10,6 +10,7 @@
 
 import { parseFrontmatter, validateFrontmatter, ParsedSkillDocument } from './skill-frontmatter-parser';
 import { StandardError } from './errors';
+import { validatePath, getSafePath, PathValidationError } from './path-validator';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -375,9 +376,14 @@ export function validateCodeBlocks(content: string): CodeBlockValidationResult {
 /**
  * Validate internal links and anchors
  *
+ * Security: All internal links are validated to prevent path traversal attacks.
+ * Paths are normalized, verified to stay within basePath, and checked for
+ * symlinks before file access.
+ *
  * @param content - Markdown content
- * @param basePath - Base path for resolving relative links
+ * @param basePath - Base path for resolving relative links (must be within allowed directories)
  * @returns Link validation result
+ * @throws SkillMarkdownError if basePath is invalid
  */
 export function validateInternalLinks(
   content: string,
@@ -388,6 +394,18 @@ export function validateInternalLinks(
   const links: Link[] = [];
   const brokenLinks: string[] = [];
   const externalLinks: string[] = [];
+
+  // Validate basePath for security
+  try {
+    // Ensure basePath is safe by resolving it
+    const normalizedBase = path.normalize(path.resolve(basePath));
+    basePath = normalizedBase;
+  } catch (error) {
+    throw new SkillMarkdownError(
+      'Invalid base path for link validation',
+      { basePath, error: error instanceof Error ? error.message : String(error) }
+    );
+  }
 
   // Extract all markdown links
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
@@ -420,15 +438,32 @@ export function validateInternalLinks(
       lineNumber,
     });
 
-    // Validate internal links
+    // Validate internal links with path traversal protection
     if (linkType === 'internal') {
-      const resolvedPath = path.resolve(basePath, href);
+      try {
+        // Validate path to prevent directory traversal (SECURITY: CVSS 7.5)
+        const validatedPath = getSafePath(href, basePath);
 
-      if (!fs.existsSync(resolvedPath)) {
-        brokenLinks.push(href);
-        errors.push(
-          `Broken internal link at line ${lineNumber}: "${href}" (resolved to ${resolvedPath})`
-        );
+        if (!fs.existsSync(validatedPath)) {
+          brokenLinks.push(href);
+          errors.push(
+            `Broken internal link at line ${lineNumber}: "${href}" (file does not exist)`
+          );
+        }
+      } catch (error) {
+        if (error instanceof PathValidationError) {
+          // Path traversal or security violation detected
+          brokenLinks.push(href);
+          errors.push(
+            `Invalid internal link at line ${lineNumber}: "${href}" (${error.context?.reason || 'path validation failed'})`
+          );
+        } else {
+          // Other file system errors
+          brokenLinks.push(href);
+          errors.push(
+            `Error validating internal link at line ${lineNumber}: "${href}" (${error instanceof Error ? error.message : String(error)})`
+          );
+        }
       }
     }
 
