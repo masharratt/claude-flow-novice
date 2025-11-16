@@ -1,0 +1,559 @@
+openapi: 3.0.0
+info:
+  title: Workflow Codification API
+  version: 2.0.0
+  description: Production API for Workflow Codification Enhancement v2 with comprehensive monitoring and observability
+  contact:
+    name: Engineering Team
+    email: engineering@example.com
+  license:
+    name: Apache 2.0
+
+servers:
+  - url: https://api.workflow-codification.example.com/v2
+    description: Production server
+  - url: http://localhost:8000/v2
+    description: Development server
+
+security:
+  - apiKey: []
+
+paths:
+  /health-scores/{skill_name}:
+    get:
+      summary: Get health score for a skill
+      description: Retrieve the current health score, reliability metrics, and health level for a specific skill
+      tags:
+        - Health Score
+      parameters:
+        - name: skill_name
+          in: path
+          required: true
+          description: Name of the skill to retrieve health score for
+          schema:
+            type: string
+          example: cfn-coordination
+      responses:
+        '200':
+          description: Health score successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthScore'
+              example:
+                skill_name: cfn-coordination
+                overall_score: 87
+                reliability_score: 90
+                performance_score: 85
+                edge_case_score: 80
+                documentation_score: 100
+                test_coverage_score: 85
+                health_level: good
+                calculated_at: '2025-11-16T12:00:00Z'
+        '404':
+          description: Skill not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  retry_after:
+                    type: integer
+
+  /circuit-breaker/{skill_name}/state:
+    get:
+      summary: Get circuit breaker state for a skill
+      description: Retrieve the current circuit breaker state (CLOSED, HALF_OPEN, OPEN) and failure metrics
+      tags:
+        - Circuit Breaker
+      parameters:
+        - name: skill_name
+          in: path
+          required: true
+          description: Name of the skill
+          schema:
+            type: string
+          example: health-scorer
+      responses:
+        '200':
+          description: Circuit breaker state retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CircuitBreakerState'
+        '404':
+          description: Skill not found
+
+  /regression-tests/generate:
+    post:
+      summary: Generate regression test suite
+      description: Generate a comprehensive regression test suite based on historical skill execution patterns
+      tags:
+        - Regression Testing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skill_name:
+                  type: string
+                  description: Name of the skill to generate tests for
+                  example: cfn-coordination
+                lookback_days:
+                  type: integer
+                  description: Number of days of execution history to analyze
+                  default: 90
+                  minimum: 7
+                  maximum: 365
+                sample_size:
+                  type: integer
+                  description: Number of historical executions to sample
+                  default: 50
+                  minimum: 10
+                  maximum: 500
+      responses:
+        '201':
+          description: Test suite generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestSuiteGenerated'
+        '400':
+          description: Invalid request parameters
+        '409':
+          description: Insufficient execution history
+
+  /pattern-recommendations:
+    get:
+      summary: Get pattern recommendations for user
+      description: Retrieve recommended workflow patterns based on user profile and usage strength level
+      tags:
+        - Pattern Recommender
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          description: User ID to get recommendations for
+          schema:
+            type: string
+          example: user123
+        - name: strength_level
+          in: query
+          description: Recommendation strength level to filter by
+          schema:
+            type: string
+            enum:
+              - high
+              - medium
+              - low
+        - name: limit
+          in: query
+          description: Maximum number of recommendations to return
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        '200':
+          description: Recommendations retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PatternRecommendation'
+        '404':
+          description: User not found
+
+  /composite-skills/execute:
+    post:
+      summary: Execute composite skill
+      description: Execute a composite skill with multiple sub-skills in sequential or parallel mode
+      tags:
+        - Skill Composition
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompositeExecutionRequest'
+      responses:
+        '200':
+          description: Execution completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompositeExecutionResult'
+        '400':
+          description: Invalid composite skill configuration
+        '504':
+          description: Execution timeout
+
+  /traces/{trace_id}:
+    get:
+      summary: Get execution trace details
+      description: Retrieve detailed execution trace including all steps, timing, and any errors
+      tags:
+        - Execution Tracing
+      parameters:
+        - name: trace_id
+          in: path
+          required: true
+          description: Unique trace identifier (UUID format)
+          schema:
+            type: string
+            format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Trace retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionTrace'
+        '404':
+          description: Trace not found
+        '410':
+          description: Trace has expired (older than retention period)
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  schemas:
+    HealthScore:
+      type: object
+      description: Health score metrics for a skill
+      required:
+        - skill_name
+        - overall_score
+        - health_level
+        - calculated_at
+      properties:
+        skill_name:
+          type: string
+          description: Name of the skill
+        overall_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Overall health score (0-100)
+        reliability_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Reliability metric (0-1)
+        performance_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Performance metric (0-1)
+        edge_case_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Edge case handling metric (0-1)
+        documentation_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Documentation quality metric (0-1)
+        test_coverage_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Test coverage metric (0-1)
+        health_level:
+          type: string
+          enum:
+            - excellent
+            - good
+            - fair
+            - poor
+          description: Human-readable health level
+        calculated_at:
+          type: string
+          format: date-time
+          description: Timestamp when health score was calculated
+
+    CircuitBreakerState:
+      type: object
+      description: Circuit breaker state for a skill
+      required:
+        - skill_name
+        - status
+        - consecutive_failures
+      properties:
+        skill_name:
+          type: string
+          description: Name of the skill
+        status:
+          type: string
+          enum:
+            - CLOSED
+            - OPEN
+            - HALF_OPEN
+          description: Circuit breaker status
+        consecutive_failures:
+          type: integer
+          minimum: 0
+          description: Number of consecutive failures
+        opened_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when circuit breaker was opened (null if CLOSED)
+        recovery_attempts:
+          type: integer
+          minimum: 0
+          description: Number of recovery attempts
+
+    TestSuiteGenerated:
+      type: object
+      description: Response after generating regression test suite
+      required:
+        - suite_id
+        - skill_name
+        - total_tests
+        - executions_analyzed
+      properties:
+        suite_id:
+          type: string
+          format: uuid
+          description: Unique ID of generated test suite
+        skill_name:
+          type: string
+          description: Name of the skill
+        total_tests:
+          type: integer
+          minimum: 1
+          description: Total number of tests generated
+        executions_analyzed:
+          type: integer
+          minimum: 1
+          description: Number of historical executions analyzed
+        unique_patterns:
+          type: integer
+          minimum: 1
+          description: Number of unique execution patterns found
+        generated_at:
+          type: string
+          format: date-time
+          description: When the test suite was generated
+
+    PatternRecommendation:
+      type: object
+      description: Recommended workflow pattern
+      required:
+        - id
+        - workflow_steps
+        - strength_level
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique recommendation ID
+        workflow_steps:
+          type: array
+          items:
+            type: string
+          description: Ordered list of workflow steps
+          minItems: 1
+        strength_level:
+          type: string
+          enum:
+            - high
+            - medium
+            - low
+          description: Strength of recommendation
+        projected_monthly_savings_usd:
+          type: number
+          minimum: 0
+          description: Projected monthly savings in USD
+        status:
+          type: string
+          enum:
+            - suggested
+            - accepted
+            - rejected
+            - deployed
+          description: Current recommendation status
+        acceptance_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: When recommendation was accepted
+        deployment_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: When recommendation was deployed
+
+    CompositeExecutionRequest:
+      type: object
+      description: Request to execute a composite skill
+      required:
+        - composite_name
+        - execution_mode
+      properties:
+        composite_name:
+          type: string
+          description: Name of the composite skill
+          example: auth-flow
+        execution_mode:
+          type: string
+          enum:
+            - sequential
+            - parallel
+          description: Execution mode
+        error_handling:
+          type: string
+          enum:
+            - stop_on_error
+            - continue_on_error
+            - retry_on_error
+          default: stop_on_error
+          description: Error handling strategy
+        timeout_seconds:
+          type: integer
+          minimum: 1
+          default: 300
+          description: Execution timeout in seconds
+
+    CompositeExecutionResult:
+      type: object
+      description: Result of composite skill execution
+      required:
+        - status
+        - step_results
+      properties:
+        status:
+          type: string
+          enum:
+            - success
+            - failed
+          description: Execution status
+        step_results:
+          type: object
+          description: Results from each step in the composite
+          additionalProperties:
+            type: object
+        workspace_dir:
+          type: string
+          description: Working directory path for execution
+        error_message:
+          type: string
+          nullable: true
+          description: Error message if execution failed
+        execution_duration_seconds:
+          type: number
+          minimum: 0
+          description: Total execution duration
+        steps_executed:
+          type: integer
+          minimum: 0
+          description: Number of steps executed
+
+    ExecutionTrace:
+      type: object
+      description: Detailed execution trace
+      required:
+        - trace_id
+        - skill_name
+        - status
+        - steps
+      properties:
+        trace_id:
+          type: string
+          format: uuid
+          description: Unique trace identifier
+        skill_name:
+          type: string
+          description: Name of the skill executed
+        started_at:
+          type: string
+          format: date-time
+          description: When execution started
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When execution completed
+        total_duration_ms:
+          type: integer
+          minimum: 0
+          description: Total execution duration in milliseconds
+        status:
+          type: string
+          enum:
+            - running
+            - success
+            - failed
+            - timeout
+          description: Execution status
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              step_id:
+                type: string
+              name:
+                type: string
+              status:
+                type: string
+              started_at:
+                type: string
+                format: date-time
+              completed_at:
+                type: string
+                format: date-time
+              duration_ms:
+                type: integer
+          description: Detailed step-by-step execution trace
+        error_message:
+          type: string
+          nullable: true
+          description: Error message if execution failed
+        context:
+          type: object
+          description: Execution context and environment variables
+          additionalProperties: true
+
+    Error:
+      type: object
+      description: Error response
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        timestamp:
+          type: string
+          format: date-time
+          description: When error occurred
