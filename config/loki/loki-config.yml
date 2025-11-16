@@ -1,0 +1,172 @@
+# Loki Configuration
+# Task P2-2.3: Centralized Logging with ELK/Loki Stack
+# Version: 2.9.0
+#
+# Loki is a horizontally-scalable, highly-available, multi-tenant log aggregation system
+# inspired by Prometheus. It is designed to be very cost effective and easy to operate.
+
+auth_enabled: false
+
+ingester:
+  # Chunk-related settings for ingestion
+  chunk_idle_period: 3m
+  chunk_retain_period: 1m
+  max_chunk_age: 1h
+  chunk_encoding: snappy
+
+  # Performance tuning
+  max_streams_errors: 100
+  max_streams: 1000
+  max_stream_delay: 5s
+
+  # Flush settings
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    num_tokens: 128
+    heartbeat_timeout: 5m
+    interface_names:
+      - eth0
+
+limits_config:
+  # Enforce rate limiting per stream
+  rate_limit_bytes: 100MB
+  rate_limit_enabled: true
+
+  # Stream limits
+  max_entries_limit_per_second: 10000
+  max_streams_per_user: 10000
+
+  # Global retention policy: 30 days
+  retention_period: 720h  # 720h = 30 days
+
+  # Split logs into multiple lines after this many characters
+  max_line_size: 256KB
+
+  # Cardinality limits
+  cardinality_limit: 100000
+  enforce_metric_name: false
+
+schema_config:
+  configs:
+    - from: 2020-10-24
+      store: boltdb-shipper
+      object_store: filesystem
+      schema: v11
+      index:
+        prefix: index_
+        period: 24h
+
+server:
+  http_listen_port: 3100
+  http_server_read_timeout: 600s
+  http_server_write_timeout: 600s
+  log_level: info
+
+storage_config:
+  # Use filesystem storage for development
+  filesystem:
+    directory: /loki/chunks
+
+  # Index storage configuration
+  index_cache_validity: 5m
+  cache_config:
+    enable_fifocache: true
+    default_validity: 1h
+    background:
+      writeback_goroutines: 10
+      writeback_buffer: 10000
+    memcached:
+      batch_size: 1024
+      parallelism: 100
+
+chunk_store_config:
+  # Maximum number of parallel workers processing chunks
+  max_look_back_period: 0s
+
+  # Cache config for the chunk store
+  cache_config:
+    enable_fifocache: true
+    default_validity: 1h
+
+table_manager:
+  # Enable table manager for automatic table creation and retention
+  enabled: true
+
+  # Period for creation of new tables
+  poll_interval: 10m
+
+  # Retention period for old tables
+  retention_deletes_enabled: true
+  retention_period: 720h  # 30 days
+
+  # Grace period before deleting tables
+  creation_grace_period: 10m
+
+query_range:
+  # Cache config for query results
+  cache_config:
+    enable_fifocache: true
+    default_validity: 1m
+    background:
+      writeback_goroutines: 10
+      writeback_buffer: 10000
+
+# Querier settings
+querier:
+  # Max concurrent queries
+  max_concurrent: 100
+
+  # Query timeout
+  query_timeout: 2m
+
+  # Engine timeout
+  engine:
+    timeout: 2m
+
+# Distributor settings
+distributor:
+  # Rate limit
+  rate_limit_enabled: false
+
+  # Ring configuration
+  ring:
+    kvstore:
+      store: inmemory
+
+# Compactor settings for log retention
+compactor:
+  # Enable compaction
+  compaction_interval: 10m
+
+  # Number of workers
+  max_compaction_parallel_shards: 2
+
+  # Retention settings
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+
+  # Working directory for temporary files
+  working_directory: /loki/compactor
+  shared_store: filesystem
+
+runtime_config:
+  # Configuration file for runtime updates
+  # Useful for overrides without restart
+  file: /etc/loki/runtime.yaml
+  period: 10s
+
+# Tracing configuration (optional)
+# Uncomment to enable distributed tracing
+# tracing:
+#   enabled: false
+
+# Monitoring/Metrics
+# The metrics below are exposed on port 3100 at /metrics
+# Useful for Prometheus scraping
+metrics:
+  enabled: true
+  namespace: loki
