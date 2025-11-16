@@ -13,7 +13,8 @@
     "cfn-portal": "dist/cli/cfn-portal.js",
     "cfn-context": "dist/cli/cfn-context.js",
     "cfn-metrics": "dist/cli/cfn-metrics.js",
-    "cfn-redis": "dist/cli/cfn-redis.js"
+    "cfn-redis": "dist/cli/cfn-redis.js",
+    "cfn-skill": "dist/cli/skill-cli.js"
   },
   "files": [
     "dist/",
