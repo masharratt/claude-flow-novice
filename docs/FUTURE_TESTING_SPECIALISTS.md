@@ -529,33 +529,33 @@ The following questions should be converted to tracked GitHub issues for investi
    - **Issue**: Should specialists run in parallel or sequential?
    - **Label**: `optimization`, `architecture`
    - **Related**: Loop 2 orchestration performance
-   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+   - **Status**: Deferred to Phase 6 planning (after Phase 5 production metrics)
 
 2. **Validation Time Budget**
    - **Issue**: How to keep total validation time <10 minutes?
    - **Label**: `performance`, `validation`
    - **Constraint**: CI/CD pipeline timeout requirements
-   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+   - **Status**: Deferred to Phase 6 planning (after Phase 5 production metrics)
 
 3. **Cost-Quality Tradeoff Analysis**
    - **Issue**: Balance quality vs. execution cost (more validators = higher cost)
    - **Label**: `cost-optimization`, `strategy`
    - **Data Needed**: Cost per validator, defect escape rate correlation
-   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+   - **Status**: Deferred to Phase 6 planning (after Phase 5 production metrics)
 
 4. **Domain-Specific Thresholds**
    - **Issue**: Different mutation score thresholds per domain?
    - **Label**: `quality-gates`, `test-driven`
    - **Example**: Security code may need 98%, UI code 85%
-   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+   - **Status**: Deferred to Phase 6 planning (after Phase 5 production metrics)
 
 5. **CI/CD Pipeline Integration**
    - **Issue**: How to integrate with existing CI/CD pipelines?
    - **Label**: `integration`, `devops`
    - **Platforms**: GitHub Actions, GitLab CI, Jenkins, CircleCI
-   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+   - **Status**: Deferred to Phase 6 planning (after Phase 5 production metrics)
 
-**Action Item**: Create these 5 GitHub issues after Phase 5 production deployment to track investigation and implementation.
+**Note**: These questions will be evaluated based on Phase 5 production deployment metrics and converted to actionable tasks as data becomes available.
 
 ---
 

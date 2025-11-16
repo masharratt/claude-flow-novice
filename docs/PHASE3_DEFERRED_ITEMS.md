@@ -29,7 +29,7 @@ All deferred items are tracked as GitHub issues with labels:
 ### 1. Redis Service Deployment Guide
 **Priority**: P2 (Medium)
 **Category**: Infrastructure
-**Tracking**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues) *(create issue with label: phase3-deferred, priority:P2)*
+**Tracking**: Deferred to next sprint (documented in this file)
 
 **Why**: 3/8 integration tests in `test-dynamic-integration.sh` require Redis service running (environmental dependency, not code defect)
 
@@ -49,7 +49,7 @@ services:
 ### 2. TASK_ID Regression Verification
 **Priority**: P3 (Low)
 **Category**: Testing
-**Tracking**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues) *(create issue with label: phase3-deferred, priority:P3)*
+**Tracking**: Deferred to next sprint (documented in this file)
 
 **Why**: Unconfirmed concern from validator about potential regression in TASK_ID propagation across coordination layer
 
@@ -65,7 +65,7 @@ services:
 ### 3. 10MB Boundary Edge Case Tests
 **Priority**: P3 (Low)
 **Category**: Testing
-**Tracking**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues) *(create issue with label: phase3-deferred, priority:P3)*
+**Tracking**: Deferred to next sprint (documented in this file)
 
 **Why**: Limited edge case coverage at parameter size boundaries (currently test 7MB and 8MB, missing 10MB±1KB tests)
 
