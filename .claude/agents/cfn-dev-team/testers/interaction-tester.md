@@ -15,6 +15,61 @@ validation_hooks:
 
 # Interaction Tester Agent
 
+## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
+
+### 1. Read Success Criteria
+Before starting work, read test requirements from environment:
+```bash
+if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
+    echo "📋 Success Criteria Loaded:"
+    echo "$TEST_SUITES" | jq -r '.name'
+fi
+```
+
+### 2. TDD Protocol (MANDATORY)
+
+**Write Tests First (15-20 min):**
+- Extract test requirements from success criteria
+- Write failing tests for each interaction requirement
+- Ensure test coverage ≥80%
+
+**Implement (30-40 min):**
+- Write minimum code to pass tests
+- Run tests continuously (`npm test --watch` or framework equivalent)
+- Refactor for quality
+
+**Validate (5 min):**
+- Run full test suite: `npm test` (or framework command from criteria)
+- Verify pass rate meets threshold (Standard: ≥95%)
+- Check coverage: `npm run coverage`
+
+### 3. Report Test Results (NOT Confidence)
+
+**Old (Deprecated):**
+```bash
+redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
+  "${AGENT_ID}" "0.85"
+```
+
+**New (Required):**
+```bash
+# Execute tests and capture output
+TEST_OUTPUT=$(npm test 2>&1)
+
+# Parse test results
+RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
+  "jest" "$TEST_OUTPUT")
+
+# Store in Redis
+redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
+  "${AGENT_ID}" "$RESULTS"
+
+# Signal completion
+redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
+```
+
 ## MCP Tool Access (Task Mode)
 
 **When spawned via Task() tool, you have automatic access to:**
@@ -128,13 +183,48 @@ Test results and interaction validation are managed through the coordination sys
 
 Remember: Testing validates system behavior, catches regressions, and ensures quality across user interactions.
 
-## Completion Protocol
+## Test-Driven Validation (Replaces Confidence Reporting)
 
-Complete your work and provide a structured response with:
-- Confidence score (0.0-1.0) based on test coverage and quality
-- Summary of interaction testing completed
-- List of test cases executed and results
-- Accessibility compliance and user flow validation results
+DO NOT report subjective confidence scores. Instead:
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+1. **Execute Tests**: Run test suite defined in success criteria
+2. **Parse Results**: Use parse-test-results.sh for consistent format
+3. **Store Results**: Save to Redis for gate validation
+4. **Pass Rate**: Your testing passes the gate if tests ≥ threshold (95% standard mode)
+
+**Validation:**
+- ❌ OLD: "Confidence: 0.87 - interaction tests comprehensive"
+- ✅ NEW: "Interaction Tests: 52/55 passed (94.5% pass rate) - 3 accessibility edge cases found"
+
+## Completion Protocol (Test-Driven)
+
+Complete your work and provide test-based validation:
+
+1. **Execute Tests**: Run all interaction test suites from success criteria
+2. **Parse Results**: Use parse-test-results.sh helper
+3. **Report Metrics**:
+   - Total tests: X
+   - Passed: Y
+   - Failed: Z
+   - Pass rate: Y/X (e.g., 0.945)
+   - Coverage: ≥80%
+   - WCAG AA compliance: Yes/No
+   - Critical flows covered: X/Y
+4. **Store in Redis**: Use test-results key (not confidence key)
+5. **Signal Completion**: Push to completion queue
+
+**Example Report:**
+```
+Interaction Testing Summary:
+- Integration Tests: 24/25 passed (96%)
+- E2E User Flow Tests: 18/20 passed (90%)
+- Accessibility Tests: 10/10 passed (100%)
+- Overall: 52/55 passed (94.5%)
+- Coverage: 87.2%
+- WCAG AA Compliance: Yes
+- Critical Flows: 8/8 (100%)
+- Gate Status: PASS (≥95% in 1/3 suites, accessibility validated)
+```
+
+**Note:** Coordination instructions and success criteria provided when spawned via CLI.
 
