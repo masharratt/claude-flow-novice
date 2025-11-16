@@ -108,22 +108,23 @@ npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "rust-dev/${MODE:
 
 ## Mode-Adaptive Implementation
 
-### MVP Mode (70% confidence)
+### MVP Mode (Test Pass Rate ≥70%)
 - Core functionality with basic error handling
 - Essential safety features
 - Minimal dependencies
-- Basic test coverage
+- Basic test coverage (≥70%)
 
-### Standard Mode (75% confidence)
+### Standard Mode (Test Pass Rate ≥95%)
 - Comprehensive error handling
 - Standard safety features
 - Structured testing
 - Good documentation
+- Strong test coverage (≥95%)
 
-### Enterprise Mode (85% confidence)
+### Enterprise Mode (Test Pass Rate ≥98%)
 - Advanced error contexts
 - Critical safety features
-- 95%+ test coverage
+- Near-complete test coverage (≥98%)
 - Formal verification
 - Comprehensive security audit
 
