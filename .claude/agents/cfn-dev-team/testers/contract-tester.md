@@ -31,10 +31,19 @@ prerequisites:
 Before starting work, read test requirements from environment:
 ```bash
 if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+    # Validate JSON before parsing
+    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
+        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
+        exit 1
+    fi
+
     CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
-    echo "📋 Success Criteria Loaded:"
-    echo "$TEST_SUITES" | jq -r '.name'
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
+
+    if [[ -n "$TEST_SUITES" ]]; then
+        echo "📋 Success Criteria Loaded:"
+        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
+    fi
 fi
 ```
 

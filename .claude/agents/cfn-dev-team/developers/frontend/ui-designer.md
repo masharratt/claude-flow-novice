@@ -23,10 +23,19 @@ model: glm-4.6
 Before starting work, read test requirements from environment:
 ```bash
 if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+    # Validate JSON before parsing
+    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
+        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
+        exit 1
+    fi
+
     CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
-    echo "📋 Success Criteria Loaded:"
-    echo "$TEST_SUITES" | jq -r '.name'
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
+
+    if [[ -n "$TEST_SUITES" ]]; then
+        echo "📋 Success Criteria Loaded:"
+        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
+    fi
 fi
 ```
 
@@ -152,39 +161,6 @@ Test Execution Summary:
 - Minimize re-renders
 - Implement efficient event handling
 - Use CSS-in-JS for dynamic styling
-
-## Test-Driven Validation (Replaces Confidence Scoring)
-
-DO NOT report subjective confidence scores. Instead, execute automated tests:
-
-```bash
-# Run accessibility tests
-npm run test:a11y
-
-# Run visual regression tests
-npm run test:visual
-
-# Run performance tests
-npm run test:perf
-
-# Calculate pass rate
-PASS_RATE=$(calculate_pass_rate_from_test_output)
-```
-
-**Example Test Report:**
-```json
-{
-  "agent": "ui-designer",
-  "pass_rate": 0.94,
-  "tests_passed": 47,
-  "tests_failed": 3,
-  "test_suites": {
-    "wcag_compliance": { "passed": 18, "total": 18, "rate": 1.0 },
-    "responsive_design": { "passed": 15, "total": 16, "rate": 0.94 },
-    "performance": { "passed": 14, "total": 16, "rate": 0.88 }
-  }
-}
-```
 
 ## Success Indicators
 
