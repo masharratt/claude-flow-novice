@@ -1,0 +1,180 @@
+# Claude Flow Novice - Default Configuration
+# Version: 1.0
+# Format: YAML
+# Schema: ../schemas/config-v1.schema.json
+
+version: '1.0'
+
+# ============================================================
+# Database Configuration
+# ============================================================
+database:
+  # Type: sqlite | postgres | mysql
+  type: sqlite
+
+  # SQLite Configuration
+  path: ./data/cfn.db
+
+  # PostgreSQL/MySQL Configuration (uncomment when needed)
+  # host: localhost
+  # port: 5432  # 5432 for postgres, 3306 for mysql
+  # name: cfn
+  # username: cfn_user
+  # password: ${DB_PASSWORD}  # Use environment variable
+
+  # Connection Pool
+  pool:
+    min: 2      # Minimum connections
+    max: 10     # Maximum connections
+
+  # SSL Configuration
+  ssl: false
+
+# ============================================================
+# Redis Configuration
+# ============================================================
+redis:
+  enabled: true
+  host: localhost
+  port: 6379
+
+  # Optional Authentication
+  # password: ${REDIS_PASSWORD}
+
+  # Database Number (0-15)
+  db: 0
+
+  # Default TTL (seconds)
+  ttl: 86400
+
+  # Key Prefix for Namespacing
+  keyPrefix: 'cfn:'
+
+# ============================================================
+# Agent Configuration
+# ============================================================
+agents:
+  # Maximum concurrent agents
+  maxConcurrent: 10
+
+  # Agent timeout (seconds)
+  timeout: 300
+
+  # Retry configuration
+  retryAttempts: 3
+  retryDelay: 1000  # milliseconds
+
+  # Default strategy: development | production | testing
+  defaultStrategy: development
+
+  # Log level: debug | info | warn | error
+  logLevel: info
+
+# ============================================================
+# Skills Configuration
+# ============================================================
+skills:
+  # Skills directory path
+  directory: ./.claude/skills
+
+  # Auto-load skills on startup
+  autoload: true
+
+  # Allowed skill types
+  allowedTypes:
+    - coordination
+    - deployment
+    - testing
+    - validation
+    - monitoring
+
+  # Skill cache configuration
+  cache:
+    enabled: true
+    ttl: 3600  # seconds
+
+# ============================================================
+# Logging Configuration
+# ============================================================
+logging:
+  # Log level: debug | info | warn | error
+  level: info
+
+  # Format: json | text | pretty
+  format: json
+
+  # Output: stdout | file | both
+  output: stdout
+
+  # File logging configuration
+  file:
+    path: ./logs/cfn.log
+    maxSize: 10m      # Maximum file size
+    maxFiles: 5       # Number of files to retain
+
+# ============================================================
+# Security Configuration
+# ============================================================
+security:
+  enabled: true
+
+  # API Key requirement
+  apiKeyRequired: false
+
+  # Rate limiting
+  rateLimiting:
+    enabled: true
+    maxRequests: 100      # Requests per window
+    windowMs: 60000       # Time window (milliseconds)
+
+  # CORS allowed origins
+  allowedOrigins:
+    - http://localhost:3000
+    - http://localhost:8080
+
+# ============================================================
+# Monitoring Configuration
+# ============================================================
+monitoring:
+  enabled: true
+
+  # Prometheus metrics
+  prometheus:
+    enabled: false
+    port: 9090
+    path: /metrics
+
+  # Health check endpoint
+  healthCheck:
+    enabled: true
+    port: 8080
+    path: /health
+
+# ============================================================
+# Feature Flags
+# ============================================================
+features:
+  # Hot reload configuration changes
+  hotReload: false
+
+  # Custom provider routing (Z.ai, Kimi, OpenRouter)
+  customRouting: false
+
+  # Experimental features
+  experimentalFeatures: false
+
+# ============================================================
+# Environment Variable Overrides
+# ============================================================
+# Values can reference environment variables using ${VAR_NAME} syntax
+# Example:
+#   database:
+#     password: ${DB_PASSWORD}
+#   redis:
+#     password: ${REDIS_PASSWORD}
+#
+# Environment-specific overrides:
+# - config/development.yml (merges with this file)
+# - config/production.yml (merges with this file)
+# - config/testing.yml (merges with this file)
+# ============================================================

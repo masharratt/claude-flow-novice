@@ -132,13 +132,16 @@
     "docker:env-sync": "tsx scripts/generate-cfn-runtime-env.ts",
     "test:docker:redis-coordination": "node tests/docker/cfn-coordination-test.js",
     "test:docker:concurrent": "node tests/hello-world/concurrent-agent-test.js",
-    "test:docker:container": "bash tests/docker/container-test-runner.sh"
+    "test:docker:container": "bash tests/docker/container-test-runner.sh",
+    "migrate-configs": "tsx scripts/migrate-configs.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
+    "@types/chokidar": "^1.7.5",
     "ajv": "^8.17.1",
     "better-sqlite3": "^12.4.1",
     "chalk": "^4.1.2",
+    "chokidar": "^3.6.0",
     "commander": "^11.1.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
