@@ -448,6 +448,32 @@ function spawn_loop3_agents() {
 
   echo "[Loop 3] Spawning implementer agents (iteration $iteration)..."
 
+  # Load success criteria from Redis (if available)
+  export AGENT_SUCCESS_CRITERIA=""
+  if [[ -n "$task_id" ]] && [[ -x "$SCRIPT_DIR/../cfn-redis-coordination/get-success-criteria.sh" ]]; then
+    SUCCESS_CRITERIA=$("$SCRIPT_DIR/../cfn-redis-coordination/get-success-criteria.sh" --task-id "$task_id" 2>/dev/null || echo "")
+
+    if [[ -n "$SUCCESS_CRITERIA" ]]; then
+      # SECURITY FIX: Validate JSON size before parsing (prevent DoS)
+      CRITERIA_SIZE=$(echo -n "$SUCCESS_CRITERIA" | wc -c)
+      MAX_SIZE=10485760  # 10MB
+
+      if [[ "$CRITERIA_SIZE" -gt "$MAX_SIZE" ]]; then
+        echo "  ❌ Success criteria exceeds maximum size (10MB): ${CRITERIA_SIZE} bytes" >&2
+        exit 1
+      fi
+
+      # Validate JSON before exporting
+      if echo "$SUCCESS_CRITERIA" | jq empty 2>/dev/null; then
+        export AGENT_SUCCESS_CRITERIA="$SUCCESS_CRITERIA"
+        TEST_SUITE_COUNT=$(echo "$SUCCESS_CRITERIA" | jq -r '.test_suites | length' 2>/dev/null || echo "0")
+        echo "  ✅ Success criteria loaded ($TEST_SUITE_COUNT test suites)" >&2
+      else
+        echo "  ⚠️  Invalid success criteria JSON - skipping" >&2
+      fi
+    fi
+  fi
+
   # Convert comma-separated agents to array
   IFS=',' read -ra AGENT_ARRAY <<< "$agents"
 
@@ -476,21 +502,32 @@ function spawn_loop3_agents() {
         # Docker-based spawning (prevents WebAssembly OOM)
         echo "  → Docker mode: spawning via container" >&2
 
-        docker run --detach \
-          --name "agent-${safe_agent_id}" \
-          --memory "${CFN_MEMORY_LIMIT:-2g}" \
+        # Build Docker command with optional AGENT_SUCCESS_CRITERIA
+        DOCKER_CMD="docker run --detach \
+          --name \"agent-${safe_agent_id}\" \
+          --memory \"${CFN_MEMORY_LIMIT:-2g}\" \
           --cpus 1.5 \
-          --network "${CFN_DOCKER_NETWORK:-mcp-network}" \
+          --network \"${CFN_DOCKER_NETWORK:-mcp-network}\" \
           --env REDIS_URL=redis://redis:6379 \
-          --env AGENT_ID="${safe_agent_id}" \
-          --env AGENT_TYPE="${safe_agent_type}" \
-          --env TASK_ID="${safe_task_id}" \
-          --env ITERATION="${iteration}" \
-          --volume "${PROJECT_ROOT}/.claude:/app/.claude:ro" \
-          --volume "${PROJECT_ROOT}/packages:/app/packages" \
-          --volume "/tmp/agent-workspace-${safe_agent_id}:/app/workspace" \
-          "${CFN_DOCKER_IMAGE:-claude-flow-novice:agent}" \
-          sh -c "npx claude-flow-novice agent \"${safe_agent_type}\" --task-id \"${safe_task_id}\" --agent-id \"${safe_agent_id}\" --iteration \"${iteration}\"" >/dev/null 2>&1 &
+          --env AGENT_ID=\"${safe_agent_id}\" \
+          --env AGENT_TYPE=\"${safe_agent_type}\" \
+          --env TASK_ID=\"${safe_task_id}\" \
+          --env ITERATION=\"${iteration}\""
+
+        # SECURITY FIX: Base64-encode success criteria to prevent shell injection
+        if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+          ENCODED_CRITERIA=$(echo -n "$AGENT_SUCCESS_CRITERIA" | base64 -w 0)
+          DOCKER_CMD="$DOCKER_CMD --env AGENT_SUCCESS_CRITERIA_B64='${ENCODED_CRITERIA}'"
+        fi
+
+        DOCKER_CMD="$DOCKER_CMD \
+          --volume \"${PROJECT_ROOT}/.claude:/app/.claude:ro\" \
+          --volume \"${PROJECT_ROOT}/packages:/app/packages\" \
+          --volume \"/tmp/agent-workspace-${safe_agent_id}:/app/workspace\" \
+          \"${CFN_DOCKER_IMAGE:-claude-flow-novice:agent}\" \
+          sh -c \"npx claude-flow-novice agent \\\"${safe_agent_type}\\\" --task-id \\\"${safe_task_id}\\\" --agent-id \\\"${safe_agent_id}\\\" --iteration \\\"${iteration}\\\"\" >/dev/null 2>&1 &"
+
+        eval "$DOCKER_CMD"
 
         AGENT_PID=$!
     else
@@ -534,8 +571,13 @@ function spawn_loop3_agents() {
         echo "🔍 Started monitoring for $UNIQUE_AGENT_ID (Agent PID: $AGENT_PID, Monitor PID: $MONITOR_PID)" >&2
     fi
 
-    # Store agent ID mapping for later retrieval using Redis SADD for set storage
-    redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SADD "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" "$UNIQUE_AGENT_ID" >/dev/null
+    # SECURITY FIX: Atomic SADD + EXPIRE using Lua script (prevent race condition)
+    redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" --eval - \
+      "swarm:${task_id}:loop3:agent_ids:iteration${iteration}" "$UNIQUE_AGENT_ID" <<'LUA' >/dev/null
+redis.call('SADD', KEYS[1], ARGV[1])
+redis.call('EXPIRE', KEYS[1], 86400)
+return redis.call('SCARD', KEYS[1])
+LUA
   done
 
   echo "[Loop 3] All agents spawned"
@@ -747,6 +789,32 @@ function spawn_loop2_agents() {
 
   echo "[Loop 2] Spawning validator agents (iteration $iteration)..."
 
+  # Load success criteria from Redis (if available)
+  export AGENT_SUCCESS_CRITERIA=""
+  if [[ -n "$task_id" ]] && [[ -x "$SCRIPT_DIR/../cfn-redis-coordination/get-success-criteria.sh" ]]; then
+    SUCCESS_CRITERIA=$("$SCRIPT_DIR/../cfn-redis-coordination/get-success-criteria.sh" --task-id "$task_id" 2>/dev/null || echo "")
+
+    if [[ -n "$SUCCESS_CRITERIA" ]]; then
+      # SECURITY FIX: Validate JSON size before parsing (prevent DoS)
+      CRITERIA_SIZE=$(echo -n "$SUCCESS_CRITERIA" | wc -c)
+      MAX_SIZE=10485760  # 10MB
+
+      if [[ "$CRITERIA_SIZE" -gt "$MAX_SIZE" ]]; then
+        echo "  ❌ Success criteria exceeds maximum size (10MB): ${CRITERIA_SIZE} bytes" >&2
+        exit 1
+      fi
+
+      # Validate JSON before exporting
+      if echo "$SUCCESS_CRITERIA" | jq empty 2>/dev/null; then
+        export AGENT_SUCCESS_CRITERIA="$SUCCESS_CRITERIA"
+        TEST_SUITE_COUNT=$(echo "$SUCCESS_CRITERIA" | jq -r '.test_suites | length' 2>/dev/null || echo "0")
+        echo "  ✅ Success criteria loaded ($TEST_SUITE_COUNT test suites)" >&2
+      else
+        echo "  ⚠️  Invalid success criteria JSON - skipping" >&2
+      fi
+    fi
+  fi
+
   # Convert comma-separated agents to array
   IFS=',' read -ra AGENT_ARRAY <<< "$agents"
 
@@ -788,7 +856,13 @@ function spawn_loop2_agents() {
       --namespace "swarm" >/dev/null
 
     # Store agent ID mapping for later retrieval using Redis SADD for set storage
-    redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" SADD "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" "$UNIQUE_VALIDATOR_ID" >/dev/null
+    # SECURITY FIX: Atomic SADD + EXPIRE using Lua script (prevent race condition)
+    redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" --eval - \
+      "swarm:${task_id}:loop2:agent_ids:iteration${iteration}" "$UNIQUE_VALIDATOR_ID" <<'LUA' >/dev/null
+redis.call('SADD', KEYS[1], ARGV[1])
+redis.call('EXPIRE', KEYS[1], 86400)
+return redis.call('SCARD', KEYS[1])
+LUA
   done
 
   echo "[Loop 2] All agents spawned"
