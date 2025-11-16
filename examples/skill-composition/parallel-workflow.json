@@ -1,0 +1,34 @@
+{
+  "name": "parallel-workflow",
+  "description": "Fully parallel workflow - all steps independent",
+  "steps": [
+    {
+      "step_id": "process_logs",
+      "skill_name": "log-processor",
+      "params": {
+        "log_dir": "/var/logs"
+      }
+    },
+    {
+      "step_id": "backup_database",
+      "skill_name": "db-backup",
+      "params": {
+        "target": "s3://backups"
+      }
+    },
+    {
+      "step_id": "run_health_check",
+      "skill_name": "health-checker",
+      "params": {
+        "services": ["api", "database", "cache"]
+      }
+    },
+    {
+      "step_id": "send_metrics",
+      "skill_name": "metrics-reporter",
+      "params": {
+        "destination": "datadog"
+      }
+    }
+  ]
+}

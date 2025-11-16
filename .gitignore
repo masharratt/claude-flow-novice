@@ -199,4 +199,10 @@ legacy/v1/**/*.db-shm
 legacy/v1/**/build/
 legacy/v1/**/.swc/
 legacy/v1/**/.next/planning/global/
-\n# Pre-Edit Backup System\n.backups/\n
+
+# Pre-Edit Backup System
+.backups/
+
+# Backup files
+*.backup
+*.bak

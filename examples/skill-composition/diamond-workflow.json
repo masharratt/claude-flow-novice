@@ -1,0 +1,37 @@
+{
+  "name": "diamond-workflow",
+  "description": "Diamond pattern with parallel execution: A -> (B, C) -> D",
+  "steps": [
+    {
+      "step_id": "fetch_data",
+      "skill_name": "api-fetch",
+      "params": {
+        "endpoint": "https://api.example.com/data"
+      }
+    },
+    {
+      "step_id": "validate_schema",
+      "skill_name": "schema-validator",
+      "params": {
+        "schema": "api_schema.json"
+      },
+      "depends_on": ["fetch_data"]
+    },
+    {
+      "step_id": "enrich_data",
+      "skill_name": "data-enricher",
+      "params": {
+        "enrichment_source": "external_db"
+      },
+      "depends_on": ["fetch_data"]
+    },
+    {
+      "step_id": "generate_report",
+      "skill_name": "report-generator",
+      "params": {
+        "format": "pdf"
+      },
+      "depends_on": ["validate_schema", "enrich_data"]
+    }
+  ]
+}
