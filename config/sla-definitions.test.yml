@@ -1,0 +1,66 @@
+# SLA Definitions for Performance Monitoring
+# Test Configuration - Used for unit tests
+#
+# Each SLA definition specifies performance targets and baseline percentiles
+# Used to track and alert on performance degradation
+#
+# SLA Target: <X>ms = P50 should be below X ms
+# Baseline P95: Performance threshold for 95th percentile
+# Baseline P99: Performance threshold for 99th percentile
+#
+# See docs/PERFORMANCE_MONITORING_GUIDE.md for detailed configuration
+
+slas:
+  # Agent Startup SLA
+  # Target: Initialize new agent in <2s
+  agent_startup:
+    target: 2000           # ms - median response time target
+    p95: 2000              # 95th percentile
+    p99: 5000              # 99th percentile
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Query Execution SLA
+  # Target: Execute database queries in <5s
+  query_execution:
+    target: 5000           # ms - median response time target
+    p95: 5000              # 95th percentile
+    p99: 10000             # 99th percentile
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Skill Execution SLA
+  # Target: Complete skill execution in <30s
+  skill_execution:
+    target: 30000          # ms - median response time target
+    p95: 30000             # 95th percentile
+    p99: 60000             # 99th percentile
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Transaction Commit SLA
+  # Target: Commit database transaction in <5s
+  transaction_commit:
+    target: 5000           # ms - median response time target
+    p95: 5000              # 95th percentile
+    p99: 10000             # 99th percentile
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+# Global SLA Configuration
+global:
+  # Monthly SLA violation threshold (target <5%)
+  monthly_violation_target: 0.05
+
+  # Degradation detection parameters
+  degradation_window_minutes: 5      # Evaluate last 5 minutes
+  degradation_threshold_percent: 20  # Alert if >20% degradation
+  degradation_consecutive_samples: 5 # Require 5+ samples
+
+  # Alert configuration
+  alert_resolution_hours: 24         # Auto-resolve alerts after 24h
+
+  # Retention policy
+  metrics_retention_days: 90          # Keep metrics for 90 days
+  alerts_retention_days: 365          # Keep alert history for 1 year
+  baseline_calculation_days: 30       # Default baseline window
