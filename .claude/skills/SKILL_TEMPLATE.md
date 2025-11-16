@@ -148,6 +148,59 @@ my-new-skill/
     └── helpers.sh
 ```
 
+## Output Format (REQUIRED)
+
+**Task 5.4: All skills MUST output structured JSON for reliable parsing.**
+
+### JSON Output Schema
+
+Your skill's execute.sh MUST output JSON in this format:
+
+```json
+{
+  "success": true,
+  "confidence": 0.92,
+  "deliverables": ["src/file.ts", "tests/file.test.ts"],
+  "metrics": {
+    "execution_time_ms": 1234,
+    "files_modified": 2
+  },
+  "errors": []
+}
+```
+
+### Required Fields
+
+| Field | Type | Description | Example |
+|-------|------|-------------|---------|
+| `success` | boolean | Whether execution succeeded | `true` |
+| `confidence` | number | Confidence score (0.0-1.0) | `0.92` |
+| `deliverables` | array | Files created/modified | `["src/auth.ts"]` |
+| `metrics` | object | Execution metrics | `{ "execution_time_ms": 1234 }` |
+| `errors` | array | Errors encountered | `[]` |
+
+### JSON Output Implementation
+
+Use heredoc for clean JSON output at the end of execute.sh:
+
+```bash
+# Output structured JSON
+cat << 'EOF_JSON'
+{
+  "success": true,
+  "confidence": 0.92,
+  "deliverables": ["src/file.ts", "tests/file.test.ts"],
+  "metrics": {
+    "execution_time_ms": 1234,
+    "files_modified": 2
+  },
+  "errors": []
+}
+EOF_JSON
+```
+
+See `docs/SKILL_OUTPUT_FORMAT.md` for complete documentation.
+
 ## Script Templates
 
 ### execute.sh Template
@@ -623,6 +676,84 @@ Validate all dependencies and configuration:
 2. **File Existence:** Verify required files present
 3. **Environment Variables:** Check required env vars set
 4. **Permissions:** Ensure scripts are executable
+
+## Skill Markdown Validation
+
+**NEW in v1.0.0:** All SKILL.md files are validated against standardized structure.
+
+### Validate Your Skill
+
+```bash
+# Lint specific skill
+tsx scripts/lint-skill-markdown.ts --skill=my-new-skill
+
+# Lint all skills
+tsx scripts/lint-skill-markdown.ts
+
+# Strict mode (warnings as errors)
+tsx scripts/lint-skill-markdown.ts --strict --verbose
+```
+
+### Validation Checks
+
+The validator ensures:
+
+1. **Frontmatter Schema** - All required fields present and valid
+2. **Section Structure** - Required sections in correct order
+3. **Code Blocks** - All code blocks have language specification
+4. **Internal Links** - All internal links point to existing files/sections
+5. **Content Length** - Each section has minimum content length (50 chars)
+
+### Required Sections
+
+Your SKILL.md MUST include these sections in order:
+
+1. Overview
+2. Usage
+3. Examples
+4. Implementation
+5. Tests
+
+Optional sections (API Reference, Configuration, etc.) can appear after required sections.
+
+### Common Validation Errors
+
+**Missing language in code block:**
+```markdown
+❌ Wrong:
+\`\`\`
+./script.sh
+\`\`\`
+
+✅ Correct:
+\`\`\`bash
+./script.sh
+\`\`\`
+```
+
+**Missing required section:**
+```
+Error: Required section "Usage" is missing
+```
+
+**Invalid frontmatter version:**
+```
+Error: Field "version" must be valid semantic version (e.g., 1.0.0), got: v1.0
+```
+
+### Auto-Migration
+
+Migrate existing skills to new format:
+
+```bash
+# Dry run (preview changes)
+tsx scripts/migrate-skill-markdown.ts --skill=my-skill --dry-run
+
+# Migrate with backup
+tsx scripts/migrate-skill-markdown.ts --skill=my-skill
+```
+
+See [Skill Markdown Standards](../../docs/SKILL_MARKDOWN_STANDARDS.md) for complete documentation.
 
 ## Related Skills
 

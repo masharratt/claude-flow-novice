@@ -1,0 +1,342 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-flow-novice/schemas/skill-file-v1.schema.json",
+  "title": "CFN Skill File Schema",
+  "description": "JSON Schema for validating SKILL.md frontmatter and structure",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["frontmatter", "content"],
+  "properties": {
+    "frontmatter": {
+      "type": "object",
+      "description": "YAML frontmatter metadata",
+      "required": [
+        "name",
+        "version",
+        "tags",
+        "status",
+        "author",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Skill name (should match directory name)",
+          "pattern": "^[a-z0-9-]+$",
+          "minLength": 3,
+          "maxLength": 64,
+          "examples": ["cfn-coordination", "skill-template"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+          "examples": ["1.0.0", "2.1.3", "1.0.0-beta.1"]
+        },
+        "tags": {
+          "type": "array",
+          "description": "Categorization tags",
+          "minItems": 1,
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 32
+          },
+          "examples": [["coordination", "redis"], ["testing", "validation"]]
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle status",
+          "enum": ["draft", "approved", "staging", "deployed", "deprecated"],
+          "examples": ["draft", "deployed"]
+        },
+        "author": {
+          "type": "string",
+          "description": "Author or team name",
+          "minLength": 2,
+          "maxLength": 64,
+          "examples": ["CFN Team", "John Doe"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief skill description",
+          "minLength": 10,
+          "maxLength": 256,
+          "examples": ["Handles agent coordination via Redis pub/sub"]
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "External dependencies",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["redis", "postgres"], ["jq", "curl"]]
+        },
+        "created": {
+          "type": "string",
+          "description": "Creation date (ISO 8601)",
+          "format": "date",
+          "examples": ["2025-11-16"]
+        },
+        "updated": {
+          "type": "string",
+          "description": "Last update date (ISO 8601)",
+          "format": "date",
+          "examples": ["2025-11-16"]
+        },
+        "complexity": {
+          "type": "string",
+          "description": "Skill complexity level",
+          "enum": ["Low", "Medium", "High"],
+          "examples": ["Low", "High"]
+        },
+        "keywords": {
+          "type": "array",
+          "description": "Search keywords",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["agent", "coordination", "redis"]]
+        },
+        "triggers": {
+          "type": "array",
+          "description": "Conditions that trigger skill usage",
+          "items": {
+            "type": "string"
+          },
+          "examples": [["multi-agent-workflow", "consensus-required"]]
+        },
+        "performance_targets": {
+          "type": "object",
+          "description": "Performance benchmarks",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "number" },
+              { "type": "string" }
+            ]
+          },
+          "examples": [
+            { "execution_time_ms": 1000, "success_rate": 99.5 }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "content": {
+      "type": "object",
+      "description": "Markdown content structure",
+      "required": [
+        "sections",
+        "requiredSections",
+        "codeBlocks"
+      ],
+      "properties": {
+        "sections": {
+          "type": "object",
+          "description": "Section presence flags",
+          "required": [
+            "Overview",
+            "Usage",
+            "Examples",
+            "Implementation",
+            "Tests"
+          ],
+          "properties": {
+            "Overview": {
+              "type": "boolean",
+              "const": true
+            },
+            "Usage": {
+              "type": "boolean",
+              "const": true
+            },
+            "Examples": {
+              "type": "boolean",
+              "const": true
+            },
+            "Implementation": {
+              "type": "boolean",
+              "const": true
+            },
+            "Tests": {
+              "type": "boolean",
+              "const": true
+            }
+          },
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "requiredSections": {
+          "type": "array",
+          "description": "List of required section names",
+          "items": {
+            "type": "string",
+            "enum": [
+              "Overview",
+              "Usage",
+              "Examples",
+              "Implementation",
+              "Tests"
+            ]
+          },
+          "minItems": 5,
+          "maxItems": 5
+        },
+        "codeBlocks": {
+          "type": "array",
+          "description": "Code blocks found in content",
+          "items": {
+            "type": "object",
+            "required": ["language", "content"],
+            "properties": {
+              "language": {
+                "type": "string",
+                "description": "Code block language",
+                "enum": [
+                  "bash",
+                  "sh",
+                  "typescript",
+                  "javascript",
+                  "json",
+                  "yaml",
+                  "yml",
+                  "markdown",
+                  "md",
+                  "python",
+                  "sql",
+                  "html",
+                  "css",
+                  "dockerfile",
+                  "plaintext",
+                  "text"
+                ]
+              },
+              "content": {
+                "type": "string",
+                "description": "Code block content",
+                "minLength": 1
+              },
+              "lineNumber": {
+                "type": "number",
+                "description": "Line number in file"
+              }
+            }
+          }
+        },
+        "links": {
+          "type": "array",
+          "description": "Links found in content",
+          "items": {
+            "type": "object",
+            "required": ["text", "href", "type"],
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "Link text"
+              },
+              "href": {
+                "type": "string",
+                "description": "Link target"
+              },
+              "type": {
+                "type": "string",
+                "description": "Link type",
+                "enum": ["internal", "external", "anchor"]
+              },
+              "lineNumber": {
+                "type": "number",
+                "description": "Line number in file"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "sectionOrder": {
+      "description": "Expected section order",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "const": [
+        "Overview",
+        "Usage",
+        "Examples",
+        "Implementation",
+        "Tests"
+      ]
+    },
+    "optionalSections": {
+      "description": "Optional sections that can appear",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "enum": [
+        "API Reference",
+        "Configuration",
+        "Related Skills",
+        "References",
+        "Troubleshooting",
+        "Performance",
+        "Security",
+        "Quick Start"
+      ]
+    }
+  },
+  "examples": [
+    {
+      "frontmatter": {
+        "name": "example-skill",
+        "version": "1.0.0",
+        "tags": ["example", "template"],
+        "status": "draft",
+        "author": "CFN Team",
+        "description": "Example skill demonstrating standardized structure",
+        "created": "2025-11-16",
+        "updated": "2025-11-16",
+        "complexity": "Low",
+        "keywords": ["example", "template"],
+        "triggers": ["skill-creation"],
+        "performance_targets": {
+          "execution_time_ms": 1000
+        }
+      },
+      "content": {
+        "sections": {
+          "Overview": true,
+          "Usage": true,
+          "Examples": true,
+          "Implementation": true,
+          "Tests": true
+        },
+        "requiredSections": [
+          "Overview",
+          "Usage",
+          "Examples",
+          "Implementation",
+          "Tests"
+        ],
+        "codeBlocks": [
+          {
+            "language": "bash",
+            "content": "./execute.sh",
+            "lineNumber": 10
+          }
+        ],
+        "links": [
+          {
+            "text": "Usage",
+            "href": "#usage",
+            "type": "anchor",
+            "lineNumber": 5
+          }
+        ]
+      }
+    }
+  ]
+}

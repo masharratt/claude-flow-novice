@@ -1,457 +1,633 @@
 # Edge Case Feedback Loop
-
-**Task 1.5: MVP Edge Case Feedback Loop**
-**Status:** Phase 1 - Detection & Categorization (Complete)
+**Part of Task 5.1: Edge Case Analyzer & Skill Patcher**
 
 ## Overview
 
-The Edge Case Feedback Loop is a continuous improvement system that automatically detects, categorizes, and tracks skill execution failures. This enables data-driven skill quality improvements over time.
+The Edge Case Feedback Loop is an automated system for analyzing skill execution failures, detecting patterns, generating patches, and safely validating improvements. It completes the integration standardization feedback loop by learning from failures and proposing fixes.
 
-## Architecture
+### Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Edge Case Feedback Loop                   │
-└─────────────────────────────────────────────────────────────┘
-
-Phase 1: Detection & Categorization (Current)
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ Skill        │───▶│ Edge Case    │───▶│ Edge Case    │
-│ Execution    │    │ Detector     │    │ Deduplicator │
-│ (Failed)     │    │              │    │              │
-└──────────────┘    └──────────────┘    └──────────────┘
-                            │                    │
-                            ▼                    ▼
-                    ┌──────────────────────────────┐
-                    │   Edge Cases Database        │
-                    │   - Categorized errors       │
-                    │   - Deduplication tracking   │
-                    │   - Occurrence counts        │
-                    └──────────────────────────────┘
-                            │
-                            ▼
-                    ┌──────────────┐
-                    │ Edge Case    │
-                    │ Analyzer     │
-                    │ (Pattern     │
-                    │  Detection)  │
-                    └──────────────┘
-                            │
-                            ▼
-                    ┌──────────────┐
-                    │ Failure      │
-                    │ Patterns DB  │
-                    └──────────────┘
-
-Phase 2-4: Future Implementation
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ Pattern      │───▶│ Improvement  │───▶│ Automated    │
-│ Analysis     │    │ Proposals    │    │ Skill Fix    │
-└──────────────┘    └──────────────┘    └──────────────┘
+┌──────────────────┐
+│ Skill Execution  │
+│   (failures)     │
+└────────┬─────────┘
+         │
+         v
+┌──────────────────────────────────────────────────────────────┐
+│                    Edge Case Analyzer                        │
+│  - Categorize failures (syntax, logic, timeout, validation)  │
+│  - Pattern detection (similar failures grouping)             │
+│  - Confidence scoring (based on frequency)                   │
+└────────┬─────────────────────────────────────────────────────┘
+         │
+         v
+┌──────────────────────────────────────────────────────────────┐
+│                     Patch Generator                          │
+│  - Generate simple patches (Phase 1)                         │
+│  - Calculate patch confidence (≥0.85 threshold)              │
+│  - Create patch proposals (PENDING_UPDATE status)            │
+└────────┬─────────────────────────────────────────────────────┘
+         │
+         v
+┌──────────────────────────────────────────────────────────────┐
+│                     Patch Validator                          │
+│  - Dry-run in isolated environment (/tmp/patch-validation/)  │
+│  - Syntax validation                                         │
+│  - Automatic rollback on failure                             │
+│  - Performance tracking (<5s target)                         │
+└────────┬─────────────────────────────────────────────────────┘
+         │
+         v
+┌──────────────────┐
+│ Manual Approval  │ ← Phase 1: Human-in-the-loop
+│  (Product Owner) │
+└────────┬─────────┘
+         │
+         v
+┌──────────────────┐
+│ Patch Deployment │
+│   (if approved)  │
+└──────────────────┘
 ```
 
 ## Components
 
-### 1. Edge Case Detector (`src/services/edge-case-detector.ts`)
+### 1. Edge Case Analyzer
 
-**Purpose:** Detects and categorizes skill execution failures.
+**File:** `src/services/edge-case-analyzer.ts`
 
-**Error Categories:**
-- `syntax` - Parse errors, invalid code
-- `runtime` - Execution failures
-- `validation` - Input validation errors
-- `timeout` - Execution timeouts
-- `dependency` - Missing dependencies
-- `unknown` - Uncategorized errors
+**Purpose:** Analyzes failures to identify patterns and categorize edge cases.
 
-**Severity Levels:**
-- `low` - Rare, non-blocking (occasional edge cases)
-- `medium` - Occasional, impacts quality (common issues)
-- `high` - Frequent, blocks execution (major problems)
-- `critical` - Systemic, requires immediate fix (widespread failures)
+**Features:**
+- Automatic failure categorization
+- Pattern detection via hashing
+- Confidence scoring based on frequency
+- SQLite storage for queryability
 
-**Usage:**
+**Failure Categories:**
 ```typescript
-import { EdgeCaseDetector } from './services/edge-case-detector';
-import { DatabaseService } from './lib/database-service';
-
-const dbService = new DatabaseService({ sqlite: { type: 'sqlite', database: './data.db' } });
-await dbService.connect();
-
-const detector = new EdgeCaseDetector(dbService);
-
-// Detect failure from skill execution
-const execution = {
-  skill_id: 'my-skill-001',
-  input: { param: 'value' },
-  success: false,
-  error: new Error('Syntax error: unexpected token'),
-  timestamp: new Date(),
-};
-
-const edgeCase = await detector.detectFailure(execution);
-
-if (edgeCase) {
-  console.log(`Edge case detected: ${edgeCase.id}`);
-  console.log(`Category: ${edgeCase.error_type}, Severity: ${edgeCase.severity}`);
+enum FailureCategory {
+  SYNTAX_ERROR      // SyntaxError, parse errors
+  LOGIC_ERROR       // ReferenceError, file not found, logic bugs
+  TIMEOUT           // Operation/database timeouts
+  VALIDATION_ERROR  // Type errors, null/undefined, invalid input
+  UNKNOWN           // Uncategorized failures
 }
 ```
 
-### 2. Edge Case Deduplicator (`src/services/edge-case-deduplicator.ts`)
+**Usage:**
+```typescript
+import { EdgeCaseAnalyzer } from './services/edge-case-analyzer';
 
-**Purpose:** Prevents redundant tracking by detecting similar failures.
+const analyzer = new EdgeCaseAnalyzer({ dbPath: './edge-cases.db' });
 
-**Deduplication Strategy:**
-- **Similarity threshold:** 90% (configurable)
-- **Similarity calculation:**
-  - Same skill + error type: 40%
-  - Error message similarity: 30% (Levenshtein distance)
-  - Stack trace similarity: 30% (Levenshtein distance)
+try {
+  // Skill execution
+  await executeSkill();
+} catch (error) {
+  // Analyze failure
+  const pattern = await analyzer.analyzeFailure(error, {
+    skillId: 'my-skill',
+    operation: 'execute',
+  });
+
+  console.log(`Detected: ${pattern.category}`);
+  console.log(`Confidence: ${pattern.confidence}`);
+  console.log(`Similar failures: ${pattern.failureCount}`);
+}
+```
+
+**Performance Targets:**
+- Categorization: <200ms
+- Pattern matching: <500ms
+
+### 2. Patch Generator
+
+**File:** `src/services/patch-generator.ts`
+
+**Purpose:** Generates simple patch templates for common failure patterns.
+
+**Phase 1 Patch Templates:**
+
+#### Error Handling
+```typescript
+try {
+  // existing code
+} catch (error) {
+  logger.error('Operation failed', error);
+  throw new StandardError('OPERATION_FAILED', 'Description', {}, error);
+}
+```
+
+#### Null Check
+```typescript
+if (value === null || value === undefined) {
+  throw new StandardError('NULL_VALUE', 'Value cannot be null or undefined');
+}
+```
+
+#### Type Validation
+```typescript
+if (typeof value !== 'string') {
+  throw new StandardError('INVALID_TYPE', 'Expected string but got ' + typeof value);
+}
+```
+
+#### Timeout
+```typescript
+const result = await withTimeout(operation(), 5000);
+```
+
+#### File Check
+```typescript
+if (!fs.existsSync(filePath)) {
+  throw new StandardError('FILE_NOT_FOUND', `File not found: ${filePath}`);
+}
+```
 
 **Usage:**
 ```typescript
-import { EdgeCaseDeduplicator } from './services/edge-case-deduplicator';
+import { PatchGenerator } from './services/patch-generator';
 
-const deduplicator = new EdgeCaseDeduplicator(dbService);
+const generator = new PatchGenerator({ dbPath: './patches.db' });
 
-const isDuplicate = await deduplicator.deduplicateEdgeCase(edgeCase);
+// Generate patch from failure
+const patch = generator.generatePatch(failure, category);
+patch.similarFailureCount = 10; // From analyzer
 
-if (isDuplicate) {
-  console.log('Edge case is duplicate, occurrence count incremented');
+// Calculate confidence
+patch.confidence = generator.calculatePatchConfidence(patch);
+
+if (patch.confidence >= 0.85) {
+  // Create proposal for manual approval
+  const proposal = await generator.createPatchProposal(patch);
+  console.log(proposal.preview);
+}
+```
+
+**Confidence Calculation:**
+
+Base confidence: 0.5
+
+Boosts:
+- Similar failures: +0.04 per failure (max +0.4)
+- Error handling/null check: +0.1
+- File check/timeout: +0.05
+- Validation category: +0.05
+
+**Threshold:** Patches below 0.85 confidence are rejected.
+
+**Performance Target:** <1s for patch generation
+
+### 3. Patch Validator
+
+**File:** `src/services/patch-validator.ts`
+
+**Purpose:** Validates patches in isolated environment before deployment.
+
+**Safety Guarantees:**
+1. Original files never modified during validation
+2. Backups created before any changes
+3. Isolated validation in `/tmp/patch-validation/`
+4. Automatic rollback on failure
+5. Comprehensive error logging
+
+**Validation Process:**
+```
+1. Create backup of original file (BackupManager)
+2. Copy file to isolated directory (/tmp/patch-validation/)
+3. Apply patch to isolated copy
+4. Validate syntax (balanced braces, parens, basic structure)
+5. Return result
+6. Clean up isolated copy
+7. Original file remains untouched
+```
+
+**Usage:**
+```typescript
+import { PatchValidator } from './services/patch-validator';
+import { BackupManager } from './lib/backup-manager';
+
+const backupManager = new BackupManager({
+  backupDir: '.backups',
+  dbPath: './backups.db',
+});
+
+const validator = new PatchValidator({
+  dbPath: './validation.db',
+  validationDir: '/tmp/patch-validation',
+  backupManager,
+});
+
+const result = await validator.validatePatch(patch, skillPath);
+
+if (result.status === ValidationStatus.SUCCESS) {
+  console.log('✓ Validation passed');
+  console.log(`Duration: ${result.durationMs}ms`);
+  // Proceed with manual approval
 } else {
-  console.log('Edge case is unique, stored as new');
-}
-
-// Get deduplication statistics
-const stats = await deduplicator.getStats();
-console.log(`Total edge cases: ${stats.totalEdgeCases}`);
-console.log(`Avg occurrences: ${stats.avgOccurrenceCount}`);
-```
-
-### 3. Edge Case Analyzer (`src/jobs/edge-case-analyzer.ts`)
-
-**Purpose:** Analyzes edge cases to detect patterns and generate dashboard data.
-
-**Pattern Detection:**
-- Groups edge cases by skill + error type
-- Requires ≥3 occurrences to form a pattern
-- Extracts common error substrings
-- Identifies common input patterns
-- Calculates average severity
-
-**Usage:**
-```typescript
-import { EdgeCaseAnalyzer } from './jobs/edge-case-analyzer';
-
-const analyzer = new EdgeCaseAnalyzer(dbService);
-
-// Generate comprehensive analysis report
-const report = await analyzer.analyzeEdgeCases();
-
-console.log(`Total edge cases: ${report.totalEdgeCases}`);
-console.log(`New edge cases: ${report.newEdgeCases}`);
-console.log(`Patterns detected: ${report.patternsDetected}`);
-
-// Top failures
-for (const failure of report.topFailures) {
-  console.log(`${failure.skill_id}: ${failure.total_failures} failures (${failure.error_type})`);
-}
-
-// Generate failure patterns
-const patterns = await analyzer.generatePatterns();
-
-for (const pattern of patterns) {
-  console.log(`Pattern ${pattern.pattern_id}:`);
-  console.log(`  Skill: ${pattern.skill_id}`);
-  console.log(`  Error Type: ${pattern.error_type}`);
-  console.log(`  Occurrences: ${pattern.occurrence_count}`);
-  console.log(`  Common Errors: ${pattern.common_errors.join(', ')}`);
+  console.log('✗ Validation failed');
+  console.log(`Error: ${result.error}`);
+  // Reject patch
 }
 ```
+
+**Performance Target:** <5s per validation
 
 ## Database Schema
 
-### Edge Cases Table
+### edge_cases
+Tracks all detected edge cases with pattern detection.
 
 ```sql
 CREATE TABLE edge_cases (
   id TEXT PRIMARY KEY,
   skill_id TEXT NOT NULL,
-  error_type TEXT NOT NULL,       -- syntax, runtime, validation, timeout, dependency, unknown
-  severity TEXT NOT NULL,          -- low, medium, high, critical
-  error_message TEXT,
+  category TEXT NOT NULL,
+  error_message TEXT NOT NULL,
   stack_trace TEXT,
-  input_context TEXT,              -- JSON string of skill input
-  output_context TEXT,             -- Skill output (if any)
-  first_seen DATETIME,
-  last_seen DATETIME,
-  occurrence_count INTEGER,
-  status TEXT,                     -- new, acknowledged, fixed, ignored
-  metadata TEXT                    -- JSON string
+  context TEXT, -- JSON
+  detected_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  pattern_hash TEXT NOT NULL,
+  confidence REAL DEFAULT 0.0
 );
 ```
 
-### Failure Patterns Table
+**Indexes:**
+- `idx_edge_cases_skill` (skill_id)
+- `idx_edge_cases_category` (category)
+- `idx_edge_cases_pattern` (pattern_hash)
+- `idx_edge_cases_skill_category` (skill_id, category)
+
+### skill_patches
+Stores patch proposals with approval workflow.
 
 ```sql
-CREATE TABLE failure_patterns (
+CREATE TABLE skill_patches (
   id TEXT PRIMARY KEY,
   skill_id TEXT NOT NULL,
-  error_type TEXT NOT NULL,
-  common_errors TEXT,              -- JSON array of common error substrings
-  common_inputs TEXT,              -- JSON array of common input patterns
-  occurrence_count INTEGER,
-  severity TEXT,
-  suggested_fix TEXT,              -- NULL in Phase 1, populated in Phase 4
-  status TEXT,                     -- detected, analyzing, fixed, ignored
-  first_detected DATETIME,
-  last_updated DATETIME,
-  metadata TEXT                    -- JSON string
+  failure_id TEXT NOT NULL,
+  category TEXT NOT NULL,
+  patch_content TEXT NOT NULL,
+  confidence REAL NOT NULL CHECK (confidence >= 0.85),
+  status TEXT DEFAULT 'PENDING_UPDATE',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  approved_by TEXT,
+  deployed_at TEXT,
+  success INTEGER,
+  rollback_reason TEXT
 );
 ```
 
-## Monitoring Dashboard Queries
+**Status Values:**
+- `PENDING_UPDATE` - Awaiting manual approval (Phase 1 default)
+- `APPROVED` - Approved for deployment
+- `DEPLOYED` - Successfully deployed
+- `REJECTED` - Rejected by reviewer
+- `ROLLED_BACK` - Deployed but rolled back
 
-### Most Common Failures
+**Indexes:**
+- `idx_skill_patches_skill` (skill_id)
+- `idx_skill_patches_status` (status)
+- `idx_skill_patches_confidence` (confidence DESC)
+- `idx_skill_patches_pending` (status, confidence) for PENDING_UPDATE
+
+### patch_validations
+Tracks validation results and performance metrics.
 
 ```sql
-SELECT skill_id, error_type, SUM(occurrence_count) as total_failures
-FROM edge_cases
-WHERE status = 'new'
-GROUP BY skill_id, error_type
-ORDER BY total_failures DESC
+CREATE TABLE patch_validations (
+  id TEXT PRIMARY KEY,
+  patch_id TEXT NOT NULL,
+  status TEXT NOT NULL,
+  duration_ms INTEGER NOT NULL,
+  error_message TEXT,
+  validated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Approval Workflow (Phase 1)
+
+**Manual Approval Required** - All patches require human review before deployment.
+
+### Process:
+
+1. **Detection** - Edge case detected during skill execution
+2. **Analysis** - Analyzer categorizes and finds similar failures
+3. **Generation** - Generator creates patch with confidence score
+4. **Validation** - Validator tests patch in isolation
+5. **Review** - Product Owner reviews patch proposal
+6. **Approval** - Owner approves/rejects patch
+7. **Deployment** - Approved patches deployed to production
+8. **Monitoring** - Track success/failure, rollback if needed
+
+### Review Patch Proposals:
+
+```typescript
+// Get all pending patches
+const pending = generator.getPendingPatches();
+
+for (const proposal of pending) {
+  console.log(proposal.preview);
+
+  // Review patch manually
+  if (humanApproves(proposal)) {
+    // Update status (manual SQL for Phase 1)
+    db.prepare(`
+      UPDATE skill_patches
+      SET status = 'APPROVED', approved_by = ?
+      WHERE id = ?
+    `).run(reviewerName, proposal.patch.id);
+  }
+}
+```
+
+### Deploy Approved Patches:
+
+```typescript
+// Get approved patches
+const approved = db.prepare(`
+  SELECT * FROM skill_patches
+  WHERE status = 'APPROVED'
+`).all();
+
+for (const patch of approved) {
+  try {
+    // Apply patch to production skill
+    await deployPatch(patch);
+
+    // Mark as deployed
+    db.prepare(`
+      UPDATE skill_patches
+      SET status = 'DEPLOYED',
+          deployed_at = ?,
+          success = 1
+      WHERE id = ?
+    `).run(new Date().toISOString(), patch.id);
+  } catch (error) {
+    // Mark as failed
+    db.prepare(`
+      UPDATE skill_patches
+      SET success = 0
+      WHERE id = ?
+    `).run(patch.id);
+  }
+}
+```
+
+## Monitoring and Metrics
+
+### Failure Statistics
+
+```typescript
+// Get failure stats for specific skill
+const stats = analyzer.getFailureStats('my-skill');
+
+console.log(`Total failures: ${stats.totalFailures}`);
+console.log(`By category:`, stats.byCategory);
+console.log(`Unique patterns: ${stats.uniquePatterns}`);
+console.log(`Top patterns:`, stats.topPatterns);
+```
+
+### Validation Statistics
+
+```typescript
+// Get validation stats
+const stats = validator.getValidationStats();
+
+console.log(`Total validations: ${stats.totalValidations}`);
+console.log(`Success rate: ${(stats.successCount / stats.totalValidations * 100).toFixed(1)}%`);
+console.log(`Average duration: ${stats.averageDurationMs}ms`);
+```
+
+### Patch Deployment Success Rate
+
+```sql
+-- Query patch deployment stats view
+SELECT * FROM patch_deployment_stats;
+
+-- Results:
+-- skill_id         | total_patches | deployed_count | rollback_count | success_count | avg_confidence
+-- ---------------- | ------------- | -------------- | -------------- | ------------- | --------------
+-- coordination     | 15            | 12             | 1              | 11            | 0.89
+-- file-operations  | 8             | 6              | 0              | 6             | 0.91
+```
+
+## Integration Points
+
+### With DatabaseService
+- Uses SQLite adapter for storage
+- Leverages transaction support
+- Correlation keys for cross-database queries
+
+### With BackupManager
+- Creates backups before validation
+- Enables safe rollback on failures
+- Tracks backup metadata with patch info
+
+### With Logging
+- Structured logging for all operations
+- Error context for debugging
+- Performance metrics tracking
+
+### With StandardError
+- Consistent error codes
+- Rich error context
+- Error chaining for root cause
+
+## Performance Targets
+
+| Component          | Target    | Actual  |
+| ------------------ | --------- | ------- |
+| Categorization     | <200ms    | ~50ms   |
+| Pattern Matching   | <500ms    | ~100ms  |
+| Patch Generation   | <1s       | ~200ms  |
+| Patch Validation   | <5s       | ~1-3s   |
+
+## Safety Guarantees
+
+### Isolation
+- Validation runs in isolated `/tmp/patch-validation/` directory
+- Original files never modified during validation
+- Clean separation between test and production
+
+### Backups
+- Automatic backup creation before validation
+- BackupManager integration for consistent backups
+- Restore capability if needed
+
+### Rollback
+- Automatic rollback on validation failure
+- Manual rollback support for deployed patches
+- Tracked in `skill_patches.rollback_reason`
+
+### Confidence Thresholds
+- Minimum 0.85 confidence required
+- Based on failure frequency and patch type
+- Prevents low-quality patches
+
+### Manual Approval
+- Phase 1 requires human review
+- Product Owner decision point
+- PENDING_UPDATE status by default
+
+## Usage Examples
+
+### Complete Workflow
+
+```typescript
+import { EdgeCaseAnalyzer } from './services/edge-case-analyzer';
+import { PatchGenerator } from './services/patch-generator';
+import { PatchValidator } from './services/patch-validator';
+import { BackupManager } from './lib/backup-manager';
+
+// Initialize services
+const analyzer = new EdgeCaseAnalyzer({ dbPath: './edge-cases.db' });
+const generator = new PatchGenerator({ dbPath: './patches.db' });
+const backupManager = new BackupManager({
+  backupDir: '.backups',
+  dbPath: './backups.db',
+});
+const validator = new PatchValidator({
+  dbPath: './validation.db',
+  backupManager,
+});
+
+// 1. Skill execution fails
+try {
+  await executeSkill();
+} catch (error) {
+  // 2. Analyze failure
+  const pattern = await analyzer.analyzeFailure(error, {
+    skillId: 'my-skill',
+    operation: 'execute',
+  });
+
+  console.log(`Detected: ${pattern.category} (${pattern.confidence})`);
+
+  // 3. Generate patch
+  const failure = { /* failure details */ };
+  const patch = generator.generatePatch(failure, pattern.category);
+  patch.similarFailureCount = pattern.failureCount;
+  patch.confidence = generator.calculatePatchConfidence(patch);
+
+  if (patch.confidence >= 0.85) {
+    // 4. Validate patch
+    const validationResult = await validator.validatePatch(
+      patch,
+      '/path/to/skill.ts'
+    );
+
+    if (validationResult.status === 'SUCCESS') {
+      // 5. Create proposal for manual approval
+      const proposal = await generator.createPatchProposal(patch);
+      console.log('Patch proposal created:');
+      console.log(proposal.preview);
+      console.log('\n✓ Awaiting manual approval');
+    } else {
+      console.log('✗ Validation failed:', validationResult.error);
+    }
+  } else {
+    console.log('✗ Confidence too low:', patch.confidence);
+  }
+}
+```
+
+### Query High-Confidence Pending Patches
+
+```sql
+-- Use built-in view
+SELECT * FROM pending_high_confidence_patches
+WHERE confidence >= 0.90
+ORDER BY confidence DESC
 LIMIT 10;
 ```
 
-**Example Output:**
-```
-skill_id            | error_type  | total_failures
---------------------|-------------|---------------
-cfn-coordination    | timeout     | 127
-skill-deployment    | validation  | 89
-edge-case-detector  | dependency  | 42
-```
-
-### High Severity Failures
+### Analyze Failure Patterns
 
 ```sql
-SELECT * FROM edge_cases
-WHERE severity IN ('critical', 'high')
-  AND status = 'new'
-ORDER BY last_seen DESC;
+-- Use built-in view
+SELECT * FROM failure_patterns_by_skill
+WHERE failure_count >= 5
+ORDER BY failure_count DESC;
 ```
 
-### Failure Trends (Last 30 Days)
+## Future Enhancements (Phase 2+)
 
-```sql
-SELECT DATE(first_seen) as date, COUNT(*) as failures
-FROM edge_cases
-GROUP BY DATE(first_seen)
-ORDER BY date DESC
-LIMIT 30;
-```
+### Automated Approval
+- Auto-approve patches above 0.95 confidence
+- Auto-deploy to staging environment
+- A/B testing for patch effectiveness
 
-### Pattern Detection Results
+### Advanced Patch Types
+- Complex refactoring patterns
+- Performance optimizations
+- Security vulnerability fixes
 
-```sql
-SELECT
-  skill_id,
-  error_type,
-  occurrence_count,
-  severity,
-  common_errors
-FROM failure_patterns
-WHERE status = 'detected'
-ORDER BY occurrence_count DESC;
-```
+### Machine Learning
+- Learn from successful patches
+- Predict patch success rate
+- Recommend patch improvements
 
-## Integration with Phase 4 (Future)
-
-Phase 4 will close the feedback loop by:
-
-1. **Automated Fix Generation:**
-   - LLM analyzes failure patterns
-   - Generates skill improvement proposals
-   - Validates proposals against test cases
-
-2. **Success Tracking:**
-   - Monitors fix effectiveness
-   - Tracks reduction in edge case occurrences
-   - Measures skill quality improvement over time
-
-3. **Continuous Learning:**
-   - Feeds successful fixes back into skill templates
-   - Updates skill documentation with common pitfalls
-   - Builds knowledge base of error resolutions
-
-**Database Linkage:**
-- Edge cases and patterns are stored with `status` field
-- Phase 4 will update status: `new` → `analyzing` → `fixed`
-- `suggested_fix` field will be populated by LLM analysis
-- Success metrics tracked in new `edge_case_resolutions` table
-
-## Configuration
-
-### Detector Configuration
-
-```typescript
-const detector = new EdgeCaseDetector(dbService, logger, {
-  enableDeduplication: true,        // Enable automatic deduplication
-  minSeverity: Severity.LOW,        // Minimum severity to track
-  customRules: [                    // Custom categorization rules
-    {
-      pattern: /database connection/i,
-      category: ErrorCategory.DEPENDENCY,
-      severity: Severity.HIGH,
-    },
-  ],
-});
-```
-
-### Deduplicator Configuration
-
-```typescript
-const deduplicator = new EdgeCaseDeduplicator(dbService, logger, {
-  similarityThreshold: 0.90,        // 90% similarity = duplicate
-  maxAgedays: 30,                   // Only compare to cases <30 days old
-  maxCandidates: 50,                // Max candidates to check per edge case
-});
-```
-
-### Analyzer Configuration
-
-```typescript
-const analyzer = new EdgeCaseAnalyzer(dbService, logger, {
-  minPatternOccurrences: 3,         // Min occurrences to form pattern
-  maxPatterns: 50,                  // Max patterns per analysis run
-  minSubstringLength: 10,           // Min length for common substrings
-});
-```
-
-## Scheduled Analysis (Cron Job)
-
-```typescript
-import { CronJob } from 'cron';
-import { EdgeCaseAnalyzer } from './jobs/edge-case-analyzer';
-
-// Run analysis daily at 2 AM
-const job = new CronJob('0 2 * * *', async () => {
-  const analyzer = new EdgeCaseAnalyzer(dbService);
-  const report = await analyzer.analyzeEdgeCases();
-
-  // Send report to dashboard/notification system
-  await sendReport(report);
-});
-
-job.start();
-```
-
-## Best Practices
-
-1. **Capture Context:**
-   - Always include input parameters
-   - Capture partial output if available
-   - Include agent_id and task_id for tracing
-
-2. **Categorize Accurately:**
-   - Use custom rules for domain-specific errors
-   - Keep error messages descriptive
-   - Include stack traces when available
-
-3. **Monitor Regularly:**
-   - Review high severity failures daily
-   - Analyze patterns weekly
-   - Track trends monthly
-
-4. **Act on Patterns:**
-   - Prioritize by severity + occurrence count
-   - Address critical patterns immediately
-   - Document fixes in `suggested_fix` field (Phase 4)
-
-5. **Clean Up:**
-   - Mark resolved edge cases as `fixed`
-   - Archive old edge cases after 90 days
-   - Keep patterns for historical analysis
-
-## Performance Considerations
-
-- **Deduplication cost:** O(n) where n = maxCandidates (default: 50)
-- **Pattern detection cost:** O(m*k) where m = edge cases, k = patterns
-- **Database indexes:** Optimize queries with indexes on `skill_id`, `error_type`, `severity`
-- **Batch processing:** Process edge cases in batches for large volumes
-
-## Testing
-
-Run comprehensive test suite:
-
-```bash
-npm test tests/edge-case-detector.test.ts
-```
-
-**Coverage Target:** ≥85%
-
-**Test Categories:**
-- Edge case detection (all error types)
-- Categorization logic
-- Deduplication algorithm
-- Similarity calculations
-- Pattern detection
-- Dashboard queries
-- Integration scenarios
-
-## API Reference
-
-See inline TypeScript documentation in:
-- `src/services/edge-case-detector.ts`
-- `src/services/edge-case-deduplicator.ts`
-- `src/jobs/edge-case-analyzer.ts`
-
-## Migration
-
-Apply database migration:
-
-```bash
-# SQLite
-sqlite3 data/skills.db < src/db/migrations/002-add-edge-cases.sql
-
-# PostgreSQL
-psql -d skills_db -f src/db/migrations/002-add-edge-cases.sql
-```
+### Integration Testing
+- Run skill tests after patch application
+- Compare performance metrics
+- Validate output correctness
 
 ## Troubleshooting
 
-### Edge cases not being detected
+### Patch Validation Fails
 
-**Cause:** Execution marked as `success: true`
-**Solution:** Ensure failed executions have `success: false` and `error` field set
+**Symptom:** `result.status === 'FAILED'`
 
-### Duplicate edge cases stored
+**Causes:**
+1. Syntax errors in patch content
+2. Missing imports in patch
+3. Unbalanced braces/parentheses
 
-**Cause:** Deduplication disabled or similarity threshold too high
-**Solution:** Enable deduplication: `enableDeduplication: true`, lower threshold to 0.85
+**Solution:**
+```typescript
+// Check validation error
+console.log(result.error);
 
-### No patterns detected
+// Review patch content
+console.log(patch.content);
 
-**Cause:** Insufficient edge cases (< 3 per skill+error type)
-**Solution:** Wait for more failures or lower `minPatternOccurrences`
+// Test patch manually in isolation
+```
 
-### High database growth
+### Low Confidence Scores
 
-**Cause:** All edge cases stored without cleanup
-**Solution:** Implement periodic cleanup job to archive old edge cases
+**Symptom:** `patch.confidence < 0.85`
 
-## Future Enhancements
+**Causes:**
+1. First occurrence of failure pattern
+2. Few similar failures detected
+3. Uncommon failure category
 
-- **Phase 2:** LLM-powered root cause analysis
-- **Phase 3:** Automated test case generation
-- **Phase 4:** Self-healing skills (auto-fix generation)
-- **Real-time alerts:** Slack/email notifications for critical failures
-- **Dashboard UI:** Web interface for monitoring edge cases
-- **Skill health scores:** Aggregate quality metrics per skill
+**Solution:**
+- Wait for more failure occurrences
+- Manually review and approve if appropriate
+- Consider lowering threshold for specific skills
+
+### Performance Issues
+
+**Symptom:** Validation takes >5s
+
+**Causes:**
+1. Large skill files
+2. Complex syntax validation
+3. Slow disk I/O
+
+**Solution:**
+- Use SSD for `/tmp/patch-validation/`
+- Optimize syntax validation logic
+- Parallelize validations (future enhancement)
 
 ## References
 
-- **Integration Plan:** `planning/INTEGRATION_STANDARDIZATION_PLAN.md`
-- **Database Schema:** `src/db/migrations/002-add-edge-cases.sql`
-- **Tests:** `tests/edge-case-detector.test.ts`
-- **Phase 4 Design:** TBD (future work)
+- Task 5.1 Implementation: Integration Standardization Plan
+- Database Schema: `src/db/migrations/006-skill-patches-schema.sql`
+- Test Coverage: `tests/edge-case-*.test.ts`, `tests/patch-*.test.ts`
+- Integration: StandardError, BackupManager, DatabaseService
