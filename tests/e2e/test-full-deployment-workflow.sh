@@ -253,15 +253,13 @@ test_log_execution() {
 
     # Simulate skill execution logging
     sqlite3 "$TEST_DB" <<EOF
-INSERT INTO skill_usage_log (skill_id, agent_id, task_id, execution_context, execution_success, execution_duration_ms, metadata)
+INSERT INTO skill_usage_log (skill_id, agent_id, agent_type, task_id, success_indicator, execution_time_ms)
 VALUES (
     $skill_id,
-    'backend-dev-12345',
+    'backend-dev-12345', 'backend-developer',
     'task-test-e2e',
-    'e2e-integration-test',
     1,
-    150,
-    '{"test_run": true, "environment": "test"}'
+    150
 );
 EOF
 
@@ -275,7 +273,7 @@ EOF
     assert_equals "$agent_id" "backend-dev-12345" "Agent ID logged correctly"
 
     local success=$(sqlite3 "$TEST_DB" \
-        "SELECT execution_success FROM skill_usage_log WHERE skill_id=$skill_id")
+        "SELECT success_indicator FROM skill_usage_log WHERE skill_id=$skill_id")
     assert_equals "$success" "1" "Execution success status correct"
 }
 

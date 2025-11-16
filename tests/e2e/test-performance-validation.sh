@@ -189,8 +189,8 @@ test_dual_logging_performance() {
 
     # Measure logging time
     local duration=$(measure_time "sqlite3 '$TEST_DB' \
-        \"INSERT INTO skill_usage_log (skill_id, agent_id, task_id, execution_context, execution_success, execution_duration_ms)
-         VALUES ($skill_id, 'agent-perf', 'task-perf', 'perf-test', 1, 100)\"")
+        \"INSERT INTO skill_usage_log (skill_id, agent_id, agent_type, task_id, success_indicator, execution_time_ms)
+         VALUES ($skill_id, 'agent-perf', 'performance-tester', 1, 100)\"")
 
     assert_performance "$duration" "$THRESHOLD_DUAL_LOGGING" \
         "Dual logging performance (<${THRESHOLD_DUAL_LOGGING}ms)"
@@ -211,14 +211,14 @@ test_analytics_performance() {
 
     for i in {1..50}; do
         sqlite3 "$TEST_DB" <<EOF
-INSERT INTO skill_usage_log (skill_id, agent_id, task_id, execution_context, execution_success, execution_duration_ms)
-VALUES ($skill_id, 'agent-$i', 'task-$i', 'analytics-test', 1, $((100 + i)));
+INSERT INTO skill_usage_log (skill_id, agent_id, agent_type, task_id, success_indicator, execution_time_ms)
+VALUES ($skill_id, 'agent-$i', 'test-agent', 'task-$i', 1, $((100 + i)));
 EOF
     done
 
     # Measure analytics query
     local duration=$(measure_time "sqlite3 '$TEST_DB' \
-        'SELECT s.approval_level, COUNT(*) as executions, AVG(sul.execution_duration_ms) as avg_duration
+        'SELECT s.approval_level, COUNT(*) as executions, AVG(sul.execution_time_ms) as avg_duration
          FROM skills s
          JOIN skill_usage_log sul ON s.id = sul.skill_id
          GROUP BY s.approval_level'")
@@ -333,9 +333,9 @@ test_complex_analytics_performance() {
             s.approval_level,
             COUNT(DISTINCT sul.agent_id) as unique_agents,
             COUNT(sul.id) as total_executions,
-            AVG(sul.execution_duration_ms) as avg_duration,
-            MAX(sul.execution_duration_ms) as max_duration,
-            SUM(CASE WHEN sul.execution_success = 1 THEN 1 ELSE 0 END) as successes
+            AVG(sul.execution_time_ms) as avg_duration,
+            MAX(sul.execution_time_ms) as max_duration,
+            SUM(CASE WHEN sul.success_indicator = 1 THEN 1 ELSE 0 END) as successes
         FROM skills s
         LEFT JOIN skill_usage_log sul ON s.id = sul.skill_id
         LEFT JOIN agent_skill_mappings asm ON s.id = asm.skill_id

@@ -190,8 +190,8 @@ test_log_usage() {
     # Log multiple executions for auto skill (successful)
     for i in {1..5}; do
         sqlite3 "$TEST_DB" <<EOF
-INSERT INTO skill_usage_log (skill_id, agent_id, task_id, execution_context, execution_success, execution_duration_ms, metadata)
-VALUES ($auto_id, 'agent-$i', 'task-$i', 'test-context', 1, $((100 + i * 10)), '{"iteration": $i}');
+INSERT INTO skill_usage_log (skill_id, agent_id, agent_type, task_id, success_indicator, execution_time_ms)
+VALUES ($auto_id, 'agent-$i', 'test-agent', 'task-$i', 1, $((100 + i * 10)));
 EOF
     done
 
@@ -199,8 +199,8 @@ EOF
     for i in {1..3}; do
         local success=$((i % 2))  # Alternate success/failure
         sqlite3 "$TEST_DB" <<EOF
-INSERT INTO skill_usage_log (skill_id, agent_id, task_id, execution_context, execution_success, execution_duration_ms, metadata)
-VALUES ($human_id, 'agent-$i', 'task-$i', 'test-context', $success, $((200 + i * 20)), '{"iteration": $i}');
+INSERT INTO skill_usage_log (skill_id, agent_id, agent_type, task_id, success_indicator, execution_time_ms)
+VALUES ($human_id, 'agent-$i', 'test-agent', 'task-$i', $success, $((200 + i * 20)));
 EOF
     done
 
@@ -208,8 +208,8 @@ EOF
     for i in {1..4}; do
         local success=$((i <= 2 ? 1 : 0))  # First 2 succeed, last 2 fail
         sqlite3 "$TEST_DB" <<EOF
-INSERT INTO skill_usage_log (skill_id, agent_id, task_id, execution_context, execution_success, execution_duration_ms, metadata)
-VALUES ($escalate_id, 'agent-$i', 'task-$i', 'test-context', $success, $((150 + i * 15)), '{"iteration": $i}');
+INSERT INTO skill_usage_log (skill_id, agent_id, agent_type, task_id, success_indicator, execution_time_ms)
+VALUES ($escalate_id, 'agent-$i', 'test-agent', 'task-$i', $success, $((150 + i * 15)));
 EOF
     done
 
@@ -226,7 +226,7 @@ test_analytics_data_structure() {
 
     # Check auto skill analytics
     local auto_success=$(sqlite3 "$TEST_DB" \
-        "SELECT COUNT(*) FROM skill_usage_log WHERE skill_id=(SELECT id FROM skills WHERE name='analytics-test-auto') AND execution_success=1")
+        "SELECT COUNT(*) FROM skill_usage_log WHERE skill_id=(SELECT id FROM skills WHERE name='analytics-test-auto') AND success_indicator=1")
     assert_gte "$auto_success" "5" "Auto skill: 5 successful executions"
 
     # Check human skill analytics
@@ -236,9 +236,9 @@ test_analytics_data_structure() {
 
     # Check escalate skill analytics (mixed results)
     local escalate_success=$(sqlite3 "$TEST_DB" \
-        "SELECT COUNT(*) FROM skill_usage_log WHERE skill_id=(SELECT id FROM skills WHERE name='analytics-test-escalate') AND execution_success=1")
+        "SELECT COUNT(*) FROM skill_usage_log WHERE skill_id=(SELECT id FROM skills WHERE name='analytics-test-escalate') AND success_indicator=1")
     local escalate_failure=$(sqlite3 "$TEST_DB" \
-        "SELECT COUNT(*) FROM skill_usage_log WHERE skill_id=(SELECT id FROM skills WHERE name='analytics-test-escalate') AND execution_success=0")
+        "SELECT COUNT(*) FROM skill_usage_log WHERE skill_id=(SELECT id FROM skills WHERE name='analytics-test-escalate') AND success_indicator=0")
 
     assert_gte "$escalate_success" "2" "Escalate skill: ≥2 successes"
     assert_gte "$escalate_failure" "2" "Escalate skill: ≥2 failures"
@@ -256,8 +256,8 @@ SELECT
     s.approval_level,
     COUNT(DISTINCT sul.skill_id) as skill_count,
     COUNT(*) as total_executions,
-    SUM(CASE WHEN sul.execution_success = 1 THEN 1 ELSE 0 END) as successful_executions,
-    ROUND(AVG(CASE WHEN sul.execution_success = 1 THEN 1.0 ELSE 0.0 END) * 100, 2) as success_rate
+    SUM(CASE WHEN sul.success_indicator = 1 THEN 1 ELSE 0 END) as successful_executions,
+    ROUND(AVG(CASE WHEN sul.success_indicator = 1 THEN 1.0 ELSE 0.0 END) * 100, 2) as success_rate
 FROM skills s
 JOIN skill_usage_log sul ON s.id = sul.skill_id
 GROUP BY s.approval_level
@@ -285,8 +285,8 @@ SELECT
     s.phase4_pattern_id,
     s.name,
     COUNT(sul.id) as usage_count,
-    AVG(sul.execution_duration_ms) as avg_duration,
-    MAX(sul.execution_duration_ms) as max_duration
+    AVG(sul.execution_time_ms) as avg_duration,
+    MAX(sul.execution_time_ms) as max_duration
 FROM skills s
 JOIN skill_usage_log sul ON s.id = sul.skill_id
 WHERE s.phase4_pattern_id IS NOT NULL
@@ -372,7 +372,7 @@ SELECT
     s.category,
     COUNT(DISTINCT s.id) as skill_count,
     COUNT(sul.id) as total_executions,
-    AVG(sul.execution_duration_ms) as avg_duration
+    AVG(sul.execution_time_ms) as avg_duration
 FROM skills s
 LEFT JOIN skill_usage_log sul ON s.id = sul.skill_id
 GROUP BY s.category
@@ -406,7 +406,7 @@ EOF
     # Query usage in last 30 days
     local recent_usage=$(sqlite3 "$TEST_DB" <<'EOF'
 SELECT COUNT(*) FROM skill_usage_log
-WHERE datetime(timestamp) >= datetime('now', '-30 days');
+WHERE datetime(loaded_at) >= datetime('now', '-30 days');
 EOF
 )
 
