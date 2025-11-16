@@ -43,8 +43,57 @@ Implementation:
 
 ### P2 - Medium Priority
 
+**[P2] - Quote all 21 variables in docker/coordinator-entrypoint.sh**
+- **Sprint Backlogged**: Phase 4
+- **Category**: Technical-Debt
+- **Description**: Quote all 21 unquoted variable expansions to prevent word splitting and globbing
+- **Rationale**: Phase 4 security audit (M-1 MEDIUM) - unquoted variables can cause unexpected behavior with spaces/wildcards
+- **Proposed Solution**: Quote all variable expansions except in [[ ]] conditionals (e.g., echo "$VAR" instead of echo $VAR)
+- **Tags**: `security`, `docker`, `shell-scripting`, `phase4`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-16
+
+**[P2] - Add strict mode to orchestrate.sh**
+- **Sprint Backlogged**: Phase 4
+- **Category**: Technical-Debt
+- **Description**: Add set -euo pipefail to .claude/skills/cfn-docker-loop-orchestration/orchestrate.sh
+- **Rationale**: Phase 4 security audit (M-2 MEDIUM) - missing strict mode allows errors to be silently ignored, unset variables not caught
+- **Proposed Solution**: Add "set -euo pipefail" in first 5 lines after shebang for exit on error, unset variable detection, pipeline error catching
+- **Tags**: `security`, `docker`, `shell-scripting`, `phase4`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-16
+
+**[P2] - Use mktemp for secure temp file creation**
+- **Sprint Backlogged**: Phase 4
+- **Category**: Technical-Debt
+- **Description**: Replace hardcoded /tmp paths with mktemp in docker/coordinator-entrypoint.sh
+- **Rationale**: Phase 4 security audit (M-3 MEDIUM) - predictable filenames create race condition and temp file hijacking risks
+- **Proposed Solution**: Use mktemp for unpredictable filenames with trap for cleanup (e.g., CONTEXT_FILE=$(mktemp /tmp/task-context.XXXXXX.json))
+- **Tags**: `security`, `docker`, `temp-files`, `phase4`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-16
 
 ### P3 - Low Priority / Nice-to-Have
+
+**[P3] - Verify coordinator memory limit in docker-compose.yml**
+- **Sprint Backlogged**: Phase 4
+- **Category**: Optimization
+- **Description**: Ensure cfn-coordinator service has mem_limit: 2g in docker/docker-compose.yml
+- **Rationale**: Phase 4 security audit (L-1 LOW) - missing or incorrect memory limit can cause host memory exhaustion
+- **Proposed Solution**: Add or verify mem_limit: 2g in cfn-coordinator service configuration
+- **Tags**: `docker`, `resource-limits`, `phase4`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-16
+
+**[P3] - Ensure agent containers have AutoRemove: true**
+- **Sprint Backlogged**: Phase 4
+- **Category**: Optimization
+- **Description**: Verify all agent spawning code sets AutoRemove: true in HostConfig
+- **Rationale**: Phase 4 security audit (L-2 LOW) - missing auto-remove causes disk space exhaustion from orphaned containers
+- **Proposed Solution**: Review .claude/skills/cfn-docker-loop-orchestration/orchestrate.sh agent spawning and ensure HostConfig.AutoRemove is set
+- **Tags**: `docker`, `resource-cleanup`, `phase4`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-16
 
 ## Completed Items
 
