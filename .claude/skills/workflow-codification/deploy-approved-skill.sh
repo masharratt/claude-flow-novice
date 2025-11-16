@@ -54,6 +54,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
+# Source security utilities (SQL escaping, secure credentials)
+source "${SCRIPT_DIR}/lib/security-utils.sh"
+
 # Skills Database (SQLite - required)
 CFN_SKILLS_DB_PATH="${CFN_SKILLS_DB_PATH:-./.claude/skills-database/skills.db}"
 
@@ -103,6 +106,7 @@ validate_inputs() {
     local pattern_id="$1"
     local skill_name="$2"
     local content_path="$3"
+    local category="$4"
 
     # Validate required parameters
     if [[ -z "$pattern_id" ]] || [[ -z "$skill_name" ]] || [[ -z "$content_path" ]]; then
@@ -120,6 +124,12 @@ validate_inputs() {
         exit 1
     fi
 
+    # Validate skill name (security: prevent injection)
+    validate_skill_name "$skill_name" || exit 1
+
+    # Validate category (security: whitelist only)
+    validate_category "$category" || exit 1
+
     # Validate content file exists
     if [[ ! -f "$content_path" ]]; then
         echo "[ERROR] Content file not found: $content_path" >&2
@@ -132,6 +142,9 @@ validate_inputs() {
         echo "Check file permissions." >&2
         exit 2
     fi
+
+    # Validate file path (security: prevent traversal)
+    validate_file_path "$content_path" "$PROJECT_ROOT" || exit 1
 
     # Validate database exists
     if [[ ! -f "$CFN_SKILLS_DB_PATH" ]]; then
@@ -195,32 +208,44 @@ insert_skill() {
     # Generate version (default: 1.0.0 for new skills)
     local version="1.0.0"
 
+    # SECURITY FIX: Escape all SQL strings to prevent injection
+    local safe_skill_name
+    safe_skill_name=$(escape_sql_string "$skill_name")
+    local safe_content_path
+    safe_content_path=$(escape_sql_string "$content_path")
+    local safe_category
+    safe_category=$(escape_sql_string "$category")
+    local safe_content_hash
+    safe_content_hash=$(escape_sql_string "$content_hash")
+    local safe_approval_level
+    safe_approval_level=$(escape_sql_string "$approval_level")
+
     # Check if skill already exists
     local existing_count
-    existing_count=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name = '$skill_name';")
+    existing_count=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name = '${safe_skill_name}';")
 
     if [ "$existing_count" -gt 0 ]; then
         log_warning "Skill '$skill_name' already exists. Updating instead of inserting."
 
-        # Update existing skill
+        # Update existing skill (with escaped values)
         sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 UPDATE skills SET
-    category = '$category',
-    content_path = '$content_path',
-    content_hash = '$content_hash',
-    approval_level = '$approval_level',
-    phase4_pattern_id = $pattern_id,
+    category = '${safe_category}',
+    content_path = '${safe_content_path}',
+    content_hash = '${safe_content_hash}',
+    approval_level = '${safe_approval_level}',
+    phase4_pattern_id = ${pattern_id},
     generated_by = 'phase4',
     is_auto_generated = 1,
     status = 'active',
     updated_at = datetime('now')
-WHERE name = '$skill_name';
+WHERE name = '${safe_skill_name}';
 EOF
 
         # Get existing skill ID
-        sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT id FROM skills WHERE name = '$skill_name';"
+        sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT id FROM skills WHERE name = '${safe_skill_name}';"
     else
-        # Insert new skill
+        # Insert new skill (with escaped values)
         sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 INSERT INTO skills (
     name,
@@ -236,14 +261,14 @@ INSERT INTO skills (
     created_at,
     updated_at
 ) VALUES (
-    '$skill_name',
-    '$category',
-    '$content_path',
-    '$content_hash',
-    '$version',
+    '${safe_skill_name}',
+    '${safe_category}',
+    '${safe_content_path}',
+    '${safe_content_hash}',
+    '${version}',
     'active',
-    '$approval_level',
-    $pattern_id,
+    '${safe_approval_level}',
+    ${pattern_id},
     'phase4',
     1,
     datetime('now'),
@@ -267,6 +292,14 @@ record_approval() {
 
     local reasoning="Auto-approved by Phase 4 workflow codification system after expert review"
 
+    # SECURITY FIX: Escape SQL strings
+    local safe_version
+    safe_version=$(escape_sql_string "$version")
+    local safe_approval_level
+    safe_approval_level=$(escape_sql_string "$approval_level")
+    local safe_reasoning
+    safe_reasoning=$(escape_sql_string "$reasoning")
+
     sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 INSERT INTO approval_history (
     skill_id,
@@ -277,12 +310,12 @@ INSERT INTO approval_history (
     reasoning,
     timestamp
 ) VALUES (
-    $skill_id,
-    '$version',
-    '$approval_level',
+    ${skill_id},
+    '${safe_version}',
+    '${safe_approval_level}',
     'phase4-system',
     'approved',
-    '$reasoning',
+    '${safe_reasoning}',
     datetime('now')
 );
 EOF
@@ -292,7 +325,7 @@ EOF
 UPDATE skills SET
     last_approved_by = 'phase4-system',
     last_approval_date = datetime('now')
-WHERE id = $skill_id;
+WHERE id = ${skill_id};
 EOF
 }
 
@@ -323,19 +356,29 @@ create_agent_mappings() {
             continue
         fi
 
+        # SECURITY FIX: Validate agent type (alphanumeric, hyphen, underscore only)
+        if ! [[ "$agent_type" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            log_error "Invalid agent type: $agent_type (must contain only letters, numbers, underscore, hyphen)"
+            continue
+        fi
+
         log_info "  - Mapping to agent: $agent_type"
+
+        # SECURITY FIX: Escape SQL string
+        local safe_agent_type
+        safe_agent_type=$(escape_sql_string "$agent_type")
 
         # Check if mapping already exists
         local existing_mapping
-        existing_mapping=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM agent_skill_mappings WHERE agent_type = '$agent_type' AND skill_id = $skill_id;")
+        existing_mapping=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM agent_skill_mappings WHERE agent_type = '${safe_agent_type}' AND skill_id = ${skill_id};")
 
         if [ "$existing_mapping" -gt 0 ]; then
             log_warning "    Mapping already exists for $agent_type, skipping"
             continue
         fi
 
-        # Insert mapping
-        sqlite3 "$CFN_SKILLS_DB_PATH" "INSERT INTO agent_skill_mappings (agent_type, skill_id, priority, required, conditions, enabled, created_at, updated_at) VALUES ('$agent_type', $skill_id, 5, 0, '{\"taskContext\": [\"automation\"], \"phase\": \"loop3\"}', 1, datetime('now'), datetime('now'));" || {
+        # Insert mapping (with escaped values)
+        sqlite3 "$CFN_SKILLS_DB_PATH" "INSERT INTO agent_skill_mappings (agent_type, skill_id, priority, required, conditions, enabled, created_at, updated_at) VALUES ('${safe_agent_type}', ${skill_id}, 5, 0, '{\"taskContext\": [\"automation\"], \"phase\": \"loop3\"}', 1, datetime('now'), datetime('now'));" || {
             log_error "Failed to insert mapping for $agent_type"
             return 3
         }
@@ -361,24 +404,28 @@ update_phase4_status() {
 
     log_info "Updating Phase 4 workflow pattern status"
 
-    # Build psql connection string
-    local psql_cmd="psql -h $PHASE4_POSTGRES_HOST -U $PHASE4_POSTGRES_USER -d $PHASE4_POSTGRES_DB -t -A"
-
-    # Set password if provided
+    # SECURITY FIX #2: Quote all parameters to prevent command injection
+    # SECURITY FIX #3: Use .pgpass file instead of PGPASSWORD environment variable
+    local pgpass_file=""
     if [ -n "$PHASE4_POSTGRES_PASS" ]; then
-        export PGPASSWORD="$PHASE4_POSTGRES_PASS"
+        pgpass_file=$(create_pgpass_file "$PHASE4_POSTGRES_HOST" "5432" "$PHASE4_POSTGRES_DB" "$PHASE4_POSTGRES_USER" "$PHASE4_POSTGRES_PASS")
+        if [ -z "$pgpass_file" ]; then
+            log_warning "Failed to create .pgpass file, skipping Phase 4 update"
+            return 4
+        fi
+        export PGPASSFILE="$pgpass_file"
     fi
 
-    # Try to update Phase 4 status
-    if $psql_cmd -c "UPDATE workflow_patterns SET status = 'deployed', deployed_skill_id = $skill_id WHERE id = $pattern_id;" 2>/dev/null; then
+    # Try to update Phase 4 status (with properly quoted parameters)
+    if psql -h "$PHASE4_POSTGRES_HOST" -U "$PHASE4_POSTGRES_USER" -d "$PHASE4_POSTGRES_DB" -t -A -c "UPDATE workflow_patterns SET status = 'deployed', deployed_skill_id = ${skill_id} WHERE id = ${pattern_id};" 2>/dev/null; then
         log_success "Phase 4 status updated successfully"
     else
         log_warning "Failed to update Phase 4 status (pattern ID: $pattern_id). This is non-fatal."
         return 4
     fi
 
-    # Unset password
-    unset PGPASSWORD
+    # Clean up is automatic via trap in create_pgpass_file()
+    unset PGPASSFILE
 }
 
 #######################################
@@ -402,8 +449,8 @@ main() {
     log_info "Team IDs: ${team_ids:-<none>}"
     log_info "========================================="
 
-    # Step 1: Validate inputs
-    validate_inputs "$pattern_id" "$skill_name" "$content_path"
+    # Step 1: Validate inputs (including security checks)
+    validate_inputs "$pattern_id" "$skill_name" "$content_path" "$category"
     log_success "Input validation passed"
 
     # Step 2: Calculate content hash

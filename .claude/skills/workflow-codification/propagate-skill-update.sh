@@ -76,6 +76,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
+# Source security utilities (SQL escaping, secure credentials)
+source "${SCRIPT_DIR}/lib/security-utils.sh"
+
 # Skills Database (SQLite - required)
 CFN_SKILLS_DB_PATH="${CFN_SKILLS_DB_PATH:-./.claude/skills-database/skills.db}"
 
@@ -146,6 +149,9 @@ validate_parameters() {
         exit 1
     fi
 
+    # SECURITY FIX: Validate skill name (prevent injection)
+    validate_skill_name "$skill_name" || exit 1
+
     # Validate version format (semantic versioning)
     if ! [[ "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "[ERROR] Invalid version format: $new_version" >&2
@@ -166,16 +172,23 @@ validate_parameters() {
         exit 2
     fi
 
+    # SECURITY FIX: Validate file path (prevent traversal)
+    validate_file_path "$update_path" "$PROJECT_ROOT" || exit 1
+
     # Validate database exists
     if [[ ! -f "$CFN_SKILLS_DB_PATH" ]]; then
         echo "[ERROR] Skills database not found: $CFN_SKILLS_DB_PATH" >&2
         exit 3
     fi
 
+    # SECURITY FIX: Escape SQL string before query
+    local safe_skill_name
+    safe_skill_name=$(escape_sql_string "$skill_name")
+
     # Validate skill exists in database (before attempting update)
     local skill_count
-    skill_count=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name='$skill_name'" 2>/dev/null || echo "0")
-    
+    skill_count=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name='${safe_skill_name}'" 2>/dev/null || echo "0")
+
     if [[ "$skill_count" -eq 0 ]]; then
         echo "[ERROR] Skill not found in database: $skill_name" >&2
         echo "Available skills:" >&2
@@ -342,17 +355,33 @@ update_skill_record() {
 
     log_info "Updating skill record (ID: $skill_id)"
 
+    # SECURITY FIX: Escape all SQL strings to prevent injection
+    local safe_new_version
+    safe_new_version=$(escape_sql_string "$new_version")
+    local safe_new_hash
+    safe_new_hash=$(escape_sql_string "$new_hash")
+    local safe_update_path
+    safe_update_path=$(escape_sql_string "$update_path")
+    local safe_new_tags
+    safe_new_tags=$(escape_sql_string "$new_tags")
+    local safe_new_category
+    safe_new_category=$(escape_sql_string "$new_category")
+    local safe_new_owner
+    safe_new_owner=$(escape_sql_string "$new_owner")
+    local safe_new_approval_level
+    safe_new_approval_level=$(escape_sql_string "$new_approval_level")
+
     sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 UPDATE skills
-SET version = '$new_version',
-    content_hash = '$new_hash',
-    content_path = '$update_path',
-    tags = '$new_tags',
-    category = '$new_category',
-    owner = '$new_owner',
-    approval_level = '$new_approval_level',
+SET version = '${safe_new_version}',
+    content_hash = '${safe_new_hash}',
+    content_path = '${safe_update_path}',
+    tags = '${safe_new_tags}',
+    category = '${safe_new_category}',
+    owner = '${safe_new_owner}',
+    approval_level = '${safe_new_approval_level}',
     updated_at = datetime('now')
-WHERE id = $skill_id;
+WHERE id = ${skill_id};
 EOF
 
     if [[ $? -ne 0 ]]; then
@@ -384,6 +413,12 @@ record_approval_history() {
 EOF
 )
 
+    # SECURITY FIX: Escape SQL strings
+    local safe_new_version
+    safe_new_version=$(escape_sql_string "$new_version")
+    local safe_metadata
+    safe_metadata=$(escape_sql_string "$metadata")
+
     sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 INSERT INTO approval_history (
     skill_id,
@@ -395,13 +430,13 @@ INSERT INTO approval_history (
     approval_criteria_check,
     timestamp
 ) VALUES (
-    $skill_id,
-    '$new_version',
+    ${skill_id},
+    '${safe_new_version}',
     'auto',
     'phase4-edge-case-tracker',
     'approved',
     'Edge case update propagated from Phase 4 after expert review and validation',
-    '$metadata',
+    '${safe_metadata}',
     datetime('now')
 );
 EOF
@@ -416,10 +451,17 @@ EOF
 get_affected_agents() {
     local skill_id="$1"
 
+    # SECURITY FIX: Skill ID should be numeric (validated earlier)
+    # But add explicit check for safety
+    if ! [[ "$skill_id" =~ ^[0-9]+$ ]]; then
+        log_error "Invalid skill ID (must be numeric): $skill_id"
+        return 1
+    fi
+
     sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 SELECT DISTINCT agent_type
 FROM agent_skill_mappings
-WHERE skill_id = $skill_id
+WHERE skill_id = ${skill_id}
 ORDER BY agent_type;
 EOF
 }
