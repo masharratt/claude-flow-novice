@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "data-format-transformations/config-transform/v1.0.0",
+  "title": "Config Transformation Schema",
+  "description": "Schema for config format transformations (Integration Point 6.1)",
+  "type": "object",
+  "required": ["source_format", "target_format", "data"],
+  "properties": {
+    "source_format": {
+      "type": "string",
+      "description": "Source data format",
+      "enum": ["json", "yaml", "shell"]
+    },
+    "target_format": {
+      "type": "string",
+      "description": "Target data format",
+      "enum": ["json", "yaml", "shell"]
+    },
+    "data": {
+      "type": "object",
+      "description": "Data to transform"
+    },
+    "preserve_types": {
+      "type": "boolean",
+      "description": "Preserve type information during transformation",
+      "default": true
+    },
+    "preserve_comments": {
+      "type": "boolean",
+      "description": "Preserve comments if supported by formats",
+      "default": false
+    },
+    "validation_schema": {
+      "type": "string",
+      "description": "Optional schema for validation after transformation"
+    }
+  },
+  "additionalProperties": false
+}
