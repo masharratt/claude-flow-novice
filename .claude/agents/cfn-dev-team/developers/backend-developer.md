@@ -49,13 +49,8 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
-redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
-  "${AGENT_ID}" "0.85"
-```
+**IMPORTANT:** Use the centralized completion script which handles Redis gracefully:
 
-**New (Required):**
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
@@ -64,13 +59,16 @@ TEST_OUTPUT=$(npm test 2>&1)
 RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
   "jest" "$TEST_OUTPUT")
 
-# Store in Redis
-redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-  "${AGENT_ID}" "$RESULTS"
-
-# Signal completion
-redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
+# Report completion (automatically fails gracefully in Task mode)
+./.claude/skills/cfn-redis-coordination/report-completion.sh \
+  --task-id "${TASK_ID}" \
+  --agent-id "${AGENT_ID}" \
+  --confidence "${PASS_RATE}" \
+  --iteration "${ITERATION:-1}" \
+  --result "${RESULTS}"
 ```
+
+**Note:** Redis commands automatically fail gracefully when unavailable (Task mode). No manual mode detection needed - the centralized wrapper handles this via ANTI-023 protection.
 
 ## Core Responsibilities
 - Design and implement scalable backend services

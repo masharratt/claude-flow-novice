@@ -7,6 +7,10 @@
 
 set -euo pipefail
 
+# Source centralized Redis functions (provides graceful fallback for Task mode)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/redis-functions.sh"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REDIS_COORD_SKILL="$SCRIPT_DIR"
 
