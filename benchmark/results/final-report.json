@@ -1,0 +1,22 @@
+{
+  "timestamp": "$(date -Iseconds)",
+  "environment": {
+    "node_available": true,
+    "rust_available": true,
+    "docker_available": false,
+    "k6_available": false
+  },
+  "tests_run": {
+    "websocket_node": true,
+    "websocket_rust": false,
+    "spawn_patterns": true,
+    "ai_streaming": true,
+    "agent_messaging": true
+  },
+  "results": {
+    "node_ws": $(cat node-ws-metrics.json),
+    "spawn_comparison": $(cat spawn-comparison.json),
+    "ai_streaming": $(cat ai-streaming.json),
+    "agent_messaging": $(cat agent-messaging.json)
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "test_config": {
+    "iterations": 50,
+    "agents": 5,
+    "timestamp": "2025-11-16T16:46:15+00:00"
+  },
+  "results": {
+    "spawn_kill_cli": {
+  "pattern": "spawn-kill-cli",
+  "iterations": 50,
+  "duration_ms": 2328,
+  "avg_per_operation_ms": 46
+},
+    "persistent_nodejs": {
+  "pattern": "persistent-nodejs",
+  "iterations": 50,
+  "agents": 5,
+  "duration_ms": 121,
+  "baseline_memory_kb": 0,
+  "memory_delta_kb": 0,
+  "avg_per_operation_ms": 2
+}
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "config": {
+    "target": "ws://localhost:8080",
+    "num_agents": 5,
+    "num_conversations": 3,
+    "timestamp": "2025-11-16T16:45:38.340Z"
+  },
+  "summary": {
+    "total_messages": 44,
+    "successful_messages": 44,
+    "failed_messages": 0,
+    "success_rate": 100,
+    "total_errors": 0,
+    "total_conversation_turns": 26,
+    "avg_conversation_duration_ms": 688.8,
+    "avg_message_latency_ms": 0.8181818181818182,
+    "latency_p50_ms": 1,
+    "latency_p95_ms": 1,
+    "latency_p99_ms": 2,
+    "total_test_duration_ms": 3446
+  },
+  "errors": []
+}
