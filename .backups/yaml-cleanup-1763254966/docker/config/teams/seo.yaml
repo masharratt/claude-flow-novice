@@ -1,0 +1,26 @@
+# SEO Team Configuration
+# Purpose: Content generation and keyword optimization
+
+team:
+  id: seo
+  name: "SEO Team"
+  description: "Content generation, keyword research, and SEO optimization"
+
+  workspace:
+    path: /workspace/seo
+    disk_quota: 50GB
+
+  resources:
+    memory: 12GB
+    cpu_cores: 4
+    max_agents: 5
+
+  allowed_skills:
+    - content-generation
+    - keyword-research
+    - database-readonly
+    - web-scraping
+
+  network:
+    subnet_id: 5  # 172.18.5.0/24
+    coordinator_ip: 172.18.0.15
