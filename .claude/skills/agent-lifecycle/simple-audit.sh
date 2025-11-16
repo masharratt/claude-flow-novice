@@ -30,11 +30,14 @@ sqlite3 "$DB_PATH" "CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, type
 SAFE_AGENT_ID="${AGENT_ID//\'/\'\'}"
 SAFE_AGENT_TYPE="${AGENT_TYPE//\'/\'\'}"
 
-# Validate and escape confidence (must be numeric)
+# Validate confidence (must be numeric to prevent SQL injection)
 if [[ ! "$CONFIDENCE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
     echo "❌ Invalid confidence value: $CONFIDENCE (must be numeric 0.0-1.0)" >&2
     exit 1
 fi
+
+# CONFIDENCE is validated as numeric, safe to use directly in SQL as numeric value
+SAFE_CONFIDENCE="$CONFIDENCE"
 
 # Record agent activity
 case "$STATUS" in
@@ -45,7 +48,7 @@ case "$STATUS" in
         }
         ;;
     "completed")
-        sqlite3 "$DB_PATH" "UPDATE agents SET status = 'completed', confidence = $CONFIDENCE, completed_at = datetime('now') WHERE id = '$SAFE_AGENT_ID';" || {
+        sqlite3 "$DB_PATH" "UPDATE agents SET status = 'completed', confidence = $SAFE_CONFIDENCE, completed_at = datetime('now') WHERE id = '$SAFE_AGENT_ID';" || {
             echo "❌ Failed to record agent completion" >&2
             exit 1
         }
