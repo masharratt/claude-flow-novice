@@ -7,11 +7,29 @@ Product Owner decision: DEFER_AND_PROCEED (Iteration 5, 2025-11-16)
 - Target: 0.90
 - Gap: 0.04 (4.4% below threshold)
 
+## Cost Units Definition
+**Cost Metric**: Estimated agent execution time in minutes
+- ITERATE cost = 70 min (additional Loop 3 iteration + Loop 2 re-validation + Product Owner re-decision)
+- DEFER cost = 20 min (documentation update + backlog item creation)
+- Cost savings = 50 min (71% reduction) by deferring instead of iterating
+
+## Tracking Mechanism
+All deferred items are tracked as GitHub issues with labels:
+- `phase3-deferred` - Items deferred from Phase 3
+- `priority:P2` / `priority:P3` - Priority levels
+- `type:infrastructure` / `type:testing` - Category labels
+
+**Related Issues:**
+- See: [Phase 3 Deferred Items Project Board](https://github.com/masharratt/claude-flow-novice/projects)
+- Cross-reference: `docs/PHASE_3_IMPLEMENTATION.md` (completed objectives)
+- Cross-reference: `docs/TEST_DRIVEN_CFN_LOOP_GUIDE.md` (test-driven methodology)
+
 ## Deferred Concerns
 
 ### 1. Redis Service Deployment Guide
 **Priority**: P2 (Medium)
 **Category**: Infrastructure
+**Tracking**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues) *(create issue with label: phase3-deferred, priority:P2)*
 
 **Why**: 3/8 integration tests in `test-dynamic-integration.sh` require Redis service running (environmental dependency, not code defect)
 
@@ -31,6 +49,7 @@ services:
 ### 2. TASK_ID Regression Verification
 **Priority**: P3 (Low)
 **Category**: Testing
+**Tracking**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues) *(create issue with label: phase3-deferred, priority:P3)*
 
 **Why**: Unconfirmed concern from validator about potential regression in TASK_ID propagation across coordination layer
 
@@ -46,6 +65,7 @@ services:
 ### 3. 10MB Boundary Edge Case Tests
 **Priority**: P3 (Low)
 **Category**: Testing
+**Tracking**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues) *(create issue with label: phase3-deferred, priority:P3)*
 
 **Why**: Limited edge case coverage at parameter size boundaries (currently test 7MB and 8MB, missing 10MB±1KB tests)
 

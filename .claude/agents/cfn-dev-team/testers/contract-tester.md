@@ -15,6 +15,13 @@ acl_level: 1
 validation_hooks:
   - agent-template-validator
   - test-coverage-validator
+prerequisites:
+  node: ">=18.0.0"
+  npm: ">=9.0.0"
+  frameworks:
+    - "@pact-foundation/pact@^12.0.0"
+    - "jest@^29.0.0"
+    - "ajv@^8.0.0"
 ---
 # Contract Testing Specialist Agent
 

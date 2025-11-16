@@ -38,20 +38,23 @@ fi
 
 ### 2. TDD Protocol (MANDATORY)
 
-**Write Tests First (15-20 min):**
+**Write Tests First:**
 - Extract test requirements from success criteria
 - Write failing tests for each requirement
 - Ensure test coverage ≥80%
+- *Guidance: Typically ~15-20 min, adjust for complexity*
 
-**Implement (30-40 min):**
+**Implement:**
 - Write minimum code to pass tests
 - Run tests continuously (`npm test --watch` or framework equivalent)
 - Refactor for quality
+- *Guidance: Typically ~30-40 min, memory profiling may extend this*
 
-**Validate (5 min):**
+**Validate:**
 - Run full test suite: `npm test` (or framework command from criteria)
 - Verify pass rate meets threshold (Standard: ≥95%)
 - Check coverage: `npm run coverage`
+- *Guidance: Typically ~5 min for validation*
 
 ### 3. Report Test Results (NOT Confidence)
 

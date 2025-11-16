@@ -778,7 +778,7 @@ Complete your work and provide test-based validation:
 5. **Signal Completion**: Push to completion queue
 
 **Example Report:**
-```
+```text
 API Testing Summary:
 - Contract Tests: 20/20 passed (100%)
 - Schema Validation Tests: 18/18 passed (100%)

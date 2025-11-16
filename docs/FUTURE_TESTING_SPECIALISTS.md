@@ -521,13 +521,41 @@ capabilities:
 
 ---
 
-## Questions for Future Consideration
+## Open Questions → GitHub Issues
 
-1. **Agent Coordination:** Should specialists run in parallel or sequential?
-2. **Performance:** How to keep total validation time <10 minutes?
-3. **Cost:** Balance quality vs. execution cost (more validators = higher cost)
-4. **Thresholds:** Different mutation score thresholds per domain?
-5. **Integration:** How to integrate with existing CI/CD pipelines?
+The following questions should be converted to tracked GitHub issues for investigation:
+
+1. **Agent Coordination Optimization**
+   - **Issue**: Should specialists run in parallel or sequential?
+   - **Label**: `optimization`, `architecture`
+   - **Related**: Loop 2 orchestration performance
+   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+
+2. **Validation Time Budget**
+   - **Issue**: How to keep total validation time <10 minutes?
+   - **Label**: `performance`, `validation`
+   - **Constraint**: CI/CD pipeline timeout requirements
+   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+
+3. **Cost-Quality Tradeoff Analysis**
+   - **Issue**: Balance quality vs. execution cost (more validators = higher cost)
+   - **Label**: `cost-optimization`, `strategy`
+   - **Data Needed**: Cost per validator, defect escape rate correlation
+   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+
+4. **Domain-Specific Thresholds**
+   - **Issue**: Different mutation score thresholds per domain?
+   - **Label**: `quality-gates`, `test-driven`
+   - **Example**: Security code may need 98%, UI code 85%
+   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+
+5. **CI/CD Pipeline Integration**
+   - **Issue**: How to integrate with existing CI/CD pipelines?
+   - **Label**: `integration`, `devops`
+   - **Platforms**: GitHub Actions, GitLab CI, Jenkins, CircleCI
+   - **Create Issue**: [GitHub Issue #TBD](https://github.com/masharratt/claude-flow-novice/issues)
+
+**Action Item**: Create these 5 GitHub issues after Phase 5 production deployment to track investigation and implementation.
 
 ---
 
