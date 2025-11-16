@@ -208,3 +208,6 @@ legacy/v1/**/.next/planning/global/
 
 # Redis dump files
 dump.rdb
+# Backup files
+*.backup
+*.bak

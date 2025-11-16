@@ -578,7 +578,7 @@ case "${1:-optimize}" in
         backup_sysctl_config
         ;;
     "restore")
-        local latest_backup=$(ls -t /etc/sysctl.d/99-oom-monitor-backup-*.conf 2>/dev/null | head -1)
+        latest_backup=$(ls -t /etc/sysctl.d/99-oom-monitor-backup-*.conf 2>/dev/null | head -1)
         if [[ -n "$latest_backup" ]]; then
             log "INFO" "Restoring from backup: $latest_backup"
             sysctl -p "$latest_backup"

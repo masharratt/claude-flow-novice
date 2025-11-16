@@ -1,0 +1,1096 @@
+{
+  "epic": {
+    "id": "epic-workflow-codification-v2-001",
+    "title": "Workflow Codification System Enhancement - 6 Priority Features",
+    "description": "Enhance workflow codification system with intelligent automation, quality assurance, and observability: Skill Health Score, Self-Healing Skills, Regression Testing, AI Pattern Recommender, Skill Composition, and Execution Tracing",
+    "owner": "product-owner",
+    "priority": "high",
+    "estimatedEffort": "9 weeks (405 hours, 3 engineers)",
+    "budget": "$217,500 (labor + infrastructure)",
+    "confidenceTarget": 0.90,
+    "created": "2025-11-16",
+    "status": "planning",
+    "documentation": {
+      "specification": "planning/workflow-codification/priority-features/SPECIFICATION.md",
+      "pseudocode": "planning/workflow-codification/priority-features/PSEUDOCODE.md",
+      "architecture": "planning/workflow-codification/priority-features/ARCHITECTURE.md",
+      "implementationPlan": "planning/workflow-codification/IMPLEMENTATION_PLAN.md",
+      "backlog": "planning/workflow-codification/backlog/DEFERRED_FEATURES.md"
+    }
+  },
+
+  "objectives": [
+    "Implement Skill Health Score system (0-100 composite metric with 5 components)",
+    "Build Self-Healing Skills with automatic retry and circuit breaker pattern",
+    "Create Regression Testing framework with auto-generated test suites",
+    "Deploy AI Pattern Recommender for proactive automation suggestions",
+    "Develop Skill Composition for multi-skill workflow chaining with parallelization",
+    "Establish Execution Tracing infrastructure with distributed tracing and correlation IDs",
+    "Achieve +40% skill reliability improvement (95% success rate target)",
+    "Realize +25% cost savings through combined feature optimizations",
+    "Reduce debugging time by 60% via execution tracing",
+    "Deploy to production with zero downtime (canary rollout strategy)"
+  ],
+
+  "constraints": [
+    "Backward compatibility with existing Phase 4 workflow codification system required",
+    "Performance targets: Health score <500ms, Trace creation <50ms, Test execution <5min",
+    "Database partitioning required for execution_traces (monthly partitions)",
+    "Security audit must pass before production deployment (no high/critical findings)",
+    "All features must support 1000+ concurrent users without degradation",
+    "Redis failover must maintain circuit breaker state consistency",
+    "API changes must maintain backward compatibility (semantic versioning)",
+    "Unit test coverage ≥80% for all new code",
+    "Integration test coverage for all feature interactions",
+    "Documentation must be complete before production deployment"
+  ],
+
+  "successCriteria": {
+    "shortTerm": {
+      "duration": "30 days post-deployment",
+      "metrics": [
+        "100% of skills have health scores visible on dashboard",
+        "≥50% of retry attempts succeed (self-healing effectiveness)",
+        "≥20 regression test suites created and running",
+        "≥50 pattern recommendations sent to users",
+        "≥5 composite skills created and deployed",
+        "100% of execution traces searchable and visualized"
+      ]
+    },
+    "mediumTerm": {
+      "duration": "90 days post-deployment",
+      "metrics": [
+        "Average skill health score ≥85/100",
+        "Skill success rate ≥95%",
+        "≥10 regressions prevented by testing framework",
+        "Pattern recommendation acceptance rate ≥60%",
+        "Monthly cost savings +25% vs baseline",
+        "Debugging time reduced by 60%",
+        "User satisfaction ≥4.5/5.0"
+      ]
+    }
+  },
+
+  "phases": [
+    {
+      "phaseId": "phase-1",
+      "title": "Foundation - Infrastructure & Core Tracing",
+      "description": "Establish data infrastructure, Redis integration, execution tracing, and health score calculation foundation",
+      "duration": "2 weeks (10 business days)",
+      "status": "pending",
+      "confidenceTarget": 0.92,
+      "team": {
+        "backend": 2,
+        "devops": 1
+      },
+      "deliverables": [
+        "PostgreSQL schema extensions (6 features)",
+        "Redis integration (cache, circuit breaker state)",
+        "Execution tracing infrastructure (create, record, finalize)",
+        "Health score calculator (core logic)",
+        "Development environment (Docker Compose)",
+        "Health score monitoring service (background daemon)"
+      ],
+      "qualityGate": {
+        "criteria": [
+          "All database tables created and indexed",
+          "Unit test coverage ≥80%",
+          "Trace creation performance <50ms (P95)",
+          "Health score calculation accuracy validated",
+          "Code review approved by senior engineer"
+        ],
+        "decision": "Proceed to Phase 2 only if all criteria met"
+      },
+      "sprints": [
+        {
+          "sprintId": "sprint-1.1",
+          "title": "Database Schema Implementation",
+          "duration": "3 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-1.1.1",
+              "title": "Create skill_health_history table with indexes",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": [],
+              "acceptanceCriteria": [
+                "Table created with all columns",
+                "Indexes created on (skill_name, calculated_at DESC)",
+                "Migration script is idempotent",
+                "Rollback migration tested successfully"
+              ]
+            },
+            {
+              "id": "task-1.1.2",
+              "title": "Create retry_telemetry and circuit_breaker_state tables",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": [],
+              "acceptanceCriteria": [
+                "Both tables created with correct schemas",
+                "Indexes optimized for queries",
+                "Redis schema documented for circuit breaker"
+              ]
+            },
+            {
+              "id": "task-1.1.3",
+              "title": "Create regression testing tables (test_suites, test_results)",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": [],
+              "acceptanceCriteria": [
+                "Test suite JSONB structure validated",
+                "Test results table supports detailed failure logs",
+                "Indexes support fast test execution queries"
+              ]
+            },
+            {
+              "id": "task-1.1.4",
+              "title": "Create pattern_recommendations and composite_skills tables",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": [],
+              "acceptanceCriteria": [
+                "Recommendation strength scoring supported",
+                "Composite skill steps stored as JSONB array",
+                "Parallel groups structure validated"
+              ]
+            },
+            {
+              "id": "task-1.1.5",
+              "title": "Create execution_traces table with monthly partitioning",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": [],
+              "acceptanceCriteria": [
+                "Partitioning configured (2025-11, 2025-12)",
+                "JSONB steps structure validated",
+                "GIN index created for full-text search",
+                "Partition creation automation documented"
+              ]
+            },
+            {
+              "id": "task-1.1.6",
+              "title": "Create materialized view skill_quality_dashboard",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["task-1.1.1"],
+              "acceptanceCriteria": [
+                "View aggregates health scores, success rates, retry rates",
+                "Refresh strategy defined (hourly)",
+                "Query performance validated (<100ms)"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-1.2",
+          "title": "Redis Integration & Caching",
+          "duration": "2 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-1.2.1",
+              "title": "Setup Redis connection pool and cache wrapper",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": [],
+              "acceptanceCriteria": [
+                "Connection pool configured (max 100 connections)",
+                "Cache operations (get/set/delete) with TTL working",
+                "Health check endpoint returns Redis status",
+                "Unit tests pass (≥80% coverage)"
+              ]
+            },
+            {
+              "id": "task-1.2.2",
+              "title": "Implement circuit breaker state storage in Redis",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["task-1.2.1"],
+              "acceptanceCriteria": [
+                "Circuit breaker state persists to Redis hash",
+                "State survives service restarts",
+                "Atomic state transitions implemented",
+                "Integration test validates state consistency"
+              ]
+            },
+            {
+              "id": "task-1.2.3",
+              "title": "Configure Redis persistence (RDB + AOF)",
+              "agent": "devops-engineer",
+              "estimatedHours": 4,
+              "dependencies": ["task-1.2.1"],
+              "acceptanceCriteria": [
+                "RDB snapshots configured (every 60 seconds if 1000 writes)",
+                "AOF enabled with fsync every second",
+                "Backup strategy documented",
+                "Failover tested (optional: Redis Sentinel)"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-1.3",
+          "title": "Execution Tracing Infrastructure",
+          "duration": "3 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-1.3.1",
+              "title": "Implement trace lifecycle functions (create, record, finalize)",
+              "agent": "backend-developer",
+              "estimatedHours": 12,
+              "dependencies": ["task-1.1.5"],
+              "acceptanceCriteria": [
+                "create_execution_trace() generates unique trace_id",
+                "record_trace_step() appends step to JSONB array",
+                "finalize_trace() updates status and duration",
+                "Trace creation completes in <50ms (P95)"
+              ]
+            },
+            {
+              "id": "task-1.3.2",
+              "title": "Add trace context propagation middleware",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["task-1.3.1"],
+              "acceptanceCriteria": [
+                "Middleware injects trace_id into request context",
+                "trace_id propagated to all child function calls",
+                "Logs include trace_id for correlation",
+                "Integration test validates context propagation"
+              ]
+            },
+            {
+              "id": "task-1.3.3",
+              "title": "Implement async trace writes with buffering",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": ["task-1.3.1"],
+              "acceptanceCriteria": [
+                "Trace writes don't block skill execution",
+                "Buffer flushes every 1 second or 100 traces",
+                "No trace loss on buffer overflow (blocking write)",
+                "Performance benchmark validates <10ms overhead"
+              ]
+            },
+            {
+              "id": "task-1.3.4",
+              "title": "Write trace query API (search, pagination)",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": ["task-1.3.1"],
+              "acceptanceCriteria": [
+                "Search by trace_id returns result in <100ms",
+                "Filters work (skill_name, status, time range, team)",
+                "Pagination supports 100K+ traces",
+                "API endpoint documented (OpenAPI spec)"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-1.4",
+          "title": "Health Score Calculator & Monitoring",
+          "duration": "2 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-1.4.1",
+              "title": "Implement health score component calculators",
+              "agent": "backend-developer",
+              "estimatedHours": 12,
+              "dependencies": ["task-1.1.1"],
+              "acceptanceCriteria": [
+                "Reliability score calculated from last 100 executions",
+                "Performance score compares to baseline (100 to 25 scale)",
+                "Edge case score inverts edge case rate",
+                "Documentation score checks file existence",
+                "Test coverage score reads from metadata.json",
+                "All functions have unit tests (≥90% coverage)"
+              ]
+            },
+            {
+              "id": "task-1.4.2",
+              "title": "Implement health score aggregation and caching",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["task-1.4.1", "task-1.2.1"],
+              "acceptanceCriteria": [
+                "Weighted average calculation correct (35%, 20%, 20%, 10%, 15%)",
+                "Health level classification (excellent/good/fair/poor)",
+                "Redis cache with 5-minute TTL",
+                "Calculation completes in <500ms (P95)"
+              ]
+            },
+            {
+              "id": "task-1.4.3",
+              "title": "Build health score monitoring service (background daemon)",
+              "agent": "backend-developer",
+              "estimatedHours": 10,
+              "dependencies": ["task-1.4.2"],
+              "acceptanceCriteria": [
+                "Daemon triggers after skill execution (async)",
+                "Batch update runs every 5 minutes (cron)",
+                "Score degradation alerts configured (drop >10 points)",
+                "Slack/email notifications functional",
+                "Service health check endpoint returns status"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-2",
+      "title": "Core Features - Self-Healing, Regression Testing, Pattern Recommender",
+      "description": "Implement retry wrapper with circuit breaker, regression test framework, and AI pattern recommendation engine",
+      "duration": "3 weeks (15 business days)",
+      "status": "pending",
+      "confidenceTarget": 0.90,
+      "team": {
+        "backend": 2,
+        "fullstack": 1,
+        "devops": 0.5
+      },
+      "deliverables": [
+        "Self-healing retry wrapper (exponential backoff)",
+        "Circuit breaker implementation (3 states)",
+        "Retry telemetry collection and analytics",
+        "Regression test suite generator",
+        "Regression test executor (parallel)",
+        "Continuous regression testing daemon",
+        "Pattern recommendation engine",
+        "Recommendation delivery UI"
+      ],
+      "qualityGate": {
+        "criteria": [
+          "Retry wrapper handles all error codes correctly",
+          "Circuit breaker transitions between states accurately",
+          "Test suite executes in <5 minutes (50 tests)",
+          "Pattern recommendations generated with ≥60% acceptance prediction",
+          "Integration tests pass for all features",
+          "Code review approved by senior engineer"
+        ],
+        "decision": "Proceed to Phase 3 only if all criteria met"
+      },
+      "sprints": [
+        {
+          "sprintId": "sprint-2.1",
+          "title": "Self-Healing Retry Wrapper",
+          "duration": "3 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-2.1.1",
+              "title": "Implement retry wrapper with exponential backoff",
+              "agent": "backend-developer",
+              "estimatedHours": 12,
+              "dependencies": ["phase-1"],
+              "acceptanceCriteria": [
+                "execute_skill_with_retry() retries transient errors (124, 7, 110, 503)",
+                "Non-retriable errors fail immediately (1, 2, 127)",
+                "Exponential backoff: 2^(attempt-1) * base_delay",
+                "Max retries configurable per skill (default: 3)",
+                "Final exit code preserved on failure"
+              ]
+            },
+            {
+              "id": "task-2.1.2",
+              "title": "Integrate retry wrapper with execution tracing",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["task-2.1.1"],
+              "acceptanceCriteria": [
+                "Each retry attempt recorded as trace step",
+                "Backoff delays logged",
+                "Retry telemetry inserted into database",
+                "Integration test validates trace correlation"
+              ]
+            },
+            {
+              "id": "task-2.1.3",
+              "title": "Write retry wrapper unit and integration tests",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": ["task-2.1.2"],
+              "acceptanceCriteria": [
+                "Unit tests cover all error code paths",
+                "Integration tests use mock skills (success/failure scenarios)",
+                "Load test validates 100 concurrent retries",
+                "Test coverage ≥85%"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-2.2",
+          "title": "Circuit Breaker Implementation",
+          "duration": "3 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-2.2.1",
+              "title": "Implement CircuitBreaker class with state machine",
+              "agent": "backend-developer",
+              "estimatedHours": 12,
+              "dependencies": ["sprint-1.2"],
+              "acceptanceCriteria": [
+                "States: CLOSED, OPEN, HALF_OPEN",
+                "CLOSED → OPEN after 5 consecutive failures",
+                "OPEN → HALF_OPEN after 5-minute cooldown",
+                "HALF_OPEN → CLOSED on successful retry",
+                "HALF_OPEN → OPEN on failed retry",
+                "State persists to Redis"
+              ]
+            },
+            {
+              "id": "task-2.2.2",
+              "title": "Integrate circuit breaker with retry wrapper",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["task-2.2.1", "task-2.1.1"],
+              "acceptanceCriteria": [
+                "Retry wrapper checks circuit state before execution",
+                "OPEN circuit returns error immediately (no execution)",
+                "Circuit state updates on success/failure",
+                "Integration test validates state transitions"
+              ]
+            },
+            {
+              "id": "task-2.2.3",
+              "title": "Build circuit breaker monitoring and alerts",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["task-2.2.2"],
+              "acceptanceCriteria": [
+                "Alert triggered when circuit opens",
+                "Dashboard shows circuit breaker states",
+                "Cleanup job resets old OPEN circuits (>24h)",
+                "Unit tests pass (≥90% coverage)"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-2.3",
+          "title": "Regression Testing Framework",
+          "duration": "6 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-2.3.1",
+              "title": "Implement test suite generator from execution history",
+              "agent": "backend-developer",
+              "estimatedHours": 12,
+              "dependencies": ["phase-1"],
+              "acceptanceCriteria": [
+                "Fetches successful executions from last 90 days",
+                "Deduplicates by input parameter hash",
+                "Stratified sampling by team (proportional allocation)",
+                "Generates 50 test cases per skill",
+                "Sanitizes sensitive data from inputs"
+              ]
+            },
+            {
+              "id": "task-2.3.2",
+              "title": "Implement test case prioritization",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["task-2.3.1"],
+              "acceptanceCriteria": [
+                "P0 tests: Most frequent input patterns (80% coverage)",
+                "P1 tests: Edge cases",
+                "P2 tests: Performance validation",
+                "Test suite stored in PostgreSQL"
+              ]
+            },
+            {
+              "id": "task-2.3.3",
+              "title": "Build regression test executor with parallelization",
+              "agent": "backend-developer",
+              "estimatedHours": 12,
+              "dependencies": ["task-2.3.2"],
+              "acceptanceCriteria": [
+                "Parallel execution (10 workers, ThreadPoolExecutor)",
+                "Test environment isolation (workspace setup/teardown)",
+                "Validates exit code, output pattern, duration",
+                "Test suite completes in <5 minutes (50 tests)",
+                "Pass rate ≥95% required for deployment"
+              ]
+            },
+            {
+              "id": "task-2.3.4",
+              "title": "Integrate regression testing into deployment pipeline",
+              "agent": "devops-engineer",
+              "estimatedHours": 6,
+              "dependencies": ["task-2.3.3"],
+              "acceptanceCriteria": [
+                "Tests run automatically before skill deployment",
+                "Deployment blocked if pass rate <95%",
+                "Test results displayed in approval workflow UI",
+                "CI/CD integration tested"
+              ]
+            },
+            {
+              "id": "task-2.3.5",
+              "title": "Create continuous regression testing daemon",
+              "agent": "devops-engineer",
+              "estimatedHours": 8,
+              "dependencies": ["task-2.3.3"],
+              "acceptanceCriteria": [
+                "Cron job runs daily at 2 AM",
+                "Runs all test suites against production skills",
+                "Detects drift (unexpected failures)",
+                "Alerts sent on new failures",
+                "Test suite refresh logic (weekly)"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-2.4",
+          "title": "AI Pattern Recommender",
+          "duration": "5 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-2.4.1",
+              "title": "Build pattern analysis engine",
+              "agent": "backend-developer",
+              "estimatedHours": 12,
+              "dependencies": ["phase-1"],
+              "acceptanceCriteria": [
+                "Analyzes user workflows from last 30 days",
+                "Identifies repeated patterns (≥3 occurrences)",
+                "Calculates determinism score (0.0-1.0)",
+                "Detects similar existing skills (Jaccard similarity)",
+                "Filters already codified patterns"
+              ]
+            },
+            {
+              "id": "task-2.4.2",
+              "title": "Implement recommendation strength calculation",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": ["task-2.4.1"],
+              "acceptanceCriteria": [
+                "Strength = 0.40*frequency + 0.30*similarity + 0.20*value + 0.10*determinism",
+                "Classified as high (≥0.75), medium (0.50-0.74), low (<0.50)",
+                "Projected monthly savings calculated",
+                "Recommendation stored in PostgreSQL"
+              ]
+            },
+            {
+              "id": "task-2.4.3",
+              "title": "Build recommendation delivery UI",
+              "agent": "fullstack-engineer",
+              "estimatedHours": 12,
+              "dependencies": ["task-2.4.2"],
+              "acceptanceCriteria": [
+                "Recommendation cards displayed on dashboard",
+                "User can accept/reject/defer recommendations",
+                "Accepted recommendations fast-track to skill generation",
+                "Rejected recommendations (with reason) never reappear",
+                "Weekly digest email sent with top 3 recommendations"
+              ]
+            },
+            {
+              "id": "task-2.4.4",
+              "title": "Implement feedback learning mechanism",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["task-2.4.3"],
+              "acceptanceCriteria": [
+                "Tracks acceptance rate per pattern type",
+                "Adjusts recommendation thresholds based on feedback",
+                "Analytics dashboard shows acceptance metrics",
+                "Target: ≥60% acceptance rate for high-strength recommendations"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-3",
+      "title": "Advanced Features - Composition, Visualization, Dashboards",
+      "description": "Build skill composition framework, trace visualization, health score dashboard, and background job scheduler",
+      "duration": "3 weeks (15 business days)",
+      "status": "pending",
+      "confidenceTarget": 0.88,
+      "team": {
+        "backend": 1,
+        "fullstack": 2,
+        "devops": 1
+      },
+      "deliverables": [
+        "Skill composition framework with dependency analysis",
+        "Parallel execution optimizer",
+        "Composite skill executor",
+        "Trace visualization API",
+        "Health score dashboard (UI)",
+        "Pattern recommendation dashboard",
+        "Background job scheduler (all features)"
+      ],
+      "qualityGate": {
+        "criteria": [
+          "Composite skills execute with parallel optimization",
+          "Dashboards display real-time data without lag",
+          "Background jobs run on schedule without failures",
+          "E2E tests pass for all features",
+          "Security scan passes (no high/critical findings)",
+          "Code review approved by senior engineer"
+        ],
+        "decision": "Proceed to Phase 4 only if all criteria met"
+      },
+      "sprints": [
+        {
+          "sprintId": "sprint-3.1",
+          "title": "Skill Composition Framework",
+          "duration": "5 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-3.1.1",
+              "title": "Implement composition pattern detection",
+              "agent": "backend-developer",
+              "estimatedHours": 10,
+              "dependencies": ["phase-2"],
+              "acceptanceCriteria": [
+                "Detects sequential skill invocations (5-minute windows)",
+                "Identifies frequent chains (≥5 occurrences in 30 days)",
+                "Generates composite skill names automatically",
+                "Creates composite pattern records in database"
+              ]
+            },
+            {
+              "id": "task-3.1.2",
+              "title": "Build dependency analyzer and parallelization optimizer",
+              "agent": "backend-developer",
+              "estimatedHours": 14,
+              "dependencies": ["task-3.1.1"],
+              "acceptanceCriteria": [
+                "Builds dependency graph from data contracts",
+                "Implements topological sort for execution order",
+                "Groups independent steps into parallel groups",
+                "Detects circular dependencies (error)",
+                "Parallel groups stored in composite definition"
+              ]
+            },
+            {
+              "id": "task-3.1.3",
+              "title": "Implement composite skill executor",
+              "agent": "backend-developer",
+              "estimatedHours": 16,
+              "dependencies": ["task-3.1.2"],
+              "acceptanceCriteria": [
+                "Executes parallel groups sequentially",
+                "Steps within group execute in parallel (ThreadPoolExecutor)",
+                "Error handling strategies: stop_on_error, continue, retry",
+                "Data passing between steps via shared workspace",
+                "Progress tracking (X of Y steps complete)",
+                "Composite execution trace recorded"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-3.2",
+          "title": "Trace Visualization & Dashboards",
+          "duration": "7 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-3.2.1",
+              "title": "Build trace visualization API",
+              "agent": "backend-developer",
+              "estimatedHours": 10,
+              "dependencies": ["phase-1"],
+              "acceptanceCriteria": [
+                "get_trace_timeline() generates timeline visualization",
+                "ASCII timeline displays step sequence with timing",
+                "Trace search API supports filters (skill, status, time, team)",
+                "Pagination for 100K+ traces",
+                "Error context enrichment included",
+                "Similar failure detection query implemented"
+              ]
+            },
+            {
+              "id": "task-3.2.2",
+              "title": "Create health score dashboard (UI)",
+              "agent": "fullstack-engineer",
+              "estimatedHours": 18,
+              "dependencies": ["phase-1"],
+              "acceptanceCriteria": [
+                "Dashboard displays all skills with health scores",
+                "Health score trend chart (last 30 days)",
+                "Component breakdown visualization (5 metrics)",
+                "Filtering by team, health level",
+                "Skill detail modal with full metrics",
+                "Real-time refresh (WebSocket or polling)",
+                "Responsive design (mobile-friendly)",
+                "UI tests pass (React Testing Library / Cypress)"
+              ]
+            },
+            {
+              "id": "task-3.2.3",
+              "title": "Build trace visualization UI",
+              "agent": "fullstack-engineer",
+              "estimatedHours": 14,
+              "dependencies": ["task-3.2.1"],
+              "acceptanceCriteria": [
+                "Timeline view shows step durations",
+                "Color-coded status (green/red/yellow)",
+                "Expandable step details",
+                "Search by trace_id, skill, time range",
+                "Similar failures highlighted",
+                "UI tests pass"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-3.3",
+          "title": "Background Job Scheduler & Optimization",
+          "duration": "3 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-3.3.1",
+              "title": "Setup background job scheduler infrastructure",
+              "agent": "devops-engineer",
+              "estimatedHours": 10,
+              "dependencies": ["phase-2"],
+              "acceptanceCriteria": [
+                "Job scheduler configured (Celery/Bull/Kubernetes CronJobs)",
+                "Health score batch update (every 5 minutes)",
+                "Pattern analysis (hourly)",
+                "Composition detection (every 6 hours)",
+                "Test suite refresh (weekly)",
+                "Trace archival (daily)",
+                "Circuit breaker cleanup (hourly)",
+                "Job monitoring with Prometheus metrics"
+              ]
+            },
+            {
+              "id": "task-3.3.2",
+              "title": "Performance optimization (queries, caching, indexing)",
+              "agent": "backend-developer",
+              "estimatedHours": 12,
+              "dependencies": ["sprint-3.2"],
+              "acceptanceCriteria": [
+                "Slow queries identified (EXPLAIN ANALYZE)",
+                "Missing indexes added",
+                "Query result caching implemented",
+                "Connection pooling tuned",
+                "JSONB queries optimized",
+                "All queries <100ms (P95)",
+                "Load test passes (1000 concurrent users)"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "phaseId": "phase-4",
+      "title": "Production Deployment - Security, Documentation, Rollout",
+      "description": "Final security hardening, API documentation, monitoring setup, and canary production deployment",
+      "duration": "1 week (5 business days)",
+      "status": "pending",
+      "confidenceTarget": 0.95,
+      "team": {
+        "backend": 1,
+        "fullstack": 1,
+        "devops": 1,
+        "qa": 1
+      },
+      "deliverables": [
+        "Security hardening (input validation, rate limiting, CSRF)",
+        "API documentation (OpenAPI/Swagger)",
+        "Monitoring dashboards (Grafana)",
+        "Alerting configuration (Prometheus AlertManager)",
+        "Runbooks for common issues",
+        "Production deployment (canary rollout)",
+        "User training materials"
+      ],
+      "qualityGate": {
+        "criteria": [
+          "Performance targets met (P95 <500ms for all APIs)",
+          "Security audit passes (no critical/high findings)",
+          "API documentation 100% complete",
+          "Monitoring alerts configured and tested",
+          "Runbooks cover all common failure scenarios",
+          "UAT approved by 5 test users",
+          "Canary deployment successful (error rate <0.1%)"
+        ],
+        "decision": "Deploy to production only if all criteria met"
+      },
+      "sprints": [
+        {
+          "sprintId": "sprint-4.1",
+          "title": "Security Hardening & Documentation",
+          "duration": "2 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-4.1.1",
+              "title": "Implement security hardening",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": ["phase-3"],
+              "acceptanceCriteria": [
+                "Input validation for all API endpoints",
+                "Rate limiting (per-user, per-IP)",
+                "CSRF protection enabled",
+                "SQL injection prevention (parameterized queries)",
+                "Authentication checks on all endpoints",
+                "Authorization checks (RBAC)",
+                "PII sanitized from traces",
+                "Security audit passes (OWASP ZAP scan)"
+              ]
+            },
+            {
+              "id": "task-4.1.2",
+              "title": "Generate API documentation",
+              "agent": "fullstack-engineer",
+              "estimatedHours": 8,
+              "dependencies": ["phase-3"],
+              "acceptanceCriteria": [
+                "OpenAPI/Swagger spec generated",
+                "All endpoints documented",
+                "Request/response examples provided",
+                "Error codes documented",
+                "Postman collection created and tested",
+                "API usage guide written",
+                "Quickstart tutorial created"
+              ]
+            }
+          ]
+        },
+        {
+          "sprintId": "sprint-4.2",
+          "title": "Monitoring, Alerting, and Deployment",
+          "duration": "3 days",
+          "status": "pending",
+          "subtasks": [
+            {
+              "id": "task-4.2.1",
+              "title": "Setup monitoring dashboards and alerts",
+              "agent": "devops-engineer",
+              "estimatedHours": 8,
+              "dependencies": ["phase-3"],
+              "acceptanceCriteria": [
+                "Grafana dashboards created (health scores, traces, retries)",
+                "Prometheus metrics collection configured",
+                "Alerts configured (health degradation, circuit breaker open)",
+                "Alerting channels setup (Slack, PagerDuty)",
+                "Runbooks created for common issues",
+                "Alert firing and resolution tested"
+              ]
+            },
+            {
+              "id": "task-4.2.2",
+              "title": "Execute canary production deployment",
+              "agent": "devops-engineer",
+              "estimatedHours": 8,
+              "dependencies": ["task-4.1.1", "task-4.2.1"],
+              "acceptanceCriteria": [
+                "Deployment plan documented",
+                "Canary environment deployed (10% traffic)",
+                "Smoke tests pass",
+                "Gradual rollout (10% → 50% → 100%)",
+                "Error rate <0.1%",
+                "Latency P95 <500ms",
+                "Rollback plan validated"
+              ]
+            },
+            {
+              "id": "task-4.2.3",
+              "title": "Conduct user acceptance testing (UAT)",
+              "agent": "qa-engineer",
+              "estimatedHours": 8,
+              "dependencies": ["task-4.2.2"],
+              "acceptanceCriteria": [
+                "UAT sessions with 5 test users",
+                "All features tested (health score, recommendations, tracing, composition)",
+                "No critical bugs found",
+                "User satisfaction ≥4/5",
+                "Feedback documented",
+                "Critical issues resolved before full rollout"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+
+  "risks": [
+    {
+      "id": "risk-001",
+      "title": "Database performance degradation under load",
+      "probability": "medium",
+      "impact": "high",
+      "mitigation": "Early load testing, query optimization, database read replicas, connection pooling (PgBouncer)",
+      "owner": "backend-engineer"
+    },
+    {
+      "id": "risk-002",
+      "title": "Complexity of parallel composition execution",
+      "probability": "high",
+      "impact": "medium",
+      "mitigation": "Iterative development, start with sequential MVP, add parallelization incrementally, thorough testing",
+      "owner": "backend-engineer"
+    },
+    {
+      "id": "risk-003",
+      "title": "Integration issues with existing workflow codification system",
+      "probability": "medium",
+      "impact": "high",
+      "mitigation": "Early integration testing, backward compatibility testing, gradual rollout with canary deployment",
+      "owner": "backend-engineer"
+    },
+    {
+      "id": "risk-004",
+      "title": "Security vulnerabilities in new APIs",
+      "probability": "low",
+      "impact": "critical",
+      "mitigation": "Security audit (manual + automated), penetration testing, code review by security expert, input validation",
+      "owner": "devops-engineer"
+    },
+    {
+      "id": "risk-005",
+      "title": "Scope creep during implementation",
+      "probability": "high",
+      "impact": "medium",
+      "mitigation": "Strict scope control, defer non-critical features to backlog, product owner approval for changes",
+      "owner": "product-owner"
+    },
+    {
+      "id": "risk-006",
+      "title": "Resource unavailability (engineer sick/vacation)",
+      "probability": "low",
+      "impact": "high",
+      "mitigation": "Cross-training, comprehensive documentation, backup resources identified, knowledge sharing sessions",
+      "owner": "product-owner"
+    }
+  ],
+
+  "dependencies": {
+    "external": [
+      {
+        "name": "PostgreSQL 15+",
+        "status": "available",
+        "criticality": "critical"
+      },
+      {
+        "name": "Redis 7+",
+        "status": "available",
+        "criticality": "critical"
+      },
+      {
+        "name": "S3 / MinIO (trace archival)",
+        "status": "needs_setup",
+        "criticality": "medium"
+      },
+      {
+        "name": "Prometheus (metrics)",
+        "status": "needs_setup",
+        "criticality": "medium"
+      },
+      {
+        "name": "Grafana (dashboards)",
+        "status": "needs_setup",
+        "criticality": "medium"
+      }
+    ],
+    "internal": [
+      {
+        "name": "Phase 4 Workflow Codification",
+        "status": "complete",
+        "criticality": "critical"
+      },
+      {
+        "name": "ACE Playbooks",
+        "status": "complete",
+        "criticality": "high"
+      },
+      {
+        "name": "Agent Coordination",
+        "status": "complete",
+        "criticality": "high"
+      },
+      {
+        "name": "Skills Database",
+        "status": "in_progress",
+        "criticality": "low"
+      }
+    ]
+  },
+
+  "milestones": [
+    {
+      "id": "milestone-1",
+      "title": "Phase 1 Complete - Foundation Ready",
+      "date": "Week 2 end",
+      "deliverables": [
+        "Database schema deployed",
+        "Execution tracing functional",
+        "Health score calculation working"
+      ]
+    },
+    {
+      "id": "milestone-2",
+      "title": "Phase 2 Complete - Core Features Deployed",
+      "date": "Week 5 end",
+      "deliverables": [
+        "Self-healing skills active",
+        "Regression testing framework operational",
+        "Pattern recommendations being sent"
+      ]
+    },
+    {
+      "id": "milestone-3",
+      "title": "Phase 3 Complete - Advanced Features Live",
+      "date": "Week 8 end",
+      "deliverables": [
+        "Skill composition available",
+        "Dashboards accessible to users",
+        "Background jobs running on schedule"
+      ]
+    },
+    {
+      "id": "milestone-4",
+      "title": "Production Deployment Complete",
+      "date": "Week 9 end",
+      "deliverables": [
+        "Security audit passed",
+        "Canary deployment successful",
+        "UAT approved",
+        "Full rollout complete"
+      ]
+    }
+  ],
+
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2025-11-16",
+    "approvedBy": "product-owner",
+    "estimatedCost": "$217,500",
+    "actualCost": null,
+    "estimatedDuration": "9 weeks",
+    "actualDuration": null,
+    "roi": {
+      "target": "+25% cost savings, +40% reliability improvement",
+      "actual": null,
+      "measurementPeriod": "90 days post-deployment"
+    }
+  }
+}

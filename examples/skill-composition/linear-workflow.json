@@ -1,0 +1,30 @@
+{
+  "name": "linear-workflow",
+  "description": "Simple linear dependency chain: A -> B -> C",
+  "steps": [
+    {
+      "step_id": "step_a",
+      "skill_name": "data-extraction",
+      "params": {
+        "source": "database",
+        "query": "SELECT * FROM users"
+      }
+    },
+    {
+      "step_id": "step_b",
+      "skill_name": "data-transformation",
+      "params": {
+        "format": "json"
+      },
+      "depends_on": ["step_a"]
+    },
+    {
+      "step_id": "step_c",
+      "skill_name": "data-validation",
+      "params": {
+        "schema": "user_schema.json"
+      },
+      "depends_on": ["step_b"]
+    }
+  ]
+}
