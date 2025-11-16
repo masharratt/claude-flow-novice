@@ -1,0 +1,221 @@
+# CFN Distributed Logging - Logrotate Configuration
+# Task 4.4: Distributed Logging Standardization
+#
+# Manages rotation, compression, and retention of all CFN logs
+# Usage: logrotate /etc/logrotate.d/cfn-logs
+# Test:  logrotate -d /etc/logrotate.d/cfn-logs
+
+# Main application logs - Standard 30-day retention
+/var/log/cfn/containers/*.log {
+    rotate 10
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    sharedscripts
+    postrotate
+        # Signal containers on log rotation
+        if [ -f /var/run/cfn/container-monitor.pid ]; then
+            kill -HUP $(cat /var/run/cfn/container-monitor.pid) 2>/dev/null || true
+        fi
+        # Update log inventory
+        find /var/log/cfn/containers -name "*.log*" -mtime +30 -delete 2>/dev/null || true
+    endscript
+    maxage 30
+}
+
+# Aggregated logs directory
+/var/log/cfn/aggregated/*.log {
+    rotate 10
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    sharedscripts
+    postrotate
+        # Trigger aggregation job after rotation
+        if [ -x /usr/local/bin/log-aggregator.sh ]; then
+            /usr/local/bin/log-aggregator.sh --rotate >/dev/null 2>&1 || true
+        fi
+    endscript
+    maxage 30
+}
+
+# Debug logs - 7-day retention (shorter lifetime)
+/var/log/cfn/debug/*.log {
+    rotate 5
+    size 50M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    sharedscripts
+    maxage 7
+}
+
+# Performance metrics logs
+/var/log/cfn/metrics/*.log {
+    rotate 10
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    sharedscripts
+    postrotate
+        # Export metrics before deletion
+        if [ -x /usr/local/bin/export-metrics.sh ]; then
+            /usr/local/bin/export-metrics.sh --archive >/dev/null 2>&1 || true
+        fi
+    endscript
+    maxage 30
+}
+
+# Coordinator logs - Detailed 30-day retention
+/var/log/cfn/coordinator/*.log {
+    rotate 10
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    sharedscripts
+    maxage 30
+}
+
+# Agent execution logs
+/var/log/cfn/agents/*.log {
+    rotate 10
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    dateext
+    dateformat -%Y%m%d-%H%M%S
+    sharedscripts
+    maxage 30
+}
+
+# JSON structured logs (for easier parsing)
+/var/log/cfn/json/*.log {
+    rotate 15
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    sharedscripts
+    postrotate
+        # Validate JSON integrity before archiving
+        if [ -x /usr/local/bin/validate-json-logs.sh ]; then
+            /usr/local/bin/validate-json-logs.sh --archive >/dev/null 2>&1 || true
+        fi
+    endscript
+    maxage 30
+}
+
+# Error and warning logs (high priority)
+/var/log/cfn/errors/*.log {
+    rotate 20
+    size 50M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    sharedscripts
+    postrotate
+        # Alert on errors before rotation
+        if [ -x /usr/local/bin/alert-errors.sh ]; then
+            /usr/local/bin/alert-errors.sh --pre-rotate >/dev/null 2>&1 || true
+        fi
+    endscript
+    maxage 60
+}
+
+# Audit logs - Extended retention for compliance
+/var/log/cfn/audit/*.log {
+    rotate 30
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0600 root root
+    sharedscripts
+    postrotate
+        # Archive to secure storage
+        if [ -x /usr/local/bin/archive-audit.sh ]; then
+            /usr/local/bin/archive-audit.sh >/dev/null 2>&1 || true
+        fi
+    endscript
+    maxage 90
+}
+
+# Catchall for any other cfn logs
+/var/log/cfn/*.log {
+    rotate 10
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    maxage 30
+}
+
+# Global settings that apply to all blocks
+# (Can be overridden by individual blocks above)
+default {
+    # Compression algorithm and level
+    compress
+    compresscmd /bin/gzip
+    compressext .gz
+    compressoptions -9
+
+    # Default permissions and ownership
+    create 0644 root root
+
+    # Rotation strategy
+    rotate 10
+    size 100M
+
+    # Behavior flags
+    missingok         # Don't error if log file missing
+    notifempty        # Don't rotate empty files
+    delaycompress     # Compress on next rotation (delay by 1 rotation)
+    sharedscripts     # Run scripts only once per rotation
+
+    # Retention
+    maxage 30         # Delete rotated logs older than 30 days
+
+    # Copy then truncate instead of move and create
+    copytruncate
+
+    # Tab character at line continuation
+    tabooext +.log
+}
+
+# Special handling for very large log files
+/var/log/cfn/large/*.log {
+    rotate 5
+    size 1G
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 root root
+    maxage 30
+    dateext
+    dateformat -%Y%m%d-%H%M%S
+}
