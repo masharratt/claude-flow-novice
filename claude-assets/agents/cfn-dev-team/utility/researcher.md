@@ -109,9 +109,7 @@ Complete your work and provide a structured response with:
 ## Post-Edit Hook Validation
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] \
-  --memory-key "researcher/${AGENT_ID}/research" \
-  --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 Triggers:

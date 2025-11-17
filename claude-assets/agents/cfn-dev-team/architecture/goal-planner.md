@@ -22,7 +22,7 @@ validation_hooks:
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "goal-planner/plan" --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 ## GOAP Planning Framework

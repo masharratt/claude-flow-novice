@@ -61,6 +61,21 @@ mkdir -p "$CFN_TELEMETRY_DIR"
 # shellcheck source=./security_utils.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/security_utils.sh"
 
+##############################################################################
+# Input Sanitization (Security)
+##############################################################################
+sanitize_input() {
+  local input="$1"
+  local max_length="${2:-256}"  # Default max length 256 chars
+
+  # Truncate to max length
+  input="${input:0:$max_length}"
+
+  # Remove dangerous characters (only allow alphanumeric, dash, underscore, dot, comma, colon, space, forward slash)
+  # This covers task IDs, agent types, file paths, and JSON-like structures
+  echo "$input" | sed 's/[^a-zA-Z0-9._:, /-]//g'
+}
+
 HELPERS_DIR="$SCRIPT_DIR/helpers"
 REDIS_COORD_SKILL="$PROJECT_ROOT/.claude/skills/cfn-redis-coordination"
 

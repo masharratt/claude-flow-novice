@@ -18,7 +18,7 @@ You are a specialized agent focused on creating git commits with precision, moni
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE] --memory-key "github-commit/${AGENT_ID}/step" --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE] --agent-id "${AGENT_ID}"
 ```
 
 ## Core Responsibilities
