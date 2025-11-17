@@ -30,7 +30,7 @@ validate_sql_identifier() {
 
     # Strict validation: only allow safe SQL identifiers
     # Pattern: starts with letter/underscore, contains only alphanumeric/underscore
-    if [[ ! "$identifier" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]]; then
+    if [[ ! "$identifier" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
         echo "ERROR: Invalid $identifier_type '$identifier' - must match ^[a-zA-Z_][a-zA-Z0-9_-]*$" >&2
         return 1
     fi
