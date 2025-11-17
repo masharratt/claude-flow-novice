@@ -1,427 +1,607 @@
-# Test Coverage Dependency Map
+# Test Coverage Dependency Map (Updated)
+## Claude Flow Novice - Testing Prerequisites & Dependencies
 
-## Critical Path Analysis: What Must Be Tested First
+**Last Updated:** November 17, 2025  
+**Purpose:** Understand which tests depend on what infrastructure
 
-### System Dependency Graph
+---
+
+## CORE DEPENDENCIES
+
+### Level 0: Foundation
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                     User/CLI Interface                          │
-│  (src/cli/index.ts, agent-spawn.ts, agent-executor.ts)         │
-└────────────────────────┬─────────────────────────────────────┘
-                         │
-                         ▼
-┌────────────────────────────────────────────────────────────────┐
-│               CFN Loop Orchestrator (CRITICAL)                  │
-│  /src/cfn-loop/cfn-loop-orchestrator.ts (2,020 LOC)            │
-│  ├─ Loop 3 Execution (Primary Swarm)                           │
-│  ├─ Confidence Collection & Gating                             │
-│  ├─ Loop 2 Validation (Byzantine Consensus)                    │
-│  └─ Product Owner Decision                                     │
-└────────────────────────┬─────────────────────────────────────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-     ┌─────────┐   ┌──────────┐   ┌──────────────┐
-     │ Loop 3  │   │ Loop 2   │   │Product Owner │
-     │Agents   │   │Validators│   │   Decision   │
-     └────┬────┘   └────┬─────┘   └──────┬───────┘
-          │              │                 │
-          └──────────────┼─────────────────┘
-                         ▼
-        ┌────────────────────────────────┐
-        │  Agent Lifecycle Manager       │
-        │  (CRITICAL - 456 LOC)          │
-        │  ├─ State Transitions          │
-        │  ├─ Dependency Tracking        │
-        │  ├─ Process Management         │
-        │  └─ Memory Persistence         │
-        └────────────────┬───────────────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-     ┌─────────┐   ┌──────────┐   ┌──────────────┐
-     │ Agent   │   │Database  │   │  Middleware  │
-     │Spawning │   │Service   │   │  & Redis     │
-     └─────────┘   └──────────┘   └──────────────┘
-          │              │              │
-          └──────────────┼──────────────┘
-                         ▼
-        ┌────────────────────────────────┐
-        │   Supporting Infrastructure    │
-        │ ├─ Config Validation (✓)       │
-        │ ├─ Agent Output Validation (✓) │
-        │ ├─ Artifact Registry (✓)       │
-        │ └─ CLI Commands                │
-        └────────────────────────────────┘
+Redis Server
+├─ Standalone: redis-server (6.0+)
+├─ Docker: docker run -p 6379:6379 redis:7
+├─ Cloud: AWS ElastiCache / Azure Cache
+└─ Status: REQUIRED for all CFN Loop tests
+
+Jest Framework
+├─ Version: 30.2.0+
+├─ Config: jest.config.cjs
+├─ Presets: @types/jest, ts-jest
+└─ Status: INSTALLED ✅
+
+TypeScript
+├─ Version: 5.x
+├─ Compiler: tsc
+├─ Types: @types/* packages
+└─ Status: INSTALLED ✅
+
+Node.js
+├─ Version: 18.x+
+├─ LTS: 20.x recommended
+└─ Status: REQUIRED
+```
+
+### Level 1: Test Infrastructure
+
+```
+Bash Testing
+├─ bats: Bash Automated Testing System
+├─ shellcheck: Shell script linter
+├─ shunit2: Shell assertions
+└─ Status: PARTIALLY INSTALLED (need BATS)
+
+Database Testing
+├─ jest-sql: SQL helper functions
+├─ sql-bricks: Query builder
+├─ knex: Migration runner
+└─ Status: INSTALLED (partial)
+
+HTTP Testing
+├─ supertest: Express/HTTP testing
+├─ nock: HTTP mocking
+├─ axios: HTTP client
+└─ Status: INSTALLED (partial)
+
+Mock/Fixture Libraries
+├─ jest-mock-extended: Enhanced mocking
+├─ faker: Test data generation
+├─ lodash: Utilities
+└─ Status: INSTALLED ✅
 ```
 
 ---
 
-## Testing Priority by Dependency
+## TEST-TO-CODE DEPENDENCY GRAPH
 
-### Tier 0: MUST TEST FIRST (Foundation)
-These modules have zero external dependencies and block everything:
-
-```
-1. Agent Lifecycle Manager (456 LOC)
-   └─ Required by: Orchestrator, CLI, Agent Spawning
-   └─ Testing complexity: MEDIUM
-   └─ Estimated effort: 15-20 hours
-
-2. Agent Spawning (CLI) (incomplete)
-   └─ Required by: Orchestrator, all agent execution
-   └─ Testing complexity: MEDIUM
-   └─ Estimated effort: 12-15 hours
-
-3. Database Transaction Manager
-   └─ Required by: Middleware, Integration, Handoff
-   └─ Testing complexity: MEDIUM
-   └─ Estimated effort: 10-12 hours
-```
-
-### Tier 1: CRITICAL (Core Logic)
-Depends on Tier 0; blocks everything else:
+### CFN Loop Tests → Implementation Dependencies
 
 ```
-1. CFN Loop Orchestrator (2,020 LOC) ⚠️ HIGHEST PRIORITY
-   ├─ Depends on: Lifecycle Manager, Agent Spawning
-   ├─ Required by: All system functionality
-   ├─ Testing complexity: HIGH
-   └─ Estimated effort: 40-50 hours
-   
-   Critical paths to test:
-   ├─ orchestrateCFNLoop() - Main orchestration
-   ├─ executeLoop3Phase() - Agent execution
-   ├─ collectConfidenceScores() - Scoring & gating
-   ├─ executeLoop2Phase() - Consensus
-   ├─ injectFeedback() - Error recovery
-   ├─ handleTimeout() - Timeout management
-   └─ Error escalation paths
+tests/cfn-loop-orchestration-e2e.test.ts
+├─ REQUIRES: src/cfn-loop/cfn-loop-orchestrator.ts
+├─ REQUIRES: .claude/skills/cfn-loop-orchestration/orchestrate.sh
+├─ REQUIRES: Redis (for context storage)
+├─ REQUIRES: .claude/skills/cfn-coordination/* (all coordination scripts)
+├─ DEPENDS: test fixtures (mock agents, contexts)
+└─ MOCK: cfn-redis-coordination (publish/subscribe)
 
-2. Database Adapters (482 + 454 + 280 LOC)
-   ├─ Postgres, SQLite, Redis adapters
-   ├─ Depends on: Transaction Manager
-   ├─ Required by: Orchestrator, CLI, Middleware
-   ├─ Testing complexity: HIGH
-   └─ Estimated effort: 25-35 hours
-   
-   Critical paths to test:
-   ├─ Transaction commit/rollback
-   ├─ Connection management
-   ├─ Query timeout handling
-   ├─ Concurrent access
-   ├─ Data validation
-   └─ Error recovery
+Loop 3 Phase Tests
+├─ REQUIRES: src/cfn-loop/loop3-executor.ts
+├─ REQUIRES: src/agents/lifecycle-manager.ts
+├─ DEPENDS: Agent spawning (test doubles needed)
+└─ MOCK: Agent output validation
 
-3. Circuit Breaker (361 LOC)
-   ├─ Depends on: Nothing (utility)
-   ├─ Required by: Orchestrator
-   ├─ Testing complexity: MEDIUM
-   └─ Estimated effort: 10-15 hours
-   
-   Critical paths to test:
-   ├─ Timeout triggering
-   ├─ State transitions (closed/open/half-open)
-   ├─ Recovery mechanism
-   └─ Error propagation
+Loop 2 Phase Tests
+├─ REQUIRES: src/cfn-loop/loop2-validator.ts
+├─ REQUIRES: .claude/skills/cfn-coordination/collect-confidence-scores.sh
+├─ DEPENDS: Loop 3 test results (fixtures)
+└─ MOCK: Agent output, confidence scores
+
+Product Owner Tests
+├─ REQUIRES: src/cfn-loop/product-owner-executor.ts
+├─ REQUIRES: .claude/skills/product-owner-decision/execute-decision.sh
+├─ DEPENDS: Loop 2 consensus results
+└─ MOCK: Decision outcomes
 ```
 
-### Tier 2: HIGH PRIORITY (Integration)
-Depends on Tier 1; affects developer workflow:
+### Agent System Tests → Implementation Dependencies
 
 ```
-1. CLI Command Handlers (24 files, ~2,100 LOC)
-   ├─ agent-executor.ts (463 LOC)
-   ├─ cli-agent-context.ts (479 LOC)
-   ├─ cfn-context.ts (413 LOC)
-   ├─ memory-cli.ts (367 LOC)
-   ├─ Depends on: Orchestrator, Database, Lifecycle
-   ├─ Testing complexity: MEDIUM
-   └─ Estimated effort: 30-40 hours
+tests/agent-lifecycle-state-machine.test.ts
+├─ REQUIRES: src/agents/lifecycle-manager.ts
+├─ REQUIRES: src/agents/agent-state-machine.ts
+├─ DEPENDS: Process management (node child_process)
+├─ MOCK: External CLI calls
+└─ FIXTURE: Agent configurations
 
-2. Middleware & Integration (2,000+ LOC)
-   ├─ transparency-middleware.ts (827 LOC)
-   ├─ DatabaseHandoff.ts (658 LOC)
-   ├─ StandardAdapter.ts (409 LOC)
-   ├─ Depends on: Database, Orchestrator
-   ├─ Testing complexity: HIGH
-   └─ Estimated effort: 35-45 hours
+Agent Spawning Tests
+├─ REQUIRES: src/cli/agent-spawn.ts
+├─ REQUIRES: .claude/skills/cfn-agent-spawning/spawn-agent.sh
+├─ DEPENDS: src/agents/lifecycle-manager.ts
+├─ DEPENDS: .claude/agents/* (agent definitions)
+└─ MOCK: Process execution
 
-3. Byzantine Consensus Adapter (265 LOC)
-   ├─ Depends on: Nothing (utility)
-   ├─ Required by: Orchestrator Loop 2
-   ├─ Testing complexity: HIGH (math-heavy)
-   └─ Estimated effort: 15-20 hours
+Lifecycle Manager Tests
+├─ REQUIRES: src/agents/lifecycle-manager.ts
+├─ DEPENDS: Process signals (SIGTERM, SIGKILL)
+├─ DEPENDS: Memory persistence (SQLite)
+└─ FIXTURE: Agent state transitions
+
+Agent Dependency Tests
+├─ REQUIRES: src/agents/dependency-resolver.ts
+├─ DEPENDS: Agent definitions (.claude/agents/)
+└─ MOCK: Circular dependency scenarios
 ```
 
-### Tier 3: MEDIUM PRIORITY (Polish)
-Depends on Tiers 1-2; optimization and coverage:
+### CLI Command Tests → Implementation Dependencies
 
 ```
-1. Shell Scripts & Skills (316 files)
-   ├─ cfn-agent-spawning/spawn-agent.sh
-   ├─ cfn-loop-orchestration/orchestrate.sh
-   ├─ cfn-coordination/report-completion.sh
-   ├─ cfn-redis-coordination/coordinate.sh
-   ├─ Testing complexity: MEDIUM (requires BATS framework)
-   └─ Estimated effort: 20-30 hours
+tests/cli/cfn-loop-commands.test.ts
+├─ REQUIRES: src/cli/cfn-loop.ts
+├─ REQUIRES: src/cli/command-parser.ts
+├─ DEPENDS: src/cli/cfn-context.ts (context management)
+├─ DEPENDS: src/cfn-loop/* (orchestration)
+├─ MOCK: User input, environment variables
+└─ FIXTURE: Test projects, configurations
 
-2. Docker Containerization
-   ├─ Build processes
-   ├─ Container lifecycle
-   ├─ Network coordination
-   ├─ Testing complexity: MEDIUM
-   └─ Estimated effort: 15-20 hours
+cfn-swarm Tests
+├─ REQUIRES: src/cli/cfn-swarm.ts
+├─ DEPENDS: src/agents/lifecycle-manager.ts
+├─ DEPENDS: Redis pub/sub
+└─ FIXTURE: Agent templates
 
-3. Error Scenarios & Edge Cases
-   ├─ Distributed across all modules
-   ├─ Testing complexity: VARIES
-   └─ Estimated effort: 40-50 hours
+cfn-memory Tests
+├─ REQUIRES: src/cli/memory-cli.ts
+├─ REQUIRES: src/lib/memory-manager.ts
+├─ DEPENDS: Redis client, SQLite
+└─ MOCK: Storage operations
+
+cfn-redis Tests
+├─ REQUIRES: src/cli/redis-cli-wrapper.ts
+├─ REQUIRES: .claude/skills/cfn-redis-coordination/redis-cli-wrapper.sh
+├─ DEPENDS: Redis server
+└─ MOCK: Redis responses
 ```
 
----
-
-## Critical Path Testing Sequence
+### Database Tests → Implementation Dependencies
 
 ```
-WEEK 1: Foundation (40 hours)
-├─ [ ] Set up test fixtures & mocks (8 hours)
-│  ├─ RedisClientMock
-│  ├─ DatabaseMocks (Postgres, SQLite, Redis)
-│  ├─ AgentProcessMock
-│  └─ FileSystemMock
-│
-├─ [ ] Agent Lifecycle Manager tests (12 hours)
-│  ├─ State transitions (5 states)
-│  ├─ Dependency tracking (4 hours)
-│  └─ Event emissions (3 hours)
-│
-├─ [ ] Agent Spawning tests (10 hours)
-│  ├─ Process creation
-│  ├─ Argument parsing
-│  └─ Error handling
-│
-└─ [ ] Database Transaction Manager tests (10 hours)
-   ├─ Commit/rollback
-   ├─ Concurrent access
-   └─ Error recovery
+tests/database-service-comprehensive.test.ts
+├─ PostgreSQL Adapter
+│  ├─ REQUIRES: src/lib/database-service/postgres-adapter.ts
+│  ├─ REQUIRES: postgresql (running instance)
+│  ├─ DEPENDS: pg client library
+│  └─ FIXTURE: Test database + migrations
+├─ SQLite Adapter
+│  ├─ REQUIRES: src/lib/database-service/sqlite-adapter.ts
+│  ├─ REQUIRES: better-sqlite3
+│  └─ FIXTURE: In-memory test databases
+├─ Redis Adapter
+│  ├─ REQUIRES: src/lib/database-service/redis-adapter.ts
+│  ├─ REQUIRES: redis (running instance)
+│  └─ FIXTURE: Isolated Redis namespace
+└─ Transaction Manager
+   ├─ REQUIRES: src/lib/database-service/transaction-manager.ts
+   ├─ DEPENDS: All adapters above
+   └─ FIXTURE: Savepoint management
+```
 
-WEEK 2-3: Orchestrator (60 hours)
-├─ [ ] CFN Loop Orchestrator - Happy Path (15 hours)
-│  ├─ Initialize & configure (3 hours)
-│  ├─ Loop 3 execution (5 hours)
-│  ├─ Confidence scoring & gate (4 hours)
-│  └─ Loop 2 consensus (3 hours)
-│
-├─ [ ] CFN Loop Orchestrator - Error Paths (20 hours)
-│  ├─ Timeout handling (6 hours)
-│  ├─ Low confidence scenarios (4 hours)
-│  ├─ Byzantine faults (5 hours)
-│  └─ Circuit breaker activation (5 hours)
-│
-├─ [ ] Circuit Breaker tests (10 hours)
-│  ├─ State transitions
-│  ├─ Timeout triggering
-│  └─ Recovery mechanism
-│
-├─ [ ] Byzantine Consensus tests (10 hours)
-│  ├─ Voting logic
-│  ├─ Fault tolerance
-│  └─ Decision making
-│
-└─ [ ] Feedback Injection tests (5 hours)
-   ├─ Error detection
-   ├─ Feedback generation
-   └─ Iteration restart
+### Docker Tests → Implementation Dependencies
 
-WEEK 4: Database & Integration (50 hours)
-├─ [ ] Database Adapter tests (25 hours)
-│  ├─ Postgres adapter (8 hours)
-│  ├─ SQLite adapter (8 hours)
-│  ├─ Redis adapter (5 hours)
-│  └─ Connection management (4 hours)
-│
-├─ [ ] Middleware tests (15 hours)
-│  ├─ Transparency middleware (8 hours)
-│  └─ Event handling (7 hours)
-│
-└─ [ ] Integration tests (10 hours)
-   ├─ DatabaseHandoff workflows (5 hours)
-   ├─ StandardAdapter operations (3 hours)
-   └─ Data transformation (2 hours)
+```
+tests/docker/test-docker-orchestrator.sh
+├─ REQUIRES: Docker (running daemon)
+├─ REQUIRES: docker-compose (for multi-service tests)
+├─ REQUIRES: src/docker/* (Docker support code)
+├─ REQUIRES: docker/Dockerfile.* (Docker images)
+├─ DEPENDS: WSL2 Linux native storage
+├─ FIXTURE: docker-compose.test.yml
+└─ INTEGRATION: Redis, database services
 
-WEEK 5: CLI & Coverage Expansion (45 hours)
-├─ [ ] CLI Command Handler tests (25 hours)
-│  ├─ agent-executor.ts (8 hours)
-│  ├─ cli-agent-context.ts (8 hours)
-│  ├─ cfn-context.ts (5 hours)
-│  └─ memory-cli.ts (4 hours)
-│
-├─ [ ] Error Scenarios & Edge Cases (15 hours)
-│  ├─ Input validation (5 hours)
-│  ├─ Race conditions (5 hours)
-│  └─ Resource exhaustion (5 hours)
-│
-└─ [ ] E2E Integration tests (5 hours)
-   ├─ Full orchestration flow
-   └─ Multi-agent coordination
+Container Security Tests
+├─ REQUIRES: docker/DOCKER_ACCESS_CONTROL.md
+├─ REQUIRES: Docker build validation
+├─ MOCK: Security scanning tools
+└─ FIXTURE: Vulnerable image tests
 
-WEEK 6: Shell & Polish (30 hours)
-├─ [ ] Shell Script Test Framework (10 hours)
-│  ├─ BATS setup
-│  └─ Skill validation tests
-│
-├─ [ ] Docker Build Testing (10 hours)
-│  └─ Container lifecycle
-│
-└─ [ ] Coverage Review & Documentation (10 hours)
-   ├─ Coverage report generation
-   ├─ Metrics collection
-   └─ Documentation updates
-
-TOTAL: ~225 hours
-ROI: 250+ hours/year in reduced manual testing
+Docker Orchestration Tests
+├─ REQUIRES: docker/SUCCESS_CRITERIA_INTEGRATION.md
+├─ REQUIRES: Agent container spawning
+├─ DEPENDS: Container networking
+└─ FIXTURE: Multi-container scenarios
 ```
 
 ---
 
-## Testing Dependency Rules
+## TESTING SPECIALIST DEPENDENCIES
 
-### Rule 1: Reverse Dependency Order
-- Test leaf nodes first (modules with no dependencies)
-- Test aggregators last (modules that depend on others)
-- Follow: Tier 0 → Tier 1 → Tier 2 → Tier 3
-
-### Rule 2: Mock Everything Below
-- When testing Module A, mock all its dependencies
-- Use actual implementations only in integration tests
-- Mocks ensure isolation and speed
-
-### Rule 3: Critical Path Priority
-```
-Priority = (Risk × Impact) / (Dependencies × Effort)
-
-HIGHEST PRIORITY:
-├─ Orchestrator (Risk:CRITICAL × Impact:CRITICAL) / (Deps:3 × Effort:50) = 0.24
-├─ Lifecycle Manager (Risk:CRITICAL × Impact:CRITICAL) / (Deps:1 × Effort:18) = 0.11
-└─ Database (Risk:CRITICAL × Impact:HIGH) / (Deps:2 × Effort:30) = 0.10
-
-NEXT PRIORITY:
-├─ Circuit Breaker (Risk:HIGH × Impact:HIGH) / (Deps:0 × Effort:12) = 0.17
-└─ Byzantine Consensus (Risk:MEDIUM × Impact:HIGH) / (Deps:0 × Effort:18) = 0.08
-```
-
----
-
-## Blocked By / Blocks Relationships
+### Contract Tester Dependencies
 
 ```
-Orchestrator (CRITICAL)
-├─ Blocked by:
-│  ├─ Lifecycle Manager (needed for agent management)
-│  ├─ Agent Spawning (needed to create agents)
-│  ├─ Circuit Breaker (needed for timeout handling)
-│  ├─ Byzantine Consensus (needed for Loop 2)
-│  └─ Feedback System (needed for error handling)
-│
-└─ Blocks:
-   ├─ All CLI commands (depend on orchestrator)
-   ├─ All E2E tests (depend on orchestrator)
-   ├─ All production workflows
-   └─ Deployment confidence
+contract-tester Agent
+├─ Requires: @pact-foundation/pact@^12.0.0
+├─ Requires: express-openapi-validator@^5.0.0
+├─ Requires: ajv@^8.0.0
+├─ Uses: jest@^29.0.0
+├─ External: Node.js, npm
+└─ Skills:
+   ├─ API schema validation
+   ├─ Pact broker integration (optional)
+   └─ Consumer-driven contract testing
 
-Lifecycle Manager (CRITICAL)
-├─ Blocked by:
-│  └─ Nothing (foundational)
-│
-└─ Blocks:
-   ├─ Orchestrator tests
-   ├─ Agent Spawning tests
-   ├─ CLI command tests
-   └─ All agent-related functionality
-
-Database Adapters (CRITICAL)
-├─ Blocked by:
-│  └─ Transaction Manager
-│
-└─ Blocks:
-   ├─ Middleware tests
-   ├─ Integration tests
-   ├─ Orchestrator error paths
-   └─ Production data persistence
+Installation:
+npm install --save-dev @pact-foundation/pact@^12.0.0
+npm install --save-dev express-openapi-validator@^5.0.0
+npm install --save-dev ajv@^8.0.0
 ```
 
----
-
-## Test Isolation Strategy
-
-### Unit Tests (No Dependencies)
-These can be tested completely in isolation with mocks:
+### Integration Tester Dependencies
 
 ```
-✓ Lifecycle Manager
-✓ Agent Spawning
-✓ Circuit Breaker
-✓ Byzantine Consensus
-✓ Config Validator (already has tests)
-✓ Output Validator (already has tests)
+integration-tester Agent
+├─ Requires: jest@^29.0.0
+├─ Requires: Test fixtures framework
+├─ Requires: Database instances (test databases)
+├─ Requires: Redis (for context passing)
+├─ Requires: Environment setup (Docker or local)
+└─ Skills:
+   ├─ End-to-end workflow testing
+   ├─ Cross-component integration
+   ├─ Database operation validation
+   └─ Service orchestration testing
+
+Setup Required:
+- Docker Compose for service stack
+- Test database migrations
+- Redis configuration
+- Environment variables
 ```
 
-### Integration Tests (Some Dependencies)
-These require minimal real dependencies:
+### Mutation Testing Specialist Dependencies
 
 ```
-→ Orchestrator (mock Lifecycle, Spawning, Database)
-→ Database Adapters (can use in-memory SQLite)
-→ Middleware (mock Redis, Database)
-→ CLI Handlers (mock all services)
-```
+mutation-testing-specialist Agent
+├─ Requires: stryker@latest
+├─ Requires: stryker-cli@latest
+├─ Requires: Test suite (for mutation killing)
+├─ Requires: Jest@^29.0.0
+├─ Requires: TypeScript compiler
+└─ Skills:
+   ├─ Mutation score calculation
+   ├─ Weak test detection
+   ├─ Test quality validation
+   └─ Mutant coverage analysis
 
-### E2E Tests (Full Dependencies)
-These run the full stack:
+Installation:
+npm install --save-dev @stryker-mutator/core
+npm install --save-dev @stryker-mutator/typescript-checker
+npm install --save-dev @stryker-mutator/jest-runner
+npm install --save-dev stryker-cli
 
-```
-→ Full orchestration workflow
-→ Multi-agent coordination
-→ Docker deployment
-→ Real database operations
+Configuration: stryker.conf.json (required)
 ```
 
 ---
 
-## Success Metrics by Phase
+## EXECUTION DEPENDENCY CHAINS
 
-### Phase 1 Completion (Week 1-3)
-```
-✓ Tier 0 modules: 100% test coverage
-✓ Orchestrator: 85%+ branch coverage
-✓ Critical paths: All tested
-✓ Error scenarios: Basic coverage
+### Critical Path: CFN Loop Test Execution
 
-Coverage: 40%
-Test count: 200+
+```
+1. Infrastructure Setup (Prereq)
+   ├─ Redis running (localhost:6379)
+   ├─ Database available (PostgreSQL or SQLite)
+   ├─ Node.js environment
+   └─ All npm packages installed
+
+2. Test Preparation
+   ├─ Jest configuration loaded
+   ├─ TypeScript compiled
+   ├─ Mocks initialized
+   └─ Test fixtures created
+
+3. Test Execution (Ordered)
+   ├─ Gate checking tests (foundation)
+   ├─ Loop 3 spawning tests (depends on gate)
+   ├─ Confidence collection tests (depends on Loop 3)
+   ├─ Loop 2 consensus tests (depends on Loop 3 results)
+   ├─ Product Owner decision tests (depends on Loop 2)
+   └─ Full cycle tests (depends on all above)
+
+4. Cleanup
+   ├─ Redis cleanup (flush test keys)
+   ├─ Database cleanup (rollback transactions)
+   ├─ Process cleanup (kill test agents)
+   └─ File cleanup (remove test fixtures)
+
+Failure Cascade Risk: HIGH
+├─ If gate tests fail → Loop 3 tests fail
+├─ If Loop 3 fails → Loop 2 fails
+├─ If Loop 2 fails → Product Owner tests fail
+└─ Mitigation: Parallel test suites with isolated setup
 ```
 
-### Phase 2 Completion (Week 4-5)
-```
-✓ All critical modules: 80%+ coverage
-✓ Integration tests: Functional paths
-✓ CLI commands: Basic coverage
-✓ Edge cases: Identified and tested
+### Critical Path: Agent Spawning Test Execution
 
-Coverage: 60%
-Test count: 500+
+```
+1. Setup (Prereq)
+   ├─ Lifecycle manager initialized
+   ├─ Agent definitions loaded
+   ├─ Process environment ready
+   └─ Resource limits set
+
+2. State Machine Tests (Sequential)
+   ├─ uninitialized → initializing transition
+   ├─ initializing → idle transition
+   ├─ idle → running transition
+   ├─ running → paused transition (optional)
+   ├─ paused/running → stopping transition
+   ├─ stopping → stopped transition
+   └─ stopped → error transition (error cases)
+
+3. Concurrent Tests (Parallel Safe)
+   ├─ Spawn N agents simultaneously
+   ├─ Verify no resource exhaustion
+   ├─ Check queue management
+   └─ Validate dependency ordering
+
+Failure Cascade Risk: MEDIUM
+├─ State test failures block subsequent tests
+├─ Concurrent tests can run in isolation
+└─ Cleanup required between test suites
 ```
 
-### Phase 3 Completion (Week 6)
-```
-✓ All modules: 75%+ coverage
-✓ Shell scripts: 50%+ coverage
-✓ Docker: Validated
-✓ Full documentation
+---
 
-Coverage: 75%
-Test count: 1,200+
+## MOCK & FIXTURE DEPENDENCIES
+
+### Required Mocks
+
 ```
+Redis Mock
+├─ Library: redis-mock or ioredis-mock
+├─ Used By: CFN Loop, Agent Spawning tests
+├─ Replaces: Real Redis server
+└─ Limitation: Pub/sub less reliable
+
+Agent Process Mock
+├─ Library: jest.mock('child_process')
+├─ Used By: Lifecycle Manager tests
+├─ Replaces: Real process spawning
+└─ Must Mock: spawn, exec, fork
+
+File System Mock
+├─ Library: memfs or jest-fs
+├─ Used By: Config loader, CLI tests
+├─ Replaces: Real file I/O
+└─ Care Needed: Path handling
+
+HTTP Mock
+├─ Library: nock or jest-mock-axios
+├─ Used By: API integration tests
+├─ Replaces: Real HTTP calls
+└─ Must Mock: Status codes, bodies
+```
+
+### Required Fixtures
+
+```
+Agent Definitions
+├─ Location: tests/fixtures/agents/
+├─ Contains: Mock .claude/agents/
+├─ Used By: Agent spawning tests
+└─ Size: ~10 agent files
+
+Test Configurations
+├─ Location: tests/fixtures/configs/
+├─ Contains: Mock CLAUDE.md, config files
+├─ Used By: Config validator tests
+└─ Size: ~5 config files
+
+Database Migrations
+├─ Location: tests/fixtures/migrations/
+├─ Contains: Test schema setup
+├─ Used By: Database tests
+└─ Size: ~10 migration files
+
+Success Criteria
+├─ Location: tests/fixtures/criteria/
+├─ Contains: Mock success criteria JSON
+├─ Used By: Gate checking tests
+└─ Size: ~20 criteria files
+
+Agent Output
+├─ Location: tests/fixtures/outputs/
+├─ Contains: Mock agent execution results
+├─ Used By: Output validator tests
+└─ Size: ~30 output files
+```
+
+---
+
+## DEPENDENCY INSTALLATION PLAN
+
+### Phase 1: Core (Already Done)
+
+```bash
+✅ npm install             # All base dependencies
+✅ jest 30.2.0            # Test framework
+✅ typescript 5.x         # Type checking
+✅ redis (client)         # Redis testing
+✅ better-sqlite3         # SQLite testing
+✅ pg (PostgreSQL client) # PostgreSQL testing
+```
+
+### Phase 2: Testing Framework Additions (Recommended)
+
+```bash
+# Bash Testing
+npm install --save-dev @bats-core/bats
+npm install --save-dev bats-support
+npm install --save-dev bats-assert
+
+# Contract Testing
+npm install --save-dev @pact-foundation/pact
+npm install --save-dev express-openapi-validator
+npm install --save-dev ajv
+
+# Mutation Testing
+npm install --save-dev @stryker-mutator/core
+npm install --save-dev @stryker-mutator/typescript-checker
+npm install --save-dev stryker-cli
+
+# Additional Mocking
+npm install --save-dev jest-mock-extended
+npm install --save-dev ioredis-mock
+
+# Data Generation
+npm install --save-dev faker
+```
+
+### Phase 3: Optional Enhancements
+
+```bash
+# Performance Testing
+npm install --save-dev autocannon   # Load testing
+npm install --save-dev clinic       # Performance profiling
+
+# Code Quality
+npm install --save-dev @coverage/eslint-plugin
+npm install --save-dev jest-html-reporters
+
+# Documentation
+npm install --save-dev typedoc      # API documentation
+```
+
+---
+
+## ENVIRONMENT SETUP REQUIREMENTS
+
+### Local Development
+
+```bash
+# Redis
+redis-server
+
+# PostgreSQL (if using PostgreSQL)
+psql -U postgres
+
+# SQLite (no setup needed)
+# better-sqlite3 handles automatically
+
+# Node.js
+node --version  # 18.x or higher
+npm --version   # 9.x or higher
+
+# Docker (for Docker tests)
+docker --version
+docker-compose --version
+```
+
+### CI/CD Environment
+
+```yaml
+# GitHub Actions example
+services:
+  redis:
+    image: redis:7
+    options: >-
+      --health-cmd "redis-cli ping"
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5
+    ports:
+      - 6379:6379
+
+  postgres:
+    image: postgres:15
+    env:
+      POSTGRES_PASSWORD: postgres
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5
+    ports:
+      - 5432:5432
+```
+
+---
+
+## DEPENDENCY CONFLICT MATRIX
+
+### Known Issues & Solutions
+
+| Conflict | Components | Solution |
+|----------|-----------|----------|
+| Redis mock vs real Redis | ioredis-mock ↔ redis | Use separate test configs |
+| Jest version mismatch | jest ↔ ts-jest | Lock versions together |
+| TypeScript strict mode | TypeScript ↔ source code | Configure tsconfig.json |
+| Port conflicts (Redis, DB) | Service stacks | Use different ports per test suite |
+| File system mocking | memfs ↔ Node fs | Use scoped mocks |
+| Docker layer caching | docker-compose ↔ builds | Use `--no-cache` in tests |
+
+---
+
+## TESTING ROADMAP & DEPENDENCIES
+
+### Week 1-2: Foundation Setup
+```
+Dependencies Added:
+├─ BATS shell testing
+├─ jest-mock-extended
+├─ ioredis-mock
+└─ faker
+
+Tests Created:
+├─ CFN Loop gate checking (40 tests)
+├─ Agent spawning basics (30 tests)
+└─ CLI parameter validation (25 tests)
+```
+
+### Week 3-4: Framework Integration
+```
+Dependencies Added:
+├─ @pact-foundation/pact
+├─ @stryker-mutator/*
+└─ ajv
+
+Tests Created:
+├─ Contract tests (20 tests)
+├─ Integration tests (40 tests)
+└─ Mutation tests (mutation score baseline)
+```
+
+### Week 5-6: Comprehensive Coverage
+```
+Dependencies Added:
+├─ @coverage/eslint-plugin
+├─ autocannon (load testing)
+└─ jest-html-reporters
+
+Tests Created:
+├─ Database transaction tests (60 tests)
+├─ Docker integration tests (40 tests)
+├─ Error scenario tests (80 tests)
+└─ Performance tests (10 benchmarks)
+```
+
+---
+
+## SUMMARY: Critical Dependency Path
+
+```
+Redis ──┐
+        ├─→ CFN Loop Tests ──→ Integration Tests ──→ E2E Tests
+Node.js ┤
+        ├─→ Jest Framework ──→ Unit Tests ──→ Coverage
+        │
+Database┤
+        ├─→ Database Tests ──→ Transaction Tests
+        │
+Docker ──→ Docker Tests ──→ Container Tests ──→ Production Validation
+```
+
+**Critical Dependency:** Redis (needed by 60%+ of tests)  
+**Blocking Issue:** Missing BATS (blocks shell script testing)  
+**High Impact:** Mutation testing setup (needed for test quality validation)
+
+---
+
+**Generated:** November 17, 2025  
+**Maintainer:** Test Infrastructure Team  
+**Status:** DRAFT - Ready for review
 
