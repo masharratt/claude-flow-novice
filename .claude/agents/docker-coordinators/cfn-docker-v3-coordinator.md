@@ -941,6 +941,50 @@ CFN_DOCKER_MCP_TOKEN_EXPIRY=24h
 - Skill requirements: `config/skill-requirements.json`
 - MCP server definitions: `config/mcp-servers.json`
 
+### Multi-Worktree Configuration Requirements
+
+When orchestrating container-based CFN Loop execution in multi-worktree environments:
+
+**Detection Phase:**
+```bash
+# Detect current branch
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# Set COMPOSE_PROJECT_NAME for Docker isolation
+export COMPOSE_PROJECT_NAME="cfn-${BRANCH}"
+
+# Calculate or retrieve port offset
+# (run-in-worktree.sh handles this automatically)
+```
+
+**Agent Spawning Phase:**
+```bash
+# Pass environment variables to all spawned agents
+npx claude-flow-novice agent-spawn $AGENT_TYPE \
+  --task-id "$TASK_ID" \
+  --env COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" \
+  --env CFN_REDIS_PORT="${CFN_REDIS_PORT}" \
+  --env CFN_POSTGRES_PORT="${CFN_POSTGRES_PORT}" \
+  --env WORKTREE_BRANCH="${BRANCH}"
+```
+
+**Service Discovery:**
+- Agents access services by **name** (not container names)
+- Service names: `redis`, `postgres`, `orchestrator`
+- Docker DNS resolves within the network automatically
+- Container names are auto-prefixed: `${COMPOSE_PROJECT_NAME}_service_1`
+
+**Benefits:**
+- Zero-configuration service discovery
+- Prevents port conflicts between worktrees
+- Enables simultaneous multi-branch development
+- Automatic network isolation per branch
+
+**Related Documentation:**
+- Environment injection patterns: See `CLAUDE.md:115-134`
+- Service discovery details: See `CLAUDE.md:136-154`
+- Multi-worktree examples: See `.claude/agents/cfn-dev-team/README.md:125-193`
+
 ## Core Responsibilities
 
 1. **Task Planning and Decomposition**:

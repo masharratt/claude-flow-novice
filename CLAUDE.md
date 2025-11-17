@@ -101,6 +101,86 @@ docker build -f docker/Dockerfile.agent -t cfn-agent:latest .
 * Gate (agent self-confidence): **≥0.75 each**
 * Validators consensus: **≥0.90**
 
+### Multi-Worktree Docker Coordination
+
+**Team Development Patterns:**
+
+When teams use git worktrees for parallel development, Docker isolation prevents port and service name conflicts:
+
+* **Each developer works in separate git worktree** - Independent branches
+* **Docker isolation via `COMPOSE_PROJECT_NAME` per branch** - Unique container namespace
+* **Port offsets prevent conflicts** - Automatic calculation via `run-in-worktree.sh`
+* **Redis coordination scoped to worktree when needed** - Isolated task IDs
+
+**Environment Variable Injection (Coordinators):**
+
+Coordinators MUST inject these variables to spawned agents:
+
+```bash
+# Required for multi-worktree support
+export COMPOSE_PROJECT_NAME="cfn-${BRANCH}"      # e.g., cfn-feature-auth
+export CFN_REDIS_PORT="${CFN_REDIS_PORT}"        # Base port + offset
+export CFN_POSTGRES_PORT="${CFN_POSTGRES_PORT}"  # Base port + offset
+export WORKTREE_BRANCH="${BRANCH}"               # Git branch name
+```
+
+Pass these when spawning agents:
+```bash
+npx claude-flow-novice agent-spawn backend-dev \
+  --task-id "$TASK_ID" \
+  --env COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT_NAME" \
+  --env CFN_REDIS_PORT="$CFN_REDIS_PORT" \
+  --env CFN_POSTGRES_PORT="$CFN_POSTGRES_PORT"
+```
+
+**Service Discovery Pattern:**
+
+Within Docker networks, use **service names** (not container names):
+
+```bash
+# Correct: Service discovery via Docker DNS
+redis-cli -h redis -p 6379              # Service name
+psql -h postgres -U postgres            # Service name
+
+# ❌ WRONG: Container names don't resolve in networks
+redis-cli -h cfn-redis -p 6379          # Won't work
+```
+
+Docker automatically resolves service names to container IPs within the same network:
+- `redis` → internal Docker DNS (dynamic IP)
+- `postgres` → internal Docker DNS (dynamic IP)
+- `orchestrator` → internal Docker DNS (dynamic IP)
+
+Container names are auto-prefixed: `${COMPOSE_PROJECT_NAME}_service_1`
+
+**Team Coordination Checklist:**
+
+* [ ] Each developer runs `./scripts/docker/run-in-worktree.sh up -d` (not `docker-compose up`)
+* [ ] Redis keys include task IDs for scope isolation (already scoped by design)
+* [ ] Shared volumes avoided - each worktree has isolated volumes
+* [ ] Port conflicts handled automatically by offset calculation
+* [ ] Service names used in all connections (not container names)
+* [ ] `COMPOSE_PROJECT_NAME` environment variable injected to all spawned agents
+* [ ] All database connections use `postgres` service name (not container name)
+
+**Port Allocation Strategy:**
+
+```
+Main/master branch:
+  Offset: 0
+  Redis: 6379, Postgres: 5432, Orchestrator: 3001
+
+Feature-auth branch:
+  Offset: ~42 (calculated from branch name)
+  Redis: 6421, Postgres: 5474, Orchestrator: 3043
+
+Bugfix-validation branch:
+  Offset: ~78 (calculated from branch name)
+  Redis: 6457, Postgres: 5510, Orchestrator: 3079
+```
+
+Offsets are calculated deterministically from branch name, ensuring consistency across restarts.
+
 ### Task Mode SQLite Lifecycle Execution
 
 **When auditing is required for Task() agents, include explicit lifecycle instructions:**

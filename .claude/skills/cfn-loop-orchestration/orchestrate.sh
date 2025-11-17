@@ -64,6 +64,14 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/security_utils.sh"
 HELPERS_DIR="$SCRIPT_DIR/helpers"
 REDIS_COORD_SKILL="$PROJECT_ROOT/.claude/skills/cfn-redis-coordination"
 
+# Validate Redis connectivity
+REDIS_PORT="${CFN_REDIS_PORT:-6379}"
+REDIS_HOST="${CFN_REDIS_HOST:-localhost}"
+if ! redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" ping &>/dev/null; then
+  echo "⚠️  Warning: Redis not reachable at ${REDIS_HOST}:${REDIS_PORT}" >&2
+  echo "   Redis coordination features may not function correctly" >&2
+fi
+
 # Configuration
 TASK_ID=""
 MODE="standard"

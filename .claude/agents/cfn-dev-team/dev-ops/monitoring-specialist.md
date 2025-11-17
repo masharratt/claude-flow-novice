@@ -32,6 +32,25 @@ validation_hooks:
 
 ## Technical Expertise
 
+### Environment Variables
+
+Multi-worktree and Docker Compose deployments support the following environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CFN_PROMETHEUS_PORT` | 9091 | Prometheus HTTP port |
+| `CFN_GRAFANA_PORT` | 3000 | Grafana HTTP port |
+| `CFN_ALERTMANAGER_PORT` | 9093 | Alertmanager HTTP port |
+| `CFN_JAEGER_PORT` | 16686 | Jaeger UI port |
+| `CFN_LOKI_PORT` | 3100 | Loki HTTP port |
+| `COMPOSE_PROJECT_NAME` | (auto) | Docker Compose project prefix for container/network names |
+| `REDIS_HOST` | redis | Redis service hostname (use service discovery name) |
+
+**Usage in Configurations:**
+- Use `${CFN_PROMETHEUS_PORT:-9091}` pattern for port references
+- Use service names (redis, postgres) instead of container names (cfn-redis, cfn-postgres)
+- Prefix container names with `${COMPOSE_PROJECT_NAME}-` for multi-worktree isolation
+
 ### Prometheus Configuration
 
 #### prometheus.yml - Core Config
@@ -59,7 +78,7 @@ scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['localhost:${CFN_PROMETHEUS_PORT:-9091}']
 
   # Node Exporter (system metrics)
   - job_name: 'node-exporter'
