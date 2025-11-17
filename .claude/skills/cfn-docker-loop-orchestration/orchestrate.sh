@@ -8,6 +8,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
+# Detect worktree/branch for environment injection
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+export WORKTREE_BRANCH="${CURRENT_BRANCH}"
+
 # Default configuration
 DEFAULT_MAX_ITERATIONS=10
 DEFAULT_GATE_THRESHOLD=0.75

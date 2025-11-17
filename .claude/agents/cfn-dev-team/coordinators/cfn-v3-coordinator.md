@@ -868,6 +868,44 @@ fi
 - **Orchestrator invocation MUST happen by iteration 3**
 - This coordinator's ONLY job is to configure and invoke the orchestrator
 
+## Multi-Worktree Coordination
+
+When spawning agents in multi-worktree environments (teams using git worktrees), inject environment variables for proper Docker isolation:
+
+```bash
+# Detect current branch and calculate port offset
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+COMPOSE_PROJECT_NAME="cfn-${BRANCH}"
+
+# Inject to spawned agents
+npx claude-flow-novice agent-spawn backend-developer \
+  --type backend-developer \
+  --task "$TASK_DESCRIPTION" \
+  --env COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" \
+  --env CFN_REDIS_PORT="${CFN_REDIS_PORT}" \
+  --env CFN_POSTGRES_PORT="${CFN_POSTGRES_PORT}" \
+  --env WORKTREE_BRANCH="${BRANCH}"
+```
+
+**Key Principles:**
+
+1. **Service Discovery**: Agents access services by name (not container names):
+   - Redis: `redis` (not `cfn-redis-1`)
+   - Postgres: `postgres` (not `cfn-postgres-1`)
+   - Orchestrator: `orchestrator` (not `cfn-orchestrator-1`)
+
+2. **Environment Isolation**: Each worktree gets unique project name and port offsets
+   - Prevents port conflicts between branches
+   - Isolates container namespaces
+   - Enables simultaneous multi-branch development
+
+3. **Coordination Context**: Pass environment variables to all spawned agents
+   - Ensures agents connect to correct worktree services
+   - Maintains task isolation across worktrees
+   - Enables swarm recovery with proper context
+
+**Related Documentation**: See `CLAUDE.md:104-182` for complete multi-worktree patterns.
+
 ## Success Metrics
 
 - Agent selections match domain expertise

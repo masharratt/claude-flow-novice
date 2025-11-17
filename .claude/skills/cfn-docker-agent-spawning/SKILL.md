@@ -156,14 +156,38 @@ cfn-docker-agent-spawn \
 - **Batch Operations**: 0.3-0.5 CPU units per agent
 
 ### Network Configuration
+
+**Multi-Worktree Network Isolation:**
+
+For multi-worktree environments, use project-scoped network names:
+
 ```bash
-# Create isolated network for MCP communication
-docker network create mcp-network --driver bridge
+# Set project name from environment (set by run-in-worktree.sh)
+PROJECT_NAME="${COMPOSE_PROJECT_NAME:-cfn-default}"
+
+# Create isolated network for MCP communication (worktree-scoped)
+docker network create "${PROJECT_NAME}_mcp-network" --driver bridge
 
 # Connect containers to MCP network
-docker network connect mcp-network agent-frontend-001
-docker network connect mcp-network playwright-mcp
+docker network connect "${PROJECT_NAME}_mcp-network" agent-frontend-001
+docker network connect "${PROJECT_NAME}_mcp-network" playwright-mcp
 ```
+
+**Service Discovery Within Networks:**
+
+Agents within the Docker network can access services by name:
+```bash
+# Use service names (not container names) for connections
+redis-cli -h redis              # Resolves to Redis service
+psql -h postgres                # Resolves to PostgreSQL service
+curl http://orchestrator:3001   # Resolves to orchestrator service
+```
+
+**Why Project-Scoped Networks?**
+- Prevents network name conflicts between worktrees
+- Isolates agent communication per branch
+- Enables simultaneous multi-worktree development
+- Automatically managed by docker-compose with COMPOSE_PROJECT_NAME
 
 ## Integration with CFN Docker Skills
 

@@ -284,11 +284,12 @@ echo "Initial errors: $INITIAL_ERRORS"
 
 # Launch coordinator
 START_TIME=$(date +%s)
-docker run --rm --name cfn-coordinator --memory=2g \
+CONTAINER_NAME="${COMPOSE_PROJECT_NAME:+${COMPOSE_PROJECT_NAME}-}coordinator"
+docker run --rm --name ${CONTAINER_NAME} --memory=2g \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$FRONTEND_PATH":/workspace:rw \
   -e MEMORY_BUDGET=40g -e MAX_ITERATIONS=5 \
-  -e REDIS_HOST=cfn-redis --network cfn-network \
+  -e REDIS_HOST=redis --network cfn-network \
   --env-file .env cfn-intelligent-coordinator:latest
 
 END_TIME=$(date +%s)
@@ -328,7 +329,7 @@ WORKSPACE_PATH="/workspace"
 
 **Extended context (coordinator-aware):**
 ```bash
-REDIS_HOST="cfn-redis"
+REDIS_HOST="${REDIS_HOST:-redis}"
 COORDINATOR_ID="coord-abc123"
 WAVE_NUMBER="1"
 TOTAL_BATCHES="16"
@@ -609,7 +610,7 @@ services:
           cpus: '1'
           memory: 512M
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${CFN_ORCHESTRATOR_PORT:-3001}/health"]
       interval: 30s
       timeout: 3s
       retries: 3

@@ -1,11 +1,21 @@
 version: '3.8'
 
+# Multi-Worktree Support:
+# This compose file uses environment variables for ports and project names.
+# Use scripts/docker/run-in-worktree.sh to run in different worktrees simultaneously.
+#
+# Direct usage (single worktree):
+#   docker-compose up -d
+#
+# Multi-worktree usage (recommended):
+#   ./scripts/docker/run-in-worktree.sh up -d
+
 services:
   # Redis for agent coordination
   # SECURITY: Authentication enabled via requirepass
   redis:
     image: redis:7-alpine
-    container_name: cfn-redis
+    # container_name removed for multi-worktree support (auto-generated as ${COMPOSE_PROJECT_NAME}_redis_1)
     restart: unless-stopped
     networks:
       - mcp-network
@@ -20,12 +30,12 @@ services:
       timeout: 3s
       retries: 3
     ports:
-      - "6379:6379"
+      - "${CFN_REDIS_PORT:-6379}:6379"
 
   # Playwright for browser automation
   playwright:
     image: mcr.microsoft.com/playwright:v1.40.0-focal
-    container_name: cfn-playwright
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     networks:
       - mcp-network
@@ -42,7 +52,7 @@ services:
   # SECURITY: Password authentication required via POSTGRES_PASSWORD
   postgres:
     image: postgres:15-alpine
-    container_name: cfn-postgres
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     networks:
       - mcp-network
@@ -59,24 +69,38 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - "${CFN_POSTGRES_PORT:-5432}:5432"
 
 networks:
   mcp-network:
     driver: bridge
+    # Network name will be auto-prefixed with COMPOSE_PROJECT_NAME
     ipam:
       config:
         - subnet: 172.28.0.0/16
 
 volumes:
+  # Volume names will be auto-prefixed with COMPOSE_PROJECT_NAME
   redis-data:
     driver: local
   postgres-data:
     driver: local
 
 # Example usage:
-# docker-compose up -d                    # Start all services
-# docker-compose ps                       # Check status
-# docker-compose logs -f redis            # View Redis logs
-# docker-compose down                     # Stop all services
-# docker-compose down -v                  # Stop and remove volumes
+#
+# Single worktree (traditional):
+#   docker-compose up -d
+#   docker-compose ps
+#   docker-compose logs -f redis
+#   docker-compose down
+#   docker-compose down -v
+#
+# Multi-worktree (isolated):
+#   ./scripts/docker/run-in-worktree.sh up -d
+#   ./scripts/docker/run-in-worktree.sh ps
+#   ./scripts/docker/run-in-worktree.sh logs -f redis
+#   ./scripts/docker/run-in-worktree.sh down
+#   ./scripts/docker/run-in-worktree.sh down -v
+#
+# Check configuration:
+#   ./scripts/docker/run-in-worktree.sh --dry-run --verbose up

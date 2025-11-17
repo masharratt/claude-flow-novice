@@ -8,7 +8,9 @@ set -euo pipefail
 # Default configuration
 DEFAULT_MEMORY_LIMIT="1g"
 DEFAULT_CPU_LIMIT="1.0"
-DEFAULT_NETWORK="mcp-network"
+# Dynamic network detection for multi-worktree support
+DEFAULT_NETWORK="${COMPOSE_PROJECT_NAME:+${COMPOSE_PROJECT_NAME}_mcp-network}"
+DEFAULT_NETWORK="${DEFAULT_NETWORK:-mcp-network}"
 DEFAULT_IMAGE="claude-flow-novice-agent:latest"
 
 # Colors for output
