@@ -202,3 +202,9 @@ legacy/v1/**/.next/planning/global/
 
 # Pre-Edit Backup System (24h TTL, not committed)
 .backups/
+# Pre-Edit Backup System
+.backups/
+
+# Backup files
+*.backup
+*.bak

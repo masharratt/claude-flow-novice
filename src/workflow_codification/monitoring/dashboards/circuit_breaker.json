@@ -1,0 +1,90 @@
+{
+  "dashboard": {
+    "title": "Circuit Breaker Monitoring",
+    "description": "Circuit breaker state and failure tracking",
+    "tags": [
+      "workflow-codification",
+      "circuit-breaker"
+    ],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Circuit Breaker States",
+        "type": "stat",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "workflow_codification_circuit_breaker_state"
+          }
+        ]
+      },
+      {
+        "title": "Open Breakers Count",
+        "type": "stat",
+        "gridPos": {
+          "x": 6,
+          "y": 0,
+          "w": 6,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "sum(workflow_codification_circuit_breaker_state == 2)"
+          }
+        ]
+      },
+      {
+        "title": "Cumulative Failures",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "increase(workflow_codification_circuit_breaker_failures_total[24h])"
+          }
+        ]
+      },
+      {
+        "title": "Failure Rate (5m)",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(workflow_codification_circuit_breaker_failures_total[5m])"
+          }
+        ]
+      },
+      {
+        "title": "Recovery Time (P95)",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, workflow_codification_circuit_breaker_recovery_time_seconds)"
+          }
+        ]
+      }
+    ],
+    "refresh": "15s",
+    "version": 1
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "timestamp": "1763275772",
+  "agent_id": "unknown",
+  "original_file": "/home/user/claude-flow-novice/tests/workflow-codification/self-healing/test_retry_wrapper.py",
+  "file_hash": "4f78f7abc731b89010a39fd66ccd8096",
+  "backup_path": "/home/user/claude-flow-novice/.backups/unknown/1763275772_4f78f7abc731b89010a39fd66ccd8096",
+  "created_at": "2025-11-16T06:49:32Z"
+}
