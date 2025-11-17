@@ -33,11 +33,12 @@ RUN apt-get update && apt-get install -y \
 
 # Skills are already copied from base cfn-agent image
 
-# Copy coordinator entrypoint (if it exists, otherwise skip)
-# COPY docker/coordinator-entrypoint.sh /app/coordinator-entrypoint.sh
+# Copy coordinator entrypoint
+COPY docker/coordinator-entrypoint.sh /app/coordinator-entrypoint.sh
 
 # Ensure scripts are executable
-RUN find ./.claude/skills -name "*.sh" -type f -exec chmod +x {} \;
+RUN find ./.claude/skills -name "*.sh" -type f -exec chmod +x {} \; && \
+    chmod +x /app/coordinator-entrypoint.sh
 
 # Switch back to cfnagent user
 USER cfnagent

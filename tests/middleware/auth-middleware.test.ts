@@ -541,34 +541,125 @@ describe('Auth Middleware', () => {
   });
 
   describe('Constructor with Environment Variables', () => {
-    it('should use default JWT secret when env var not set', () => {
-      delete process.env.JWT_SECRET;
-      const auth = new AuthMiddleware();
+    const originalJwtSecret = process.env.JWT_SECRET;
 
-      const token = auth.generateToken('user-001', 'test', UserRole.ADMIN);
-      expect(token).toBeDefined();
+    afterEach(() => {
+      // Restore original JWT_SECRET after each test
+      if (originalJwtSecret) {
+        process.env.JWT_SECRET = originalJwtSecret;
+      } else {
+        delete process.env.JWT_SECRET;
+      }
+    });
+
+    it('should throw error when JWT_SECRET not configured', () => {
+      delete process.env.JWT_SECRET;
+
+      expect(() => {
+        new AuthMiddleware();
+      }).toThrow(StandardError);
+
+      expect(() => {
+        new AuthMiddleware();
+      }).toThrow('JWT_SECRET is required but not configured');
+    });
+
+    it('should throw CONFIGURATION_ERROR when JWT_SECRET missing', () => {
+      delete process.env.JWT_SECRET;
+
+      try {
+        new AuthMiddleware();
+        throw new Error('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(StandardError);
+        if (error instanceof StandardError) {
+          expect(error.code).toBe(ErrorCode.CONFIGURATION_ERROR);
+          expect(error.message).toContain('JWT_SECRET');
+          expect(error.context?.hint).toBeDefined();
+          expect(error.context?.securityNote).toBeDefined();
+        }
+      }
+    });
+
+    it('should throw error for empty JWT_SECRET string', () => {
+      delete process.env.JWT_SECRET;
+
+      expect(() => {
+        new AuthMiddleware('');
+      }).toThrow(StandardError);
+
+      expect(() => {
+        new AuthMiddleware('   '); // Whitespace only
+      }).toThrow('JWT_SECRET cannot be empty');
+    });
+
+    it('should throw error for JWT_SECRET shorter than 16 characters', () => {
+      delete process.env.JWT_SECRET;
+
+      expect(() => {
+        new AuthMiddleware('short');
+      }).toThrow(StandardError);
+
+      expect(() => {
+        new AuthMiddleware('short');
+      }).toThrow('must be at least 16 characters');
+
+      try {
+        new AuthMiddleware('12345678901234'); // 14 chars
+        throw new Error('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(StandardError);
+        if (error instanceof StandardError) {
+          expect(error.code).toBe(ErrorCode.VALIDATION_FAILED);
+          expect(error.context?.providedLength).toBe(14);
+          expect(error.context?.requiredLength).toBe(16);
+        }
+      }
     });
 
     it('should use JWT_SECRET from environment', () => {
-      process.env.JWT_SECRET = 'env-secret';
+      process.env.JWT_SECRET = 'env-secret-at-least-16-chars';
       const auth = new AuthMiddleware();
 
       const token = auth.generateToken('user-001', 'test', UserRole.ADMIN);
 
       // Verify token was signed with env secret
       expect(() => {
-        jwt.verify(token, 'env-secret');
+        jwt.verify(token, 'env-secret-at-least-16-chars');
+      }).not.toThrow();
+    });
+
+    it('should use explicit jwtSecret parameter over environment', () => {
+      process.env.JWT_SECRET = 'env-secret-at-least-16-chars';
+      const auth = new AuthMiddleware('explicit-secret-16');
+
+      const token = auth.generateToken('user-001', 'test', UserRole.ADMIN);
+
+      // Verify token was signed with explicit secret, not env
+      expect(() => {
+        jwt.verify(token, 'explicit-secret-16');
       }).not.toThrow();
 
-      delete process.env.JWT_SECRET;
+      expect(() => {
+        jwt.verify(token, 'env-secret-at-least-16-chars');
+      }).toThrow();
     });
 
     it('should use default expiration when not specified', () => {
+      process.env.JWT_SECRET = 'test-secret-16-chars';
       const auth = new AuthMiddleware();
       const token = auth.generateToken('user-001', 'test', UserRole.ADMIN);
 
-      const decoded = jwt.verify(token, 'dev-secret-key') as any;
+      const decoded = jwt.verify(token, 'test-secret-16-chars') as any;
       expect(decoded.exp - decoded.iat).toBe(3600); // Default 1 hour
+    });
+
+    it('should accept custom expiration time', () => {
+      const auth = new AuthMiddleware('test-secret-16-chars', 7200);
+      const token = auth.generateToken('user-001', 'test', UserRole.ADMIN);
+
+      const decoded = jwt.verify(token, 'test-secret-16-chars') as any;
+      expect(decoded.exp - decoded.iat).toBe(7200); // 2 hours
     });
   });
 

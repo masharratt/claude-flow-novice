@@ -192,7 +192,7 @@ describe('PromotionPipeline', () => {
       stagingDir: TEST_STAGING_DIR,
       productionDir: TEST_PRODUCTION_DIR,
       autoApprovalConfidenceThreshold: 0.9,
-    });
+    }, 'test-jwt-secret-for-promotion-pipeline');
   });
 
   afterAll(async () => {
@@ -877,7 +877,7 @@ describe('PromotionPipeline - Configuration', () => {
       stagingDir: TEST_STAGING_DIR,
       productionDir: TEST_PRODUCTION_DIR,
       autoApprovalConfidenceThreshold: 0.85,
-    });
+    }, 'test-jwt-secret-for-promotion-pipeline');
 
     const request: PromotionRequest = {
       skillId: 'threshold-test',
@@ -907,7 +907,7 @@ describe('PromotionPipeline - Configuration', () => {
     const customPipeline = new PromotionPipeline(dbService, {
       stagingDir: customStaging,
       productionDir: customProduction,
-    });
+    }, 'test-jwt-secret-for-promotion-pipeline');
 
     expect(customPipeline).toBeDefined();
   });

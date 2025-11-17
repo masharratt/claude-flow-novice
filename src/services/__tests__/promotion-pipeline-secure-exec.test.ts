@@ -33,7 +33,7 @@ describe('PromotionPipeline - Secure Command Execution', () => {
       stagingPath: '/tmp/staging',
       productionPath: '/tmp/production',
       backupPath: '/tmp/backup',
-    });
+    }, 'test-jwt-secret-for-secure-exec-tests');
   });
 
   afterEach(() => {
