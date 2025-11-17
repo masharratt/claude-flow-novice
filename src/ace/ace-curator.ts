@@ -61,16 +61,27 @@ class DefaultMergeStrategy implements ContextMergeStrategy {
   prioritize(reflections: CognitiveReflection[]): CognitiveReflection {
     // Prioritize based on complexity, recency, and insights
     return reflections.reduce((priority, reflection) => {
+      // Recency: Higher score for more recent (lower age)
+      // Invert the age calculation so recent = higher score
+      const ageInSeconds = (Date.now() - reflection.timestamp) / 1000;
+      const recencyScore = Math.max(0, 1000000 - ageInSeconds) / 1000000;
+
       const priorityScore = (
         reflection.complexity * 0.5 +
-        (Date.now() - reflection.timestamp) / 1000000 * 0.3 +
+        recencyScore * 0.3 +
         reflection.insights.length * 0.2
       );
 
       const currentPriorityScore = priority ? (
-        priority.complexity * 0.5 +
-        (Date.now() - priority.timestamp) / 1000000 * 0.3 +
-        priority.insights.length * 0.2
+        (() => {
+          const currentAgeInSeconds = (Date.now() - priority.timestamp) / 1000;
+          const currentRecencyScore = Math.max(0, 1000000 - currentAgeInSeconds) / 1000000;
+          return (
+            priority.complexity * 0.5 +
+            currentRecencyScore * 0.3 +
+            priority.insights.length * 0.2
+          );
+        })()
       ) : -1;
 
       return priorityScore > currentPriorityScore ? reflection : priority;
