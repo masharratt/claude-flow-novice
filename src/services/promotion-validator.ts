@@ -23,10 +23,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { StandardError, ErrorCode } from '../lib/errors';
-import { createLogger } from '../lib/logging';
-import { fileExists } from '../lib/file-operations';
-import { validateSkill, parseFrontmatter } from './skill-validator';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { createLogger } from '../lib/logging.js';
+import { fileExists } from '../lib/file-operations.js';
+import { validateSkill, parseFrontmatter } from './skill-validator.js';
 
 const logger = createLogger('promotion-validator');
 

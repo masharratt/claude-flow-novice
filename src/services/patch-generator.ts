@@ -23,9 +23,9 @@
 
 import * as crypto from 'crypto';
 import Database from 'better-sqlite3';
-import { createLogger } from '../lib/logging';
-import { StandardError, ErrorCode, createError } from '../lib/errors';
-import { FailureCategory, Failure } from './edge-case-analyzer';
+import { createLogger } from '../lib/logging.js';
+import { StandardError, ErrorCode, createError } from '../lib/errors.js';
+import { FailureCategory, Failure } from './edge-case-analyzer.js';
 
 const logger = createLogger('patch-generator');
 

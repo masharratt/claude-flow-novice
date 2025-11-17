@@ -9,8 +9,8 @@
 
 import * as crypto from 'crypto';
 import * as fs from 'fs';
-import { createLogger, Logger } from '../lib/logging';
-import { DatabaseService } from '../lib/database-service';
+import { createLogger, Logger } from '../lib/logging.js';
+import { DatabaseService } from '../lib/database-service.js';
 
 /**
  * Cache validation result

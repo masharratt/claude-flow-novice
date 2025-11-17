@@ -17,28 +17,28 @@
  * ```
  */
 
-import { DatabaseService } from './database-service';
+import { DatabaseService } from './database-service.js';
 import {
   CorrelationKey,
   DatabaseError,
   DatabaseErrorCode,
   QueryFilter,
   QueryOptions,
-} from './database-service/types';
+} from './database-service/types.js';
 import {
   buildCorrelationKey,
   buildWildcardPattern,
   getEntityTypes,
   WildcardPattern,
-} from './database-service/correlation';
-import { CorrelationCache } from './correlation-cache';
-import { createLogger, Logger } from './logging';
-import { createDatabaseError } from './database-service/errors';
+} from './database-service/correlation.js';
+import { CorrelationCache } from './correlation-cache.js';
+import { createLogger, Logger } from './logging.js';
+import { createDatabaseError } from './database-service/errors.js';
 import {
   ErrorAggregator,
   createErrorAggregator,
   ErrorSeverity,
-} from './error-aggregator';
+} from './error-aggregator.js';
 
 /**
  * Database system type

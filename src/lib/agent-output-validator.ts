@@ -25,7 +25,7 @@ import type {
   ValidationType,
   ProductOwnerDecision,
   CFNLoopMode,
-} from '../types/agent-output';
+} from '../types/agent-output.js';
 
 // ============================================================================
 // Security Helper Functions

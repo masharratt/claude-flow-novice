@@ -19,9 +19,9 @@
  *   );
  */
 
-import { withRetry, RetryOptions, RetryStats, sleep } from './retry';
-import { StandardError, ErrorCode, isRetryableError } from './errors';
-import { createLogger } from './logging';
+import { withRetry, RetryOptions, RetryStats, sleep } from './retry.js';
+import { StandardError, ErrorCode, isRetryableError } from './errors.js';
+import { createLogger } from './logging.js';
 
 const logger = createLogger('retry-manager');
 

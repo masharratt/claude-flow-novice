@@ -16,10 +16,10 @@
  *   const isDuplicate = await deduplicator.deduplicateEdgeCase(edgeCase);
  */
 
-import { DatabaseService, OperationResult } from '../lib/database-service';
-import { createLogger, Logger } from '../lib/logging';
-import { createError, ErrorCode } from '../lib/errors';
-import type { EdgeCase, ErrorCategory } from './edge-case-detector';
+import { DatabaseService, OperationResult } from '../lib/database-service.js';
+import { createLogger, Logger } from '../lib/logging.js';
+import { createError, ErrorCode } from '../lib/errors.js';
+import type { EdgeCase, ErrorCategory } from './edge-case-detector.js';
 
 /**
  * Deduplicator configuration

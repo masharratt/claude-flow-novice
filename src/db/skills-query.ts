@@ -7,7 +7,7 @@
  * @module skills-query
  */
 
-import { QueryFilter, QueryOptions } from '../lib/database-service/types';
+import { QueryFilter, QueryOptions } from '../lib/database-service/types.js';
 
 /**
  * Skill metadata record

@@ -11,8 +11,8 @@
  */
 
 import * as crypto from 'crypto';
-import { IDatabaseAdapter, OperationResult } from './database-service/types';
-import { createLogger } from './logging';
+import { IDatabaseAdapter, OperationResult } from './database-service/types.js';
+import { createLogger } from './logging.js';
 
 const logger = createLogger('idempotent-write');
 

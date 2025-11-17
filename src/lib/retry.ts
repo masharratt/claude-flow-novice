@@ -11,8 +11,8 @@
  *   );
  */
 
-import { createRetryExhaustedError, isRetryableError } from './errors';
-import { createLogger } from './logging';
+import { createRetryExhaustedError, isRetryableError } from './errors.js';
+import { createLogger } from './logging.js';
 
 const logger = createLogger('retry-utility');
 

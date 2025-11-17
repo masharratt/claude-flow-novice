@@ -6,7 +6,7 @@
  */
 
 import * as crypto from 'crypto';
-import { EdgeCaseInput, EdgeCaseType } from '../types/edge-case';
+import { EdgeCaseInput, EdgeCaseType } from '../types/edge-case.js';
 
 export class EdgeCaseDeduplicator {
   /**

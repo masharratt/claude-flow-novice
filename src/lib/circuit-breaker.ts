@@ -29,8 +29,8 @@
  * Part of: HIGH-PRIORITY Circuit Breaker Enhancement
  */
 
-import { StandardError } from './errors';
-import { Logger } from '../core/logger';
+import { StandardError } from './errors.js';
+import { Logger } from '../core/logger.js';
 
 const logger = Logger.getInstance();
 

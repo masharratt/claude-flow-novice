@@ -8,7 +8,7 @@
  */
 
 import * as sqlite3 from 'better-sqlite3';
-import { EdgeCaseDeduplicator } from '../lib/edge-case-deduplicator';
+import { EdgeCaseDeduplicator } from '../lib/edge-case-deduplicator.js';
 import {
   EdgeCase,
   EdgeCaseInput,
@@ -21,7 +21,7 @@ import {
   EdgeCaseAnalytics,
   EdgeCaseTrackerConfig,
   TopEdgeCasesQuery
-} from '../types/edge-case';
+} from '../types/edge-case.js';
 
 /**
  * Edge Case Tracker

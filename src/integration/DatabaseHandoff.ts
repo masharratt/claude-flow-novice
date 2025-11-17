@@ -12,7 +12,7 @@
 import { Pool as PgPool, PoolClient, QueryResult } from 'pg';
 import sqlite3 from 'sqlite3';
 import { Database as SqliteDB } from 'sqlite';
-import { StandardAdapter, Logger, JSONLogger } from './StandardAdapter';
+import { StandardAdapter, Logger, JSONLogger } from './StandardAdapter.js';
 
 /**
  * Standard handoff record structure

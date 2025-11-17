@@ -17,8 +17,8 @@
  */
 
 import { randomUUID } from 'crypto';
-import { createLogger } from './logging';
-import { generateCorrelationId } from './correlation';
+import { createLogger } from './logging.js';
+import { generateCorrelationId } from './correlation.js';
 
 const logger = createLogger('distributed-lock');
 

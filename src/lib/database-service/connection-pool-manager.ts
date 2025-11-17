@@ -18,8 +18,8 @@ import { Pool, PoolClient } from 'pg';
 import {
   DatabaseConfig,
   DatabaseErrorCode,
-} from './types';
-import { createDatabaseError } from './errors';
+} from './types.js';
+import { createDatabaseError } from './errors.js';
 
 export interface ConnectionPoolStats {
   type: 'redis' | 'sqlite' | 'postgres';

@@ -32,10 +32,10 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { promisify } from 'util';
 import Database from 'better-sqlite3';
-import { createLogger } from '../lib/logging';
-import { StandardError, ErrorCode, createError } from '../lib/errors';
-import { BackupManager, BackupType } from '../lib/backup-manager';
-import { Patch } from './patch-generator';
+import { createLogger } from '../lib/logging.js';
+import { StandardError, ErrorCode, createError } from '../lib/errors.js';
+import { BackupManager, BackupType } from '../lib/backup-manager.js';
+import { Patch } from './patch-generator.js';
 
 const logger = createLogger('patch-validator');
 

@@ -16,8 +16,8 @@
 
 import Ajv, { ValidateFunction, ErrorObject } from 'ajv';
 import addFormats from 'ajv-formats';
-import { StandardError, ErrorCode, createValidationError } from './errors';
-import { getGlobalLogger } from './logging';
+import { StandardError, ErrorCode, createValidationError } from './errors.js';
+import { getGlobalLogger } from './logging.js';
 import fs from 'fs/promises';
 import path from 'path';
 

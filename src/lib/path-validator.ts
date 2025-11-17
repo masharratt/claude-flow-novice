@@ -1,8 +1,17 @@
 /**
  * Path Validator - Security Utility for Safe File Operations
  *
- * Provides robust path sanitization and validation to prevent path traversal attacks (CVSS 7.5).
- * Enforces strict rules on file access:
+ * Provides robust path sanitization and validation to prevent path traversal attacks (CVSS 7.0+).
+ * Enforces strict rules on file access with protection against encoding attacks:
+ *
+ * CRITICAL FIXES (CVSS 7.0+):
+ * - Iterative URL decoding prevents double-encoding bypasses (%252e%252e%252f → ../)
+ * - Unicode normalization (NFC) prevents overlong UTF-8 bypasses (%c0%ae → .)
+ * - Null byte detection prevents null injection attacks
+ * - All decoding performed BEFORE path normalization to prevent layered attacks
+ * - Encoding attack detection with security logging
+ *
+ * Base Security Controls:
  * - Path normalization to resolve ".." and "." sequences
  * - Validation that resolved paths stay within allowed directories
  * - Detection and rejection of symlinks
@@ -10,7 +19,7 @@
  * - Prevention of home directory access ("~")
  *
  * @module path-validator
- * @version 1.0.0
+ * @version 2.0.0 (SECURITY CRITICAL)
  */
 
 import * as path from 'path';
@@ -28,6 +37,17 @@ export class PathValidationError extends StandardError {
 }
 
 /**
+ * Security encoding attack detection
+ */
+export interface EncodingAttackDetection {
+  detected: boolean;
+  type?: 'double_encoding' | 'unicode_encoding' | 'mixed_encoding';
+  originalInput: string;
+  decodedOutput: string;
+  iterationsRequired: number;
+}
+
+/**
  * Path validation result with detailed information
  */
 export interface PathValidationResult {
@@ -40,19 +60,129 @@ export interface PathValidationResult {
 }
 
 /**
+ * Safely decode a path with protection against encoding attacks
+ *
+ * Performs iterative URL decoding and Unicode normalization to prevent:
+ * - Double encoding bypass (e.g., %252e%252e%252f → %2e%2e%2f → ../)
+ * - Overlong UTF-8 encoding (e.g., %c0%ae%c0%ae/ → ../)
+ * - Mixed encoding attacks
+ *
+ * @param inputPath - The potentially encoded path
+ * @returns Decoded path and attack detection info
+ * @throws PathValidationError if encoding attack detected
+ *
+ * @example
+ * const { decoded, encoding } = decodePathSafely('%252e%252e%252f');
+ * // Detects double-encoding attempt
+ */
+function decodePathSafely(inputPath: string): {
+  decoded: string;
+  encoding: EncodingAttackDetection;
+} {
+  let decoded = inputPath;
+  let previous = '';
+  let iterations = 0;
+  const MAX_ITERATIONS = 5;
+  const originalInput = inputPath;
+  let invalidEncodingDetected = false;
+
+  // Iteratively decode URL-encoded characters until stable
+  // This prevents bypass attacks using multiple encoding layers
+  while (decoded !== previous && iterations < MAX_ITERATIONS) {
+    previous = decoded;
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch (error) {
+      // Invalid URL encoding (including malformed UTF-8) indicates attack
+      // e.g., %c0%ae is malformed UTF-8 for overlong encoding
+      invalidEncodingDetected = true;
+      // Treat invalid encoding as a suspicious attack indicator
+      // but continue with the path as-is for analysis
+      break;
+    }
+    iterations++;
+  }
+
+  // Check if we hit max iterations (indicates potential encoding attack)
+  if (iterations >= MAX_ITERATIONS && decoded !== previous) {
+    throw new PathValidationError(
+      'Path validation failed: excessive encoding layers detected',
+      {
+        originalInput,
+        decodedOutput: decoded,
+        iterations,
+        reason: 'ENCODING_ATTACK_DETECTED',
+      }
+    );
+  }
+
+  // Invalid encoding like malformed UTF-8 is itself an attack indicator
+  if (invalidEncodingDetected) {
+    throw new PathValidationError(
+      'Path validation failed: invalid encoding detected (possible encoding attack)',
+      {
+        originalInput,
+        decodedOutput: decoded,
+        iterations,
+        reason: 'INVALID_ENCODING_DETECTED',
+      }
+    );
+  }
+
+  // Detect if decoding required multiple iterations (possible double-encoding attack)
+  const encodingAttackDetected = iterations > 1;
+
+  // Unicode normalization to handle overlong UTF-8 sequences
+  // e.g., %c0%ae (%c0%ae = UTF-8 overlong encoding for ".")
+  let normalized = decoded;
+  try {
+    normalized = decoded.normalize('NFC');
+  } catch (error) {
+    // Some paths may not be valid Unicode, continue with non-normalized version
+  }
+
+  // Check for null bytes (another common encoding attack vector)
+  if (normalized.includes('\0')) {
+    throw new PathValidationError(
+      'Path validation failed: null byte injection detected',
+      {
+        originalInput,
+        decodedOutput: normalized,
+        reason: 'NULL_BYTE_INJECTION',
+      }
+    );
+  }
+
+  return {
+    decoded: normalized,
+    encoding: {
+      detected: encodingAttackDetected,
+      type: encodingAttackDetected ? 'double_encoding' : undefined,
+      originalInput,
+      decodedOutput: normalized,
+      iterationsRequired: iterations,
+    },
+  };
+}
+
+/**
  * Validate a file path to prevent directory traversal attacks
  *
- * Security checks performed:
- * 1. Normalize path to resolve ".." and "."
- * 2. Reject paths containing absolute path markers when base is relative
- * 3. Reject symlinks to prevent symlink attacks
- * 4. Verify resolved path is within allowed base directory
- * 5. Reject home directory expansion ("~")
+ * Security checks performed (in order):
+ * 1. CRITICAL: Iteratively decode URL encoding to handle %252e%252e%252f and similar bypasses
+ * 2. CRITICAL: Normalize Unicode (NFC) to handle overlong UTF-8 like %c0%ae%c0%ae/
+ * 3. CRITICAL: Detect null bytes and excessive encoding layers
+ * 4. Check for home directory expansion ("~") on DECODED path
+ * 5. Normalize path to resolve ".." and "."
+ * 6. Verify all suspicious patterns are eliminated
+ * 7. Check if path is within base directory
+ * 8. Reject symlinks to prevent symlink attacks
+ * 9. Log any encoding attacks detected for security monitoring
  *
- * @param filePath - The file path to validate
+ * @param filePath - The file path to validate (may be encoded)
  * @param baseDirectory - The base directory that file must reside within
  * @returns PathValidationResult with validation details
- * @throws PathValidationError if path validation fails
+ * @throws PathValidationError if path validation fails or encoding attack detected
  *
  * @example
  * const result = validatePath('docs/FEATURE.md', './.claude/skills');
@@ -60,14 +190,38 @@ export interface PathValidationResult {
  *   throw result; // Safe to throw, contains all context
  * }
  * // Use result.resolvedPath
+ *
+ * @security
+ * Designed to prevent:
+ * - Double-encoding bypasses: %252e%252e%252f
+ * - Overlong UTF-8: %c0%ae%c0%ae/
+ * - Mixed encoding: URL + Unicode combinations
+ * - Null byte injection: file.txt%00.jpg
+ * - Traditional path traversal: ../../../etc/passwd
  */
 export function validatePath(filePath: string, baseDirectory: string): PathValidationResult {
-  // Check for home directory expansion attempts
-  if (filePath.startsWith('~') || filePath.includes('/~') || filePath.includes('\\~')) {
+  // SECURITY FIX: Decode all encoding layers first before any path normalization
+  // This prevents double-encoding bypasses like %252e%252e%252f
+  const { decoded: decodedPath, encoding: pathEncoding } = decodePathSafely(filePath);
+  const { decoded: decodedBase } = decodePathSafely(baseDirectory);
+
+  // Log encoding attacks for security monitoring
+  if (pathEncoding.detected) {
+    // In production, this should trigger security alerts
+    console.warn('Security: Encoding attack detected in path input', {
+      originalInput: pathEncoding.originalInput,
+      decodedOutput: pathEncoding.decodedOutput,
+      iterationsRequired: pathEncoding.iterationsRequired,
+    });
+  }
+
+  // Check for home directory expansion attempts on DECODED path
+  if (decodedPath.startsWith('~') || decodedPath.includes('/~') || decodedPath.includes('\\~')) {
     throw new PathValidationError(
       'Path validation failed: home directory access denied',
       {
         filePath,
+        decodedPath,
         baseDirectory,
         reason: 'HOME_DIRECTORY_ACCESS',
       }
@@ -75,22 +229,24 @@ export function validatePath(filePath: string, baseDirectory: string): PathValid
   }
 
   // Check for home directory expansion attempts in baseDirectory
-  if (baseDirectory.startsWith('~')) {
+  if (decodedBase.startsWith('~')) {
     throw new PathValidationError(
       'Base directory validation failed: home directory access denied',
       {
         baseDirectory,
+        decodedBase,
         reason: 'BASE_HOME_DIRECTORY_ACCESS',
       }
     );
   }
 
   // Normalize the base directory first
-  const normalizedBase = path.normalize(baseDirectory);
+  const normalizedBase = path.normalize(decodedBase);
   const resolvedBase = path.resolve(normalizedBase);
 
   // Normalize and resolve the file path relative to base
-  const normalizedPath = path.normalize(filePath);
+  // NOW normalized on already-decoded path to prevent encoding bypasses
+  const normalizedPath = path.normalize(decodedPath);
 
   // Check if path contains suspicious patterns after normalization
   if (normalizedPath.includes('..') || normalizedPath === '.' || normalizedPath.includes('/./')) {
@@ -98,6 +254,7 @@ export function validatePath(filePath: string, baseDirectory: string): PathValid
       'Path validation failed: path contains directory traversal patterns',
       {
         filePath,
+        decodedPath,
         normalizedPath,
         baseDirectory,
         reason: 'TRAVERSAL_PATTERN_DETECTED',

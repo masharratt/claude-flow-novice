@@ -33,10 +33,10 @@
  */
 
 import * as path from 'path';
-import { atomicWrite } from './file-operations';
-import { createLogger } from './logging';
-import { createError, ErrorCode, createTimeoutError } from './errors';
-import { WorkspacePath } from './agent-workspace';
+import { atomicWrite } from './file-operations.js';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode, createTimeoutError } from './errors.js';
+import { WorkspacePath } from './agent-workspace.js';
 
 const logger = createLogger('completion-signal-handler');
 

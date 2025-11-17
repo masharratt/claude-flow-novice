@@ -14,8 +14,8 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { DatabaseService } from '../lib/database-service';
-import { IDatabaseAdapter, QueryOptions, OperationResult } from '../lib/database-service/types';
+import { DatabaseService } from '../lib/database-service.js';
+import { IDatabaseAdapter, QueryOptions, OperationResult } from '../lib/database-service/types.js';
 import {
   createIdempotentKey,
   hasBeenWritten,
@@ -24,9 +24,9 @@ import {
   batchMarkWritten,
   validateCostAccuracy,
   roundCost,
-} from '../lib/idempotent-write';
-import { createLogger } from '../lib/logging';
-import { StandardError, ErrorCode } from '../lib/errors';
+} from '../lib/idempotent-write.js';
+import { createLogger } from '../lib/logging.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
 
 const logger = createLogger('metrics-logger');
 

@@ -13,9 +13,9 @@
  * Part of Task P2-4.1: Comprehensive Health Checks
  */
 
-import { getDatabaseService } from '../lib/database-service';
-import { RedisQueueManager } from '../lib/redis-queue-manager';
-import { StandardError, ErrorCode } from '../lib/errors';
+import { getDatabaseService } from '../lib/database-service.js';
+import { RedisQueueManager } from '../lib/redis-queue-manager.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
 import fs from 'fs';
 import os from 'os';
 import util from 'util';

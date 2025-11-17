@@ -18,17 +18,17 @@ import {
   QueryFilter,
   OperationResult,
   TransactionContext,
-} from './types';
+} from './types.js';
 import {
   DatabaseErrorCode,
   createDatabaseError,
   createSuccessResult,
   createFailedResult,
   mapSQLiteError,
-} from './errors';
-import { ConnectionPoolManager } from './connection-pool-manager';
-import { withDatabaseRetry } from '../retry-manager';
-import { ErrorAggregator } from '../error-aggregator';
+} from './errors.js';
+import { ConnectionPoolManager } from './connection-pool-manager.js';
+import { withDatabaseRetry } from '../retry-manager.js';
+import { ErrorAggregator } from '../error-aggregator.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class SQLiteAdapter implements IDatabaseAdapter {

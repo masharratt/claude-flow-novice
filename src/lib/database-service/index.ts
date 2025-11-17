@@ -29,11 +29,11 @@ import {
   DatabaseConfig,
   CrossDatabaseResult,
   CorrelationKey,
-} from './types';
-import { RedisAdapter } from './redis-adapter';
-import { SQLiteAdapter } from './sqlite-adapter';
-import { PostgresAdapter } from './postgres-adapter';
-import { TransactionManager } from './transaction-manager';
+} from './types.js';
+import { RedisAdapter } from './redis-adapter.js';
+import { SQLiteAdapter } from './sqlite-adapter.js';
+import { PostgresAdapter } from './postgres-adapter.js';
+import { TransactionManager } from './transaction-manager.js';
 import {
   buildCorrelationKey,
   parseCorrelationKey,
@@ -41,8 +41,8 @@ import {
   buildAgentKey,
   buildSkillKey,
   buildExecutionKey,
-} from './correlation';
-import { DatabaseErrorCode, createDatabaseError } from './errors';
+} from './correlation.js';
+import { DatabaseErrorCode, createDatabaseError } from './errors.js';
 
 export interface DatabaseServiceConfig {
   redis?: DatabaseConfig;
@@ -230,14 +230,14 @@ export class DatabaseService implements IDatabaseService {
 }
 
 // Re-export types and utilities
-export * from './types';
-export * from './errors';
-export * from './correlation';
-export { RedisAdapter } from './redis-adapter';
-export { SQLiteAdapter } from './sqlite-adapter';
-export { PostgresAdapter } from './postgres-adapter';
-export { TransactionManager } from './transaction-manager';
-export { ConnectionPoolManager } from './connection-pool-manager';
+export * from './types.js';
+export * from './errors.js';
+export * from './correlation.js';
+export { RedisAdapter } from './redis-adapter.js';
+export { SQLiteAdapter } from './sqlite-adapter.js';
+export { PostgresAdapter } from './postgres-adapter.js';
+export { TransactionManager } from './transaction-manager.js';
+export { ConnectionPoolManager } from './connection-pool-manager.js';
 
 // Re-export correlation utilities
 export {

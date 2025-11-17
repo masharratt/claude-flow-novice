@@ -9,7 +9,7 @@
  */
 
 import * as yaml from 'js-yaml';
-import { StandardError } from './errors';
+import { StandardError } from './errors.js';
 
 /**
  * Skill status lifecycle stages

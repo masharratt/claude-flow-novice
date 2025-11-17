@@ -30,9 +30,9 @@
  * ```
  */
 
-import { DatabaseService } from '../lib/database-service';
-import { createLogger } from '../lib/logging';
-import { SkillPromotionService, StaleSkill } from '../services/skill-promotion';
+import { DatabaseService } from '../lib/database-service.js';
+import { createLogger } from '../lib/logging.js';
+import { SkillPromotionService, StaleSkill } from '../services/skill-promotion.js';
 
 const logger = createLogger('promotion-sla-enforcer');
 

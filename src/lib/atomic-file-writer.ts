@@ -26,9 +26,9 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
-import { createLogger } from './logging';
-import { createError, ErrorCode } from './errors';
-import { withFileLock, LockAcquisitionOptions } from './file-lock-manager';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode } from './errors.js';
+import { withFileLock, LockAcquisitionOptions } from './file-lock-manager.js';
 
 const logger = createLogger('atomic-file-writer');
 

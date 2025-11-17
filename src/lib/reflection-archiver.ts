@@ -8,9 +8,9 @@
  * Performance target: <500ms per reflection archive
  */
 
-import { DatabaseService } from './database-service';
-import { StandardError, ErrorCode } from './errors';
-import { logger } from './logging';
+import { DatabaseService } from './database-service.js';
+import { StandardError, ErrorCode } from './errors.js';
+import { logger } from './logging.js';
 
 export interface ArchiverConfig {
   /**

@@ -15,7 +15,7 @@ import type {
   Deliverable,
   Issue,
   AgentError,
-} from '../types/agent-output';
+} from '../types/agent-output.js';
 
 // ============================================================================
 // Parser Class

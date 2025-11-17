@@ -37,11 +37,11 @@ import * as crypto from 'crypto';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
 import Database from 'better-sqlite3';
-import { createLogger } from './logging';
-import { createError, ErrorCode, StandardError } from './errors';
-import { getFileLockManager, FileLockManager } from './file-lock-manager';
-import { withFileSystemRetry } from './retry-manager';
-import { getEncryptionManager, EncryptionManager, EncryptedBackup } from './encryption-manager';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode, StandardError } from './errors.js';
+import { getFileLockManager, FileLockManager } from './file-lock-manager.js';
+import { withFileSystemRetry } from './retry-manager.js';
+import { getEncryptionManager, EncryptionManager, EncryptedBackup } from './encryption-manager.js';
 
 const logger = createLogger('backup-manager');
 

@@ -15,10 +15,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as crypto from 'crypto';
-import { LRUSkillCache, CacheStatistics } from '../lib/skill-cache';
-import { DatabaseService } from '../lib/database-service';
-import { createLogger, Logger } from '../lib/logging';
-import { StandardError } from '../lib/errors';
+import { LRUSkillCache, CacheStatistics } from '../lib/skill-cache.js';
+import { DatabaseService } from '../lib/database-service.js';
+import { createLogger, Logger } from '../lib/logging.js';
+import { StandardError } from '../lib/errors.js';
 
 /**
  * Skill metadata (loaded at startup)

@@ -17,8 +17,8 @@
  * - readonly: Can view audit trails, but no promotion access
  */
 
-import { StandardError, ErrorCode } from '../lib/errors';
-import { createLogger } from '../lib/logging';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { createLogger } from '../lib/logging.js';
 import * as jwt from 'jsonwebtoken';
 
 const logger = createLogger('auth-middleware');

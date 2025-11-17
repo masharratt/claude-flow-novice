@@ -19,10 +19,10 @@
  */
 
 import * as path from 'path';
-import { atomicWrite, ensureDirectory } from './file-operations';
-import { createLogger } from './logging';
-import { createError, ErrorCode } from './errors';
-import { writeCompletionSignal, CompletionMetadata } from './completion-signal-handler';
+import { atomicWrite, ensureDirectory } from './file-operations.js';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode } from './errors.js';
+import { writeCompletionSignal, CompletionMetadata } from './completion-signal-handler.js';
 
 const logger = createLogger('agent-workspace');
 

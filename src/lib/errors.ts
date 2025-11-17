@@ -9,7 +9,7 @@
  *   if (isErrorCode(error, ErrorCode.RETRY_EXHAUSTED)) { ... }
  */
 
-import { DatabaseErrorCode } from './database-service/errors';
+import { DatabaseErrorCode } from './database-service/errors.js';
 
 /**
  * Generic error codes (extends DatabaseErrorCode)

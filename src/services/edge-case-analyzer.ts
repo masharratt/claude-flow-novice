@@ -20,8 +20,8 @@
 
 import * as crypto from 'crypto';
 import Database from 'better-sqlite3';
-import { createLogger } from '../lib/logging';
-import { StandardError, ErrorCode, createError } from '../lib/errors';
+import { createLogger } from '../lib/logging.js';
+import { StandardError, ErrorCode, createError } from '../lib/errors.js';
 
 const logger = createLogger('edge-case-analyzer');
 

@@ -15,8 +15,8 @@
  * Part of Phase 2, Task P2-2.2: Distributed Locking Enhancement
  */
 
-import { createLogger } from './logging';
-import { DistributedLockManager, LockMetadata } from './distributed-lock';
+import { createLogger } from './logging.js';
+import { DistributedLockManager, LockMetadata } from './distributed-lock.js';
 
 const logger = createLogger('lock-health-monitor');
 

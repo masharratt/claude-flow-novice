@@ -8,9 +8,9 @@
  * @version 1.0.0
  */
 
-import { parseFrontmatter, validateFrontmatter, ParsedSkillDocument } from './skill-frontmatter-parser';
-import { StandardError } from './errors';
-import { validatePath, getSafePath, PathValidationError } from './path-validator';
+import { parseFrontmatter, validateFrontmatter, ParsedSkillDocument } from './skill-frontmatter-parser.js';
+import { StandardError } from './errors.js';
+import { validatePath, getSafePath, PathValidationError } from './path-validator.js';
 import * as fs from 'fs';
 import * as path from 'path';
 

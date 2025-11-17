@@ -12,7 +12,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { createHash } from 'crypto';
 import { readFile } from 'fs/promises';
-import { StandardError } from './errors';
+import { StandardError } from './errors.js';
 
 const execAsync = promisify(exec);
 

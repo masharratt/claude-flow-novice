@@ -27,8 +27,8 @@
  */
 
 import * as crypto from 'crypto';
-import { createLogger } from './logging';
-import { createError, ErrorCode } from './errors';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode } from './errors.js';
 
 const logger = createLogger('encryption-manager');
 

@@ -13,14 +13,14 @@
  * Part of: Critical Error Handling Fixes (Architecture Review)
  */
 
-import { DatabaseError, DatabaseErrorCode } from './database-service/types';
-import { createLogger, Logger } from './logging';
+import { DatabaseError, DatabaseErrorCode } from './database-service/types.js';
+import { createLogger, Logger } from './logging.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   CircuitBreakerState,
   CircuitBreakerConfig,
   CircuitBreakerRegistry,
-} from './circuit-breaker';
+} from './circuit-breaker.js';
 
 // Re-export circuit breaker types for backward compatibility
 export { CircuitBreakerState, CircuitBreakerConfig };

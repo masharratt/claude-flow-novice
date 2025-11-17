@@ -160,6 +160,8 @@ tests/integration/run-all-integration-tests.sh
 
 ### Security
 
+- Shell security: variable quoting, strict mode, mktemp implementation (2025-11-17)
+  - Impact: HIGH - Prevents word splitting, enforces error detection, eliminates temp file race conditions
 - Fixed command injection vulnerability in promotion pipeline (CVSS 8.6) (2025-11-17)
   - Impact: Prevents shell metacharacter interpretation in test script execution using secure spawn pattern
 - Phase 2.2 JSON Validation Rollout Complete (2025-11-16)

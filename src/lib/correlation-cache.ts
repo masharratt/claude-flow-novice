@@ -16,7 +16,7 @@
  * ```
  */
 
-import { createLogger, Logger } from './logging';
+import { createLogger, Logger } from './logging.js';
 
 /**
  * Cache entry with metadata

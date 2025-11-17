@@ -14,14 +14,14 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { DatabaseService } from '../lib/database-service';
-import { createLogger, Logger } from '../lib/logging';
-import { SkillsQueryBuilder, SkillRecord, BOOTSTRAP_SKILL_IDS } from '../db/skills-query';
+import { DatabaseService } from '../lib/database-service.js';
+import { createLogger, Logger } from '../lib/logging.js';
+import { SkillsQueryBuilder, SkillRecord, BOOTSTRAP_SKILL_IDS } from '../db/skills-query.js';
 import {
   SkillCacheValidator,
   CachedSkillEntry,
   ValidationResult,
-} from './skill-cache-validator';
+} from './skill-cache-validator.js';
 
 /**
  * Skill metadata with content
