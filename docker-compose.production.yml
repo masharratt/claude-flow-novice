@@ -1,5 +1,12 @@
 # Production CFN Loop Orchestration Configuration
 # Multi-container setup with monitoring, logging, and scaling
+#
+# Multi-Worktree Support:
+# Use scripts/docker/run-in-worktree.sh to run multiple worktrees simultaneously
+# without port/container/volume conflicts.
+#
+# Usage:
+#   ./scripts/docker/run-in-worktree.sh -f docker-compose.production.yml up -d
 
 version: '3.8'
 
@@ -7,10 +14,10 @@ services:
   # Redis Coordination Service
   redis-coordinator:
     image: redis:7-alpine
-    container_name: cfn-redis-coordinator
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "${CFN_REDIS_COORDINATOR_PORT:-6380}:6379"
     volumes:
       - redis-data:/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
@@ -49,10 +56,10 @@ services:
         VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}
         VERSION: ${VERSION:-4.0.0}
         CLAUDE_FLOW_VERSION: ${CLAUDE_FLOW_VERSION:-4.0.0}
-    container_name: cfn-orchestrator
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "3001:3000"  # Health check and metrics endpoint
+      - "${CFN_ORCHESTRATOR_PORT:-3001}:3000"  # Health check and metrics endpoint
     volumes:
       - ./workspaces:/app/workspace
       - ./.claude:/app/.claude:ro
@@ -66,7 +73,7 @@ services:
       - CFN_AGENT_TIMEOUT_MS=${AGENT_TIMEOUT:-300000}
       - CFN_MEMORY_LIMIT=${MEMORY_LIMIT:-1g}
       - CFN_CPU_LIMIT=${CPU_LIMIT:-0.5}
-      - CFN_NETWORK_NAME=cfn-network
+      - CFN_NETWORK_NAME=${COMPOSE_PROJECT_NAME:-cfn}-cfn-network
     networks:
       - cfn-network
     depends_on:
@@ -101,6 +108,7 @@ services:
         BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
         VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}
         VERSION: ${VERSION:-4.0.0}
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     volumes:
       - ./workspaces:/app/workspace
@@ -142,10 +150,10 @@ services:
   # Prometheus Monitoring
   prometheus:
     image: prom/prometheus:latest
-    container_name: cfn-prometheus
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "9091:9090"
+      - "${CFN_PROMETHEUS_PORT:-9091}:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -180,10 +188,10 @@ services:
   # Grafana Visualization
   grafana:
     image: grafana/grafana:latest
-    container_name: cfn-grafana
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "${CFN_GRAFANA_PORT:-3001}:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -222,10 +230,10 @@ services:
   # Redis Exporter for Prometheus
   redis-exporter:
     image: oliver006/redis_exporter:latest
-    container_name: cfn-redis-exporter
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "9121:9121"
+      - "${CFN_REDIS_EXPORTER_PORT:-9121}:9121"
     environment:
       - REDIS_ADDR=redis://redis-coordinator:6379
       # - REDIS_PASSWORD=${REDIS_PASSWORD:-}
@@ -256,11 +264,11 @@ services:
   # Nginx Reverse Proxy (optional, for external access)
   nginx:
     image: nginx:alpine
-    container_name: cfn-nginx
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${CFN_NGINX_HTTP_PORT:-80}:80"
+      - "${CFN_NGINX_HTTPS_PORT:-443}:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -291,10 +299,10 @@ services:
   # Log Management (Loki for log aggregation)
   loki:
     image: grafana/loki:latest
-    container_name: cfn-loki
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "3100:3100"
+      - "${CFN_LOKI_PORT:-3100}:3100"
     volumes:
       - ./monitoring/loki.yml:/etc/loki/local-config.yaml:ro
       - loki-data:/loki
@@ -323,10 +331,10 @@ services:
   # MCP Server: Playwright (Browser Automation)
   mcp-playwright:
     image: mcr.microsoft.com/playwright:v1.40.0-jammy
-    container_name: cfn-mcp-playwright
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "8081:8081"
+      - "${CFN_MCP_PLAYWRIGHT_PORT:-8081}:8081"
     volumes:
       - ./config/mcp-servers.json:/app/config/mcp-servers.json:ro
       - playwright-cache:/ms-playwright
@@ -364,10 +372,10 @@ services:
   # MCP Server: Redis Tools
   mcp-redis-tools:
     image: redis:7-alpine
-    container_name: cfn-mcp-redis-tools
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "8082:8082"
+      - "${CFN_MCP_REDIS_TOOLS_PORT:-8082}:8082"
     volumes:
       - ./config/mcp-servers.json:/app/config/mcp-servers.json:ro
     environment:
@@ -404,10 +412,10 @@ services:
   # MCP Server: N8N Workflow Automation
   mcp-n8n:
     image: n8nio/n8n:latest
-    container_name: cfn-mcp-n8n
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "8083:5678"
+      - "${CFN_MCP_N8N_PORT:-8083}:5678"
     volumes:
       - ./config/mcp-servers.json:/app/config/mcp-servers.json:ro
       - n8n-data:/home/node/.n8n
@@ -448,10 +456,10 @@ services:
   # MCP Server: Security Scanner (Trivy + Hadolint)
   mcp-security-scanner:
     image: aquasec/trivy:latest
-    container_name: cfn-mcp-security-scanner
+    # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "8084:8084"
+      - "${CFN_MCP_SECURITY_SCANNER_PORT:-8084}:8084"
     volumes:
       - ./config/mcp-servers.json:/app/config/mcp-servers.json:ro
       - trivy-cache:/root/.cache/trivy
@@ -491,7 +499,8 @@ services:
 networks:
   cfn-network:
     driver: bridge
-    name: cfn-production
+    # Network name will be auto-prefixed with COMPOSE_PROJECT_NAME
+    # e.g., cfn-feature-branch_cfn-network
     ipam:
       config:
         - subnet: 172.30.0.0/16
@@ -501,7 +510,7 @@ networks:
 
   mcp-network:
     driver: bridge
-    name: mcp-isolated
+    # Network name will be auto-prefixed with COMPOSE_PROJECT_NAME
     internal: false
     ipam:
       config:
@@ -512,38 +521,35 @@ networks:
       - "cfn.managed=true"
 
 # Volume definitions
+# All volume names will be auto-prefixed with COMPOSE_PROJECT_NAME
+# e.g., cfn-feature-branch_redis-data
 volumes:
   redis-data:
     driver: local
-    name: cfn-redis-data
     labels:
       - "cfn.volume=redis-data"
       - "cfn.env=production"
 
   prometheus-data:
     driver: local
-    name: cfn-prometheus-data
     labels:
       - "cfn.volume=prometheus-data"
       - "cfn.env=production"
 
   grafana-data:
     driver: local
-    name: cfn-grafana-data
     labels:
       - "cfn.volume=grafana-data"
       - "cfn.env=production"
 
   loki-data:
     driver: local
-    name: cfn-loki-data
     labels:
       - "cfn.volume=loki-data"
       - "cfn.env=production"
 
   playwright-cache:
     driver: local
-    name: cfn-playwright-cache
     labels:
       - "cfn.volume=playwright-cache"
       - "cfn.env=production"
@@ -551,7 +557,6 @@ volumes:
 
   n8n-data:
     driver: local
-    name: cfn-n8n-data
     labels:
       - "cfn.volume=n8n-data"
       - "cfn.env=production"
@@ -559,7 +564,6 @@ volumes:
 
   trivy-cache:
     driver: local
-    name: cfn-trivy-cache
     labels:
       - "cfn.volume=trivy-cache"
       - "cfn.env=production"
