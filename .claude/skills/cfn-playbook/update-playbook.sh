@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_PATH="$SCRIPT_DIR/playbook.db"
 
 # Import parameterized query library
-source "$(dirname "$SCRIPT_DIR")/bootstrap/sqlite-params.sh"
+source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
 
 TASK_ID=""
 TASK_TYPE=""
