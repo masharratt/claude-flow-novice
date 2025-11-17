@@ -48,13 +48,15 @@ fi
 
 **Implement (30-40 min):**
 - Write minimum code to pass tests
-- Run tests continuously (`npm test --watch` or framework equivalent)
+- Run tests continuously (`npm test --watch` for Jest)
 - Refactor for quality
 
 **Validate (5 min):**
-- Run full test suite: `npm test` (or framework command from criteria)
+- Run full test suite: `npm test` (Jest is the standard test framework)
 - Verify pass rate meets threshold (Standard: ≥95%)
 - Check coverage: `npm run coverage`
+
+**Note:** Jest is the only supported test framework for UI design agents. If you need a different framework, request explicit approval and update success criteria accordingly.
 
 ### 3. Report Test Results (NOT Confidence)
 
@@ -66,19 +68,61 @@ redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
 
 **New (Required):**
 ```bash
+# Validate required environment variables
+if [ -z "$TASK_ID" ] || [ -z "$ITERATION" ] || [ -z "$AGENT_ID" ]; then
+    echo "❌ ERROR: Required environment variables not set" >&2
+    echo "   Missing: TASK_ID=${TASK_ID:-<unset>} ITERATION=${ITERATION:-<unset>} AGENT_ID=${AGENT_ID:-<unset>}" >&2
+    exit 1
+fi
+
+# Validate helper exists and is executable
+HELPER_PATH="./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh"
+if [ ! -x "$HELPER_PATH" ]; then
+    echo "❌ ERROR: Helper script not found or not executable: $HELPER_PATH" >&2
+    exit 1
+fi
+
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
 
-# Parse test results
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
-  "jest" "$TEST_OUTPUT")
+# Parse test results (capture exit code)
+set +e  # Temporarily allow failures
+RESULTS=$("$HELPER_PATH" "jest" "$TEST_OUTPUT" 2>&1)
+HELPER_EXIT=$?
+set -e
 
-# Store in Redis
-redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-  "${AGENT_ID}" "$RESULTS"
+if [ $HELPER_EXIT -ne 0 ]; then
+    echo "❌ ERROR: Test result parsing failed (exit code: $HELPER_EXIT)" >&2
+    echo "   Helper output: $RESULTS" >&2
+    exit 1
+fi
 
-# Signal completion
-redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
+# Verify redis-cli is available before storing
+if ! command -v redis-cli >/dev/null 2>&1; then
+    echo "⚠️  WARNING: redis-cli not available, cannot store results" >&2
+    echo "   Results: $RESULTS" >&2
+    # Continue anyway (Task mode)
+else
+    # Test Redis connectivity with a simple PING
+    if ! redis-cli PING >/dev/null 2>&1; then
+        echo "⚠️  WARNING: Redis not reachable, cannot store results" >&2
+        echo "   Results: $RESULTS" >&2
+        # Continue anyway (Task mode)
+    else
+        # Store in Redis (capture failures)
+        if ! redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
+            "${AGENT_ID}" "$RESULTS" >/dev/null 2>&1; then
+            echo "⚠️  WARNING: Failed to store results in Redis" >&2
+        fi
+
+        # Signal completion (capture failures)
+        if ! redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done" >/dev/null 2>&1; then
+            echo "⚠️  WARNING: Failed to signal completion in Redis" >&2
+        fi
+    fi
+fi
+
+echo "✅ Test execution complete: $RESULTS"
 ```
 
 # UI Designer Agent

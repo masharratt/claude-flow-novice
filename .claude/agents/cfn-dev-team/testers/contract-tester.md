@@ -20,6 +20,10 @@ prerequisites:
   npm: ">=9.0.0"
   pact: "@pact-foundation/pact@^12.0.0"
   openapi-validator: "express-openapi-validator@^5.0.0"
+  system_tools:
+    - bc (for pass rate calculations)
+    - redis-cli (for coordination reporting)
+    - jq (for JSON parsing and validation)
   frameworks:
     - "@pact-foundation/pact@^12.0.0"
     - "jest@^29.0.0"
@@ -451,6 +455,23 @@ describe.each([
 ```bash
 #!/bin/bash
 # contract-tester completion
+
+# Preflight: Validate required tools are available
+MISSING_TOOLS=()
+for TOOL in jq redis-cli bc; do
+    if ! command -v "$TOOL" >/dev/null 2>&1; then
+        MISSING_TOOLS+=("$TOOL")
+    fi
+done
+
+if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+    echo "❌ ERROR: Required tools not found: ${MISSING_TOOLS[*]}" >&2
+    echo "   Install missing tools:" >&2
+    echo "   - bc: sudo apt-get install bc (Debian/Ubuntu) or brew install bc (macOS)" >&2
+    echo "   - redis-cli: sudo apt-get install redis-tools or brew install redis" >&2
+    echo "   - jq: sudo apt-get install jq or brew install jq" >&2
+    exit 1
+fi
 
 # Calculate pass rate
 TOTAL_CONTRACTS=15
