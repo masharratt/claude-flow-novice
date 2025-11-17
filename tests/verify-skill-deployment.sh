@@ -20,7 +20,7 @@ REQUIRED_FILES=(
   "src/services/skill-deployment.ts"
   "src/services/skill-validator.ts"
   "src/services/skill-versioning.ts"
-  "src/db/migrations/001-add-deployment-audit.sql"
+  "src/db/migrations/up/001-add-deployment-audit.sql"
   "scripts/deploy-approved-skills.sh"
   ".claude/skills/cfn-deployment/SKILL.md"
   ".claude/skills/cfn-deployment/execute.sh"
@@ -66,8 +66,8 @@ fi
 
 # Test 4: Check SQL migration schema
 echo -n "Test 4: Checking SQL migration schema... "
-if grep -q "CREATE TABLE IF NOT EXISTS deployment_audit" src/db/migrations/001-add-deployment-audit.sql && \
-   grep -q "CREATE TABLE IF NOT EXISTS skills" src/db/migrations/001-add-deployment-audit.sql; then
+if grep -q "CREATE TABLE IF NOT EXISTS deployment_audit" src/db/migrations/up/001-add-deployment-audit.sql && \
+   grep -q "CREATE TABLE IF NOT EXISTS skills" src/db/migrations/up/001-add-deployment-audit.sql; then
   echo -e "${GREEN}PASS${NC}"
 else
   echo -e "${RED}FAIL${NC}"

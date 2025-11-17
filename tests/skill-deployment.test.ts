@@ -491,7 +491,7 @@ describe('Skill Deployment Pipeline', () => {
     await dbService.connect();
 
     // Initialize schema
-    const migrationPath = path.join(__dirname, '../src/db/migrations/001-add-deployment-audit.sql');
+    const migrationPath = path.join(__dirname, '../src/db/migrations/up/001-add-deployment-audit.sql');
     const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
 
     const adapter = dbService.getAdapter('sqlite');
