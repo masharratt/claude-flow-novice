@@ -96,6 +96,9 @@ export class CorrelationCache {
   private warmingEnabled: boolean;
   private warmingPatterns: string[];
 
+  // Timer cleanup
+  private cleanupTimer: NodeJS.Timeout | null = null;
+
   constructor(config: CacheConfig = {}) {
     this.cache = new Map();
     this.maxSize = config.maxSize || 100;
@@ -354,9 +357,23 @@ export class CorrelationCache {
    */
   private startTTLCleanup(): void {
     // Run cleanup every minute
-    setInterval(() => {
+    this.cleanupTimer = setInterval(() => {
       this.cleanupExpired();
     }, 60 * 1000);
+  }
+
+  /**
+   * Destroy cache and clean up resources
+   *
+   * Clears the interval timer to prevent memory leaks and clears all cache entries.
+   */
+  destroy(): void {
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+    this.clear();
+    this.logger.info('Cache destroyed and cleanup timer stopped');
   }
 
   /**
