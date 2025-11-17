@@ -101,6 +101,11 @@ When `--success-criteria` parameter is NOT provided, the coordinator MUST auto-g
 generate_success_criteria() {
     local TASK_DESC="$1"
     local MODE="$2"  # mvp, standard, enterprise
+    local GENERATED_JSON=""
+
+    # Sanitize task description to prevent JSON injection
+    # Remove quotes and backslashes that could break JSON structure
+    TASK_DESC=$(echo "$TASK_DESC" | sed 's/["\\]//g')
 
     # Determine mode-specific threshold
     case "$MODE" in
@@ -119,9 +124,9 @@ generate_success_criteria() {
     esac
 
     # Analyze task for security keywords
-    if echo "$TASK_DESC" | grep -qiE '(auth|security|crypto|encryption|token|JWT|OAuth|password)'; then
+    if echo "$TASK_DESC" | grep -qiE 'auth|security|crypto|encryption|token|JWT|OAuth|password'; then
         # Security-critical: 100% pass rate required
-        cat <<EOF
+        GENERATED_JSON=$(cat <<EOF
 {
   "test_suites": [
     {
@@ -146,10 +151,11 @@ generate_success_criteria() {
   }
 }
 EOF
+)
 
     # API/Backend work: Unit + integration tests
     elif echo "$TASK_DESC" | grep -qiE '(API|REST|endpoint|route|controller|service|database|SQL)'; then
-        cat <<EOF
+        GENERATED_JSON=$(cat <<EOF
 {
   "test_suites": [
     {
@@ -174,10 +180,11 @@ EOF
   }
 }
 EOF
+)
 
     # Frontend/UI work: Unit + interaction + accessibility
     elif echo "$TASK_DESC" | grep -qiE '(frontend|UI|React|component|interface|accessibility|responsive)'; then
-        cat <<EOF
+        GENERATED_JSON=$(cat <<EOF
 {
   "test_suites": [
     {
@@ -208,10 +215,11 @@ EOF
   }
 }
 EOF
+)
 
     # Default: Unit tests only
     else
-        cat <<EOF
+        GENERATED_JSON=$(cat <<EOF
 {
   "test_suites": [
     {
@@ -229,7 +237,17 @@ EOF
   }
 }
 EOF
+)
     fi
+
+    # VALIDATE JSON before returning
+    if ! echo "$GENERATED_JSON" | jq empty 2>/dev/null; then
+        echo "{\"error\":\"Generated invalid JSON for mode=$MODE\"}" >&2
+        return 1
+    fi
+
+    # Output validated JSON
+    echo "$GENERATED_JSON"
 }
 ```
 
@@ -247,19 +265,33 @@ else
     echo "$SUCCESS_CRITERIA" | jq '.'
 fi
 
-# Step 2: Validate generated criteria
+# Step 2: Validate generated criteria (explicit exit on invalid JSON)
 if ! echo "$SUCCESS_CRITERIA" | jq empty 2>/dev/null; then
-    echo "❌ Invalid JSON in success criteria"
+    echo "❌ Invalid JSON in success criteria" >&2
     exit 1
 fi
 
-# Step 3: Store in Redis for agents to access
-if ! ./.claude/skills/cfn-redis-coordination/store-success-criteria.sh \
-    --task-id "$TASK_ID" \
-    --criteria "$SUCCESS_CRITERIA"; then
-    echo "❌ ERROR: Failed to store success criteria in Redis" >&2
-    echo "   Agent spawning blocked - criteria storage is required for coordination" >&2
-    exit 1
+# Step 3: Check Redis availability before attempting storage
+if ! command -v redis-cli >/dev/null 2>&1; then
+    echo "⚠️  WARNING: redis-cli not available" >&2
+    echo "   Proceeding without Redis coordination (Task mode)" >&2
+    # Task mode: agents will use AGENT_SUCCESS_CRITERIA env var instead
+else
+    # Redis available - attempt to store criteria
+    if ! ./.claude/skills/cfn-redis-coordination/store-success-criteria.sh \
+        --task-id "$TASK_ID" \
+        --criteria "$SUCCESS_CRITERIA"; then
+        echo "❌ ERROR: Failed to store success criteria in Redis" >&2
+        echo "   Retrying once..." >&2
+        sleep 1
+        if ! ./.claude/skills/cfn-redis-coordination/store-success-criteria.sh \
+            --task-id "$TASK_ID" \
+            --criteria "$SUCCESS_CRITERIA"; then
+            echo "❌ ERROR: Redis storage failed after retry" >&2
+            echo "   Agent spawning blocked - criteria storage is required for CLI mode coordination" >&2
+            exit 1
+        fi
+    fi
 fi
 
 # Step 4: Proceed with agent spawning (agents will read from Redis)

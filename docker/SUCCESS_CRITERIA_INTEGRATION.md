@@ -206,14 +206,32 @@ Pass Rate: 1.00
 if [[ -n "${CFN_SUCCESS_CRITERIA:-}" ]]; then
     # 2. Determine if it's a file path or inline JSON
     if [[ -f "$CFN_SUCCESS_CRITERIA" ]]; then
-        # Load from file
+        # SECURITY: Check file size before reading (prevent DoS)
+        MAX_SIZE=$((10 * 1024 * 1024))  # 10MB limit
+        FILE_SIZE=$(stat -c%s "$CFN_SUCCESS_CRITERIA" 2>/dev/null || stat -f%z "$CFN_SUCCESS_CRITERIA" 2>/dev/null || echo "0")
+
+        if [ "$FILE_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "❌ ERROR: Success criteria file exceeds 10MB limit (size: $FILE_SIZE bytes)" >&2
+            exit 1
+        fi
+
+        # Load from file (size validated)
         SUCCESS_CRITERIA=$(cat "$CFN_SUCCESS_CRITERIA")
     else
-        # Use inline JSON
+        # SECURITY: Check inline JSON size before assignment (prevent DoS)
+        MAX_SIZE=$((10 * 1024 * 1024))  # 10MB limit
+        INLINE_SIZE=${#CFN_SUCCESS_CRITERIA}
+
+        if [ "$INLINE_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "❌ ERROR: Inline success criteria exceeds 10MB limit (size: $INLINE_SIZE bytes)" >&2
+            exit 1
+        fi
+
+        # Use inline JSON (size validated)
         SUCCESS_CRITERIA="$CFN_SUCCESS_CRITERIA"
     fi
 
-    # 3. Validate JSON format
+    # 3. Validate JSON format (after size checks)
     if ! echo "$SUCCESS_CRITERIA" | jq empty 2>/dev/null; then
         echo "❌ Invalid success criteria JSON format"
         exit 1
