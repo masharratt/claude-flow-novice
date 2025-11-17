@@ -17,6 +17,11 @@ export class ContextInjector {
     target: T,
     contextOverrides: Record<string, any> = {}
   ): Promise<T> {
+    // Validate target is not null or undefined
+    if (target === null || target === undefined) {
+      throw new Error('Target cannot be null or undefined');
+    }
+
     // Reflection on current target
     const initialReflection = await this.reflector.reflect(
       { target, contextOverrides }
@@ -30,8 +35,16 @@ export class ContextInjector {
       }
     );
 
-    // Dynamic context injection
-    return this.dynamicInject(target, adaptedContext);
+    // Context overrides take highest priority, then adapted context
+    const finalContext = { ...adaptedContext, ...contextOverrides };
+
+    // Check if target is frozen - if so, return a new merged object
+    if (Object.isFrozen(target)) {
+      return { ...target as any, ...finalContext } as T;
+    }
+
+    // Dynamic context injection via Proxy
+    return this.dynamicInject(target, finalContext);
   }
 
   private dynamicInject<T>(
@@ -41,6 +54,14 @@ export class ContextInjector {
     // Advanced context injection using Proxy
     return new Proxy(target as any, {
       get: (obj, prop) => {
+        // Check property descriptor to respect frozen/sealed properties
+        const descriptor = Object.getOwnPropertyDescriptor(obj, prop);
+
+        // If property is non-configurable and non-writable, must return actual value
+        if (descriptor && !descriptor.configurable && !descriptor.writable) {
+          return Reflect.get(obj, prop);
+        }
+
         // Check if context has override for property
         if (context.hasOwnProperty(prop)) {
           return context[prop];

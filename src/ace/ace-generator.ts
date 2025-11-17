@@ -20,6 +20,11 @@ export class ACEGenerator {
     baseContext: Record<string, any>,
     options: ContextGenerationOptions = {}
   ): Promise<Record<string, any>> {
+    // Validate baseContext is not null or undefined
+    if (baseContext === null || baseContext === undefined) {
+      throw new Error('baseContext cannot be null or undefined');
+    }
+
     const {
       maxComplexity = 5,
       allowAdaptation = true,

@@ -126,7 +126,7 @@ export class ACEReflector {
     } = {}
   ): Promise<CognitiveReflection> {
     const reflection: CognitiveReflection = {
-      id: `ref-${Date.now()}`,
+      id: `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
       complexity: options.complexity ?? this.calculateComplexity(context),
       context,
