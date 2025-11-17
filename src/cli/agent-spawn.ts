@@ -11,7 +11,7 @@
  *   npx cfn-spawn researcher --task-id task-123 --iteration 1
  */
 
-import { spawn } from 'child_process';
+import { spawn, execFileSync } from 'child_process';
 import { resolve } from 'path';
 
 interface AgentSpawnOptions {
@@ -26,9 +26,114 @@ interface AgentSpawnOptions {
 }
 
 /**
+ * SECURITY: Parameter validation to prevent command injection (CVSS 8.9)
+ * Validates all parameters that will be passed to execFileSync()
+ */
+
+/**
+ * Validates taskId format to prevent command injection attacks
+ * Pattern: alphanumeric, underscore, hyphen only, 1-64 chars
+ */
+function validateTaskId(taskId: string): { valid: boolean; error?: string } {
+  if (typeof taskId !== 'string' || taskId.length === 0) {
+    return { valid: false, error: 'Task ID must be a non-empty string' };
+  }
+
+  const taskIdPattern = /^[a-zA-Z0-9_-]{1,64}$/;
+  if (!taskIdPattern.test(taskId)) {
+    return {
+      valid: false,
+      error: 'Invalid task ID format - must contain only alphanumeric characters, underscores, and hyphens (max 64 chars)'
+    };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validates Redis host to prevent command injection
+ * Allows: hostnames, domain names, localhost, IPv4, IPv6 (::1)
+ */
+function validateRedisHost(host: string): { valid: boolean; error?: string } {
+  if (typeof host !== 'string' || host.length === 0) {
+    return { valid: false, error: 'Redis host must be a non-empty string' };
+  }
+
+  // Pattern: alphanumeric, hyphens, dots (for domains), plus special IPv6 loopback
+  const hostPattern = /^[a-zA-Z0-9.-]+$|^::1$/;
+  if (!hostPattern.test(host)) {
+    return { valid: false, error: 'Invalid Redis host format' };
+  }
+  return { valid: true };
+}
+
+/**
+ * Validates Redis port to prevent command injection
+ * Range: 1-65535
+ */
+function validateRedisPort(port: string): { valid: boolean; error?: string } {
+  if (typeof port !== 'string' || port.length === 0) {
+    return { valid: false, error: 'Redis port must be a non-empty string' };
+  }
+
+  const portNum = parseInt(port, 10);
+  if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+    return { valid: false, error: 'Invalid Redis port - must be between 1 and 65535' };
+  }
+  return { valid: true };
+}
+
+/**
+ * Safely retrieves context from Redis using execFileSync()
+ * Prevents command injection by using array-based arguments instead of template literals
+ */
+function getRedisContextSafely(
+  taskId: string,
+  redisHost: string,
+  redisPort: string,
+  contextKey: string
+): string {
+  try {
+    // Validate all parameters BEFORE executing
+    const taskIdValidation = validateTaskId(taskId);
+    if (!taskIdValidation.valid) {
+      console.warn(`[cfn-spawn] Invalid task ID: ${taskIdValidation.error}`);
+      return '';
+    }
+
+    const hostValidation = validateRedisHost(redisHost);
+    if (!hostValidation.valid) {
+      console.warn(`[cfn-spawn] Invalid Redis host: ${hostValidation.error}`);
+      return '';
+    }
+
+    const portValidation = validateRedisPort(redisPort);
+    if (!portValidation.valid) {
+      console.warn(`[cfn-spawn] Invalid Redis port: ${portValidation.error}`);
+      return '';
+    }
+
+    // All parameters validated - now execute safely with execFileSync()
+    // Using array arguments prevents shell interpolation of metacharacters
+    const redisKey = `swarm:${taskId}:${contextKey}`;
+    const result = execFileSync('redis-cli', [
+      '-h', redisHost,
+      '-p', redisPort,
+      'get',
+      redisKey
+    ], { encoding: 'utf8' });
+
+    const trimmed = result.trim();
+    return trimmed === '(nil)' ? '' : trimmed;
+  } catch (e) {
+    // Redis not available or key doesn't exist - fail silently
+    return '';
+  }
+}
+
+/**
  * Parse command line arguments for agent spawning
  */
-function parseAgentArgs(args: string[]): AgentSpawnOptions | null {
+export function parseAgentArgs(args: string[]): AgentSpawnOptions | null {
   // Handle both "agent <type>" and "<type>" patterns
   let agentType: string;
   let optionArgs: string[];
@@ -41,7 +146,8 @@ function parseAgentArgs(args: string[]): AgentSpawnOptions | null {
     optionArgs = args.slice(1);
   }
 
-  if (!agentType) {
+  // Validate agent type exists and is not a flag
+  if (!agentType || agentType.startsWith('--')) {
     console.error('Error: Agent type is required');
     console.error('Usage: cfn-spawn agent <type> [options]');
     return null;
@@ -91,7 +197,7 @@ function parseAgentArgs(args: string[]): AgentSpawnOptions | null {
  * This is a wrapper/alias for the existing claude-flow-novice agent spawning mechanism
  * Provides the cfn-spawn naming pattern while delegating to the working implementation
  */
-async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
+export async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
   const { agentType, agentId, taskId, iteration, context, mode, priority, parentTaskId } = options;
 
   console.log(`[cfn-spawn] Spawning agent: ${agentType}`);
@@ -133,42 +239,32 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
   let successCriteria = '';
 
   if (taskId) {
-    try {
-      const { execSync } = await import('child_process');
+    // SECURITY FIX (CVSS 8.9): Use safe parameter validation and execFileSync()
+    // Prevent command injection by validating all parameters BEFORE execution
+    const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+    const redisPort = process.env.CFN_REDIS_PORT || '6379';
 
-      // Bug #6 Fix: Read Redis connection parameters from process.env and interpolate in TypeScript
-      const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
-      const redisPort = process.env.CFN_REDIS_PORT || '6379';
+    // Validate Redis connection parameters
+    const hostValidation = validateRedisHost(redisHost);
+    const portValidation = validateRedisPort(redisPort);
 
+    if (hostValidation.valid && portValidation.valid) {
       // Try to read epic-level context from Redis
-      try {
-        epicContext = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:epic-context"`, { encoding: 'utf8' }).trim();
-        if (epicContext === '(nil)') epicContext = '';
-      } catch (e) {
-        // Redis not available or key doesn't exist
-      }
+      epicContext = getRedisContextSafely(taskId, redisHost, redisPort, 'epic-context');
 
       // Try to read phase-specific context
-      try {
-        phaseContext = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:phase-context"`, { encoding: 'utf8' }).trim();
-        if (phaseContext === '(nil)') phaseContext = '';
-      } catch (e) {
-        // Redis not available or key doesn't exist
-      }
+      phaseContext = getRedisContextSafely(taskId, redisHost, redisPort, 'phase-context');
 
       // Try to read success criteria
-      try {
-        successCriteria = execSync(`redis-cli -h ${redisHost} -p ${redisPort} get "swarm:${taskId}:success-criteria"`, { encoding: 'utf8' }).trim();
-        if (successCriteria === '(nil)') successCriteria = '';
-      } catch (e) {
-        // Redis not available or key doesn't exist
-      }
+      successCriteria = getRedisContextSafely(taskId, redisHost, redisPort, 'success-criteria');
 
       if (epicContext) {
         console.log(`[cfn-spawn]   Epic context loaded from Redis`);
       }
-    } catch (err) {
-      console.warn(`[cfn-spawn]   Could not load epic context from Redis:`, err);
+    } else {
+      console.warn(`[cfn-spawn]   Invalid Redis configuration - skipping context load`);
+      if (!hostValidation.valid) console.warn(`[cfn-spawn]   ${hostValidation.error}`);
+      if (!portValidation.valid) console.warn(`[cfn-spawn]   ${portValidation.error}`);
     }
   }
 
@@ -269,7 +365,7 @@ async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
 /**
  * Build task description for the agent
  */
-function buildTaskDescription(
+export function buildTaskDescription(
   agentType: string,
   taskId?: string,
   iteration?: number,
@@ -278,7 +374,7 @@ function buildTaskDescription(
   let desc = `Execute task as ${agentType} agent`;
 
   if (taskId) desc += ` for task ${taskId}`;
-  if (iteration) desc += ` (iteration ${iteration})`;
+  if (iteration !== undefined) desc += ` (iteration ${iteration})`;
   if (context) desc += `: ${context}`;
 
   return desc;
