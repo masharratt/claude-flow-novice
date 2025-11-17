@@ -67,9 +67,10 @@ fi
 
 **Validate:**
 - Run full test suite: `npm test` (or framework command from criteria)
-- Verify pass rate meets threshold (Standard: ≥95%)
+- Verify pass rate meets threshold (Hybrid: ≥95% in at least 2 of 3 suites AND ≥80% overall)
 - Check coverage: `npm run coverage` (ensure migration up/down paths covered)
 - *Time Guideline (not constraint): ~5 min for validation, longer for migration testing*
+- *Note: For single test suite tasks, the standard ≥95% threshold applies directly*
 
 ### 3. Report Test Results (NOT Confidence)
 
