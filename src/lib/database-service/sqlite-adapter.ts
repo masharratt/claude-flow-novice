@@ -10,6 +10,7 @@
 
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
+import { randomUUID } from 'crypto';
 import {
   IDatabaseAdapter,
   DatabaseConfig,
@@ -398,14 +399,34 @@ export class SQLiteAdapter implements IDatabaseAdapter {
     }
   }
 
+  /**
+   * Detect query type with comprehensive pattern matching
+   * Handles: SELECT, WITH/CTE, EXPLAIN, PRAGMA, comments
+   */
+  private detectQueryType(query: string): 'read' | 'write' {
+    // Remove multi-line comments first (/* */)
+    let normalized = query.replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // Remove single-line comments (--) line by line
+    normalized = normalized
+      .split('\n')
+      .map(line => line.replace(/--.*$/, ''))
+      .join('\n')
+      .trim();
+
+    // Read operations: SELECT, WITH (CTEs), EXPLAIN, PRAGMA, SHOW
+    const readPatterns = /^(SELECT|WITH|EXPLAIN|PRAGMA|SHOW)/i;
+    return readPatterns.test(normalized) ? 'read' : 'write';
+  }
+
   async raw<T = any>(query: string, params?: any[]): Promise<T> {
     this.ensureConnected();
 
     const connection = await this.poolManager!.acquire();
 
     try {
-      // Determine if query is SELECT or modification
-      const isSelect = query.trim().toUpperCase().startsWith('SELECT');
+      // Determine if query is SELECT or modification using comprehensive detection
+      const isSelect = this.detectQueryType(query) === 'read';
 
       if (isSelect) {
         const results = await connection.all<T[]>(query, params);
@@ -437,7 +458,7 @@ export class SQLiteAdapter implements IDatabaseAdapter {
     const connection = await this.poolManager!.acquire();
 
     const context: TransactionContext = {
-      id: `sqlite-tx-${Date.now()}`,
+      id: `sqlite-tx-${randomUUID()}`,
       databases: ['sqlite'],
       startTime: new Date(),
       status: 'pending',
