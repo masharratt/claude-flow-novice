@@ -869,7 +869,7 @@ export class BackupManager {
     // Run migration
     const migrationPath = path.join(
       this.projectRoot,
-      'src/db/migrations/004-backup-metadata-schema.sql'
+      'src/db/migrations/up/004-backup-metadata-schema.sql'
     );
 
     if (fs.existsSync(migrationPath)) {

@@ -66,7 +66,7 @@ async function setupTestDatabase(): Promise<DatabaseService> {
 
   // Run migrations
   const migrationSQL = fs.readFileSync(
-    path.join(__dirname, '../src/db/migrations/003-unify-metrics-schema.sql'),
+    path.join(__dirname, '../src/db/migrations/up/003-unify-metrics-schema.sql'),
     'utf-8'
   );
 

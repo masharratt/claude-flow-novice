@@ -37,7 +37,7 @@ describe('SkillLoader with Memory Budget', () => {
 
     // Run migration
     const migrationSQL = await fs.readFile(
-      path.join(process.cwd(), 'src/db/migrations/007-skill-metadata-schema.sql'),
+      path.join(process.cwd(), 'src/db/migrations/up/007-skill-metadata-schema.sql'),
       'utf-8'
     );
     await sqliteAdapter.raw(migrationSQL);
