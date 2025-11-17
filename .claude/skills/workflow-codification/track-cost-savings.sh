@@ -1,6 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Input validation functions (SQL injection prevention)
+validate_date() {
+    local input="$1"
+    if ! [[ "$input" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        echo "ERROR: Invalid date format: $input (expected YYYY-MM-DD)" >&2
+        return 1
+    fi
+    return 0
+}
+
+validate_period() {
+    local input="$1"
+    if ! [[ "$input" =~ ^[0-9]+$ ]]; then
+        echo "ERROR: Invalid period (must be numeric): $input" >&2
+        return 1
+    fi
+    if [ "$input" -lt 1 ] || [ "$input" -gt 365 ]; then
+        echo "ERROR: Period out of range (1-365): $input" >&2
+        return 1
+    fi
+    return 0
+}
+
 # track-cost-savings.sh - Log skill executions and calculate ROI metrics
 # Tracks cost savings from script execution vs AI agent usage
 
@@ -120,6 +143,7 @@ EOF
 # Generate ROI snapshot
 generate_roi_snapshot() {
     local snapshot_date="${1:-$(date +%Y-%m-%d)}"
+validate_date "$snapshot_date" || exit 1
 
     # Calculate aggregate metrics
     local total_executions
@@ -185,6 +209,7 @@ EOF
 # Query per-skill ROI ranking
 query_skill_roi_ranking() {
     local period="${1:-30}"  # Default: last 30 days
+validate_period "$period" || exit 1
 
     sqlite3 -header -column "$DB_PATH" <<EOF
 SELECT
@@ -302,6 +327,7 @@ main() {
     local task_description=""
     local metadata="{}"
     local period="30"
+validate_period "$period" || exit 1
     local output_format="json"
 
     while [[ $# -gt 0 ]]; do
@@ -344,6 +370,7 @@ main() {
                 ;;
             --period)
                 period="$2"
+validate_period "$period" || exit 1
                 shift 2
                 ;;
             --format)

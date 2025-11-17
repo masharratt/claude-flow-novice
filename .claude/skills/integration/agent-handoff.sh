@@ -16,6 +16,11 @@
 
 set -euo pipefail
 
+# Source parameterized query library for SQL injection prevention
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+
 # Configuration
 AGENT_STATE_DB="${AGENT_STATE_DB:-./.claude/agents/state/agent-state.db}"
 HEARTBEAT_INTERVAL="${HEARTBEAT_INTERVAL:-30}"
@@ -132,20 +137,12 @@ agent_spawn() {
 
     log_info "Spawning agent" "{\"agent_id\":\"$agent_id\",\"agent_type\":\"$agent_type\",\"task_id\":\"$task_id\"}"
 
-    # Register agent in database
-    sqlite3 "$AGENT_STATE_DB" <<SQL
-INSERT INTO agents (
-    agent_id, agent_type, task_id, status, spawned_at, timeout_seconds, metadata
-) VALUES (
-    '$agent_id',
-    '$agent_type',
-    '$task_id',
-    'spawned',
-    '$(date -u +"%Y-%m-%dT%H:%M:%SZ")',
-    $timeout_seconds,
-    '$metadata'
-);
-SQL
+    # Register agent in database - using parameterized query
+    local spawned_timestamp
+    spawned_timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    sqlite_insert "$AGENT_STATE_DB" \
+        "INSERT INTO agents (agent_id, agent_type, task_id, status, spawned_at, timeout_seconds, metadata) VALUES (?1, ?2, ?3, 'spawned', ?4, ?5, ?6);" \
+        "$agent_id" "$agent_type" "$task_id" "$spawned_timestamp" "$timeout_seconds" "$metadata"
 
     # Standard agent spawn command (customizable via environment)
     local spawn_cmd="${AGENT_SPAWN_CMD:-cfn-spawn agent}"
@@ -157,10 +154,10 @@ SQL
         export TASK_ID="$task_id"
         export AGENT_TYPE="$agent_type"
 
-        # Update status to running
-        sqlite3 "$AGENT_STATE_DB" <<SQL
-UPDATE agents SET status = 'running', pid = $$ WHERE agent_id = '$agent_id';
-SQL
+        # Update status to running - using parameterized query
+        sqlite_update "$AGENT_STATE_DB" \
+            "UPDATE agents SET status = 'running', pid = ?1 WHERE agent_id = ?2;" \
+            "$$" "$agent_id"
 
         # Start heartbeat in background
         agent_heartbeat_loop "$agent_id" "$task_id" &
@@ -186,10 +183,10 @@ SQL
 
     local agent_pid=$!
 
-    # Update PID in database
-    sqlite3 "$AGENT_STATE_DB" <<SQL
-UPDATE agents SET pid = $agent_pid WHERE agent_id = '$agent_id';
-SQL
+    # Update PID in database - using parameterized query
+    sqlite_update "$AGENT_STATE_DB" \
+        "UPDATE agents SET pid = ?1 WHERE agent_id = ?2;" \
+        "$agent_pid" "$agent_id"
 
     log_info "Agent spawned successfully" "{\"agent_id\":\"$agent_id\",\"pid\":$agent_pid}"
 
@@ -208,13 +205,13 @@ agent_heartbeat() {
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-    # Update last heartbeat in agents table
-    sqlite3 "$AGENT_STATE_DB" <<SQL
-UPDATE agents SET last_heartbeat = '$timestamp' WHERE agent_id = '$agent_id';
-INSERT INTO heartbeats (agent_id, task_id, timestamp, metadata) VALUES (
-    '$agent_id', '$task_id', '$timestamp', '$metadata'
-);
-SQL
+    # Update last heartbeat in agents table - using parameterized queries
+    sqlite_update "$AGENT_STATE_DB" \
+        "UPDATE agents SET last_heartbeat = ?1 WHERE agent_id = ?2;" \
+        "$timestamp" "$agent_id"
+    sqlite_insert "$AGENT_STATE_DB" \
+        "INSERT INTO heartbeats (agent_id, task_id, timestamp, metadata) VALUES (?1, ?2, ?3, ?4);" \
+        "$agent_id" "$task_id" "$timestamp" "$metadata"
 
     log_debug "Heartbeat sent" "{\"agent_id\":\"$agent_id\",\"task_id\":\"$task_id\"}"
 }
@@ -229,9 +226,9 @@ agent_heartbeat_loop() {
         agent_heartbeat "$agent_id" "$task_id" || break
         sleep "$HEARTBEAT_INTERVAL"
 
-        # Check if agent is still alive
+        # Check if agent is still alive - using parameterized query
         local status
-        status=$(sqlite3 "$AGENT_STATE_DB" "SELECT status FROM agents WHERE agent_id = '$agent_id';" || echo "unknown")
+        status=$(sqlite_select "$AGENT_STATE_DB" "SELECT status FROM agents WHERE agent_id = ?1;" "$agent_id" || echo "unknown")
 
         if [[ "$status" == "completed" ]] || [[ "$status" == "failed" ]] || [[ "$status" == "timeout" ]]; then
             log_debug "Heartbeat loop stopping" "{\"agent_id\":\"$agent_id\",\"status\":\"$status\"}"
@@ -253,15 +250,10 @@ agent_complete() {
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-    # Update agent status
-    sqlite3 "$AGENT_STATE_DB" <<SQL
-UPDATE agents SET
-    status = 'completed',
-    completed_at = '$timestamp',
-    confidence = $confidence,
-    result = '$result'
-WHERE agent_id = '$agent_id';
-SQL
+    # Update agent status - using parameterized query
+    sqlite_update "$AGENT_STATE_DB" \
+        "UPDATE agents SET status = 'completed', completed_at = ?1, confidence = ?2, result = ?3 WHERE agent_id = ?4;" \
+        "$timestamp" "$confidence" "$result" "$agent_id"
 
     log_info "Agent completed" "{\"agent_id\":\"$agent_id\",\"task_id\":\"$task_id\",\"confidence\":$confidence}"
 
@@ -294,14 +286,10 @@ agent_fail() {
 EOF
     )
 
-    sqlite3 "$AGENT_STATE_DB" <<SQL
-UPDATE agents SET
-    status = 'failed',
-    completed_at = '$timestamp',
-    confidence = 0.0,
-    result = '$error_result'
-WHERE agent_id = '$agent_id';
-SQL
+    # Update agent status for failure - using parameterized query
+    sqlite_update "$AGENT_STATE_DB" \
+        "UPDATE agents SET status = 'failed', completed_at = ?1, confidence = 0.0, result = ?2 WHERE agent_id = ?3;" \
+        "$timestamp" "$error_result" "$agent_id"
 
     log_error "Agent failed" "{\"agent_id\":\"$agent_id\",\"task_id\":\"$task_id\",\"error\":\"$error_message\"}"
 }
@@ -314,8 +302,9 @@ SQL
 agent_check_timeout() {
     local agent_id="$1"
 
+    # Get agent data - using parameterized query
     local agent_data
-    agent_data=$(sqlite3 "$AGENT_STATE_DB" "SELECT spawned_at, timeout_seconds, status, pid FROM agents WHERE agent_id = '$agent_id';" | tr '|' ' ')
+    agent_data=$(sqlite_select "$AGENT_STATE_DB" "SELECT spawned_at, timeout_seconds, status, pid FROM agents WHERE agent_id = ?1;" "$agent_id" | tr '|' ' ')
 
     read -r spawned_at timeout_seconds status pid <<< "$agent_data"
 
@@ -349,14 +338,14 @@ agent_check_timeout() {
             fi
         fi
 
-        # Mark as timeout
-        sqlite3 "$AGENT_STATE_DB" <<SQL
-UPDATE agents SET
-    status = 'timeout',
-    completed_at = '$(date -u +"%Y-%m-%dT%H:%M:%SZ")',
-    result = '{"error": "Agent exceeded timeout", "elapsed_seconds": $elapsed}'
-WHERE agent_id = '$agent_id';
-SQL
+        # Mark as timeout - using parameterized query
+        local timeout_timestamp
+        timeout_timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        local timeout_result
+        timeout_result="{\"error\": \"Agent exceeded timeout\", \"elapsed_seconds\": $elapsed}"
+        sqlite_update "$AGENT_STATE_DB" \
+            "UPDATE agents SET status = 'timeout', completed_at = ?1, result = ?2 WHERE agent_id = ?3;" \
+            "$timeout_timestamp" "$timeout_result" "$agent_id"
 
         return 1
     fi
@@ -380,9 +369,9 @@ agent_wait_for_completion() {
     start_time=$(date +%s)
 
     while true; do
-        # Check status
+        # Check status - using parameterized query
         local status
-        status=$(sqlite3 "$AGENT_STATE_DB" "SELECT status FROM agents WHERE agent_id = '$agent_id';" || echo "unknown")
+        status=$(sqlite_select "$AGENT_STATE_DB" "SELECT status FROM agents WHERE agent_id = ?1;" "$agent_id" || echo "unknown")
 
         if [[ "$status" == "completed" ]]; then
             log_info "Agent completed successfully" "{\"agent_id\":\"$agent_id\"}"
@@ -416,8 +405,11 @@ agent_wait_for_completion() {
 agent_get_status() {
     local agent_id="$1"
 
+    # Get status - using parameterized query (manual JSON mode as sqlite_select doesn't support -json flag)
     local status_json
-    status_json=$(sqlite3 -json "$AGENT_STATE_DB" "SELECT * FROM agents WHERE agent_id = '$agent_id';" | jq '.[0]')
+    status_json=$(sqlite3 -json "$AGENT_STATE_DB" ".parameter init
+.parameter set ?1 \"$agent_id\"
+SELECT * FROM agents WHERE agent_id = ?1;" | jq '.[0]')
 
     echo "$status_json"
 }
@@ -428,8 +420,11 @@ agent_get_status() {
 agent_get_by_task() {
     local task_id="$1"
 
+    # Get agents by task - using parameterized query (manual JSON mode)
     local agents_json
-    agents_json=$(sqlite3 -json "$AGENT_STATE_DB" "SELECT * FROM agents WHERE task_id = '$task_id' ORDER BY spawned_at DESC;")
+    agents_json=$(sqlite3 -json "$AGENT_STATE_DB" ".parameter init
+.parameter set ?1 \"$task_id\"
+SELECT * FROM agents WHERE task_id = ?1 ORDER BY spawned_at DESC;")
 
     echo "$agents_json"
 }
@@ -440,8 +435,11 @@ agent_get_by_task() {
 agent_get_heartbeats() {
     local agent_id="$1"
 
+    # Get heartbeats - using parameterized query (manual JSON mode)
     local heartbeats_json
-    heartbeats_json=$(sqlite3 -json "$AGENT_STATE_DB" "SELECT * FROM heartbeats WHERE agent_id = '$agent_id' ORDER BY timestamp DESC LIMIT 100;")
+    heartbeats_json=$(sqlite3 -json "$AGENT_STATE_DB" ".parameter init
+.parameter set ?1 \"$agent_id\"
+SELECT * FROM heartbeats WHERE agent_id = ?1 ORDER BY timestamp DESC LIMIT 100;")
 
     echo "$heartbeats_json"
 }

@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Input validation (SQL injection prevention)
+validate_identifier() {
+    local input="$1"
+    local max_length="${2:-255}"
+    if ! [[ "$input" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "ERROR: Invalid identifier (alphanumeric + underscore/hyphen only): $input" >&2
+        return 1
+    fi
+    if [ ${#input} -gt $max_length ]; then
+        echo "ERROR: Identifier exceeds max length ($max_length chars)" >&2
+        return 1
+    fi
+    return 0
+}
+
 # test-integration.sh - Integration tests for workflow-codification skill
 # Tests edge case tracking and cost tracking functionality
 

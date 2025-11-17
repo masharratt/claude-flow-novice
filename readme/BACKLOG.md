@@ -43,6 +43,36 @@ Implementation:
 
 ### P2 - Medium Priority
 
+**[P2] - SEC-003: Complete SQL injection migration (8 remaining scrip...**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: SEC-003: Complete SQL injection migration (8 remaining scripts)
+- **Rationale**: Framework operational and prevents new vulnerabilities. Remaining migrations ensure legacy script safety.
+- **Proposed Solution**: Migrate 8 scripts using parameterized queries pattern from sqlite-params.sh library. Priority: track-cost-savings.sh (14+ patterns), then 7 additional scripts. Estimated 15-20 hours. Target: 2 weeks.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-17
+
+**[P2] - Fix SQL injection test suite execution hang**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Fix SQL injection test suite execution hang
+- **Rationale**: Test suite (test-sql-injection-final-validation.sh) hangs during execution preventing automated OWASP test coverage verification. Manual code review confirms all 13 scripts are secure, but automated gate compliance (≥0.95 pass rate) cannot be verified.
+- **Proposed Solution**: Debug test suite execution: (1) Identify why test hangs on first OWASP vector, (2) Fix sqlite_select() function usage in test context, (3) Run full 28-vector suite to completion, (4) Verify ≥95% pass rate. Estimated 2-4 hours.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-17
+
+**[P2] - Fix SQL injection test suite execution infrastructure**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Fix SQL injection test suite execution infrastructure
+- **Rationale**: Test suite hangs during OWASP vector execution. Manual validation confirms security fixes are correct, but automated test verification incomplete.
+- **Proposed Solution**: Debug sqlite_select() test execution, resolve test suite hang, validate 28 OWASP attack vectors complete successfully. Estimated effort: 2-4 hours.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-17
+
 **[P2] - Quote all 21 variables in docker/coordinator-entrypoint.sh**
 - **Sprint Backlogged**: Phase 4
 - **Category**: Technical-Debt

@@ -28,8 +28,10 @@ import os from 'os';
 const execAsync = promisify(exec);
 
 // Bug #6 Fix: Read Redis connection parameters from process.env
+// ENV-001: Standardized environment variable naming (REDIS_PASSWORD for all deployments)
 const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
 const redisPort = process.env.CFN_REDIS_PORT || '6379';
+const redisPassword = process.env.CFN_REDIS_PASSWORD || process.env.REDIS_PASSWORD || '';
 
 export interface AgentExecutionResult {
   success: boolean;
@@ -94,7 +96,8 @@ async function executeCFNProtocol(
   try {
     // Step 1: Signal completion
     console.log('[CFN Protocol] Step 1: Signaling completion...');
-    await execAsync(`redis-cli -h "${redisHost}" -p "${redisPort}" lpush "swarm:${taskId}:${agentId}:done" "complete"`);
+    const authFlag = redisPassword ? `-a "${redisPassword}"` : '';
+    await execAsync(`redis-cli -h "${redisHost}" -p "${redisPort}" ${authFlag} lpush "swarm:${taskId}:${agentId}:done" "complete"`);
     console.log('[CFN Protocol] ✓ Completion signaled');
 
     // Step 2: Extract and report confidence
