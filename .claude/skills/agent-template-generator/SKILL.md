@@ -215,8 +215,7 @@ grep -A 5 "source .claude/skills/json-validation" .claude/agents/cfn-dev-team/de
 ```bash
 # Test with sample criteria
 AGENT_SUCCESS_CRITERIA='{"test_suites":[{"name":"security-tests","command":"npm run test:security","pass_threshold":0.95}]}' \
-  npx claude-flow-novice agent-spawn \
-    --agent graphql-security-specialist \
+  cfn-spawn agent graphql-security-specialist \
     --task "Test validation integration"
 ```
 

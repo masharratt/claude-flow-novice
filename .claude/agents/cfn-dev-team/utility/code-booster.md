@@ -53,9 +53,7 @@ Specialized performance optimization expert leveraging WASM acceleration and adv
 
 ## Mandatory Post-Edit Hook
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] \
-  --memory-key "code-booster/${AGENT_ID}/optimization" \
-  --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 ## Completion Protocol

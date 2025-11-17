@@ -75,8 +75,7 @@ redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] \
-  --memory-key "security-specialist/${AGENT_ID}/validation" --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 **Validators:**

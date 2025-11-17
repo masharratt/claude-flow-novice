@@ -330,7 +330,7 @@ Orchestrate CFN Loop v3 execution using Redis coordination for CLI agent spawnin
 
 **IMPORTANT:** This coordinator agent is **ALWAYS CLI mode**. Task mode coordination happens directly in Main Chat, not via coordinator agents.
 
-When spawned via CLI (`npx claude-flow-novice agent-spawn`), implement full Redis coordination:
+When spawned via CLI (`cfn-spawn agent`), implement full Redis coordination:
 - Use Redis coordination for agent spawning
 - Store context in Redis for swarm recovery
 - Collect confidence scores via Redis signals
@@ -341,7 +341,7 @@ When spawned via CLI (`npx claude-flow-novice agent-spawn`), implement full Redi
 
 ### CLI Mode Implementation (Production)
 
-When spawned via CLI (`npx claude-flow-novice agent-spawn`), implement full Redis coordination:
+When spawned via CLI (`cfn-spawn agent`), implement full Redis coordination:
 
 #### 1. Task Context Storage
 ```bash
@@ -380,7 +380,7 @@ for agent in "${loop3_agents[@]}"; do
     "status" "spawning"
 
   # Inject context and spawn via CLI
-  npx claude-flow-novice agent-spawn "${agent}" \
+  cfn-spawn agent "${agent}" \
     --task-id "${TASK_ID}" \
     --agent-id "${AGENT_ID}" \
     --context "$(redis-cli HGETALL "cfn_loop:task:${TASK_ID}:context" | jq -s 'reduce .[] as $item ({}; . + $item)')" &
@@ -480,7 +480,7 @@ Focus on:
 EOF
 )
 
-    npx claude-flow-novice agent-spawn "${validator}" \
+    cfn-spawn agent "${validator}" \
       --task-id "${TASK_ID}" \
       --agent-id "${AGENT_ID}" \
       --context "${VALIDATION_CONTEXT}" &
@@ -534,7 +534,7 @@ EOF
 
 # Spawn Product Owner
 PO_AGENT_ID="${TASK_ID}-product-owner-$(date +%s)"
-npx claude-flow-novice agent-spawn "product-owner" \
+cfn-spawn agent "product-owner" \
   --task-id "${TASK_ID}" \
   --agent-id "${PO_AGENT_ID}" \
   --context "${PO_CONTEXT}" &

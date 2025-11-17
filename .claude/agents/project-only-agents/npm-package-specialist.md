@@ -29,7 +29,7 @@ You are a specialized NPM Package Developer with expertise in creating, configur
 After **EVERY** file edit operation:
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "npm-package/${MODE}" --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 → See: `.claude/templates/post-edit-validation.md`

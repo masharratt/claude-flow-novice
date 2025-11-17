@@ -22,7 +22,7 @@ validation_hooks:
 ## 🚨 Mandatory Post-Edit Validation
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "playwright/${AGENT_ID}/step" --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 ## Core Responsibilities

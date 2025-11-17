@@ -49,13 +49,13 @@ AGENT_CONTEXT=$(redis-cli get "swarm:${TASK_ID}:${AGENT_ID}:context")
 case "$RECOVERY_MODE" in
     "soft")
         # Soft recovery: Spawn new agent with previous context
-        npx claude-flow@alpha spawn "$AGENT_ID" \
+        cfn-spawn agent "$AGENT_ID" \
             --task-id "$TASK_ID" \
             --recovery-context "$AGENT_CONTEXT"
         ;;
     "hard")
         # Hard recovery: Full agent replacement
-        npx claude-flow@alpha spawn "$AGENT_ID" \
+        cfn-spawn agent "$AGENT_ID" \
             --task-id "$TASK_ID" \
             --mode replace \
             --recovery-context "$AGENT_CONTEXT"

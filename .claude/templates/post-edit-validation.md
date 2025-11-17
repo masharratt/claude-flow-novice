@@ -96,10 +96,7 @@ post_edit_validation:
 ### Hooks Integration
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] \
-  --memory-key "validation/context" \
-  --structured \
-  --confidence-output
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 ### Performance Metrics

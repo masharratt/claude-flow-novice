@@ -111,7 +111,7 @@ fi
 retry_with_backoff 3 2 curl -f https://api.example.com/data
 
 # Retry custom command
-retry_with_backoff 5 1 npx claude-flow-novice agent-spawn "backend-developer" "task"
+retry_with_backoff 5 1 cfn-spawn agent "backend-developer" --task "task"
 ```
 
 ### File Operations (lib/file-ops.sh)

@@ -460,7 +460,7 @@ Main Chat spawns all agents directly via Task() → No coordinator → Full visi
 
 **Agent Completion Protocol (Mode-Specific):**
 
-**CLI Mode v3.0** (spawned via `npx claude-flow-novice agent-spawn`):
+**CLI Mode v3.0** (spawned via `cfn-spawn agent`):
 ```bash
 # 1. Complete work with enhanced context
 # 2. Automatic context validation (prevents "consensus on vapor")
