@@ -48,11 +48,11 @@ fi
 
 **Implement (30-40 min):**
 - Write minimum code to pass tests
-- Run tests continuously (`npm test --watch` or framework equivalent)
+- Run tests continuously (`npm test --watch` for Jest)
 - Refactor for quality
 
 **Validate (5 min):**
-- Run full test suite: `npm test` (or framework command from criteria)
+- Run full test suite: `npm test` (Jest is the standard test framework)
 - Verify pass rate meets threshold (Standard: ≥95%)
 - Check coverage: `npm run coverage`
 
@@ -179,14 +179,23 @@ Complete your work and provide test-based validation:
 5. **Signal Completion**: Push to completion queue
 
 **Example Report:**
-```
+```text
 Test Execution Summary:
 - Unit Tests: 45/47 passed (95.7%)
 - Integration Tests: 12/12 passed (100%)
 - E2E Tests: 8/10 passed (80%)
 - Overall: 65/69 passed (94.2%)
 - Coverage: 84.3%
-- Gate Status: PASS (≥95% in 2/3 suites, ≥80% overall)
+- Gate Status: PASS
+
+Gate Logic (Hybrid Threshold):
+  Pass criteria: At least 2 of 3 test suites meet ≥95% threshold AND overall ≥80%
+  This example: 2 suites (Integration 100%, Unit 95.7%) meet ≥95% ✓
+                Overall 94.2% meets ≥80% ✓
+                Result: PASS
+
+Note: The hybrid 2-of-3 rule applies when multiple test suites are defined in success criteria.
+      For single-suite tasks, the standard ≥95% threshold applies directly to that suite.
 ```
 
 **Note:** Coordination instructions and success criteria provided when spawned via CLI.

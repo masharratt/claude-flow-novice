@@ -50,7 +50,7 @@ redis-cli LPUSH "key" "value"  # Fails gracefully if Redis unavailable
 
 **Execution Flow:**
 
-```
+```text
 1. Script calls redis-cli LPUSH "key" "value"
 2. redis-functions.sh overrides redis-cli → calls wrapper
 3. Wrapper checks: timeout 1 redis-cli ping

@@ -200,7 +200,7 @@ Complete your work and provide test-based validation:
 5. **Signal Completion**: Push to completion queue
 
 **Example Report:**
-```
+```text
 Test Execution Summary:
 - Unit Tests: 45/47 passed (95.7%)
 - Integration Tests: 12/12 passed (100%)

@@ -49,25 +49,51 @@ test_path_traversal_prevention() {
     echo ""
     echo "=== Testing: Fix 1: Path Traversal Prevention (CWE-22) ==="
 
-    # Test 1.1: Verify path validation code exists
-    if grep -q "EXPECTED_PREFIX=" /home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh; then
-        log_result "Fix 1 - Path prefix validation implemented" 1
+    local GATE_SCRIPT="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+
+    # Test 1.1: Runtime test - Create symlink outside allowed prefix and verify it's blocked
+    local OUTSIDE_DIR="/tmp/outside-allowed-prefix-$$"
+    local SYMLINK_PATH="$OUTSIDE_DIR/gate-check-symlink.sh"
+
+    mkdir -p "$OUTSIDE_DIR"
+    ln -sf "$GATE_SCRIPT" "$SYMLINK_PATH"
+
+    # Try to execute via symlink (should fail with security error)
+    local OUTPUT
+    local EXIT_CODE=0
+    OUTPUT=$("$SYMLINK_PATH" --task-id "test" --agents "agent1" --threshold "0.95" --min-quorum "1" 2>&1) || EXIT_CODE=$?
+
+    if [ "$EXIT_CODE" -ne 0 ] && echo "$OUTPUT" | grep -q "SECURITY ERROR"; then
+        log_result "Fix 1.1 - Symlink attack blocked (runtime check)" 1
     else
-        log_result "Fix 1 - Path prefix validation implemented" 0 "Path validation code not found"
+        log_result "Fix 1.1 - Symlink attack blocked (runtime check)" 0 "Symlink executed successfully or wrong error (exit=$EXIT_CODE)"
     fi
 
-    # Test 1.2: Verify symlink check pattern exists
-    if grep -q "SECURITY FIX #1" /home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh; then
-        log_result "Fix 1 - Security comments present" 1
+    rm -rf "$OUTSIDE_DIR"
+
+    # Test 1.2: Verify path validation actually checks PROJECT_ROOT
+    if grep -q 'if \[\[ ! "\$PROJECT_ROOT" =~ \^\${EXPECTED_PREFIX' "$GATE_SCRIPT"; then
+        log_result "Fix 1.2 - Path validation regex implemented" 1
     else
-        log_result "Fix 1 - Security comments present" 0 "Security comments missing"
+        log_result "Fix 1.2 - Path validation regex implemented" 0 "Validation logic not found"
     fi
 
-    # Test 1.3: Verify it exits on invalid path
-    if grep -q 'exit 1' /home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh | head -1; then
-        log_result "Fix 1 - Exit on invalid path" 1
+    # Test 1.3: Verify security error message is informative
+    if grep -q "Path traversal / symlink attack" "$GATE_SCRIPT"; then
+        log_result "Fix 1.3 - Informative security error message" 1
     else
-        log_result "Fix 1 - Exit on invalid path" 0 "Exit logic not found"
+        log_result "Fix 1.3 - Informative security error message" 0 "Security message missing"
+    fi
+
+    # Test 1.4: Runtime test - Verify normal execution from allowed path works
+    EXIT_CODE=0
+    OUTPUT=$(cd /home/user/claude-flow-novice && "$GATE_SCRIPT" --task-id "test" --agents "agent1" --threshold "0.95" --min-quorum "1" --success-criteria '{"test_suites":[]}' 2>&1) || EXIT_CODE=$?
+
+    # Should fail for missing data but NOT for path security
+    if ! echo "$OUTPUT" | grep -q "SECURITY ERROR.*path"; then
+        log_result "Fix 1.4 - Normal execution allowed from valid path" 1
+    else
+        log_result "Fix 1.4 - Normal execution allowed from valid path" 0 "False positive security error"
     fi
 }
 
@@ -81,39 +107,80 @@ test_json_field_validation() {
 
     local GATE_CHECK="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
 
-    # Test 2.1: Verify MAX_TEST_SUITES constant is defined
+    # Test 2.1: Verify MAX_TEST_SUITES constant is defined AND enforced
+    local HAS_CONSTANT=0
+    local HAS_ENFORCEMENT=0
+
     if grep -q "MAX_TEST_SUITES=50" "$GATE_CHECK"; then
-        log_result "Fix 2a - Max test suites limit (50)" 1
-    else
-        log_result "Fix 2a - Max test suites limit (50)" 0 "MAX_TEST_SUITES not found"
+        HAS_CONSTANT=1
     fi
 
-    # Test 2.2: Verify array size validation
-    if grep -q "test_suites array exceeds maximum size" "$GATE_CHECK"; then
-        log_result "Fix 2a - Array size validation implemented" 1
-    else
-        log_result "Fix 2a - Array size validation implemented" 0 "Array validation not found"
+    if grep -q 'TEST_SUITE_COUNT.*-gt.*MAX_TEST_SUITES' "$GATE_CHECK" || \
+       grep -q '\$MAX_TEST_SUITES' "$GATE_CHECK" | grep -q 'if \['; then
+        HAS_ENFORCEMENT=1
     fi
 
-    # Test 2.3: Verify pass_threshold validation
-    if grep -q "pass_threshold // 0.5" "$GATE_CHECK" && grep -q "PASS_THRESHOLD_MIN" "$GATE_CHECK"; then
-        log_result "Fix 2b - Pass threshold range validation" 1
+    if [ "$HAS_CONSTANT" -eq 1 ] && [ "$HAS_ENFORCEMENT" -eq 1 ]; then
+        log_result "Fix 2a - Max test suites limit declared and enforced" 1
     else
-        log_result "Fix 2b - Pass threshold range validation" 0 "Threshold validation missing"
+        log_result "Fix 2a - Max test suites limit declared and enforced" 0 "Missing: constant=$HAS_CONSTANT enforcement=$HAS_ENFORCEMENT"
     fi
 
-    # Test 2.4: Verify timeout range validation
-    if grep -q "TIMEOUT_MIN=1" "$GATE_CHECK" && grep -q "TIMEOUT_MAX=3600" "$GATE_CHECK"; then
-        log_result "Fix 2c - Timeout range validation (1-3600s)" 1
+    # Test 2.2: Verify array size validation with actual comparison
+    if grep -q "test_suites array exceeds maximum size" "$GATE_CHECK" && \
+       grep -q 'TEST_SUITE_COUNT.*-gt' "$GATE_CHECK"; then
+        log_result "Fix 2a - Array size validation with comparison" 1
     else
-        log_result "Fix 2c - Timeout range validation (1-3600s)" 0 "Timeout range not found"
+        log_result "Fix 2a - Array size validation with comparison" 0 "Array validation or comparison not found"
     fi
 
-    # Test 2.5: Verify field length validation
+    # Test 2.3: Verify pass_threshold validation with enforcement
+    local HAS_THRESHOLD_MIN=0
+    local HAS_THRESHOLD_MAX=0
+    local HAS_THRESHOLD_CHECK=0
+
+    if grep -q "PASS_THRESHOLD_MIN" "$GATE_CHECK"; then
+        HAS_THRESHOLD_MIN=1
+    fi
+    if grep -q "PASS_THRESHOLD_MAX" "$GATE_CHECK"; then
+        HAS_THRESHOLD_MAX=1
+    fi
+    if grep -E -q 'PASS_THRESHOLD.*(bc -l|<|>).*PASS_THRESHOLD_(MIN|MAX)' "$GATE_CHECK"; then
+        HAS_THRESHOLD_CHECK=1
+    fi
+
+    if [ "$HAS_THRESHOLD_MIN" -eq 1 ] && [ "$HAS_THRESHOLD_MAX" -eq 1 ] && [ "$HAS_THRESHOLD_CHECK" -eq 1 ]; then
+        log_result "Fix 2b - Pass threshold range declared and enforced" 1
+    else
+        log_result "Fix 2b - Pass threshold range declared and enforced" 0 "Missing: min=$HAS_THRESHOLD_MIN max=$HAS_THRESHOLD_MAX check=$HAS_THRESHOLD_CHECK"
+    fi
+
+    # Test 2.4: Verify timeout range validation with enforcement
+    local HAS_TIMEOUT_MIN=0
+    local HAS_TIMEOUT_MAX=0
+    local HAS_TIMEOUT_CHECK=0
+
+    if grep -q "TIMEOUT_MIN=1" "$GATE_CHECK"; then
+        HAS_TIMEOUT_MIN=1
+    fi
+    if grep -q "TIMEOUT_MAX=3600" "$GATE_CHECK"; then
+        HAS_TIMEOUT_MAX=1
+    fi
+    if grep -E -q 'TIMEOUT.*(bc -l|<|>|lt|gt).*TIMEOUT_(MIN|MAX)' "$GATE_CHECK"; then
+        HAS_TIMEOUT_CHECK=1
+    fi
+
+    if [ "$HAS_TIMEOUT_MIN" -eq 1 ] && [ "$HAS_TIMEOUT_MAX" -eq 1 ] && [ "$HAS_TIMEOUT_CHECK" -eq 1 ]; then
+        log_result "Fix 2c - Timeout range (1-3600s) declared and enforced" 1
+    else
+        log_result "Fix 2c - Timeout range (1-3600s) declared and enforced" 0 "Missing: min=$HAS_TIMEOUT_MIN max=$HAS_TIMEOUT_MAX check=$HAS_TIMEOUT_CHECK"
+    fi
+
+    # Test 2.5: Verify field length validation (declaration check is sufficient for this)
     if grep -q "MAX_FIELD_LENGTH=256" "$GATE_CHECK"; then
-        log_result "Fix 2 - Field length limit (256 chars)" 1
+        log_result "Fix 2 - Field length limit (256 chars) declared" 1
     else
-        log_result "Fix 2 - Field length limit (256 chars)" 0 "Field length limit missing"
+        log_result "Fix 2 - Field length limit (256 chars) declared" 0 "Field length limit missing"
     fi
 }
 
@@ -189,9 +256,11 @@ test_temp_file_permissions() {
     fi
 
     # Test 4.4: Practical test - verify actual chmod works
-    local TEST_FILE=$(mktemp)
+    local TEST_FILE
+    TEST_FILE=$(mktemp)
     chmod 600 "$TEST_FILE"
-    local PERMS=$(stat -c '%a' "$TEST_FILE" 2>/dev/null || stat -f '%A' "$TEST_FILE" 2>/dev/null || echo "")
+    local PERMS
+    PERMS=$(stat -c '%a' "$TEST_FILE" 2>/dev/null || stat -f '%A' "$TEST_FILE" 2>/dev/null || echo "")
 
     if [[ "$PERMS" == "600" ]] || [[ "$PERMS" == "" ]]; then
         log_result "Fix 4 - chmod 600 enforcement works" 1
@@ -212,7 +281,8 @@ test_all_fixes_present() {
     local GATE_CHECK="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
 
     # Count security fixes
-    local FIX_COUNT=$(grep -c "SECURITY FIX #" "$GATE_CHECK" || echo 0)
+    local FIX_COUNT
+    FIX_COUNT=$(grep -c "SECURITY FIX #" "$GATE_CHECK" || echo 0)
 
     if [ "$FIX_COUNT" -ge 4 ]; then
         log_result "Integration - All 4 fixes present" 1

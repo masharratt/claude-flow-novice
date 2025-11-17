@@ -254,9 +254,13 @@ if ! echo "$SUCCESS_CRITERIA" | jq empty 2>/dev/null; then
 fi
 
 # Step 3: Store in Redis for agents to access
-./.claude/skills/cfn-redis-coordination/store-success-criteria.sh \
+if ! ./.claude/skills/cfn-redis-coordination/store-success-criteria.sh \
     --task-id "$TASK_ID" \
-    --criteria "$SUCCESS_CRITERIA"
+    --criteria "$SUCCESS_CRITERIA"; then
+    echo "❌ ERROR: Failed to store success criteria in Redis" >&2
+    echo "   Agent spawning blocked - criteria storage is required for coordination" >&2
+    exit 1
+fi
 
 # Step 4: Proceed with agent spawning (agents will read from Redis)
 ```

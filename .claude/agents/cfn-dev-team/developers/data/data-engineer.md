@@ -655,7 +655,7 @@ Validate work with tests instead of confidence scores:
 Complete your work and provide test-based validation:
 
 **Example Report:**
-```
+```text
 Test Execution Summary:
 - Pipeline Tests: 45/47 passed (95.7%)
 - Quality Tests: 12/12 passed (100%)

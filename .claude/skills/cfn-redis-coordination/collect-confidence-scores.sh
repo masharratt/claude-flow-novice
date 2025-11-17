@@ -18,9 +18,35 @@
 
 set -euo pipefail
 
+# Validate required tools are available
+MISSING_TOOLS=()
+for TOOL in redis-cli jq bc; do
+    if ! command -v "$TOOL" >/dev/null 2>&1; then
+        MISSING_TOOLS+=("$TOOL")
+    fi
+done
+
+if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+    echo "❌ ERROR: Required tools not found: ${MISSING_TOOLS[*]}" >&2
+    echo "   Install missing tools and retry" >&2
+    exit 1
+fi
+
 # Source centralized Redis functions (provides graceful fallback for Task mode)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/redis-functions.sh"
+
+# Verify redis-functions.sh exists and is readable before sourcing
+REDIS_FUNCTIONS="${SCRIPT_DIR}/redis-functions.sh"
+if [ ! -r "$REDIS_FUNCTIONS" ]; then
+    echo "❌ ERROR: Cannot read redis-functions.sh at: $REDIS_FUNCTIONS" >&2
+    exit 1
+fi
+
+# Source with explicit error handling
+if ! source "$REDIS_FUNCTIONS"; then
+    echo "❌ ERROR: Failed to source redis-functions.sh" >&2
+    exit 1
+fi
 
 # Debug mode (set DEBUG=true for verbose output)
 DEBUG="${DEBUG:-false}"

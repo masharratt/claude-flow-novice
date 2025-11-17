@@ -16,7 +16,16 @@ set -euo pipefail
 # Configuration
 TEST_ID="gate-check-td-$(date +%s)"
 TASK_ID="test-${TEST_ID}"
-GATE_SCRIPT="/home/user/claude-flow-novice/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+
+# Derive gate script path dynamically (supports CI and custom environments)
+if [ -n "${CFN_GATE_SCRIPT:-}" ]; then
+    # Allow override via environment variable
+    GATE_SCRIPT="$CFN_GATE_SCRIPT"
+else
+    # Compute path relative to this test script
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    GATE_SCRIPT="$(cd "$SCRIPT_DIR/../../../.claude/skills/cfn-loop-orchestration/helpers" && pwd)/gate-check.sh"
+fi
 
 # Test result tracking
 TESTS_PASSED=0
