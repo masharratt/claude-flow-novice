@@ -16,10 +16,14 @@
 
 set -euo pipefail
 
+# Script directory resolution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Configuration
 ITERATIONS=100
 AGENTS=10
-RESULTS_DIR="./results"
+RESULTS_DIR="$SCRIPT_DIR/results"
+SKIP_DOCKER=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -32,12 +36,32 @@ while [[ $# -gt 0 ]]; do
       AGENTS="$2"
       shift 2
       ;;
+    --skip-docker)
+      SKIP_DOCKER=true
+      shift
+      ;;
     *)
       echo "Unknown option: $1"
       exit 1
       ;;
   esac
 done
+
+# Validate ITERATIONS (must be >= 10 for Docker tests that scale)
+if [ "$ITERATIONS" -lt 10 ]; then
+  echo "Error: ITERATIONS must be >= 10 (got $ITERATIONS)"
+  echo "Docker tests scale by dividing iterations by 10"
+  exit 1
+fi
+
+# Check for bc utility (required for Docker memory calculations)
+if ! command -v bc &> /dev/null; then
+  echo "Warning: 'bc' utility not found. Docker memory calculations will be skipped."
+  echo "Install bc: sudo apt-get install bc (Ubuntu) or brew install bc (macOS)"
+  BC_AVAILABLE=false
+else
+  BC_AVAILABLE=true
+fi
 
 # Create results directory
 mkdir -p "$RESULTS_DIR"
@@ -292,8 +316,16 @@ EOF
 ###############################################################################
 test_spawn_kill_cli
 test_persistent_nodejs
-test_spawn_kill_docker
-test_persistent_docker
+
+# Run Docker tests only if not skipped
+if [ "$SKIP_DOCKER" = false ]; then
+  test_spawn_kill_docker
+  test_persistent_docker
+else
+  echo ""
+  echo -e "${YELLOW}[3/4] Docker Spawn-Kill test skipped (--skip-docker)${NC}"
+  echo -e "${YELLOW}[4/4] Docker Persistent test skipped (--skip-docker)${NC}"
+fi
 
 ###############################################################################
 # Generate comparison report

@@ -82,7 +82,7 @@ async function* liveStreamResponse() {
   });
 
   const stream = await client.messages.create({
-    model: 'claude-sonnet-4.5',
+    model: 'claude-sonnet-4-20250514',
     max_tokens: 1024,
     stream: true,
     messages: [{

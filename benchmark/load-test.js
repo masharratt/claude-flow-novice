@@ -24,7 +24,15 @@ const ackLatency = new Trend('ack_latency_ms');
 
 // Configuration from environment variables
 const TARGET = __ENV.TARGET || 'ws://localhost:8080';
-const MAX_AGENTS = parseInt(__ENV.AGENTS || '100');
+const MAX_AGENTS = (() => {
+  const parsed = parseInt(__ENV.AGENTS || '100', 10);
+  // Validate and enforce minimum of 1
+  if (isNaN(parsed) || parsed < 1) {
+    console.warn(`Invalid AGENTS value '${__ENV.AGENTS}', using default: 100`);
+    return 100;
+  }
+  return Math.floor(parsed);
+})();
 const TEST_DURATION = __ENV.DURATION || '2m';
 
 // Test stages: ramp up, steady state, ramp down

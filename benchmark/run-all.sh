@@ -233,10 +233,19 @@ echo -e "${YELLOW}Test 3: Spawn Pattern Comparison${NC}"
 echo -e "${YELLOW}========================================${NC}"
 echo ""
 
+# Pass SKIP_DOCKER flag to spawn-cost.sh
 if [ "$QUICK_MODE" = true ]; then
-  bash spawn-cost.sh --iterations 50 --agents 5
+  if [ "$SKIP_DOCKER" = true ]; then
+    bash spawn-cost.sh --iterations 50 --agents 5 --skip-docker
+  else
+    bash spawn-cost.sh --iterations 50 --agents 5
+  fi
 else
-  bash spawn-cost.sh --iterations 100 --agents 10
+  if [ "$SKIP_DOCKER" = true ]; then
+    bash spawn-cost.sh --iterations 100 --agents 10 --skip-docker
+  else
+    bash spawn-cost.sh --iterations 100 --agents 10
+  fi
 fi
 
 echo ""

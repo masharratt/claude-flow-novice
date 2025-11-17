@@ -444,9 +444,9 @@ build_agent_context() {
                    and .failed_tests
                    and (.failed_tests | length > 0)
                 then
-                    "Previous Test Results: Pass Rate "
-                     ((.pass_rate * 100) | floor | tostring)
-                     "% | Failed Tests: "
+                    "Previous Test Results: Pass Rate " +
+                     ((.pass_rate * 100) | floor | tostring) +
+                     "% | Failed Tests: " +
                      ([.failed_tests[].failed_test_names[]? // empty] | join(", "))
                 else
                     empty
