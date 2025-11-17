@@ -75,6 +75,16 @@ Implementation:
 
 ### P3 - Low Priority / Nice-to-Have
 
+**[P3] - Fix test suite hardcoded paths causing 94% test failure rate**
+- **Sprint Backlogged**: Phase 4
+- **Category**: Technical-Debt
+- **Description**: Fix test suite hardcoded paths causing 94% test failure rate
+- **Rationale**: test-gate-check-security.sh uses hardcoded /home/user/ paths causing tests to fail despite production-ready code. Distinct from shell security implementation which is verified complete.
+- **Proposed Solution**: Replace hardcoded /home/user/claude-flow-novice/ paths with PROJECT_ROOT pattern: PROJECT_ROOT=$(git rev-parse --show-toplevel). Apply to tests/cfn-v3/helpers/test-gate-check-security.sh and related test files.
+- **Tags**: `test-infrastructure`, `technical-debt`, `shell-security`, `testing`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-17
+
 **[P3] - Security hardening for code quality fixes (ReDoS, query dete...**
 - **Sprint Backlogged**: Phase 4
 - **Category**: Optimization

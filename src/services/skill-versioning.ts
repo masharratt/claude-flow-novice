@@ -14,9 +14,9 @@
  * ```
  */
 
-import { DatabaseService } from '../lib/database-service';
-import { StandardError, ErrorCode } from '../lib/errors';
-import { createLogger, Logger } from '../lib/logging';
+import { DatabaseService } from '../lib/database-service.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { createLogger, Logger } from '../lib/logging.js';
 
 const logger = createLogger('skill-versioning');
 

@@ -1,5 +1,5 @@
-import { LLMProviderInterface, ProviderError } from './provider-interface';
-import { AnthropicProvider } from './anthropic-provider';
+import { LLMProviderInterface, ProviderError } from './provider-interface.js';
+import { AnthropicProvider } from './anthropic-provider.js';
 
 export type ProviderType = 'anthropic' | 'openai' | 'azure' | 'google';
 

@@ -10,11 +10,11 @@
  * Part of Task 3.1: Cross-Database Transaction Framework
  */
 
-import { Transaction, TransactionManager } from './database-service/transaction-manager';
-import { DistributedLock, LockResource, Lock, LockAcquisitionError } from './distributed-lock';
-import { withRetry, RetryOptions } from './retry';
-import { createLogger } from './logging';
-import { generateCorrelationId } from './correlation';
+import { Transaction, TransactionManager } from './database-service/transaction-manager.js';
+import { DistributedLock, LockResource, Lock, LockAcquisitionError } from './distributed-lock.js';
+import { withRetry, RetryOptions } from './retry.js';
+import { createLogger } from './logging.js';
+import { generateCorrelationId } from './correlation.js';
 
 const logger = createLogger('deadlock-resolver');
 

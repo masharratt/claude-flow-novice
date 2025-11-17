@@ -21,9 +21,9 @@
 
 import * as crypto from 'crypto';
 import { RedisClientType } from 'redis';
-import { createLogger } from './logging';
-import { createError, ErrorCode, isRetryableError } from './errors';
-import { withRetry } from './retry';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode, isRetryableError } from './errors.js';
+import { withRetry } from './retry.js';
 
 const logger = createLogger('message-deduplicator');
 

@@ -10,9 +10,9 @@
  * - Archive to PostgreSQL: <500ms (background)
  */
 
-import { DatabaseService } from '../lib/database-service';
-import { StandardError, ErrorCode } from '../lib/errors';
-import { logger } from '../lib/logging';
+import { DatabaseService } from '../lib/database-service.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { logger } from '../lib/logging.js';
 
 export interface Reflection {
   agent_id: string;

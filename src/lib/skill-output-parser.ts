@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import { ErrorCode, createError, createValidationError } from './errors';
+import { ErrorCode, createError, createValidationError } from './errors.js';
 
 // ============================================================================
 // Types

@@ -16,9 +16,9 @@
  */
 
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import { IntegrationSchemaValidator } from '../lib/integration-schema-validator';
-import { StandardError, ErrorCode } from '../lib/errors';
-import { getGlobalLogger } from '../lib/logging';
+import { IntegrationSchemaValidator } from '../lib/integration-schema-validator.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { getGlobalLogger } from '../lib/logging.js';
 import path from 'path';
 
 const logger = getGlobalLogger();

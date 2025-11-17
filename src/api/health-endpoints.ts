@@ -13,7 +13,7 @@
  */
 
 import express, { Router, Request, Response } from 'express';
-import { HealthCheckSystem, HealthCheck, DetailedHealthReport } from '../services/health-check-system';
+import { HealthCheckSystem, HealthCheck, DetailedHealthReport } from '../services/health-check-system.js';
 
 /**
  * Health endpoint response format

@@ -13,7 +13,7 @@ import {
   EnvVarExportMap,
   EnvironmentVariable,
   ConfigLoaderOptions,
-} from '../types/config';
+} from '../types/config.js';
 
 /**
  * Core validation result from our built-in validator

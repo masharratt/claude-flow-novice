@@ -16,11 +16,11 @@
  *   const edgeCase = await detector.detectFailure(execution);
  */
 
-import { DatabaseService, OperationResult } from '../lib/database-service';
-import { createLogger, Logger } from '../lib/logging';
-import { createError, ErrorCode, StandardError, wrapError } from '../lib/errors';
-import { generateCorrelationId, generateShortCorrelationId } from '../lib/correlation';
-import { EdgeCaseDeduplicator } from './edge-case-deduplicator';
+import { DatabaseService, OperationResult } from '../lib/database-service.js';
+import { createLogger, Logger } from '../lib/logging.js';
+import { createError, ErrorCode, StandardError, wrapError } from '../lib/errors.js';
+import { generateCorrelationId, generateShortCorrelationId } from '../lib/correlation.js';
+import { EdgeCaseDeduplicator } from './edge-case-deduplicator.js';
 
 /**
  * Error categories for skill execution failures

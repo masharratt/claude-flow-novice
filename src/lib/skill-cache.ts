@@ -14,8 +14,8 @@
  * @module skill-cache
  */
 
-import { createLogger, Logger } from './logging';
-import { StandardError } from './errors';
+import { createLogger, Logger } from './logging.js';
+import { StandardError } from './errors.js';
 
 /**
  * Cache entry with LRU metadata

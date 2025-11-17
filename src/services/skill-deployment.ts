@@ -30,13 +30,13 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { DatabaseService } from '../lib/database-service';
-import { TransactionManager } from '../lib/database-service/transaction-manager';
-import { DistributedLock, LockResource } from '../lib/distributed-lock';
-import { StandardError, ErrorCode } from '../lib/errors';
-import { createLogger } from '../lib/logging';
-import { validateSkill, parseFrontmatter, ValidationResult } from './skill-validator';
-import { getNextVersion, versionExists } from './skill-versioning';
+import { DatabaseService } from '../lib/database-service.js';
+import { TransactionManager } from '../lib/database-service/transaction-manager.js';
+import { DistributedLock, LockResource } from '../lib/distributed-lock.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { createLogger } from '../lib/logging.js';
+import { validateSkill, parseFrontmatter, ValidationResult } from './skill-validator.js';
+import { getNextVersion, versionExists } from './skill-versioning.js';
 
 const logger = createLogger('skill-deployment');
 

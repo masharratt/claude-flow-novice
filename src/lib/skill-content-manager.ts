@@ -11,7 +11,7 @@
 import { join, basename, dirname } from 'path';
 import { stat, readdir, access, chmod, readFile, writeFile, mkdir } from 'fs/promises';
 import { constants } from 'fs';
-import { StandardError } from './errors';
+import { StandardError } from './errors.js';
 import {
   SkillFrontmatter,
   ParsedSkillDocument,
@@ -20,7 +20,7 @@ import {
   parseAndValidate,
   updateFrontmatter,
   createSkillDocument
-} from './skill-frontmatter-parser';
+} from './skill-frontmatter-parser.js';
 import {
   calculateFileHash,
   getCommitMetadata,
@@ -32,7 +32,7 @@ import {
   getFileModificationDate,
   GitCommitMetadata,
   VersionHistoryEntry
-} from './skill-git-integration';
+} from './skill-git-integration.js';
 
 /**
  * Required files in skill directory

@@ -11,7 +11,7 @@
  *   - agent:agent-456:execution:iteration-1
  */
 
-import { CorrelationKey } from './types';
+import { CorrelationKey } from './types.js';
 
 /**
  * Build correlation key string

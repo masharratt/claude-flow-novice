@@ -35,10 +35,10 @@
 
 import { RedisClientType } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
-import { createLogger } from './logging';
-import { createError, ErrorCode, isRetryableError } from './errors';
-import { withRetry } from './retry';
-import { MessageDeduplicator } from './message-deduplicator';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode, isRetryableError } from './errors.js';
+import { withRetry } from './retry.js';
+import { MessageDeduplicator } from './message-deduplicator.js';
 
 const logger = createLogger('redis-queue-manager');
 

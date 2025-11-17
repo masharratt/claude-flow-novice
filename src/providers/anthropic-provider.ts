@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { LLMProviderInterface, LLMMessageOptions, LLMModel, ProviderError } from './provider-interface';
+import { LLMProviderInterface, LLMMessageOptions, LLMModel, ProviderError } from './provider-interface.js';
 
 export class AnthropicProvider implements LLMProviderInterface {
   private client: Anthropic;

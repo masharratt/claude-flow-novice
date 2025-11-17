@@ -15,16 +15,16 @@ import {
   QueryFilter,
   OperationResult,
   TransactionContext,
-} from './types';
+} from './types.js';
 import {
   DatabaseErrorCode,
   createDatabaseError,
   createSuccessResult,
   createFailedResult,
   mapPostgresError,
-} from './errors';
-import { withDatabaseRetry } from '../retry-manager';
-import { ErrorAggregator } from '../error-aggregator';
+} from './errors.js';
+import { withDatabaseRetry } from '../retry-manager.js';
+import { ErrorAggregator } from '../error-aggregator.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export class PostgresAdapter implements IDatabaseAdapter {

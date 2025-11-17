@@ -11,10 +11,10 @@
  */
 
 import { randomUUID } from 'crypto';
-import { IDatabaseAdapter, TransactionContext } from './types';
-import { DatabaseErrorCode, createDatabaseError } from './errors';
-import { createLogger } from '../logging';
-import { generateCorrelationId } from '../correlation';
+import { IDatabaseAdapter, TransactionContext } from './types.js';
+import { DatabaseErrorCode, createDatabaseError } from './errors.js';
+import { createLogger } from '../logging.js';
+import { generateCorrelationId } from '../correlation.js';
 
 const logger = createLogger('transaction-manager');
 

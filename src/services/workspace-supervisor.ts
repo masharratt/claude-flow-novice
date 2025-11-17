@@ -47,8 +47,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import Database from 'better-sqlite3';
-import { createLogger } from '../lib/logging';
-import { createError, ErrorCode, StandardError } from '../lib/errors';
+import { createLogger } from '../lib/logging.js';
+import { createError, ErrorCode, StandardError } from '../lib/errors.js';
 
 const logger = createLogger('workspace-supervisor');
 

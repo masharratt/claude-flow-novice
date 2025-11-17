@@ -5,7 +5,7 @@
  * Part of Task 0.4: Database Query Abstraction Layer (MVP)
  */
 
-import { DatabaseError, OperationResult } from './types';
+import { DatabaseError, OperationResult } from './types.js';
 
 /**
  * Database error codes

@@ -33,10 +33,10 @@
  * ```
  */
 
-import { DatabaseService, DatabaseServiceConfig } from './database-service';
-import { IDatabaseAdapter, QueryFilter, QueryOptions, TransactionContext } from './database-service/types';
-import { QueryTranslator, TranslationResult } from './query-translator';
-import { StandardError, ErrorCode } from './errors';
+import { DatabaseService, DatabaseServiceConfig } from './database-service.js';
+import { IDatabaseAdapter, QueryFilter, QueryOptions, TransactionContext } from './database-service/types.js';
+import { QueryTranslator, TranslationResult } from './query-translator.js';
+import { StandardError, ErrorCode } from './errors.js';
 import { Pool, PoolConfig, PoolClient } from 'pg';
 import { Database as SQLiteDatabase } from 'sqlite3';
 import { RedisClientType, createClient } from 'redis';
@@ -641,4 +641,4 @@ export class UnifiedQueryAPI {
 }
 
 // Export types and enums
-export { TranslationResult } from './query-translator';
+export { TranslationResult } from './query-translator.js';

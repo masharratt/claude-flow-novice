@@ -21,10 +21,10 @@ import * as path from 'path';
 import { promisify } from 'util';
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
-import { DatabaseService } from '../lib/database-service';
-import { StandardError, ErrorCode } from '../lib/errors';
-import { createLogger } from '../lib/logging';
-import { AuthMiddleware, RBACEnforcer, UserContext, PromotionOperation } from '../middleware/auth-middleware';
+import { DatabaseService } from '../lib/database-service.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { createLogger } from '../lib/logging.js';
+import { AuthMiddleware, RBACEnforcer, UserContext, PromotionOperation } from '../middleware/auth-middleware.js';
 
 const fsRename = promisify(fs.rename);
 const fsMkdir = promisify(fs.mkdir);

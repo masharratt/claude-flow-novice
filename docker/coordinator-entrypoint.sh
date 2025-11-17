@@ -38,7 +38,7 @@ cd "$PROJECT_ROOT"
 # Verify agent definition exists
 AGENT_FILE="$PROJECT_ROOT/.claude/agents/docker-coordinators/cfn-docker-v3-coordinator.md"
 if [[ ! -f "$AGENT_FILE" ]]; then
-    echo "❌ Coordinator agent not found at: $AGENT_FILE"
+    echo "❌ Coordinator agent not found at: ${AGENT_FILE}"
     echo "   Ensure codebase is mounted at /workspace"
     exit 1
 fi
@@ -54,8 +54,8 @@ if [[ -n "${CFN_SUCCESS_CRITERIA:-}" ]]; then
         RESOLVED_PATH=$(readlink -f "$CFN_SUCCESS_CRITERIA" 2>/dev/null || echo "$CFN_SUCCESS_CRITERIA")
         if [[ ! "$RESOLVED_PATH" =~ ^/workspace/ ]] && [[ ! "$RESOLVED_PATH" =~ ^/etc/cfn/ ]]; then
             echo "❌ ERROR: Success criteria file must be in /workspace or /etc/cfn"
-            echo "   Attempted path: $CFN_SUCCESS_CRITERIA"
-            echo "   Resolved path: $RESOLVED_PATH"
+            echo "   Attempted path: ${CFN_SUCCESS_CRITERIA}"
+            echo "   Resolved path: ${RESOLVED_PATH}"
             echo "   Security Risk: Path traversal attack prevented"
             exit 1
         fi
@@ -72,7 +72,7 @@ if [[ -n "${CFN_SUCCESS_CRITERIA:-}" ]]; then
             exit 1
         fi
 
-        echo "📋 Loading success criteria from file: $CFN_SUCCESS_CRITERIA"
+        echo "📋 Loading success criteria from file: ${CFN_SUCCESS_CRITERIA}"
         echo "   File size: $((FILE_SIZE / 1024))KB (validated)"
         SUCCESS_CRITERIA=$(cat "$CFN_SUCCESS_CRITERIA")
     else
@@ -95,8 +95,9 @@ fi
 # Export for orchestrator
 export SUCCESS_CRITERIA
 
-# Create task context file for agent
-CONTEXT_FILE="/tmp/task-context-${TASK_ID}.json"
+# Create task context file for agent (using mktemp for security)
+CONTEXT_FILE=$(mktemp "/tmp/task-context-${TASK_ID}.XXXXXX.json")
+trap 'rm -f "${CONTEXT_FILE}"' EXIT INT TERM
 cat > "$CONTEXT_FILE" << CONTEXT_EOF
 {
   "task_id": "${TASK_ID}",
@@ -113,7 +114,7 @@ cat > "$CONTEXT_FILE" << CONTEXT_EOF
 }
 CONTEXT_EOF
 
-echo "✅ Task context created: $CONTEXT_FILE"
+echo "✅ Task context created: ${CONTEXT_FILE}"
 
 # Set environment for Docker mode (coordinator should spawn via Docker)
 export CFN_DOCKER_MODE=true
@@ -129,7 +130,7 @@ echo "    Falling back to orchestrate.sh with planning phase"
 ORCHESTRATE_SCRIPT="$PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh"
 
 if [[ ! -f "$ORCHESTRATE_SCRIPT" ]]; then
-    echo "❌ orchestrate.sh not found at: $ORCHESTRATE_SCRIPT"
+    echo "❌ orchestrate.sh not found at: ${ORCHESTRATE_SCRIPT}"
     exit 1
 fi
 
@@ -157,7 +158,7 @@ EXIT_CODE=$?
 if [[ $EXIT_CODE -eq 0 ]]; then
     echo "✅ CFN Loop execution completed successfully"
 else
-    echo "❌ CFN Loop execution failed with code: $EXIT_CODE"
+    echo "❌ CFN Loop execution failed with code: ${EXIT_CODE}"
 fi
 
-exit $EXIT_CODE
+exit "$EXIT_CODE"

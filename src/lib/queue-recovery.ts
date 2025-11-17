@@ -26,10 +26,10 @@
  */
 
 import { RedisClientType } from 'redis';
-import { createLogger } from './logging';
-import { createError, ErrorCode, isRetryableError } from './errors';
-import { withRetry, sleep } from './retry';
-import { RedisQueueManager, QueueMessage } from './redis-queue-manager';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode, isRetryableError } from './errors.js';
+import { withRetry, sleep } from './retry.js';
+import { RedisQueueManager, QueueMessage } from './redis-queue-manager.js';
 
 const logger = createLogger('queue-recovery');
 

@@ -15,10 +15,10 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { DatabaseService } from '../lib/database-service';
-import { StandardError, ErrorCode } from '../lib/errors';
-import { createLogger } from '../lib/logging';
-import { validateVersion } from './skill-versioning';
+import { DatabaseService } from '../lib/database-service.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { createLogger } from '../lib/logging.js';
+import { validateVersion } from './skill-versioning.js';
 
 const logger = createLogger('skill-validator');
 

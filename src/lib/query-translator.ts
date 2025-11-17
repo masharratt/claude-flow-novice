@@ -41,8 +41,8 @@
  * ```
  */
 
-import { BackendType, QueryRequest } from './unified-query-api';
-import { StandardError, ErrorCode } from './errors';
+import { BackendType, QueryRequest } from './unified-query-api.js';
+import { StandardError, ErrorCode } from './errors.js';
 
 /**
  * Redis command structure

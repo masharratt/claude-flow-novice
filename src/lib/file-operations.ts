@@ -15,8 +15,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import { randomUUID } from 'crypto';
-import { createError, ErrorCode, createTimeoutError } from './errors';
-import { createLogger } from './logging';
+import { createError, ErrorCode, createTimeoutError } from './errors.js';
+import { createLogger } from './logging.js';
 
 const logger = createLogger('file-operations');
 

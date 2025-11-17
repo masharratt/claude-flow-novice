@@ -30,12 +30,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import { exec } from 'child_process';
-import { DatabaseService } from '../lib/database-service';
-import { StandardError, ErrorCode } from '../lib/errors';
-import { createLogger } from '../lib/logging';
-import { atomicWrite, fileExists } from '../lib/file-operations';
-import { validateStagedSkill, ValidationResult } from './promotion-validator';
-import { SkillDeploymentPipeline } from './skill-deployment';
+import { DatabaseService } from '../lib/database-service.js';
+import { StandardError, ErrorCode } from '../lib/errors.js';
+import { createLogger } from '../lib/logging.js';
+import { atomicWrite, fileExists } from '../lib/file-operations.js';
+import { validateStagedSkill, ValidationResult } from './promotion-validator.js';
+import { SkillDeploymentPipeline } from './skill-deployment.js';
 
 const logger = createLogger('skill-promotion');
 

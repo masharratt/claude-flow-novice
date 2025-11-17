@@ -29,8 +29,8 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { createLogger } from './logging';
-import { createError, ErrorCode, StandardError } from './errors';
+import { createLogger } from './logging.js';
+import { createError, ErrorCode, StandardError } from './errors.js';
 
 const logger = createLogger('orphan-detector');
 

@@ -18,11 +18,11 @@
  *   const patterns = await analyzer.generatePatterns();
  */
 
-import { DatabaseService, OperationResult } from '../lib/database-service';
-import { createLogger, Logger } from '../lib/logging';
-import { createError, ErrorCode } from '../lib/errors';
-import { generateShortCorrelationId } from '../lib/correlation';
-import type { EdgeCase, ErrorCategory, Severity } from './edge-case-detector';
+import { DatabaseService, OperationResult } from '../lib/database-service.js';
+import { createLogger, Logger } from '../lib/logging.js';
+import { createError, ErrorCode } from '../lib/errors.js';
+import { generateShortCorrelationId } from '../lib/correlation.js';
+import type { EdgeCase, ErrorCategory, Severity } from './edge-case-detector.js';
 
 /**
  * Analysis report

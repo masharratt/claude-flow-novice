@@ -10,7 +10,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import Ajv from 'ajv';
-import { ConfigSchema } from './config-manager';
+import { ConfigSchema } from './config-manager.js';
 
 export interface MigrationOptions {
   dryRun?: boolean;
