@@ -83,8 +83,8 @@ PHASE_ID=""
 # Mode-specific thresholds
 declare -A GATE_THRESHOLD=(
   [mvp]=0.70
-  [standard]=0.75
-  [enterprise]=0.75
+  [standard]=0.95
+  [enterprise]=0.98
 )
 
 declare -A CONSENSUS_THRESHOLD=(
@@ -920,7 +920,7 @@ function spawn_product_owner() {
   # BLOCKER #2 FIX: Match execute-decision.sh actual parameters
   # Required: --task-id, --agent-id, --consensus, --threshold, --iteration, --max-iterations
   local decision_output
-  decision_output=$("$SCRIPT_DIR/.claude/skills/cfn-product-owner-decision/execute-decision.sh" \
+  decision_output=$("$PROJECT_ROOT/.claude/skills/cfn-product-owner-decision/execute-decision.sh" \
     --task-id "$task_id" \
     --agent-id "$PRODUCT_OWNER" \
     --consensus "$LOOP2_FINAL_CONSENSUS" \

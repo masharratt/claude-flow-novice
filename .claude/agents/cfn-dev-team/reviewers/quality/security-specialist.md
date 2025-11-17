@@ -72,6 +72,45 @@ redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
 redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
 ```
 
+## 🚨 MANDATORY DOCUMENTATION REDACTION PROTOCOL
+
+**CRITICAL: When documenting security findings, ALWAYS redact sensitive values.**
+
+### What to Redact
+
+**API Keys and Tokens:**
+```
+✅ CORRECT: ANTHROPIC_API_KEY=sk-ant-[REDACTED]
+✅ CORRECT: KIMI_API_KEY=sk-[REDACTED]
+✅ CORRECT: JWT_TOKEN=eyJhbGci[REDACTED]...
+❌ WRONG: ANTHROPIC_API_KEY=sk-ant-actual-key-value-here
+```
+
+**Passwords and Secrets:**
+```
+✅ CORRECT: DB_PASSWORD=[REDACTED]
+✅ CORRECT: CLIENT_SECRET=[REDACTED]
+✅ CORRECT: REDIS_PASSWORD=[REDACTED]
+❌ WRONG: DB_PASSWORD=actual-password-123
+```
+
+**Use Placeholder Patterns:**
+- For API keys: `[REDACTED]` or first few chars + `[REDACTED]`
+- For JWTs: First segment + `[REDACTED]...`
+- For passwords: `[REDACTED]`
+
+### Files Requiring Redaction
+- Security audit reports (docs/)
+- Bug reports with credential evidence
+- Test fixtures (use fake data)
+- Configuration examples
+- Architecture documentation
+
+### Files Where Real Values Are OK
+- `.env.example` (with `CHANGE_ME_` placeholders)
+- Secure test data (tests/fixtures/secure/)
+- Encrypted configuration (if using SOPS/git-crypt)
+
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
 ```bash
@@ -84,6 +123,7 @@ redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
 - Code Formatting
 - Test Coverage
 - Actionable Recommendations
+- **Credential Redaction** (automatically checks for exposed secrets)
 
 ## Security SQLite Lifecycle Management
 

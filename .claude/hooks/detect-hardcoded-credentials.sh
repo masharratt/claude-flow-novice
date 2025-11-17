@@ -35,12 +35,12 @@ NC='\033[0m' # No Color
 EXCLUDE_PATTERNS=(
   "*.example"
   "*.template"
-  "docs/"
-  "tests/"
+  "tests/fixtures/"  # Only exclude test fixtures, not all tests
   "legacy/"
   "node_modules/"
   ".git/"
-  "*.md"
+  # REMOVED: "docs/" exclusion - now validates documentation files
+  # REMOVED: "*.md" exclusion - now validates markdown files
 )
 
 # High-entropy patterns (likely credentials)

@@ -6,24 +6,26 @@
 set -euo pipefail
 
 
-# ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Environment Sanitization
-# Load and apply environment sanitization to prevent memory leaks
-# shellcheck source=../cfn-environment-sanitization/sanitize-environment.sh
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [[ -f "$SCRIPT_DIR/../cfn-environment-sanitization/sanitize-environment.sh" ]]; then
-    source "$SCRIPT_DIR/../cfn-environment-sanitization/sanitize-environment.sh" --strict
-    echo "✅ Agent spawning environment sanitized" >&2
-else
-    echo "⚠️ Environment sanitization not available - proceeding without protection" >&2
-fi
-
 # ⚠️ ANTI-023 MEMORY LEAK PROTECTION: Block Task Mode agents
 # Task Mode agents spawn via Task() tool and should NOT use agent spawning CLI
-if [[ -z "${1:-}" || -z "${TASK_ID:-}" ]]; then
-    echo "❌ TASK MODE DETECTED - Agent spawning CLI forbidden" >&2
+# CLI mode requires TASK_ID environment variable (validates existence, not pattern)
+if [[ -z "${TASK_ID:-}" ]]; then
+    echo "❌ ERROR: TASK_ID environment variable required for CLI mode" >&2
     echo "🚨 ANTI-023: This script is for CLI-spawned coordinators only" >&2
-    echo "💡 Task Mode agent spawning should be handled directly by Main Chat" >&2
-    echo "🔧 Agent spawned via Task() tool - use Task() tool for spawning instead" >&2
+    echo "💡 Task Mode agents should use Task() tool, not CLI spawning" >&2
+    exit 1
+fi
+
+# Sanitize TASK_ID to prevent command injection
+if [[ "${TASK_ID}" =~ [^a-zA-Z0-9._-] ]]; then
+    echo "❌ ERROR: TASK_ID contains invalid characters: ${TASK_ID}" >&2
+    echo "Allowed: alphanumeric, dot, underscore, hyphen" >&2
+    exit 1
+fi
+
+# Validate required parameters for CLI mode
+if [[ -z "${1:-}" ]]; then
+    echo "❌ ERROR: Agent type required" >&2
     exit 1
 fi
 
@@ -121,17 +123,13 @@ spawn_agents() {
   log_info "Spawning agents: $agents"
   log_info "Task: $task"
 
-  # Build spawn command
-  local spawn_cmd="npx claude-flow-spawn \"$task\" --agents=$agents --provider=$provider"
-
-  # Add optional Redis channel
+  # Execute spawn command directly with proper quoting (no eval - prevents command injection)
+  local exit_code=0
   if [[ -n "$redis_channel" ]]; then
-    spawn_cmd="$spawn_cmd --redis-channel=$redis_channel"
+    npx claude-flow-spawn "$task" --agents="$agents" --provider="$provider" --redis-channel="$redis_channel" || exit_code=$?
+  else
+    npx claude-flow-spawn "$task" --agents="$agents" --provider="$provider" || exit_code=$?
   fi
-
-  # Execute spawn
-  eval "$spawn_cmd"
-  local exit_code=$?
 
   if [[ $exit_code -eq 0 ]]; then
     log_info "Agents spawned successfully"
