@@ -165,7 +165,7 @@ node agent-messaging.js --agents 10 --conversations 5
 
 Results are saved to `./results/final-report.json`. Use this decision tree:
 
-```
+```text
 1. WebSocket Message Bus (Test 2)
    ├─ Node.js handles 1000 agents with P95 <50ms?
    │  ├─ YES → Stick with Node.js
@@ -333,7 +333,7 @@ node agent-messaging.js --agents 5 --conversations 3
 
 ## File Structure
 
-```
+```text
 benchmark/
 ├── README.md                          # This file
 ├── package.json                       # Node.js dependencies

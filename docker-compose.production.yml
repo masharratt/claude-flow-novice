@@ -191,7 +191,7 @@ services:
     # container_name removed for multi-worktree support
     restart: unless-stopped
     ports:
-      - "${CFN_GRAFANA_PORT:-3001}:3000"
+      - "${CFN_GRAFANA_PORT:-3002}:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro

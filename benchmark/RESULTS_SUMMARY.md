@@ -168,7 +168,7 @@ All benchmarks strongly support migrating to persistent agents communicating lik
 ### ✅ RECOMMENDED: Hybrid Architecture (Node.js Only)
 
 **DO THIS:**
-```
+```text
 ┌─────────────────────────────────────┐
 │   Node.js Message Bus                │  ← Proven reliable, low latency
 │   - WebSocket routing                │  ← 6MB heap, 1ms P95

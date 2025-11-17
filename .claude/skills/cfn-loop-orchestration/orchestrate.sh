@@ -67,9 +67,11 @@ REDIS_COORD_SKILL="$PROJECT_ROOT/.claude/skills/cfn-redis-coordination"
 # Validate Redis connectivity
 REDIS_PORT="${CFN_REDIS_PORT:-6379}"
 REDIS_HOST="${CFN_REDIS_HOST:-localhost}"
-if ! redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" ping &>/dev/null; then
-  echo "⚠️  Warning: Redis not reachable at ${REDIS_HOST}:${REDIS_PORT}" >&2
-  echo "   Redis coordination features may not function correctly" >&2
+if command -v redis-cli &>/dev/null; then
+  if ! redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" ping &>/dev/null; then
+    echo "⚠️  Warning: Redis not reachable at ${REDIS_HOST}:${REDIS_PORT}" >&2
+    echo "   Redis coordination features may not function correctly" >&2
+  fi
 fi
 
 # Configuration
@@ -312,11 +314,11 @@ case "$MODE" in
     CONSENSUS=${CONSENSUS_THRESHOLD[mvp]:-0.80}
     ;;
   standard)
-    GATE=${GATE_THRESHOLD[standard]:-0.75}
+    GATE=${GATE_THRESHOLD[standard]:-0.95}
     CONSENSUS=${CONSENSUS_THRESHOLD[standard]:-0.90}
     ;;
   enterprise)
-    GATE=${GATE_THRESHOLD[enterprise]:-0.85}
+    GATE=${GATE_THRESHOLD[enterprise]:-0.98}
     CONSENSUS=${CONSENSUS_THRESHOLD[enterprise]:-0.95}
     ;;
   *)
@@ -439,6 +441,13 @@ build_agent_context() {
     fi
 
     context="$context | Iteration: $iteration"
+
+    # Check if jq is available before attempting JSON parsing
+    if ! command -v jq &>/dev/null; then
+        echo "⚠️  Warning: jq not installed. Test context injection will be skipped" >&2
+        echo "$context"
+        return
+    fi
 
     # Inject test failure diagnostics from previous iteration
     if [ "$iteration" -gt 1 ]; then

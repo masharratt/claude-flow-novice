@@ -121,7 +121,7 @@ Previous attempts failed because:
 
 ### Current Context Flow (Task Mode)
 
-```
+```text
 User: /cfn-loop-task "Implement authentication"
   ↓
 Main Chat (cfn-v3-coordinator spawned via Task())
@@ -153,7 +153,7 @@ Phase 1: JWT implementation
 
 # Your Task
 Implement JWT authentication in auth.ts
-```
+```text
 
 **Problem: Context is assembled ONCE per agent spawn, no conversation memory.**
 
@@ -191,7 +191,7 @@ class ConversationCoordinator {
     return result;
   }
 }
-```
+```text
 
 ---
 
@@ -211,7 +211,7 @@ User: "Add refresh tokens"
   → Spawn NEW agent with ACE + Loop + Epic context
   → Agent has NO KNOWLEDGE of Turn 1
   → Must manually include "build on previous work" in task description
-```
+```text
 
 **Problem:** Agent doesn't "remember" Turn 1 unless you explicitly describe it in Turn 2's task description.
 
@@ -250,7 +250,7 @@ User: "Add refresh tokens"
   → Agent has FULL CONTEXT of Turn 1
   → Agent knows it needs to modify auth.ts, not create it
   → Coordinator saves updated history
-```
+```text
 
 **Benefit:** Agent "remembers" previous turns without manual description.
 
@@ -325,7 +325,7 @@ User: "Add refresh tokens"
 │      conversationHistory: [...]                     │
 │    }"                                               │
 └──────────────────────────────────────────────────────┘
-```
+```text
 
 ---
 
@@ -358,7 +358,7 @@ interface Message {
     filesModified?: string[];
   };
 }
-```
+```text
 
 **Storage options:**
 - **Redis:** Fast, ephemeral (conversations expire after inactivity)
@@ -397,7 +397,7 @@ assembleContext(conversation) {
     conversationHistory
   };
 }
-```
+```text
 
 **Formatted for agent:**
 ```markdown
@@ -422,7 +422,7 @@ Deliverables: auth.ts, auth.test.ts
 
 # Current Task
 Add refresh token functionality to the existing auth.ts implementation.
-```
+```text
 
 ---
 
@@ -439,7 +439,7 @@ pruneHistory(conversation) {
     conversation.history = conversation.history.slice(-MAX_MESSAGES);
   }
 }
-```
+```text
 
 **Strategy 2: Token-Based Pruning**
 ```javascript
@@ -453,7 +453,7 @@ pruneHistory(conversation) {
     tokenCount = estimateTokens(conversation.history);
   }
 }
-```
+```text
 
 **Strategy 3: Summarization**
 ```javascript
@@ -471,7 +471,7 @@ async pruneHistory(conversation) {
     ];
   }
 }
-```
+```text
 
 **Strategy 4: Importance Scoring**
 ```javascript
@@ -498,7 +498,7 @@ calculateImportance(msg) {
   if (msg.content.includes("error") || msg.content.includes("bug")) score += 8; // Bug fixes
   return score;
 }
-```
+```text
 
 ---
 
@@ -536,7 +536,7 @@ calculateImportance(msg) {
 │    prune(history) // Keep last 20   │
 │  }                                  │
 └─────────────────────────────────────┘
-```
+```text
 
 **Implementation:**
 ```javascript
@@ -636,7 +636,7 @@ class SimpleConversationCoordinator {
     );
   }
 }
-```
+```text
 
 **Benefits:**
 - ✅ Minimal changes to existing architecture
@@ -667,7 +667,7 @@ ConversationCoordinator
 ├── HistoryPruner (sliding window, token-based, summarization)
 ├── AgentRouter (route to appropriate agent based on task type)
 └── DeliverableTracker (track files created, tests passing)
-```
+```text
 
 **This is overkill unless you have specific use case.**
 
@@ -708,7 +708,7 @@ const result2 = await coordinator.handleMessage(
   "backend-developer",
   "Add refresh tokens"         // Agent gets full history
 );
-```
+```text
 
 **Testing:**
 ```bash
@@ -716,7 +716,7 @@ const result2 = await coordinator.handleMessage(
 ./.claude/skills/conversation-coordinator/test-conversation.sh
 
 # Expected: Agent references previous turn without manual context
-```
+```text
 
 ---
 
@@ -746,7 +746,7 @@ Loop 3 receives conversation:
   - Previous: "I created auth.ts but lacked error handling"
   - Current: "Add error handling and improve to pass gate"
 Loop 3: Improves auth.ts (confidence 0.80, passes gate)
-```
+```text
 
 ---
 
@@ -763,7 +763,7 @@ Loop 3: Improves auth.ts (confidence 0.80, passes gate)
 # Turn 2
 /cfn-loop-task "Add refresh tokens to the auth system we just built"
 #                 ↑ Must manually describe "auth system we just built"
-```
+```text
 
 **With coordinator:**
 ```bash
@@ -774,7 +774,7 @@ Loop 3: Improves auth.ts (confidence 0.80, passes gate)
 # Turn 2
 /cfn-conversation continue auth-work "Add refresh tokens"
 #                                      ↑ Agent knows about Turn 1 automatically
-```
+```text
 
 **Question:** How often do you have multi-turn refinement?
 - If rare (1-2 turns) → Manual context description is fine
@@ -793,7 +793,7 @@ Redis stores: task:auth-impl:iteration:1:output
 # Iteration 2
 Loop 3 reads previous iteration from Redis
 Improves auth.ts (confidence 0.80)
-```
+```text
 
 **Question:** Does CFN Loop iteration context differ from conversation history?
 - Iteration context: Technical output (code, confidence scores)
@@ -810,7 +810,7 @@ Improves auth.ts (confidence 0.80)
 Conversation A: "Build authentication" (5 turns)
 Conversation B: "Fix dashboard bug" (3 turns)
 Back to A: "Add OAuth to authentication"
-```
+```text
 
 **With coordinator:**
 ```javascript
@@ -819,7 +819,7 @@ coordinator.handleMessage("auth-conv", "backend-dev", "Build auth");
 coordinator.handleMessage("dashboard-conv", "frontend-dev", "Fix bug");
 coordinator.handleMessage("auth-conv", "backend-dev", "Add OAuth");
 //                         ↑ Retrieves auth conversation, not dashboard
-```
+```text
 
 **Question:** Do you need to switch between multiple ongoing conversations?
 

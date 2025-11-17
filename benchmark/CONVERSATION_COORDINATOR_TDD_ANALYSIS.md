@@ -562,7 +562,7 @@ Files created: src/middleware/auth.ts, tests/middleware/auth.test.ts"
     }
   ]
 }
-```
+```text
 
 **Gate Check:** FAILED (0.90 < 0.95)
 
@@ -664,7 +664,7 @@ All 20/20 tests now passing (100%)!"
 ### 2. **Test Evolution Tracking**
 
 **Conversation shows test improvement:**
-```
+```text
 Iteration 1: 12/20 tests (60%) - Basic auth works, edge cases fail
 Iteration 2: 18/20 tests (90%) - Edge cases fixed, refresh + rate limiting fail
 Iteration 3: 20/20 tests (100%) - All tests pass
@@ -678,14 +678,14 @@ Iteration 3: 20/20 tests (100%) - All tests pass
 ### 3. **Diagnostic Context Preservation**
 
 **Without Coordinator:**
-```
+```text
 Iteration 2 agent sees:
   - Failed tests: ["JWT refresh rotation", "Rate limiting"]
   - No context about WHY or WHAT was tried
 ```
 
 **With Coordinator:**
-```
+```text
 Iteration 2 agent sees:
   - Failed test: "JWT refresh rotation"
     - Error: "Expected expires_at to update, but remained 1234567890"
@@ -814,7 +814,7 @@ fi
 ### 2. **Test Diagnostics Are Natural Conversation**
 
 **Tests are dialogue between iterations:**
-```
+```text
 Iteration 1: "Here's what I tried, here's what failed"
 Iteration 2: "Based on your diagnostics, I fixed X and Y"
 Iteration 3: "Your fix for X worked, but introduced regression in Z"

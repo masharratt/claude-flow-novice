@@ -2,7 +2,7 @@
 
 ## Current System (TDD v3.0)
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Loop 3 Agents (Iteration 1)                                        │
 │ - Write code                                                        │
@@ -127,7 +127,7 @@
 ## The Missing Piece
 
 **Current `build_agent_context()` output for Iteration 2:**
-```
+```text
 Task: Implement JWT authentication middleware |
 Deliverables: src/middleware/auth.ts, tests/middleware/auth.test.ts |
 Iteration: 2 |
@@ -135,7 +135,7 @@ Feedback: <empty>
 ```
 
 **What TDD-Aware Conversation Coordinator would add:**
-```
+```text
 Task: Implement JWT authentication middleware |
 Deliverables: src/middleware/auth.ts, tests/middleware/auth.test.ts |
 Iteration: 2 |

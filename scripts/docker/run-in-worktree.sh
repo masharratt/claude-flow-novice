@@ -15,10 +15,10 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 # Default port bases (can be overridden via environment)
 DEFAULT_REDIS_PORT=6379
 DEFAULT_POSTGRES_PORT=5432
-DEFAULT_ORCHESTRATOR_PORT=3000
+DEFAULT_ORCHESTRATOR_PORT=3001  # Aligned with docker-compose.production.yml
 DEFAULT_REDIS_COORDINATOR_PORT=6380
 DEFAULT_PROMETHEUS_PORT=9090
-DEFAULT_GRAFANA_PORT=3000
+DEFAULT_GRAFANA_PORT=3002  # Aligned with docker-compose.production.yml
 DEFAULT_REDIS_EXPORTER_PORT=9121
 DEFAULT_NGINX_HTTP_PORT=80
 DEFAULT_NGINX_HTTPS_PORT=443
@@ -216,6 +216,10 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -o|--port-offset)
+            if ! [[ "$2" =~ ^[0-9]+$ ]]; then
+                log_error "Invalid --port-offset value: '$2'. Must be a positive integer."
+                exit 1
+            fi
             CUSTOM_PORT_OFFSET="$2"
             shift 2
             ;;
@@ -272,6 +276,13 @@ fi
 
 # Change to project root
 cd "$PROJECT_ROOT"
+
+# Validate docker-compose is available
+if ! command -v docker-compose &>/dev/null; then
+    log_error "docker-compose command not found. Please install docker-compose first."
+    log_error "See: https://docs.docker.com/compose/install/"
+    exit 1
+fi
 
 # Execute docker-compose with all environment variables
 [[ "$VERBOSE" == true ]] && log_info "Executing: docker-compose ${DOCKER_ARGS[*]}"

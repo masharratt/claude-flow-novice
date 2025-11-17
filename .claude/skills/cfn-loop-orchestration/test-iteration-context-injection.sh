@@ -5,6 +5,10 @@ set -euo pipefail
 # Test: Iteration Context Injection
 # Validates that build_agent_context() injects test failure diagnostics
 # from previous iteration into agent context
+#
+# NOTE: Float comparisons in bash require bc or awk:
+#   CORRECT: (( $(echo "$value >= 0.95" | bc -l) ))
+#   WRONG:   [[ "$value" -ge 0.95 ]]  # -ge only works with integers
 ##############################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
