@@ -71,31 +71,50 @@ echo "Total skills: $RESULT"
 ```
 
 ### Parameterized Queries (SQL Injection Prevention)
+
+**⚠️ CRITICAL SECURITY WARNING:**
+
+The `${var//\'/\'\'}` pattern shown below has **significant limitations** and should **NOT** be used in production:
+
+1. **Only protects single-quoted strings** - Does not work in comments, identifiers, or different quoting contexts
+2. **Can be bypassed** - Multi-layered attacks or concatenation can still succeed
+3. **Not true parameterization** - SQLite CLI has no prepared statement support
+4. **Limited threat model** - Only acceptable for **controlled bootstrap scenarios** with trusted input
+
+**Recommended Alternatives for Production:**
+
+1. **Use languages with parameterized queries**: Python `sqlite3`, Node.js `better-sqlite3`, or similar
+2. **Strict input validation**: Whitelist allowed values, reject everything else
+3. **Safe wrapper libraries**: Delegate all DB operations to audited security libraries
+4. **Minimize bash DB access**: Use bash only for orchestration, not data manipulation
+
 ```bash
-# UNSAFE - DO NOT USE
+# UNSAFE - DO NOT USE IN PRODUCTION
 SKILL_NAME="malicious'; DROP TABLE skills; --"
 sqlite3 "$DB_PATH" "SELECT * FROM skills WHERE name = '$SKILL_NAME';"  # VULNERABLE
 
-# SAFE - Use prepared statements via variables
+# CONSTRAINED BOOTSTRAP ONLY - NOT PRODUCTION SAFE
+# Only use when:
+# - Input is from trusted sources (config files, not user input)
+# - Operating in controlled bootstrap environment
+# - Alternative languages not available
 safe_query_by_name() {
     local db_path="$1"
     local skill_name="$2"
 
-    # Escape single quotes
+    # LIMITATION: Only protects when embedded in single-quoted SQL
+    # DOES NOT protect against: comments (--), identifiers, or complex attacks
     local escaped_name="${skill_name//\'/\'\'}"
 
     sqlite3 "$db_path" "SELECT * FROM skills WHERE name = '$escaped_name';"
 }
 
-# SAFER - Use printf and proper quoting
-safe_query_printf() {
-    local db_path="$1"
-    local skill_name="$2"
-
-    sqlite3 "$db_path" <<EOF
-SELECT * FROM skills WHERE name = '${skill_name//\'/\'\'}';
-EOF
-}
+# PRODUCTION RECOMMENDATION: Use Python/Node.js instead
+# Example (Python):
+# import sqlite3
+# conn = sqlite3.connect(db_path)
+# cursor = conn.execute("SELECT * FROM skills WHERE name = ?", (skill_name,))
+# result = cursor.fetchone()
 ```
 
 ## Query Execution Patterns
@@ -206,12 +225,34 @@ wait_for_unlock() {
 
 ## Database Validation
 
+### SQL Identifier Validation (Injection Prevention)
+```bash
+# SQL INJECTION PROTECTION: Validate identifier before interpolation
+validate_sql_identifier() {
+    local identifier="$1"
+    local identifier_type="${2:-identifier}"
+
+    # Strict validation: only allow safe SQL identifiers
+    # Pattern: starts with letter/underscore, contains only alphanumeric/underscore
+    if [[ ! "$identifier" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+        echo "ERROR: Invalid $identifier_type '$identifier' - must match ^[a-zA-Z_][a-zA-Z0-9_]*$" >&2
+        return 1
+    fi
+
+    return 0
+}
+```
+
 ### Schema Verification
 ```bash
 verify_table_exists() {
     local db_path="$1"
     local table_name="$2"
 
+    # SQL INJECTION PREVENTION: Validate table name before query
+    validate_sql_identifier "$table_name" "table name" || return 1
+
+    # Safe to use validated table name (no interpolation risk)
     local count
     count=$(sqlite3 "$db_path" \
         "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='$table_name';")
@@ -238,10 +279,17 @@ verify_columns() {
     shift 2
     local required_columns=("$@")
 
+    # SQL INJECTION PREVENTION: Validate table name before PRAGMA
+    validate_sql_identifier "$table_name" "table name" || return 1
+
+    # Safe to use validated table name in PRAGMA
     local existing_columns
     existing_columns=$(sqlite3 "$db_path" "PRAGMA table_info($table_name);" | cut -d'|' -f2)
 
     for col in "${required_columns[@]}"; do
+        # SQL INJECTION PREVENTION: Validate column name
+        validate_sql_identifier "$col" "column name" || return 1
+
         if ! echo "$existing_columns" | grep -q "^${col}$"; then
             echo "ERROR: Column '$col' missing from table '$table_name'" >&2
             return 1
@@ -272,16 +320,47 @@ if ! echo "$PLAN" | grep -q "USING INDEX"; then
 fi
 ```
 
-### Connection Pooling Pattern
+### Sequential Query Pattern (Recommended)
 ```bash
-# Reuse database connection file descriptor
-exec 3< <(sqlite3 "$DB_PATH")
+# ⚠️ NOTE: True connection pooling is NOT supported by sqlite3 CLI
+# The sqlite3 CLI tool opens a new connection for each invocation
 
-# Read from connection
-read -r -u 3 result
+# RECOMMENDED: Use sequential sqlite3 invocations for bootstrap scripts
+# Each query gets its own connection - this is safe and reliable
 
-# Close connection
-exec 3<&-
+# Query 1
+result1=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM skills;")
+
+# Query 2
+result2=$(sqlite3 "$DB_PATH" "SELECT name FROM skills WHERE id = 1;")
+
+# Query 3
+result3=$(sqlite3 "$DB_PATH" "SELECT category FROM skills WHERE active = 1;")
+
+# This pattern is:
+# - ✅ Reliable: No process lifetime or FD management issues
+# - ✅ Safe: Each connection is isolated and properly closed
+# - ✅ Simple: No complex error handling required
+# - ✅ Performant: Adequate for bootstrap scenarios (< 100 queries)
+
+# For high-throughput scenarios (> 100 queries/sec), use:
+# - Python sqlite3 module with connection pooling
+# - Node.js better-sqlite3 with persistent connections
+# - Go database/sql with connection pool management
+```
+
+**⚠️ REMOVED PATTERN (UNSAFE):**
+The previous "connection pooling" pattern using process substitution and file descriptors was:
+- **Experimental**: Not production-ready
+- **Unreliable**: Process lifetime and FD management issues
+- **Unsafe**: No proper error handling for connection state
+- **Misleading**: Gave false impression of true connection pooling
+
+```bash
+# ❌ DO NOT USE - Removed for safety
+# exec 3< <(sqlite3 "$DB_PATH")  # Unreliable process lifetime
+# read -r -u 3 result             # No error handling
+# exec 3<&-                       # Unsafe FD management
 ```
 
 ## Test-Driven Patterns
