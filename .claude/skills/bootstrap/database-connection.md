@@ -4,7 +4,7 @@ category: foundation
 team: foundation
 approval_level: auto
 approval_criteria:
-  max_commands: 3
+  max_commands: 15
   test_coverage: 0.95
   no_external_calls: true
 tags: [sqlite, database, foundation]

@@ -17,6 +17,28 @@ owner: cfn-core
 ## Overview
 Dynamic skill loading from database, skill cache management, and hash validation patterns. Enables runtime skill injection and adaptive specialization.
 
+**⚠️ SECURITY NOTE:** This skill uses SQL queries with bash variable interpolation. While basic escaping (`${var//\'/\'\'}`) is applied, this pattern has limitations and should only be used with trusted inputs in controlled bootstrap environments. See database-connection.md for full security documentation.
+
+## SQL Injection Protection
+
+### Identifier Validation
+```bash
+# SQL INJECTION PROTECTION: Validate identifier before interpolation
+validate_sql_identifier() {
+    local identifier="$1"
+    local identifier_type="${2:-identifier}"
+
+    # Strict validation: only allow safe SQL identifiers
+    # Pattern: starts with letter/underscore, contains only alphanumeric/underscore
+    if [[ ! "$identifier" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]]; then
+        echo "ERROR: Invalid $identifier_type '$identifier' - must match ^[a-zA-Z_][a-zA-Z0-9_-]*$" >&2
+        return 1
+    fi
+
+    return 0
+}
+```
+
 ## Database-Driven Skill Loading
 
 ### Load Skill from Database
@@ -35,7 +57,10 @@ load_skill_from_db() {
         return 1
     fi
 
-    # Query skill content
+    # SQL INJECTION PREVENTION: Validate skill name before query
+    validate_sql_identifier "$skill_name" "skill name" || return 1
+
+    # Query skill content (validated identifier - safe to interpolate)
     local skill_content
     skill_content=$(sqlite3 "$db_path" <<EOF
 SELECT content FROM skills WHERE name = '${skill_name//\'/\'\'}' LIMIT 1;
@@ -103,7 +128,10 @@ load_skills_by_category() {
     local category="$2"
     local cache_dir="${3:-./.skill-cache}"
 
-    # Get skill names in category
+    # SQL INJECTION PREVENTION: Validate category name before query
+    validate_sql_identifier "$category" "category name" || return 1
+
+    # Get skill names in category (validated identifier - safe to interpolate)
     local skill_names
     skill_names=$(sqlite3 "$db_path" <<EOF
 SELECT name FROM skills WHERE category = '${category//\'/\'\'}' ORDER BY name;
@@ -286,7 +314,10 @@ validate_skill_hash() {
     local skill_name="$2"
     local cache_file="$3"
 
-    # Get stored hash from database
+    # SQL INJECTION PREVENTION: Validate skill name before query
+    validate_sql_identifier "$skill_name" "skill name" || return 1
+
+    # Get stored hash from database (validated identifier - safe to interpolate)
     local stored_hash
     stored_hash=$(sqlite3 "$db_path" <<EOF
 SELECT hash FROM skills WHERE name = '${skill_name//\'/\'\'}' LIMIT 1;
@@ -321,11 +352,14 @@ update_skill_hash() {
     local skill_name="$2"
     local skill_content="$3"
 
+    # SQL INJECTION PREVENTION: Validate skill name before query
+    validate_sql_identifier "$skill_name" "skill name" || return 1
+
     # Compute hash of new content
     local new_hash
     new_hash=$(compute_content_hash "$skill_content" "sha256")
 
-    # Update hash in database
+    # Update hash in database (validated identifier - safe to interpolate)
     sqlite3 "$db_path" <<EOF
 UPDATE skills SET hash = '$new_hash' WHERE name = '${skill_name//\'/\'\'}';
 EOF
@@ -416,7 +450,10 @@ build_agent_skill_context() {
     local agent_type="$2"
     local cache_dir="${3:-./.skill-cache}"
 
-    # Get required skills for agent type
+    # SQL INJECTION PREVENTION: Validate agent type before query
+    validate_sql_identifier "$agent_type" "agent type" || return 1
+
+    # Get required skills for agent type (validated identifier - safe to interpolate)
     local skill_names
     skill_names=$(sqlite3 "$db_path" <<EOF
 SELECT s.name
