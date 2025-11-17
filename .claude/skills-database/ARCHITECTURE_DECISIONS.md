@@ -122,7 +122,7 @@ Create separate `phase4_skill_generation` table instead of adding columns to ski
 1. **Separation of Concerns:** Phase 4 integration is optional; shouldn't bloat core skills table
 2. **Flexibility:** Can track Phase 4 metadata (pattern_id, source reflections) without affecting v1 queries
 3. **Evolution:** If Phase 4 requirements change, only affects dedicated table
-4. **Performance:** Optional 1-to-1 relationship doesn't slow down non-Phase4 queries
+4. **Performance:** Optional 1-to-1 relationship doesn't slow down non-Phase 4 queries
 
 ### Trade-offs
 | Option | Pros | Cons | Decision |
@@ -150,7 +150,7 @@ CREATE TABLE phase4_skill_generation (
 
 ### Evidence
 - **Modularity:** Phase 4 features can be added/removed without core schema changes
-- **Query Performance:** Non-Phase4 queries unaffected
+- **Query Performance:** non-Phase 4 queries unaffected
 - **Scalability:** Can handle 100+ edge cases per skill
 
 ---

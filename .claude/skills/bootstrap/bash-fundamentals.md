@@ -556,8 +556,8 @@ trim() {
 # Split string
 IFS=',' read -ra PARTS <<< "$CSV_STRING"
 
-# Join array
-IFS=',' eval 'JOINED="${ARRAY[*]}"'
+# Join array (safe subshell idiom, no eval)
+JOINED=$(IFS=','; echo "${ARRAY[*]}")
 
 # String replacement
 NEW_STRING="${OLD_STRING/pattern/replacement}"  # First occurrence
@@ -654,10 +654,10 @@ parse_tap() {
 parse_junit_xml() {
     local junit_file="$1"
 
-    # Extract test statistics using grep and basic parsing
-    local tests=$(grep -oP 'tests="\K[0-9]+' "$junit_file" | head -1)
-    local failures=$(grep -oP 'failures="\K[0-9]+' "$junit_file" | head -1)
-    local errors=$(grep -oP 'errors="\K[0-9]+' "$junit_file" | head -1)
+    # Extract test statistics using portable sed (macOS/BSD compatible)
+    local tests=$(sed -n 's/.*tests="\([0-9]*\)".*/\1/p' "$junit_file" | head -1)
+    local failures=$(sed -n 's/.*failures="\([0-9]*\)".*/\1/p' "$junit_file" | head -1)
+    local errors=$(sed -n 's/.*errors="\([0-9]*\)".*/\1/p' "$junit_file" | head -1)
 
     echo "Tests: ${tests:-0}, Failures: ${failures:-0}, Errors: ${errors:-0}"
 

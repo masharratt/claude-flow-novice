@@ -523,26 +523,40 @@ load_skills_parallel() {
     shift 2
     local skill_names=("$@")
 
+    local load_timeout="${SKILL_LOAD_TIMEOUT:-30}"  # Default 30 seconds
+
     local -a pids=()
 
-    # Load skills in parallel
+    # Load skills in parallel with timeout protection
     for skill_name in "${skill_names[@]}"; do
         (
-            load_and_validate_skill "$db_path" "$skill_name" "$cache_dir" &>/dev/null
+            timeout "$load_timeout" load_and_validate_skill "$db_path" "$skill_name" "$cache_dir" &>/dev/null
+            local exit_code=$?
+            if [[ $exit_code -eq 124 ]]; then
+                echo "ERROR: Skill load timeout after ${load_timeout}s: $skill_name" >&2
+                exit 124
+            fi
+            exit $exit_code
         ) &
         pids+=($!)
     done
 
     # Wait for all loads to complete
     local failed=0
+    local timeout_failures=0
     for pid in "${pids[@]}"; do
-        if ! wait "$pid"; then
+        wait "$pid"
+        local exit_code=$?
+        if [[ $exit_code -ne 0 ]]; then
             ((failed++))
+            if [[ $exit_code -eq 124 ]]; then
+                ((timeout_failures++))
+            fi
         fi
     done
 
     if [[ $failed -gt 0 ]]; then
-        echo "ERROR: $failed skills failed to load" >&2
+        echo "ERROR: $failed skills failed to load (${timeout_failures} timeouts)" >&2
         return 1
     fi
 

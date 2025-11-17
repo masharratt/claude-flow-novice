@@ -209,7 +209,19 @@
   ```sql
   SELECT COUNT(*) FROM bootstrap_skills WHERE enabled = 1;
   ```
-  Expected: 5 skills with correct load order
+  Expected: Skills from `.claude/skills/bootstrap/` directory:
+  - bash-fundamentals (load_order: 1)
+  - database-connection (load_order: 2)
+  - file-operations (load_order: 3)
+  - error-handling (load_order: 4)
+  - skill-loader (load_order: 5)
+
+  To verify count matches directory:
+  ```bash
+  EXPECTED_COUNT=$(ls -1 .claude/skills/bootstrap/*.md | wc -l)
+  ACTUAL_COUNT=$(sqlite3 skills.db "SELECT COUNT(*) FROM bootstrap_skills WHERE enabled = 1")
+  [ "$EXPECTED_COUNT" -eq "$ACTUAL_COUNT" ] && echo "✓ Bootstrap count correct" || echo "✗ Count mismatch"
+  ```
 
   ```sql
   SELECT DISTINCT load_order FROM bootstrap_skills ORDER BY load_order;

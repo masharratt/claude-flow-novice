@@ -447,6 +447,21 @@ CREATE INDEX IF NOT EXISTS idx_agent_mapping_type_priority ON agent_skill_mappin
 -- 10. VIEWS FOR COMMON QUERIES
 -- ============================================================================
 
+-- NOTE: Views using aggregate functions (COUNT, AVG, MAX) may return NULL values
+-- when no rows match the query criteria. Callers should handle NULLs appropriately:
+--
+-- Example: Using COALESCE for NULL handling
+--   SELECT
+--     COALESCE(AVG(test_coverage), 0) as avg_coverage,
+--     COALESCE(MAX(timestamp), 'N/A') as last_update
+--   FROM approval_distribution;
+--
+-- Example: Using CAST for numeric operations
+--   SELECT
+--     approval_level,
+--     CAST(COALESCE(avg_test_coverage, 0) AS REAL) as coverage
+--   FROM approval_distribution;
+
 -- Active Skills with Approval Status
 CREATE VIEW IF NOT EXISTS active_skills_with_approval AS
 SELECT
