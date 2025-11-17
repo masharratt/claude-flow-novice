@@ -1,0 +1,164 @@
+{
+  "dashboard": {
+    "title": "Skill Deployment Tracking",
+    "uid": "skill-deployment",
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Deployed Skills",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "count(skill_deployment_status)",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Healthy Skills",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "count(skill_deployment_status{status='healthy'})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Skill Execution Success Rate",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(skill_executions_successful_total[5m])) / sum(rate(skill_executions_total[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.95},
+                {"color": "green", "value": 0.99}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Average Skill Execution Time (ms)",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(skill_execution_duration_seconds_bucket[5m])) * 1000",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Skill Deployment Status by Component",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "skill_deployment_status",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "job": "Skill",
+                "status": "Status",
+                "version": "Version"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Execution Count by Skill",
+        "type": "barchart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "sum by (skill_name) (rate(skill_executions_total[5m]))",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Failed Executions by Skill",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "sum by (skill_name) (rate(skill_executions_failed_total[5m]))",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Resource Usage by Skill",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "skill_resource_usage",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {}
+            }
+          }
+        ]
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "style": "dark",
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    }
+  }
+}

@@ -1,8 +1,0 @@
-{
-  "agent_id": "main-chat-cfn-fix",
-  "original_path": "package.json",
-  "backup_timestamp": 1761953324307,
-  "file_hash": "6e2daa39e80aba0cad05bc02e90c94b9c0b32b6d3ae02f701231e7025ff2b6db",
-  "backup_ttl": 86400,
-  "backup_status": "active"
-}

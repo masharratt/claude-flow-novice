@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "phase4-workflow/skill-approval/v1.0.0",
+  "title": "Skill Approval Schema",
+  "description": "Schema for skill generation to expert approval (Integration Point 4.2)",
+  "type": "object",
+  "required": ["approval_id", "skill_id", "version", "status", "timestamp"],
+  "properties": {
+    "approval_id": {
+      "type": "string",
+      "description": "Unique identifier for approval request",
+      "pattern": "^approval-[a-z0-9-]+$"
+    },
+    "skill_id": {
+      "type": "string",
+      "description": "Skill identifier",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Skill version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "approved", "rejected", "needs_revision"],
+      "description": "Approval status"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Approval request timestamp"
+    },
+    "submitted_by": {
+      "type": "string",
+      "description": "Agent or service that submitted for approval"
+    },
+    "approver": {
+      "type": "object",
+      "description": "Expert approver information",
+      "properties": {
+        "approver_id": {
+          "type": "string"
+        },
+        "approver_type": {
+          "type": "string",
+          "enum": ["human", "agent", "automated"]
+        },
+        "expertise_area": {
+          "type": "string"
+        }
+      }
+    },
+    "approval_criteria": {
+      "type": "object",
+      "description": "Approval criteria checklist",
+      "properties": {
+        "correctness": {
+          "type": "boolean"
+        },
+        "completeness": {
+          "type": "boolean"
+        },
+        "clarity": {
+          "type": "boolean"
+        },
+        "follows_standards": {
+          "type": "boolean"
+        },
+        "test_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "feedback": {
+      "type": "object",
+      "description": "Approval feedback",
+      "properties": {
+        "comments": {
+          "type": "string"
+        },
+        "required_changes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "sla": {
+      "type": "object",
+      "description": "SLA for approval process",
+      "properties": {
+        "sla_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 24
+        },
+        "submitted_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approved_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sla_met": {
+          "type": "boolean"
+        }
+      }
+    },
+    "automated_checks": {
+      "type": "object",
+      "description": "Automated pre-approval checks",
+      "properties": {
+        "syntax_valid": {
+          "type": "boolean"
+        },
+        "schema_valid": {
+          "type": "boolean"
+        },
+        "security_scan_passed": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "approval_id": "approval-cfn-coord-v2",
+      "skill_id": "cfn-coordination",
+      "version": "2.0.0",
+      "status": "approved",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "submitted_by": "pattern-generator-agent",
+      "approver": {
+        "approver_id": "expert-001",
+        "approver_type": "agent",
+        "expertise_area": "coordination"
+      },
+      "approval_criteria": {
+        "correctness": true,
+        "completeness": true,
+        "clarity": true,
+        "follows_standards": true,
+        "test_coverage": 95
+      },
+      "feedback": {
+        "comments": "Excellent implementation, clear documentation",
+        "required_changes": [],
+        "recommendations": [
+          "Consider adding more examples"
+        ]
+      },
+      "sla": {
+        "sla_hours": 24,
+        "submitted_at": "2025-11-17T09:00:00Z",
+        "approved_at": "2025-11-17T10:30:00Z",
+        "sla_met": true
+      },
+      "automated_checks": {
+        "syntax_valid": true,
+        "schema_valid": true,
+        "security_scan_passed": true
+      }
+    }
+  ]
+}

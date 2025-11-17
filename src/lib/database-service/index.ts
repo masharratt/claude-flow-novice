@@ -194,9 +194,27 @@ export class DatabaseService implements IDatabaseService {
   }
 
   /**
-   * Get database statistics
+   * Get database statistics including connection pool metrics
    */
   getStats() {
+    const poolStats: any = {};
+
+    // Get pool stats from each adapter
+    if (this.adapters.has('redis')) {
+      const adapter = this.adapters.get('redis') as any;
+      poolStats.redis = adapter.getPoolStats?.();
+    }
+
+    if (this.adapters.has('sqlite')) {
+      const adapter = this.adapters.get('sqlite') as any;
+      poolStats.sqlite = adapter.getPoolStats?.();
+    }
+
+    if (this.adapters.has('postgres')) {
+      const adapter = this.adapters.get('postgres') as any;
+      poolStats.postgres = adapter.getPoolStats?.();
+    }
+
     return {
       adapters: {
         redis: this.adapters.has('redis') && this.adapters.get('redis')!.isConnected(),
@@ -206,6 +224,7 @@ export class DatabaseService implements IDatabaseService {
       transactions: {
         active: this.transactionManager.getActiveCount(),
       },
+      connectionPools: poolStats,
     };
   }
 }
@@ -218,6 +237,7 @@ export { RedisAdapter } from './redis-adapter';
 export { SQLiteAdapter } from './sqlite-adapter';
 export { PostgresAdapter } from './postgres-adapter';
 export { TransactionManager } from './transaction-manager';
+export { ConnectionPoolManager } from './connection-pool-manager';
 
 // Re-export correlation utilities
 export {

@@ -1,0 +1,1 @@
+/home/user/claude-flow-novice/.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh

@@ -1,8 +1,0 @@
-{
-  "agent_id": "validator-path-fixer",
-  "original_path": "/mnt/c/Users/masha/Documents/claude-flow-novice/tests/test-dynamic-agent-selection.sh",
-  "backup_timestamp": 1762262029182,
-  "file_hash": "ce8a745705b8b37d1943e377fdff7e0b669e8cb1e8d4b346810b7c9ce7d5f72a",
-  "backup_ttl": 86400,
-  "backup_status": "active"
-}

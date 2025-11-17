@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "database-handoffs/persistent-skill-data/v1.0.0",
+  "title": "Persistent Skill Data Schema",
+  "description": "Schema for skill data persistence from Docker volumes to SQLite (Integration Point 1.9)",
+  "type": "object",
+  "required": ["persistence_id", "volume_path", "db_path", "skill_count", "timestamp"],
+  "properties": {
+    "persistence_id": {
+      "type": "string",
+      "description": "Unique identifier for persistence operation",
+      "pattern": "^persist-[a-z0-9-]+$"
+    },
+    "volume_path": {
+      "type": "string",
+      "description": "Docker volume mount path",
+      "pattern": "^/.*"
+    },
+    "db_path": {
+      "type": "string",
+      "description": "SQLite database file path",
+      "pattern": "^/.*\\.db$"
+    },
+    "skill_count": {
+      "type": "integer",
+      "description": "Number of skills persisted",
+      "minimum": 0
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When persistence occurred"
+    },
+    "volume_permissions": {
+      "type": "object",
+      "description": "Volume mount permissions",
+      "required": ["mode", "owner", "group"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "pattern": "^[0-7]{3,4}$",
+          "default": "0755"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        }
+      }
+    },
+    "backup_metadata": {
+      "type": "object",
+      "description": "Backup/restore information",
+      "properties": {
+        "backup_path": {
+          "type": "string"
+        },
+        "last_backup_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "restore_point": {
+          "type": "string"
+        }
+      }
+    },
+    "integrity_check": {
+      "type": "object",
+      "properties": {
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["verified", "failed", "pending"]
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "persistence_id": "persist-skills-001",
+      "volume_path": "/var/lib/docker/volumes/cfn-skills/_data",
+      "db_path": "/data/skills.db",
+      "skill_count": 43,
+      "timestamp": "2025-11-17T10:30:00Z",
+      "volume_permissions": {
+        "mode": "0755",
+        "owner": "claude",
+        "group": "claude"
+      },
+      "integrity_check": {
+        "checksum": "abc123...",
+        "verified_at": "2025-11-17T10:30:00Z",
+        "status": "verified"
+      }
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "phase4-workflow/edge-case-update-proposal/v1.0.0",
+  "title": "Edge Case Update Proposal Schema",
+  "description": "Schema for edge case detection to skill update proposal (Integration Point 4.5)",
+  "type": "object",
+  "required": ["proposal_id", "skill_id", "edge_case_ids", "proposed_changes", "timestamp"],
+  "properties": {
+    "proposal_id": {
+      "type": "string",
+      "description": "Unique identifier for update proposal",
+      "pattern": "^proposal-[a-z0-9-]+$"
+    },
+    "skill_id": {
+      "type": "string",
+      "description": "Skill to be updated",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "current_version": {
+      "type": "string",
+      "description": "Current skill version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "proposed_version": {
+      "type": "string",
+      "description": "Proposed new version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "edge_case_ids": {
+      "type": "array",
+      "description": "Edge cases that triggered this proposal",
+      "items": {
+        "type": "string",
+        "pattern": "^edge-[a-z0-9-]+$"
+      },
+      "minItems": 1
+    },
+    "proposed_changes": {
+      "type": "object",
+      "description": "Proposed changes to skill",
+      "required": ["change_type", "description"],
+      "properties": {
+        "change_type": {
+          "type": "string",
+          "enum": ["bug_fix", "enhancement", "new_feature", "documentation"],
+          "description": "Type of change"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of changes",
+          "minLength": 10
+        },
+        "affected_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "diff": {
+          "type": "string",
+          "description": "Diff of proposed changes (unified format)"
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Proposal timestamp"
+    },
+    "edge_case_analysis": {
+      "type": "object",
+      "description": "Analysis of edge cases",
+      "properties": {
+        "total_occurrences": {
+          "type": "integer",
+          "description": "Total times edge case occurred",
+          "minimum": 1
+        },
+        "first_occurrence": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_occurrence": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "impact": {
+          "type": "string",
+          "description": "Impact assessment"
+        }
+      }
+    },
+    "proposal_mechanism": {
+      "type": "object",
+      "description": "How proposal is generated",
+      "properties": {
+        "automated": {
+          "type": "boolean",
+          "description": "Whether proposal is automated"
+        },
+        "generated_by": {
+          "type": "string",
+          "description": "Agent or service that generated proposal"
+        }
+      }
+    },
+    "prioritization": {
+      "type": "object",
+      "description": "Proposal prioritization",
+      "properties": {
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"]
+        },
+        "estimated_effort": {
+          "type": "string",
+          "enum": ["small", "medium", "large"]
+        },
+        "business_value": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        }
+      }
+    },
+    "approval_status": {
+      "type": "string",
+      "enum": ["pending", "approved", "rejected", "in_review"],
+      "default": "pending"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "proposal_id": "proposal-cfn-coord-edge-001",
+      "skill_id": "cfn-coordination",
+      "current_version": "2.0.0",
+      "proposed_version": "2.0.1",
+      "edge_case_ids": [
+        "edge-validation-2024-001",
+        "edge-validation-2024-002"
+      ],
+      "proposed_changes": {
+        "change_type": "bug_fix",
+        "description": "Add validation for empty coordination messages",
+        "affected_sections": [
+          "coordination-signal validation"
+        ],
+        "diff": "--- a/SKILL.md\n+++ b/SKILL.md\n@@ -10,6 +10,7 @@\n+Add empty message check"
+      },
+      "timestamp": "2025-11-17T10:30:00Z",
+      "edge_case_analysis": {
+        "total_occurrences": 5,
+        "first_occurrence": "2025-11-15T09:00:00Z",
+        "last_occurrence": "2025-11-17T10:00:00Z",
+        "severity": "medium",
+        "impact": "Coordination failures when agents send empty messages"
+      },
+      "proposal_mechanism": {
+        "automated": true,
+        "generated_by": "edge-case-analyzer-agent"
+      },
+      "prioritization": {
+        "priority": "high",
+        "estimated_effort": "small",
+        "business_value": "high"
+      },
+      "approval_status": "pending"
+    }
+  ]
+}

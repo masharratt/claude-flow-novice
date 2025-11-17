@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cfn-loop-communication/redis-queues/v1.0.0",
+  "title": "Docker Agent Redis Queues Schema",
+  "description": "Schema for Docker agent communication via Redis queues (Integration Point 3.8)",
+  "type": "object",
+  "required": ["message_id", "queue_name", "message_type", "payload", "timestamp"],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "description": "Unique message identifier",
+      "pattern": "^msg-[a-z0-9-]+$"
+    },
+    "queue_name": {
+      "type": "string",
+      "description": "Redis queue name",
+      "pattern": "^queue:[a-z0-9:_-]+$"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": ["command", "response", "event", "heartbeat", "error"],
+      "description": "Type of message"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Message payload (type-specific)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Message timestamp"
+    },
+    "sender": {
+      "type": "object",
+      "description": "Message sender information",
+      "required": ["sender_id", "sender_type"],
+      "properties": {
+        "sender_id": {
+          "type": "string"
+        },
+        "sender_type": {
+          "type": "string",
+          "enum": ["coordinator", "orchestrator", "agent", "service"]
+        },
+        "container_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{12,64}$"
+        }
+      }
+    },
+    "recipient": {
+      "type": "object",
+      "description": "Message recipient information",
+      "properties": {
+        "recipient_id": {
+          "type": "string"
+        },
+        "recipient_type": {
+          "type": "string",
+          "enum": ["coordinator", "orchestrator", "agent", "service", "broadcast"]
+        }
+      }
+    },
+    "queue_config": {
+      "type": "object",
+      "description": "Queue configuration",
+      "properties": {
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 300
+        },
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 3
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 5
+        }
+      }
+    },
+    "dead_letter": {
+      "type": "object",
+      "description": "Dead letter queue configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "dlq_name": {
+          "type": "string",
+          "pattern": "^dlq:[a-z0-9:_-]+$"
+        },
+        "retry_count": {
+          "type": "integer",
+          "description": "Number of retries before DLQ"
+        }
+      }
+    },
+    "backpressure": {
+      "type": "object",
+      "description": "Backpressure handling",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "max_queue_size": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1000
+        },
+        "reject_on_full": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "description": "Message TTL in seconds",
+      "minimum": 1,
+      "default": 3600
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "message_id": "msg-coord-to-agent-001",
+      "queue_name": "queue:agent:backend-developer-001",
+      "message_type": "command",
+      "payload": {
+        "command": "execute_task",
+        "task_description": "Implement JWT authentication"
+      },
+      "timestamp": "2025-11-17T10:30:00Z",
+      "sender": {
+        "sender_id": "cfn-v3-coordinator-main",
+        "sender_type": "coordinator",
+        "container_id": "a1b2c3d4e5f6"
+      },
+      "recipient": {
+        "recipient_id": "backend-developer-001",
+        "recipient_type": "agent"
+      },
+      "queue_config": {
+        "timeout_seconds": 300,
+        "max_retries": 3,
+        "priority": 5
+      },
+      "dead_letter": {
+        "enabled": true,
+        "dlq_name": "dlq:agent:backend-developer-001",
+        "retry_count": 0
+      },
+      "backpressure": {
+        "enabled": true,
+        "max_queue_size": 1000,
+        "reject_on_full": false
+      },
+      "ttl_seconds": 3600
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cfn-loop-communication/product-owner-decision/v1.0.0",
+  "title": "Product Owner Decision Schema",
+  "description": "Schema for Product Owner decision execution (Integration Point 3.6)",
+  "type": "object",
+  "required": ["decision_id", "task_id", "iteration", "decision", "timestamp"],
+  "properties": {
+    "decision_id": {
+      "type": "string",
+      "description": "Unique identifier for decision",
+      "pattern": "^decision-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "iteration": {
+      "type": "integer",
+      "description": "CFN Loop iteration number",
+      "minimum": 1
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["PROCEED", "ITERATE", "ABORT"],
+      "description": "Product Owner decision"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Decision timestamp"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Reasoning behind the decision",
+      "minLength": 10
+    },
+    "loop3_confidence": {
+      "type": "number",
+      "description": "Average Loop 3 confidence score",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "loop2_consensus": {
+      "type": "number",
+      "description": "Loop 2 consensus score",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "deliverables_validated": {
+      "type": "boolean",
+      "description": "Whether deliverables were validated (prevents consensus on vapor)",
+      "default": true
+    },
+    "deliverables": {
+      "type": "object",
+      "description": "Validated deliverables",
+      "properties": {
+        "files_created": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "files_modified": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "artifacts_generated": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "iteration_feedback": {
+      "type": "string",
+      "description": "Feedback for next iteration if decision is ITERATE"
+    },
+    "abort_reason": {
+      "type": "string",
+      "description": "Reason for abort if decision is ABORT"
+    },
+    "decision_metadata": {
+      "type": "object",
+      "properties": {
+        "decision_time_ms": {
+          "type": "integer",
+          "description": "Time taken to make decision"
+        },
+        "orchestrator_id": {
+          "type": "string",
+          "description": "Orchestrator that pushed decision"
+        },
+        "product_owner_agent_id": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "decision_id": "decision-task-auth-iter1",
+      "task_id": "task-auth-implementation",
+      "iteration": 1,
+      "decision": "PROCEED",
+      "timestamp": "2025-11-17T10:45:00Z",
+      "rationale": "Implementation complete with >90% test coverage, all security checks passed, consensus ≥0.90",
+      "loop3_confidence": 0.92,
+      "loop2_consensus": 0.91,
+      "deliverables_validated": true,
+      "deliverables": {
+        "files_created": [
+          "/home/user/claude-flow-novice/src/lib/auth.ts",
+          "/home/user/claude-flow-novice/tests/auth.test.ts"
+        ],
+        "files_modified": [
+          "/home/user/claude-flow-novice/src/index.ts"
+        ],
+        "artifacts_generated": [
+          "artifact-auth-implementation-report"
+        ]
+      },
+      "decision_metadata": {
+        "decision_time_ms": 5000,
+        "orchestrator_id": "orchestrator-12345",
+        "product_owner_agent_id": "product-owner-001"
+      }
+    }
+  ]
+}

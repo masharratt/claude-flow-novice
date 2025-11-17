@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "database-handoffs/edge-case-feedback/v1.0.0",
+  "title": "Edge Case Feedback Loop Schema",
+  "description": "Schema for edge case feedback from Skills DB to Phase 4 (Integration Point 1.3)",
+  "type": "object",
+  "required": ["edge_case_id", "skill_id", "error_type", "context", "timestamp"],
+  "properties": {
+    "edge_case_id": {
+      "type": "string",
+      "description": "Unique identifier for the edge case",
+      "pattern": "^edge-[a-z0-9-]+$",
+      "minLength": 10,
+      "maxLength": 100
+    },
+    "skill_id": {
+      "type": "string",
+      "description": "Identifier of skill that encountered the edge case",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "error_type": {
+      "type": "string",
+      "description": "Type of edge case encountered",
+      "enum": ["validation_error", "execution_error", "timeout", "resource_exhaustion", "schema_mismatch", "unexpected_input", "other"]
+    },
+    "context": {
+      "type": "object",
+      "description": "Context of edge case execution",
+      "required": ["input", "output", "error_message"],
+      "properties": {
+        "input": {
+          "type": "object",
+          "description": "Input that triggered the edge case"
+        },
+        "output": {
+          "description": "Output produced (may be null)"
+        },
+        "error_message": {
+          "type": "string",
+          "description": "Error message or stack trace"
+        },
+        "stack_trace": {
+          "type": "string",
+          "description": "Full stack trace if available"
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the edge case occurred"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "default": "medium"
+    },
+    "deduplication_hash": {
+      "type": "string",
+      "description": "Hash for deduplication of similar edge cases",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "agent_id": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        },
+        "execution_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "edge_case_id": "edge-validation-2024-001",
+      "skill_id": "docker-build-optimizer",
+      "error_type": "validation_error",
+      "context": {
+        "input": {
+          "dockerfile_path": "/invalid/path"
+        },
+        "output": null,
+        "error_message": "File not found: /invalid/path"
+      },
+      "timestamp": "2025-11-17T10:30:00Z",
+      "severity": "high",
+      "deduplication_hash": "a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd"
+    }
+  ]
+}

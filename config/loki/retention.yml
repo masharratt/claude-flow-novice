@@ -1,0 +1,107 @@
+# Loki Retention Policy Configuration
+# Task P2-2.3: Centralized Logging with ELK/Loki Stack
+#
+# This file defines the retention policies for logs stored in Loki.
+# Logs older than the retention period are automatically deleted.
+
+# Global retention settings
+retention:
+  # Default retention period for all log entries
+  # Format: integer with unit (h=hours, d=days)
+  # 30 days = 720 hours
+  default_period: 720h
+
+  # Tenant-specific retention overrides (if using multi-tenant Loki)
+  # Uncomment and customize as needed
+  # overrides:
+  #   tenant1: 1440h    # 60 days for tenant1
+  #   tenant2: 360h     # 15 days for tenant2
+
+# Compactor settings for retention enforcement
+compactor:
+  # Enable automatic compaction
+  enabled: true
+
+  # How often to run the compaction process
+  compaction_interval: 10m
+
+  # Delete delay before marking chunks as ready for deletion
+  retention_delete_delay: 2h
+
+  # Number of workers that will delete marked chunks
+  retention_delete_worker_count: 150
+
+  # Working directory for temporary files
+  working_directory: /loki/compactor
+
+  # Which store to use (filesystem, s3, etc.)
+  shared_store: filesystem
+
+# Table manager settings for automatic table cleanup
+table_manager:
+  # Enable automatic table management
+  enabled: true
+
+  # How often to check and create/delete tables
+  poll_interval: 10m
+
+  # Enable retention enforcement
+  retention_deletes_enabled: true
+
+  # Retention period in hours (30 days)
+  retention_period: 720h
+
+  # Grace period before deleting tables
+  creation_grace_period: 10m
+
+# Index configuration for retention
+schema:
+  - from: 2020-10-24
+    store: boltdb-shipper
+    object_store: filesystem
+    schema: v11
+    index:
+      prefix: index_
+      period: 24h
+
+# Deletion settings
+deletion:
+  # How many hours before a chunk can be deleted
+  hours_until_deleted: 0
+
+  # How long a delete request stays active before being deleted
+  max_delete_request_age: 168h  # 7 days
+
+  # Maximum number of parallel delete operations
+  max_delete_parallelism: 150
+
+# Cleanup settings for expired logs
+cleanup:
+  # Enable periodic cleanup
+  enabled: true
+
+  # How often to run cleanup
+  interval: 30m
+
+  # Skip logs that are still being written to
+  skip_recent: true
+
+  # Keep logs younger than this duration
+  keep_duration: 24h
+
+# Tier configuration for storage optimization
+tiers:
+  # Frequently accessed logs (hot)
+  - name: hot
+    period: 24h
+    delete_after: 2h
+
+  # Medium-term logs (warm)
+  - name: warm
+    period: 7d
+    delete_after: 1d
+
+  # Old logs (cold) - minimal access
+  - name: cold
+    period: 30d
+    delete_after: 30d

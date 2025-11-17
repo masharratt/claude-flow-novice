@@ -1,33 +1,34 @@
-import Redis from 'ioredis';
-import { TestRedisClient } from '../test-utils';
+/**
+ * Chaos Testing: Redis Failure Scenarios
+ *
+ * Tests Redis failover and resilience using mocked Redis clients
+ */
+
+import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
+import { createMockRedisClient } from './test-helpers';
 
 describe('Chaos Testing: Redis Failure Scenarios', () => {
-  let primaryClient: Redis;
-  let backupClient: TestRedisClient;
+  let primaryClient: any;
+  let backupClient: any;
 
-  beforeAll(async () => { try {
-    primaryClient = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379', 10)
-    });
-
-    backupClient = new TestRedisClient();
+  beforeAll(async () => {
+    primaryClient = createMockRedisClient();
+    backupClient = createMockRedisClient();
   });
 
-  afterAll(async () => { try {
+  afterAll(async () => {
     await primaryClient.quit();
-    await backupClient.cleanup();
+    await backupClient.quit();
   });
 
-  jest.setTimeout(10000);
-  test('Handle primary Redis connection loss', async () => { try {
+  it('should handle primary Redis connection loss', async () => {
     const testMessage = {
       type: 'resilience-test',
       payload: { timestamp: Date.now() }
     };
 
-    const publishToBackup = async () => { try {
-      await backupClient.publishMessage('failure-test', testMessage);
+    const publishToBackup = async () => {
+      await backupClient.set('failure-test', JSON.stringify(testMessage));
       return true;
     };
 
@@ -38,8 +39,7 @@ describe('Chaos Testing: Redis Failure Scenarios', () => {
     await expect(publishToBackup()).resolves.toBeTruthy();
   });
 
-  jest.setTimeout(10000);
-  test('Reconnection and message recovery', async () => { try {
+  it('should handle reconnection and message recovery', async () => {
     const recoveryMessage = {
       type: 'recovery-test',
       payload: { recoveryTimestamp: Date.now() }
@@ -47,42 +47,42 @@ describe('Chaos Testing: Redis Failure Scenarios', () => {
 
     const messageCatcher = jest.fn();
 
-    await backupClient.subscribeToChannel('recovery-channel', messageCatcher);
-    await backupClient.publishMessage('recovery-channel', recoveryMessage);
+    // Subscribe to channel
+    await backupClient.subscribe('recovery-channel', (channel: string, message: string) => {
+      messageCatcher(JSON.parse(message));
+    });
+
+    // Publish message
+    await backupClient.publish('recovery-channel', JSON.stringify(recoveryMessage));
 
     // Wait and check message was received
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     expect(messageCatcher).toHaveBeenCalledWith(recoveryMessage);
   });
 
-  jest.setTimeout(10000);
-  test('Validate Redis pub/sub resilience', async () => { try {
-    const resilientTest = async () => { try {
-      const messageBatch = Array.from({ length: 50 }, (_, i) => ({
-        id: i,
-        type: 'stress-test',
-        timestamp: Date.now()
-      }));
+  it('should validate Redis pub/sub resilience', async () => {
+    const messageBatch = Array.from({ length: 50 }, (_, i) => ({
+      id: i,
+      type: 'stress-test',
+      timestamp: Date.now()
+    }));
 
-      const receivedMessages: any[] = [];
+    const receivedMessages: any[] = [];
 
-      await backupClient.subscribeToChannel('resilience-channel', (msg) => {
-        receivedMessages.push(msg);
-      });
+    await backupClient.subscribe('resilience-channel', (channel: string, message: string) => {
+      receivedMessages.push(JSON.parse(message));
+    });
 
-      // Publish messages rapidly
-      for (const message of messageBatch) {
-        await backupClient.publishMessage('resilience-channel', message);
-      }
+    // Publish messages rapidly
+    for (const message of messageBatch) {
+      await backupClient.publish('resilience-channel', JSON.stringify(message));
+    }
 
-      // Wait for messages
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for messages
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Ensure all messages were received
-      return receivedMessages.length === messageBatch.length;
-    };
-
-    await expect(resilientTest()).resolves.toBeTruthy();
+    // Ensure all messages were received
+    expect(receivedMessages.length).toBe(messageBatch.length);
   });
-} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+});

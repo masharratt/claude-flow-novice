@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api-layer/cli-invocation/v1.0.0",
+  "title": "CLI Invocation Schema",
+  "description": "Schema for agent-spawn CLI command invocation (Integration Point 5.7)",
+  "type": "object",
+  "required": ["invocation_id", "command", "arguments", "timestamp"],
+  "properties": {
+    "invocation_id": {
+      "type": "string",
+      "description": "Unique identifier for CLI invocation",
+      "pattern": "^cli-[a-z0-9-]+$"
+    },
+    "command": {
+      "type": "string",
+      "description": "CLI command",
+      "enum": ["agent-spawn", "coordinator-spawn", "skill-load"],
+      "default": "agent-spawn"
+    },
+    "arguments": {
+      "type": "object",
+      "description": "Command arguments",
+      "required": ["type", "task-id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Agent type to spawn",
+          "pattern": "^[a-z-]+$"
+        },
+        "task-id": {
+          "type": "string",
+          "description": "Task identifier",
+          "pattern": "^task-[a-z0-9-]+$"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["mvp", "standard", "enterprise"]
+        },
+        "iteration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "context": {
+          "type": "string",
+          "description": "Additional context (JSON string)"
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Invocation timestamp"
+    },
+    "cli_interface": {
+      "type": "object",
+      "description": "CLI interface details",
+      "required": ["full_command", "exit_code"],
+      "properties": {
+        "full_command": {
+          "type": "string",
+          "description": "Complete CLI command as executed",
+          "pattern": "^npx claude-flow-novice.*"
+        },
+        "exit_code": {
+          "type": "integer",
+          "description": "CLI exit code (0 = success)"
+        },
+        "stdout": {
+          "type": "string",
+          "description": "Standard output"
+        },
+        "stderr": {
+          "type": "string",
+          "description": "Standard error"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "description": "CLI execution duration",
+          "minimum": 0
+        }
+      }
+    },
+    "parameter_validation": {
+      "type": "object",
+      "description": "Parameter validation results",
+      "required": ["validated"],
+      "properties": {
+        "validated": {
+          "type": "boolean"
+        },
+        "validation_errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "parameter": {
+                "type": "string"
+              },
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "documentation": {
+      "type": "object",
+      "description": "Documentation references",
+      "properties": {
+        "help_output": {
+          "type": "string",
+          "description": "CLI help output"
+        },
+        "examples_provided": {
+          "type": "boolean"
+        },
+        "doc_url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "success_criteria": {
+      "type": "object",
+      "description": "Success criteria verification",
+      "properties": {
+        "agent_spawned": {
+          "type": "boolean"
+        },
+        "parameters_valid": {
+          "type": "boolean"
+        },
+        "no_errors": {
+          "type": "boolean"
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "description": "CLI usage monitoring",
+      "properties": {
+        "usage_tracked": {
+          "type": "boolean"
+        },
+        "usage_count": {
+          "type": "integer",
+          "description": "Total usage count for this command"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "invocation_id": "cli-spawn-backend-001",
+      "command": "agent-spawn",
+      "arguments": {
+        "type": "backend-developer",
+        "task-id": "task-auth-implementation",
+        "mode": "standard",
+        "iteration": 1
+      },
+      "timestamp": "2025-11-17T10:30:00Z",
+      "cli_interface": {
+        "full_command": "npx claude-flow-novice agent-spawn --type=backend-developer --task-id=task-auth-implementation --mode=standard",
+        "exit_code": 0,
+        "stdout": "Agent spawned successfully: backend-developer-001\n",
+        "stderr": "",
+        "duration_ms": 3500
+      },
+      "parameter_validation": {
+        "validated": true,
+        "validation_errors": []
+      },
+      "documentation": {
+        "examples_provided": true,
+        "doc_url": "https://docs.example.com/cli/agent-spawn"
+      },
+      "success_criteria": {
+        "agent_spawned": true,
+        "parameters_valid": true,
+        "no_errors": true
+      },
+      "monitoring": {
+        "usage_tracked": true,
+        "usage_count": 1250
+      }
+    }
+  ]
+}
