@@ -52,7 +52,7 @@ fi
 **Write Tests First (15-20 min):**
 - Extract test requirements from success criteria
 - Write failing tests for each requirement
-- Ensure test coverage ≥80%
+- Ensure test coverage ≥90%
 
 **Implement (30-40 min):**
 - Write minimum code to pass tests
@@ -62,7 +62,12 @@ fi
 **Validate (5 min):**
 - Run full test suite: `cargo test` (or framework command from criteria)
 - Verify pass rate meets threshold (Standard: ≥95%)
-- Check coverage metrics
+- Check coverage metrics (must meet ≥90%)
+
+**Failure Escalation:**
+- If pass rate < 95%: DO NOT proceed - fix failing tests before reporting
+- If coverage < 90%: Add tests to increase coverage before completing
+- If critical test failures: Escalate to team lead, block merge until resolved
 
 ### 3. Report Test Results (NOT Confidence)
 
