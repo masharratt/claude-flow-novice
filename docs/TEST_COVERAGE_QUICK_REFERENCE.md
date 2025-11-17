@@ -1,394 +1,349 @@
-# Test Coverage - Quick Reference Guide
+# Test Coverage Quick Reference (Updated)
+## Claude Flow Novice - One-Page Guide
 
-## Critical Gaps at a Glance
+**Last Updated:** November 17, 2025  
+**Status:** Post-Main-Merge Analysis
 
-### Untested Critical Modules
+---
+
+## QUICK STATS
+
+| Metric | Now | Target | Gap |
+|--------|-----|--------|-----|
+| **Source LOC** | 29,409 | - | - |
+| **Test LOC** | 93,608 | - | - |
+| **Test:Code Ratio** | 3.2:1 | 2.5:1+ | ✅ Good |
+| **File Coverage** | 1.6% | 30%+ | Need 1,200 tests |
+| **CFN Loop Tests** | 60% | 90%+ | Need 200+ tests |
+| **Agent Lifecycle** | 50% | 85%+ | Need 150+ tests |
+| **Overall Confidence** | MEDIUM | HIGH | 6-8 weeks work |
+
+---
+
+## WHAT'S BEEN ADDED (This Merge)
+
+### New Testing Specialists ✅
 
 ```
-CRITICAL (0% Coverage):
-├── src/cfn-loop/cfn-loop-orchestrator.ts (2,020 LOC) ⚠️
-├── src/agents/lifecycle-manager.ts (456 LOC) ⚠️
-├── src/cli/agent-spawn.ts (incomplete)
-├── src/cli/agent-executor.ts (463 LOC)
-├── src/lib/database-service/postgres-adapter.ts (482 LOC)
-├── src/lib/database-service/sqlite-adapter.ts (454 LOC)
-└── src/middleware/transparency-middleware.ts (827 LOC)
+Contract Tester        → API contract + schema testing
+Integration Tester     → E2E workflow + cross-component testing
+Mutation Tester        → Test quality validation
+```
 
-HIGH RISK (0% Coverage):
-├── src/cli/cfn-context.ts (413 LOC)
-├── src/cli/memory-cli.ts (367 LOC)
-├── src/integration/DatabaseHandoff.ts (658 LOC)
-├── src/integration/StandardAdapter.ts (409 LOC)
-├── src/cfn-loop/circuit-breaker.ts (361 LOC)
-└── 316 shell scripts in .claude/skills/
+### New Validation Skills ✅
+
+```
+JSON Validator         → Success criteria validation
+Agent Template Gen     → Standardized agent creation
+Agent Linter           → Template compliance checking
+```
+
+### New Testing Infrastructure ✅
+
+```
+Test Result Parser     → Jest/Pytest output parsing
+Success Criteria Store → Redis persistence
+Gate Security Tests    → Symlink attack prevention
+Docker Tests           → Container orchestration
 ```
 
 ---
 
-## File Paths for Key Modules
+## CRITICAL GAPS (Still Exist)
 
-### Core Orchestration
-```
-/home/user/claude-flow-novice/src/cfn-loop/
-├── cfn-loop-orchestrator.ts        # 2,020 LOC - MOST CRITICAL
-├── circuit-breaker.ts              # 361 LOC  - Timeout handling
-├── feedback-injection-system.ts    # Error recovery
-├── byzantine-consensus-adapter.ts  # Consensus logic
-└── modes/
-    ├── mvp-mode.ts
-    ├── standard-mode.ts
-    └── enterprise-mode.ts
-```
+### Top 3 Priorities
 
-### Agent Management
-```
-/home/user/claude-flow-novice/src/agents/
-├── lifecycle-manager.ts               # 456 LOC - State management
-├── lifecycle-manager-exported-functions.ts
-├── agent-loader.ts                    # 315 LOC - Agent discovery
-├── agent-registry.ts                  # 148 LOC - Agent registry
-└── agent-validator.ts                 # 261 LOC - Validation
+| Gap | Location | LOC | Tests | Impact |
+|-----|----------|-----|-------|--------|
+| **CFN Orchestration E2E** | `src/cfn-loop/cfn-loop-orchestrator.ts` | 2,020 | ~40% | CRITICAL |
+| **Agent Lifecycle** | `src/agents/lifecycle-manager.ts` | 1,278 | ~50% | CRITICAL |
+| **CLI Commands** | `src/cli/cfn-*.ts` | 2,100 | ~20% | HIGH |
 
-/home/user/claude-flow-novice/src/cli/
-├── agent-spawn.ts                     # Process spawning
-├── agent-executor.ts                  # 463 LOC - Execution logic
-├── agent-command.ts                   # Command handling
-└── agent-prompt-builder.ts            # 392 LOC - Prompt generation
-```
+### Quick Gap Map
 
-### Database Layer
 ```
-/home/user/claude-flow-novice/src/lib/database-service/
-├── index.ts                           # 6,457 LOC - Main service
-├── postgres-adapter.ts                # 482 LOC - PostgreSQL
-├── sqlite-adapter.ts                  # 454 LOC - SQLite
-├── redis-adapter.ts                   # 280 LOC - Redis
-└── transaction-manager.ts             # Transaction handling
-```
+✅ = Well tested    ⚠️ = Partial      ❌ = Not tested
 
-### Integration & Middleware
-```
-/home/user/claude-flow-novice/src/middleware/
-└── transparency-middleware.ts         # 827 LOC - Event tracking
+CFN Loop Infrastructure:
+  ✅ Gate security (test-driven gates + security validation)
+  ⚠️ Loop 2 consensus voting (helper functions, not full validation)
+  ⚠️ Product Owner decision (basic execution, not error cases)
+  ❌ Full cycle (Loop 3 → Loop 2 → Product Owner → iterate)
 
-/home/user/claude-flow-novice/src/integration/
-├── DatabaseHandoff.ts                 # 658 LOC
-├── StandardAdapter.ts                 # 409 LOC
-└── handoff types...
-```
+Agent System:
+  ✅ Template validation (agent-template-generator + linter)
+  ⚠️ Spawning (parameter validation, not full lifecycle)
+  ❌ Lifecycle state machine (all 9 states × transitions)
+  ❌ Concurrent limits (spawning + resource constraints)
 
-### Test Location
-```
-/home/user/claude-flow-novice/tests/
-├── agent-output-validator.test.ts     # 85 tests ✓
-├── artifact-registry.test.ts          # 55 tests ✓
-├── config-validator.test.ts           # 113 tests ✓
-├── database-service.test.ts           # 43 tests ✓
-├── postgres-transaction-routing.test.ts # 34 tests ✓
-├── cfn-v3/                            # Orchestration tests
-│   ├── config-manager.test.ts
-│   ├── redis-agent-coordination.test.js
-│   └── spawn-workers.test.js
-└── integration/
-    └── phase-1/                       # Partial coverage
+CLI Commands:
+  ✅ Parameter validation (some commands)
+  ❌ cfn loop (loop mode, iteration logic)
+  ❌ cfn swarm (swarm management)
+  ❌ cfn memory (memory operations)
+
+Docker/Containers:
+  ✅ Access control (DOCKER_ACCESS_CONTROL.md)
+  ✅ Success criteria loading (test-docker-orchestrator.sh)
+  ⚠️ Security scanning (no Trivy/Snyk integration)
+  ❌ Image building in WSL2 (validation only)
+
+Database:
+  ⚠️ Transactions (34 tests, but not error cases)
+  ⚠️ Connection pooling (partial coverage)
+  ❌ Rollback scenarios (transaction failure)
+  ❌ Concurrent access (race conditions)
+
+Shell Scripts:
+  ✅ Gate checking (test-gate-check-*.sh)
+  ✅ Test parsing (parse-test-results.sh)
+  ⚠️ Redis operations (centralized but partial)
+  ❌ Agent spawning (spawn-agent.sh - critical gap)
+  ❌ Orchestration (orchestrate.sh - critical gap)
 ```
 
 ---
 
-## Implementation Roadmap (What to Test First)
+## WHAT TO TEST THIS WEEK
 
-### Week 1: Foundation Setup
-```typescript
-// 1. Mock infrastructure (in tests/fixtures/)
-- RedisClientMock (use existing redis-mock)
-- DatabaseMocks for all adapters
-- AgentProcessMock
-- FileSystemMock
+### Option A: Quick Wins (15-20 hrs)
+1. **Agent spawning failure scenarios** - 5 hrs
+2. **CLI command parsing** - 5 hrs
+3. **Database transaction rollback** - 5 hrs
+4. **Shell script error handling** - 5 hrs
 
-// 2. Test utilities (in tests/utils/)
-- Test data generators
-- Assertion helpers
-- Cleanup utilities
+### Option B: High Impact (40-60 hrs)
+1. **CFN Loop end-to-end** - 40-60 hrs
+   - Loop 3 spawn → collect confidence
+   - Loop 2 consensus voting
+   - Product Owner decision
+   - Gate threshold enforcement
 
-// 3. Basic happy-path tests
-- Orchestrator: basic flow
-- Lifecycle: state transitions
-- Database: CRUD operations
-```
+### Option C: Balanced (30-40 hrs)
+1. **Agent lifecycle state machine** - 20-30 hrs
+2. **CLI command validation** - 10 hrs
 
-### Week 2-3: Orchestration Coverage
-```typescript
-// src/cfn-loop/cfn-loop-orchestrator.test.ts
-Test suites:
-1. Initialize and configure orchestrator
-2. executeLoop3Phase() happy path
-3. collectConfidenceScores() and gate checking
-4. executeLoop2Phase() consensus
-5. Feedback injection on failures
-6. Error handling and recovery
-```
+---
 
-### Week 3-4: Lifecycle & CLI
-```typescript
-// src/agents/lifecycle-manager.test.ts
-Test suites:
-1. State transitions (9 states, all transitions)
-2. Dependency tracking
-3. Event emissions
-4. Memory persistence
+## WHICH SPECIALIST TO USE
 
-// src/cli/agent-executor.test.ts
-Test suites:
-1. Command parsing
-2. Context injection
-3. Error handling
-4. Process cleanup
-```
+### For Different Scenarios
 
-### Week 4-5: Database & Integration
-```typescript
-// src/lib/database-service/*.test.ts
-Test suites:
-1. Transaction workflows
-2. Connection management
-3. Concurrent access
-4. Error recovery
+| Scenario | Specialist | Time | Result |
+|----------|-----------|------|--------|
+| "Write API tests" | contract-tester | 2-3d | Pact contracts ✅ |
+| "Test CFN workflow" | integration-tester | 3-5d | E2E tests ✅ |
+| "Validate test quality" | mutation-testing-specialist | 2-3d | Mutation score 💯 |
+| "Review code" | reviewer | 1-2d | PR feedback |
+| "Implement feature" | coder | 3-5d | Working code |
 
-// src/integration/*.test.ts
-Test suites:
-1. Database handoff flows
-2. Standard adapter operations
-3. Data transformation
+---
+
+## TESTING INFRASTRUCTURE STATUS
+
+### ✅ What's Working
+
+- Jest/TS test framework
+- Success criteria validation
+- JSON schema validation
+- Test result parsing
+- Security regression tests
+- Docker integration basics
+
+### ⚠️ Partial/Needs Work
+
+- Shell script testing (25% coverage)
+- Database transaction testing (74% coverage)
+- Error scenario coverage (15% coverage)
+- Docker security scanning (0% coverage)
+
+### ❌ Not Yet Implemented
+
+- BATS shell test framework
+- Mutation testing integration
+- Contract testing framework setup
+- Performance profiling suite
+
+---
+
+## FILE PRIORITIES FOR TESTING
+
+### Must Test (This Month)
+
+1. **`src/cfn-loop/cfn-loop-orchestrator.ts`**
+   - Why: Core orchestration logic
+   - Impact: CRITICAL
+   - Effort: 40-60 hrs
+   - Status: Needs comprehensive E2E tests
+
+2. **`src/agents/lifecycle-manager.ts`**
+   - Why: Agent state machine
+   - Impact: CRITICAL
+   - Effort: 30-45 hrs
+   - Status: Needs full state machine tests
+
+3. **`src/cli/cfn-loop.ts`**
+   - Why: CLI mode execution
+   - Impact: HIGH
+   - Effort: 15-20 hrs
+   - Status: Needs command parsing tests
+
+### Should Test (Next Month)
+
+4. **Database adapters** (postgres, sqlite, redis)
+5. **Middleware** (transparency, auth)
+6. **Shell scripts** (spawning, coordination)
+
+---
+
+## QUICK WINS (Start Here)
+
+### These Can Be Done This Week (8-12 hrs)
+
+```bash
+# 1. Add shell script test harness
+echo "Testing shell scripts..."
+tests/cfn-v3/helpers/test-shell-framework.sh
+
+# 2. Extend config validator
+npm test -- tests/config-validator.test.ts --updateSnapshot
+
+# 3. Add agent output validation edge cases
+npm test -- tests/agent-output-validator.test.ts
+
+# 4. Test CLI parameter validation
+npm test -- tests/cli/parameter-validation.test.ts
 ```
 
 ---
 
-## Code Examples: What Needs Testing
+## METRICS TO TRACK
 
-### Example 1: Orchestrator (CRITICAL)
-```typescript
-// File: src/cfn-loop/cfn-loop-orchestrator.ts
+### Weekly
 
-// NO TESTS FOR THIS:
-async orchestrateCFNLoop(config: CFNLoopConfig): Promise<PhaseResult> {
-  // 1. Initialize swarm
-  // 2. Execute Loop 3
-  // 3. Collect confidence scores
-  // 4. Gate check (≥75%)
-  // 5. Execute Loop 2
-  // 6. Consensus check
-  // 7. Product Owner decision
-  // 8. Return result
-
-  // UNTESTED ERROR PATHS:
-  - Timeout during Loop 3
-  - Low confidence scores
-  - Byzantine fault scenarios
-  - Circuit breaker activation
-  - Memory persistence failures
-}
+```
+Tests written:          [__________] goal: 50
+Files with coverage:    [__________] goal: 10
+Test pass rate:         [__________] goal: 100%
+Test execution time:    [__________] goal: <5 min
 ```
 
-### Example 2: Lifecycle Manager (CRITICAL)
-```typescript
-// File: src/agents/lifecycle-manager.ts
+### Monthly
 
-// NO TESTS FOR STATE TRANSITIONS:
-export type AgentLifecycleState =
-  | 'uninitialized'     // Start
-  | 'initializing'      // Setup
-  | 'idle'              // Ready
-  | 'running'           // Executing
-  | 'paused'            // Suspended
-  | 'stopping'          // Shutting down
-  | 'stopped'           // Done
-  | 'error'             // Failed
-  | 'cleanup';          // Cleanup
-
-// NO TESTS FOR:
-class AgentLifecycleManager {
-  async initialize(agentId: string): Promise<void> { }
-  async start(agentId: string): Promise<void> { }
-  async pause(agentId: string): Promise<void> { }
-  async resume(agentId: string): Promise<void> { }
-  async stop(agentId: string): Promise<void> { }
-  async trackDependency(agentId: string, dependsOn: string[]): Promise<void> { }
-  async validateCompletion(agentId: string): Promise<boolean> { }
-}
 ```
-
-### Example 3: Database Transactions (CRITICAL)
-```typescript
-// File: src/lib/database-service/transaction-manager.ts
-
-// NO TESTS FOR:
-async executeTransaction<T>(
-  callback: (trx: Transaction) => Promise<T>
-): Promise<T> {
-  // UNTESTED:
-  // - Commit on success
-  // - Rollback on error
-  // - Nested transaction handling
-  // - Concurrent access
-  // - Timeout handling
-  // - Deadlock recovery
-}
+Overall file coverage:  [__________] goal: 20%
+CFN Loop coverage:      [__________] goal: 80%
+Agent coverage:         [__________] goal: 75%
+CLI coverage:           [__________] goal: 50%
 ```
 
 ---
 
-## Quick Win: First Tests to Write (Highest ROI)
+## DEPENDENCIES
 
-### Test 1: Orchestrator Happy Path (4 hours)
-```typescript
-// tests/unit/cfn-loop/orchestrator.test.ts
-import { CFNLoopOrchestrator } from '../../../src/cfn-loop/cfn-loop-orchestrator';
+### Test Frameworks (Already Installed)
+- Jest 30.2.0
+- TypeScript 5.x
+- Redis client
+- SQLite3
 
-describe('CFNLoopOrchestrator', () => {
-  describe('orchestrateCFNLoop', () => {
-    test('executes complete flow with success', async () => {
-      const orchestrator = new CFNLoopOrchestrator();
-      const config = { phaseId: 'test-phase-1' };
-      
-      // Mock Loop 3 agents
-      // Mock confidence scores (all > 0.75)
-      // Mock Loop 2 validators
-      // Mock Product Owner
-      
-      const result = await orchestrator.orchestrateCFNLoop(config);
-      
-      expect(result.success).toBe(true);
-      expect(result.totalLoop2Iterations).toBe(1);
-    });
+### Optional (Recommended to Add)
+- BATS (Bash testing)
+- Stryker (Mutation testing)
+- Pact (Contract testing)
+- Supertest (HTTP testing)
 
-    test('handles low confidence scores', async () => {
-      // Test gate failure path
-    });
-
-    test('handles Byzantine consensus', async () => {
-      // Test fault tolerance
-    });
-  });
-});
-```
-
-### Test 2: Lifecycle State Transitions (3 hours)
-```typescript
-// tests/unit/agents/lifecycle-manager.test.ts
-describe('AgentLifecycleManager', () => {
-  describe('state transitions', () => {
-    test('transitions from uninitialized -> initializing -> idle', async () => {
-      const manager = new AgentLifecycleManager();
-      
-      await manager.initialize('agent-1');
-      expect(manager.getState('agent-1')).toBe('initializing');
-      
-      // Simulate init complete
-      expect(manager.getState('agent-1')).toBe('idle');
-    });
-
-    test('validates dependency before allowing completion', async () => {
-      const manager = new AgentLifecycleManager();
-      
-      await manager.trackDependency('agent-1', ['agent-2']);
-      const canComplete = await manager.validateCompletion('agent-1');
-      
-      expect(canComplete).toBe(false); // agent-2 not complete
-    });
-  });
-});
-```
-
-### Test 3: Database Transaction (3 hours)
-```typescript
-// tests/unit/database/transaction-manager.test.ts
-describe('TransactionManager', () => {
-  describe('executeTransaction', () => {
-    test('commits on successful callback', async () => {
-      const tm = new TransactionManager();
-      
-      const result = await tm.executeTransaction(async (trx) => {
-        await trx.insert('users', { name: 'John' });
-        return 'success';
-      });
-
-      expect(result).toBe('success');
-      // Verify data was committed
-    });
-
-    test('rolls back on callback error', async () => {
-      const tm = new TransactionManager();
-      
-      await expect(
-        tm.executeTransaction(async (trx) => {
-          await trx.insert('users', { name: 'John' });
-          throw new Error('Something went wrong');
-        })
-      ).rejects.toThrow();
-
-      // Verify data was rolled back
-    });
-  });
-});
+### Install New Frameworks
+```bash
+npm install --save-dev @bats-core/bats
+npm install --save-dev stryker stryker-cli
+npm install --save-dev @pact-foundation/pact
+npm install --save-dev supertest
 ```
 
 ---
 
-## Metrics to Track
+## SUCCESS CRITERIA
 
-### Coverage Goals
+### Phase 1 (2-3 weeks)
+- [ ] CFN Loop: 80%+ coverage
+- [ ] Agent Lifecycle: 75%+ coverage
+- [ ] CLI Commands: 50%+ coverage
+- [ ] Shell Tests: 40%+ coverage
+
+### Phase 2 (3-4 weeks)
+- [ ] Database: 90%+ coverage
+- [ ] Docker: 75%+ coverage
+- [ ] Error Scenarios: 60%+ coverage
+- [ ] Overall File Coverage: 15%+
+
+### Phase 3 (4-6 weeks)
+- [ ] Overall Coverage: 30%+
+- [ ] Mutation Score: 80%+
+- [ ] Contract Tests: Passing
+- [ ] Production Ready: YES ✅
+
+---
+
+## KEY COMMANDS
+
+### Run Tests
+```bash
+npm test                    # All tests
+npm test:watch             # Watch mode
+npm test:coverage          # Coverage report
+npm test -- --testNamePattern="CFN"  # Specific tests
 ```
-By Module (Tier 1 - CRITICAL):
-├── cfn-loop-orchestrator.ts:    85%+ branch coverage
-├── lifecycle-manager.ts:         90%+ statement coverage
-└── database adapters:            80%+ coverage
 
-By Module (Tier 2 - HIGH):
-├── CLI handlers:                 70%+ coverage
-├── Middleware:                   75%+ coverage
-└── Integration:                  70%+ coverage
+### Create New Test File
+```bash
+# Copy template
+cp tests/template.test.ts tests/my-feature.test.ts
 
-Overall Target: 75%+ by end of project
+# Run just this file
+npm test -- tests/my-feature.test.ts
 ```
 
-### Success Criteria
-```
-✓ All critical paths have tests
-✓ All error conditions tested
-✓ All async operations tested
-✓ All state transitions tested
-✓ Concurrent scenarios tested
-✓ Edge cases documented and tested
+### Test Shell Scripts
+```bash
+# Run shell test
+bash tests/cfn-v3/helpers/test-gate-check.sh
+
+# Run with verbose output
+bash -x tests/cfn-v3/helpers/test-gate-check.sh
 ```
 
 ---
 
-## Tools & Dependencies Already Available
+## RED FLAGS (Fix Immediately)
 
-```json
-{
-  "jest": "^30.2.0",
-  "ts-jest": "^29.4.5",
-  "@types/jest": "^30.0.0",
-  "jest-mock-extended": "^4.0.0",
-  "redis-mock": "^0.56.3",
-  "supertest": "^7.1.4",
-  "better-sqlite3": "^12.4.1"
-}
-```
+If you see these in tests:
 
-No additional tools needed - use existing framework!
+| Flag | Meaning | Action |
+|------|---------|--------|
+| ❌ Test timeout | Infinite loop or slow code | Review test + code |
+| ❌ Flaky test | Passes sometimes | Add proper waits |
+| ❌ Skipped tests | `test.skip()` or `xit()` | Implement or remove |
+| ❌ 0% coverage | File not tested | Write tests |
+| ❌ All tests fail | Framework issue | Check Jest config |
 
 ---
 
-## Next Steps
+## CHECKLIST FOR NEW FEATURES
 
-1. Read full report: `/home/user/claude-flow-novice/docs/TEST_COVERAGE_ANALYSIS.md`
-2. Pick Week 1 quick wins above (10-15 hours total)
-3. Set up test fixtures and mocks
-4. Start with Test 1: Orchestrator happy path
-5. Iterate through Tier 1 modules
+Before merging, ensure:
 
-Estimated effort for Tier 1: 100-120 hours
-Estimated ROI: 250+ hours/year in reduced manual testing
+- [ ] Unit tests written (happy path + errors)
+- [ ] Integration tests created
+- [ ] Error scenarios covered (3+ error cases)
+- [ ] No console.log() in code (use logging)
+- [ ] No hardcoded values (use constants)
+- [ ] Async properly handled (awaits, promises)
+- [ ] Test coverage ≥ 80% for new code
+- [ ] Tests pass locally
+- [ ] Tests pass in CI/CD
+
+---
+
+**For detailed analysis, see:** `/home/user/claude-flow-novice/docs/TEST_COVERAGE_ANALYSIS_UPDATED.md`
 
