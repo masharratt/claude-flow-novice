@@ -31,7 +31,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Load parameterized query library (SQL injection prevention)
-source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
 
 DB_PATH="${DB_PATH:-${SCRIPT_DIR}/workflow-codification.db}"
 

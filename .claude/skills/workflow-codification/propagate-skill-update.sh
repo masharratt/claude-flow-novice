@@ -75,7 +75,7 @@ set -euo pipefail
 # Source SQLite parameter binding library (Pattern B - SQL injection prevention)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

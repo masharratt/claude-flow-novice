@@ -11,7 +11,7 @@ set -euo pipefail
 
 # Import parameterized query library
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$(dirname "$SCRIPT_DIR")/bootstrap/sqlite-params.sh"
+source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
 
 # Colors for output
 RED='\033[0;31m'
