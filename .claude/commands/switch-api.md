@@ -61,19 +61,40 @@ CLI spawn → Workers (custom routing when enabled, see agent profiles)
 
 **Execute:**
 ```bash
-# Find project root (traverse up looking for scripts/switch-api.sh)
-SCRIPT_DIR="$PWD"
-while [ "$SCRIPT_DIR" != "/" ]; do
-    if [ -f "$SCRIPT_DIR/scripts/switch-api.sh" ]; then
-        break
-    fi
-    SCRIPT_DIR="$(dirname "$SCRIPT_DIR")"
-done
-if [ ! -f "$SCRIPT_DIR/scripts/switch-api.sh" ]; then
+# Find script in project root or node_modules
+SCRIPT_PATH=""
+if [ -f "$PWD/scripts/switch-api.sh" ]; then
+    SCRIPT_PATH="$PWD/scripts/switch-api.sh"
+else
+    # Check parent directories (for nested project structures)
+    SEARCH_DIR="$PWD"
+    while [ "$SEARCH_DIR" != "/" ]; do
+        if [ -f "$SEARCH_DIR/scripts/switch-api.sh" ]; then
+            SCRIPT_PATH="$SEARCH_DIR/scripts/switch-api.sh"
+            break
+        fi
+        SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+    done
+fi
+
+# Fallback to node_modules (for npm-installed package)
+if [ -z "$SCRIPT_PATH" ]; then
+    SEARCH_DIR="$PWD"
+    while [ "$SEARCH_DIR" != "/" ]; do
+        if [ -f "$SEARCH_DIR/node_modules/claude-flow-novice/scripts/switch-api.sh" ]; then
+            SCRIPT_PATH="$SEARCH_DIR/node_modules/claude-flow-novice/scripts/switch-api.sh"
+            break
+        fi
+        SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+    done
+fi
+
+if [ -z "$SCRIPT_PATH" ]; then
     echo "Error: switch-api.sh not found. Please ensure you're in a project with CFN installed."
     exit 1
 fi
-bash "$SCRIPT_DIR/scripts/switch-api.sh" {{args}}
+
+bash "$SCRIPT_PATH" {{args}}
 ```
 
 **Note:** Script automatically detects and uses `.claude/settings.local.json` if it exists, otherwise uses `.claude/settings.json`.
