@@ -5,7 +5,7 @@ team: foundation
 approval_level: auto
 approval_criteria:
   max_commands: 15
-  test_coverage: 0.95
+  test_coverage: n/a  # Documentation-only skill with example patterns
   no_external_calls: true
 tags: [sqlite, database, foundation]
 version: 1.0.0
