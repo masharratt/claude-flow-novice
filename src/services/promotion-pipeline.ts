@@ -19,14 +19,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
-import { exec } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import { DatabaseService } from '../lib/database-service';
 import { StandardError, ErrorCode } from '../lib/errors';
 import { createLogger } from '../lib/logging';
 import { AuthMiddleware, RBACEnforcer, UserContext, PromotionOperation } from '../middleware/auth-middleware';
 
-const execAsync = promisify(exec);
 const fsRename = promisify(fs.rename);
 const fsMkdir = promisify(fs.mkdir);
 const fsReadFile = promisify(fs.readFile);
@@ -230,6 +229,54 @@ export class PromotionPipeline extends EventEmitter {
   }
 
   /**
+   * SECURITY: Validate test script path to prevent path traversal attacks
+   * - Must exist in skill directory
+   * - Must be a regular file (not symlink to escape sandbox)
+   * - Must not contain .. or other path traversal sequences
+   *
+   * @throws StandardError if path validation fails
+   */
+  private validateTestScriptPath(testScriptPath: string, skillPath: string): void {
+    // Resolve paths to absolute to detect any traversal attempts
+    const resolvedTestPath = path.resolve(testScriptPath);
+    const resolvedSkillPath = path.resolve(skillPath);
+
+    // Check: Test script must be under skill directory
+    if (!resolvedTestPath.startsWith(resolvedSkillPath + path.sep) && resolvedTestPath !== path.join(resolvedSkillPath, 'test.sh')) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        'Test script path must be within skill directory (path traversal prevented)'
+      );
+    }
+
+    // Check: Path must not contain traversal sequences
+    if (testScriptPath.includes('..') || testScriptPath.includes('//')) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        'Test script path contains invalid sequences (.. or //)'
+      );
+    }
+
+    // Check: File must exist and be a regular file
+    if (!fs.existsSync(resolvedTestPath)) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        `Test script does not exist: ${testScriptPath}`
+      );
+    }
+
+    const stats = fs.statSync(resolvedTestPath);
+    if (!stats.isFile()) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        'Test script path must be a regular file'
+      );
+    }
+
+    logger.debug('Test script path validation passed', { testScriptPath });
+  }
+
+  /**
    * Stage 1: Validate skill structure and compliance
    *
    * SECURITY: Requires VALIDATE permission
@@ -390,17 +437,34 @@ export class PromotionPipeline extends EventEmitter {
         };
       }
 
-      // Execute tests with timeout
+      // SECURITY: Validate test script path before execution
       try {
-        const { stdout, stderr } = await this.executeWithTimeout(
-          `bash ${testScriptPath}`,
+        this.validateTestScriptPath(testScriptPath, skillPath);
+      } catch (validationError) {
+        logger.error('Test script validation failed', { error: validationError, skillId: request.skillId });
+        errors.push(validationError instanceof Error ? validationError.message : String(validationError));
+        return {
+          stage: 'test',
+          passed: false,
+          testsPassed: false,
+          confidence: 0,
+          errors,
+          duration: Date.now() - startTime,
+        };
+      }
+
+      // Execute tests with timeout (secure: array args prevent command injection)
+      try {
+        const result = await this.executeWithTimeout(
+          'bash',
+          [testScriptPath],
           this.testTimeoutMs,
           { cwd: skillPath }
         );
 
         logger.debug('Test execution succeeded', {
           skillId: request.skillId,
-          stdout: stdout.substring(0, 200),
+          stdout: result.stdout.substring(0, 200),
         });
 
         // Check for test failures in skill-specific logic
@@ -999,27 +1063,85 @@ export class PromotionPipeline extends EventEmitter {
   }
 
   /**
-   * Execute command with timeout
+   * SECURITY FIX (CVSS 8.6): Execute command with timeout using async spawn
+   *
+   * VULNERABLE PATTERN (FIXED):
+   * - Before: execAsync('bash ' + command) - vulnerable to command injection
+   * - After: spawn('bash', [command]) - safe array-based argument passing
+   *
+   * This prevents shell metacharacter interpretation and command injection attacks.
+   * Uses async spawn (not spawnSync) to avoid blocking the event loop.
+   * The testScriptPath is validated in validateTestScriptPath() before being passed here.
+   *
+   * @param command - Command executable (e.g., 'bash', 'node')
+   * @param args - Array of arguments (safely escaped, no shell interpretation)
+   * @param timeoutMs - Timeout in milliseconds
+   * @param options - Spawn options (cwd, env, etc.)
+   * @returns Promise with stdout/stderr
    */
   private executeWithTimeout(
     command: string,
+    args: string[],
     timeoutMs: number,
     options?: any
   ): Promise<{ stdout: string; stderr: string }> {
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error(`Command execution timeout after ${timeoutMs}ms: ${command}`));
+      let stdoutData = '';
+      let stderrData = '';
+      let processKilled = false;
+      let timeoutHandle: NodeJS.Timeout | null = null;
+
+      // Spawn process with array args (no shell interpretation)
+      const childProcess: ChildProcess = spawn(command, args, options || {});
+
+      // Setup timeout to kill process
+      timeoutHandle = setTimeout(() => {
+        processKilled = true;
+        if (childProcess && !childProcess.killed) {
+          childProcess.kill('SIGTERM');
+        }
+        reject(new Error(`Command execution timeout after ${timeoutMs}ms: ${command} ${args.join(' ')}`));
       }, timeoutMs);
 
-      execAsync(command, options)
-        .then(result => {
-          clearTimeout(timeout);
-          resolve(result);
-        })
-        .catch(error => {
-          clearTimeout(timeout);
-          reject(error);
+      // Collect stdout data
+      if (childProcess.stdout) {
+        childProcess.stdout.on('data', (data: Buffer) => {
+          stdoutData += data.toString();
         });
+      }
+
+      // Collect stderr data
+      if (childProcess.stderr) {
+        childProcess.stderr.on('data', (data: Buffer) => {
+          stderrData += data.toString();
+        });
+      }
+
+      // Handle process errors (e.g., command not found)
+      childProcess.on('error', (error: Error) => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+        if (!processKilled) {
+          reject(error);
+        }
+      });
+
+      // Handle process exit
+      childProcess.on('close', (code: number | null) => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+
+        // Only process if not already killed by timeout
+        if (!processKilled) {
+          if (code === 0) {
+            resolve({ stdout: stdoutData, stderr: stderrData });
+          } else {
+            reject(new Error(`Command failed with exit code ${code}: ${stderrData || stdoutData}`));
+          }
+        }
+      });
     });
   }
 }

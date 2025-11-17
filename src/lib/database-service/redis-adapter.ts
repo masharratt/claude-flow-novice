@@ -11,6 +11,7 @@
  */
 
 import { createClient, RedisClientType } from 'redis';
+import { randomUUID } from 'crypto';
 import {
   IDatabaseAdapter,
   DatabaseConfig,
@@ -378,7 +379,7 @@ export class RedisAdapter implements IDatabaseAdapter {
 
   async beginTransaction(): Promise<TransactionContext> {
     return {
-      id: `redis-tx-${Date.now()}`,
+      id: `redis-tx-${randomUUID()}`,
       databases: ['redis'],
       startTime: new Date(),
       status: 'pending',

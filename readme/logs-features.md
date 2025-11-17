@@ -1,4 +1,326 @@
-# Claude Flow Novice - Features Matrix (v2.10.6)
+# Claude Flow Novice - Features Matrix (v2.16.0)
+
+## Integration Standardization (v2.16.0 - PR #16)
+
+### Purpose
+Systematic unification of patterns across 43 skills, eliminating inconsistencies in skill lifecycle, database operations, file system usage, and data formats.
+
+### Implementation Status
+**27/30 tasks complete (90%)** - PR #16 integration standardization plan
+
+### Skill Lifecycle Automation
+
+**Purpose**: Deploy, version, and promote skills with single command execution
+
+**Features**:
+- Automated skill deployment from staging to production
+- Version management with semantic versioning enforcement
+- Promotion workflows with validation gates
+- Rollback capabilities for failed deployments
+- Dependency tracking across skill updates
+
+**Usage**:
+```bash
+# Deploy skill to production
+./.claude/skills/skill-lifecycle-manager/deploy-skill.sh \
+  --skill cfn-coordination \
+  --version 2.1.0 \
+  --environment production
+
+# Promote skill from staging to production
+./.claude/skills/skill-lifecycle-manager/promote-skill.sh \
+  --skill cfn-agent-spawning \
+  --from staging \
+  --to production
+
+# Rollback to previous version
+./.claude/skills/skill-lifecycle-manager/rollback-skill.sh \
+  --skill cfn-loop-validation \
+  --target-version 1.9.5
+```
+
+**Components**:
+- `deploy-skill.sh`: Deploy with validation and dependency checks
+- `promote-skill.sh`: Multi-environment promotion workflows
+- `rollback-skill.sh`: Safe version rollback with state restoration
+- `version-manager.sh`: Semantic versioning enforcement
+
+**Integration**: Automatic version tracking in skill metadata, deployment hooks for pre/post validation
+
+### Cross-Database Transactions
+
+**Purpose**: Coordinate operations across PostgreSQL, SQLite, and Redis with ACID guarantees
+
+**Features**:
+- Transaction coordinator for multi-database operations
+- Two-phase commit protocol implementation
+- Automatic rollback on partial failures
+- Consistency validation across databases
+- Performance monitoring and optimization
+
+**Architecture**:
+```bash
+# Transaction flow
+1. Begin transaction (all databases)
+2. Execute operations (PostgreSQL + SQLite + Redis)
+3. Pre-commit validation
+4. Commit phase 1 (prepare)
+5. Commit phase 2 (finalize)
+6. Rollback on any failure
+```
+
+**Usage**:
+```bash
+# Execute coordinated transaction
+./.claude/skills/cross-db-integration/execute-transaction.sh \
+  --postgres "INSERT INTO agents (...)" \
+  --sqlite "INSERT INTO audit_log (...)" \
+  --redis "SET swarm:state:active true" \
+  --timeout 30
+
+# Validate consistency
+./.claude/skills/cross-db-integration/validate-consistency.sh \
+  --transaction-id "tx-1730545678"
+```
+
+**Components**:
+- `execute-transaction.sh`: Multi-database transaction coordinator
+- `validate-consistency.sh`: Cross-database consistency checks
+- `rollback-transaction.sh`: Automatic rollback on failures
+- `monitor-transactions.sh`: Performance and health monitoring
+
+**Databases Supported**:
+- PostgreSQL: Relational data, agent profiles, skill metadata
+- SQLite: Local audit trails, test benchmarks, ACE context
+- Redis: Coordination state, pub/sub messaging, cache
+
+**Error Handling**:
+- Partial failure detection
+- Automatic rollback with state restoration
+- Transaction log persistence for debugging
+- Retry with exponential backoff
+
+### File System Standardization
+
+**Purpose**: Unified patterns for backups, logging, and state persistence across all skills
+
+**Features**:
+- Standardized backup directory structure
+- Unified logging format (JSON + human-readable)
+- State persistence with TTL management
+- Atomic file operations with fallback
+- Path validation and sanitization
+
+**Directory Structure**:
+```
+.backups/[agent-id]/[timestamp]_[hash]/    # Pre-edit backups (24h TTL)
+.cfn/logs/[skill]/[date]/                  # Skill execution logs (7d TTL)
+.cfn/state/[skill]/                        # Persistent state files
+/tmp/cfn_[skill]/                          # Temporary scratch space
+```
+
+**Logging Standard**:
+```bash
+# JSON format for machine parsing
+{
+  "timestamp": "2025-11-17T10:30:00Z",
+  "skill": "cfn-coordination",
+  "level": "INFO",
+  "message": "Agent spawned successfully",
+  "context": {"agent_id": "backend-1", "task_id": "cfn-123"}
+}
+
+# Human-readable format for debugging
+[2025-11-17 10:30:00] [INFO] cfn-coordination: Agent spawned successfully (agent_id=backend-1)
+```
+
+**Usage**:
+```bash
+# Create standardized backup
+./.claude/skills/file-system-standard/create-backup.sh \
+  --source src/file.ts \
+  --agent-id backend-1 \
+  --ttl 86400
+
+# Write standardized log
+./.claude/skills/file-system-standard/write-log.sh \
+  --skill cfn-agent-spawning \
+  --level INFO \
+  --message "Agent spawn initiated" \
+  --context '{"agent_type": "backend-developer"}'
+
+# Persist state with TTL
+./.claude/skills/file-system-standard/persist-state.sh \
+  --skill cfn-coordination \
+  --key "active_agents" \
+  --value '["agent-1", "agent-2"]' \
+  --ttl 3600
+```
+
+**Components**:
+- `create-backup.sh`: SHA-256 hashing, TTL management, metadata storage
+- `write-log.sh`: Dual-format logging (JSON + human-readable)
+- `persist-state.sh`: Atomic writes with TTL and validation
+- `cleanup-expired.sh`: TTL-based garbage collection
+
+**Integration**: All 43 skills updated to use standardized file operations
+
+### Data Format Harmonization
+
+**Purpose**: Consistent JSON schemas across all skill inputs and outputs
+
+**Features**:
+- Unified JSON schema definitions
+- Automatic validation on skill invocation
+- Schema versioning and evolution
+- Type-safe data exchange between skills
+- Backward compatibility enforcement
+
+**Standard Schemas**:
+
+**Agent Metadata**:
+```json
+{
+  "agent_id": "string (required)",
+  "agent_type": "string (required)",
+  "status": "enum: spawned|active|completed|failed",
+  "confidence": "number (0.0-1.0)",
+  "spawned_at": "ISO8601 timestamp",
+  "completed_at": "ISO8601 timestamp (optional)",
+  "metadata": "object (optional)"
+}
+```
+
+**Task Configuration**:
+```json
+{
+  "task_id": "string (required)",
+  "task_description": "string (required)",
+  "mode": "enum: mvp|standard|enterprise",
+  "scope": {
+    "epic_goal": "string",
+    "in_scope": ["array of strings"],
+    "out_of_scope": ["array of strings"],
+    "deliverables": ["array of file paths"],
+    "acceptance_criteria": ["array of criteria"]
+  },
+  "thresholds": {
+    "gate": "number (0.0-1.0)",
+    "consensus": "number (0.0-1.0)",
+    "max_iterations": "integer"
+  }
+}
+```
+
+**Skill Output**:
+```json
+{
+  "skill": "string (skill name)",
+  "version": "string (semver)",
+  "status": "enum: success|warning|error",
+  "result": "object (skill-specific)",
+  "metrics": {
+    "execution_time_ms": "integer",
+    "resource_usage": "object"
+  },
+  "errors": ["array of error objects (optional)"]
+}
+```
+
+**Usage**:
+```bash
+# Validate input against schema
+./.claude/skills/data-format-harmonization/validate-input.sh \
+  --schema agent-metadata \
+  --input '{"agent_id": "backend-1", "agent_type": "backend-developer"}'
+
+# Generate schema for new skill
+./.claude/skills/data-format-harmonization/generate-schema.sh \
+  --skill cfn-new-skill \
+  --template task-config
+
+# Validate skill output
+./.claude/skills/data-format-harmonization/validate-output.sh \
+  --skill cfn-coordination \
+  --output-file /tmp/skill-output.json
+```
+
+**Components**:
+- `validate-input.sh`: JSON schema validation for skill inputs
+- `validate-output.sh`: JSON schema validation for skill outputs
+- `generate-schema.sh`: Schema template generation for new skills
+- `migrate-schema.sh`: Schema version migration with backward compatibility
+
+**Schema Registry**: Central repository at `.cfn/schemas/` with versioned definitions
+
+### Edge Case Auto-Patching
+
+**Purpose**: Feedback loop generates patches from test failures automatically
+
+**Features**:
+- Test failure analysis with pattern extraction
+- Automatic patch generation from failure context
+- Git patch creation with descriptive commits
+- Validation of generated patches before application
+- Metrics tracking for patch effectiveness
+
+**Workflow**:
+```bash
+1. Test suite executes and detects failure
+2. Failure analyzer extracts context (stack trace, inputs, expected vs actual)
+3. Pattern matcher identifies failure type (null pointer, type mismatch, etc.)
+4. Patch generator creates fix based on pattern library
+5. Patch validator runs tests against generated patch
+6. Git commit created if validation passes
+7. Metrics updated with success/failure tracking
+```
+
+**Usage**:
+```bash
+# Analyze test failure and generate patch
+./.claude/skills/edge-case-auto-patch/analyze-failure.sh \
+  --test-file tests/cfn-v3/test-coordination.sh \
+  --failure-log /tmp/test-failure.log
+
+# Apply generated patch
+./.claude/skills/edge-case-auto-patch/apply-patch.sh \
+  --patch-id patch-1730545678 \
+  --validate-before-commit
+
+# Track patch effectiveness
+./.claude/skills/edge-case-auto-patch/track-metrics.sh \
+  --patch-id patch-1730545678 \
+  --outcome success
+```
+
+**Pattern Library**:
+- Null pointer dereference fixes
+- Type mismatch corrections
+- Missing error handling additions
+- Race condition resolution
+- Resource leak prevention
+
+**Components**:
+- `analyze-failure.sh`: Extract failure context from test logs
+- `generate-patch.sh`: Create patch from pattern matching
+- `apply-patch.sh`: Validate and apply generated patch
+- `track-metrics.sh`: Effectiveness tracking and reporting
+
+**Integration**: Hooks into test runner system for automatic failure detection
+
+**Metrics**:
+- Patch generation success rate
+- Patch application success rate
+- Test pass rate after patching
+- False positive rate
+
+### Documentation
+
+**Integration Standardization Plan**: `planning/integration-standardization/INDEX.md`
+**Implementation Progress**: 27/30 tasks complete (90%)
+**Cross-Database Guide**: `docs/CROSS_DATABASE_INTEGRATION.md`
+**File System Standards**: `docs/FILE_SYSTEM_STANDARDIZATION.md`
+**Schema Registry**: `.cfn/schemas/README.md`
 
 ### Namespace Isolation
 

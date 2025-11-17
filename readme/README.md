@@ -1,7 +1,7 @@
-# Claude Flow Novice v2.9.1 Documentation
+# Claude Flow Novice v2.16.0 Documentation
 
-**Version:** 2.9.1 (Skills-First Architecture)
-**Last Updated:** 2025-10-25
+**Version:** 2.16.0 (Integration Standardization)
+**Last Updated:** 2025-11-17
 
 **Package Metrics**:
 - 2.4 MB unpacked
@@ -106,7 +106,14 @@ npx claude-flow-novice swarm "Task Description" \
 - **[Deprecated MCP Logs](deprecated-logs-mcp.md)** - Historical MCP implementation
 - **[v1 Documentation](../legacy/readme-v1/)** - Previous documentation version
 
-## Key Features (v2)
+## Key Features (v2.16.0)
+
+### Integration Standardization (NEW - 90% Complete)
+- **Skill Lifecycle Automation**: Deploy, version, promote skills with single command
+- **Cross-Database Transactions**: Coordinated PostgreSQL + SQLite + Redis operations
+- **File System Standardization**: Unified backups, logging, state persistence
+- **Edge Case Auto-Patching**: Feedback loop generates patches from test failures
+- **Data Format Harmonization**: Consistent JSON schemas across all skill outputs
 
 ### Skills-First Architecture
 - **Modular Skills**: Independently maintainable, testable capabilities
@@ -158,6 +165,14 @@ npx claude-flow-novice swarm "Task Description" \
 - **Custom Routing**: Z.ai integration for 5x cost reduction in CLI mode
 - **Memory Safety**: ANTI-023 protection prevents memory leaks in Task Mode
 - **Enhanced Coordinators**: Progress tracking, recovery capabilities, multi-layer enforcement
+
+**v2.16.0 Changes (Integration Standardization - PR #16):**
+- **Skill Lifecycle Management**: Automated deployment, versioning, promotion workflows
+- **Cross-Database Integration**: Transaction coordinator for PostgreSQL/SQLite/Redis
+- **File System Standardization**: Unified backup, logging, state persistence patterns
+- **Edge Case Feedback Loop**: Auto-generates patches from test failures
+- **Data Format Harmonization**: JSON schema validation across 43+ skills
+- **27/30 Tasks Complete**: 90% integration standardization implementation
 
 See [CHANGELOG.md](CHANGELOG.md) and [CFN Loop Task Mode Guide](claude-assets/commands/CFN_LOOP_TASK_MODE.md) for migration details.
 

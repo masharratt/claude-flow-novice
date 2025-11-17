@@ -22,10 +22,11 @@
 
 ## Documentation Categories
 
-### V2 Core Documentation
+### V2.16.0 Core Documentation
 
 **[README.md](./README.md)**
-- v2 system overview, quick start guide
+- v2.16.0 system overview, quick start guide
+- Integration standardization features (skill lifecycle, cross-DB, file system)
 - Skills-first architecture, zero-token coordination
 - CFN Loop consensus framework, cost optimization
 - Migration notes from v1
@@ -55,6 +56,7 @@
 
 **[logs-features.md](./logs-features.md)**
 - Complete feature catalog: CFN Loop, swarm coordination, SQLite memory
+- Integration standardization: skill lifecycle, cross-DB transactions, file system
 - Configuration options, usage patterns, performance metrics
 - Testing frameworks and monitoring capabilities
 

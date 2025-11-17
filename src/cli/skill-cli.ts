@@ -119,26 +119,40 @@ function calculateHash(content: string): string {
   return createHash('sha256').update(content).digest('hex');
 }
 
+// Strip ANSI escape codes for accurate string length measurement
+function stripAnsi(str: string): string {
+  return str.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
 function formatTable(headers: string[], rows: string[][]): string {
   if (rows.length === 0) {
     return 'No results found.';
   }
 
-  // Calculate column widths
+  // Calculate column widths - strip ANSI codes before measuring
   const colWidths = headers.map((header, i) => {
-    const maxDataWidth = Math.max(...rows.map(row => (row[i] || '').toString().length));
-    return Math.max(header.length, maxDataWidth);
+    const maxDataWidth = Math.max(...rows.map(row => stripAnsi((row[i] || '').toString()).length));
+    return Math.max(stripAnsi(header).length, maxDataWidth);
   });
 
   // Build separator
   const separator = colWidths.map(w => '-'.repeat(w)).join('-+-');
 
-  // Build header
-  const headerRow = headers.map((h, i) => h.padEnd(colWidths[i])).join(' | ');
+  // Build header - use stripped length for padding calculation
+  const headerRow = headers.map((h, i) => {
+    const stripped = stripAnsi(h);
+    const padding = colWidths[i] - stripped.length;
+    return h + ' '.repeat(Math.max(0, padding));
+  }).join(' | ');
 
-  // Build data rows
+  // Build data rows - use stripped length for padding calculation
   const dataRows = rows.map(row =>
-    row.map((cell, i) => (cell || '').toString().padEnd(colWidths[i])).join(' | ')
+    row.map((cell, i) => {
+      const cellStr = (cell || '').toString();
+      const stripped = stripAnsi(cellStr);
+      const padding = colWidths[i] - stripped.length;
+      return cellStr + ' '.repeat(Math.max(0, padding));
+    }).join(' | ')
   );
 
   return [headerRow, separator, ...dataRows].join('\n');
