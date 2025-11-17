@@ -28,6 +28,11 @@ validate_period() {
 # Tracks cost savings from script execution vs AI agent usage
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# Load parameterized query library (SQL injection prevention)
+source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+
 DB_PATH="${DB_PATH:-${SCRIPT_DIR}/workflow-codification.db}"
 
 # Cost constants
@@ -147,7 +152,7 @@ validate_date "$snapshot_date" || exit 1
 
     # Calculate aggregate metrics
     local total_executions
-    total_executions=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM skill_executions WHERE date(timestamp) = '$snapshot_date';")
+    total_executions=$(sqlite_select "$DB_PATH" "SELECT COUNT(*) FROM skill_executions WHERE date(timestamp) = ?1" "$snapshot_date")
 
     if [[ "$total_executions" -eq 0 ]]; then
         echo "No executions found for date: $snapshot_date"
@@ -155,17 +160,17 @@ validate_date "$snapshot_date" || exit 1
     fi
 
     local total_cost_avoided
-    total_cost_avoided=$(sqlite3 "$DB_PATH" "SELECT COALESCE(SUM(cost_avoided_usd), 0) FROM skill_executions WHERE date(timestamp) = '$snapshot_date';")
+    total_cost_avoided=$(sqlite_select "$DB_PATH" "SELECT COALESCE(SUM(cost_avoided_usd), 0) FROM skill_executions WHERE date(timestamp) = ?1" "$snapshot_date")
 
     local total_tokens_avoided
-    total_tokens_avoided=$(sqlite3 "$DB_PATH" "SELECT COALESCE(SUM(tokens_avoided), 0) FROM skill_executions WHERE date(timestamp) = '$snapshot_date';")
+    total_tokens_avoided=$(sqlite_select "$DB_PATH" "SELECT COALESCE(SUM(tokens_avoided), 0) FROM skill_executions WHERE date(timestamp) = ?1" "$snapshot_date")
 
     local avg_execution_time
-    avg_execution_time=$(sqlite3 "$DB_PATH" "SELECT COALESCE(AVG(execution_time_ms), 0) FROM skill_executions WHERE date(timestamp) = '$snapshot_date';")
+    avg_execution_time=$(sqlite_select "$DB_PATH" "SELECT COALESCE(AVG(execution_time_ms), 0) FROM skill_executions WHERE date(timestamp) = ?1" "$snapshot_date")
 
     # Get top performing skill
     local top_skill_data
-    top_skill_data=$(sqlite3 "$DB_PATH" "SELECT skill_name, SUM(cost_avoided_usd) FROM skill_executions WHERE date(timestamp) = '$snapshot_date' GROUP BY skill_name ORDER BY SUM(cost_avoided_usd) DESC LIMIT 1;")
+    top_skill_data=$(sqlite_select "$DB_PATH" "SELECT skill_name, SUM(cost_avoided_usd) FROM skill_executions WHERE date(timestamp) = ?1 GROUP BY skill_name ORDER BY SUM(cost_avoided_usd) DESC LIMIT 1" "$snapshot_date")
 
     local top_skill_name
     local top_skill_savings
@@ -232,10 +237,10 @@ calculate_projections() {
 
     # Get average daily metrics
     local daily_executions
-    daily_executions=$(sqlite3 "$DB_PATH" "SELECT COALESCE(COUNT(*) / $period_days, 0) FROM skill_executions WHERE timestamp >= datetime('now', '-$period_days days');")
+    daily_executions=$(sqlite_select "$DB_PATH" "SELECT COALESCE(COUNT(*) / ?1, 0) FROM skill_executions WHERE timestamp >= datetime('now', '-' || ?1 || ' days')" "$period_days")
 
     local daily_savings
-    daily_savings=$(sqlite3 "$DB_PATH" "SELECT COALESCE(SUM(cost_avoided_usd) / $period_days, 0) FROM skill_executions WHERE timestamp >= datetime('now', '-$period_days days');")
+    daily_savings=$(sqlite_select "$DB_PATH" "SELECT COALESCE(SUM(cost_avoided_usd) / ?1, 0) FROM skill_executions WHERE timestamp >= datetime('now', '-' || ?1 || ' days')" "$period_days")
 
     # Calculate projections
     local monthly_executions=$(echo "$daily_executions * 30" | bc)
@@ -264,16 +269,25 @@ export_dashboard_metrics() {
 
     case "$output_format" in
         json)
+            # Calculate metrics using parameterized queries
+            local total_executions=$(sqlite_select "$DB_PATH" "SELECT COUNT(*) FROM skill_executions")
+            local total_cost_avoided=$(sqlite_select "$DB_PATH" "SELECT COALESCE(SUM(cost_avoided_usd), 0) FROM skill_executions")
+            local total_tokens_avoided=$(sqlite_select "$DB_PATH" "SELECT COALESCE(SUM(tokens_avoided), 0) FROM skill_executions")
+            local avg_execution_time=$(sqlite_select "$DB_PATH" "SELECT COALESCE(AVG(execution_time_ms), 0) FROM skill_executions")
+            local success_rate=$(sqlite_select "$DB_PATH" "SELECT COALESCE(CAST(SUM(CASE WHEN exit_code = 0 THEN 1 ELSE 0 END) AS REAL) / COUNT(*), 0) FROM skill_executions")
+            local executions_30d=$(sqlite_select "$DB_PATH" "SELECT COUNT(*) FROM skill_executions WHERE timestamp >= datetime('now', '-30 days')")
+            local cost_avoided_30d=$(sqlite_select "$DB_PATH" "SELECT COALESCE(SUM(cost_avoided_usd), 0) FROM skill_executions WHERE timestamp >= datetime('now', '-30 days')")
+
             cat <<JSON
 {
-  "total_executions": $(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM skill_executions;"),
-  "total_cost_avoided_usd": $(sqlite3 "$DB_PATH" "SELECT COALESCE(SUM(cost_avoided_usd), 0) FROM skill_executions;"),
-  "total_tokens_avoided": $(sqlite3 "$DB_PATH" "SELECT COALESCE(SUM(tokens_avoided), 0) FROM skill_executions;"),
-  "avg_execution_time_ms": $(sqlite3 "$DB_PATH" "SELECT COALESCE(AVG(execution_time_ms), 0) FROM skill_executions;"),
-  "success_rate": $(sqlite3 "$DB_PATH" "SELECT COALESCE(CAST(SUM(CASE WHEN exit_code = 0 THEN 1 ELSE 0 END) AS REAL) / COUNT(*), 0) FROM skill_executions;"),
+  "total_executions": $total_executions,
+  "total_cost_avoided_usd": $total_cost_avoided,
+  "total_tokens_avoided": $total_tokens_avoided,
+  "avg_execution_time_ms": $avg_execution_time,
+  "success_rate": $success_rate,
   "last_30_days": {
-    "executions": $(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM skill_executions WHERE timestamp >= datetime('now', '-30 days');"),
-    "cost_avoided_usd": $(sqlite3 "$DB_PATH" "SELECT COALESCE(SUM(cost_avoided_usd), 0) FROM skill_executions WHERE timestamp >= datetime('now', '-30 days');")
+    "executions": $executions_30d,
+    "cost_avoided_usd": $cost_avoided_30d
   }
 }
 JSON
