@@ -1,8 +1,0 @@
-{
-  "agent_id": "main-chat-cfn-fix",
-  "original_path": "scripts/init-project.js",
-  "backup_timestamp": 1761953249985,
-  "file_hash": "6974a324d718213995644aa13140b2b6758a48e72bb1f36b80cfbb626ec74299",
-  "backup_ttl": 86400,
-  "backup_status": "active"
-}

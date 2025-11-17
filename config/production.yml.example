@@ -1,0 +1,72 @@
+# Claude Flow Novice - Production Configuration Override
+# This file merges with config/default.yml
+# Only specify values that differ from default
+
+# Database - PostgreSQL for production
+database:
+  type: postgres
+  host: db.production.local
+  port: 5432
+  name: cfn_production
+  username: cfn_prod_user
+  password: ${DB_PASSWORD}  # Set via environment variable
+  pool:
+    min: 5
+    max: 50
+  ssl: true
+
+# Redis - Production cluster
+redis:
+  enabled: true
+  host: redis.production.local
+  port: 6380
+  password: ${REDIS_PASSWORD}
+  ttl: 172800  # 48 hours
+
+# Agents - Higher capacity for production
+agents:
+  maxConcurrent: 50
+  timeout: 600  # 10 minutes
+  retryAttempts: 5
+  defaultStrategy: production
+  logLevel: warn
+
+# Logging - File output with rotation
+logging:
+  level: warn
+  format: json
+  output: both
+  file:
+    path: /var/log/cfn/production.log
+    maxSize: 100m
+    maxFiles: 30
+
+# Security - Strict settings
+security:
+  enabled: true
+  apiKeyRequired: true
+  rateLimiting:
+    enabled: true
+    maxRequests: 1000
+    windowMs: 60000
+  allowedOrigins:
+    - https://app.production.com
+    - https://dashboard.production.com
+
+# Monitoring - Full observability
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    port: 9090
+    path: /metrics
+  healthCheck:
+    enabled: true
+    port: 8080
+    path: /health
+
+# Features
+features:
+  hotReload: false  # Disabled in production for stability
+  customRouting: true
+  experimentalFeatures: false

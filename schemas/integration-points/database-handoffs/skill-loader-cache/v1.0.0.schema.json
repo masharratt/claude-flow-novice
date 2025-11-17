@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "database-handoffs/skill-loader-cache/v1.0.0",
+  "title": "Skill Loader Cache Schema",
+  "description": "Schema for in-process skill cache from SQLite to Memory (Integration Point 1.5)",
+  "type": "object",
+  "required": ["cache_id", "skill_count", "total_size_bytes", "loaded_at", "skills"],
+  "properties": {
+    "cache_id": {
+      "type": "string",
+      "description": "Unique identifier for this cache instance",
+      "pattern": "^cache-[a-z0-9-]+$"
+    },
+    "skill_count": {
+      "type": "integer",
+      "description": "Number of skills loaded in cache",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "total_size_bytes": {
+      "type": "integer",
+      "description": "Total memory size of cached skills",
+      "minimum": 0
+    },
+    "memory_budget_bytes": {
+      "type": "integer",
+      "description": "Maximum allowed memory for cache",
+      "minimum": 1048576,
+      "default": 104857600
+    },
+    "loaded_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When cache was initially loaded"
+    },
+    "last_validated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last hash validation timestamp"
+    },
+    "skills": {
+      "type": "array",
+      "description": "Cached skill entries",
+      "items": {
+        "type": "object",
+        "required": ["skill_id", "name", "version", "content_hash", "size_bytes"],
+        "properties": {
+          "skill_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+$"
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content": {
+            "type": "string",
+            "description": "Cached skill content (markdown)"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "eviction_policy": {
+      "type": "string",
+      "enum": ["lru", "lfu", "fifo"],
+      "default": "lru"
+    },
+    "hit_count": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    },
+    "miss_count": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "cache_id": "cache-startup-001",
+      "skill_count": 43,
+      "total_size_bytes": 524288,
+      "memory_budget_bytes": 104857600,
+      "loaded_at": "2025-11-17T09:00:00Z",
+      "last_validated_at": "2025-11-17T10:30:00Z",
+      "skills": [
+        {
+          "skill_id": "cfn-coordination",
+          "name": "CFN Coordination",
+          "version": "1.0.0",
+          "content_hash": "abc123def456...",
+          "size_bytes": 12288,
+          "content": "# CFN Coordination Skill\n..."
+        }
+      ],
+      "eviction_policy": "lru",
+      "hit_count": 1250,
+      "miss_count": 3
+    }
+  ]
+}

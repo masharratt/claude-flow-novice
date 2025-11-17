@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "database-handoffs/pattern-deployment/v1.0.0",
+  "title": "Pattern Deployment Schema",
+  "description": "Schema for deploying patterns from Phase 4 to Skills DB (Integration Point 1.1)",
+  "type": "object",
+  "required": ["pattern_id", "skill_name", "version", "content_path", "content_hash"],
+  "properties": {
+    "pattern_id": {
+      "type": "string",
+      "description": "Unique identifier for the pattern",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "skill_name": {
+      "type": "string",
+      "description": "Name of the generated skill",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the skill",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "content_path": {
+      "type": "string",
+      "description": "Absolute path to skill content file",
+      "pattern": "^/.*\\.md$"
+    },
+    "content_hash": {
+      "type": "string",
+      "description": "Content hash for verification",
+      "pattern": "^[a-f0-9]{6,}$"
+    },
+    "approved_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when pattern was approved"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the pattern",
+      "properties": {
+        "author": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "category": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

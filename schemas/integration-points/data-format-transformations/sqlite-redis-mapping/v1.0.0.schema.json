@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data-format-transformations/sqlite-redis-mapping/v1.0.0",
+  "title": "SQLite ↔ Redis Schema Mapping",
+  "description": "Schema for bidirectional SQLite-Redis schema mapping (Integration Point 6.5)",
+  "type": "object",
+  "required": ["mapping_id", "direction", "source_schema", "target_schema", "timestamp"],
+  "properties": {
+    "mapping_id": {
+      "type": "string",
+      "description": "Unique identifier for mapping",
+      "pattern": "^mapping-[a-z0-9-]+$"
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["sqlite_to_redis", "redis_to_sqlite", "bidirectional"],
+      "description": "Mapping direction"
+    },
+    "source_schema": {
+      "type": "object",
+      "description": "Source schema definition",
+      "required": ["database", "structure"],
+      "properties": {
+        "database": {
+          "type": "string",
+          "enum": ["sqlite", "redis"]
+        },
+        "structure": {
+          "type": "object",
+          "description": "Schema structure",
+          "properties": {
+            "table": {
+              "type": "string",
+              "description": "SQLite table name"
+            },
+            "key_pattern": {
+              "type": "string",
+              "description": "Redis key pattern"
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["TEXT", "INTEGER", "REAL", "BLOB", "NULL", "string", "number", "boolean"]
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "target_schema": {
+      "type": "object",
+      "description": "Target schema definition",
+      "required": ["database", "structure"],
+      "properties": {
+        "database": {
+          "type": "string",
+          "enum": ["sqlite", "redis"]
+        },
+        "structure": {
+          "type": "object"
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Mapping timestamp"
+    },
+    "type_mapping": {
+      "type": "object",
+      "description": "Type conversion rules",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["from_type", "to_type"],
+            "properties": {
+              "from_type": {
+                "type": "string"
+              },
+              "to_type": {
+                "type": "string"
+              },
+              "conversion_function": {
+                "type": "string",
+                "description": "Function to perform conversion"
+              }
+            }
+          }
+        },
+        "type_mismatch_handling": {
+          "type": "string",
+          "enum": ["error", "coerce", "skip"],
+          "default": "coerce"
+        }
+      }
+    },
+    "bidirectional_sync": {
+      "type": "object",
+      "description": "Bidirectional sync configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "sync_interval_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "conflict_resolution": {
+          "type": "string",
+          "enum": ["last_write_wins", "source_wins", "target_wins", "manual"],
+          "default": "last_write_wins"
+        },
+        "change_tracking": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "track_deletes": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "conflict_resolution": {
+      "type": "object",
+      "description": "Conflict resolution strategy",
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["last_write_wins", "merge", "manual_review", "reject"]
+        },
+        "conflict_log": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "conflict_id": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "resolution": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Mapping validation",
+      "properties": {
+        "source_validated": {
+          "type": "boolean"
+        },
+        "target_validated": {
+          "type": "boolean"
+        },
+        "type_compatibility_checked": {
+          "type": "boolean"
+        },
+        "validation_errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "batch_size": {
+          "type": "integer",
+          "description": "Batch size for bulk operations",
+          "minimum": 1,
+          "default": 100
+        },
+        "mapping_duration_ms": {
+          "type": "integer",
+          "description": "Time to perform mapping"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "mapping_id": "mapping-agents-001",
+      "direction": "bidirectional",
+      "source_schema": {
+        "database": "sqlite",
+        "structure": {
+          "table": "agents",
+          "fields": [
+            {
+              "name": "id",
+              "type": "TEXT",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "type": "TEXT",
+              "nullable": false
+            },
+            {
+              "name": "confidence",
+              "type": "REAL",
+              "nullable": true
+            }
+          ]
+        }
+      },
+      "target_schema": {
+        "database": "redis",
+        "structure": {
+          "key_pattern": "agent:{id}",
+          "fields": [
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "confidence",
+              "type": "number"
+            }
+          ]
+        }
+      },
+      "timestamp": "2025-11-17T10:30:00Z",
+      "type_mapping": {
+        "rules": [
+          {
+            "from_type": "REAL",
+            "to_type": "number",
+            "conversion_function": "parseFloat"
+          },
+          {
+            "from_type": "TEXT",
+            "to_type": "string",
+            "conversion_function": "toString"
+          }
+        ],
+        "type_mismatch_handling": "coerce"
+      },
+      "bidirectional_sync": {
+        "enabled": true,
+        "sync_interval_seconds": 60,
+        "conflict_resolution": "last_write_wins",
+        "change_tracking": {
+          "enabled": true,
+          "track_deletes": true
+        }
+      },
+      "conflict_resolution": {
+        "strategy": "last_write_wins",
+        "conflict_log": []
+      },
+      "validation": {
+        "source_validated": true,
+        "target_validated": true,
+        "type_compatibility_checked": true,
+        "validation_errors": []
+      },
+      "performance": {
+        "batch_size": 100,
+        "mapping_duration_ms": 50
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: true
+    editable: true
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        # Parse correlation ID from log message
+        - name: correlationId
+          matcherRegex: 'correlationId["\s:]+([a-z0-9\-]+)'
+          url: /explore?left=${__json.Explore}&right=${__json.Explore}&var-correlationId=$${1}
+        # Parse task ID from log message
+        - name: taskId
+          matcherRegex: 'taskId["\s:]+([a-z0-9\-]+)'
+          url: /explore?left=${__json.Explore}&right=${__json.Explore}&var-taskId=$${1}
+        # Parse agent ID from log message
+        - name: agentId
+          matcherRegex: 'agentId["\s:]+([a-z0-9\-]+)'
+          url: /explore?left=${__json.Explore}&right=${__json.Explore}&var-agentId=$${1}
+        # Parse trace ID from log message
+        - name: traceId
+          matcherRegex: 'traceId["\s:]+([a-z0-9\-]+)'
+          url: /explore?left=${__json.Explore}&right=${__json.Explore}&var-traceId=$${1}
+
+  # Optional: Prometheus datasource for metrics
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: true
+    jsonData:
+      timeInterval: 15s

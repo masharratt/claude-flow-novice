@@ -2,17 +2,20 @@ version: '3.8'
 
 services:
   # Redis for agent coordination
+  # SECURITY: Authentication enabled via requirepass
   redis:
     image: redis:7-alpine
     container_name: cfn-redis
     restart: unless-stopped
     networks:
       - mcp-network
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - redis-data:/data
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD} --loglevel notice
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
@@ -36,6 +39,7 @@ services:
       retries: 3
 
   # PostgreSQL for data persistence (optional)
+  # SECURITY: Password authentication required via POSTGRES_PASSWORD
   postgres:
     image: postgres:15-alpine
     container_name: cfn-postgres
@@ -45,11 +49,12 @@ services:
     environment:
       POSTGRES_DB: cfn_loop
       POSTGRES_USER: cfn_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cfn_dev_password_change_in_production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "-c password_encryption=scram-sha-256"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cfn_user"]
+      test: ["CMD-SHELL", "pg_isready -U cfn_user -d cfn_loop"]
       interval: 10s
       timeout: 5s
       retries: 5

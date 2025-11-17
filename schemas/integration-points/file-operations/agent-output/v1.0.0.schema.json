@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "file-operations/agent-output/v1.0.0",
+  "title": "Agent Output Schema",
+  "description": "Schema for agent output to /tmp/ (Integration Point 2.4)",
+  "type": "object",
+  "required": ["agent_id", "task_id", "output_path", "confidence", "deliverables"],
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "description": "Agent identifier",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "output_path": {
+      "type": "string",
+      "description": "Path to output file",
+      "pattern": "^/tmp/.*\\.json$"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Agent confidence score (0.0-1.0)",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "deliverables": {
+      "type": "array",
+      "description": "List of deliverables created",
+      "items": {
+        "type": "object",
+        "required": ["type", "path"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["file", "documentation", "test", "configuration"]
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path to deliverable"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When output was created"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata"
+    }
+  },
+  "additionalProperties": false
+}

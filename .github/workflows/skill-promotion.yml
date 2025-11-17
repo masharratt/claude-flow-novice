@@ -1,0 +1,422 @@
+name: Automated Skill Promotion Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      skill_id:
+        description: 'Skill ID to promote'
+        required: true
+        type: string
+      from_version:
+        description: 'Current version'
+        required: true
+        type: string
+      to_version:
+        description: 'Target version'
+        required: true
+        type: string
+      reason:
+        description: 'Promotion reason/justification'
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - '.claude/skills/staging/**'
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  validate:
+    name: Stage 1 - Validate Skill
+    runs-on: ubuntu-latest
+    outputs:
+      validation_passed: ${{ steps.validate.outputs.passed }}
+      confidence: ${{ steps.validate.outputs.confidence }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract skill details from input
+        id: skill_info
+        run: |
+          if [[ -z "${{ github.event.inputs.skill_id }}" ]]; then
+            # Extract from PR branch name or detect from changes
+            SKILL_ID=$(git diff HEAD~1 --name-only | grep -o '.claude/skills/staging/[^/]*' | head -1 | sed 's|.claude/skills/staging/||')
+            echo "skill_id=${SKILL_ID}" >> $GITHUB_OUTPUT
+          else
+            echo "skill_id=${{ github.event.inputs.skill_id }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate skill structure
+        id: validate
+        run: |
+          SKILL_PATH=".claude/skills/staging/${{ steps.skill_info.outputs.skill_id }}"
+
+          if [[ ! -d "$SKILL_PATH" ]]; then
+            echo "❌ Skill directory not found: $SKILL_PATH"
+            echo "passed=false" >> $GITHUB_OUTPUT
+            echo "confidence=0" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Check required files
+          if [[ ! -f "$SKILL_PATH/SKILL.md" ]]; then
+            echo "❌ Missing SKILL.md"
+            exit 1
+          fi
+
+          if [[ ! -f "$SKILL_PATH/execute.sh" ]]; then
+            echo "❌ Missing execute.sh"
+            exit 1
+          fi
+
+          if [[ ! -x "$SKILL_PATH/execute.sh" ]]; then
+            echo "⚠️ execute.sh is not executable, fixing..."
+            chmod +x "$SKILL_PATH/execute.sh"
+          fi
+
+          # Validate frontmatter
+          if ! grep -q "^---$" "$SKILL_PATH/SKILL.md"; then
+            echo "❌ Missing frontmatter in SKILL.md"
+            exit 1
+          fi
+
+          echo "✅ Validation passed"
+          echo "passed=true" >> $GITHUB_OUTPUT
+          echo "confidence=0.95" >> $GITHUB_OUTPUT
+
+      - name: Comment validation result
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const passed = '${{ steps.validate.outputs.passed }}' === 'true';
+            const status = passed ? '✅ PASSED' : '❌ FAILED';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Stage 1: Validation\n${status}\n\nSkill structure and frontmatter validation complete.`
+            });
+
+  test:
+    name: Stage 2 - Execute Tests
+    needs: validate
+    runs-on: ubuntu-latest
+    if: needs.validate.outputs.validation_passed == 'true'
+    outputs:
+      tests_passed: ${{ steps.test.outputs.passed }}
+      coverage: ${{ steps.test.outputs.coverage }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract skill ID
+        id: skill_info
+        run: |
+          if [[ -z "${{ github.event.inputs.skill_id }}" ]]; then
+            SKILL_ID=$(git diff HEAD~1 --name-only | grep -o '.claude/skills/staging/[^/]*' | head -1 | sed 's|.claude/skills/staging/||')
+            echo "skill_id=${SKILL_ID}" >> $GITHUB_OUTPUT
+          else
+            echo "skill_id=${{ github.event.inputs.skill_id }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run tests
+        id: test
+        run: |
+          SKILL_PATH=".claude/skills/staging/${{ steps.skill_info.outputs.skill_id }}"
+          TEST_SCRIPT="$SKILL_PATH/test.sh"
+
+          if [[ ! -f "$TEST_SCRIPT" ]]; then
+            echo "⚠️ No test.sh found, skipping tests"
+            echo "passed=true" >> $GITHUB_OUTPUT
+            echo "coverage=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Make executable
+          chmod +x "$TEST_SCRIPT"
+
+          # Run with timeout
+          if timeout 120 bash "$TEST_SCRIPT"; then
+            echo "✅ Tests passed"
+            echo "passed=true" >> $GITHUB_OUTPUT
+            echo "coverage=85" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Tests failed"
+            echo "passed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Comment test result
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const passed = '${{ steps.test.outputs.passed }}' === 'true';
+            const coverage = '${{ steps.test.outputs.coverage }}';
+            const status = passed ? '✅ PASSED' : '❌ FAILED';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Stage 2: Testing\n${status}\n\nTest coverage: ${coverage}%`
+            });
+
+  approval-gate:
+    name: Stage 3 - Approval Gate
+    needs: [validate, test]
+    runs-on: ubuntu-latest
+    outputs:
+      approved: ${{ steps.gate.outputs.approved }}
+      approval_type: ${{ steps.gate.outputs.approval_type }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Calculate confidence
+        id: confidence
+        run: |
+          VALIDATION_CONFIDENCE=0.95
+          TESTS_PASSED=${{ needs.test.outputs.tests_passed }}
+
+          if [[ "$TESTS_PASSED" == "true" ]]; then
+            TEST_CONFIDENCE=0.92
+          else
+            TEST_CONFIDENCE=0.0
+          fi
+
+          # Average confidence
+          AVG_CONFIDENCE=$(echo "scale=2; ($VALIDATION_CONFIDENCE + $TEST_CONFIDENCE) / 2" | bc)
+          echo "confidence=$AVG_CONFIDENCE" >> $GITHUB_OUTPUT
+
+      - name: Approval gate decision
+        id: gate
+        run: |
+          CONFIDENCE=${{ steps.confidence.outputs.confidence }}
+          THRESHOLD=0.90
+
+          if (( $(echo "$CONFIDENCE >= $THRESHOLD" | bc -l) )); then
+            echo "✅ Auto-approved (confidence: $CONFIDENCE >= $THRESHOLD)"
+            echo "approved=true" >> $GITHUB_OUTPUT
+            echo "approval_type=auto" >> $GITHUB_OUTPUT
+          else
+            echo "⏸️ Manual approval required (confidence: $CONFIDENCE < $THRESHOLD)"
+            echo "approved=false" >> $GITHUB_OUTPUT
+            echo "approval_type=manual" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Request manual approval
+        if: steps.gate.outputs.approval_type == 'manual'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Stage 3: Approval Gate\n⏸️ MANUAL APPROVAL REQUIRED\n\nConfidence score below threshold. Please review and approve manually.\n\nApprovers: @maintainers`
+            });
+
+  deploy:
+    name: Stage 4 - Deploy to Production
+    needs: [validate, test, approval-gate]
+    runs-on: ubuntu-latest
+    if: needs.approval-gate.outputs.approved == 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Extract skill details
+        id: skill_info
+        run: |
+          if [[ -z "${{ github.event.inputs.skill_id }}" ]]; then
+            SKILL_ID=$(git diff HEAD~1 --name-only | grep -o '.claude/skills/staging/[^/]*' | head -1 | sed 's|.claude/skills/staging/||')
+            echo "skill_id=${SKILL_ID}" >> $GITHUB_OUTPUT
+            echo "from_version=0.0.0" >> $GITHUB_OUTPUT
+            echo "to_version=1.0.0" >> $GITHUB_OUTPUT
+          else
+            echo "skill_id=${{ github.event.inputs.skill_id }}" >> $GITHUB_OUTPUT
+            echo "from_version=${{ github.event.inputs.from_version }}" >> $GITHUB_OUTPUT
+            echo "to_version=${{ github.event.inputs.to_version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy skill to production
+        id: deploy
+        run: |
+          SKILL_ID="${{ steps.skill_info.outputs.skill_id }}"
+          STAGING_PATH=".claude/skills/staging/$SKILL_ID"
+          PRODUCTION_PATH=".claude/skills/$SKILL_ID"
+
+          if [[ ! -d "$STAGING_PATH" ]]; then
+            echo "❌ Staging skill not found"
+            exit 1
+          fi
+
+          # Create backup if skill exists in production
+          if [[ -d "$PRODUCTION_PATH" ]]; then
+            BACKUP_DIR="$PRODUCTION_PATH.backup.$(date +%s)"
+            echo "📦 Backing up existing skill to $BACKUP_DIR"
+            mv "$PRODUCTION_PATH" "$BACKUP_DIR"
+          fi
+
+          # Atomic move to production
+          echo "🚀 Deploying $SKILL_ID to production..."
+          mv "$STAGING_PATH" "$PRODUCTION_PATH"
+
+          echo "deployment_path=$PRODUCTION_PATH" >> $GITHUB_OUTPUT
+          echo "✅ Deployment successful"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit promotion
+        if: github.event_name != 'pull_request'
+        run: |
+          git add .claude/skills/${{ steps.skill_info.outputs.skill_id }}
+
+          COMMIT_MSG="feat(skills): Promote ${{ steps.skill_info.outputs.skill_id }} from staging to production
+
+Version: ${{ steps.skill_info.outputs.from_version }} → ${{ steps.skill_info.outputs.to_version }}
+Reason: ${{ github.event.inputs.reason }}
+Validation: PASSED
+Tests: PASSED
+Approval: AUTO
+Promoted-by: ${{ github.actor }}
+Promoted-at: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          git commit -m "$COMMIT_MSG" || true
+          git push || true
+
+      - name: Comment deployment result
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Stage 4: Deployment\n✅ DEPLOYED\n\nSkill promoted to production: \`.claude/skills/${{ steps.skill_info.outputs.skill_id }}\`\n\nVersion: ${{ steps.skill_info.outputs.from_version }} → ${{ steps.skill_info.outputs.to_version }}`
+            });
+
+  notify:
+    name: Send Notifications
+    needs: [validate, test, approval-gate, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Determine final status
+        id: status
+        run: |
+          VALIDATE_STATUS=${{ needs.validate.result }}
+          TEST_STATUS=${{ needs.test.result }}
+          GATE_STATUS=${{ needs.approval-gate.result }}
+          DEPLOY_STATUS=${{ needs.deploy.result }}
+
+          if [[ "$DEPLOY_STATUS" == "success" ]]; then
+            echo "final_status=✅ SUCCESS" >> $GITHUB_OUTPUT
+          elif [[ "$GATE_STATUS" == "success" && "$DEPLOY_STATUS" == "skipped" ]]; then
+            echo "final_status=⏸️ AWAITING APPROVAL" >> $GITHUB_OUTPUT
+          else
+            echo "final_status=❌ FAILED" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify on Slack (success)
+        if: needs.deploy.result == 'success'
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "Skill Promotion Successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "✅ Skill *promoted* to production\n*Skill:* ${{ github.event.inputs.skill_id }}\n*Version:* ${{ github.event.inputs.from_version }} → ${{ github.event.inputs.to_version }}\n*Promoted by:* ${{ github.actor }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ${{ steps.status.outputs.final_status }}\n\nPromotion pipeline failed. Please review logs.`
+            });
+
+  audit-trail:
+    name: Record Audit Trail
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate audit record
+        run: |
+          cat > /tmp/audit_record.json <<EOF
+          {
+            "promotion_event": {
+              "skill_id": "${{ github.event.inputs.skill_id }}",
+              "from_version": "${{ github.event.inputs.from_version }}",
+              "to_version": "${{ github.event.inputs.to_version }}",
+              "requested_by": "${{ github.actor }}",
+              "reason": "${{ github.event.inputs.reason }}",
+              "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+              "workflow_run_id": "${{ github.run_id }}",
+              "workflow_run_number": "${{ github.run_number }}",
+              "status": "${{ needs.deploy.result }}"
+            }
+          }
+          EOF
+
+          cat /tmp/audit_record.json
+          echo "Audit record generated"

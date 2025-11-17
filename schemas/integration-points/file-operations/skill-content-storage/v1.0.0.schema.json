@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/skill-content-storage/v1.0.0",
+  "title": "Skill Content Storage Schema",
+  "description": "Schema for git-versioned skill markdown storage (Integration Point 2.3)",
+  "type": "object",
+  "required": ["storage_id", "skill_id", "file_path", "version", "content_hash", "git_commit"],
+  "properties": {
+    "storage_id": {
+      "type": "string",
+      "description": "Unique identifier for storage operation",
+      "pattern": "^storage-[a-z0-9-]+$"
+    },
+    "skill_id": {
+      "type": "string",
+      "description": "Skill identifier",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "file_path": {
+      "type": "string",
+      "description": "Relative path to skill markdown file",
+      "pattern": "^\\.claude/skills/.*\\.md$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Skill version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "content_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of file content",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "git_commit": {
+      "type": "object",
+      "description": "Git commit information",
+      "required": ["sha", "message", "author", "timestamp"],
+      "properties": {
+        "sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "author": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "merge_strategy": {
+      "type": "string",
+      "enum": ["ours", "theirs", "manual", "auto"],
+      "description": "Merge conflict resolution strategy",
+      "default": "manual"
+    },
+    "file_size_bytes": {
+      "type": "integer",
+      "description": "File size in bytes",
+      "minimum": 0,
+      "maximum": 1048576
+    },
+    "large_file_handling": {
+      "type": "object",
+      "description": "Large file handling if file_size > threshold",
+      "properties": {
+        "threshold_bytes": {
+          "type": "integer",
+          "default": 102400
+        },
+        "use_lfs": {
+          "type": "boolean",
+          "default": false
+        },
+        "compressed": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "storage_id": "storage-cfn-coordination-v1",
+      "skill_id": "cfn-coordination",
+      "file_path": ".claude/skills/cfn-coordination/SKILL.md",
+      "version": "1.0.0",
+      "content_hash": "abc123def456...",
+      "git_commit": {
+        "sha": "a1b2c3d4e5f6789012345678901234567890abcd",
+        "message": "feat: Add CFN coordination skill",
+        "author": "claude-agent",
+        "timestamp": "2025-11-17T10:30:00Z"
+      },
+      "merge_strategy": "auto",
+      "file_size_bytes": 12288
+    }
+  ]
+}

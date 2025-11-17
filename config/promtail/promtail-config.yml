@@ -1,0 +1,162 @@
+# Promtail Configuration
+# Task P2-2.3: Centralized Logging with ELK/Loki Stack
+# Version: 2.9.0
+#
+# Promtail is an agent which ships the contents of local logs to a private Loki instance
+# or Grafana Cloud. It is usually deployed to every machine that has applications which
+# need to be monitored.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: info
+  log_format: json
+
+positions:
+  filename: /tmp/positions.yaml
+  sync_period: 10s
+  sync_interval: 10s
+
+scrape_configs:
+  # Scrape logs from systemd journal
+  - job_name: journal
+    journal:
+      max_age: 24h
+      labels:
+        job: systemd-journal
+        source: journal
+    relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: 'unit'
+      - source_labels: ['__journal_hostname']
+        target_label: 'hostname'
+      - source_labels: ['__journal_priority']
+        target_label: 'severity'
+
+  # Scrape Docker container logs
+  - job_name: docker
+    docker:
+      host: unix:///var/run/docker.sock
+      labels:
+        job: docker-containers
+        source: docker
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        target_label: 'container_name'
+      - source_labels: ['__meta_docker_container_id']
+        target_label: 'container_id'
+      - source_labels: ['__meta_docker_container_image_name']
+        target_label: 'image_name'
+      - source_labels: ['__meta_docker_container_network_mode']
+        target_label: 'network_mode'
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+
+  # Scrape application logs from /var/log
+  - job_name: varlog
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: varlogs
+          source: filesystem
+    pipeline_stages:
+      - multiline:
+          line_start_pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            context: context
+            correlationId: correlationId
+            taskId: taskId
+            agentId: agentId
+            traceId: traceId
+          on_error: keep
+      - labels:
+          timestamp: ''
+          level: ''
+          message: ''
+          context: ''
+          correlationId: ''
+          taskId: ''
+          agentId: ''
+          traceId: ''
+      - drop:
+          expression: '.*TLS.*'
+          on_error: keep
+    file_sd_configs:
+      - files:
+          - /var/log/cfn/**/*.log
+        refresh_interval: 30s
+
+  # Scrape CFN-specific logs
+  - job_name: cfn-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: cfn-application
+          source: cfn
+    pipeline_stages:
+      - multiline:
+          line_start_pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            message: message
+            context: context
+            correlationId: correlationId
+            taskId: taskId
+            agentId: agentId
+          on_error: keep
+      - labels:
+          timestamp: ''
+          level: ''
+          message: ''
+          context: ''
+          correlationId: ''
+          taskId: ''
+          agentId: ''
+      - timestamp:
+          format: RFC3339Nano
+          source: timestamp
+          on_error: keep
+      - output:
+          source: message
+    file_sd_configs:
+      - files:
+          - /var/log/cfn/*.log
+        refresh_interval: 30s
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    batchwait: 1s
+    batchsize: 1048576  # 1MB batch size
+    backoff_config:
+      min_backoff: 100ms
+      max_backoff: 10s
+      max_retries: 3
+    timeout: 10s
+    external_labels:
+      environment: production
+      cluster: cfn
+
+# Limits configuration
+limits_config:
+  # Maximum size of a log entry
+  max_entry_limit_bytes: 262144  # 256KB
+  # Maximum number of log entries per second
+  max_streams: 1000
+  max_global_streams_matched_per_user: 10000
+
+# Target discovery settings
+target_config:
+  # How often to sync targets
+  sync_period: 10s
+
+# Tracing (optional)
+# tracing:
+#   enabled: false

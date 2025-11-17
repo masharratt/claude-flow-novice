@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "database-handoffs/cost-tracking-metrics/v1.0.0",
+  "title": "Cost Tracking Metrics Schema",
+  "description": "Schema for real-time cost metrics from PostgreSQL to Memory (Integration Point 1.8)",
+  "type": "object",
+  "required": ["metric_id", "task_id", "total_cost_usd", "timestamp", "breakdown"],
+  "properties": {
+    "metric_id": {
+      "type": "string",
+      "description": "Unique identifier for this metric record",
+      "pattern": "^metric-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Associated task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "total_cost_usd": {
+      "type": "number",
+      "description": "Total cost in USD",
+      "minimum": 0,
+      "multipleOf": 0.000001
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When metrics were captured"
+    },
+    "breakdown": {
+      "type": "object",
+      "description": "Cost breakdown by provider",
+      "required": ["provider_costs"],
+      "properties": {
+        "provider_costs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["provider", "model", "cost_usd", "tokens"],
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": ["zai", "kimi", "openrouter", "anthropic"]
+              },
+              "model": {
+                "type": "string"
+              },
+              "cost_usd": {
+                "type": "number",
+                "minimum": 0
+              },
+              "tokens": {
+                "type": "object",
+                "required": ["input", "output"],
+                "properties": {
+                  "input": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "output": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "agent_costs": {
+          "type": "array",
+          "description": "Cost per agent",
+          "items": {
+            "type": "object",
+            "properties": {
+              "agent_id": {
+                "type": "string"
+              },
+              "cost_usd": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "cache_invalidation_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When cached metrics should be refreshed"
+    },
+    "sla_ms": {
+      "type": "integer",
+      "description": "SLA for metric retrieval in milliseconds",
+      "minimum": 0,
+      "maximum": 5000,
+      "default": 2000
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "metric_id": "metric-task123",
+      "task_id": "task-auth-implementation",
+      "total_cost_usd": 0.054,
+      "timestamp": "2025-11-17T10:30:00Z",
+      "breakdown": {
+        "provider_costs": [
+          {
+            "provider": "zai",
+            "model": "glm-4.6",
+            "cost_usd": 0.054,
+            "tokens": {
+              "input": 50000,
+              "output": 8000
+            }
+          }
+        ],
+        "agent_costs": [
+          {
+            "agent_id": "backend-001",
+            "cost_usd": 0.027
+          },
+          {
+            "agent_id": "tester-001",
+            "cost_usd": 0.027
+          }
+        ]
+      },
+      "sla_ms": 2000
+    }
+  ]
+}

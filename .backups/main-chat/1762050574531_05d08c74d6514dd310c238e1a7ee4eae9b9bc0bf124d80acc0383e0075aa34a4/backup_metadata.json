@@ -1,8 +1,0 @@
-{
-  "agent_id": "main-chat",
-  "original_path": "src/cli/agent-prompt-builder.ts",
-  "backup_timestamp": 1762050574531,
-  "file_hash": "05d08c74d6514dd310c238e1a7ee4eae9b9bc0bf124d80acc0383e0075aa34a4",
-  "backup_ttl": 86400,
-  "backup_status": "active"
-}

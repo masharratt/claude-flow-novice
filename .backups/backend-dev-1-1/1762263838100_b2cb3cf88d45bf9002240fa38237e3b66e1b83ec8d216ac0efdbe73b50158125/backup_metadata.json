@@ -1,8 +1,0 @@
-{
-  "agent_id": "backend-dev-1-1",
-  "original_path": "/tmp/cfn-e2e-test.sh",
-  "backup_timestamp": 1762263838100,
-  "file_hash": "b2cb3cf88d45bf9002240fa38237e3b66e1b83ec8d216ac0efdbe73b50158125",
-  "backup_ttl": 86400,
-  "backup_status": "active"
-}

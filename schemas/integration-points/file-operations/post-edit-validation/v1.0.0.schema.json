@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/post-edit-validation/v1.0.0",
+  "title": "Post-Edit Validation Schema",
+  "description": "Schema for post-edit validation hook results (Integration Point 2.2)",
+  "type": "object",
+  "required": ["validation_id", "file_path", "agent_id", "timestamp", "status", "checks"],
+  "properties": {
+    "validation_id": {
+      "type": "string",
+      "description": "Unique identifier for validation run",
+      "pattern": "^valid-[a-z0-9-]+$"
+    },
+    "file_path": {
+      "type": "string",
+      "description": "Absolute path to validated file",
+      "pattern": "^/.*"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Agent that triggered validation",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When validation was performed"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["passed", "failed", "warning", "skipped"],
+      "description": "Overall validation status"
+    },
+    "checks": {
+      "type": "array",
+      "description": "Individual validation checks performed",
+      "items": {
+        "type": "object",
+        "required": ["check_name", "status"],
+        "properties": {
+          "check_name": {
+            "type": "string",
+            "description": "Name of validation check"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["passed", "failed", "warning", "skipped"]
+          },
+          "message": {
+            "type": "string",
+            "description": "Check result message"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "Validation errors if status is 'failed'",
+      "items": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "message": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["error", "warning", "info"]
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "description": "Non-blocking warnings",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocking": {
+      "type": "boolean",
+      "description": "Whether validation errors block operation",
+      "default": false
+    },
+    "config_path": {
+      "type": "string",
+      "description": "Path to validation config used",
+      "pattern": "^/.*post-edit\\.config\\.json$"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "validation_id": "valid-backend-001-file123",
+      "file_path": "/home/user/claude-flow-novice/src/lib/auth.ts",
+      "agent_id": "backend-developer-001",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "status": "passed",
+      "checks": [
+        {
+          "check_name": "syntax",
+          "status": "passed",
+          "message": "TypeScript syntax valid",
+          "duration_ms": 45
+        },
+        {
+          "check_name": "formatting",
+          "status": "passed",
+          "message": "Code formatted correctly",
+          "duration_ms": 12
+        }
+      ],
+      "errors": [],
+      "warnings": [],
+      "blocking": false,
+      "config_path": "/home/user/claude-flow-novice/.claude/hooks/post-edit.config.json"
+    }
+  ]
+}

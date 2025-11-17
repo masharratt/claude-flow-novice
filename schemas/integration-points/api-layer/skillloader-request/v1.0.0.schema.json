@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "api-layer/skillloader-request/v1.0.0",
+  "title": "SkillLoader Request Schema",
+  "description": "Schema for skill load requests (Integration Point 5.1)",
+  "type": "object",
+  "required": ["agent_type"],
+  "properties": {
+    "agent_type": {
+      "type": "string",
+      "description": "Type of agent requesting skills",
+      "enum": [
+        "backend-developer",
+        "frontend-developer",
+        "devops-engineer",
+        "tester",
+        "code-reviewer",
+        "security-analyst",
+        "data-engineer",
+        "mobile-developer"
+      ]
+    },
+    "context_tags": {
+      "type": "array",
+      "description": "Context tags for skill selection",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "maxItems": 20
+    },
+    "max_skills": {
+      "type": "integer",
+      "description": "Maximum number of skills to load",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 10
+    },
+    "cache_ttl": {
+      "type": "integer",
+      "description": "Cache TTL in seconds",
+      "minimum": 0,
+      "maximum": 86400,
+      "default": 3600
+    },
+    "include_metadata": {
+      "type": "boolean",
+      "description": "Include skill metadata in response",
+      "default": true
+    },
+    "version": {
+      "type": "string",
+      "description": "API version",
+      "pattern": "^v\\d+$",
+      "default": "v1"
+    }
+  },
+  "additionalProperties": false
+}

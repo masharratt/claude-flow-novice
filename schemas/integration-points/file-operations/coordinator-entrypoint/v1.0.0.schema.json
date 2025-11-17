@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/coordinator-entrypoint/v1.0.0",
+  "title": "Coordinator Entrypoint Schema",
+  "description": "Schema for coordinator Docker volume entrypoint (Integration Point 2.6)",
+  "type": "object",
+  "required": ["entrypoint_id", "container_id", "volumes", "timestamp"],
+  "properties": {
+    "entrypoint_id": {
+      "type": "string",
+      "description": "Unique identifier for entrypoint execution",
+      "pattern": "^entry-[a-z0-9-]+$"
+    },
+    "container_id": {
+      "type": "string",
+      "description": "Docker container ID",
+      "pattern": "^[a-f0-9]{12,64}$"
+    },
+    "volumes": {
+      "type": "array",
+      "description": "Volume mount configurations",
+      "items": {
+        "type": "object",
+        "required": ["name", "source", "target", "mode"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Volume name"
+          },
+          "source": {
+            "type": "string",
+            "description": "Host source path"
+          },
+          "target": {
+            "type": "string",
+            "description": "Container target path",
+            "pattern": "^/.*"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["ro", "rw"],
+            "description": "Mount mode (read-only or read-write)"
+          },
+          "permissions": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "pattern": "^[0-7]{3,4}$"
+              },
+              "owner": {
+                "type": "string"
+              },
+              "group": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Container start timestamp"
+    },
+    "mount_verification": {
+      "type": "object",
+      "description": "Mount point verification results",
+      "properties": {
+        "all_mounts_ok": {
+          "type": "boolean"
+        },
+        "failed_mounts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "permission_issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "issue": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "cleanup_config": {
+      "type": "object",
+      "description": "Volume cleanup configuration",
+      "properties": {
+        "auto_cleanup": {
+          "type": "boolean",
+          "default": true
+        },
+        "retention_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 24
+        }
+      }
+    },
+    "recovery_procedures": {
+      "type": "object",
+      "description": "Recovery procedure references",
+      "properties": {
+        "mount_failure": {
+          "type": "string",
+          "description": "Link to mount failure recovery procedure"
+        },
+        "permission_fix": {
+          "type": "string",
+          "description": "Link to permission fix procedure"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "entrypoint_id": "entry-coordinator-001",
+      "container_id": "a1b2c3d4e5f6",
+      "volumes": [
+        {
+          "name": "cfn-skills",
+          "source": "/var/lib/docker/volumes/cfn-skills/_data",
+          "target": "/skills",
+          "mode": "ro",
+          "permissions": {
+            "mode": "0755",
+            "owner": "claude",
+            "group": "claude"
+          }
+        }
+      ],
+      "timestamp": "2025-11-17T10:30:00Z",
+      "mount_verification": {
+        "all_mounts_ok": true,
+        "failed_mounts": [],
+        "permission_issues": []
+      },
+      "cleanup_config": {
+        "auto_cleanup": true,
+        "retention_hours": 24
+      }
+    }
+  ]
+}

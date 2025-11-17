@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude-flow-novice.local/schemas/skill-output-v1.json",
+  "title": "CFN Skill Output Schema v1.0",
+  "description": "Standardized JSON schema for skill execution outputs (replaces bash output parsing)",
+  "version": "1.0.0",
+  "type": "object",
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "Whether skill execution was successful"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Confidence score (0.0-1.0) indicating execution quality",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "deliverables": {
+      "type": "array",
+      "description": "Files created or modified during execution",
+      "items": {
+        "type": "string",
+        "description": "File path (absolute or relative)",
+        "minLength": 1
+      },
+      "default": []
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Execution metrics (extensible)",
+      "properties": {
+        "execution_time_ms": {
+          "type": "integer",
+          "description": "Execution time in milliseconds",
+          "minimum": 0
+        },
+        "files_modified": {
+          "type": "integer",
+          "description": "Number of files modified",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": {
+        "type": "number",
+        "description": "Custom metrics (numeric values only)"
+      },
+      "default": {}
+    },
+    "errors": {
+      "type": "array",
+      "description": "Errors encountered during execution",
+      "items": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Error code",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message",
+            "minLength": 1
+          },
+          "stack": {
+            "type": "string",
+            "description": "Stack trace (optional)"
+          },
+          "context": {
+            "type": "object",
+            "description": "Additional error context",
+            "additionalProperties": true
+          }
+        },
+        "required": ["code", "message"],
+        "additionalProperties": false
+      },
+      "default": []
+    }
+  },
+  "required": ["success", "confidence", "deliverables", "metrics", "errors"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "success": true,
+      "confidence": 0.92,
+      "deliverables": [
+        "src/auth.ts",
+        "tests/auth.test.ts"
+      ],
+      "metrics": {
+        "execution_time_ms": 1234,
+        "files_modified": 2,
+        "lines_of_code": 450
+      },
+      "errors": []
+    },
+    {
+      "success": false,
+      "confidence": 0.65,
+      "deliverables": [],
+      "metrics": {
+        "execution_time_ms": 567
+      },
+      "errors": [
+        {
+          "code": "VALIDATION_FAILED",
+          "message": "Schema validation failed",
+          "context": {
+            "field": "confidence",
+            "expected": "number",
+            "received": "string"
+          }
+        }
+      ]
+    },
+    {
+      "success": true,
+      "confidence": 0.88,
+      "deliverables": [
+        "config.json"
+      ],
+      "metrics": {
+        "execution_time_ms": 890,
+        "files_modified": 1,
+        "custom_check_count": 15,
+        "custom_validation_score": 0.95
+      },
+      "errors": []
+    }
+  ]
+}

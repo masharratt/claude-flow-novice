@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "phase4-workflow/iteration-feedback/v1.0.0",
+  "title": "Iteration Feedback Loop Schema",
+  "description": "Schema for coordinator-to-orchestrator iteration feedback (Integration Point 4.6)",
+  "type": "object",
+  "required": ["feedback_id", "task_id", "iteration", "decision", "timestamp"],
+  "properties": {
+    "feedback_id": {
+      "type": "string",
+      "description": "Unique identifier for feedback",
+      "pattern": "^feedback-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "iteration": {
+      "type": "integer",
+      "description": "Current iteration number",
+      "minimum": 1
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["PROCEED", "ITERATE", "ABORT"],
+      "description": "Product Owner decision from this iteration"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Feedback timestamp"
+    },
+    "iteration_results": {
+      "type": "object",
+      "description": "Results from this iteration",
+      "required": ["loop3_confidence", "loop2_consensus"],
+      "properties": {
+        "loop3_confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "loop2_consensus": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "gate_passed": {
+          "type": "boolean"
+        },
+        "consensus_passed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "feedback_for_next_iteration": {
+      "type": "object",
+      "description": "Feedback to guide next iteration (if ITERATE)",
+      "properties": {
+        "areas_to_improve": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "specific_guidance": {
+          "type": "string"
+        },
+        "context_updates": {
+          "type": "object",
+          "description": "Context updates for next iteration"
+        }
+      }
+    },
+    "state_transition": {
+      "type": "object",
+      "description": "State transition information",
+      "required": ["from_state", "to_state"],
+      "properties": {
+        "from_state": {
+          "type": "string",
+          "enum": ["loop3_execution", "loop2_validation", "product_owner_decision"]
+        },
+        "to_state": {
+          "type": "string",
+          "enum": ["loop3_execution", "loop2_validation", "product_owner_decision", "completed", "aborted"]
+        },
+        "transition_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "iteration_tracking": {
+      "type": "object",
+      "description": "Iteration tracking metadata",
+      "properties": {
+        "total_iterations": {
+          "type": "integer",
+          "description": "Total iterations so far"
+        },
+        "max_iterations": {
+          "type": "integer",
+          "description": "Maximum allowed iterations"
+        },
+        "iterations_remaining": {
+          "type": "integer",
+          "description": "Remaining iterations before max"
+        }
+      }
+    },
+    "performance_metrics": {
+      "type": "object",
+      "description": "Iteration performance metrics",
+      "properties": {
+        "iteration_duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_cost_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "agent_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "feedback_id": "feedback-task-auth-iter1",
+      "task_id": "task-auth-implementation",
+      "iteration": 1,
+      "decision": "PROCEED",
+      "timestamp": "2025-11-17T10:45:00Z",
+      "iteration_results": {
+        "loop3_confidence": 0.92,
+        "loop2_consensus": 0.91,
+        "gate_passed": true,
+        "consensus_passed": true
+      },
+      "state_transition": {
+        "from_state": "product_owner_decision",
+        "to_state": "completed",
+        "transition_timestamp": "2025-11-17T10:45:00Z"
+      },
+      "iteration_tracking": {
+        "total_iterations": 1,
+        "max_iterations": 10,
+        "iterations_remaining": 9
+      },
+      "performance_metrics": {
+        "iteration_duration_ms": 900000,
+        "total_cost_usd": 0.054,
+        "agent_count": 7
+      }
+    }
+  ]
+}

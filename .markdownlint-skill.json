@@ -1,0 +1,313 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint/main/schema/markdownlint-config-schema.json",
+  "default": true,
+
+  "MD001": {
+    "comment": "Heading levels should only increment by one level at a time",
+    "enabled": true
+  },
+
+  "MD003": {
+    "comment": "Heading style must be consistent (ATX style)",
+    "style": "atx"
+  },
+
+  "MD004": {
+    "comment": "Unordered list style must be consistent",
+    "style": "dash"
+  },
+
+  "MD007": {
+    "comment": "Unordered list indentation",
+    "indent": 2
+  },
+
+  "MD009": {
+    "comment": "Trailing spaces not allowed",
+    "br_spaces": 0,
+    "list_item_empty_lines": false,
+    "strict": true
+  },
+
+  "MD010": {
+    "comment": "Hard tabs not allowed",
+    "enabled": true
+  },
+
+  "MD012": {
+    "comment": "Multiple consecutive blank lines not allowed",
+    "maximum": 2
+  },
+
+  "MD013": {
+    "comment": "Line length limit disabled for code examples and long URLs",
+    "enabled": false,
+    "line_length": 120,
+    "heading_line_length": 100,
+    "code_blocks": false,
+    "tables": false,
+    "headings": true
+  },
+
+  "MD014": {
+    "comment": "Dollar signs used before commands without showing output not allowed",
+    "enabled": false
+  },
+
+  "MD022": {
+    "comment": "Headings should be surrounded by blank lines",
+    "enabled": true,
+    "lines_above": 1,
+    "lines_below": 1
+  },
+
+  "MD023": {
+    "comment": "Headings must start at the beginning of the line",
+    "enabled": true
+  },
+
+  "MD024": {
+    "comment": "Multiple headings with the same content allowed (common in skills)",
+    "enabled": false,
+    "siblings_only": true
+  },
+
+  "MD025": {
+    "comment": "Multiple top-level headings allowed (frontmatter + title)",
+    "enabled": false,
+    "front_matter_title": "^\\s*name\\s*[:=]"
+  },
+
+  "MD026": {
+    "comment": "Trailing punctuation in heading not allowed",
+    "enabled": true,
+    "punctuation": ".,;:!?"
+  },
+
+  "MD027": {
+    "comment": "Multiple spaces after blockquote symbol not allowed",
+    "enabled": true
+  },
+
+  "MD028": {
+    "comment": "Blank line inside blockquote not allowed",
+    "enabled": true
+  },
+
+  "MD029": {
+    "comment": "Ordered list item prefix style must be consistent",
+    "style": "ordered"
+  },
+
+  "MD030": {
+    "comment": "Spaces after list markers",
+    "ul_single": 1,
+    "ol_single": 1,
+    "ul_multi": 1,
+    "ol_multi": 1
+  },
+
+  "MD031": {
+    "comment": "Fenced code blocks should be surrounded by blank lines",
+    "enabled": true,
+    "list_items": false
+  },
+
+  "MD032": {
+    "comment": "Lists should be surrounded by blank lines",
+    "enabled": true
+  },
+
+  "MD033": {
+    "comment": "Inline HTML allowed for complex tables and formatting",
+    "enabled": false,
+    "allowed_elements": ["details", "summary", "table", "tr", "td", "th", "br"]
+  },
+
+  "MD034": {
+    "comment": "Bare URLs should be enclosed in angle brackets",
+    "enabled": false
+  },
+
+  "MD035": {
+    "comment": "Horizontal rule style must be consistent",
+    "style": "---"
+  },
+
+  "MD036": {
+    "comment": "Emphasis used instead of a heading not allowed",
+    "enabled": true,
+    "punctuation": ".,;:!?。，；：！？"
+  },
+
+  "MD037": {
+    "comment": "Spaces inside emphasis markers not allowed",
+    "enabled": true
+  },
+
+  "MD038": {
+    "comment": "Spaces inside code span elements not allowed",
+    "enabled": true
+  },
+
+  "MD039": {
+    "comment": "Spaces inside link text not allowed",
+    "enabled": true
+  },
+
+  "MD040": {
+    "comment": "Fenced code blocks MUST have a language specified (CRITICAL FOR SKILLS)",
+    "enabled": true,
+    "allowed_languages": [
+      "bash",
+      "sh",
+      "shell",
+      "typescript",
+      "ts",
+      "javascript",
+      "js",
+      "json",
+      "yaml",
+      "yml",
+      "markdown",
+      "md",
+      "python",
+      "py",
+      "rust",
+      "rs",
+      "go",
+      "dockerfile",
+      "docker",
+      "sql",
+      "regex",
+      "text",
+      "plaintext",
+      "diff",
+      "patch",
+      "ini",
+      "toml",
+      "xml",
+      "html",
+      "css",
+      "scss"
+    ],
+    "language_only": false
+  },
+
+  "MD041": {
+    "comment": "First line in file should be a top-level heading (after frontmatter)",
+    "enabled": false,
+    "front_matter_title": "^\\s*name\\s*[:=]"
+  },
+
+  "MD042": {
+    "comment": "No empty links allowed",
+    "enabled": true
+  },
+
+  "MD043": {
+    "comment": "Required heading structure for skills",
+    "enabled": false,
+    "headings": [
+      "# *",
+      "## Overview",
+      "## Usage",
+      "## Examples",
+      "## Implementation",
+      "## Testing"
+    ]
+  },
+
+  "MD044": {
+    "comment": "Proper names should have the correct capitalization",
+    "enabled": false,
+    "names": ["CFN", "Claude Flow Novice", "Redis", "TypeScript", "JavaScript", "Node.js"],
+    "code_blocks": false
+  },
+
+  "MD045": {
+    "comment": "Images should have alternate text (alt text)",
+    "enabled": true
+  },
+
+  "MD046": {
+    "comment": "Code block style must be consistent (fenced)",
+    "style": "fenced"
+  },
+
+  "MD047": {
+    "comment": "Files should end with a single newline character",
+    "enabled": true
+  },
+
+  "MD048": {
+    "comment": "Code fence style must be consistent (backtick)",
+    "style": "backtick"
+  },
+
+  "MD049": {
+    "comment": "Emphasis style must be consistent (asterisk)",
+    "style": "asterisk"
+  },
+
+  "MD050": {
+    "comment": "Strong style must be consistent (asterisk)",
+    "style": "asterisk"
+  },
+
+  "MD051": {
+    "comment": "Link fragments should be valid",
+    "enabled": true
+  },
+
+  "MD052": {
+    "comment": "Reference links and images should use a label that is defined",
+    "enabled": true
+  },
+
+  "MD053": {
+    "comment": "Link and image reference definitions should be needed",
+    "enabled": true
+  },
+
+  "ignores": [
+    "node_modules/**",
+    ".backups/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    ".git/**",
+    ".artifacts/**",
+    "docs/archive/**"
+  ],
+
+  "frontMatter": {
+    "comment": "YAML frontmatter is allowed and expected in skills",
+    "pattern": "^---\\s*$[\\s\\S]*?^---\\s*$"
+  },
+
+  "custom-rules": [
+    {
+      "names": ["skill-frontmatter-required"],
+      "description": "Skills must have valid YAML frontmatter with required fields",
+      "tags": ["frontmatter"],
+      "function": "function(params, onError) { /* Validate frontmatter */ }"
+    },
+    {
+      "names": ["skill-sections-required"],
+      "description": "Skills must have all five required sections",
+      "tags": ["structure"],
+      "function": "function(params, onError) { /* Validate sections */ }"
+    }
+  ],
+
+  "extends": null,
+
+  "config": {
+    "comment": "Skill-specific markdown linting configuration",
+    "version": "1.0.0",
+    "purpose": "Enforce CFN skill markdown format specification",
+    "schema": "schemas/skill-markdown-v1.schema.json",
+    "documentation": "docs/SKILL_MARKDOWN_FORMAT_SPECIFICATION.md"
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/artifact-generation/v1.0.0",
+  "title": "Artifact Generation Schema",
+  "description": "Schema for generating reports, logs, and metrics artifacts (Integration Point 2.11)",
+  "type": "object",
+  "required": ["artifact_id", "artifact_type", "name", "path", "timestamp", "metadata"],
+  "properties": {
+    "artifact_id": {
+      "type": "string",
+      "description": "Unique identifier for artifact",
+      "pattern": "^artifact-[a-z0-9-]+$"
+    },
+    "artifact_type": {
+      "type": "string",
+      "enum": ["report", "log", "metric", "trace", "snapshot", "other"],
+      "description": "Type of artifact"
+    },
+    "name": {
+      "type": "string",
+      "description": "Artifact name following naming convention",
+      "pattern": "^[A-Z_0-9]+\\.(md|json|txt|log)$"
+    },
+    "path": {
+      "type": "string",
+      "description": "Absolute path to artifact file",
+      "pattern": "^/(docs|planning|reports|logs)/.*"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Generation timestamp"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Artifact metadata",
+      "required": ["generated_by", "size_bytes"],
+      "properties": {
+        "generated_by": {
+          "type": "string",
+          "description": "Agent or service that generated artifact"
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Associated task ID"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "format": {
+          "type": "string",
+          "enum": ["markdown", "json", "text", "csv"]
+        },
+        "schema_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "description": "Artifact lifecycle management",
+      "required": ["retention_policy"],
+      "properties": {
+        "retention_policy": {
+          "type": "string",
+          "enum": ["permanent", "30_days", "90_days", "1_year", "custom"]
+        },
+        "retention_days": {
+          "type": "integer",
+          "description": "Custom retention in days if policy is 'custom'",
+          "minimum": 1
+        },
+        "auto_cleanup": {
+          "type": "boolean",
+          "default": true
+        },
+        "cleanup_after_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Cleanup scheduled date"
+        }
+      }
+    },
+    "registry": {
+      "type": "object",
+      "description": "Artifact registry information",
+      "properties": {
+        "registry_id": {
+          "type": "string",
+          "description": "Registry entry ID"
+        },
+        "category": {
+          "type": "string",
+          "description": "Artifact category in registry"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "content_hash": {
+      "type": "string",
+      "description": "SHA-256 hash of artifact content",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "artifact_id": "artifact-loop2-validation-001",
+      "artifact_type": "report",
+      "name": "SPRINT_7.3_LOOP2_VALIDATION.json",
+      "path": "/home/user/claude-flow-novice/planning/phases/sprints/loops/loop2-validation/SPRINT_7.3_LOOP2_VALIDATION.json",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "metadata": {
+        "generated_by": "loop2-validator-001",
+        "task_id": "task-auth-implementation",
+        "size_bytes": 4096,
+        "format": "json",
+        "schema_version": "1.0.0"
+      },
+      "lifecycle": {
+        "retention_policy": "permanent",
+        "auto_cleanup": false
+      },
+      "registry": {
+        "category": "loop2-validation",
+        "tags": ["sprint-7.3", "validation", "consensus"]
+      },
+      "content_hash": "abc123def456..."
+    }
+  ]
+}

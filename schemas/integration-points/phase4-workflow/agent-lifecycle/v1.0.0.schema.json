@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "phase4-workflow/agent-lifecycle/v1.0.0",
+  "title": "Agent Lifecycle Schema",
+  "description": "Schema for agent lifecycle: Spawn→Execute→Complete→Cleanup (Integration Point 4.7)",
+  "type": "object",
+  "required": ["lifecycle_id", "agent_id", "task_id", "current_state", "timestamp"],
+  "properties": {
+    "lifecycle_id": {
+      "type": "string",
+      "description": "Unique identifier for lifecycle tracking",
+      "pattern": "^lifecycle-[a-z0-9-]+$"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Agent identifier",
+      "pattern": "^[a-z0-9-]+-\\d+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "current_state": {
+      "type": "string",
+      "enum": ["spawning", "spawned", "executing", "completed", "cleanup", "cleaned", "failed", "timeout"],
+      "description": "Current lifecycle state"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "State update timestamp"
+    },
+    "state_history": {
+      "type": "array",
+      "description": "History of state transitions",
+      "items": {
+        "type": "object",
+        "required": ["state", "timestamp"],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["spawning", "spawned", "executing", "completed", "cleanup", "cleaned", "failed", "timeout"]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "description": "Time spent in this state"
+          }
+        }
+      }
+    },
+    "spawn_info": {
+      "type": "object",
+      "description": "Spawn information",
+      "properties": {
+        "spawned_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "spawned_by": {
+          "type": "string"
+        },
+        "spawn_method": {
+          "type": "string",
+          "enum": ["cli", "task_tool", "docker"]
+        },
+        "process_pid": {
+          "type": "integer"
+        }
+      }
+    },
+    "execution_info": {
+      "type": "object",
+      "description": "Execution information",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      }
+    },
+    "cleanup_info": {
+      "type": "object",
+      "description": "Cleanup information",
+      "properties": {
+        "cleanup_triggered": {
+          "type": "boolean"
+        },
+        "cleanup_trigger": {
+          "type": "string",
+          "enum": ["normal", "crash", "timeout", "manual"]
+        },
+        "cleanup_completed": {
+          "type": "boolean"
+        },
+        "cleanup_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resources_released": {
+          "type": "object",
+          "properties": {
+            "memory_released": {
+              "type": "boolean"
+            },
+            "files_deleted": {
+              "type": "boolean"
+            },
+            "process_terminated": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "resource_limits": {
+      "type": "object",
+      "description": "Resource limits enforcement",
+      "properties": {
+        "max_memory_mb": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_execution_time_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_file_size_mb": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "timeout_config": {
+      "type": "object",
+      "description": "Timeout configuration",
+      "properties": {
+        "spawn_timeout_seconds": {
+          "type": "integer",
+          "default": 60
+        },
+        "execution_timeout_seconds": {
+          "type": "integer",
+          "default": 600
+        },
+        "cleanup_timeout_seconds": {
+          "type": "integer",
+          "default": 30
+        }
+      }
+    },
+    "crash_recovery": {
+      "type": "object",
+      "description": "Crash recovery information",
+      "properties": {
+        "crash_detected": {
+          "type": "boolean"
+        },
+        "crash_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "recovery_attempted": {
+          "type": "boolean"
+        },
+        "recovery_successful": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "lifecycle_id": "lifecycle-backend-001",
+      "agent_id": "backend-developer-001",
+      "task_id": "task-auth-implementation",
+      "current_state": "cleaned",
+      "timestamp": "2025-11-17T10:50:00Z",
+      "state_history": [
+        {
+          "state": "spawning",
+          "timestamp": "2025-11-17T10:30:00Z",
+          "duration_ms": 5000
+        },
+        {
+          "state": "spawned",
+          "timestamp": "2025-11-17T10:30:05Z",
+          "duration_ms": 0
+        },
+        {
+          "state": "executing",
+          "timestamp": "2025-11-17T10:30:05Z",
+          "duration_ms": 300000
+        },
+        {
+          "state": "completed",
+          "timestamp": "2025-11-17T10:35:05Z",
+          "duration_ms": 0
+        },
+        {
+          "state": "cleanup",
+          "timestamp": "2025-11-17T10:35:05Z",
+          "duration_ms": 2000
+        },
+        {
+          "state": "cleaned",
+          "timestamp": "2025-11-17T10:35:07Z"
+        }
+      ],
+      "spawn_info": {
+        "spawned_at": "2025-11-17T10:30:00Z",
+        "spawned_by": "orchestrator-12345",
+        "spawn_method": "cli",
+        "process_pid": 12345
+      },
+      "execution_info": {
+        "started_at": "2025-11-17T10:30:05Z",
+        "completed_at": "2025-11-17T10:35:05Z",
+        "duration_ms": 300000,
+        "confidence": 0.92
+      },
+      "cleanup_info": {
+        "cleanup_triggered": true,
+        "cleanup_trigger": "normal",
+        "cleanup_completed": true,
+        "cleanup_timestamp": "2025-11-17T10:35:07Z",
+        "resources_released": {
+          "memory_released": true,
+          "files_deleted": true,
+          "process_terminated": true
+        }
+      },
+      "resource_limits": {
+        "max_memory_mb": 512,
+        "max_execution_time_seconds": 600,
+        "max_file_size_mb": 100
+      },
+      "timeout_config": {
+        "spawn_timeout_seconds": 60,
+        "execution_timeout_seconds": 600,
+        "cleanup_timeout_seconds": 30
+      }
+    }
+  ]
+}

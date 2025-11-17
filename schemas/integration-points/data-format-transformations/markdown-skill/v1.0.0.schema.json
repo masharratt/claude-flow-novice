@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data-format-transformations/markdown-skill/v1.0.0",
+  "title": "Markdown Skill Files Schema",
+  "description": "Schema for markdown skill file structure and parsing (Integration Point 6.3)",
+  "type": "object",
+  "required": ["skill_id", "version", "frontmatter", "content", "parsed_at"],
+  "properties": {
+    "skill_id": {
+      "type": "string",
+      "description": "Skill identifier",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Skill version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "frontmatter": {
+      "type": "object",
+      "description": "Markdown frontmatter (YAML)",
+      "required": ["title", "description"],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "category": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": true
+    },
+    "content": {
+      "type": "object",
+      "description": "Parsed markdown content",
+      "required": ["raw", "sections"],
+      "properties": {
+        "raw": {
+          "type": "string",
+          "description": "Raw markdown content"
+        },
+        "sections": {
+          "type": "array",
+          "description": "Parsed sections",
+          "items": {
+            "type": "object",
+            "properties": {
+              "heading": {
+                "type": "string"
+              },
+              "level": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 6
+              },
+              "content": {
+                "type": "string"
+              },
+              "subsections": {
+                "type": "array",
+                "description": "Nested subsections"
+              }
+            }
+          }
+        },
+        "code_blocks": {
+          "type": "array",
+          "description": "Extracted code blocks",
+          "items": {
+            "type": "object",
+            "properties": {
+              "language": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "parsed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When markdown was parsed"
+    },
+    "parsing": {
+      "type": "object",
+      "description": "Parsing configuration and results",
+      "properties": {
+        "parser": {
+          "type": "string",
+          "enum": ["markdown-it", "remark", "marked"],
+          "default": "markdown-it"
+        },
+        "frontmatter_parser": {
+          "type": "string",
+          "enum": ["yaml", "toml", "json"],
+          "default": "yaml"
+        },
+        "parsing_errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "line": {
+                "type": "integer"
+              },
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "file_info": {
+      "type": "object",
+      "description": "File metadata",
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^\\.claude/skills/.*\\.md$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "large_file": {
+          "type": "boolean",
+          "description": "Whether file exceeds size threshold"
+        },
+        "size_threshold_bytes": {
+          "type": "integer",
+          "default": 102400,
+          "description": "Threshold for large file handling (100KB)"
+        }
+      }
+    },
+    "efficient_parsing": {
+      "type": "object",
+      "description": "Efficient parsing for large files",
+      "properties": {
+        "streaming_enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "chunk_size_bytes": {
+          "type": "integer",
+          "description": "Chunk size for streaming"
+        },
+        "lazy_loading": {
+          "type": "boolean",
+          "description": "Whether sections are loaded on demand"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Markdown schema validation",
+      "properties": {
+        "frontmatter_valid": {
+          "type": "boolean"
+        },
+        "structure_valid": {
+          "type": "boolean"
+        },
+        "required_sections_present": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "skill_id": "cfn-coordination",
+      "version": "2.0.0",
+      "frontmatter": {
+        "title": "CFN Coordination",
+        "description": "Coordination protocols for CFN Loop agents",
+        "author": "claude-agent",
+        "tags": ["coordination", "cfn-loop", "redis"],
+        "category": "coordination",
+        "created_at": "2025-01-01T00:00:00Z",
+        "updated_at": "2025-11-17T10:00:00Z"
+      },
+      "content": {
+        "raw": "# CFN Coordination\n\n## Overview\n...",
+        "sections": [
+          {
+            "heading": "Overview",
+            "level": 2,
+            "content": "This skill provides coordination protocols..."
+          }
+        ],
+        "code_blocks": [
+          {
+            "language": "bash",
+            "code": "coordination-signal \"channel\" \"message\""
+          }
+        ]
+      },
+      "parsed_at": "2025-11-17T10:30:00Z",
+      "parsing": {
+        "parser": "markdown-it",
+        "frontmatter_parser": "yaml",
+        "parsing_errors": []
+      },
+      "file_info": {
+        "path": ".claude/skills/cfn-coordination/SKILL.md",
+        "size_bytes": 12288,
+        "large_file": false,
+        "size_threshold_bytes": 102400
+      },
+      "validation": {
+        "frontmatter_valid": true,
+        "structure_valid": true,
+        "required_sections_present": true
+      }
+    }
+  ]
+}

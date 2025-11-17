@@ -1,0 +1,348 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Docker Logging Configuration",
+  "description": "Distributed logging configuration for Docker containers with JSON formatting, rotation, and label metadata.",
+  "type": "object",
+  "definitions": {
+    "logDriver": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["json-file"],
+          "description": "Docker logging driver type"
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "max-size": {
+              "type": "string",
+              "pattern": "^\\d+[kmg]$",
+              "default": "100m",
+              "description": "Maximum file size before rotation (100MB default)"
+            },
+            "max-file": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "default": "10",
+              "description": "Maximum number of rotated log files to keep"
+            },
+            "labels": {
+              "type": "string",
+              "default": "com.example.app,com.example.env",
+              "description": "Docker labels to include in logs"
+            },
+            "env": {
+              "type": "string",
+              "default": "AGENT_ID,TASK_ID,ITERATION",
+              "description": "Environment variables to include as metadata"
+            },
+            "env-regex": {
+              "type": "string",
+              "description": "Regex pattern for environment variables to capture"
+            }
+          },
+          "required": ["max-size", "max-file"]
+        }
+      },
+      "required": ["type", "config"]
+    }
+  },
+  "properties": {
+    "version": {
+      "type": "string",
+      "default": "1.0.0",
+      "description": "Configuration version"
+    },
+    "logDriver": {
+      "$ref": "#/definitions/logDriver",
+      "description": "Default logging driver configuration for all containers"
+    },
+    "containers": {
+      "type": "object",
+      "description": "Container-specific logging configurations",
+      "patternProperties": {
+        "^[a-z0-9-]+$": {
+          "allOf": [
+            { "$ref": "#/definitions/logDriver" },
+            {
+              "type": "object",
+              "properties": {
+                "logPath": {
+                  "type": "string",
+                  "description": "Custom log directory for this container"
+                },
+                "minLevel": {
+                  "type": "string",
+                  "enum": ["debug", "info", "warn", "error"],
+                  "default": "info",
+                  "description": "Minimum log level for this container"
+                },
+                "enableMetrics": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Enable performance metrics in logs"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "logPaths": {
+      "type": "object",
+      "description": "Global log path configuration",
+      "properties": {
+        "root": {
+          "type": "string",
+          "default": "/var/log/cfn",
+          "description": "Root log directory"
+        },
+        "containers": {
+          "type": "string",
+          "default": "/var/log/cfn/containers",
+          "description": "Container logs directory"
+        },
+        "aggregated": {
+          "type": "string",
+          "default": "/var/log/cfn/aggregated",
+          "description": "Aggregated logs directory"
+        },
+        "debug": {
+          "type": "string",
+          "default": "/var/log/cfn/debug",
+          "description": "Debug logs directory (7-day retention)"
+        }
+      }
+    },
+    "labels": {
+      "type": "object",
+      "description": "Docker labels for log metadata",
+      "properties": {
+        "com.example.app": {
+          "type": "string",
+          "description": "Application name label"
+        },
+        "com.example.env": {
+          "type": "string",
+          "enum": ["dev", "staging", "prod"],
+          "description": "Environment label"
+        },
+        "com.example.team": {
+          "type": "string",
+          "description": "Team responsible label"
+        },
+        "com.example.version": {
+          "type": "string",
+          "description": "Application version label"
+        }
+      }
+    },
+    "jsonLogFormat": {
+      "type": "object",
+      "description": "Standard JSON log format specification",
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp in UTC"
+        },
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "description": "Log severity level"
+        },
+        "message": {
+          "type": "string",
+          "description": "Log message"
+        },
+        "correlationId": {
+          "type": "string",
+          "pattern": "^[a-z]+:[a-z0-9-]+:[a-z]+$",
+          "description": "Correlation ID for tracing: format, taskId, agentType"
+        },
+        "source": {
+          "type": "string",
+          "description": "Container name or service name"
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "agentId": {
+              "type": "string",
+              "description": "Agent identifier"
+            },
+            "taskId": {
+              "type": "string",
+              "description": "Task identifier"
+            },
+            "iteration": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Iteration number"
+            },
+            "sprintId": {
+              "type": "string",
+              "description": "Sprint identifier"
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "duration": {
+              "type": "integer",
+              "description": "Operation duration in milliseconds"
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Confidence score for operation outcome"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Log tags for filtering and searching"
+            }
+          }
+        }
+      },
+      "required": ["timestamp", "level", "message", "source"]
+    },
+    "rotation": {
+      "type": "object",
+      "description": "Log rotation settings",
+      "properties": {
+        "maxSizePerFile": {
+          "type": "string",
+          "default": "100m",
+          "description": "Maximum size per log file"
+        },
+        "maxFilesPerContainer": {
+          "type": "integer",
+          "default": 10,
+          "minimum": 3,
+          "maximum": 100,
+          "description": "Number of rotated files to keep per container"
+        },
+        "compressionLevel": {
+          "type": "integer",
+          "default": 6,
+          "minimum": 1,
+          "maximum": 9,
+          "description": "Gzip compression level (1-9, where 1 is fastest, 9 is smallest)"
+        },
+        "retentionDays": {
+          "type": "object",
+          "properties": {
+            "standard": {
+              "type": "integer",
+              "default": 30,
+              "description": "Retention days for standard logs"
+            },
+            "debug": {
+              "type": "integer",
+              "default": 7,
+              "description": "Retention days for debug logs"
+            }
+          }
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "description": "Log monitoring and alerting configuration",
+      "properties": {
+        "enableAlerts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable error/fatal log alerting"
+        },
+        "alertOnLevels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["error", "fatal"]
+          },
+          "default": ["error", "fatal"],
+          "description": "Log levels that trigger alerts"
+        },
+        "maxCpuOverhead": {
+          "type": "number",
+          "default": 0.05,
+          "description": "Maximum CPU overhead for logging (0.05 = 5%)"
+        },
+        "metricsInterval": {
+          "type": "integer",
+          "default": 60,
+          "description": "Metrics collection interval in seconds"
+        }
+      }
+    },
+    "examples": {
+      "type": "object",
+      "description": "Example configurations",
+      "properties": {
+        "basicContainer": {
+          "type": "string",
+          "default": "{\"type\": \"json-file\", \"config\": {\"max-size\": \"100m\", \"max-file\": \"10\"}}"
+        },
+        "agentContainer": {
+          "type": "string",
+          "default": "{\"type\": \"json-file\", \"config\": {\"max-size\": \"100m\", \"max-file\": \"10\", \"labels\": \"com.example.app,com.example.env\", \"env\": \"AGENT_ID,TASK_ID\"}}"
+        }
+      }
+    }
+  },
+  "default": {
+    "version": "1.0.0",
+    "logDriver": {
+      "type": "json-file",
+      "config": {
+        "max-size": "100m",
+        "max-file": 10,
+        "labels": "com.example.app,com.example.env"
+      }
+    },
+    "logPaths": {
+      "root": "/var/log/cfn",
+      "containers": "/var/log/cfn/containers",
+      "aggregated": "/var/log/cfn/aggregated",
+      "debug": "/var/log/cfn/debug"
+    },
+    "jsonLogFormat": {
+      "timestamp": "2025-11-16T03:00:00Z",
+      "level": "info",
+      "message": "Log message",
+      "correlationId": "task:task-001:agent",
+      "source": "container-name",
+      "context": {
+        "agentId": "agent-001",
+        "taskId": "task-001",
+        "iteration": 1
+      },
+      "metadata": {
+        "duration": 5000,
+        "confidence": 0.92
+      }
+    },
+    "rotation": {
+      "maxSizePerFile": "100m",
+      "maxFilesPerContainer": 10,
+      "compressionLevel": 6,
+      "retentionDays": {
+        "standard": 30,
+        "debug": 7
+      }
+    },
+    "monitoring": {
+      "enableAlerts": true,
+      "alertOnLevels": ["error", "fatal"],
+      "maxCpuOverhead": 0.05,
+      "metricsInterval": 60
+    }
+  }
+}

@@ -1,613 +1,634 @@
 /**
- * Skill Loader - Phase 3 Implementation
+ * Skill Loader
  *
- * Loads skills from:
- * 1. Bootstrap skills (static files, no DB required)
- * 2. Database-driven skills (SQLite with approval awareness)
+ * High-performance skill loading system with LRU caching and hash-based validation.
+ * Provides contextual skill selection for agent prompt building.
  *
- * Features:
- * - Approval-aware loading (auto, escalate, human)
- * - LRU cache with TTL
- * - Content hash validation
- * - Usage analytics logging
- * - Context-based filtering
+ * Performance targets:
+ * - Cold load: <1s
+ * - Warm load: <100ms
+ * - Cache TTL: 5 minutes
+ *
+ * @module skill-loader
  */
 
-import Database from 'better-sqlite3';
-import { readFileSync, existsSync } from 'fs';
-import { createHash } from 'crypto';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
+import { DatabaseService } from '../lib/database-service';
+import { createLogger, Logger } from '../lib/logging';
+import { SkillsQueryBuilder, SkillRecord, BOOTSTRAP_SKILL_IDS } from '../db/skills-query';
+import {
+  SkillCacheValidator,
+  CachedSkillEntry,
+  ValidationResult,
+} from './skill-cache-validator';
 
-// ============================================================================
-// Interfaces
-// ============================================================================
-
+/**
+ * Skill metadata with content
+ */
 export interface Skill {
-  id: number;
+  id: string;
   name: string;
-  category: 'coordination' | 'testing' | 'infrastructure' | 'domain' | 'foundation';
-  team: string;
-  contentPath: string;
-  contentHash: string;
-  tags: string[];
   version: string;
-  status: 'active' | 'deprecated' | 'archived';
-  approvalLevel: 'auto' | 'escalate' | 'human';
-  approvalCriteria?: Record<string, any>;
-  owner: string;
-  content?: string;  // Loaded on-demand
-  phase4PatternId?: number;
-  generatedBy?: string;
+  content: string;
+  contentHash: string;
+  namespace?: string;
+  priority?: number;
+  tags?: string[];
 }
 
-export interface AgentSkillMapping {
+/**
+ * Skill loader configuration options
+ */
+export interface SkillLoaderOptions {
+  /** Agent type to load skills for */
   agentType: string;
-  skillId: number;
-  priority: number;
-  required: boolean;
-  conditions?: {
-    taskContext?: string[];
-    phase?: string[];
-    mode?: string[];
-  };
-  notes?: string;
-}
 
-export interface TaskContext {
-  taskId?: string;
-  keywords?: string;
+  /** Optional task context keywords for contextual filtering */
+  taskContext?: string[];
+
+  /** Maximum number of skills to load (default: 20) */
+  maxSkills?: number;
+
+  /** Include bootstrap skills (default: true) */
+  includeBootstrap?: boolean;
+
+  /** CFN Loop phase for phase-specific skills */
   phase?: string;
-  mode?: string;
-  iteration?: number;
 }
 
-export interface SkillUsageLog {
-  agentId: string;
-  agentType: string;
-  skillIds: number[];
-  taskId?: string;
-  phase?: string;
-  loadedAt: Date;
-  confidenceBefore?: number;
-  confidenceAfter?: number;
-  executionTimeMs: number;
-
-  // Phase 6.1: Approval metadata for analytics
-  approvalLevels?: string[];    // ['auto', 'human', 'escalate'] - parallel to skillIds
-  phase4Generated?: boolean[];  // [false, true, false] - parallel to skillIds
+/**
+ * Load result with metadata
+ */
+export interface SkillLoadResult {
+  skills: Skill[];
+  loadTimeMs: number;
+  cacheHitCount: number;
+  cacheMissCount: number;
+  cacheInvalidationCount: number;
+  totalSkills: number;
+  bootstrapCount: number;
 }
 
-export interface SkillMetrics {
-  skillId: number;
-  skillName: string;
-  totalUsages: number;
-  averageConfidenceImpact: number;
-  averageExecutionTimeMs: number;
-  lastUsedAt: string;
+/**
+ * LRU Cache Entry
+ */
+interface LRUCacheEntry {
+  data: CachedSkillEntry;
+  lastAccessed: Date;
 }
 
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-}
-
-interface BootstrapSkill {
-  skillName: string;
-  filePath: string;
-  loadOrder: number;
-  description: string;
-}
-
-interface CacheEntry {
-  skill: Skill;
-  timestamp: number;
-}
-
-// ============================================================================
-// SkillLoader Class
-// ============================================================================
-
+/**
+ * Skill Loader
+ *
+ * Manages skill loading with LRU caching and hash-based validation.
+ */
 export class SkillLoader {
-  private db: Database.Database;
-  private cache: Map<string, CacheEntry> = new Map();
-  private cacheMaxSize = 100; // LRU cache size
-  private cacheTTL = 60000; // 1 minute TTL
-  private bootstrapPath: string;
-  private enableCache: boolean;
+  private logger: Logger;
+  private validator: SkillCacheValidator;
+  private cache: Map<string, LRUCacheEntry>;
+  private cacheMaxSize: number = 100;
+  private cacheTTLMinutes: number = 5;
+  private dbService?: DatabaseService;
+  private skillsBasePath: string;
 
   constructor(
-    dbPath: string = './.claude/skills-database/skills.db',
-    options: { enableCache?: boolean; cacheMaxSize?: number; cacheTTL?: number } = {}
+    dbService?: DatabaseService,
+    logger?: Logger,
+    skillsBasePath?: string
   ) {
-    // Initialize database connection
-    if (!existsSync(dbPath)) {
-      throw new Error(`Skills database not found at: ${dbPath}`);
-    }
-
-    this.db = new Database(dbPath, { readonly: true });
-    this.bootstrapPath = path.resolve('./.claude/skills/bootstrap');
-    this.enableCache = options.enableCache !== false;
-    this.cacheMaxSize = options.cacheMaxSize || this.cacheMaxSize;
-    this.cacheTTL = options.cacheTTL || this.cacheTTL;
+    this.logger = logger ?? createLogger('skill-loader');
+    this.dbService = dbService;
+    this.validator = new SkillCacheValidator(this.logger, dbService);
+    this.cache = new Map();
+    this.skillsBasePath = skillsBasePath ?? path.join(process.cwd(), '.claude/skills');
   }
 
   /**
-   * Load skills for a specific agent with context filtering
+   * Load contextual skills for an agent
+   *
+   * Main entry point for skill loading with caching and validation.
+   *
+   * @param options - Skill loader options
+   * @returns Load result with skills and metadata
    */
-  async loadSkillsForAgent(
-    agentType: string,
-    context: TaskContext = {}
-  ): Promise<Skill[]> {
+  async loadContextualSkills(options: SkillLoaderOptions): Promise<SkillLoadResult> {
     const startTime = Date.now();
+    const {
+      agentType,
+      taskContext = [],
+      maxSkills = 20,
+      includeBootstrap = true,
+      phase,
+    } = options;
 
-    // Step 1: Load bootstrap skills (always first, no DB required)
-    const bootstrapSkills = await this.loadBootstrapSkills();
+    this.logger.info('Loading contextual skills', {
+      agentType,
+      taskContext,
+      maxSkills,
+      includeBootstrap,
+      phase,
+    });
 
-    // Step 2: Query database for agent-specific skills
-    const dbSkills = await this.queryAgentSkills(agentType, context);
+    const result: SkillLoadResult = {
+      skills: [],
+      loadTimeMs: 0,
+      cacheHitCount: 0,
+      cacheMissCount: 0,
+      cacheInvalidationCount: 0,
+      totalSkills: 0,
+      bootstrapCount: 0,
+    };
 
-    // Step 3: Load content for database skills
-    const loadedDbSkills = await Promise.all(
-      dbSkills.map(s => this.loadSkillContent(s))
-    );
+    try {
+      // Validate cache integrity with bulk hash check (if database available)
+      if (this.dbService && this.cache.size > 0) {
+        const cachedEntries = Array.from(this.cache.values()).map((entry) => entry.data);
+        const validation = await this.validator.validateCachedSkills(cachedEntries);
 
-    // Step 4: Combine and return
-    const allSkills = [...bootstrapSkills, ...loadedDbSkills];
+        if (!validation.isValid) {
+          // Invalidate cache entries with hash mismatches
+          for (const skillId of validation.invalidSkillIds) {
+            this.cache.delete(skillId);
+            result.cacheInvalidationCount++;
+          }
 
-    const executionTimeMs = Date.now() - startTime;
+          this.logger.warn('Cache invalidated due to hash mismatches', {
+            invalidatedCount: validation.invalidCount,
+            invalidSkillIds: validation.invalidSkillIds,
+            validationDurationMs: validation.durationMs,
+          });
+        } else {
+          this.logger.debug('Cache validation passed', {
+            validCount: validation.validCount,
+            validationDurationMs: validation.durationMs,
+          });
+        }
+      }
 
-    // Log performance if slow
-    if (executionTimeMs > 15) {
-      console.warn(`[SkillLoader] Slow skill loading: ${executionTimeMs}ms for ${agentType}`);
+      // Load bootstrap skills first (always included unless explicitly disabled)
+      if (includeBootstrap) {
+        const bootstrapSkills = await this.loadBootstrapSkills();
+        result.skills.push(...bootstrapSkills);
+        result.bootstrapCount = bootstrapSkills.length;
+      }
+
+      // Load agent-specific skills from database
+      if (this.dbService) {
+        const agentSkills = await this.loadAgentSkills(
+          agentType,
+          taskContext,
+          phase,
+          maxSkills - result.skills.length
+        );
+
+        // Track cache hits/misses from agent skill loading
+        const { skills, cacheHits, cacheMisses } = agentSkills;
+        result.skills.push(...skills);
+        result.cacheHitCount = cacheHits;
+        result.cacheMissCount = cacheMisses;
+      } else {
+        this.logger.warn('Database service not configured - loading bootstrap skills only');
+      }
+
+      result.totalSkills = result.skills.length;
+      result.loadTimeMs = Date.now() - startTime;
+
+      this.logger.info('Skills loaded successfully', {
+        totalSkills: result.totalSkills,
+        bootstrapSkills: result.bootstrapCount,
+        agentSkills: result.totalSkills - result.bootstrapCount,
+        cacheHits: result.cacheHitCount,
+        cacheMisses: result.cacheMissCount,
+        cacheInvalidations: result.cacheInvalidationCount,
+        loadTimeMs: result.loadTimeMs,
+      });
+
+      // Log performance warning if exceeding targets
+      if (result.loadTimeMs > 1000) {
+        this.logger.warn('Skill loading exceeded 1s target', {
+          loadTimeMs: result.loadTimeMs,
+          target: 1000,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to load skills', error as Error, {
+        agentType,
+        taskContext,
+      });
+
+      throw new Error(`Skill loading failed: ${(error as Error).message}`);
     }
-
-    return allSkills;
   }
 
   /**
-   * Load bootstrap skills (static files, no database required)
+   * Load bootstrap skills (always included)
+   *
+   * Bootstrap skills are loaded from static files without database dependency.
    */
-  async loadBootstrapSkills(): Promise<Skill[]> {
-    const bootstrapRecords = this.db.prepare(`
-      SELECT skill_name, file_path, load_order, description
-      FROM bootstrap_skills
-      ORDER BY load_order ASC
-    `).all() as BootstrapSkill[];
+  private async loadBootstrapSkills(): Promise<Skill[]> {
+    const skills: Skill[] = [];
 
-    const bootstrapSkills: Skill[] = [];
-
-    for (const record of bootstrapRecords) {
+    for (const skillId of BOOTSTRAP_SKILL_IDS) {
       try {
-        const fullPath = path.resolve(record.filePath);
+        // Check cache first
+        const cached = this.getCachedSkill(skillId);
 
-        if (!existsSync(fullPath)) {
-          console.warn(`[SkillLoader] Bootstrap skill not found: ${fullPath}`);
+        if (cached) {
+          skills.push({
+            id: cached.skillId,
+            name: skillId,
+            version: '1.0.0',
+            content: cached.content,
+            contentHash: cached.contentHash,
+            namespace: 'cfn',
+            priority: 10,
+          });
           continue;
         }
 
-        const content = readFileSync(fullPath, 'utf-8');
-        const hash = this.calculateHash(content);
+        // Load from file
+        const skillPath = path.join(this.skillsBasePath, skillId, 'SKILL.md');
 
-        // Parse frontmatter for metadata
-        const metadata = this.parseFrontmatter(content);
+        if (!fs.existsSync(skillPath)) {
+          this.logger.warn('Bootstrap skill file not found', { skillId, skillPath });
+          continue;
+        }
 
-        bootstrapSkills.push({
-          id: -record.loadOrder, // Negative IDs for bootstrap skills
-          name: record.skillName,
-          category: 'foundation',
-          team: 'foundation',
-          contentPath: record.filePath,
-          contentHash: hash,
-          tags: metadata.tags || ['bootstrap'],
-          version: metadata.version || '1.0.0',
-          status: 'active',
-          approvalLevel: metadata.approval_level || 'auto',
-          approvalCriteria: metadata.approval_criteria,
-          owner: metadata.owner || 'cfn-core',
-          content: content,
-          generatedBy: 'bootstrap'
+        const content = await fs.promises.readFile(skillPath, 'utf-8');
+        const contentHash = this.validator.computeHash(content);
+
+        // Cache the skill
+        this.setCachedSkill(skillId, content, contentHash);
+
+        skills.push({
+          id: skillId,
+          name: skillId,
+          version: '1.0.0',
+          content,
+          contentHash,
+          namespace: 'cfn',
+          priority: 10,
         });
       } catch (error) {
-        console.error(`[SkillLoader] Failed to load bootstrap skill ${record.skillName}:`, error);
+        this.logger.error('Failed to load bootstrap skill', error as Error, { skillId });
       }
     }
 
-    return bootstrapSkills;
+    return skills;
   }
 
   /**
-   * Query database for agent-specific skills with filtering
+   * Load agent-specific skills from database
    */
-  private async queryAgentSkills(
+  private async loadAgentSkills(
     agentType: string,
-    context: TaskContext
-  ): Promise<Skill[]> {
-    const { keywords, phase, mode } = context;
-
-    // Build dynamic query based on context
-    let query = `
-      SELECT
-        s.id, s.name, s.category, s.team, s.content_path, s.content_hash,
-        s.tags, s.version, s.status, s.approval_level, s.approval_criteria,
-        s.owner, s.phase4_pattern_id, s.generated_by,
-        m.priority, m.required, m.conditions
-      FROM skills s
-      JOIN agent_skill_mappings m ON m.skill_id = s.id
-      WHERE m.agent_type = ?
-        AND s.status = 'active'
-    `;
-
-    const params: any[] = [agentType];
-
-    // Filter by conditions if present
-    if (keywords || phase || mode) {
-      query += ` AND (
-        m.conditions IS NULL
-        ${keywords ? "OR m.conditions LIKE ?" : ""}
-        ${phase ? "OR m.conditions LIKE ?" : ""}
-        ${mode ? "OR m.conditions LIKE ?" : ""}
-      )`;
-
-      if (keywords) params.push(`%${keywords}%`);
-      if (phase) params.push(`%"phase"%${phase}%`);
-      if (mode) params.push(`%"mode"%${mode}%`);
+    taskContext: string[],
+    phase?: string,
+    maxSkills?: number
+  ): Promise<{ skills: Skill[]; cacheHits: number; cacheMisses: number }> {
+    if (!this.dbService) {
+      return { skills: [], cacheHits: 0, cacheMisses: 0 };
     }
 
-    // Order by priority (ascending), then approval level (auto first)
-    query += `
-      ORDER BY
-        m.priority ASC,
-        CASE s.approval_level
-          WHEN 'auto' THEN 1
-          WHEN 'escalate' THEN 2
-          WHEN 'human' THEN 3
-        END ASC
-    `;
+    const skills: Skill[] = [];
+    let cacheHits = 0;
+    let cacheMisses = 0;
 
-    const rows = this.db.prepare(query).all(...params) as any[];
+    try {
+      // Get SQLite adapter
+      const sqlite = this.dbService.getAdapter('sqlite');
 
-    return rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      category: row.category,
-      team: row.team,
-      contentPath: row.content_path,
-      contentHash: row.content_hash,
-      tags: row.tags ? JSON.parse(row.tags) : [],
-      version: row.version,
-      status: row.status,
-      approvalLevel: row.approval_level,
-      approvalCriteria: row.approval_criteria ? JSON.parse(row.approval_criteria) : undefined,
-      owner: row.owner,
-      phase4PatternId: row.phase4_pattern_id,
-      generatedBy: row.generated_by
-    }));
+      // Build query
+      const { sql, params } = SkillsQueryBuilder.getSkillsByAgentType(
+        agentType,
+        taskContext,
+        phase
+      );
+
+      // Execute query
+      const records = await sqlite.raw<SkillRecord[]>(sql, params);
+
+      // Limit results if specified
+      const limitedRecords = maxSkills ? records.slice(0, maxSkills) : records;
+
+      // Load skill content for each record
+      for (const record of limitedRecords) {
+        try {
+          const skill = await this.loadSkillContent(record);
+
+          if (skill) {
+            skills.push(skill);
+
+            // Track cache hits
+            if (this.cache.has(skill.id)) {
+              cacheHits++;
+            } else {
+              cacheMisses++;
+            }
+          }
+        } catch (error) {
+          this.logger.error('Failed to load skill content', error as Error, {
+            skillId: record.id,
+          });
+        }
+      }
+
+      return { skills, cacheHits, cacheMisses };
+    } catch (error) {
+      this.logger.error('Failed to load agent skills from database', error as Error, {
+        agentType,
+        taskContext,
+      });
+
+      return { skills: [], cacheHits: 0, cacheMisses: 0 };
+    }
   }
 
   /**
-   * Load skill content from file with caching and hash validation
+   * Load skill content from file with caching and validation
    */
-  private async loadSkillContent(skill: Skill): Promise<Skill> {
-    const cacheKey = `${skill.id}:${skill.version}`;
-
+  private async loadSkillContent(record: SkillRecord): Promise<Skill | null> {
     // Check cache first
-    if (this.enableCache && this.cache.has(cacheKey)) {
-      const entry = this.cache.get(cacheKey)!;
+    const cached = this.getCachedSkill(record.id);
 
-      // Check TTL
-      if (Date.now() - entry.timestamp < this.cacheTTL) {
-        return entry.skill;
-      } else {
-        this.cache.delete(cacheKey);
+    if (cached) {
+      // Validate cached entry against database hash
+      const validation = this.validator.validateCachedEntry(
+        cached,
+        record.content_hash
+      );
+
+      if (validation.isValid) {
+        // Update last accessed time
+        this.updateCacheAccess(record.id);
+
+        return {
+          id: record.id,
+          name: record.name,
+          version: record.version,
+          content: cached.content,
+          contentHash: cached.contentHash,
+          namespace: record.namespace,
+          priority: record.priority,
+          tags: record.tags ? record.tags.split(',') : [],
+        };
       }
+
+      // Cache invalid - remove it
+      this.logger.debug('Cache invalidated', {
+        skillId: record.id,
+        reason: validation.reason,
+      });
+      this.cache.delete(record.id);
     }
 
     // Load from file
-    try {
-      const fullPath = path.resolve(skill.contentPath);
+    const skillPath = path.isAbsolute(record.file_path)
+      ? record.file_path
+      : path.join(this.skillsBasePath, record.file_path);
 
-      if (!existsSync(fullPath)) {
-        console.warn(`[SkillLoader] Skill file not found: ${fullPath}`);
-        return { ...skill, content: `# Error: Skill file not found\n\nPath: ${fullPath}` };
-      }
-
-      const content = readFileSync(fullPath, 'utf-8');
-
-      // Validate hash (non-blocking warning)
-      const actualHash = this.calculateHash(content);
-      if (actualHash !== skill.contentHash) {
-        console.warn(
-          `[SkillLoader] Hash mismatch for skill ${skill.name} (${skill.version})\n` +
-          `  Expected: ${skill.contentHash}\n` +
-          `  Actual:   ${actualHash}\n` +
-          `  This may indicate the file was modified without updating the database.`
-        );
-      }
-
-      const loadedSkill = { ...skill, content };
-
-      // Update cache with LRU eviction
-      if (this.enableCache) {
-        if (this.cache.size >= this.cacheMaxSize) {
-          // Remove oldest entry
-          const oldestKey = this.cache.keys().next().value;
-          this.cache.delete(oldestKey);
-        }
-
-        this.cache.set(cacheKey, {
-          skill: loadedSkill,
-          timestamp: Date.now()
-        });
-      }
-
-      return loadedSkill;
-    } catch (error) {
-      console.error(`[SkillLoader] Failed to load skill ${skill.name}:`, error);
-      return { ...skill, content: `# Error loading skill\n\n${error}` };
-    }
-  }
-
-  /**
-   * Get single skill by ID or name
-   */
-  async getSkill(idOrName: number | string): Promise<Skill | null> {
-    let row: any;
-
-    if (typeof idOrName === 'number') {
-      row = this.db.prepare('SELECT * FROM skills WHERE id = ?').get(idOrName);
-    } else {
-      row = this.db.prepare('SELECT * FROM skills WHERE name = ?').get(idOrName);
-    }
-
-    if (!row) {
+    if (!fs.existsSync(skillPath)) {
+      this.logger.error('Skill file not found', undefined, {
+        skillId: record.id,
+        filePath: skillPath,
+      });
       return null;
     }
 
-    const skill: Skill = {
-      id: row.id,
-      name: row.name,
-      category: row.category,
-      team: row.team,
-      contentPath: row.content_path,
-      contentHash: row.content_hash,
-      tags: row.tags ? JSON.parse(row.tags) : [],
-      version: row.version,
-      status: row.status,
-      approvalLevel: row.approval_level,
-      approvalCriteria: row.approval_criteria ? JSON.parse(row.approval_criteria) : undefined,
-      owner: row.owner,
-      phase4PatternId: row.phase4_pattern_id,
-      generatedBy: row.generated_by
-    };
+    const content = await fs.promises.readFile(skillPath, 'utf-8');
 
-    return this.loadSkillContent(skill);
-  }
+    // Validate file content hash
+    const actualHash = this.validator.computeHash(content);
 
-  /**
-   * Check if skill requires approval before deployment
-   */
-  async requiresApproval(skill: Skill): Promise<boolean> {
-    if (skill.approvalLevel === 'auto') {
-      return false;
+    if (actualHash !== record.content_hash) {
+      this.logger.warn('Skill content hash mismatch', {
+        skillId: record.id,
+        expectedHash: record.content_hash,
+        actualHash,
+      });
+
+      // Note: We still return the skill but log the discrepancy
+      // In production, you might want to reject or update the database
     }
 
-    // Check if already approved
-    const approved = this.db.prepare(`
-      SELECT 1 FROM approval_history
-      WHERE skill_id = ? AND version = ? AND decision = 'approved'
-      LIMIT 1
-    `).get(skill.id, skill.version);
-
-    return !approved;
-  }
-
-  /**
-   * Validate all skill content hashes
-   */
-  async validateIntegrity(): Promise<ValidationResult> {
-    const result: ValidationResult = {
-      valid: true,
-      errors: [],
-      warnings: []
-    };
-
-    const skills = this.db.prepare('SELECT id, name, content_path, content_hash FROM skills').all() as any[];
-
-    for (const skill of skills) {
-      try {
-        const fullPath = path.resolve(skill.content_path);
-
-        if (!existsSync(fullPath)) {
-          result.errors.push(`Skill ${skill.name}: File not found at ${fullPath}`);
-          result.valid = false;
-          continue;
-        }
-
-        const content = readFileSync(fullPath, 'utf-8');
-        const actualHash = this.calculateHash(content);
-
-        if (actualHash !== skill.content_hash) {
-          result.warnings.push(
-            `Skill ${skill.name}: Hash mismatch (expected: ${skill.content_hash}, actual: ${actualHash})`
-          );
-        }
-      } catch (error) {
-        result.errors.push(`Skill ${skill.name}: ${error}`);
-        result.valid = false;
-      }
-    }
-
-    return result;
-  }
-
-  /**
-   * Log skill usage for analytics
-   * Phase 6.1: Enhanced with approval metadata tracking
-   */
-  async logSkillUsage(usage: SkillUsageLog): Promise<void> {
-    // Note: This creates a writable connection temporarily for logging
-    const logDb = new Database(this.db.name);
-
-    try {
-      const stmt = logDb.prepare(`
-        INSERT INTO skill_usage_log (
-          agent_id, agent_type, skill_id, task_id, phase,
-          loaded_at, confidence_before, confidence_after, execution_time_ms,
-          approval_level, phase4_generated
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      for (let i = 0; i < usage.skillIds.length; i++) {
-        const skillId = usage.skillIds[i];
-
-        // Get approval metadata for this skill (with bounds checking)
-        const approvalLevel = usage.approvalLevels && i < usage.approvalLevels.length
-          ? usage.approvalLevels[i]
-          : null;
-
-        const phase4Generated = usage.phase4Generated && i < usage.phase4Generated.length
-          ? (usage.phase4Generated[i] ? 1 : 0)
-          : null;
-
-        stmt.run(
-          usage.agentId,
-          usage.agentType,
-          skillId,
-          usage.taskId || null,
-          usage.phase || null,
-          usage.loadedAt.toISOString(),
-          usage.confidenceBefore || null,
-          usage.confidenceAfter || null,
-          usage.executionTimeMs,
-          approvalLevel,
-          phase4Generated
-        );
-      }
-    } finally {
-      logDb.close();
-    }
-  }
-
-  /**
-   * Get skill effectiveness metrics
-   */
-  async getSkillMetrics(skillId: number): Promise<SkillMetrics | null> {
-    const skill = this.db.prepare('SELECT name FROM skills WHERE id = ?').get(skillId) as any;
-
-    if (!skill) {
-      return null;
-    }
-
-    const metrics = this.db.prepare(`
-      SELECT
-        COUNT(*) as total_usages,
-        AVG(confidence_after - confidence_before) as avg_confidence_impact,
-        AVG(execution_time_ms) as avg_execution_time_ms,
-        MAX(loaded_at) as last_used_at
-      FROM skill_usage_log
-      WHERE skill_id = ?
-        AND confidence_before IS NOT NULL
-        AND confidence_after IS NOT NULL
-    `).get(skillId) as any;
+    // Cache the skill
+    this.setCachedSkill(record.id, content, record.content_hash);
 
     return {
-      skillId,
-      skillName: skill.name,
-      totalUsages: metrics.total_usages || 0,
-      averageConfidenceImpact: metrics.avg_confidence_impact || 0,
-      averageExecutionTimeMs: metrics.avg_execution_time_ms || 0,
-      lastUsedAt: metrics.last_used_at || 'never'
+      id: record.id,
+      name: record.name,
+      version: record.version,
+      content,
+      contentHash: record.content_hash,
+      namespace: record.namespace,
+      priority: record.priority,
+      tags: record.tags ? record.tags.split(',') : [],
     };
   }
 
   /**
-   * Clear cache (useful for testing or manual cache invalidation)
+   * Get cached skill if valid
+   */
+  private getCachedSkill(skillId: string): CachedSkillEntry | null {
+    const entry = this.cache.get(skillId);
+
+    if (!entry) {
+      return null;
+    }
+
+    // Check TTL
+    const now = new Date();
+    if (now > entry.data.validUntil) {
+      this.cache.delete(skillId);
+      return null;
+    }
+
+    return entry.data;
+  }
+
+  /**
+   * Set cached skill
+   */
+  private setCachedSkill(skillId: string, content: string, contentHash: string): void {
+    // Evict oldest entry if cache is full
+    if (this.cache.size >= this.cacheMaxSize) {
+      this.evictOldestEntry();
+    }
+
+    const cacheEntry = this.validator.createCacheEntry(
+      skillId,
+      content,
+      this.cacheTTLMinutes
+    );
+
+    // Override contentHash if provided (from database)
+    if (contentHash) {
+      cacheEntry.contentHash = contentHash;
+    }
+
+    this.cache.set(skillId, {
+      data: cacheEntry,
+      lastAccessed: new Date(),
+    });
+  }
+
+  /**
+   * Update cache access time for LRU tracking
+   */
+  private updateCacheAccess(skillId: string): void {
+    const entry = this.cache.get(skillId);
+
+    if (entry) {
+      entry.lastAccessed = new Date();
+    }
+  }
+
+  /**
+   * Evict oldest cache entry (LRU)
+   */
+  private evictOldestEntry(): void {
+    let oldestKey: string | null = null;
+    let oldestTime: Date | null = null;
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (!oldestTime || entry.lastAccessed < oldestTime) {
+        oldestKey = key;
+        oldestTime = entry.lastAccessed;
+      }
+    }
+
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+      this.logger.debug('Evicted LRU cache entry', { skillId: oldestKey });
+    }
+  }
+
+  /**
+   * Clear cache
    */
   clearCache(): void {
     this.cache.clear();
+    this.logger.info('Skill cache cleared');
   }
 
   /**
-   * Close database connection
+   * Get cache statistics
    */
-  close(): void {
-    this.db.close();
-  }
-
-  // ============================================================================
-  // Private Helper Methods
-  // ============================================================================
-
-  /**
-   * Calculate SHA256 hash of content
-   */
-  private calculateHash(content: string): string {
-    return createHash('sha256').update(content).digest('hex');
+  getCacheStats(): {
+    size: number;
+    maxSize: number;
+    ttlMinutes: number;
+    hitRate?: number;
+  } {
+    return {
+      size: this.cache.size,
+      maxSize: this.cacheMaxSize,
+      ttlMinutes: this.cacheTTLMinutes,
+    };
   }
 
   /**
-   * Parse YAML frontmatter from markdown file
+   * Validate all cached entries against database
+   *
+   * Useful for cache integrity checks and monitoring.
+   *
+   * @returns Validation result with invalidated skill IDs
    */
-  private parseFrontmatter(content: string): Record<string, any> {
-    const match = content.match(/^---\n([\s\S]*?)\n---/);
-    if (!match) {
-      return {};
+  async validateCache(): Promise<{
+    isValid: boolean;
+    invalidSkillIds: string[];
+    validCount: number;
+    invalidCount: number;
+    durationMs: number;
+  }> {
+    if (!this.dbService) {
+      this.logger.warn('Database service not configured - cannot validate cache');
+      return {
+        isValid: true,
+        invalidSkillIds: [],
+        validCount: 0,
+        invalidCount: 0,
+        durationMs: 0,
+      };
     }
 
-    const frontmatter = match[1];
-    const metadata: Record<string, any> = {};
+    const cachedEntries = Array.from(this.cache.values()).map((entry) => entry.data);
+    const validation = await this.validator.validateCachedSkills(cachedEntries);
 
-    // Simple YAML parsing (supports basic key: value and key: [array])
-    const lines = frontmatter.split('\n');
-    let currentKey: string | null = null;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-
-      if (!trimmed || trimmed.startsWith('#')) {
-        continue;
+    // Automatically invalidate entries with hash mismatches
+    if (!validation.isValid) {
+      for (const skillId of validation.invalidSkillIds) {
+        this.cache.delete(skillId);
       }
 
-      // Key: value
-      if (trimmed.includes(':')) {
-        const [key, ...valueParts] = trimmed.split(':');
-        const value = valueParts.join(':').trim();
-        currentKey = key.trim();
-
-        if (value.startsWith('[') && value.endsWith(']')) {
-          // Array
-          metadata[currentKey] = value
-            .slice(1, -1)
-            .split(',')
-            .map(v => v.trim());
-        } else if (value === 'true' || value === 'false') {
-          metadata[currentKey] = value === 'true';
-        } else if (!isNaN(Number(value)) && value !== '') {
-          metadata[currentKey] = Number(value);
-        } else if (value) {
-          metadata[currentKey] = value;
-        } else {
-          metadata[currentKey] = null;
-        }
-      } else if (currentKey && trimmed.startsWith('- ')) {
-        // Array item continuation
-        if (!Array.isArray(metadata[currentKey])) {
-          metadata[currentKey] = [];
-        }
-        metadata[currentKey].push(trimmed.slice(2).trim());
-      } else if (currentKey && trimmed.startsWith(' ')) {
-        // Object continuation (nested keys)
-        const [nestedKey, nestedValue] = trimmed.split(':').map(s => s.trim());
-        if (!metadata[currentKey]) {
-          metadata[currentKey] = {};
-        }
-        if (typeof metadata[currentKey] === 'object' && !Array.isArray(metadata[currentKey])) {
-          metadata[currentKey][nestedKey] = isNaN(Number(nestedValue)) ? nestedValue : Number(nestedValue);
-        }
-      }
+      this.logger.info('Cache validation found and removed stale entries', {
+        invalidatedCount: validation.invalidCount,
+        invalidSkillIds: validation.invalidSkillIds,
+        durationMs: validation.durationMs,
+      });
     }
 
-    return metadata;
+    return validation;
   }
+
+  /**
+   * Preload skills into cache (warm up)
+   */
+  async preloadSkills(skillIds: string[]): Promise<void> {
+    this.logger.info('Preloading skills', { count: skillIds.length });
+
+    const promises = skillIds.map(async (skillId) => {
+      try {
+        const skillPath = path.join(this.skillsBasePath, skillId, 'SKILL.md');
+
+        if (fs.existsSync(skillPath)) {
+          const content = await fs.promises.readFile(skillPath, 'utf-8');
+          const contentHash = this.validator.computeHash(content);
+          this.setCachedSkill(skillId, content, contentHash);
+        }
+      } catch (error) {
+        this.logger.error('Failed to preload skill', error as Error, { skillId });
+      }
+    });
+
+    await Promise.all(promises);
+
+    this.logger.info('Skill preload completed', {
+      cachedCount: this.cache.size,
+    });
+  }
+}
+
+/**
+ * Singleton instance for global use
+ */
+let globalLoader: SkillLoader | null = null;
+
+/**
+ * Get or create global skill loader instance
+ *
+ * @param dbService - Database service instance
+ * @param logger - Optional logger instance
+ * @returns Global loader instance
+ */
+export function getGlobalLoader(
+  dbService?: DatabaseService,
+  logger?: Logger
+): SkillLoader {
+  if (!globalLoader) {
+    globalLoader = new SkillLoader(dbService, logger);
+  }
+  return globalLoader;
+}
+
+/**
+ * Set global loader instance
+ *
+ * @param loader - Loader instance to use globally
+ */
+export function setGlobalLoader(loader: SkillLoader): void {
+  globalLoader = loader;
 }

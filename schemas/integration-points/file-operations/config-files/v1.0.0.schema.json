@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/config-files/v1.0.0",
+  "title": "Configuration Files Schema",
+  "description": "Schema for YAML→JSON→Shell variable transformations (Integration Point 2.8)",
+  "type": "object",
+  "required": ["config_id", "source_format", "target_format", "data", "timestamp"],
+  "properties": {
+    "config_id": {
+      "type": "string",
+      "description": "Unique identifier for config transformation",
+      "pattern": "^config-[a-z0-9-]+$"
+    },
+    "source_format": {
+      "type": "string",
+      "enum": ["yaml", "json", "shell"],
+      "description": "Source configuration format"
+    },
+    "target_format": {
+      "type": "string",
+      "enum": ["yaml", "json", "shell"],
+      "description": "Target configuration format"
+    },
+    "data": {
+      "type": "object",
+      "description": "Typed configuration data (source of truth)",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "array"
+          },
+          {
+            "type": "object"
+          }
+        ]
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Transformation timestamp"
+    },
+    "type_validation": {
+      "type": "object",
+      "description": "Type validation rules",
+      "properties": {
+        "strict_types": {
+          "type": "boolean",
+          "description": "Whether to enforce strict typing",
+          "default": true
+        },
+        "type_schema": {
+          "type": "object",
+          "description": "Schema defining expected types",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["string", "number", "boolean", "array", "object"]
+          }
+        }
+      }
+    },
+    "variable_interpolation": {
+      "type": "object",
+      "description": "Variable interpolation configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "syntax": {
+          "type": "string",
+          "enum": ["${VAR}", "$VAR", "{{VAR}}"],
+          "default": "${VAR}"
+        },
+        "environment_vars": {
+          "type": "object",
+          "description": "Environment variables available for interpolation",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "source_path": {
+      "type": "string",
+      "description": "Source file path (single source of truth)",
+      "pattern": "^/.*\\.(yaml|yml|json|sh|env)$"
+    },
+    "validation_errors": {
+      "type": "array",
+      "description": "Type validation errors during transformation",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "expected_type": {
+            "type": "string"
+          },
+          "actual_type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "config_id": "config-cfn-loop-001",
+      "source_format": "yaml",
+      "target_format": "shell",
+      "data": {
+        "CFN_MODE": "standard",
+        "CFN_GATE_THRESHOLD": 0.75,
+        "CFN_MAX_ITERATIONS": 10,
+        "CFN_ENABLE_MONITORING": true
+      },
+      "timestamp": "2025-11-17T10:30:00Z",
+      "type_validation": {
+        "strict_types": true,
+        "type_schema": {
+          "CFN_MODE": "string",
+          "CFN_GATE_THRESHOLD": "number",
+          "CFN_MAX_ITERATIONS": "number",
+          "CFN_ENABLE_MONITORING": "boolean"
+        }
+      },
+      "variable_interpolation": {
+        "enabled": true,
+        "syntax": "${VAR}"
+      },
+      "source_path": "/home/user/claude-flow-novice/config/cfn-loop.yaml",
+      "validation_errors": []
+    }
+  ]
+}

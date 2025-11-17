@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api-layer/orchestrator-config/v1.0.0",
+  "title": "Orchestrator Config API Schema",
+  "description": "Schema for orchestrator configuration API (Integration Point 5.4)",
+  "type": "object",
+  "required": ["config_id", "orchestrator_id", "configuration", "timestamp"],
+  "properties": {
+    "config_id": {
+      "type": "string",
+      "description": "Unique identifier for configuration",
+      "pattern": "^config-[a-z0-9-]+$"
+    },
+    "orchestrator_id": {
+      "type": "string",
+      "description": "Orchestrator identifier",
+      "pattern": "^orch-[a-z0-9-]+$"
+    },
+    "configuration": {
+      "type": "object",
+      "description": "Orchestrator configuration",
+      "required": ["mode", "gate_threshold", "consensus_threshold"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["mvp", "standard", "enterprise"]
+        },
+        "gate_threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "consensus_threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "monitoring_enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Configuration timestamp"
+    },
+    "api_call": {
+      "type": "object",
+      "description": "API call details",
+      "required": ["method", "endpoint"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH"]
+        },
+        "endpoint": {
+          "type": "string",
+          "pattern": "^/api/orchestrator/config.*"
+        },
+        "request_body": {
+          "type": "object"
+        },
+        "response_status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Configuration validation",
+      "required": ["validated"],
+      "properties": {
+        "validated": {
+          "type": "boolean"
+        },
+        "validation_errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "hot_reload": {
+      "type": "object",
+      "description": "Hot reload support",
+      "properties": {
+        "supported": {
+          "type": "boolean",
+          "default": false
+        },
+        "reload_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Configuration schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "config_id": "config-orch-12345",
+      "orchestrator_id": "orch-12345",
+      "configuration": {
+        "mode": "standard",
+        "gate_threshold": 0.75,
+        "consensus_threshold": 0.90,
+        "max_iterations": 10,
+        "timeout_seconds": 300,
+        "monitoring_enabled": true
+      },
+      "timestamp": "2025-11-17T10:30:00Z",
+      "api_call": {
+        "method": "POST",
+        "endpoint": "/api/orchestrator/config",
+        "request_body": {
+          "mode": "standard"
+        },
+        "response_status": 200
+      },
+      "validation": {
+        "validated": true,
+        "validation_errors": []
+      },
+      "hot_reload": {
+        "supported": false
+      },
+      "schema_version": "1.0.0"
+    }
+  ]
+}

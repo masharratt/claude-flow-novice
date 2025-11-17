@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api-layer/coordination-signal/v1.0.0",
+  "title": "Coordination Signal API Schema",
+  "description": "Schema for coordination signal API calls (Integration Point 5.3)",
+  "type": "object",
+  "required": ["signal_id", "operation", "channel", "timestamp"],
+  "properties": {
+    "signal_id": {
+      "type": "string",
+      "description": "Unique identifier for signal",
+      "pattern": "^signal-[a-z0-9-]+$"
+    },
+    "operation": {
+      "type": "string",
+      "enum": ["send", "wait", "broadcast", "collect"],
+      "description": "Signal operation type"
+    },
+    "channel": {
+      "type": "string",
+      "description": "Signal channel identifier",
+      "pattern": "^[a-z0-9:_-]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Signal timestamp"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Signal payload (operation-specific)"
+    },
+    "sender": {
+      "type": "object",
+      "description": "Signal sender",
+      "properties": {
+        "sender_id": {
+          "type": "string"
+        },
+        "sender_type": {
+          "type": "string",
+          "enum": ["agent", "orchestrator", "coordinator"]
+        }
+      }
+    },
+    "recipients": {
+      "type": "array",
+      "description": "Signal recipients (for targeted signals)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "api_call": {
+      "type": "object",
+      "description": "API call details",
+      "required": ["method", "endpoint"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["POST", "GET", "PUT", "DELETE"]
+        },
+        "endpoint": {
+          "type": "string",
+          "pattern": "^/api/.*"
+        },
+        "request_body": {
+          "type": "object"
+        },
+        "response_status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "response_body": {
+          "type": "object"
+        }
+      }
+    },
+    "error_handling": {
+      "type": "object",
+      "description": "Error handling configuration",
+      "properties": {
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 5000
+        },
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 3
+        },
+        "retry_backoff_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "default": 1000
+        }
+      }
+    },
+    "testing": {
+      "type": "object",
+      "description": "Testing metadata",
+      "properties": {
+        "test_coverage": {
+          "type": "boolean"
+        },
+        "edge_cases_tested": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "signal_id": "signal-coord-001",
+      "operation": "send",
+      "channel": "swarm:task-auth:gate-passed",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "payload": {
+        "gate_passed": true,
+        "confidence": 0.92
+      },
+      "sender": {
+        "sender_id": "orchestrator-12345",
+        "sender_type": "orchestrator"
+      },
+      "api_call": {
+        "method": "POST",
+        "endpoint": "/api/coordination/signal",
+        "request_body": {
+          "channel": "swarm:task-auth:gate-passed",
+          "message": "complete"
+        },
+        "response_status": 200,
+        "response_body": {
+          "success": true
+        }
+      },
+      "error_handling": {
+        "timeout_ms": 5000,
+        "retry_count": 3,
+        "retry_backoff_ms": 1000
+      }
+    }
+  ]
+}
