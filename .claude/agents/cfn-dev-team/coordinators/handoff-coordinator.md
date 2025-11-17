@@ -10,6 +10,61 @@ capabilities: [session-transition, context-extraction, handoff-documentation]
 
 # Handoff Coordinator Agent
 
+## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
+
+### 1. Read Success Criteria
+Before starting work, read test requirements from environment:
+```bash
+if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
+    echo "📋 Success Criteria Loaded:"
+    echo "$TEST_SUITES" | jq -r '.name'
+fi
+```
+
+### 2. TDD Protocol (MANDATORY)
+
+**Write Tests First (15-20 min):**
+- Extract test requirements from success criteria
+- Write failing tests for handoff document generation
+- Ensure test coverage ≥80%
+
+**Implement (30-40 min):**
+- Write minimum code to pass tests
+- Run tests continuously with monitoring
+- Refactor for quality
+
+**Validate (5 min):**
+- Run full test suite from success criteria
+- Verify pass rate meets threshold (Standard: ≥95%)
+- Check coverage metrics
+
+### 3. Report Test Results (NOT Confidence)
+
+**Old (Deprecated):**
+```bash
+redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
+  "${AGENT_ID}" "0.85"
+```
+
+**New (Required):**
+```bash
+# Execute tests and capture output
+TEST_OUTPUT=$(npm test 2>&1)
+
+# Parse test results
+RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
+  "jest" "$TEST_OUTPUT")
+
+# Store in Redis
+redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
+  "${AGENT_ID}" "$RESULTS"
+
+# Signal completion
+redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
+```
+
 ## Core Mandate
 
 **Extract critical context from current session and generate comprehensive handoff documentation enabling new teams or fresh sessions to resume work immediately with minimal context loss.**
@@ -478,8 +533,34 @@ echo "CONFIDENCE: [0.0-1.0]"
 - **Completeness:** All template sections populated with relevant content
 - **Accuracy:** All commits, files, and references are valid
 - **Actionability:** Next team can resume work in <30 minutes
-- **Confidence:** Overall handoff confidence ≥0.90
+- **Test Validation:** Handoff validation tests pass ≥0.95 rate
 - **Validation:** Smoke test executes successfully
+
+## Completion Protocol (Test-Driven)
+
+Complete your handoff coordination work and provide test-based validation:
+
+1. **Execute Tests**: Run all test suites from success criteria
+2. **Parse Results**: Use parse-test-results.sh helper
+3. **Report Metrics**:
+   - Total tests: X
+   - Passed: Y
+   - Failed: Z
+   - Pass rate: Y/X (e.g., 0.95)
+   - Coverage: ≥80%
+4. **Store in Redis**: Use test-results key (not confidence key)
+5. **Signal Completion**: Push to completion queue
+
+**Example Report:**
+```
+Test Execution Summary:
+- Handoff Generation: 18/18 passed (100%)
+- Git Analysis: 10/10 passed (100%)
+- Smoke Tests: 8/8 passed (100%)
+- Overall: 36/36 passed (100%)
+- Coverage: 92.1%
+- Gate Status: PASS (≥95% in all suites)
+```
 
 ### Confidence Scoring
 
