@@ -106,6 +106,39 @@ if [[ -z "$AGENT_DESCRIPTION" ]]; then
     exit 1
 fi
 
+# Validate AGENT_MODEL (must be sonnet, opus, or haiku)
+if [[ ! "$AGENT_MODEL" =~ ^(sonnet|opus|haiku)$ ]]; then
+    echo "❌ ERROR: Invalid model specified: '$AGENT_MODEL'" >&2
+    echo "   Allowed values: sonnet, opus, haiku" >&2
+    exit 1
+fi
+
+# Validate AGENT_ACL_LEVEL (must be 1, 2, or 3)
+if [[ ! "$AGENT_ACL_LEVEL" =~ ^[1-3]$ ]]; then
+    echo "❌ ERROR: Invalid ACL level specified: '$AGENT_ACL_LEVEL'" >&2
+    echo "   Allowed values: 1, 2, 3" >&2
+    exit 1
+fi
+
+# Validate AGENT_TOOLS (must be valid JSON array)
+if command -v jq >/dev/null 2>&1; then
+    if ! echo "$AGENT_TOOLS" | jq -e 'if type == "array" then true else false end' >/dev/null 2>&1; then
+        echo "❌ ERROR: Invalid tools format: '$AGENT_TOOLS'" >&2
+        echo "   Expected: JSON array of tool names" >&2
+        echo "   Example: '[Read, Write, Edit, Bash]'" >&2
+        exit 1
+    fi
+else
+    # Fallback: basic bracket check if jq not available
+    if [[ ! "$AGENT_TOOLS" =~ ^\[.*\]$ ]]; then
+        echo "❌ ERROR: Invalid tools format: '$AGENT_TOOLS'" >&2
+        echo "   Expected: JSON array of tool names" >&2
+        echo "   Example: '[Read, Write, Edit, Bash]'" >&2
+        echo "   Note: jq not available for full JSON validation" >&2
+        exit 1
+    fi
+fi
+
 # Determine output directory based on agent type
 if [[ -z "$OUTPUT_DIR" ]]; then
     case "$AGENT_TYPE" in
