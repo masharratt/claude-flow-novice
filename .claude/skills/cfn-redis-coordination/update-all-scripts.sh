@@ -41,10 +41,17 @@ for script in "${SCRIPT_DIR}"/*.sh; do
     # Add source line after set -euo pipefail or after shebang
     if grep -q "set -euo pipefail" "$script"; then
         # Add after set -euo pipefail
-        sed -i '/set -euo pipefail/a\\n# Source centralized Redis functions (provides graceful fallback for Task mode)\nSCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\nsource "${SCRIPT_DIR}/redis-functions.sh"' "$script"
+        awk '/set -euo pipefail/ {
+            print
+            print ""
+            print "# Source centralized Redis functions (provides graceful fallback for Task mode)"
+            print "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\""
+            print "source \"${SCRIPT_DIR}/redis-functions.sh\""
+            next
+        } 1' "$script" > "${script}.tmp" && mv "${script}.tmp" "$script"
     else
         # Add after shebang
-        sed -i '2a\\n# Source centralized Redis functions (provides graceful fallback for Task mode)\nSCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\nsource "${SCRIPT_DIR}/redis-functions.sh"' "$script"
+        awk 'NR==1 {print; print ""; print "# Source centralized Redis functions (provides graceful fallback for Task mode)"; print "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\""; print "source \"${SCRIPT_DIR}/redis-functions.sh\""; next} 1' "$script" > "${script}.tmp" && mv "${script}.tmp" "$script"
     fi
 
     echo "✅ Updated: $filename"
