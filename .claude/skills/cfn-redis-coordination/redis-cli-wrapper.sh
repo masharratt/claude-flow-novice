@@ -9,9 +9,16 @@ set -euo pipefail
 
 REDIS_HOST="${REDIS_HOST:-localhost}"
 REDIS_PORT="${REDIS_PORT:-6379}"
+REDIS_PASSWORD="${REDIS_PASSWORD:-${CFN_REDIS_PASSWORD:-}}"  # Support both env vars
 
-# Graceful Redis availability check (1 second timeout)
-if ! timeout 1 redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping &>/dev/null; then
+# Build auth arguments for redis-cli
+AUTH_ARGS=()
+if [ -n "$REDIS_PASSWORD" ]; then
+    AUTH_ARGS=("-a" "$REDIS_PASSWORD")
+fi
+
+# Graceful Redis availability check (1 second timeout, with auth if provided)
+if ! timeout 1 redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" "${AUTH_ARGS[@]}" ping &>/dev/null; then
     # Redis unavailable - likely Task mode or Redis service down
     echo "⚠️ Redis unavailable - command skipped (soft fail)" >&2
     echo "💡 This is expected in Task mode (Main Chat coordination)" >&2
@@ -19,5 +26,5 @@ if ! timeout 1 redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ping &>/dev/null; the
     exit 0  # Soft fail - don't break agent execution
 fi
 
-# Redis available - execute command normally (CLI/Docker mode)
-exec redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" "$@"
+# Redis available - execute command normally (CLI/Docker mode, with auth if provided)
+exec redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" "${AUTH_ARGS[@]}" "$@"
