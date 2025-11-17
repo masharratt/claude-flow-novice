@@ -284,7 +284,8 @@ echo "Initial errors: $INITIAL_ERRORS"
 
 # Launch coordinator
 START_TIME=$(date +%s)
-docker run --rm --name ${COMPOSE_PROJECT_NAME}-coordinator --memory=2g \
+CONTAINER_NAME="${COMPOSE_PROJECT_NAME:+${COMPOSE_PROJECT_NAME}-}coordinator"
+docker run --rm --name ${CONTAINER_NAME} --memory=2g \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$FRONTEND_PATH":/workspace:rw \
   -e MEMORY_BUDGET=40g -e MAX_ITERATIONS=5 \

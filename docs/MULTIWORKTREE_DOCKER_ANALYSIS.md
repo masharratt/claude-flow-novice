@@ -345,7 +345,6 @@ docker run --name ${COMPOSE_PROJECT_NAME}-redis-tools
 - [ ] Agents verify Redis connectivity before operations
 - [ ] Documentation includes multi-worktree examples
 ```
-```
 
 ---
 
@@ -380,7 +379,6 @@ npx claude-flow-novice agent-spawn backend-dev \
   --task-id "task-123" \
   --env "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}" \
   --env "CFN_REDIS_PORT=${CFN_REDIS_PORT}"
-```
 ```
 
 ---

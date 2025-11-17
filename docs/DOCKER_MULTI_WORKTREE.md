@@ -75,7 +75,7 @@ This implementation provides:
 ```
 
 **Example output:**
-```
+```text
 [INFO] Docker Multi-Worktree Configuration
 [INFO] =====================================
 [INFO] Branch/Worktree:      feature-auth
@@ -314,7 +314,7 @@ export COMPOSE_FILE=docker-compose.production.yml
 ### Port Already in Use
 
 **Symptom:**
-```
+```text
 ERROR: for redis  Cannot start service redis: driver failed programming external connectivity on endpoint cfn-feature-auth_redis_1: Bind for 0.0.0.0:6421 failed: port is already allocated
 ```
 
@@ -344,7 +344,7 @@ ERROR: for redis  Cannot start service redis: driver failed programming external
 ### Container Name Conflicts
 
 **Symptom:**
-```
+```text
 ERROR: The container name "/cfn-redis" is already in use
 ```
 
@@ -427,25 +427,29 @@ git checkout branch-b
 
 ### Modified Files
 
-**1. docker-compose.yml**
+#### 1. docker-compose.yml
+
 - Removed all `container_name:` entries
 - Parametrized all port bindings with `${CFN_*_PORT:-default}`
 - Volume names use `COMPOSE_PROJECT_NAME` prefix (auto)
 - Network names use `COMPOSE_PROJECT_NAME` prefix (auto)
 
-**2. docker-compose.production.yml**
+#### 2. docker-compose.production.yml
+
 - Same changes as docker-compose.yml
 - All 14 services updated
 - Service discovery uses internal Docker DNS (not affected by prefixes)
 
-**3. scripts/docker/run-in-worktree.sh** (new)
+#### 3. scripts/docker/run-in-worktree.sh (new)
+
 - 400+ line wrapper script
 - Auto-detects branch/worktree
 - Calculates deterministic port offsets
 - Exports environment variables
 - Executes docker-compose with proper context
 
-**4. .env.example** (new)
+#### 4. .env.example (new)
+
 - Documents all CFN_* port variables
 - Includes usage examples
 - Provides port allocation guidance
@@ -455,7 +459,7 @@ git checkout branch-b
 **Format:** `${COMPOSE_PROJECT_NAME}_${service}_${replica}`
 
 **Examples:**
-```
+```text
 cfn-main_redis_1
 cfn-main_postgres_1
 cfn-main_orchestrator_1
@@ -470,7 +474,7 @@ cfn-feature-auth_orchestrator_1
 **Format:** `${COMPOSE_PROJECT_NAME}_${network}`
 
 **Examples:**
-```
+```text
 cfn-main_mcp-network
 cfn-main_cfn-network
 
@@ -483,7 +487,7 @@ cfn-feature-auth_cfn-network
 **Format:** `${COMPOSE_PROJECT_NAME}_${volume}`
 
 **Examples:**
-```
+```text
 cfn-main_redis-data
 cfn-main_postgres-data
 
@@ -514,7 +518,8 @@ curl http://cfn-feature-auth_redis-coordinator_1:6379  # Fails (different networ
 
 ### For Existing Deployments
 
-**Step 1: Backup current state**
+#### Step 1: Backup current state
+
 ```bash
 # Export current data
 docker-compose down
@@ -524,7 +529,8 @@ docker run --rm -v cfn-postgres-data:/data -v $(pwd):/backup alpine \
   tar czf /backup/postgres-backup.tar.gz /data
 ```
 
-**Step 2: Update to new compose files**
+#### Step 2: Update to new compose files
+
 ```bash
 # Pull latest changes
 git pull origin main
@@ -533,13 +539,15 @@ git pull origin main
 ./scripts/docker/run-in-worktree.sh --dry-run --verbose up
 ```
 
-**Step 3: Start with wrapper script**
+#### Step 3: Start with wrapper script
+
 ```bash
 # Start services (will create new volumes with project prefix)
 ./scripts/docker/run-in-worktree.sh up -d
 ```
 
-**Step 4: Restore data (if needed)**
+#### Step 4: Restore data (if needed)
+
 ```bash
 # Import data to new volumes
 PROJECT_NAME=$(./scripts/docker/run-in-worktree.sh --dry-run up 2>&1 | grep "Project Name" | awk '{print $NF}')
@@ -551,7 +559,8 @@ docker run --rm -v ${PROJECT_NAME}_postgres-data:/data -v $(pwd):/backup alpine 
   tar xzf /backup/postgres-backup.tar.gz -C /
 ```
 
-**Step 5: Verify services**
+#### Step 5: Verify services
+
 ```bash
 ./scripts/docker/run-in-worktree.sh ps
 ./scripts/docker/run-in-worktree.sh logs

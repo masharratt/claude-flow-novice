@@ -959,13 +959,15 @@ export COMPOSE_PROJECT_NAME="cfn-${BRANCH}"
 
 **Agent Spawning Phase:**
 ```bash
-# Pass environment variables to all spawned agents
+# Export environment variables for spawned agents
+export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}"
+export CFN_REDIS_PORT="${CFN_REDIS_PORT}"
+export CFN_POSTGRES_PORT="${CFN_POSTGRES_PORT}"
+export WORKTREE_BRANCH="${BRANCH}"
+
+# Spawn agent (inherits environment from parent shell)
 npx claude-flow-novice agent-spawn $AGENT_TYPE \
-  --task-id "$TASK_ID" \
-  --env COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME}" \
-  --env CFN_REDIS_PORT="${CFN_REDIS_PORT}" \
-  --env CFN_POSTGRES_PORT="${CFN_POSTGRES_PORT}" \
-  --env WORKTREE_BRANCH="${BRANCH}"
+  --task-id "$TASK_ID"
 ```
 
 **Service Discovery:**

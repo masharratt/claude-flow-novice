@@ -124,7 +124,8 @@ curl http://orchestrator:3001/health
 
 ### Multi-Worktree Examples
 
-**Scenario 1: Feature Development (Feature-Auth Branch)**
+#### Scenario 1: Feature Development (Feature-Auth Branch)
+
 ```bash
 # Branch: feature-auth
 # Offset: ~42 (calculated from branch name)
@@ -140,7 +141,8 @@ redis-cli -h redis -p 6421
 psql -h postgres -p 5474
 ```
 
-**Scenario 2: Bugfix Work (Bugfix-Validation Branch)**
+#### Scenario 2: Bugfix Work (Bugfix-Validation Branch)
+
 ```bash
 # Branch: bugfix-validation
 # Offset: ~78 (calculated from branch name)
@@ -156,7 +158,8 @@ redis-cli -h redis -p 6457
 psql -h postgres -p 5510
 ```
 
-**Scenario 3: Main Branch (Production Ready)**
+#### Scenario 3: Main Branch (Production Ready)
+
 ```bash
 # Branch: main/master
 # Offset: 0 (main gets priority)
