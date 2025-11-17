@@ -90,7 +90,7 @@ See **VALIDATION_CHECKLIST.md** for:
 **Purpose:** Complete database schema with all tables, constraints, indexes, and seed data
 
 **Key Sections:**
-```
+```text
 1. Skills Table (Enhanced)
    - Core skill metadata + approval workflow columns
    - TDD support: test_coverage, test_suite_path
@@ -274,7 +274,7 @@ Document reviewed and approved by:
 
 ### Three-Tier System
 
-```
+```text
 SKILL SUBMISSION
 │
 ├─ [AUTO] Low Risk

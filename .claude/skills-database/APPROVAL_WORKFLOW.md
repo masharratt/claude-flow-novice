@@ -25,7 +25,7 @@
 
 ### Complete Approval Flow Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     NEW SKILL SUBMISSION                            │
 │                  (via PR or direct database)                        │
@@ -390,7 +390,7 @@ echo "ASSIGNED_TO: $expert ($expertise)"
 
 **Expert Availability Matrix:**
 
-```
+```text
 Category         Primary Expert              Backup Expert
 ─────────────────────────────────────────────────────────────
 coordination     orchestration@example.com   architecture@example.com
@@ -404,7 +404,7 @@ foundation       platform@example.com        architecture@example.com
 
 **Notification Template (email):**
 
-```
+```text
 Subject: [Skills DB] Escalation Review Required - {SKILL_NAME}
 
 To: {EXPERT_EMAIL}
@@ -1117,7 +1117,7 @@ echo "Exported: approval_audit_export.json"
 
 ### Template 1: Escalation Request (Email)
 
-```
+```text
 Subject: [Skills DB] Escalation Review Required - {SKILL_NAME} v{VERSION}
 
 To: {EXPERT_EMAIL}
@@ -1179,7 +1179,7 @@ Skills Database Workflow System
 
 ### Template 2: Human Approval Request (Email)
 
-```
+```text
 Subject: [Skills DB] URGENT: Human Approval Required - {SKILL_NAME}
 
 To: {CTO_EMAIL}, {PRINCIPAL_ARCHITECT_EMAIL}
@@ -1243,7 +1243,7 @@ Skills Database Workflow System
 
 ### Template 3: Approval Decision Notification (Email)
 
-```
+```text
 Subject: [Skills DB] Approval Decision - {SKILL_NAME} [{DECISION}]
 
 To: {SKILL_OWNER_EMAIL}
@@ -1309,7 +1309,7 @@ Skills Database Workflow System
 
 ### Template 4: Slack Notification (Auto-Approval)
 
-```
+```text
 :white_check_mark: **Skill Auto-Approved**
 
 Skill: {SKILL_NAME}
@@ -1327,7 +1327,7 @@ Database ID: {SKILL_ID}
 
 ### Template 5: Slack Notification (Escalation)
 
-```
+```text
 :warning: **Escalation Review in Progress**
 
 Skill: {SKILL_NAME}

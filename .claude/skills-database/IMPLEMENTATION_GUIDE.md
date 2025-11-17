@@ -24,7 +24,7 @@
 
 ### Three-Tier Approval System
 
-```
+```text
 ┌────────────────────────────────────────────────────────────┐
 │                   NEW SKILL SUBMISSION                      │
 └────────────────────────────────────────────────────────────┘
@@ -67,7 +67,7 @@
 
 ### Database Relationships
 
-```
+```text
 skills (Core)
 ├─ approval_history (Audit Trail)
 │  └─ Links to: skill_id, approval decision, approver
