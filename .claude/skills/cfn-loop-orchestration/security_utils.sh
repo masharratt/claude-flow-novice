@@ -97,3 +97,27 @@ function validate_agent_list() {
 
     return 0
 }
+
+# SECURITY FIX: Sanitize Docker environment variables to prevent command injection
+# Allowed characters: alphanumeric, dash, colon, slash, dot, underscore
+# This prevents injection attacks via malicious CFN_DOCKER_IMAGE, CFN_DOCKER_NETWORK, etc.
+function sanitize_docker_var() {
+    local var="$1"
+    local pattern="^[a-zA-Z0-9._:/-]+$"
+
+    # Check if input is empty
+    if [ -z "$var" ]; then
+        echo "Error: Docker variable cannot be empty" >&2
+        return 1
+    fi
+
+    # Validate against allowed pattern (no semicolons, backticks, pipes, etc.)
+    if [[ ! "$var" =~ $pattern ]]; then
+        echo "❌ Invalid characters in Docker variable: $var" >&2
+        echo "   Only alphanumeric, dash, colon, slash, dot, and underscore allowed" >&2
+        return 1
+    fi
+
+    # If all checks pass, echo the sanitized input
+    echo "$var"
+}

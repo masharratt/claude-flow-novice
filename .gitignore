@@ -199,4 +199,17 @@ legacy/v1/**/*.db-shm
 legacy/v1/**/build/
 legacy/v1/**/.swc/
 legacy/v1/**/.next/planning/global/
-\n# Pre-Edit Backup System\n.backups/\n
+
+# Pre-Edit Backup System (24h TTL, not committed)
+.backups/
+# Pre-Edit Backup System
+.backups/
+
+# Temporary backup files
+*.backup-*
+
+# Redis dump files
+dump.rdb
+# Backup files
+*.backup
+*.bak
