@@ -1,0 +1,158 @@
+{
+  "config": {
+    "concurrent_streams": 5,
+    "iterations": 3,
+    "mode": "mock",
+    "timestamp": "2025-11-16T16:46:37.925Z"
+  },
+  "summary": {
+    "total_requests": 15,
+    "total_tokens": 2415,
+    "total_errors": 0,
+    "total_duration_ms": 6871,
+    "avg_latency_ms": 1593.6666666666667,
+    "latency_p50_ms": 1591,
+    "latency_p95_ms": 1638,
+    "latency_p99_ms": 1638,
+    "avg_token_processing_ms": 0.002484472049689441,
+    "overall_throughput_tps": 101.02489019033675,
+    "avg_heap_delta_mb": 0.06955108642578126
+  },
+  "individual_results": [
+    {
+      "streamId": 0,
+      "iteration": 0,
+      "tokens": 161,
+      "duration": 1601,
+      "tokensPerSecond": 100.56214865708932,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 1,
+      "iteration": 0,
+      "tokens": 161,
+      "duration": 1581,
+      "tokensPerSecond": 101.83428209993676,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 2,
+      "iteration": 0,
+      "tokens": 161,
+      "duration": 1550,
+      "tokensPerSecond": 103.87096774193549,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 3,
+      "iteration": 0,
+      "tokens": 161,
+      "duration": 1600,
+      "tokensPerSecond": 100.625,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 4,
+      "iteration": 0,
+      "tokens": 161,
+      "duration": 1584,
+      "tokensPerSecond": 101.64141414141413,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 0,
+      "iteration": 1,
+      "tokens": 161,
+      "duration": 1628,
+      "tokensPerSecond": 98.8943488943489,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 1,
+      "iteration": 1,
+      "tokens": 161,
+      "duration": 1590,
+      "tokensPerSecond": 101.25786163522012,
+      "avgTokenProcessingTime": 0.006211180124223602,
+      "textLength": 1041
+    },
+    {
+      "streamId": 2,
+      "iteration": 1,
+      "tokens": 161,
+      "duration": 1572,
+      "tokensPerSecond": 102.41730279898218,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 3,
+      "iteration": 1,
+      "tokens": 161,
+      "duration": 1624,
+      "tokensPerSecond": 99.13793103448275,
+      "avgTokenProcessingTime": 0.006211180124223602,
+      "textLength": 1041
+    },
+    {
+      "streamId": 4,
+      "iteration": 1,
+      "tokens": 161,
+      "duration": 1556,
+      "tokensPerSecond": 103.47043701799485,
+      "avgTokenProcessingTime": 0.012422360248447204,
+      "textLength": 1041
+    },
+    {
+      "streamId": 0,
+      "iteration": 2,
+      "tokens": 161,
+      "duration": 1600,
+      "tokensPerSecond": 100.625,
+      "avgTokenProcessingTime": 0.006211180124223602,
+      "textLength": 1041
+    },
+    {
+      "streamId": 1,
+      "iteration": 2,
+      "tokens": 161,
+      "duration": 1604,
+      "tokensPerSecond": 100.37406483790524,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 2,
+      "iteration": 2,
+      "tokens": 161,
+      "duration": 1638,
+      "tokensPerSecond": 98.2905982905983,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    },
+    {
+      "streamId": 3,
+      "iteration": 2,
+      "tokens": 161,
+      "duration": 1586,
+      "tokensPerSecond": 101.51324085750315,
+      "avgTokenProcessingTime": 0.006211180124223602,
+      "textLength": 1041
+    },
+    {
+      "streamId": 4,
+      "iteration": 2,
+      "tokens": 161,
+      "duration": 1591,
+      "tokensPerSecond": 101.19421747328724,
+      "avgTokenProcessingTime": 0,
+      "textLength": 1041
+    }
+  ]
+}

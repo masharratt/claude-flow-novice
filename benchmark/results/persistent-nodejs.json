@@ -1,0 +1,9 @@
+{
+  "pattern": "persistent-nodejs",
+  "iterations": 50,
+  "agents": 5,
+  "duration_ms": 121,
+  "baseline_memory_kb": 0,
+  "memory_delta_kb": 0,
+  "avg_per_operation_ms": 2
+}

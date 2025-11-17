@@ -1,0 +1,6 @@
+{
+  "pattern": "spawn-kill-cli",
+  "iterations": 50,
+  "duration_ms": 2328,
+  "avg_per_operation_ms": 46
+}

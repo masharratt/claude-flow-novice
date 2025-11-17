@@ -1,0 +1,19 @@
+{
+  "name": "cfn-rust-benchmarks",
+  "version": "1.0.0",
+  "description": "Benchmarks for evaluating Rust migration benefits",
+  "private": true,
+  "scripts": {
+    "test:ws-node": "node node-message-bus.js",
+    "test:ws-load": "k6 run load-test.js",
+    "test:spawn": "bash spawn-cost.sh",
+    "test:ai-streaming": "node ai-streaming.js",
+    "test:agent-messaging": "node agent-messaging.js",
+    "test:all": "bash run-all.sh"
+  },
+  "dependencies": {
+    "ws": "^8.14.2",
+    "@anthropic-ai/sdk": "^0.27.0"
+  },
+  "devDependencies": {}
+}

@@ -1,0 +1,17 @@
+{
+  "uptime_seconds": 91.691,
+  "total_connections": 5,
+  "active_connections": 0,
+  "messages_routed": 44,
+  "messages_failed": 0,
+  "throughput_msg_per_sec": 0.47987261563294104,
+  "memory_mb": {
+    "rss": 130,
+    "heapUsed": 6,
+    "heapTotal": 7,
+    "external": 2
+  },
+  "latency_p50": 0,
+  "latency_p95": 1,
+  "latency_p99": 1
+}

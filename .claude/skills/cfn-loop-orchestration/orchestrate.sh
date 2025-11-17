@@ -440,6 +440,34 @@ build_agent_context() {
 
     context="$context | Iteration: $iteration"
 
+    # Inject test failure diagnostics from previous iteration
+    if [ "$iteration" -gt 1 ]; then
+        local iteration_context_file="/tmp/cfn-iteration-context-${task_id}.json"
+
+        if [ -f "$iteration_context_file" ]; then
+            # Extract failed test summary from iteration context
+            local failed_summary=""
+            failed_summary=$(jq -r '
+                if (.pass_rate? != null)
+                   and .failed_tests
+                   and (.failed_tests | length > 0)
+                then
+                    "Previous Test Results: Pass Rate " +
+                     ((.pass_rate * 100) | floor | tostring) +
+                     "% | Failed Tests: " +
+                     ([.failed_tests[].failed_test_names[]? // empty] | join(", "))
+                else
+                    empty
+                end
+            ' "$iteration_context_file" 2>/dev/null || echo "")
+
+            if [ -n "$failed_summary" ]; then
+                context="$context | $failed_summary"
+                echo "📊 Injected test diagnostics from previous iteration" >&2
+            fi
+        fi
+    fi
+
     if [[ -n "$feedback" ]]; then
         context="$context | Feedback: $feedback"
     fi

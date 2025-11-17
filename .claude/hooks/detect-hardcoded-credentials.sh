@@ -35,6 +35,12 @@ NC='\033[0m' # No Color
 EXCLUDE_PATTERNS=(
   "*.example"
   "*.template"
+  "docs/"
+  "tests/"
+  "legacy/"
+  "node_modules/"
+  ".git/"
+  "*.md"
   "tests/fixtures/"  # Only exclude test fixtures, not all tests
   "legacy/"
   "node_modules/"
