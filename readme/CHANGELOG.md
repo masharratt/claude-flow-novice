@@ -74,6 +74,8 @@ tests/integration/run-all-integration-tests.sh
 
 ### Features
 
+- Code quality improvements: ANSI table formatting, query type detection, transaction ID uniqueness (2025-11-17)
+  - Impact: MEDIUM - Fixes table alignment issues with ANSI codes, improves query classification (CTE/EXPLAIN/PRAGMA support), prevents transaction ID collisions with cryptographic UUIDs (57 tests, 100% pass rate)
 - Phase 4 Docker Mode Test-Driven Gates Complete (2025-11-16)
   - Impact: Docker orchestration with test-driven gates and security hardening (2 iterations, 0.68 → 0.93 consensus)
   - Security: 4 HIGH vulnerabilities eliminated (path traversal, shell injection, Docker socket exposure, JSON DoS)

@@ -79,16 +79,112 @@ const ROLE_PERMISSIONS: Record<UserRole, PromotionOperation[]> = {
 
 /**
  * Authentication middleware for validating user identity
+ *
+ * SECURITY CRITICAL: JWT_SECRET must be configured via environment variable
+ * or explicitly provided. No default secrets are allowed in production.
  */
 export class AuthMiddleware {
   private jwtSecret: string;
   private tokenExpirationSeconds: number;
   private sessions: Map<string, UserContext>;
 
-  constructor(jwtSecret: string = process.env.JWT_SECRET || 'dev-secret-key', tokenExpirationSeconds: number = 3600) {
-    this.jwtSecret = jwtSecret;
+  // List of insecure default secrets that must be rejected (CVSS 9.8 vulnerability)
+  private static readonly INSECURE_SECRETS = [
+    'dev-secret-key',
+    'secret',
+    'password',
+    'test',
+    'default',
+    '123456',
+    'changeme',
+  ];
+
+  /**
+   * Create authentication middleware
+   *
+   * @param jwtSecret - JWT signing secret (REQUIRED). If not provided, will attempt
+   *                    to load from JWT_SECRET environment variable. Throws error if
+   *                    neither is available.
+   * @param tokenExpirationSeconds - Token expiration time in seconds (default: 3600)
+   * @throws StandardError with CONFIGURATION_ERROR if JWT_SECRET is not configured
+   * @throws StandardError with VALIDATION_FAILED if JWT_SECRET is empty, too short
+   *         (<16 chars), or matches known insecure defaults
+   *
+   * @example
+   * // Explicit secret (for testing)
+   * const auth = new AuthMiddleware('strong-secret-key-at-least-16-chars');
+   *
+   * @example
+   * // From environment variable (production)
+   * process.env.JWT_SECRET = 'production-secret-at-least-16-chars';
+   * const auth = new AuthMiddleware();
+   */
+  constructor(jwtSecret?: string, tokenExpirationSeconds: number = 3600) {
+    // Attempt to resolve JWT secret from parameter or environment
+    const resolvedSecret = jwtSecret ?? process.env.JWT_SECRET;
+
+    // Fail fast if JWT_SECRET is not configured
+    if (!resolvedSecret) {
+      throw new StandardError(
+        ErrorCode.CONFIGURATION_ERROR,
+        'JWT_SECRET is required but not configured. Please set the JWT_SECRET environment variable or provide it explicitly to the constructor.',
+        {
+          hint: 'Set JWT_SECRET in your .env file or environment: export JWT_SECRET="your-secret-key"',
+          securityNote: 'Never use default secrets in production. Generate a strong random secret.',
+        }
+      );
+    }
+
+    // Trim and validate secret is not empty or whitespace
+    const trimmedSecret = resolvedSecret.trim();
+    if (trimmedSecret.length === 0) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        'JWT_SECRET cannot be empty or whitespace only.',
+        {
+          hint: 'Provide a strong secret key of at least 16 characters',
+        }
+      );
+    }
+
+    // Validate minimum length (prevent weak secrets - CVSS 7.5)
+    if (trimmedSecret.length < 16) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        'JWT_SECRET must be at least 16 characters long for security.',
+        {
+          providedLength: trimmedSecret.length,
+          requiredLength: 16,
+          hint: 'Use a strong random secret of at least 16 characters',
+        }
+      );
+    }
+
+    // Reject known insecure default secrets (CVSS 9.8 vulnerability)
+    // Only reject if secret exactly matches known insecure defaults
+    const normalizedSecret = trimmedSecret.toLowerCase().replace(/[_-]/g, '');
+    const isInsecure = AuthMiddleware.INSECURE_SECRETS.some((insecure) => {
+      const normalizedInsecure = insecure.toLowerCase().replace(/[_-]/g, '');
+      // Only exact match - do not match if contains
+      return normalizedSecret === normalizedInsecure;
+    });
+
+    if (isInsecure) {
+      throw new StandardError(
+        ErrorCode.VALIDATION_FAILED,
+        'Detected insecure default secret. Please use a strong, unique JWT_SECRET in production.',
+        {
+          securityRisk: 'CVSS 9.8 - Default secrets allow authentication bypass and token forgery',
+          hint: 'Generate a secure random secret: openssl rand -base64 32',
+        }
+      );
+    }
+
+    this.jwtSecret = trimmedSecret;
     this.tokenExpirationSeconds = tokenExpirationSeconds;
     this.sessions = new Map();
+
+    logger.debug('AuthMiddleware initialized with secure JWT secret');
   }
 
   /**

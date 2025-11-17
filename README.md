@@ -1,4 +1,4 @@
-# Claude Flow Novice v3 - AI Agent Orchestration Framework
+# Claude Flow Novice v2.16.0 - AI Agent Orchestration Framework
 
 [![npm version](https://badge.fury.io/js/claude-flow-novice.svg)](https://badge.fury.io/js/claude-flow-novice)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -6,9 +6,9 @@
 [![CI Pipeline](https://github.com/yourusername/claude-flow-novice/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/claude-flow-novice/actions/workflows/ci.yml)
 [![Coverage Report](https://img.shields.io/badge/coverage-dynamic-blue)](docs/CI_CD_PIPELINE.md)
 
-A production-ready AI agent orchestration system with autonomous self-correcting workflows, multi-domain support, and intelligent learning capabilities. Built for developers who need reliable, cost-effective agent coordination.
+Autonomous self-correcting AI agent orchestration with multi-domain support and intelligent learning capabilities.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Install package (automatically initializes CFN files)
@@ -23,49 +23,45 @@ npx cfn-loop "Implement JWT authentication system" --mode=standard
 # Or spawn agents directly
 npx cfn-spawn backend-developer --task-id auth-task
 ```
-**Installation:**
-```bash
-npm install claude-flow-novice
-npx cfn-init  # Copy namespace-isolated files
-```
 
-**Collision Risk:** ~0.01% (user custom files preserved)
-
-**Package:** 573 KB tarball, 2.4 MB unpacked, 303 files (68% reduction from v2.0.0)
-
-**Agent Discovery:** Recursive search through `.claude/agents/**/*.md` finds both cfn-dev-team and user custom agents
-
-
-**What happens on install**:
-- Copies 23 agents to `.claude/agents/cfn-dev-team/`
-- Copies 43 skills to `.claude/skills/cfn-*/`
-- Copies 7 hooks to `.claude/hooks/cfn-*`
-- Copies 45+ commands to `.claude/commands/cfn/`
-- Copies `CFN-CLAUDE.md` reference file
+**Package Details:**
+- 573 KB tarball, 2.4 MB unpacked, 303 files
+- 23 agents in `.claude/agents/cfn-dev-team/`
+- 43 skills in `.claude/skills/cfn-*/`
+- 7 hooks in `.claude/hooks/cfn-*`
+- 45+ commands in `.claude/commands/cfn/`
+- Collision risk: ~0.01% (user custom files preserved)
 
 **Important**: CLI-spawned agents read instructions from `CLAUDE.md` in your project root. Copy `CFN-CLAUDE.md` → `CLAUDE.md` to activate CFN workflows.
 
-## ✨ What Makes CFN v3 Different
+## What You Get
 
-**Self-Correcting Workflows** - Automatic iteration until quality gates met (≥0.75 confidence, ≥0.90 consensus)
+**Self-Correcting Workflows** - Automatic iteration until quality gates met
+- MVP mode: Gate ≥0.70, Consensus ≥0.80, max 5 iterations
+- Standard mode: Gate ≥0.75, Consensus ≥0.90, max 10 iterations
+- Enterprise mode: Gate ≥0.85, Consensus ≥0.95, max 15 iterations
 
-**95-98% Cost Savings** - CLI mode with Z.ai routing ($0.50/1M vs $3-15/1M tokens)
+**Cost Optimization** - CLI mode with custom routing
+- Z.ai routing: $0.50/1M tokens (vs $3-15/1M Anthropic)
+- 95-98% savings with CLI mode
+- Zero-token coordination via Redis BLPOP
 
-**Learns Over Time** - Playbook system reduces iterations by 30-40% after 10 similar tasks
+**Intelligent Learning** - SQLite playbook system
+- Pattern storage with similarity matching
+- Agent performance tracking per domain
+- Reduces iterations after repeated similar tasks
 
-**Multi-Domain** - Supports 6 task types with domain-specific validation
+**Multi-Domain Support** - Works across software, content, infrastructure, design, research, and data engineering tasks with domain-specific validation
 
 **Zero-Token Coordination** - Redis BLPOP for infinite waiting without API costs
 
 ---
 
-## 🎯 Core CFN Loop System
-
-### CFN Loop Architecture
+## CFN Loop Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                       CFN Loop v3 Flow                          │
+│                       CFN Loop v2.16.0 Flow                     │
 └─────────────────────────────────────────────────────────────────┘
 
 User Task Description
@@ -90,7 +86,7 @@ User Task Description
 │                                                           │
 │  ┌─────────────────────────────────────────────┐        │
 │  │ Loop 3: Implementation (parallel agents)    │        │
-│  │ • backend-developer, coder, devops-engineer, etc  │        │
+│  │ • backend-developer, coder, devops-engineer │        │
 │  │ • Each reports confidence score (0.0-1.0)   │        │
 │  └─────────────────┬───────────────────────────┘        │
 │                    ↓                                      │
@@ -150,17 +146,6 @@ User Task Description
                                             └──────────────┘
 ```
 
-### Self-Correcting Multi-Loop Validation
-
-**Gate Validation** - Implementation confidence scores
-- MVP: ≥0.70 | Standard: ≥0.75 | Enterprise: ≥0.85
-
-**Consensus Validation** - Validator agreement
-- MVP: ≥0.80 | Standard: ≥0.90 | Enterprise: ≥0.95
-
-**Automatic Iteration** - Self-correcting loops with max iterations:
-- MVP: 5 | Standard: 10 | Enterprise: 15
-
 ### Dual-Mode Execution
 
 **CLI Mode (Default)** - Production cost optimization
@@ -176,206 +161,95 @@ User Task Description
 - Easier troubleshooting
 
 ```bash
-# CLI mode v3.0 (default - enhanced monitoring)
+# CLI mode (default)
 /cfn-loop "Task description" --mode=standard
 
 # Task mode (debugging)
 /cfn-loop "Task description" --spawn-mode=task
 ```
 
----
-
-### CFN Loop Execution Modes
-
-**User selects mode. Main Chat executes the specified slash command.**
-
-**Default: Task Mode** (default mode when user doesn't specify)
-
-**Available modes:**
-
-**1. Task Mode (Default):**
-```bash
-/cfn-loop-task "Task description" --mode=standard
-```
-- Main Chat spawns ALL agents via Task()
-- NO coordinator agent
-- Cost: $0.150/iteration
-- Full visibility in Main Chat
-- Use: Debugging, learning, short tasks (<5 min)
-
-**2. CLI Mode (Production):**
-```bash
-/cfn-loop-cli "Task description" --mode=standard
-```
-- Main Chat spawns ONLY cfn-v3-coordinator
-- Coordinator spawns workers via CLI (background)
-- Cost: $0.054/iteration (64% savings vs Task)
-- Use: Production, long tasks, cost-sensitive
-
-**Mode selection guidance for users:**
-- "execute cfn loop on X" → `/cfn-loop-task` (default)
-- "use task mode on X" → `/cfn-loop-task`
-- "use cli mode on X" → `/cfn-loop-cli`
-- "production cfn loop on X" → `/cfn-loop-cli`
-
-**Architecture patterns:**
-- CLI: Main Chat → cfn-v3-coordinator → orchestrate.sh → CLI workers (background)
-- Task: Main Chat → Task() agents (no coordinator, full visibility)
-
-**Cost breakdown:**
-- CLI mode: $0.054/iteration (Z.ai routing for workers)
-- Task mode: $0.150/iteration (Anthropic for all agents)
-
-**Context Storage:**
-- CLI mode: Coordinator stores context in persistence layer for agents to retrieve
-- Task mode: Main Chat passes context directly to each Task() spawn (no persistence needed)
-- CLI agents read from context: coordination protocols retrieve task context
-
-**Reference:**
-- Implementation details: `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
-- **Task Mode guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management)
-
 ### Custom Routing (Z.ai Provider Integration)
 
 **Provider Routing Model:**
-- **Task() agents** → Use Main Chat provider (Anthropic)
-- **CLI-spawned agents** → Use custom routing (Z.ai when enabled)
+- Task() agents → Use Main Chat provider (Anthropic)
+- CLI-spawned agents → Use custom routing (Z.ai when enabled)
 
-**Enable Custom Routing (One-Time Setup):**
+**Enable Custom Routing:**
 ```bash
 /custom-routing-activate
-```
-
-**Switch Provider to Z.ai or Claude Subscription**
-```bash
-/switch-api status
-```
-```bash
-/switch-api zai
-```
-```bash
-/switch-api max
+/switch-api zai  # or max for Claude subscription
 ```
 
 **Cost Impact:**
-```
-Without Custom Routing:
-- CLI agents use Anthropic ($3-15/1M tokens)
-
-With Custom Routing:
-- CLI agents use Z.ai ($0.50/1M tokens)
-- ~5x cost reduction per CLI agent call
+- Without custom routing: CLI agents use Anthropic ($3-15/1M tokens)
+- With custom routing: CLI agents use Z.ai ($0.50/1M tokens)
 - Combined with CLI spawning: 95-98% total savings vs Task tool
-```
-
-## 🧠 AI-Driven Intelligence (43 Modular Skills)
-
-### Phase 1: Foundation (5 Skills)
-
-| Skill | Purpose | Impact |
-|-------|---------|--------|
-| `task-classifier` | Detect domain (software/content/research/design/infrastructure/data) | Automatic agent selection |
-| `validation-templates` | Domain-specific quality criteria | Relevant validation gates |
-| `agent-selector` | Dynamic agent recommendation | Optimal team composition |
-| `context-pruner` | Summarize large contexts | 88% size reduction |
-| `cfn-v3-coordinator` | Task analysis → JSON config | Intelligent orchestration |
-
-### Phase 2: Learning System (2 Skills)
-
-| Skill | Purpose | Impact |
-|-------|---------|--------|
-| `playbook` | SQLite pattern storage with similarity matching | 30-40% iteration reduction |
-| `complexity-estimator` | Predict iterations from task analysis | Accurate effort estimates |
-
-### Phase 3: Epic Decomposition (4 Skills)
-
-| Skill | Purpose | Impact |
-|-------|---------|--------|
-| `epic-decomposer` | Break epics into focused sprints | Manageable scope |
-| `sprint-planner` | Define scope boundaries (in/out/deliverables) | Prevents over-implementation |
-| `dependency-extractor` | Topological sorting for sprint order | Correct sequencing |
-| `sprint-execution` | Sprint-aware agent execution | Focused context injection |
-
-### Phase 4: Real-Time Intervention (5 Skills)
-
-| Skill | Purpose | Triggers |
-|-------|---------|----------|
-| `intervention-detector` | Identify stuck loops | Plateau (Δ<0.05), recurring feedback, no deliverables |
-| `agent-swap` | Replace underperforming agents | Repeated failures on same task |
-| `specialist-injection` | Add domain experts mid-loop | Security issues, performance bottlenecks |
-| `scope-simplifier` | Reduce deliverables | Complexity exceeds capacity |
-| `intervention-orchestrator` | Coordinate adaptive corrections | Any intervention trigger |
-
-### Phase 5: Continuous Learning (4 Skills)
-
-| Skill | Purpose | Output |
-|-------|---------|--------|
-| `pattern-extraction` | Identify bottlenecks from execution logs | Pattern insights |
-| `playbook-auto-update` | Store successful strategies | Persistent learning |
-| `improvement-recommender` | Rank agent performance | Optimization suggestions |
-| `retrospective-report` | Generate human-readable analysis | Sprint retrospectives |
-
-### Core Infrastructure (23 Skills)
-
-- **Coordination**: `redis-coordination`, `agent-spawning`, `cfn-loop-orchestration`
-- **Validation**: `cfn-loop-validation`, `product-owner-decision`, `loop2-output-processing`, `loop3-output-processing`
-- **Agent Processing**: `agent-output-processing`, `agent-discovery`, `agent-selector`
-- **Utilities**: `hook-pipeline`, `hybrid-routing`, `sqlite-memory`, `transparency-middleware`
-- **Plus 9 more**: Process lifecycle, config management, test execution, etc.
 
 ---
 
-## 🤖 Agent Library
+## Core Skills & Capabilities
 
-### CFN v3 Coordinators (3)
+### 12 Key Skills (31 More Available)
 
+| Skill | Purpose | Impact |
+|-------|---------|--------|
+| `cfn-task-classifier` | Detect domain (software/content/research/design/infra/data) | Automatic agent selection |
+| `cfn-validation-templates` | Domain-specific quality criteria | Relevant validation gates |
+| `cfn-playbook` | SQLite pattern storage with similarity matching | Reduces iterations over time |
+| `cfn-complexity-estimator` | Predict iterations from task analysis | Accurate effort estimates |
+| `cfn-epic-decomposer` | Break epics into focused sprints | Manageable scope |
+| `cfn-intervention-detector` | Identify stuck loops | Automatic recovery |
+| `cfn-specialist-injection` | Add domain experts mid-loop | Adaptive team optimization |
+| `cfn-playbook-auto-update` | Store successful strategies and patterns | Continuous learning |
+| `cfn-redis-coordination` | Zero-token agent communication | Infinite BLPOP waiting |
+| `cfn-agent-spawning` | Dynamic agent deployment | Skill-based selection |
+| `cfn-loop-orchestration` | Multi-loop workflow execution | Self-correcting validation |
+| `cfn-hybrid-routing` | Custom provider routing | 95-98% cost savings |
+
+**Additional Skills**: Redis coordination, agent spawning, CFN loop orchestration, validation processing, hook pipeline, hybrid routing, SQLite memory, transparency middleware, and 23 more. See `.claude/skills/` for complete list.
+
+---
+
+## Agent Library
+
+### Top Agents by Category
+
+**Coordinators (3)**
 - `cfn-v3-coordinator` - Main CFN Loop analyzer and configuration generator
 - `multi-sprint-coordinator` - Epic-level orchestration across sprints
 - `retrospective-analyst` - Automatic learning and pattern extraction
 
-### Core Development Agents
-
-**Implementation**
+**Implementation (12)**
 - `coder` - General-purpose code implementation
 - `backend-developer` - Backend services and APIs
 - `frontend-dev` - Frontend applications
 - `mobile-dev` - React Native and cross-platform
 - `rust-developer` - Rust language specialist
+- `devops-engineer` - DevOps and deployment
+- `database-engineer` - Database design and optimization
+- `api-designer` - API architecture and REST design
+- `terraform-engineer` - Infrastructure as code
+- `kubernetes-architect` - Container orchestration
+- `data-engineer` - Data pipelines and ETL
+- `pipeline-builder` - CI/CD and automation
 
-**Quality Assurance**
+**Quality Assurance (8)**
 - `reviewer` - Code review and quality validation
 - `tester` - Test writing and execution
 - `security-specialist` - Security analysis and hardening
 - `architect` - System design and architecture
+- `performance-benchmarker` - Performance testing
+- `accessibility-advocate` - Accessibility compliance
+- `security-auditor` - Security auditing
+- `compliance-checker` - Standards compliance
 
-**Infrastructure**
-- `devops-engineer` - DevOps and deployment
-- `database-engineer` - Database design and optimization
-- `api-designer` - API architecture and REST design
-
-### Domain Specialists
-
-**Software Development**
-- `code-analyzer`, `performance-benchmarker`, `accessibility-advocate`
-- `security-auditor`, `compliance-checker`, `cost-optimizer`
-
-**Infrastructure & DevOps**
-- `terraform-engineer`, `kubernetes-architect`
-
-**Data Engineering**
-- `data-engineer`, `pipeline-builder`, `etl-specialist`
-
-**Content Creation**
-- `copywriter`, `content-strategist`, `seo-specialist`
-
-**Design & UX**
-- `ui-designer`, `ux-researcher`, `visual-designer`
+**Full agent library (81 agents)**: See `.claude/agents/cfn-dev-team/` for complete list including content creation, design, research, and domain specialists.
 
 ---
 
-## 🚀 CLI & Slash Commands
+## CLI & Slash Commands
 
-### CFN Loop Commands (8)
+### CFN Loop Commands
 
 ```bash
 # Single task execution
@@ -393,17 +267,11 @@ With Custom Routing:
 # Documentation generation
 /cfn-loop-document --sprint=auth --epic=user-mgmt
 
-# Rule synchronization
-/cfn-claude-sync --dry-run
-
-# Agent optimization
-/cfn-optimize-agents --parallel=3
-
 # Toggle spawning mode
 /cfn-mode # Switch between CLI and Task spawning
 ```
 
-### Binary Commands (7)
+### Binary Commands
 
 ```bash
 cfn-spawn          # Spawn individual agents
@@ -417,7 +285,7 @@ cfn-redis          # Redis coordination utilities
 
 ---
 
-## 🔄 Redis Coordination
+## Redis Coordination
 
 ### Zero-Token Waiting Mode
 
@@ -442,130 +310,53 @@ cfn-redis          # Redis coordination utilities
 
 ---
 
-## 📊 Multi-Domain Support (6 Task Types)
+## Performance & Cost Metrics
 
-### 1. Software Development
-**Agents**: backend-developer, coder, devops-engineer, security-specialist
-**Validation**: Tests pass, security scan clean, build succeeds, coverage ≥80%
-**Deliverables**: Source files, test files, docs
-
-### 2. Content Creation
-**Agents**: copywriter, content-strategist, seo-specialist
-**Validation**: Grammar check, brand consistency, SEO score
-**Deliverables**: Articles, blog posts, marketing copy
-
-### 3. Research & Analysis
-**Agents**: researcher, data-analyst, domain-expert
-**Validation**: Fact-checking, methodology review, statistical significance
-**Deliverables**: Research reports, data insights
-
-### 4. Design & UX
-**Agents**: ui-designer, ux-researcher, visual-designer
-**Validation**: Accessibility compliance, user testing, brand guidelines
-**Deliverables**: Mockups, wireframes, prototypes
-
-### 5. Infrastructure & DevOps
-**Agents**: terraform-engineer, kubernetes-architect, devops-engineer
-**Validation**: Security audit, cost optimization, compliance
-**Deliverables**: IaC files, deployment configs
-
-### 6. Data Engineering
-**Agents**: data-engineer, pipeline-builder, etl-specialist
-**Validation**: Data quality, schema validation, performance testing
-**Deliverables**: Pipelines, transformations, data models
+| Metric | Value | Details |
+|--------|-------|---------|
+| **CLI Mode Cost Savings** | 95-98% | Z.ai routing ($0.50/1M vs Anthropic $3-15/1M) |
+| **Zero-Token Coordination** | 100% savings during waits | BLPOP blocking costs nothing |
+| **Context Pruning** | 88% token reduction | Summarization at iteration 10 |
+| **Average Iterations** | 3.5-4.0 vs 5.2 baseline | 33% improvement with playbook |
+| **Context Size (iter 10)** | 15-20 KB vs 120 KB baseline | 88% reduction |
+| **Time to Converge** | 30-35 min vs 45 min baseline | 33% faster |
+| **Playbook Hit Rate** | 60%+ after learning | Improves with repeated task types |
 
 ---
 
-## 📈 Performance & Cost Optimization
-
-### Cost Savings
-
-| Feature | Savings | Mechanism |
-|---------|---------|-----------|
-| **CLI Mode** | 95-98% | Z.ai routing ($0.50/1M vs Anthropic $3-15/1M) |
-| **Zero-Token Coordination** | 100% during waits | BLPOP blocking costs nothing |
-| **Context Pruning** | 88% tokens | Summarization at iteration 10 |
-| **Playbook Learning** | 30-40% iterations | Pattern reuse after 10 tasks |
-
-### Performance Metrics (vs v2)
-
-| Metric | v2 Baseline | v3 Actual | Improvement |
-|--------|-------------|-----------|-------------|
-| Average Iterations | 5.2 | 3.5-4.0 | ↓ 33% |
-| Context Size (iter 10) | 120 KB | 15-20 KB | ↓ 88% |
-| Time to Converge | 45 min | 30-35 min | ↓ 33% |
-| Playbook Hit Rate | 0% | 60%+ | N/A |
-
----
-
-## 🛠️ Developer Experience
+## Developer Experience
 
 ### Skills-Based Architecture
 
-**43 Total Skills** (20 CFN v3 + 23 core)
-- Modular and independently testable
-- Clear interfaces and contracts
-- Comprehensive documentation
-- Easy to extend
+43 total skills (20 CFN-specific + 23 core infrastructure) with modular design, clear interfaces, comprehensive documentation, and easy extensibility.
 
-### Hooks & Automation (39 Validation Hooks)
+### Hooks & Automation
 
 ```bash
-# Automatic post-edit validation
+# Automatic post-edit validation (39 hooks)
 ./.claude/hooks/invoke-post-edit.sh "$FILE" --agent-id "$AGENT_ID"
-
-# Pre-commit security scanning
-# Test coverage enforcement
-# Hook pipeline orchestration
 ```
 
 ### Complexity Analysis Tools
 
 **Built-in Code Quality Monitoring**
-
-**Simple Complexity Analyzer** (~23ms)
-- Fast bash script analyzer
-- Counts decision points (if/loops/case)
-- Ratings: Simple (<10) → Very Complex (≥40)
-
-**Per-Function Analyzer**
-- Function-level complexity breakdown
-- Identifies specific refactor targets
-- Detailed reporting per method
-
-**Lizard (Professional Multi-Language)**
-- Auto-installed during npm install
-- Supports 20+ languages (JS/TS/Python/Java/Go/etc)
-- Industry-standard McCabe complexity metrics
-
-**Automated Monitoring**
-- Triggers on files >200 lines during post-edit
-- Warning at complexity 30-39
-- Critical at complexity ≥40 (auto-spawns refactor agent)
+- Simple complexity analyzer (~23ms bash script)
+- Per-function analyzer with detailed breakdown
+- Lizard (professional multi-language support)
+- Automated monitoring (triggers on files >200 lines)
+- Critical threshold ≥40 auto-spawns refactor agent
 
 ```bash
-# Quick analysis
 ./tools/simple-complexity.sh script.sh
-
-# Function-level breakdown
 ./tools/calculate-complexity.sh script.sh
-
-# Multi-language professional analysis
 lizard src/module.ts --CCN 30
 ```
 
-**See:** `readme/logs-tools.md` for complete documentation
-
-### Templates & Patterns
-
-- Agent creation templates (simple, standard, advanced)
-- Coordination patterns (Redis pub/sub)
-- Memory operations (SQLite ACL)
-- CFN Loop mechanics
+See `readme/logs-tools.md` for complete documentation.
 
 ---
 
-## 🔒 Security & Quality
+## Security & Quality
 
 ### Built-in Security
 
@@ -584,66 +375,14 @@ lizard src/module.ts --CCN 30
 
 ### Quality Gates
 
-- **Deliverable Verification** - Prevents "consensus on vapor" (validators approving plans without code)
+- **Deliverable Verification** - Prevents "consensus on vapor"
 - **Multi-Layer Context Injection** - Validation at coordinator → orchestrator → agent layers
 - **Agent Completion Protocol** - Mandatory confidence reporting
 - **Mandatory Iteration** - Forced retry if zero files created
 
-### Audit & Monitoring
-
-- Real-time violations monitoring
-- CFN Loop protocol enforcement
-- Agent lifecycle tracking
-- Performance benchmarking
-
 ---
 
-## 📦 What's Included in npm Package
-
-```
-dist/                          # Compiled TypeScript (SWC)
-.claude/
-├── agents/                    # 81 specialized agents
-│   ├── coordinators/          # 3 CFN v3 coordinators
-│   ├── developers/            # Implementation agents
-│   ├── reviewers/             # Quality assurance agents
-│   ├── testers/               # Testing agents
-│   └── security/              # Security specialists
-├── commands/                  # 8 CFN Loop slash commands
-├── skills/                    # 43 modular skills
-│   ├── cfn-loop-orchestration/
-│   ├── task-classifier/
-│   ├── playbook/
-│   ├── epic-decomposer/
-│   ├── intervention-detector/
-│   └── [38+ more skills]
-├── templates/                 # Agent creation templates
-└── *.md                       # CLAUDE.md, ACE system docs
-scripts/
-├── *.sh                       # Utility scripts
-└── *.js                       # Automation scripts
-docs/
-├── CFN_*.md                   # CFN Loop documentation
-├── planning/cfn-v3/           # Architecture docs (31 files)
-│   ├── IMPLEMENTATION_COMPLETE.md
-│   ├── DUAL_MODE_IMPLEMENTATION.md
-│   ├── V2_MODULARIZATION_ARCHITECTURE.md
-│   └── [28+ more docs]
-└── guides/                    # Implementation guides
-config/
-└── hooks/                     # 39 validation hooks
-```
-
-### Documentation (60+ Files)
-
-- **Architecture**: CFN v3 complete architecture, modularization docs
-- **Guides**: Redis coordination, validator implementation, epic decomposition
-- **Phase Reports**: 5 phase completion reports with validation
-- **API Reference**: Comprehensive skill and agent documentation
-
----
-
-## ⚙️ System Requirements
+## System Requirements
 
 ### Required Dependencies
 
@@ -669,12 +408,12 @@ config/
 
 ### Optional
 
-- Z.ai provider account (for 95-98% cost savings)
+- Z.ai provider account (for cost savings)
 - Web portal dependencies (Socket.io for real-time monitoring)
 
 ---
 
-## 🎓 Learning & Adaptation
+## Learning & Adaptation
 
 ### Playbook System
 
@@ -683,7 +422,7 @@ config/
 - Agent performance tracking per domain
 - Historical confidence data
 - Expected iterations prediction
-- 60%+ hit rate after 10 tasks
+- 60%+ hit rate after repeated similar tasks
 
 ### Continuous Improvement
 
@@ -694,109 +433,9 @@ config/
 4. Generate improvement recommendations
 5. Update playbook with successful strategies
 
-**Expected Learning Curve**
-- First execution: 5 iterations (no playbook)
-- Second execution: 4 iterations (initial pattern)
-- Fifth execution: 2-3 iterations (refined pattern)
-- Tenth execution: 2 iterations (optimized)
-
 ---
 
-## 🌐 Multi-Sprint & Epic Support
-
-### Epic Decomposition
-
-```bash
-/cfn-loop-epic "Build authentication system with OAuth2, 2FA, sessions"
-```
-
-**Automatic Processing**
-1. Parse natural language epic description
-2. Identify component boundaries
-3. Extract dependencies
-4. Generate sprint sequence (topological sort)
-5. Assign deliverables per sprint
-6. Estimate complexity per sprint
-
-### Sprint Execution
-
-**Focused Context Injection**
-- Sprint-specific deliverables (not entire epic)
-- Clear in_scope and out_of_scope boundaries
-- Sprint-level validation criteria
-- Prevents agents from over-implementing
-
-**Cross-Sprint Learning**
-- Sprint 2 learns from Sprint 1 patterns
-- Epic-level retrospective aggregation
-- Improved agent selection for later sprints
-
----
-
-## 📊 Total Package Value
-
-### Quantified Deliverables
-
-- ✅ **3 specialized coordinators**
-- ✅ **43 modular skills** (20 CFN v3 + 23 core)
-- ✅ **81 production-ready agents**
-- ✅ **8 slash commands**
-- ✅ **7 CLI binaries**
-- ✅ **39 validation hooks**
-- ✅ **60+ documentation files**
-
-### Capabilities
-
-- ✅ **6 domain support** with custom validation
-- ✅ **Dual-mode architecture** (cost vs visibility)
-- ✅ **95-98% cost savings** in CLI mode v3.0 with enhanced monitoring
-- ✅ **Self-learning playbook** system
-- ✅ **Real-time intervention** for stuck loops
-- ✅ **Zero-token coordination** via Redis
-- ✅ **Complete test infrastructure**
-
-### Proven Results
-
-- ✅ **30-40% iteration reduction** after 10 tasks
-- ✅ **88% context size reduction** at iteration 10
-- ✅ **33% faster convergence** vs v2
-- ✅ **60%+ playbook hit rate** after initial learning
-
----
-
-## 🏗️ Architecture Highlights
-
-### Modular Design
-
-- 43 independent skills with clear interfaces
-- 3 specialized coordinator agents
-- Minimal coupling between components
-- Easy to extend and customize
-
-### Event-Driven
-
-- Intervention triggers
-- Playbook queries
-- Retrospective analysis
-- Real-time monitoring
-
-### Learning System
-
-- SQLite playbook database
-- Pattern extraction after each sprint
-- Agent performance tracking
-- Continuous improvement
-
-### Multi-Domain
-
-- 6 task types supported
-- Domain-specific validation templates
-- Custom agent rosters per domain
-- Adaptive quality criteria
-
----
-
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run all tests
@@ -810,14 +449,11 @@ npm run test:e2e
 # CFN Loop end-to-end tests
 ./tests/cfn-v3/test-e2e-cfn-loop.sh
 ./tests/cfn-v3/test-coordinator-handoffs.sh
-./tests/cfn-v3/test-loop2-handoffs.sh
-./tests/cfn-v3/test-loop3-handoffs.sh
-./tests/cfn-v3/test-product-owner-handoffs.sh
 ```
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
@@ -838,63 +474,19 @@ npm run dev
 npm run build
 ```
 
-### Testing & CI/CD
+### CI/CD Pipeline
 
-```bash
-# Run all tests
-npm run test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run integration tests
-npm run test:integration
-
-# Run performance tests
-npm run test:performance
-
-# Type checking
-npm run typecheck
-```
-
-The project uses comprehensive CI/CD pipelines with GitHub Actions:
-
-- **CI Pipeline** (`ci.yml`): Automated testing, linting, and coverage verification on every push/PR
-  - Unit tests (Node 18 & 20)
-  - Integration tests with Redis & PostgreSQL
-  - Coverage gates (80%+ lines/statements/functions, 75%+ branches)
-  - ESLint and TypeScript type checking
-  - Performance benchmarks
-
-- **CD Pipeline** (`cd.yml`): Automated deployment with zero-downtime capability
-  - Automatic staging deployment after CI passes
-  - Manual production approval with health checks
-  - Automatic rollback on failure
-  - Backup and restore capabilities
-
-- **Coverage Pipeline** (`coverage.yml`): Coverage reporting and badge generation
-  - Codecov integration
-  - Coverage trends and historical tracking
-  - Strict coverage enforcement for critical paths
-
-- **Security Pipeline** (`security-enhanced.yml`): Multi-layer security scanning
-  - Dependency vulnerability scanning (npm audit)
-  - Static analysis (SAST) for common vulnerabilities
-  - Secret detection (TruffleHog)
-  - License compliance checking
-  - Supply chain security verification
-
-See [CI/CD Pipeline Documentation](docs/CI_CD_PIPELINE.md) for full details on workflow architecture, coverage gates, security scanning, and deployment procedures.
+Comprehensive GitHub Actions automation with unit testing, integration testing, coverage gates (80%+ lines/statements/functions), security scanning, and deployment workflows. See [CI/CD Pipeline Documentation](docs/CI_CD_PIPELINE.md) for details.
 
 ---
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🆘 Support
+## Support
 
 - **Documentation**: [Wiki](https://github.com/masharratt/claude-flow-novice/wiki)
 - **Issues**: [GitHub Issues](https://github.com/masharratt/claude-flow-novice/issues)
@@ -902,25 +494,24 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
-### v3.1.0 (Q1 2025)
+### v2.17.0 (Q1 2026)
 - [ ] Semantic playbook similarity (embeddings)
 - [ ] Parallel sprint execution
 - [ ] Natural language epic parsing
 
-### v3.2.0 (Q2 2025)
+### v2.18.0 (Q2 2026)
 - [ ] Dynamic sprint adjustment (merge/split)
 - [ ] Cross-sprint learning
 - [ ] Confidence prediction before execution
 
-### v3.3.0 (Q3 2025)
+### v2.19.0 (Q3 2026)
 - [ ] Sprint rollback capability
 - [ ] Epic-level re-planning
 - [ ] Advanced monitoring dashboard
 
----
-
-**Built with ❤️ for autonomous AI workflows**
-
-This is a production-ready, enterprise-grade AI agent orchestration system with proven 30-40% efficiency gains and comprehensive multi-domain support.
+### v3.0.0 (Q4 2026)
+- [ ] Breaking changes: New coordination protocol
+- [ ] Multi-cloud provider support
+- [ ] Enhanced playbook with vector embeddings

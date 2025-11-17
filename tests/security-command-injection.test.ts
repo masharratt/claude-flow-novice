@@ -38,7 +38,7 @@ describe('Security: Command Injection Prevention (CVSS 8.6)', () => {
     pipeline = new PromotionPipeline(dbService, {
       stagingDir,
       productionDir: path.join(testDir, 'production'),
-    });
+    }, 'test-jwt-secret-for-security-tests');
 
     // Set authenticated user context
     pipeline.setUserContext('Bearer test-token');
@@ -435,7 +435,7 @@ describe('Security: Command Injection Prevention (CVSS 8.6)', () => {
         stagingDir,
         productionDir: path.join(testDir, 'production'),
         testTimeoutMs: 100, // 100ms timeout
-      });
+      }, 'test-jwt-secret-for-security-tests');
       pipelineShortTimeout.setUserContext('Bearer test-token');
 
       const result = await pipelineShortTimeout.testStage(skillPath, request);

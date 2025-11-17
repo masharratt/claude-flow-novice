@@ -1,6 +1,6 @@
 # Claude Flow Novice - Backlog
 
-Last Updated: 2025-11-13
+Last Updated: 2025-11-17
 
 ## Active Items
 
@@ -74,6 +74,16 @@ Implementation:
 - **Date Added**: 2025-11-16
 
 ### P3 - Low Priority / Nice-to-Have
+
+**[P3] - Security hardening for code quality fixes (ReDoS, query dete...**
+- **Sprint Backlogged**: Phase 4
+- **Category**: Optimization
+- **Description**: Security hardening for code quality fixes (ReDoS, query detection, UUID collision detection)
+- **Rationale**: Deferred from Code Quality CFN Loop Iteration 2 - security specialist identified optimization opportunities (consensus 0.78) but no production blockers. Issues #12/#14/#15 are functionally complete with 57/57 tests passing.
+- **Proposed Solution**: 1. Update ANSI regex from /[[0-9;]*m/g to /[[0-9;]{0,5}m/g (bounded quantifier), 2. Add comprehensive query detection tests for edge cases (nested comments, string literals), 3. Implement UUID collision detection with explicit while-loop check
+- **Tags**: `security`, `optimization`, `code-quality`, `redos`, `query-detection`, `uuid`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-17
 
 **[P3] - Verify coordinator memory limit in docker-compose.yml**
 - **Sprint Backlogged**: Phase 4
