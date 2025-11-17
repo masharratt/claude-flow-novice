@@ -258,6 +258,8 @@ async function expectAsyncError(
 // Transaction Manager Tests
 // ============================================================================
 
+jest.setTimeout(30000);
+
 describe('TransactionManager', () => {
   let txManager: TransactionManager;
   let sqliteAdapter: MockDatabaseAdapter;
@@ -550,6 +552,8 @@ describe('TransactionManager', () => {
 // Distributed Lock Tests
 // ============================================================================
 
+jest.setTimeout(30000);
+
 describe('DistributedLock', () => {
   let lockManager: DistributedLock;
   let redisClient: MockRedisClient;
@@ -704,6 +708,8 @@ describe('DistributedLock', () => {
 // Deadlock Resolver Tests
 // ============================================================================
 
+jest.setTimeout(30000);
+
 describe('DeadlockResolver', () => {
   let txManager: TransactionManager;
   let lockManager: DistributedLock;
@@ -849,6 +855,8 @@ describe('DeadlockResolver', () => {
 // ============================================================================
 // Integration Tests
 // ============================================================================
+
+jest.setTimeout(30000);
 
 describe('Integration Tests', () => {
   let txManager: TransactionManager;

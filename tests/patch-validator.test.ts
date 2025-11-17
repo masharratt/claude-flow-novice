@@ -97,12 +97,12 @@ describe('PatchValidator', () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (db) {
-      db.close();
+      await db.close();
     }
     if (backupManager) {
-      backupManager.close();
+      if (backupManager) { try { await backupManager.close(); } catch (e) { /* ignore */ } }
     }
   });
 

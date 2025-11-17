@@ -27,15 +27,52 @@ import {
   mapRedisError,
 } from './errors';
 import { ConnectionPoolManager } from './connection-pool-manager';
+import { ErrorAggregator } from '../error-aggregator';
+import { v4 as uuidv4 } from 'uuid';
 
 export class RedisAdapter implements IDatabaseAdapter {
   private poolManager: ConnectionPoolManager | null = null;
   private client: RedisClientType | null = null;
   private config: DatabaseConfig;
   private connected: boolean = false;
+  private errorAggregator?: ErrorAggregator;
+  private correlationId: string;
 
-  constructor(config: DatabaseConfig) {
+  constructor(config: DatabaseConfig, errorAggregator?: ErrorAggregator) {
     this.config = config;
+    this.errorAggregator = errorAggregator;
+    this.correlationId = uuidv4();
+  }
+
+  /**
+   * Track error with error aggregator
+   * @private
+   */
+  private trackError(error: any, operation: string, context?: Record<string, any>): void {
+    if (this.errorAggregator) {
+      const dbError = error.code ? error : createDatabaseError(
+        DatabaseErrorCode.QUERY_FAILED,
+        `Redis ${operation} failed`,
+        error instanceof Error ? error : new Error(String(error)),
+        context
+      );
+
+      this.errorAggregator.addError('redis', dbError, {
+        ...context,
+        operation,
+        correlationId: this.correlationId,
+      });
+    }
+  }
+
+  /**
+   * Record successful operation with error aggregator
+   * @private
+   */
+  private recordSuccess(): void {
+    if (this.errorAggregator) {
+      this.errorAggregator.recordSuccess('redis');
+    }
   }
 
   getType(): 'redis' {
@@ -55,13 +92,15 @@ export class RedisAdapter implements IDatabaseAdapter {
       this.poolManager.startHealthChecks();
 
       this.connected = true;
+      this.recordSuccess();
     } catch (err) {
       const error = createDatabaseError(
         DatabaseErrorCode.CONNECTION_FAILED,
         'Failed to connect to Redis',
         err instanceof Error ? err : new Error(String(err)),
-        { config: this.config }
+        { config: this.config, correlationId: this.correlationId }
       );
+      this.trackError(error, 'connect');
       throw error;
     }
   }
@@ -98,18 +137,22 @@ export class RedisAdapter implements IDatabaseAdapter {
 
       // Try to parse as JSON, fall back to raw string
       try {
+        this.recordSuccess();
         return JSON.parse(value) as T;
       } catch {
+        this.recordSuccess();
         return value as unknown as T;
       }
     } catch (err) {
       const errorCode = mapRedisError(err instanceof Error ? err : new Error(String(err)));
-      throw createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to get key: ${key}`,
         err instanceof Error ? err : new Error(String(err)),
-        { key }
+        { key, correlationId: this.correlationId }
       );
+      this.trackError(error, 'get', { key });
+      throw error;
     }
   }
 
@@ -143,15 +186,18 @@ export class RedisAdapter implements IDatabaseAdapter {
       const start = options?.offset || 0;
       const end = options?.limit ? start + options.limit : undefined;
 
+      this.recordSuccess();
       return results.slice(start, end);
     } catch (err) {
       const errorCode = mapRedisError(err instanceof Error ? err : new Error(String(err)));
-      throw createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to list keys: ${pattern}`,
         err instanceof Error ? err : new Error(String(err)),
-        { pattern, options }
+        { pattern, options, correlationId: this.correlationId }
       );
+      this.trackError(error, 'list', { pattern });
+      throw error;
     }
   }
 
@@ -195,15 +241,18 @@ export class RedisAdapter implements IDatabaseAdapter {
       const value = typeof data === 'string' ? data : JSON.stringify(data);
       await this.client!.set(key, value);
 
+      this.recordSuccess();
       return createSuccessResult(data, 1);
     } catch (err) {
       const errorCode = mapRedisError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to insert key: ${key}`,
         err instanceof Error ? err : new Error(String(err)),
-        { key, data }
-      ));
+        { key, data, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'insert', { key });
+      return createFailedResult(error);
     }
   }
 
@@ -221,15 +270,18 @@ export class RedisAdapter implements IDatabaseAdapter {
 
       await pipeline.exec();
 
+      this.recordSuccess();
       return createSuccessResult(data, data.length);
     } catch (err) {
       const errorCode = mapRedisError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to insert multiple keys with pattern: ${pattern}`,
         err instanceof Error ? err : new Error(String(err)),
-        { pattern, count: data.length }
-      ));
+        { pattern, count: data.length, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'insertMany', { pattern, count: data.length });
+      return createFailedResult(error);
     }
   }
 
@@ -241,12 +293,14 @@ export class RedisAdapter implements IDatabaseAdapter {
       const existing = await this.get<T>(key);
 
       if (existing === null) {
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.NOT_FOUND,
           `Key not found: ${key}`,
           undefined,
-          { key }
-        ));
+          { key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'update', { key });
+        return createFailedResult(error);
       }
 
       // Merge with updates
@@ -255,15 +309,18 @@ export class RedisAdapter implements IDatabaseAdapter {
 
       await this.client!.set(key, value);
 
+      this.recordSuccess();
       return createSuccessResult(updated, 1);
     } catch (err) {
       const errorCode = mapRedisError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to update key: ${key}`,
         err instanceof Error ? err : new Error(String(err)),
-        { key, data }
-      ));
+        { key, data, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'update', { key });
+      return createFailedResult(error);
     }
   }
 
@@ -274,23 +331,28 @@ export class RedisAdapter implements IDatabaseAdapter {
       const count = await this.client!.del(key);
 
       if (count === 0) {
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.NOT_FOUND,
           `Key not found: ${key}`,
           undefined,
-          { key }
-        ));
+          { key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'delete', { key });
+        return createFailedResult(error);
       }
 
+      this.recordSuccess();
       return createSuccessResult(undefined, count);
     } catch (err) {
       const errorCode = mapRedisError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to delete key: ${key}`,
         err instanceof Error ? err : new Error(String(err)),
-        { key }
-      ));
+        { key, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'delete', { key });
+      return createFailedResult(error);
     }
   }
 
@@ -299,15 +361,18 @@ export class RedisAdapter implements IDatabaseAdapter {
 
     try {
       const result = await this.client!.sendCommand([command, ...(params || [])]);
+      this.recordSuccess();
       return result as T;
     } catch (err) {
       const errorCode = mapRedisError(err instanceof Error ? err : new Error(String(err)));
-      throw createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to execute raw command: ${command}`,
         err instanceof Error ? err : new Error(String(err)),
-        { command, params }
+        { command, params, correlationId: this.correlationId }
       );
+      this.trackError(error, 'raw', { command });
+      throw error;
     }
   }
 

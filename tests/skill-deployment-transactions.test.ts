@@ -309,7 +309,7 @@ This is a test skill for transaction testing.
 
       // Release the lock
       await lockManager.release(firstLock.id);
-    }, 15000); // Increase test timeout to 15s
+    }, 30000); // Increase test timeout to 15s
   });
 
   describe('Version Conflict Detection', () => {

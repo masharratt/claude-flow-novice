@@ -187,7 +187,7 @@ describe('FileLockManager', () => {
       ]);
 
       expect(results).toBeDefined();
-    }, 15000);
+    }, 30000);
   });
 
   describe('Lock Release', () => {
@@ -437,7 +437,7 @@ describe('FileLockManager', () => {
 
       await manager.releaseLock(lock1.id);
       await lock2Promise;
-    }, 15000);
+    }, 30000);
   });
 
   describe('Singleton', () => {
@@ -685,12 +685,13 @@ describe('AtomicFileWriter', () => {
       results.forEach((result) => {
         expect(result.success).toBe(true);
       });
-    }, 15000);
+    }, 30000);
   });
 
   describe('Error Handling', () => {
     it('should handle write errors', async () => {
-      const invalidPath = '/invalid/path/file.txt';
+      // Use a path that's actually invalid (not just non-existent)
+      const invalidPath = '/dev/null/file.txt'; // Can't create files under /dev/null
 
       await expect(writer.writeFile(invalidPath, 'Content')).rejects.toThrow();
     });

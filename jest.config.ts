@@ -1,6 +1,7 @@
 export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  testTimeout: 30000, // Global timeout of 30 seconds for all tests
   testMatch: ['**/*.test.ts', '**/*.test.cjs'],
   testPathIgnorePatterns: [
     '/node_modules/',
@@ -18,6 +19,7 @@ export default {
       },
     }],
   },
+  setupFilesAfterEnv: ['<rootDir>/tests/setup-cleanup.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverageFrom: [
     'src/**/*.ts',

@@ -27,19 +27,56 @@ import {
 } from './errors';
 import { ConnectionPoolManager } from './connection-pool-manager';
 import { withDatabaseRetry } from '../retry-manager';
+import { ErrorAggregator } from '../error-aggregator';
+import { v4 as uuidv4 } from 'uuid';
 
 export class SQLiteAdapter implements IDatabaseAdapter {
   private poolManager: ConnectionPoolManager | null = null;
   private config: DatabaseConfig;
   private connected: boolean = false;
   private transactions: Map<string, TransactionContext> = new Map();
+  private errorAggregator?: ErrorAggregator;
+  private correlationId: string;
 
-  constructor(config: DatabaseConfig) {
+  constructor(config: DatabaseConfig, errorAggregator?: ErrorAggregator) {
     this.config = config;
+    this.errorAggregator = errorAggregator;
+    this.correlationId = uuidv4();
   }
 
   getType(): 'sqlite' {
     return 'sqlite';
+  }
+
+  /**
+   * Track error with error aggregator
+   * @private
+   */
+  private trackError(error: any, operation: string, context?: Record<string, any>): void {
+    if (this.errorAggregator) {
+      const dbError = error.code ? error : createDatabaseError(
+        DatabaseErrorCode.QUERY_FAILED,
+        `SQLite ${operation} failed`,
+        error instanceof Error ? error : new Error(String(error)),
+        context
+      );
+
+      this.errorAggregator.addError('sqlite', dbError, {
+        ...context,
+        operation,
+        correlationId: this.correlationId,
+      });
+    }
+  }
+
+  /**
+   * Record successful operation with error aggregator
+   * @private
+   */
+  private recordSuccess(): void {
+    if (this.errorAggregator) {
+      this.errorAggregator.recordSuccess('sqlite');
+    }
   }
 
   async connect(): Promise<void> {
@@ -54,13 +91,16 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         this.poolManager.startHealthChecks();
 
         this.connected = true;
+        this.recordSuccess();
       } catch (err) {
-        throw createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.CONNECTION_FAILED,
           'Failed to connect to SQLite',
           err instanceof Error ? err : new Error(String(err)),
-          { config: this.config }
+          { config: this.config, correlationId: this.correlationId }
         );
+        this.trackError(error, 'connect');
+        throw error;
       }
     });
   }
@@ -105,15 +145,18 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         const query = `SELECT * FROM ${this.sanitizeIdentifier(table)} WHERE id = ?`;
         const result = await connection.get<T>(query, [id]);
 
+        this.recordSuccess();
         return result || null;
       } catch (err) {
         const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-        throw createDatabaseError(
+        const error = createDatabaseError(
           errorCode,
           `Failed to get record: ${key}`,
           err instanceof Error ? err : new Error(String(err)),
-          { key }
+          { key, correlationId: this.correlationId }
         );
+        this.trackError(error, 'get', { key });
+        throw error;
       } finally {
         await this.poolManager!.release(connection);
       }
@@ -157,15 +200,18 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         }
 
         const results = await connection.all<T[]>(query, params);
+        this.recordSuccess();
         return results;
       } catch (err) {
         const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-        throw createDatabaseError(
+        const error = createDatabaseError(
           errorCode,
           `Failed to list records from table: ${table}`,
           err instanceof Error ? err : new Error(String(err)),
-          { table, options }
+          { table, options, correlationId: this.correlationId }
         );
+        this.trackError(error, 'list', { table });
+        throw error;
       } finally {
         await this.poolManager!.release(connection);
       }
@@ -194,15 +240,18 @@ export class SQLiteAdapter implements IDatabaseAdapter {
 
         const result = await connection.run(query, values);
 
+        this.recordSuccess();
         return createSuccessResult(data, result.changes, result.lastID);
       } catch (err) {
         const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           errorCode,
           `Failed to insert record into table: ${table}`,
           err instanceof Error ? err : new Error(String(err)),
-          { table, data }
-        ));
+          { table, data, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'insert', { table });
+        return createFailedResult(error);
       } finally {
         await this.poolManager!.release(connection);
       }
@@ -243,6 +292,7 @@ export class SQLiteAdapter implements IDatabaseAdapter {
         await connection.run('COMMIT');
       }
 
+      this.recordSuccess();
       return createSuccessResult(data, totalChanges);
     } catch (err) {
       // Only rollback if we started the transaction
@@ -251,12 +301,14 @@ export class SQLiteAdapter implements IDatabaseAdapter {
       }
 
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to insert multiple records into table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, count: data.length }
-      ));
+        { table, count: data.length, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'insertMany', { table, count: data.length });
+      return createFailedResult(error);
     } finally {
       await this.poolManager!.release(connection);
     }
@@ -278,26 +330,31 @@ export class SQLiteAdapter implements IDatabaseAdapter {
       const result = await connection.run(query, [...values, key]);
 
       if (result.changes === 0) {
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.NOT_FOUND,
           `Record not found in table: ${table}`,
           undefined,
-          { table, key }
-        ));
+          { table, key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'update', { table, key });
+        return createFailedResult(error);
       }
 
       // Get updated record
       const updated = await this.get<T>(`${table}:${key}`);
 
+      this.recordSuccess();
       return createSuccessResult(updated!, result.changes);
     } catch (err) {
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to update record in table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, key, data }
-      ));
+        { table, key, data, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'update', { table, key });
+      return createFailedResult(error);
     } finally {
       await this.poolManager!.release(connection);
     }
@@ -314,23 +371,28 @@ export class SQLiteAdapter implements IDatabaseAdapter {
       const result = await connection.run(query, [key]);
 
       if (result.changes === 0) {
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.NOT_FOUND,
           `Record not found in table: ${table}`,
           undefined,
-          { table, key }
-        ));
+          { table, key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'delete', { table, key });
+        return createFailedResult(error);
       }
 
+      this.recordSuccess();
       return createSuccessResult(undefined, result.changes);
     } catch (err) {
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to delete record from table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, key }
-      ));
+        { table, key, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'delete', { table, key });
+      return createFailedResult(error);
     } finally {
       await this.poolManager!.release(connection);
     }
@@ -347,19 +409,23 @@ export class SQLiteAdapter implements IDatabaseAdapter {
 
       if (isSelect) {
         const results = await connection.all<T[]>(query, params);
+        this.recordSuccess();
         return results as T;
       } else {
         const result = await connection.run(query, params);
+        this.recordSuccess();
         return result as T;
       }
     } catch (err) {
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      throw createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to execute raw query`,
         err instanceof Error ? err : new Error(String(err)),
-        { query, params }
+        { query, params, correlationId: this.correlationId }
       );
+      this.trackError(error, 'raw', { query });
+      throw error;
     } finally {
       await this.poolManager!.release(connection);
     }

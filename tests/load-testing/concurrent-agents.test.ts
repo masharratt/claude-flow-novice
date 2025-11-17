@@ -50,7 +50,7 @@ describe('Concurrent Agent Load Tests', () => {
   });
 
   afterAll(async () => {
-    await dbService.disconnect();
+    if (dbService) { await dbService.disconnect(); };
     await coordination.disconnect();
     await workspace.cleanup();
     await metricsLogger.close();

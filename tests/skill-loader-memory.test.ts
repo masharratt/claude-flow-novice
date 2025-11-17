@@ -253,7 +253,7 @@ describe('SkillLoader with Memory Budget', () => {
       // Create 500 small skills
       const skillPromises = [];
       for (let i = 1; i <= 500; i++) {
-        skillPromises.push(createTestSkill(testSkillsDir, `skill-${i.toString().padStart(3, '0')}`, 5000));
+        skillPromises.push(createTestSkill(testSkillsDir, `skill-${i.toString().padStart(3, '0')}`, 30000));
       }
       await Promise.all(skillPromises);
 

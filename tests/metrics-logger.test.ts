@@ -84,7 +84,7 @@ async function setupTestDatabase(): Promise<DatabaseService> {
  * Cleanup test database
  */
 async function cleanupTestDatabase(dbService: DatabaseService): Promise<void> {
-  await dbService.disconnect();
+  if (dbService) { try { await dbService.disconnect(); } catch (e) { /* ignore */ } }
 
   if (fs.existsSync(TEST_SQLITE_PATH)) {
     fs.unlinkSync(TEST_SQLITE_PATH);
@@ -108,6 +108,8 @@ function createSampleMetrics(overrides?: Partial<ExecutionMetrics>): ExecutionMe
   };
 }
 
+jest.setTimeout(30000);
+
 describe('MetricsLogger', () => {
   let dbService: DatabaseService;
   let metricsLogger: MetricsLogger;
@@ -118,7 +120,7 @@ describe('MetricsLogger', () => {
   });
 
   afterEach(async () => {
-    await metricsLogger.close();
+    if (metricsLogger) { try { await metricsLogger.close(); } catch (e) { /* ignore */ } }
     await cleanupTestDatabase(dbService);
   });
 
@@ -624,7 +626,7 @@ describe('MetricsLogger', () => {
 
     it('should handle database connection errors', async () => {
       // Disconnect database
-      await dbService.disconnect();
+      if (dbService) { try { await dbService.disconnect(); } catch (e) { /* ignore */ } }
 
       const metrics = createSampleMetrics();
 

@@ -39,7 +39,7 @@ describe('System Stress Tests', () => {
   });
 
   afterAll(async () => {
-    await dbService.disconnect();
+    if (dbService) { await dbService.disconnect(); };
     await queueManager.disconnect();
     await metricsLogger.close();
   });

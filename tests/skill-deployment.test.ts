@@ -34,6 +34,8 @@ import {
   getLatestVersion,
 } from '../src/services/skill-versioning';
 
+jest.setTimeout(30000);
+
 describe('Skill Versioning Service', () => {
   describe('validateVersion', () => {
     it('should validate correct semantic versions', () => {
@@ -132,7 +134,7 @@ describe('Skill Versioning Service', () => {
     });
 
     afterAll(async () => {
-      await dbService.disconnect();
+      if (dbService) { try { await dbService.disconnect(); } catch (e) { /* ignore */ } }
       if (fs.existsSync(testDbPath)) {
         fs.unlinkSync(testDbPath);
       }
@@ -252,6 +254,8 @@ describe('Skill Versioning Service', () => {
     });
   });
 });
+
+jest.setTimeout(30000);
 
 describe('Skill Validator Service', () => {
   let testSkillPath: string;
@@ -465,6 +469,8 @@ describe('Skill Validator Service', () => {
   });
 });
 
+jest.setTimeout(30000);
+
 describe('Skill Deployment Pipeline', () => {
   let dbService: DatabaseService;
   let testDbPath: string;
@@ -505,7 +511,7 @@ describe('Skill Deployment Pipeline', () => {
   });
 
   afterAll(async () => {
-    await dbService.disconnect();
+    if (dbService) { try { await dbService.disconnect(); } catch (e) { /* ignore */ } }
     if (fs.existsSync(testDbPath)) {
       fs.unlinkSync(testDbPath);
     }

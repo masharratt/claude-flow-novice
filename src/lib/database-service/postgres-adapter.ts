@@ -24,19 +24,56 @@ import {
   mapPostgresError,
 } from './errors';
 import { withDatabaseRetry } from '../retry-manager';
+import { ErrorAggregator } from '../error-aggregator';
+import { v4 as uuidv4 } from 'uuid';
 
 export class PostgresAdapter implements IDatabaseAdapter {
   private pool: Pool | null = null;
   private config: DatabaseConfig;
   private connected: boolean = false;
   private transactions: Map<string, { context: TransactionContext; client: PoolClient }> = new Map();
+  private errorAggregator?: ErrorAggregator;
+  private correlationId: string;
 
-  constructor(config: DatabaseConfig) {
+  constructor(config: DatabaseConfig, errorAggregator?: ErrorAggregator) {
     this.config = config;
+    this.errorAggregator = errorAggregator;
+    this.correlationId = uuidv4();
   }
 
   getType(): 'postgres' {
     return 'postgres';
+  }
+
+  /**
+   * Track error with error aggregator
+   * @private
+   */
+  private trackError(error: any, operation: string, context?: Record<string, any>): void {
+    if (this.errorAggregator) {
+      const dbError = error.code ? error : createDatabaseError(
+        DatabaseErrorCode.QUERY_FAILED,
+        `PostgreSQL ${operation} failed`,
+        error instanceof Error ? error : new Error(String(error)),
+        context
+      );
+
+      this.errorAggregator.addError('postgres', dbError, {
+        ...context,
+        operation,
+        correlationId: this.correlationId,
+      });
+    }
+  }
+
+  /**
+   * Record successful operation with error aggregator
+   * @private
+   */
+  private recordSuccess(): void {
+    if (this.errorAggregator) {
+      this.errorAggregator.recordSuccess('postgres');
+    }
   }
 
   async connect(): Promise<void> {
@@ -76,13 +113,16 @@ export class PostgresAdapter implements IDatabaseAdapter {
         client.release();
 
         this.connected = true;
+        this.recordSuccess();
       } catch (err) {
-        throw createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.CONNECTION_FAILED,
           'Failed to connect to PostgreSQL',
           err instanceof Error ? err : new Error(String(err)),
-          { config: this.config }
+          { config: this.config, correlationId: this.correlationId }
         );
+        this.trackError(error, 'connect');
+        throw error;
       }
     });
   }
@@ -117,15 +157,18 @@ export class PostgresAdapter implements IDatabaseAdapter {
       const client = this.getQueryClient(transactionId);
       const result = await client.query<T>(query, [id]);
 
+      this.recordSuccess();
       return result.rows.length > 0 ? result.rows[0] : null;
     } catch (err) {
       const errorCode = mapPostgresError(err);
-      throw createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to get record: ${key}`,
         err instanceof Error ? err : new Error(String(err)),
-        { key }
+        { key, correlationId: this.correlationId }
       );
+      this.trackError(error, 'get', { key });
+      throw error;
     }
   }
 
@@ -164,15 +207,18 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
       const client = this.getQueryClient(transactionId);
       const result = await client.query<T>(query, params);
+      this.recordSuccess();
       return result.rows;
     } catch (err) {
       const errorCode = mapPostgresError(err);
-      throw createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to list records from table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, options }
+        { table, options, correlationId: this.correlationId }
       );
+      this.trackError(error, 'list', { table });
+      throw error;
     }
   }
 
@@ -195,15 +241,18 @@ export class PostgresAdapter implements IDatabaseAdapter {
       const client = this.getQueryClient(transactionId);
       const result = await client.query<T>(query, values);
 
+      this.recordSuccess();
       return createSuccessResult(result.rows[0], result.rowCount || 0, result.rows[0] ? (result.rows[0] as any).id : undefined);
     } catch (err) {
       const errorCode = mapPostgresError(err);
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to insert record into table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, data }
-      ));
+        { table, data, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'insert', { table });
+      return createFailedResult(error);
     }
   }
 
@@ -240,6 +289,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
         await client.query('COMMIT');
       }
 
+      this.recordSuccess();
       return createSuccessResult(results, results.length);
     } catch (err) {
       // Only rollback if we started the transaction
@@ -248,12 +298,14 @@ export class PostgresAdapter implements IDatabaseAdapter {
       }
 
       const errorCode = mapPostgresError(err);
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to insert multiple records into table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, count: data.length }
-      ));
+        { table, count: data.length, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'insertMany', { table, count: data.length });
+      return createFailedResult(error);
     } finally {
       // Only release client if we acquired it (not using existing transaction client)
       if (!hasActiveTransaction) {
@@ -277,23 +329,28 @@ export class PostgresAdapter implements IDatabaseAdapter {
       const result = await client.query<T>(query, [...values, key]);
 
       if (result.rowCount === 0) {
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.NOT_FOUND,
           `Record not found in table: ${table}`,
           undefined,
-          { table, key }
-        ));
+          { table, key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'update', { table, key });
+        return createFailedResult(error);
       }
 
+      this.recordSuccess();
       return createSuccessResult(result.rows[0], result.rowCount || 0);
     } catch (err) {
       const errorCode = mapPostgresError(err);
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to update record in table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, key, data }
-      ));
+        { table, key, data, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'update', { table, key });
+      return createFailedResult(error);
     }
   }
 
@@ -307,23 +364,28 @@ export class PostgresAdapter implements IDatabaseAdapter {
       const result = await client.query(query, [key]);
 
       if (result.rowCount === 0) {
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.NOT_FOUND,
           `Record not found in table: ${table}`,
           undefined,
-          { table, key }
-        ));
+          { table, key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'delete', { table, key });
+        return createFailedResult(error);
       }
 
+      this.recordSuccess();
       return createSuccessResult(undefined, result.rowCount || 0);
     } catch (err) {
       const errorCode = mapPostgresError(err);
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to delete record from table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, key }
-      ));
+        { table, key, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'delete', { table, key });
+      return createFailedResult(error);
     }
   }
 
@@ -333,15 +395,18 @@ export class PostgresAdapter implements IDatabaseAdapter {
     try {
       const client = this.getQueryClient(transactionId);
       const result = await client.query<T>(query, params);
+      this.recordSuccess();
       return result.rows as T;
     } catch (err) {
       const errorCode = mapPostgresError(err);
-      throw createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to execute raw query`,
         err instanceof Error ? err : new Error(String(err)),
-        { query, params }
+        { query, params, correlationId: this.correlationId }
       );
+      this.trackError(error, 'raw', { query });
+      throw error;
     }
   }
 

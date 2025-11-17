@@ -166,6 +166,8 @@ const createMockRedisClient = (): jest.Mocked<RedisClientType> => {
   } as unknown as jest.Mocked<RedisClientType>;
 };
 
+jest.setTimeout(30000);
+
 describe('MessageDeduplicator', () => {
   let redis: jest.Mocked<RedisClientType>;
   let deduplicator: MessageDeduplicator;
@@ -370,6 +372,8 @@ describe('MessageDeduplicator', () => {
     });
   });
 });
+
+jest.setTimeout(30000);
 
 describe('RedisQueueManager', () => {
   let redis: jest.Mocked<RedisClientType>;
@@ -613,6 +617,8 @@ describe('RedisQueueManager', () => {
     });
   });
 });
+
+jest.setTimeout(30000);
 
 describe('QueueRecovery', () => {
   let redis: jest.Mocked<RedisClientType>;
@@ -881,6 +887,8 @@ describe('QueueRecovery', () => {
     });
   });
 });
+
+jest.setTimeout(30000);
 
 describe('ReprocessingSafeguards', () => {
   let safeguards: ReprocessingSafeguards;

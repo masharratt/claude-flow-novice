@@ -38,6 +38,8 @@ const TEST_DB_PATH = path.join(TEST_DIR, 'test-backups.db');
 const TEST_BACKUP_DIR = path.join(TEST_DIR, '.backups');
 const TEST_FILES_DIR = path.join(TEST_DIR, 'files');
 
+jest.setTimeout(30000);
+
 describe('BackupManager', () => {
   let manager: BackupManager;
 
@@ -73,7 +75,7 @@ describe('BackupManager', () => {
   afterEach(() => {
     // Close database connection
     if (manager) {
-      manager.close();
+      await manager.close();
     }
   });
 

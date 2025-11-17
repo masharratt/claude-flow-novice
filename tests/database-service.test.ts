@@ -81,7 +81,7 @@ describe('Database Service', () => {
     const postgres = dbService.getAdapter('postgres');
     await postgres.raw('DROP TABLE IF EXISTS test_table');
 
-    await dbService.disconnect();
+    if (dbService) { try { await dbService.disconnect(); } catch (e) { /* ignore */ } }
   });
 
   beforeEach(async () => {

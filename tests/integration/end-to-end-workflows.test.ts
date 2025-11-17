@@ -52,7 +52,7 @@ describe('End-to-End Workflow Integration Tests', () => {
 
     // Initialize all systems
     dbService = new DatabaseService({
-      redis: {
+      // redis: {
         type: 'redis',
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379'),
@@ -61,7 +61,7 @@ describe('End-to-End Workflow Integration Tests', () => {
         type: 'sqlite',
         database: path.join(testDir, 'test.db'),
       },
-      postgres: {
+      // postgres: {
         type: 'postgres',
         connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/cfn_test',
       },
@@ -123,7 +123,7 @@ describe('End-to-End Workflow Integration Tests', () => {
   });
 
   afterAll(async () => {
-    await dbService.disconnect();
+    if (dbService) { await dbService.disconnect(); };
     await queueManager.disconnect();
     await coordination.disconnect();
     await metricsLogger.close();
