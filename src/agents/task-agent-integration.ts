@@ -73,7 +73,7 @@ export class TaskAgentIntegration {
       enhancedPrompt = `[Agent Type: Originally requested '${validation.originalType}', using '${validation.resolvedType}' as validated type]\n\n${enhancedPrompt}`;
     }
 
-    enhancedPrompt += `\n\n[Coordination Context: Use hooks for coordination - npx claude-flow@alpha hooks pre-task --description "${request.description}"]`;
+    enhancedPrompt += `\n\n[Coordination Context: Task coordination via TodoWrite tool]`;
 
     return enhancedPrompt;
   }

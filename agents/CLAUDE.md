@@ -120,8 +120,8 @@ This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Co
 ## 🚀 Quick Setup
 
 ```bash
-# Add Claude Flow MCP server
-claude mcp add claude-flow npx claude-flow@alpha mcp start
+# CFN Loop system uses direct CLI commands (no MCP server required)
+# See CLAUDE.md in project root for slash command documentation
 ```
 
 ## MCP Tool Categories
@@ -147,20 +147,24 @@ claude mcp add claude-flow npx claude-flow@alpha mcp start
 
 **1️⃣ BEFORE Work:**
 ```bash
-npx claude-flow@alpha hooks pre-task --description "[task]"
-npx claude-flow@alpha hooks session-restore --session-id "swarm-[id]"
+# Create backup before editing any file
+BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id "$AGENT_ID")
 ```
 
 **2️⃣ DURING Work:**
 ```bash
-npx claude-flow@alpha hooks post-edit --file "[file]" --memory-key "swarm/[agent]/[step]"
-npx claude-flow@alpha hooks notify --message "[what was done]"
+# Run post-edit validation after every file modification
+./.claude/hooks/cfn-invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
 ```
 
 **3️⃣ AFTER Work:**
 ```bash
-npx claude-flow@alpha hooks post-task --task-id "[task]"
-npx claude-flow@alpha hooks session-end --export-metrics true
+# Report completion (CLI mode only)
+./.claude/skills/cfn-coordination/report-completion.sh \
+  --task-id "$TASK_ID" \
+  --agent-id "$AGENT_ID" \
+  --confidence 0.85 \
+  --iteration 1
 ```
 
 ## 🎯 Concurrent Execution Examples

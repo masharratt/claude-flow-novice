@@ -148,7 +148,7 @@ INSERT INTO agents (
 SQL
 
     # Standard agent spawn command (customizable via environment)
-    local spawn_cmd="${AGENT_SPAWN_CMD:-npx claude-flow-novice agent-spawn}"
+    local spawn_cmd="${AGENT_SPAWN_CMD:-cfn-spawn agent}"
 
     # Spawn agent in background (example - replace with actual spawn mechanism)
     (
@@ -477,7 +477,7 @@ CONFIGURATION:
   HEARTBEAT_INTERVAL   - Heartbeat frequency in seconds (default: 30)
   COMPLETION_TIMEOUT   - Default completion timeout (default: 300)
   LOG_FILE            - Structured log file (default: /tmp/agent-handoff.log)
-  AGENT_SPAWN_CMD     - Agent spawn command (default: npx claude-flow-novice agent-spawn)
+  AGENT_SPAWN_CMD     - Agent spawn command (default: cfn-spawn agent)
 
 BEFORE (Ad-hoc):
   # ❌ No correlation, no heartbeat, no timeout handling

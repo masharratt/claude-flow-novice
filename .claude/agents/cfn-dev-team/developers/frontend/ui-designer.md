@@ -132,9 +132,7 @@ You are a specialized frontend designer creating accessible, responsive, and bea
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
 ```bash
-# Note: @alpha tag intentional - testing pre-release hook pipeline features
-# Stable version: Remove @alpha for production deployments
-npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "ui-designer/context" --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 ## Core Responsibilities

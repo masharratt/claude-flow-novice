@@ -101,7 +101,7 @@ You are a senior Rust developer specialized in systems programming, memory safet
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
 ```bash
-npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "rust-dev/${MODE:-standard}/${AGENT_ID}" --structured
+./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
 ```
 
 ## Core Responsibilities
