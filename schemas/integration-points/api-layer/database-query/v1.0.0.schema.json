@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api-layer/database-query/v1.0.0",
+  "title": "Database Query APIs Schema",
+  "description": "Schema for unified database query API (Integration Point 5.5)",
+  "type": "object",
+  "required": ["query_id", "database", "operation", "timestamp"],
+  "properties": {
+    "query_id": {
+      "type": "string",
+      "description": "Unique identifier for query",
+      "pattern": "^query-[a-z0-9-]+$"
+    },
+    "database": {
+      "type": "string",
+      "enum": ["sqlite", "postgresql", "redis"],
+      "description": "Target database"
+    },
+    "operation": {
+      "type": "string",
+      "enum": ["select", "insert", "update", "delete", "upsert", "transaction"],
+      "description": "Database operation"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Query timestamp"
+    },
+    "query": {
+      "type": "object",
+      "description": "Query details",
+      "required": ["statement"],
+      "properties": {
+        "statement": {
+          "type": "string",
+          "description": "SQL statement or query"
+        },
+        "parameters": {
+          "type": "array",
+          "description": "Query parameters (parameterized queries)",
+          "items": {}
+        },
+        "table": {
+          "type": "string",
+          "description": "Target table"
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "description": "Query result",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "rows_affected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rows_returned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data": {
+          "type": "array",
+          "description": "Result data (for SELECT)"
+        },
+        "error": {
+          "type": "object",
+          "description": "Error information if query failed",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "error_handling": {
+      "type": "object",
+      "description": "Standardized error handling",
+      "required": ["error_code", "error_message"],
+      "properties": {
+        "error_code": {
+          "type": "string",
+          "description": "Standardized error code across databases"
+        },
+        "error_message": {
+          "type": "string",
+          "description": "Human-readable error message"
+        },
+        "original_error": {
+          "type": "object",
+          "description": "Original database-specific error"
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "description": "Query performance metrics",
+      "properties": {
+        "execution_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "optimized": {
+          "type": "boolean",
+          "description": "Whether query is optimized"
+        },
+        "index_used": {
+          "type": "boolean",
+          "description": "Whether database index was used"
+        },
+        "monitored": {
+          "type": "boolean",
+          "description": "Whether query performance is monitored"
+        }
+      }
+    },
+    "optimization": {
+      "type": "object",
+      "description": "Query optimization",
+      "properties": {
+        "explain_plan": {
+          "type": "string",
+          "description": "Query execution plan (EXPLAIN)"
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "api_interface": {
+      "type": "object",
+      "description": "Unified API interface",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "pattern": "^/api/database/.*"
+        },
+        "method": {
+          "type": "string",
+          "enum": ["POST", "GET"]
+        },
+        "standardized": {
+          "type": "boolean",
+          "description": "Whether using standardized interface"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "query_id": "query-select-agents-001",
+      "database": "sqlite",
+      "operation": "select",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "query": {
+        "statement": "SELECT * FROM agents WHERE status = ? AND confidence >= ?",
+        "parameters": ["completed", 0.75],
+        "table": "agents"
+      },
+      "result": {
+        "success": true,
+        "rows_affected": 0,
+        "rows_returned": 5,
+        "data": [
+          {
+            "id": "backend-001",
+            "status": "completed",
+            "confidence": 0.92
+          }
+        ]
+      },
+      "performance": {
+        "execution_time_ms": 15,
+        "optimized": true,
+        "index_used": true,
+        "monitored": true
+      },
+      "api_interface": {
+        "endpoint": "/api/database/query",
+        "method": "POST",
+        "standardized": true
+      }
+    }
+  ]
+}

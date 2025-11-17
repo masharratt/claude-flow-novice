@@ -1,0 +1,128 @@
+groups:
+  - name: latency_alerts
+    interval: 30s
+    rules:
+      - alert: HighP99Latency
+        expr: |
+          histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) * 1000 > 7500
+        for: 10m
+        labels:
+          severity: critical
+          component: integration
+        annotations:
+          summary: "P99 latency exceeds threshold"
+          description: "P99 latency is {{ $value | humanize }}ms (threshold: 7500ms)"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: HighP95Latency
+        expr: |
+          histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) * 1000 > 3000
+        for: 10m
+        labels:
+          severity: high
+          component: integration
+        annotations:
+          summary: "P95 latency exceeds threshold"
+          description: "P95 latency is {{ $value | humanize }}ms (threshold: 3000ms)"
+
+      - alert: HighP50Latency
+        expr: |
+          histogram_quantile(0.5, rate(http_request_duration_seconds_bucket[5m])) * 1000 > 750
+        for: 15m
+        labels:
+          severity: warning
+          component: integration
+        annotations:
+          summary: "P50 latency exceeds threshold"
+          description: "P50 latency is {{ $value | humanize }}ms (threshold: 750ms)"
+
+      - alert: DatabaseQueryLatency
+        expr: |
+          histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m])) * 1000 > 5000
+        for: 10m
+        labels:
+          severity: high
+          component: database
+        annotations:
+          summary: "Database query latency too high"
+          description: "P95 query latency is {{ $value | humanize }}ms (threshold: 5000ms)"
+          runbook_url: "docs/ROLLBACK_RUNBOOK.md"
+
+      - alert: DatabaseTransactionLatency
+        expr: |
+          histogram_quantile(0.99, rate(db_transaction_duration_seconds_bucket[5m])) * 1000 > 10000
+        for: 10m
+        labels:
+          severity: high
+          component: database
+        annotations:
+          summary: "Database transaction latency too high"
+          description: "P99 transaction latency is {{ $value | humanize }}ms"
+
+      - alert: CoordinationProtocolLatency
+        expr: |
+          histogram_quantile(0.95, rate(coordination_protocol_latency_seconds_bucket[5m])) * 1000 > 500
+        for: 10m
+        labels:
+          severity: warning
+          component: coordination
+        annotations:
+          summary: "Coordination protocol latency elevated"
+          description: "P95 protocol latency is {{ $value | humanize }}ms (threshold: 500ms)"
+
+      - alert: SkillExecutionLatency
+        expr: |
+          histogram_quantile(0.95, rate(skill_execution_duration_seconds_bucket[5m])) * 1000 > 5000
+        for: 15m
+        labels:
+          severity: warning
+          component: skill_deployment
+        annotations:
+          summary: "Skill execution latency elevated"
+          description: "P95 execution time is {{ $value | humanize }}ms"
+
+      - alert: ArtifactStorageLatency
+        expr: |
+          histogram_quantile(0.95, rate(artifact_storage_latency_seconds_bucket[5m])) * 1000 > 2000
+        for: 10m
+        labels:
+          severity: warning
+          component: artifact_storage
+        annotations:
+          summary: "Artifact storage latency elevated"
+          description: "P95 storage operation latency is {{ $value | humanize }}ms"
+
+      - alert: LatencyIncreaseTwofold
+        expr: |
+          (histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) / on() histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1h] offset 24h))) > 2
+        for: 10m
+        labels:
+          severity: critical
+          component: integration
+        annotations:
+          summary: "Latency doubled compared to baseline"
+          description: "Current latency is 2x baseline - potential degradation"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: QueueDepthBuildup
+        expr: |
+          redis_queue_size > 1000
+        for: 10m
+        labels:
+          severity: high
+          component: coordination
+        annotations:
+          summary: "Queue depth exceeds threshold"
+          description: "Current queue depth: {{ $value }} messages (threshold: 1000)"
+          impact: "Processing latency may increase"
+
+      - alert: ConnectionPoolWaitTime
+        expr: |
+          histogram_quantile(0.95, rate(db_connection_wait_seconds_bucket[5m])) * 1000 > 500
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database connection pool wait time high"
+          description: "P95 wait time is {{ $value | humanize }}ms"

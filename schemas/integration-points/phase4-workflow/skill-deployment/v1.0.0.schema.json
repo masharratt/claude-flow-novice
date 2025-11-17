@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "phase4-workflow/skill-deployment/v1.0.0",
+  "title": "Skill Deployment Schema",
+  "description": "Schema for skill approval to deployment (Integration Point 4.3)",
+  "type": "object",
+  "required": ["deployment_id", "skill_id", "version", "environment", "status", "timestamp"],
+  "properties": {
+    "deployment_id": {
+      "type": "string",
+      "description": "Unique identifier for deployment",
+      "pattern": "^deploy-[a-z0-9-]+$"
+    },
+    "skill_id": {
+      "type": "string",
+      "description": "Skill identifier",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Skill version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["dev", "staging", "production"],
+      "description": "Deployment environment"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "in_progress", "completed", "failed", "rolled_back"],
+      "description": "Deployment status"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Deployment timestamp"
+    },
+    "deployment_method": {
+      "type": "string",
+      "enum": ["manual", "automated", "ci_cd"],
+      "default": "automated"
+    },
+    "pre_deployment_checks": {
+      "type": "object",
+      "description": "Pre-deployment validation",
+      "properties": {
+        "approval_verified": {
+          "type": "boolean"
+        },
+        "tests_passed": {
+          "type": "boolean"
+        },
+        "dependencies_resolved": {
+          "type": "boolean"
+        },
+        "backup_created": {
+          "type": "boolean"
+        }
+      }
+    },
+    "deployment_steps": {
+      "type": "array",
+      "description": "Deployment step execution log",
+      "items": {
+        "type": "object",
+        "required": ["step_name", "status"],
+        "properties": {
+          "step_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "running", "completed", "failed"]
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "rollback_config": {
+      "type": "object",
+      "description": "Rollback configuration",
+      "required": ["enabled", "previous_version"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "previous_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "auto_rollback_triggers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["deployment_failure", "post_deployment_test_failure", "error_rate_high"]
+          }
+        }
+      }
+    },
+    "audit_trail": {
+      "type": "object",
+      "description": "Deployment audit trail",
+      "properties": {
+        "deployed_by": {
+          "type": "string"
+        },
+        "approved_by": {
+          "type": "string"
+        },
+        "deployment_reason": {
+          "type": "string"
+        },
+        "change_ticket": {
+          "type": "string"
+        }
+      }
+    },
+    "post_deployment": {
+      "type": "object",
+      "description": "Post-deployment validation",
+      "properties": {
+        "health_check_passed": {
+          "type": "boolean"
+        },
+        "smoke_tests_passed": {
+          "type": "boolean"
+        },
+        "performance_baseline_met": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "deployment_id": "deploy-cfn-coord-v2-prod",
+      "skill_id": "cfn-coordination",
+      "version": "2.0.0",
+      "environment": "production",
+      "status": "completed",
+      "timestamp": "2025-11-17T11:00:00Z",
+      "deployment_method": "automated",
+      "pre_deployment_checks": {
+        "approval_verified": true,
+        "tests_passed": true,
+        "dependencies_resolved": true,
+        "backup_created": true
+      },
+      "deployment_steps": [
+        {
+          "step_name": "backup_current_version",
+          "status": "completed",
+          "started_at": "2025-11-17T11:00:00Z",
+          "completed_at": "2025-11-17T11:00:30Z"
+        },
+        {
+          "step_name": "deploy_new_version",
+          "status": "completed",
+          "started_at": "2025-11-17T11:00:30Z",
+          "completed_at": "2025-11-17T11:01:00Z"
+        }
+      ],
+      "rollback_config": {
+        "enabled": true,
+        "previous_version": "1.5.0",
+        "auto_rollback_triggers": [
+          "post_deployment_test_failure",
+          "error_rate_high"
+        ]
+      },
+      "audit_trail": {
+        "deployed_by": "deployment-agent",
+        "approved_by": "expert-001",
+        "deployment_reason": "Feature enhancement"
+      },
+      "post_deployment": {
+        "health_check_passed": true,
+        "smoke_tests_passed": true,
+        "performance_baseline_met": true
+      }
+    }
+  ]
+}

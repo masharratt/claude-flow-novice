@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "database-handoffs/reflection-persistence/v1.0.0",
+  "title": "Reflection Persistence Schema",
+  "description": "Schema for persisting reflections from Redis to PostgreSQL (Integration Point 1.4)",
+  "type": "object",
+  "required": ["reflection_id", "task_id", "agent_id", "reflection_type", "content", "timestamp"],
+  "properties": {
+    "reflection_id": {
+      "type": "string",
+      "description": "Unique identifier for reflection",
+      "pattern": "^refl-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Associated task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Agent that created the reflection",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "reflection_type": {
+      "type": "string",
+      "description": "Type of reflection",
+      "enum": ["success", "failure", "learning", "improvement", "edge_case", "performance"]
+    },
+    "content": {
+      "type": "object",
+      "description": "Reflection content",
+      "required": ["summary", "details"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "Brief summary of reflection",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "details": {
+          "type": "string",
+          "description": "Detailed reflection content",
+          "minLength": 10
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When reflection was created"
+    },
+    "redis_key": {
+      "type": "string",
+      "description": "Original Redis key (for tracking)",
+      "pattern": "^reflection:[a-z0-9:-]+$"
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "description": "Original TTL in Redis before persistence",
+      "minimum": 0
+    },
+    "persisted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When reflection was persisted to PostgreSQL"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "reflection_id": "refl-task123-agent456",
+      "task_id": "task-auth-implementation",
+      "agent_id": "backend-developer-001",
+      "reflection_type": "success",
+      "content": {
+        "summary": "Successfully implemented JWT authentication with proper error handling",
+        "details": "Implementation followed security best practices including token rotation, secure storage, and rate limiting.",
+        "confidence_score": 0.92,
+        "tags": ["security", "authentication", "jwt"]
+      },
+      "timestamp": "2025-11-17T10:30:00Z",
+      "redis_key": "reflection:task-auth:backend-developer-001",
+      "ttl_seconds": 3600,
+      "persisted_at": "2025-11-17T10:35:00Z"
+    }
+  ]
+}

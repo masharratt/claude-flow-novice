@@ -1,9 +1,12 @@
 #!/bin/bash
+set -euo pipefail
 
 # CFN Docker Loop Orchestration Implementation
 # Usage: ./orchestrate.sh [OPERATION] [TASK_ID] [OPTIONS]
 
-set -euo pipefail
+# Determine PROJECT_ROOT
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # Detect worktree/branch for environment injection
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
@@ -79,6 +82,7 @@ Options:
   --gate-threshold NUM     Gate threshold (default: 0.75)
   --consensus-threshold NUM Consensus threshold (default: 0.90)
   --context-file PATH      Task context file
+  --success-criteria JSON  Success criteria for test-driven validation
   --timeout SECONDS        Operation timeout
   --memory-limit LIMIT     Agent memory limit
   --network NAME           Docker network
@@ -102,6 +106,72 @@ Examples:
 EOF
 }
 
+# JSON validation helper with security bounds checking
+validate_json_context() {
+    local json_str="$1"
+
+    if [ -z "$json_str" ]; then
+        return 1
+    fi
+
+    # Security: Check size (max 10MB) BEFORE parsing
+    local size=$(echo -n "$json_str" | wc -c)
+    local MAX_JSON_SIZE=10485760  # 10MB limit
+
+    if [ "$size" -gt "$MAX_JSON_SIZE" ]; then
+        log_error "JSON exceeds maximum size (10MB): ${size} bytes"
+        log_error "Security Risk: DoS via excessive memory consumption"
+        return 1
+    fi
+
+    # Validate JSON structure
+    if ! echo "$json_str" | jq empty 2>/dev/null; then
+        log_error "Invalid JSON structure"
+        return 1
+    fi
+
+    # Security: Bounds check - validate array sizes if success criteria
+    if echo "$json_str" | jq -e '.test_suites' >/dev/null 2>&1; then
+        local TEST_SUITE_COUNT=$(echo "$json_str" | jq '.test_suites | length' 2>/dev/null || echo "0")
+        local MAX_TEST_SUITES=50
+
+        if [ "$TEST_SUITE_COUNT" -gt "$MAX_TEST_SUITES" ]; then
+            log_error "Test suites exceed maximum ($MAX_TEST_SUITES): $TEST_SUITE_COUNT"
+            log_error "Security Risk: DoS via resource exhaustion"
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+# Input sanitization helper
+sanitize_input() {
+    local input="$1"
+    local max_length="${2:-256}"
+
+    # SECURITY FIX #2: Command injection prevention - strict alphanumeric whitelist
+    # Allows ONLY: letters, numbers, dash, underscore, space, comma, period, colon
+    local sanitized=$(echo "$input" | tr -cd '[:alnum:] _,.:-')
+
+    # Length bounds check
+    if [ ${#input} -gt "$max_length" ]; then
+        log_error "Input exceeds maximum length ($max_length): ${#input}"
+        return 1
+    fi
+
+    # Reject if input contains shell metacharacters: $, `, ;, |, &, >, <, (, ), {, }, [, ], \, ", ', =
+    if [[ "$input" =~ (\$|`|;|\||&|>|<|\(|\)|\{|\}|\[|\]|\\|\"|\'|=) ]]; then
+        log_error "Input contains dangerous shell metacharacters"
+        log_error "Original: $input"
+        log_error "Security Risk: Command injection attack prevented"
+        return 1
+    fi
+
+    echo "$sanitized"
+    return 0
+}
+
 # Mode configuration
 get_mode_config() {
     local mode="$1"
@@ -121,10 +191,6 @@ get_mode_config() {
             ;;
     esac
 }
-
-# Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$(dirname "$SCRIPT_DIR")/../.." && pwd)"
 
 # Path to skills
 REDIS_COORDINATION_SKILL="$PROJECT_ROOT/.claude/skills/cfn-docker-redis-coordination/coordinate.sh"
@@ -148,6 +214,7 @@ GATE_THRESHOLD="$DEFAULT_GATE_THRESHOLD"
 CONSENSUS_THRESHOLD="$DEFAULT_CONSENSUS_THRESHOLD"
 CONTEXT_FILE=""
 TIMEOUT=""
+SUCCESS_CRITERIA=""
 MEMORY_LIMIT=""
 NETWORK=""
 ADAPTIVE_SELECTION=false
@@ -189,6 +256,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --context-file)
             CONTEXT_FILE="$2"
+            shift 2
+            ;;
+        --success-criteria)
+            SUCCESS_CRITERIA="$2"
             shift 2
             ;;
         --timeout)
@@ -538,6 +609,23 @@ init() {
 }
 EOF
 
+    # Store success criteria if provided
+    if [[ -n "$SUCCESS_CRITERIA" ]]; then
+        if validate_json_context "$SUCCESS_CRITERIA"; then
+            # Store in Redis using coordination skill
+            if command -v redis-cli >/dev/null 2>&1; then
+                redis-cli HSET "task:${task_id}:context" "success-criteria" "$SUCCESS_CRITERIA" >/dev/null 2>&1 || {
+                    log_warning "Failed to store success criteria in Redis, will pass via env vars"
+                }
+                log "Stored success criteria ($(echo "$SUCCESS_CRITERIA" | jq -r '.test_suites | length' 2>/dev/null || echo '0') test suites)"
+            else
+                log_warning "Redis not available, success criteria will be passed via environment variables"
+            fi
+        else
+            log_error "Invalid success criteria JSON, skipping storage"
+        fi
+    fi
+
     log_success "Loop orchestration initialized: $task_id"
 }
 
@@ -553,6 +641,36 @@ spawn_loop3() {
 
     log_loop "Spawning Loop 3 implementers (iteration $iteration)"
     log "Agents: $agents"
+
+    # Load success criteria from Redis (if available)
+    local AGENT_SUCCESS_CRITERIA=""
+    local AGENT_SUCCESS_CRITERIA_B64=""
+
+    if command -v redis-cli >/dev/null 2>&1; then
+        local LOADED_CRITERIA=$(redis-cli HGET "task:${task_id}:context" "success-criteria" 2>/dev/null || echo "")
+
+        if [[ -n "$LOADED_CRITERIA" && "$LOADED_CRITERIA" != "null" ]]; then
+            # Validate JSON
+            if echo "$LOADED_CRITERIA" | jq empty 2>/dev/null; then
+                AGENT_SUCCESS_CRITERIA="$LOADED_CRITERIA"
+
+                # Base64-encode for safe environment variable passing
+                AGENT_SUCCESS_CRITERIA_B64=$(echo -n "$AGENT_SUCCESS_CRITERIA" | base64 -w 0 2>/dev/null || echo -n "$AGENT_SUCCESS_CRITERIA" | base64)
+
+                local TEST_SUITE_COUNT=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.test_suites | length' 2>/dev/null || echo "0")
+                log "Success criteria loaded ($TEST_SUITE_COUNT test suites)"
+            else
+                log_warning "Invalid success criteria JSON in Redis, skipping"
+            fi
+        fi
+    fi
+
+    # Fallback to global SUCCESS_CRITERIA if not in Redis
+    if [[ -z "$AGENT_SUCCESS_CRITERIA" && -n "$SUCCESS_CRITERIA" ]]; then
+        AGENT_SUCCESS_CRITERIA="$SUCCESS_CRITERIA"
+        AGENT_SUCCESS_CRITERIA_B64=$(echo -n "$AGENT_SUCCESS_CRITERIA" | base64 -w 0 2>/dev/null || echo -n "$AGENT_SUCCESS_CRITERIA" | base64)
+        log "Using global success criteria (not in Redis)"
+    fi
 
     # Check for execution plan
     local plan_file="/tmp/cfn-docker-plan-${task_id}.json"
@@ -591,7 +709,7 @@ spawn_loop3() {
         local context_file="/tmp/task-context-${task_id}-loop3-${iteration}-${agent_type}.json"
 
         # Create enhanced context with atomic task assignment
-        cat > "$context_file" << EOF
+        local context_json=$(cat << EOF
 {
   "task_id": "$task_id",
   "loop_number": 3,
@@ -607,6 +725,14 @@ spawn_loop3() {
   "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 EOF
+)
+
+        # Add success criteria if available (stored separately due to potential size)
+        if [[ -n "$AGENT_SUCCESS_CRITERIA_B64" ]]; then
+            context_json=$(echo "$context_json" | jq --arg criteria_b64 "$AGENT_SUCCESS_CRITERIA_B64" '. + {success_criteria_b64: $criteria_b64}')
+        fi
+
+        echo "$context_json" > "$context_file"
 
         # Get task context from Redis if available
         if [[ -n "$CONTEXT_FILE" ]]; then
@@ -616,6 +742,11 @@ EOF
         fi
 
         if [[ "$DRY_RUN" == false ]]; then
+            # Docker container environment: Agent spawning skill will extract
+            # success_criteria_b64 from context file and pass to container via:
+            # docker run --env AGENT_SUCCESS_CRITERIA_B64=<base64-encoded-json>
+            # This enables secure test-driven validation in containerized agents
+
             local agent_id
             agent_id=$("$AGENT_SPAWNING_SKILL" \
                 "$agent_type" \
@@ -730,26 +861,95 @@ gate_check() {
 
     log_loop "Performing gate check for iteration $iteration"
 
-    if monitor_loop3 "$task_id" "$gate_threshold" "$iteration"; then
-        # Gate passed - proceed to Loop 2
-        log_success "Gate PASSED - proceeding to Loop 2 validation"
+    # First, ensure Loop 3 agents have completed
+    if ! monitor_loop3 "$task_id" "$gate_threshold" "$iteration"; then
+        log_error "Loop 3 monitoring failed"
+        return 1
+    fi
 
-        # Signal gate passed for Loop 2 agents
-        "$REDIS_COORDINATION_SKILL" "$REDIS_CMD" LPUSH "cfn_docker:task:$task_id:gate-passed" "proceed" > /dev/null
+    # Get Loop 3 agent IDs for gate check
+    local agents_file="/tmp/loop3-agents-${task_id}-${iteration}.txt"
+    local loop3_agent_ids=""
+
+    if [[ -f "$agents_file" ]]; then
+        loop3_agent_ids=$(cat "$agents_file" | tr '\n' ',' | sed 's/,$//')
+    else
+        log_error "No Loop 3 agent IDs found for gate check"
+        return 1
+    fi
+
+    # Load success criteria from Redis
+    local gate_success_criteria=""
+    if command -v redis-cli >/dev/null 2>&1; then
+        gate_success_criteria=$(redis-cli HGET "task:${task_id}:context" "success-criteria" 2>/dev/null || echo "")
+    fi
+
+    # Fallback to global SUCCESS_CRITERIA
+    if [[ -z "$gate_success_criteria" && -n "$SUCCESS_CRITERIA" ]]; then
+        gate_success_criteria="$SUCCESS_CRITERIA"
+    fi
+
+    # Use test-driven gate check helper if available
+    local GATE_CHECK_HELPER="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/gate-check.sh"
+
+    if [[ -x "$GATE_CHECK_HELPER" ]]; then
+        log "Using test-driven gate check"
+
+        # Prepare arguments
+        local gate_args=(
+            --task-id "$task_id"
+            --agents "$loop3_agent_ids"
+            --threshold "$gate_threshold"
+            --min-quorum "0.66"
+            --mode "$MODE"
+        )
+
+        # Add success criteria if available
+        if [[ -n "$gate_success_criteria" ]]; then
+            gate_args+=(--success-criteria "$gate_success_criteria")
+            gate_args+=(--strategy "test-driven")
+        else
+            gate_args+=(--strategy "confidence")
+            log_warning "No success criteria available, using confidence-based gate check"
+        fi
+
+        if "$GATE_CHECK_HELPER" "${gate_args[@]}"; then
+            # Gate passed - proceed to Loop 2
+            log_success "Gate PASSED - proceeding to Loop 2 validation"
+
+            # Signal gate passed for Loop 2 agents
+            if command -v redis-cli >/dev/null 2>&1; then
+                redis-cli LPUSH "cfn_docker:task:$task_id:gate-passed" "proceed" > /dev/null 2>&1 || true
+            fi
+
+            return 0
+        else
+            # Gate failed - check if we can iterate
+            if [[ $iteration -lt $max_iterations ]]; then
+                log_warning "Gate FAILED - iterating Loop 3 ($iteration/$max_iterations)"
+
+                # Force next iteration
+                spawn_loop3 "$task_id" "$AGENTS" $((iteration + 1))
+                return 2  # Signal to iterate
+            else
+                log_error "Gate FAILED - max iterations reached ($max_iterations)"
+                return 1
+            fi
+        fi
+    else
+        # Fallback to legacy confidence-based gate check
+        log_warning "Gate check helper not found, using legacy confidence-based validation"
+
+        # The monitor_loop3 function already checked confidence
+        # If we got here, monitoring succeeded, so gate passes
+        log_success "Gate PASSED (legacy mode)"
+
+        # Signal gate passed
+        if command -v redis-cli >/dev/null 2>&1; then
+            redis-cli LPUSH "cfn_docker:task:$task_id:gate-passed" "proceed" > /dev/null 2>&1 || true
+        fi
 
         return 0
-    else
-        # Gate failed - check if we can iterate
-        if [[ $iteration -lt $max_iterations ]]; then
-            log_warning "Gate FAILED - iterating Loop 3 ($iteration/$max_iterations)"
-
-            # Force next iteration
-            spawn_loop3 "$task_id" "$AGENTS" $((iteration + 1))
-            return 2  # Signal to iterate
-        else
-            log_error "Gate FAILED - max iterations reached ($max_iterations)"
-            return 1
-        fi
     fi
 }
 

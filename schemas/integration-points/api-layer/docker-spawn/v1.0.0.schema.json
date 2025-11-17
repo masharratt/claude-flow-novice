@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api-layer/docker-spawn/v1.0.0",
+  "title": "Docker API Agent Spawning Schema",
+  "description": "Schema for Docker agent spawning API (Integration Point 5.6)",
+  "type": "object",
+  "required": ["spawn_id", "image", "container_name", "timestamp"],
+  "properties": {
+    "spawn_id": {
+      "type": "string",
+      "description": "Unique identifier for spawn operation",
+      "pattern": "^docker-spawn-[a-z0-9-]+$"
+    },
+    "image": {
+      "type": "string",
+      "description": "Docker image name and tag",
+      "pattern": "^[a-z0-9-]+:[a-z0-9.-]+$"
+    },
+    "container_name": {
+      "type": "string",
+      "description": "Container name",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Spawn timestamp"
+    },
+    "docker_api_call": {
+      "type": "object",
+      "description": "Docker API call details",
+      "required": ["endpoint", "method"],
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "Docker API endpoint",
+          "pattern": "^/v[0-9.]+/containers.*"
+        },
+        "method": {
+          "type": "string",
+          "enum": ["POST", "GET", "DELETE"]
+        },
+        "request_body": {
+          "type": "object"
+        },
+        "response_status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        }
+      }
+    },
+    "resource_limits": {
+      "type": "object",
+      "description": "Container resource limits",
+      "properties": {
+        "memory_mb": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 512
+        },
+        "cpu_shares": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1024
+        },
+        "storage_mb": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "health_check": {
+      "type": "object",
+      "description": "Health check configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "test": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Health check command"
+        },
+        "interval_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 3
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "description": "Environment variables",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "volumes": {
+      "type": "array",
+      "description": "Volume mounts",
+      "items": {
+        "type": "object",
+        "required": ["source", "target"],
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["ro", "rw"],
+            "default": "rw"
+          }
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "driver": {
+          "type": "string",
+          "enum": ["json-file", "syslog", "journald", "none"],
+          "default": "json-file"
+        },
+        "options": {
+          "type": "object",
+          "properties": {
+            "max-size": {
+              "type": "string",
+              "default": "10m"
+            },
+            "max-file": {
+              "type": "string",
+              "default": "3"
+            }
+          }
+        }
+      }
+    },
+    "container_info": {
+      "type": "object",
+      "description": "Container information after spawn",
+      "properties": {
+        "container_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{12,64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["created", "running", "exited", "failed"]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "spawn_id": "docker-spawn-agent-001",
+      "image": "cfn-agent:latest",
+      "container_name": "backend-developer-001",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "docker_api_call": {
+        "endpoint": "/v1.41/containers/create",
+        "method": "POST",
+        "response_status": 201
+      },
+      "resource_limits": {
+        "memory_mb": 512,
+        "cpu_shares": 1024
+      },
+      "health_check": {
+        "enabled": true,
+        "test": ["CMD", "curl", "-f", "http://localhost:8080/health"],
+        "interval_seconds": 30,
+        "timeout_seconds": 10,
+        "retries": 3
+      },
+      "environment": {
+        "AGENT_TYPE": "backend-developer",
+        "TASK_ID": "task-auth-implementation"
+      },
+      "volumes": [
+        {
+          "source": "/var/lib/docker/volumes/cfn-skills/_data",
+          "target": "/skills",
+          "mode": "ro"
+        }
+      ],
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-size": "10m",
+          "max-file": "3"
+        }
+      },
+      "container_info": {
+        "container_id": "a1b2c3d4e5f6",
+        "status": "running",
+        "started_at": "2025-11-17T10:30:05Z"
+      }
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api-layer/prompt-builder-integration/v1.0.0",
+  "title": "Agent Prompt Builder Integration Schema",
+  "description": "Schema for agent prompt builder skill integration (Integration Point 5.2)",
+  "type": "object",
+  "required": ["integration_id", "agent_type", "skill_ids", "timestamp"],
+  "properties": {
+    "integration_id": {
+      "type": "string",
+      "description": "Unique identifier for integration",
+      "pattern": "^prompt-int-[a-z0-9-]+$"
+    },
+    "agent_type": {
+      "type": "string",
+      "description": "Type of agent",
+      "pattern": "^[a-z-]+$"
+    },
+    "skill_ids": {
+      "type": "array",
+      "description": "Skills to load for this agent",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "minItems": 0,
+      "maxItems": 50
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Integration timestamp"
+    },
+    "skill_loading": {
+      "type": "object",
+      "description": "Skill loading configuration",
+      "properties": {
+        "loading_strategy": {
+          "type": "string",
+          "enum": ["lazy", "eager", "on_demand"],
+          "default": "lazy"
+        },
+        "cache_enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "load_latency_ms": {
+          "type": "integer",
+          "description": "Time to load skills",
+          "minimum": 0
+        }
+      }
+    },
+    "context_injection": {
+      "type": "object",
+      "description": "Context injection configuration",
+      "required": ["method"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["prepend", "append", "merge"],
+          "default": "prepend"
+        },
+        "skills_injected": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "skill_id": {
+                "type": "string"
+              },
+              "injection_position": {
+                "type": "string",
+                "enum": ["system", "user", "assistant"]
+              },
+              "content_length": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "total_context_length": {
+          "type": "integer",
+          "description": "Total length of injected context"
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "description": "Performance metrics",
+      "properties": {
+        "baseline_ms": {
+          "type": "integer",
+          "description": "Performance baseline (target <100ms)",
+          "maximum": 100
+        },
+        "actual_ms": {
+          "type": "integer",
+          "description": "Actual loading time"
+        },
+        "baseline_met": {
+          "type": "boolean"
+        }
+      }
+    },
+    "error_handling": {
+      "type": "object",
+      "description": "Error handling configuration",
+      "properties": {
+        "missing_skill_behavior": {
+          "type": "string",
+          "enum": ["error", "warn", "skip"],
+          "default": "warn"
+        },
+        "load_failure_behavior": {
+          "type": "string",
+          "enum": ["retry", "skip", "abort"],
+          "default": "retry"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "integration_id": "prompt-int-backend-001",
+      "agent_type": "backend-developer",
+      "skill_ids": [
+        "cfn-coordination",
+        "database-query-optimization",
+        "api-design"
+      ],
+      "timestamp": "2025-11-17T10:30:00Z",
+      "skill_loading": {
+        "loading_strategy": "lazy",
+        "cache_enabled": true,
+        "load_latency_ms": 45
+      },
+      "context_injection": {
+        "method": "prepend",
+        "skills_injected": [
+          {
+            "skill_id": "cfn-coordination",
+            "injection_position": "system",
+            "content_length": 2048
+          },
+          {
+            "skill_id": "database-query-optimization",
+            "injection_position": "system",
+            "content_length": 1536
+          }
+        ],
+        "total_context_length": 3584
+      },
+      "performance": {
+        "baseline_ms": 100,
+        "actual_ms": 45,
+        "baseline_met": true
+      },
+      "error_handling": {
+        "missing_skill_behavior": "warn",
+        "load_failure_behavior": "retry"
+      }
+    }
+  ]
+}

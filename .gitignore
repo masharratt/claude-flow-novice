@@ -202,7 +202,4 @@ legacy/v1/**/.next/planning/global/
 
 # Pre-Edit Backup System
 .backups/
-
-# Backup files
 *.backup
-*.bak

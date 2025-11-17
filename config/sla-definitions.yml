@@ -1,0 +1,150 @@
+# SLA Definitions for Performance Monitoring
+# Production Configuration
+#
+# Each SLA definition specifies performance targets and baseline percentiles
+# Used to track and alert on performance degradation
+#
+# SLA Target: <X>ms = P50 should be below X ms
+# Baseline P95: Performance threshold for 95th percentile
+# Baseline P99: Performance threshold for 99th percentile
+#
+# See docs/PERFORMANCE_MONITORING_GUIDE.md for detailed configuration
+
+slas:
+  # Agent Startup SLA
+  # Target: Initialize new agent in <2s
+  # Used for: Agent spawning, initialization
+  agent_startup:
+    target: 2000           # ms - median response time target
+    p95: 2000              # 95th percentile - 95% of startups should be <2s
+    p99: 5000              # 99th percentile - 99% of startups should be <5s
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Query Execution SLA
+  # Target: Execute database queries in <5s
+  # Used for: Database queries, API calls
+  query_execution:
+    target: 5000           # ms - median response time target
+    p95: 5000              # 95th percentile - 95% of queries should be <5s
+    p99: 10000             # 99th percentile - 99% of queries should be <10s
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Skill Execution SLA
+  # Target: Complete skill execution in <30s
+  # Used for: Skill runs, custom operations
+  skill_execution:
+    target: 30000          # ms - median response time target
+    p95: 30000             # 95th percentile - 95% of skills should complete in <30s
+    p99: 60000             # 99th percentile - 99% of skills should complete in <60s
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Transaction Commit SLA
+  # Target: Commit database transaction in <5s
+  # Used for: Database transactions, writes
+  transaction_commit:
+    target: 5000           # ms - median response time target
+    p95: 5000              # 95th percentile - 95% of commits should be <5s
+    p99: 10000             # 99th percentile - 99% of commits should be <10s
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Log Shipment SLA
+  # Target: Ship logs in <1s
+  # Used for: Log aggregation, metrics export
+  log_shipment:
+    target: 1000           # ms - median shipment time
+    p95: 1000              # 95th percentile
+    p99: 2000              # 99th percentile
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Checkpoint Save SLA
+  # Target: Save checkpoint in <5s
+  # Used for: State management, distributed coordination
+  checkpoint_save:
+    target: 5000           # ms - median save time
+    p95: 5000              # 95th percentile
+    p99: 10000             # 99th percentile
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+  # Cache Lookup SLA
+  # Target: Cache lookup in <100ms
+  # Used for: In-memory cache, rapid access patterns
+  cache_lookup:
+    target: 100            # ms - median lookup time
+    p95: 100               # 95th percentile
+    p99: 500               # 99th percentile
+    enabled: true
+    alert_threshold: 1.2   # Alert if performance degrades >20%
+
+# Global SLA Configuration
+global:
+  # Monthly SLA violation threshold (target <5%)
+  # This means we aim for >95% compliance monthly
+  monthly_violation_target: 0.05
+
+  # Degradation detection parameters
+  degradation_window_minutes: 5      # Evaluate last 5 minutes of data
+  degradation_threshold_percent: 20  # Alert if >20% degradation from baseline
+  degradation_consecutive_samples: 5 # Require 5+ samples to declare degradation
+
+  # Alert configuration
+  alert_resolution_hours: 24         # Auto-resolve alerts after 24h if not re-triggered
+  alert_batch_window_minutes: 5      # Batch similar alerts within 5 minute window
+  alert_max_frequency_per_hour: 10   # Max 10 alerts per operation per hour
+
+  # Retention policy
+  metrics_retention_days: 90          # Keep detailed metrics for 90 days
+  alerts_retention_days: 365          # Keep alert history for 1 year
+  baseline_calculation_days: 30       # Default baseline window (30 days of history)
+  baseline_cache_ttl_minutes: 5       # Cache baseline calculations for 5 minutes
+
+  # Performance targets for monitoring service itself
+  metric_recording_overhead_ms: 10    # Recording should add <10ms overhead
+  baseline_calculation_target_ms: 5000 # Calculation should complete in <5s
+  sla_check_target_ms: 50             # SLA checks should complete in <50ms
+
+# Alerting thresholds
+alerting:
+  # SLA violation alert conditions
+  violation_alert:
+    enabled: true
+    level: warning                    # Alert level for SLA violations
+    threshold: 1                       # Alert on every violation
+
+  # Degradation alert conditions
+  degradation_alert:
+    enabled: true
+    level: warning                    # Alert level for degradation
+    threshold: 1.2                    # Alert if >20% degradation
+
+  # Critical threshold alerts
+  critical_alert:
+    enabled: true
+    level: critical                   # Alert level for critical threshold
+    threshold: 1.5                    # Alert if >50% degradation
+
+# Notification channels
+notifications:
+  # Email notifications for critical alerts
+  email:
+    enabled: true
+    critical_only: false
+    recipients: []                    # Configure in environment or secrets
+
+  # Slack notifications for performance issues
+  slack:
+    enabled: true
+    critical_only: true
+    channel: '#performance-alerts'
+    webhook_url: "${SLACK_WEBHOOK_PERFORMANCE}"  # Set via environment variable
+
+  # PagerDuty for critical incidents
+  pagerduty:
+    enabled: false
+    critical_only: true
+    api_key: "${PAGERDUTY_API_KEY}"   # Set via environment variable

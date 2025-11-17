@@ -47,7 +47,9 @@ export interface TransactionContext {
   id: string;
   databases: Array<'redis' | 'sqlite' | 'postgres'>;
   startTime: Date;
-  status: 'pending' | 'committed' | 'rolled_back';
+  status: 'pending' | 'preparing' | 'prepared' | 'committing' | 'committed' | 'aborting' | 'aborted' | 'rolled_back';
+  connection?: any; // Optional connection reference for pool management
+  preparedAt?: Date; // Timestamp when transaction was prepared (2PC)
 }
 
 /**
@@ -178,6 +180,13 @@ export interface IDatabaseAdapter {
    * Begin transaction
    */
   beginTransaction(): Promise<TransactionContext>;
+
+  /**
+   * Prepare transaction for two-phase commit (Phase 1)
+   * Validates that the transaction can commit and locks resources
+   * @returns true if prepared successfully, false otherwise
+   */
+  prepareTransaction(context: TransactionContext): Promise<boolean>;
 
   /**
    * Commit transaction

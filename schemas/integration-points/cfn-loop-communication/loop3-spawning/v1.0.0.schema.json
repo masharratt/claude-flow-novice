@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cfn-loop-communication/loop3-spawning/v1.0.0",
+  "title": "Loop 3 Agent Spawning Schema",
+  "description": "Schema for spawning Loop 3 agents via CLI (Integration Point 3.3)",
+  "type": "object",
+  "required": ["spawn_id", "task_id", "agent_type", "agent_id", "cli_command", "timestamp"],
+  "properties": {
+    "spawn_id": {
+      "type": "string",
+      "description": "Unique identifier for spawn operation",
+      "pattern": "^spawn-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "agent_type": {
+      "type": "string",
+      "description": "Type of agent to spawn",
+      "pattern": "^[a-z-]+$"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Unique agent instance ID",
+      "pattern": "^[a-z0-9-]+-\\d+$"
+    },
+    "cli_command": {
+      "type": "string",
+      "description": "Full CLI command used for spawning",
+      "pattern": "^npx claude-flow-novice agent-spawn.*"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Spawn timestamp"
+    },
+    "context_injection": {
+      "type": "object",
+      "description": "Context injected into agent",
+      "required": ["validated"],
+      "properties": {
+        "validated": {
+          "type": "boolean",
+          "description": "Whether context was validated"
+        },
+        "broadcast_messages": {
+          "type": "array",
+          "description": "Broadcast messages injected",
+          "items": {
+            "type": "string"
+          }
+        },
+        "previous_iteration_context": {
+          "type": "object",
+          "description": "Context from previous iteration"
+        }
+      }
+    },
+    "timeout_config": {
+      "type": "object",
+      "description": "Timeout configuration",
+      "properties": {
+        "spawn_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 60
+        },
+        "execution_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 600
+        }
+      }
+    },
+    "process_info": {
+      "type": "object",
+      "description": "Process information",
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "description": "Process ID"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["spawning", "running", "completed", "failed", "timeout"]
+        }
+      }
+    },
+    "protocol_enforcement": {
+      "type": "object",
+      "description": "Protocol compliance enforcement",
+      "properties": {
+        "completion_signal_required": {
+          "type": "boolean",
+          "default": true
+        },
+        "confidence_report_required": {
+          "type": "boolean",
+          "default": true
+        },
+        "prevent_consensus_on_vapor": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "spawn_id": "spawn-backend-001",
+      "task_id": "task-auth-implementation",
+      "agent_type": "backend-developer",
+      "agent_id": "backend-developer-001",
+      "cli_command": "npx claude-flow-novice agent-spawn --type=backend-developer --task-id=task-auth-implementation",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "context_injection": {
+        "validated": true,
+        "broadcast_messages": [
+          "Implement JWT authentication with proper error handling"
+        ]
+      },
+      "timeout_config": {
+        "spawn_timeout_seconds": 60,
+        "execution_timeout_seconds": 600
+      },
+      "process_info": {
+        "pid": 12345,
+        "started_at": "2025-11-17T10:30:05Z",
+        "status": "running"
+      },
+      "protocol_enforcement": {
+        "completion_signal_required": true,
+        "confidence_report_required": true,
+        "prevent_consensus_on_vapor": true
+      }
+    }
+  ]
+}

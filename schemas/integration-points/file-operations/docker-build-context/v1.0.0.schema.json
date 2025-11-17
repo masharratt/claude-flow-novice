@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/docker-build-context/v1.0.0",
+  "title": "Docker Build Context Schema",
+  "description": "Schema for Linux-native Docker build context transfer (Integration Point 2.5)",
+  "type": "object",
+  "required": ["build_id", "source_path", "linux_path", "dockerfile", "image_name", "timestamp"],
+  "properties": {
+    "build_id": {
+      "type": "string",
+      "description": "Unique identifier for build operation",
+      "pattern": "^build-[a-z0-9-]+$"
+    },
+    "source_path": {
+      "type": "string",
+      "description": "Source path (may be Windows mount)",
+      "pattern": "^/.*"
+    },
+    "linux_path": {
+      "type": "string",
+      "description": "Linux-native build path (/tmp/cfn-build)",
+      "pattern": "^/tmp/cfn-build.*"
+    },
+    "dockerfile": {
+      "type": "string",
+      "description": "Relative path to Dockerfile",
+      "pattern": "^docker/Dockerfile\\..+$"
+    },
+    "image_name": {
+      "type": "string",
+      "description": "Docker image name and tag",
+      "pattern": "^[a-z0-9-]+:[a-z0-9.-]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Build start timestamp"
+    },
+    "context_size_bytes": {
+      "type": "integer",
+      "description": "Build context size in bytes",
+      "minimum": 0
+    },
+    "transfer_duration_ms": {
+      "type": "integer",
+      "description": "Time to transfer context to Linux storage",
+      "minimum": 0
+    },
+    "build_duration_ms": {
+      "type": "integer",
+      "description": "Docker build duration",
+      "minimum": 0
+    },
+    "performance_metrics": {
+      "type": "object",
+      "description": "Performance comparison",
+      "properties": {
+        "wsl2_windows_mount": {
+          "type": "boolean",
+          "description": "Whether Windows mount was detected"
+        },
+        "speedup_factor": {
+          "type": "number",
+          "description": "Build speedup vs Windows mount (e.g., 96 for 96x faster)",
+          "minimum": 1
+        },
+        "baseline_duration_ms": {
+          "type": "integer",
+          "description": "Expected duration on Windows mount"
+        }
+      }
+    },
+    "build_script_used": {
+      "type": "boolean",
+      "description": "Whether Linux build script was used",
+      "default": true
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "build_id": "build-cfn-agent-001",
+      "source_path": "/home/user/claude-flow-novice",
+      "linux_path": "/tmp/cfn-build/build-cfn-agent-001",
+      "dockerfile": "docker/Dockerfile.agent",
+      "image_name": "cfn-agent:latest",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "context_size_bytes": 52428800,
+      "transfer_duration_ms": 150,
+      "build_duration_ms": 18000,
+      "performance_metrics": {
+        "wsl2_windows_mount": false,
+        "speedup_factor": 96,
+        "baseline_duration_ms": 755000
+      },
+      "build_script_used": true
+    }
+  ]
+}

@@ -3,6 +3,8 @@
 [![npm version](https://badge.fury.io/js/claude-flow-novice.svg)](https://badge.fury.io/js/claude-flow-novice)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![CI Pipeline](https://github.com/yourusername/claude-flow-novice/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/claude-flow-novice/actions/workflows/ci.yml)
+[![Coverage Report](https://img.shields.io/badge/coverage-dynamic-blue)](docs/CI_CD_PIPELINE.md)
 
 A production-ready AI agent orchestration system with autonomous self-correcting workflows, multi-domain support, and intelligent learning capabilities. Built for developers who need reliable, cost-effective agent coordination.
 
@@ -835,6 +837,54 @@ npm run dev
 # Build for production
 npm run build
 ```
+
+### Testing & CI/CD
+
+```bash
+# Run all tests
+npm run test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run integration tests
+npm run test:integration
+
+# Run performance tests
+npm run test:performance
+
+# Type checking
+npm run typecheck
+```
+
+The project uses comprehensive CI/CD pipelines with GitHub Actions:
+
+- **CI Pipeline** (`ci.yml`): Automated testing, linting, and coverage verification on every push/PR
+  - Unit tests (Node 18 & 20)
+  - Integration tests with Redis & PostgreSQL
+  - Coverage gates (80%+ lines/statements/functions, 75%+ branches)
+  - ESLint and TypeScript type checking
+  - Performance benchmarks
+
+- **CD Pipeline** (`cd.yml`): Automated deployment with zero-downtime capability
+  - Automatic staging deployment after CI passes
+  - Manual production approval with health checks
+  - Automatic rollback on failure
+  - Backup and restore capabilities
+
+- **Coverage Pipeline** (`coverage.yml`): Coverage reporting and badge generation
+  - Codecov integration
+  - Coverage trends and historical tracking
+  - Strict coverage enforcement for critical paths
+
+- **Security Pipeline** (`security-enhanced.yml`): Multi-layer security scanning
+  - Dependency vulnerability scanning (npm audit)
+  - Static analysis (SAST) for common vulnerabilities
+  - Secret detection (TruffleHog)
+  - License compliance checking
+  - Supply chain security verification
+
+See [CI/CD Pipeline Documentation](docs/CI_CD_PIPELINE.md) for full details on workflow architecture, coverage gates, security scanning, and deployment procedures.
 
 ---
 

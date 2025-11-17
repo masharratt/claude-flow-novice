@@ -1,0 +1,381 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://cfn-dev.io/schemas/skill-markdown-v1.json",
+  "title": "CFN Skill Markdown Format v1.0",
+  "description": "JSON Schema for CFN skill markdown files with frontmatter and required sections",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["frontmatter", "sections"],
+  "properties": {
+    "frontmatter": {
+      "$ref": "#/definitions/frontmatter"
+    },
+    "sections": {
+      "$ref": "#/definitions/sections"
+    },
+    "rawContent": {
+      "type": "string",
+      "description": "Complete markdown content including frontmatter"
+    }
+  },
+  "definitions": {
+    "frontmatter": {
+      "type": "object",
+      "description": "YAML frontmatter containing skill metadata",
+      "required": ["name", "version", "category", "status"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Skill identifier in kebab-case (lowercase with hyphens)",
+          "pattern": "^[a-z0-9-]+$",
+          "minLength": 3,
+          "maxLength": 64,
+          "examples": [
+            "cfn-coordination",
+            "agent-spawning",
+            "pre-edit-backup"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic version following MAJOR.MINOR.PATCH format",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "examples": [
+            "1.0.0",
+            "2.15.3",
+            "0.1.0"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "description": "Skill category for organization and discovery",
+          "minLength": 3,
+          "maxLength": 64,
+          "examples": [
+            "coordination",
+            "testing",
+            "documentation",
+            "security",
+            "infrastructure"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the skill",
+          "enum": ["active", "deprecated", "experimental"],
+          "default": "active"
+        },
+        "author": {
+          "type": "string",
+          "description": "Optional author or maintainer name",
+          "minLength": 2,
+          "maxLength": 128,
+          "examples": [
+            "CFN Team",
+            "John Doe"
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "description": "Optional array of relevant tags for filtering and search",
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 32,
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "uniqueItems": true,
+          "minItems": 0,
+          "maxItems": 10,
+          "examples": [
+            ["redis", "coordination", "cli"],
+            ["testing", "validation"],
+            ["backup", "safety"]
+          ]
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Optional list of skill dependencies",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "uniqueItems": true
+        },
+        "deprecated_by": {
+          "type": "string",
+          "description": "If deprecated, the skill that replaces this one",
+          "pattern": "^[a-z0-9-]+$"
+        }
+      },
+      "additionalProperties": true
+    },
+    "sections": {
+      "type": "object",
+      "description": "Required markdown sections with minimum content requirements",
+      "required": ["overview", "usage", "examples", "implementation", "testing"],
+      "properties": {
+        "overview": {
+          "type": "string",
+          "description": "Brief description of skill purpose and functionality",
+          "minLength": 10,
+          "maxLength": 5000
+        },
+        "usage": {
+          "type": "string",
+          "description": "Instructions on how to use the skill",
+          "minLength": 10,
+          "maxLength": 10000
+        },
+        "examples": {
+          "type": "string",
+          "description": "Code examples demonstrating skill usage",
+          "minLength": 10,
+          "maxLength": 20000
+        },
+        "implementation": {
+          "type": "string",
+          "description": "Implementation details and technical specifications",
+          "minLength": 10,
+          "maxLength": 20000
+        },
+        "testing": {
+          "type": "string",
+          "description": "Testing procedures and validation steps",
+          "minLength": 10,
+          "maxLength": 10000
+        },
+        "troubleshooting": {
+          "type": "string",
+          "description": "Optional troubleshooting guide",
+          "minLength": 10,
+          "maxLength": 5000
+        },
+        "migration": {
+          "type": "string",
+          "description": "Optional migration guide for deprecated skills",
+          "minLength": 10,
+          "maxLength": 5000
+        }
+      },
+      "additionalProperties": false
+    },
+    "codeBlock": {
+      "type": "object",
+      "description": "Validated code block with language specifier",
+      "required": ["hasLanguage", "language", "content"],
+      "properties": {
+        "hasLanguage": {
+          "type": "boolean",
+          "description": "Whether code block has a language specifier",
+          "const": true
+        },
+        "language": {
+          "type": "string",
+          "description": "Programming language or format",
+          "enum": [
+            "bash",
+            "sh",
+            "typescript",
+            "javascript",
+            "json",
+            "yaml",
+            "markdown",
+            "python",
+            "rust",
+            "go",
+            "dockerfile",
+            "sql",
+            "regex"
+          ],
+          "minLength": 2
+        },
+        "content": {
+          "type": "string",
+          "description": "Code block content",
+          "minLength": 1
+        },
+        "line": {
+          "type": "number",
+          "description": "Line number where block starts",
+          "minimum": 1
+        }
+      }
+    },
+    "validationError": {
+      "type": "object",
+      "description": "Validation error found in skill file",
+      "required": ["type", "severity", "message"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "missing_frontmatter",
+            "invalid_frontmatter",
+            "missing_section",
+            "section_too_short",
+            "code_block_no_language",
+            "broken_link",
+            "invalid_heading_hierarchy",
+            "invalid_version",
+            "invalid_name_format"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["error", "warning", "info"]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 5
+        },
+        "line": {
+          "type": "number",
+          "description": "Line number where error occurs",
+          "minimum": 1
+        },
+        "suggestion": {
+          "type": "string",
+          "description": "Optional suggestion for fixing the error"
+        }
+      }
+    },
+    "validationResult": {
+      "type": "object",
+      "description": "Complete validation result for a skill file",
+      "required": ["file", "valid", "errors"],
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Absolute path to skill file",
+          "minLength": 1
+        },
+        "valid": {
+          "type": "boolean",
+          "description": "Whether file passes all validation"
+        },
+        "errors": {
+          "type": "array",
+          "description": "Array of validation errors",
+          "items": {
+            "$ref": "#/definitions/validationError"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "description": "Array of validation warnings",
+          "items": {
+            "$ref": "#/definitions/validationError"
+          }
+        },
+        "fixed": {
+          "type": "boolean",
+          "description": "Whether auto-fix was applied",
+          "default": false
+        },
+        "fixedIssues": {
+          "type": "array",
+          "description": "Issues that were automatically fixed",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "complianceReport": {
+      "type": "object",
+      "description": "Aggregated compliance report for all skills",
+      "required": ["totalSkills", "validSkills", "invalidSkills", "results"],
+      "properties": {
+        "totalSkills": {
+          "type": "number",
+          "description": "Total number of skill files scanned",
+          "minimum": 0
+        },
+        "validSkills": {
+          "type": "number",
+          "description": "Number of valid skill files",
+          "minimum": 0
+        },
+        "invalidSkills": {
+          "type": "number",
+          "description": "Number of invalid skill files",
+          "minimum": 0
+        },
+        "compliancePercentage": {
+          "type": "number",
+          "description": "Percentage of compliant skills",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "commonIssues": {
+          "type": "object",
+          "description": "Frequency count of common issues",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0
+          }
+        },
+        "results": {
+          "type": "array",
+          "description": "Individual validation results",
+          "items": {
+            "$ref": "#/definitions/validationResult"
+          }
+        },
+        "migrationNeeded": {
+          "type": "array",
+          "description": "Skills requiring migration",
+          "items": {
+            "type": "object",
+            "required": ["file", "issues"],
+            "properties": {
+              "file": {
+                "type": "string"
+              },
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "priority": {
+                "type": "string",
+                "enum": ["high", "medium", "low"]
+              }
+            }
+          }
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the report was generated"
+        },
+        "generatedBy": {
+          "type": "string",
+          "description": "Tool that generated the report",
+          "default": "validate-all-skills"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "frontmatter": {
+        "name": "cfn-coordination",
+        "version": "1.0.0",
+        "category": "coordination",
+        "status": "active",
+        "author": "CFN Team",
+        "tags": ["redis", "coordination", "cli"]
+      },
+      "sections": {
+        "overview": "This skill provides Redis-based coordination for CFN Loop agents.",
+        "usage": "Import coordination functions and call with task ID.",
+        "examples": "```bash\n./.claude/skills/cfn-coordination/coordinate.sh\n```",
+        "implementation": "Implemented using Redis pub/sub and BLPOP for zero-token blocking.",
+        "testing": "Run tests with: npm test -- coordination"
+      }
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cfn-loop-communication/task-mode-spawn/v1.0.0",
+  "title": "Task Mode Agent Spawning Schema",
+  "description": "Schema for direct agent spawning in Task Mode (Integration Point 3.7)",
+  "type": "object",
+  "required": ["spawn_id", "task_id", "agent_type", "agent_id", "spawned_by", "timestamp"],
+  "properties": {
+    "spawn_id": {
+      "type": "string",
+      "description": "Unique identifier for spawn operation",
+      "pattern": "^task-spawn-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "agent_type": {
+      "type": "string",
+      "description": "Type of agent to spawn",
+      "pattern": "^[a-z-]+$"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Unique agent instance ID",
+      "pattern": "^[a-z0-9-]+-\\d+$"
+    },
+    "spawned_by": {
+      "type": "string",
+      "enum": ["main-chat", "coordinator"],
+      "description": "Who spawned the agent",
+      "default": "main-chat"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Spawn timestamp"
+    },
+    "task_tool_invocation": {
+      "type": "object",
+      "description": "Task() tool invocation details",
+      "required": ["agent_type", "prompt"],
+      "properties": {
+        "agent_type": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Prompt sent to agent",
+          "minLength": 10
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "visibility": {
+      "type": "string",
+      "enum": ["full", "partial", "none"],
+      "description": "Visibility level in Main Chat",
+      "default": "full"
+    },
+    "lifecycle_tracking": {
+      "type": "object",
+      "description": "SQLite lifecycle tracking (if enabled)",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "db_path": {
+          "type": "string",
+          "pattern": "^.*\\.db$"
+        },
+        "agent_record_id": {
+          "type": "string"
+        }
+      }
+    },
+    "completion_protocol": {
+      "type": "object",
+      "description": "Task mode completion protocol",
+      "properties": {
+        "coordination_signals_required": {
+          "type": "boolean",
+          "description": "Whether coordination signals are required (false for Task mode)",
+          "default": false
+        },
+        "output_returned_to": {
+          "type": "string",
+          "enum": ["main-chat", "coordinator"],
+          "default": "main-chat"
+        }
+      }
+    },
+    "cost_tracking": {
+      "type": "object",
+      "properties": {
+        "cost_per_iteration_usd": {
+          "type": "number",
+          "description": "Cost per iteration in Task mode",
+          "default": 0.150
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "spawn_id": "task-spawn-backend-001",
+      "task_id": "task-debug-auth",
+      "agent_type": "backend-developer",
+      "agent_id": "backend-developer-debug-001",
+      "spawned_by": "main-chat",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "task_tool_invocation": {
+        "agent_type": "backend-developer",
+        "prompt": "Debug authentication issue in src/lib/auth.ts",
+        "timeout_ms": 300000
+      },
+      "visibility": "full",
+      "lifecycle_tracking": {
+        "enabled": true,
+        "db_path": "./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db",
+        "agent_record_id": "backend-developer-debug-001"
+      },
+      "completion_protocol": {
+        "coordination_signals_required": false,
+        "output_returned_to": "main-chat"
+      },
+      "cost_tracking": {
+        "cost_per_iteration_usd": 0.150
+      }
+    }
+  ]
+}

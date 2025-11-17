@@ -3,6 +3,9 @@
  *
  * Implements IDatabaseAdapter for SQLite with prepared statements and connection pooling.
  * Part of Task 0.4: Database Query Abstraction Layer (MVP)
+ *
+ * UPDATED: Now uses ConnectionPoolManager for proper connection pool initialization,
+ * health checks, automatic reconnection, and connection metrics.
  */
 
 import sqlite3 from 'sqlite3';
@@ -22,131 +25,197 @@ import {
   createFailedResult,
   mapSQLiteError,
 } from './errors';
+import { ConnectionPoolManager } from './connection-pool-manager';
+import { withDatabaseRetry } from '../retry-manager';
+import { ErrorAggregator } from '../error-aggregator';
+import { v4 as uuidv4 } from 'uuid';
 
 export class SQLiteAdapter implements IDatabaseAdapter {
-  private db: Database | null = null;
+  private poolManager: ConnectionPoolManager | null = null;
   private config: DatabaseConfig;
   private connected: boolean = false;
   private transactions: Map<string, TransactionContext> = new Map();
+  private errorAggregator?: ErrorAggregator;
+  private correlationId: string;
 
-  constructor(config: DatabaseConfig) {
+  constructor(config: DatabaseConfig, errorAggregator?: ErrorAggregator) {
     this.config = config;
+    this.errorAggregator = errorAggregator;
+    this.correlationId = uuidv4();
   }
 
   getType(): 'sqlite' {
     return 'sqlite';
   }
 
-  async connect(): Promise<void> {
-    try {
-      const dbPath = this.config.database || this.config.connectionString || ':memory:';
-
-      this.db = await open({
-        filename: dbPath,
-        driver: sqlite3.Database,
-      });
-
-      // Enable foreign keys
-      await this.db.run('PRAGMA foreign_keys = ON');
-
-      // Set busy timeout
-      await this.db.run(`PRAGMA busy_timeout = ${this.config.timeout || 5000}`);
-
-      this.connected = true;
-    } catch (err) {
-      throw createDatabaseError(
-        DatabaseErrorCode.CONNECTION_FAILED,
-        'Failed to connect to SQLite',
-        err instanceof Error ? err : new Error(String(err)),
-        { config: this.config }
+  /**
+   * Track error with error aggregator
+   * @private
+   */
+  private trackError(error: any, operation: string, context?: Record<string, any>): void {
+    if (this.errorAggregator) {
+      const dbError = error.code ? error : createDatabaseError(
+        DatabaseErrorCode.QUERY_FAILED,
+        `SQLite ${operation} failed`,
+        error instanceof Error ? error : new Error(String(error)),
+        context
       );
+
+      this.errorAggregator.addError('sqlite', dbError, {
+        ...context,
+        operation,
+        correlationId: this.correlationId,
+      });
     }
   }
 
+  /**
+   * Record successful operation with error aggregator
+   * @private
+   */
+  private recordSuccess(): void {
+    if (this.errorAggregator) {
+      this.errorAggregator.recordSuccess('sqlite');
+    }
+  }
+
+  async connect(): Promise<void> {
+    // Wrap connection with retry logic for transient failures
+    await withDatabaseRetry(async () => {
+      try {
+        // Initialize connection pool manager
+        this.poolManager = new ConnectionPoolManager(this.config);
+        await this.poolManager.initialize();
+
+        // Start health checks (ping every 30s)
+        this.poolManager.startHealthChecks();
+
+        this.connected = true;
+        this.recordSuccess();
+      } catch (err) {
+        const error = createDatabaseError(
+          DatabaseErrorCode.CONNECTION_FAILED,
+          'Failed to connect to SQLite',
+          err instanceof Error ? err : new Error(String(err)),
+          { config: this.config, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'connect');
+        throw error;
+      }
+    });
+  }
+
   async disconnect(): Promise<void> {
-    if (this.db) {
-      await this.db.close();
-      this.db = null;
+    if (this.poolManager) {
+      await this.poolManager.shutdown();
+      this.poolManager = null;
       this.connected = false;
     }
   }
 
   isConnected(): boolean {
-    return this.connected && this.db !== null;
+    return this.connected && this.poolManager !== null;
+  }
+
+  /**
+   * Get connection pool statistics
+   */
+  getPoolStats() {
+    return this.poolManager?.getStats();
   }
 
   async get<T = any>(key: string): Promise<T | null> {
     this.ensureConnected();
 
-    try {
-      // Parse correlation key format: table:id or table:id:entity:subtype
-      // For SQL adapters, we use only table:id for lookup
-      const parts = key.split(':');
-      const table = parts[0];
-      const id = parts.slice(1).join(':'); // Rejoin remaining parts as ID
+    // Wrap with retry logic for transient database failures
+    return withDatabaseRetry(async () => {
+      const connection = await this.poolManager!.acquire();
 
-      if (!table || !id) {
-        throw new Error('Invalid key format. Expected "table:id" or "table:id:entity:subtype"');
+      try {
+        // Parse correlation key format: table:id or table:id:entity:subtype
+        // For SQL adapters, we use only table:id for lookup
+        const parts = key.split(':');
+        const table = parts[0];
+        const id = parts.slice(1).join(':'); // Rejoin remaining parts as ID
+
+        if (!table || !id) {
+          throw new Error('Invalid key format. Expected "table:id" or "table:id:entity:subtype"');
+        }
+
+        const query = `SELECT * FROM ${this.sanitizeIdentifier(table)} WHERE id = ?`;
+        const result = await connection.get<T>(query, [id]);
+
+        this.recordSuccess();
+        return result || null;
+      } catch (err) {
+        const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
+        const error = createDatabaseError(
+          errorCode,
+          `Failed to get record: ${key}`,
+          err instanceof Error ? err : new Error(String(err)),
+          { key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'get', { key });
+        throw error;
+      } finally {
+        await this.poolManager!.release(connection);
       }
-
-      const query = `SELECT * FROM ${this.sanitizeIdentifier(table)} WHERE id = ?`;
-      const result = await this.db!.get<T>(query, [id]);
-
-      return result || null;
-    } catch (err) {
-      const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      throw createDatabaseError(
-        errorCode,
-        `Failed to get record: ${key}`,
-        err instanceof Error ? err : new Error(String(err)),
-        { key }
-      );
-    }
+    });
   }
 
   async list<T = any>(table: string, options?: QueryOptions<T>): Promise<T[]> {
     this.ensureConnected();
 
-    try {
-      let query = `SELECT * FROM ${this.sanitizeIdentifier(table)}`;
-      const params: any[] = [];
+    // Wrap with retry logic for transient database failures
+    return withDatabaseRetry(async () => {
+      const connection = await this.poolManager!.acquire();
 
-      // Apply filters
-      if (options?.filters && options.filters.length > 0) {
-        const whereClauses = options.filters.map(filter => {
-          return this.buildWhereClause(filter, params);
-        });
-        query += ` WHERE ${whereClauses.join(' AND ')}`;
+      try {
+        let query = `SELECT * FROM ${this.sanitizeIdentifier(table)}`;
+        const params: any[] = [];
+
+        // Apply filters
+        if (options?.filters && options.filters.length > 0) {
+          const whereClauses = options.filters.map(filter => {
+            return this.buildWhereClause(filter, params);
+          });
+          query += ` WHERE ${whereClauses.join(' AND ')}`;
+        }
+
+        // Apply ordering
+        if (options?.orderBy) {
+          const order = options.order || 'asc';
+          query += ` ORDER BY ${this.sanitizeIdentifier(String(options.orderBy))} ${order.toUpperCase()}`;
+        }
+
+        // Apply limit and offset
+        if (options?.limit) {
+          query += ` LIMIT ?`;
+          params.push(options.limit);
+        }
+
+        if (options?.offset) {
+          query += ` OFFSET ?`;
+          params.push(options.offset);
+        }
+
+        const results = await connection.all<T[]>(query, params);
+        this.recordSuccess();
+        return results;
+      } catch (err) {
+        const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
+        const error = createDatabaseError(
+          errorCode,
+          `Failed to list records from table: ${table}`,
+          err instanceof Error ? err : new Error(String(err)),
+          { table, options, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'list', { table });
+        throw error;
+      } finally {
+        await this.poolManager!.release(connection);
       }
-
-      // Apply ordering
-      if (options?.orderBy) {
-        const order = options.order || 'asc';
-        query += ` ORDER BY ${this.sanitizeIdentifier(String(options.orderBy))} ${order.toUpperCase()}`;
-      }
-
-      // Apply limit and offset
-      if (options?.limit) {
-        query += ` LIMIT ?`;
-        params.push(options.limit);
-      }
-
-      if (options?.offset) {
-        query += ` OFFSET ?`;
-        params.push(options.offset);
-      }
-
-      const results = await this.db!.all<T[]>(query, params);
-      return results;
-    } catch (err) {
-      const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      throw createDatabaseError(
-        errorCode,
-        `Failed to list records from table: ${table}`,
-        err instanceof Error ? err : new Error(String(err)),
-        { table, options }
-      );
-    }
+    });
   }
 
   async query<T = any>(table: string, filters: QueryFilter<T>[]): Promise<T[]> {
@@ -156,31 +225,43 @@ export class SQLiteAdapter implements IDatabaseAdapter {
   async insert<T = any>(table: string, data: T): Promise<OperationResult<T>> {
     this.ensureConnected();
 
-    try {
-      const keys = Object.keys(data as any);
-      const values = Object.values(data as any);
+    // Wrap with retry logic for transient database failures
+    return withDatabaseRetry(async () => {
+      const connection = await this.poolManager!.acquire();
 
-      const placeholders = keys.map(() => '?').join(', ');
-      const columns = keys.map(k => this.sanitizeIdentifier(k)).join(', ');
+      try {
+        const keys = Object.keys(data as any);
+        const values = Object.values(data as any);
 
-      const query = `INSERT INTO ${this.sanitizeIdentifier(table)} (${columns}) VALUES (${placeholders})`;
+        const placeholders = keys.map(() => '?').join(', ');
+        const columns = keys.map(k => this.sanitizeIdentifier(k)).join(', ');
 
-      const result = await this.db!.run(query, values);
+        const query = `INSERT INTO ${this.sanitizeIdentifier(table)} (${columns}) VALUES (${placeholders})`;
 
-      return createSuccessResult(data, result.changes, result.lastID);
-    } catch (err) {
-      const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
-        errorCode,
-        `Failed to insert record into table: ${table}`,
-        err instanceof Error ? err : new Error(String(err)),
-        { table, data }
-      ));
-    }
+        const result = await connection.run(query, values);
+
+        this.recordSuccess();
+        return createSuccessResult(data, result.changes, result.lastID);
+      } catch (err) {
+        const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
+        const error = createDatabaseError(
+          errorCode,
+          `Failed to insert record into table: ${table}`,
+          err instanceof Error ? err : new Error(String(err)),
+          { table, data, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'insert', { table });
+        return createFailedResult(error);
+      } finally {
+        await this.poolManager!.release(connection);
+      }
+    });
   }
 
   async insertMany<T = any>(table: string, data: T[]): Promise<OperationResult<T[]>> {
     this.ensureConnected();
+
+    const connection = await this.poolManager!.acquire();
 
     // Check if we're already in an active transaction (SQLite doesn't support nested transactions)
     const hasActiveTransaction = this.transactions.size > 0;
@@ -188,7 +269,7 @@ export class SQLiteAdapter implements IDatabaseAdapter {
     try {
       // Only begin transaction if not already in one
       if (!hasActiveTransaction) {
-        await this.db!.run('BEGIN TRANSACTION');
+        await connection.run('BEGIN TRANSACTION');
       }
 
       let totalChanges = 0;
@@ -202,34 +283,41 @@ export class SQLiteAdapter implements IDatabaseAdapter {
 
         const query = `INSERT INTO ${this.sanitizeIdentifier(table)} (${columns}) VALUES (${placeholders})`;
 
-        const result = await this.db!.run(query, values);
+        const result = await connection.run(query, values);
         totalChanges += result.changes || 0;
       }
 
       // Only commit if we started the transaction
       if (!hasActiveTransaction) {
-        await this.db!.run('COMMIT');
+        await connection.run('COMMIT');
       }
 
+      this.recordSuccess();
       return createSuccessResult(data, totalChanges);
     } catch (err) {
       // Only rollback if we started the transaction
       if (!hasActiveTransaction) {
-        await this.db!.run('ROLLBACK');
+        await connection.run('ROLLBACK');
       }
 
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to insert multiple records into table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, count: data.length }
-      ));
+        { table, count: data.length, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'insertMany', { table, count: data.length });
+      return createFailedResult(error);
+    } finally {
+      await this.poolManager!.release(connection);
     }
   }
 
   async update<T = any>(table: string, key: string, data: Partial<T>): Promise<OperationResult<T>> {
     this.ensureConnected();
+
+    const connection = await this.poolManager!.acquire();
 
     try {
       const keys = Object.keys(data as any);
@@ -239,88 +327,114 @@ export class SQLiteAdapter implements IDatabaseAdapter {
 
       const query = `UPDATE ${this.sanitizeIdentifier(table)} SET ${setClauses} WHERE id = ?`;
 
-      const result = await this.db!.run(query, [...values, key]);
+      const result = await connection.run(query, [...values, key]);
 
       if (result.changes === 0) {
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.NOT_FOUND,
           `Record not found in table: ${table}`,
           undefined,
-          { table, key }
-        ));
+          { table, key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'update', { table, key });
+        return createFailedResult(error);
       }
 
       // Get updated record
       const updated = await this.get<T>(`${table}:${key}`);
 
+      this.recordSuccess();
       return createSuccessResult(updated!, result.changes);
     } catch (err) {
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to update record in table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, key, data }
-      ));
+        { table, key, data, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'update', { table, key });
+      return createFailedResult(error);
+    } finally {
+      await this.poolManager!.release(connection);
     }
   }
 
   async delete(table: string, key: string): Promise<OperationResult<void>> {
     this.ensureConnected();
 
+    const connection = await this.poolManager!.acquire();
+
     try {
       const query = `DELETE FROM ${this.sanitizeIdentifier(table)} WHERE id = ?`;
 
-      const result = await this.db!.run(query, [key]);
+      const result = await connection.run(query, [key]);
 
       if (result.changes === 0) {
-        return createFailedResult(createDatabaseError(
+        const error = createDatabaseError(
           DatabaseErrorCode.NOT_FOUND,
           `Record not found in table: ${table}`,
           undefined,
-          { table, key }
-        ));
+          { table, key, correlationId: this.correlationId }
+        );
+        this.trackError(error, 'delete', { table, key });
+        return createFailedResult(error);
       }
 
+      this.recordSuccess();
       return createSuccessResult(undefined, result.changes);
     } catch (err) {
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      return createFailedResult(createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to delete record from table: ${table}`,
         err instanceof Error ? err : new Error(String(err)),
-        { table, key }
-      ));
+        { table, key, correlationId: this.correlationId }
+      );
+      this.trackError(error, 'delete', { table, key });
+      return createFailedResult(error);
+    } finally {
+      await this.poolManager!.release(connection);
     }
   }
 
   async raw<T = any>(query: string, params?: any[]): Promise<T> {
     this.ensureConnected();
 
+    const connection = await this.poolManager!.acquire();
+
     try {
       // Determine if query is SELECT or modification
       const isSelect = query.trim().toUpperCase().startsWith('SELECT');
 
       if (isSelect) {
-        const results = await this.db!.all<T[]>(query, params);
+        const results = await connection.all<T[]>(query, params);
+        this.recordSuccess();
         return results as T;
       } else {
-        const result = await this.db!.run(query, params);
+        const result = await connection.run(query, params);
+        this.recordSuccess();
         return result as T;
       }
     } catch (err) {
       const errorCode = mapSQLiteError(err instanceof Error ? err : new Error(String(err)));
-      throw createDatabaseError(
+      const error = createDatabaseError(
         errorCode,
         `Failed to execute raw query`,
         err instanceof Error ? err : new Error(String(err)),
-        { query, params }
+        { query, params, correlationId: this.correlationId }
       );
+      this.trackError(error, 'raw', { query });
+      throw error;
+    } finally {
+      await this.poolManager!.release(connection);
     }
   }
 
   async beginTransaction(): Promise<TransactionContext> {
     this.ensureConnected();
+
+    const connection = await this.poolManager!.acquire();
 
     const context: TransactionContext = {
       id: `sqlite-tx-${Date.now()}`,
@@ -329,10 +443,58 @@ export class SQLiteAdapter implements IDatabaseAdapter {
       status: 'pending',
     };
 
-    await this.db!.run('BEGIN TRANSACTION');
-    this.transactions.set(context.id, context);
+    await connection.run('BEGIN TRANSACTION');
+    this.transactions.set(context.id, { ...context, connection });
 
     return context;
+  }
+
+  async prepareTransaction(context: TransactionContext): Promise<boolean> {
+    this.ensureConnected();
+
+    if (!this.transactions.has(context.id)) {
+      throw createDatabaseError(
+        DatabaseErrorCode.TRANSACTION_FAILED,
+        'Transaction not found',
+        undefined,
+        { transactionId: context.id }
+      );
+    }
+
+    try {
+      // SQLite doesn't support native two-phase commit
+      // We simulate PREPARE by validating the transaction can commit
+      // This involves checking for constraint violations and lock conflicts
+
+      const txData = this.transactions.get(context.id) as any;
+      const connection = txData.connection;
+
+      // Check if database is locked (would prevent commit)
+      await connection.get('PRAGMA lock_status');
+
+      // Validate foreign key constraints
+      const violations = await connection.all('PRAGMA foreign_key_check');
+      if (violations && violations.length > 0) {
+        throw new Error(`Foreign key constraint violations: ${JSON.stringify(violations)}`);
+      }
+
+      // If we get here, transaction can be committed
+      context.status = 'prepared';
+      context.preparedAt = new Date();
+
+      // Update transaction in map
+      this.transactions.set(context.id, { ...context, connection });
+
+      return true;
+    } catch (err) {
+      // Prepare failed - transaction can still be rolled back
+      throw createDatabaseError(
+        DatabaseErrorCode.TRANSACTION_FAILED,
+        'Failed to prepare transaction',
+        err instanceof Error ? err : new Error(String(err)),
+        { transactionId: context.id }
+      );
+    }
   }
 
   async commitTransaction(context: TransactionContext): Promise<void> {
@@ -347,12 +509,16 @@ export class SQLiteAdapter implements IDatabaseAdapter {
       );
     }
 
+    const txData = this.transactions.get(context.id) as any;
+    const connection = txData.connection;
+
     try {
-      await this.db!.run('COMMIT');
+      await connection.run('COMMIT');
       context.status = 'committed';
     } finally {
-      // Always cleanup transaction from map, even if commit fails
+      // Always cleanup transaction from map and release connection
       this.transactions.delete(context.id);
+      await this.poolManager!.release(connection);
     }
   }
 
@@ -368,12 +534,16 @@ export class SQLiteAdapter implements IDatabaseAdapter {
       );
     }
 
+    const txData = this.transactions.get(context.id) as any;
+    const connection = txData.connection;
+
     try {
-      await this.db!.run('ROLLBACK');
+      await connection.run('ROLLBACK');
       context.status = 'rolled_back';
     } finally {
-      // Always cleanup transaction from map, even if rollback fails
+      // Always cleanup transaction from map and release connection
       this.transactions.delete(context.id);
+      await this.poolManager!.release(connection);
     }
   }
 

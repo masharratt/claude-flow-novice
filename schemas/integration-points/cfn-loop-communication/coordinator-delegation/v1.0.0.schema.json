@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cfn-loop-communication/coordinator-delegation/v1.0.0",
+  "title": "Coordinator Delegation Schema",
+  "description": "Schema for coordinator-to-orchestrator delegation (Integration Point 3.2)",
+  "type": "object",
+  "required": ["delegation_id", "task_id", "coordinator_id", "orchestrator_id", "action", "timestamp"],
+  "properties": {
+    "delegation_id": {
+      "type": "string",
+      "description": "Unique identifier for delegation",
+      "pattern": "^deleg-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "coordinator_id": {
+      "type": "string",
+      "description": "Coordinator agent ID",
+      "pattern": "^cfn-v3-coordinator-[a-z0-9-]+$"
+    },
+    "orchestrator_id": {
+      "type": "string",
+      "description": "Orchestrator process ID",
+      "pattern": "^orch-[a-z0-9-]+$"
+    },
+    "action": {
+      "type": "string",
+      "enum": ["spawn_loop3", "spawn_loop2", "spawn_product_owner", "collect_confidence", "collect_consensus", "health_check"],
+      "description": "Action to delegate"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Delegation timestamp"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Action-specific parameters",
+      "properties": {
+        "agent_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["mvp", "standard", "enterprise"]
+        },
+        "iteration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "context": {
+          "type": "object"
+        }
+      }
+    },
+    "health_monitoring": {
+      "type": "object",
+      "description": "Health monitoring configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "check_interval_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 300
+        }
+      }
+    },
+    "error_recovery": {
+      "type": "object",
+      "description": "Error recovery mechanisms",
+      "properties": {
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 3
+        },
+        "backoff_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 5
+        },
+        "fallback_action": {
+          "type": "string",
+          "enum": ["abort", "retry", "notify"]
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "delegation_id": "deleg-coord-001",
+      "task_id": "task-auth-implementation",
+      "coordinator_id": "cfn-v3-coordinator-main",
+      "orchestrator_id": "orch-12345",
+      "action": "spawn_loop3",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "parameters": {
+        "agent_count": 3,
+        "mode": "standard",
+        "iteration": 1
+      },
+      "health_monitoring": {
+        "enabled": true,
+        "check_interval_seconds": 30,
+        "timeout_seconds": 300
+      },
+      "error_recovery": {
+        "retry_count": 3,
+        "backoff_seconds": 5,
+        "fallback_action": "abort"
+      }
+    }
+  ]
+}

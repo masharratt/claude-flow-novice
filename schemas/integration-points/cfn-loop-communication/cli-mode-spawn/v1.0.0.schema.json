@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "cfn-loop-communication/cli-mode-spawn/v1.0.0",
+  "title": "CLI Mode Spawn Schema",
+  "description": "Schema for coordinator spawn message (Integration Point 3.1)",
+  "type": "object",
+  "required": ["command", "task_id", "task_description", "mode"],
+  "properties": {
+    "command": {
+      "type": "string",
+      "description": "Spawn command",
+      "const": "spawn-coordinator"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "task_description": {
+      "type": "string",
+      "description": "Description of task to execute",
+      "minLength": 10,
+      "maxLength": 5000
+    },
+    "mode": {
+      "type": "string",
+      "description": "CFN Loop execution mode",
+      "enum": ["mvp", "standard", "enterprise"]
+    },
+    "iteration": {
+      "type": "integer",
+      "description": "Current iteration number",
+      "minimum": 1,
+      "default": 1
+    },
+    "gate_threshold": {
+      "type": "number",
+      "description": "Confidence gate threshold",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 0.75
+    },
+    "consensus_threshold": {
+      "type": "number",
+      "description": "Validator consensus threshold",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 0.90
+    },
+    "max_iterations": {
+      "type": "integer",
+      "description": "Maximum iterations before abort",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 10
+    },
+    "context": {
+      "type": "object",
+      "description": "Additional context for task"
+    }
+  },
+  "additionalProperties": false
+}

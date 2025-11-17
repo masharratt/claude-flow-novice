@@ -206,6 +206,63 @@ orchestrator:
     required: false
     example: "0.80"
 
+  CFN_GATE_STRATEGY:
+    description: "Gate evaluation strategy (test-driven, confidence, or auto)"
+    default: "auto"
+    type: "string"
+    scope: ["orchestrator"]
+    required: false
+    example: "test-driven"
+    allowed_values: ["test-driven", "confidence", "auto"]
+    notes: |
+      - test-driven: Run tests and validate pass rate (recommended)
+      - confidence: Use agent confidence scores (legacy)
+      - auto: Use test-driven if success_criteria defined, else confidence
+
+  CFN_TEST_PASS_RATE_GATE:
+    description: "Minimum test pass rate for Loop 3 gate check"
+    default: "0.95"
+    type: "float"
+    scope: ["orchestrator"]
+    required: false
+    example: "0.80"
+    mode_defaults: |
+      mvp: 0.80
+      standard: 0.95
+      enterprise: 0.99
+    notes: |
+      - Range: 0.0-1.0
+      - Used when CFN_GATE_STRATEGY=test-driven
+      - Gate passes if test pass rate >= threshold
+
+  CFN_TEST_PASS_RATE_CONSENSUS:
+    description: "Minimum test pass rate for Loop 2 consensus validation"
+    default: "0.95"
+    type: "float"
+    scope: ["orchestrator"]
+    required: false
+    example: "0.90"
+    mode_defaults: |
+      mvp: 0.80
+      standard: 0.95
+      enterprise: 0.99
+    notes: |
+      - Range: 0.0-1.0
+      - Used when CFN_GATE_STRATEGY=test-driven
+      - Validators check if test pass rate meets threshold
+
+  CFN_SUCCESS_CRITERIA:
+    description: "Path to success criteria JSON file"
+    default: "/workspace/.cfn/success-criteria.json"
+    type: "string"
+    scope: ["orchestrator", "coordinator"]
+    required: false
+    example: "/workspace/.cfn/success-criteria.json"
+    notes: |
+      - Optional: Coordinator will auto-generate if not provided
+      - Format: See docs/guides/SUCCESS_CRITERIA_EXAMPLES.md
+      - Contains test commands, pass rate thresholds, and validation rules
+
 # API Configuration
 api:
   CFN_API_HOST:

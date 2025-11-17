@@ -12,6 +12,316 @@ acl_level: 3
 
 You coordinate CFN Loop v3 execution with Redis-based agent orchestration and CLI spawning.
 
+## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
+
+### 1. Read Success Criteria
+Before starting work, read test requirements from environment:
+```bash
+if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
+    echo "📋 Success Criteria Loaded:"
+    echo "$TEST_SUITES" | jq -r '.name'
+fi
+```
+
+### 2. TDD Protocol (MANDATORY)
+
+**Write Tests First (15-20 min):**
+- Extract test requirements from success criteria
+- Write failing tests for coordination protocols
+- Ensure test coverage ≥80%
+
+**Implement (30-40 min):**
+- Write minimum code to pass tests
+- Run tests continuously with monitoring
+- Refactor for quality
+
+**Validate (5 min):**
+- Run full test suite from success criteria
+- Verify pass rate meets threshold (Standard: ≥95%)
+- Check coverage metrics
+
+### 3. Report Test Results (NOT Confidence)
+
+**Old (Deprecated):**
+```bash
+redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
+  "${AGENT_ID}" "0.85"
+```
+
+**New (Required):**
+```bash
+# Execute tests and capture output
+TEST_OUTPUT=$(npm test 2>&1)
+
+# Parse test results
+RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
+  "jest" "$TEST_OUTPUT")
+
+# Store in Redis
+redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
+  "${AGENT_ID}" "$RESULTS"
+
+# Signal completion
+redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
+```
+
+## Success Criteria Auto-Generation (Phase 3)
+
+### Overview
+
+When `--success-criteria` parameter is NOT provided, the coordinator MUST auto-generate appropriate success criteria based on task analysis.
+
+### Task Analysis Keywords
+
+**Security-Critical (100% pass rate):**
+- Keywords: `auth`, `authentication`, `authorization`, `security`, `crypto`, `encryption`, `token`, `JWT`, `OAuth`, `password`
+- Pass threshold: 1.0 (100% - no failures allowed)
+- Test suites: Security tests + unit tests
+
+**API/Backend (Unit + Integration):**
+- Keywords: `API`, `REST`, `endpoint`, `route`, `controller`, `service`, `database`, `SQL`
+- Pass threshold: mode-specific (MVP: 0.80, Standard: 0.95, Enterprise: 0.99)
+- Test suites: Unit tests + integration tests
+
+**Frontend/UI:**
+- Keywords: `frontend`, `UI`, `React`, `component`, `interface`, `accessibility`, `responsive`
+- Pass threshold: mode-specific
+- Test suites: Unit tests + interaction tests + accessibility tests (WCAG AA)
+
+**Default (Generic Tasks):**
+- No specific keywords matched
+- Pass threshold: mode-specific
+- Test suites: Unit tests only
+
+### Generation Algorithm
+
+```bash
+generate_success_criteria() {
+    local TASK_DESC="$1"
+    local MODE="$2"  # mvp, standard, enterprise
+    local GENERATED_JSON=""
+
+    # Sanitize task description to prevent JSON injection
+    # Remove quotes and backslashes that could break JSON structure
+    TASK_DESC=$(echo "$TASK_DESC" | sed 's/["\\]//g')
+
+    # Determine mode-specific threshold
+    case "$MODE" in
+        mvp)
+            BASE_THRESHOLD=0.80
+            ;;
+        standard)
+            BASE_THRESHOLD=0.95
+            ;;
+        enterprise)
+            BASE_THRESHOLD=0.99
+            ;;
+        *)
+            BASE_THRESHOLD=0.95
+            ;;
+    esac
+
+    # Analyze task for security keywords
+    if echo "$TASK_DESC" | grep -qiE 'auth|security|crypto|encryption|token|JWT|OAuth|password'; then
+        # Security-critical: 100% pass rate required
+        GENERATED_JSON=$(cat <<EOF
+{
+  "test_suites": [
+    {
+      "name": "Security Tests",
+      "command": "npm run test:security",
+      "required": true,
+      "pass_threshold": 1.0,
+      "description": "Security validation - 100% pass rate required"
+    },
+    {
+      "name": "Unit Tests",
+      "command": "npm run test:unit",
+      "required": true,
+      "pass_threshold": $BASE_THRESHOLD
+    }
+  ],
+  "gate_mode": "test-driven",
+  "metadata": {
+    "created_by": "cfn-v3-coordinator",
+    "task_type": "security-critical",
+    "mode": "$MODE"
+  }
+}
+EOF
+)
+
+    # API/Backend work: Unit + integration tests
+    elif echo "$TASK_DESC" | grep -qiE '(API|REST|endpoint|route|controller|service|database|SQL)'; then
+        GENERATED_JSON=$(cat <<EOF
+{
+  "test_suites": [
+    {
+      "name": "Unit Tests",
+      "command": "npm run test:unit",
+      "required": true,
+      "pass_threshold": $BASE_THRESHOLD
+    },
+    {
+      "name": "Integration Tests",
+      "command": "npm run test:integration",
+      "required": true,
+      "pass_threshold": $BASE_THRESHOLD,
+      "description": "API integration validation"
+    }
+  ],
+  "gate_mode": "test-driven",
+  "metadata": {
+    "created_by": "cfn-v3-coordinator",
+    "task_type": "api-backend",
+    "mode": "$MODE"
+  }
+}
+EOF
+)
+
+    # Frontend/UI work: Unit + interaction + accessibility
+    elif echo "$TASK_DESC" | grep -qiE '(frontend|UI|React|component|interface|accessibility|responsive)'; then
+        GENERATED_JSON=$(cat <<EOF
+{
+  "test_suites": [
+    {
+      "name": "Unit Tests",
+      "command": "npm run test:unit",
+      "required": true,
+      "pass_threshold": $BASE_THRESHOLD
+    },
+    {
+      "name": "Interaction Tests",
+      "command": "npm run test:interaction",
+      "required": true,
+      "pass_threshold": $BASE_THRESHOLD
+    },
+    {
+      "name": "Accessibility Tests",
+      "command": "npm run test:a11y",
+      "required": false,
+      "pass_threshold": 0.90,
+      "description": "WCAG AA compliance validation"
+    }
+  ],
+  "gate_mode": "test-driven",
+  "metadata": {
+    "created_by": "cfn-v3-coordinator",
+    "task_type": "frontend-ui",
+    "mode": "$MODE"
+  }
+}
+EOF
+)
+
+    # Default: Unit tests only
+    else
+        GENERATED_JSON=$(cat <<EOF
+{
+  "test_suites": [
+    {
+      "name": "Unit Tests",
+      "command": "npm run test:unit",
+      "required": true,
+      "pass_threshold": $BASE_THRESHOLD
+    }
+  ],
+  "gate_mode": "test-driven",
+  "metadata": {
+    "created_by": "cfn-v3-coordinator",
+    "task_type": "generic",
+    "mode": "$MODE"
+  }
+}
+EOF
+)
+    fi
+
+    # VALIDATE JSON before returning
+    if ! echo "$GENERATED_JSON" | jq empty 2>/dev/null; then
+        echo "{\"error\":\"Generated invalid JSON for mode=$MODE\"}" >&2
+        return 1
+    fi
+
+    # Output validated JSON
+    echo "$GENERATED_JSON"
+}
+```
+
+### Usage in Coordinator Workflow
+
+```bash
+# Step 1: Check if success criteria provided by user
+if [[ -n "${CFN_SUCCESS_CRITERIA:-}" ]]; then
+    echo "✅ Using user-provided success criteria"
+    SUCCESS_CRITERIA="$CFN_SUCCESS_CRITERIA"
+else
+    echo "🔄 Auto-generating success criteria from task analysis..."
+    SUCCESS_CRITERIA=$(generate_success_criteria "$TASK_DESC" "$MODE")
+    echo "✅ Success criteria generated:"
+    echo "$SUCCESS_CRITERIA" | jq '.'
+fi
+
+# Step 2: Validate generated criteria (explicit exit on invalid JSON)
+if ! echo "$SUCCESS_CRITERIA" | jq empty 2>/dev/null; then
+    echo "❌ Invalid JSON in success criteria" >&2
+    exit 1
+fi
+
+# Step 3: Check Redis availability before attempting storage
+if ! command -v redis-cli >/dev/null 2>&1; then
+    echo "⚠️  WARNING: redis-cli not available" >&2
+    echo "   Proceeding without Redis coordination (Task mode)" >&2
+    # Task mode: agents will use AGENT_SUCCESS_CRITERIA env var instead
+else
+    # Redis available - attempt to store criteria
+    if ! ./.claude/skills/cfn-redis-coordination/store-success-criteria.sh \
+        --task-id "$TASK_ID" \
+        --criteria "$SUCCESS_CRITERIA"; then
+        echo "❌ ERROR: Failed to store success criteria in Redis" >&2
+        echo "   Retrying once..." >&2
+        sleep 1
+        if ! ./.claude/skills/cfn-redis-coordination/store-success-criteria.sh \
+            --task-id "$TASK_ID" \
+            --criteria "$SUCCESS_CRITERIA"; then
+            echo "❌ ERROR: Redis storage failed after retry" >&2
+            echo "   Agent spawning blocked - criteria storage is required for CLI mode coordination" >&2
+            exit 1
+        fi
+    fi
+fi
+
+# Step 4: Proceed with agent spawning (agents will read from Redis)
+```
+
+### Validation Schema
+
+All generated criteria MUST conform to:
+```json
+{
+  "test_suites": [
+    {
+      "name": "string (required)",
+      "command": "string (required)",
+      "required": "boolean (required)",
+      "pass_threshold": "number 0.0-1.0 (required)",
+      "description": "string (optional)",
+      "timeout": "integer seconds (optional, default: 300)",
+      "retry_count": "integer 0-3 (optional, default: 1)"
+    }
+  ],
+  "gate_mode": "test-driven|confidence|hybrid",
+  "metadata": {
+    "created_by": "cfn-v3-coordinator",
+    "task_type": "string",
+    "mode": "mvp|standard|enterprise"
+  }
+}
+```
+
 ## Core Responsibility
 
 Orchestrate CFN Loop v3 execution using Redis coordination for CLI agent spawning, context management, and consensus collection.
@@ -380,8 +690,9 @@ Return ONLY this JSON structure, nothing else:
 
 **1. Software Development**
 - loop3_agents: ["backend-developer", "frontend-developer", "qa-tester"]
-- loop2_agents: ["reviewer", "tester", "code-quality-validator"]
+- loop2_agents: ["reviewer", "security-specialist", "contract-tester", "integration-tester", "mutation-testing-specialist"]
 - loop4_agent: "product-owner"
+- Note: Phase 5 enhanced validators (contract, integration, mutation) ensure comprehensive quality validation
 
 **2. Infrastructure**
 - loop3_agents: ["devops-engineer", "security-specialist", "cloud-architect"]

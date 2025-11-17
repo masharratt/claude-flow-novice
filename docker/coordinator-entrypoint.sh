@@ -44,6 +44,57 @@ if [[ ! -f "$AGENT_FILE" ]]; then
 fi
 echo "✅ Coordinator agent located"
 
+# Load success criteria from environment or file
+SUCCESS_CRITERIA=""
+if [[ -n "${CFN_SUCCESS_CRITERIA:-}" ]]; then
+    # Check if CFN_SUCCESS_CRITERIA is a file path
+    if [[ -f "$CFN_SUCCESS_CRITERIA" ]]; then
+        # SECURITY FIX #1: Path traversal protection
+        # Only allow files in /workspace or /etc/cfn directories
+        RESOLVED_PATH=$(readlink -f "$CFN_SUCCESS_CRITERIA" 2>/dev/null || echo "$CFN_SUCCESS_CRITERIA")
+        if [[ ! "$RESOLVED_PATH" =~ ^/workspace/ ]] && [[ ! "$RESOLVED_PATH" =~ ^/etc/cfn/ ]]; then
+            echo "❌ ERROR: Success criteria file must be in /workspace or /etc/cfn"
+            echo "   Attempted path: $CFN_SUCCESS_CRITERIA"
+            echo "   Resolved path: $RESOLVED_PATH"
+            echo "   Security Risk: Path traversal attack prevented"
+            exit 1
+        fi
+
+        # SECURITY FIX #4: JSON DoS protection
+        # Check file size (max 10MB) before loading
+        FILE_SIZE=$(stat -f%z "$CFN_SUCCESS_CRITERIA" 2>/dev/null || stat -c%s "$CFN_SUCCESS_CRITERIA" 2>/dev/null || echo "0")
+        MAX_JSON_SIZE=$((10 * 1024 * 1024))  # 10MB limit
+
+        if [[ "$FILE_SIZE" -gt "$MAX_JSON_SIZE" ]]; then
+            echo "❌ ERROR: Success criteria file exceeds 10MB limit"
+            echo "   File size: $((FILE_SIZE / 1024 / 1024))MB"
+            echo "   Security Risk: DoS via excessive memory consumption prevented"
+            exit 1
+        fi
+
+        echo "📋 Loading success criteria from file: $CFN_SUCCESS_CRITERIA"
+        echo "   File size: $((FILE_SIZE / 1024))KB (validated)"
+        SUCCESS_CRITERIA=$(cat "$CFN_SUCCESS_CRITERIA")
+    else
+        echo "📋 Loading success criteria from environment variable"
+        SUCCESS_CRITERIA="$CFN_SUCCESS_CRITERIA"
+    fi
+
+    # Validate JSON format
+    if ! echo "$SUCCESS_CRITERIA" | jq empty 2>/dev/null; then
+        echo "❌ Invalid success criteria JSON format"
+        echo "   Criteria must be valid JSON matching success criteria schema"
+        exit 1
+    fi
+    echo "✅ Success criteria loaded and validated"
+else
+    echo "⚠️  No success criteria provided - coordinator will auto-generate"
+    SUCCESS_CRITERIA=""
+fi
+
+# Export for orchestrator
+export SUCCESS_CRITERIA
+
 # Create task context file for agent
 CONTEXT_FILE="/tmp/task-context-${TASK_ID}.json"
 cat > "$CONTEXT_FILE" << CONTEXT_EOF

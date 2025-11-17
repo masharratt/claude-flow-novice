@@ -7,10 +7,12 @@
  * - CFN Loop protocol (if applicable)
  * - Iteration history (Sprint 3 - Phase 2)
  * - Environment variables
+ * - Skills (Phase 5 - Skills Database integration)
  */
 
 import { AgentDefinition, hasCFNLoopProtocol } from './agent-definition-parser.js';
 import { loadIterationHistory, formatIterationHistory } from './iteration-history.js';
+import { SkillLoader, Skill } from './skill-loader.js';
 
 export interface TaskContext {
   taskId?: string;
@@ -20,6 +22,8 @@ export interface TaskContext {
   priority?: number;
   parentTaskId?: string;
   agentId?: string;
+  keywords?: string; // Phase 5: For skill filtering
+  phase?: string;    // Phase 5: CFN Loop phase (loop1, loop2, loop3)
 }
 
 /**
@@ -258,7 +262,77 @@ ${env.join('\n')}
 }
 
 /**
- * Build complete prompt for agent execution (async for iteration history)
+ * Load skills for agent (Phase 5: Skills Database Integration)
+ */
+async function loadSkillsForAgent(
+  agentType: string,
+  context: TaskContext
+): Promise<Skill[]> {
+  // Feature flag check
+  if (process.env.CFN_SKILLS_DATABASE !== 'true') {
+    return [];
+  }
+
+  try {
+    const dbPath = process.env.CFN_SKILLS_DB_PATH || './.claude/skills-database/skills.db';
+    const skillLoader = new SkillLoader(dbPath, {
+      enableCache: true,
+      cacheMaxSize: 100,
+      cacheTTL: 60000 // 1 minute
+    });
+
+    // Extract keywords from context for filtering
+    const keywords = context.keywords || context.context?.toLowerCase() || '';
+
+    const skills = await skillLoader.loadSkillsForAgent(agentType, {
+      taskId: context.taskId,
+      keywords,
+      phase: context.phase,
+      mode: context.mode,
+      iteration: context.iteration
+    });
+
+    skillLoader.close();
+    return skills;
+  } catch (error) {
+    console.warn(`[agent-prompt-builder] Failed to load skills: ${error}`);
+    return [];
+  }
+}
+
+/**
+ * Format skills for prompt injection
+ */
+function formatSkillsForPrompt(skills: Skill[]): string {
+  if (skills.length === 0) {
+    return '';
+  }
+
+  const sections: string[] = [];
+
+  sections.push('## Applicable Skills');
+  sections.push('');
+  sections.push('The following skills have been loaded based on your agent type and task context:');
+  sections.push('');
+
+  for (const skill of skills) {
+    const approvalBadge = skill.approvalLevel === 'auto' ? '✓' :
+                         skill.approvalLevel === 'escalate' ? '⚠' : '✋';
+    sections.push(`### ${skill.name} (v${skill.version}) [${approvalBadge} ${skill.approvalLevel}]`);
+    sections.push('');
+    if (skill.content) {
+      sections.push(skill.content);
+    } else {
+      sections.push(`*Skill content not available*`);
+    }
+    sections.push('');
+  }
+
+  return sections.join('\n');
+}
+
+/**
+ * Build complete prompt for agent execution (async for iteration history + skills)
  */
 export async function buildAgentPrompt(
   definition: AgentDefinition,
@@ -266,6 +340,7 @@ export async function buildAgentPrompt(
 ): Promise<string> {
   // Use explicit agent ID if provided, otherwise generate from name + iteration
   const agentId = context.agentId || `${definition.name}-${context.iteration || 1}`;
+  const startTime = Date.now();
 
   const sections: string[] = [];
 
@@ -300,6 +375,42 @@ export async function buildAgentPrompt(
   sections.push('');
   sections.push(definition.content);
   sections.push('');
+
+  // 4a. Load and inject skills (Phase 5: Skills Database Integration)
+  try {
+    const skills = await loadSkillsForAgent(definition.type || definition.name, context);
+
+    if (skills.length > 0) {
+      const skillsText = formatSkillsForPrompt(skills);
+      sections.push(skillsText);
+      sections.push('');
+
+      // Log skill usage for analytics (Phase 5)
+      if (process.env.CFN_SKILLS_DATABASE === 'true' && context.taskId) {
+        try {
+          const dbPath = process.env.CFN_SKILLS_DB_PATH || './.claude/skills-database/skills.db';
+          const skillLoader = new SkillLoader(dbPath);
+
+          await skillLoader.logSkillUsage({
+            agentId: agentId,
+            agentType: definition.type || definition.name,
+            skillIds: skills.map(s => s.id).filter(id => id > 0), // Exclude bootstrap skills (negative IDs)
+            taskId: context.taskId,
+            phase: context.phase,
+            loadedAt: new Date(),
+            executionTimeMs: Date.now() - startTime
+          });
+
+          skillLoader.close();
+        } catch (logError) {
+          console.warn(`[agent-prompt-builder] Failed to log skill usage: ${logError}`);
+        }
+      }
+    }
+  } catch (skillError) {
+    console.warn(`[agent-prompt-builder] Skill loading failed: ${skillError}`);
+    // Continue without skills
+  }
 
   // 5. CFN Loop protocol (ALWAYS inject when taskId present - enables Redis coordination)
   if (context.taskId && agentId) {

@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "cfn-loop-communication/broadcast-message/v1.0.0",
+  "title": "Broadcast Message Schema",
+  "description": "Schema for coordinator broadcast messages (Integration Point 3.4)",
+  "type": "object",
+  "required": ["message_id", "task_id", "iteration", "message_type", "content"],
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "description": "Unique message identifier",
+      "pattern": "^msg-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "iteration": {
+      "type": "integer",
+      "description": "Current iteration number",
+      "minimum": 1
+    },
+    "message_type": {
+      "type": "string",
+      "description": "Type of broadcast message",
+      "enum": ["context", "feedback", "instruction", "warning"]
+    },
+    "content": {
+      "type": "object",
+      "description": "Message content (structure varies by type)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When message was sent"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "high"],
+      "default": "normal"
+    }
+  },
+  "additionalProperties": false
+}

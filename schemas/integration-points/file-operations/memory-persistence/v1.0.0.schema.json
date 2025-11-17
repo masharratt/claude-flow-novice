@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/memory-persistence/v1.0.0",
+  "title": "Memory State Persistence Schema",
+  "description": "Schema for persisting memory state using SQLite or Redis (Integration Point 2.10)",
+  "type": "object",
+  "required": ["persistence_id", "state_key", "state_data", "storage_backend", "timestamp"],
+  "properties": {
+    "persistence_id": {
+      "type": "string",
+      "description": "Unique identifier for persistence operation",
+      "pattern": "^persist-[a-z0-9-]+$"
+    },
+    "state_key": {
+      "type": "string",
+      "description": "Key identifying the state",
+      "pattern": "^[a-z0-9:_-]+$"
+    },
+    "state_data": {
+      "type": "object",
+      "description": "State data to persist"
+    },
+    "storage_backend": {
+      "type": "string",
+      "enum": ["sqlite", "redis", "both"],
+      "description": "Storage backend used"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Persistence timestamp"
+    },
+    "selection_criteria": {
+      "type": "object",
+      "description": "Criteria for choosing SQLite vs Redis",
+      "properties": {
+        "data_size_bytes": {
+          "type": "integer",
+          "description": "Size of data being persisted"
+        },
+        "access_pattern": {
+          "type": "string",
+          "enum": ["frequent", "infrequent", "one-time"],
+          "description": "Expected access pattern"
+        },
+        "durability_required": {
+          "type": "boolean",
+          "description": "Whether data must survive process restart"
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "description": "Time-to-live in seconds (0 = permanent)"
+        }
+      }
+    },
+    "sync_strategy": {
+      "type": "object",
+      "description": "Sync strategy between SQLite and Redis",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether to sync between stores",
+          "default": false
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["sqlite_to_redis", "redis_to_sqlite", "bidirectional"],
+          "description": "Sync direction"
+        },
+        "sync_interval_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Sync interval"
+        }
+      }
+    },
+    "recovery_config": {
+      "type": "object",
+      "description": "Recovery procedures",
+      "properties": {
+        "backup_enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "backup_interval_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 24
+        },
+        "recovery_point_objective_minutes": {
+          "type": "integer",
+          "description": "Maximum acceptable data loss (RPO)"
+        }
+      }
+    },
+    "compression": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "algorithm": {
+          "type": "string",
+          "enum": ["gzip", "brotli", "none"],
+          "default": "none"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "persistence_id": "persist-agent-state-001",
+      "state_key": "agent:backend-001:state",
+      "state_data": {
+        "current_task": "task-auth",
+        "iteration": 1,
+        "confidence": 0.85
+      },
+      "storage_backend": "redis",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "selection_criteria": {
+        "data_size_bytes": 512,
+        "access_pattern": "frequent",
+        "durability_required": false,
+        "ttl_seconds": 3600
+      },
+      "sync_strategy": {
+        "enabled": false
+      },
+      "recovery_config": {
+        "backup_enabled": false
+      }
+    }
+  ]
+}

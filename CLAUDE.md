@@ -97,9 +97,14 @@ docker build -f docker/Dockerfile.agent -t cfn-agent:latest .
 * **Changelog entries**: Use `.claude/skills/cfn-changelog-management/add-changelog-entry.sh` after feature/bugfix/breaking change (10-100 char summary, sparse impact)
 * **Full guidelines**: `docs/AGENT_OUTPUT_STANDARDS.md`
 
-**Consensus thresholds:**
-* Gate (agent self-confidence): **≥0.75 each**
-* Validators consensus: **≥0.90**
+**Test-Driven Gates (v3.0+):**
+* Loop 3 gate (test pass rate): **≥0.95** (Standard mode)
+* Loop 2 consensus (validator scores): **≥0.90** (Standard mode)
+
+**Mode-Specific Thresholds:**
+* MVP: Gate ≥0.70, Consensus ≥0.80
+* Standard: Gate ≥0.95, Consensus ≥0.90
+* Enterprise: Gate ≥0.98, Consensus ≥0.95
 
 ### Multi-Worktree Docker Coordination
 
@@ -219,7 +224,7 @@ CREATE TABLE IF NOT EXISTS agents (
 );
 ```
 
-**CFN Loop Gate:** Confidence ≥0.75 required to pass Loop 3 gate.
+**CFN Loop Gate (v3.0+):** Test pass rate ≥0.95 required to pass Loop 3 gate (Standard mode). For Task Mode audit trails, confidence scores are still tracked in SQLite for lifecycle monitoring.
 
 **Anti-Pattern Prevention:** NEVER include CLI coordination commands that expect Redis or external services in Task mode. Use SQLite only for local audit trails.
 
@@ -485,19 +490,27 @@ Refer to `.claude/skills/cfn-coordination/SKILL.md` for:
 
 ## 4) CFN Loop Overview
 
+**Test-Driven Validation (v3.0+)**
+- Objective test execution replaces subjective confidence scoring
+- 95%+ accuracy (was 55% with confidence-based approach)
+- Automated quality gates prevent "consensus on vapor"
+- See: `docs/guides/TEST_DRIVEN_CFN_LOOP_GUIDE.md` (comprehensive guide)
+- See: `docs/guides/SUCCESS_CRITERIA_EXAMPLES.md` (25+ examples)
+- See: `docs/migration/CONFIDENCE_TO_TEST_DRIVEN_MIGRATION.md` (migration from v1.x-2.x)
+
 **Skill-Driven Loop Management**
 - Coordination via `.claude/skills/cfn-loop-validation/SKILL.md`
 - **Automatic dependency orchestration** (v2.2.0)
 - Adaptive context injection
 - Modular loop progression
 
-**Mode Comparison:**
+**Mode Comparison (Test-Driven Gates):**
 
-| Mode | Gate | Consensus | Iterations | Validators |
-|------|------|-----------|------------|------------|
+| Mode | Loop 3 Gate (Pass Rate) | Loop 2 Consensus | Iterations | Validators |
+|------|------------------------|------------------|------------|------------|
 | MVP | ≥0.70 | ≥0.80 | 5 | 2 |
-| Standard | ≥0.75 | ≥0.90 | 10 | 3-4 |
-| Enterprise | ≥0.85 | ≥0.95 | 15 | 5 |
+| Standard | ≥0.95 | ≥0.90 | 10 | 3-5 |
+| Enterprise | ≥0.98 | ≥0.95 | 15 | 5-7 |
 
 ### CFN Loop Orchestration Pattern
 
@@ -518,10 +531,10 @@ Main Chat spawns all agents directly via Task() → No coordinator → Full visi
 - ✅ **Progress Visibility**: Detailed progress reports with timestamps
 - Spawns Loop 3 agents with protocol enforcement
 - Enhanced waiting with progress tracking and recovery
-- Collects confidence scores with metadata validation
-- Gate check: spawn Loop 2 if ≥threshold (with health verification)
+- Executes tests and collects pass rates with metadata validation
+- Gate check: spawn Loop 2 if pass rate ≥threshold (with health verification)
 - Spawns Loop 2 agents (validators) with monitoring
-- Collects consensus with stuck agent detection
+- Collects consensus scores with stuck agent detection
 - Spawns Product Owner for decision
 - Manages iterations based on PROCEED/ITERATE/ABORT with timeout handling
 
@@ -559,11 +572,11 @@ coordination-signal "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 - ✅ **Metadata tracking**: Agent status and process PID monitored
 - ✅ **Health checking**: Process health validated during execution
 
-**Orchestration Flow (CORRECTED - Self-Validation Pattern):**
-1. Loop 3 agents complete work and report confidence
-2. **Gate Check:** Loop 3 self-validation scores checked
-   - IF gate FAILS → Wake Loop 3 for iteration N+1 (skip Loop 2)
-   - IF gate PASSES → Signal Loop 2 to start work
+**Orchestration Flow (v3.0 - Test-Driven Self-Validation):**
+1. Loop 3 agents complete work, execute tests, and report pass rates
+2. **Gate Check:** Loop 3 test pass rates checked against threshold
+   - IF gate FAILS (pass rate < threshold) → Wake Loop 3 for iteration N+1 (skip Loop 2)
+   - IF gate PASSES (pass rate ≥ threshold) → Signal Loop 2 to start work
 3. Loop 2 validators WAIT for gate pass signal (coordination-wait "swarm:${TASK_ID}:gate-passed")
 4. Loop 2 validators review Loop 3 work and report consensus
 5. **Product Owner Decision (BUG #11 FIX):** Orchestrator spawns Product Owner and parses output

@@ -1,0 +1,162 @@
+groups:
+  - name: resource_alerts
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: |
+          (sum(rate(process_cpu_seconds_total[5m])) / count(process_cpu_seconds_total) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          resource: cpu
+        annotations:
+          summary: "High CPU usage detected"
+          description: "Average CPU usage is {{ $value | humanize }}% (threshold: 80%)"
+
+      - alert: CriticalCPUUsage
+        expr: |
+          (sum(rate(process_cpu_seconds_total[5m])) / count(process_cpu_seconds_total) * 100) > 90
+        for: 5m
+        labels:
+          severity: critical
+          resource: cpu
+        annotations:
+          summary: "Critical CPU usage"
+          description: "Average CPU usage is {{ $value | humanize }}%"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: HighMemoryUsage
+        expr: |
+          (sum(process_resident_memory_bytes) / sum(node_memory_MemTotal_bytes) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+          resource: memory
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value | humanize }}% (threshold: 85%)"
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          (sum(process_resident_memory_bytes) / sum(node_memory_MemTotal_bytes) * 100) > 95
+        for: 5m
+        labels:
+          severity: critical
+          resource: memory
+        annotations:
+          summary: "Critical memory usage"
+          description: "Memory usage is {{ $value | humanize }}%"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: HighDiskUsage
+        expr: |
+          (node_filesystem_avail_bytes / node_filesystem_size_bytes * 100) < 15
+        for: 15m
+        labels:
+          severity: warning
+          resource: disk
+        annotations:
+          summary: "Low disk space"
+          description: "Available disk space is {{ $value | humanize }}% (threshold: 15%)"
+
+      - alert: CriticalDiskSpace
+        expr: |
+          (node_filesystem_avail_bytes / node_filesystem_size_bytes * 100) < 5
+        for: 5m
+        labels:
+          severity: critical
+          resource: disk
+        annotations:
+          summary: "Critical disk space condition"
+          description: "Available disk space is {{ $value | humanize }}%"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: HighDiskIOUsage
+        expr: |
+          (rate(node_disk_io_time_seconds_total[5m]) / on(device) rate(node_disk_io_time_ms_total[5m])) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          resource: disk_io
+        annotations:
+          summary: "High disk I/O utilization"
+          description: "Disk I/O utilization is {{ $value | humanizePercentage }}"
+
+      - alert: HighNetworkBandwidth
+        expr: |
+          sum(rate(node_network_transmit_bytes_total[5m]) + rate(node_network_receive_bytes_total[5m])) > 1000000000
+        for: 10m
+        labels:
+          severity: warning
+          resource: network
+        annotations:
+          summary: "High network bandwidth usage"
+          description: "Network bandwidth is {{ $value | humanize }} bytes/sec"
+
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: |
+          (pg_stat_activity_count / pg_settings_max_connections) > 0.85
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "{{ $value | humanizePercentage }} of connections in use"
+          runbook_url: "docs/ROLLBACK_RUNBOOK.md"
+
+      - alert: RedisMemoryUsageHigh
+        expr: |
+          (redis_memory_used_bytes / redis_memory_max_bytes) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: NodeOutOfMemory
+        expr: |
+          (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.05
+        for: 5m
+        labels:
+          severity: critical
+          resource: memory
+        annotations:
+          summary: "Node running out of memory"
+          description: "Available memory is {{ $value | humanizePercentage }}"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: FileDescriptorExhaustion
+        expr: |
+          (process_open_fds / process_max_fds) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          resource: file_descriptors
+        annotations:
+          summary: "File descriptor limit near exhaustion"
+          description: "{{ $value | humanizePercentage }} of file descriptors in use"
+
+      - alert: TemporaryStorageUsage
+        expr: |
+          (node_filesystem_avail_bytes{fstype="tmpfs"} / node_filesystem_size_bytes{fstype="tmpfs"}) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          resource: tmp_storage
+        annotations:
+          summary: "Temporary storage usage high"
+          description: "Temporary storage available: {{ $value | humanizePercentage }}"
+
+      - alert: DatabaseDiskSpaceUsage
+        expr: |
+          (pg_database_size_bytes / node_filesystem_size_bytes) > 0.7
+        for: 15m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database disk usage growing"
+          description: "Database size is {{ $value | humanizePercentage }} of available space"

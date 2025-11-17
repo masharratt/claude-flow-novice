@@ -1,0 +1,201 @@
+groups:
+  - name: integration_health_alerts
+    interval: 30s
+    rules:
+      - alert: DatabaseServiceDown
+        expr: |
+          up{job="database_service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database_service
+        annotations:
+          summary: "Database service is down"
+          description: "Database service is not responding"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: CoordinationServiceDown
+        expr: |
+          up{job="coordination_service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: coordination_service
+        annotations:
+          summary: "Coordination service is down"
+          description: "Coordination service is not responding"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: ArtifactStorageDown
+        expr: |
+          up{job="artifact_storage"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: artifact_storage
+        annotations:
+          summary: "Artifact storage service is down"
+          description: "Artifact storage service is not responding"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: MetricsCollectionDown
+        expr: |
+          up{job="metrics_collector"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: metrics
+        annotations:
+          summary: "Metrics collection service down"
+          description: "Metrics collection service is not responding"
+
+      - alert: RedisDown
+        expr: |
+          redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis connection is down"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: DatabaseReplicationLag
+        expr: |
+          pg_replication_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database replication lag high"
+          description: "Replication lag is {{ $value | humanize }}s"
+          impact: "Failover may take longer"
+
+      - alert: SkillDeploymentFailure
+        expr: |
+          increase(skill_deployment_failures_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: high
+          component: skill_deployment
+        annotations:
+          summary: "Skill deployment failure detected"
+          description: "{{ $value }} skill deployment failures in last 5 minutes"
+
+      - alert: IntegrationPointUnavailable
+        expr: |
+          integration_point_available == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: integration
+        annotations:
+          summary: "Integration point unavailable"
+          description: "Integration point {{ $labels.integration_point }} is unavailable"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: DataConsistencyIssues
+        expr: |
+          increase(data_consistency_violations_total[10m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+          component: data_integrity
+        annotations:
+          summary: "Data consistency violations detected"
+          description: "{{ $value }} consistency violations in last 10 minutes"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: StaleDatabaseSnapshot
+        expr: |
+          (time() - last_database_snapshot_timestamp) > 3600
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database snapshot stale"
+          description: "Last snapshot was {{ $value | humanize }}s ago"
+
+      - alert: CoordinationMessageQueueBacklog
+        expr: |
+          redis_queue_size > 5000
+        for: 10m
+        labels:
+          severity: high
+          component: coordination
+        annotations:
+          summary: "Coordination message backlog building"
+          description: "Queue depth: {{ $value }} messages"
+          impact: "Processing may be delayed"
+
+      - alert: HealthCheckFailures
+        expr: |
+          sum(rate(health_check_failures_total[5m])) > 5
+        for: 5m
+        labels:
+          severity: high
+          component: health_check
+        annotations:
+          summary: "Multiple health check failures"
+          description: "{{ $value }} health checks failed per second"
+
+      - alert: IntegrationPointLatencyDegradation
+        expr: |
+          (histogram_quantile(0.95, rate(integration_point_latency_seconds_bucket[5m])) / on(integration_point) histogram_quantile(0.95, rate(integration_point_latency_seconds_bucket[1h] offset 24h))) > 2
+        for: 10m
+        labels:
+          severity: high
+          component: integration
+        annotations:
+          summary: "Integration point latency degraded"
+          description: "{{ $labels.integration_point }} latency doubled"
+
+      - alert: ArtifactStorageBackendDown
+        expr: |
+          artifact_storage_backend_available == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: artifact_storage
+        annotations:
+          summary: "Artifact storage backend unavailable"
+          description: "Backend {{ $labels.backend }} is down"
+          runbook_url: "docs/INCIDENT_RESPONSE.md"
+
+      - alert: LoggingServiceDown
+        expr: |
+          up{job="logging_service"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: logging
+        annotations:
+          summary: "Logging service is down"
+          description: "Logging service is not responding"
+          impact: "Log collection is disabled"
+
+      - alert: SecurityValidationFailures
+        expr: |
+          sum(rate(security_validation_failures_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: high
+          component: security
+        annotations:
+          summary: "Security validation failures"
+          description: "{{ $value }} validation failures per second"
+
+      - alert: IntegrationErrorBudgetExceeded
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[1h])) / sum(rate(http_requests_total[1h]))) > 0.001
+        for: 30m
+        labels:
+          severity: warning
+          component: integration
+        annotations:
+          summary: "Integration error budget consumed"
+          description: "Error rate over 1 hour: {{ $value | humanizePercentage }}"
+          impact: "Consider rollback if trend continues"

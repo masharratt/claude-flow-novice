@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cfn-loop-communication/agent-completion/v1.0.0",
+  "title": "Agent Completion Signaling Schema",
+  "description": "Schema for agent completion signals to orchestrator (Integration Point 3.4)",
+  "type": "object",
+  "required": ["completion_id", "agent_id", "task_id", "status", "confidence", "timestamp"],
+  "properties": {
+    "completion_id": {
+      "type": "string",
+      "description": "Unique identifier for completion signal",
+      "pattern": "^complete-[a-z0-9-]+$"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Agent identifier",
+      "pattern": "^[a-z0-9-]+-\\d+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed", "failed", "timeout", "aborted"],
+      "description": "Completion status"
+    },
+    "confidence": {
+      "type": "number",
+      "description": "Agent self-confidence score",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Completion timestamp"
+    },
+    "deliverables": {
+      "type": "object",
+      "description": "Deliverables produced by agent",
+      "required": ["files_created", "files_modified"],
+      "properties": {
+        "files_created": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/.*"
+          }
+        },
+        "files_modified": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/.*"
+          }
+        },
+        "artifacts": {
+          "type": "array",
+          "description": "Artifact IDs generated",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "iteration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "execution_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "process_pid": {
+          "type": "integer"
+        }
+      }
+    },
+    "signal_method": {
+      "type": "string",
+      "enum": ["redis", "coordination-signal", "file", "http"],
+      "description": "Method used to signal completion",
+      "default": "coordination-signal"
+    },
+    "validation": {
+      "type": "object",
+      "description": "Completion validation metadata",
+      "properties": {
+        "context_validated": {
+          "type": "boolean",
+          "description": "Whether context was validated (prevents consensus on vapor)"
+        },
+        "deliverables_verified": {
+          "type": "boolean",
+          "description": "Whether deliverables exist"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "completion_id": "complete-backend-001",
+      "agent_id": "backend-developer-001",
+      "task_id": "task-auth-implementation",
+      "status": "completed",
+      "confidence": 0.92,
+      "timestamp": "2025-11-17T10:35:00Z",
+      "deliverables": {
+        "files_created": [
+          "/home/user/claude-flow-novice/src/lib/auth.ts",
+          "/home/user/claude-flow-novice/tests/auth.test.ts"
+        ],
+        "files_modified": [
+          "/home/user/claude-flow-novice/src/index.ts"
+        ],
+        "artifacts": [
+          "artifact-auth-implementation-report"
+        ]
+      },
+      "metadata": {
+        "iteration": 1,
+        "execution_time_ms": 45000,
+        "process_pid": 12345
+      },
+      "signal_method": "coordination-signal",
+      "validation": {
+        "context_validated": true,
+        "deliverables_verified": true
+      }
+    }
+  ]
+}

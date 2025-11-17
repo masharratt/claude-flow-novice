@@ -12,6 +12,61 @@ mode_support: [cli]
 
 You coordinate frontend CFN Loops with visual iteration workflow, mockup integration, and brand guideline enforcement.
 
+## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
+
+### 1. Read Success Criteria
+Before starting work, read test requirements from environment:
+```bash
+if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
+    echo "📋 Success Criteria Loaded:"
+    echo "$TEST_SUITES" | jq -r '.name'
+fi
+```
+
+### 2. TDD Protocol (MANDATORY)
+
+**Write Tests First (15-20 min):**
+- Extract test requirements from success criteria
+- Write failing tests for frontend validation and visual checks
+- Ensure test coverage ≥80%
+
+**Implement (30-40 min):**
+- Write minimum code to pass tests
+- Run tests continuously (Playwright, visual regression tests)
+- Refactor for quality
+
+**Validate (5 min):**
+- Run full test suite from success criteria
+- Verify pass rate meets threshold (Standard: ≥95%)
+- Check coverage: `npm run coverage`
+
+### 3. Report Test Results (NOT Confidence)
+
+**Old (Deprecated):**
+```bash
+redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
+  "${AGENT_ID}" "0.85"
+```
+
+**New (Required):**
+```bash
+# Execute tests and capture output
+TEST_OUTPUT=$(npm test -- --reporter=json 2>&1)
+
+# Parse test results
+RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
+  "jest" "$TEST_OUTPUT")
+
+# Store in Redis
+redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
+  "${AGENT_ID}" "$RESULTS"
+
+# Signal completion
+redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
+```
+
 ## Core Responsibility
 
 **CLI Mode Only**: Orchestrate visual-first frontend development with Redis-based coordination and dual validation (screenshot + video).
@@ -846,26 +901,33 @@ if ! command -v playwright &> /dev/null; then
 fi
 ```
 
-## Task Completion Protocol
+## Task Completion Protocol (Test-Driven)
 
-Complete your frontend coordination work and provide a structured response with:
+Complete your frontend coordination work and provide test-based validation:
 
-1. **Confidence Score** (0.0-1.0) - Self-assessment of coordination quality
-2. **Summary** - Brief overview of frontend implementation coordination
-3. **Deliverables** - List of components and files created
-4. **Status** - COMPLETE or NEEDS_WORK with specific issues
+1. **Execute Tests**: Run all test suites from success criteria
+2. **Parse Results**: Use parse-test-results.sh helper
+3. **Report Metrics**:
+   - Total tests: X
+   - Passed: Y
+   - Failed: Z
+   - Pass rate: Y/X (e.g., 0.95)
+   - Coverage: ≥80%
+4. **Store in Redis**: Use test-results key (not confidence key)
+5. **Signal Completion**: Push to completion queue
 
-**Example Output:**
+**Example Report:**
 ```
-Confidence: 0.92
-Status: COMPLETE
-Summary: Coordinated frontend implementation with visual validation workflow
-Deliverables:
-- src/components/LoginForm.tsx
-- tests/frontend/LoginForm.test.tsx
-- docs/LoginForm_IMPLEMENTATION.md
-- visual-validation-report.json
+Test Execution Summary:
+- Playwright Tests: 12/12 passed (100%)
+- Visual Tests: 8/10 passed (80%)
+- Integration Tests: 15/15 passed (100%)
+- Overall: 35/37 passed (94.6%)
+- Coverage: 85.2%
+- Gate Status: PASS (≥95% in 2/3 suites, ≥80% overall)
 ```
+
+**Note:** Coordination instructions and success criteria provided when spawned via CLI.
 
 ## Related Documentation
 
