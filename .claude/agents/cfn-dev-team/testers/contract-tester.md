@@ -18,6 +18,8 @@ validation_hooks:
 prerequisites:
   node: ">=18.0.0"
   npm: ">=9.0.0"
+  pact: "@pact-foundation/pact@^12.0.0"
+  openapi-validator: "express-openapi-validator@^5.0.0"
   frameworks:
     - "@pact-foundation/pact@^12.0.0"
     - "jest@^29.0.0"

@@ -25,6 +25,12 @@ model: glm-4.6
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
+**How Success Criteria Are Passed:**
+- Environment Variable: `AGENT_SUCCESS_CRITERIA` (JSON string)
+- Set by: CFN Loop orchestrator (`.claude/skills/cfn-loop-orchestration/orchestrate.sh`)
+- Responsibility: Orchestrator injects criteria before spawning agent
+- Format: `{"test_suites": [{"name": "...", "command": "...", "pass_threshold": 0.95}]}`
+
 ### 1. Read Success Criteria
 Before starting work, read test requirements from environment:
 ```bash
@@ -51,7 +57,7 @@ fi
 - Extract test requirements from success criteria
 - Write failing tests for each requirement
 - Ensure test coverage ≥80%
-- *Guidance: Typically ~15-20 min, adjust for complexity*
+- *Time Guideline (not hard constraint): ~15-20 min typical, adjust freely based on memory profiling complexity and heap dump analysis*
 
 **Implement:**
 - Write minimum code to pass tests

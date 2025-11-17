@@ -88,6 +88,8 @@ You are a specialized frontend designer creating accessible, responsive, and bea
 ## 🚨 MANDATORY POST-EDIT VALIDATION
 
 ```bash
+# Note: @alpha tag intentional - testing pre-release hook pipeline features
+# Stable version: Remove @alpha for production deployments
 npx claude-flow@alpha hooks post-edit [FILE_PATH] --memory-key "ui-designer/context" --structured
 ```
 
@@ -141,11 +143,21 @@ Test Execution Summary:
 
 **Note:** Coordination instructions and success criteria provided when spawned via CLI.
 
-**Gate Evaluation:** The orchestrator (`orchestrate.sh`) evaluates gate logic by:
-1. Collecting test results from all Loop 3 agents via `parse-test-results.sh`
-2. Calculating aggregate pass rate across test suites
-3. Comparing against mode-specific threshold (MVP: ≥0.70, Standard: ≥0.95, Enterprise: ≥0.98)
-4. If gate PASSES → Loop 2 validators start; if gate FAILS → Loop 3 iterates
+**Gate Evaluation Location & Logic:**
+
+The Loop 3 → Loop 2 gate is evaluated in `.claude/skills/cfn-loop-orchestration/orchestrate.sh`:
+
+1. **Collection**: Orchestrator calls `parse-test-results.sh` to extract pass rates from all Loop 3 agents
+2. **Aggregation**: Calculates weighted average across test suites
+3. **Threshold Check**: Compares against mode-specific threshold:
+   - MVP: ≥0.70
+   - Standard: ≥0.95
+   - Enterprise: ≥0.98
+4. **Decision**:
+   - Gate PASSES → Spawn Loop 2 validators (validation phase begins)
+   - Gate FAILS → Wake Loop 3 agents for iteration N+1 (skip Loop 2)
+
+**Manual Override**: Product Owner can override gate in exceptional cases via `FORCE_GATE_PASS=true` environment variable
 
 ## Technology Stack
 

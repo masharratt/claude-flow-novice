@@ -398,6 +398,22 @@ capabilities:
 | boundary-tester | LOW | LOW | **P3** | Edge case coverage |
 | smoke-tester | LOW | LOW | **P3** | Fast CI/CD feedback |
 
+**Priority Rationale for High-Impact, High-Effort Items**:
+
+*fuzz-tester (HIGH impact, HIGH effort → P2):*
+- **Why P2 not P1:** Requires specialized tooling (AFL++, libFuzzer), dedicated infrastructure, and security expertise
+- **Value:** Critical for security-sensitive codebases but provides diminishing returns after basic fuzzing
+- **Timeline:** Defer until after P0/P1 specialists establish baseline quality (prevents fuzzing noise on buggy code)
+- **Dependencies:** Requires contract-tester + integration-tester foundation
+
+*concurrency-tester (MEDIUM impact, HIGH effort → P2):*
+- **Why P2 not P1:** Requires thread-safety analysis tools, complex test scenarios, and specialized debugging
+- **Value:** Important for multi-threaded systems but most CFN Loop agents are single-threaded
+- **Timeline:** Defer until production deployment reveals actual concurrency issues
+- **Dependencies:** Requires production metrics to identify high-risk code paths
+
+**General Principle:** HIGH effort items deferred to P2 unless they provide immediate, measurable ROI (e.g., static-analysis is HIGH impact + LOW effort → P1)
+
 ---
 
 ## Recommended Rollout Strategy

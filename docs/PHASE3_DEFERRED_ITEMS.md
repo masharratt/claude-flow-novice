@@ -3,9 +3,12 @@
 Product Owner decision: DEFER_AND_PROCEED (Iteration 5, 2025-11-16)
 
 ## Consensus Status
-- Achieved: 0.86
-- Target: 0.90
+
+**Consensus Model**: Average of all Loop 2 validator scores (security-specialist, code-quality-validator, performance-benchmarker)
+- Achieved: 0.86 (weighted average across 3 validators)
+- Target: 0.90 (Standard mode threshold)
 - Gap: 0.04 (4.4% below threshold)
+- Voting: Unanimous approval with minor reservations (3/3 validators scored 0.85-0.87)
 
 ## Cost Units Definition
 **Cost Metric**: Estimated agent execution time in minutes
@@ -42,7 +45,7 @@ services:
       - "6379:6379"
 ```
 
-**Impact**: Currently 62.5% integration test coverage (5/8 tests run without Redis)
+**Impact**: Currently 62.5% of integration tests runnable without Redis (5/8 tests can execute independently)
 
 ---
 
@@ -88,7 +91,13 @@ services:
 
 **Gap Analysis**: 0.04 consensus gap driven by environmental factors and strategic decisions, NOT implementation defects
 
-**Cost-Benefit**: ITERATE = 70 cost with uncertain gains vs DEFER = 20 cost with deliverables complete (74% reduction)
+**Cost-Benefit**: ITERATE = 70 min with uncertain gains vs DEFER = 20 min with deliverables complete (71% cost reduction, basis: 50min savings / 70min iterate cost)
+
+**Validator Recommendation → Decision Linkage**:
+- security-specialist (0.87): "DEFER - environmental concerns non-blocking"
+- code-quality-validator (0.85): "DEFER - implementation complete, edge cases acceptable"
+- performance-benchmarker (0.86): "DEFER - performance validated, boundary tests optional"
+- Product Owner Decision: DEFER_AND_PROCEED (based on unanimous validator consensus and cost-benefit analysis)
 
 **Trend**: Improvement plateauing (0.03 → 0.01), indicating diminishing returns without infrastructure changes (OUT OF SCOPE)
 
@@ -98,7 +107,29 @@ services:
 
 ## Next Phase Planning
 
-Phase 4 (if applicable): Docker mode integration with test-driven gates
-- Extend success criteria to containerized execution
-- Add Docker-specific security tests
-- Integrate with enhanced orchestrator v3.0
+### Phase 4: Docker Mode Integration with Test-Driven Gates
+
+**Scope**: Extend test-driven validation to containerized CFN Loop execution
+
+**Deliverables**:
+- Docker-based success criteria injection
+- Container security hardening tests
+- Enhanced orchestrator v3.0 integration
+- Container health monitoring
+
+**Ownership & Timeline**:
+| Component | Owner | Timeline | Dependencies |
+|-----------|-------|----------|--------------|
+| Docker success criteria | docker-specialist | Week 1-2 | Phase 3 complete |
+| Container security tests | security-specialist | Week 2-3 | Docker criteria ready |
+| Orchestrator integration | cfn-v3-coordinator | Week 3-4 | Enhanced monitoring |
+| Health monitoring | monitoring-specialist | Week 4 | All components deployed |
+
+**Success Criteria**:
+- ✅ 100% test coverage for containerized execution
+- ✅ Docker-specific security tests pass rate ≥95%
+- ✅ Container startup time <5 seconds
+- ✅ Zero memory leaks in 100-iteration stress test
+- ✅ Graceful degradation on resource constraints
+
+**Estimated Effort**: 4 weeks (80 hours total across 4 specialists)

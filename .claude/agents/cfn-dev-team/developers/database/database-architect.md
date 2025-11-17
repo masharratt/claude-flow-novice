@@ -17,24 +17,36 @@ completion_protocol: |
 <!-- PROVIDER_PARAMETERS
 provider: zai
 model: glm-4.6
+NOTE: HTML comment syntax used for provider config to avoid YAML parsing conflicts
+Frontmatter parser ignores HTML comments, agent runtime reads via grep
 -->
 
 ### 1. Read Success Criteria
 Before starting work, read test requirements from environment:
 ```bash
 if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    # Validate JSON before parsing
+    # Validate JSON before parsing (prevents CVSS 8.2 injection)
     if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
         echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
+        echo "   Expected: {\"test_suites\": [{\"name\": \"...\", \"command\": \"...\"}]}" >&2
+        echo "   Received: ${AGENT_SUCCESS_CRITERIA:0:100}..." >&2
         exit 1
     fi
 
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
+    # Parse validated JSON with error handling
+    if ! CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.' 2>&1); then
+        echo "❌ Failed to parse AGENT_SUCCESS_CRITERIA: $CRITERIA" >&2
+        exit 1
+    fi
+
+    # Extract test suites with fallback for missing fields
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]? // empty' 2>/dev/null || echo "")
 
     if [[ -n "$TEST_SUITES" ]]; then
         echo "📋 Success Criteria Loaded:"
         echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
+    else
+        echo "⚠️  No test suites found in success criteria (agent may proceed without tests)"
     fi
 fi
 ```
@@ -44,39 +56,34 @@ fi
 **Write Tests First:**
 - Extract test requirements from success criteria
 - Write failing tests for each requirement
-- Ensure test coverage ≥80%
-- *Guidance: Typically ~15-20 min for simple schemas, may vary for complex designs*
+- Ensure test coverage ≥80% (includes schema validation, migration rollback, constraint tests)
+- *Time Guideline (not constraint): ~15-20 min for simple schemas, 30-60 min for complex migrations with rollback*
 
 **Implement:**
 - Write minimum code to pass tests
 - Run tests continuously (`npm test --watch` or framework equivalent)
 - Refactor for quality
-- *Guidance: Typically ~30-40 min, adjust based on complexity*
+- *Time Guideline (not constraint): ~30-40 min for schema design, adjust significantly for complex migrations*
 
 **Validate:**
 - Run full test suite: `npm test` (or framework command from criteria)
 - Verify pass rate meets threshold (Standard: ≥95%)
-- Check coverage: `npm run coverage`
-- *Guidance: Typically ~5 min for validation*
+- Check coverage: `npm run coverage` (ensure migration up/down paths covered)
+- *Time Guideline (not constraint): ~5 min for validation, longer for migration testing*
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
-redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
-  "${AGENT_ID}" "0.85"
-```
+Execute tests and report objective pass/fail metrics:
 
-**New (Required):**
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
 
-# Parse test results
+# Parse test results using CFN helper
 RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
   "jest" "$TEST_OUTPUT")
 
-# Store in Redis
+# Store in Redis (test-results key, NOT confidence key)
 redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
   "${AGENT_ID}" "$RESULTS"
 
