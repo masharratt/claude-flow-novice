@@ -6,6 +6,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_PATH="$SCRIPT_DIR/playbook.db"
 
+# Import parameterized query library
+source "$(dirname "$SCRIPT_DIR")/bootstrap/sqlite-params.sh"
+
 TASK_ID=""
 TASK_TYPE=""
 DESCRIPTION=""
@@ -41,8 +44,8 @@ LOOP2_JSON=$(echo "$LOOP2_AGENTS" | jq -Rc 'split(",") | map(gsub("^\\s+|\\s+$";
 # Extract keywords
 KEYWORDS=$(echo "$DESCRIPTION" | tr '[:upper:]' '[:lower:]' | grep -oE '\w+' | sort -u | tr '\n' ',' | sed 's/,$//')
 
-# Insert into playbook
-sqlite3 "$DB_PATH" <<EOF
+# Insert into playbook using parameterized query
+sqlite_exec "$DB_PATH" "
 INSERT INTO playbook_entries (
   task_pattern,
   task_type,
@@ -54,16 +57,24 @@ INSERT INTO playbook_entries (
   final_consensus,
   actual_iterations
 ) VALUES (
-  '$DESCRIPTION',
-  '$TASK_TYPE',
-  '$KEYWORDS',
-  '$LOOP3_JSON',
-  '$LOOP2_JSON',
-  $ITERATIONS,
-  $FINAL_CONFIDENCE,
-  $FINAL_CONSENSUS,
-  $ITERATIONS
-);
-EOF
+  ?1,
+  ?2,
+  ?3,
+  ?4,
+  ?5,
+  ?6,
+  ?7,
+  ?8,
+  ?9
+);" \
+  "$DESCRIPTION" \
+  "$TASK_TYPE" \
+  "$KEYWORDS" \
+  "$LOOP3_JSON" \
+  "$LOOP2_JSON" \
+  "$ITERATIONS" \
+  "$FINAL_CONFIDENCE" \
+  "$FINAL_CONSENSUS" \
+  "$ITERATIONS"
 
 echo "✅ Playbook updated with task execution pattern"

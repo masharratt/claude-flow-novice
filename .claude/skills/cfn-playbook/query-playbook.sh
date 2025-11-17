@@ -3,7 +3,11 @@ set -euo pipefail
 
 # Query Playbook for Similar Tasks
 
+# Import SQLite parameterized query library for SQL injection prevention
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+
 DB_PATH="$SCRIPT_DIR/playbook.db"
 
 TASK_TYPE=""
@@ -30,21 +34,21 @@ fi
 # Extract keywords from description (simple tokenization)
 KEYWORDS=$(echo "$DESCRIPTION" | tr '[:upper:]' '[:lower:]' | grep -oE '\w+' | sort -u | tr '\n' ',' | sed 's/,$//')
 
-# Query for similar tasks (same task type)
-SIMILAR=$(sqlite3 "$DB_PATH" <<EOF
-SELECT
-  task_pattern,
-  loop3_agents,
-  loop2_agents,
-  iterations_required,
-  final_confidence,
-  common_feedback,
-  use_count
-FROM playbook_entries
-WHERE task_type = '$TASK_TYPE'
-ORDER BY final_confidence DESC, use_count DESC
-LIMIT 3;
-EOF
+# Query for similar tasks (same task type) using parameterized query
+SIMILAR=$(sqlite_select "$DB_PATH" \
+    "SELECT
+      task_pattern,
+      loop3_agents,
+      loop2_agents,
+      iterations_required,
+      final_confidence,
+      common_feedback,
+      use_count
+    FROM playbook_entries
+    WHERE task_type = ?1
+    ORDER BY final_confidence DESC, use_count DESC
+    LIMIT 3;" \
+    "$TASK_TYPE"
 )
 
 # If no results, return empty

@@ -5,6 +5,10 @@ set -euo pipefail
 # Records edge cases, detects patterns, and triggers skill update proposals
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source parameterized query library for SQL injection prevention
+source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
+
 DB_PATH="${DB_PATH:-${SCRIPT_DIR}/workflow-codification.db}"
 RECURRENCE_THRESHOLD=3
 
@@ -57,21 +61,16 @@ record_edge_case() {
     local edge_case_hash
     edge_case_hash=$(generate_edge_case_hash "$skill_name" "$exit_code" "$input_params")
 
-    # Check if edge case already exists
+    # Check if edge case already exists (parameterized query)
     local existing_count
-    existing_count=$(sqlite3 "$DB_PATH" "SELECT occurrence_count FROM edge_cases WHERE edge_case_hash = '$edge_case_hash';" 2>/dev/null || echo "0")
+    existing_count=$(sqlite_select "$DB_PATH" "SELECT occurrence_count FROM edge_cases WHERE edge_case_hash = ?1" "$edge_case_hash" 2>/dev/null || echo "0")
 
     if [[ -n "$existing_count" && "$existing_count" != "0" ]]; then
-        # Update existing edge case
+        # Update existing edge case (parameterized query)
         local new_count=$((existing_count + 1))
-        sqlite3 "$DB_PATH" <<EOF
-UPDATE edge_cases
-SET occurrence_count = $new_count,
-    timestamp = datetime('now'),
-    actual_output = '$actual_output',
-    error_message = '$error_message'
-WHERE edge_case_hash = '$edge_case_hash';
-EOF
+        sqlite_update "$DB_PATH" \
+            "UPDATE edge_cases SET occurrence_count = ?1, timestamp = datetime('now'), actual_output = ?2, error_message = ?3 WHERE edge_case_hash = ?4" \
+            "$new_count" "$actual_output" "$error_message" "$edge_case_hash"
         echo "Updated edge case (occurrence: $new_count): $edge_case_hash"
 
         # Check if threshold reached
@@ -86,30 +85,10 @@ EOF
                 --occurrence-count "$new_count"
         fi
     else
-        # Insert new edge case
-        sqlite3 "$DB_PATH" <<EOF
-INSERT INTO edge_cases (
-    skill_name,
-    skill_version,
-    exit_code,
-    input_params,
-    expected_output,
-    actual_output,
-    error_message,
-    edge_case_hash,
-    metadata
-) VALUES (
-    '$skill_name',
-    '$skill_version',
-    $exit_code,
-    '$input_params',
-    '$expected_output',
-    '$actual_output',
-    '$error_message',
-    '$edge_case_hash',
-    '$metadata'
-);
-EOF
+        # Insert new edge case (parameterized query)
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO edge_cases (skill_name, skill_version, exit_code, input_params, expected_output, actual_output, error_message, edge_case_hash, metadata) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)" \
+            "$skill_name" "$skill_version" "$exit_code" "$input_params" "$expected_output" "$actual_output" "$error_message" "$edge_case_hash" "$metadata"
         echo "Recorded new edge case: $edge_case_hash"
     fi
 }
@@ -118,35 +97,24 @@ EOF
 query_recurring_edge_cases() {
     local skill_name="${1:-}"
 
-    local where_clause=""
+    # Use parameterized query for filtering by skill_name
     if [[ -n "$skill_name" ]]; then
-        where_clause="WHERE skill_name = '$skill_name' AND"
+        sqlite_select "$DB_PATH" \
+            "SELECT skill_name, skill_version, exit_code, occurrence_count, status, timestamp, edge_case_hash FROM edge_cases WHERE skill_name = ?1 AND occurrence_count >= ?2 ORDER BY occurrence_count DESC, timestamp DESC" \
+            "$skill_name" "$RECURRENCE_THRESHOLD" | sqlite3 -header -column "$DB_PATH" ".mode column"
     else
-        where_clause="WHERE"
+        sqlite_select "$DB_PATH" \
+            "SELECT skill_name, skill_version, exit_code, occurrence_count, status, timestamp, edge_case_hash FROM edge_cases WHERE occurrence_count >= ?1 ORDER BY occurrence_count DESC, timestamp DESC" \
+            "$RECURRENCE_THRESHOLD" | sqlite3 -header -column "$DB_PATH" ".mode column"
     fi
-
-    sqlite3 -header -column "$DB_PATH" <<EOF
-SELECT
-    skill_name,
-    skill_version,
-    exit_code,
-    occurrence_count,
-    status,
-    timestamp,
-    edge_case_hash
-FROM edge_cases
-$where_clause occurrence_count >= $RECURRENCE_THRESHOLD
-ORDER BY occurrence_count DESC, timestamp DESC;
-EOF
 }
 
 # Get edge case details
 get_edge_case_details() {
     local edge_case_hash="$1"
 
-    sqlite3 -json "$DB_PATH" <<EOF
-SELECT * FROM edge_cases WHERE edge_case_hash = '$edge_case_hash';
-EOF
+    # Use parameterized query with JSON output mode
+    sqlite_select "$DB_PATH" "SELECT * FROM edge_cases WHERE edge_case_hash = ?1" "$edge_case_hash" | sqlite3 -json "$DB_PATH" ".mode json"
 }
 
 # Update edge case status
@@ -154,11 +122,10 @@ update_edge_case_status() {
     local edge_case_hash="$1"
     local status="$2"
 
-    sqlite3 "$DB_PATH" <<EOF
-UPDATE edge_cases
-SET status = '$status'
-WHERE edge_case_hash = '$edge_case_hash';
-EOF
+    # Use parameterized query for status update
+    sqlite_update "$DB_PATH" \
+        "UPDATE edge_cases SET status = ?1 WHERE edge_case_hash = ?2" \
+        "$status" "$edge_case_hash"
     echo "Updated edge case status to: $status"
 }
 

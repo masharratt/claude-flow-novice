@@ -9,6 +9,10 @@
 
 set -euo pipefail
 
+# Import parameterized query library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$(dirname "$SCRIPT_DIR")/bootstrap/sqlite-params.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -214,27 +218,44 @@ retrieve_sqlite_data() {
         return
     fi
 
-    local where_clause="task_id = '$task_id'"
-    if [ "$mode" != "combined" ]; then
-        where_clause="$where_clause AND mode = '$mode'"
+    # Build parameterized query based on mode
+    if [ "$mode" = "combined" ]; then
+        # Query for all modes
+        sqlite_data=$(sqlite_select "$DB_PATH" "
+            SELECT
+                task_id,
+                agent_type,
+                decision,
+                reasoning,
+                confidence,
+                mode,
+                deliverables,
+                timestamp,
+                created_at,
+                metadata
+            FROM agent_audit
+            WHERE task_id = ?1
+            ORDER BY timestamp, agent_type;" \
+            "$task_id" || echo "")
+    else
+        # Query for specific mode
+        sqlite_data=$(sqlite_select "$DB_PATH" "
+            SELECT
+                task_id,
+                agent_type,
+                decision,
+                reasoning,
+                confidence,
+                mode,
+                deliverables,
+                timestamp,
+                created_at,
+                metadata
+            FROM agent_audit
+            WHERE task_id = ?1 AND mode = ?2
+            ORDER BY timestamp, agent_type;" \
+            "$task_id" "$mode" || echo "")
     fi
-
-    sqlite_data=$(sqlite3 "$DB_PATH" 2>/dev/null "
-        SELECT
-            task_id,
-            agent_type,
-            decision,
-            reasoning,
-            confidence,
-            mode,
-            deliverables,
-            timestamp,
-            created_at,
-            metadata
-        FROM agent_audit
-        WHERE $where_clause
-        ORDER BY timestamp, agent_type;
-    " || echo "")
 
     if [ -z "$sqlite_data" ]; then
         echo "[]"

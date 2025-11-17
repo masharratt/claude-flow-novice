@@ -43,6 +43,16 @@ Implementation:
 
 ### P2 - Medium Priority
 
+**[P2] - TECH-DEBT-001: Standardize coordination-utils.sh import path...**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: TECH-DEBT-001: Standardize coordination-utils.sh import paths across CFN skills
+- **Rationale**: System-architect identified inconsistent import patterns for coordination-utils.sh during SEC-003 validation. Three different patterns used across scripts.
+- **Proposed Solution**: Audit all skills using coordination-utils.sh, establish canonical import pattern (SCRIPT_DIR relative), update all references. Estimated effort: 30 minutes.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-17
+
 **[P2] - SEC-003: Complete SQL injection migration (8 remaining scrip...**
 - **Sprint Backlogged**: Unknown
 - **Category**: Technical-Debt
