@@ -9,6 +9,11 @@
 
 set -euo pipefail
 
+# Import SQLite parameterized query library for SQL injection prevention
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -132,16 +137,18 @@ redis-cli EXPIRE "$REDIS_KEY" 86400 > /dev/null
 echo -e "${GREEN}💾 Storing Task Mode audit data in SQLite...${NC}"
 UNIX_TIMESTAMP=$(date -d "$TIMESTAMP" +%s 2>/dev/null || date +%s)
 
-sqlite3 "$DB_PATH" <<EOF
-INSERT OR REPLACE INTO agent_audit (
-    task_id, agent_type, decision, reasoning, confidence, mode,
-    deliverables, timestamp, created_at, metadata
-) VALUES (
-    '$TASK_ID', '$AGENT_TYPE', '$DECISION', '$REASONING', $CONFIDENCE, '$MODE',
-    '$DELIVERABLES', $UNIX_TIMESTAMP, '$TIMESTAMP',
-    '{"stored_via": "store-task-audit.sh", "version": "1.0.0"}'
-);
-EOF
+# Use parameterized query to prevent SQL injection
+sqlite_insert "$DB_PATH" \
+    "INSERT OR REPLACE INTO agent_audit (
+        task_id, agent_type, decision, reasoning, confidence, mode,
+        deliverables, timestamp, created_at, metadata
+    ) VALUES (
+        ?1, ?2, ?3, ?4, $CONFIDENCE, ?5,
+        ?6, $UNIX_TIMESTAMP, ?7,
+        '{\"stored_via\": \"store-task-audit.sh\", \"version\": \"1.0.0\"}'
+    )" \
+    "$TASK_ID" "$AGENT_TYPE" "$DECISION" "$REASONING" "$MODE" \
+    "$DELIVERABLES" "$TIMESTAMP"
 
 # Store metadata in Redis for quick access
 METADATA_KEY="swarm:${TASK_ID}:metadata"

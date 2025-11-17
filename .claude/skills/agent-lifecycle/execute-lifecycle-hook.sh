@@ -7,8 +7,11 @@
 set -euo pipefail
 
 # Configuration
-DB_PATH="${AGENT_LIFECYCLE_DB:-./agent-lifecycle.db}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DB_PATH="${AGENT_LIFECYCLE_DB:-./agent-lifecycle.db}"
+
+# Source parameterized query library for SQL injection prevention
+source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
 
 # Colors for output
 RED='\033[0;31m'
@@ -110,9 +113,6 @@ spawn_agent() {
     local agent_name="${4:-$agent_id}"
 
     validate_agent_id "$agent_id"
-    # Escape single quotes by doubling them for SQL safety
-    agent_name="${agent_name//\'/\'\'}"
-    agent_type="${agent_type//\'/\'\'}"
 
     if [[ ! "$acl_level" =~ ^[1-6]$ ]]; then
         log_error "Invalid ACL level: $acl_level (must be 1-6)"
@@ -121,31 +121,19 @@ spawn_agent() {
 
     log_info "Registering agent spawn: $agent_id (type: $agent_type, ACL: $acl_level)"
 
-    sqlite3 "$DB_PATH" << EOF
-INSERT OR REPLACE INTO agents (
-    id, name, type, status, metadata, spawned_at, updated_at
-) VALUES (
-    '$agent_id',
-    '$agent_name',
-    '$agent_type',
-    'spawned',
-    '{"aclLevel": $acl_level, "spawnedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"}',
-    datetime('now'),
-    datetime('now')
-);
-EOF
+    # Use parameterized query for agent insertion
+    local spawn_timestamp
+    spawn_timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    local metadata_json="{\"aclLevel\": $acl_level, \"spawnedAt\": \"$spawn_timestamp\"}"
 
-    # Log spawn event
-    sqlite3 "$DB_PATH" << EOF
-INSERT INTO lifecycle_events (
-    agent_id, event_type, reasoning, timestamp
-) VALUES (
-    '$agent_id',
-    'spawn',
-    'Agent spawned via lifecycle hook',
-    datetime('now')
-);
-EOF
+    sqlite_upsert "$DB_PATH" \
+        "INSERT OR REPLACE INTO agents (id, name, type, status, metadata, spawned_at, updated_at) VALUES (?1, ?2, ?3, 'spawned', ?4, datetime('now'), datetime('now'))" \
+        "$agent_id" "$agent_name" "$agent_type" "$metadata_json"
+
+    # Log spawn event (parameterized query)
+    sqlite_insert "$DB_PATH" \
+        "INSERT INTO lifecycle_events (agent_id, event_type, reasoning, timestamp) VALUES (?1, 'spawn', 'Agent spawned via lifecycle hook', datetime('now'))" \
+        "$agent_id"
 
     log_success "Agent $agent_id registered successfully"
 }
@@ -161,32 +149,31 @@ update_confidence() {
     validate_agent_id "$agent_id"
     validate_confidence "$confidence"
 
-    # Escape single quotes for SQL safety
-    reasoning="${reasoning//\'/\'\'}"
-
     log_info "Updating confidence for agent $agent_id: $confidence"
 
-    # Update agent confidence
-    sqlite3 "$DB_PATH" << EOF
-UPDATE agents
-SET confidence = $confidence, updated_at = datetime('now')
-WHERE id = '$agent_id';
-EOF
+    # Update agent confidence (parameterized query)
+    sqlite_update "$DB_PATH" \
+        "UPDATE agents SET confidence = ?1, updated_at = datetime('now') WHERE id = ?2" \
+        "$confidence" "$agent_id"
 
-    # Log confidence update event
-    sqlite3 "$DB_PATH" << EOF
-INSERT INTO lifecycle_events (
-    agent_id, event_type, confidence, reasoning, phase, iteration, timestamp
-) VALUES (
-    '$agent_id',
-    'confidence_update',
-    $confidence,
-    '$reasoning',
-    ${phase:+"'${phase}'":NULL},
-    ${iteration:+$iteration},
-    datetime('now')
-);
-EOF
+    # Log confidence update event (parameterized query with optional fields)
+    if [[ -n "$phase" && -n "$iteration" ]]; then
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, phase, iteration, timestamp) VALUES (?1, 'confidence_update', ?2, ?3, ?4, ?5, datetime('now'))" \
+            "$agent_id" "$confidence" "$reasoning" "$phase" "$iteration"
+    elif [[ -n "$phase" ]]; then
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, phase, timestamp) VALUES (?1, 'confidence_update', ?2, ?3, ?4, datetime('now'))" \
+            "$agent_id" "$confidence" "$reasoning" "$phase"
+    elif [[ -n "$iteration" ]]; then
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, iteration, timestamp) VALUES (?1, 'confidence_update', ?2, ?3, ?4, datetime('now'))" \
+            "$agent_id" "$confidence" "$reasoning" "$iteration"
+    else
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, timestamp) VALUES (?1, 'confidence_update', ?2, ?3, datetime('now'))" \
+            "$agent_id" "$confidence" "$reasoning"
+    fi
 
     log_success "Confidence updated for agent $agent_id"
 }
@@ -202,36 +189,38 @@ complete_agent() {
     validate_agent_id "$agent_id"
     validate_confidence "$confidence"
 
-    # Escape single quotes for SQL safety
-    output="${output//\'/\'\'}"
-
     log_info "Completing agent $agent_id with confidence: $confidence"
 
-    # Mark agent as completed
-    sqlite3 "$DB_PATH" << EOF
-UPDATE agents
-SET status = 'completed',
-    confidence = $confidence,
-    output = ${output:+"'${output}'":NULL},
-    completed_at = datetime('now'),
-    updated_at = datetime('now')
-WHERE id = '$agent_id';
-EOF
+    # Mark agent as completed (parameterized query)
+    if [[ -n "$output" ]]; then
+        sqlite_update "$DB_PATH" \
+            "UPDATE agents SET status = 'completed', confidence = ?1, output = ?2, completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?3" \
+            "$confidence" "$output" "$agent_id"
+    else
+        sqlite_update "$DB_PATH" \
+            "UPDATE agents SET status = 'completed', confidence = ?1, completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?2" \
+            "$confidence" "$agent_id"
+    fi
 
-    # Log completion event
-    sqlite3 "$DB_PATH" << EOF
-INSERT INTO lifecycle_events (
-    agent_id, event_type, confidence, reasoning, phase, iteration, timestamp
-) VALUES (
-    '$agent_id',
-    'complete',
-    $confidence,
-    ${output:+"'${output}'":'Agent completed'},
-    ${phase:+"'${phase}'":NULL},
-    ${iteration:+$iteration},
-    datetime('now')
-);
-EOF
+    # Log completion event (parameterized query with optional fields)
+    local reasoning="${output:-Agent completed}"
+    if [[ -n "$phase" && -n "$iteration" ]]; then
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, phase, iteration, timestamp) VALUES (?1, 'complete', ?2, ?3, ?4, ?5, datetime('now'))" \
+            "$agent_id" "$confidence" "$reasoning" "$phase" "$iteration"
+    elif [[ -n "$phase" ]]; then
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, phase, timestamp) VALUES (?1, 'complete', ?2, ?3, ?4, datetime('now'))" \
+            "$agent_id" "$confidence" "$reasoning" "$phase"
+    elif [[ -n "$iteration" ]]; then
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, iteration, timestamp) VALUES (?1, 'complete', ?2, ?3, ?4, datetime('now'))" \
+            "$agent_id" "$confidence" "$reasoning" "$iteration"
+    else
+        sqlite_insert "$DB_PATH" \
+            "INSERT INTO lifecycle_events (agent_id, event_type, confidence, reasoning, timestamp) VALUES (?1, 'complete', ?2, ?3, datetime('now'))" \
+            "$agent_id" "$confidence" "$reasoning"
+    fi
 
     # Check CFN Loop gate
     local gate_status="FAIL"
@@ -249,29 +238,17 @@ terminate_agent() {
 
     validate_agent_id "$agent_id"
 
-    # Escape single quotes for SQL safety
-    reason="${reason//\'/\'\'}"
-
     log_info "Terminating agent $agent_id: $reason"
 
-    # Mark agent as terminated
-    sqlite3 "$DB_PATH" << EOF
-UPDATE agents
-SET status = 'terminated', updated_at = datetime('now')
-WHERE id = '$agent_id';
-EOF
+    # Mark agent as terminated (parameterized query)
+    sqlite_update "$DB_PATH" \
+        "UPDATE agents SET status = 'terminated', updated_at = datetime('now') WHERE id = ?1" \
+        "$agent_id"
 
-    # Log termination event
-    sqlite3 "$DB_PATH" << EOF
-INSERT INTO lifecycle_events (
-    agent_id, event_type, reasoning, timestamp
-) VALUES (
-    '$agent_id',
-    'terminate',
-    '$reason',
-    datetime('now')
-);
-EOF
+    # Log termination event (parameterized query)
+    sqlite_insert "$DB_PATH" \
+        "INSERT INTO lifecycle_events (agent_id, event_type, reasoning, timestamp) VALUES (?1, 'terminate', ?2, datetime('now'))" \
+        "$agent_id" "$reason"
 
     log_success "Agent $agent_id terminated"
 }
@@ -287,33 +264,15 @@ query_status() {
 
     echo ""
     echo "=== Agent Status ==="
-    sqlite3 "$DB_PATH" << EOF
-SELECT
-    id,
-    name,
-    type,
-    status,
-    confidence,
-    spawned_at,
-    completed_at,
-    updated_at
-FROM agents
-WHERE id = '$agent_id';
-EOF
+    sqlite_select "$DB_PATH" \
+        "SELECT id, name, type, status, confidence, spawned_at, completed_at, updated_at FROM agents WHERE id = ?1" \
+        "$agent_id"
 
     echo ""
     echo "=== Recent Lifecycle Events ==="
-    sqlite3 "$DB_PATH" << EOF
-SELECT
-    timestamp,
-    event_type,
-    confidence,
-    reasoning
-FROM lifecycle_events
-WHERE agent_id = '$agent_id'
-ORDER BY timestamp DESC
-LIMIT $limit;
-EOF
+    sqlite_select "$DB_PATH" \
+        "SELECT timestamp, event_type, confidence, reasoning FROM lifecycle_events WHERE agent_id = ?1 ORDER BY timestamp DESC LIMIT ?2" \
+        "$agent_id" "$limit"
 }
 
 # Show usage
