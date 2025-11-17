@@ -25,11 +25,24 @@ services:
       - cfn-redis
     networks:
       - mcp-network
+    # Security: Capability restrictions and seccomp profile
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - seccomp=docker/seccomp/agent-lifecycle.json
     volumes:
       # SECURITY FIX #3: Docker socket privilege isolation
       # CRITICAL: ONLY coordinator should have Docker daemon access for agent spawning
       # This mount grants root-equivalent access to the host system
       # NEVER add this mount to agent containers (privilege escalation risk)
+      #
+      # See docker/DOCKER_ACCESS_CONTROL.md for:
+      # - Permitted Docker operations (agent spawn/terminate only)
+      # - Prohibited actions (host filesystem, privileged containers, etc.)
+      # - Security enforcement (capabilities, seccomp, network isolation)
+      # - Validation checklist and audit commands
       - /var/run/docker.sock:/var/run/docker.sock
       - ${WORKSPACE_PATH:-/workspace}:/workspace:rw
       - ${CFN_SUCCESS_CRITERIA_FILE:-/dev/null}:/etc/cfn/success-criteria.json:ro

@@ -151,7 +151,11 @@ services:
         condition: service_healthy
     volumes:
       - ./artifacts/telemetry:/app/telemetry
-      - /var/run/docker.sock:/var/run/docker.sock  # Docker socket for monitoring
+      # SECURITY WARNING: Docker socket mount for development/debugging only
+      # ⚠️ REMOVE before production deployment
+      # Alternative: Use cAdvisor for read-only container metrics
+      # See: docker/DOCKER_ACCESS_CONTROL.md for secure monitoring options
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # Read-only monitoring (dev only)
     networks:
       - cfn-network
 
