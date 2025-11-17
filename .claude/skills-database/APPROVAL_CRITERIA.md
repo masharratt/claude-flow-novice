@@ -69,17 +69,17 @@ last_approval_date = datetime('now')
 
 **Escalation Criteria (ANY trigger escalation):**
 
-| Trigger | Description |
-|---------|-------------|
-| Risk Score 0.31-0.60 | Medium security/business impact |
-| Test Coverage 80-94% | Good but not excellent coverage |
-| Complexity 6-15 | Moderate logical complexity |
-| External Dependencies | 1-3 API/service calls |
-| Security Review | Security-sensitive operations |
-| Infrastructure Changes | Docker, Redis, PostgreSQL, etc. |
-| Cross-Team Dependencies | Affects multiple teams |
-| Database Writes | Production database modifications |
-| Conditional Deployment | Different code paths based on config |
+| Trigger | Threshold | Rationale |
+|---------|-----------|-----------|
+| Risk Score | 0.31-0.60 | Medium security/business impact |
+| Test Coverage | 80-94% | Good but not excellent coverage |
+| Complexity | 6-15 | Moderate logical complexity |
+| External Dependencies | 1-3 API/service calls | May require stability verification |
+| Security Review | Required | Security-sensitive operations |
+| Infrastructure Changes | Docker, Redis, PostgreSQL | Infrastructure expertise required |
+| Cross-Team Dependencies | Affects 2+ teams | Coordination and impact analysis needed |
+| Database Writes | Production databases | Data integrity verification required |
+| Conditional Deployment | Config-dependent paths | Testing complexity increases |
 
 **Escalation Process:**
 - Status: Pending escalation
@@ -131,17 +131,17 @@ last_approval_date = '2025-11-16T14:30:00Z'
 
 **Human Review Criteria (ANY trigger human approval):**
 
-| Trigger | Description |
-|---------|-------------|
+| Trigger | Threshold | Rationale |
+|---------|-----------|-----------|
 | Risk Score | > 0.60 | High security/business impact |
 | Test Coverage | < 80% | Insufficient test coverage |
 | Complexity | > 15 | High cyclomatic complexity |
 | New Category | First skill in category | Requires strategic decision |
-| Revenue Impact | Affects revenue-generating systems | Business-critical decision |
-| Multi-System Integration | Changes 3+ major systems | Complex interactions |
-| Compliance/Regulatory | HIPAA, SOC2, GDPR implications | Legal/regulatory decision |
-| Escalation Feedback | Repeated rejections/corrections | Quality gate failures |
-| Architecture Change | Changes approval system itself | Meta-level decision |
+| Revenue Impact | Affects revenue systems | Business-critical decision |
+| Multi-System Integration | Changes 3+ major systems | Complex interactions require analysis |
+| Compliance/Regulatory | HIPAA, SOC2, GDPR implications | Legal/regulatory decision required |
+| Escalation Feedback | Repeated rejections/corrections | Quality gate failures indicate deeper issues |
+| Architecture Change | Changes approval system itself | Meta-level decision requires oversight |
 
 **Human Review Process:**
 - Status: Pending senior expert decision
