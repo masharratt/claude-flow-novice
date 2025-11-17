@@ -358,6 +358,10 @@ execute_safe_query() {
             sqlite3 "$db_path" "SELECT name FROM skills ORDER BY name;"
             ;;
         get)
+            # SQL INJECTION PREVENTION: Escape single quotes (SQLite standard)
+            # Replaces ' with '' to prevent SQL injection attacks
+            # For production deployments, use centralized escape_sql_string()
+            # from .claude/skills/workflow-codification/lib/security-utils.sh
             local skill_name="${1//\'/\'\'}"
             sqlite3 "$db_path" "SELECT * FROM skills WHERE name = '$skill_name';"
             ;;
