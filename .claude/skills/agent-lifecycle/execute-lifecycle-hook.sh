@@ -110,6 +110,9 @@ spawn_agent() {
     local agent_name="${4:-$agent_id}"
 
     validate_agent_id "$agent_id"
+    # Escape single quotes by doubling them for SQL safety
+    agent_name="${agent_name//\'/\'\'}"
+    agent_type="${agent_type//\'/\'\'}"
 
     if [[ ! "$acl_level" =~ ^[1-6]$ ]]; then
         log_error "Invalid ACL level: $acl_level (must be 1-6)"
@@ -158,6 +161,9 @@ update_confidence() {
     validate_agent_id "$agent_id"
     validate_confidence "$confidence"
 
+    # Escape single quotes for SQL safety
+    reasoning="${reasoning//\'/\'\'}"
+
     log_info "Updating confidence for agent $agent_id: $confidence"
 
     # Update agent confidence
@@ -196,6 +202,9 @@ complete_agent() {
     validate_agent_id "$agent_id"
     validate_confidence "$confidence"
 
+    # Escape single quotes for SQL safety
+    output="${output//\'/\'\'}"
+
     log_info "Completing agent $agent_id with confidence: $confidence"
 
     # Mark agent as completed
@@ -217,7 +226,7 @@ INSERT INTO lifecycle_events (
     '$agent_id',
     'complete',
     $confidence,
-    ${output:="'${output}'":'Agent completed'},
+    ${output:+"'${output}'":'Agent completed'},
     ${phase:+"'${phase}'":NULL},
     ${iteration:+$iteration},
     datetime('now')
@@ -239,6 +248,9 @@ terminate_agent() {
     local reason="${2:-Normal termination}"
 
     validate_agent_id "$agent_id"
+
+    # Escape single quotes for SQL safety
+    reason="${reason//\'/\'\'}"
 
     log_info "Terminating agent $agent_id: $reason"
 
@@ -322,8 +334,8 @@ show_usage() {
     echo ""
     echo "Examples:"
     echo "  $0 spawn --agent-id docker-1 --agent-type docker-specialist --acl-level 1"
-    echo "  $0 update --agent-id docker-1 --confidence 0.85 --reasoning 'Implementation complete'"
-    echo "  $0 complete --agent-id docker-1 --confidence 0.90 --output 'Docker setup complete'"
+    echo "  $0 update --agent-id docker-1 --confidence 0.85 --reasoning \"Implementation complete\""
+    echo "  $0 complete --agent-id docker-1 --confidence 0.90 --output \"Docker setup complete\""
     echo "  $0 status --agent-id docker-1"
 }
 

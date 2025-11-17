@@ -1,0 +1,662 @@
+"""
+Comprehensive Test Suite for Self-Healing Retry Wrapper
+Sprint 2.1 - TDD Protocol
+
+Tests written FIRST before implementation to drive design.
+Target: 100% code coverage
+"""
+
+import pytest
+import time
+from unittest.mock import patch, MagicMock, call
+from dataclasses import dataclass
+
+
+# ============================================================================
+# TEST FIXTURES
+# ============================================================================
+
+@pytest.fixture(autouse=True)
+def reset_circuit_breaker():
+    """
+    Automatically reset circuit breaker state before each test
+    Prevents test isolation issues from persistent Redis state
+    """
+    from src.workflow_codification.redis.circuit_breaker import CircuitBreaker
+
+    cb = CircuitBreaker()
+    cb.clear_all()
+    yield
+    cb.clear_all()
+
+
+# ============================================================================
+# TEST: Error Classifier
+# ============================================================================
+
+class TestErrorClassifier:
+    """Test error classification logic"""
+
+    def test_retriable_error_codes(self):
+        """Test that retriable error codes are correctly identified"""
+        from src.workflow_codification.self_healing.error_classifier import ErrorClassifier
+
+        # Retriable codes: 124 (timeout), 7 (connection), 110 (timeout), 503 (unavailable)
+        assert ErrorClassifier.is_retriable(124) is True
+        assert ErrorClassifier.is_retriable(7) is True
+        assert ErrorClassifier.is_retriable(110) is True
+        assert ErrorClassifier.is_retriable(503) is True
+
+    def test_non_retriable_error_codes(self):
+        """Test that non-retriable error codes are correctly identified"""
+        from src.workflow_codification.self_healing.error_classifier import ErrorClassifier
+
+        # Non-retriable codes: 1 (validation), 2 (precondition), 127 (not found)
+        assert ErrorClassifier.is_non_retriable(1) is True
+        assert ErrorClassifier.is_non_retriable(2) is True
+        assert ErrorClassifier.is_non_retriable(127) is True
+
+    def test_success_code_not_retriable(self):
+        """Test that success code (0) is not retriable"""
+        from src.workflow_codification.self_healing.error_classifier import ErrorClassifier
+
+        assert ErrorClassifier.is_retriable(0) is False
+        assert ErrorClassifier.is_non_retriable(0) is False
+
+    def test_unknown_error_code_not_retriable(self):
+        """Test that unknown error codes default to non-retriable"""
+        from src.workflow_codification.self_healing.error_classifier import ErrorClassifier
+
+        assert ErrorClassifier.is_retriable(999) is False
+
+    def test_classify_error_success(self):
+        """Test error classification for success"""
+        from src.workflow_codification.self_healing.error_classifier import (
+            ErrorClassifier, ErrorType
+        )
+
+        assert ErrorClassifier.classify_error(0) == ErrorType.SUCCESS
+
+    def test_classify_error_retriable(self):
+        """Test error classification for retriable errors"""
+        from src.workflow_codification.self_healing.error_classifier import (
+            ErrorClassifier, ErrorType
+        )
+
+        assert ErrorClassifier.classify_error(124) == ErrorType.RETRIABLE
+        assert ErrorClassifier.classify_error(7) == ErrorType.RETRIABLE
+        assert ErrorClassifier.classify_error(110) == ErrorType.RETRIABLE
+        assert ErrorClassifier.classify_error(503) == ErrorType.RETRIABLE
+
+    def test_classify_error_non_retriable(self):
+        """Test error classification for non-retriable errors"""
+        from src.workflow_codification.self_healing.error_classifier import (
+            ErrorClassifier, ErrorType
+        )
+
+        assert ErrorClassifier.classify_error(1) == ErrorType.NON_RETRIABLE
+        assert ErrorClassifier.classify_error(2) == ErrorType.NON_RETRIABLE
+        assert ErrorClassifier.classify_error(127) == ErrorType.NON_RETRIABLE
+        assert ErrorClassifier.classify_error(999) == ErrorType.NON_RETRIABLE
+
+    def test_execution_result_is_success(self):
+        """Test ExecutionResult.is_success property"""
+        from src.workflow_codification.self_healing.error_classifier import ExecutionResult
+
+        success_result = ExecutionResult(exit_code=0, stdout="ok", stderr="", duration_seconds=1.0)
+        assert success_result.is_success is True
+
+        failure_result = ExecutionResult(exit_code=1, stdout="", stderr="error", duration_seconds=1.0)
+        assert failure_result.is_success is False
+
+    def test_execution_result_error_type(self):
+        """Test ExecutionResult.error_type property"""
+        from src.workflow_codification.self_healing.error_classifier import (
+            ExecutionResult, ErrorType
+        )
+
+        success = ExecutionResult(exit_code=0, stdout="ok", stderr="", duration_seconds=1.0)
+        assert success.error_type == ErrorType.SUCCESS
+
+        retriable = ExecutionResult(exit_code=124, stdout="", stderr="timeout", duration_seconds=1.0)
+        assert retriable.error_type == ErrorType.RETRIABLE
+
+        non_retriable = ExecutionResult(exit_code=1, stdout="", stderr="validation error", duration_seconds=1.0)
+        assert non_retriable.error_type == ErrorType.NON_RETRIABLE
+
+
+# ============================================================================
+# TEST: Backoff Strategy
+# ============================================================================
+
+class TestBackoffStrategy:
+    """Test exponential backoff calculations"""
+
+    def test_exponential_backoff_default_base(self):
+        """Test exponential backoff with default base delay (2.0s)"""
+        from src.workflow_codification.self_healing.backoff_strategy import BackoffStrategy
+
+        backoff = BackoffStrategy()
+
+        # 2^(1-1) * 2 = 2.0
+        assert backoff.calculate_delay(1, "exponential") == 2.0
+
+        # 2^(2-1) * 2 = 4.0
+        assert backoff.calculate_delay(2, "exponential") == 4.0
+
+        # 2^(3-1) * 2 = 8.0
+        assert backoff.calculate_delay(3, "exponential") == 8.0
+
+        # 2^(4-1) * 2 = 16.0
+        assert backoff.calculate_delay(4, "exponential") == 16.0
+
+    def test_exponential_backoff_custom_base(self):
+        """Test exponential backoff with custom base delay"""
+        from src.workflow_codification.self_healing.backoff_strategy import BackoffStrategy
+
+        backoff = BackoffStrategy(base_delay=5.0)
+
+        # 2^(1-1) * 5 = 5.0
+        assert backoff.calculate_delay(1, "exponential") == 5.0
+
+        # 2^(2-1) * 5 = 10.0
+        assert backoff.calculate_delay(2, "exponential") == 10.0
+
+        # 2^(3-1) * 5 = 20.0
+        assert backoff.calculate_delay(3, "exponential") == 20.0
+
+    def test_linear_backoff(self):
+        """Test linear backoff strategy"""
+        from src.workflow_codification.self_healing.backoff_strategy import BackoffStrategy
+
+        backoff = BackoffStrategy(base_delay=2.0)
+
+        # Linear: base * attempt
+        assert backoff.calculate_delay(1, "linear") == 2.0
+        assert backoff.calculate_delay(2, "linear") == 4.0
+        assert backoff.calculate_delay(3, "linear") == 6.0
+        assert backoff.calculate_delay(4, "linear") == 8.0
+
+    def test_constant_backoff(self):
+        """Test constant backoff strategy"""
+        from src.workflow_codification.self_healing.backoff_strategy import BackoffStrategy
+
+        backoff = BackoffStrategy(base_delay=2.0)
+
+        # Constant: always base delay
+        assert backoff.calculate_delay(1, "constant") == 2.0
+        assert backoff.calculate_delay(2, "constant") == 2.0
+        assert backoff.calculate_delay(3, "constant") == 2.0
+        assert backoff.calculate_delay(4, "constant") == 2.0
+
+    def test_invalid_backoff_strategy(self):
+        """Test that invalid strategy raises ValueError"""
+        from src.workflow_codification.self_healing.backoff_strategy import BackoffStrategy
+
+        backoff = BackoffStrategy()
+
+        with pytest.raises(ValueError, match="Unknown backoff strategy"):
+            backoff.calculate_delay(1, "invalid_strategy")
+
+    @patch('time.sleep')
+    def test_sleep_exponential(self, mock_sleep):
+        """Test sleep method with exponential backoff"""
+        from src.workflow_codification.self_healing.backoff_strategy import BackoffStrategy
+
+        backoff = BackoffStrategy(base_delay=2.0)
+        backoff.sleep(2, "exponential")
+
+        mock_sleep.assert_called_once_with(4.0)
+
+    @patch('time.sleep')
+    def test_sleep_linear(self, mock_sleep):
+        """Test sleep method with linear backoff"""
+        from src.workflow_codification.self_healing.backoff_strategy import BackoffStrategy
+
+        backoff = BackoffStrategy(base_delay=2.0)
+        backoff.sleep(3, "linear")
+
+        mock_sleep.assert_called_once_with(6.0)
+
+
+# ============================================================================
+# TEST: Retry Configuration
+# ============================================================================
+
+class TestRetryConfig:
+    """Test retry configuration management"""
+
+    def test_default_config(self):
+        """Test default retry configuration values"""
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        config = RetryConfig()
+
+        assert config.max_retries == 3
+        assert config.base_delay == 2.0
+        assert config.backoff_strategy == "exponential"
+        assert config.enabled is True
+
+    def test_custom_config(self):
+        """Test custom retry configuration"""
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        config = RetryConfig(
+            max_retries=5,
+            base_delay=1.0,
+            backoff_strategy="linear",
+            enabled=False
+        )
+
+        assert config.max_retries == 5
+        assert config.base_delay == 1.0
+        assert config.backoff_strategy == "linear"
+        assert config.enabled is False
+
+    def test_from_dict(self):
+        """Test creating config from dictionary"""
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        data = {
+            "max_retries": 5,
+            "base_delay": 3.0,
+            "backoff_strategy": "linear",
+            "enabled": False
+        }
+
+        config = RetryConfig.from_dict(data)
+
+        assert config.max_retries == 5
+        assert config.base_delay == 3.0
+        assert config.backoff_strategy == "linear"
+        assert config.enabled is False
+
+    def test_from_dict_partial(self):
+        """Test creating config from partial dictionary (uses defaults)"""
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        data = {"max_retries": 10}
+        config = RetryConfig.from_dict(data)
+
+        assert config.max_retries == 10
+        assert config.base_delay == 2.0  # default
+        assert config.backoff_strategy == "exponential"  # default
+        assert config.enabled is True  # default
+
+    def test_to_dict(self):
+        """Test converting config to dictionary"""
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        config = RetryConfig(max_retries=5, base_delay=3.0)
+        data = config.to_dict()
+
+        assert data == {
+            "max_retries": 5,
+            "base_delay": 3.0,
+            "backoff_strategy": "exponential",
+            "enabled": True
+        }
+
+    def test_get_retry_config_default(self):
+        """Test getting default retry config for unknown skill"""
+        from src.workflow_codification.self_healing.retry_config import get_retry_config
+
+        config = get_retry_config("unknown-skill")
+
+        assert config.max_retries == 3
+        assert config.base_delay == 2.0
+
+    def test_get_retry_config_coordination(self):
+        """Test getting retry config for cfn-coordination skill"""
+        from src.workflow_codification.self_healing.retry_config import get_retry_config
+
+        config = get_retry_config("cfn-coordination")
+
+        # Coordination skill should have higher retries, lower delay
+        assert config.max_retries == 5
+        assert config.base_delay == 1.0
+
+    def test_get_retry_config_docker_build(self):
+        """Test getting retry config for docker-build skill"""
+        from src.workflow_codification.self_healing.retry_config import get_retry_config
+
+        config = get_retry_config("docker-build")
+
+        # Docker builds should have fewer retries, longer delay
+        assert config.max_retries == 2
+        assert config.base_delay == 5.0
+
+    def test_get_retry_config_database_migration_disabled(self):
+        """Test that database-migration has retry disabled"""
+        from src.workflow_codification.self_healing.retry_config import get_retry_config
+
+        config = get_retry_config("database-migration")
+
+        # Never retry migrations - too risky
+        assert config.enabled is False
+
+
+# ============================================================================
+# TEST: Retry Wrapper
+# ============================================================================
+
+class TestRetryWrapper:
+    """Test retry wrapper orchestration"""
+
+    @patch('subprocess.run')
+    def test_success_on_first_attempt(self, mock_run):
+        """Test successful execution on first attempt (no retries)"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        # Mock successful execution
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="success",
+            stderr=""
+        )
+
+        wrapper = RetryWrapper()
+        result = wrapper.execute_skill_with_retry("test-skill", "echo success")
+
+        assert result.is_success is True
+        assert result.exit_code == 0
+        assert mock_run.call_count == 1
+
+    @patch('time.sleep')
+    @patch('subprocess.run')
+    def test_retry_on_retriable_error(self, mock_run, mock_sleep):
+        """Test retry on retriable error (timeout)"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        # First call: retriable error (timeout)
+        # Second call: success
+        mock_run.side_effect = [
+            MagicMock(returncode=124, stdout="", stderr="timeout"),
+            MagicMock(returncode=0, stdout="success", stderr="")
+        ]
+
+        wrapper = RetryWrapper()
+        result = wrapper.execute_skill_with_retry("test-skill", "echo test")
+
+        assert result.is_success is True
+        assert mock_run.call_count == 2
+
+        # Should sleep once between attempts (2 seconds for attempt 1)
+        mock_sleep.assert_called_once_with(2.0)
+
+    @patch('subprocess.run')
+    def test_no_retry_on_non_retriable_error(self, mock_run):
+        """Test no retry on non-retriable error (validation failure)"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        # Non-retriable error
+        mock_run.return_value = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="validation error"
+        )
+
+        wrapper = RetryWrapper()
+        result = wrapper.execute_skill_with_retry("test-skill", "invalid-command")
+
+        assert result.is_success is False
+        assert result.exit_code == 1
+        assert mock_run.call_count == 1  # No retries
+
+    @patch('time.sleep')
+    @patch('subprocess.run')
+    def test_max_retries_enforced(self, mock_run, mock_sleep):
+        """Test that max retries limit is enforced"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        # All attempts fail with retriable error
+        mock_run.return_value = MagicMock(
+            returncode=124,
+            stdout="",
+            stderr="timeout"
+        )
+
+        config = RetryConfig(max_retries=3, base_delay=1.0)
+        wrapper = RetryWrapper()
+        result = wrapper.execute_skill_with_retry(
+            "test-skill",
+            "failing-command",
+            retry_config=config
+        )
+
+        assert result.is_success is False
+        assert result.exit_code == 124
+        assert mock_run.call_count == 3  # Max retries
+
+        # Should sleep 2 times (between 3 attempts)
+        assert mock_sleep.call_count == 2
+
+    @patch('time.sleep')
+    @patch('subprocess.run')
+    def test_exponential_backoff_timing(self, mock_run, mock_sleep):
+        """Test exponential backoff timing between retries"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        # All attempts fail with retriable error
+        mock_run.return_value = MagicMock(
+            returncode=124,
+            stdout="",
+            stderr="timeout"
+        )
+
+        config = RetryConfig(max_retries=4, base_delay=2.0, backoff_strategy="exponential")
+        wrapper = RetryWrapper()
+        wrapper.execute_skill_with_retry("test-skill", "cmd", retry_config=config)
+
+        # Exponential backoff: 2s, 4s, 8s
+        assert mock_sleep.call_count == 3
+        assert mock_sleep.call_args_list[0] == call(2.0)  # Attempt 1 -> 2
+        assert mock_sleep.call_args_list[1] == call(4.0)  # Attempt 2 -> 3
+        assert mock_sleep.call_args_list[2] == call(8.0)  # Attempt 3 -> 4
+
+    @patch('subprocess.run')
+    def test_circuit_breaker_blocks_execution(self, mock_run):
+        """Test that open circuit breaker blocks execution"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        wrapper = RetryWrapper()
+
+        # Force circuit breaker to open
+        wrapper.circuit_breaker.open_circuit("test-skill")
+
+        result = wrapper.execute_skill_with_retry("test-skill", "echo test")
+
+        assert result.is_success is False
+        assert result.exit_code == 503
+        assert "Circuit breaker" in result.stderr
+        assert mock_run.call_count == 0  # No execution
+
+    @patch('subprocess.run')
+    def test_circuit_breaker_records_success(self, mock_run):
+        """Test that success closes circuit breaker"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="success",
+            stderr=""
+        )
+
+        wrapper = RetryWrapper()
+
+        # Pre-record some failures
+        wrapper.circuit_breaker.record_failure("test-skill")
+        wrapper.circuit_breaker.record_failure("test-skill")
+
+        # Execute successfully
+        result = wrapper.execute_skill_with_retry("test-skill", "echo success")
+
+        assert result.is_success is True
+
+        # Circuit should be closed after success
+        assert wrapper.circuit_breaker.is_closed("test-skill")
+
+    @patch('subprocess.run')
+    def test_circuit_breaker_records_failures(self, mock_run):
+        """Test that failures are recorded in circuit breaker"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        # Non-retriable error (no retries)
+        mock_run.return_value = MagicMock(
+            returncode=1,
+            stdout="",
+            stderr="validation error"
+        )
+
+        wrapper = RetryWrapper()
+        wrapper.execute_skill_with_retry("test-skill", "invalid-command")
+
+        # Failure should be recorded
+        assert wrapper.circuit_breaker.get_failure_count("test-skill") > 0
+
+    @patch('subprocess.run')
+    def test_retry_disabled_config(self, mock_run):
+        """Test that retry disabled config executes only once"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+        from src.workflow_codification.self_healing.retry_config import RetryConfig
+
+        # Retriable error
+        mock_run.return_value = MagicMock(
+            returncode=124,
+            stdout="",
+            stderr="timeout"
+        )
+
+        config = RetryConfig(enabled=False)
+        wrapper = RetryWrapper()
+        result = wrapper.execute_skill_with_retry(
+            "test-skill",
+            "cmd",
+            retry_config=config
+        )
+
+        assert result.exit_code == 124
+        assert mock_run.call_count == 1  # No retries when disabled
+
+    @patch('subprocess.run')
+    def test_timeout_handling(self, mock_run):
+        """Test timeout handling (subprocess.TimeoutExpired)"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+        import subprocess
+
+        mock_run.side_effect = subprocess.TimeoutExpired("cmd", 300)
+
+        wrapper = RetryWrapper()
+        result = wrapper.execute_skill_with_retry("test-skill", "long-running-cmd")
+
+        assert result.exit_code == 124  # Timeout exit code
+        assert result.error_message == "Execution timeout"
+
+    @patch('subprocess.run')
+    def test_exception_handling(self, mock_run):
+        """Test general exception handling"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        mock_run.side_effect = Exception("Unexpected error")
+
+        wrapper = RetryWrapper()
+        result = wrapper.execute_skill_with_retry("test-skill", "cmd")
+
+        assert result.is_success is False
+        assert result.exit_code == 1
+        assert "Unexpected error" in result.error_message
+
+    @patch('subprocess.run')
+    def test_execution_result_metadata(self, mock_run):
+        """Test that ExecutionResult contains all metadata"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="output text",
+            stderr=""
+        )
+
+        wrapper = RetryWrapper()
+        result = wrapper.execute_skill_with_retry("test-skill", "echo test")
+
+        assert hasattr(result, 'exit_code')
+        assert hasattr(result, 'stdout')
+        assert hasattr(result, 'stderr')
+        assert hasattr(result, 'duration_seconds')
+        assert hasattr(result, 'error_message')
+
+        assert result.stdout == "output text"
+        assert result.duration_seconds > 0
+
+    @patch('time.sleep')
+    @patch('subprocess.run')
+    def test_per_skill_config_coordination(self, mock_run, mock_sleep):
+        """Test per-skill config for cfn-coordination"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        # All attempts fail
+        mock_run.return_value = MagicMock(
+            returncode=124,
+            stdout="",
+            stderr="timeout"
+        )
+
+        wrapper = RetryWrapper()
+        # cfn-coordination has max_retries=5, base_delay=1.0
+        result = wrapper.execute_skill_with_retry("cfn-coordination", "cmd")
+
+        assert mock_run.call_count == 5  # Max retries for coordination
+
+        # Backoff with base_delay=1.0: 1s, 2s, 4s, 8s
+        assert mock_sleep.call_count == 4
+        assert mock_sleep.call_args_list[0] == call(1.0)
+        assert mock_sleep.call_args_list[1] == call(2.0)
+
+    @patch('subprocess.run')
+    def test_per_skill_config_database_migration(self, mock_run):
+        """Test per-skill config for database-migration (retry disabled)"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+
+        # Retriable error
+        mock_run.return_value = MagicMock(
+            returncode=124,
+            stdout="",
+            stderr="timeout"
+        )
+
+        wrapper = RetryWrapper()
+        # database-migration has enabled=False
+        result = wrapper.execute_skill_with_retry("database-migration", "cmd")
+
+        assert mock_run.call_count == 1  # No retries for migrations
+
+
+# ============================================================================
+# TEST: Performance Requirements
+# ============================================================================
+
+class TestPerformance:
+    """Test performance requirements"""
+
+    @patch('subprocess.run')
+    def test_retry_decision_performance(self, mock_run):
+        """Test that retry decision logic completes in <5ms"""
+        from src.workflow_codification.self_healing.retry_wrapper import RetryWrapper
+        from src.workflow_codification.self_healing.error_classifier import ErrorClassifier
+
+        # Test error classification performance
+        start = time.perf_counter()
+
+        for _ in range(100):
+            ErrorClassifier.classify_error(124)
+            ErrorClassifier.classify_error(1)
+            ErrorClassifier.classify_error(0)
+
+        elapsed = (time.perf_counter() - start) / 100  # Average per call
+
+        # Should be much faster than 5ms
+        assert elapsed < 0.005, f"Classification too slow: {elapsed*1000:.2f}ms"

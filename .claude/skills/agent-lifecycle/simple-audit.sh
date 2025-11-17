@@ -8,23 +8,47 @@ AGENT_TYPE="$2"
 CONFIDENCE="${3:-0.0}"
 STATUS="${4:-spawned}"
 
-DB_PATH="./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db"
+# Resolve database path relative to script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DB_PATH="${SCRIPT_DIR}/../../../claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db"
 
 if [[ -z "$AGENT_ID" || -z "$AGENT_TYPE" ]]; then
     echo "Usage: $0 <agent_id> <agent_type> [confidence] [status]"
     exit 1
 fi
 
+# Ensure database directory exists
+mkdir -p "$(dirname "$DB_PATH")"
+
 # Create agents table if not exists
-sqlite3 "$DB_PATH" "CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, type TEXT, status TEXT, confidence REAL, spawned_at TEXT, completed_at TEXT, metadata TEXT);" 2>/dev/null
+sqlite3 "$DB_PATH" "CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, type TEXT, status TEXT, confidence REAL, spawned_at TEXT, completed_at TEXT, metadata TEXT);" || {
+    echo "❌ Failed to initialize database at $DB_PATH" >&2
+    exit 1
+}
+
+# Escape single quotes for SQL safety
+SAFE_AGENT_ID="${AGENT_ID//\'/\'\'}"
+SAFE_AGENT_TYPE="${AGENT_TYPE//\'/\'\'}"
+
+# Validate and escape confidence (must be numeric)
+if [[ ! "$CONFIDENCE" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+    echo "❌ Invalid confidence value: $CONFIDENCE (must be numeric 0.0-1.0)" >&2
+    exit 1
+fi
 
 # Record agent activity
 case "$STATUS" in
     "spawned")
-        sqlite3 "$DB_PATH" "INSERT OR REPLACE INTO agents (id, type, status, spawned_at, metadata) VALUES ('$AGENT_ID', '$AGENT_TYPE', 'spawned', datetime('now'), '{\"source\": \"task_mode\"}');"
+        sqlite3 "$DB_PATH" "INSERT OR REPLACE INTO agents (id, type, status, spawned_at, metadata) VALUES ('$SAFE_AGENT_ID', '$SAFE_AGENT_TYPE', 'spawned', datetime('now'), '{\"source\": \"task_mode\"}');" || {
+            echo "❌ Failed to record agent spawn" >&2
+            exit 1
+        }
         ;;
     "completed")
-        sqlite3 "$DB_PATH" "UPDATE agents SET status = 'completed', confidence = $CONFIDENCE, completed_at = datetime('now') WHERE id = '$AGENT_ID';"
+        sqlite3 "$DB_PATH" "UPDATE agents SET status = 'completed', confidence = $CONFIDENCE, completed_at = datetime('now') WHERE id = '$SAFE_AGENT_ID';" || {
+            echo "❌ Failed to record agent completion" >&2
+            exit 1
+        }
         ;;
 esac
 

@@ -9,6 +9,39 @@
 
 set -euo pipefail
 
+# Source centralized Redis functions with defensive fallback
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REDIS_FUNCTIONS="${SCRIPT_DIR}/redis-functions.sh"
+
+# Check if redis-functions.sh exists and is readable
+if [ ! -r "$REDIS_FUNCTIONS" ]; then
+    echo "⚠️  WARNING: Cannot read redis-functions.sh at: $REDIS_FUNCTIONS" >&2
+    echo "   Operating in Task mode-only (no Redis coordination)" >&2
+    # Define minimal fallback stubs for Task mode
+    redis-cli() {
+        echo "⚠️  Redis unavailable in Task mode - no-op" >&2
+        return 0
+    }
+    export -f redis-cli
+else
+    # Attempt to source with controlled error handling
+    set +e  # Temporarily disable errexit
+    source "$REDIS_FUNCTIONS" 2>/dev/null
+    SOURCE_STATUS=$?
+    set -e  # Re-enable errexit
+
+    if [ $SOURCE_STATUS -ne 0 ]; then
+        echo "⚠️  WARNING: Failed to source redis-functions.sh (exit code: $SOURCE_STATUS)" >&2
+        echo "   Operating in Task mode-only (no Redis coordination)" >&2
+        # Define minimal fallback stubs
+        redis-cli() {
+            echo "⚠️  Redis unavailable - no-op" >&2
+            return 0
+        }
+        export -f redis-cli
+    fi
+fi
+
 # Initialize variables
 TASK_ID=""
 KEY=""

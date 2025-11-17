@@ -1,0 +1,75 @@
+{
+  "dashboard": {
+    "title": "Health Score Monitoring",
+    "description": "Detailed health score metrics for all skills",
+    "tags": [
+      "workflow-codification",
+      "health-scores"
+    ],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Health Scores by Skill",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "workflow_codification_health_score"
+          }
+        ]
+      },
+      {
+        "title": "Health Level Distribution",
+        "type": "piechart",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "count by (health_level) (workflow_codification_health_score)"
+          }
+        ]
+      },
+      {
+        "title": "Health Score Calculation Duration",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, workflow_codification_health_score_calculation_duration_seconds)"
+          }
+        ]
+      },
+      {
+        "title": "Recent Score Changes",
+        "type": "stat",
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 8,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "changes(workflow_codification_health_score[24h])"
+          }
+        ]
+      }
+    ],
+    "refresh": "15s",
+    "version": 1
+  }
+}

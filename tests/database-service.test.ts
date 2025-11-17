@@ -331,6 +331,141 @@ describe('Database Service', () => {
     });
   });
 
+  describe('PostgreSQL Transaction Routing', () => {
+    it('should route queries through transaction client when transactionId provided', async () => {
+      const postgres = dbService.getAdapter('postgres');
+
+      // Begin transaction
+      const txContext = await postgres.beginTransaction();
+      const txId = txContext.id;
+
+      // Insert using transaction
+      await postgres.insert('test_table', { id: 'tx_route_1', name: 'TX Test', value: 100 }, txId);
+
+      // Query within transaction should see the data
+      const withinTx = await postgres.get('test_table:tx_route_1', txId);
+      expect(withinTx).toMatchObject({ id: 'tx_route_1', name: 'TX Test', value: 100 });
+
+      // Query outside transaction should NOT see uncommitted data
+      const outsideTx = await postgres.get('test_table:tx_route_1');
+      expect(outsideTx).toBeNull();
+
+      // Commit
+      await postgres.commitTransaction(txContext);
+
+      // Now data should be visible outside transaction
+      const afterCommit = await postgres.get('test_table:tx_route_1');
+      expect(afterCommit).toMatchObject({ id: 'tx_route_1', name: 'TX Test', value: 100 });
+    });
+
+    it('should NOT persist data after rollback (CRITICAL)', async () => {
+      const postgres = dbService.getAdapter('postgres');
+
+      const txContext = await postgres.beginTransaction();
+      const txId = txContext.id;
+
+      // Insert using transaction
+      await postgres.insert(
+        'test_table',
+        { id: 'rollback_test', name: 'Should Not Persist', value: 999 },
+        txId
+      );
+
+      // Verify data exists within transaction
+      const withinTx = await postgres.get('test_table:rollback_test', txId);
+      expect(withinTx).toMatchObject({ id: 'rollback_test', name: 'Should Not Persist' });
+
+      // Rollback
+      await postgres.rollbackTransaction(txContext);
+
+      // CRITICAL: Data should NOT exist after rollback
+      const afterRollback = await postgres.get('test_table:rollback_test');
+      expect(afterRollback).toBeNull();
+    });
+
+    it('should support all CRUD methods with transactionId', async () => {
+      const postgres = dbService.getAdapter('postgres');
+
+      const txContext = await postgres.beginTransaction();
+      const txId = txContext.id;
+
+      // Insert
+      await postgres.insert('test_table', { id: 'crud_tx_1', name: 'Original', value: 100 }, txId);
+
+      // Get
+      const getResult = await postgres.get('test_table:crud_tx_1', txId);
+      expect(getResult).toBeTruthy();
+
+      // Update
+      await postgres.update('test_table', 'crud_tx_1', { value: 200 }, txId);
+
+      // List
+      const listResult = await postgres.list('test_table', {}, txId);
+      expect(listResult.length).toBeGreaterThan(0);
+
+      // Query
+      const queryResult = await postgres.query(
+        'test_table',
+        [{ field: 'value', operator: 'eq', value: 200 }],
+        txId
+      );
+      expect(queryResult.length).toBe(1);
+
+      // Commit
+      await postgres.commitTransaction(txContext);
+
+      // Verify persistence
+      const finalResult = await postgres.get('test_table:crud_tx_1');
+      expect(finalResult).toMatchObject({ value: 200 });
+
+      // Cleanup
+      await postgres.delete('test_table', 'crud_tx_1');
+    });
+
+    it('should handle insertMany with transactionId without nested transactions', async () => {
+      const postgres = dbService.getAdapter('postgres');
+
+      const txContext = await postgres.beginTransaction();
+      const txId = txContext.id;
+
+      const data = [
+        { id: 'batch_tx_1', name: 'Batch 1', value: 10 },
+        { id: 'batch_tx_2', name: 'Batch 2', value: 20 },
+      ];
+
+      // Should not throw nested transaction error
+      await postgres.insertMany('test_table', data, txId);
+
+      // Rollback
+      await postgres.rollbackTransaction(txContext);
+
+      // Data should not persist
+      const result1 = await postgres.get('test_table:batch_tx_1');
+      const result2 = await postgres.get('test_table:batch_tx_2');
+
+      expect(result1).toBeNull();
+      expect(result2).toBeNull();
+    });
+
+    it('should maintain backward compatibility (no transactionId)', async () => {
+      const postgres = dbService.getAdapter('postgres');
+
+      // All methods should work without transactionId parameter
+      const insertResult = await postgres.insert('test_table', {
+        id: 'compat_test',
+        name: 'Compat',
+        value: 300,
+      });
+
+      expect(insertResult.success).toBe(true);
+
+      const getResult = await postgres.get('test_table:compat_test');
+      expect(getResult).toBeTruthy();
+
+      await postgres.delete('test_table', 'compat_test');
+    });
+  });
+
   describe('Correlation Keys', () => {
     it('should build task correlation key', () => {
       const key = buildTaskKey('task123', 'agent');
