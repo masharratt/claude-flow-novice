@@ -306,27 +306,36 @@ echo -e "${YELLOW}Final Report${NC}"
 echo -e "${YELLOW}========================================${NC}"
 echo ""
 
-cat > "$RESULTS_DIR/final-report.json" <<EOF
-{
-  "timestamp": "$(date -Iseconds)",
-  "mode": "$([ "$QUICK_MODE" = true ] && echo "quick" || echo "full")",
-  "tests_run": {
-    "websocket_comparison": true,
-    "spawn_patterns": true,
-    "ai_streaming": true,
-    "agent_messaging": true,
-    "rust_included": $([ "$SKIP_RUST" = false ] && echo "true" || echo "false"),
-    "docker_included": $([ "$SKIP_DOCKER" = false ] && echo "true" || echo "false")
-  },
-  "results": {
-    "node_ws": $([ -f "$RESULTS_DIR/node-ws-metrics.json" ] && cat "$RESULTS_DIR/node-ws-metrics.json" || echo "{}"),
-    "rust_ws": $([ -f "$RESULTS_DIR/rust-ws-metrics.json" ] && cat "$RESULTS_DIR/rust-ws-metrics.json" || echo "{}"),
-    "spawn_comparison": $([ -f "$RESULTS_DIR/spawn-comparison.json" ] && cat "$RESULTS_DIR/spawn-comparison.json" || echo "{}"),
-    "ai_streaming": $([ -f "$RESULTS_DIR/ai-streaming.json" ] && cat "$RESULTS_DIR/ai-streaming.json" || echo "{}"),
-    "agent_messaging": $([ -f "$RESULTS_DIR/agent-messaging.json" ] && cat "$RESULTS_DIR/agent-messaging.json" || echo "{}")
-  }
-}
-EOF
+# Generate valid JSON using jq to merge result files
+jq -n \
+  --arg timestamp "$(date -Iseconds)" \
+  --arg mode "$([ "$QUICK_MODE" = true ] && echo "quick" || echo "full")" \
+  --argjson rust_included "$([ "$SKIP_RUST" = false ] && echo "true" || echo "false")" \
+  --argjson docker_included "$([ "$SKIP_DOCKER" = false ] && echo "true" || echo "false")" \
+  --argjson node_ws "$([ -f "$RESULTS_DIR/node-ws-metrics.json" ] && cat "$RESULTS_DIR/node-ws-metrics.json" || echo "{}")" \
+  --argjson rust_ws "$([ -f "$RESULTS_DIR/rust-ws-metrics.json" ] && cat "$RESULTS_DIR/rust-ws-metrics.json" || echo "{}")" \
+  --argjson spawn_comparison "$([ -f "$RESULTS_DIR/spawn-comparison.json" ] && cat "$RESULTS_DIR/spawn-comparison.json" || echo "{}")" \
+  --argjson ai_streaming "$([ -f "$RESULTS_DIR/ai-streaming.json" ] && cat "$RESULTS_DIR/ai-streaming.json" || echo "{}")" \
+  --argjson agent_messaging "$([ -f "$RESULTS_DIR/agent-messaging.json" ] && cat "$RESULTS_DIR/agent-messaging.json" || echo "{}")" \
+  '{
+    timestamp: $timestamp,
+    mode: $mode,
+    tests_run: {
+      websocket_comparison: true,
+      spawn_patterns: true,
+      ai_streaming: true,
+      agent_messaging: true,
+      rust_included: $rust_included,
+      docker_included: $docker_included
+    },
+    results: {
+      node_ws: $node_ws,
+      rust_ws: $rust_ws,
+      spawn_comparison: $spawn_comparison,
+      ai_streaming: $ai_streaming,
+      agent_messaging: $agent_messaging
+    }
+  }' > "$RESULTS_DIR/final-report.json"
 
 echo -e "${GREEN}✓ Final report generated: $RESULTS_DIR/final-report.json${NC}"
 echo ""
@@ -334,6 +343,10 @@ echo ""
 # Display summary
 echo "SUMMARY:"
 echo "--------"
+
+# Initialize memory variables to prevent unset variable errors (set -u)
+NODE_MEM=0
+RUST_MEM=0
 
 if [ -f "$RESULTS_DIR/node-ws-metrics.json" ]; then
   NODE_MEM=$(jq -r '.memory_mb.heapUsed // 0' "$RESULTS_DIR/node-ws-metrics.json")
@@ -346,7 +359,7 @@ if [ -f "$RESULTS_DIR/rust-ws-metrics.json" ]; then
   RUST_TPS=$(jq -r '.throughput_msg_per_sec // 0' "$RESULTS_DIR/rust-ws-metrics.json")
   echo "Rust WebSocket: ${RUST_MEM}MB memory, ${RUST_TPS} msg/sec"
 
-  if [ -n "$NODE_MEM" ] && [ "$NODE_MEM" != "0" ] && [ "$RUST_MEM" != "0" ]; then
+  if [ "$NODE_MEM" != "0" ] && [ "$RUST_MEM" != "0" ]; then
     MEM_SAVINGS=$(echo "scale=1; (1 - $RUST_MEM / $NODE_MEM) * 100" | bc)
     echo "  → Memory savings: ${MEM_SAVINGS}%"
   fi

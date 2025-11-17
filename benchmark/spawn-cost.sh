@@ -107,74 +107,32 @@ test_persistent_nodejs() {
   echo ""
   echo -e "${YELLOW}[2/4] Testing Persistent Pattern (Node.js)...${NC}"
 
-  # Start persistent agents in background
-  local pids=()
-
-  for i in $(seq 1 $AGENTS); do
-    node -e "
-      const agentId = 'persistent-agent-$i';
-      let messageCount = 0;
-
-      // Simulate message handler
-      process.on('message', (msg) => {
-        messageCount++;
-        // Simulate work
-        const result = Math.random() * 100;
-      });
-
-      // Keep alive
-      process.stdin.resume();
-    " &
-    pids+=($!)
-  done
-
-  sleep 1 # Allow agents to start
-
   local start_time=$(date +%s%3N)
-  local start_mem=0
 
-  # Calculate total memory of all agent processes
-  for pid in "${pids[@]}"; do
-    if ps -p $pid > /dev/null 2>&1; then
-      local agent_mem=$(ps -o rss= -p $pid | awk '{print $1}')
-      start_mem=$((start_mem + agent_mem))
-    fi
-  done
-
-  # Simulate sending messages to persistent agents
-  for i in $(seq 1 $ITERATIONS); do
-    local target_idx=$((i % AGENTS))
-    local target_pid=${pids[$target_idx]}
-
-    # In real implementation, would send IPC message
-    # Here we just simulate the message cost
-    echo "message-$i" > /dev/null
-  done
+  # Use spawner script with real IPC message passing
+  local result=$(node "$SCRIPT_DIR/persistent-spawner.js" "$AGENTS" "$ITERATIONS" 2>&1)
 
   local end_time=$(date +%s%3N)
-  local end_mem=0
 
-  # Calculate final memory
-  for pid in "${pids[@]}"; do
-    if ps -p $pid > /dev/null 2>&1; then
-      local agent_mem=$(ps -o rss= -p $pid | awk '{print $1}')
-      end_mem=$((end_mem + agent_mem))
-    fi
-  done
+  # Parse results from spawner
+  if ! echo "$result" | jq empty 2>/dev/null; then
+    echo -e "${RED}✗ Spawner failed or returned invalid JSON${NC}"
+    echo "$result"
+    return 1
+  fi
 
-  # Cleanup: kill all persistent agents
-  for pid in "${pids[@]}"; do
-    kill $pid 2>/dev/null || true
-  done
+  local messages_acked=$(echo "$result" | jq -r '.messages_acked')
+  local spawn_duration=$(echo "$result" | jq -r '.duration_ms')
+  local avg_latency=$(echo "$result" | jq -r '.avg_latency_ms')
 
-  local duration=$((end_time - start_time))
-  local mem_diff=$((end_mem - start_mem))
+  # Calculate total test duration (includes spawn overhead)
+  local total_duration=$((end_time - start_time))
 
-  echo "Duration: ${duration}ms"
-  echo "Memory Delta: ${mem_diff}KB"
-  echo "Avg per message: $((duration / ITERATIONS))ms"
-  echo "Agents running: $AGENTS"
-  echo "Baseline memory: ${start_mem}KB"
+  echo "Total Duration: ${total_duration}ms"
+  echo "Messaging Duration: ${spawn_duration}ms"
+  echo "Messages Acked: ${messages_acked}/${ITERATIONS}"
+  echo "Avg per message: ${avg_latency}ms"
+  echo "Agents used: $AGENTS"
 
   # Save results
   cat > "$RESULTS_DIR/persistent-nodejs.json" <<EOF
@@ -182,10 +140,10 @@ test_persistent_nodejs() {
   "pattern": "persistent-nodejs",
   "iterations": $ITERATIONS,
   "agents": $AGENTS,
-  "duration_ms": $duration,
-  "baseline_memory_kb": $start_mem,
-  "memory_delta_kb": $mem_diff,
-  "avg_per_operation_ms": $((duration / ITERATIONS))
+  "total_duration_ms": $total_duration,
+  "messaging_duration_ms": $spawn_duration,
+  "messages_acked": $messages_acked,
+  "avg_per_operation_ms": $avg_latency
 }
 EOF
 

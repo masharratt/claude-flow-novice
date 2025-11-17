@@ -145,13 +145,19 @@ async fn main() {
             let routed = stats_clone.messages_routed.load(Ordering::Relaxed);
             let failed = stats_clone.messages_failed.load(Ordering::Relaxed);
 
-            // Get memory usage (approximate)
-            let mem_kb = procfs::process::Process::myself()
-                .ok()
-                .and_then(|p| p.stat().ok())
-                .map(|stat| stat.rss * 4) // RSS is in pages, typically 4KB
-                .unwrap_or(0);
-            let mem_mb = mem_kb / 1024;
+            // Get memory usage (Linux-only via procfs)
+            #[cfg(target_os = "linux")]
+            let mem_mb = {
+                let mem_kb = procfs::process::Process::myself()
+                    .ok()
+                    .and_then(|p| p.stat().ok())
+                    .map(|stat| stat.rss * 4) // RSS is in pages, typically 4KB
+                    .unwrap_or(0);
+                mem_kb / 1024
+            };
+
+            #[cfg(not(target_os = "linux"))]
+            let mem_mb = 0;
 
             info!(
                 "Active: {} | Routed: {} | Failed: {} | Mem: {}MB",
@@ -362,12 +368,17 @@ async fn metrics_handler(State(state): State<AppState>) -> Json<MetricsResponse>
     let latencies = state.stats.latencies.read().await;
     let (p50, p95, p99) = calculate_percentiles(&latencies);
 
-    // Get memory usage
+    // Get memory usage (Linux-only via procfs)
+    #[cfg(target_os = "linux")]
     let rss_mb = procfs::process::Process::myself()
         .ok()
         .and_then(|p| p.stat().ok())
         .map(|stat| (stat.rss * 4) / 1024) // RSS in MB
         .unwrap_or(0);
+
+    // Non-Linux platforms: memory reporting not available
+    #[cfg(not(target_os = "linux"))]
+    let rss_mb = 0;
 
     Json(MetricsResponse {
         uptime_seconds: uptime,
@@ -392,12 +403,12 @@ async fn health_handler() -> &'static str {
     "OK"
 }
 
-// Utility: Get current timestamp in milliseconds
+// Utility: Get current timestamp in seconds
 fn current_timestamp() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
-        .as_millis() as u64
+        .as_secs()
 }
 
 // Utility: Calculate percentiles

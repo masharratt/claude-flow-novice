@@ -4,10 +4,12 @@
  * Tests message routing throughput and latency under various connection loads.
  *
  * Usage:
- *   k6 run load-test.js                           # Default: 100 agents
- *   k6 run load-test.js -e TARGET=ws://localhost:8081  # Test Rust implementation
+ *   k6 run load-test.js                           # Default: 100 agents, Node.js server
+ *   k6 run load-test.js -e TARGET=ws://localhost:8081/ws  # Test Rust implementation
  *   k6 run load-test.js -e AGENTS=500             # Test with 500 concurrent agents
  *   k6 run load-test.js -e DURATION=5m            # Run for 5 minutes
+ *
+ * Note: Rust server expects route /ws/:agent_id, so TARGET must include /ws base path
  */
 
 import ws from 'k6/ws';

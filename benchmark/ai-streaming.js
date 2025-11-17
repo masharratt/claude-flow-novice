@@ -18,9 +18,14 @@
 const fs = require('fs');
 const path = require('path');
 
-// Configuration
-const CONCURRENT_STREAMS = parseInt(process.argv.find((arg, i) => process.argv[i - 1] === '--concurrent') || '10');
-const ITERATIONS = parseInt(process.argv.find((arg, i) => process.argv[i - 1] === '--iterations') || '5');
+// Configuration - with validation to prevent NaN
+const parseCLIArg = (flag, defaultValue, min = 1) => {
+  const value = parseInt(process.argv.find((arg, i) => process.argv[i - 1] === flag) || defaultValue.toString());
+  return (isNaN(value) || value < min) ? defaultValue : value;
+};
+
+const CONCURRENT_STREAMS = parseCLIArg('--concurrent', 10, 1);
+const ITERATIONS = parseCLIArg('--iterations', 5, 1);
 const USE_MOCK = process.argv.includes('--mock');
 const RESULTS_DIR = path.join(__dirname, 'results');
 
@@ -234,14 +239,21 @@ async function main() {
   const testEndTime = Date.now();
   const totalTestDuration = testEndTime - testStartTime;
 
-  // Calculate final statistics
+  // Calculate final statistics - guard against empty arrays
   console.log('\n========================================');
   console.log('Final Results');
   console.log('========================================');
 
-  const avgLatency = stats.latencies.reduce((a, b) => a + b, 0) / stats.latencies.length;
-  const avgTokenProcessing = stats.tokenProcessingTimes.reduce((a, b) => a + b, 0) / stats.tokenProcessingTimes.length;
-  const totalTPS = stats.totalTokens / (stats.totalDuration / 1000);
+  // Guard against division by zero when no metrics collected
+  const avgLatency = stats.latencies.length > 0
+    ? stats.latencies.reduce((a, b) => a + b, 0) / stats.latencies.length
+    : 0;
+  const avgTokenProcessing = stats.tokenProcessingTimes.length > 0
+    ? stats.tokenProcessingTimes.reduce((a, b) => a + b, 0) / stats.tokenProcessingTimes.length
+    : 0;
+  const totalTPS = stats.totalDuration > 0
+    ? stats.totalTokens / (stats.totalDuration / 1000)
+    : 0;
 
   console.log(`Total Requests: ${stats.totalRequests}`);
   console.log(`Total Tokens Processed: ${stats.totalTokens}`);
@@ -259,7 +271,9 @@ async function main() {
   console.log(`  Overall throughput: ${totalTPS.toFixed(1)} tokens/sec`);
   console.log('');
   console.log('Memory:');
-  const avgHeapDelta = stats.memorySnapshots.reduce((sum, m) => sum + m.heapUsed, 0) / stats.memorySnapshots.length;
+  const avgHeapDelta = stats.memorySnapshots.length > 0
+    ? stats.memorySnapshots.reduce((sum, m) => sum + m.heapUsed, 0) / stats.memorySnapshots.length
+    : 0;
   console.log(`  Avg heap delta per stream: ${(avgHeapDelta / 1024 / 1024).toFixed(2)}MB`);
 
   // Save detailed results
@@ -292,29 +306,34 @@ async function main() {
   console.log('');
   console.log(`Results saved to: ${resultsFile}`);
 
-  // Interpretation
+  // Interpretation - guard against no requests
   console.log('\n========================================');
   console.log('Interpretation');
   console.log('========================================');
 
-  if (avgTokenProcessing < 1) {
-    console.log('✓ Token processing is CPU-efficient (<1ms per token)');
-    console.log('  → Rust unlikely to provide significant benefit');
-  } else if (avgTokenProcessing < 5) {
-    console.log('○ Token processing is moderate (1-5ms per token)');
-    console.log('  → Rust could provide 2-3x speedup');
+  if (stats.totalRequests === 0) {
+    console.log('⚠️  No requests completed successfully');
+    console.log('  → Cannot provide performance interpretation');
   } else {
-    console.log('! Token processing is slow (>5ms per token)');
-    console.log('  → Consider Rust for token processing layer');
-  }
+    if (avgTokenProcessing < 1) {
+      console.log('✓ Token processing is CPU-efficient (<1ms per token)');
+      console.log('  → Rust unlikely to provide significant benefit');
+    } else if (avgTokenProcessing < 5) {
+      console.log('○ Token processing is moderate (1-5ms per token)');
+      console.log('  → Rust could provide 2-3x speedup');
+    } else {
+      console.log('! Token processing is slow (>5ms per token)');
+      console.log('  → Consider Rust for token processing layer');
+    }
 
-  const p95Latency = percentile(stats.latencies, 95);
-  if (p95Latency > 5000) {
-    console.log('\n! Network latency dominates (P95 > 5s)');
-    console.log('  → Rust provides no benefit (network-bound)');
-  } else {
-    console.log('\n✓ Low network latency (P95 < 5s)');
-    console.log('  → CPU optimizations could help');
+    const p95Latency = percentile(stats.latencies, 95);
+    if (p95Latency > 5000) {
+      console.log('\n! Network latency dominates (P95 > 5s)');
+      console.log('  → Rust provides no benefit (network-bound)');
+    } else {
+      console.log('\n✓ Low network latency (P95 < 5s)');
+      console.log('  → CPU optimizations could help');
+    }
   }
 
   console.log('\n========================================\n');
