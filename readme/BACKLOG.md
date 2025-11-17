@@ -43,6 +43,16 @@ Implementation:
 
 ### P2 - Medium Priority
 
+**[P2] - Sync agent-use-case-registry with dynamic agent discovery sy...**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Sync agent-use-case-registry with dynamic agent discovery system
+- **Rationale**: Currently agent-use-case-registry.cjs is manually maintained and can drift out of sync with actual agents in .claude/agents/, causing confusion when deprecated agents appear in selection but don't exist. This creates maintenance overhead and potential runtime errors.
+- **Proposed Solution**: Move agent-use-case-registry to database-backed system (similar to skills migration). Auto-populate keywords/domains from agent YAML frontmatter + allow manual overrides. Benefits: (1) Single source of truth (.claude/agents/ files), (2) Auto-sync on agent creation/deletion, (3) Keyword enrichment via DB, (4) Eliminates manual registry maintenance, (5) Prevents stale agent references. Implementation: Create SQLite table with agent_name, keywords[], domains[], priority, auto_discovered (bool), last_synced timestamp. Add sync script that scans .claude/agents/ and updates DB. Migrate existing registry entries with manual_override flag.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-17
+
 **[P2] - ✅ TECH-DEBT-001: Standardize coordination-utils.sh import paths [COMPLETE]**
 - **Sprint Backlogged**: Unknown
 - **Category**: Technical-Debt

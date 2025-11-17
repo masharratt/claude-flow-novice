@@ -186,15 +186,6 @@ const agentRegistry = {
     description: 'Security architecture design, Zero Trust planning'
   },
 
-  'security-manager': {
-    keywords: ['blockchain security', 'cryptography', 'distributed security',
-               'cryptographic protocols', 'encryption', 'blockchain',
-               'distributed systems security', 'consensus security'],
-    domains: ['security', 'blockchain', 'cryptography'],
-    priority: 8,
-    description: 'Distributed systems security, cryptography'
-  },
-
   // ========================================
   // 4. ARCHITECTURE & SYSTEM DESIGN
   // ========================================
@@ -322,52 +313,12 @@ const agentRegistry = {
   // 7. SPECIALIZED DOMAINS
   // ========================================
 
-  'byzantine-coordinator': {
-    keywords: ['Byzantine', 'fault tolerance', 'malicious actor', 'Byzantine consensus',
-               'adversarial environment', 'BFT', 'Byzantine fault'],
-    domains: ['distributed', 'consensus', 'security'],
-    priority: 7,
-    description: 'Byzantine fault tolerance, malicious actor handling'
-  },
-
   'consensus-builder': {
     keywords: ['consensus', 'distributed consensus', 'team agreement',
                'consensus algorithm', 'distributed decision', 'voting'],
     domains: ['distributed', 'consensus', 'coordination'],
     priority: 7,
     description: 'Distributed consensus, team agreement'
-  },
-
-  'raft-manager': {
-    keywords: ['Raft', 'leader election', 'log replication', 'Raft consensus',
-               'distributed consensus', 'Raft protocol'],
-    domains: ['distributed', 'consensus', 'raft'],
-    priority: 6,
-    description: 'Raft consensus implementation'
-  },
-
-  'crdt-synchronizer': {
-    keywords: ['CRDT', 'conflict-free', 'state synchronization', 'conflict resolution',
-               'eventual consistency', 'distributed data', 'replicated data'],
-    domains: ['distributed', 'synchronization', 'data'],
-    priority: 6,
-    description: 'Conflict-free replicated data types'
-  },
-
-  'gossip-coordinator': {
-    keywords: ['gossip', 'epidemic', 'peer-to-peer', 'gossip protocol',
-               'data dissemination', 'P2P communication'],
-    domains: ['distributed', 'p2p', 'communication'],
-    priority: 6,
-    description: 'Gossip protocols, epidemic dissemination'
-  },
-
-  'quorum-manager': {
-    keywords: ['quorum', 'voting', 'dynamic quorum', 'quorum calculation',
-               'voting mechanism', 'distributed voting'],
-    domains: ['distributed', 'consensus', 'voting'],
-    priority: 6,
-    description: 'Dynamic quorum management, voting systems'
   },
 
   'api-docs': {
@@ -641,12 +592,12 @@ const agentRegistry = {
     description: 'Playwright automation and testing'
   },
 
-  'reviewer': {
+  'code-reviewer': {
     keywords: ['code review', 'peer review', 'review comments', 'code critique',
-               'review feedback', 'code assessment'],
-    domains: ['review', 'quality', 'analysis'],
+               'review feedback', 'code assessment', 'quality validation', 'security review'],
+    domains: ['review', 'quality', 'analysis', 'security'],
     priority: 7,
-    description: 'Code review and peer assessment'
+    description: 'Code review, quality validation, and security assessment'
   },
 
   'test-coordinator': {

@@ -53,7 +53,8 @@ BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id 
 * **Concise answers only** - no code examples unless requested
 * **Persistence enables swarm recovery** - swarm state survives interruptions
 * **ALL agent communication MUST use coordination protocols** - no direct file coordination
-* **NEVER HARDCODE API KEYS**
+* **NEVER HARDCODE API KEYS** (in code OR documentation)
+* **ALWAYS REDACT SENSITIVE DATA** in documentation, bug reports, and security audits using `[REDACTED]` placeholder
 * **sleep on repeat** when monitoring a background process. sleep x  minutes, check progress, sleep, repeat
 * **USE GREP INSTEAD OF FIND** - it's less resource intensive in our WSL2 instances
 

@@ -26,6 +26,20 @@ MAX_ITERATIONS: Parse from --max-iterations flag or default to 10
 TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
 ```
 
+**Step 2.5: Verify Redis Availability (REQUIRED for CLI mode coordination)**
+```bash
+# Verify Redis availability (REQUIRED for CLI mode coordination)
+if ! redis-cli PING >/dev/null 2>&1; then
+  echo "❌ ERROR: Redis not available"
+  echo "   CLI mode requires Redis for coordination"
+  echo "   Start Redis: redis-server"
+  echo "   Or use Task mode: /cfn-loop-task"
+  exit 1
+fi
+
+echo "✅ Redis available"
+```
+
 **Step 3: Spawn Coordinator (REQUIRED - Execute this command now via Bash tool)**
 ```bash
 npx claude-flow-novice agent cfn-v3-coordinator \
@@ -94,8 +108,8 @@ After spawning coordinator, tell user:
 | Mode | Gate | Consensus | Iterations | Validators | Use Case |
 |------|------|-----------|------------|------------|----------|
 | MVP | ≥0.70 | ≥0.80 | 5 | 2 | Prototypes, proof-of-concept |
-| Standard | ≥0.75 | ≥0.90 | 10 | 3-4 | Production features |
-| Enterprise | ≥0.85 | ≥0.95 | 15 | 5 | Security, compliance, critical systems |
+| Standard | ≥0.95 | ≥0.90 | 10 | 3-4 | Production features |
+| Enterprise | ≥0.98 | ≥0.95 | 15 | 5 | Security, compliance, critical systems |
 
 ## How CLI Mode Works
 

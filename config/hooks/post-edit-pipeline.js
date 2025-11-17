@@ -159,7 +159,7 @@ try {
         severity: 'high'
       },
       {
-        pattern: /(password|secret|token).*=.*['"][^'"]{8,}['"]/i,
+        pattern: /(password|secret|token|api[-_]?key|anthropic|openai|openrouter|kimi|npm[-_]?token|zai|z[-_]ai).*=.*['"]?[^'"\s]{20,}['"]?/i,
         vulnerability: 'HARDCODED_SECRET',
         severity: 'critical'
       }

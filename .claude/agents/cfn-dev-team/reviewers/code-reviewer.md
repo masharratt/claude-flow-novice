@@ -1,5 +1,5 @@
 ---
-name: reviewer
+name: code-reviewer
 description: MUST BE USED for code quality validation, security review, and quality assurance.
 type: validator
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]

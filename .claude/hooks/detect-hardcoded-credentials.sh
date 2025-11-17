@@ -41,6 +41,12 @@ EXCLUDE_PATTERNS=(
   "node_modules/"
   ".git/"
   "*.md"
+  "tests/fixtures/"  # Only exclude test fixtures, not all tests
+  "legacy/"
+  "node_modules/"
+  ".git/"
+  # REMOVED: "docs/" exclusion - now validates documentation files
+  # REMOVED: "*.md" exclusion - now validates markdown files
 )
 
 # High-entropy patterns (likely credentials)
