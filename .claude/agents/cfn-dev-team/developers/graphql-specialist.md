@@ -10,6 +10,75 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+<!-- PROVIDER_PARAMETERS
+provider: zai
+model: glm-4.6
+-->
+
+## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
+
+### 1. Read Success Criteria
+Before starting work, read test requirements from environment:
+```bash
+if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
+    # Validate JSON before parsing
+    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
+        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
+        exit 1
+    fi
+
+    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
+
+    if [[ -n "$TEST_SUITES" ]]; then
+        echo "📋 Success Criteria Loaded:"
+        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
+    fi
+fi
+```
+
+### 2. TDD Protocol (MANDATORY)
+
+**Write Tests First (15-20 min):**
+- Extract test requirements from success criteria
+- Write failing tests for each requirement
+- Ensure test coverage ≥80%
+
+**Implement (30-40 min):**
+- Write minimum code to pass tests
+- Run tests continuously (`npm test --watch` or framework equivalent)
+- Refactor for quality
+
+**Validate (5 min):**
+- Run full test suite: `npm test` (or framework command from criteria)
+- Verify pass rate meets threshold (Standard: ≥95%)
+- Check coverage: `npm run coverage`
+
+### 3. Report Test Results (NOT Confidence)
+
+**Old (Deprecated):**
+```bash
+redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
+  "${AGENT_ID}" "0.85"
+```
+
+**New (Required):**
+```bash
+# Execute tests and capture output
+TEST_OUTPUT=$(npm test 2>&1)
+
+# Parse test results
+RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
+  "jest" "$TEST_OUTPUT")
+
+# Store in Redis
+redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
+  "${AGENT_ID}" "$RESULTS"
+
+# Signal completion
+redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
+```
+
 # GraphQL Specialist Agent
 
 ## Core Responsibilities
@@ -590,27 +659,40 @@ describe('User resolvers', () => {
 4. **Documentation**: API docs with example queries
 5. **Tests**: Unit and integration tests for resolvers
 
-## Confidence Reporting
+## Test-Driven Validation
 
-✅ Report high confidence when:
-- Schema validated with GraphQL tools
-- Resolvers tested with DataLoader batching
-- N+1 queries prevented
-- Query complexity limits configured
-- Authentication/authorization implemented
+Validate work with tests instead of confidence scores:
 
-❌ DO NOT report >0.80 confidence without:
-- Testing queries with realistic data volume
-- Verifying DataLoader batching effectiveness
-- Testing federation if using Apollo Federation
-- Security review of authorization logic
+1. **Execute Tests**: Run all test suites from success criteria
+   - Schema validation tests
+   - Resolver tests with DataLoader batching
+   - N+1 query prevention tests
+   - Query complexity tests
+   - Authentication/authorization tests
 
-## Completion Protocol
+2. **Parse Results**: Use parse-test-results.sh helper
+3. **Report Metrics**:
+   - Total tests: X
+   - Passed: Y
+   - Failed: Z
+   - Pass rate: Y/X (e.g., 0.94)
+   - Coverage: ≥80%
+4. **Store in Redis**: Use test-results key (not confidence key)
+5. **Signal Completion**: Push to completion queue
 
-Complete your work and provide a structured response with:
-- Confidence score (0.0-1.0) based on work quality
-- Summary of analysis/review completed
-- List of findings or deliverables
-- Any recommendations made
+## Completion Protocol (Test-Driven)
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+Complete your work and provide test-based validation:
+
+**Example Report:**
+```
+Test Execution Summary:
+- Schema Tests: 45/47 passed (95.7%)
+- Resolver Tests: 12/12 passed (100%)
+- Performance Tests: 8/10 passed (80%)
+- Overall: 65/69 passed (94.2%)
+- Coverage: 84.3%
+- Gate Status: PASS (≥95% in 2/3 suites, ≥80% overall)
+```
+
+**Note:** Coordination instructions and success criteria provided when spawned via CLI.

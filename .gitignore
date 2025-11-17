@@ -205,6 +205,11 @@ legacy/v1/**/.next/planning/global/
 # Pre-Edit Backup System
 .backups/
 
+# Temporary backup files
+*.backup-*
+
+# Redis dump files
+dump.rdb
 # Backup files
 *.backup
 *.bak

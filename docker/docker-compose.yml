@@ -17,6 +17,61 @@ services:
       timeout: 3s
       retries: 5
 
+  cfn-coordinator:
+    image: cfn-intelligent-coordinator:latest
+    container_name: cfn-coordinator
+    mem_limit: 2g
+    depends_on:
+      - cfn-redis
+    networks:
+      - mcp-network
+    # Security: Capability restrictions and seccomp profile
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - seccomp=docker/seccomp/agent-lifecycle.json
+    volumes:
+      # SECURITY FIX #3: Docker socket privilege isolation
+      # CRITICAL: ONLY coordinator should have Docker daemon access for agent spawning
+      # This mount grants root-equivalent access to the host system
+      # NEVER add this mount to agent containers (privilege escalation risk)
+      #
+      # See docker/DOCKER_ACCESS_CONTROL.md for:
+      # - Permitted Docker operations (agent spawn/terminate only)
+      # - Prohibited actions (host filesystem, privileged containers, etc.)
+      # - Security enforcement (capabilities, seccomp, network isolation)
+      # - Validation checklist and audit commands
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${WORKSPACE_PATH:-/workspace}:/workspace:rw
+      - ${CFN_SUCCESS_CRITERIA_FILE:-/dev/null}:/etc/cfn/success-criteria.json:ro
+    environment:
+      # Task Configuration
+      - CFN_TASK_ID=${CFN_TASK_ID:-}
+      - CFN_TASK_DESCRIPTION=${CFN_TASK_DESCRIPTION:-}
+      - CFN_ITERATION_LIMIT=${CFN_ITERATION_LIMIT:-10}
+
+      # Redis Coordination
+      - CFN_REDIS_HOST=cfn-redis
+      - CFN_REDIS_PORT=6379
+      - CFN_REDIS_PASSWORD=${CFN_REDIS_PASSWORD:-}
+
+      # Test-Driven Gate Configuration
+      - CFN_GATE_STRATEGY=${CFN_GATE_STRATEGY:-auto}
+      - CFN_TEST_PASS_RATE_GATE=${CFN_TEST_PASS_RATE_GATE:-0.95}
+      - CFN_TEST_PASS_RATE_CONSENSUS=${CFN_TEST_PASS_RATE_CONSENSUS:-0.95}
+      - CFN_SUCCESS_CRITERIA=${CFN_SUCCESS_CRITERIA:-}
+
+      # Memory and Resource Management
+      - CFN_MEMORY_BUDGET=${CFN_MEMORY_BUDGET:-40g}
+      - CFN_MAX_PARALLEL_AGENTS=${CFN_MAX_PARALLEL_AGENTS:-4}
+      - CFN_AGENT_MEMORY_LIMIT=${CFN_AGENT_MEMORY_LIMIT:-1g}
+
+      # Container Runtime
+      - CFN_NETWORK_NAME=mcp-network
+    restart: unless-stopped
+
 networks:
   mcp-network:
     driver: bridge
