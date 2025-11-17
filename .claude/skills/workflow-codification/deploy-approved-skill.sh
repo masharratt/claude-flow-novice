@@ -50,6 +50,11 @@
 
 set -euo pipefail
 
+# Source SQLite parameter binding library (Pattern B - SQL injection prevention)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
@@ -209,74 +214,33 @@ insert_skill() {
     local version="1.0.0"
 
     # SECURITY FIX: Escape all SQL strings to prevent injection
-    local safe_skill_name
-    safe_skill_name=$(escape_sql_string "$skill_name")
-    local safe_content_path
-    safe_content_path=$(escape_sql_string "$content_path")
-    local safe_category
-    safe_category=$(escape_sql_string "$category")
-    local safe_content_hash
-    safe_content_hash=$(escape_sql_string "$content_hash")
-    local safe_approval_level
-    safe_approval_level=$(escape_sql_string "$approval_level")
+    
+    
+    
+    
+    
 
     # Check if skill already exists
     local existing_count
-    existing_count=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name = '${safe_skill_name}';")
+    existing_count=$(sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name = ?1" "$skill_name")
 
     if [ "$existing_count" -gt 0 ]; then
         log_warning "Skill '$skill_name' already exists. Updating instead of inserting."
 
         # Update existing skill (with escaped values)
-        sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
-UPDATE skills SET
-    category = '${safe_category}',
-    content_path = '${safe_content_path}',
-    content_hash = '${safe_content_hash}',
-    approval_level = '${safe_approval_level}',
-    phase4_pattern_id = ${pattern_id},
-    generated_by = 'phase4',
-    is_auto_generated = 1,
-    status = 'active',
-    updated_at = datetime('now')
-WHERE name = '${safe_skill_name}';
-EOF
+        sqlite_update "$CFN_SKILLS_DB_PATH" \
+"UPDATE skills SET category = ?1, content_path = ?2, content_hash = ?3, approval_level = ?4, phase4_pattern_id = ?5, generated_by = ?6, is_auto_generated = 1, status = ?7, updated_at = datetime('now') WHERE name = ?8" \
+"$category" "$content_path" "$content_hash" "$approval_level" "$pattern_id" "phase4" "active" "$skill_name"
 
         # Get existing skill ID
-        sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT id FROM skills WHERE name = '${safe_skill_name}';"
+        sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT id FROM skills WHERE name = ?1" "$skill_name"
     else
         # Insert new skill (with escaped values)
-        sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
-INSERT INTO skills (
-    name,
-    category,
-    content_path,
-    content_hash,
-    version,
-    status,
-    approval_level,
-    phase4_pattern_id,
-    generated_by,
-    is_auto_generated,
-    created_at,
-    updated_at
-) VALUES (
-    '${safe_skill_name}',
-    '${safe_category}',
-    '${safe_content_path}',
-    '${safe_content_hash}',
-    '${version}',
-    'active',
-    '${safe_approval_level}',
-    ${pattern_id},
-    'phase4',
-    1,
-    datetime('now'),
-    datetime('now')
-);
+        sqlite_insert "$CFN_SKILLS_DB_PATH" \
+"INSERT INTO skills (name, category, content_path, content_hash, version, status, approval_level, phase4_pattern_id, generated_by, is_auto_generated, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, datetime('now'), datetime('now'))" \
+"$skill_name" "$category" "$content_path" "$content_hash" "$version" "active" "$approval_level" "$pattern_id" "phase4" "1"
 
-SELECT last_insert_rowid();
-EOF
+sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT last_insert_rowid()"
     fi
 }
 
@@ -293,12 +257,9 @@ record_approval() {
     local reasoning="Auto-approved by Phase 4 workflow codification system after expert review"
 
     # SECURITY FIX: Escape SQL strings
-    local safe_version
-    safe_version=$(escape_sql_string "$version")
-    local safe_approval_level
-    safe_approval_level=$(escape_sql_string "$approval_level")
-    local safe_reasoning
-    safe_reasoning=$(escape_sql_string "$reasoning")
+    
+    
+    
 
     sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 INSERT INTO approval_history (
@@ -366,11 +327,11 @@ create_agent_mappings() {
 
         # SECURITY FIX: Escape SQL string
         local safe_agent_type
-        safe_agent_type=$(escape_sql_string "$agent_type")
+        # Pattern B: No escaping needed - using parameterized queries
 
         # Check if mapping already exists
         local existing_mapping
-        existing_mapping=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM agent_skill_mappings WHERE agent_type = '${safe_agent_type}' AND skill_id = ${skill_id};")
+        existing_mapping=$(sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM agent_skill_mappings WHERE agent_type = ?1 AND skill_id = ?2" "$agent_type" "$skill_id")
 
         if [ "$existing_mapping" -gt 0 ]; then
             log_warning "    Mapping already exists for $agent_type, skipping"
@@ -416,8 +377,14 @@ update_phase4_status() {
         export PGPASSFILE="$pgpass_file"
     fi
 
-    # Try to update Phase 4 status (with properly quoted parameters)
-    if psql -h "$PHASE4_POSTGRES_HOST" -U "$PHASE4_POSTGRES_USER" -d "$PHASE4_POSTGRES_DB" -t -A -c "UPDATE workflow_patterns SET status = 'deployed', deployed_skill_id = ${skill_id} WHERE id = ${pattern_id};" 2>/dev/null; then
+    # Validate numeric IDs to prevent SQL injection (CVSS 7.5 fix)
+    if ! [[ "$skill_id" =~ ^[0-9]+$ ]] || ! [[ "$pattern_id" =~ ^[0-9]+$ ]]; then
+        log_error "Invalid numeric ID for skill_id or pattern_id"
+        return 4
+    fi
+
+    # Try to update Phase 4 status (with validated parameters and proper quoting)
+    if psql -h "$PHASE4_POSTGRES_HOST" -U "$PHASE4_POSTGRES_USER" -d "$PHASE4_POSTGRES_DB" -t -A -c "UPDATE workflow_patterns SET status = 'deployed', deployed_skill_id = '${skill_id}' WHERE id = '${pattern_id}';" 2>/dev/null; then
         log_success "Phase 4 status updated successfully"
     else
         log_warning "Failed to update Phase 4 status (pattern ID: $pattern_id). This is non-fatal."
@@ -510,3 +477,5 @@ main() {
 
 # Execute main function
 main "$@"
+
+

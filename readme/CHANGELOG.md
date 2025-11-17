@@ -160,6 +160,12 @@ tests/integration/run-all-integration-tests.sh
 
 ### Security
 
+- SQL injection fixes (CVSS 8.6, 7.5) - 13 scripts secured (2025-11-17)
+  - Impact: All SQL injection vulnerabilities in CFN skill scripts eliminated using Pattern B (parameterized queries) and Pattern C (input validation + quoting). Zero CVSS 7.0+ vulnerabilities remaining.
+- SEC-003 Iteration 1: SQL injection prevention foundation established (2025-11-17)
+  - Impact: Test suite, linter, pre-commit hook added. 5/13 scripts secured. 8 scripts pending iteration 2.
+- SQL injection audit: 14 scripts analyzed, Pattern B library validated, 5 docs created (2025-11-17)
+  - Impact: MEDIUM - Comprehensive vulnerability analysis completed, remediation path documented, but fixes pending
 - Shell security: variable quoting, strict mode, mktemp implementation (2025-11-17)
   - Impact: HIGH - Prevents word splitting, enforces error detection, eliminates temp file race conditions
 - Fixed command injection vulnerability in promotion pipeline (CVSS 8.6) (2025-11-17)

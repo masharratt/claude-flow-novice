@@ -6,6 +6,10 @@
 
 set -e  # Exit on error
 
+# Source parameterized query library for SQL injection prevention
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+
 # Configuration
 DB_PATH="${DB_PATH:-./swarm-memory.db}"
 REDIS_HOST="${REDIS_HOST:-localhost}"
@@ -66,28 +70,20 @@ EOF
 cleanup_acl_level() {
     local acl_level=$1
     local retention_days=$2
-    
+
     log "Cleaning up ACL Level $acl_level entries older than $retention_days days..."
-    
-    # SQLite cleanup query
-    local cleanup_sql="
-    DELETE FROM memory_store 
-    WHERE acl_level = $acl_level 
-    AND expires_at <= datetime('now', '-$retention_days days')
-    AND acl_level != 5; -- Skip system audit logs (level 5)
-    "
-    
+
     if [ "$DRY_RUN" = "true" ]; then
-        # Count what would be deleted
-        local count=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM memory_store WHERE acl_level = $acl_level AND expires_at <= datetime('now', '-$retention_days days') AND acl_level != 5;")
+        # Count what would be deleted - using parameterized query
+        local count=$(sqlite_select "$DB_PATH" "SELECT COUNT(*) FROM memory_store WHERE acl_level = ?1 AND expires_at <= datetime('now', '-' || ?2 || ' days') AND acl_level != 5;" "$acl_level" "$retention_days")
         log "[DRY RUN] Would delete $count entries from ACL Level $acl_level"
         return 0
     fi
-    
-    # Execute cleanup
-    local deleted_count=$(sqlite3 "$DB_PATH" "$cleanup_sql")
-    log "Deleted $deleted_count entries from ACL Level $acl_level"
-    
+
+    # Execute cleanup - using parameterized query (Pattern B)
+    sqlite_delete "$DB_PATH" "DELETE FROM memory_store WHERE acl_level = ?1 AND expires_at <= datetime('now', '-' || ?2 || ' days') AND acl_level != 5;" "$acl_level" "$retention_days"
+    log "Deleted entries from ACL Level $acl_level"
+
     # Sync with Redis if available
     if check_redis; then
         sync_redis_cleanup "$acl_level"
@@ -100,12 +96,8 @@ sync_redis_cleanup() {
     
     log "Syncing Redis cleanup for ACL Level $acl_level..."
     
-    # Get keys that should be removed from Redis
-    local redis_keys=$(sqlite3 "$DB_PATH" "
-    SELECT key FROM memory_store 
-    WHERE acl_level = $acl_level 
-    AND expires_at <= datetime('now')
-    ")
+    # Get keys that should be removed from Redis - using parameterized query
+    local redis_keys=$(sqlite_select "$DB_PATH" "SELECT key FROM memory_store WHERE acl_level = ?1 AND expires_at <= datetime('now')" "$acl_level")
     
     # Remove from Redis
     while IFS= read -r key; do
@@ -138,8 +130,8 @@ cleanup_redis_ttl() {
                 # Key doesn't exist in Redis but exists in SQLite (stale)
                 redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" DEL "$key" > /dev/null 2>&1 || true
             elif [ "$ttl" -eq -1 ]; then
-                # Key has no TTL, check if it should have one based on ACL level
-                local acl_level=$(sqlite3 "$DB_PATH" "SELECT acl_level FROM memory_store WHERE key = '$key' LIMIT 1")
+                # Key has no TTL, check if it should have one based on ACL level - using parameterized query
+                local acl_level=$(sqlite_select "$DB_PATH" "SELECT acl_level FROM memory_store WHERE key = ?1 LIMIT 1" "$key")
                 if [ -n "$acl_level" ] && [ "$acl_level" -le 4 ]; then
                     # Should have TTL, remove it
                     redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" DEL "$key" > /dev/null 2>&1 || true

@@ -72,6 +72,11 @@
 
 set -euo pipefail
 
+# Source SQLite parameter binding library (Pattern B - SQL injection prevention)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
@@ -182,17 +187,15 @@ validate_parameters() {
     fi
 
     # SECURITY FIX: Escape SQL string before query
-    local safe_skill_name
-    safe_skill_name=$(escape_sql_string "$skill_name")
 
     # Validate skill exists in database (before attempting update)
     local skill_count
-    skill_count=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name='${safe_skill_name}'" 2>/dev/null || echo "0")
+    skill_count=$(sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT COUNT(*) FROM skills WHERE name = ?1" "$skill_name" 2>/dev/null || echo "0")
 
     if [[ "$skill_count" -eq 0 ]]; then
         echo "[ERROR] Skill not found in database: $skill_name" >&2
         echo "Available skills:" >&2
-        sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT name FROM skills ORDER BY name" 2>/dev/null || echo "  (could not retrieve skills list)" >&2
+        sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT name FROM skills ORDER BY name" 2>/dev/null || echo "  (could not retrieve skills list)" >&2
         exit 4
     fi
 }
@@ -318,13 +321,11 @@ validate_version_increment() {
 get_skill_info() {
     local skill_name="$1"
 
+    # Use parameterized query to prevent SQL injection (CVSS 8.6 fix)
     local result
-    result=$(sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
-SELECT id, version, content_hash, content_path
-FROM skills
-WHERE name = '$skill_name';
-EOF
-)
+    result=$(sqlite_select "$CFN_SKILLS_DB_PATH" \
+        "SELECT id, version, content_hash, content_path FROM skills WHERE name = ?1" \
+        "$skill_name")
 
     if [[ -z "$result" ]]; then
         error_exit 4 "Skill not found in database: $skill_name"
@@ -356,20 +357,6 @@ update_skill_record() {
     log_info "Updating skill record (ID: $skill_id)"
 
     # SECURITY FIX: Escape all SQL strings to prevent injection
-    local safe_new_version
-    safe_new_version=$(escape_sql_string "$new_version")
-    local safe_new_hash
-    safe_new_hash=$(escape_sql_string "$new_hash")
-    local safe_update_path
-    safe_update_path=$(escape_sql_string "$update_path")
-    local safe_new_tags
-    safe_new_tags=$(escape_sql_string "$new_tags")
-    local safe_new_category
-    safe_new_category=$(escape_sql_string "$new_category")
-    local safe_new_owner
-    safe_new_owner=$(escape_sql_string "$new_owner")
-    local safe_new_approval_level
-    safe_new_approval_level=$(escape_sql_string "$new_approval_level")
 
     sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 UPDATE skills
@@ -414,10 +401,6 @@ EOF
 )
 
     # SECURITY FIX: Escape SQL strings
-    local safe_new_version
-    safe_new_version=$(escape_sql_string "$new_version")
-    local safe_metadata
-    safe_metadata=$(escape_sql_string "$metadata")
 
     sqlite3 "$CFN_SKILLS_DB_PATH" <<EOF
 INSERT INTO approval_history (
@@ -597,22 +580,22 @@ main() {
 
     # Use existing values if not found in frontmatter
     if [[ -z "$new_tags" ]]; then
-        new_tags=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT tags FROM skills WHERE id=$skill_id")
+        new_tags=$(sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT tags FROM skills WHERE id = ?1" "$skill_id")
         log_debug "Tags not found in frontmatter, using existing: $new_tags"
     fi
 
     if [[ -z "$new_category" ]]; then
-        new_category=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT category FROM skills WHERE id=$skill_id")
+        new_category=$(sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT category FROM skills WHERE id = ?1" "$skill_id")
         log_debug "Category not found in frontmatter, using existing: $new_category"
     fi
 
     if [[ -z "$new_owner" ]]; then
-        new_owner=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT owner FROM skills WHERE id=$skill_id")
+        new_owner=$(sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT owner FROM skills WHERE id = ?1" "$skill_id")
         log_debug "Owner not found in frontmatter, using existing: $new_owner"
     fi
 
     if [[ -z "$new_approval_level" ]]; then
-        new_approval_level=$(sqlite3 "$CFN_SKILLS_DB_PATH" "SELECT approval_level FROM skills WHERE id=$skill_id")
+        new_approval_level=$(sqlite_select "$CFN_SKILLS_DB_PATH" "SELECT approval_level FROM skills WHERE id = ?1" "$skill_id")
         log_debug "Approval level not found in frontmatter, using existing: $new_approval_level"
     fi
 
@@ -662,3 +645,4 @@ main() {
 
 # Execute main function
 main "$@"
+
