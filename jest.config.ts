@@ -19,6 +19,9 @@ export default {
       },
     }],
   },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
   setupFilesAfterEnv: ['<rootDir>/tests/setup-cleanup.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverageFrom: [

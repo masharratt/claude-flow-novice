@@ -298,7 +298,7 @@ export class BackupManager {
       });
       const backupHash = this.calculateHash(backupContent);
 
-      if (originalHash !== backupHash) {
+      if (!this.constantTimeHashCompare(originalHash, backupHash)) {
         // Cleanup failed backup
         await this.safeUnlink(backupPath);
         throw createError(
@@ -533,7 +533,7 @@ export class BackupManager {
         backupId,
         filePath: metadata.filePath,
         backupPath: metadata.backupPath,
-        verified: verificationHash === metadata.backupHash,
+        verified: this.constantTimeHashCompare(verificationHash, metadata.backupHash),
         dryRun: true,
         restoredAt: new Date(),
         verificationHash,
@@ -626,7 +626,7 @@ export class BackupManager {
           return await fsReadFile(metadata.filePath);
         });
         verificationHash = this.calculateHash(restoredContent);
-        verified = verificationHash === metadata.originalHash;
+        verified = this.constantTimeHashCompare(verificationHash, metadata.originalHash);
 
         if (!verified) {
           // Verification failed - rollback if we created a backup
@@ -905,6 +905,36 @@ export class BackupManager {
 
   private calculateHash(content: Buffer): string {
     return crypto.createHash('sha256').update(content).digest('hex');
+  }
+
+  /**
+   * Constant-time hash comparison to prevent timing attacks
+   * @param hash1 First hash (hex string)
+   * @param hash2 Second hash (hex string)
+   * @returns true if hashes match, false otherwise
+   */
+  private constantTimeHashCompare(hash1: string, hash2: string): boolean {
+    try {
+      // Convert hex strings to buffers
+      const buffer1 = Buffer.from(hash1, 'hex');
+      const buffer2 = Buffer.from(hash2, 'hex');
+
+      // Length check (not timing-sensitive as length is not secret)
+      if (buffer1.length !== buffer2.length) {
+        return false;
+      }
+
+      // Constant-time comparison
+      return crypto.timingSafeEqual(buffer1, buffer2);
+    } catch (error) {
+      // Handle Buffer conversion failures
+      logger.error(
+        'Hash comparison failed',
+        error instanceof Error ? error : undefined,
+        { hash1Length: hash1?.length, hash2Length: hash2?.length }
+      );
+      return false;
+    }
   }
 
   private async fileExists(filePath: string): Promise<boolean> {
