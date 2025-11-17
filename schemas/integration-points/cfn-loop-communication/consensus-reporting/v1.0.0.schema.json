@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cfn-loop-communication/consensus-reporting/v1.0.0",
+  "title": "Consensus Reporting Schema",
+  "description": "Schema for Loop 2 validators reporting consensus (Integration Point 3.5)",
+  "type": "object",
+  "required": ["consensus_id", "task_id", "iteration", "validators", "consensus_score", "timestamp"],
+  "properties": {
+    "consensus_id": {
+      "type": "string",
+      "description": "Unique identifier for consensus report",
+      "pattern": "^consensus-[a-z0-9-]+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "iteration": {
+      "type": "integer",
+      "description": "CFN Loop iteration number",
+      "minimum": 1
+    },
+    "validators": {
+      "type": "array",
+      "description": "Validator reports",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["validator_id", "confidence", "status"],
+        "properties": {
+          "validator_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+-\\d+$"
+          },
+          "validator_type": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "status": {
+            "type": "string",
+            "enum": ["approved", "rejected", "needs_iteration"]
+          },
+          "feedback": {
+            "type": "string",
+            "description": "Validator feedback"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "consensus_score": {
+      "type": "number",
+      "description": "Overall consensus score (average of validators)",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Consensus report timestamp"
+    },
+    "threshold": {
+      "type": "number",
+      "description": "Consensus threshold required",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "default": 0.90
+    },
+    "passed": {
+      "type": "boolean",
+      "description": "Whether consensus threshold was met"
+    },
+    "stuck_detection": {
+      "type": "object",
+      "description": "Stuck agent detection metadata",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "stuck_agents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "default": 300
+        }
+      }
+    },
+    "collected_by": {
+      "type": "string",
+      "description": "Orchestrator or coordinator that collected consensus"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "consensus_id": "consensus-task-auth-iter1",
+      "task_id": "task-auth-implementation",
+      "iteration": 1,
+      "validators": [
+        {
+          "validator_id": "code-quality-validator-001",
+          "validator_type": "code-quality-validator",
+          "confidence": 0.93,
+          "status": "approved",
+          "feedback": "Code quality excellent, test coverage >90%",
+          "completed_at": "2025-11-17T10:40:00Z"
+        },
+        {
+          "validator_id": "security-validator-001",
+          "validator_type": "security-validator",
+          "confidence": 0.91,
+          "status": "approved",
+          "feedback": "No security vulnerabilities detected",
+          "completed_at": "2025-11-17T10:40:30Z"
+        },
+        {
+          "validator_id": "performance-validator-001",
+          "validator_type": "performance-validator",
+          "confidence": 0.89,
+          "status": "approved",
+          "feedback": "Performance within SLA",
+          "completed_at": "2025-11-17T10:41:00Z"
+        }
+      ],
+      "consensus_score": 0.91,
+      "timestamp": "2025-11-17T10:41:00Z",
+      "threshold": 0.90,
+      "passed": true,
+      "stuck_detection": {
+        "enabled": true,
+        "stuck_agents": [],
+        "timeout_seconds": 300
+      },
+      "collected_by": "orchestrator-12345"
+    }
+  ]
+}

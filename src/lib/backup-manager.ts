@@ -40,6 +40,8 @@ import Database from 'better-sqlite3';
 import { createLogger } from './logging';
 import { createError, ErrorCode, StandardError } from './errors';
 import { getFileLockManager, FileLockManager } from './file-lock-manager';
+import { withFileSystemRetry } from './retry-manager';
+import { getEncryptionManager, EncryptionManager, EncryptedBackup } from './encryption-manager';
 
 const logger = createLogger('backup-manager');
 
@@ -111,6 +113,14 @@ export interface BackupMetadata {
   isCompressed: boolean;
   compressedAt?: string;
   compressionRatio?: number;
+  // ENCRYPTION SUPPORT (CVSS 7.2 mitigation)
+  isEncrypted?: boolean;
+  encryptedAt?: string;
+  encryptionAlgorithm?: string;
+  encryptionIv?: string;
+  encryptionAuthTag?: string;
+  encryptionHmac?: string;
+  encryptionKeyVersion?: string;
   metadata?: string;
   deletedAt?: string;
 }
@@ -195,6 +205,7 @@ export interface BackupManagerConfig {
 export class BackupManager {
   private db: Database.Database;
   private lockManager: FileLockManager;
+  private encryptionManager: EncryptionManager;
   private backupDir: string;
   private defaultTtlMs: number;
   private rateLimitConfig: RateLimitConfig;
@@ -216,6 +227,9 @@ export class BackupManager {
     // Initialize file lock manager
     this.lockManager = getFileLockManager();
 
+    // Initialize encryption manager (CVSS 7.2 mitigation)
+    this.encryptionManager = getEncryptionManager();
+
     // Ensure backup directory exists
     this.ensureBackupDirectory();
 
@@ -223,6 +237,7 @@ export class BackupManager {
       backupDir: this.backupDir,
       dbPath,
       defaultTtlMs: this.defaultTtlMs,
+      encryptionEnabled: this.encryptionManager.isEnabled(),
     });
   }
 
@@ -272,11 +287,15 @@ export class BackupManager {
 
       await this.ensureDirectory(path.dirname(backupPath));
 
-      // Copy file to backup location
-      await fsCopyFile(absolutePath, backupPath);
+      // Copy file to backup location with retry logic for transient failures
+      await withFileSystemRetry(async () => {
+        await fsCopyFile(absolutePath, backupPath);
+      });
 
-      // Verify backup
-      const backupContent = await fsReadFile(backupPath);
+      // Verify backup with retry logic
+      const backupContent = await withFileSystemRetry(async () => {
+        return await fsReadFile(backupPath);
+      });
       const backupHash = this.calculateHash(backupContent);
 
       if (originalHash !== backupHash) {
@@ -309,7 +328,38 @@ export class BackupManager {
         metadata: options.metadata,
       };
 
-      this.insertBackup(backup);
+      // ENCRYPTION SUPPORT (CVSS 7.2 mitigation)
+      let encryptionMetadata: any = null;
+      if (this.encryptionManager.isEnabled()) {
+        try {
+          const encrypted = await this.encryptionManager.encrypt(backupContent, backupId);
+          encryptionMetadata = encrypted.metadata;
+
+          // Write encrypted backup
+          await withFileSystemRetry(async () => {
+            await fsWriteFile(backupPath, encrypted.data);
+          });
+
+          logger.info('Backup encrypted successfully', {
+            backupId,
+            algorithm: encrypted.metadata.algorithm,
+            originalSize: backupContent.length,
+            encryptedSize: encrypted.data.length,
+          });
+        } catch (encryptError) {
+          logger.error(
+            'Backup encryption failed',
+            encryptError instanceof Error ? encryptError : undefined,
+            { backupId, filePath: absolutePath }
+          );
+
+          // Cleanup failed backup
+          await this.safeUnlink(backupPath);
+          throw encryptError;
+        }
+      }
+
+      this.insertBackup(backup, encryptionMetadata);
 
       const duration = Date.now() - startTime;
       logger.info('Backup created successfully', {
@@ -510,15 +560,71 @@ export class BackupManager {
         rollbackBackupId = rollbackBackup.id;
       }
 
-      // Perform restore
-      await fsCopyFile(metadata.backupPath, metadata.filePath);
+      // DECRYPTION SUPPORT (CVSS 7.2 mitigation)
+      let backupDataToRestore: Buffer;
+
+      if (metadata.isEncrypted && this.encryptionManager.isEnabled()) {
+        try {
+          const encryptedBackupContent = await withFileSystemRetry(async () => {
+            return await fsReadFile(metadata.backupPath);
+          });
+
+          const encryptedPayload: EncryptedBackup = {
+            data: encryptedBackupContent,
+            metadata: {
+              algorithm: 'AES-256-GCM',
+              iv: metadata.encryptionIv!,
+              authTag: metadata.encryptionAuthTag!,
+              hmac: metadata.encryptionHmac!,
+              encryptedAt: metadata.encryptedAt!,
+              keyVersion: metadata.encryptionKeyVersion!,
+            },
+          };
+
+          const decryptionResult = await this.encryptionManager.decrypt(encryptedPayload, backupId);
+
+          if (!decryptionResult.integrityVerified) {
+            logger.warn('Backup integrity check failed during restore', {
+              backupId,
+              integrityVerified: false,
+            });
+          }
+
+          backupDataToRestore = decryptionResult.data;
+
+          logger.info('Backup decrypted successfully', {
+            backupId,
+            integrityVerified: decryptionResult.integrityVerified,
+          });
+        } catch (decryptError) {
+          logger.error(
+            'Backup decryption failed',
+            decryptError instanceof Error ? decryptError : undefined,
+            { backupId, filePath: metadata.filePath }
+          );
+
+          throw decryptError;
+        }
+      } else {
+        // Load unencrypted backup
+        backupDataToRestore = await withFileSystemRetry(async () => {
+          return await fsReadFile(metadata.backupPath);
+        });
+      }
+
+      // Perform restore with retry logic for transient failures
+      await withFileSystemRetry(async () => {
+        await fsWriteFile(metadata.filePath, backupDataToRestore);
+      });
 
       // Verify restore if requested
       let verified = false;
       let verificationHash: string | undefined;
 
       if (verify) {
-        const restoredContent = await fsReadFile(metadata.filePath);
+        const restoredContent = await withFileSystemRetry(async () => {
+          return await fsReadFile(metadata.filePath);
+        });
         verificationHash = this.calculateHash(restoredContent);
         verified = verificationHash === metadata.originalHash;
 
@@ -818,12 +924,14 @@ export class BackupManager {
     }
   }
 
-  private insertBackup(backup: Backup): void {
+  private insertBackup(backup: Backup, encryptionMetadata?: any): void {
     const stmt = this.db.prepare(`
       INSERT INTO backups (
         id, agent_id, file_path, backup_path, original_hash, backup_hash,
-        file_size, backup_type, created_at, expires_at, metadata
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        file_size, backup_type, created_at, expires_at, metadata,
+        is_encrypted, encrypted_at, encryption_algorithm, encryption_iv,
+        encryption_auth_tag, encryption_hmac, encryption_key_version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -837,7 +945,15 @@ export class BackupManager {
       backup.backupType,
       backup.createdAt.toISOString(),
       backup.expiresAt.toISOString(),
-      backup.metadata ? JSON.stringify(backup.metadata) : null
+      backup.metadata ? JSON.stringify(backup.metadata) : null,
+      // ENCRYPTION SUPPORT (CVSS 7.2 mitigation)
+      encryptionMetadata ? 1 : 0,
+      encryptionMetadata ? encryptionMetadata.encryptedAt : null,
+      encryptionMetadata ? encryptionMetadata.algorithm : null,
+      encryptionMetadata ? encryptionMetadata.iv : null,
+      encryptionMetadata ? encryptionMetadata.authTag : null,
+      encryptionMetadata ? encryptionMetadata.hmac : null,
+      encryptionMetadata ? encryptionMetadata.keyVersion : null
     );
   }
 

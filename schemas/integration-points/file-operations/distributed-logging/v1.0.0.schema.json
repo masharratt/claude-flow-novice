@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/distributed-logging/v1.0.0",
+  "title": "Distributed Logging Schema",
+  "description": "Schema for distributed logging from Docker to filesystem (Integration Point 2.9)",
+  "type": "object",
+  "required": ["log_id", "source", "level", "message", "timestamp"],
+  "properties": {
+    "log_id": {
+      "type": "string",
+      "description": "Unique identifier for log entry",
+      "pattern": "^log-[a-z0-9-]+$"
+    },
+    "source": {
+      "type": "object",
+      "description": "Log source information",
+      "required": ["service", "container_id"],
+      "properties": {
+        "service": {
+          "type": "string",
+          "description": "Service name (coordinator, orchestrator, agent)"
+        },
+        "container_id": {
+          "type": "string",
+          "description": "Docker container ID",
+          "pattern": "^[a-f0-9]{12,64}$"
+        },
+        "agent_id": {
+          "type": "string",
+          "description": "Agent identifier if applicable"
+        },
+        "task_id": {
+          "type": "string",
+          "description": "Task identifier if applicable"
+        }
+      }
+    },
+    "level": {
+      "type": "string",
+      "enum": ["debug", "info", "warn", "error", "fatal"],
+      "description": "Log level"
+    },
+    "message": {
+      "type": "string",
+      "description": "Log message",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Log timestamp (ISO 8601)"
+    },
+    "format": {
+      "type": "string",
+      "enum": ["json", "text", "structured"],
+      "description": "Log format",
+      "default": "json"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "correlation_id": {
+          "type": "string",
+          "description": "Correlation ID for distributed tracing"
+        },
+        "stack_trace": {
+          "type": "string",
+          "description": "Stack trace for errors"
+        },
+        "context": {
+          "type": "object",
+          "description": "Additional context data"
+        }
+      }
+    },
+    "rotation_config": {
+      "type": "object",
+      "description": "Log rotation configuration",
+      "properties": {
+        "max_size_mb": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "max_files": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 10
+        },
+        "compress": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "aggregation": {
+      "type": "object",
+      "description": "Log aggregation settings",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "backend": {
+          "type": "string",
+          "enum": ["elk", "loki", "cloudwatch", "none"],
+          "default": "none"
+        },
+        "endpoint": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "log_id": "log-coordinator-001",
+      "source": {
+        "service": "cfn-v3-coordinator",
+        "container_id": "a1b2c3d4e5f6",
+        "task_id": "task-auth-implementation"
+      },
+      "level": "info",
+      "message": "Spawning Loop 3 agents",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "format": "json",
+      "metadata": {
+        "correlation_id": "trace-12345",
+        "context": {
+          "agent_count": 3,
+          "iteration": 1
+        }
+      },
+      "rotation_config": {
+        "max_size_mb": 100,
+        "max_files": 10,
+        "compress": true
+      },
+      "aggregation": {
+        "enabled": false,
+        "backend": "none"
+      }
+    }
+  ]
+}

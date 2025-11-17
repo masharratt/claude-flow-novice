@@ -29,6 +29,20 @@ export enum IsolationLevel {
 }
 
 /**
+ * Transaction state for two-phase commit
+ */
+export enum TransactionState {
+  ACTIVE = 'ACTIVE',
+  PREPARING = 'PREPARING',
+  PREPARED = 'PREPARED',
+  COMMITTING = 'COMMITTING',
+  COMMITTED = 'COMMITTED',
+  ABORTING = 'ABORTING',
+  ABORTED = 'ABORTED',
+  ROLLED_BACK = 'ROLLED_BACK',
+}
+
+/**
  * Transaction options
  */
 export interface TransactionOptions {
@@ -42,6 +56,10 @@ export interface TransactionOptions {
   lockTimeout?: number;
   /** Correlation ID for tracking (auto-generated if not provided) */
   correlationId?: string;
+  /** Prepare phase timeout in milliseconds for 2PC (default: 5000) */
+  prepareTimeout?: number;
+  /** Enable two-phase commit protocol (default: true for multi-database transactions) */
+  useTwoPhaseCommit?: boolean;
 }
 
 /**
@@ -51,6 +69,19 @@ interface SavepointInfo {
   name: string;
   createdAt: Date;
   database: string;
+}
+
+/**
+ * Two-phase commit log entry
+ */
+interface TwoPhaseCommitLog {
+  transactionId: string;
+  state: TransactionState;
+  timestamp: Date;
+  databases: string[];
+  preparedDatabases: string[];
+  failedDatabases: string[];
+  error?: string;
 }
 
 /**
@@ -66,10 +97,14 @@ export class Transaction {
   private contexts: Map<string, TransactionContext> = new Map();
   private adapters: Map<string, IDatabaseAdapter> = new Map();
   private savepoints: Map<string, SavepointInfo> = new Map();
+  private state: TransactionState = TransactionState.ACTIVE;
   private isCommitted = false;
   private isRolledBack = false;
   private timeoutHandle?: NodeJS.Timeout;
+  private prepareTimeoutHandle?: NodeJS.Timeout;
   private lockReleaser?: () => Promise<void>;
+  private preparedDatabases: Set<string> = new Set();
+  private twoPhaseCommitLog: TwoPhaseCommitLog[] = [];
 
   constructor(
     id: string,
@@ -87,6 +122,8 @@ export class Transaction {
       isolationLevel: options.isolationLevel ?? IsolationLevel.READ_COMMITTED,
       acquireLock: options.acquireLock ?? false,
       lockTimeout: options.lockTimeout ?? 10000,
+      prepareTimeout: options.prepareTimeout ?? 5000,
+      useTwoPhaseCommit: options.useTwoPhaseCommit ?? (databases.length > 1),
     };
 
     logger.info('Transaction created', {
@@ -94,6 +131,7 @@ export class Transaction {
       databases: this.databases,
       correlationId: this.correlationId,
       options: this.options,
+      useTwoPhaseCommit: this.options.useTwoPhaseCommit,
     });
   }
 
@@ -351,7 +389,243 @@ export class Transaction {
   }
 
   /**
-   * Commit the transaction
+   * Log 2PC state transition
+   * @private
+   */
+  private log2PCState(
+    state: TransactionState,
+    preparedDatabases: string[] = [],
+    failedDatabases: string[] = [],
+    error?: string
+  ): void {
+    const logEntry: TwoPhaseCommitLog = {
+      transactionId: this.id,
+      state,
+      timestamp: new Date(),
+      databases: this.databases,
+      preparedDatabases,
+      failedDatabases,
+      error,
+    };
+
+    this.twoPhaseCommitLog.push(logEntry);
+
+    logger.info('2PC state transition', {
+      transactionId: this.id,
+      from: this.state,
+      to: state,
+      preparedDatabases,
+      failedDatabases,
+      error,
+    });
+
+    this.state = state;
+  }
+
+  /**
+   * Get 2PC transaction log
+   */
+  get2PCLog(): TwoPhaseCommitLog[] {
+    return [...this.twoPhaseCommitLog];
+  }
+
+  /**
+   * Get current transaction state
+   */
+  getTransactionState(): TransactionState {
+    return this.state;
+  }
+
+  /**
+   * Phase 1: PREPARE - Validate all databases can commit
+   * @private
+   */
+  private async preparePhase(): Promise<boolean> {
+    this.log2PCState(TransactionState.PREPARING);
+
+    const preparedDbs: string[] = [];
+    const failedDbs: string[] = [];
+    let prepareError: string | undefined;
+
+    // Set prepare timeout
+    const preparePromise = new Promise<boolean>(async (resolve, reject) => {
+      this.prepareTimeoutHandle = setTimeout(() => {
+        reject(
+          createDatabaseError(
+            DatabaseErrorCode.TIMEOUT,
+            `Prepare phase timeout after ${this.options.prepareTimeout}ms`,
+            undefined,
+            { transactionId: this.id, timeout: this.options.prepareTimeout }
+          )
+        );
+      }, this.options.prepareTimeout);
+
+      try {
+        // Attempt to prepare all databases
+        for (const [dbType, context] of Array.from(this.contexts.entries())) {
+          const adapter = this.adapters.get(dbType);
+          if (!adapter) {
+            failedDbs.push(dbType);
+            continue;
+          }
+
+          try {
+            const prepared = await adapter.prepareTransaction(context);
+            if (prepared) {
+              preparedDbs.push(dbType);
+              this.preparedDatabases.add(dbType);
+              logger.debug('Database prepared successfully', {
+                transactionId: this.id,
+                database: dbType,
+              });
+            } else {
+              failedDbs.push(dbType);
+              logger.warn('Database failed to prepare', {
+                transactionId: this.id,
+                database: dbType,
+              });
+            }
+          } catch (err) {
+            failedDbs.push(dbType);
+            prepareError = (err as Error).message;
+            logger.error('Database prepare error', err as Error, {
+              transactionId: this.id,
+              database: dbType,
+            });
+          }
+        }
+
+        // Clear prepare timeout
+        if (this.prepareTimeoutHandle) {
+          clearTimeout(this.prepareTimeoutHandle);
+        }
+
+        const allPrepared = failedDbs.length === 0;
+        if (allPrepared) {
+          this.log2PCState(TransactionState.PREPARED, preparedDbs);
+          resolve(true);
+        } else {
+          this.log2PCState(
+            TransactionState.ABORTING,
+            preparedDbs,
+            failedDbs,
+            prepareError || 'One or more databases failed to prepare'
+          );
+          resolve(false);
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+
+    try {
+      return await preparePromise;
+    } catch (err) {
+      // Timeout or other error
+      this.log2PCState(
+        TransactionState.ABORTING,
+        preparedDbs,
+        failedDbs,
+        (err as Error).message
+      );
+      throw err;
+    }
+  }
+
+  /**
+   * Phase 2: COMMIT - Commit all prepared databases
+   * @private
+   */
+  private async commitPhase(): Promise<void> {
+    this.log2PCState(TransactionState.COMMITTING, Array.from(this.preparedDatabases));
+
+    const errors: Error[] = [];
+    const failedDbs: string[] = [];
+
+    // Commit all prepared databases
+    for (const [dbType, context] of Array.from(this.contexts.entries())) {
+      const adapter = this.adapters.get(dbType);
+      if (!adapter) continue;
+
+      try {
+        await adapter.commitTransaction(context);
+        logger.debug('Transaction committed on database', {
+          transactionId: this.id,
+          database: dbType,
+        });
+      } catch (err) {
+        errors.push(err as Error);
+        failedDbs.push(dbType);
+        logger.error('Failed to commit on database', err as Error, {
+          transactionId: this.id,
+          database: dbType,
+        });
+      }
+    }
+
+    // If any commits failed after PREPARE succeeded, this is critical
+    if (errors.length > 0) {
+      this.log2PCState(
+        TransactionState.COMMITTED,
+        Array.from(this.preparedDatabases).filter(db => !failedDbs.includes(db)),
+        failedDbs,
+        `Partial commit: ${errors.length} databases failed`
+      );
+
+      logger.error('CRITICAL: Partial commit occurred after PREPARE', new Error('Partial commit'), {
+        transactionId: this.id,
+        failedDatabases: failedDbs,
+        totalDatabases: this.contexts.size,
+        preparedDatabases: Array.from(this.preparedDatabases),
+      });
+
+      throw createDatabaseError(
+        DatabaseErrorCode.TRANSACTION_FAILED,
+        'Transaction partially committed - data may be inconsistent',
+        undefined,
+        {
+          transactionId: this.id,
+          preparedDatabases: Array.from(this.preparedDatabases),
+          failedDatabases: failedDbs,
+          errors: errors.map(e => e.message),
+        }
+      );
+    }
+
+    this.log2PCState(TransactionState.COMMITTED, Array.from(this.preparedDatabases));
+  }
+
+  /**
+   * Abort transaction (rollback all prepared databases)
+   * @private
+   */
+  private async abortPhase(): Promise<void> {
+    this.log2PCState(TransactionState.ABORTING, Array.from(this.preparedDatabases));
+
+    // Rollback all databases (both prepared and not prepared)
+    for (const [dbType, context] of Array.from(this.contexts.entries())) {
+      const adapter = this.adapters.get(dbType);
+      if (!adapter) continue;
+
+      try {
+        await adapter.rollbackTransaction(context);
+        logger.debug('Transaction rolled back on database', {
+          transactionId: this.id,
+          database: dbType,
+        });
+      } catch (err) {
+        logger.error('Failed to rollback on database (non-fatal)', err as Error, {
+          transactionId: this.id,
+          database: dbType,
+        });
+      }
+    }
+
+    this.log2PCState(TransactionState.ABORTED, [], Array.from(this.preparedDatabases));
+  }
+
+  /**
+   * Commit the transaction using two-phase commit protocol
    */
   async commit(): Promise<void> {
     if (this.isCommitted) {
@@ -373,58 +647,120 @@ export class Transaction {
       clearTimeout(this.timeoutHandle);
     }
 
-    const errors: Error[] = [];
-
     try {
-      // Commit all database transactions
-      for (const [dbType, context] of Array.from(this.contexts.entries())) {
-        const adapter = this.adapters.get(dbType);
-        if (!adapter) continue;
-
-        try {
-          await adapter.commitTransaction(context);
-          logger.debug('Transaction committed on database', {
-            transactionId: this.id,
-            database: dbType,
-          });
-        } catch (err) {
-          errors.push(err as Error);
-          logger.error('Failed to commit on database', err as Error, {
-            transactionId: this.id,
-            database: dbType,
-          });
-        }
-      }
-
-      // If any commits failed, this is a partial commit - log critical error
-      if (errors.length > 0) {
-        logger.error('CRITICAL: Partial commit occurred', new Error('Partial commit'), {
+      // Use two-phase commit for multi-database transactions
+      if (this.options.useTwoPhaseCommit && this.databases.length > 1) {
+        logger.info('Starting two-phase commit', {
           transactionId: this.id,
-          failedDatabases: errors.length,
-          totalDatabases: this.contexts.size,
+          databases: this.databases,
         });
 
-        throw createDatabaseError(
-          DatabaseErrorCode.TRANSACTION_FAILED,
-          'Transaction partially committed - data may be inconsistent',
-          undefined,
-          {
+        // Phase 1: PREPARE
+        const prepared = await this.preparePhase();
+
+        if (!prepared) {
+          // At least one database failed to prepare, abort all
+          logger.warn('Prepare phase failed, aborting transaction', {
             transactionId: this.id,
-            errors: errors.map(e => e.message),
+            preparedDatabases: Array.from(this.preparedDatabases),
+          });
+
+          await this.abortPhase();
+
+          throw createDatabaseError(
+            DatabaseErrorCode.TRANSACTION_FAILED,
+            'Transaction prepare phase failed - all databases rolled back',
+            undefined,
+            {
+              transactionId: this.id,
+              preparedDatabases: Array.from(this.preparedDatabases),
+              log: this.get2PCLog(),
+            }
+          );
+        }
+
+        // Phase 2: COMMIT
+        await this.commitPhase();
+
+        this.isCommitted = true;
+
+        logger.info('Two-phase commit completed successfully', {
+          transactionId: this.id,
+          duration: Date.now() - this.startedAt.getTime(),
+          databases: this.databases,
+          log: this.get2PCLog(),
+        });
+      } else {
+        // Single database or 2PC disabled - use legacy commit
+        logger.info('Using legacy commit (single database or 2PC disabled)', {
+          transactionId: this.id,
+          databases: this.databases,
+          use2PC: this.options.useTwoPhaseCommit,
+        });
+
+        const errors: Error[] = [];
+
+        // Commit all database transactions
+        for (const [dbType, context] of Array.from(this.contexts.entries())) {
+          const adapter = this.adapters.get(dbType);
+          if (!adapter) continue;
+
+          try {
+            await adapter.commitTransaction(context);
+            logger.debug('Transaction committed on database', {
+              transactionId: this.id,
+              database: dbType,
+            });
+          } catch (err) {
+            errors.push(err as Error);
+            logger.error('Failed to commit on database', err as Error, {
+              transactionId: this.id,
+              database: dbType,
+            });
           }
-        );
+        }
+
+        // If any commits failed, this is a partial commit - log critical error
+        if (errors.length > 0) {
+          logger.error('CRITICAL: Partial commit occurred', new Error('Partial commit'), {
+            transactionId: this.id,
+            failedDatabases: errors.length,
+            totalDatabases: this.contexts.size,
+          });
+
+          throw createDatabaseError(
+            DatabaseErrorCode.TRANSACTION_FAILED,
+            'Transaction partially committed - data may be inconsistent',
+            undefined,
+            {
+              transactionId: this.id,
+              errors: errors.map(e => e.message),
+            }
+          );
+        }
+
+        this.isCommitted = true;
+
+        logger.info('Transaction committed successfully', {
+          transactionId: this.id,
+          duration: Date.now() - this.startedAt.getTime(),
+        });
       }
-
-      this.isCommitted = true;
-
-      logger.info('Transaction committed successfully', {
-        transactionId: this.id,
-        duration: Date.now() - this.startedAt.getTime(),
-      });
 
       // Release distributed lock if acquired
       await this.releaseLock();
     } catch (err) {
+      // On any error, attempt to rollback
+      try {
+        if (this.state === TransactionState.PREPARED || this.state === TransactionState.PREPARING) {
+          await this.abortPhase();
+        }
+      } catch (rollbackErr) {
+        logger.error('Failed to rollback after commit error', rollbackErr as Error, {
+          transactionId: this.id,
+        });
+      }
+
       throw err;
     }
   }
@@ -447,10 +783,16 @@ export class Transaction {
       );
     }
 
-    // Clear timeout
+    // Clear timeouts
     if (this.timeoutHandle) {
       clearTimeout(this.timeoutHandle);
     }
+    if (this.prepareTimeoutHandle) {
+      clearTimeout(this.prepareTimeoutHandle);
+    }
+
+    // Update state
+    this.state = TransactionState.ROLLED_BACK;
 
     // Rollback all database transactions
     for (const [dbType, context] of Array.from(this.contexts.entries())) {
@@ -476,6 +818,7 @@ export class Transaction {
     logger.info('Transaction rolled back', {
       transactionId: this.id,
       duration: Date.now() - this.startedAt.getTime(),
+      state: this.state,
     });
 
     // Release distributed lock if acquired

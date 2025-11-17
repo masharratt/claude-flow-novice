@@ -133,7 +133,14 @@
     "test:docker:redis-coordination": "node tests/docker/cfn-coordination-test.js",
     "test:docker:concurrent": "node tests/hello-world/concurrent-agent-test.js",
     "test:docker:container": "bash tests/docker/container-test-runner.sh",
-    "migrate-configs": "tsx scripts/migrate-configs.ts"
+    "migrate-configs": "tsx scripts/migrate-configs.ts",
+    "db:migrate": "tsx scripts/migrations/migrate.ts",
+    "db:migrate:dry-run": "tsx scripts/migrations/migrate.ts --dry-run",
+    "db:rollback": "tsx scripts/migrations/rollback.ts",
+    "db:rollback:dry-run": "tsx scripts/migrations/rollback.ts --dry-run",
+    "db:migrations:list": "tsx scripts/migrations/list-migrations.ts",
+    "db:migrations:validate": "tsx scripts/migrations/validate.ts",
+    "db:migrations:history": "tsx scripts/migrations/history.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",

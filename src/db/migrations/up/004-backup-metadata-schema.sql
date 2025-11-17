@@ -1,13 +1,15 @@
 -- Migration 004: Unified Backup & Restore System Metadata Schema
 -- Part of Task 4.3: Unified Backup & Restore System
--- Version: 1.0.0
+-- Version: 2.0.0 (Enhanced with encryption support)
 -- Created: 2025-11-16
+-- Updated: 2025-11-17 (Added encryption support for CVSS 7.2 vulnerability fix)
 
 -- ============================================================================
 -- Backup Metadata Table
 -- ============================================================================
 -- Stores metadata for all backups created by the backup manager
 -- Supports querying by agent, file path, backup type, and expiration
+-- Enhanced: Supports encrypted backups with encryption metadata tracking
 
 CREATE TABLE IF NOT EXISTS backups (
   -- Primary identification
@@ -39,6 +41,15 @@ CREATE TABLE IF NOT EXISTS backups (
   is_compressed BOOLEAN DEFAULT 0,
   compressed_at DATETIME,
   compression_ratio REAL,
+
+  -- ENCRYPTION SUPPORT (CVSS 7.2 mitigation)
+  is_encrypted BOOLEAN DEFAULT 0,
+  encrypted_at DATETIME,
+  encryption_algorithm TEXT,
+  encryption_iv TEXT,
+  encryption_auth_tag TEXT,
+  encryption_hmac TEXT,
+  encryption_key_version TEXT,
 
   -- Additional context (JSON)
   metadata TEXT,
@@ -127,6 +138,10 @@ CREATE INDEX IF NOT EXISTS idx_backups_deleted_at ON backups(deleted_at) WHERE d
 
 -- Compression queries
 CREATE INDEX IF NOT EXISTS idx_backups_compression ON backups(is_compressed, created_at);
+
+-- Encryption queries (CVSS 7.2 mitigation)
+CREATE INDEX IF NOT EXISTS idx_backups_encrypted ON backups(is_encrypted);
+CREATE INDEX IF NOT EXISTS idx_backups_encryption_status ON backups(is_encrypted, created_at);
 
 -- Composite indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_backups_agent_file ON backups(agent_id, file_path);

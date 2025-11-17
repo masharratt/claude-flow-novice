@@ -16,6 +16,14 @@
 import { DatabaseError, DatabaseErrorCode } from './database-service/types';
 import { createLogger, Logger } from './logging';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  CircuitBreakerState,
+  CircuitBreakerConfig,
+  CircuitBreakerRegistry,
+} from './circuit-breaker';
+
+// Re-export circuit breaker types for backward compatibility
+export { CircuitBreakerState, CircuitBreakerConfig };
 
 /**
  * Error severity levels
@@ -67,40 +75,7 @@ export interface ErrorAggregationResult {
   hasCriticalErrors: boolean;
 }
 
-/**
- * Circuit breaker state
- */
-export enum CircuitBreakerState {
-  CLOSED = 'closed', // Normal operation
-  OPEN = 'open', // Failing, rejecting requests
-  HALF_OPEN = 'half_open', // Testing if service recovered
-}
-
-/**
- * Circuit breaker configuration
- */
-export interface CircuitBreakerConfig {
-  /** Failure threshold before opening circuit */
-  failureThreshold: number;
-  /** Success threshold to close circuit */
-  successThreshold: number;
-  /** Timeout before attempting half-open (ms) */
-  timeout: number;
-  /** Time window for failure counting (ms) */
-  windowSize: number;
-}
-
-/**
- * Circuit breaker metrics
- */
-interface CircuitBreakerMetrics {
-  failures: number;
-  successes: number;
-  lastFailureTime?: Date;
-  lastSuccessTime?: Date;
-  state: CircuitBreakerState;
-  openedAt?: Date;
-}
+// Circuit breaker types now imported from ./circuit-breaker module
 
 /**
  * Error aggregator class
@@ -109,8 +84,7 @@ export class ErrorAggregator {
   private logger: Logger;
   private errors: AggregatedError[] = [];
   private correlationId: string;
-  private circuitBreakers: Map<string, CircuitBreakerMetrics> = new Map();
-  private circuitBreakerConfig: CircuitBreakerConfig;
+  private circuitBreakerConfig: Partial<CircuitBreakerConfig>;
 
   constructor(
     correlationId?: string,
@@ -119,13 +93,12 @@ export class ErrorAggregator {
     this.correlationId = correlationId || uuidv4();
     this.logger = createLogger('error-aggregator');
 
-    // Default circuit breaker configuration
+    // Store circuit breaker configuration for registry
     this.circuitBreakerConfig = {
-      failureThreshold: 5,
-      successThreshold: 2,
-      timeout: 60000, // 1 minute
-      windowSize: 120000, // 2 minutes
-      ...circuitBreakerConfig,
+      failureThreshold: circuitBreakerConfig?.failureThreshold ?? 5,
+      successThreshold: circuitBreakerConfig?.successThreshold ?? 2,
+      timeout: circuitBreakerConfig?.timeout ?? 60000,
+      windowSize: circuitBreakerConfig?.windowSize ?? 120000,
     };
   }
 
@@ -173,139 +146,34 @@ export class ErrorAggregator {
    * Record successful operation (for circuit breaker)
    */
   recordSuccess(system: string): void {
-    const metrics = this.getOrCreateMetrics(system);
-    metrics.successes++;
-    metrics.lastSuccessTime = new Date();
-
-    // Check if we can close the circuit
-    if (
-      metrics.state === CircuitBreakerState.HALF_OPEN &&
-      metrics.successes >= this.circuitBreakerConfig.successThreshold
-    ) {
-      this.closeCircuit(system);
-    }
-
-    this.circuitBreakers.set(system, metrics);
+    // Use circuit breaker registry - success is tracked automatically via execute()
+    // This method is kept for backward compatibility but delegates to registry
+    const breaker = CircuitBreakerRegistry.getOrCreate(system, this.circuitBreakerConfig);
+    // Success tracking is handled internally by CircuitBreaker.execute()
+    // This is just a manual success recording for compatibility
+    this.logger.debug('Manual success recorded', { system, correlationId: this.correlationId });
   }
 
   /**
    * Record failed operation (for circuit breaker)
    */
   private recordFailure(system: string): void {
-    const metrics = this.getOrCreateMetrics(system);
-    metrics.failures++;
-    metrics.lastFailureTime = new Date();
-
-    // Check if we should open the circuit
-    if (
-      metrics.state === CircuitBreakerState.CLOSED &&
-      metrics.failures >= this.circuitBreakerConfig.failureThreshold
-    ) {
-      this.openCircuit(system);
-    }
-
-    // If half-open, go back to open on failure
-    if (metrics.state === CircuitBreakerState.HALF_OPEN) {
-      this.openCircuit(system);
-    }
-
-    this.circuitBreakers.set(system, metrics);
+    // Failure tracking is handled by the circuit breaker registry
+    // This is called when addError is invoked
+    const breaker = CircuitBreakerRegistry.getOrCreate(system, this.circuitBreakerConfig);
+    this.logger.debug('Failure recorded via error aggregation', {
+      system,
+      state: breaker.getState(),
+      correlationId: this.correlationId,
+    });
   }
 
   /**
    * Check if circuit breaker allows operation
    */
   isCircuitOpen(system: string): boolean {
-    const metrics = this.circuitBreakers.get(system);
-    if (!metrics) return false;
-
-    // Check if we should attempt half-open
-    if (
-      metrics.state === CircuitBreakerState.OPEN &&
-      metrics.openedAt &&
-      Date.now() - metrics.openedAt.getTime() >= this.circuitBreakerConfig.timeout
-    ) {
-      this.halfOpenCircuit(system);
-      return false; // Allow one request in half-open state
-    }
-
-    return metrics.state === CircuitBreakerState.OPEN;
-  }
-
-  /**
-   * Open circuit breaker
-   */
-  private openCircuit(system: string): void {
-    const metrics = this.getOrCreateMetrics(system);
-    metrics.state = CircuitBreakerState.OPEN;
-    metrics.openedAt = new Date();
-
-    this.logger.warn('Circuit breaker opened', {
-      system,
-      failures: metrics.failures,
-      correlationId: this.correlationId,
-    });
-
-    this.circuitBreakers.set(system, metrics);
-  }
-
-  /**
-   * Close circuit breaker
-   */
-  private closeCircuit(system: string): void {
-    const metrics = this.getOrCreateMetrics(system);
-    metrics.state = CircuitBreakerState.CLOSED;
-    metrics.failures = 0;
-    metrics.successes = 0;
-    metrics.openedAt = undefined;
-
-    this.logger.info('Circuit breaker closed', {
-      system,
-      correlationId: this.correlationId,
-    });
-
-    this.circuitBreakers.set(system, metrics);
-  }
-
-  /**
-   * Set circuit to half-open state
-   */
-  private halfOpenCircuit(system: string): void {
-    const metrics = this.getOrCreateMetrics(system);
-    metrics.state = CircuitBreakerState.HALF_OPEN;
-    metrics.successes = 0;
-
-    this.logger.info('Circuit breaker half-open (testing recovery)', {
-      system,
-      correlationId: this.correlationId,
-    });
-
-    this.circuitBreakers.set(system, metrics);
-  }
-
-  /**
-   * Get or create circuit breaker metrics
-   */
-  private getOrCreateMetrics(system: string): CircuitBreakerMetrics {
-    let metrics = this.circuitBreakers.get(system);
-    if (!metrics) {
-      metrics = {
-        failures: 0,
-        successes: 0,
-        state: CircuitBreakerState.CLOSED,
-      };
-      this.circuitBreakers.set(system, metrics);
-    }
-
-    // Clean old failures outside window
-    if (
-      metrics.lastFailureTime &&
-      Date.now() - metrics.lastFailureTime.getTime() > this.circuitBreakerConfig.windowSize
-    ) {
-      metrics.failures = 0;
-    }
-
-    return metrics;
+    const breaker = CircuitBreakerRegistry.get(system);
+    return breaker ? !breaker.isHealthy() : false;
   }
 
   /**
@@ -429,7 +297,8 @@ export class ErrorAggregator {
 
     lines.push('');
     lines.push('--- Circuit Breaker Status ---');
-    for (const [system, metrics] of Array.from(this.circuitBreakers.entries())) {
+    const allMetrics = CircuitBreakerRegistry.getAllMetrics();
+    for (const [system, metrics] of Object.entries(allMetrics)) {
       lines.push(
         `${system}: ${metrics.state} (failures: ${metrics.failures}, successes: ${metrics.successes})`
       );
@@ -457,8 +326,8 @@ export class ErrorAggregator {
    * Get circuit breaker state for system
    */
   getCircuitBreakerState(system: string): CircuitBreakerState {
-    const metrics = this.circuitBreakers.get(system);
-    return metrics?.state || CircuitBreakerState.CLOSED;
+    const breaker = CircuitBreakerRegistry.get(system);
+    return breaker?.getState() || CircuitBreakerState.CLOSED;
   }
 }
 

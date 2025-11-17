@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file-operations/skill-promotion/v1.0.0",
+  "title": "Skill Promotion Schema",
+  "description": "Schema for promoting skills from staging to production (Integration Point 2.7)",
+  "type": "object",
+  "required": ["promotion_id", "skill_id", "from_env", "to_env", "version", "timestamp"],
+  "properties": {
+    "promotion_id": {
+      "type": "string",
+      "description": "Unique identifier for promotion",
+      "pattern": "^promo-[a-z0-9-]+$"
+    },
+    "skill_id": {
+      "type": "string",
+      "description": "Skill being promoted",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "from_env": {
+      "type": "string",
+      "enum": ["dev", "staging", "production"],
+      "description": "Source environment"
+    },
+    "to_env": {
+      "type": "string",
+      "enum": ["dev", "staging", "production"],
+      "description": "Target environment"
+    },
+    "version": {
+      "type": "string",
+      "description": "Skill version being promoted",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Promotion timestamp"
+    },
+    "automated_tests": {
+      "type": "object",
+      "description": "Automated test results before promotion",
+      "required": ["passed", "total"],
+      "properties": {
+        "passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "test_report_path": {
+          "type": "string"
+        }
+      }
+    },
+    "approval_gates": {
+      "type": "array",
+      "description": "Approval gates that must pass",
+      "items": {
+        "type": "object",
+        "required": ["gate_name", "status"],
+        "properties": {
+          "gate_name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["passed", "failed", "pending"]
+          },
+          "approved_by": {
+            "type": "string"
+          },
+          "approved_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "rollback_config": {
+      "type": "object",
+      "description": "Rollback configuration",
+      "required": ["rollback_version"],
+      "properties": {
+        "rollback_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "auto_rollback": {
+          "type": "boolean",
+          "default": false
+        },
+        "rollback_triggers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["error_rate_high", "performance_degradation", "manual"]
+          }
+        }
+      }
+    },
+    "audit_trail": {
+      "type": "object",
+      "description": "Audit trail for compliance",
+      "properties": {
+        "initiated_by": {
+          "type": "string"
+        },
+        "approved_by": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "promotion_id": "promo-cfn-coord-v2",
+      "skill_id": "cfn-coordination",
+      "from_env": "staging",
+      "to_env": "production",
+      "version": "2.0.0",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "automated_tests": {
+        "passed": 50,
+        "total": 50,
+        "coverage_percent": 95.5,
+        "test_report_path": "/reports/cfn-coordination-tests.json"
+      },
+      "approval_gates": [
+        {
+          "gate_name": "security_scan",
+          "status": "passed",
+          "approved_by": "security-agent",
+          "approved_at": "2025-11-17T10:25:00Z"
+        }
+      ],
+      "rollback_config": {
+        "rollback_version": "1.5.0",
+        "auto_rollback": true,
+        "rollback_triggers": ["error_rate_high"]
+      }
+    }
+  ]
+}

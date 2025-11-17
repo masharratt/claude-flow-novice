@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "phase4-workflow/skill-execution-logging/v1.0.0",
+  "title": "Skill Execution Logging Schema",
+  "description": "Schema for skill execution dual logging (Integration Point 4.4)",
+  "type": "object",
+  "required": ["execution_id", "skill_id", "version", "timestamp", "logs"],
+  "properties": {
+    "execution_id": {
+      "type": "string",
+      "description": "Unique identifier for execution",
+      "pattern": "^exec-[a-z0-9-]+$"
+    },
+    "skill_id": {
+      "type": "string",
+      "description": "Skill identifier",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Skill version executed",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Execution timestamp"
+    },
+    "logs": {
+      "type": "object",
+      "description": "Dual logging targets",
+      "required": ["postgres", "phase4_db"],
+      "properties": {
+        "postgres": {
+          "type": "object",
+          "description": "PostgreSQL execution log",
+          "required": ["logged", "record_id"],
+          "properties": {
+            "logged": {
+              "type": "boolean"
+            },
+            "record_id": {
+              "type": "string"
+            },
+            "table": {
+              "type": "string",
+              "default": "skill_executions"
+            }
+          }
+        },
+        "phase4_db": {
+          "type": "object",
+          "description": "Phase 4 metrics database log",
+          "required": ["logged", "record_id"],
+          "properties": {
+            "logged": {
+              "type": "boolean"
+            },
+            "record_id": {
+              "type": "string"
+            },
+            "table": {
+              "type": "string",
+              "default": "execution_metrics"
+            }
+          }
+        }
+      }
+    },
+    "execution_metrics": {
+      "type": "object",
+      "description": "Execution metrics",
+      "properties": {
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "error": {
+          "type": "string"
+        },
+        "agent_id": {
+          "type": "string"
+        },
+        "task_id": {
+          "type": "string"
+        }
+      }
+    },
+    "cost_tracking": {
+      "type": "object",
+      "description": "Cost tracking for execution",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "cost_usd": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "log_format": {
+      "type": "string",
+      "enum": ["json", "structured", "text"],
+      "default": "json"
+    },
+    "deduplication": {
+      "type": "object",
+      "description": "Deduplication for dual logging",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "dedup_key": {
+          "type": "string",
+          "description": "Key for deduplication"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "execution_id": "exec-cfn-coord-001",
+      "skill_id": "cfn-coordination",
+      "version": "2.0.0",
+      "timestamp": "2025-11-17T10:30:00Z",
+      "logs": {
+        "postgres": {
+          "logged": true,
+          "record_id": "pg-12345",
+          "table": "skill_executions"
+        },
+        "phase4_db": {
+          "logged": true,
+          "record_id": "p4-67890",
+          "table": "execution_metrics"
+        }
+      },
+      "execution_metrics": {
+        "duration_ms": 1500,
+        "success": true,
+        "agent_id": "backend-developer-001",
+        "task_id": "task-auth-implementation"
+      },
+      "cost_tracking": {
+        "enabled": true,
+        "cost_usd": 0.002,
+        "tokens": {
+          "input": 500,
+          "output": 200
+        }
+      },
+      "log_format": "json",
+      "deduplication": {
+        "enabled": true,
+        "dedup_key": "exec-cfn-coord-001-2025-11-17"
+      }
+    }
+  ]
+}

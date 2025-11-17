@@ -3,6 +3,8 @@
  *
  * Implements IDatabaseAdapter for PostgreSQL with connection pooling and parameterized queries.
  * Part of Task 0.4: Database Query Abstraction Layer (MVP)
+ *
+ * SECURITY: Requires password authentication and uses parameterized queries for SQL injection prevention
  */
 
 import { Pool, PoolClient, QueryResult } from 'pg';
@@ -21,6 +23,7 @@ import {
   createFailedResult,
   mapPostgresError,
 } from './errors';
+import { withDatabaseRetry } from '../retry-manager';
 
 export class PostgresAdapter implements IDatabaseAdapter {
   private pool: Pool | null = null;
@@ -37,32 +40,51 @@ export class PostgresAdapter implements IDatabaseAdapter {
   }
 
   async connect(): Promise<void> {
-    try {
-      this.pool = new Pool({
-        connectionString: this.config.connectionString,
-        host: this.config.host,
-        port: this.config.port,
-        database: this.config.database,
-        user: this.config.username,
-        password: this.config.password,
-        max: this.config.poolSize || 10,
-        idleTimeoutMillis: this.config.timeout || 30000,
-        connectionTimeoutMillis: 5000,
-      });
-
-      // Test connection
-      const client = await this.pool.connect();
-      client.release();
-
-      this.connected = true;
-    } catch (err) {
+    // SECURITY: Validate password is provided for authentication
+    if (!this.config.password && !this.config.connectionString) {
       throw createDatabaseError(
         DatabaseErrorCode.CONNECTION_FAILED,
-        'Failed to connect to PostgreSQL',
-        err instanceof Error ? err : new Error(String(err)),
-        { config: this.config }
+        'PostgreSQL password is required. Set POSTGRES_PASSWORD environment variable.',
+        undefined,
+        { reason: 'missing_authentication' }
       );
     }
+
+    // Wrap connection with retry logic for transient failures
+    await withDatabaseRetry(async () => {
+      try {
+        const poolConfig: any = {
+          host: this.config.host,
+          port: this.config.port,
+          database: this.config.database,
+          user: this.config.username,
+          password: this.config.password,
+          max: this.config.poolSize || 10,
+          idleTimeoutMillis: this.config.timeout || 30000,
+          connectionTimeoutMillis: 5000,
+        };
+
+        // Use connectionString if provided, otherwise build from components
+        if (this.config.connectionString) {
+          poolConfig.connectionString = this.config.connectionString;
+        }
+
+        this.pool = new Pool(poolConfig);
+
+        // Test connection
+        const client = await this.pool.connect();
+        client.release();
+
+        this.connected = true;
+      } catch (err) {
+        throw createDatabaseError(
+          DatabaseErrorCode.CONNECTION_FAILED,
+          'Failed to connect to PostgreSQL',
+          err instanceof Error ? err : new Error(String(err)),
+          { config: this.config }
+        );
+      }
+    });
   }
 
   async disconnect(): Promise<void> {
@@ -341,6 +363,36 @@ export class PostgresAdapter implements IDatabaseAdapter {
     return context;
   }
 
+  async prepareTransaction(context: TransactionContext): Promise<boolean> {
+    const transaction = this.transactions.get(context.id);
+
+    if (!transaction) {
+      throw createDatabaseError(
+        DatabaseErrorCode.TRANSACTION_FAILED,
+        'Transaction not found',
+        undefined,
+        { transactionId: context.id }
+      );
+    }
+
+    try {
+      // PostgreSQL supports PREPARE TRANSACTION for two-phase commit
+      // Note: This requires max_prepared_transactions > 0 in postgresql.conf
+      await transaction.client.query(`PREPARE TRANSACTION '${context.id}'`);
+      context.status = 'prepared';
+      context.preparedAt = new Date();
+      return true;
+    } catch (err) {
+      // If prepare fails, the transaction is still active and can be rolled back
+      throw createDatabaseError(
+        DatabaseErrorCode.TRANSACTION_FAILED,
+        'Failed to prepare transaction',
+        err instanceof Error ? err : new Error(String(err)),
+        { transactionId: context.id }
+      );
+    }
+  }
+
   async commitTransaction(context: TransactionContext): Promise<void> {
     const transaction = this.transactions.get(context.id);
 
@@ -354,7 +406,12 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     try {
-      await transaction.client.query('COMMIT');
+      // If transaction was prepared, use COMMIT PREPARED
+      if (context.status === 'prepared') {
+        await transaction.client.query(`COMMIT PREPARED '${context.id}'`);
+      } else {
+        await transaction.client.query('COMMIT');
+      }
       context.status = 'committed';
     } finally {
       transaction.client.release();
@@ -375,7 +432,12 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
 
     try {
-      await transaction.client.query('ROLLBACK');
+      // If transaction was prepared, use ROLLBACK PREPARED
+      if (context.status === 'prepared') {
+        await transaction.client.query(`ROLLBACK PREPARED '${context.id}'`);
+      } else {
+        await transaction.client.query('ROLLBACK');
+      }
       context.status = 'rolled_back';
     } finally {
       transaction.client.release();

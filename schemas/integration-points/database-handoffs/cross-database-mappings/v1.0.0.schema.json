@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "database-handoffs/cross-database-mappings/v1.0.0",
+  "title": "Cross-Database Agent Mappings Schema",
+  "description": "Schema for agent-skill mappings between CFN Loop DB and Skills DB (Integration Point 1.7)",
+  "type": "object",
+  "required": ["mapping_id", "agent_id", "skill_ids", "version", "created_at"],
+  "properties": {
+    "mapping_id": {
+      "type": "string",
+      "description": "Unique identifier for this mapping",
+      "pattern": "^map-[a-z0-9-]+$"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Agent identifier",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "agent_type": {
+      "type": "string",
+      "description": "Type of agent (from CFN dev team)",
+      "pattern": "^[a-z-]+$"
+    },
+    "skill_ids": {
+      "type": "array",
+      "description": "Array of skill IDs mapped to this agent",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "minItems": 0,
+      "maxItems": 50
+    },
+    "version": {
+      "type": "string",
+      "description": "Mapping version for tracking changes",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When mapping was created"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp"
+    },
+    "conflict_resolution": {
+      "type": "string",
+      "enum": ["last_write_wins", "manual_merge", "version_check"],
+      "default": "version_check"
+    },
+    "source_db": {
+      "type": "string",
+      "enum": ["cfn_loop", "skills_db"],
+      "description": "Which database owns this mapping"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "auto_generated": {
+          "type": "boolean",
+          "default": false
+        },
+        "approved_by": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "mapping_id": "map-backend-dev-001",
+      "agent_id": "backend-developer-001",
+      "agent_type": "backend-developer",
+      "skill_ids": [
+        "cfn-coordination",
+        "database-query-optimization",
+        "api-design"
+      ],
+      "version": "1.2.0",
+      "created_at": "2025-11-01T00:00:00Z",
+      "updated_at": "2025-11-17T10:30:00Z",
+      "conflict_resolution": "version_check",
+      "source_db": "cfn_loop"
+    }
+  ]
+}

@@ -65,18 +65,25 @@ export class StandardError extends Error {
   public readonly cause?: Error;
 
   /**
+   * Whether this error is retryable (for retry logic)
+   */
+  public readonly isRetryable: boolean;
+
+  /**
    * Create a new StandardError
    *
    * @param code - Error code
    * @param message - Human-readable error message
    * @param context - Additional context about the error
    * @param cause - Original error that caused this error
+   * @param isRetryable - Whether this error is retryable (auto-detected if not provided)
    */
   constructor(
     code: ErrorCode | string,
     message: string,
     context?: Record<string, any>,
-    cause?: Error
+    cause?: Error,
+    isRetryable?: boolean
   ) {
     super(message);
     this.name = 'StandardError';
@@ -84,6 +91,13 @@ export class StandardError extends Error {
     this.context = context;
     this.timestamp = new Date();
     this.cause = cause;
+
+    // Auto-detect retryable status if not explicitly provided
+    if (isRetryable !== undefined) {
+      this.isRetryable = isRetryable;
+    } else {
+      this.isRetryable = this.detectRetryable(code);
+    }
 
     // Maintain proper stack trace for where our error was thrown (V8 only)
     if (Error.captureStackTrace) {
@@ -97,6 +111,20 @@ export class StandardError extends Error {
   }
 
   /**
+   * Auto-detect if error code indicates retryable condition
+   */
+  private detectRetryable(code: ErrorCode | string): boolean {
+    const retryableCodes = [
+      ErrorCode.DB_TIMEOUT,
+      ErrorCode.DB_CONNECTION_FAILED,
+      ErrorCode.OPERATION_TIMEOUT,
+      ErrorCode.NETWORK_ERROR,
+      ErrorCode.LOCK_TIMEOUT,
+    ];
+    return retryableCodes.includes(code as ErrorCode);
+  }
+
+  /**
    * Convert error to JSON representation
    */
   toJSON(): Record<string, any> {
@@ -106,6 +134,7 @@ export class StandardError extends Error {
       message: this.message,
       context: this.context,
       timestamp: this.timestamp.toISOString(),
+      isRetryable: this.isRetryable,
       stack: this.stack,
       cause: this.cause
         ? {
@@ -270,6 +299,12 @@ export function getErrorCode(error: unknown): string | undefined {
  * @returns True if error is retryable
  */
 export function isRetryableError(error: any): boolean {
+  // Check StandardError with isRetryable flag
+  if (error instanceof StandardError) {
+    return error.isRetryable;
+  }
+
+  // Fallback: check error code for retryable codes
   const retryableCodes = [
     ErrorCode.DB_TIMEOUT,
     ErrorCode.DB_CONNECTION_FAILED,
@@ -277,10 +312,6 @@ export function isRetryableError(error: any): boolean {
     ErrorCode.NETWORK_ERROR,
     ErrorCode.LOCK_TIMEOUT,
   ];
-
-  if (error instanceof StandardError) {
-    return retryableCodes.includes(error.code as ErrorCode);
-  }
 
   if (typeof error === 'object' && 'code' in error) {
     return retryableCodes.includes(error.code);

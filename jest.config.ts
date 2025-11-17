@@ -2,6 +2,12 @@ export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/*.test.ts', '**/*.test.cjs'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/legacy/',
+    '.backups',
+  ],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: {

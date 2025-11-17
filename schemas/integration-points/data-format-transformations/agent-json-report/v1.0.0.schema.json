@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "data-format-transformations/agent-json-report/v1.0.0",
+  "title": "Agent Output to JSON Report Schema",
+  "description": "Schema for transforming agent output to JSON report (Integration Point 6.2)",
+  "type": "object",
+  "required": ["report_id", "agent_id", "task_id", "output", "timestamp"],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "description": "Unique identifier for report",
+      "pattern": "^report-[a-z0-9-]+$"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Agent identifier",
+      "pattern": "^[a-z0-9-]+-\\d+$"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "output": {
+      "type": "object",
+      "description": "Structured agent output",
+      "required": ["summary", "confidence", "status"],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "Summary of work completed",
+          "minLength": 10,
+          "maxLength": 1000
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "status": {
+          "type": "string",
+          "enum": ["completed", "failed", "partial"]
+        },
+        "deliverables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Report generation timestamp"
+    },
+    "transformation": {
+      "type": "object",
+      "description": "Transformation metadata",
+      "properties": {
+        "source_format": {
+          "type": "string",
+          "enum": ["text", "markdown", "mixed"],
+          "description": "Original output format"
+        },
+        "target_format": {
+          "type": "string",
+          "const": "json",
+          "description": "Target format (always JSON)"
+        },
+        "parser_used": {
+          "type": "string",
+          "description": "Parser used for transformation"
+        },
+        "validation_applied": {
+          "type": "boolean",
+          "description": "Whether JSON schema validation was applied"
+        }
+      }
+    },
+    "schema_validation": {
+      "type": "object",
+      "description": "JSON schema validation results",
+      "required": ["valid"],
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "schema_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "agent_type": {
+          "type": "string"
+        },
+        "iteration": {
+          "type": "integer"
+        },
+        "execution_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "report_id": "report-backend-001",
+      "agent_id": "backend-developer-001",
+      "task_id": "task-auth-implementation",
+      "output": {
+        "summary": "Successfully implemented JWT authentication with comprehensive error handling and 95% test coverage",
+        "confidence": 0.92,
+        "status": "completed",
+        "deliverables": [
+          "/home/user/claude-flow-novice/src/lib/auth.ts",
+          "/home/user/claude-flow-novice/tests/auth.test.ts"
+        ],
+        "findings": [
+          "Authentication flow properly handles token expiration",
+          "Rate limiting implemented to prevent brute force attacks"
+        ],
+        "recommendations": [
+          "Consider adding refresh token rotation",
+          "Implement multi-factor authentication support"
+        ]
+      },
+      "timestamp": "2025-11-17T10:35:00Z",
+      "transformation": {
+        "source_format": "markdown",
+        "target_format": "json",
+        "parser_used": "markdown-to-json-v1",
+        "validation_applied": true
+      },
+      "schema_validation": {
+        "valid": true,
+        "schema_version": "1.0.0",
+        "errors": []
+      },
+      "metadata": {
+        "agent_type": "backend-developer",
+        "iteration": 1,
+        "execution_time_ms": 300000
+      }
+    }
+  ]
+}

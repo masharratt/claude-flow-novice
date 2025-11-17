@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "database-handoffs/ace-reflection-streaming/v1.0.0",
+  "title": "ACE Reflection Streaming Schema",
+  "description": "Schema for streaming ACE reflections from PostgreSQL to Redis (Integration Point 1.6)",
+  "type": "object",
+  "required": ["stream_id", "batch_size", "reflections", "cursor"],
+  "properties": {
+    "stream_id": {
+      "type": "string",
+      "description": "Unique identifier for this stream batch",
+      "pattern": "^stream-[a-z0-9-]+$"
+    },
+    "batch_size": {
+      "type": "integer",
+      "description": "Number of reflections in this batch",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "reflections": {
+      "type": "array",
+      "description": "Array of reflection records",
+      "items": {
+        "type": "object",
+        "required": ["id", "content", "timestamp"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^refl-[a-z0-9-]+$"
+          },
+          "task_id": {
+            "type": "string"
+          },
+          "agent_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "cursor": {
+      "type": "object",
+      "description": "Pagination cursor for next batch",
+      "required": ["last_id", "has_more"],
+      "properties": {
+        "last_id": {
+          "type": "string",
+          "description": "ID of last record in this batch"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "has_more": {
+          "type": "boolean",
+          "description": "Whether more records exist"
+        }
+      }
+    },
+    "streamed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this batch was streamed"
+    },
+    "redis_ttl_seconds": {
+      "type": "integer",
+      "description": "TTL for Redis keys",
+      "minimum": 60,
+      "maximum": 86400,
+      "default": 3600
+    },
+    "connection_pool_id": {
+      "type": "string",
+      "description": "Connection pool identifier for tracking"
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "stream_id": "stream-batch-001",
+      "batch_size": 50,
+      "reflections": [
+        {
+          "id": "refl-task123-agent456",
+          "task_id": "task-auth",
+          "agent_id": "backend-001",
+          "content": {
+            "summary": "Completed authentication"
+          },
+          "timestamp": "2025-11-17T10:30:00Z"
+        }
+      ],
+      "cursor": {
+        "last_id": "refl-task123-agent456",
+        "offset": 50,
+        "has_more": true
+      },
+      "streamed_at": "2025-11-17T10:35:00Z",
+      "redis_ttl_seconds": 3600
+    }
+  ]
+}

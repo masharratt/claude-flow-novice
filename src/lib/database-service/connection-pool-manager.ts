@@ -149,8 +149,20 @@ export class ConnectionPoolManager {
    * Initialize Redis connection pool
    */
   private async initializeRedisPool(): Promise<void> {
-    const url = this.config.connectionString ||
-      `redis://${this.config.host || 'localhost'}:${this.config.port || 6379}`;
+    let url = this.config.connectionString;
+
+    if (!url) {
+      // Build connection string with optional authentication
+      const host = this.config.host || 'localhost';
+      const port = this.config.port || 6379;
+
+      if (this.config.password) {
+        // Include password in connection string: redis://:password@host:port
+        url = `redis://:${encodeURIComponent(this.config.password)}@${host}:${port}`;
+      } else {
+        url = `redis://${host}:${port}`;
+      }
+    }
 
     this.pool = createClient({
       url,

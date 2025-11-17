@@ -6,6 +6,8 @@
  *
  * UPDATED: Now uses ConnectionPoolManager for proper connection pool initialization,
  * health checks, automatic reconnection with exponential backoff, and connection metrics.
+ *
+ * SECURITY: Supports Redis authentication via requirepass with secure password handling
  */
 
 import { createClient, RedisClientType } from 'redis';
@@ -316,6 +318,31 @@ export class RedisAdapter implements IDatabaseAdapter {
       startTime: new Date(),
       status: 'pending',
     };
+  }
+
+  async prepareTransaction(context: TransactionContext): Promise<boolean> {
+    try {
+      // Redis doesn't support traditional two-phase commit
+      // PREPARE validation: Check if Redis is available and can accept commands
+      this.ensureConnected();
+
+      // Test connection and command execution
+      await this.client!.ping();
+
+      // Mark as prepared
+      context.status = 'prepared';
+      context.preparedAt = new Date();
+
+      return true;
+    } catch (err) {
+      // Prepare failed - typically due to connection issues
+      throw createDatabaseError(
+        DatabaseErrorCode.TRANSACTION_FAILED,
+        'Failed to prepare transaction - Redis unavailable',
+        err instanceof Error ? err : new Error(String(err)),
+        { transactionId: context.id }
+      );
+    }
   }
 
   async commitTransaction(context: TransactionContext): Promise<void> {
