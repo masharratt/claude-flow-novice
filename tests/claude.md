@@ -46,12 +46,65 @@ test_case_name() {
 test_case_name
 ```
 
+## Production Testing Requirements
+
+**Critical Lesson from BUG #21**: Tests must replicate actual production code paths, not just infrastructure.
+
+### Infrastructure Tests vs Integration Tests
+
+**Infrastructure Tests** (can use mocks):
+- Docker networking functionality
+- Volume mounting and permissions
+- Redis connectivity
+- Basic container lifecycle
+
+**Integration Tests** (MUST use production images/scripts):
+- Agent spawning via spawn-agent.sh
+- CLI command construction and execution
+- Actual CFN agent image (claude-flow-novice-agent:latest)
+- Real coordination protocols and Redis patterns
+
+### BUG #21 Case Study
+
+**The Gap**:
+```bash
+# Tests used: alpine:latest with inline scripts
+docker run alpine:latest sh -c "inline script"
+
+# Production uses: cfn-agent image with spawn-agent.sh
+spawn-agent.sh → docker run cfn-agent:latest → npx claude-flow-novice agent
+```
+
+**Result**: Tests passed 100% while production failed 100% due to wrong CLI syntax in spawn-agent.sh.
+
+**Prevention**: Integration tests MUST exercise the actual production spawning mechanism:
+- Use `.claude/skills/cfn-docker-agent-spawning/spawn-agent.sh`
+- Use `claude-flow-novice-agent:latest` image (not alpine)
+- Validate Docker CMD construction (not just inline scripts)
+- Check container logs for CLI errors ("Agent type is required")
+
+### Test Coverage Requirements
+
+Every production code path needs two test types:
+
+1. **Unit Tests**: Validate script logic and command syntax
+   - Example: `test-spawn-command-syntax.sh` (grep for correct npx syntax)
+   - Fast, no containers required
+   - Catch syntax errors before integration
+
+2. **Integration Tests**: Validate end-to-end execution
+   - Example: `test-real-agent-spawning.sh` (actual spawn-agent.sh + cfn-agent)
+   - Use real images and scripts
+   - Check container logs for runtime errors
+
 ## Review Checklist
 - [ ] Script location matches its execution mode (Docker vs CLI vs Task).
 - [ ] Template header, cleanup trap, and helper sourcing are present.
 - [ ] Functions emit structured logs and cite relevant bugs.
 - [ ] Temporary artifacts (containers, worktrees, env files) are deleted.
 - [ ] Script can run idempotently on CI and locally without manual edits.
+- [ ] **Production code paths tested with real images/scripts (not mocks).**
+- [ ] **Both unit tests (syntax) and integration tests (execution) exist.**
 
 Detailed scenario-specific plans live under the following documents:
 1. `tests/docker/TEST_SUITE_OVERVIEW.md`

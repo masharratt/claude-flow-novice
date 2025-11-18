@@ -60,6 +60,7 @@ playwright-report/
 # Test output directories
 tests/results/
 tests/logs/
+tests/temp-*/
 
 # Enterprise test systems (gitignored during development)
 tests/enterprise/
