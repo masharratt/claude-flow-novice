@@ -21,26 +21,35 @@ MODE: Parse from --mode flag or default to "standard"
 MAX_ITERATIONS: Parse from --max-iterations flag or default to 10
 ```
 
-**Step 2: Generate Task ID**
+**Step 2: Set Redis Environment Variables (REQUIRED for non-Docker environments)**
+```bash
+# Set Redis connection parameters for CLI mode
+export CFN_REDIS_HOST=localhost
+export CFN_REDIS_PORT=6379
+
+echo "✅ Redis environment: $CFN_REDIS_HOST:$CFN_REDIS_PORT"
+```
+
+**Step 3: Generate Task ID**
 ```bash
 TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
 ```
 
-**Step 2.5: Verify Redis Availability (REQUIRED for CLI mode coordination)**
+**Step 4: Verify Redis Availability (REQUIRED for CLI mode coordination)**
 ```bash
 # Verify Redis availability (REQUIRED for CLI mode coordination)
-if ! redis-cli PING >/dev/null 2>&1; then
-  echo "❌ ERROR: Redis not available"
+if ! redis-cli -h "$CFN_REDIS_HOST" -p "$CFN_REDIS_PORT" PING >/dev/null 2>&1; then
+  echo "❌ ERROR: Redis not available at $CFN_REDIS_HOST:$CFN_REDIS_PORT"
   echo "   CLI mode requires Redis for coordination"
   echo "   Start Redis: redis-server"
   echo "   Or use Task mode: /cfn-loop-task"
   exit 1
 fi
 
-echo "✅ Redis available"
+echo "✅ Redis available at $CFN_REDIS_HOST:$CFN_REDIS_PORT"
 ```
 
-**Step 3: Spawn Coordinator (REQUIRED - Execute this command now via Bash tool)**
+**Step 5: Spawn Coordinator (REQUIRED - Execute this command now via Bash tool)**
 ```bash
 npx claude-flow-novice agent cfn-v3-coordinator \
   --task-id "$TASK_ID" \
@@ -49,10 +58,10 @@ npx claude-flow-novice agent cfn-v3-coordinator \
   --background=true
 ```
 
-**Step 4: Inform User**
+**Step 6: Inform User**
 After spawning coordinator, tell user:
 - ✅ CFN Loop coordinator spawned with task ID: $TASK_ID
-- 📊 Monitor progress: `redis-cli HGETALL "cfn_loop:task:$TASK_ID:context"`
+- 📊 Monitor progress: `redis-cli -h $CFN_REDIS_HOST -p $CFN_REDIS_PORT HGETALL "cfn_loop:task:$TASK_ID:context"`
 - 🌐 Web dashboard: http://localhost:3000
 
 ---
