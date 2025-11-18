@@ -274,7 +274,9 @@ export async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
   const safeEnvVars = [
     'CFN_REDIS_HOST',
     'CFN_REDIS_PORT',
+    'CFN_REDIS_PASSWORD',  // CRITICAL: Required for Redis authentication
     'CFN_REDIS_URL',
+    'REDIS_PASSWORD',      // Fallback for Redis password
     'CFN_MEMORY_BUDGET',
     'CFN_API_HOST',
     'CFN_API_PORT',
@@ -287,7 +289,8 @@ export async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
     'CFN_DEFAULT_PROVIDER',
     'NODE_ENV',
     'PATH',
-    'HOME'
+    'HOME',
+    'PWD'                  // Required for working directory context
   ];
 
   // Build whitelist-only env object

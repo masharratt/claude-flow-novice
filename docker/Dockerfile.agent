@@ -83,10 +83,18 @@ COPY .claude ./.claude
 # Create workspace directory
 RUN mkdir -p /app/workspace
 
-# Create non-root user for security
+# Create non-root user for security (with home directory)
 RUN groupadd -g 1001 cfnagent && \
-    useradd -r -u 1001 -g cfnagent cfnagent && \
+    useradd -m -u 1001 -g cfnagent cfnagent && \
     chown -R cfnagent:cfnagent /app
+
+# Pre-create database directory with correct permissions
+RUN mkdir -p /app/claude-assets/skills/cfn-redis-coordination/data && \
+    chown -R cfnagent:cfnagent /app/claude-assets
+
+# Create npm cache directory
+RUN mkdir -p /app/.npm-cache && \
+    chown -R cfnagent:cfnagent /app/.npm-cache
 
 # Switch to non-root user
 USER cfnagent
@@ -95,6 +103,7 @@ USER cfnagent
 ENV NODE_ENV=production
 ENV PROJECT_ROOT=/app
 ENV WORKSPACE_PATH=/app/workspace
+ENV npm_config_cache=/app/.npm-cache
 
 # Default command (can be overridden)
 # Usage: node dist/cli/spawn.js --type $AGENT_TYPE --task-id $TASK_ID --agent-id $AGENT_ID

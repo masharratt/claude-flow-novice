@@ -122,6 +122,8 @@ tests/integration/run-all-integration-tests.sh
   - Files: `.claude/skills/cfn-changelog-management/SKILL.md,add-changelog-entry.sh`
 ### Bug Fixes
 
+- Redis auth env vars in CLI agent spawning (2025-11-18)
+  - Impact: Redis authentication failures prevented
 - Fixed memory leak in Task Mode conversation fork system - messages now auto-expire after 24h (2025-11-17)
   - Impact: Prevents indefinite Redis memory growth in Task Mode (5-10MB per task)
   - Files: `src/cli/conversation-fork.ts,src/cli/conversation-fork-cleanup.ts,tests/test-memory-leak-task-mode.sh`
