@@ -20,8 +20,9 @@ AGENT_ID=${3:-""}
 TIMEOUT=${4:-120}
 
 # Redis configuration
-REDIS_HOST=${REDIS_HOST:-"localhost"}
-REDIS_PORT=${REDIS_PORT:-6379}
+# Support both REDIS_HOST and CFN_REDIS_HOST (TypeScript uses CFN_REDIS_HOST)
+REDIS_HOST=${CFN_REDIS_HOST:-${REDIS_HOST:-"localhost"}}
+REDIS_PORT=${CFN_REDIS_PORT:-${REDIS_PORT:-6379}}
 REDIS_DB=${REDIS_DB:-0}
 
 # Debug output

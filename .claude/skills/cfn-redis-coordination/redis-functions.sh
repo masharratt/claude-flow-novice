@@ -21,8 +21,9 @@ redis-cli() {
 export -f redis-cli
 
 # Optional: Set Redis connection defaults
-export REDIS_HOST="${REDIS_HOST:-localhost}"
-export REDIS_PORT="${REDIS_PORT:-6379}"
+# Support both REDIS_HOST and CFN_REDIS_HOST (TypeScript uses CFN_REDIS_HOST)
+export REDIS_HOST="${CFN_REDIS_HOST:-${REDIS_HOST:-localhost}}"
+export REDIS_PORT="${CFN_REDIS_PORT:-${REDIS_PORT:-6379}}"
 
 # Helper: Check if Redis is available (useful for conditional logic)
 is_redis_available() {
