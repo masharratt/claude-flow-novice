@@ -14,7 +14,7 @@ These tests validate:
 
 ## Related Documentation
 - `CLAUDE.md` lines 167-188 (Task vs CLI mode)
-- `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - `SESSION_2025-11-12_FINDINGS.md`
 
 ## When to Use Task Mode

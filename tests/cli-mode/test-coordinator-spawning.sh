@@ -59,7 +59,7 @@ test_coordinator_environment_variables() {
 
   for var in "${required_vars[@]}"; do
     # Check if variable is documented in CLI command
-    if grep -q "$var" "$PROJECT_ROOT/.claude/commands/cfn/cfn-loop-cli.md" 2>/dev/null; then
+    if grep -q "$var" "$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md" 2>/dev/null; then
       pass "Environment variable $var documented in CLI command"
     else
       fail "Environment variable $var documented in CLI command"
@@ -73,7 +73,7 @@ test_coordinator_spawning_command() {
   log_step "GIVEN CLI mode execution"
 
   # WHEN checking coordinator spawning command structure
-  local cli_command="$PROJECT_ROOT/.claude/commands/cfn/cfn-loop-cli.md"
+  local cli_command="$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md"
 
   # THEN verify spawning command exists and is correct
   if grep -q "cfn-spawn coordinator" "$cli_command" 2>/dev/null; then
@@ -95,7 +95,7 @@ test_coordinator_task_id_format() {
   log_step "GIVEN CLI mode task ID generation"
 
   # WHEN checking TASK_ID format in CLI command
-  local cli_command="$PROJECT_ROOT/.claude/commands/cfn/cfn-loop-cli.md"
+  local cli_command="$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md"
 
   # THEN verify TASK_ID uses proper format
   if grep -q "TASK_ID=\"task-\$(date +%s)\"" "$cli_command" 2>/dev/null; then
@@ -144,7 +144,7 @@ test_coordinator_mode_parameter() {
   log_step "GIVEN CLI mode parameter handling"
 
   # WHEN checking mode parameter options
-  local cli_command="$PROJECT_ROOT/.claude/commands/cfn/cfn-loop-cli.md"
+  local cli_command="$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md"
 
   # THEN verify mode parameter is documented
   if grep -q "MODE=" "$cli_command" 2>/dev/null; then
@@ -172,7 +172,7 @@ test_cfn_docker_mode_flag() {
   log_step "GIVEN CLI mode vs Task mode detection"
 
   # WHEN checking CFN_DOCKER_MODE flag
-  local cli_command="$PROJECT_ROOT/.claude/commands/cfn/cfn-loop-cli.md"
+  local cli_command="$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md"
 
   # THEN verify CFN_DOCKER_MODE is set for CLI mode
   if grep -q "CFN_DOCKER_MODE=false" "$cli_command" 2>/dev/null; then

@@ -232,7 +232,7 @@ tests/docker/core/
 
 - **Full Documentation:** `README-DASHBOARD-BUILD-ERRORS.md`
 - **Root Cause Analysis:** `/tmp/dashboard-build-diagnosis.md` (session file)
-- **Parameter Contract:** `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
+- **Parameter Contract:** `.claude/commands/CFN_COORDINATOR_PARAMETERS.md`
 - **Test Standards:** `tests/CLAUDE.md`
 
 ---

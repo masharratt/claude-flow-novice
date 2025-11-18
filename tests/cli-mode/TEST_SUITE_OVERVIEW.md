@@ -361,7 +361,7 @@ cd tests/cli-mode
 - **`planning/review-and-test/CLI_MODE_TEST_RESULTS.md`** - Full test results
 
 ### Implementation
-- **`.claude/commands/cfn/cfn-loop-cli.md`** - CLI mode slash command
+- **`.claude/commands/cfn-loop-cli.md`** - CLI mode slash command
 - **`.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md`** - Coordinator agent
 - **`.claude/skills/cfn-loop-orchestration/orchestrate.sh`** - Orchestration script
 

@@ -355,7 +355,7 @@ graph TD
 ## Related Documentation
 
 - **Root Cause Analysis**: `/tmp/dashboard-build-diagnosis.md` (session diagnostic)
-- **Parameter Contract**: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
+- **Parameter Contract**: `.claude/commands/CFN_COORDINATOR_PARAMETERS.md`
 - **Agent Spawning**: `.claude/skills/cfn-docker-agent-spawning/SKILL.md`
 - **Orchestration**: `.claude/skills/cfn-docker-loop-orchestration/SKILL.md`
 
@@ -435,4 +435,4 @@ For issues related to these tests:
 1. Review test output for specific failure details
 2. Check related documentation in `/docs`
 3. Review original root cause analysis in `/tmp/dashboard-build-diagnosis.md`
-4. Consult `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md` for parameter contracts
+4. Consult `.claude/commands/CFN_COORDINATOR_PARAMETERS.md` for parameter contracts
