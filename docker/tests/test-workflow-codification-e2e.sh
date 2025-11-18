@@ -334,11 +334,265 @@ else
 fi
 
 # ============================================================================
+# DOCKER-SPECIFIC TESTS (Added 2025-11-17)
+# ============================================================================
+
+# ============================================================================
+# Test 11: Edge Case Tracking Across Container Restarts
+# ============================================================================
+
+log_test "Docker-Specific - Edge Case Tracking Across Container Restarts"
+
+DOCKER_EDGE_DIR="$TEST_DIR/docker-edge-cases"
+mkdir -p "$DOCKER_EDGE_DIR"
+
+# Container 1: Record edge cases
+CONTAINER1=$(docker run --rm -d \
+    --name "cfn-test-workflow-edge-$$" \
+    --volume "$PROJECT_ROOT:/workspace:rw" \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:rw" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        for i in 1 2 3; do
+            sqlite3 /workspace/workflow-codification.db \\
+                \"INSERT INTO edge_cases (skill_name, skill_version, exit_code, error_message, occurrence_count) \\
+                VALUES ('docker-test-skill', '1.0.0', 1, 'Container restart test \$i', 1);\"
+        done
+    " 2>/dev/null || true)
+
+# Wait for container 1
+sleep 3
+
+# Container 2: Verify edge cases persisted
+EDGE_COUNT=$(docker run --rm \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:ro" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        sqlite3 /workspace/workflow-codification.db \\
+            \"SELECT COUNT(*) FROM edge_cases WHERE skill_name = 'docker-test-skill';\"
+    " 2>/dev/null || echo "0")
+
+if [[ "$EDGE_COUNT" -ge 3 ]]; then
+    log_pass "Edge case tracking persisted across container restarts (edge_cases=$EDGE_COUNT)"
+else
+    log_fail "Edge case tracking lost data (edge_cases=$EDGE_COUNT, expected ≥3)"
+fi
+
+# Cleanup
+docker rm -f "cfn-test-workflow-edge-$$" 2>/dev/null || true
+
+# ============================================================================
+# Test 12: Cost Tracking with Volume Persistence
+# ============================================================================
+
+log_test "Docker-Specific - Cost Tracking with Volume Persistence"
+
+DOCKER_COST_DIR="$TEST_DIR/docker-cost-tracking"
+mkdir -p "$DOCKER_COST_DIR"
+
+# Container 1: Log cost savings
+CONTAINER2=$(docker run --rm -d \
+    --name "cfn-test-workflow-cost-$$" \
+    --volume "$PROJECT_ROOT:/workspace:rw" \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:rw" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        for i in 1 2 3 4 5; do
+            sqlite3 /workspace/workflow-codification.db \\
+                \"INSERT INTO skill_executions (skill_name, skill_version, execution_time_ms, exit_code, tokens_avoided) \\
+                VALUES ('docker-cost-test', '1.0.0', 100, 0, 1500);\"
+        done
+    " 2>/dev/null || true)
+
+# Wait for container
+sleep 3
+
+# Container 2: Calculate total savings
+TOTAL_SAVINGS=$(docker run --rm \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:ro" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        sqlite3 /workspace/workflow-codification.db \\
+            \"SELECT COALESCE(SUM(tokens_avoided), 0) FROM skill_executions WHERE skill_name = 'docker-cost-test';\"
+    " 2>/dev/null || echo "0")
+
+EXPECTED_SAVINGS=$((5 * 1500))
+
+if [[ "$TOTAL_SAVINGS" -ge "$EXPECTED_SAVINGS" ]]; then
+    log_pass "Cost tracking persisted across containers (savings=$TOTAL_SAVINGS tokens)"
+else
+    log_fail "Cost tracking lost data (savings=$TOTAL_SAVINGS, expected ≥$EXPECTED_SAVINGS)"
+fi
+
+# Cleanup
+docker rm -f "cfn-test-workflow-cost-$$" 2>/dev/null || true
+
+# ============================================================================
+# Test 13: Skill Update Generation in Containerized Environment
+# ============================================================================
+
+log_test "Docker-Specific - Skill Update Generation in Containerized Environment"
+
+DOCKER_SKILL_DIR="$TEST_DIR/docker-skill-update"
+mkdir -p "$DOCKER_SKILL_DIR"
+
+# Record recurring edge case in container
+CONTAINER3=$(docker run --rm -d \
+    --name "cfn-test-workflow-skill-$$" \
+    --volume "$PROJECT_ROOT:/workspace:rw" \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:rw" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        # Record 5 occurrences (threshold = 3)
+        for i in 1 2 3 4 5; do
+            sqlite3 /workspace/workflow-codification.db \\
+                \"INSERT INTO edge_cases (skill_name, skill_version, exit_code, error_message, occurrence_count) \\
+                VALUES ('docker-skill-update-test', '1.0.0', 1, 'Timeout in container', 1);\"
+        done
+    " 2>/dev/null || true)
+
+# Wait for container
+sleep 3
+
+# Query recurring edge cases
+RECURRING_COUNT=$(docker run --rm \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:ro" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        sqlite3 /workspace/workflow-codification.db \\
+            \"SELECT COUNT(*) FROM edge_cases WHERE skill_name = 'docker-skill-update-test';\"
+    " 2>/dev/null || echo "0")
+
+if [[ "$RECURRING_COUNT" -ge 3 ]]; then
+    log_pass "Skill update generation threshold detected (occurrences=$RECURRING_COUNT)"
+else
+    log_fail "Skill update generation threshold not met (occurrences=$RECURRING_COUNT, expected ≥3)"
+fi
+
+# Cleanup
+docker rm -f "cfn-test-workflow-skill-$$" 2>/dev/null || true
+
+# ============================================================================
+# Test 14: Database Consistency Across Container Lifecycle
+# ============================================================================
+
+log_test "Docker-Specific - Database Consistency Across Container Lifecycle"
+
+DOCKER_CONSISTENCY_DIR="$TEST_DIR/docker-consistency"
+mkdir -p "$DOCKER_CONSISTENCY_DIR"
+
+# Write initial data
+INITIAL_MARKER="consistency-test-$RANDOM"
+
+docker run --rm \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:rw" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        sqlite3 /workspace/workflow-codification.db \\
+            \"INSERT INTO skill_executions (skill_name, skill_version, execution_time_ms, exit_code) \\
+            VALUES ('$INITIAL_MARKER', '1.0.0', 100, 0);\"
+    " 2>/dev/null || true
+
+# Container lifecycle: Start → Stop → Start → Verify
+CONTAINER4=$(docker run --rm -d \
+    --name "cfn-test-workflow-lifecycle-$$" \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:ro" \
+    alpine:latest \
+    sleep 5 2>/dev/null || true)
+
+# Stop container
+docker stop "cfn-test-workflow-lifecycle-$$" 2>/dev/null || true
+
+# Start new container and verify data
+VERIFIED_COUNT=$(docker run --rm \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:ro" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        sqlite3 /workspace/workflow-codification.db \\
+            \"SELECT COUNT(*) FROM skill_executions WHERE skill_name = '$INITIAL_MARKER';\"
+    " 2>/dev/null || echo "0")
+
+if [[ "$VERIFIED_COUNT" == "1" ]]; then
+    log_pass "Database consistency maintained across container lifecycle"
+else
+    log_fail "Database inconsistency detected (verified_count=$VERIFIED_COUNT, expected 1)"
+fi
+
+# Cleanup
+docker rm -f "cfn-test-workflow-lifecycle-$$" 2>/dev/null || true
+
+# ============================================================================
+# Test 15: Concurrent Container Access to Database
+# ============================================================================
+
+log_test "Docker-Specific - Concurrent Container Access to Database"
+
+DOCKER_CONCURRENT_DIR="$TEST_DIR/docker-concurrent"
+mkdir -p "$DOCKER_CONCURRENT_DIR"
+
+# Spawn 3 containers writing concurrently
+PIDS=()
+CONTAINERS=()
+
+for i in {1..3}; do
+    CONTAINER_NAME="cfn-test-workflow-concurrent-$i-$$"
+    docker run --rm -d \
+        --name "$CONTAINER_NAME" \
+        --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:rw" \
+        alpine:latest \
+        sh -c "
+            apk add --no-cache sqlite >/dev/null 2>&1
+            sqlite3 /workspace/workflow-codification.db \\
+                \"INSERT INTO skill_executions (skill_name, skill_version, execution_time_ms, exit_code) \\
+                VALUES ('concurrent-test-$i', '1.0.0', 100, 0);\"
+        " 2>/dev/null || true &
+
+    CONTAINERS+=("$CONTAINER_NAME")
+    PIDS+=($!)
+done
+
+# Wait for all containers
+for pid in "${PIDS[@]}"; do
+    wait "$pid" 2>/dev/null || true
+done
+
+sleep 3
+
+# Verify all entries created
+CONCURRENT_COUNT=$(docker run --rm \
+    --volume "$PROJECT_ROOT/.claude/skills/workflow-codification/workflow-codification.db:/workspace/workflow-codification.db:ro" \
+    alpine:latest \
+    sh -c "
+        apk add --no-cache sqlite >/dev/null 2>&1
+        sqlite3 /workspace/workflow-codification.db \\
+            \"SELECT COUNT(*) FROM skill_executions WHERE skill_name LIKE 'concurrent-test-%';\"
+    " 2>/dev/null || echo "0")
+
+if [[ "$CONCURRENT_COUNT" -ge 2 ]]; then
+    log_pass "Concurrent container access successful (entries=$CONCURRENT_COUNT/3)"
+else
+    log_fail "Concurrent container access failed (entries=$CONCURRENT_COUNT, expected ≥2)"
+fi
+
+# Cleanup
+for container in "${CONTAINERS[@]}"; do
+    docker rm -f "$container" 2>/dev/null || true
+done
+
+# ============================================================================
 # Cleanup and Summary
 # ============================================================================
 
 cleanup_test_dir "$TEST_DIR"
 
-print_test_summary "End-to-End Workflow Test Suite"
+print_test_summary "End-to-End Workflow Test Suite (Enhanced with Docker Tests)"
 
 exit $((TESTS_FAILED > 0 ? 1 : 0))

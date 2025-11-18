@@ -30,12 +30,12 @@ log_test() {
 
 log_pass() {
     echo -e "${GREEN}[PASS]${NC} $1"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
+    ((TESTS_PASSED++))
 }
 
 log_fail() {
     echo -e "${RED}[FAIL]${NC} $1"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
+    ((TESTS_FAILED++))
     TEST_FAILURES+=("$1")
 }
 
@@ -67,7 +67,7 @@ assert_equals() {
     local expected="$2"
     local actual="$3"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if [[ "$expected" == "$actual" ]]; then
@@ -84,7 +84,7 @@ assert_not_equals() {
     local not_expected="$2"
     local actual="$3"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if [[ "$not_expected" != "$actual" ]]; then
@@ -101,7 +101,7 @@ assert_exit_code() {
     local expected_code="$2"
     local command="$3"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     set +e
@@ -123,7 +123,7 @@ assert_contains() {
     local haystack="$2"
     local needle="$3"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if [[ "$haystack" == *"$needle"* ]]; then
@@ -140,7 +140,7 @@ assert_not_contains() {
     local haystack="$2"
     local needle="$3"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if [[ "$haystack" != *"$needle"* ]]; then
@@ -156,7 +156,7 @@ assert_file_exists() {
     local test_name="$1"
     local file_path="$2"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if [[ -f "$file_path" ]]; then
@@ -172,7 +172,7 @@ assert_file_not_exists() {
     local test_name="$1"
     local file_path="$2"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if [[ ! -f "$file_path" ]]; then
@@ -188,7 +188,7 @@ assert_dir_exists() {
     local test_name="$1"
     local dir_path="$2"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if [[ -d "$dir_path" ]]; then
@@ -205,7 +205,7 @@ assert_greater_than() {
     local value="$2"
     local threshold="$3"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if (( $(echo "$value > $threshold" | bc -l) )); then
@@ -222,7 +222,7 @@ assert_less_than() {
     local value="$2"
     local threshold="$3"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if (( $(echo "$value < $threshold" | bc -l) )); then
@@ -239,7 +239,7 @@ assert_matches_pattern() {
     local string="$2"
     local pattern="$3"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if [[ "$string" =~ $pattern ]]; then
@@ -255,7 +255,7 @@ assert_json_valid() {
     local test_name="$1"
     local json_string="$2"
 
-    TESTS_RUN=$((TESTS_RUN + 1))
+    ((TESTS_RUN++))
     log_test "$test_name"
 
     if echo "$json_string" | jq empty &>/dev/null; then
