@@ -161,7 +161,7 @@ sanitize_input() {
     fi
 
     # Reject if input contains shell metacharacters: $, `, ;, |, &, >, <, (, ), {, }, [, ], \, ", ', =
-    if [[ "$input" =~ (\$|`|;|\||&|>|<|\(|\)|\{|\}|\[|\]|\\|\"|\'|=) ]]; then
+    if [[ "$input" =~ (\$|\`|;|\||&|>|<|\(|\)|\{|\}|\[|\]|\\|\"|\'|=) ]]; then
         log_error "Input contains dangerous shell metacharacters"
         log_error "Original: $input"
         log_error "Security Risk: Command injection attack prevented"
@@ -694,8 +694,8 @@ spawn_loop3() {
 
         if [[ "$has_plan" == true ]]; then
             # Find atomic tasks assigned to this agent type
-            atomic_task_desc=$(jq -r ".atomic_tasks[] | select(.agent_type == \"$agent_type\") | .description" "$plan_file" | head -1)
-            atomic_task_deliverables=$(jq -r ".atomic_tasks[] | select(.agent_type == \"$agent_type\") | .deliverables | join(\", \")" "$plan_file" | head -1)
+            atomic_task_desc=$(jq -r ".atomic_tasks[] | select(.agent_type == \"$agent_type\") | .description" "$plan_file" 2>/dev/null | head -1 || echo "")
+            atomic_task_deliverables=$(jq -r ".atomic_tasks[] | select(.agent_type == \"$agent_type\") | .deliverables | join(\", \")" "$plan_file" 2>/dev/null | head -1 || echo "")
 
             if [[ -n "$atomic_task_desc" && "$atomic_task_desc" != "null" ]]; then
                 log "Atomic task for $agent_type: $atomic_task_desc"
@@ -748,13 +748,19 @@ EOF
             # This enables secure test-driven validation in containerized agents
 
             local agent_id
-            agent_id=$("$AGENT_SPAWNING_SKILL" \
+            local spawn_output
+            spawn_output=$("$AGENT_SPAWNING_SKILL" \
                 "$agent_type" \
                 "$task_id" \
                 "" \
                 --context "$context_file" \
                 --memory-limit "${MEMORY_LIMIT:-1g}" \
-                --network "${NETWORK:-mcp-network}" 2>&1 | grep -o '^Agent ID: [^[:space:]]*' | cut -d' ' -f3)
+                --network "${NETWORK:-mcp-network}" 2>&1) || {
+                log_error "Spawning script failed for $agent_type"
+                log_error "Output: $spawn_output"
+                return 1
+            }
+            agent_id=$(echo "$spawn_output" | grep -o 'Agent ID: [^[:space:]]*' | head -1 | cut -d' ' -f3 || echo "")
 
             if [[ -n "$agent_id" ]]; then
                 agent_ids+=("$agent_id")

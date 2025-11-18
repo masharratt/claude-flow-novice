@@ -406,8 +406,8 @@ if [[ "${TASK_ID}" =~ concurrent-.* || "${TASK_ID}" =~ test-.* || "${TASK_ID}" =
     # Test mode command (context not used)
     DOCKER_CMD="$DOCKER_CMD -c 'cd /app/workspace && echo \"Task: ${TASK_ID}\" > task-info.txt && echo \"Agent: ${AGENT_TYPE}\" >> task-info.txt && echo \"Starting task execution...\" >> task-info.txt && sleep 3 && echo \"${AGENT_TYPE} task completed\" > ${AGENT_TYPE}-task-result.txt && echo \"Workspace verified\" > ${AGENT_TYPE}-workspace-check.txt && echo \"Task completed\" > ${AGENT_TYPE}-completion-log.txt && echo \"All files created successfully\" && ls -la && sleep 2'"
 else
-    # Full CFN mode command with optional context (call compiled bin directly)
-    DOCKER_CMD="$DOCKER_CMD -c 'cd /app && node dist/cli/spawn.js --type ${AGENT_TYPE} --task-id ${TASK_ID} --agent-id ${AGENT_ID} ${CONTEXT_ARG}'"
+    # Full CFN mode command with optional context (use npx claude-flow-novice)
+    DOCKER_CMD="$DOCKER_CMD -c 'cd /app && npx claude-flow-novice agent ${AGENT_TYPE} --task-id ${TASK_ID} --agent-id ${AGENT_ID} ${CONTEXT_ARG}'"
 fi
 
 # Remove container on exit for interactive mode (not needed for test mode with --rm)
