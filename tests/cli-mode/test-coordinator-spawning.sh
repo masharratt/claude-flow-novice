@@ -76,10 +76,10 @@ test_coordinator_spawning_command() {
   local cli_command="$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md"
 
   # THEN verify spawning command exists and is correct
-  if grep -q "cfn-spawn coordinator" "$cli_command" 2>/dev/null; then
-    pass "Coordinator spawning command uses cfn-spawn"
+  if grep -q "npx claude-flow-novice agent" "$cli_command" 2>/dev/null; then
+    pass "Coordinator spawning command uses npx claude-flow-novice agent"
   else
-    fail "Coordinator spawning command uses cfn-spawn"
+    fail "Coordinator spawning command uses npx claude-flow-novice agent"
   fi
 
   if grep -q "cfn-v3-coordinator" "$cli_command" 2>/dev/null; then
@@ -97,11 +97,11 @@ test_coordinator_task_id_format() {
   # WHEN checking TASK_ID format in CLI command
   local cli_command="$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md"
 
-  # THEN verify TASK_ID uses proper format
-  if grep -q "TASK_ID=\"task-\$(date +%s)\"" "$cli_command" 2>/dev/null; then
-    pass "TASK_ID format follows task-* pattern"
+  # THEN verify TASK_ID uses proper format (cfn-cli-* pattern)
+  if grep -q "TASK_ID=\"cfn-cli-" "$cli_command" 2>/dev/null; then
+    pass "TASK_ID format follows cfn-cli-* pattern"
   else
-    fail "TASK_ID format follows task-* pattern"
+    fail "TASK_ID format follows cfn-cli-* pattern"
   fi
 
   # Test TASK_ID sanitization logic (from CRITICAL-004 fix)
@@ -174,11 +174,11 @@ test_cfn_docker_mode_flag() {
   # WHEN checking CFN_DOCKER_MODE flag
   local cli_command="$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md"
 
-  # THEN verify CFN_DOCKER_MODE is set for CLI mode
-  if grep -q "CFN_DOCKER_MODE=false" "$cli_command" 2>/dev/null; then
-    pass "CFN_DOCKER_MODE flag set in CLI command"
+  # THEN verify CFN_DOCKER_MODE is set for CLI mode (should be 'true')
+  if grep -q "CFN_DOCKER_MODE='true'" "$cli_command" 2>/dev/null; then
+    pass "CFN_DOCKER_MODE flag set to 'true' in CLI command"
   else
-    fail "CFN_DOCKER_MODE flag set in CLI command"
+    fail "CFN_DOCKER_MODE flag set to 'true' in CLI command"
   fi
 
   log_info "✅ CFN_DOCKER_MODE flag validation passed (CLI mode indicator)"
