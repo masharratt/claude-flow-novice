@@ -16,7 +16,7 @@
 #                    [--max-iterations <n>] \
 #                    [--epic-context <json>] \
 #                    [--phase-context <json>] \
-#                    [--success-criteria <json>]
+#                    [--success-criteria <enabled>]  # Flag: criteria stored in Redis by coordinator
 ##############################################################################
 
 set -euo pipefail
@@ -263,7 +263,8 @@ while [[ $# -gt 0 ]]; do
         echo "Error: --success-criteria requires a value"
         exit 1
       fi
-      validate_json_context "$2" || { echo "Invalid success criteria JSON"; exit 1; }
+      # Store flag value - coordinator will write to Redis before spawning orchestrator
+      # Orchestrator validates the key exists in Redis during pre-flight
       SUCCESS_CRITERIA="$2"
       shift 2
       ;;
@@ -308,7 +309,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --min-quorum-loop2 <n>      Loop 2 quorum threshold (default: 0.66)"
       echo "  --epic-context <json>       Epic context JSON"
       echo "  --phase-context <json>      Phase context JSON"
-      echo "  --success-criteria <json>   Success criteria JSON"
+      echo "  --success-criteria <value>  Flag to enable success criteria (stored in Redis by coordinator)"
       echo "  --expected-files <files>    Comma-separated expected deliverables"
       echo "  --phase-id <id>             Phase identifier for timeout calculation"
       exit 1
@@ -370,6 +371,81 @@ echo "=============================================="
 echo ""
 
 ##############################################################################
+# Pre-Flight Validation
+##############################################################################
+
+echo "Running pre-flight checks..."
+
+# 1. Validate Success Criteria in Redis (if flag provided)
+if [ -n "$SUCCESS_CRITERIA" ]; then
+  CRITERIA_VALUE=$("$REDIS_COORD_SKILL/get-context.sh" \
+    --task-id "$TASK_ID" \
+    --key "success-criteria" \
+    --namespace "swarm" 2>/dev/null || echo "")
+
+  if [ -z "$CRITERIA_VALUE" ]; then
+    echo "❌ Pre-flight failed: --success-criteria flag set but not found in Redis" >&2
+    echo "   Coordinator must store criteria before spawning orchestrator" >&2
+    exit 1
+  fi
+
+  # Validate JSON syntax
+  if ! echo "$CRITERIA_VALUE" | jq empty 2>/dev/null; then
+    echo "❌ Pre-flight failed: Success criteria in Redis contains invalid JSON" >&2
+    exit 1
+  fi
+
+  echo "✅ Success criteria validated in Redis"
+fi
+
+# 2. Validate Redis Connectivity (required for CLI mode)
+if ! redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" ping &>/dev/null; then
+  echo "❌ Pre-flight failed: Redis not available at ${REDIS_HOST:-localhost}:${REDIS_PORT:-6379}" >&2
+  echo "   CLI mode requires Redis for coordination" >&2
+  exit 1
+fi
+echo "✅ Redis connectivity validated"
+
+# 3. Validate Agent Types Exist
+MISSING_AGENTS=""
+for agent_type in $(echo "$LOOP3_AGENTS,$LOOP2_AGENTS" | tr ',' '\n' | sort -u); do
+  if ! find "$PROJECT_ROOT/.claude/agents" -name "*${agent_type}*.md" 2>/dev/null | grep -q .; then
+    MISSING_AGENTS="${MISSING_AGENTS}${agent_type}, "
+  fi
+done
+
+if [ -n "$MISSING_AGENTS" ]; then
+  echo "⚠️  Warning: Agent types not found in .claude/agents/: ${MISSING_AGENTS%, }" >&2
+  echo "   Continuing anyway (agent-spawn will handle missing agents)" >&2
+fi
+
+# 4. Validate Helper Scripts Exist
+REQUIRED_HELPERS=(
+  "$HELPERS_DIR/gate-check.sh"
+  "$HELPERS_DIR/consensus.sh"
+  "$HELPERS_DIR/iteration-manager.sh"
+  "$HELPERS_DIR/timeout-calculator.sh"
+)
+
+for helper in "${REQUIRED_HELPERS[@]}"; do
+  if [ ! -x "$helper" ]; then
+    echo "❌ Pre-flight failed: Required helper script missing or not executable: $helper" >&2
+    exit 1
+  fi
+done
+echo "✅ Helper scripts validated"
+
+# 5. Validate Product Owner Decision Skill
+if [ ! -x "$PROJECT_ROOT/.claude/skills/cfn-product-owner-decision/execute-decision.sh" ]; then
+  echo "❌ Pre-flight failed: Product owner decision script not found or not executable" >&2
+  exit 1
+fi
+echo "✅ Product owner decision script validated"
+
+echo "✅ All pre-flight checks passed"
+echo ""
+
+##############################################################################
 # Helper Functions
 ##############################################################################
 
@@ -396,14 +472,21 @@ function store_context() {
     echo "Stored phase context"
   fi
 
-  # Store success criteria if provided using Redis coordination primitive
+  # NOTE: Success criteria is now stored by coordinator BEFORE spawning orchestrator
+  # Orchestrator only validates that it exists in Redis during pre-flight
+  # This comment explains the flow for future maintainers
   if [ -n "$SUCCESS_CRITERIA" ]; then
-    "$REDIS_COORD_SKILL/store-context.sh" \
+    # Verify criteria exists in Redis (should have been stored by coordinator)
+    CRITERIA_VALUE=$("$REDIS_COORD_SKILL/get-context.sh" \
       --task-id "$task_id" \
       --key "success-criteria" \
-      --value "$SUCCESS_CRITERIA" \
-      --namespace "swarm" >/dev/null
-    echo "Stored success criteria"
+      --namespace "swarm" 2>/dev/null || echo "")
+
+    if [ -n "$CRITERIA_VALUE" ]; then
+      echo "✅ Success criteria loaded from Redis (stored by coordinator)"
+    else
+      echo "⚠️  Success criteria flag set but not found in Redis" >&2
+    fi
   fi
 
   echo ""

@@ -21,39 +21,60 @@ MODE: Parse from --mode flag or default to "standard"
 MAX_ITERATIONS: Parse from --max-iterations flag or default to 10
 ```
 
-**Step 2: Set Redis Environment Variables (REQUIRED for non-Docker environments)**
+**Step 2: Set Redis Environment Variables (REQUIRED for CLI mode)**
 ```bash
 # Set Redis connection parameters for CLI mode
-export CFN_REDIS_HOST=localhost
-export CFN_REDIS_PORT=6379
+export CFN_REDIS_HOST="${CFN_REDIS_HOST:-localhost}"
+export CFN_REDIS_PORT="${CFN_REDIS_PORT:-6379}"
+export CFN_REDIS_PASSWORD="${CFN_REDIS_PASSWORD:-${REDIS_PASSWORD:-}}"
 
 echo "✅ Redis environment: $CFN_REDIS_HOST:$CFN_REDIS_PORT"
 ```
 
-**Step 3: Generate Task ID**
+**Step 3: Verify Redis Availability (CRITICAL - CLI mode REQUIRES Redis)**
 ```bash
-TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
-```
+# Build redis-cli command with authentication
+if [ -n "$CFN_REDIS_PASSWORD" ]; then
+  REDIS_CLI="redis-cli -h $CFN_REDIS_HOST -p $CFN_REDIS_PORT -a $CFN_REDIS_PASSWORD"
+else
+  REDIS_CLI="redis-cli -h $CFN_REDIS_HOST -p $CFN_REDIS_PORT"
+fi
 
-**Step 4: Verify Redis Availability (REQUIRED for CLI mode coordination)**
-```bash
-# Verify Redis availability (REQUIRED for CLI mode coordination)
-if ! redis-cli -h "$CFN_REDIS_HOST" -p "$CFN_REDIS_PORT" PING >/dev/null 2>&1; then
+# Test Redis connectivity (suppress password warning)
+if ! $REDIS_CLI PING >/dev/null 2>&1; then
   echo "❌ ERROR: Redis not available at $CFN_REDIS_HOST:$CFN_REDIS_PORT"
-  echo "   CLI mode requires Redis for coordination"
-  echo "   Start Redis: redis-server"
-  echo "   Or use Task mode: /cfn-loop-task"
+  echo ""
+  echo "   CLI mode REQUIRES Redis for agent coordination."
+  echo "   Without Redis, CLI mode cannot function."
+  echo ""
+  echo "   Options:"
+  echo "   1. Start Redis: docker-compose up -d redis"
+  echo "   2. Use Task mode instead: /cfn-loop-task \"<task>\""
+  echo ""
+  echo "   If Redis is running but authentication failed:"
+  echo "   - Check CFN_REDIS_PASSWORD or REDIS_PASSWORD environment variable"
+  echo "   - Verify Redis password in .env file"
   exit 1
 fi
 
-echo "✅ Redis available at $CFN_REDIS_HOST:$CFN_REDIS_PORT"
+echo "✅ Redis available and authenticated at $CFN_REDIS_HOST:$CFN_REDIS_PORT"
+```
+
+**Step 4: Generate Task ID**
+```bash
+TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
+echo "📋 Task ID: $TASK_ID"
 ```
 
 **Step 5: Spawn Coordinator (REQUIRED - Execute this command now via Bash tool)**
 ```bash
+# Spawn coordinator with Redis environment variables
+CFN_REDIS_HOST="$CFN_REDIS_HOST" \
+CFN_REDIS_PORT="$CFN_REDIS_PORT" \
+CFN_REDIS_PASSWORD="$CFN_REDIS_PASSWORD" \
 npx claude-flow-novice agent cfn-v3-coordinator \
   --task-id "$TASK_ID" \
-  --context "TASK_DESCRIPTION='$TASK_DESCRIPTION' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS CFN_DOCKER_MODE='true'" \
+  --context "TASK_DESCRIPTION='$TASK_DESCRIPTION' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS TASK_ID='$TASK_ID'" \
   --timeout 300 \
   --background=true
 ```
