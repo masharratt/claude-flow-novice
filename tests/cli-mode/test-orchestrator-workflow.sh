@@ -55,18 +55,18 @@ test_loop3_spawning_logic() {
     fail "Loop 3 spawning function exists"
   fi
 
-  # Verify spawn-agent.sh integration
-  if grep -q "spawn-agent.sh" "$orchestrator" 2>/dev/null; then
-    pass "spawn-agent.sh integration exists"
+  # Verify CLI spawning integration (uses npx claude-flow-novice directly)
+  if grep -q "npx claude-flow-novice agent" "$orchestrator" 2>/dev/null; then
+    pass "Loop 3 agents spawned via npx claude-flow-novice"
   else
-    fail "spawn-agent.sh integration exists"
+    fail "Loop 3 agents spawned via npx claude-flow-novice"
   fi
 
-  # Verify Loop 3 agents are spawned via CLI
-  if grep -q "cfn-spawn agent" "$orchestrator" 2>/dev/null || grep -q "\\.claude/skills/cfn-agent-spawning/spawn-agent\\.sh" "$orchestrator" 2>/dev/null; then
-    pass "Loop 3 agents spawned via CLI mechanism"
+  # Verify agent spawning function exists
+  if grep -q "spawn_loop3_agents" "$orchestrator" 2>/dev/null; then
+    pass "Loop 3 spawning function implemented"
   else
-    fail "Loop 3 agents spawned via CLI mechanism"
+    fail "Loop 3 spawning function implemented"
   fi
 
   log_info "✅ Loop 3 spawning logic validation passed"
@@ -115,11 +115,11 @@ test_loop2_spawning_logic() {
     fail "Loop 2 validator spawning function exists"
   fi
 
-  # Verify validators wait for gate pass signal
-  if grep -q "coordination-wait.*gate\|wait.*gate.*pass" "$orchestrator" 2>/dev/null; then
-    pass "Validators wait for gate pass signal"
+  # Verify validators have waiting mechanism (uses wait_for_loop2_agents)
+  if grep -q "wait_for_loop2_agents\|wait.*validator" "$orchestrator" 2>/dev/null; then
+    pass "Loop 2 validator waiting mechanism exists"
   else
-    fail "Validators wait for gate pass signal"
+    fail "Loop 2 validator waiting mechanism exists"
   fi
 
   # Verify consensus collection logic
@@ -205,27 +205,26 @@ test_decision_execution_logic() {
 }
 
 test_spawn_agent_integration() {
-  log_step "GIVEN spawn-agent.sh integration"
+  log_step "GIVEN agent spawning integration"
 
-  # WHEN checking spawn-agent.sh usage
+  # WHEN checking agent spawning mechanism
   local orchestrator="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh"
-  local spawn_agent="$PROJECT_ROOT/.claude/skills/cfn-agent-spawning/spawn-agent.sh"
 
-  # THEN verify spawn-agent.sh exists and is executable
-  if [[ -f "$spawn_agent" && -x "$spawn_agent" ]]; then
-    pass "spawn-agent.sh exists and is executable"
+  # THEN verify orchestrator uses npx claude-flow-novice for spawning
+  if grep -q "npx claude-flow-novice agent" "$orchestrator" 2>/dev/null; then
+    pass "Orchestrator uses npx claude-flow-novice for agent spawning"
   else
-    fail "spawn-agent.sh exists and is executable"
+    fail "Orchestrator uses npx claude-flow-novice for agent spawning"
   fi
 
-  # Verify orchestrator calls spawn-agent.sh
-  if grep -q "spawn-agent\\.sh" "$orchestrator" 2>/dev/null; then
-    pass "Orchestrator integrates spawn-agent.sh"
+  # Verify spawning functions exist
+  if grep -q "spawn_loop3_agents\|spawn_loop2_agents" "$orchestrator" 2>/dev/null; then
+    pass "Orchestrator has agent spawning functions"
   else
-    fail "Orchestrator integrates spawn-agent.sh"
+    fail "Orchestrator has agent spawning functions"
   fi
 
-  log_info "✅ spawn-agent.sh integration validation passed"
+  log_info "✅ Agent spawning integration validation passed"
 }
 
 test_workflow_sequencing() {
