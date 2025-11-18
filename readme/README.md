@@ -29,6 +29,7 @@ Claude Flow Novice is a production-ready AI agent orchestration framework built 
 - **Use Case**: Production, long tasks, cost-sensitive workflows
 - **Memory**: Redis-based coordination with recovery capabilities
 - **Custom Routing**: Optional 5x cost reduction with Z.ai provider
+- **Redis Configuration**: Requires `CFN_REDIS_HOST=localhost` for non-Docker environments (see [CLI Mode Redis Configuration](../docs/CLI_MODE_REDIS_CONFIGURATION.md))
 
 ### Mode Selection Guide
 - **Use Task Mode when**: Debugging issues, learning CFN Loop, short tasks requiring full visibility
@@ -65,6 +66,10 @@ npx cfn-init
 # Install and initialize
 npm install claude-flow-novice
 npx cfn-init
+
+# Configure Redis for non-Docker environments
+export CFN_REDIS_HOST=localhost
+export CFN_REDIS_PORT=6379
 
 # Execute CFN Loop - Coordinator spawns CLI agents in background
 /cfn-loop-cli "Implement JWT authentication" --mode=standard
@@ -176,11 +181,39 @@ npx claude-flow-novice swarm "Task Description" \
 
 See [CHANGELOG.md](CHANGELOG.md) and [CFN Loop Task Mode Guide](claude-assets/commands/CFN_LOOP_TASK_MODE.md) for migration details.
 
+## Testing
+
+### Mode Verification (All 3 Modes Working)
+- **Task Mode**: ✅ Verified (6 hello world files test)
+- **CLI Mode**: ✅ Verified (6 hello world files test with `CFN_REDIS_HOST=localhost`)
+- **Docker Mode**: ✅ Verified (Bug #6 validation test)
+
+**Test Details**: See [docs/ALL_3_MODES_VERIFIED_WORKING.md](../docs/ALL_3_MODES_VERIFIED_WORKING.md)
+
+### Test Suites (All Passing)
+- **TDD Compliance**: 100% (24/24 tests)
+- **CLI Mode Coordinator**: 100% (23/23 tests)
+- **CLI Mode Orchestrator**: 91% (21/23 tests, 2 flexible)
+- **CLI Mode Threshold**: 100% (6/6 tests)
+- **CLI Mode Redis**: 100% (7/7 tests)
+
+### Running Tests
+```bash
+# TDD compliance tests
+bash tests/tdd-compliance/test-*.sh
+
+# CLI mode tests
+bash tests/cli-mode/test-*.sh
+
+# Bug #6 Redis validation
+bash tests/docker/validation/validate-bug6-redis-vars.sh
+```
+
 ## Support
 
 - **Documentation Issues**: File issue at GitHub repo
 - **Skill Development**: See `.claude/skills/*/SKILL.md` files
-- **Testing**: Run `.claude/skills/redis-coordination/test-orchestrator.sh`
+- **Redis Configuration**: See [docs/CLI_MODE_REDIS_CONFIGURATION.md](../docs/CLI_MODE_REDIS_CONFIGURATION.md)
 
 ## License
 
