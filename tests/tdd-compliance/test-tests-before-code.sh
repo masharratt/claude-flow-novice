@@ -138,7 +138,7 @@ EOF
 ##############################################################################
 
 test_paired_test_existence() {
-  log_step "GIVEN implementation file exists"
+  log_step "GIVEN TDD-compliant agent creates test before implementation"
 
   mkdir -p "$TEST_WORKSPACE/src"
   mkdir -p "$TEST_WORKSPACE/tests"
@@ -146,19 +146,9 @@ test_paired_test_existence() {
   local IMPL_FILE="$TEST_WORKSPACE/src/user-service.ts"
   local TEST_FILE="$TEST_WORKSPACE/tests/user-service.test.ts"
 
-  # WHEN checking for paired test file
-  cat > "$IMPL_FILE" <<'EOF'
-export class UserService {
-  getUser(id: string) {
-    return { id, name: 'Test User' };
-  }
-}
-EOF
-
-  # THEN test file should exist
-  if [ ! -f "$TEST_FILE" ]; then
-    log_info "Creating required test file (TDD requirement)"
-    cat > "$TEST_FILE" <<'EOF'
+  # WHEN agent follows TDD: test first, implementation second
+  log_info "Creating test file first (TDD Phase 1)"
+  cat > "$TEST_FILE" <<'EOF'
 import { UserService } from '../src/user-service';
 
 describe('UserService', () => {
@@ -169,12 +159,31 @@ describe('UserService', () => {
   });
 });
 EOF
-  fi
 
-  if [ -f "$TEST_FILE" ]; then
-    assert_success "Test file exists for implementation (TDD compliant)"
+  sleep 1  # Ensure timestamp difference
+
+  log_info "Creating implementation file second (TDD Phase 2)"
+  cat > "$IMPL_FILE" <<'EOF'
+export class UserService {
+  getUser(id: string) {
+    return { id, name: 'Test User' };
+  }
+}
+EOF
+
+  # THEN verify test file exists and was created before implementation
+  if [ -f "$TEST_FILE" ] && [ -f "$IMPL_FILE" ]; then
+    local TEST_TIME=$(stat -c %Y "$TEST_FILE")
+    local IMPL_TIME=$(stat -c %Y "$IMPL_FILE")
+
+    if [ "$TEST_TIME" -le "$IMPL_TIME" ]; then
+      assert_success "Test file exists for implementation (TDD compliant)"
+    else
+      log_error "Test file created AFTER implementation (TDD violation)"
+      return 1
+    fi
   else
-    log_error "No test file found for implementation (TDD violation)"
+    log_error "Missing test or implementation file"
     return 1
   fi
 }

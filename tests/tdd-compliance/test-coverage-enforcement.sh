@@ -80,9 +80,9 @@ EOF
   local TOTAL=0
 
   if echo "$TEST_OUTPUT" | grep -qE "[0-9]+ test"; then
-    # Extract test counts from Node.js test output
-    PASSED=$(echo "$TEST_OUTPUT" | grep -oE "passed [0-9]+" | grep -oE "[0-9]+" || echo "0")
-    local FAILED=$(echo "$TEST_OUTPUT" | grep -oE "failed [0-9]+" | grep -oE "[0-9]+" || echo "0")
+    # Extract test counts from Node.js test output (handles both "pass" and "passed" formats)
+    PASSED=$(echo "$TEST_OUTPUT" | grep -oE "(pass|passed) [0-9]+" | grep -oE "[0-9]+" || echo "0")
+    local FAILED=$(echo "$TEST_OUTPUT" | grep -oE "(fail|failed) [0-9]+" | grep -oE "[0-9]+" || echo "0")
     TOTAL=$((PASSED + FAILED))
   fi
 
