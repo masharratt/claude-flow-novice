@@ -449,6 +449,25 @@ fi
 
 log_success "Container created successfully: $CONTAINER_ID"
 
+# Initialize hybrid logging for this task
+LOG_DIR="logs/docker-mode/${TASK_ID}"
+DB_PATH="$LOG_DIR/logs.db"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+
+if [[ ! -f "$DB_PATH" ]]; then
+    log "Initializing hybrid logging for task: $TASK_ID"
+    "$PROJECT_ROOT/.claude/skills/cfn-docker-logging/init-hybrid-logging.sh" "$TASK_ID" >/dev/null 2>&1 || true
+fi
+
+# Start background log capture (text files + SQLite)
+if [[ -f "$PROJECT_ROOT/.claude/skills/cfn-docker-logging/capture-container-logs.sh" ]]; then
+    log "Starting hybrid log capture (text + SQLite)"
+    "$PROJECT_ROOT/.claude/skills/cfn-docker-logging/capture-container-logs.sh" \
+        "$CONTAINER_ID" "$AGENT_ID" "$LOG_DIR" "$DB_PATH" "$TASK_ID" &
+    CAPTURE_PID=$!
+    log "Log capture started (PID: $CAPTURE_PID)"
+fi
+
 # Wait for container to start (if detached)
 if [[ "$DETACH" == true ]]; then
     log "Waiting for container to start..."
