@@ -32,6 +32,7 @@ export interface ForkMetadata {
 
 /**
  * Store a message in conversation history
+ * MEMORY LEAK FIX: Now sets TTL on message list to prevent indefinite accumulation
  */
 export async function storeMessage(
   taskId: string,
@@ -43,6 +44,13 @@ export async function storeMessage(
 
   try {
     execSync(`redis-cli -h ${redisHost} -p ${redisPort} rpush "${key}" '${messageJson.replace(/'/g, "'\\''")}'`, {
+      encoding: 'utf8'
+    });
+
+    // MEMORY LEAK FIX: Set TTL on message list (24h default)
+    // This prevents messages from accumulating indefinitely across multiple tasks
+    const messageTTL = parseInt(process.env.CFN_MESSAGE_TTL || '86400', 10); // 24 hours
+    execSync(`redis-cli -h ${redisHost} -p ${redisPort} expire "${key}" ${messageTTL}`, {
       encoding: 'utf8'
     });
   } catch (error) {
@@ -84,6 +92,7 @@ export async function loadMessages(
 /**
  * Create a fork from current conversation state
  * Copies all messages up to current iteration
+ * MEMORY LEAK FIX: Now sets TTL on fork message list matching metadata TTL
  */
 export async function createFork(
   taskId: string,
@@ -103,6 +112,7 @@ export async function createFork(
 
   // Store fork snapshot
   const forkKey = `swarm:${taskId}:${agentId}:fork:${forkId}:messages`;
+  const forkTTL = parseInt(process.env.CFN_FORK_TTL || '86400', 10); // 24 hours
 
   for (const message of forkMessages) {
     const messageJson = JSON.stringify(message);
@@ -110,6 +120,11 @@ export async function createFork(
       encoding: 'utf8'
     });
   }
+
+  // MEMORY LEAK FIX: Set TTL on fork messages (was missing before)
+  execSync(`redis-cli -h ${redisHost} -p ${redisPort} expire "${forkKey}" ${forkTTL}`, {
+    encoding: 'utf8'
+  });
 
   // Store fork metadata
   const metadata: ForkMetadata = {
@@ -122,17 +137,17 @@ export async function createFork(
   };
 
   const metaKey = `swarm:${taskId}:${agentId}:fork:${forkId}:meta`;
-  execSync(`redis-cli -h ${redisHost} -p ${redisPort} setex "${metaKey}" 86400 '${JSON.stringify(metadata)}'`, {
+  execSync(`redis-cli -h ${redisHost} -p ${redisPort} setex "${metaKey}" ${forkTTL} '${JSON.stringify(metadata)}'`, {
     encoding: 'utf8'
   });
 
   // Set as current fork
   const currentForkKey = `swarm:${taskId}:${agentId}:current-fork`;
-  execSync(`redis-cli -h ${redisHost} -p ${redisPort} setex "${currentForkKey}" 86400 "${forkId}"`, {
+  execSync(`redis-cli -h ${redisHost} -p ${redisPort} setex "${currentForkKey}" ${forkTTL} "${forkId}"`, {
     encoding: 'utf8'
   });
 
-  console.log(`[conversation-fork] Created fork ${forkId} with ${forkMessages.length} messages`);
+  console.log(`[conversation-fork] Created fork ${forkId} with ${forkMessages.length} messages (TTL: ${forkTTL}s)`);
 
   return forkId;
 }

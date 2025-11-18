@@ -122,6 +122,10 @@ tests/integration/run-all-integration-tests.sh
   - Files: `.claude/skills/cfn-changelog-management/SKILL.md,add-changelog-entry.sh`
 ### Bug Fixes
 
+- Fixed memory leak in Task Mode conversation fork system - messages now auto-expire after 24h (2025-11-17)
+  - Impact: Prevents indefinite Redis memory growth in Task Mode (5-10MB per task)
+  - Files: `src/cli/conversation-fork.ts,src/cli/conversation-fork-cleanup.ts,tests/test-memory-leak-task-mode.sh`
+  - Issue: BUG-19
 - CFN Loop Orchestrator Hang (BUG #12) (2025-11-09)
   - Impact: Orchestrator blocked indefinitely during process instrumentation
   - Root Cause: Bash variable scoping bug - `local` with command substitution blocks on background processes
