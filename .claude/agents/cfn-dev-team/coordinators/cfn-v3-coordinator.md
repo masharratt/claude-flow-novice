@@ -837,6 +837,73 @@ if [[ -f ".claude/skills/cfn-agent-selector/select-agents.sh" ]]; then
 fi
 ```
 
+### Step 2.5: MANDATORY Parameter Initialization (BUG #22 FIX)
+
+**CRITICAL: Execute this BEFORE orchestrator invocation to prevent empty parameter errors.**
+
+This step implements the defense-in-depth fix for BUG #22 by ensuring strict initialization with fallbacks and comprehensive pre-invocation validation.
+
+```bash
+# MANDATORY: Initialize with fallbacks FIRST (prevents BUG #22)
+# Even if Step 2 succeeded, re-validate and apply defaults if empty
+LOOP3_AGENTS="${LOOP3_AGENTS:-backend-developer,frontend-developer}"
+LOOP2_AGENTS="${LOOP2_AGENTS:-code-reviewer,tester,security-specialist}"
+PRODUCT_OWNER="${PRODUCT_OWNER:-product-owner}"
+
+echo "🔒 Fallback parameters initialized (BUG #22 prevention)"
+echo "   LOOP3_AGENTS='$LOOP3_AGENTS'"
+echo "   LOOP2_AGENTS='$LOOP2_AGENTS'"
+echo "   PRODUCT_OWNER='$PRODUCT_OWNER'"
+
+# MANDATORY: Validate before orchestrator invocation
+if [[ -z "$LOOP3_AGENTS" ]] || [[ -z "$LOOP2_AGENTS" ]] || [[ -z "$PRODUCT_OWNER" ]]; then
+  echo "❌ FATAL: Agent parameters cannot be empty after fallback initialization (BUG #22)" >&2
+  echo "   This indicates a critical logic error in parameter handling" >&2
+  echo "   LOOP3_AGENTS='$LOOP3_AGENTS'" >&2
+  echo "   LOOP2_AGENTS='$LOOP2_AGENTS'" >&2
+  echo "   PRODUCT_OWNER='$PRODUCT_OWNER'" >&2
+  exit 1
+fi
+
+echo "✅ All parameters validated non-empty before orchestrator invocation"
+```
+
+**Why This Matters:**
+
+1. **Defense-in-Depth**: Multiple layers of protection against empty parameters
+   - Step 2 provides hardcoded defaults
+   - Step 2.5 re-validates and applies fallbacks if needed
+   - Explicit validation catches any logic errors before orchestrator call
+
+2. **Clear Error Messages**: If validation fails, provides:
+   - Exact parameter values (shows what went wrong)
+   - Context about where failure occurred (prevents silent failures)
+   - Actionable error message (indicates critical logic error)
+
+3. **Fail-Fast Principle**: Better to exit early with clear error than pass empty strings to orchestrator
+   - Orchestrator would fail with confusing error messages
+   - Empty parameters cause cascade failures in agent spawning
+   - Early validation prevents wasted iteration time
+
+**Testing BUG #22 Fix:**
+
+```bash
+# Simulate dynamic selection failure (Step 2 should still work)
+rm -f .claude/skills/cfn-agent-selector/select-agents.sh
+
+# Run coordinator - should use hardcoded defaults + fallbacks
+npx claude-flow-novice agent-spawn cfn-v3-coordinator \
+  --task-id test-bug22 \
+  --env TASK_DESCRIPTION="Test BUG #22 fix"
+
+# Expected output:
+# 🔒 Fallback parameters initialized (BUG #22 prevention)
+#    LOOP3_AGENTS='backend-developer,frontend-developer'
+#    LOOP2_AGENTS='code-reviewer,tester,security-specialist'
+#    PRODUCT_OWNER='product-owner'
+# ✅ All parameters validated non-empty before orchestrator invocation
+```
+
 ### Step 3: INVOKE ORCHESTRATOR (MANDATORY - NOT OPTIONAL)
 
 **CRITICAL:** You MUST invoke orchestrator by iteration 3. DO NOT complete tasks directly.
@@ -860,8 +927,9 @@ redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" EXPIRE "$REDIS_
 
 echo "✅ Success criteria stored in Redis: $REDIS_KEY"
 
-# Spawn orchestrator with Redis-based success criteria
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+# BUG #22 FIX: Use orchestrate-wrapper.sh instead of orchestrate.sh directly
+# Wrapper provides additional validation and error handling for agent parameters
+./.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh \
   --task-id "$TASK_ID" \
   --mode "standard" \
   --loop3-agents "$LOOP3_AGENTS" \
@@ -882,9 +950,11 @@ echo "✅ Success criteria stored in Redis: $REDIS_KEY"
 
 **EXECUTION GUARANTEE:**
 - If steps 1-2 fail, use hardcoded defaults and proceed to step 3
+- **Step 2.5 ensures parameters are never empty** (BUG #22 fix)
 - **Never exit without invoking orchestrator**
 - **Orchestrator invocation MUST happen by iteration 3**
 - This coordinator's ONLY job is to configure and invoke the orchestrator
+
 
 ## Multi-Worktree Coordination
 
