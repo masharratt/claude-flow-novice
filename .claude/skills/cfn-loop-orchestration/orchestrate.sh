@@ -580,22 +580,43 @@ function spawn_loop3_agents() {
     safe_agent_id=$(sanitize_input "$UNIQUE_AGENT_ID") || continue
 
     # Dual-mode agent spawning: Docker or CLI
-    # Docker mode: CFN_DOCKER_MODE=true or Docker socket available
-    # CLI mode: Default (uses npx)
-    if [[ "${CFN_DOCKER_MODE:-false}" == "true" ]] || [[ -S /var/run/docker.sock ]]; then
+    # Mode Selection Priority:
+    # 1. Explicit CFN_DOCKER_MODE='true'/'false' (highest priority - user override)
+    # 2. Automatic Docker socket detection (if CFN_DOCKER_MODE unset)
+    # 3. Default CLI mode (fallback if no Docker socket)
+    #
+    # BUG FIX: Respect CFN_DOCKER_MODE='false' even when Docker socket exists
+    SPAWN_MODE="cli"  # Default
+    SPAWN_REASON=""
+
+    if [[ "${CFN_DOCKER_MODE:-}" == "true" ]]; then
+        SPAWN_MODE="docker"
+        SPAWN_REASON="explicit CFN_DOCKER_MODE=true"
+    elif [[ "${CFN_DOCKER_MODE:-}" == "false" ]]; then
+        SPAWN_MODE="cli"
+        SPAWN_REASON="explicit CFN_DOCKER_MODE=false (overrides Docker socket detection)"
+    elif [[ -S /var/run/docker.sock ]]; then
+        SPAWN_MODE="docker"
+        SPAWN_REASON="automatic Docker socket detection"
+    else
+        SPAWN_MODE="cli"
+        SPAWN_REASON="default (no Docker socket)"
+    fi
+
+    if [[ "$SPAWN_MODE" == "docker" ]]; then
         # Docker-based spawning (prevents WebAssembly OOM)
-        echo "  → Docker mode: spawning via container" >&2
+        echo "  → Docker mode: ${SPAWN_REASON}" >&2
 
         # SECURITY FIX: Sanitize Docker environment variables to prevent command injection
-        CFN_DOCKER_IMAGE_SAFE=$(sanitize_docker_var "${CFN_DOCKER_IMAGE:-claude-flow-novice:agent}") || {
+        CFN_DOCKER_IMAGE_SAFE=$(sanitize_input "${CFN_DOCKER_IMAGE:-claude-flow-novice:agent}") || {
           echo "❌ Invalid CFN_DOCKER_IMAGE" >&2
           exit 1
         }
-        CFN_DOCKER_NETWORK_SAFE=$(sanitize_docker_var "${CFN_DOCKER_NETWORK:-mcp-network}") || {
+        CFN_DOCKER_NETWORK_SAFE=$(sanitize_input "${CFN_DOCKER_NETWORK:-mcp-network}") || {
           echo "❌ Invalid CFN_DOCKER_NETWORK" >&2
           exit 1
         }
-        CFN_MEMORY_LIMIT_SAFE=$(sanitize_docker_var "${CFN_MEMORY_LIMIT:-2g}") || {
+        CFN_MEMORY_LIMIT_SAFE=$(sanitize_input "${CFN_MEMORY_LIMIT:-2g}") || {
           echo "❌ Invalid CFN_MEMORY_LIMIT" >&2
           exit 1
         }
@@ -646,7 +667,7 @@ function spawn_loop3_agents() {
         AGENT_PID=$!
     else
         # CLI-based spawning (traditional approach)
-        echo "  → CLI mode: spawning via npx" >&2
+        echo "  → CLI mode: ${SPAWN_REASON}" >&2
 
         if command -v execute_instrumented >/dev/null 2>&1; then
             execute_instrumented "npx" "$CFN_VALIDATION_TIMEOUT" "$CFN_MEMORY_LIMIT" \
