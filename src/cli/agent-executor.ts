@@ -329,7 +329,9 @@ async function executeViaScript(
     const safeEnvVars = [
       'CFN_REDIS_HOST',
       'CFN_REDIS_PORT',
+      'CFN_REDIS_PASSWORD',  // CRITICAL: Required for Redis authentication
       'CFN_REDIS_URL',
+      'REDIS_PASSWORD',      // Fallback for Redis password
       'CFN_MEMORY_BUDGET',
       'CFN_API_HOST',
       'CFN_API_PORT',
@@ -342,7 +344,8 @@ async function executeViaScript(
       'CFN_DEFAULT_PROVIDER',
       'NODE_ENV',
       'PATH',
-      'HOME'
+      'HOME',
+      'PWD'                  // Required for working directory context
     ];
 
     const env: Record<string, string> = {};

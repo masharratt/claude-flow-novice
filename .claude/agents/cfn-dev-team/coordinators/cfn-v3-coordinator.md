@@ -843,6 +843,24 @@ fi
 
 ```bash
 # ALWAYS invoke orchestrator - this is your ONLY responsibility
+
+# Store success criteria in Redis BEFORE spawning orchestrator
+# Using redis-cli HSET with stdin (-x) to avoid shell escaping issues
+REDIS_KEY="swarm:${TASK_ID}:context"
+cat <<'CRITERIA_EOF' | redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" -x HSET "$REDIS_KEY" "success-criteria"
+{
+  "deliverables": [],
+  "acceptanceCriteria": ["Implementation complete"],
+  "test_suites": []
+}
+CRITERIA_EOF
+
+# Set TTL on context hash (24 hours)
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" EXPIRE "$REDIS_KEY" 86400
+
+echo "✅ Success criteria stored in Redis: $REDIS_KEY"
+
+# Spawn orchestrator with Redis-based success criteria
 ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
   --task-id "$TASK_ID" \
   --mode "standard" \
@@ -850,7 +868,7 @@ fi
   --loop2-agents "$LOOP2_AGENTS" \
   --product-owner "$PRODUCT_OWNER" \
   --max-iterations 10 \
-  --success-criteria '{"deliverables":[],"acceptanceCriteria":["Implementation complete"]}'
+  --success-criteria "enabled"
 
 # The orchestrator handles ALL CFN Loop execution including:
 # - Loop 3 agent spawning and iteration
