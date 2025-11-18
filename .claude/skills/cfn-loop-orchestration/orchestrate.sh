@@ -157,6 +157,10 @@ while [[ $# -gt 0 ]]; do
         echo "Error: --loop3-agents requires a value"
         exit 1
       fi
+      if [[ -z "$2" ]]; then
+        echo "Error: --loop3-agents value cannot be empty"
+        exit 1
+      fi
       validate_agent_list "$2" || { echo "Invalid Loop 3 agent list"; exit 1; }
       LOOP3_AGENTS="$2"
       shift 2
@@ -166,6 +170,10 @@ while [[ $# -gt 0 ]]; do
         echo "Error: --loop2-agents requires a value"
         exit 1
       fi
+      if [[ -z "$2" ]]; then
+        echo "Error: --loop2-agents value cannot be empty"
+        exit 1
+      fi
       validate_agent_list "$2" || { echo "Invalid Loop 2 agent list"; exit 1; }
       LOOP2_AGENTS="$2"
       shift 2
@@ -173,6 +181,10 @@ while [[ $# -gt 0 ]]; do
     --product-owner)
       if [[ $# -lt 2 ]]; then
         echo "Error: --product-owner requires a value"
+        exit 1
+      fi
+      if [[ -z "$2" ]]; then
+        echo "Error: --product-owner value cannot be empty"
         exit 1
       fi
       PRODUCT_OWNER=$(sanitize_input "$2") || { echo "Invalid product owner"; exit 1; }
