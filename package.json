@@ -58,6 +58,12 @@
     "!scripts/deployment/",
     "tools/simple-complexity.sh",
     "tools/install-lizard.sh",
+    "tests/test-memory-leak-task-mode.sh",
+    "docs/BUG_19_MEMORY_LEAK_TASK_MODE.md",
+    "docs/MEMORY_CLEANUP_GUIDE.md",
+    "docs/MEMORY_LEAK_FIX_SUMMARY.md",
+    "docs/REDIS_CLEANUP_EXECUTIVE_SUMMARY.md",
+    "docs/REDIS_CLEANUP_VERIFICATION_REPORT.md",
     "README.md",
     "LICENSE",
     ".claude/root-claude-distribute/CFN-CLAUDE.md"
