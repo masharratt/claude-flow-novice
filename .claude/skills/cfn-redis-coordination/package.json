@@ -1,6 +1,6 @@
 {
   "name": "@cfn/redis-coordination",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "TypeScript Redis coordination layer for CFN Loop with graceful Task Mode fallback",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
