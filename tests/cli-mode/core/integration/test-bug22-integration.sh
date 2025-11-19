@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -u
 
 ##############################################################################
 # BUG #22 Integration Test - End-to-End Parameter Flow Validation
@@ -8,7 +8,7 @@ set -eu
 ##############################################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -95,9 +95,9 @@ echo "--------------------------------------"
 COORD_PROFILE="$PROJECT_ROOT/.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md"
 COORD_CONTENT=$(cat "$COORD_PROFILE")
 
-assert_contains "$COORD_CONTENT" "LOOP3_AGENTS=\${LOOP3_AGENTS:-" "Phase 1.1: Coordinator has fallback initialization"
-assert_contains "$COORD_CONTENT" "LOOP2_AGENTS=\${LOOP2_AGENTS:-" "Phase 1.2: Coordinator has Loop 2 fallback"
-assert_contains "$COORD_CONTENT" "PRODUCT_OWNER=\${PRODUCT_OWNER:-" "Phase 1.3: Coordinator has Product Owner fallback"
+assert_contains "$COORD_CONTENT" 'LOOP3_AGENTS="${LOOP3_AGENTS:-' "Phase 1.1: Coordinator has fallback initialization"
+assert_contains "$COORD_CONTENT" 'LOOP2_AGENTS="${LOOP2_AGENTS:-' "Phase 1.2: Coordinator has Loop 2 fallback"
+assert_contains "$COORD_CONTENT" 'PRODUCT_OWNER="${PRODUCT_OWNER:-' "Phase 1.3: Coordinator has Product Owner fallback"
 
 # Test 1.2: Coordinator has pre-invocation validation
 assert_contains "$COORD_CONTENT" "if \[\[ -z \"\$LOOP3_AGENTS\" \]\]" "Phase 1.4: Coordinator validates empty parameters"
