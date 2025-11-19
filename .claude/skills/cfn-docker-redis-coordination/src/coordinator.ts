@@ -455,6 +455,8 @@ export class RedisCoordinator {
    */
   async waitLoop(params: WaitLoopParams): Promise<WaitLoopResult> {
     const startTime = Date.now();
+    // Hoist progress tracking outside try block so it's available in catch
+    let completedAgents = 0;
 
     try {
       const {
@@ -493,7 +495,6 @@ export class RedisCoordinator {
       );
 
       const endTime = startTime + timeout * 1000;
-      let completedAgents = 0;
 
       while (Date.now() < endTime) {
         completedAgents = 0;
@@ -552,7 +553,7 @@ export class RedisCoordinator {
       if (error instanceof TimeoutError) {
         return {
           success: false,
-          completedAgents: 0,
+          completedAgents, // Return last-known value instead of 0
           expectedAgents: params.agentCount,
           executionTime,
           message: error.message,
@@ -570,6 +571,10 @@ export class RedisCoordinator {
     params: CollectConsensusParams
   ): Promise<CollectConsensusResult> {
     const startTime = Date.now();
+    // Hoist progress tracking outside try block so it's available in catch
+    let responsesReceived = 0;
+    let totalConfidence = 0;
+    let totalValidators = 0;
 
     try {
       const {
@@ -611,8 +616,6 @@ export class RedisCoordinator {
       );
 
       const endTime = startTime + timeout * 1000;
-      let responsesReceived = 0;
-      let totalConfidence = 0;
 
       while (Date.now() < endTime) {
         responsesReceived = 0;
@@ -640,6 +643,7 @@ export class RedisCoordinator {
         }
 
         if (responsesReceived > 0) {
+          totalValidators = responsesReceived; // Update totalValidators
           const averageConfidence =
             totalConfidence / responsesReceived;
 
@@ -659,7 +663,7 @@ export class RedisCoordinator {
             // Store consensus result
             const consensusKey = `${this.keyPrefixes.consensus}:${taskId}:loop:${loopNumber}:consensus`;
             await this.redisClient.hset(consensusKey, {
-              total_validators: String(responsesReceived),
+              total_validators: String(totalValidators),
               responses_received: String(responsesReceived),
               average_confidence: averageConfidence.toFixed(3),
               consensus_reached: 'true',
@@ -674,7 +678,7 @@ export class RedisCoordinator {
 
             return {
               success: true,
-              totalValidators: responsesReceived,
+              totalValidators,
               responsesReceived,
               averageConfidence,
               consensusReached: true,
@@ -706,11 +710,12 @@ export class RedisCoordinator {
       this.logger.error(`Consensus collection failed: ${message}`);
 
       if (error instanceof TimeoutError) {
+        const averageConfidence = responsesReceived > 0 ? totalConfidence / responsesReceived : 0;
         return {
           success: false,
-          totalValidators: 0,
-          responsesReceived: 0,
-          averageConfidence: 0,
+          totalValidators, // Return last-known value instead of 0
+          responsesReceived, // Return last-known value instead of 0
+          averageConfidence, // Return last-known value instead of 0
           consensusReached: false,
           decision: 'ABORT',
           executionTime,

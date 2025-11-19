@@ -2,8 +2,8 @@
   "name": "@cfn/error-logging",
   "version": "2.0.0",
   "description": "Comprehensive error logging and diagnostics system for CFN Loop",
-  "main": "dist/error-logger.js",
-  "types": "dist/types.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --project tsconfig.json",
     "build:watch": "tsc --project tsconfig.json --watch",
