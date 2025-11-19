@@ -2,11 +2,12 @@
 ##############################################################################
 # Claude API Switcher - Main Chat & Task Tool Provider Routing
 #
-# Usage: scripts/switch-api.sh [zai|kimi|openrouter|max|status]
+# Usage: scripts/switch-api.sh [zai|kimi|gemini|openrouter|max|status]
 #
 # What it does:
 #   - zai:        Main Chat + Task tool use Z.ai
 #   - kimi:       Main Chat + Task tool use Moonshot Kimi
+#   - gemini:     Main Chat + Task tool use Google Gemini (via OpenRouter)
 #   - openrouter: Main Chat + Task tool use OpenRouter
 #   - max:        Main Chat + Task tool use Anthropic (requires re-login)
 #   - CLI:        Respects custom routing when enabled (see agent profiles)
@@ -67,10 +68,16 @@ show_status() {
             echo "  Model: $MODEL"
             echo "  Cost: ~\$2/1M tokens"
         elif [[ "$BASE_URL" == *"openrouter.ai"* ]]; then
-            echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} OpenRouter"
-            echo "  Base URL: $BASE_URL"
-            echo "  Model: $MODEL"
-            echo "  Cost: Varies by model"
+            if [[ "$MODEL" == google/gemini* ]]; then
+                echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} Google Gemini (via OpenRouter)"
+                echo "  Model: $MODEL"
+                echo "  Cost: ~\$0.30/1M tokens (input), ~\$1.20/1M tokens (output)"
+            else
+                echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} OpenRouter"
+                echo "  Base URL: $BASE_URL"
+                echo "  Model: $MODEL"
+                echo "  Cost: Varies by model"
+            fi
         else
             echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} Custom"
             echo "  Base URL: $BASE_URL"
@@ -193,6 +200,62 @@ switch_to_kimi() {
     echo -e "${YELLOW}Next Steps:${NC}"
     echo "  1. Restart Claude desktop (if running)"
     echo "  2. Test: Main Chat should use Kimi"
+    echo ""
+}
+
+##############################################################################
+# Switch to Gemini (via OpenRouter) for Main Chat and Task Tool
+##############################################################################
+switch_to_gemini() {
+    echo -e "${BLUE}Switching Main Chat/Task Tool to Google Gemini...${NC}"
+    echo ""
+
+    # Backup current settings
+    if [ -f "$SETTINGS_FILE" ]; then
+        BACKUP_NAME="settings-$(date +%Y%m%d-%H%M%S)-before-gemini.json"
+        cp "$SETTINGS_FILE" "$BACKUP_DIR/$BACKUP_NAME"
+        echo -e "${GREEN}✓${NC} Backed up: $BACKUP_DIR/$BACKUP_NAME"
+    fi
+
+    # Read current settings or create empty object
+    if [ -f "$SETTINGS_FILE" ]; then
+        CURRENT_SETTINGS=$(cat "$SETTINGS_FILE")
+    else
+        CURRENT_SETTINGS='{}'
+    fi
+
+    # Add Gemini env vars to settings (via OpenRouter with Gemini model)
+    OPENROUTER_KEY=$(grep -E "^OPENROUTER_API_KEY=" .env | head -1 | cut -d'=' -f2 | sed 's/#.*//' | xargs)
+    if [ -z "$OPENROUTER_KEY" ]; then
+        echo -e "${RED}Error: OPENROUTER_API_KEY not found in .env${NC}"
+        exit 1
+    fi
+    # Use Gemini 2.0 Flash as default (fast, cost-effective)
+    NEW_SETTINGS=$(echo "$CURRENT_SETTINGS" | jq --arg key "$OPENROUTER_KEY" '. + {"env": ((.env // {}) + {"ANTHROPIC_BASE_URL": "https://openrouter.ai/api/v1", "ANTHROPIC_AUTH_TOKEN": $key, "ANTHROPIC_MODEL": "google/gemini-2.0-flash-001", "ANTHROPIC_SMALL_FAST_MODEL": "google/gemini-2.0-flash-001"})}')
+
+    echo "$NEW_SETTINGS" > "$SETTINGS_FILE"
+
+    echo ""
+    echo -e "${GREEN}═══════════════════════════════════════${NC}"
+    echo -e "${GREEN}✓ Switched to Google Gemini${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${GREEN}Main Chat + Task Tool:${NC} Gemini (via OpenRouter)"
+    echo "  • All Task() spawned agents use Gemini"
+    echo "  • Model: google/gemini-2.0-flash-001"
+    echo "  • Cost: ~\$0.30/1M tokens (input), ~\$1.20/1M tokens (output)"
+    echo "  • No login required"
+    echo ""
+    echo -e "${BLUE}Available Gemini Models:${NC}"
+    echo "  • google/gemini-2.0-flash-001 (default, fast)"
+    echo "  • google/gemini-pro"
+    echo "  • google/gemini-pro-vision"
+    echo "  • Edit model in .claude/settings.json"
+    echo ""
+    echo -e "${YELLOW}Next Steps:${NC}"
+    echo "  1. Restart Claude desktop (if running)"
+    echo "  2. Test: Main Chat should use Gemini"
+    echo "  3. Visit: https://openrouter.ai/models for model pricing"
     echo ""
 }
 
@@ -323,6 +386,11 @@ case "${1:-status}" in
         show_status
         ;;
 
+    gemini|google)
+        switch_to_gemini
+        show_status
+        ;;
+
     openrouter|or)
         switch_to_openrouter
         show_status
@@ -342,6 +410,7 @@ case "${1:-status}" in
         echo "  status      Show current API configuration (default)"
         echo "  zai         Switch Main Chat/Task tool to Z.ai"
         echo "  kimi        Switch Main Chat/Task tool to Moonshot Kimi"
+        echo "  gemini      Switch Main Chat/Task tool to Google Gemini"
         echo "  openrouter  Switch Main Chat/Task tool to OpenRouter"
         echo "  max         Switch Main Chat/Task tool to Anthropic"
         echo ""
@@ -349,6 +418,7 @@ case "${1:-status}" in
         echo "  $0                # Show current status"
         echo "  $0 zai            # Use Z.ai for Main Chat (\$0.50/1M tokens)"
         echo "  $0 kimi           # Use Moonshot Kimi (~\$2/1M tokens)"
+        echo "  $0 gemini         # Use Google Gemini (~\$0.30/1M input tokens)"
         echo "  $0 openrouter     # Use OpenRouter (varies by model)"
         echo "  $0 max            # Use Anthropic (\$15/1M tokens, requires re-login)"
         echo ""
