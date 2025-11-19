@@ -80,18 +80,17 @@ fi
 TEST_OUTPUT=$(npm run test:contract 2>&1)
 
 # Parse results using CFN test result parser
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
-  "pact" "$TEST_OUTPUT")
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 
 # Store in Redis for Loop 2 consensus
-redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-  "${AGENT_ID}" "$RESULTS"
-
 # Report completion (no confidence score)
-./.claude/skills/cfn-coordination/report-completion.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --test-results "$RESULTS"
 ```
 
 ### 4. Completion Protocol
@@ -480,12 +479,6 @@ FAILED_CONTRACTS=0
 PASS_RATE=$(echo "scale=2; $PASSED_CONTRACTS / $TOTAL_CONTRACTS" | bc)
 
 # Report to Redis
-redis-cli HSET "swarm:${TASK_ID}:loop2-test-results" \
-  "contract_tests_passed" "true" \
-  "contract_pass_rate" "$PASS_RATE" \
-  "total_contracts" "$TOTAL_CONTRACTS" \
-  "passed_contracts" "$PASSED_CONTRACTS" \
-  "failed_contracts" "$FAILED_CONTRACTS"
 
 # Generate detailed report
 cat > "docs/contract-test-report.md" <<EOF
@@ -610,10 +603,6 @@ interface DatabaseAdapter {
 **Response:**
 ```bash
 # Mark as ITERATE in Loop 2 consensus
-redis-cli HSET "swarm:${TASK_ID}:loop2-consensus" \
-  "contract-tester" "0.0" \
-  "recommendation" "ITERATE" \
-  "reason" "Provider does not satisfy consumer contract"
 ```
 
 ### Scenario 2: Breaking Change Detected
@@ -644,14 +633,8 @@ echo "   Recommendation: Restore field OR bump API version to v2"
 **Response:**
 ```bash
 # THIS IS CRITICAL - Same bug as PR #123
-redis-cli HSET "swarm:${TASK_ID}:critical-issues" \
-  "adapter-rollback-bug" "PostgreSQL rollback does not prevent persistence"
 
 # Mark consensus VERY LOW
-redis-cli HSET "swarm:${TASK_ID}:loop2-consensus" \
-  "contract-tester" "0.2" \
-  "recommendation" "ITERATE" \
-  "severity" "CRITICAL"
 ```
 
 ---
@@ -676,8 +659,6 @@ npm run test:contract
 # (Consensus = Loop 3 quality + Contract test quality)
 CONSENSUS=$(echo "scale=2; ($LOOP3_RESULTS + $CONTRACT_PASS_RATE) / 2" | bc)
 
-redis-cli HSET "swarm:${TASK_ID}:loop2-consensus" \
-  "contract-tester" "$CONSENSUS"
 
 # 5. Product Owner reads all Loop 2 validators
 # Decision: PROCEED only if ALL validators approve

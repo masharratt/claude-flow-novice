@@ -68,20 +68,17 @@ fi
 TEST_OUTPUT=$(npm run test:integration 2>&1)
 
 # Parse results using CFN test result parser
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
-  "jest" "$TEST_OUTPUT")
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
-# Store in Redis for Loop 2 consensus
-redis-cli HSET "swarm:${TASK_ID}:loop2-test-results" \
-  "integration_tests_passed" "true" \
-  "integration_test_output" "$TEST_OUTPUT" \
-  "integration_pass_rate" "0.95"
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+
 
 # Report completion (no confidence score)
-./.claude/skills/cfn-coordination/report-completion.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --test-results "$RESULTS"
 ```
 
 ### 4. Completion Protocol
@@ -694,12 +691,6 @@ FAILED_TESTS=$(grep -oP '✗\s+\K\d+' /tmp/integration-test-output.txt)
 PASS_RATE=$(echo "scale=2; $PASSED_TESTS / $TOTAL_TESTS" | bc)
 
 # Report to Redis
-redis-cli HSET "swarm:${TASK_ID}:loop2-test-results" \
-  "integration_tests_passed" "$([[ $EXIT_CODE -eq 0 ]] && echo 'true' || echo 'false')" \
-  "integration_pass_rate" "$PASS_RATE" \
-  "total_integration_tests" "$TOTAL_TESTS" \
-  "passed_integration_tests" "$PASSED_TESTS" \
-  "failed_integration_tests" "$FAILED_TESTS"
 
 # Calculate consensus (factor in criticality)
 CRITICAL_WORKFLOWS_PASSED=$(grep -c "✓.*CRITICAL" /tmp/integration-test-output.txt)
@@ -713,8 +704,6 @@ else
   CONSENSUS="0.30"
 fi
 
-redis-cli HSET "swarm:${TASK_ID}:loop2-consensus" \
-  "integration-tester" "$CONSENSUS"
 
 echo "Integration Test Summary:"
 echo "  Total Tests: $TOTAL_TESTS"

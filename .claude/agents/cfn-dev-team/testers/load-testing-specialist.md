@@ -62,18 +62,17 @@ fi
 TEST_OUTPUT=$(k6 run load-test.js 2>&1)
 
 # Parse results using CFN test result parser
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
-  "k6" "$TEST_OUTPUT")
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 
 # Store in Redis for Loop 2 consensus
-redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-  "${AGENT_ID}" "$RESULTS"
-
 # Report completion (no confidence score)
-./.claude/skills/cfn-coordination/report-completion.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --test-results "$RESULTS"
 ```
 
 ### 4. Completion Protocol

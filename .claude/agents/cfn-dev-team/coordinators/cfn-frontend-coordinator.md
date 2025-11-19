@@ -46,25 +46,18 @@ fi
 
 **Old (Deprecated):**
 ```bash
-redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
-  "${AGENT_ID}" "0.85"
-```
 
 **New (Required):**
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test -- --reporter=json 2>&1)
 
-# Parse test results
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
-  "jest" "$TEST_OUTPUT")
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
-# Store in Redis
-redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-  "${AGENT_ID}" "$RESULTS"
-
-# Signal completion
-redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
 ```
 
 ## Core Responsibility
@@ -78,22 +71,10 @@ redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
 ### Frontend Context Storage in Redis
 ```bash
 # Store frontend coordination context
-redis-cli HSET "frontend:task:${TASK_ID}:context" \
-  "component_name" "${COMPONENT_NAME}" \
-  "mockup_path" "${MOCKUP_PATH}" \
-  "brand_guidelines" "${BRAND_GUIDELINES}" \
-  "mode" "${MODE}" \
-  "visual_threshold" "${VISUAL_THRESHOLD}" \
-  "max_iterations" "${MAX_ITERATIONS}" \
-  "current_iteration" "1"
 
 # Store brand guidelines for agent reference
 redis-cli SET "frontend:task:${TASK_ID}:brand-guidelines" "${BRAND_GUIDELINES_JSON}"
 redis-cli SET "frontend:task:${TASK_ID}:mockup-path" "${MOCKUP_PATH}"
-redis-cli HSET "frontend:task:${TASK_ID}:config" \
-  "visual_threshold" "85" \
-  "interaction_threshold" "80" \
-  "accessibility_threshold" "90"
 ```
 
 ### Agent Spawning with Redis Context
@@ -103,13 +84,6 @@ for agent in "${loop3Agents[@]}"; do
   AGENT_ID="${TASK_ID}-${agent}-$(date +%s)"
 
   # Store agent coordination data
-  redis-cli HSET "frontend:agent:${AGENT_ID}" \
-    "agent_type" "${agent}" \
-    "task_id" "${TASK_ID}" \
-    "loop_number" "3" \
-    "iteration" "${CURRENT_ITERATION}" \
-    "component_name" "${COMPONENT_NAME}" \
-    "status" "spawning"
 
   # Prepare enhanced context with brand guidelines
   CONTEXT_WITH_BRAND=$(cat <<EOF
@@ -161,13 +135,6 @@ store_visual_analysis() {
   local overall_score="$3"
   local iteration="$4"
 
-  redis-cli HSET "frontend:task:${TASK_ID}:visual:${iteration}" \
-    "similarity_score" "$similarity_score" \
-    "interaction_score" "$interaction_score" \
-    "overall_score" "$overall_score" \
-    "analyzed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    "screenshot_path" "${SCREENSHOT_PATH}" \
-    "video_path" "${VIDEO_PATH}"
 
   # Store visual feedback for iteration
   redis-cli SET "frontend:task:${TASK_ID}:feedback:${iteration}" "$VISUAL_FEEDBACK_JSON"
@@ -196,13 +163,6 @@ spawn_visual_validators() {
     AGENT_ID="${TASK_ID}-${validator}-$(date +%s)"
 
     # Store validator context
-    redis-cli HSET "frontend:agent:${AGENT_ID}" \
-      "agent_type" "${validator}" \
-      "task_id" "${TASK_ID}" \
-      "loop_number" "2" \
-      "iteration" "${CURRENT_ITERATION}" \
-      "component_name" "${COMPONENT_NAME}" \
-      "visual_score" "$OVERALL_SCORE"
 
     # Prepare validation context with visual artifacts
     VALIDATION_CONTEXT=$(cat <<EOF
@@ -255,11 +215,6 @@ signal_agent_completion() {
 
   if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
     # Store completion data
-    redis-cli HSET "frontend:task:${TASK_ID}:completion:${AGENT_ID}" \
-      "confidence" "$confidence" \
-      "iteration" "$iteration" \
-      "deliverables" "$deliverables" \
-      "completed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
     # Signal completion
     redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
@@ -281,10 +236,6 @@ signal_validator_completion() {
 
   if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
     # Store validator consensus
-    redis-cli HSET "frontend:task:${TASK_ID}:validator:${AGENT_ID}" \
-      "consensus_score" "$consensus_score" \
-      "feedback" "$validation_feedback" \
-      "validated_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
     # Signal validation completion
     redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
@@ -306,13 +257,6 @@ signal_product_owner_decision() {
 
   if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
     # Store PO decision
-    redis-cli HSET "frontend:task:${TASK_ID}:po-decision" \
-      "decision" "$decision" \
-      "reasoning" "$reasoning" \
-      "final_score" "$OVERALL_SCORE" \
-      "final_consensus" "$FINAL_CONSENSUS" \
-      "total_iterations" "$CURRENT_ITERATION" \
-      "decided_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
     # Signal decision completion
     redis-cli lpush "swarm:${TASK_ID}:product-owner:done" "$decision"
@@ -355,11 +299,6 @@ store_iteration_result() {
   local score="$3"
   local feedback="$4"
 
-  redis-cli HSET "frontend:task:${TASK_ID}:audit:${iteration}" \
-    "status" "$status" \
-    "score" "$score" \
-    "feedback" "$feedback" \
-    "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 ```
 
@@ -906,12 +845,14 @@ fi
 Complete your frontend coordination work and provide test-based validation:
 
 1. **Execute Tests**: Run all test suites from success criteria
-2. **Parse Results**: Use parse-test-results.sh helper
-3. **Report Metrics**:
-   - Total tests: X
-   - Passed: Y
-   - Failed: Z
-   - Pass rate: Y/X (e.g., 0.95)
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
    - Coverage: ≥80%
 4. **Store in Redis**: Use test-results key (not confidence key)
 5. **Signal Completion**: Push to completion queue

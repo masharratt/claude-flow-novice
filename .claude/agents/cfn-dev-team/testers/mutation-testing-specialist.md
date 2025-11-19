@@ -68,16 +68,8 @@ TEST_OUTPUT=$(npm run test:mutation 2>&1)
 # Parse mutation results
 MUTATION_SCORE=$(echo "$TEST_OUTPUT" | grep -oP 'Mutation score: \K[0-9.]+')
 
-# Store in Redis for Loop 2 consensus
-redis-cli HSET "swarm:${TASK_ID}:loop2-test-results" \
-  "mutation_score" "$MUTATION_SCORE" \
-  "mutation_output" "$TEST_OUTPUT"
 
 # Report completion (no confidence score)
-./.claude/skills/cfn-coordination/report-completion.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --mutation-score "$MUTATION_SCORE"
 ```
 
 ### 4. Completion Protocol
@@ -558,15 +550,7 @@ else
 fi
 
 # Store results in Redis
-redis-cli HSET "swarm:${TASK_ID}:loop2-test-results" \
-  "mutation_score" "$MUTATION_SCORE" \
-  "mutation_threshold" "$THRESHOLD" \
-  "mutants_generated" "$MUTANTS_GENERATED" \
-  "mutants_killed" "$MUTANTS_KILLED" \
-  "mutants_survived" "$MUTANTS_SURVIVED"
 
-redis-cli HSET "swarm:${TASK_ID}:loop2-consensus" \
-  "mutation-tester" "$CONSENSUS"
 
 # Generate mutation report
 cat > "docs/mutation-test-report.md" <<EOF

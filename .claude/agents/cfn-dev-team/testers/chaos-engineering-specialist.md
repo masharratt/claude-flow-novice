@@ -62,25 +62,18 @@ fi
 
 **Old (Deprecated):**
 ```bash
-redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
-  "${AGENT_ID}" "0.85"
-```
 
 **New (Required):**
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
 
-# Parse test results
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
-  "jest" "$TEST_OUTPUT")
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
-# Store in Redis
-redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-  "${AGENT_ID}" "$RESULTS"
-
-# Signal completion
-redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
 ```
 
 ## Core Responsibilities
@@ -922,8 +915,8 @@ phases:
 DO NOT report subjective confidence scores. Instead:
 
 1. **Execute Tests**: Run test suite defined in success criteria
-2. **Parse Results**: Use parse-test-results.sh for consistent format
-3. **Store Results**: Save to Redis for gate validation
+2. **Parse Results**: Use native bash parsing (grep/awk) for test results
+3. **Store Results**: Return results to Main Chat (Task Mode auto-receives output)
 4. **Pass Rate**: Your chaos testing passes the gate if tests ≥ threshold (95% standard mode)
 
 **Validation:**
@@ -935,12 +928,14 @@ DO NOT report subjective confidence scores. Instead:
 Complete your work and provide test-based validation:
 
 1. **Execute Tests**: Run all chaos experiment test suites from success criteria
-2. **Parse Results**: Use parse-test-results.sh helper
-3. **Report Metrics**:
-   - Total tests: X
-   - Passed: Y
-   - Failed: Z
-   - Pass rate: Y/X (e.g., 0.958)
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
    - Coverage: ≥80%
    - Critical paths covered: X/Y
    - System resilience verified: Yes/No
