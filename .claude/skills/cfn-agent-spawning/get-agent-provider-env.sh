@@ -24,7 +24,7 @@ if [[ -z "$AGENT_TYPE" ]]; then
     return 1 2>/dev/null || exit 1
 fi
 
-# Function to get provider config (zai, kimi, openrouter, gemini, anthropic)
+# Function to get provider config (zai, kimi, openrouter, gemini, xai, anthropic)
 get_provider_config() {
     local provider="$1"
     local model="${2:-}"
@@ -54,6 +54,12 @@ get_provider_config() {
             export ANTHROPIC_MODEL="${model:-google/gemini-2.0-flash-001}"
             export ANTHROPIC_SMALL_FAST_MODEL="${model:-google/gemini-2.0-flash-001}"
             ;;
+        xai)
+            export ANTHROPIC_BASE_URL="https://api.x.ai/v1"
+            export ANTHROPIC_AUTH_TOKEN="${XAI_API_KEY:-}"
+            export ANTHROPIC_MODEL="${model:-grok-beta}"
+            export ANTHROPIC_SMALL_FAST_MODEL="${model:-grok-beta}"
+            ;;
         anthropic|*)
             # Use default Anthropic settings (remove custom env vars)
             unset ANTHROPIC_BASE_URL
@@ -73,6 +79,8 @@ detect_provider_from_url() {
         echo "zai"
     elif [[ "$base_url" == *"moonshot.ai"* ]]; then
         echo "kimi"
+    elif [[ "$base_url" == *"x.ai"* ]]; then
+        echo "xai"
     elif [[ "$base_url" == *"openrouter.ai"* ]]; then
         # Check if model is Gemini
         if [[ "$model" == google/gemini* ]]; then

@@ -2,12 +2,13 @@
 ##############################################################################
 # Claude API Switcher - Main Chat & Task Tool Provider Routing
 #
-# Usage: scripts/switch-api.sh [zai|kimi|gemini|openrouter|max|status]
+# Usage: scripts/switch-api.sh [zai|kimi|gemini|xai|openrouter|max|status]
 #
 # What it does:
 #   - zai:        Main Chat + Task tool use Z.ai
 #   - kimi:       Main Chat + Task tool use Moonshot Kimi
 #   - gemini:     Main Chat + Task tool use Google Gemini (via OpenRouter)
+#   - xai:        Main Chat + Task tool use XAi (Grok)
 #   - openrouter: Main Chat + Task tool use OpenRouter
 #   - max:        Main Chat + Task tool use Anthropic (requires re-login)
 #   - CLI:        Respects custom routing when enabled (see agent profiles)
@@ -67,6 +68,11 @@ show_status() {
             echo "  Base URL: $BASE_URL"
             echo "  Model: $MODEL"
             echo "  Cost: ~\$2/1M tokens"
+        elif [[ "$BASE_URL" == *"x.ai"* ]]; then
+            echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} XAi (Grok)"
+            echo "  Base URL: $BASE_URL"
+            echo "  Model: $MODEL"
+            echo "  Anthropic-compatible API"
         elif [[ "$BASE_URL" == *"openrouter.ai"* ]]; then
             if [[ "$MODEL" == google/gemini* ]]; then
                 echo -e "${GREEN}✓ Main Chat/Task Tool:${NC} Google Gemini (via OpenRouter)"
@@ -260,6 +266,61 @@ switch_to_gemini() {
 }
 
 ##############################################################################
+# Switch to XAi (Grok) for Main Chat and Task Tool
+##############################################################################
+switch_to_xai() {
+    echo -e "${BLUE}Switching Main Chat/Task Tool to XAi (Grok)...${NC}"
+    echo ""
+
+    # Backup current settings
+    if [ -f "$SETTINGS_FILE" ]; then
+        BACKUP_NAME="settings-$(date +%Y%m%d-%H%M%S)-before-xai.json"
+        cp "$SETTINGS_FILE" "$BACKUP_DIR/$BACKUP_NAME"
+        echo -e "${GREEN}✓${NC} Backed up: $BACKUP_DIR/$BACKUP_NAME"
+    fi
+
+    # Read current settings or create empty object
+    if [ -f "$SETTINGS_FILE" ]; then
+        CURRENT_SETTINGS=$(cat "$SETTINGS_FILE")
+    else
+        CURRENT_SETTINGS='{}'
+    fi
+
+    # Add XAi env vars to settings (read from .env)
+    XAI_KEY=$(grep -E "^XAI_API_KEY=" .env | head -1 | cut -d'=' -f2 | sed 's/#.*//' | xargs)
+    if [ -z "$XAI_KEY" ]; then
+        echo -e "${RED}Error: XAI_API_KEY not found in .env${NC}"
+        exit 1
+    fi
+    # Use Grok Beta as default (Anthropic-compatible API)
+    NEW_SETTINGS=$(echo "$CURRENT_SETTINGS" | jq --arg key "$XAI_KEY" '. + {"env": ((.env // {}) + {"ANTHROPIC_BASE_URL": "https://api.x.ai/v1", "ANTHROPIC_AUTH_TOKEN": $key, "ANTHROPIC_MODEL": "grok-beta", "ANTHROPIC_SMALL_FAST_MODEL": "grok-beta"})}')
+
+    echo "$NEW_SETTINGS" > "$SETTINGS_FILE"
+
+    echo ""
+    echo -e "${GREEN}═══════════════════════════════════════${NC}"
+    echo -e "${GREEN}✓ Switched to XAi (Grok)${NC}"
+    echo -e "${GREEN}═══════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${GREEN}Main Chat + Task Tool:${NC} XAi (Grok)"
+    echo "  • All Task() spawned agents use XAi"
+    echo "  • Model: grok-beta"
+    echo "  • Anthropic-compatible API format"
+    echo "  • No login required"
+    echo ""
+    echo -e "${BLUE}Available Models:${NC}"
+    echo "  • grok-beta (default)"
+    echo "  • grok-vision-beta (with vision capabilities)"
+    echo "  • Edit model in .claude/settings.json"
+    echo ""
+    echo -e "${YELLOW}Next Steps:${NC}"
+    echo "  1. Restart Claude desktop (if running)"
+    echo "  2. Test: Main Chat should use XAi"
+    echo "  3. Visit: https://x.ai/api for more info"
+    echo ""
+}
+
+##############################################################################
 # Switch to OpenRouter for Main Chat and Task Tool
 ##############################################################################
 switch_to_openrouter() {
@@ -391,6 +452,11 @@ case "${1:-status}" in
         show_status
         ;;
 
+    xai|grok)
+        switch_to_xai
+        show_status
+        ;;
+
     openrouter|or)
         switch_to_openrouter
         show_status
@@ -411,6 +477,7 @@ case "${1:-status}" in
         echo "  zai         Switch Main Chat/Task tool to Z.ai"
         echo "  kimi        Switch Main Chat/Task tool to Moonshot Kimi"
         echo "  gemini      Switch Main Chat/Task tool to Google Gemini"
+        echo "  xai         Switch Main Chat/Task tool to XAi (Grok)"
         echo "  openrouter  Switch Main Chat/Task tool to OpenRouter"
         echo "  max         Switch Main Chat/Task tool to Anthropic"
         echo ""
@@ -419,6 +486,7 @@ case "${1:-status}" in
         echo "  $0 zai            # Use Z.ai for Main Chat (\$0.50/1M tokens)"
         echo "  $0 kimi           # Use Moonshot Kimi (~\$2/1M tokens)"
         echo "  $0 gemini         # Use Google Gemini (~\$0.30/1M input tokens)"
+        echo "  $0 xai            # Use XAi Grok (Anthropic-compatible)"
         echo "  $0 openrouter     # Use OpenRouter (varies by model)"
         echo "  $0 max            # Use Anthropic (\$15/1M tokens, requires re-login)"
         echo ""
