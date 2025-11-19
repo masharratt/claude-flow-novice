@@ -2,44 +2,77 @@
 
 Comprehensive test suite for CLI and Docker mode execution.
 
+## Quick Reference
+
+| Test Suite | Command | Tests Run | Duration | When to Use |
+|------------|---------|-----------|----------|-------------|
+| **CLI Quick** | `tests/cli-mode/run-all-tests.sh --quick` | 4 unit tests | ~1 min | Pre-commit, fast validation |
+| **CLI Integration** | `tests/cli-mode/run-all-tests.sh --integration` | 10 tests (unit + integration) | ~5 min | PR validation |
+| **CLI Full** | `tests/cli-mode/run-all-tests.sh --full` | 12 tests (all core) | ~15 min | Release validation |
+| **Docker Quick** | `tests/docker/run-all-tests.sh --quick` | Critical integration | ~2 min | Pre-commit, fast validation |
+| **Docker Integration** | `tests/docker/run-all-tests.sh --integration` | All integration | ~10 min | PR validation |
+| **Docker Full** | `tests/docker/run-all-tests.sh --full` | 17 core tests | ~30 min | Release validation |
+
+**Note:** Test runners automatically exclude legacy/ tests (historical reference only).
+
 ## Quick Start
 
 ```bash
-# CLI Mode Tests
-cd tests/cli-mode
-./run-all-tests.sh --quick         # Fast validation (~1 min)
-./run-all-tests.sh --integration   # Pre-commit (~5 min)
-./run-all-tests.sh --full          # Full suite (~15 min)
+# CLI Mode Tests (from project root)
+tests/cli-mode/run-all-tests.sh --quick         # Fast validation (~1 min)
+tests/cli-mode/run-all-tests.sh --integration   # Pre-commit (~5 min)
+tests/cli-mode/run-all-tests.sh --full          # Full suite (~15 min)
 
-# Docker Mode Tests
-cd tests/docker
-./run-all-tests.sh --quick         # Fast validation (~2 min)
-./run-all-tests.sh --integration   # Pre-commit (~10 min)
-./run-all-tests.sh --full          # Full suite (~30 min)
+# Docker Mode Tests (from project root)
+tests/docker/run-all-tests.sh --quick           # Fast validation (~2 min)
+tests/docker/run-all-tests.sh --integration     # Pre-commit (~10 min)
+tests/docker/run-all-tests.sh --full            # Full suite (~30 min)
 ```
 
 ## Test Organization
 
-### CLI Mode (20 tests total)
+### CLI Mode (12 core tests + 3 legacy)
 ```
 tests/cli-mode/
 ├── core/
-│   ├── unit/         4 tests - Component validation
-│   ├── integration/  7 tests - Workflow validation
-│   └── e2e/          4 tests - End-to-end validation
-├── archive/          5 tests - Obsolete/redundant
-└── run-all-tests.sh  Comprehensive test runner
+│   ├── unit/            4 tests - Parameter validation, tool access, thresholds
+│   ├── integration/     6 tests - Coordinator spawning, orchestrator workflow
+│   ├── e2e/             2 tests - TRUE E2E with real production scripts
+│   └── legacy/          3 tests - Superseded by TRUE E2E (historical reference)
+├── archive/             5 tests - Obsolete/redundant
+└── run-all-tests.sh     Comprehensive test runner (excludes legacy/)
 ```
 
-### Docker Mode (98 tests total)
+**Run Commands:**
+```bash
+tests/cli-mode/run-all-tests.sh --quick       # Unit tests only (~1 min)
+tests/cli-mode/run-all-tests.sh --integration # Unit + Integration (~5 min)
+tests/cli-mode/run-all-tests.sh --full        # All tests including E2E (~15 min)
+```
+
+### Docker Mode (17 core tests + 14 legacy)
 ```
 tests/docker/
-├── core/            31 tests - Critical functionality
-├── integration/      5 tests - Integration validation
-├── unit/             1 test  - Syntax validation
-├── archive/          Experimental/obsolete tests
-└── run-all-tests.sh  Comprehensive test runner
+├── core/
+│   ├── 17 tests         Agent lifecycle, coordinators, wave orchestration
+│   └── legacy/          14 tests - Bug-specific validation (historical)
+├── integration/         5 tests - Integration validation
+├── unit/                1 test  - Syntax validation
+├── archive/             Experimental/obsolete tests
+└── run-all-tests.sh     Comprehensive test runner (excludes legacy/)
 ```
+
+**Run Commands:**
+```bash
+tests/docker/run-all-tests.sh --quick         # Critical integration (~2 min)
+tests/docker/run-all-tests.sh --integration   # All integration tests (~10 min)
+tests/docker/run-all-tests.sh --full          # Full suite with E2E (~30 min)
+```
+
+**Legacy Tests:**
+- Not included in test runners by default
+- Preserved for historical reference and regression debugging
+- See `tests/cli-mode/core/legacy/README.md` and `tests/docker/core/legacy/README.md`
 
 ## Test Categories
 
@@ -88,10 +121,20 @@ tests/docker/
 
 ## Documentation
 
+### Core Documentation
+- **Core Test Summary**: `tests/CORE_TEST_SUMMARY.md` - **START HERE** - Post-reorganization summary
 - **Comprehensive Guide**: `tests/TEST_ORGANIZATION.md` - Complete test organization, categories, and usage
-- **Test Standards**: `tests/CLAUDE.md` - Test authoring standards and boilerplate
+- **Test Standards**: `tests/CLAUDE.md` - Test authoring standards and boilerplate (includes BUG #21 lesson)
+
+### Mode-Specific Documentation
 - **CLI Mode Tests**: `tests/cli-mode/README*.md` - CLI-specific documentation
+- **CLI Legacy Tests**: `tests/cli-mode/core/legacy/README.md` - Historical CLI test reference
 - **Docker Tests**: `tests/docker/TEST_SUITE_README.md` - Docker-specific documentation
+- **Docker Legacy Tests**: `tests/docker/core/legacy/README.md` - Historical Docker test reference
+
+### Bug Documentation
+- **BUG #21**: `docs/BUG_21_PRODUCTION_TESTING_REQUIREMENTS.md` - Production testing requirements
+- **BUG #22**: `docs/BUG_CLI_MODE_COORDINATOR_EMPTY_PARAMS.md` - Empty parameter handling
 
 ## CI/CD Integration
 
