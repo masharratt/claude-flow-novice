@@ -1,0 +1,18 @@
+{
+  "task_id": "cfn-cli-621962-26773",
+  "task_description": "Create a comprehensive web-based dashboard for Docker mode CFN Loop logging",
+  "mode": "standard",
+  "loop3_agents": ["backend-developer", "frontend-developer", "ui-specialist"],
+  "loop2_agents": ["reporter", "security-specialist", "integration-tester"],
+  "product_owner": "product-owner",
+  "gate_threshold": 0.75,
+  "consensus_threshold": 0.90,
+  "max_iterations": 10,
+  "deliverables": [
+    "dashboard/server.js",
+    "dashboard/public/index.html",
+    "dashboard/api/endpoints.js",
+    "dashboard/public/js/dashboard.js",
+    "dashboard/public/css/styles.css"
+  ]
+}

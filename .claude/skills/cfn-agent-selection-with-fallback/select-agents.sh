@@ -44,6 +44,15 @@ if [ -x "$CLASSIFIER" ]; then
   CATEGORY=$("$CLASSIFIER" "$TASK_DESCRIPTION" || echo "default")
 fi
 
+# Validate category exists in agent-mappings.json
+if [ -f "$MAPPINGS_FILE" ]; then
+  VALID_CATEGORIES=$(jq -r '.categories | keys[]' "$MAPPINGS_FILE" 2>/dev/null | tr '\n' '|' | sed 's/|$//')
+  if [[ ! "$CATEGORY" =~ ^($VALID_CATEGORIES)$ ]]; then
+    echo "Warning: Invalid category '$CATEGORY', falling back to 'default'" >&2
+    CATEGORY="default"
+  fi
+fi
+
 # Load agent mappings
 if [ ! -f "$MAPPINGS_FILE" ]; then
   # Hardcoded fallback if mappings file missing
@@ -85,7 +94,22 @@ validate_agent() {
 
   local full_path="${AGENTS_DIR}/${agent_path}"
 
+  # Validate file exists
   if [ ! -f "$full_path" ]; then
+    return 1
+  fi
+
+  # Validate realpath stays within AGENTS_DIR (prevent path traversal)
+  local real_path=$(realpath "$full_path" 2>/dev/null || echo "")
+  local real_agents_dir=$(realpath "$AGENTS_DIR" 2>/dev/null || echo "")
+
+  if [[ -z "$real_path" || -z "$real_agents_dir" ]]; then
+    return 1
+  fi
+
+  # Check if resolved path is inside agents directory
+  if [[ "$real_path" != "$real_agents_dir"* ]]; then
+    echo "Warning: Agent path '$agent_path' escapes agents directory" >&2
     return 1
   fi
 

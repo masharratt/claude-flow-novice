@@ -79,6 +79,11 @@ while [[ $# -gt 0 ]]; do
         echo "Error: --mode requires a value" >&2
         exit 2
       fi
+      # Validate mode is one of: mvp, standard, enterprise
+      if [[ ! "$2" =~ ^(mvp|standard|enterprise)$ ]]; then
+        echo "Error: --mode must be one of: mvp, standard, enterprise (got: '$2')" >&2
+        exit 2
+      fi
       MODE="$2"
       shift 2
       ;;
