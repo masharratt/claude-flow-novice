@@ -1,0 +1,2983 @@
+================================================================================
+REDIS STRESS TEST - AGENT 3 OF 4
+================================================================================
+Mode: Task Mode (Redis operations should gracefully no-op)
+Environment: CFN_MODE=task, no TASK_ID/AGENT_ID
+
+✓ Successfully imported RedisCoordinator
+
+--- INITIAL MEMORY MEASUREMENT ---
+RSS: 65.48 MB
+Heap Used: 10.49 MB
+Heap Total: 15.31 MB
+External: 1.8 MB
+
+--- PHASE 1: Creating 50 Redis coordinator instances ---
+Created 10/50 instances
+Created 20/50 instances
+Created 30/50 instances
+Created 40/50 instances
+Created 50/50 instances
+
+--- MID-CREATION MEMORY MEASUREMENT ---
+RSS: 65.66 MB (+0.1799999999999926 MB)
+Heap Used: 10.13 MB (+-0.35999999999999943 MB)
+Heap Total: 15.31 MB (+0 MB)
+External: 1.8 MB (+0 MB)
+
+--- PHASE 2: Executing 21 functions on 50 instances ---
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:0 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:0 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:0 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 0, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:1 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:1 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:1 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 1, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:2 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:2 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:2 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 2, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:3 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:3 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:3 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 3, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:4 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:4 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:4 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 4, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:5 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:5 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:5 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 5, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:6 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:6 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:6 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 6, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:7 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:7 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:7 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 7, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:8 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:8 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:8 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 8, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:9 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:9 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:9 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 9, function expire: Result = 0
+Completed instance 10/50 (13/21 functions successful)
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:10 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:10 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:10 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 10, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:11 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:11 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:11 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 11, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:12 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:12 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:12 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 12, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:13 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:13 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:13 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 13, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:14 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:14 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:14 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 14, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:15 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:15 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:15 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 15, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:16 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:16 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:16 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 16, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:17 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:17 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:17 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 17, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:18 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:18 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:18 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 18, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:19 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:19 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:19 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 19, function expire: Result = 0
+Completed instance 20/50 (13/21 functions successful)
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:20 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:20 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:20 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 20, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:21 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:21 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:21 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 21, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:22 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:22 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:22 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 22, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:23 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:23 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:23 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 23, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:24 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:24 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:24 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 24, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:25 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:25 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:25 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 25, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:26 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:26 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:26 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 26, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:27 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:27 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:27 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 27, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:28 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:28 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:28 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 28, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:29 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:29 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:29 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 29, function expire: Result = 0
+Completed instance 30/50 (13/21 functions successful)
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:30 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:30 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:30 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 30, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:31 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:31 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:31 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 31, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:32 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:32 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:32 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 32, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:33 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:33 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:33 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 33, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:34 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:34 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:34 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 34, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:35 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:35 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:35 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 35, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:36 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:36 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:36 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 36, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:37 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:37 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:37 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 37, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:38 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:38 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:38 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 38, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:39 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:39 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:39 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 39, function expire: Result = 0
+Completed instance 40/50 (13/21 functions successful)
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:40 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:40 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:40 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 40, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:41 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:41 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:41 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 41, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:42 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:42 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:42 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 42, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:43 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:43 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:43 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 43, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:44 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:44 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:44 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 44, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:45 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:45 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:45 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 45, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:46 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:46 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:46 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 46, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:47 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:47 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:47 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 47, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:48 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:48 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:48 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 48, function expire: Result = 0
+[WARN] This Redis server's `default` user does not require a password, but a password was supplied
+[CFN-Redis] Mode detection complete {
+  mode: 'task',
+  redisAvailable: true,
+  taskIdPresent: false,
+  agentIdPresent: false,
+  canUseRedis: false,
+  reason: 'CFN_MODE=task (explicit Task Mode - Redis operations disabled)'
+}
+[CFN-Redis] ⚠️  Task Mode detected: Redis operations will be stubbed 
+[CFN-Redis] 💡 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] 🔧 Redis coordination is only for CLI Mode agents 
+[CFN-Redis] Task Mode: Redis client will be stubbed 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SET test:key:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: GET test:key:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: DEL test:key:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function del: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXISTS test:key:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function exists: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HSET test:hash:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function hset: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGET test:hash:49 field 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: HGETALL test:hash:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function hgetall: Result = {}
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SADD test:set:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function sadd: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: SMEMBERS test:set:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function smembers: Result = []
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: LPUSH test:list:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function lpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: RPUSH test:list:49 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function rpush: Result = 0
+[CFN-Redis] ⚠️  ⚠️ Redis operation skipped: EXPIRE test:key:49 60 
+[CFN-Redis] 💡 Reason: CFN_MODE=task (explicit Task Mode - Redis operations disabled) 
+[CFN-Redis] 🔧 Task Mode agents return results directly to Main Chat 
+Instance 49, function expire: Result = 0
+Completed instance 50/50 (13/21 functions successful)
+
+--- FINAL MEMORY MEASUREMENT ---
+RSS: 76.04 MB (+10.560000000000002 MB total)
+Heap Used: 13.26 MB (+2.7699999999999996 MB total)
+Heap Total: 26.71 MB (+11.4 MB total)
+External: 2.04 MB (+0.24 MB total)
+
+--- PHASE 3: Cleanup ---
+
+================================================================================
+REDIS STRESS TEST RESULTS
+================================================================================
+Test Duration: 0.14 seconds
+Instances Created: 50/50
+Total Function Calls: 1050
+Successful Calls: 650
+Success Rate: 61.90%
+Errors: 400
+Connection Attempts Detected: 0
+Cleanup Successful: 0
+Cleanup Errors: 0
+
+--- MEMORY ANALYSIS ---
+Initial RSS: 65.48 MB
+Final RSS: 76.04 MB
+RSS Growth: 10.560000000000002 MB
+Initial Heap Used: 10.49 MB
+Final Heap Used: 13.26 MB
+Heap Growth: 2.7699999999999996 MB
+Memory per Instance: 0.21 MB
+
+--- CONNECTION ANALYSIS ---
+Connection Attempts: 0
+✓ No connection attempts detected (expected for Task Mode)
+
+--- ERROR SUMMARY ---
+Total Errors: 400
+  execution: 400 errors
+    (showing first 5 of 400)
+    Instance 0, hdel: coordinator.hdel is not a function
+    Instance 0, srem: coordinator.srem is not a function
+    Instance 0, lrange: coordinator.lrange is not a function
+    Instance 0, lpop: coordinator.lpop is not a function
+    Instance 0, rpop: coordinator.rpop is not a function
+
+--- TASK MODE VALIDATION ---
+⚠️  PARTIAL: No Redis connections but some errors occurred
+
+================================================================================
+EXIT CODE: 0 (Task Mode working correctly)
