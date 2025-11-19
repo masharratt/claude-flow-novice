@@ -19,8 +19,10 @@
 - `test-redis-coordination.sh` - CRITICAL-003 Redis availability check
 - `test-task-mode-detection.sh` - CRITICAL-004 task mode detection
 
-### E2E Tests (2)
+### E2E Tests (4)
 - `test-cfn-loop-cli-real-execution.sh` - **TRUE E2E** (uses real production scripts)
+- `test-full-loop3-agent-spawning.sh` - **COMPREHENSIVE E2E** (validates complete spawning chain: Coordinator → Orchestrator → Loop 3 Agent)
+- `test-5-iteration-cfn-loop.sh` - **MULTI-ITERATION E2E** (validates 5-iteration workflow, ITERATE decisions, convergence, Product Owner decisions)
 - `test-success-criteria-e2e.sh` - Success criteria flow validation
 
 ## Docker Mode Core Tests (17 tests)
@@ -74,8 +76,8 @@
 |----------|----------|-------------|------------|
 | Unit | 4 | - | 4 |
 | Integration | 6 | 13 | 19 |
-| E2E | 2 | 4 | 6 |
-| **Total** | **12** | **17** | **29** |
+| E2E | 4 | 4 | 8 |
+| **Total** | **14** | **17** | **31** |
 
 ## Quality Improvements
 

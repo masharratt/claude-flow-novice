@@ -42,6 +42,42 @@ export interface AgentExecutionResult {
 }
 
 /**
+ * Parse context string into environment variables
+ *
+ * Parses context string like "TASK_ID='xyz' MODE='mvp' MAX_ITERATIONS=5"
+ * and sets the values as environment variables.
+ *
+ * Supports:
+ * - Single quoted: KEY='value with spaces'
+ * - Double quoted: KEY="value with spaces"
+ * - Unquoted: KEY=value (no spaces in value)
+ *
+ * @param contextString - Context string from --context parameter
+ * @returns Object with parsed key-value pairs
+ */
+function parseContextToEnv(contextString: string | undefined): Record<string, string> {
+  if (!contextString) return {};
+
+  const envVars: Record<string, string> = {};
+
+  // Match KEY='value' or KEY="value" or KEY=value patterns
+  // For quoted values: capture everything between quotes
+  // For unquoted values: capture until next space or end of string
+  const regex = /(\w+)=(?:(['"])([^\2]*?)\2|([^\s]+))/g;
+  let match;
+
+  while ((match = regex.exec(contextString)) !== null) {
+    const [, key, , quotedValue, unquotedValue] = match;
+    const value = quotedValue !== undefined ? quotedValue : unquotedValue;
+    envVars[key] = value;
+    // Also set in process.env for current process
+    process.env[key] = value;
+  }
+
+  return envVars;
+}
+
+/**
  * Extract confidence score from agent output
  * Looks for patterns like:
  * - "confidence: 0.85"
@@ -165,6 +201,14 @@ async function executeViaAPI(
   console.log(`[agent-executor] Agent ID: ${agentId}`);
   console.log(`[agent-executor] Model: ${definition.model}`);
   console.log('');
+
+  // BUG #24 FIX: Parse and inject context environment variables
+  // This enables CLI-spawned agents to access TASK_ID, MODE, etc. in Bash tool
+  if (context.context) {
+    console.log(`[agent-executor] Parsing context: ${context.context}`);
+    const contextEnv = parseContextToEnv(context.context);
+    console.log(`[agent-executor] Injected env vars: ${Object.keys(contextEnv).join(', ')}`);
+  }
 
   try {
     // Check for conversation fork (Sprint 4 enhancement)
@@ -309,6 +353,13 @@ async function executeViaScript(
   context: TaskContext
 ): Promise<AgentExecutionResult> {
   const agentId = getAgentId(definition, context);
+
+  // BUG #24 FIX: Parse and inject context environment variables
+  if (context.context) {
+    console.log(`[agent-executor] Parsing context: ${context.context}`);
+    const contextEnv = parseContextToEnv(context.context);
+    console.log(`[agent-executor] Injected env vars: ${Object.keys(contextEnv).join(', ')}`);
+  }
 
   // Write prompt to temporary file
   const tmpDir = os.tmpdir();

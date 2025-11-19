@@ -201,9 +201,11 @@ async function executeBash(input: Record<string, any>): Promise<string> {
   }
 
   // Execute synchronously with timeout
+  // CRITICAL: Use /bin/bash instead of /bin/sh for [[ ]] support
   const { stdout, stderr } = await execAsync(command, {
     timeout: timeoutMs,
-    maxBuffer: 10 * 1024 * 1024 // 10MB buffer
+    maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+    shell: '/bin/bash' // REQUIRED: Coordinator uses [[ ]] conditionals
   });
 
   return stdout + stderr;
