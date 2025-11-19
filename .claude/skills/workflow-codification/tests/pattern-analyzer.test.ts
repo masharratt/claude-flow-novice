@@ -148,8 +148,7 @@ describe('PatternAnalyzer', () => {
       // Create steps that will cause an error during processing
       const steps = [{ cmd: () => 'test' }]; // Function can't be JSON stringified easily
 
-      const signature = analyzer.generateWorkflowSignature(steps as unknown[]);
-      expect(signature).not.toThrow;
+      expect(() => analyzer.generateWorkflowSignature(steps as unknown[])).not.toThrow();
     });
   });
 
