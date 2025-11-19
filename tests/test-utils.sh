@@ -170,7 +170,7 @@ assert_contains() {
     local needle="$2"
     local test_name="${3:-Test $TEST_TOTAL}"
 
-    if echo "$haystack" | grep -q "$needle"; then
+    if echo "$haystack" | grep -qF -- "$needle"; then
         TEST_PASSED=$((TEST_PASSED + 1))
         log_success "PASS: $test_name"
         return 0
@@ -190,7 +190,7 @@ assert_not_contains() {
     local needle="$2"
     local test_name="${3:-Test $TEST_TOTAL}"
 
-    if ! echo "$haystack" | grep -q "$needle"; then
+    if ! echo "$haystack" | grep -qF -- "$needle"; then
         TEST_PASSED=$((TEST_PASSED + 1))
         log_success "PASS: $test_name"
         return 0

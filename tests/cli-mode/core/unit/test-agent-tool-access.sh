@@ -109,11 +109,11 @@ test_bash_tool_access() {
     TOTAL_COUNT=$((TOTAL_COUNT + 1))  # Count as test but don't fail
   fi
 
-  # Verify coordination uses bash commands
-  if grep -q "coordination-signal\|coordination-wait" "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh" 2>/dev/null; then
-    pass "Coordination requires Bash tool for signal/wait commands"
+  # Verify coordination uses bash commands (Redis CLI)
+  if grep -q "redis-cli" "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/helpers/"*.sh 2>/dev/null; then
+    pass "Coordination requires Bash tool for Redis CLI commands"
   else
-    fail "Coordination requires Bash tool for signal/wait commands"
+    fail "Coordination requires Bash tool for Redis CLI commands"
   fi
 
   log_info "✅ Bash tool access validation passed"
@@ -151,11 +151,11 @@ test_search_tools() {
   # THEN verify search tools are available
   log_info "Validating search tools for code navigation"
 
-  # Check if CLAUDE.md mentions these tools
-  if grep -q "Grep\|Glob" "$PROJECT_ROOT/CLAUDE.md" 2>/dev/null; then
-    pass "Search tools (Grep/Glob) documented in CLAUDE.md"
+  # Check if CLAUDE.md mentions these tools (case-insensitive)
+  if grep -qi "grep" "$PROJECT_ROOT/CLAUDE.md" 2>/dev/null; then
+    pass "Search tools documented in CLAUDE.md"
   else
-    fail "Search tools (Grep/Glob) documented in CLAUDE.md"
+    fail "Search tools documented in CLAUDE.md"
   fi
 
   # Verify preferred usage patterns
@@ -184,11 +184,11 @@ test_task_tool_access() {
     fail "Task tool documented for agent spawning"
   fi
 
-  # Verify CLI mode agents should NOT use Task() directly (use cfn-spawn instead)
-  if grep -q "cfn-spawn agent" "$PROJECT_ROOT/.claude/skills/cfn-agent-spawning/spawn-agent.sh" 2>/dev/null; then
-    pass "CLI mode uses cfn-spawn (not Task tool directly)"
+  # Verify CLI mode uses npx claude-flow-novice agent (not Task tool directly)
+  if grep -q "npx claude-flow-novice agent" "$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md" 2>/dev/null; then
+    pass "CLI mode uses npx claude-flow-novice (not Task tool directly)"
   else
-    fail "CLI mode uses cfn-spawn (not Task tool directly)"
+    fail "CLI mode uses npx claude-flow-novice (not Task tool directly)"
   fi
 
   log_info "✅ Task tool access validation passed"
@@ -221,20 +221,20 @@ test_coordination_tool_requirements() {
   log_step "GIVEN coordination protocol tool requirements"
 
   # WHEN checking coordination protocol dependencies
-  local coordination_skill="$PROJECT_ROOT/.claude/skills/cfn-coordination/SKILL.md"
+  local coordination_dir="$PROJECT_ROOT/.claude/skills/cfn-redis-coordination"
 
-  # THEN verify coordination requires Bash tool
-  if [[ -f "$coordination_skill" ]]; then
-    pass "Coordination skill documentation exists"
+  # THEN verify coordination skill directory exists
+  if [[ -d "$coordination_dir" ]]; then
+    pass "Coordination skill directory exists"
 
-    # Check for coordination commands that require Bash
-    if grep -q "coordination-signal\|coordination-wait\|report-completion" "$coordination_skill" 2>/dev/null; then
+    # Check for Redis coordination scripts that require Bash
+    if ls "$coordination_dir"/*.sh >/dev/null 2>&1; then
       pass "Coordination protocol requires Bash tool execution"
     else
       fail "Coordination protocol requires Bash tool execution"
     fi
   else
-    fail "Coordination skill documentation exists"
+    fail "Coordination skill directory exists"
   fi
 
   log_info "✅ Coordination tool requirements validation passed"

@@ -15,10 +15,10 @@ FAILED=0
 test_result() {
     if [ $1 -eq 0 ]; then
         echo "✅ PASS: $2"
-        ((PASSED++))
+        PASSED=$((PASSED + 1))
     else
         echo "❌ FAIL: $2"
-        ((FAILED++))
+        FAILED=$((FAILED + 1))
     fi
 }
 

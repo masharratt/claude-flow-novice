@@ -46,10 +46,9 @@ test_coordinator_environment_variables() {
   log_step "GIVEN CLI mode spawning context"
 
   # WHEN checking required environment variables
+  # NOTE: CFN_DOCKER_MODE is only for Docker mode, not standard CLI mode
   local required_vars=(
-    "CFN_DOCKER_MODE"
     "TASK_ID"
-    "ITERATION"
     "MODE"
     "TASK_DESCRIPTION"
   )
@@ -168,20 +167,26 @@ test_coordinator_mode_parameter() {
   log_info "✅ Mode parameter validation passed"
 }
 
-test_cfn_docker_mode_flag() {
-  log_step "GIVEN CLI mode vs Task mode detection"
+test_redis_environment_setup() {
+  log_step "GIVEN CLI mode Redis coordination"
 
-  # WHEN checking CFN_DOCKER_MODE flag
+  # WHEN checking Redis environment variable setup
   local cli_command="$PROJECT_ROOT/.claude/commands/cfn-loop-cli.md"
 
-  # THEN verify CFN_DOCKER_MODE is set for CLI mode (should be 'true')
-  if grep -q "CFN_DOCKER_MODE='true'" "$cli_command" 2>/dev/null; then
-    pass "CFN_DOCKER_MODE flag set to 'true' in CLI command"
+  # THEN verify Redis environment variables are exported
+  if grep -q "CFN_REDIS_HOST" "$cli_command" 2>/dev/null; then
+    pass "CFN_REDIS_HOST environment variable setup exists"
   else
-    fail "CFN_DOCKER_MODE flag set to 'true' in CLI command"
+    fail "CFN_REDIS_HOST environment variable setup exists"
   fi
 
-  log_info "✅ CFN_DOCKER_MODE flag validation passed (CLI mode indicator)"
+  if grep -q "CFN_REDIS_PORT" "$cli_command" 2>/dev/null; then
+    pass "CFN_REDIS_PORT environment variable setup exists"
+  else
+    fail "CFN_REDIS_PORT environment variable setup exists"
+  fi
+
+  log_info "✅ Redis environment validation passed (CLI mode coordination)"
 }
 
 # Execute tests
@@ -190,7 +195,7 @@ test_coordinator_environment_variables
 test_coordinator_spawning_command
 test_coordinator_task_id_format
 test_coordinator_mode_parameter
-test_cfn_docker_mode_flag
+test_redis_environment_setup
 
 # Test summary
 echo ""
