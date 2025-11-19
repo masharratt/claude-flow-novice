@@ -16,10 +16,9 @@ import type {
   RedisConfig,
   Logger,
   ModeDetection,
-  ExecutionMode,
-  CoordinationErrorType
+  ExecutionMode
 } from './types';
-import { CoordinationError } from './types';
+import { CoordinationError, CoordinationErrorType } from './types';
 import { detectMode, ConsoleLogger } from './mode-detector';
 
 /**
@@ -229,17 +228,19 @@ export class RedisCoordinator {
    * @param timeout Timeout in seconds
    * @returns [key, value] or null if timeout
    */
-  async blpop(key: string | string[], timeout: number): Promise<[string, string] | null> {
+  async blpop(...args: Array<string | number>): Promise<[string, string] | null> {
     if (!this.canUseRedis) {
-      return this.gracefulStub(`BLPOP ${Array.isArray(key) ? key.join(',') : key}`, null);
+      const keys = args.slice(0, -1).join(',');
+      return this.gracefulStub(`BLPOP ${keys}`, null);
     }
-    
+
     try {
       const client = this.ensureClient();
-      const result = await client.blpop(key, timeout);
+      // Handle both forms: blpop(key, timeout) and blpop(key1, key2, ..., timeout)
+      const result = await (client.blpop as any)(...args);
       return result as [string, string] | null;
     } catch (error) {
-      this.logger.error(`BLPOP failed for key: ${key}`, error as Error);
+      this.logger.error(`BLPOP failed`, error as Error);
       throw new CoordinationError(
         CoordinationErrorType.REDIS_UNAVAILABLE,
         `BLPOP operation failed: ${(error as Error).message}`,
@@ -330,13 +331,15 @@ export class RedisCoordinator {
     if (!this.canUseRedis) {
       return this.gracefulStub(`SET ${key}`, null);
     }
-    
+
     try {
       const client = this.ensureClient();
       if (expiryMode && time) {
-        return await client.set(key, value, expiryMode, time);
+        const result = await (client.set as any)(key, value, expiryMode, time);
+        return result;
       }
-      return await client.set(key, value);
+      const result = await (client.set as any)(key, value);
+      return result;
     } catch (error) {
       this.logger.error(`SET failed for key: ${key}`, error as Error);
       throw new CoordinationError(
@@ -445,8 +448,200 @@ export class RedisCoordinator {
   }
   
   /**
+   * EXISTS: Check if key exists
+   *
+   * Gracefully stubs in Task Mode.
+   */
+  async exists(key: string): Promise<number> {
+    if (!this.canUseRedis) {
+      return this.gracefulStub(`EXISTS ${key}`, 0);
+    }
+
+    try {
+      const client = this.ensureClient();
+      return await client.exists(key);
+    } catch (error) {
+      this.logger.error(`EXISTS failed for key: ${key}`, error as Error);
+      throw new CoordinationError(
+        CoordinationErrorType.REDIS_UNAVAILABLE,
+        `EXISTS operation failed: ${(error as Error).message}`,
+        this.mode,
+        true
+      );
+    }
+  }
+
+  /**
+   * ZADD: Add to sorted set
+   *
+   * Gracefully stubs in Task Mode.
+   */
+  async zadd(key: string, ...args: string[]): Promise<number> {
+    if (!this.canUseRedis) {
+      return this.gracefulStub(`ZADD ${key}`, 0);
+    }
+
+    try {
+      const client = this.ensureClient();
+      return await client.zadd(key, ...args);
+    } catch (error) {
+      this.logger.error(`ZADD failed for key: ${key}`, error as Error);
+      throw new CoordinationError(
+        CoordinationErrorType.REDIS_UNAVAILABLE,
+        `ZADD operation failed: ${(error as Error).message}`,
+        this.mode,
+        true
+      );
+    }
+  }
+
+  /**
+   * ZREVRANGE: Get sorted set in reverse order
+   *
+   * Gracefully stubs in Task Mode.
+   */
+  async zrevrange(key: string, start: number, stop: number): Promise<string[]> {
+    if (!this.canUseRedis) {
+      return this.gracefulStub(`ZREVRANGE ${key}`, []);
+    }
+
+    try {
+      const client = this.ensureClient();
+      return await client.zrevrange(key, start, stop);
+    } catch (error) {
+      this.logger.error(`ZREVRANGE failed for key: ${key}`, error as Error);
+      throw new CoordinationError(
+        CoordinationErrorType.REDIS_UNAVAILABLE,
+        `ZREVRANGE operation failed: ${(error as Error).message}`,
+        this.mode,
+        true
+      );
+    }
+  }
+
+  /**
+   * ZRANGE: Get sorted set
+   *
+   * Gracefully stubs in Task Mode.
+   */
+  async zrange(key: string, start: number, stop: number): Promise<string[]> {
+    if (!this.canUseRedis) {
+      return this.gracefulStub(`ZRANGE ${key}`, []);
+    }
+
+    try {
+      const client = this.ensureClient();
+      return await client.zrange(key, start, stop);
+    } catch (error) {
+      this.logger.error(`ZRANGE failed for key: ${key}`, error as Error);
+      throw new CoordinationError(
+        CoordinationErrorType.REDIS_UNAVAILABLE,
+        `ZRANGE operation failed: ${(error as Error).message}`,
+        this.mode,
+        true
+      );
+    }
+  }
+
+  /**
+   * ZREM: Remove from sorted set
+   *
+   * Gracefully stubs in Task Mode.
+   */
+  async zrem(key: string, member: string): Promise<number> {
+    if (!this.canUseRedis) {
+      return this.gracefulStub(`ZREM ${key}`, 0);
+    }
+
+    try {
+      const client = this.ensureClient();
+      return await client.zrem(key, member);
+    } catch (error) {
+      this.logger.error(`ZREM failed for key: ${key}`, error as Error);
+      throw new CoordinationError(
+        CoordinationErrorType.REDIS_UNAVAILABLE,
+        `ZREM operation failed: ${(error as Error).message}`,
+        this.mode,
+        true
+      );
+    }
+  }
+
+  /**
+   * SADD: Add to set
+   *
+   * Gracefully stubs in Task Mode.
+   */
+  async sadd(key: string, ...members: string[]): Promise<number> {
+    if (!this.canUseRedis) {
+      return this.gracefulStub(`SADD ${key}`, 0);
+    }
+
+    try {
+      const client = this.ensureClient();
+      return await client.sadd(key, ...members);
+    } catch (error) {
+      this.logger.error(`SADD failed for key: ${key}`, error as Error);
+      throw new CoordinationError(
+        CoordinationErrorType.REDIS_UNAVAILABLE,
+        `SADD operation failed: ${(error as Error).message}`,
+        this.mode,
+        true
+      );
+    }
+  }
+
+  /**
+   * SMEMBERS: Get all set members
+   *
+   * Gracefully stubs in Task Mode.
+   */
+  async smembers(key: string): Promise<string[]> {
+    if (!this.canUseRedis) {
+      return this.gracefulStub(`SMEMBERS ${key}`, []);
+    }
+
+    try {
+      const client = this.ensureClient();
+      return await client.smembers(key);
+    } catch (error) {
+      this.logger.error(`SMEMBERS failed for key: ${key}`, error as Error);
+      throw new CoordinationError(
+        CoordinationErrorType.REDIS_UNAVAILABLE,
+        `SMEMBERS operation failed: ${(error as Error).message}`,
+        this.mode,
+        true
+      );
+    }
+  }
+
+  /**
+   * PUBLISH: Publish to channel
+   *
+   * Gracefully stubs in Task Mode.
+   */
+  async publish(channel: string, message: string): Promise<number> {
+    if (!this.canUseRedis) {
+      return this.gracefulStub(`PUBLISH ${channel}`, 0);
+    }
+
+    try {
+      const client = this.ensureClient();
+      return await client.publish(channel, message);
+    } catch (error) {
+      this.logger.error(`PUBLISH failed for channel: ${channel}`, error as Error);
+      throw new CoordinationError(
+        CoordinationErrorType.REDIS_UNAVAILABLE,
+        `PUBLISH operation failed: ${(error as Error).message}`,
+        this.mode,
+        true
+      );
+    }
+  }
+
+  /**
    * Disconnect from Redis
-   * 
+   *
    * Safe to call in Task Mode (no-op).
    */
   async disconnect(): Promise<void> {

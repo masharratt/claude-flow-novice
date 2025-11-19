@@ -66,7 +66,7 @@ export async function detectMode(logger?: Logger): Promise<ModeDetection> {
   
   // Log detection result
   if (logger) {
-    logger.info('Mode detection complete', detection);
+    logger.info('Mode detection complete', detection as unknown as Record<string, unknown>);
     
     if (mode === 'task') {
       logger.info('⚠️  Task Mode detected: Redis operations will be stubbed');
