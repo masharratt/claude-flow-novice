@@ -83,6 +83,83 @@ redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 - **Context Storage**: HSET/HGETALL for complex JSON data
 - **Completion Signaling**: LPUSH/BLPOP for coordination
 
+### Error Logging Infrastructure (TypeScript)
+
+**Location:** `.claude/skills/cfn-error-logging/src/error-logger.ts`
+
+**13 Error Type Categories:**
+```typescript
+enum ErrorType {
+  ORCHESTRATOR,      // Orchestration failures (spawn, timeout, iteration)
+  AGENT_SPAWN,       // Agent spawning issues (Redis, Docker, resource)
+  TIMEOUT,           // Operation timeouts (agent, gate, consensus)
+  RESOURCE,          // Resource exhaustion (memory, disk, connections)
+  VALIDATION,        // Input validation failures (config, params, schema)
+  CONFIGURATION,     // Config issues (missing, invalid, incompatible)
+  DEPENDENCY,        // Missing dependencies (npm, Redis, Docker)
+  SYSTEM,            // System-level errors (permissions, filesystem)
+  NETWORK,           // Network connectivity (Redis, Docker, external APIs)
+  REDIS,             // Redis-specific (connection, commands, persistence)
+  DOCKER,            // Docker-specific (container, image, network)
+  PROCESS,           // Process management (spawn, exit, signals)
+  UNKNOWN            // Unclassified errors (catch-all)
+}
+```
+
+**When to Add New Error Types:**
+- **DO ADD** if error represents distinct failure mode with different handling
+- **DO ADD** if error needs specific retry/recovery logic
+- **DO ADD** if error requires unique monitoring/alerting
+- **DON'T ADD** if error can be categorized into existing type with context
+- **DON'T ADD** if only difference is error message (use context instead)
+
+**When to Combine Error Types:**
+- Multiple error handlers doing identical operations → consolidate
+- Error types with <5 occurrences/year → merge into broader category
+- Similar retry logic → use single type with context differentiation
+- Overlapping recovery strategies → prefer generic type + specific context
+
+**Usage Example:**
+```typescript
+import { ErrorLogger, ErrorType, SeverityLevel } from '@cfn/error-logging';
+
+const logger = new ErrorLogger(config, consoleLogger);
+
+// Capture error with enrichment
+const error = await logger.captureError({
+  correlationId: taskId,
+  timestamp: Date.now(),
+  errorType: ErrorType.AGENT_SPAWN,
+  severity: SeverityLevel.ERROR,
+  message: 'Failed to spawn backend-dev agent',
+  taskId: taskId
+});
+
+// Enrich with context
+await logger.enrichWithTaskContext(error, { iteration: 2, mode: 'standard' });
+await logger.enrichWithAgentContext(error, { type: 'backend-dev', memoryTier: 2 });
+
+// Generate troubleshooting report
+const report = await logger.generateReport(taskId, 'markdown');
+```
+
+**Error Categorization Best Practices:**
+1. **Orchestrator errors** → use ORCHESTRATOR (spawn coordination, iteration management)
+2. **Agent lifecycle errors** → use AGENT_SPAWN (Docker, Redis, resource allocation)
+3. **Time-based failures** → use TIMEOUT (gate checks, consensus collection)
+4. **Infrastructure failures** → use REDIS, DOCKER, NETWORK (specific to service)
+5. **Generic failures** → use SYSTEM or UNKNOWN (filesystem, permissions, unclassified)
+
+**Multiple Backends:**
+- **File**: JSON logs with compression (`.cfn_logs/`)
+- **Redis**: Distributed error storage (`cfn:error:*` keys)
+- **Console**: Real-time output (development/debugging)
+
+**Circuit Breaker Integration:**
+- Monitors backend health (Redis, filesystem)
+- Auto-disables failing backends (prevents cascade)
+- States: CLOSED (healthy), OPEN (failing), HALF_OPEN (testing recovery)
+
 ### Adaptive Agent Specialization
 - Loop 3 failures trigger specialist selection
 - Security issues → spawn security-specialist
