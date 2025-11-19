@@ -372,6 +372,7 @@ remove_dangling_volumes() {
   volume_count=$(docker volume ls -qf dangling=true | wc -l)
 
   if (( volume_count > 0 )); then
+    # shellcheck disable=SC2046
     docker volume rm $(docker volume ls -qf dangling=true) 2>/dev/null || true
     log_success "Removed $volume_count dangling volumes"
   else

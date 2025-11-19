@@ -33,6 +33,7 @@ export interface AgentHealth {
 export class AgentRecoveryManager {
   private readonly HEARTBEAT_TIMEOUT_MS = 60000; // 60 seconds
   private readonly STUCK_THRESHOLD_MS = 300000; // 5 minutes
+  private readonly HEARTBEAT_TTL_SECONDS = 420; // 7 minutes - longer than stuck threshold
 
   constructor(
     private redis: RedisCoordinator,
@@ -87,8 +88,8 @@ export class AgentRecoveryManager {
 
       await this.redis.hset(key, ...Object.entries(data).flat());
 
-      // Set TTL to 2 minutes (longer than heartbeat timeout)
-      await this.redis.expire(key, 120);
+      // Set TTL longer than stuck threshold to allow stuck detection
+      await this.redis.expire(key, this.HEARTBEAT_TTL_SECONDS);
     } catch (error) {
       // Non-fatal: heartbeat failure shouldn't crash agent
       this.logger.warn('Failed to record heartbeat');
