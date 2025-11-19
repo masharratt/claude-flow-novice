@@ -329,7 +329,7 @@ Task("tester", "Test feature...")                         // ❌ NO
 
 ### Custom Provider Routing
 
-**NEW in v2.15**: Agents can now use different AI providers (Z.ai, Kimi, OpenRouter, Anthropic) based on agent-specific configuration.
+**NEW in v2.15**: Agents can now use different AI providers (Z.ai, Kimi, Gemini, XAi, OpenRouter, Anthropic) based on agent-specific configuration.
 
 **Quick Start:**
 ```bash
@@ -337,12 +337,12 @@ Task("tester", "Test feature...")                         // ❌ NO
 echo "CFN_CUSTOM_ROUTING=true" >> .env
 
 # 2. Configure Main Chat provider (optional)
-/switch-api kimi  # or zai, openrouter, max
+/switch-api kimi  # or zai, gemini, xai, openrouter, max
 
 # 3. Add provider parameters to agent profiles (optional)
 <!-- PROVIDER_PARAMETERS
-provider: openrouter
-model: anthropic/claude-sonnet-4.5
+provider: xai
+model: grok-beta
 -->
 ```
 
@@ -353,6 +353,8 @@ model: anthropic/claude-sonnet-4.5
 **Provider Options:**
 - `zai` - Cost-optimized ($0.50/1M tokens, default)
 - `kimi` - Mid-range ($2/1M tokens)
+- `gemini` - Google Gemini via OpenRouter (~$0.30/1M input, ~$1.20/1M output)
+- `xai` - XAi Grok (Anthropic-compatible API)
 - `openrouter` - Access 400+ models (varies)
 - `anthropic` - Premium ($15/1M tokens)
 
