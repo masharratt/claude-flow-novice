@@ -242,3 +242,78 @@ The test coverage expansion successfully achieved 100% coverage on 3 critical mo
 - Foundation for future integration/performance testing
 - Clear path forward for remaining coverage gaps
 
+---
+
+## Shell Script Deprecation & Cleanup (2025-11-20)
+
+### 6 Deprecated Shell Scripts Removed
+
+**Date:** November 20, 2025
+**Total Removed:** 6 scripts (415 LOC)
+**Reason:** All functionality migrated to compiled TypeScript equivalents
+**Backup:** See `docs/SHELL_HELPERS_REMOVAL_BACKUP_2025-11-20.md`
+
+### Scripts Removed
+
+| Script | LOC | TS Equivalent | Tests |
+|--------|-----|---|---|
+| `helpers/parse-test-results.sh` | 56 | `src/helpers/parse-test-results.ts` | 26 |
+| `helpers/gate-check.sh` | 56 | `src/helpers/gate-check.ts` | 28 |
+| `helpers/iteration-manager.sh` | 87 | `src/helpers/iteration-manager.ts` | 12 |
+| `helpers/consensus.sh` | 94 | `src/helpers/consensus.ts` | 14 |
+| `helpers/deliverable-verifier.sh` | 71 | `src/helpers/deliverable-verifier.ts` | 16 |
+| `helpers/timeout-calculator.sh` | 51 | `src/helpers/timeout-calculator.ts` | 18 |
+
+**Total Test Coverage:** 114 tests across 6 test files
+
+### Verification Completed
+
+- [x] All TypeScript equivalents compiled to `dist/helpers/`
+- [x] All test files present and passing (114/114 tests)
+- [x] No active code references to shell scripts
+- [x] orchestrate-enhanced.sh references compiled `.js` versions only
+- [x] SKILL.md deprecation notices in place
+- [x] Backup documentation created
+
+### Benefits of Removal
+
+**Code Quality:**
+- Eliminates duplication (thin wrapper scripts)
+- Fixes known path resolution bugs (iteration-manager.sh, consensus.sh)
+- Consolidates logic in tested TypeScript modules
+
+**Maintenance:**
+- Single source of truth per function
+- Type safety via TypeScript
+- Comprehensive test coverage (114 tests)
+- Better IDE support and refactoring
+
+**Performance:**
+- Removes shell script overhead
+- Direct Node.js execution
+- Faster type checking
+
+### Files Still Using TypeScript Equivalents
+
+- `dist/helpers/parse-test-results.js` (compiled from TS)
+- `dist/helpers/gate-check.js` (compiled from TS)
+- `dist/helpers/iteration-manager.js` (compiled from TS)
+- `dist/helpers/consensus.js` (compiled from TS)
+- `dist/helpers/deliverable-verifier.js` (compiled from TS)
+- `dist/helpers/timeout-calculator.js` (compiled from TS)
+
+### Migration Path for Consumers
+
+If any external code referenced these shell scripts:
+1. Use compiled TypeScript via `dist/helpers/` instead
+2. Or call TypeScript source directly via `node` CLI
+3. See `SKILL.md` for TypeScript CLI documentation
+
+### Historical Notes
+
+**Wrapper Scripts (Deprecated):**
+- `helpers/*-ts.sh` - TypeScript wrapper scripts (still present as fallback)
+- Example: `helpers/consensus-ts.sh` → calls `dist/helpers/consensus.js`
+
+These may be removed in a future cleanup once all callers migrate fully to TypeScript.
+
