@@ -1,16 +1,21 @@
 ================================================================================
 CFN LOOP CLI EXECUTION FLOW - COMPLETE DEPENDENCY DIAGRAM
 ================================================================================
+VERSION: 3.0.1 (Updated: 2025-11-20)
+STATUS: ⚠️ MIGRATION IN PROGRESS - TypeScript-first, shell scripts deprecated
 
 LEGEND:
-  [TS] = TypeScript implementation
-  [SH] = Shell script
+  [TS] = TypeScript implementation (PRIORITIZE)
+  [SH] = Shell script (DEPRECATED - use TypeScript)
   [P0] = Critical path (required for 5-iteration e2e)
   [P1] = High value (post-validation)
   [P2] = Nice to have (can inline)
   [EX] = External dependency (mock in tests)
   →    = Direct execution flow
   ⇢    = Coordination/data dependency
+
+⚠️ CRITICAL: TypeScript files take priority over shell scripts
+   When both exist, use .ts version. Shell scripts are fallbacks only.
 
 ================================================================================
 PART 1: USER TO COORDINATOR (MAIN CHAT SPAWNING)
@@ -21,7 +26,7 @@ PART 1: USER TO COORDINATOR (MAIN CHAT SPAWNING)
 /cfn-loop-cli "task description" --mode=standard
   ↓
 [MAIN CHAT READS]
-.claude/commands/cfn/cfn-loop-cli.md
+.claude/commands/cfn-loop-cli.md
   ↓
 [MAIN CHAT EXECUTES] (via Bash tool)
 npx claude-flow-novice agent cfn-v3-coordinator \
@@ -31,12 +36,12 @@ npx claude-flow-novice agent cfn-v3-coordinator \
 [NPX CLI SPAWNS] (src/cli/index.ts)
   ├─ Validates task-id
   ├─ Decodes context
-  ├─ Reads agent profile: .claude/agents/cfn-dev-team/cfn-v3-coordinator.md
+  ├─ Reads agent profile: .claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md
   ├─ Injects coordination skills
   └─ Spawns Claude API conversation
   ↓
 [COORDINATOR AGENT STARTS]
-.claude/agents/cfn-dev-team/cfn-v3-coordinator.md
+.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md
   ├─ Reads task description and mode
   ├─ Validates success criteria (must have objective tests)
   ├─ Stores context in Redis (uses bash fallback if needed)
@@ -46,30 +51,43 @@ npx claude-flow-novice agent cfn-v3-coordinator \
 PART 2: COORDINATOR TO ORCHESTRATOR (PARAMETER VALIDATION)
 ================================================================================
 
-[COORDINATOR CALLS]
+⚠️ CRITICAL: orchestrate-wrapper.sh is DEPRECATED (as of 2025-11-20)
+   Primary path: TypeScript orchestrator (requires: npm run build)
+   Fallback path: orchestrate-wrapper.sh (if dist/ missing)
+
+[COORDINATOR CALLS - PRIMARY PATH (TypeScript)]
+node .claude/skills/cfn-loop-orchestration/dist/orchestrate.js \
+  --task-id <id> \
+  --mode <standard|mvp|enterprise> \
+  --loop3-agents <agent1,agent2,...> \
+  --loop2-agents <validator1,validator2,...> \
+  --product-owner <product-owner> \
+  --max-iterations <10> \
+  --success-criteria <enabled>
+  ↓
+⚠️ BLOCKER: dist/ directory does NOT exist by default
+   REQUIRED: cd .claude/skills/cfn-loop-orchestration && npm run build
+  ↓
+[COORDINATOR CALLS - FALLBACK PATH (Shell Script) - DEPRECATED]
 .claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh \
   --task-id <id> \
   --mode <standard|mvp|enterprise> \
   --max-iterations <10> \
   --timeout <3600s>
   ↓
-[WRAPPER VALIDATES]
-  ├─ Checks all required parameters present
-  ├─ Validates task-id format (alphanumeric, hyphens, underscores)
-  ├─ Validates mode (mvp|standard|enterprise)
-  ├─ Validates timeout (numeric, sane range)
-  └─ Validates max-iterations (numeric, ≤20)
-  ↓
-[WRAPPER CALLS MAIN ORCHESTRATOR]
-.claude/skills/cfn-loop-orchestration/dist/index.js \
-  "$TASK_ID" "$MODE" "$MAX_ITERATIONS" "$TIMEOUT"
+[ORCHESTRATOR ENTRY POINT]
+.claude/skills/cfn-loop-orchestration/src/orchestrate.ts (compiled to dist/orchestrate.js)
+  ├─ NOT index.ts (index.ts is just a barrel export)
+  ├─ CLI entry: src/cli/orchestrator-cli.ts
+  └─ Uses named parameters (--task-id, --mode, etc.)
 
 ================================================================================
 PART 3: TYPESCRIPT ORCHESTRATOR (MAIN EXECUTION LOOP)
 ================================================================================
 
 [ORCHESTRATOR STARTS]
-.claude/skills/cfn-loop-orchestration/src/index.ts (compiled to dist/index.js)
+.claude/skills/cfn-loop-orchestration/src/orchestrate.ts (compiled to dist/orchestrate.js)
+⚠️ NOTE: index.ts is a barrel export file, NOT the main orchestrator
   ↓
 [INITIALIZATION]
   ├─ Loads mode thresholds:
@@ -97,7 +115,16 @@ PART 3: TYPESCRIPT ORCHESTRATOR (MAIN EXECUTION LOOP)
   │   ├─ Executes via Node.js child_process (spawn())             │
   │   └─ Returns process PIDs for monitoring                       │
   │   ↓                                                             │
-  │ coordination-wait.sh → Waits for Loop 3 completion             │
+  │ [COORDINATION WAIT - TypeScript (PRIMARY)]                     │
+  │ src/cli/coordination-wait.ts → Waits for Loop 3 completion    │
+  │   ├─ Called from TypeScript orchestrator                       │
+  │   ├─ Uses Redis BLPOP for blocking wait                        │
+  │   ├─ Channel: "swarm:${TASK_ID}:loop3:complete"               │
+  │   └─ Timeout: 120s                                             │
+  │   ↓                                                             │
+  │ [COORDINATION WAIT - Shell (FALLBACK/DEPRECATED)]             │
+  │ .claude/skills/cfn-coordination/coordination-wait.sh           │
+  │   ├─ DEPRECATED as of 2025-11-20 (90-day removal window)      │
   │   ├─ CRITICAL FIX (Line 642): Uses explicit 'bash' command    │
   │   │   BEFORE: ${coordinationScript} --task-id ...              │
   │   │   AFTER:  bash ${coordinationScript} --task-id ...         │
@@ -115,8 +142,10 @@ PART 3: TYPESCRIPT ORCHESTRATOR (MAIN EXECUTION LOOP)
   │   ├─ Complete implementation work                              │
   │   ├─ Execute success criteria tests (objective validation)    │
   │   ├─ Report completion via Redis:                              │
-  │   │   .claude/skills/cfn-redis-coordination/                   │
-  │   │   report-completion.sh --task-id <id> --confidence 0.90   │
+  │   │   [PRIMARY] src/cli/coordination-signal.ts                │
+  │   │   [FALLBACK/DEPRECATED] .claude/skills/                   │
+  │   │   cfn-redis-coordination/report-completion.sh             │
+  │   │   --task-id <id> --confidence 0.90                        │
   │   └─ Exit cleanly (orchestrator monitors)                     │
   │   ↓                                                             │
   │ [GATE CHECK: Test Pass Rate Validation]                       │
@@ -181,6 +210,8 @@ PART 3: TYPESCRIPT ORCHESTRATOR (MAIN EXECUTION LOOP)
   │   └─ Timeout: 120s                                             │
   │   ↓                                                             │
   │ [PRODUCT OWNER EXECUTES] (BUG #11 FIX)                        │
+  │   ├─ Agent: .claude/agents/cfn-dev-team/product-owners/       │
+  │   │          product-owner.md                                 │
   │   ├─ Reads all Loop 3 + Loop 2 artifacts                      │
   │   ├─ Validates deliverables exist (prevents "consensus on     │
   │   │   vapor")                                                  │
@@ -190,8 +221,9 @@ PART 3: TYPESCRIPT ORCHESTRATOR (MAIN EXECUTION LOOP)
   │   └─ Exit cleanly                                              │
   │   ↓                                                             │
   │ [ORCHESTRATOR PARSES DECISION]                                │
-  │   ├─ Uses: .claude/skills/product-owner-decision/             │
-  │   │         execute-decision.sh                                │
+  │   ├─ Decision parsing built into orchestrator                 │
+  │   ├─ ❌ NO SEPARATE SKILL: .claude/skills/                    │
+  │   │   product-owner-decision/ does NOT exist                  │
   │   ├─ Extracts: PROCEED | ITERATE | ABORT                      │
   │   ├─ Validates deliverables present                            │
   │   └─ Orchestrator pushes decision to Redis (not agent)        │
@@ -235,36 +267,49 @@ PART 4: CRITICAL DEPENDENCIES AND EXECUTION ORDER
   │   └─ decision:${TASK_ID}
   └─ Coordination Pattern: BLPOP (blocking list pop)
 
-[SPAWNING DEPENDENCY CHAIN]
+[SPAWNING DEPENDENCY CHAIN - TypeScript-First]
   Main Chat
     → NPX CLI (src/cli/index.ts)
-      → Coordinator Agent (.claude/agents/cfn-dev-team/cfn-v3-coordinator.md)
-        → Orchestrator Wrapper (.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh)
-          → TypeScript Orchestrator (.claude/skills/cfn-loop-orchestration/dist/index.js)
-            → spawn-agents.ts (src/helpers/spawn-agents.ts)
+      → Coordinator Agent (.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md)
+        → Agent Selection (.claude/skills/cfn-agent-selection-with-fallback/src/cli.ts)
+        → [PRIMARY] TypeScript Orchestrator (.claude/skills/cfn-loop-orchestration/dist/orchestrate.js)
+          ⚠️ BLOCKER: Requires npm run build to create dist/
+        → [FALLBACK/DEPRECATED] Shell Wrapper (orchestrate-wrapper.sh)
+          → TypeScript Orchestrator (.claude/skills/cfn-loop-orchestration/src/orchestrate.ts)
+            → spawn-agents.ts (.claude/skills/cfn-loop-orchestration/src/helpers/spawn-agents.ts)
               → NPX CLI (recursive for each agent)
-                → Loop 3 Agents (.claude/agents/cfn-dev-team/*.md)
-                  → coordination-wait.sh (blocking wait)
+                → Loop 3 Agents (.claude/agents/cfn-dev-team/developers/*.md, testers/*.md, etc.)
+                  → [PRIMARY] coordination-wait.ts (src/cli/coordination-wait.ts)
+                  → [FALLBACK] coordination-wait.sh (.claude/skills/cfn-coordination/)
                     → Gate Check (test pass rate validation)
                       → Loop 2 Validators (if gate passes)
-                        → coordination-wait.sh (blocking wait)
+                        → [PRIMARY] coordination-wait.ts
+                        → [FALLBACK] coordination-wait.sh
                           → Consensus Check (validator score aggregation)
-                            → Product Owner (.claude/agents/cfn-dev-team/product-owner.md)
-                              → coordination-wait.sh (blocking wait)
-                                → Decision Parsing (execute-decision.sh)
+                            → Product Owner (.claude/agents/cfn-dev-team/product-owners/product-owner.md)
+                              → [PRIMARY] coordination-wait.ts
+                              → [FALLBACK] coordination-wait.sh
+                                → Decision Parsing (built into orchestrator)
                                   → Iteration Management or Completion
 
-[FILE EXECUTION ORDER]
-1.  .claude/commands/cfn/cfn-loop-cli.md (slash command)
+[FILE EXECUTION ORDER - TypeScript-First]
+1.  .claude/commands/cfn-loop-cli.md (slash command - NOT in cfn/ subdir)
 2.  src/cli/index.ts (NPX spawning logic)
-3.  .claude/agents/cfn-dev-team/cfn-v3-coordinator.md (coordinator)
-4.  .claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh (validator)
-5.  .claude/skills/cfn-loop-orchestration/dist/index.js (orchestrator)
-6.  .claude/skills/cfn-loop-orchestration/src/helpers/spawn-agents.ts (spawner)
-7.  .claude/skills/cfn-coordination/coordination-wait.sh (blocker)
-8.  .claude/agents/cfn-dev-team/<agent-type>.md (Loop 3/2/PO agents)
-9.  .claude/skills/cfn-redis-coordination/report-completion.sh (signaler)
-10. .claude/skills/product-owner-decision/execute-decision.sh (parser)
+3.  .claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md (coordinator)
+4.  .claude/skills/cfn-agent-selection-with-fallback/src/cli.ts (agent selector)
+5.  [PRIMARY] .claude/skills/cfn-loop-orchestration/dist/orchestrate.js (orchestrator)
+    ⚠️ BLOCKER: Requires npm run build
+5.  [FALLBACK] .claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh (DEPRECATED)
+6.  .claude/skills/cfn-loop-orchestration/src/orchestrate.ts (main orchestrator source)
+7.  .claude/skills/cfn-loop-orchestration/src/helpers/spawn-agents.ts (spawner)
+8.  [PRIMARY] src/cli/coordination-wait.ts (blocker - TypeScript)
+8.  [FALLBACK] .claude/skills/cfn-coordination/coordination-wait.sh (DEPRECATED)
+9.  .claude/agents/cfn-dev-team/developers/<agent-type>.md (Loop 3 agents)
+10. .claude/agents/cfn-dev-team/testers/<agent-type>.md (Loop 2 validators)
+11. [PRIMARY] src/cli/coordination-signal.ts (completion signaler)
+11. [FALLBACK] .claude/skills/cfn-redis-coordination/report-completion.sh (DEPRECATED)
+12. .claude/agents/cfn-dev-team/product-owners/product-owner.md (product owner)
+13. Decision parsing built into orchestrator (NO separate skill file)
 
 [CRITICAL BUG FIX: coordination-wait.sh Bash Invocation]
   Location: .claude/skills/cfn-loop-orchestration/src/index.ts:642
@@ -296,9 +341,16 @@ PART 4: CRITICAL DEPENDENCIES AND EXECUTION ORDER
 PART 5: TYPESCRIPT MODULE STRUCTURE (MIGRATION STATUS)
 ================================================================================
 
+⚠️ CRITICAL BLOCKER: dist/ directory does NOT exist by default
+   REQUIRED ACTION: Run npm run build in each TypeScript module
+
+   cd .claude/skills/cfn-loop-orchestration && npm run build
+   cd .claude/skills/cfn-agent-selection-with-fallback && npm run build
+
 .claude/skills/cfn-loop-orchestration/
 ├── src/
-│   ├── index.ts [TS] [P0]                     # Main orchestrator (compiled to dist/index.js)
+│   ├── orchestrate.ts [TS] [P0]               # MAIN ORCHESTRATOR (NOT index.ts)
+│   ├── index.ts [TS] [P0]                     # Barrel export file
 │   ├── types.ts [TS] [P0]                     # Shared type definitions
 │   ├── helpers/
 │   │   ├── spawn-agents.ts [TS] [P0]          # CLI agent spawning
@@ -306,50 +358,85 @@ PART 5: TYPESCRIPT MODULE STRUCTURE (MIGRATION STATUS)
 │   │   ├── iteration-manager.ts [TS] [P0]     # Iteration counter
 │   │   ├── parse-test-results.ts [TS] [P0]    # Test output parser
 │   │   ├── gate-check.ts [TS] [P0]            # Pass rate validator
-│   │   ├── confidence-aggregator.ts [TS] [P1] # Consensus score aggregator
-│   │   └── context-lookup.ts [TS] [P1]        # Context retrieval module
+│   │   ├── consensus.ts [TS] [P0]             # Consensus aggregation
+│   │   ├── confidence-aggregator.ts [TS] [P1] # Confidence score aggregator
+│   │   ├── context-lookup.ts [TS] [P1]        # Context retrieval module
+│   │   ├── deliverable-verifier.ts [TS] [P1]  # Deliverable validation
+│   │   ├── timeout-calculator.ts [TS] [P2]    # Timeout calculation
+│   │   └── validator.ts [TS] [P1]             # General validation utilities
 │   └── __tests__/
 │       ├── spawn-agents.test.ts               # 6 tests
 │       ├── parse-test-results.test.ts         # 15 tests
 │       ├── gate-check.test.ts                 # 14 tests
 │       └── orchestrator.integration.test.ts   # 8 tests
-├── dist/
-│   ├── index.js                               # Compiled orchestrator
-│   ├── index.d.ts                             # Type definitions
-│   └── helpers/                               # Compiled helpers
-├── orchestrate-wrapper.sh [SH] [P0]           # Parameter validator
-├── helpers/ [DEPRECATED]                      # Legacy shell scripts (to migrate)
-│   ├── consensus.sh
-│   ├── deliverable-verifier.sh
-│   ├── gate-check.sh
-│   ├── iteration-manager.sh
-│   ├── parse-test-results.sh
-│   └── timeout-calculator.sh
+├── dist/                                      # ⚠️ DOES NOT EXIST - requires build
+│   ├── orchestrate.js                         # (after build) Main orchestrator
+│   ├── index.js                               # (after build) Barrel exports
+│   ├── index.d.ts                             # (after build) Type definitions
+│   └── helpers/                               # (after build) Compiled helpers
+├── orchestrate-wrapper.sh [SH] [DEPRECATED]   # DEPRECATED - use TypeScript
+├── helpers/ [DEPRECATED]                      # Legacy shell scripts (to remove)
+│   ├── consensus.sh                           # → Migrated to consensus.ts
+│   ├── deliverable-verifier.sh                # → Migrated to deliverable-verifier.ts
+│   ├── gate-check.sh                          # → Migrated to gate-check.ts
+│   ├── iteration-manager.sh                   # → Migrated to iteration-manager.ts
+│   ├── parse-test-results.sh                  # → Migrated to parse-test-results.ts
+│   └── timeout-calculator.sh                  # → Migrated to timeout-calculator.ts
+└── package.json                               # TypeScript build config
+
+src/cli/ (Coordination Layer - TypeScript)
+├── coordination-wait.ts [TS] [P0]             # PRIMARY blocking wait mechanism
+├── coordination-signal.ts [TS] [P0]           # PRIMARY completion signaling
+├── cfn-loop.ts [TS] [P0]                      # CFN Loop coordination
+├── cfn-redis.ts [TS] [P0]                     # Redis client utilities
+├── agent-spawner.ts [TS] [P0]                 # Agent spawning utilities
+└── spawn-agent-cli.ts [TS] [P0]               # CLI agent spawn interface
+
+.claude/skills/cfn-agent-selection-with-fallback/
+├── src/
+│   ├── cli.ts [TS] [P0]                       # Agent selection CLI
+│   └── agent-selector.ts [TS] [P0]            # Agent selection logic
+├── dist/                                      # ⚠️ DOES NOT EXIST - requires build
+│   └── cli.cjs                                # (after build) Compiled CLI
 └── package.json                               # TypeScript build config
 
 [MIGRATION STATUS]
-✅ P0 Complete:
-  - Main orchestrator (index.ts)
+✅ P0 Complete (TypeScript Source):
+  - Main orchestrator (orchestrate.ts)
   - Agent spawning (spawn-agents.ts)
   - Test parsing (parse-test-results.ts)
   - Gate checking (gate-check.ts)
   - Context injection (context-injector.ts)
   - Iteration management (iteration-manager.ts)
+  - Consensus aggregation (consensus.ts)
+  - CLI coordination (coordination-wait.ts, coordination-signal.ts)
+  - Agent selection (cfn-agent-selection-with-fallback)
 
-🚧 P1 In Progress:
+⚠️ BLOCKER - Compilation Required:
+  - dist/ directories do NOT exist
+  - REQUIRED: npm run build in each TypeScript module
+  - Without build: falls back to DEPRECATED shell scripts
+
+🚧 P1 Complete (TypeScript Source):
   - Confidence aggregation (confidence-aggregator.ts)
   - Context lookup (context-lookup.ts)
+  - Deliverable verification (deliverable-verifier.ts)
+  - Validator utilities (validator.ts)
 
-📋 P2 Deferred:
-  - Deliverable verification (inline into orchestrator)
-  - Timeout calculation (inline into orchestrator)
+📋 P2 Complete (TypeScript Source):
+  - Timeout calculation (timeout-calculator.ts)
+
+✅ All TypeScript sources migrated, PENDING npm run build
 
 [EXTERNAL DEPENDENCIES]
   - Redis (localhost:6379) - coordination layer
   - NPX CLI (src/cli/index.ts) - agent spawning
-  - Agent profiles (.claude/agents/cfn-dev-team/*.md)
-  - Coordination scripts (.claude/skills/cfn-coordination/*.sh)
-  - Product Owner decision skill (.claude/skills/product-owner-decision/execute-decision.sh)
+  - Agent profiles (.claude/agents/cfn-dev-team/**/*.md) - organized in subdirectories
+  - [PRIMARY] TypeScript coordination (src/cli/coordination-*.ts)
+  - [FALLBACK/DEPRECATED] Shell coordination (.claude/skills/cfn-coordination/*.sh)
+  - [PRIMARY] TypeScript orchestration (.claude/skills/cfn-loop-orchestration/src/*.ts)
+  - [FALLBACK/DEPRECATED] Shell orchestration (orchestrate-wrapper.sh)
+  - ❌ Product Owner decision skill DOES NOT EXIST (built into orchestrator)
 
 ================================================================================
 PART 6: MODE-SPECIFIC THRESHOLDS AND BEHAVIOR
@@ -489,11 +576,13 @@ PART 9: RELATED DOCUMENTATION
   - Migration Guide: docs/migration/CONFIDENCE_TO_TEST_DRIVEN_MIGRATION.md
 
 [SKILL DOCUMENTATION]
-  - Coordination: .claude/skills/cfn-coordination/SKILL.md
+  - Coordination: .claude/skills/cfn-coordination/SKILL.md (DEPRECATED - see TypeScript)
   - Agent Spawning: .claude/skills/cfn-agent-spawning/SKILL.md
   - Loop Validation: .claude/skills/cfn-loop-validation/SKILL.md
-  - Product Owner: .claude/skills/cfn-product-owner-decision/SKILL.md
-  - Redis Coordination: .claude/skills/cfn-redis-coordination/SKILL.md
+  - ❌ Product Owner Decision: .claude/skills/cfn-product-owner-decision/ DOES NOT EXIST
+  - Redis Coordination: .claude/skills/cfn-redis-coordination/SKILL.md (DEPRECATED - see TypeScript)
+  - [PRIMARY] TypeScript Coordination: src/cli/coordination-*.ts
+  - [PRIMARY] TypeScript Orchestration: .claude/skills/cfn-loop-orchestration/src/*.ts
 
 [TEST DOCUMENTATION]
   - CLI Mode Tests: tests/cli-mode/README.md (8 suites, 159 assertions)
@@ -507,10 +596,90 @@ PART 9: RELATED DOCUMENTATION
   - Custom Provider Routing: docs/CUSTOM_PROVIDER_ROUTING.md
 
 ================================================================================
+PART 10: SPECIALIZED MAINTENANCE AGENTS
+================================================================================
+
+**CFN CLI Dependency Maintainer Agent**
+  Location: .claude/agents/cfn-dev-team/coordinators/cfn-cli-dependency-maintainer.md
+
+  Purpose:
+    - Maintains CFN Loop CLI execution flow
+    - Dynamically ingests ALL files from DEPENDENCY_DIAGRAM.txt on every invocation
+    - Keeps diagram synchronized with codebase changes
+    - Enforces TypeScript-first priority
+
+  Usage:
+    Task("cfn-cli-dependency-maintainer", "Add new TypeScript helper for X")
+    Task("cfn-cli-dependency-maintainer", "Update diagram after moving file Y")
+    Task("cfn-cli-dependency-maintainer", "Deprecate shell script Z in favor of TypeScript")
+
+  Self-Referential:
+    - This agent reads DEPENDENCY_DIAGRAM.txt to discover what files to ingest
+    - This agent is itself listed in the diagram (meta-circular reference)
+    - On each spawn, it validates all file paths in the diagram are current
+
+================================================================================
 VERSION HISTORY
 ================================================================================
 
-2025-11-20: Complete rewrite based on investigation of CFN Loop CLI execution
+2025-11-20 v3.0.2: Added CFN CLI Dependency Maintainer Agent
+  NEW AGENT: cfn-cli-dependency-maintainer.md
+  - Specialized agent for maintaining CFN Loop CLI execution flow
+  - Dynamically ingests ALL files from DEPENDENCY_DIAGRAM.txt on spawn
+  - Enforces diagram synchronization when files added/removed/changed
+  - Enforces TypeScript-first priority in all changes
+  - Self-referential: uses diagram as source of truth for what to read
+
+  DOCUMENTATION:
+  - Added PART 10: Specialized Maintenance Agents
+  - Documents agent usage patterns and self-referential behavior
+
+2025-11-20 v3.0.1: CRITICAL CORRECTIONS - TypeScript-First Migration
+  ⚠️ BREAKING CHANGES - File paths, priorities, and missing files documented
+
+  CORRECTED FILE PATHS:
+  - ✅ .claude/commands/cfn-loop-cli.md (NOT in cfn/ subdirectory)
+  - ✅ .claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md (in subdirectory)
+  - ✅ .claude/agents/cfn-dev-team/product-owners/product-owner.md (in subdirectory)
+  - ❌ REMOVED: .claude/skills/product-owner-decision/ (does NOT exist)
+
+  TYPESCRIPT-FIRST PRIORITY:
+  - TypeScript files (.ts) take precedence over shell scripts (.sh)
+  - Shell scripts marked as DEPRECATED/FALLBACK throughout
+  - All coordination logic migrated to TypeScript in src/cli/
+  - Orchestration migrated to .claude/skills/cfn-loop-orchestration/src/
+
+  CRITICAL BLOCKER DOCUMENTED:
+  - ⚠️ dist/ directories do NOT exist by default
+  - REQUIRED: npm run build in TypeScript modules before CLI mode works
+  - Without build: system falls back to deprecated shell scripts
+
+  MISSING FILES ADDED:
+  - src/cli/coordination-wait.ts (PRIMARY coordination mechanism)
+  - src/cli/coordination-signal.ts (PRIMARY completion signaling)
+  - src/cli/cfn-loop.ts, cfn-redis.ts, agent-spawner.ts
+  - .claude/skills/cfn-agent-selection-with-fallback/src/cli.ts
+  - .claude/skills/cfn-loop-orchestration/src/orchestrate.ts (MAIN orchestrator)
+  - All TypeScript helper modules (consensus.ts, validator.ts, etc.)
+
+  PARAMETER FLOW CORRECTIONS:
+  - Fixed: Named parameters (--task-id) not positional parameters
+  - Added: --loop3-agents, --loop2-agents, --product-owner parameters
+  - Added: --success-criteria parameter
+
+  DEPRECATION NOTICES ADDED:
+  - orchestrate-wrapper.sh → TypeScript orchestrator
+  - coordination-wait.sh → src/cli/coordination-wait.ts
+  - coordination-signal.sh → src/cli/coordination-signal.ts
+  - report-completion.sh → src/cli/coordination-signal.ts
+  - All marked with 90-day removal window (2025-11-20)
+
+  AGENT ORGANIZATION DOCUMENTED:
+  - Agents in subdirectories: coordinators/, developers/, testers/, product-owners/
+  - CLI uses recursive discovery with **/*.md glob patterns
+  - Agent type strings can use flat names or subdirectory paths
+
+2025-11-20 v3.0.0: Complete rewrite based on investigation of CFN Loop CLI execution
   - Added accurate execution flow from user invocation to completion
   - Documented coordinator → orchestrator → agents progression
   - Included Redis coordination patterns and blocking wait mechanism
@@ -520,6 +689,36 @@ VERSION HISTORY
   - Mapped file execution order with absolute paths
   - Documented TypeScript migration status (P0/P1/P2)
 
-2025-10-XX: Initial version (outdated, replaced by this version)
+2025-10-XX: Initial version (outdated, replaced by v3.0.0)
+
+================================================================================
+QUICK TROUBLESHOOTING CHECKLIST (v3.0.1)
+================================================================================
+
+❌ CLI mode not working?
+  → Check: Does .claude/skills/cfn-loop-orchestration/dist/ exist?
+  → Fix: cd .claude/skills/cfn-loop-orchestration && npm run build
+
+❌ Coordinator can't find agents?
+  → Check: Are agents in subdirectories (coordinators/, developers/, etc.)?
+  → Fix: Agent paths use subdirectories, CLI discovers recursively
+
+❌ Product owner decision failing?
+  → Check: Don't look for .claude/skills/product-owner-decision/ - it doesn't exist
+  → Fix: Decision parsing is built into orchestrator
+
+❌ Coordination wait timing out?
+  → Check: Using TypeScript coordination-wait.ts or deprecated shell script?
+  → Fix: Ensure TypeScript version is called (src/cli/coordination-wait.ts)
+
+❌ Shell script execution errors?
+  → Check: Are you using deprecated shell scripts instead of TypeScript?
+  → Fix: Compile TypeScript (npm run build) or prefix shell calls with 'bash'
+
+❌ Parameter passing errors?
+  → Check: Using named parameters (--task-id) not positional ($1, $2)?
+  → Fix: All orchestrator calls use --parameter-name format
+
+✅ For more detailed troubleshooting, see PART 8: ANTI-PATTERNS AND TROUBLESHOOTING
 
 ================================================================================
