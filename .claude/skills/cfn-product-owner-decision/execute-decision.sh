@@ -19,6 +19,7 @@ THRESHOLD=""
 ITERATION=""
 MAX_ITERATIONS=""
 SUCCESS_CRITERIA=""
+PO_TIMEOUT=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -48,6 +49,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --success-criteria)
       SUCCESS_CRITERIA="$2"
+      shift 2
+      ;;
+    --timeout)
+      PO_TIMEOUT="$2"
       shift 2
       ;;
     *)
@@ -156,8 +161,25 @@ Agent Performance: [any observations about agent reliability from audit trail]
 echo -e "${YELLOW}🚀 Spawning Product Owner agent...${NC}"
 PO_OUTPUT_FILE="/tmp/product-owner-${TASK_ID}-${ITERATION}.log"
 
-# Use timeout from agent config
-PO_TIMEOUT=300  # 5 minutes default
+# Use timeout from parameter or default to 60 seconds
+# Rationale: Product Owner makes strategic decisions that require:
+# - Reviewing consensus feedback (typically 200-500 words)
+# - Analyzing audit trail data (may include 10-50 records)
+# - Evaluating iteration progress against success criteria
+# - Considering cross-mode consistency and agent performance
+# 60 seconds provides adequate time for comprehensive analysis while preventing
+# excessive delays in orchestration workflow
+if [ -z "$PO_TIMEOUT" ]; then
+  PO_TIMEOUT=60  # Default: 60 seconds (increased from 30s based on integration feedback)
+else
+  # Validate timeout is reasonable (10-600 seconds)
+  if [ "$PO_TIMEOUT" -lt 10 ] || [ "$PO_TIMEOUT" -gt 600 ]; then
+    echo -e "${YELLOW}⚠️  WARNING: Timeout $PO_TIMEOUT out of range (10-600s), using default 60s${NC}"
+    PO_TIMEOUT=60
+  fi
+fi
+
+echo "Product Owner timeout: ${PO_TIMEOUT}s"
 
 set +e
 timeout "$PO_TIMEOUT" npx claude-flow-novice agent product-owner \

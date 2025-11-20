@@ -261,7 +261,8 @@ export class SkillDeploymentPipeline {
 
       logger.debug('Acquiring distributed lock', { skillName, lockResource });
 
-      lock = await this.lockManager.acquire(lockResource, {
+      lock = await this.lockManager.acquireLock({
+        resource: lockResource,
         timeout: 10000, // 10 second timeout
         ttl: 60000, // 1 minute TTL (auto-release)
         correlationId: `deploy-${skillName}-${Date.now()}`,
@@ -374,7 +375,7 @@ export class SkillDeploymentPipeline {
       });
 
       // Step 10: Release distributed lock
-      await this.lockManager.release(lock.id);
+      await this.lockManager.releaseLock(lock.id);
 
       logger.info('Skill deployed successfully', {
         skillId,
@@ -421,7 +422,7 @@ export class SkillDeploymentPipeline {
       // Ensure lock is released even if transaction fails
       if (lock) {
         try {
-          await this.lockManager.release(lock.id);
+          await this.lockManager.releaseLock(lock.id);
           logger.debug('Distributed lock released in finally block', {
             lockId: lock.id,
           });
@@ -472,7 +473,8 @@ export class SkillDeploymentPipeline {
       // Step 2: Acquire distributed lock for this skill
       const lockResource = this.buildLockResource(skillName);
 
-      lock = await this.lockManager.acquire(lockResource, {
+      lock = await this.lockManager.acquireLock({
+        resource: lockResource,
         timeout: 10000,
         ttl: 60000,
         correlationId: `rollback-${deploymentId}-${Date.now()}`,
@@ -527,7 +529,7 @@ export class SkillDeploymentPipeline {
       });
 
       // Step 6: Release distributed lock
-      await this.lockManager.release(lock.id);
+      await this.lockManager.releaseLock(lock.id);
 
       logger.info('Deployment rollback succeeded', { deploymentId, skillId });
       return true;
@@ -546,7 +548,7 @@ export class SkillDeploymentPipeline {
       // Ensure lock is released
       if (lock) {
         try {
-          await this.lockManager.release(lock.id);
+          await this.lockManager.releaseLock(lock.id);
           logger.debug('Distributed lock released in rollback finally block', {
             lockId: lock.id,
           });

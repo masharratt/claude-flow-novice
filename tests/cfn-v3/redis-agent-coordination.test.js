@@ -3,63 +3,129 @@ const { selectAgents } = require('../src/agent-registry');
 
 describe('Redis Agent Coordination', () => {
   let redisClient;
+  let subscribedChannels = [];
 
-  beforeAll(async () => { try {
-    redisClient = redis.createClient();
-    await redisClient.connect();
+  beforeAll(async () => {
+    try {
+      redisClient = redis.createClient();
+      await redisClient.connect();
+    } catch (error) {
+      console.error('Failed to connect to Redis:', error);
+      throw error;
+    }
   });
 
-  afterAll(async () => { try {
-    await redisClient.quit();
+  afterEach(async () => {
+    // Unsubscribe from all channels after each test
+    try {
+      if (subscribedChannels.length > 0) {
+        for (const channel of subscribedChannels) {
+          await redisClient.unsubscribe(channel);
+        }
+        subscribedChannels = [];
+      }
+    } catch (error) {
+      // Ignore unsubscribe errors
+    }
   });
 
-  jest.setTimeout(10000);
-  test('Agent selection should broadcast via Redis', async () => { try {
-    const taskDescription = 'Complex system design task';
+  afterAll(async () => {
+    try {
+      // Force disconnect to prevent hanging
+      if (redisClient && redisClient.isOpen) {
+        await redisClient.disconnect();
+      }
+    } catch (error) {
+      // Ignore disconnect errors
+    }
+  });
 
-    // Publish agent selection event
-    const agentSelectionChannel = 'agent-selection';
-    const selectedAgents = selectAgents(taskDescription);
+  test('Agent selection should broadcast via Redis', async () => {
+    try {
+      const taskDescription = 'Complex system design task';
 
-    await redisClient.publish(agentSelectionChannel, JSON.stringify({
-      taskId: Date.now().toString(),
-      agents: selectedAgents,
-      timestamp: new Date().toISOString()
-    }));
+      // Publish agent selection event
+      const agentSelectionChannel = 'agent-selection';
+      subscribedChannels.push(agentSelectionChannel);
+      const selectedAgents = selectAgents(taskDescription);
 
-    // Verify Redis message was sent
-    const publishedMessage = await new Promise((resolve) => {
-      redisClient.subscribe(agentSelectionChannel, (message) => {
-        resolve(JSON.parse(message));
+      // Subscribe first, then publish
+      const messagePromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Timeout waiting for Redis message'));
+        }, 5000);
+
+        redisClient.subscribe(agentSelectionChannel, (message) => {
+          clearTimeout(timeout);
+          resolve(JSON.parse(message));
+        });
       });
-    });
 
-    expect(publishedMessage.agents).toBeDefined();
-    expect(publishedMessage.agents.length).toBeGreaterThan(0);
-  });
+      // Wait a bit for subscription to establish
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-  jest.setTimeout(10000);
-  test('Multiple agents can subscribe to task channel', async () => { try {
-    const taskId = `task-${Date.now()}`;
-    const subscribedAgents = [];
+      await redisClient.publish(agentSelectionChannel, JSON.stringify({
+        taskId: Date.now().toString(),
+        agents: selectedAgents,
+        timestamp: new Date().toISOString()
+      }));
 
-    // Simulate agent subscriptions
-    await Promise.all([
-      redisClient.subscribe(`task:${taskId}:agents`, (agentData) => {
-        subscribedAgents.push(JSON.parse(agentData));
-      }),
-      redisClient.publish(`task:${taskId}:agents`, JSON.stringify({
+      const publishedMessage = await messagePromise;
+
+      expect(publishedMessage.agents).toBeDefined();
+      expect(publishedMessage.agents.length).toBeGreaterThan(0);
+    } catch (error) {
+      console.error(`Test failed: ${error.message}`);
+      throw error;
+    }
+  }, 10000);
+
+  test('Multiple agents can subscribe to task channel', async () => {
+    try {
+      const taskId = `task-${Date.now()}`;
+      const channel = `task:${taskId}:agents`;
+      subscribedChannels.push(channel);
+      const subscribedAgents = [];
+
+      // Subscribe first
+      const messagesPromise = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Timeout waiting for Redis messages'));
+        }, 5000);
+
+        let receivedCount = 0;
+        redisClient.subscribe(channel, (agentData) => {
+          subscribedAgents.push(JSON.parse(agentData));
+          receivedCount++;
+          if (receivedCount >= 2) {
+            clearTimeout(timeout);
+            resolve();
+          }
+        });
+      });
+
+      // Wait for subscription to establish
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Publish messages
+      await redisClient.publish(channel, JSON.stringify({
         agentType: 'backend-dev',
         confidence: 0.85
-      })),
-      redisClient.publish(`task:${taskId}:agents`, JSON.stringify({
+      }));
+
+      await redisClient.publish(channel, JSON.stringify({
         agentType: 'security-specialist',
         confidence: 0.75
-      }))
-    ]);
+      }));
 
-    expect(subscribedAgents.length).toBe(2);
-    expect(subscribedAgents.some(a => a.agentType === 'backend-dev')).toBe(true);
-    expect(subscribedAgents.some(a => a.agentType === 'security-specialist')).toBe(true);
-  });
-} catch (error) { console.error(`Test failed: ${error.message}`); throw error; }});
+      await messagesPromise;
+
+      expect(subscribedAgents.length).toBe(2);
+      expect(subscribedAgents.some(a => a.agentType === 'backend-dev')).toBe(true);
+      expect(subscribedAgents.some(a => a.agentType === 'security-specialist')).toBe(true);
+    } catch (error) {
+      console.error(`Test failed: ${error.message}`);
+      throw error;
+    }
+  }, 10000);
+});

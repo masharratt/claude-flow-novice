@@ -121,7 +121,7 @@ echo "📋 Storing success criteria..."
 CRITERIA_JSON='{
   "test_suites": [{
     "name": "Deliverable Creation",
-    "command": "test -f '"$EXPECTED_FILES"' && echo \"File exists\"",
+    "command": "[ -f \"$EXPECTED_FILES\" ] && echo \"File exists\"",
     "required": true,
     "pass_threshold": 0.70
   }],

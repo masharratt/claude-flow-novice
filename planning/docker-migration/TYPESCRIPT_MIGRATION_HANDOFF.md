@@ -16,7 +16,9 @@ The TypeScript migration of the CFN Loop orchestration layer is **100% complete*
 - ✅ **100% TypeScript E2E pass rate** (20/20 scenarios)
 - ✅ **80% production E2E pass rate** (4/5 checks)
 
-**Blocking Issue:** The North Star E2E test reveals a **separate production issue** unrelated to TypeScript migration where the coordinator attempts to spawn a non-existent `./cfn-v3-coordinator.sh` script, preventing deliverable creation.
+**Blocking Issue (Updated 2025-11-20):** The North Star E2E test shows orchestrator running **mock tests instead of real agents**. The TypeScript orchestrator completes successfully but reports `totalAgentsCompleted: 0` and never creates deliverables. Root cause: execute() method needs to be connected to spawn-agents helper for actual CLI agent spawning.
+
+**Previous Investigation (Obsolete):** Earlier documentation mentioned `cfn-v3-coordinator.sh` errors, but these are not present in current codebase. Coordinator and orchestrator invoke correctly via TypeScript.
 
 ---
 
@@ -341,112 +343,170 @@ sleep 1      # Check every 1s
 
 ---
 
-## Blocking Issue: Coordinator Spawn Logic
+## Blocking Issue: Orchestrator Not Spawning Real Agents
 
 ### Problem Description
 
-The coordinator attempts to spawn a non-existent shell script:
+The TypeScript orchestrator completes successfully but **does not spawn real agents** to perform the actual work. Instead, it runs mock/placeholder tests and reports test results as if they were agent work.
 
-```bash
-/bin/bash: line 1: ./cfn-v3-coordinator.sh: No such file or directory
+**Evidence from Latest Test Run (2025-11-20):**
+
+```
+Loop 3 Results: 162 pass, 21 fail (88.04%)  ← Mock test results
+Gate Check: FAILED (threshold: 0.9500)
+totalAgentsCompleted: 0  ← NO REAL AGENTS EXECUTED
 ```
 
-This is a **production code path issue** unrelated to the TypeScript migration. The coordinator is trying to recursively spawn itself using a bash script that doesn't exist.
+The orchestrator completes 5 iterations with varying "test results" but never spawns actual agents to create the deliverable file.
 
 ---
 
 ### Root Cause Analysis
 
-**Hypothesis 1: Recursive Coordinator Spawning**
-The coordinator may be attempting to spawn sub-coordinators for nested CFN Loop execution, referencing an old bash-based coordinator script.
+**Confirmed Issue: Mock Test Execution Instead of Agent Spawning**
+
+The TypeScript orchestrator (`orchestrator-cli.js`) is running tests but NOT spawning Loop 3 agents via CLI.
 
 **Evidence:**
-- Error shows coordinator trying to execute `./cfn-v3-coordinator.sh`
-- This script doesn't exist (coordinator is now TypeScript-based via `npx claude-flow-novice agent`)
-- Error occurs during task execution, not initialization
+1. ✅ Coordinator spawns correctly via `npx claude-flow-novice agent`
+2. ✅ Orchestrator invokes correctly via `node orchestrator-cli.js`
+3. ✅ Orchestrator completes 5 iterations successfully
+4. ❌ Orchestrator reports `totalAgentsCompleted: 0`
+5. ❌ No agent processes spawned (test confirms "no agents running")
+6. ❌ Deliverable never created (workspace empty)
 
-**Hypothesis 2: Incorrect Agent Spawning Logic**
-The coordinator's agent spawning logic may incorrectly reference coordinator scripts instead of using the proper `npx claude-flow-novice agent` pattern.
+**Missing Component:**
 
-**Evidence:**
-- Loop 3 agents spawn correctly (detected in tests)
-- Coordinator spawns correctly (detected in tests)
-- Only deliverable creation fails (suggests downstream spawning issue)
+The `execute()` method in `.claude/skills/cfn-loop-orchestration/src/orchestrate.ts` is likely:
+- Running mock tests instead of spawning real agents
+- Using placeholder test execution logic
+- Not calling the actual agent spawning functions from `src/helpers/spawn-agents.ts`
 
 ---
 
 ### Investigation Steps Required
 
-1. **Check Coordinator Agent Profile:**
+1. **Check Orchestrator Execute() Method:**
    ```bash
-   grep -n "cfn-v3-coordinator\.sh" .claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md
+   # Review the actual agent spawning logic
+   grep -A 20 "async execute()" .claude/skills/cfn-loop-orchestration/src/orchestrate.ts
    ```
-   Look for hardcoded references to bash scripts in the coordinator's instructions.
+   Verify the execute() method calls spawnLoop3Agents() properly.
 
-2. **Review Orchestrator Spawn Logic:**
+2. **Check SpawnLoop3Agents Implementation:**
    ```bash
-   grep -n "cfn-v3-coordinator\.sh" .claude/skills/cfn-loop-orchestration/src/orchestrate.ts
-   grep -n "cfn-v3-coordinator\.sh" .claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh
+   # Review agent spawning in orchestrator
+   grep -A 30 "spawnLoop3Agents" .claude/skills/cfn-loop-orchestration/src/orchestrate.ts
    ```
-   Check if orchestrator is passing incorrect spawn commands.
+   Check if it calls the spawn-agents helper or uses mock logic.
 
-3. **Inspect Agent Spawning Skill:**
+3. **Verify Spawn Agents Helper Usage:**
    ```bash
-   grep -n "cfn-v3-coordinator\.sh" .claude/skills/cfn-agent-spawning/*.sh
-   grep -n "cfn-v3-coordinator\.sh" .claude/skills/cfn-agent-spawning/spawn-agent.sh
+   # Check if orchestrator imports spawn-agents helper
+   grep -n "spawn-agents" .claude/skills/cfn-loop-orchestration/src/orchestrate.ts
+   grep -n "from.*spawn-agents" .claude/skills/cfn-loop-orchestration/src/orchestrate.ts
    ```
-   Verify agent spawning uses correct CLI pattern.
+   Verify imports and function calls exist.
 
-4. **Review Redis Coordination Data:**
+4. **Check Test Execution Logic:**
    ```bash
-   redis-cli KEYS "swarm:cfn-*:*" | xargs -I {} redis-cli GET {}
+   # Review executeTests() method
+   grep -A 20 "async executeTests()" .claude/skills/cfn-loop-orchestration/src/orchestrate.ts
    ```
-   Check if incorrect spawn commands are stored in Redis.
+   Determine if it's running real tests or mock placeholders.
 
-5. **Analyze Coordinator Logs:**
+5. **Compare with Working Implementation:**
    ```bash
-   tail -100 /tmp/cfn-loop-cli-real-execution-*.log | grep -B 10 -A 10 "coordinator.sh"
+   # Check if spawn-agents.ts has the correct CLI spawning logic
+   cat .claude/skills/cfn-loop-orchestration/src/helpers/spawn-agents.ts | head -100
    ```
-   Find exact context where the error occurs.
+   Verify the helper has proper `npx claude-flow-novice agent` calls.
 
 ---
 
 ### Expected Fix Pattern
 
-**Before (Broken):**
-```bash
-# Coordinator attempts recursive spawn via bash script
-./cfn-v3-coordinator.sh --task-id "$TASK_ID" ...
+**Problem (Current):**
+```typescript
+// execute() method likely does:
+async execute() {
+  for (let iteration = 1; iteration <= maxIterations; iteration++) {
+    // Mock test execution instead of agent spawning
+    const testResults = await this.runMockTests();  // ❌ WRONG
+    const gateResult = await this.checkGate(testResults);
+  }
+}
 ```
 
-**After (Correct):**
-```bash
-# Coordinator uses proper CLI spawning
-npx claude-flow-novice agent cfn-v3-coordinator --task-id "$TASK_ID" ...
+**Solution (Needed):**
+```typescript
+// execute() method should do:
+async execute() {
+  for (let iteration = 1; iteration <= maxIterations; iteration++) {
+    // Actual agent spawning via CLI
+    const agents = await this.spawnLoop3Agents();  // ✅ CORRECT
+    // Wait for agents to complete
+    await this.waitForAgents(agents);
+    // Execute real tests on agent output
+    const testResults = await this.executeTests();
+    const gateResult = await this.checkGate(testResults);
+  }
+}
 ```
 
 ---
 
 ## What's Left to Do
 
-### 1. Fix Coordinator Spawn Logic (CRITICAL)
+### 1. Fix Orchestrator Agent Spawning Logic (CRITICAL)
 
 **Priority:** P0 (blocks production use)
 
-**Task:** Identify where coordinator references `./cfn-v3-coordinator.sh` and replace with proper CLI spawning pattern.
+**Task:** Connect orchestrator's execute() method to actual agent spawning via spawn-agents helper.
 
-**Files to Check:**
-- `.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md`
-- `.claude/skills/cfn-agent-spawning/spawn-agent.sh`
-- `.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh`
-- `.claude/skills/cfn-redis-coordination/store-task-context.sh`
+**Root Cause:** The execute() method is running mock tests instead of spawning real agents via CLI.
+
+**Files to Modify:**
+- `.claude/skills/cfn-loop-orchestration/src/orchestrate.ts` - Update execute() method
+- Verify `.claude/skills/cfn-loop-orchestration/src/helpers/spawn-agents.ts` has correct CLI logic
+
+**Required Changes:**
+
+1. **Add agent spawning to execute() method:**
+   ```typescript
+   // Import spawn-agents helper
+   import { spawnLoop3Agents, spawnLoop2Agents } from './helpers/spawn-agents';
+
+   async execute() {
+     for (let iteration = 1; iteration <= maxIterations; iteration++) {
+       // Spawn Loop 3 agents via CLI (not mock tests)
+       const agents = await spawnLoop3Agents(this.taskId, iteration, context);
+
+       // Wait for agents to complete work
+       await this.waitForAgents(agents);
+
+       // Execute tests on agent output
+       const testResults = await this.executeTests();
+
+       // Gate check
+       const gateResult = await this.checkGate(testResults);
+     }
+   }
+   ```
+
+2. **Verify spawn-agents helper uses CLI spawning:**
+   ```typescript
+   // Should spawn via: npx claude-flow-novice agent <type> --task-id <id>
+   // NOT: docker run or mock execution
+   ```
 
 **Expected Outcome:**
 - North Star E2E test passes 5/5 checks (100%)
+- Real agents spawned (totalAgentsCompleted > 0)
 - Deliverables created successfully
-- No references to non-existent bash scripts
+- Workspace contains expected files
 
-**Estimated Effort:** 1-2 hours (investigation + fix + validation)
+**Estimated Effort:** 2-4 hours (investigation + implementation + validation)
 
 ---
 
