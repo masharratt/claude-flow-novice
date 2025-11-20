@@ -66,7 +66,7 @@ export function collectConsensus(scores: number[]): ConsensusResult {
  */
 export function validateConsensus(params: {
   average: number;
-  threshold?: number;
+  threshold?: number | undefined;
   mode: Mode | string;
 }): ConsensusValidation {
   // Use explicit threshold if provided, otherwise use mode default

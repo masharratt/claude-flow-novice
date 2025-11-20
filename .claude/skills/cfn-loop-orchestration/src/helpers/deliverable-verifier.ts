@@ -58,10 +58,14 @@ export function verifyDeliverables(params: {
   let gitChanges = 0;
   if (params.requireGitChanges !== undefined) {
     try {
-      const gitStatus = execSync('git status --short', { encoding: 'utf-8' });
+      const gitStatus = execSync('git status --short', {
+        encoding: 'utf-8',
+        timeout: 10000, // 10 second timeout
+        maxBuffer: 1024 * 1024 // 1MB buffer
+      });
       gitChanges = gitStatus.trim().split('\n').filter(line => line.length > 0).length;
     } catch (error) {
-      // Git not available or not a git repo
+      // Git not available, not a git repo, or timeout
       gitChanges = -1;
     }
   }

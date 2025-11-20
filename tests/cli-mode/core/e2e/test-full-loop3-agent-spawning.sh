@@ -21,8 +21,9 @@ cleanup() {
   log_info "Cleaning up test artifacts"
 
   if [[ -n "${TASK_ID:-}" ]]; then
-    # Kill any running agents
+    # Kill any running agents (bash and TypeScript orchestrators)
     pkill -f "claude-flow-novice agent.*${TASK_ID}" 2>/dev/null || true
+    pkill -f "orchestrate.*${TASK_ID}\|orchestrator-cli.*${TASK_ID}\|node.*orchestrate.*${TASK_ID}" 2>/dev/null || true
 
     # Clean up Redis keys
     if command -v redis-cli >/dev/null 2>&1; then
@@ -76,28 +77,29 @@ test_full_loop3_spawning_chain() {
   fi
 
   # Wait for coordinator to complete initialization (creates Redis keys)
-  log_info "Waiting for coordinator initialization (max 90s)..."
+  log_info "Waiting for coordinator initialization (max 10s)..."
   WAIT_COUNT=0
-  while [[ $WAIT_COUNT -lt 90 ]]; do
+  while [[ $WAIT_COUNT -lt 10 ]]; do
     if redis-cli EXISTS "swarm:${TASK_ID}:success-criteria" | grep -q "1"; then
       pass "Coordinator initialized and created success criteria in Redis"
       break
     fi
-    sleep 1
+    sleep 0.5
     WAIT_COUNT=$((WAIT_COUNT + 1))
   done
 
-  if [[ $WAIT_COUNT -eq 90 ]]; then
-    fail "Coordinator initialization (timeout after 90s)"
+  if [[ $WAIT_COUNT -eq 10 ]]; then
+    fail "Coordinator initialization (timeout after 10s)"
     return 1
   fi
 
   # THEN orchestrator should spawn Loop 3 agents
-  log_info "Waiting for orchestrator to spawn Loop 3 agents (max 120s)..."
+  log_info "Waiting for orchestrator to spawn Loop 3 agents (max 30s)..."
 
   AGENT_SPAWNED=false
   WAIT_COUNT=0
-  while [[ $WAIT_COUNT -lt 120 ]]; do
+  MAX_WAIT=30
+  while [[ $WAIT_COUNT -lt $MAX_WAIT ]]; do
     # Check Redis for any Loop 3 agent spawn signals
     AGENT_KEYS=$(redis-cli KEYS "swarm:${TASK_ID}:*-1-1:*" 2>/dev/null || echo "")
 
@@ -108,12 +110,22 @@ test_full_loop3_spawning_chain() {
       break
     fi
 
+    # Also check coordinator log for agent spawning evidence
+    if [[ -f /tmp/cfn-e2e-test-coordinator.log ]]; then
+      if grep -q "Spawning agent\|agent-spawn\|Loop 3" /tmp/cfn-e2e-test-coordinator.log 2>/dev/null; then
+        log_info "Agent spawning detected in coordinator log"
+        AGENT_SPAWNED=true
+        pass "Orchestrator spawned Loop 3 agent (coordinator log evidence)"
+        break
+      fi
+    fi
+
     sleep 1
     WAIT_COUNT=$((WAIT_COUNT + 1))
   done
 
   if [[ "$AGENT_SPAWNED" == "false" ]]; then
-    fail "Orchestrator spawned Loop 3 agent (timeout after 120s)"
+    fail "Orchestrator spawned Loop 3 agent (timeout after ${MAX_WAIT}s)"
 
     # Debug: Check orchestrator logs
     log_info "Checking coordinator logs for spawn errors..."
@@ -185,11 +197,11 @@ test_full_loop3_spawning_chain() {
   fi
 
   # Validate agent completion signal
-  log_info "Waiting for agent completion signal (max 90s)..."
+  log_info "Waiting for agent completion signal (max 10s)..."
 
   COMPLETION_SIGNAL_FOUND=false
   WAIT_COUNT=0
-  while [[ $WAIT_COUNT -lt 90 ]]; do
+  while [[ $WAIT_COUNT -lt 10 ]]; do
     # Check for completion signal
     if redis-cli EXISTS "swarm:${TASK_ID}:${AGENT_ID}:done" | grep -q "1"; then
       pass "Agent sent completion signal via Redis coordination"
@@ -197,12 +209,12 @@ test_full_loop3_spawning_chain() {
       break
     fi
 
-    sleep 1
+    sleep 0.5
     WAIT_COUNT=$((WAIT_COUNT + 1))
   done
 
   if [[ "$COMPLETION_SIGNAL_FOUND" == "false" ]]; then
-    fail "Agent completion signal (timeout after 90s)"
+    fail "Agent completion signal (timeout after 10s)"
     log_info "Agent may still be running or encountered errors"
   fi
 

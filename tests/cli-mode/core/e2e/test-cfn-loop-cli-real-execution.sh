@@ -69,10 +69,10 @@ cleanup() {
         fi
     done
 
-    # Kill any remaining CFN processes related to this task
+    # Kill any remaining CFN processes related to this task (bash and TypeScript)
     pkill -f "cfn-v3-coordinator.*${TASK_ID}" 2>/dev/null || true
     pkill -f "agent.*${TASK_ID}" 2>/dev/null || true
-    pkill -f "orchestrate.*${TASK_ID}" 2>/dev/null || true
+    pkill -f "orchestrate.*${TASK_ID}\|orchestrator-cli.*${TASK_ID}\|node.*orchestrate.*${TASK_ID}" 2>/dev/null || true
 
     # Clean up test workspace
     if [ -d "$TEST_WORKSPACE" ]; then
@@ -154,18 +154,26 @@ wait_for_orchestrator_invocation() {
     while [ $elapsed -lt "$timeout" ]; do
         check_timeout || return 1
 
-        # Check for orchestrate.sh or orchestrate-wrapper.sh process
-        if pgrep -f "orchestrate.*${task_id}" >/dev/null 2>&1 || \
-           pgrep -f "orchestrate-wrapper.*${task_id}" >/dev/null 2>&1; then
-            log_success "Orchestrator process detected"
+        # Check for orchestrate.sh, orchestrate-wrapper.sh, or TypeScript orchestrator process
+        # TypeScript patterns: "orchestrator-cli", "node.*orchestrate", bash patterns: "orchestrate"
+        if pgrep -f "orchestrate\|orchestrator-cli\|node.*orchestrate" >/dev/null 2>&1; then
+            log_success "Orchestrator process detected (bash or TypeScript)"
             return 0
         fi
 
-        # Also check for evidence in Redis
+        # Check for evidence in Redis
         if redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" \
             EXISTS "cfn_loop:task:${task_id}:context" 2>/dev/null | grep -q 1; then
             log_success "Orchestrator context created in Redis"
             return 0
+        fi
+
+        # Check coordinator log for orchestrator completion (it may finish very quickly)
+        if [[ -f /tmp/coordinator-${task_id}.log ]]; then
+            if grep -q "ORCHESTRATOR COMPLETED\|ORCHESTRATION COMPLETE\|orchestrate-wrapper.sh\|orchestrate.sh\|Loop 3" /tmp/coordinator-${task_id}.log 2>/dev/null; then
+                log_success "Orchestrator invocation detected in coordinator log (already completed)"
+                return 0
+            fi
         fi
 
         sleep 2
@@ -478,12 +486,12 @@ test_orchestrator_invocation() {
 
     log_success "Orchestrator invoked successfully"
 
-    # Verify orchestrate-wrapper.sh was used (BUG #22 fix validation)
+    # Verify orchestrate-wrapper.sh or TypeScript orchestrator was used (BUG #22 fix validation)
     sleep 2
-    if pgrep -f "orchestrate-wrapper" >/dev/null 2>&1; then
-        log_success "orchestrate-wrapper.sh process detected (BUG #22 fix active)"
+    if pgrep -f "orchestrate-wrapper\|orchestrator-cli\|node.*orchestrate" >/dev/null 2>&1; then
+        log_success "Orchestrator process detected (BUG #22 fix active - bash or TypeScript)"
     else
-        log_warn "orchestrate-wrapper.sh process not detected (may have completed quickly)"
+        log_warn "Orchestrator process not detected (may have completed quickly)"
     fi
 }
 

@@ -53,7 +53,7 @@ describe('deliverable-verifier', () => {
   describe('file type validation', () => {
     it('should verify TypeScript files', () => {
       const result = verifyDeliverables({
-        files: ['src/helpers/gate-check.ts'],
+        files: ['.claude/skills/cfn-loop-orchestration/src/helpers/gate-check.ts'],
         expectedTypes: ['.ts']
       });
 
@@ -62,7 +62,7 @@ describe('deliverable-verifier', () => {
 
     it('should verify shell script files', () => {
       const result = verifyDeliverables({
-        files: ['helpers/consensus.sh'],
+        files: ['.claude/skills/cfn-loop-orchestration/helpers/consensus.sh'],
         expectedTypes: ['.sh']
       });
 

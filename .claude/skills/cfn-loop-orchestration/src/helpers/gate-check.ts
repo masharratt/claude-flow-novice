@@ -7,7 +7,7 @@ export type Mode = 'mvp' | 'standard' | 'enterprise';
 
 export interface GateCheckParams {
   passRate: number;
-  threshold?: number;
+  threshold?: number | undefined;
   mode: Mode;
 }
 

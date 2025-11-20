@@ -314,14 +314,21 @@ async function main(): Promise<void> {
     // Create and initialize orchestrator
     const orchestrator = new Orchestrator(config);
 
-    // Get initial state for output
-    const state = orchestrator.getState();
+    // Execute the complete CFN Loop orchestration workflow
+    const finalDecision = await orchestrator.execute();
 
-    // Output state as JSON
-    console.log(JSON.stringify(state, null, 2));
+    // Output final summary as JSON
+    const summary = orchestrator.getSummary();
+    console.log('\n' + '='.repeat(60));
+    console.log('ORCHESTRATION COMPLETE');
+    console.log('='.repeat(60));
+    console.log(JSON.stringify(summary, null, 2));
 
-    // Exit with success
-    process.exit(0);
+    // Exit with code based on decision
+    // 0 = PROCEED (success)
+    // 1 = ITERATE/ABORT (failure)
+    const exitCode = finalDecision === 'PROCEED' ? 0 : 1;
+    process.exit(exitCode);
   } catch (error) {
     // Handle errors
     const errorMessage = error instanceof Error ? error.message : String(error);

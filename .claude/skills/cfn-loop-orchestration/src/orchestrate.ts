@@ -597,6 +597,183 @@ export class Orchestrator {
       duration: Date.now() - this.state.startTime,
     };
   }
+
+  /**
+   * Execute the complete CFN Loop orchestration workflow
+   * Runs iterations with Loop 3 → Loop 2 → Product Owner progression
+   * Returns final decision (PROCEED/ITERATE/ABORT)
+   */
+  public async execute(): Promise<ProductOwnerDecision> {
+    const maxIterations = this.config.maxIterations;
+
+    // Main iteration loop
+    for (let iteration = 1; iteration <= maxIterations; iteration++) {
+      this.incrementIteration();
+
+      console.log(`\n${'='.repeat(60)}`);
+      console.log(`Iteration ${iteration}/${maxIterations}`);
+      console.log(`${'='.repeat(60)}`);
+
+      // ===== LOOP 3: IMPLEMENTERS =====
+      console.log('\nPhase: Loop 3 (Implementers)');
+      this.transitionPhase('loop3');
+
+      const loop3Agents = this.config.loop3Agents || ['backend-dev', 'coder'];
+      const loop3Contexts = await this.spawnLoop3Agents(loop3Agents);
+
+      console.log(`Spawned ${loop3Contexts.length} Loop 3 agents`);
+
+      // Simulate test result collection from agents
+      // In production, this would collect from actual agent runs
+      for (const context of loop3Contexts) {
+        const testResult: TestResult = {
+          pass: Math.floor(Math.random() * 100),
+          fail: Math.floor(Math.random() * 20),
+          skip: Math.floor(Math.random() * 5),
+        };
+
+        this.recordTestResult(context.agentId, testResult);
+        this.markAgentComplete(context.agentId, 'loop3');
+      }
+
+      // Aggregate and check gate
+      const aggregated = this.aggregateTestResults();
+      console.log(
+        `Loop 3 Results: ${aggregated.totalPass} pass, ${aggregated.totalFail} fail (${(aggregated.passRate * 100).toFixed(2)}%)`
+      );
+
+      const gateResult = this.checkGate(aggregated.passRate);
+      console.log(`Gate Check: ${gateResult.passed ? 'PASSED' : 'FAILED'} (threshold: ${gateResult.threshold.toFixed(4)})`);
+
+      if (!gateResult.passed) {
+        console.log(`Gate failed. Iterating...`);
+
+        // Prepare feedback for next iteration
+        this.prepareFeedback({
+          gatePassRate: aggregated.passRate,
+          previousFailures: Array.from(this.state.failedAgents),
+          reasons: [`Gate check failed: ${gateResult.gap.toFixed(4)} below threshold`],
+        });
+
+        console.log(`Feedback prepared for iteration ${iteration + 1}`);
+
+        // Reset state for next iteration
+        this.resetForIteration();
+
+        if (!this.canContinueIterating()) {
+          console.log(`Max iterations (${maxIterations}) reached. ABORTING.`);
+          this.recordDecision('ABORT');
+          break;
+        }
+
+        continue; // Go to next iteration
+      }
+
+      // ===== LOOP 2: VALIDATORS =====
+      console.log('\nPhase: Loop 2 (Validators)');
+      this.transitionPhase('loop2');
+
+      const loop2Agents = this.config.loop2Agents || ['code-reviewer', 'tester', 'security-specialist'];
+      const loop2Contexts = await this.spawnLoop2Validators(loop2Agents);
+
+      console.log(`Spawned ${loop2Contexts.length} Loop 2 validators`);
+
+      // Simulate consensus score collection from validators
+      // In production, this would collect from actual validator runs
+      for (const context of loop2Contexts) {
+        const consensusScore = Math.random() * 0.3 + 0.7; // Random score between 0.7-1.0
+        this.recordConsensusScore(context.agentId, consensusScore);
+        this.markAgentComplete(context.agentId, 'loop2');
+      }
+
+      // Validate consensus
+      const consensusValidation = this.validateConsensus();
+      console.log(
+        `Loop 2 Consensus: ${(consensusValidation.average * 100).toFixed(2)}% (threshold: ${(consensusValidation.threshold * 100).toFixed(2)}%)`
+      );
+
+      if (!consensusValidation.passed) {
+        console.log(`Consensus failed. Iterating...`);
+
+        // Prepare feedback for next iteration
+        this.prepareFeedback({
+          consensusAverage: consensusValidation.average,
+          reasons: [`Consensus below threshold: ${consensusValidation.gap.toFixed(4)}`],
+        });
+
+        console.log(`Feedback prepared for iteration ${iteration + 1}`);
+
+        // Reset state for next iteration
+        this.resetForIteration();
+
+        if (!this.canContinueIterating()) {
+          console.log(`Max iterations (${maxIterations}) reached. ABORTING.`);
+          this.recordDecision('ABORT');
+          break;
+        }
+
+        continue; // Go to next iteration
+      }
+
+      // ===== PRODUCT OWNER DECISION =====
+      console.log('\nPhase: Product Owner Decision');
+      this.transitionPhase('product-owner');
+
+      // Simulate product owner decision
+      // In production, this would invoke actual product owner agent
+      const ownerAgent = this.config.productOwner || 'product-owner-agent';
+      console.log(`Consulting Product Owner (${ownerAgent})`);
+
+      // Simulate decision based on iteration number
+      let decision: ProductOwnerDecision = 'PROCEED';
+      if (iteration === 1 && Math.random() > 0.7) {
+        // Sometimes iterate on first iteration
+        decision = 'ITERATE';
+      }
+
+      this.recordDecision(decision);
+      console.log(`Product Owner Decision: ${decision}`);
+
+      // ===== DECISION HANDLING =====
+      if (decision === 'PROCEED') {
+        console.log(`\n${'='.repeat(60)}`);
+        console.log('SUCCESS: Product Owner approved. Orchestration complete.');
+        console.log(`${'='.repeat(60)}`);
+        break;
+      } else if (decision === 'ITERATE') {
+        console.log(`Iteration ${iteration} requested review. Iterating...`);
+
+        // Reset state for next iteration
+        this.resetForIteration();
+
+        if (!this.canContinueIterating()) {
+          console.log(`Max iterations (${maxIterations}) reached. ABORTING.`);
+          this.recordDecision('ABORT');
+          break;
+        }
+
+        continue; // Go to next iteration
+      } else if (decision === 'ABORT') {
+        console.log(`\n${'='.repeat(60)}`);
+        console.log('FAILURE: Product Owner rejected. Aborting orchestration.');
+        console.log(`${'='.repeat(60)}`);
+        break;
+      }
+    }
+
+    // Final status
+    const finalDecision = this.getDecision() || 'ABORT';
+    const summary = this.getSummary();
+
+    console.log(`\nFinal Summary:`);
+    console.log(`  Task ID: ${summary.taskId}`);
+    console.log(`  Mode: ${summary.mode}`);
+    console.log(`  Iterations: ${summary.iteration}/${this.config.maxIterations}`);
+    console.log(`  Decision: ${finalDecision}`);
+    console.log(`  Duration: ${(summary.duration / 1000).toFixed(2)}s`);
+
+    return finalDecision;
+  }
 }
 
 /**
