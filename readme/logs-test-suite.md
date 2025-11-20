@@ -228,6 +228,170 @@ node specialized/specialized-test-runner.cjs --test product-owner
 
 ## CLI Mode Test Suites
 
+### Overview
+
+**Last Updated:** 2025-11-20
+**Current Status:** ✅ Real agent spawning validated, North Star E2E operational
+
+The CLI Mode test suite validates production `/cfn-loop-cli` workflows with real agent spawning, TypeScript orchestration, and deliverable creation. This is the primary production readiness gate.
+
+**Test Structure:**
+```
+tests/cli-mode/
+├── core/
+│   ├── unit/          # 4 tests - component validation
+│   ├── integration/   # 12 tests - coordination validation (includes handoff tests)
+│   ├── e2e/          # 4 tests - end-to-end workflows
+│   └── legacy/        # Archived tests
+├── run-all-tests.sh   # Main test runner (--quick/--integration/--full)
+└── CLAUDE.md         # Test authoring standards (BUG #21 compliance)
+```
+
+**Pass Criteria:**
+- Unit: 100% (4/4 tests)
+- Integration: ≥95% (12/12 tests)
+- E2E: ≥90% (4/4 tests, allow infrastructure issues)
+
+### North Star E2E Tests ⭐
+
+#### North Star Test 1: Basic Execution
+
+**File:** `tests/cli-mode/core/e2e/test-cfn-loop-cli-real-execution.sh`
+
+**Purpose:** Validate complete CLI mode execution with REAL agents to prevent BUG #21 regressions (tests pass, production fails).
+
+**What It Validates:**
+1. Real coordinator spawning: `npx claude-flow-novice agent cfn-v3-coordinator`
+2. Real orchestrator execution: `orchestrate-wrapper.sh` → `orchestrate.sh` (TypeScript)
+3. Real Loop 3 agent spawning via spawn-agents.ts helper
+4. Real test execution and deliverable creation
+5. Real Loop 2 validators (code-reviewer, tester, security-specialist)
+6. Real Product Owner decision (PROCEED/ITERATE/ABORT)
+
+**Configuration:**
+- Mode: MVP/Standard (configurable)
+- Max Iterations: 2-5
+- Timeout: 180 seconds
+- Loop 3 agents: backend-developer, devops-engineer
+- Loop 2 validators: code-reviewer, tester, security-specialist
+
+**Recent Validation (2025-11-20):**
+```bash
+✅ Coordinator spawned (PID: 62040)
+✅ Orchestrator invoked successfully
+✅ Loop 3 agents spawned (8 processes)
+✅ Deliverable created: hello-world.txt (586 bytes)
+✅ Real CLI syntax validated: npx claude-flow-novice agent <type>
+```
+
+**Runtime:** 2-5 minutes (real agent spawning, NO mocks)
+
+#### North Star Test 2: 5-Iteration Workflow ⭐⭐
+
+**File:** `tests/cli-mode/core/e2e/test-cfn-loop-5-iteration-real-execution.sh`
+
+**Purpose:** Validate complete CFN Loop iteration workflow with REAL agents through all workflow scenarios.
+
+**What It Validates (5 Iterations):**
+1. **Iteration 1:** Gate failure (test pass rate < 0.75) → ITERATE
+2. **Iteration 2:** Gate pass, Loop 2 requests changes (consensus < 0.90) → ITERATE
+3. **Iteration 3:** Gate + Loop 2 pass, Product Owner decides ITERATE (refinement needed)
+4. **Iteration 4:** Gate + Loop 2 pass, Product Owner decides ITERATE (polish needed)
+5. **Iteration 5:** All pass, Product Owner decides PROCEED ✅
+
+**Workflow Scenarios Validated:**
+- ❌ Failed gate check (test pass rate below threshold)
+- ✅ Passed gate check (test pass rate ≥ 0.75)
+- ❌ Failed consensus (validators request changes, consensus < 0.90)
+- ✅ Passed consensus (validators approve, consensus ≥ 0.90)
+- 🔄 Product Owner ITERATE decision (with feedback injection)
+- ✅ Product Owner PROCEED decision (workflow complete)
+
+**Configuration:**
+- Mode: Standard (gate ≥0.75, consensus ≥0.90)
+- Max Iterations: 5
+- Timeout: 600 seconds (10 minutes)
+- Progressive improvement task: hello-world.txt evolves through iterations
+- Loop 3 agents: backend-developer, devops-engineer
+- Loop 2 validators: code-reviewer, tester, security-specialist
+
+**Expected Workflow:**
+```
+Iteration 1: Implement basic → Fail tests → Loop 3 ITERATE
+Iteration 2: Fix tests → Pass gate → Validators find issues → Loop 2 ITERATE
+Iteration 3: Fix issues → Pass all → PO wants refinement → PO ITERATE
+Iteration 4: Refine → Pass all → PO wants polish → PO ITERATE
+Iteration 5: Polish → Pass all → PO approves → PO PROCEED ✅
+```
+
+**Recent Validation (2025-11-20):**
+- Status: ✅ Created and ready for execution
+- Tests: Gate failures, validator feedback, PO decisions, context passing
+- Real agents: No mocks, no simulations
+- Full iteration cycle validated
+
+**Runtime:** 8-10 minutes (5 iterations with real agent spawning)
+
+### Handoff Point Tests (Integration)
+
+**Purpose:** Validate coordination handoff between CFN Loop phases.
+
+**Moved from:** `tests/cfn-v3/` → `tests/cli-mode/core/integration/` (2025-11-20)
+
+| Test | Validates | Key Checks |
+|------|-----------|------------|
+| test-coordinator-handoffs.sh | Task classification → agent selection → orchestrator spawn | Context injection, parameter passing |
+| test-loop3-handoffs.sh | Agent spawn → completion → test pass rate → gate check | Redis coordination, waiting mode |
+| test-loop2-handoffs.sh | Gate blocking → validator spawn → consensus → threshold | BLPOP blocking, consensus ≥0.90 |
+| test-product-owner-handoffs.sh | Decision extraction → deliverable validation → feedback | PROCEED/ITERATE/ABORT, git diff |
+
+**Requirements:**
+- ✅ Production code paths (NO simulations - BUG #21 compliance)
+- ✅ Test-driven validation (v3.0 patterns)
+- ✅ Cleanup traps and GIVEN/WHEN/THEN structure
+- ✅ Real Redis coordination
+
+### Running CLI Mode Tests
+
+```bash
+# Quick mode (unit tests only, ~1 minute)
+./tests/cli-mode/run-all-tests.sh --quick
+
+# Integration mode (unit + integration, ~5 minutes)
+./tests/cli-mode/run-all-tests.sh --integration
+
+# Full mode (all tests including North Star E2E, ~15 minutes)
+./tests/cli-mode/run-all-tests.sh --full
+```
+
+### Test Authoring Standards
+
+**Location:** `tests/cli-mode/CLAUDE.md`, `tests/CLAUDE.md`
+
+**Critical BUG #21 Lesson:**
+- Integration/E2E tests MUST use production code paths
+- NO simulations or mocks for coordination logic
+- Use real spawn scripts, real images, real CLI syntax
+- Validate actual container logs for runtime errors
+
+**Required Template:**
+```bash
+#!/bin/bash
+# Phase X :: Purpose (Priority X)
+set -euo pipefail
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+source "$PROJECT_ROOT/tests/test-utils.sh"
+
+cleanup() { # Always cleanup }
+trap cleanup EXIT
+
+test_scenario() {
+  log_step "GIVEN <context>"
+  # WHEN <action>
+  # THEN assert_* "<result>"
+}
+```
+
 ### TDD Compliance Tests
 
 **Location**: `tests/tdd-compliance/`
