@@ -1,0 +1,525 @@
+================================================================================
+CFN LOOP CLI EXECUTION FLOW - COMPLETE DEPENDENCY DIAGRAM
+================================================================================
+
+LEGEND:
+  [TS] = TypeScript implementation
+  [SH] = Shell script
+  [P0] = Critical path (required for 5-iteration e2e)
+  [P1] = High value (post-validation)
+  [P2] = Nice to have (can inline)
+  [EX] = External dependency (mock in tests)
+  →    = Direct execution flow
+  ⇢    = Coordination/data dependency
+
+================================================================================
+PART 1: USER TO COORDINATOR (MAIN CHAT SPAWNING)
+================================================================================
+
+[USER INVOCATION]
+  ↓
+/cfn-loop-cli "task description" --mode=standard
+  ↓
+[MAIN CHAT READS]
+.claude/commands/cfn/cfn-loop-cli.md
+  ↓
+[MAIN CHAT EXECUTES] (via Bash tool)
+npx claude-flow-novice agent cfn-v3-coordinator \
+  --task-id <sanitized-id> \
+  --context <base64-encoded-context>
+  ↓
+[NPX CLI SPAWNS] (src/cli/index.ts)
+  ├─ Validates task-id
+  ├─ Decodes context
+  ├─ Reads agent profile: .claude/agents/cfn-dev-team/cfn-v3-coordinator.md
+  ├─ Injects coordination skills
+  └─ Spawns Claude API conversation
+  ↓
+[COORDINATOR AGENT STARTS]
+.claude/agents/cfn-dev-team/cfn-v3-coordinator.md
+  ├─ Reads task description and mode
+  ├─ Validates success criteria (must have objective tests)
+  ├─ Stores context in Redis (uses bash fallback if needed)
+  └─ Selects agents based on task complexity
+
+================================================================================
+PART 2: COORDINATOR TO ORCHESTRATOR (PARAMETER VALIDATION)
+================================================================================
+
+[COORDINATOR CALLS]
+.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh \
+  --task-id <id> \
+  --mode <standard|mvp|enterprise> \
+  --max-iterations <10> \
+  --timeout <3600s>
+  ↓
+[WRAPPER VALIDATES]
+  ├─ Checks all required parameters present
+  ├─ Validates task-id format (alphanumeric, hyphens, underscores)
+  ├─ Validates mode (mvp|standard|enterprise)
+  ├─ Validates timeout (numeric, sane range)
+  └─ Validates max-iterations (numeric, ≤20)
+  ↓
+[WRAPPER CALLS MAIN ORCHESTRATOR]
+.claude/skills/cfn-loop-orchestration/dist/index.js \
+  "$TASK_ID" "$MODE" "$MAX_ITERATIONS" "$TIMEOUT"
+
+================================================================================
+PART 3: TYPESCRIPT ORCHESTRATOR (MAIN EXECUTION LOOP)
+================================================================================
+
+[ORCHESTRATOR STARTS]
+.claude/skills/cfn-loop-orchestration/src/index.ts (compiled to dist/index.js)
+  ↓
+[INITIALIZATION]
+  ├─ Loads mode thresholds:
+  │   ├─ MVP: gate=0.70, consensus=0.80, iterations=5, validators=2
+  │   ├─ Standard: gate=0.95, consensus=0.90, iterations=10, validators=3-5
+  │   └─ Enterprise: gate=0.98, consensus=0.95, iterations=15, validators=5-7
+  ├─ Validates Redis connection (localhost:6379)
+  ├─ Retrieves task context from Redis
+  └─ Validates success criteria presence (prevents "consensus on vapor")
+
+[ITERATION LOOP] (1 to MAX_ITERATIONS)
+  ↓
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ ITERATION N                                                     │
+  ├─────────────────────────────────────────────────────────────────┤
+  │                                                                 │
+  │ [LOOP 3: PRIMARY SWARM]                                        │
+  │   ↓                                                             │
+  │ spawn-agents.ts → Spawns Loop 3 agents                         │
+  │   ├─ Reads agent profiles from .claude/agents/cfn-dev-team/   │
+  │   ├─ Builds CLI commands:                                      │
+  │   │   npx claude-flow-novice agent <type> \                    │
+  │   │     --task-id <id> \                                       │
+  │   │     --context <base64-context>                             │
+  │   ├─ Executes via Node.js child_process (spawn())             │
+  │   └─ Returns process PIDs for monitoring                       │
+  │   ↓                                                             │
+  │ coordination-wait.sh → Waits for Loop 3 completion             │
+  │   ├─ CRITICAL FIX (Line 642): Uses explicit 'bash' command    │
+  │   │   BEFORE: ${coordinationScript} --task-id ...              │
+  │   │   AFTER:  bash ${coordinationScript} --task-id ...         │
+  │   │   WHY: Node.js execSync defaults to /bin/sh, not bash     │
+  │   ├─ Calls: bash .claude/skills/cfn-coordination/             │
+  │   │           coordination-wait.sh \                            │
+  │   │           --task-id <id> \                                  │
+  │   │           --channel "swarm:${TASK_ID}:loop3:complete" \    │
+  │   │           --timeout 120                                     │
+  │   ├─ Uses Redis BLPOP for blocking wait                        │
+  │   └─ Agents signal via: redis-cli RPUSH channel:msg           │
+  │   ↓                                                             │
+  │ [LOOP 3 AGENTS EXECUTE]                                        │
+  │   ├─ Read broadcast context from Redis                         │
+  │   ├─ Complete implementation work                              │
+  │   ├─ Execute success criteria tests (objective validation)    │
+  │   ├─ Report completion via Redis:                              │
+  │   │   .claude/skills/cfn-redis-coordination/                   │
+  │   │   report-completion.sh --task-id <id> --confidence 0.90   │
+  │   └─ Exit cleanly (orchestrator monitors)                     │
+  │   ↓                                                             │
+  │ [GATE CHECK: Test Pass Rate Validation]                       │
+  │   ├─ Collects test execution results from agents              │
+  │   ├─ Parses test output (Jest/TAP/JUnit formats)              │
+  │   ├─ Calculates pass rate: passed / total tests               │
+  │   ├─ Compares against mode threshold:                          │
+  │   │   ├─ MVP: ≥0.70                                            │
+  │   │   ├─ Standard: ≥0.95                                       │
+  │   │   └─ Enterprise: ≥0.98                                     │
+  │   └─ Decision:                                                 │
+  │       ├─ IF pass rate < threshold:                             │
+  │       │   └─ ITERATE (wake Loop 3 for iteration N+1)          │
+  │       └─ IF pass rate ≥ threshold:                             │
+  │           └─ PROCEED (signal Loop 2 to start)                 │
+  │   ↓                                                             │
+  │ [IF GATE FAILS] → Continue to Iteration N+1 (skip Loop 2)     │
+  │                                                                 │
+  │ [IF GATE PASSES] → Continue to Loop 2                         │
+  │   ↓                                                             │
+  │ [LOOP 2: VALIDATION SWARM]                                     │
+  │   ↓                                                             │
+  │ spawn-agents.ts → Spawns Loop 2 validators                    │
+  │   ├─ Same CLI spawning mechanism as Loop 3                    │
+  │   └─ Number of validators based on mode (2-7)                 │
+  │   ↓                                                             │
+  │ coordination-wait.sh → Waits for Loop 2 completion            │
+  │   ├─ Channel: "swarm:${TASK_ID}:loop2:complete"              │
+  │   └─ Timeout: 120s                                             │
+  │   ↓                                                             │
+  │ [LOOP 2 VALIDATORS EXECUTE]                                   │
+  │   ├─ WAIT for gate pass signal:                               │
+  │   │   coordination-wait "swarm:${TASK_ID}:gate-passed"       │
+  │   ├─ Read Loop 3 deliverables from Redis                      │
+  │   ├─ Review code quality, architecture, tests                 │
+  │   ├─ Report consensus score (0.0-1.0)                         │
+  │   └─ Exit cleanly                                              │
+  │   ↓                                                             │
+  │ [CONSENSUS CHECK]                                              │
+  │   ├─ Collects consensus scores from all validators            │
+  │   ├─ Calculates average score                                  │
+  │   ├─ Compares against mode threshold:                          │
+  │   │   ├─ MVP: ≥0.80                                            │
+  │   │   ├─ Standard: ≥0.90                                       │
+  │   │   └─ Enterprise: ≥0.95                                     │
+  │   └─ Decision:                                                 │
+  │       ├─ IF consensus < threshold:                             │
+  │       │   └─ ITERATE (wake all agents for iteration N+1)     │
+  │       └─ IF consensus ≥ threshold:                             │
+  │           └─ PROCEED (spawn Product Owner)                    │
+  │   ↓                                                             │
+  │ [IF CONSENSUS FAILS] → Continue to Iteration N+1              │
+  │                                                                 │
+  │ [IF CONSENSUS PASSES] → Continue to Product Owner             │
+  │   ↓                                                             │
+  │ [PRODUCT OWNER DECISION]                                       │
+  │   ↓                                                             │
+  │ spawn-agents.ts → Spawns product-owner agent                  │
+  │   ↓                                                             │
+  │ coordination-wait.sh → Waits for decision                     │
+  │   ├─ Channel: "swarm:${TASK_ID}:po:complete"                 │
+  │   └─ Timeout: 120s                                             │
+  │   ↓                                                             │
+  │ [PRODUCT OWNER EXECUTES] (BUG #11 FIX)                        │
+  │   ├─ Reads all Loop 3 + Loop 2 artifacts                      │
+  │   ├─ Validates deliverables exist (prevents "consensus on     │
+  │   │   vapor")                                                  │
+  │   ├─ Reviews against success criteria                         │
+  │   ├─ Makes strategic decision: PROCEED/ITERATE/ABORT          │
+  │   ├─ Reports decision via Redis                               │
+  │   └─ Exit cleanly                                              │
+  │   ↓                                                             │
+  │ [ORCHESTRATOR PARSES DECISION]                                │
+  │   ├─ Uses: .claude/skills/product-owner-decision/             │
+  │   │         execute-decision.sh                                │
+  │   ├─ Extracts: PROCEED | ITERATE | ABORT                      │
+  │   ├─ Validates deliverables present                            │
+  │   └─ Orchestrator pushes decision to Redis (not agent)        │
+  │   ↓                                                             │
+  │ [DECISION EXECUTION]                                           │
+  │   ├─ IF PROCEED:                                               │
+  │   │   └─ Exit iteration loop (task complete)                  │
+  │   ├─ IF ITERATE:                                               │
+  │   │   ├─ Increment iteration counter (iteration-manager.ts)  │
+  │   │   ├─ Store state in Redis                                 │
+  │   │   ├─ Wake all agents for iteration N+1                    │
+  │   │   └─ Continue to next iteration                           │
+  │   └─ IF ABORT:                                                 │
+  │       └─ Exit with error code                                 │
+  │                                                                 │
+  └─────────────────────────────────────────────────────────────────┘
+
+[FINAL REPORTING]
+  ├─ Store final decision in Redis
+  ├─ Capture execution metrics (duration, iterations, pass rates)
+  ├─ Generate completion report
+  └─ Return exit code to coordinator
+
+================================================================================
+PART 4: CRITICAL DEPENDENCIES AND EXECUTION ORDER
+================================================================================
+
+[REDIS COORDINATION LAYER] (localhost:6379)
+  ├─ Namespace: swarm:${TASK_ID}:*
+  ├─ Channels:
+  │   ├─ swarm:${TASK_ID}:loop3:complete
+  │   ├─ swarm:${TASK_ID}:gate-passed
+  │   ├─ swarm:${TASK_ID}:loop2:complete
+  │   └─ swarm:${TASK_ID}:po:complete
+  ├─ Data Keys:
+  │   ├─ context:${TASK_ID}
+  │   ├─ broadcast:${TASK_ID}
+  │   ├─ iteration:${TASK_ID}
+  │   ├─ results:${TASK_ID}:loop3
+  │   ├─ results:${TASK_ID}:loop2
+  │   └─ decision:${TASK_ID}
+  └─ Coordination Pattern: BLPOP (blocking list pop)
+
+[SPAWNING DEPENDENCY CHAIN]
+  Main Chat
+    → NPX CLI (src/cli/index.ts)
+      → Coordinator Agent (.claude/agents/cfn-dev-team/cfn-v3-coordinator.md)
+        → Orchestrator Wrapper (.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh)
+          → TypeScript Orchestrator (.claude/skills/cfn-loop-orchestration/dist/index.js)
+            → spawn-agents.ts (src/helpers/spawn-agents.ts)
+              → NPX CLI (recursive for each agent)
+                → Loop 3 Agents (.claude/agents/cfn-dev-team/*.md)
+                  → coordination-wait.sh (blocking wait)
+                    → Gate Check (test pass rate validation)
+                      → Loop 2 Validators (if gate passes)
+                        → coordination-wait.sh (blocking wait)
+                          → Consensus Check (validator score aggregation)
+                            → Product Owner (.claude/agents/cfn-dev-team/product-owner.md)
+                              → coordination-wait.sh (blocking wait)
+                                → Decision Parsing (execute-decision.sh)
+                                  → Iteration Management or Completion
+
+[FILE EXECUTION ORDER]
+1.  .claude/commands/cfn/cfn-loop-cli.md (slash command)
+2.  src/cli/index.ts (NPX spawning logic)
+3.  .claude/agents/cfn-dev-team/cfn-v3-coordinator.md (coordinator)
+4.  .claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh (validator)
+5.  .claude/skills/cfn-loop-orchestration/dist/index.js (orchestrator)
+6.  .claude/skills/cfn-loop-orchestration/src/helpers/spawn-agents.ts (spawner)
+7.  .claude/skills/cfn-coordination/coordination-wait.sh (blocker)
+8.  .claude/agents/cfn-dev-team/<agent-type>.md (Loop 3/2/PO agents)
+9.  .claude/skills/cfn-redis-coordination/report-completion.sh (signaler)
+10. .claude/skills/product-owner-decision/execute-decision.sh (parser)
+
+[CRITICAL BUG FIX: coordination-wait.sh Bash Invocation]
+  Location: .claude/skills/cfn-loop-orchestration/src/index.ts:642
+  
+  Problem:
+    - orchestrator.ts uses Node.js execSync() to call coordination-wait.sh
+    - execSync() defaults to /bin/sh, not /bin/bash
+    - coordination-wait.sh uses bash-specific features (arrays, [[ ]])
+    - Result: Script fails with "/bin/sh: cannot execute binary file"
+  
+  Solution:
+    BEFORE (Line 642):
+      execSync(`${coordinationScript} --task-id ${taskId} --channel ${channel} --timeout ${timeout}`)
+    
+    AFTER (Line 642):
+      execSync(`bash ${coordinationScript} --task-id ${taskId} --channel ${channel} --timeout ${timeout}`)
+  
+  Impact:
+    - Prevents all agent coordination failures
+    - Required for Loop 3 → Loop 2 → Product Owner progression
+    - Critical for test-driven validation workflow
+  
+  Validation:
+    - Test: ./tests/docker-mode/implementations/coordination/wait-mechanism.sh
+    - Expected: All coordination-wait calls succeed with bash prefix
+    - Anti-pattern: Calling coordination scripts without explicit shell
+
+================================================================================
+PART 5: TYPESCRIPT MODULE STRUCTURE (MIGRATION STATUS)
+================================================================================
+
+.claude/skills/cfn-loop-orchestration/
+├── src/
+│   ├── index.ts [TS] [P0]                     # Main orchestrator (compiled to dist/index.js)
+│   ├── types.ts [TS] [P0]                     # Shared type definitions
+│   ├── helpers/
+│   │   ├── spawn-agents.ts [TS] [P0]          # CLI agent spawning
+│   │   ├── context-injector.ts [TS] [P0]      # Broadcast context builder
+│   │   ├── iteration-manager.ts [TS] [P0]     # Iteration counter
+│   │   ├── parse-test-results.ts [TS] [P0]    # Test output parser
+│   │   ├── gate-check.ts [TS] [P0]            # Pass rate validator
+│   │   ├── confidence-aggregator.ts [TS] [P1] # Consensus score aggregator
+│   │   └── context-lookup.ts [TS] [P1]        # Context retrieval module
+│   └── __tests__/
+│       ├── spawn-agents.test.ts               # 6 tests
+│       ├── parse-test-results.test.ts         # 15 tests
+│       ├── gate-check.test.ts                 # 14 tests
+│       └── orchestrator.integration.test.ts   # 8 tests
+├── dist/
+│   ├── index.js                               # Compiled orchestrator
+│   ├── index.d.ts                             # Type definitions
+│   └── helpers/                               # Compiled helpers
+├── orchestrate-wrapper.sh [SH] [P0]           # Parameter validator
+├── helpers/ [DEPRECATED]                      # Legacy shell scripts (to migrate)
+│   ├── consensus.sh
+│   ├── deliverable-verifier.sh
+│   ├── gate-check.sh
+│   ├── iteration-manager.sh
+│   ├── parse-test-results.sh
+│   └── timeout-calculator.sh
+└── package.json                               # TypeScript build config
+
+[MIGRATION STATUS]
+✅ P0 Complete:
+  - Main orchestrator (index.ts)
+  - Agent spawning (spawn-agents.ts)
+  - Test parsing (parse-test-results.ts)
+  - Gate checking (gate-check.ts)
+  - Context injection (context-injector.ts)
+  - Iteration management (iteration-manager.ts)
+
+🚧 P1 In Progress:
+  - Confidence aggregation (confidence-aggregator.ts)
+  - Context lookup (context-lookup.ts)
+
+📋 P2 Deferred:
+  - Deliverable verification (inline into orchestrator)
+  - Timeout calculation (inline into orchestrator)
+
+[EXTERNAL DEPENDENCIES]
+  - Redis (localhost:6379) - coordination layer
+  - NPX CLI (src/cli/index.ts) - agent spawning
+  - Agent profiles (.claude/agents/cfn-dev-team/*.md)
+  - Coordination scripts (.claude/skills/cfn-coordination/*.sh)
+  - Product Owner decision skill (.claude/skills/product-owner-decision/execute-decision.sh)
+
+================================================================================
+PART 6: MODE-SPECIFIC THRESHOLDS AND BEHAVIOR
+================================================================================
+
+[MVP MODE]
+  Quality Gate (Loop 3):     ≥0.70 test pass rate
+  Consensus Gate (Loop 2):   ≥0.80 average score
+  Max Iterations:            5
+  Validators:                2
+  Use Case:                  Rapid prototyping, proof-of-concept
+
+[STANDARD MODE] (DEFAULT)
+  Quality Gate (Loop 3):     ≥0.95 test pass rate
+  Consensus Gate (Loop 2):   ≥0.90 average score
+  Max Iterations:            10
+  Validators:                3-5
+  Use Case:                  Production development, most features
+
+[ENTERPRISE MODE]
+  Quality Gate (Loop 3):     ≥0.98 test pass rate
+  Consensus Gate (Loop 2):   ≥0.95 average score
+  Max Iterations:            15
+  Validators:                5-7
+  Use Case:                  Critical systems, regulatory compliance
+
+[ITERATION PROGRESSION]
+  Iteration 1:
+    - Setup (2 min)
+    - Spawn Loop 3 (2 min)
+    - Gate Check (1 min)
+    - Total: ~5 min
+  
+  Iterations 2-N:
+    - Setup (1 min)
+    - Spawn Loop 2 (2 min) [if gate passes]
+    - Consensus (1 min)
+    - Product Owner (1 min)
+    - Total: ~5 min per iteration
+  
+  Expected Timeline:
+    - 5 iterations: ~25 min
+    - 10 iterations: ~50 min
+    - 15 iterations: ~75 min
+    - Buffer for Redis latency: +5-10 min
+
+================================================================================
+PART 7: COORDINATION PROTOCOL (REDIS PATTERNS)
+================================================================================
+
+[AGENT COMPLETION PROTOCOL]
+  1. Agent completes work
+  2. Agent executes: .claude/skills/cfn-redis-coordination/report-completion.sh \
+                     --task-id <id> --confidence <0.0-1.0>
+  3. Redis RPUSH: swarm:${TASK_ID}:loop3:complete "agent-type:confidence"
+  4. Orchestrator BLPOP: swarm:${TASK_ID}:loop3:complete (blocking wait)
+  5. Orchestrator receives completion signal
+  6. Process continues to next phase
+
+[GATE PASS SIGNALING]
+  1. Orchestrator calculates test pass rate
+  2. IF pass rate ≥ threshold:
+     - Redis RPUSH: swarm:${TASK_ID}:gate-passed "PROCEED"
+  3. Loop 2 validators BLPOP: swarm:${TASK_ID}:gate-passed (blocking wait)
+  4. Loop 2 validators receive signal
+  5. Loop 2 work begins
+
+[BROADCAST CONTEXT INJECTION]
+  1. Orchestrator builds broadcast message:
+     {
+       "iteration": N,
+       "previous_results": [...],
+       "gate_status": "PASSED|FAILED",
+       "feedback": "..."
+     }
+  2. Redis SET: broadcast:${TASK_ID} <json>
+  3. Agents read: Redis GET broadcast:${TASK_ID}
+  4. Agents incorporate feedback into next iteration
+
+[DELIVERABLE VALIDATION]
+  1. Product Owner checks Redis keys:
+     - results:${TASK_ID}:loop3 (implementation artifacts)
+     - results:${TASK_ID}:loop2 (validation reports)
+  2. IF keys missing or empty:
+     - ABORT (prevents "consensus on vapor")
+  3. IF keys present:
+     - Review content
+     - Make PROCEED/ITERATE/ABORT decision
+
+================================================================================
+PART 8: ANTI-PATTERNS AND TROUBLESHOOTING
+================================================================================
+
+[ANTI-PATTERN: "Consensus on Vapor"]
+  Problem: Loop 2 validators approve work that doesn't exist
+  Root Cause: No deliverable validation before Loop 2 spawning
+  Solution: Gate check validates test execution + deliverables present
+  Prevention: Orchestrator checks Redis keys before spawning Loop 2
+
+[ANTI-PATTERN: Infinite Iteration Loop]
+  Problem: Agents never reach consensus, loop forever
+  Root Cause: No max iteration enforcement
+  Solution: Orchestrator exits after MAX_ITERATIONS
+  Prevention: Mode-specific iteration limits (5/10/15)
+
+[ANTI-PATTERN: Coordinator Timeout]
+  Problem: Coordinator agent exits before orchestration completes
+  Root Cause: Long-running orchestration exceeds agent timeout
+  Solution: Coordinator spawns orchestrator in background
+  Prevention: Use orchestrate-wrapper.sh with explicit timeout param
+
+[ANTI-PATTERN: Shell vs Bash Mismatch]
+  Problem: coordination-wait.sh fails with "cannot execute binary file"
+  Root Cause: Node.js execSync defaults to /bin/sh, not /bin/bash
+  Solution: Prefix all shell script calls with explicit "bash" command
+  Prevention: Always use "bash ${script}" in Node.js execSync
+
+[TROUBLESHOOTING CHECKLIST]
+  1. Redis running? (redis-cli PING)
+  2. Task ID sanitized? (alphanumeric, hyphens, underscores only)
+  3. Success criteria present? (prevents "consensus on vapor")
+  4. coordination-wait.sh called with bash? (not just ${script})
+  5. Agent profiles exist? (.claude/agents/cfn-dev-team/<type>.md)
+  6. Redis keys populated? (context, broadcast, results)
+  7. Max iterations reached? (check iteration counter)
+  8. Timeout reasonable? (3600s default, 7200s for complex tasks)
+
+================================================================================
+PART 9: RELATED DOCUMENTATION
+================================================================================
+
+[PRIMARY REFERENCES]
+  - CFN Loop Task Mode: .claude/commands/cfn/CFN_LOOP_TASK_MODE.md
+  - Coordinator Parameters: .claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md
+  - Test-Driven Guide: docs/guides/TEST_DRIVEN_CFN_LOOP_GUIDE.md
+  - Success Criteria: docs/guides/SUCCESS_CRITERIA_EXAMPLES.md
+  - Migration Guide: docs/migration/CONFIDENCE_TO_TEST_DRIVEN_MIGRATION.md
+
+[SKILL DOCUMENTATION]
+  - Coordination: .claude/skills/cfn-coordination/SKILL.md
+  - Agent Spawning: .claude/skills/cfn-agent-spawning/SKILL.md
+  - Loop Validation: .claude/skills/cfn-loop-validation/SKILL.md
+  - Product Owner: .claude/skills/cfn-product-owner-decision/SKILL.md
+  - Redis Coordination: .claude/skills/cfn-redis-coordination/SKILL.md
+
+[TEST DOCUMENTATION]
+  - CLI Mode Tests: tests/cli-mode/README.md (8 suites, 159 assertions)
+  - Docker Mode Tests: tests/docker-mode/README.md (45 production tests)
+  - Test Authoring: tests/CLAUDE.md (boilerplate, GIVEN/WHEN/THEN)
+  - Coverage Matrix: tests/TEST_COVERAGE_MATRIX.md
+
+[ARCHITECTURE DOCUMENTATION]
+  - CFN Loop Architecture: docs/CFN_LOOP_ARCHITECTURE.md
+  - Docker Migration: planning/docker-migration/DOCKER_MIGRATION_PLAN.md
+  - Custom Provider Routing: docs/CUSTOM_PROVIDER_ROUTING.md
+
+================================================================================
+VERSION HISTORY
+================================================================================
+
+2025-11-20: Complete rewrite based on investigation of CFN Loop CLI execution
+  - Added accurate execution flow from user invocation to completion
+  - Documented coordinator → orchestrator → agents progression
+  - Included Redis coordination patterns and blocking wait mechanism
+  - Documented critical bug fix: bash invocation in coordination-wait.sh
+  - Added mode-specific thresholds and iteration behavior
+  - Included anti-patterns and troubleshooting guidance
+  - Mapped file execution order with absolute paths
+  - Documented TypeScript migration status (P0/P1/P2)
+
+2025-10-XX: Initial version (outdated, replaced by this version)
+
+================================================================================
