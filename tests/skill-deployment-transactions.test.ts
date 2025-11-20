@@ -54,9 +54,9 @@ describe('Skill Deployment Transaction Integration', () => {
   beforeAll(async () => {
     // Initialize database service
     dbService = new DatabaseService({
-      sqlite: { filename: ':memory:' },
+      sqlite: { type: 'sqlite', database: ':memory:' },
     });
-    await dbService.initialize();
+    await dbService.connect();
 
     // Create test schema
     const sqliteAdapter = dbService.getAdapter('sqlite');
@@ -129,7 +129,7 @@ This is a test skill for transaction testing.
 
   afterAll(async () => {
     // Cleanup
-    await dbService.close();
+    await dbService.disconnect();
     if (fs.existsSync(testSkillPath)) {
       fs.rmSync(testSkillPath, { recursive: true, force: true });
     }

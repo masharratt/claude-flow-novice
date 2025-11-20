@@ -14,7 +14,7 @@
  * - Error handling
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, afterAll } from '@jest/globals';
 import { DatabaseService } from '../src/lib/database-service';
 import { MetricsLogger, ExecutionMetrics, MetricsFilter } from '../src/services/metrics-logger';
 import {
@@ -25,6 +25,7 @@ import {
 } from '../src/lib/idempotent-write';
 import * as fs from 'fs';
 import * as path from 'path';
+import { TestCleanupManager, withTimeout } from './utils/cleanup';
 
 /**
  * Test configuration
@@ -84,10 +85,24 @@ async function setupTestDatabase(): Promise<DatabaseService> {
  * Cleanup test database
  */
 async function cleanupTestDatabase(dbService: DatabaseService): Promise<void> {
-  if (dbService) { try { await dbService.disconnect(); } catch (e) { /* ignore */ } }
+  if (dbService) {
+    try {
+      // Force close all connections with proper timeout handle cleanup
+      await withTimeout(dbService.disconnect(), 2000);
+    } catch (e) {
+      // Ignore disconnect errors and timeout errors
+    }
+  }
+
+  // Wait for file handles to be released
+  await new Promise(resolve => setTimeout(resolve, 100));
 
   if (fs.existsSync(TEST_SQLITE_PATH)) {
-    fs.unlinkSync(TEST_SQLITE_PATH);
+    try {
+      fs.unlinkSync(TEST_SQLITE_PATH);
+    } catch (e) {
+      // Ignore file deletion errors
+    }
   }
 }
 
@@ -113,15 +128,42 @@ jest.setTimeout(30000);
 describe('MetricsLogger', () => {
   let dbService: DatabaseService;
   let metricsLogger: MetricsLogger;
+  const cleanup = new TestCleanupManager();
 
   beforeEach(async () => {
     dbService = await setupTestDatabase();
+    cleanup.trackDatabaseService(dbService);
     metricsLogger = new MetricsLogger({ dbService });
   });
 
   afterEach(async () => {
-    if (metricsLogger) { try { await metricsLogger.close(); } catch (e) { /* ignore */ } }
+    // Close metrics logger first
+    if (metricsLogger) {
+      try {
+        await metricsLogger.close();
+      } catch (e) {
+        // Ignore close errors
+      }
+    }
+
+    // Clean up all connections (withTimeout handles timer cleanup internally)
+    await cleanup.cleanupAll({
+      timeout: 3000,
+      suppressErrors: true,
+      forceClose: true
+    });
+
+    // Clean up test database files
     await cleanupTestDatabase(dbService);
+  });
+
+  afterAll(async () => {
+    // Final cleanup to ensure no hanging connections
+    await cleanup.cleanupAll({
+      timeout: 1000,
+      suppressErrors: true,
+      forceClose: true
+    });
   });
 
   describe('Single Metric Logging', () => {

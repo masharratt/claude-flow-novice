@@ -138,6 +138,7 @@ function createHashVariant(original: string, position: number): string {
 // ============================================================================
 
 describe('Timing Attack Prevention - Backup Manager Hash Validation', () => {
+  const PROJECT_ROOT = path.join(__dirname, '../..');
   const TEST_DIR = path.join(__dirname, '../../.test-data/timing-attack');
   const DB_PATH = path.join(TEST_DIR, 'backups.db');
   const BACKUP_DIR = path.join(TEST_DIR, '.backups');
@@ -161,11 +162,11 @@ describe('Timing Attack Prevention - Backup Manager Hash Validation', () => {
       fs.unlinkSync(DB_PATH);
     }
 
-    // Initialize BackupManager
+    // Initialize BackupManager with actual project root for migration lookup
     backupManager = new BackupManager({
       backupDir: BACKUP_DIR,
       dbPath: DB_PATH,
-      projectRoot: TEST_DIR,
+      projectRoot: PROJECT_ROOT,
     });
 
     // Create test file

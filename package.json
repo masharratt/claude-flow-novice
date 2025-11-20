@@ -130,7 +130,7 @@
     "portal:status": "./scripts/portal-status.sh",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:integration": "jest tests/integration --maxWorkers=4",
+    "test:integration": "jest --config=jest.integration.config.ts --maxWorkers=4",
     "test:performance": "jest tests/performance --maxWorkers=2",
     "test:load": "jest tests/load-testing --maxWorkers=2 --testTimeout=30000",
     "docker:build": "docker build -f Dockerfile.production -t claude-flow-novice:production .",
@@ -151,7 +151,9 @@
     "db:rollback:dry-run": "tsx scripts/migrations/rollback.ts --dry-run",
     "db:migrations:list": "tsx scripts/migrations/list-migrations.ts",
     "db:migrations:validate": "tsx scripts/migrations/validate.ts",
-    "db:migrations:history": "tsx scripts/migrations/history.ts"
+    "db:migrations:history": "tsx scripts/migrations/history.ts",
+    "test:integration:verbose": "jest --config=jest.integration.config.ts --maxWorkers=4 --verbose",
+    "test:integration:watch": "jest --config=jest.integration.config.ts --maxWorkers=2 --watch"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
@@ -171,6 +173,7 @@
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "redis": "^5.8.3",
+    "shell-quote": "^1.8.3",
     "socket.io": "^4.8.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
@@ -189,6 +192,7 @@
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
     "@types/pg": "^8.15.6",
+    "@types/shell-quote": "^1.7.5",
     "@types/sqlite3": "^3.1.11",
     "@types/uuid": "^10.0.0",
     "@types/yaml": "^1.9.6",

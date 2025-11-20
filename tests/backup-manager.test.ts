@@ -8,13 +8,18 @@ import { BackupManager } from '../src/hooks/backup-manager.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { TestCleanupManager } from './utils/cleanup';
 
 describe('BackupManager', () => {
   let tempDir: string;
   let backupManager: BackupManager;
   let testFilePath: string;
+  const cleanup = new TestCleanupManager();
 
+  // Use fake timers to prevent async leaks
   beforeEach(async () => {
+    jest.useFakeTimers();
+
     // Create temporary directory for testing
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'backup-test-'));
     backupManager = new BackupManager(tempDir, {
@@ -29,6 +34,13 @@ describe('BackupManager', () => {
   });
 
   afterEach(async () => {
+    // Clear all timers
+    jest.clearAllTimers();
+    jest.useRealTimers();
+
+    // Clean up all async resources
+    await cleanup.cleanupAll();
+
     // Clean up temporary directory
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
@@ -141,8 +153,8 @@ describe('BackupManager', () => {
     it('should create timestamped backup directory names', async () => {
       const result1 = await backupManager.createBackup(testFilePath, 'test-agent');
 
-      // Small delay to ensure different timestamp
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Advance timers to ensure different timestamp
+      jest.advanceTimersByTime(100);
 
       const result2 = await backupManager.createBackup(testFilePath, 'test-agent');
 
@@ -183,15 +195,15 @@ describe('BackupManager', () => {
       await fs.writeFile(testFilePath, content1);
       await backupManager.createBackup(testFilePath, 'test-agent');
 
-      // Small delay
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Advance timers
+      jest.advanceTimersByTime(50);
 
       const content2 = 'version2\n';
       await fs.writeFile(testFilePath, content2);
       await backupManager.createBackup(testFilePath, 'test-agent');
 
-      // Small delay
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Advance timers
+      jest.advanceTimersByTime(50);
 
       // Modify to something else
       await fs.writeFile(testFilePath, 'current version\n');
@@ -209,7 +221,7 @@ describe('BackupManager', () => {
     it('should list all backups for a file', async () => {
       await backupManager.createBackup(testFilePath, 'agent1');
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      jest.advanceTimersByTime(50);
 
       await backupManager.createBackup(testFilePath, 'agent2');
 
@@ -230,7 +242,7 @@ describe('BackupManager', () => {
     it('should sort backups by most recent first', async () => {
       await backupManager.createBackup(testFilePath, 'agent1');
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      jest.advanceTimersByTime(100);
 
       await backupManager.createBackup(testFilePath, 'agent2');
 
@@ -264,9 +276,9 @@ describe('BackupManager', () => {
         await fs.writeFile(testFilePath, content);
         await backupManager.createBackup(testFilePath, 'test-agent');
 
-        // Small delay between backups
+        // Advance timers between backups
         if (i < 7) {
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          jest.advanceTimersByTime(10);
         }
       }
 
@@ -296,7 +308,7 @@ describe('BackupManager', () => {
         await backupManager.createBackup(testFilePath, 'test-agent');
 
         if (i < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          jest.advanceTimersByTime(10);
         }
       }
 
