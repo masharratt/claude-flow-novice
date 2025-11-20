@@ -62,9 +62,6 @@ fi
 
 **Old (Deprecated):**
 ```bash
-redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
-  "${AGENT_ID}" "0.85"
-```
 
 **New (Required):**
 ```bash
@@ -76,14 +73,14 @@ if [ -z "$TASK_ID" ] || [ -z "$ITERATION" ] || [ -z "$AGENT_ID" ]; then
 fi
 
 # Validate helper exists and is executable
-HELPER_PATH="./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh"
-if [ ! -x "$HELPER_PATH" ]; then
-    echo "❌ ERROR: Helper script not found or not executable: $HELPER_PATH" >&2
-    exit 1
-fi
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
-# Execute tests and capture output
-TEST_OUTPUT=$(npm test 2>&1)
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 
 # Parse test results (capture exit code)
 set +e  # Temporarily allow failures
@@ -109,14 +106,8 @@ else
         echo "   Results: $RESULTS" >&2
         # Continue anyway (Task mode)
     else
-        # Store in Redis (capture failures)
-        if ! redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-            "${AGENT_ID}" "$RESULTS" >/dev/null 2>&1; then
-            echo "⚠️  WARNING: Failed to store results in Redis" >&2
         fi
 
-        # Signal completion (capture failures)
-        if ! redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done" >/dev/null 2>&1; then
             echo "⚠️  WARNING: Failed to signal completion in Redis" >&2
         fi
     fi
@@ -162,12 +153,14 @@ You are a specialized frontend designer creating accessible, responsive, and bea
 Complete your work and provide test-based validation:
 
 1. **Execute Tests**: Run all test suites from success criteria
-2. **Parse Results**: Use parse-test-results.sh helper
-3. **Report Metrics**:
-   - Total tests: X
-   - Passed: Y
-   - Failed: Z
-   - Pass rate: Y/X (e.g., 0.94)
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
    - Coverage: ≥80%
 4. **Store in Redis**: Use test-results key (not confidence key)
 5. **Signal Completion**: Push to completion queue
@@ -189,14 +182,14 @@ Test Execution Summary:
 
 The Loop 3 → Loop 2 gate is evaluated in `.claude/skills/cfn-loop-orchestration/orchestrate.sh`:
 
-1. **Collection**: Orchestrator calls `parse-test-results.sh` to extract pass rates from all Loop 3 agents
-2. **Aggregation**: Calculates weighted average across test suites
-3. **Threshold Check**: Compares against mode-specific threshold:
-   - MVP: ≥0.70
-   - Standard: ≥0.95
-   - Enterprise: ≥0.98
-4. **Decision**:
-   - Gate PASSES → Spawn Loop 2 validators (validation phase begins)
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
    - Gate FAILS → Wake Loop 3 agents for iteration N+1 (skip Loop 2)
 
 **Manual Override**: Product Owner can override gate in exceptional cases via `FORCE_GATE_PASS=true` environment variable

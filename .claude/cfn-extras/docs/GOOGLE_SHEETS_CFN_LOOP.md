@@ -318,12 +318,15 @@ automation_001 (depends on all above)
 # 3. Signal completion
 coordination-signal "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 
-# 4. Report results
-./.claude/skills/cfn-coordination/report-completion.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.95 \
-  --result '{"deliverables": ["sheet_created"], "tests_passed": 5, "tests_total": 5}'
+# 4. Report results (CLI Mode - uses Redis coordination)
+# Task Mode: Simply return structured JSON output instead
+if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+  redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" \
+    confidence 0.95 \
+    deliverables '["sheet_created"]' \
+    tests_passed 5 \
+    tests_total 5
+fi
 ```
 
 ### Loop 2 Validation
@@ -336,11 +339,10 @@ coordination-wait "swarm:${TASK_ID}:gate-passed"
   --sprint-id "$SPRINT_ID" \
   --validation-type comprehensive
 
-# 3. Report confidence score
-./.claude/skills/cfn-coordination/report-completion.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.92
+# 3. Report confidence score (CLI Mode)
+if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
+  redis-cli HSET "swarm:${TASK_ID}:${AGENT_ID}:result" confidence 0.92
+fi
 ```
 
 ## API Quota Management

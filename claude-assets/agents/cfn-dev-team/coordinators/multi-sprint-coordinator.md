@@ -45,25 +45,18 @@ fi
 
 **Old (Deprecated):**
 ```bash
-redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
-  "${AGENT_ID}" "0.85"
-```
 
 **New (Required):**
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
 
-# Parse test results
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
-  "jest" "$TEST_OUTPUT")
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
-# Store in Redis
-redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-  "${AGENT_ID}" "$RESULTS"
-
-# Signal completion
-redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
 ```
 
 ## Core Responsibilities
@@ -99,30 +92,12 @@ When spawned via CLI (`npx claude-flow-novice agent-spawn`), implement Redis-bas
 #### 1. Epic Context Storage
 ```bash
 # Store epic-level configuration in Redis
-redis-cli HSET "epic:task:${TASK_ID}:context" \
-  "epic_name" "${EPIC_NAME}" \
-  "epic_goal" "${EPIC_GOAL}" \
-  "in_scope" "${IN_SCOPE}" \
-  "out_of_scope" "${OUT_OF_SCOPE}" \
-  "total_sprints" "${TOTAL_SPRINTS}" \
-  "current_sprint" "1" \
-  "epic_status" "initializing" \
-  "mode" "${MODE}" \
-  "created_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # Store sprint decomposition
 for i in "${!SPRINTS[@]}"; do
   sprint_num=$((i + 1))
   sprint_data="${SPRINTS[$i]}"
 
-  redis-cli HSET "epic:task:${TASK_ID}:sprint:${sprint_num}" \
-    "sprint_name" "$(echo "$sprint_data" | jq -r '.sprint_name')" \
-    "deliverables" "$(echo "$sprint_data" | jq -r '.deliverables | join(",")')" \
-    "in_scope" "$(echo "$sprint_data" | jq -r '.in_scope | join(",")')" \
-    "out_of_scope" "$(echo "$sprint_data" | jq -r '.out_of_scope | join(",")')" \
-    "directory" "$(echo "$sprint_data" | jq -r '.directory')" \
-    "status" "pending" \
-    "dependencies" "$(echo "$sprint_data" | jq -r '.dependencies | join(",")')"
 done
 
 # Store dependency graph
@@ -139,14 +114,8 @@ execute_sprint() {
   echo "🏃 Executing Sprint ${sprint_num}/${TOTAL_SPRINTS}: $(echo "$sprint_data" | jq -r '.sprint_name')"
 
   # Update sprint status
-  redis-cli HSET "epic:task:${TASK_ID}:sprint:${sprint_num}" \
-    "status" "running" \
-    "started_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
   # Update epic status
-  redis-cli HSET "epic:task:${TASK_ID}:context" \
-    "current_sprint" "$sprint_num" \
-    "epic_status" "sprint_executing"
 
   # Prepare sprint context for CFN Loop
   SPRINT_CONTEXT=$(cat <<EOF
@@ -185,10 +154,6 @@ EOF
 
   if [ $SPRINT_RESULT -eq 0 ]; then
     # Sprint completed successfully
-    redis-cli HSET "epic:task:${TASK_ID}:sprint:${sprint_num}" \
-      "status" "completed" \
-      "completed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-      "result" "success"
 
     # Store sprint deliverables
     store_sprint_deliverables "$sprint_num" "$sprint_data"
@@ -197,10 +162,6 @@ EOF
     return 0
   else
     # Sprint failed
-    redis-cli HSET "epic:task:${TASK_ID}:sprint:${sprint_num}" \
-      "status" "failed" \
-      "failed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-      "result" "failure"
 
     echo "❌ Sprint ${sprint_num} failed"
     return 1
@@ -279,9 +240,6 @@ execute_epic_sequentially() {
     # Check dependencies
     if ! check_sprint_dependencies "$sprint_num" "$dependencies"; then
       echo "❌ Dependencies not satisfied for Sprint ${sprint_num}. Aborting epic."
-      redis-cli HSET "epic:task:${TASK_ID}:context" \
-        "epic_status" "dependency_failure" \
-        "failed_at_sprint" "$sprint_num"
       return 1
     fi
 
@@ -303,9 +261,6 @@ execute_epic_sequentially() {
         echo "⚠️ Continuing epic despite Sprint ${sprint_num} failure"
       else
         echo "❌ Aborting epic due to Sprint ${sprint_num} failure"
-        redis-cli HSET "epic:task:${TASK_ID}:context" \
-          "epic_status" "aborted" \
-          "failed_at_sprint" "$sprint_num"
         return 1
       fi
     fi
@@ -315,11 +270,6 @@ execute_epic_sequentially() {
   done
 
   # Epic completed successfully
-  redis-cli HSET "epic:task:${TASK_ID}:context" \
-    "epic_status" "completed" \
-    "completed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    "successful_sprints" "$successful_sprints" \
-    "failed_sprints" "$failed_sprints"
 
   echo "🎉 Epic completed: ${successful_sprints}/${TOTAL_SPRINTS} sprints successful"
   generate_epic_report
@@ -381,10 +331,6 @@ store_sprint_deliverables() {
   done
 
   # Store deliverable list
-  redis-cli HSET "epic:task:${TASK_ID}:sprint:${sprint_num}" \
-    "created_deliverables" "$(IFS=,; echo "${created_deliverables[*]}")" \
-    "expected_deliverables" "$(IFS=,; echo "${deliverables[*]}")" \
-    "deliverable_count" "${#created_deliverables[@]}"
 }
 
 # Store sprint execution metrics
@@ -395,10 +341,6 @@ store_sprint_metrics() {
   # Get execution time from CFN Loop result
   local execution_time=$(redis-cli HGET "cfn_loop:task:${TASK_ID}-sprint-${sprint_num}:result" "execution_time_seconds" || echo "0")
 
-  redis-cli HSET "epic:task:${TASK_ID}:sprint:${sprint_num}:metrics" \
-    "execution_time" "$execution_time" \
-    "result" "$result" \
-    "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 ```
 
@@ -443,11 +385,6 @@ EOF
 EOF
 
   # Store report location in Redis
-  redis-cli HSET "epic:task:${TASK_ID}:result" \
-    "report_file" "$report_file" \
-    "epic_name" "$EPIC_NAME" \
-    "completion_status" "success" \
-    "report_generated_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
   echo "📊 Epic report generated: $report_file"
 }
@@ -463,11 +400,6 @@ signal_epic_completion() {
 
   if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
     # Store epic completion data
-    redis-cli HSET "epic:task:${TASK_ID}:completion" \
-      "confidence" "$confidence" \
-      "status" "$status" \
-      "summary" "$summary" \
-      "completed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
     # Signal epic completion
     redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
@@ -538,12 +470,14 @@ When spawned via Task() tool in Main Chat:
 Complete your multi-sprint coordination work and provide test-based validation:
 
 1. **Execute Tests**: Run all test suites from success criteria
-2. **Parse Results**: Use parse-test-results.sh helper
-3. **Report Metrics**:
-   - Total tests: X
-   - Passed: Y
-   - Failed: Z
-   - Pass rate: Y/X (e.g., 0.95)
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
    - Coverage: ≥80%
 4. **Store in Redis**: Use test-results key (not confidence key)
 5. **Signal Completion**: Push to completion queue

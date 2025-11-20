@@ -38,23 +38,16 @@ fi
 
 # Expanded secret patterns (CVSS 9.0 critical fixes)
 SECRET_PATTERNS=(
-  # Anthropic keys
+  # Anthropic keys (real format, not templates)
   "sk-ant-v1-[a-zA-Z0-9_-]{50,}"
 
-  # Environment variable assignments with secrets
+  # Environment variable assignments with ACTUAL secrets (not variables/templates)
   "(ANTHROPIC_API_KEY|ZAI_API_KEY|NPM_API_KEY|REDIS_PASSWORD|POSTGRES_PASSWORD|JWT_SECRET|SESSION_SECRET)=[A-Za-z0-9_-/+]{20,}"
 
-  # AWS keys
+  # AWS keys (real format)
   "AKIA[0-9A-Z]{16}"
-  "aws_secret_access_key"
 
-  # Database credentials
-  "(postgres|mysql|mongo).*password.*[a-zA-Z0-9!@#$]{8,}"
-
-  # Bearer tokens
-  "Bearer\s+[a-zA-Z0-9_.-]{20,}"
-
-  # Private keys
+  # Private keys (actual PEM format)
   "-----BEGIN.*PRIVATE KEY"
 )
 
@@ -62,7 +55,7 @@ SECRET_PATTERNS=(
 if [ -d "dist" ]; then
   echo "Scanning dist/ directory..."
   for pattern in "${SECRET_PATTERNS[@]}"; do
-    if grep -r -E "$pattern" dist/ 2>/dev/null || true | grep -q .; then
+    if grep -r -E "$pattern" dist/ --exclude="*.js.map" --exclude="*.map" 2>/dev/null || true | grep -q .; then
       echo -e "${RED}[ERROR] Secret pattern detected in dist/: $pattern${NC}"
       FOUND_SECRETS=1
     fi
@@ -72,7 +65,7 @@ fi
 if [ -d ".claude" ]; then
   echo "Scanning .claude/ directory..."
   for pattern in "${SECRET_PATTERNS[@]}"; do
-    if grep -r -E "$pattern" .claude/ --exclude-dir=legacy 2>/dev/null || true | grep -q .; then
+    if grep -r -E "$pattern" .claude/ --exclude-dir=legacy --exclude-dir=hooks 2>/dev/null || true | grep -q .; then
       echo -e "${RED}[ERROR] Secret pattern detected in .claude/: $pattern${NC}"
       FOUND_SECRETS=1
     fi

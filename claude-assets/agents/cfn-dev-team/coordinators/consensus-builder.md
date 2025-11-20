@@ -53,25 +53,18 @@ fi
 
 **Old (Deprecated):**
 ```bash
-redis-cli HSET "swarm:${TASK_ID}:confidence:iteration${ITERATION}" \
-  "${AGENT_ID}" "0.85"
-```
 
 **New (Required):**
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
 
-# Parse test results
-RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \
-  "jest" "$TEST_OUTPUT")
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
-# Store in Redis
-redis-cli HSET "swarm:${TASK_ID}:test-results:iteration${ITERATION}" \
-  "${AGENT_ID}" "$RESULTS"
-
-# Signal completion
-redis-cli LPUSH "swarm:${TASK_ID}:completion:${AGENT_ID}" "done"
 ```
 
 ## Core Responsibilities
@@ -97,22 +90,9 @@ When spawned via CLI (`npx claude-flow-novice agent-spawn`), implement Redis-bas
 #### 1. Consensus Context Storage
 ```bash
 # Store consensus parameters in Redis
-redis-cli HSET "consensus:task:${TASK_ID}:context" \
-  "decision_type" "${DECISION_TYPE}" \
-  "participants" "${PARTICIPANTS}" \
-  "threshold" "${CONSENSUS_THRESHOLD}" \
-  "voting_method" "${VOTING_METHOD}" \
-  "timeout" "${TIMEOUT}" \
-  "decision_criteria" "${DECISION_CRITERIA}"
 
 # Store individual participant status
 for participant in "${PARTICIPANTS[@]}"; do
-  redis-cli HSET "consensus:task:${TASK_ID}:participant:${participant}" \
-    "status" "pending" \
-    "vote" null \
-    "confidence" null \
-    "reasoning" null \
-    "joined_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 done
 ```
 
@@ -124,11 +104,6 @@ spawn_consensus_participants() {
     AGENT_ID="${TASK_ID}-${participant}-$(date +%s)"
 
     # Register participant
-    redis-cli HSET "consensus:agent:${AGENT_ID}" \
-      "agent_type" "${participant}" \
-      "task_id" "${TASK_ID}" \
-      "consensus_type" "${DECISION_TYPE}" \
-      "status" "spawning"
 
     # Prepare consensus context
     CONSENSUS_CONTEXT=$(cat <<EOF
@@ -227,16 +202,6 @@ else
 fi
 
 # Store consensus results
-redis-cli HSET "consensus:task:${TASK_ID}:result" \
-  "status" "$CONSENSUS_STATUS" \
-  "decision" "$CONSENSUS_RESULT" \
-  "approve_count" "$APPROVE_COUNT" \
-  "reject_count" "$REJECT_COUNT" \
-  "abstain_count" "$ABSTAIN_COUNT" \
-  "timeout_count" "$TIMEOUT_COUNT" \
-  "consensus_ratio" "$CONSENSUS_RATIO" \
-  "average_confidence" "$AVERAGE_CONFIDENCE" \
-  "completed_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 
 #### 5. Iteration Management
@@ -275,10 +240,6 @@ EOF
   done
 
   # Store feedback for next iteration
-  redis-cli HSET "consensus:task:${TASK_ID}:iteration:${CURRENT_ITERATION}" \
-    "feedback" "$FEEDBACK" \
-    "consensus_ratio" "$CONSENSUS_RATIO" \
-    "result" "$CONSENSUS_RESULT"
 
   echo "$FEEDBACK"
 }
@@ -310,11 +271,6 @@ signal_participant_vote() {
 
   if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
     # Store vote data
-    redis-cli HSET "consensus:task:${TASK_ID}:participant:${AGENT_ID}" \
-      "vote" "$vote" \
-      "confidence" "$confidence" \
-      "reasoning" "$reasoning" \
-      "voted_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
     # Signal vote completion
     redis-cli lpush "consensus:${TASK_ID}:${AGENT_ID}:vote" "${vote}"
@@ -352,7 +308,6 @@ EOF
   redis-cli PUBLISH "${consensus_channel}" "${result_payload}"
 
   # Store in result queue for consumers
-  redis-cli LPUSH "consensus:results" "${result_payload}"
 
   echo "📢 Consensus result broadcasted: ${CONSENSUS_RESULT}"
 }
@@ -485,12 +440,14 @@ When spawned via Task() tool in Main Chat:
 Complete your consensus-building work and provide test-based validation:
 
 1. **Execute Tests**: Run all test suites from success criteria
-2. **Parse Results**: Use parse-test-results.sh helper
-3. **Report Metrics**:
-   - Total tests: X
-   - Passed: Y
-   - Failed: Z
-   - Pass rate: Y/X (e.g., 0.95)
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+TOTAL=$((PASS + FAIL))
+RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
    - Coverage: ≥80%
 4. **Store in Redis**: Use test-results key (not confidence key)
 5. **Signal Completion**: Push to completion queue

@@ -1,0 +1,325 @@
+================================================================================
+DEPENDENCY DIAGRAM: Shell → TypeScript Migration
+================================================================================
+
+LEGEND:
+  [TS] = Already TypeScript
+  [SH] = Shell script (needs migration)
+  [P0] = Critical for 5-iteration e2e
+  [P1] = High value, post-validation
+  [P2] = Can skip, inline logic
+  [EX] = External skill, mock in tests
+
+================================================================================
+ORCHESTRATOR CALL FLOW
+================================================================================
+
+orchestrate.sh (1,345 LOC)
+│
+├─→ [P0] parse-test-results.sh (236 LOC)
+│   │
+│   └─→ [NEW] parse-test-results.ts
+│       ├─ Type: Jest JSON parser
+│       ├─ Purpose: Calculate pass rate from test output
+│       ├─ Lines: 240 LOC
+│       ├─ Tests: 8 unit tests
+│       └─ Exit criteria: >90% coverage, handles all formats
+│
+├─→ [P0] gate-check.sh (243 LOC)
+│   │
+│   ├─→ parse-test-results.ts (ABOVE)
+│   ├─→ [TS] context-manager.ts (327 LOC) ✓
+│   │
+│   └─→ [NEW] gate-check.ts
+│       ├─ Type: Pass rate validator
+│       ├─ Purpose: Compare rate vs threshold (mvp/standard/enterprise)
+│       ├─ Lines: 245 LOC
+│       ├─ Tests: 12 unit tests
+│       └─ Exit criteria: All 3 modes tested, boundary cases
+│
+├─→ [P0] spawn-agents.sh (137 LOC)
+│   │
+│   └─→ [NEW] spawn-agents.ts
+│       ├─ Type: Agent spawning wrapper
+│       ├─ Purpose: Invoke npx claude-flow-novice agent-spawn
+│       ├─ Lines: 135 LOC
+│       ├─ Tests: 4 unit tests
+│       └─ Exit criteria: Format validation, dry-run mode
+│
+├─→ [P0] iteration-manager.sh (66 LOC)
+│   │
+│   ├─→ [TS] context-manager.ts (327 LOC) ✓
+│   │
+│   └─→ [NEW] iteration-manager.ts
+│       ├─ Type: Iteration counter
+│       ├─ Purpose: Increment iteration in Redis
+│       ├─ Lines: 70 LOC
+│       ├─ Tests: 3 unit tests
+│       └─ Exit criteria: 1→2→3→4→5 progression verified
+│
+├─→ [P0] context-injector.sh (95 LOC)
+│   │
+│   ├─→ [TS] context-manager.ts (327 LOC) ✓
+│   │
+│   └─→ [NEW] context-injector.ts
+│       ├─ Type: Broadcast message builder
+│       ├─ Purpose: Build broadcast context for agents
+│       ├─ Lines: 95 LOC
+│       ├─ Tests: 3 unit tests
+│       └─ Exit criteria: Valid JSON broadcast format
+│
+├─→ [P0] invoke-waiting-mode.sh (224 LOC) [P0]
+│   │
+│   ├─→ [TS] waiting-coordinator.ts (587 LOC) ✓
+│   │
+│   └─→ [NEW] invoke-redis.sh (wrapper, 50 LOC)
+│       ├─ Type: Bash-to-Node.js bridge
+│       ├─ Purpose: Call compiled TS modules from shell
+│       ├─ Lines: 50 LOC (shell)
+│       ├─ Calls: node dist/waiting-coordinator.js
+│       └─ Exit criteria: Callable from shell, returns JSON
+│
+├─→ [P0] get-context.sh (145 LOC) [P0]
+│   │
+│   ├─→ [TS] context-manager.ts (327 LOC) ✓
+│   ├─→ invoke-redis.sh (wrapper, 50 LOC)
+│   │
+│   └─ Exit criteria: Retrieved from Redis
+│
+├─→ [P0] store-context.sh (93 LOC) [P0]
+│   │
+│   ├─→ [TS] context-manager.ts (327 LOC) ✓
+│   ├─→ invoke-redis.sh (wrapper, 50 LOC)
+│   │
+│   └─ Exit criteria: Stored in Redis
+│
+├─→ [P1] context-lookup.sh (247 LOC)
+│   │
+│   ├─→ [TS] context-manager.ts (327 LOC) ✓
+│   │
+│   └─→ [NEW] context-lookup.ts (P1, post-validation)
+│       ├─ Type: Context retrieval module
+│       └─ Defer: Complete after gate-check validated
+│
+├─→ [P1] collect-confidence-scores.sh (224 LOC)
+│   │
+│   ├─→ [TS] result-collector.ts (437 LOC) ✓
+│   │
+│   └─→ [NEW] confidence-aggregator.ts (P1, post-validation)
+│       ├─ Type: Loop 3 score aggregation
+│       └─ Defer: Complete after spawn-agents validated
+│
+├─→ [P2] deliverable-verifier.sh (38 LOC)
+│   └─ Inline into orchestrator.ts (P3)
+│
+├─→ [P2] timeout-calculator.sh (26 LOC)
+│   └─ Inline into orchestrator.ts (P3)
+│
+├─→ [EX] cfn-product-owner-decision/execute-decision.sh (367 LOC)
+│   └─ Mock in tests, external agent spawning
+│
+├─→ [EX] cfn-task-mode-sanitize/task-mode-env-sanitizer.sh (150 LOC)
+│   └─ Skip for CLI mode e2e
+│
+└─→ [EX] cfn-validation-runner-instrumentation/wrapped-executor.sh (290 LOC)
+    └─ Skip for CLI mode e2e
+
+================================================================================
+ORCHESTRATOR MAIN LOOP (orchestrator.ts - NEW, 500 LOC, P0)
+================================================================================
+
+orchestrator.ts (NEW, 500 LOC)
+│
+├─→ ITERATION LOOP (1 to MAX_ITERATIONS)
+│   │
+│   ├─→ SETUP PHASE (50 LOC)
+│   │   ├─ Load task from Redis [TS context-manager]
+│   │   ├─ Validate success criteria [TS task-analyzer]
+│   │   └─ Inject broadcast context [context-injector.ts]
+│   │
+│   ├─→ LOOP 3 SPAWN (100 LOC)
+│   │   ├─ spawn-agents.ts → invoke npx
+│   │   ├─ Wait for completion signals
+│   │   └─ Collect test results
+│   │
+│   ├─→ LOOP 3 VALIDATION (100 LOC)
+│   │   ├─ Parse test results [parse-test-results.ts]
+│   │   ├─ Check gate [gate-check.ts]
+│   │   └─ Decision: PROCEED or ITERATE
+│   │       │
+│   │       ├─ IF ITERATE: Continue to next iteration
+│   │       │
+│   │       └─ IF PROCEED: Move to Loop 2
+│   │
+│   ├─→ LOOP 2 SPAWN (75 LOC)
+│   │   ├─ spawn-agents.ts → invoke npx
+│   │   ├─ Wait for completion signals
+│   │   └─ Collect consensus scores
+│   │
+│   ├─→ CONSENSUS VALIDATION (100 LOC)
+│   │   ├─ Aggregate scores [confidence-aggregator.ts] (P1)
+│   │   ├─ Check consensus threshold
+│   │   └─ Decision: PROCEED or ITERATE
+│   │
+│   ├─→ PRODUCT OWNER DECISION (75 LOC)
+│   │   ├─ Invoke PO agent [external]
+│   │   ├─ Parse decision
+│   │   └─ PROCEED/ITERATE/ABORT
+│   │
+│   └─→ ITERATION UPDATE (50 LOC)
+│       ├─ Increment iteration [iteration-manager.ts]
+│       ├─ Store state in Redis
+│       └─ Check max iterations
+│
+└─→ FINAL REPORTING (100 LOC)
+    ├─ Store final decision
+    ├─ Capture metrics
+    └─ Return exit code
+
+================================================================================
+TYPESCRIPT MODULE STRUCTURE
+================================================================================
+
+cfn-loop-orchestration/ (CURRENT DIRECTORY)
+│
+├── src/
+│   ├── [EXISTING]
+│   │   ├── security_utils.sh
+│   │   └── helpers/ (9 helper scripts, to migrate)
+│   │
+│   ├── [NEW - P0 PHASE 1]
+│   │   ├── parse-test-results.ts (240 LOC) ✓
+│   │   ├── gate-check.ts (245 LOC) ✓
+│   │   └── types.ts (200 LOC) (shared types)
+│   │
+│   ├── [NEW - P0 PHASE 2]
+│   │   ├── spawn-agents.ts (135 LOC)
+│   │   ├── iteration-manager.ts (70 LOC)
+│   │   ├── context-injector.ts (95 LOC)
+│   │   └── index.ts (barrel export)
+│   │
+│   ├── [NEW - P0 PHASE 3]
+│   │   ├── orchestrator.ts (500 LOC)
+│   │   └── validator.ts (100 LOC)
+│   │
+│   ├── [NEW - P1 PHASE 4]
+│   │   ├── context-lookup.ts (247 LOC)
+│   │   ├── confidence-aggregator.ts (224 LOC)
+│   │   └── completion-reporter.ts (89 LOC)
+│   │
+│   └── __tests__/
+│       ├── parse-test-results.test.ts (15 tests)
+│       ├── gate-check.test.ts (14 tests)
+│       ├── spawn-agents.test.ts (6 tests)
+│       ├── orchestrator.integration.test.ts (8 tests)
+│       └── e2e-5-iteration.test.ts (1 test)
+│
+├── bin/
+│   └── orchestrate.ts (30 LOC) [NEW]
+│
+├── dist/
+│   ├── parse-test-results.js
+│   ├── parse-test-results.d.ts
+│   ├── gate-check.js
+│   ├── gate-check.d.ts
+│   ├── orchestrator.js
+│   ├── orchestrator.d.ts
+│   └── ... (compiled outputs)
+│
+├── invoke-redis.sh (50 LOC) [NEW - WRAPPER]
+│
+├── orchestrate.sh [MODIFIED - CALLS Node.js]
+│
+└── helpers/ [DEPRECATED - TO MIGRATE]
+    ├── parse-test-results.sh
+    ├── gate-check.sh
+    ├── spawn-agents.sh
+    ├── iteration-manager.sh
+    ├── context-injector.sh
+    ├── context-lookup.sh
+    └── consensus.sh
+
+================================================================================
+MIGRATION DEPENDENCY CHAIN
+================================================================================
+
+START
+  │
+  └─→ [PHASE 1] Parse & Gate Foundation
+      ├─ parse-test-results.ts (standalone, no deps)
+      ├─ gate-check.ts (depends: parse-test-results)
+      ├─ invoke-redis.sh wrapper (depends: compiled modules)
+      └─ UNBLOCKS: Phase 2
+           │
+           └─→ [PHASE 2] Spawn & Context
+               ├─ spawn-agents.ts (standalone, no deps)
+               ├─ iteration-manager.ts (depends: context-manager [TS])
+               ├─ context-injector.ts (depends: context-manager [TS])
+               └─ UNBLOCKS: Phase 3
+                    │
+                    └─→ [PHASE 3] Main Orchestrator
+                        ├─ orchestrator.ts (depends: all P0 modules)
+                        ├─ bin/orchestrate.ts (depends: orchestrator)
+                        ├─ Refactor orchestrate.sh → call Node.js
+                        └─ UNBLOCKS: E2E Validation
+                             │
+                             └─→ [PHASE 4] Post-Validation Robustness (Optional)
+                                 ├─ context-lookup.ts (depends: context-manager [TS])
+                                 ├─ confidence-aggregator.ts (depends: result-collector [TS])
+                                 ├─ completion-reporter.ts (depends: agent-logger [TS])
+                                 └─ END: Full TypeScript Migration
+
+================================================================================
+CRITICAL PATH ANALYSIS (5-ITERATION E2E)
+================================================================================
+
+Iteration 1:
+  Setup (2 min) → Spawn Loop 3 (2 min) → Gate Check (1 min) → Total: ~5 min
+
+Iteration 2-5:
+  Setup (1 min) → Spawn Loop 2 (2 min) → Consensus (1 min) → Decide (1 min)
+  → Total per iteration: ~5 min
+
+Cumulative Timeline:
+  5 min (iter 1) + 5 min (iter 2) + 5 min (iter 3) + 5 min (iter 4) + 5 min (iter 5)
+  = 25 min total
+
+Buffer for Redis latency/recovery: +5 min
+Total with buffer: ~30 minutes (acceptable for e2e test)
+
+Iteration Timing Requirements:
+  ✓ Parse test results: <1 sec
+  ✓ Gate check: <500ms
+  ✓ Consensus aggregation: <2 sec
+  ✓ Redis operations: <500ms each
+  ✓ Agent wait timeout: 120 sec per iteration
+
+================================================================================
+RISK DEPENDENCY MAP
+================================================================================
+
+HIGH-RISK DEPENDENCY: parse-test-results.ts
+  ├─ Reason: Core to gate validation
+  ├─ Mitigation: 8 unit tests with comprehensive fixtures
+  ├─ Fallback: TAP format parser
+  └─ Blocks: gate-check.ts
+
+HIGH-RISK DEPENDENCY: gate-check.ts
+  ├─ Reason: Critical for Loop 3 → Loop 2 transition
+  ├─ Mitigation: 12 unit tests, boundary cases tested
+  ├─ Fallback: Manual threshold check in orchestrator
+  └─ Blocks: orchestrator.ts
+
+MEDIUM-RISK DEPENDENCY: orchestrator.ts
+  ├─ Reason: Main execution loop
+  ├─ Mitigation: Integration tests with all P0 modules
+  ├─ Fallback: Shell version (existing orchestrate.sh)
+  └─ Blocks: E2E validation
+
+LOW-RISK DEPENDENCIES: spawn-agents, iteration-manager, context-injector
+  ├─ Reason: Wrapper functions around existing code
+  ├─ Mitigation: Unit tests, limited scope
+  ├─ Fallback: Original shell scripts
+  └─ Blocks: orchestrator.ts (but can use shell fallback)
+
+================================================================================

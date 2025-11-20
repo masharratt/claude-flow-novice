@@ -1,6 +1,11 @@
 # Source files (only distribute built files)
 src/
 
+# Exclude source maps from published package
+*.map
+*.js.map
+*.ts.map
+
 # EXPLICITLY INCLUDE .claude/ DIRECTORY
 !.claude/
 !.claude/**

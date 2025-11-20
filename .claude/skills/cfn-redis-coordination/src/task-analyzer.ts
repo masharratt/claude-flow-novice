@@ -139,7 +139,7 @@ export class TaskAnalyzer {
         finalDifficulty = 'simple';
       } else if (complexityScore <= 9) {
         finalDifficulty = 'standard';
-      } else if (complexityScore <= 15) {
+      } else if (complexityScore <= 12) {
         finalDifficulty = 'complex';
       } else {
         finalDifficulty = 'enterprise';

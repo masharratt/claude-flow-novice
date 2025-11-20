@@ -100,7 +100,7 @@ npx claude-flow-novice cfn-spawn cfn-v3-coordinator \
 
 **Agent Communication Pattern:**
 - Coordinator receives broadcast messages via coordination layer
-- Agents signal completion via `report-completion.sh`
+- Agents signal completion via Redis coordination (CLI mode only)
 - Validators wait for gate pass signal before starting
 - Product Owner receives summary and makes decision
 

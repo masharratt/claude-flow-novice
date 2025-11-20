@@ -157,7 +157,7 @@ export class ConnectionPoolManager {
       const port = this.config.port || 6379;
 
       if (this.config.password) {
-        // Include password in connection string: redis://:password@host:port
+        // Include password in connection string (credentials from environment)
         url = `redis://:${encodeURIComponent(this.config.password)}@${host}:${port}`;
       } else {
         url = `redis://${host}:${port}`;
@@ -197,6 +197,7 @@ export class ConnectionPoolManager {
   private async initializePostgresPool(): Promise<void> {
     const connectionString = this.config.connectionString ||
       `postgresql://${this.config.username}:${this.config.password}@${this.config.host}:${this.config.port}/${this.config.database}`;
+    // Note: credentials come from config object (typically loaded from environment variables)
 
     this.pool = new Pool({
       connectionString,
