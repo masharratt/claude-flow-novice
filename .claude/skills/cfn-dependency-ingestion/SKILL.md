@@ -168,6 +168,117 @@ Skill is working correctly when:
 - No DEPRECATED files included (unless --include-deprecated flag set)
 - Output is valid Read commands (can copy-paste directly)
 - File paths are relative to project root
+- No duplicate files in output (deduplication working)
+- File existence validation reports missing files to stderr
+- Type filters correctly exclude non-matching extensions
+
+## Regression Testing
+
+### Expected File Counts (as of 2025-11-20)
+
+Use these validation commands to ensure counts match expectations:
+
+```bash
+# Total files discovered (all priorities, all types, skip validation)
+# Note: 14 after deduplication (was 18 with orchestrate.ts appearing twice and other duplicates)
+expected_total=14
+actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --skip-validation 2>&1 | grep -c "^Read:")
+test $actual -eq $expected_total && echo "✓ Total files: $actual" || echo "✗ Expected $expected_total, got $actual"
+
+# P0 critical path files (in Step 2 section only, not including diagram in Step 1)
+expected_p0=3
+actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --priority P0 --skip-validation 2>&1 | awk '/Step 2:/,/Step 3:/' | grep -c "^Read:")
+test $actual -eq $expected_p0 && echo "✓ P0 files: $actual" || echo "✗ Expected $expected_p0, got $actual"
+
+# TypeScript files (includes .ts, .js, .cjs)
+expected_ts=4
+actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS --skip-validation 2>&1 | grep -c "^Read:")
+test $actual -eq $expected_ts && echo "✓ TypeScript files: $actual" || echo "✗ Expected $expected_ts, got $actual"
+
+# Shell script files (.sh)
+expected_sh=3
+actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type SH --skip-validation 2>&1 | grep "Step 5" -A 20 | grep -c "^Read:.*\.sh$")
+test $actual -eq $expected_sh && echo "✓ Shell files: $actual" || echo "✗ Expected $expected_sh, got $actual"
+```
+
+### Deduplication Test
+
+Verify no file appears more than once:
+
+```bash
+# Check for duplicate Read commands
+duplicates=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --skip-validation 2>&1 | grep "^Read:" | sort | uniq -d)
+if [[ -z "$duplicates" ]]; then
+  echo "✓ No duplicate files"
+else
+  echo "✗ Duplicate files found:"
+  echo "$duplicates"
+fi
+```
+
+### File Existence Validation Test
+
+Verify missing files are reported to stderr:
+
+```bash
+# Count missing files (should be 4 as of 2025-11-20)
+expected_missing=4
+actual=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh 2>&1 | grep "^WARNING: File not found" | wc -l)
+test $actual -eq $expected_missing && echo "✓ Missing file warnings: $actual" || echo "✗ Expected $expected_missing warnings, got $actual"
+
+# Missing files should NOT appear in Read output
+missing_in_output=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh 2>&1 | grep "^Read:" | while read -r line; do
+  file=$(echo "$line" | cut -d' ' -f2)
+  [[ ! -f "$file" ]] && echo "$file"
+done | wc -l)
+test $missing_in_output -eq 0 && echo "✓ No missing files in output" || echo "✗ Found $missing_in_output missing files in output"
+```
+
+### Type Filter Validation
+
+Verify type filters work correctly:
+
+```bash
+# TypeScript filter should only return .ts/.js/.cjs files (plus diagram)
+non_ts=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type TS --skip-validation 2>&1 | grep "^Read:" | grep -v "DEPENDENCY_DIAGRAM" | grep -v "\.ts$\|\.js$\|\.cjs$")
+if [[ -z "$non_ts" ]]; then
+  echo "✓ TypeScript filter working"
+else
+  echo "✗ TypeScript filter returned non-TS files:"
+  echo "$non_ts"
+fi
+
+# Shell filter should only return .sh files (plus diagram)
+non_sh=$(./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --type SH --skip-validation 2>&1 | grep "^Read:" | grep -v "DEPENDENCY_DIAGRAM" | grep -v "\.sh$")
+if [[ -z "$non_sh" ]]; then
+  echo "✓ Shell filter working"
+else
+  echo "✗ Shell filter returned non-SH files:"
+  echo "$non_sh"
+fi
+```
+
+### Known Missing Files (as of 2025-11-20)
+
+These files are referenced in the dependency diagram but do not exist:
+
+1. `.claude/skills/cfn-redis-coordination/SKILL.md`
+2. `.claude/agents/cfn-dev-team/coordinators/cfn-cli-dependency-maintainer.md`
+3. `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
+4. `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+
+**Action:** Update dependency diagram to remove references or create missing files.
+
+### Updating Expected Counts
+
+When files are added/removed from the dependency diagram:
+
+1. Run ingestion script: `./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh --skip-validation`
+2. Count total files: `| grep -c "^Read:"`
+3. Update `expected_total` in regression tests above
+4. Update P0/TS/SH counts similarly
+5. Update "Known Missing Files" section
+6. Document change in Version History
 
 ## Related Documentation
 
@@ -178,4 +289,9 @@ Skill is working correctly when:
 
 ## Version History
 
+- **1.1.0** (2025-11-20): Enhanced with 4 improvements
+  - **Enhancement #1:** Added deduplication logic using `sort -u` (fixes `orchestrate.ts` appearing twice)
+  - **Enhancement #2:** Fixed type filter implementation (TS/SH filters now work correctly)
+  - **Enhancement #3:** Added file existence validation with `--skip-validation` flag
+  - **Enhancement #4:** Documented expected file counts for regression testing
 - **1.0.0** (2025-11-20): Initial release with dynamic parsing from dependency diagram

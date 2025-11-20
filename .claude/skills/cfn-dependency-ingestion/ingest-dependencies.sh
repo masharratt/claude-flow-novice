@@ -12,6 +12,7 @@ DIAGRAM="${PROJECT_ROOT}/readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt"
 PRIORITY_FILTER=""
 TYPE_FILTER=""
 INCLUDE_DEPRECATED=false
+SKIP_VALIDATION=false
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -28,9 +29,13 @@ while [[ $# -gt 0 ]]; do
       INCLUDE_DEPRECATED=true
       shift
       ;;
+    --skip-validation)
+      SKIP_VALIDATION=true
+      shift
+      ;;
     *)
-      echo "Unknown option: $1"
-      echo "Usage: $0 [--priority P0,P1,P2] [--type TS,SH] [--include-deprecated]"
+      echo "Unknown option: $1" >&2
+      echo "Usage: $0 [--priority P0,P1,P2] [--type TS,SH] [--include-deprecated] [--skip-validation]" >&2
       exit 1
       ;;
   esac
@@ -45,12 +50,43 @@ fi
 # Extract all file paths from the diagram
 # Pattern: \.claude/ or src/ or tests/ followed by path and file extension
 # Exclude wildcards and generic patterns
+# Uses sort -u for deduplication (Enhancement #1)
 extract_all_files() {
   grep -E '\.(claude|src|tests)/[^ ]+\.(md|ts|sh|js|cjs)' "$DIAGRAM" | \
     grep -oE '\.(claude|src|tests)/[^ ,)]+\.(md|ts|sh|js|cjs)' | \
     grep -v '\*' | \
     grep -v '<' | \
     sort -u
+}
+
+# Validate file existence (Enhancement #3)
+# Checks if each file exists on filesystem and reports missing files to stderr
+validate_file_existence() {
+  if [[ "$SKIP_VALIDATION" == true ]]; then
+    cat
+    return
+  fi
+
+  local missing_count=0
+
+  while IFS= read -r file; do
+    [[ -z "$file" ]] && continue
+
+    local full_path="${PROJECT_ROOT}/${file}"
+
+    if [[ -f "$full_path" ]]; then
+      echo "$file"
+    else
+      echo "WARNING: File not found: $file" >&2
+      missing_count=$((missing_count + 1))
+    fi
+  done
+
+  if [[ $missing_count -gt 0 ]]; then
+    echo "WARNING: $missing_count file(s) not found (use --skip-validation to disable checks)" >&2
+  fi
+
+  return 0
 }
 
 # Filter by priority markers ([P0], [P1], [P2])
@@ -83,17 +119,26 @@ filter_by_type() {
   # Convert comma-separated types to extension pattern
   while IFS= read -r file; do
     [[ -z "$file" ]] && continue
-    case "$TYPE_FILTER" in
-      *TS*)
-        [[ "$file" =~ \.ts$ || "$file" =~ \.js$ ]] && echo "$file"
-        ;;
-      *SH*)
-        [[ "$file" =~ \.sh$ ]] && echo "$file"
-        ;;
-      *)
-        echo "$file"
-        ;;
-    esac
+
+    # Check if type matches
+    local should_include=false
+
+    # TypeScript filter (includes .ts, .js, .cjs)
+    if [[ "$TYPE_FILTER" == *"TS"* ]]; then
+      if [[ "$file" =~ \.ts$ || "$file" =~ \.js$ || "$file" =~ \.cjs$ ]]; then
+        should_include=true
+      fi
+    fi
+
+    # Shell filter (includes .sh)
+    if [[ "$TYPE_FILTER" == *"SH"* ]]; then
+      if [[ "$file" =~ \.sh$ ]]; then
+        should_include=true
+      fi
+    fi
+
+    # Include if match found
+    [[ "$should_include" == true ]] && echo "$file"
   done
 }
 
@@ -118,6 +163,19 @@ filter_deprecated() {
   done
 }
 
+# Track already-output files for global deduplication (using temp file)
+SEEN_FILES=$(mktemp)
+trap "rm -f $SEEN_FILES" EXIT
+
+# Helper function to output file if not already seen
+output_file_if_new() {
+  local file="$1"
+  if ! grep -Fxq "$file" "$SEEN_FILES" 2>/dev/null; then
+    echo "$file" >> "$SEEN_FILES"
+    echo "Read: $file"
+  fi
+}
+
 # Main execution
 echo "# CFN Loop CLI Dependency Ingestion"
 echo "# Generated from: readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt"
@@ -125,7 +183,7 @@ echo ""
 
 # Step 1: Read the dependency diagram itself
 echo "# Step 1: Read the dependency diagram"
-echo "Read: readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt"
+output_file_if_new "readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt"
 echo ""
 
 # Step 2: Extract all files
@@ -139,11 +197,11 @@ P0_FILES=$(echo "$ALL_FILES" | while read -r file; do
   if grep -E "\[P0\]" "$DIAGRAM" | grep -q "$filename"; then
     echo "$file"
   fi
-done | filter_by_type | filter_deprecated)
+done | filter_by_type | filter_deprecated | validate_file_existence | sort -u)
 
 if [[ -n "$P0_FILES" ]]; then
   echo "$P0_FILES" | while IFS= read -r file; do
-    [[ -n "$file" ]] && echo "Read: $file"
+    [[ -n "$file" ]] && output_file_if_new "$file"
   done
 else
   echo "# No P0 files found matching filters"
@@ -158,11 +216,11 @@ P1_FILES=$(echo "$ALL_FILES" | while read -r file; do
   if grep -E "\[P1\]" "$DIAGRAM" | grep -q "$filename"; then
     echo "$file"
   fi
-done | filter_by_type | filter_deprecated)
+done | filter_by_type | filter_deprecated | validate_file_existence | sort -u)
 
 if [[ -n "$P1_FILES" ]]; then
   echo "$P1_FILES" | while IFS= read -r file; do
-    [[ -n "$file" ]] && echo "Read: $file"
+    [[ -n "$file" ]] && output_file_if_new "$file"
   done
 else
   echo "# No P1 files found matching filters"
@@ -178,11 +236,11 @@ if [[ -z "$PRIORITY_FILTER" ]] || [[ "$PRIORITY_FILTER" == *"P2"* ]]; then
     if grep -E "\[P2\]" "$DIAGRAM" | grep -q "$filename"; then
       echo "$file"
     fi
-  done | filter_by_type | filter_deprecated)
+  done | filter_by_type | filter_deprecated | validate_file_existence | sort -u)
 
   if [[ -n "$P2_FILES" ]]; then
     echo "$P2_FILES" | while IFS= read -r file; do
-      [[ -n "$file" ]] && echo "Read: $file"
+      [[ -n "$file" ]] && output_file_if_new "$file"
     done
   else
     echo "# No P2 files found matching filters"
@@ -192,11 +250,11 @@ fi
 
 # Step 6: Extract coordination layer files (Redis/Shell)
 echo "# Step 5: Read coordination layer (Redis/Shell scripts)"
-COORD_FILES=$(echo "$ALL_FILES" | grep -E 'coordination-wait|report-completion|orchestrate|cfn-redis' | filter_deprecated)
+COORD_FILES=$(echo "$ALL_FILES" | grep -E 'coordination-wait|report-completion|orchestrate|cfn-redis' | filter_by_type | filter_deprecated | validate_file_existence | sort -u)
 
 if [[ -n "$COORD_FILES" ]]; then
   echo "$COORD_FILES" | while IFS= read -r file; do
-    [[ -n "$file" ]] && echo "Read: $file"
+    [[ -n "$file" ]] && output_file_if_new "$file"
   done
 else
   echo "# No coordination files found matching filters"
@@ -205,11 +263,11 @@ echo ""
 
 # Step 7: Extract agent profile files
 echo "# Step 6: Read agent profiles (coordinators and workers)"
-AGENT_FILES=$(echo "$ALL_FILES" | grep -E '\.claude/agents/cfn-dev-team' | filter_deprecated)
+AGENT_FILES=$(echo "$ALL_FILES" | grep -E '\.claude/agents/cfn-dev-team' | filter_by_type | filter_deprecated | validate_file_existence | sort -u)
 
 if [[ -n "$AGENT_FILES" ]]; then
   echo "$AGENT_FILES" | while IFS= read -r file; do
-    [[ -n "$file" ]] && echo "Read: $file"
+    [[ -n "$file" ]] && output_file_if_new "$file"
   done
 else
   echo "# No agent profile files found"
@@ -218,11 +276,11 @@ echo ""
 
 # Step 8: Extract slash commands
 echo "# Step 7: Read slash commands"
-COMMAND_FILES=$(echo "$ALL_FILES" | grep -E '\.claude/commands' | filter_deprecated)
+COMMAND_FILES=$(echo "$ALL_FILES" | grep -E '\.claude/commands' | filter_by_type | filter_deprecated | validate_file_existence | sort -u)
 
 if [[ -n "$COMMAND_FILES" ]]; then
   echo "$COMMAND_FILES" | while IFS= read -r file; do
-    [[ -n "$file" ]] && echo "Read: $file"
+    [[ -n "$file" ]] && output_file_if_new "$file"
   done
 else
   echo "# No command files found"
