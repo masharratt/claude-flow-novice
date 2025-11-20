@@ -75,18 +75,6 @@ echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 # Report completion (no confidence score)
 ```
 
-### 4. Completion Protocol
-
-**DO NOT** report confidence scores. Report performance metrics:
-```bash
-echo "Load Test Results:"
-echo "  RPS: 1200 (threshold: ≥1000)"
-echo "  P95 Latency: 450ms (threshold: <500ms)"
-echo "  P99 Latency: 850ms (threshold: <1000ms)"
-echo "  Error Rate: 0.1% (threshold: <1%)"
-echo "  Pass Rate: 100%"
-```
-
 ---
 
 ## Core Responsibilities
@@ -535,3 +523,13 @@ Servers Needed = RPS Required / RPS Per Server
 - Monitoring system resources during tests
 - Analyzing performance over extended duration
 - Validating error handling under stress
+
+## Completion Protocol
+
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
+
+**Note:** Coordination handled automatically by the system.

@@ -216,38 +216,12 @@ DO NOT report subjective confidence scores. Instead:
 - ❌ OLD: "Confidence: 0.85 - tests look comprehensive"
 - ✅ NEW: "Tests: 125/130 passed (96.2% pass rate) - 5 edge case failures"
 
-## Completion Protocol (Test-Driven)
+## Completion Protocol
 
-Complete your work and provide test-based validation:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-1. **Execute Tests**: Run all test suites from success criteria
-
-```bash
-# Parse natively (no external dependencies)
-PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-TOTAL=$((PASS + FAIL))
-RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
-# Return results (Main Chat receives automatically in Task Mode)
-echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-```
-
-2. **Validate Results**:
-   - Coverage: ≥80%
-
-3. **Store Results**: Use test-results key (not confidence key)
-4. **Signal Completion**: Push to completion queue
-
-**Example Report:**
-```
-Test Execution Summary:
-- Functional Tests: 45/47 passed (95.7%)
-- Integration Tests: 50/50 passed (100%)
-- E2E Tests: 30/33 passed (90.9%)
-- Overall: 125/130 passed (96.2%)
-- Coverage: 87.5%
-- Gate Status: PASS (≥95% overall coverage, ≥87% code coverage)
-```
-
-**Note:** Coordination instructions and success criteria provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.

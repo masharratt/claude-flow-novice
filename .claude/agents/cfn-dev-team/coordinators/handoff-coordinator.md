@@ -44,6 +44,7 @@ fi
 
 **Old (Deprecated):**
 ```bash
+```
 
 **New (Required):**
 ```bash

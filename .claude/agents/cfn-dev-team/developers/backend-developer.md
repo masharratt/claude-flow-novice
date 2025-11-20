@@ -20,23 +20,18 @@ model: glm-4.6
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
 ### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
+Before starting work, read test requirements from environment using the JSON validation skill:
+
+**Skill Reference:** `.claude/skills/json-validation/validate-success-criteria.sh`
+- Validates `AGENT_SUCCESS_CRITERIA` JSON safely
+- Prevents injection attacks
+- Provides centralized error handling
+
+Usage:
 ```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    # Validate JSON before parsing
-    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
-        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
-        exit 1
-    fi
-
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
-
-    if [[ -n "$TEST_SUITES" ]]; then
-        echo "📋 Success Criteria Loaded:"
-        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
-    fi
-fi
+source .claude/skills/json-validation/validate-success-criteria.sh
+validate_success_criteria || exit 1
+list_test_suites
 ```
 
 ### 2. TDD Protocol (MANDATORY)
@@ -58,10 +53,17 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**IMPORTANT:** Use the centralized completion script which handles Redis gracefully:
+Use the centralized test runner skill for parsing and reporting:
 
+**Skill Reference:** `.claude/skills/cfn-test-runner/run-all-tests.sh`
+- Executes test suite with native bash parsing (no external dependencies)
+- Calculates pass rates and coverage metrics
+- Handles Redis gracefully (automatic failure in Task mode)
+- Stores results in Redis (when available)
+
+Usage:
 ```bash
-# Execute tests and capture output
+# Execute tests and capture results
 TEST_OUTPUT=$(npm test 2>&1)
 
 # Parse natively (no external dependencies)
@@ -70,10 +72,11 @@ FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
 TOTAL=$((PASS + FAIL))
 RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
-# Report completion (automatically fails gracefully in Task mode)
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 ```
 
-**Note:** Redis commands automatically fail gracefully when unavailable (Task mode). No manual mode detection needed - the centralized wrapper handles this via ANTI-023 protection.
+**Note:** Redis commands fail gracefully when unavailable (Task mode). The skill handles this via ANTI-023 protection.
 
 ## Core Responsibilities
 - Design and implement scalable backend services
@@ -161,49 +164,28 @@ DO NOT report subjective confidence scores. Instead:
 
 ## Completion Protocol (Test-Driven)
 
-Complete your work and provide test-based validation:
+Complete your work and provide test-based validation using the test runner skill:
+
+**Skill Reference:** `.claude/skills/cfn-test-runner/run-all-tests.sh`
 
 1. **Execute Tests**: Run all test suites from success criteria
-   ```bash
-   # Parse natively (no external dependencies)
-   PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-   FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-   TOTAL=$((PASS + FAIL))
-   RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+2. **Parse Results**: Extract test counts and calculate pass rate using native bash parsing
+3. **Coverage Check**: Ensure coverage meets minimum thresholds (≥80%)
+4. **Store Results**: Use test-results key for reporting (skill handles Redis gracefully)
+5. **Signal Completion**: Push to completion queue (automatic via skill)
 
-   # Return results (Main Chat receives automatically in Task Mode)
-   echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-   ```
+**Example Implementation:**
+```bash
+source .claude/skills/cfn-test-runner/run-all-tests.sh
 
-2. **Parse Results**: Extract test counts and calculate pass rate
+# Run tests and get results
+TEST_OUTPUT=$(npm test 2>&1)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+RATE=$(awk "BEGIN {if ($((PASS + FAIL)) > 0) printf \"%.2f\", $PASS/($PASS+$FAIL); else print \"0.00\"}")
 
-3. **Coverage Check**: Ensure coverage meets minimum thresholds
-   - Unit tests: ≥95%
-   - Integration tests: ≥90%
-   - Coverage: ≥80%
-
-4. **Store in Redis**: Use test-results key (not confidence key)
-
-5. **Signal Completion**: Push to completion queue
-
-**Example Report:**
-```text
-Test Execution Summary:
-- Unit Tests: 45/47 passed (95.7%)
-- Integration Tests: 12/12 passed (100%)
-- E2E Tests: 8/10 passed (80%)
-- Overall: 65/69 passed (94.2%)
-- Coverage: 84.3%
-- Gate Status: PASS
-
-Gate Logic (Hybrid Threshold):
-  Pass criteria: At least 2 of 3 test suites meet ≥95% threshold AND overall ≥80%
-  This example: 2 suites (Integration 100%, Unit 95.7%) meet ≥95% ✓
-                Overall 94.2% meets ≥80% ✓
-                Result: PASS
-
-Note: The hybrid 2-of-3 rule applies when multiple test suites are defined in success criteria.
-      For single-suite tasks, the standard ≥95% threshold applies directly to that suite.
+# Return results
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 ```
 
 **Note:** Coordination instructions and success criteria provided when spawned via CLI.

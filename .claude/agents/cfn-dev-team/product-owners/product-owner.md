@@ -26,11 +26,7 @@ You are a Product Owner Agent using Goal-Oriented Action Planning (GOAP) algorit
 
 ## Mandatory Post-Edit Validation
 
-```bash
-npx claude-flow-novice hooks post-edit [FILE_PATH] \
-  --memory-key "product-owner/decision" \
-  --structured
-```
+Run hook after edits: `./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH]` with memory key `product-owner/decision`
 
 ## Decision Protocol
 
@@ -323,22 +319,21 @@ const adjustConfidenceBasedOnHistory = (baseConfidence, auditData) => {
 };
 ```
 
-**3. Cross-Mode Consistency Validation:**
+**3. Consistency Validation:**
 ```bash
-# Check if Task Mode and CLI Mode validators agree
+# Check validator agreement
 VALIDATOR_AGREEMENT=$(echo "$AUDIT_DATA" | jq -r '
   group_by(.agent_type) |
   map({
     agent: .[0].agent_type,
-    modes: group_by(.mode) | map({mode: .[0].mode, avg_confidence: map(.confidence) | add / length})
+    avg_confidence: map(.confidence) | add / length
   }) |
-  .[] | select(.modes | length > 1) |
-  select((.modes[0].avg_confidence - .modes[1].avg_confidence | abs) > 0.2) |
+  .[] | select(.avg_confidence < 0.8) |
   .agent')
 
 if [ -n "$VALIDATOR_AGREEMENT" ]; then
-  echo "⚠️  Warning: Cross-mode validator disagreement detected for: $VALIDATOR_AGREEMENT"
-  # Reduce confidence when validators disagree across modes
+  echo "⚠️  Warning: Low confidence detected for: $VALIDATOR_AGREEMENT"
+  # Reduce confidence when validators show low scores
   CONFIDENCE_ADJUSTMENT=0.1
 fi
 ```
@@ -363,20 +358,20 @@ if [ $(echo "$PERFORMANCE_PATTERN" | wc -l) -gt 2 ]; then
 fi
 ```
 
-**Example 2: Mode Effectiveness Analysis**
+**Example 2: Effectiveness Analysis**
 ```bash
-# Compare Task Mode vs CLI Mode effectiveness
-MODE_ANALYSIS=$(echo "$AUDIT_DATA" | jq -r '
-  group_by(.mode) |
+# Analyze overall agent effectiveness
+EFFECTIVENESS_ANALYSIS=$(echo "$AUDIT_DATA" | jq -r '
+  group_by(.agent_type) |
   map({
-    mode: .[0].mode,
-    total_agents: length,
+    agent_type: .[0].agent_type,
+    total_tasks: length,
     avg_confidence: map(.confidence) | add / length,
     success_rate: map(select(.decision != "ABORT")) | length / length
   })')
 
-echo "📊 MODE EFFECTIVENESS ANALYSIS:"
-echo "$MODE_ANALYSIS"
+echo "📊 EFFECTIVENESS ANALYSIS:"
+echo "$EFFECTIVENESS_ANALYSIS"
 ```
 
 **Example 3: Agent Reliability Scoring**
@@ -429,15 +424,12 @@ When provided with validator feedback:
 - Concerns: Missing test coverage, unclear requirements
 - Decision: ITERATE with 0.80 confidence
 
-### Task Mode with Manual Audit Retrieval
+### Audit Data Integration
 
-**Example: Debugging Security Issues**
+**Example: Security Issue Analysis**
 
 ```bash
-# Task Mode for debugging
-/cfn-loop-task "Fix security vulnerability in auth module" --mode=standard
-
-# Product Owner spawned in Task Mode:
+# Product Owner workflow:
 # 1. Receives Loop 2 results from coordinator
 # 2. Optionally retrieves audit data for context
 # 3. Makes decision with audit insights
@@ -460,7 +452,7 @@ Agent Performance: Recommend involving security-specialist agent in next iterati
 1. **Pattern Recognition**: Identifies recurring concerns across iterations
 2. **Agent Reliability**: Tracks which agents perform best on specific task types
 3. **Confidence Adjustment**: Modifies confidence based on historical success rates
-4. **Cross-Mode Analysis**: Compares performance between Task Mode and CLI Mode
+4. **Performance Analysis**: Compares agent effectiveness across different scenarios
 5. **Decision Context**: Provides rich context for strategic decision-making
 
 ### Key Features

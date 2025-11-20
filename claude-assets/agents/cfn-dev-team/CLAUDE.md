@@ -603,14 +603,14 @@ npx claude-flow-novice agent-spawn backend-dev --task-id "${TASK_ID}"
 npx claude-flow-novice agent-spawn reviewer --task-id "${TASK_ID}"
 ```
 
-### Signaling Pattern (CLI Mode Only)
+### Signaling Pattern
 ```bash
-# CLI Mode: Signal completion
+# Signal completion (when coordination is required)
 if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
   redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 fi
 
-# CLI Mode: Wait for other agent (zero-token blocking)
+# Wait for other agent (zero-token blocking)
 if [[ -n "${TASK_ID:-}" ]]; then
   redis-cli blpop "swarm:${TASK_ID}:other-agent:done" 30
 fi
@@ -656,11 +656,11 @@ Agents participate in 3-loop validation:
 
 Complete your work and provide a structured response with:
 - Confidence score (0.0-1.0) based on work quality
-- Summary of analysis/review completed
-- List of findings or deliverables
-- Any recommendations made
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 ```
 
 ### Validation Hooks
@@ -994,79 +994,7 @@ Now that you understand agent creation, explore:
 
 ---
 
-## CFN Loop Completion Protocol (MODE-SPECIFIC)
-
-**Date:** 2025-11-06
-**Status:** Memory Leak Fix Applied - ANTI-023 Resolution
-
-### ⚠️ CRITICAL: Mode-Specific Completion Required
-
-Agents MUST use different completion protocols based on how they were spawned:
-
-### Task Mode (Spawned via Task() tool in Main Chat)
-
-**Simply complete your work and return structured output.**
-
-```json
-{
-  "confidence": 0.85,
-  "status": "COMPLETE|NEEDS_WORK",
-  "summary": "Brief summary of work completed",
-  "deliverables": ["file1.ts", "file2.test.ts"]
-}
-```
-
-**❌ DO NOT:**
-- Use Redis commands (redis-cli)
-- Execute bash scripts for completion
-- Signal completion via CLI tools
-- **Main Chat receives your output automatically**
-
-### CLI Mode (Spawned via `npx claude-flow-novice agent-spawn`)
-
-**Step 1: Complete Work**
-Execute assigned task (implementation, validation, review, etc.)
-
-**Step 2: Signal Completion (CLI Mode Only)**
-```bash
-# CLI Mode: Signal completion
-if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
-  redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-fi
-```
-
-**Step 3: Report Confidence Score and Exit (CLI Mode Only)**
-```bash
-# CLI Mode: Report confidence
-if [[ -n "${TASK_ID:-}" && -n "${AGENT_ID:-}" ]]; then
-  ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-    --task-id "$TASK_ID" \
-    --agent-id "$AGENT_ID" \
-    --confidence [0.0-1.0] \
-    --iteration 1
-fi
-```
-
-### How to Tell Which Mode You're In
-
-- **Task Mode**: You were spawned via `Task("agent-name", "...")` in Main Chat
-- **CLI Mode**: You were spawned via `npx claude-flow-novice agent-spawn ...` command
-
-### Why This Matters
-
-- **Task Mode**: Main Chat handles everything, just return results
-- **CLI Mode**: Coordinator needs Redis signals to collect confidence scores
-- **Mixed protocols cause memory leaks** (ANTI-023 pattern)
-
-### Related Documentation
-
-- **Memory Leak Fix:** `docs/bugs/BUG_MEMORY_LEAK_VALIDATOR_FIX.md`
-- **Agent Lifecycle:** `.claude/agents/AGENT_LIFECYCLE.md`
-- **Main Documentation:** `CLAUDE.md:333-357` (Mode-specific protocols)
-
----
-
-**Document Version:** 4.2.0 (Memory Leak Fix - Mode-Specific Protocols)
-**Last Updated:** 2025-11-06
+**Document Version:** 4.3.0 (Unified Completion Protocol)
+**Last Updated:** 2025-11-19
 **Maintained By:** Claude Flow Novice Team
 **Feedback:** We'd love to hear how you're using agents! Share your creations.

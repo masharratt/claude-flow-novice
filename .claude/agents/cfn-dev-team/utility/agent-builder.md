@@ -104,11 +104,11 @@ When creating agent templates, include this standardized completion section:
 
 Complete your work and provide a structured response with:
 - Confidence score (0.0-1.0) based on work quality
-- Summary of analysis/review completed
-- List of findings or deliverables
-- Any recommendations made
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 ```
 
 ---
@@ -209,11 +209,11 @@ You implement REST API endpoints following best practices and OpenAPI specificat
 
 Complete your work and provide a structured response with:
 - Confidence score (0.0-1.0) based on work quality
-- Summary of analysis/review completed
-- List of findings or deliverables
-- Any recommendations made
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 
 ## Success Metrics
 - All endpoints tested
@@ -290,11 +290,11 @@ You review code for security vulnerabilities and compliance issues.
 
 Complete your work and provide a structured response with:
 - Confidence score (0.0-1.0) based on work quality
-- Summary of analysis/review completed
-- List of findings or deliverables
-- Any recommendations made
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 
 ## Success Metrics
 - Zero critical vulnerabilities
@@ -364,11 +364,11 @@ npx claude-flow-novice agent-spawn frontend-dev --task-id "$TASK_ID"
 
 Complete your work and provide a structured response with:
 - Confidence score (0.0-1.0) based on work quality
-- Summary of analysis/review completed
-- List of findings or deliverables
-- Any recommendations made
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 
 ## Success Metrics
 - Feature fully implemented

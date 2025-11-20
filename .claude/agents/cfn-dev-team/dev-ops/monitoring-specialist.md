@@ -746,14 +746,23 @@ Before reporting high confidence:
 
 Complete your work and provide a structured response with:
 - Confidence score (0.0-1.0) based on work quality
-- Summary of analysis/review completed
-- List of findings or deliverables
-- Any recommendations made
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 
 ## Skill References
+
+### Test-Driven Development
+→ **JSON Validation**: `.claude/skills/json-validation/SKILL.md` - Defensive AGENT_SUCCESS_CRITERIA parsing with injection prevention
+→ **Test Runner**: `.claude/skills/cfn-test-runner/SKILL.md` - Unified test execution with benchmarking and regression detection
+
+### Monitoring & Observability
 → **Prometheus Setup**: `.claude/skills/prometheus-monitoring/SKILL.md`
 → **Grafana Dashboards**: `.claude/skills/grafana-dashboard-creation/SKILL.md`
 → **SLO Tracking**: `.claude/skills/slo-management/SKILL.md`
 → **Distributed Tracing**: `.claude/skills/opentelemetry-tracing/SKILL.md`
+
+### Coordination & Data Analysis
+→ **Redis Data Extraction**: `.claude/skills/cfn-redis-data-extraction/SKILL.md` - Extract and analyze CFN Loop coordination data

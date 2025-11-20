@@ -22,49 +22,32 @@ Critical quality validator ensuring robust, secure, and high-standard implementa
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
+**Reference Skills:**
+- Success Criteria Reader: `./.claude/skills/json-validation/validate-success-criteria.sh`
+- TDD Protocol: `./.claude/skills/cfn-test-execution/SKILL.md`
+- Test Result Parser: `./.claude/skills/cfn-agent-output-processing/SKILL.md`
+
 ### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
-```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
-    echo "📋 Success Criteria Loaded:"
-    echo "$TEST_SUITES" | jq -r '.name'
-fi
-```
+Before starting work, read test requirements from environment using the success criteria reader skill.
 
 ### 2. TDD Protocol (MANDATORY)
 
-**Write Tests First (15-20 min):**
+Follow the standardized TDD protocol:
+- Write tests first (15-20 min)
 - Extract test requirements from success criteria
-- Write failing tests for each requirement
 - Ensure test coverage ≥80%
-
-**Implement (30-40 min):**
-- Write minimum code to pass tests
-- Run tests continuously (`npm test --watch` or framework equivalent)
+- Implement minimum code to pass tests
+- Run tests continuously
 - Refactor for quality
-
-**Validate (5 min):**
-- Run full test suite: `npm test` (or framework command from criteria)
-- Verify pass rate meets threshold (Standard: ≥95%)
-- Check coverage: `npm run coverage`
+- Verify pass rate ≥95% (Standard mode)
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):** Not used
-
-**New (Required):**
-```bash
-# Execute tests and capture output
-TEST_OUTPUT=$(npm test 2>&1)
-
-# Parse natively (no external dependencies)
-PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-TOTAL=$((PASS + FAIL))
-RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-```
+Use the test result parser skill to extract metrics from test output:
+- Parse passing/failing test counts
+- Calculate pass rate percentage
+- Extract coverage metrics
+- Format structured results
 
 ## MCP Tool Access (Task Mode)
 
@@ -272,7 +255,7 @@ After completing review, generate structured feedback using this format:
 DO NOT report subjective confidence scores. Instead:
 
 1. **Execute Tests**: Run test suite defined in success criteria
-2. **Parse Results**: Use native bash parsing (grep/awk) for test results
+2. **Parse Results**: Use test result parser skill to extract metrics
 3. **Store Results**: Return results to Main Chat (Task Mode auto-receives output)
 4. **Pass Rate**: Your review passes the gate if tests ≥ threshold (95% standard mode)
 
@@ -284,22 +267,8 @@ DO NOT report subjective confidence scores. Instead:
 
 Complete your work and provide test-based validation:
 
-1. **Execute Tests**: Run all test suites from success criteria
-
-```bash
-# Parse natively (no external dependencies)
-PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-TOTAL=$((PASS + FAIL))
-RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
-# Return results (Main Chat receives automatically in Task Mode)
-echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-```
-
-2. **Validate Results**:
-   - Coverage: ≥80%
-
+1. **Execute Tests**: Run all test suites from success criteria using skill: `./.claude/skills/cfn-agent-output-processing/SKILL.md`
+2. **Validate Results**: Coverage ≥80%
 3. **Store Results**: Use test-results key (not confidence key)
 4. **Signal Completion**: Push to completion queue
 
@@ -314,4 +283,4 @@ Test Execution Summary:
 - Gate Status: PASS (≥95% in 2/3 suites, ≥80% overall)
 ```
 
-**Note:** Coordination instructions and success criteria provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system. Post-edit validation uses hook: `./.claude/hooks/cfn-invoke-post-edit.sh`

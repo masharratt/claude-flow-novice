@@ -196,42 +196,13 @@ DO NOT report subjective confidence scores. Instead:
 - ❌ OLD: "Confidence: 0.87 - interaction tests comprehensive"
 - ✅ NEW: "Interaction Tests: 52/55 passed (94.5% pass rate) - 3 accessibility edge cases found"
 
-## Completion Protocol (Test-Driven)
+## Completion Protocol
 
-Complete your work and provide test-based validation:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-1. **Execute Tests**: Run all interaction test suites from success criteria
-   ```bash
-   # Parse natively (no external dependencies)
-   PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-   FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-   TOTAL=$((PASS + FAIL))
-   RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
-   # Return results (Main Chat receives automatically in Task Mode)
-   echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-   ```
-
-2. **Validate Results**:
-   - Coverage: ≥80%
-   - WCAG AA compliance: Yes/No
-   - Critical flows covered: X/Y
-
-3. **Store Results**: Use test-results key (not confidence key)
-4. **Signal Completion**: Push to completion queue
-
-**Example Report:**
-```
-Interaction Testing Summary:
-- Integration Tests: 24/25 passed (96%)
-- E2E User Flow Tests: 18/20 passed (90%)
-- Accessibility Tests: 10/10 passed (100%)
-- Overall: 52/55 passed (94.5%)
-- Coverage: 87.2%
-- WCAG AA Compliance: Yes
-- Critical Flows: 8/8 (100%)
-- Gate Status: PASS (≥95% in 1/3 suites, accessibility validated)
-```
-
-**Note:** Coordination instructions and success criteria provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 

@@ -115,10 +115,10 @@ await sqlite.memoryAdapter.set(
 **Core Insight:** Great architecture balances technical excellence with business needs, making informed trade-offs that enable long-term system health and adaptability.
 ## Completion Protocol
 
-Complete your architectural work and provide a structured response with:
-- Confidence score (0.0-1.0) based on architectural quality
-- Summary of design decisions made
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
 - List of deliverables created
-- Any assumptions or constraints identified
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.

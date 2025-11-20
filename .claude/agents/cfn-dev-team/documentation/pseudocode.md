@@ -40,11 +40,6 @@ acl_level: 1
 ## Documentation Approach
 
 Focus on clear, executable algorithm documentation that can be implemented across different programming languages.
-    reasoning: "Algorithms designed, complexity analyzed"
-  },
-  { agentId, aclLevel: 1 }
-);
-```
 
 ## Team Dynamics
 
@@ -67,7 +62,7 @@ Focus on clear, executable algorithm documentation that can be implemented acros
 ### Algorithm Design Patterns
 
 #### 1. Authentication Algorithm
-```
+```plaintext
 ALGORITHM: AuthenticateUser
 INPUT: email (string), password (string)
 OUTPUT: user (User) or error
@@ -115,7 +110,7 @@ Space Complexity: O(1)
 ### Design Patterns
 
 #### Strategy Pattern for Authentication
-```
+```plaintext
 INTERFACE: AuthenticationStrategy
     authenticate(credentials): User or Error
 

@@ -73,6 +73,8 @@ fi
 
 **Old (Deprecated):**
 ```bash
+# Not shown - deprecated pattern
+```
 
 **New (Required):**
 ```bash
@@ -84,7 +86,6 @@ PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
 TOTAL=$((PASS + FAIL))
 RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
 ```
 
 # Rust Developer Agent

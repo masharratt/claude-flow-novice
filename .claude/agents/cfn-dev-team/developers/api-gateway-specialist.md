@@ -29,23 +29,18 @@ model: glm-4.6
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
 ### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
+Before starting work, use the JSON validation skill:
+
+**Skill Reference:** `.claude/skills/json-validation/validate-success-criteria.sh`
+- Validates `AGENT_SUCCESS_CRITERIA` JSON safely
+- Prevents injection attacks
+- Provides error handling
+
+Usage:
 ```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    # Validate JSON before parsing
-    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
-        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
-        exit 1
-    fi
-
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
-
-    if [[ -n "$TEST_SUITES" ]]; then
-        echo "📋 Success Criteria Loaded:"
-        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
-    fi
-fi
+source .claude/skills/json-validation/validate-success-criteria.sh
+validate_success_criteria || exit 1
+list_test_suites
 ```
 
 ### 2. TDD Protocol (MANDATORY)
@@ -67,10 +62,13 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
+Use the test runner skill for parsing and reporting:
 
-**New (Required):**
+**Skill Reference:** `.claude/skills/cfn-test-runner/run-all-tests.sh`
+- Executes test suite with native bash parsing
+- Calculates pass rates and coverage metrics
+- Handles Redis gracefully (automatic failure in Task mode)
+
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
@@ -81,6 +79,8 @@ FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
 TOTAL=$((PASS + FAIL))
 RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 ```
 
 # API Gateway Specialist Agent
@@ -958,42 +958,12 @@ Before reporting high confidence:
 → **OAuth2/JWT**: `.claude/skills/oauth2-jwt-auth/SKILL.md`
 → **Nginx Reverse Proxy**: `.claude/skills/nginx-reverse-proxy/SKILL.md`
 
-## Completion Protocol (Test-Driven)
+## Completion Protocol
 
-Complete your work and provide test-based validation:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-1. **Execute Tests**: Run all test suites from success criteria
-   ```bash
-   # Parse natively (no external dependencies)
-   PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-   FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-   TOTAL=$((PASS + FAIL))
-   RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
-   # Return results (Main Chat receives automatically in Task Mode)
-   echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-   ```
-
-2. **Parse Results**: Extract test counts and calculate pass rate
-
-3. **Coverage Check**: Ensure coverage meets minimum thresholds
-   - Core tests: ≥95%
-   - Configuration tests: ≥90%
-   - Coverage: ≥80%
-
-4. **Store in Redis**: Use test-results key (not confidence key)
-
-5. **Signal Completion**: Push to completion queue
-
-**Example Report:**
-```
-Test Execution Summary:
-- Configuration Tests: 45/47 passed (95.7%)
-- Security Tests: 12/12 passed (100%)
-- Performance Tests: 8/10 passed (80%)
-- Overall: 65/69 passed (94.2%)
-- Coverage: 84.3%
-- Gate Status: PASS (≥95% in 2/3 suites, ≥80% overall)
-```
-
-**Note:** Coordination instructions and success criteria provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.

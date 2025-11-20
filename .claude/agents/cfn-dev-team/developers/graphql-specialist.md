@@ -18,23 +18,18 @@ model: glm-4.6
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
 ### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
+Before starting work, use the JSON validation skill:
+
+**Skill Reference:** `.claude/skills/json-validation/validate-success-criteria.sh`
+- Validates `AGENT_SUCCESS_CRITERIA` JSON safely
+- Prevents injection attacks
+- Provides error handling
+
+Usage:
 ```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    # Validate JSON before parsing
-    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
-        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
-        exit 1
-    fi
-
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
-
-    if [[ -n "$TEST_SUITES" ]]; then
-        echo "📋 Success Criteria Loaded:"
-        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
-    fi
-fi
+source .claude/skills/json-validation/validate-success-criteria.sh
+validate_success_criteria || exit 1
+list_test_suites
 ```
 
 ### 2. TDD Protocol (MANDATORY)
@@ -56,10 +51,10 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
+Use the test runner skill:
 
-**New (Required):**
+**Skill Reference:** `.claude/skills/cfn-test-runner/run-all-tests.sh`
+
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
@@ -70,6 +65,8 @@ FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
 TOTAL=$((PASS + FAIL))
 RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
+# Return results (Main Chat receives automatically in Task Mode)
+echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 ```
 
 # GraphQL Specialist Agent

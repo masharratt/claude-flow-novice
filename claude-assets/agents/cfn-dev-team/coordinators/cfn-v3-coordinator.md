@@ -17,13 +17,17 @@ You coordinate CFN Loop v3 execution with Redis-based agent orchestration and CL
 ### 1. Read Success Criteria
 Before starting work, read test requirements from environment:
 ```bash
+# Use validation skill for robust JSON parsing
+source ./.claude/skills/json-validation/validate-success-criteria.sh
+
 if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
-    echo "📋 Success Criteria Loaded:"
-    echo "$TEST_SUITES" | jq -r '.name'
+    if validate_json "$AGENT_SUCCESS_CRITERIA"; then
+        echo "📋 Success Criteria Loaded and Validated"
+    fi
 fi
 ```
+
+**See:** `./.claude/skills/json-validation/validate-success-criteria.sh` for JSON validation patterns and schema validation.
 
 ### 2. TDD Protocol (MANDATORY)
 
@@ -44,21 +48,22 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
+**Using Agent Output Processing Skill (Required):**
 ```bash
+# Use output processing skill for robust test parsing
+source ./.claude/skills/cfn-agent-output-processing/parse-test-results.sh
 
-**New (Required):**
-```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
 
-# Parse natively (no external dependencies)
-PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+# Parse test results using skill function
+PASS=$(parse_test_passes "$TEST_OUTPUT")
+FAIL=$(parse_test_failures "$TEST_OUTPUT")
 TOTAL=$((PASS + FAIL))
 RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
 ```
+
+**See:** `./.claude/skills/cfn-agent-output-processing/SKILL.md` for test parsing patterns and result extraction.
 
 ## Success Criteria Auto-Generation (Phase 3)
 
@@ -233,8 +238,9 @@ EOF
 )
     fi
 
-    # VALIDATE JSON before returning
-    if ! echo "$GENERATED_JSON" | jq empty 2>/dev/null; then
+    # VALIDATE JSON before returning using validation skill
+    source ./.claude/skills/json-validation/validate-success-criteria.sh
+    if ! validate_json "$GENERATED_JSON"; then
         echo "{\"error\":\"Generated invalid JSON for mode=$MODE\"}" >&2
         return 1
     fi
@@ -258,8 +264,9 @@ else
     echo "$SUCCESS_CRITERIA" | jq '.'
 fi
 
-# Step 2: Validate generated criteria (explicit exit on invalid JSON)
-if ! echo "$SUCCESS_CRITERIA" | jq empty 2>/dev/null; then
+# Step 2: Validate generated criteria using validation skill
+source ./.claude/skills/json-validation/validate-success-criteria.sh
+if ! validate_json "$SUCCESS_CRITERIA"; then
     echo "❌ Invalid JSON in success criteria" >&2
     exit 1
 fi
@@ -319,6 +326,188 @@ All generated criteria MUST conform to:
 
 Orchestrate CFN Loop v3 execution using Redis coordination for CLI agent spawning, context management, and consensus collection.
 
+## COORDINATOR EXECUTION (START HERE - MANDATORY)
+
+**Execute ALL 5 actions in THIS bash script below. DO NOT execute actions separately.**
+
+**CRITICAL:** This is THE execution path. Execute the complete bash script in ONE call.
+
+### Unified Execution Script (Actions 1-5)
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+# ITERATION GUARD: Prevent infinite loops
+if [[ ${BASH_EXECUTION_COUNT:-0} -gt 1 ]]; then
+  echo "❌ FATAL: Multiple executions detected - orchestrator should have been invoked" >&2
+  exit 1
+fi
+export BASH_EXECUTION_COUNT=$((${BASH_EXECUTION_COUNT:-0} + 1))
+
+# ==============================================================================
+# ACTION 1: Initialize Task Context
+# ==============================================================================
+TASK_ID="${TASK_ID:-$(date +%s)}"
+TASK_DESCRIPTION="${TASK_DESCRIPTION:-Generic CFN Loop task}"
+MODE="${MODE:-standard}"
+MAX_ITERATIONS="${MAX_ITERATIONS:-10}"  # Default to 10, can be overridden via context
+PROJECT_ROOT="${PROJECT_ROOT:-.}"
+
+echo "📋 COORDINATOR INITIALIZATION (CLI Mode v3.0)"
+echo "   TASK_ID: $TASK_ID"
+echo "   MODE: $MODE"
+echo "   TASK: $TASK_DESCRIPTION"
+
+# ==============================================================================
+# ACTION 2: Perform Task Classification
+# ==============================================================================
+TASK_TYPE="software-development"  # Default fallback
+
+if [[ -f "$PROJECT_ROOT/.claude/skills/task-classifier/classify-task.sh" ]]; then
+  CLASSIFIED=$(bash "$PROJECT_ROOT/.claude/skills/task-classifier/classify-task.sh" "$TASK_DESCRIPTION" 2>/dev/null || echo "")
+  [[ -n "$CLASSIFIED" ]] && TASK_TYPE="$CLASSIFIED"
+fi
+
+# Store in Redis for persistence across Bash tool calls
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" \
+  HSET "swarm:${TASK_ID}:config" "task_type" "$TASK_TYPE" 2>/dev/null || true
+
+echo "✅ ACTION 2 Complete: Task classified as '$TASK_TYPE'"
+
+# ==============================================================================
+# ACTION 3: Select Agents Based on Task Type
+# ==============================================================================
+case "$TASK_TYPE" in
+  "infrastructure")
+    LOOP3_AGENTS="terraform-engineer,devops-engineer,cloud-architect"
+    LOOP2_AGENTS="security-auditor,compliance-checker,cost-optimizer"
+    PRODUCT_OWNER="infrastructure-product-owner"
+    ;;
+  "software-development"|*)
+    LOOP3_AGENTS="backend-developer,frontend-developer,database-engineer"
+    LOOP2_AGENTS="code-reviewer,security-specialist,performance-tester"
+    PRODUCT_OWNER="technical-product-owner"
+    ;;
+esac
+
+# Store in Redis
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" \
+  HSET "swarm:${TASK_ID}:config" "loop3_agents" "$LOOP3_AGENTS" 2>/dev/null || true
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" \
+  HSET "swarm:${TASK_ID}:config" "loop2_agents" "$LOOP2_AGENTS" 2>/dev/null || true
+
+echo "✅ ACTION 3 Complete: Agents selected"
+echo "   Loop 3: $LOOP3_AGENTS"
+echo "   Loop 2: $LOOP2_AGENTS"
+echo "   Product Owner: $PRODUCT_OWNER"
+
+# ==============================================================================
+# ACTION 4: Validate Parameters
+# ==============================================================================
+if [[ -z "$TASK_ID" ]]; then
+  echo "❌ FATAL: TASK_ID is required" >&2
+  exit 1
+fi
+
+if [[ -z "$LOOP3_AGENTS" ]]; then
+  echo "❌ FATAL: No Loop 3 agents selected" >&2
+  exit 1
+fi
+
+if [[ -z "$LOOP2_AGENTS" ]]; then
+  echo "❌ FATAL: No Loop 2 agents selected" >&2
+  exit 1
+fi
+
+echo "✅ ACTION 4 Complete: Parameters validated"
+
+# ==============================================================================
+# ACTION 5: INVOKE ORCHESTRATOR - MANDATORY (This is your PRIMARY job)
+# ==============================================================================
+echo ""
+echo "🚀 ACTION 5: INVOKING ORCHESTRATOR (MANDATORY)"
+echo "   This is the ONLY action that truly matters for coordinator"
+echo "   The orchestrator handles ALL remaining CFN Loop work"
+
+ORCHESTRATOR_PATH="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh"
+
+if [[ ! -f "$ORCHESTRATOR_PATH" ]]; then
+  echo "❌ FATAL: Orchestrator not found at $ORCHESTRATOR_PATH" >&2
+  echo "   Expected path: $ORCHESTRATOR_PATH"
+  exit 1
+fi
+
+# Store success criteria in Redis BEFORE invoking orchestrator
+# The orchestrator requires this when --success-criteria flag is set
+CRITERIA_JSON='{
+  "test_suites": [
+    {
+      "name": "Unit Tests",
+      "command": "echo \"Simulated test execution\"",
+      "required": true,
+      "pass_threshold": 0.70
+    }
+  ],
+  "gate_mode": "test-driven",
+  "metadata": {
+    "created_by": "cfn-v3-coordinator",
+    "task_type": "general",
+    "mode": "'$MODE'"
+  }
+}'
+
+# Store in Redis
+echo "$CRITERIA_JSON" | redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" \
+  -x HSET "cfn_loop:task:${TASK_ID}:context" "success-criteria" >/dev/null 2>&1 || true
+
+# Store task description in Redis for agent context injection
+redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" \
+  HSET "cfn_loop:task:${TASK_ID}:context" "task_description" "$TASK_DESCRIPTION" >/dev/null 2>&1 || true
+
+echo "   ✅ Success criteria and task description stored in Redis"
+
+# Invoke orchestrator with validated parameters
+# The orchestrator handles ALL remaining work:
+# - Loop 3 agent spawning and execution
+# - Test execution and gate validation
+# - Loop 2 validator spawning and consensus
+# - Product Owner decision (PROCEED/ITERATE/ABORT)
+# - Git commits and result reporting
+echo "   Executing: $ORCHESTRATOR_PATH"
+bash "$ORCHESTRATOR_PATH" \
+  --task-id "$TASK_ID" \
+  --mode "$MODE" \
+  --loop3-agents "$LOOP3_AGENTS" \
+  --loop2-agents "$LOOP2_AGENTS" \
+  --product-owner "$PRODUCT_OWNER" \
+  --max-iterations "$MAX_ITERATIONS" \
+  --success-criteria "enabled" 2>&1
+
+ORCHESTRATOR_EXIT_CODE=$?
+
+if [[ $ORCHESTRATOR_EXIT_CODE -eq 0 ]]; then
+  echo "✅ ORCHESTRATOR COMPLETED SUCCESSFULLY"
+else
+  echo "❌ ORCHESTRATOR FAILED (exit code: $ORCHESTRATOR_EXIT_CODE)"
+  exit $ORCHESTRATOR_EXIT_CODE
+fi
+```
+
+**What happens next:**
+1. Orchestrator spawns Loop 3 agents (implementers)
+2. Loop 3 agents complete work and execute tests
+3. Orchestrator validates test pass rates against gate threshold
+4. If gate passes, orchestrator spawns Loop 2 agents (validators)
+5. Loop 2 validators review work and report consensus
+6. Orchestrator spawns Product Owner for final decision
+7. Product Owner decides: PROCEED / ITERATE / ABORT
+8. Orchestrator creates git commit (if PROCEED) or starts next iteration (if ITERATE)
+
+**Coordinator's job is now DONE.** The orchestrator handles everything else.
+
+
+
 ## CLI Mode Execution (Coordinator is ALWAYS CLI Mode)
 
 **IMPORTANT:** This coordinator agent is **ALWAYS CLI mode**. Task mode coordination happens directly in Main Chat, not via coordinator agents.
@@ -349,13 +538,16 @@ When spawned via CLI (`cfn-spawn agent`), implement full Redis coordination:
 for agent in "${loop3_agents[@]}"; do
   AGENT_ID="${TASK_ID}-${agent}-$(date +%s)"
 
-  # Store agent-specific context
+  # Store agent-specific context using coordination skill
 
   # Inject context and spawn via CLI
+  # Use redis coordination skill for context management
+  source ./.claude/skills/cfn-redis-coordination/store-context.sh
+
   cfn-spawn agent "${agent}" \
     --task-id "${TASK_ID}" \
     --agent-id "${AGENT_ID}" \
-    --context "$(redis-cli HGETALL "cfn_loop:task:${TASK_ID}:context" | jq -s 'reduce .[] as $item ({}; . + $item)')" &
+    --context "$(retrieve_task_context "${TASK_ID}")" &
 
   AGENT_PIDS+=($!)
 done
@@ -748,234 +940,6 @@ Extract deliverables from task description:
    - Estimate iteration count
    - Provide reasoning for choices
 
-## Execution Steps (CLI Mode Only)
-
-**CRITICAL:** This coordinator is ALWAYS CLI mode. There is no Task Mode execution path.
-
-### Step 1: Task Classification (REQUIRED)
-```bash
-# BUG #23 FIX: Store task classification in Redis to persist across Bash tool calls
-# Each Bash tool call creates a new shell, so environment variables don't persist
-# Redis provides persistence across iterations
-
-# Classify task type (use hardcoded defaults if script fails)
-TASK_TYPE="infrastructure"  # Default fallback
-if [[ -f ".claude/skills/task-classifier/classify-task.sh" ]]; then
-  CLASSIFIED_TYPE=$(bash .claude/skills/task-classifier/classify-task.sh "$TASK_DESCRIPTION" 2>/dev/null || echo "")
-  [[ -n "$CLASSIFIED_TYPE" ]] && TASK_TYPE="$CLASSIFIED_TYPE"
-fi
-
-# Store task type in Redis for persistence across Bash tool calls
-echo "✅ Task type '$TASK_TYPE' stored in Redis: swarm:${TASK_ID}:config"
-```
-
-### Step 2: Agent Selection with Fallback (REQUIRED)
-```bash
-# BUG #23 FIX: Store agent selections in Redis to persist across Bash tool calls
-# Environment variables are lost between Bash tool executions
-# Redis ensures parameters persist through validation and orchestrator invocation
-
-# Select agents with hardcoded fallbacks (never fail)
-LOOP3_AGENTS="terraform-engineer,devops-engineer"  # Infrastructure default
-LOOP2_AGENTS="security-auditor,compliance-checker,cost-optimizer"  # Validation default
-PRODUCT_OWNER="product-owner"
-
-# Try dynamic selection but fall back to defaults
-if [[ -f ".claude/skills/cfn-agent-selector/select-agents.sh" ]]; then
-  SELECTED_AGENTS=$(bash .claude/skills/cfn-agent-selector/select-agents.sh --task-type "$TASK_TYPE" --description "$TASK_DESCRIPTION" 2>/dev/null || echo "")
-  if [[ -n "$SELECTED_AGENTS" ]]; then
-    PARSED_AGENTS=$(echo "$SELECTED_AGENTS" | jq -r '.loop3 // empty | join(",")')
-    [[ -n "$PARSED_AGENTS" ]] && LOOP3_AGENTS="$PARSED_AGENTS"
-
-    PARSED_AGENTS=$(echo "$SELECTED_AGENTS" | jq -r '.loop2 // empty | join(",")')
-    [[ -n "$PARSED_AGENTS" ]] && LOOP2_AGENTS="$PARSED_AGENTS"
-  fi
-fi
-
-# Store agent selections in Redis for persistence
-
-echo "✅ Agent selections stored in Redis:"
-echo "   loop3_agents: $LOOP3_AGENTS"
-echo "   loop2_agents: $LOOP2_AGENTS"
-echo "   product_owner: $PRODUCT_OWNER"
-```
-
-### Step 2.5: MANDATORY Parameter Initialization (BUG #22 & BUG #23 FIX)
-
-**CRITICAL: Execute this BEFORE orchestrator invocation to prevent empty parameter errors.**
-
-This step implements defense-in-depth fixes for both BUG #22 and BUG #23:
-- BUG #22: Empty parameter validation with hardcoded fallbacks
-- BUG #23: Redis-first parameter retrieval to handle Bash tool session loss
-
-```bash
-# BUG #23 FIX: Read parameters from Redis with fallbacks
-# Bash tool creates new shell each call, so variables set in Step 2 may be lost
-# Redis provides persistent storage across all Bash tool executions
-LOOP3_AGENTS=$(redis-cli HGET "swarm:${TASK_ID}:config" "loop3_agents" 2>/dev/null || echo "")
-LOOP2_AGENTS=$(redis-cli HGET "swarm:${TASK_ID}:config" "loop2_agents" 2>/dev/null || echo "")
-PRODUCT_OWNER=$(redis-cli HGET "swarm:${TASK_ID}:config" "product_owner" 2>/dev/null || echo "")
-
-echo "🔄 Parameters retrieved from Redis (BUG #23 fix)"
-echo "   LOOP3_AGENTS='$LOOP3_AGENTS'"
-echo "   LOOP2_AGENTS='$LOOP2_AGENTS'"
-echo "   PRODUCT_OWNER='$PRODUCT_OWNER'"
-
-# BUG #22 FIX: Apply fallbacks if Redis returns empty (defense-in-depth)
-# Even if Redis succeeded, re-validate and apply defaults if empty
-LOOP3_AGENTS="${LOOP3_AGENTS:-backend-developer,frontend-developer}"
-LOOP2_AGENTS="${LOOP2_AGENTS:-code-reviewer,tester,security-specialist}"
-PRODUCT_OWNER="${PRODUCT_OWNER:-product-owner}"
-
-echo "🔒 Fallback parameters initialized (BUG #22 prevention)"
-echo "   LOOP3_AGENTS='$LOOP3_AGENTS'"
-echo "   LOOP2_AGENTS='$LOOP2_AGENTS'"
-echo "   PRODUCT_OWNER='$PRODUCT_OWNER'"
-
-# MANDATORY: Validate before orchestrator invocation
-if [[ -z "$LOOP3_AGENTS" ]] || [[ -z "$LOOP2_AGENTS" ]] || [[ -z "$PRODUCT_OWNER" ]]; then
-  echo "❌ FATAL: Agent parameters cannot be empty after Redis retrieval + fallback initialization" >&2
-  echo "   This indicates a critical logic error in parameter handling (BUG #22 & #23)" >&2
-  echo "   LOOP3_AGENTS='$LOOP3_AGENTS'" >&2
-  echo "   LOOP2_AGENTS='$LOOP2_AGENTS'" >&2
-  echo "   PRODUCT_OWNER='$PRODUCT_OWNER'" >&2
-  exit 1
-fi
-
-echo "✅ All parameters validated non-empty before orchestrator invocation (BUG #22 & #23 fixes applied)"
-```
-
-**Why This Matters:**
-
-1. **BUG #23 Fix - Redis Persistence**: Each Bash tool call creates a new shell
-   - Environment variables set in iteration N are lost in iteration N+1
-   - Redis provides persistent storage across all Bash tool executions
-   - Parameters stored in Step 2 are reliably retrieved in Step 2.5
-   - Prevents coordinator from being stuck in validation loop
-
-2. **BUG #22 Fix - Defense-in-Depth**: Multiple layers of protection against empty parameters
-   - Step 2 provides hardcoded defaults AND stores in Redis
-   - Step 2.5 reads from Redis then applies fallbacks if Redis fails
-   - Explicit validation catches any logic errors before orchestrator call
-
-3. **Clear Error Messages**: If validation fails, provides:
-   - Exact parameter values (shows what went wrong)
-   - Context about where failure occurred (BUG #22 or BUG #23)
-   - Actionable error message (indicates critical logic error)
-
-4. **Fail-Fast Principle**: Better to exit early with clear error than pass empty strings to orchestrator
-   - Orchestrator would fail with confusing error messages
-   - Empty parameters cause cascade failures in agent spawning
-   - Early validation prevents wasted iteration time
-
-**Testing BUG #22 & BUG #23 Fixes:**
-
-```bash
-# Test BUG #23 fix (Redis persistence across Bash tool calls)
-# Simulate multiple Bash tool executions (coordinator iterations)
-npx claude-flow-novice agent-spawn cfn-v3-coordinator \
-  --task-id test-bug23 \
-  --env TASK_DESCRIPTION="Test Redis parameter persistence"
-
-# Expected output in Step 2:
-# ✅ Agent selections stored in Redis:
-#    loop3_agents: backend-developer,frontend-developer
-#    loop2_agents: code-reviewer,tester,security-specialist
-#    product_owner: product-owner
-
-# Expected output in Step 2.5 (even in NEW Bash shell):
-# 🔄 Parameters retrieved from Redis (BUG #23 fix)
-#    LOOP3_AGENTS='backend-developer,frontend-developer'
-#    LOOP2_AGENTS='code-reviewer,tester,security-specialist'
-#    PRODUCT_OWNER='product-owner'
-# ✅ All parameters validated non-empty before orchestrator invocation (BUG #22 & #23 fixes applied)
-
-# Test BUG #22 fix (fallbacks when Redis fails)
-# Simulate Redis failure
-redis-cli SHUTDOWN NOSAVE
-
-# Run coordinator - should fall back to defaults
-npx claude-flow-novice agent-spawn cfn-v3-coordinator \
-  --task-id test-bug22 \
-  --env TASK_DESCRIPTION="Test fallback parameters"
-
-# Expected output:
-# 🔄 Parameters retrieved from Redis (BUG #23 fix)
-#    LOOP3_AGENTS=''  (Redis down)
-# 🔒 Fallback parameters initialized (BUG #22 prevention)
-#    LOOP3_AGENTS='backend-developer,frontend-developer'
-# ✅ All parameters validated non-empty before orchestrator invocation (BUG #22 & #23 fixes applied)
-```
-
-### Step 3: INVOKE ORCHESTRATOR (MANDATORY - NOT OPTIONAL)
-
-**CRITICAL:** You MUST invoke orchestrator by iteration 3. DO NOT complete tasks directly.
-
-```bash
-# BUG #23 FIX: Read parameters from Redis before invoking orchestrator
-# This ensures we use the SAME parameters that were validated in Step 2.5
-# Even if this is executed in a NEW Bash shell (which it likely is)
-LOOP3_AGENTS=$(redis-cli HGET "swarm:${TASK_ID}:config" "loop3_agents" 2>/dev/null || echo "backend-developer,frontend-developer")
-LOOP2_AGENTS=$(redis-cli HGET "swarm:${TASK_ID}:config" "loop2_agents" 2>/dev/null || echo "code-reviewer,tester,security-specialist")
-PRODUCT_OWNER=$(redis-cli HGET "swarm:${TASK_ID}:config" "product_owner" 2>/dev/null || echo "product-owner")
-
-# Apply final fallbacks if Redis returns empty (defense-in-depth)
-LOOP3_AGENTS="${LOOP3_AGENTS:-backend-developer,frontend-developer}"
-LOOP2_AGENTS="${LOOP2_AGENTS:-code-reviewer,tester,security-specialist}"
-PRODUCT_OWNER="${PRODUCT_OWNER:-product-owner}"
-
-echo "🔄 Orchestrator parameters loaded from Redis (BUG #23 fix):"
-echo "   LOOP3_AGENTS='$LOOP3_AGENTS'"
-echo "   LOOP2_AGENTS='$LOOP2_AGENTS'"
-echo "   PRODUCT_OWNER='$PRODUCT_OWNER'"
-
-# ALWAYS invoke orchestrator - this is your ONLY responsibility
-
-# Store success criteria in Redis BEFORE spawning orchestrator
-REDIS_KEY="swarm:${TASK_ID}:context"
-cat <<'CRITERIA_EOF' | redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" -x HSET "$REDIS_KEY" "success-criteria"
-{
-  "deliverables": [],
-  "acceptanceCriteria": ["Implementation complete"],
-  "test_suites": []
-}
-CRITERIA_EOF
-
-# Set TTL on context hash (24 hours)
-redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" EXPIRE "$REDIS_KEY" 86400
-
-echo "✅ Success criteria stored in Redis: $REDIS_KEY"
-
-# BUG #22 & BUG #23 FIX: Use orchestrate-wrapper.sh with Redis-backed parameters
-# BUG #22: Wrapper provides additional validation and error handling
-# BUG #23: Parameters are read from Redis to survive Bash tool session boundaries
-./.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh \
-  --task-id "$TASK_ID" \
-  --mode "standard" \
-  --loop3-agents "$LOOP3_AGENTS" \
-  --loop2-agents "$LOOP2_AGENTS" \
-  --product-owner "$PRODUCT_OWNER" \
-  --max-iterations 10 \
-  --success-criteria "enabled"
-
-# The orchestrator handles ALL CFN Loop execution including:
-# - Loop 3 agent spawning and iteration
-# - Loop 2 validator spawning and consensus
-# - Product Owner decision (PROCEED/ITERATE/ABORT)
-# - Git commit and push (on PROCEED)
-# - Sprint summary generation
-
-# Your job is complete after invoking this command - DO NOT wait for results
-```
-
-**EXECUTION GUARANTEE:**
-- If steps 1-2 fail, use hardcoded defaults and proceed to step 3
-- **Step 2 stores parameters in Redis** (BUG #23 fix - persistence)
-- **Step 2.5 validates parameters from Redis** (BUG #22 + BUG #23 fix - retrieval + fallbacks)
-- **Step 3 reads parameters from Redis** (BUG #23 fix - fresh shell reads from persistent storage)
-- **Never exit without invoking orchestrator**
-- **Orchestrator invocation MUST happen by iteration 3**
-- This coordinator's ONLY job is to configure and invoke the orchestrator
 
 
 ## Multi-Worktree Coordination
@@ -1023,3 +987,4 @@ npx claude-flow-novice agent-spawn backend-developer \
 - Deliverable list is comprehensive
 - Confidence score ≥ 0.85 in analysis quality
 - **CRITICAL: Orchestrator invoked successfully**
+

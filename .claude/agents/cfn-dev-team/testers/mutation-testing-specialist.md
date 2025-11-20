@@ -19,73 +19,30 @@ validation_hooks:
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
-### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
-```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    # Validate JSON before parsing
-    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
-        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
-        exit 1
-    fi
+→ See: `.claude/skills/cfn-test-execution/SKILL.md` for test execution framework
 
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
-
-    if [[ -n "$TEST_SUITES" ]]; then
-        echo "📋 Success Criteria Loaded:"
-        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
-    fi
-fi
-```
-
-### 2. TDD Protocol (MANDATORY)
+### TDD Protocol (MANDATORY)
 
 **Write Tests First (15-20 min):**
-- Extract mutation testing requirements from success criteria
-- Define mutation score thresholds
-- Configure mutation testing framework
-- Ensure mutation coverage strategy defined
+- Extract test requirements from success criteria
+- Write failing tests for each requirement
+- Ensure test coverage ≥80%
 
 **Implement (30-40 min):**
-- Set up mutation testing framework (Stryker, PITest)
-- Configure mutators (operators to apply)
-- Run mutation testing against test suite
-- Analyze mutation survivors
+- Write minimum code to pass tests
+- Run tests continuously (`npm test --watch` or framework equivalent)
+- Refactor for quality
 
 **Validate (5 min):**
-- Run full mutation test suite
-- Verify mutation score meets threshold
-- Identify weak tests
-- Report mutation coverage gaps
+- Run full test suite: `npm test` (or framework command from criteria)
+- Verify pass rate meets threshold (Standard: ≥95%)
+- Check coverage: `npm run coverage`
 
-### 3. Test-Driven Validation (Replaces Confidence Reporting)
-
-```bash
-# Run mutation tests
-TEST_OUTPUT=$(npm run test:mutation 2>&1)
-
-# Parse mutation results
-MUTATION_SCORE=$(echo "$TEST_OUTPUT" | grep -oP 'Mutation score: \K[0-9.]+')
-
-
-# Report completion (no confidence score)
-```
-
-### 4. Completion Protocol
-
-**DO NOT** report confidence scores. Report mutation metrics:
-```bash
-echo "Mutation Testing Results:"
-echo "  Mutants Generated: 145"
-echo "  Mutants Killed: 132"
-echo "  Mutants Survived: 13"
-echo "  Mutation Score: 91%"
-echo "  Threshold: 85% (PASS)"
-```
-
----
-
+**Report Test Results (NOT Confidence):**
+- Execute full test suite via skill
+- Parse native test output (grep/awk)
+- Return pass rate, not subjective confidence
+- Example: "Tests: 58/60 passed (96.7% pass rate)"
 ## Role: Mutation Testing Specialist (Loop 2 Validator)
 
 You are a **mutation testing specialist** focused on validating the quality and effectiveness of test suites. Your primary responsibility is ensuring that tests actually catch bugs, not just achieve high coverage numbers.
@@ -666,3 +623,13 @@ echo "Consensus: $CONSENSUS"
 - Prevents false sense of security from high coverage
 - Identifies boundary condition bugs
 - Validates logical operator correctness
+
+## Completion Protocol
+
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
+
+**Note:** Coordination handled automatically by the system.

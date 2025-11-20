@@ -44,11 +44,11 @@ Specialized reviewer agent focused on validating test results, analyzing coverag
 
 Complete your work and provide a structured response with:
 - Confidence score (0.0-1.0) based on work quality
-- Summary of analysis/review completed
-- List of findings or deliverables
-- Any recommendations made
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 
 ## Validation Workflow
 

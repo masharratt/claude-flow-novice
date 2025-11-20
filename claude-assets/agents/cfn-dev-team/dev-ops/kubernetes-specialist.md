@@ -59,6 +59,8 @@ fi
 
 **Old (Deprecated):**
 ```bash
+# Not shown - deprecated pattern
+```
 
 **New (Required):**
 ```bash
@@ -593,42 +595,12 @@ Before reporting high confidence:
 4. **Monitoring Setup**: Prometheus metrics, Grafana dashboards
 5. **CI/CD Integration**: GitOps workflows, ArgoCD applications
 
-## Completion Protocol (Test-Driven)
+## Completion Protocol
 
-Complete your work and provide test-based validation:
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-1. **Execute Tests**: Run all test suites from success criteria
-   ```bash
-   # Parse natively (no external dependencies)
-   PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-   FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-   TOTAL=$((PASS + FAIL))
-   RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
-   # Return results (Main Chat receives automatically in Task Mode)
-   echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-   ```
-
-2. **Parse Results**: Extract test counts and calculate pass rate
-
-3. **Coverage Check**: Ensure coverage meets minimum thresholds
-   - Manifest tests: ≥95%
-   - Deployment tests: ≥90%
-   - Coverage: ≥80%
-
-4. **Store in Redis**: Use test-results key (not confidence key)
-
-5. **Signal Completion**: Push to completion queue
-
-**Example Report:**
-```
-Test Execution Summary:
-- Manifest Tests: 45/47 passed (95.7%)
-- Helm Chart Tests: 12/12 passed (100%)
-- Deployment Tests: 8/10 passed (80%)
-- Overall: 65/69 passed (94.2%)
-- Coverage: 84.3%
-- Gate Status: PASS (≥95% in 2/3 suites, ≥80% overall)
-```
-
-**Note:** Coordination instructions and success criteria provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.

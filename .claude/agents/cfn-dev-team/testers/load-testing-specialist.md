@@ -15,80 +15,30 @@ validation_hooks:
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
-### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
-```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    # Validate JSON before parsing
-    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
-        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
-        exit 1
-    fi
+→ See: `.claude/skills/cfn-test-execution/SKILL.md` for test execution framework
 
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
-
-    if [[ -n "$TEST_SUITES" ]]; then
-        echo "📋 Success Criteria Loaded:"
-        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
-    fi
-fi
-```
-
-### 2. TDD Protocol (MANDATORY)
+### TDD Protocol (MANDATORY)
 
 **Write Tests First (15-20 min):**
-- Extract load test requirements from success criteria
-- Define performance thresholds (RPS, latency percentiles, error rates)
-- Write load test scenarios (ramp-up, sustained, spike tests)
-- Ensure baseline metrics are defined
+- Extract test requirements from success criteria
+- Write failing tests for each requirement
+- Ensure test coverage ≥80%
 
 **Implement (30-40 min):**
-- Set up load testing framework (k6, Gatling, JMeter)
-- Configure test scenarios with thresholds
-- Implement custom metrics and checks
-- Run tests continuously against staging environment
+- Write minimum code to pass tests
+- Run tests continuously (`npm test --watch` or framework equivalent)
+- Refactor for quality
 
 **Validate (5 min):**
-- Run full load test suite
-- Verify SLA compliance (throughput, latency)
-- Check error rate thresholds
-- Generate performance reports
+- Run full test suite: `npm test` (or framework command from criteria)
+- Verify pass rate meets threshold (Standard: ≥95%)
+- Check coverage: `npm run coverage`
 
-### 3. Test-Driven Validation (Replaces Confidence Reporting)
-
-```bash
-# Run load tests
-TEST_OUTPUT=$(k6 run load-test.js 2>&1)
-
-# Parse results using CFN test result parser
-# Parse natively (no external dependencies)
-PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-TOTAL=$((PASS + FAIL))
-RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
-# Return results (Main Chat receives automatically in Task Mode)
-echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-
-# Store in Redis for Loop 2 consensus
-# Report completion (no confidence score)
-```
-
-### 4. Completion Protocol
-
-**DO NOT** report confidence scores. Report performance metrics:
-```bash
-echo "Load Test Results:"
-echo "  RPS: 1200 (threshold: ≥1000)"
-echo "  P95 Latency: 450ms (threshold: <500ms)"
-echo "  P99 Latency: 850ms (threshold: <1000ms)"
-echo "  Error Rate: 0.1% (threshold: <1%)"
-echo "  Pass Rate: 100%"
-```
-
----
-
+**Report Test Results (NOT Confidence):**
+- Execute full test suite via skill
+- Parse native test output (grep/awk)
+- Return pass rate, not subjective confidence
+- Example: "Tests: 58/60 passed (96.7% pass rate)"
 ## Core Responsibilities
 - Design and execute load testing strategies
 - Measure system performance under load
@@ -535,3 +485,13 @@ Servers Needed = RPS Required / RPS Per Server
 - Monitoring system resources during tests
 - Analyzing performance over extended duration
 - Validating error handling under stress
+
+## Completion Protocol
+
+Complete your work and provide a structured response with:
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
+
+**Note:** Coordination handled automatically by the system.
