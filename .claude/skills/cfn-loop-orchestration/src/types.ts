@@ -16,6 +16,7 @@ export interface OrchestrationConfig {
   mode: ExecutionMode;
   maxIterations: number;
   aceReflect?: boolean;
+  timeouts?: TimeoutConfig; // Optional timeout configuration
 }
 
 /**
@@ -82,6 +83,16 @@ export interface ModeConfig {
   consensusThreshold: number; // Loop 2 consensus threshold
   maxIterations: number;
   validatorCount: number;
+  timeouts?: TimeoutConfig; // Optional timeout overrides
+}
+
+/**
+ * Timeout configuration for agent execution
+ */
+export interface TimeoutConfig {
+  loop3Agent?: number; // Loop 3 agent timeout in seconds (default: 300)
+  loop2Agent?: number; // Loop 2 validator timeout in seconds (default: 300)
+  productOwner?: number; // Product Owner decision timeout in seconds (default: 60)
 }
 
 /**
@@ -185,4 +196,49 @@ export function getModeConfig(mode: ExecutionMode): ModeConfig {
 export function calculatePassRate(result: TestResult): number {
   const total = result.pass + result.fail + (result.skip ?? 0);
   return total === 0 ? 0 : result.pass / total;
+}
+
+/**
+ * Get timeout configuration with defaults
+ * Default values: Loop 3 = 300s, Loop 2 = 300s, Product Owner = 60s
+ */
+export function getTimeoutConfig(config?: TimeoutConfig): Required<TimeoutConfig> {
+  return {
+    loop3Agent: config?.loop3Agent ?? 300,
+    loop2Agent: config?.loop2Agent ?? 300,
+    productOwner: config?.productOwner ?? 60,
+  };
+}
+
+/**
+ * Validate timeout configuration
+ * Ensures timeouts are within reasonable bounds (10-3600 seconds)
+ */
+export function validateTimeoutConfig(config: TimeoutConfig): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const MIN_TIMEOUT = 10;
+  const MAX_TIMEOUT = 3600;
+
+  if (config.loop3Agent !== undefined) {
+    if (config.loop3Agent < MIN_TIMEOUT || config.loop3Agent > MAX_TIMEOUT) {
+      errors.push(`loop3Agent timeout must be between ${MIN_TIMEOUT}-${MAX_TIMEOUT}s, got ${config.loop3Agent}s`);
+    }
+  }
+
+  if (config.loop2Agent !== undefined) {
+    if (config.loop2Agent < MIN_TIMEOUT || config.loop2Agent > MAX_TIMEOUT) {
+      errors.push(`loop2Agent timeout must be between ${MIN_TIMEOUT}-${MAX_TIMEOUT}s, got ${config.loop2Agent}s`);
+    }
+  }
+
+  if (config.productOwner !== undefined) {
+    if (config.productOwner < MIN_TIMEOUT || config.productOwner > MAX_TIMEOUT) {
+      errors.push(`productOwner timeout must be between ${MIN_TIMEOUT}-${MAX_TIMEOUT}s, got ${config.productOwner}s`);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
 }

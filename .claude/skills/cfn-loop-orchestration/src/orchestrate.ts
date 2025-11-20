@@ -8,7 +8,11 @@
 
 import { gateCheck, GateCheckParams } from './helpers/gate-check';
 import { collectConsensus, validateConsensus } from './helpers/consensus';
+import { spawnLoop3Agents, spawnLoop2Agents, SpawnResult } from './helpers/spawn-agents';
 import { TestResult, ExecutionMode } from './types';
+import { execSync } from 'child_process';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 
 /**
  * Execution phases in the CFN Loop
@@ -19,6 +23,15 @@ export type LoopPhase = 'loop3' | 'loop2' | 'product-owner' | 'complete';
  * Product owner decision outcomes
  */
 export type ProductOwnerDecision = 'PROCEED' | 'ITERATE' | 'ABORT' | null;
+
+/**
+ * Timeout configuration for agent execution
+ */
+export interface TimeoutConfig {
+  loop3Agent?: number;
+  loop2Agent?: number;
+  productOwner?: number;
+}
 
 /**
  * Orchestration configuration
@@ -32,6 +45,7 @@ export interface OrchestrationConfig {
   loop2Agents?: string[];
   productOwner?: string;
   successCriteriaEnabled?: boolean;
+  timeouts?: TimeoutConfig;
 }
 
 /**
@@ -140,6 +154,14 @@ const MODE_CONFIG: Record<ExecutionMode, ModeThresholds> = {
 };
 
 /**
+ * Shell escape utility for safe command execution
+ */
+function escapeShellArg(arg: string): string {
+  // Use single quotes and escape any single quotes in the argument
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
+/**
  * Main orchestrator class
  */
 export class Orchestrator {
@@ -178,6 +200,30 @@ export class Orchestrator {
 
     if (config.maxIterations > 100) {
       throw new Error('Max iterations cannot exceed 100');
+    }
+
+    // Validate timeout configuration if provided
+    if (config.timeouts) {
+      const MIN_TIMEOUT = 10;
+      const MAX_TIMEOUT = 3600;
+
+      if (config.timeouts.loop3Agent !== undefined) {
+        if (config.timeouts.loop3Agent < MIN_TIMEOUT || config.timeouts.loop3Agent > MAX_TIMEOUT) {
+          throw new Error(`loop3Agent timeout must be between ${MIN_TIMEOUT}-${MAX_TIMEOUT}s, got ${config.timeouts.loop3Agent}s`);
+        }
+      }
+
+      if (config.timeouts.loop2Agent !== undefined) {
+        if (config.timeouts.loop2Agent < MIN_TIMEOUT || config.timeouts.loop2Agent > MAX_TIMEOUT) {
+          throw new Error(`loop2Agent timeout must be between ${MIN_TIMEOUT}-${MAX_TIMEOUT}s, got ${config.timeouts.loop2Agent}s`);
+        }
+      }
+
+      if (config.timeouts.productOwner !== undefined) {
+        if (config.timeouts.productOwner < MIN_TIMEOUT || config.timeouts.productOwner > MAX_TIMEOUT) {
+          throw new Error(`productOwner timeout must be between ${MIN_TIMEOUT}-${MAX_TIMEOUT}s, got ${config.timeouts.productOwner}s`);
+        }
+      }
     }
   }
 
@@ -239,6 +285,18 @@ export class Orchestrator {
    */
   public getConsensusThreshold(): number {
     return MODE_CONFIG[this.config.mode].consensusThreshold;
+  }
+
+  /**
+   * Get timeout configuration with defaults
+   * Defaults: Loop 3 = 300s, Loop 2 = 300s, Product Owner = 60s
+   */
+  public getTimeouts(): { loop3Agent: number; loop2Agent: number; productOwner: number } {
+    return {
+      loop3Agent: this.config.timeouts?.loop3Agent ?? 300,
+      loop2Agent: this.config.timeouts?.loop2Agent ?? 300,
+      productOwner: this.config.timeouts?.productOwner ?? 60,
+    };
   }
 
   /**
@@ -344,11 +402,11 @@ export class Orchestrator {
     let totalFail = 0;
     let totalSkip = 0;
 
-    for (const result of this.testResults.values()) {
+    this.testResults.forEach((result) => {
       totalPass += result.pass;
       totalFail += result.fail;
       totalSkip += result.skip ?? 0;
-    }
+    });
 
     const total = totalPass + totalFail + totalSkip;
     const passRate = total === 0 ? 0 : totalPass / total;
@@ -521,6 +579,321 @@ export class Orchestrator {
   }
 
   /**
+   * Build task context string for agent spawning
+   */
+  private buildTaskContext(): string {
+    const context = {
+      taskId: this.config.taskId,
+      mode: this.config.mode,
+      iteration: this.state.iteration,
+      phase: this.state.currentPhase,
+      timestamp: Date.now(),
+    };
+    return JSON.stringify(context);
+  }
+
+  /**
+   * Wait for agents to complete via Redis coordination
+   * Blocks until all agents signal completion or timeout occurs
+   *
+   * @param spawnResults - Results from agent spawning
+   * @param timeoutSeconds - Maximum wait time (default: 300s)
+   * @returns Array of completed agent IDs
+   */
+  private async waitForAgentsToComplete(
+    spawnResults: SpawnResult[],
+    timeoutSeconds: number = 300
+  ): Promise<string[]> {
+    const completedAgents: string[] = [];
+    const startTime = Date.now();
+    const projectRoot = process.env.PROJECT_ROOT || process.cwd();
+
+    console.log(`Waiting for ${spawnResults.length} agents to complete (timeout: ${timeoutSeconds}s)...`);
+
+    for (const result of spawnResults) {
+      if (!result.success) {
+        console.warn(`Skipping failed agent: ${result.agentId}`);
+        continue;
+      }
+
+      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+      const remainingTimeout = timeoutSeconds - elapsedSeconds;
+
+      if (remainingTimeout <= 0) {
+        console.error(`Global timeout reached. Remaining agents will not be waited for.`);
+        this.recordTimeout(result.agentId, timeoutSeconds);
+        break;
+      }
+
+      try {
+        // Wait for agent completion signal via Redis coordination
+        const coordinationScript = path.join(
+          projectRoot,
+          '.claude/skills/cfn-coordination/coordination-wait.sh'
+        );
+
+        const channel = `agent:${result.agentId}:complete`;
+
+        // Properly escape all user-controlled inputs to prevent shell injection
+        const escapedTaskId = escapeShellArg(this.config.taskId);
+        const escapedChannel = escapeShellArg(channel);
+        const escapedTimeout = escapeShellArg(String(remainingTimeout));
+
+        const cmd = `bash ${coordinationScript} --task-id ${escapedTaskId} --channel ${escapedChannel} --timeout ${escapedTimeout}`;
+
+        console.log(`Waiting for agent ${result.agentId} (timeout: ${remainingTimeout}s)...`);
+
+        // Execute coordination wait (blocking)
+        execSync(cmd, {
+          encoding: 'utf8',
+          stdio: 'inherit',
+          timeout: remainingTimeout * 1000,
+          cwd: projectRoot,
+        });
+
+        console.log(`✓ Agent ${result.agentId} completed`);
+        completedAgents.push(result.agentId);
+        this.markAgentComplete(result.agentId, 'loop3');
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`✗ Agent ${result.agentId} failed or timed out: ${errorMsg}`);
+        this.recordExecutionError(result.agentId, new Error(errorMsg));
+      }
+    }
+
+    console.log(`Completed: ${completedAgents.length}/${spawnResults.length} agents`);
+    return completedAgents;
+  }
+
+  /**
+   * Collect agent outputs from Redis
+   * Retrieves test results, confidence scores, and deliverables
+   *
+   * @param agentIds - List of agent IDs to collect from
+   * @returns Map of agent outputs
+   */
+  private async collectAgentOutputs(
+    agentIds: string[]
+  ): Promise<Map<string, { testResult?: TestResult; confidence?: number; deliverables?: string[] }>> {
+    const outputs = new Map<string, { testResult?: TestResult; confidence?: number; deliverables?: string[] }>();
+
+    console.log(`Collecting outputs from ${agentIds.length} agents...`);
+
+    for (const agentId of agentIds) {
+      try {
+        // Retrieve agent output from Redis
+        const testResultJson = this.getRedisValue(`swarm:${this.config.taskId}:agent:${agentId}:test-result`);
+        const confidenceStr = this.getRedisValue(`swarm:${this.config.taskId}:agent:${agentId}:confidence`);
+        const deliverablesJson = this.getRedisValue(`swarm:${this.config.taskId}:agent:${agentId}:deliverables`);
+
+        const agentOutput: { testResult?: TestResult; confidence?: number; deliverables?: string[] } = {};
+
+        // Parse test results
+        if (testResultJson) {
+          try {
+            const testResult = JSON.parse(testResultJson) as TestResult;
+            agentOutput.testResult = testResult;
+            this.recordTestResult(agentId, testResult);
+            console.log(`  ${agentId}: Test results collected (${testResult.pass} pass, ${testResult.fail} fail)`);
+          } catch (parseError) {
+            console.warn(`  ${agentId}: Failed to parse test results: ${parseError}`);
+          }
+        }
+
+        // Parse confidence score
+        if (confidenceStr) {
+          const confidence = parseFloat(confidenceStr);
+          if (!isNaN(confidence) && confidence >= 0 && confidence <= 1) {
+            agentOutput.confidence = confidence;
+            console.log(`  ${agentId}: Confidence score: ${(confidence * 100).toFixed(2)}%`);
+          }
+        }
+
+        // Parse deliverables
+        if (deliverablesJson) {
+          try {
+            const deliverables = JSON.parse(deliverablesJson) as string[];
+            agentOutput.deliverables = deliverables;
+            console.log(`  ${agentId}: Deliverables: ${deliverables.length} files`);
+          } catch (parseError) {
+            console.warn(`  ${agentId}: Failed to parse deliverables: ${parseError}`);
+          }
+        }
+
+        outputs.set(agentId, agentOutput);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`  ${agentId}: Failed to collect output: ${errorMsg}`);
+      }
+    }
+
+    console.log(`Successfully collected outputs from ${outputs.size}/${agentIds.length} agents`);
+    return outputs;
+  }
+
+  /**
+   * Get value from Redis using redis-cli
+   *
+   * @param key - Redis key
+   * @returns Value or null if not found
+   */
+  private getRedisValue(key: string): string | null {
+    try {
+      const redisHost = process.env.REDIS_HOST || 'localhost';
+      const redisPort = process.env.REDIS_PORT || '6379';
+
+      // Properly escape all user-controlled inputs to prevent shell injection
+      const escapedHost = escapeShellArg(redisHost);
+      const escapedPort = escapeShellArg(redisPort);
+      const escapedKey = escapeShellArg(key);
+
+      const result = execSync(`redis-cli -h ${escapedHost} -p ${escapedPort} GET ${escapedKey}`, {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'ignore'], // Suppress stderr
+      }).trim();
+
+      return result === '(nil)' ? null : result;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Execute tests against agent deliverables
+   * Runs test suite to validate actual agent work
+   *
+   * @param agentOutputs - Map of agent outputs with deliverables
+   * @returns Aggregated test results
+   */
+  private async executeTestsOnDeliverables(
+    agentOutputs: Map<string, { testResult?: TestResult; confidence?: number; deliverables?: string[] }>
+  ): Promise<AggregatedTestResults> {
+    console.log('Executing tests on agent deliverables...');
+
+    const projectRoot = process.env.PROJECT_ROOT || process.cwd();
+
+    // Validate TEST_COMMAND against allowlist to prevent shell injection (CVSS 8.5)
+    const ALLOWED_TEST_COMMANDS = ['npm test', 'npm run test', 'jest', 'mocha', 'yarn test'];
+    const ALLOWED_TEST_PATTERNS = [
+      /^npm run test:[a-z0-9-]+$/,           // Namespaced npm scripts: npm run test:integration, test:security, etc.
+      /^jest [a-z0-9/_-]+\.test\.[jt]s$/,   // Jest with specific test files (no path traversal)
+      /^mocha [a-z0-9/_-]+\.test\.[jt]s$/   // Mocha with specific test files (no path traversal)
+    ];
+    const testCommand = process.env.TEST_COMMAND || 'npm test';
+
+    // Security: Block path traversal attempts
+    if (testCommand.includes('..')) {
+      throw new Error(
+        `Security: Path traversal detected in TEST_COMMAND. Got: ${testCommand}`
+      );
+    }
+
+    // Check exact match first, then regex patterns
+    const isAllowed = ALLOWED_TEST_COMMANDS.includes(testCommand) ||
+                      ALLOWED_TEST_PATTERNS.some(pattern => pattern.test(testCommand));
+
+    if (!isAllowed) {
+      throw new Error(
+        `Security: Invalid TEST_COMMAND value. Allowed commands: ${ALLOWED_TEST_COMMANDS.join(', ')}, ` +
+        `npm run test:*, jest <file>.test.[jt]s, mocha <file>.test.[jt]s. Got: ${testCommand}`
+      );
+    }
+
+    let totalPass = 0;
+    let totalFail = 0;
+    let totalSkip = 0;
+    let agentCount = 0;
+
+    for (const [agentId, output] of agentOutputs) {
+      // Verify deliverables exist
+      if (!output.deliverables || output.deliverables.length === 0) {
+        console.warn(`  ${agentId}: No deliverables to test`);
+        continue;
+      }
+
+      // Validate deliverables exist on filesystem
+      const missingFiles: string[] = [];
+      for (const deliverable of output.deliverables) {
+        const filePath = path.join(projectRoot, deliverable);
+        try {
+          await fs.access(filePath);
+        } catch {
+          missingFiles.push(deliverable);
+        }
+      }
+
+      if (missingFiles.length > 0) {
+        console.warn(`  ${agentId}: Missing deliverables: ${missingFiles.join(', ')}`);
+        const testResult: TestResult = {
+          pass: 0,
+          fail: missingFiles.length,
+          skip: 0,
+        };
+        this.recordTestResult(agentId, testResult);
+        totalFail += missingFiles.length;
+        agentCount++;
+        continue;
+      }
+
+      // Execute test suite
+      try {
+        console.log(`  ${agentId}: Running tests on ${output.deliverables.length} deliverables...`);
+
+        const testOutput = execSync(testCommand, {
+          encoding: 'utf8',
+          cwd: projectRoot,
+          stdio: 'pipe',
+        });
+
+        // Parse test output (example for Jest format)
+        const passMatch = testOutput.match(/(\d+) passing/);
+        const failMatch = testOutput.match(/(\d+) failing/);
+        const skipMatch = testOutput.match(/(\d+) pending/);
+
+        const pass = passMatch && passMatch[1] ? parseInt(passMatch[1], 10) : 0;
+        const fail = failMatch && failMatch[1] ? parseInt(failMatch[1], 10) : 0;
+        const skip = skipMatch && skipMatch[1] ? parseInt(skipMatch[1], 10) : 0;
+
+        const testResult: TestResult = { pass, fail, skip };
+        this.recordTestResult(agentId, testResult);
+
+        totalPass += pass;
+        totalFail += fail;
+        totalSkip += skip;
+        agentCount++;
+
+        console.log(`  ${agentId}: Tests completed (${pass} pass, ${fail} fail, ${skip} skip)`);
+      } catch (error) {
+        // Test execution failed
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`  ${agentId}: Test execution failed: ${errorMsg}`);
+
+        const testResult: TestResult = {
+          pass: 0,
+          fail: output.deliverables.length,
+          skip: 0,
+        };
+        this.recordTestResult(agentId, testResult);
+        totalFail += output.deliverables.length;
+        agentCount++;
+      }
+    }
+
+    const total = totalPass + totalFail + totalSkip;
+    const passRate = total === 0 ? 0 : totalPass / total;
+
+    console.log(`Test execution complete: ${totalPass} pass, ${totalFail} fail, ${totalSkip} skip (${(passRate * 100).toFixed(2)}% pass rate)`);
+
+    return {
+      totalPass,
+      totalFail,
+      totalSkip,
+      passRate,
+      agentCount,
+    };
+  }
+
+  /**
    * Build agent context for spawning
    */
   public buildAgentContext(
@@ -618,32 +991,44 @@ export class Orchestrator {
       console.log('\nPhase: Loop 3 (Implementers)');
       this.transitionPhase('loop3');
 
-      const loop3Agents = this.config.loop3Agents || ['backend-dev', 'coder'];
-      const loop3Contexts = await this.spawnLoop3Agents(loop3Agents);
+      const loop3AgentTypes = this.config.loop3Agents || ['backend-dev', 'coder'];
+      const taskContext = this.buildTaskContext();
 
-      console.log(`Spawned ${loop3Contexts.length} Loop 3 agents`);
+      // Spawn real CLI agents
+      console.log(`Spawning ${loop3AgentTypes.length} Loop 3 agents via CLI...`);
+      const loop3SpawnResult = await spawnLoop3Agents(
+        this.config.taskId,
+        this.state.iteration,
+        loop3AgentTypes,
+        taskContext
+      );
 
-      // Simulate test result collection from agents
-      // In production, this would collect from actual agent runs
-      for (const context of loop3Contexts) {
-        const testResult: TestResult = {
-          pass: Math.floor(Math.random() * 100),
-          fail: Math.floor(Math.random() * 20),
-          skip: Math.floor(Math.random() * 5),
-        };
+      console.log(`Loop 3 spawn summary: ${loop3SpawnResult.successCount} successful, ${loop3SpawnResult.failureCount} failed`);
 
-        this.recordTestResult(context.agentId, testResult);
-        this.markAgentComplete(context.agentId, 'loop3');
+      // Wait for agents to complete via Redis coordination
+      const timeouts = this.getTimeouts();
+      const completedAgentIds = await this.waitForAgentsToComplete(
+        loop3SpawnResult.results,
+        timeouts.loop3Agent
+      );
+
+      if (completedAgentIds.length === 0) {
+        console.error('No agents completed successfully. Aborting iteration.');
+        this.recordDecision('ABORT');
+        break;
       }
 
-      // Aggregate and check gate
-      const aggregated = this.aggregateTestResults();
+      // Collect agent outputs (test results, confidence scores, deliverables)
+      const agentOutputs = await this.collectAgentOutputs(completedAgentIds);
+
+      // Execute tests against actual agent deliverables
+      const aggregated = await this.executeTestsOnDeliverables(agentOutputs);
       console.log(
-        `Loop 3 Results: ${aggregated.totalPass} pass, ${aggregated.totalFail} fail (${(aggregated.passRate * 100).toFixed(2)}%)`
+        `Loop 3 Results: ${aggregated.totalPass} pass, ${aggregated.totalFail} fail (${aggregated.agentCount} agents, ${(aggregated.passRate * 100).toFixed(2)}% pass rate)`
       );
 
       const gateResult = this.checkGate(aggregated.passRate);
-      console.log(`Gate Check: ${gateResult.passed ? 'PASSED' : 'FAILED'} (threshold: ${gateResult.threshold.toFixed(4)})`);
+      console.log(`Gate Check: ${gateResult.passed ? 'PASSED' : 'FAILED'} (threshold: ${(gateResult.threshold * 100).toFixed(2)}%)`);
 
       if (!gateResult.passed) {
         console.log(`Gate failed. Iterating...`);
@@ -652,7 +1037,7 @@ export class Orchestrator {
         this.prepareFeedback({
           gatePassRate: aggregated.passRate,
           previousFailures: Array.from(this.state.failedAgents),
-          reasons: [`Gate check failed: ${gateResult.gap.toFixed(4)} below threshold`],
+          reasons: [`Gate check failed: ${(gateResult.gap * 100).toFixed(2)}% below threshold`],
         });
 
         console.log(`Feedback prepared for iteration ${iteration + 1}`);
@@ -673,18 +1058,52 @@ export class Orchestrator {
       console.log('\nPhase: Loop 2 (Validators)');
       this.transitionPhase('loop2');
 
-      const loop2Agents = this.config.loop2Agents || ['code-reviewer', 'tester', 'security-specialist'];
-      const loop2Contexts = await this.spawnLoop2Validators(loop2Agents);
+      const loop2AgentTypes = this.config.loop2Agents || ['code-reviewer', 'tester', 'security-specialist'];
 
-      console.log(`Spawned ${loop2Contexts.length} Loop 2 validators`);
+      // Spawn real CLI validators
+      console.log(`Spawning ${loop2AgentTypes.length} Loop 2 validators via CLI...`);
+      const loop2SpawnResult = await spawnLoop2Agents(
+        this.config.taskId,
+        this.state.iteration,
+        loop2AgentTypes,
+        taskContext
+      );
 
-      // Simulate consensus score collection from validators
-      // In production, this would collect from actual validator runs
-      for (const context of loop2Contexts) {
-        const consensusScore = Math.random() * 0.3 + 0.7; // Random score between 0.7-1.0
-        this.recordConsensusScore(context.agentId, consensusScore);
-        this.markAgentComplete(context.agentId, 'loop2');
+      console.log(`Loop 2 spawn summary: ${loop2SpawnResult.successCount} successful, ${loop2SpawnResult.failureCount} failed`);
+
+      // Wait for validators to complete via Redis coordination
+      const completedValidatorIds = await this.waitForAgentsToComplete(
+        loop2SpawnResult.results,
+        timeouts.loop2Agent
+      );
+
+      if (completedValidatorIds.length === 0) {
+        console.error('No validators completed successfully. Iterating...');
+        this.prepareFeedback({
+          reasons: ['No Loop 2 validators completed'],
+        });
+        this.resetForIteration();
+
+        if (!this.canContinueIterating()) {
+          console.log(`Max iterations (${maxIterations}) reached. ABORTING.`);
+          this.recordDecision('ABORT');
+          break;
+        }
+
+        continue;
       }
+
+      // Collect validator outputs (consensus scores)
+      const validatorOutputs = await this.collectAgentOutputs(completedValidatorIds);
+
+      // Record consensus scores from validators
+      for (const [validatorId, output] of validatorOutputs) {
+        if (output.confidence !== undefined) {
+          this.recordConsensusScore(validatorId, output.confidence);
+        }
+      }
+
+      console.log(`Loop 2 validators completed: ${completedValidatorIds.length}/${loop2SpawnResult.totalSpawned}`);
 
       // Validate consensus
       const consensusValidation = this.validateConsensus();
@@ -698,7 +1117,7 @@ export class Orchestrator {
         // Prepare feedback for next iteration
         this.prepareFeedback({
           consensusAverage: consensusValidation.average,
-          reasons: [`Consensus below threshold: ${consensusValidation.gap.toFixed(4)}`],
+          reasons: [`Consensus below threshold: ${(consensusValidation.gap * 100).toFixed(2)}%`],
         });
 
         console.log(`Feedback prepared for iteration ${iteration + 1}`);
@@ -719,16 +1138,59 @@ export class Orchestrator {
       console.log('\nPhase: Product Owner Decision');
       this.transitionPhase('product-owner');
 
-      // Simulate product owner decision
-      // In production, this would invoke actual product owner agent
       const ownerAgent = this.config.productOwner || 'product-owner-agent';
       console.log(`Consulting Product Owner (${ownerAgent})`);
 
-      // Simulate decision based on iteration number
+      // Execute Product Owner decision via skill
       let decision: ProductOwnerDecision = 'PROCEED';
-      if (iteration === 1 && Math.random() > 0.7) {
-        // Sometimes iterate on first iteration
-        decision = 'ITERATE';
+      try {
+        const projectRoot = path.resolve(__dirname, '../../../..');
+        const skillPath = path.join(projectRoot, '.claude/skills/cfn-product-owner-decision/execute-decision.sh');
+
+        const poAgentId = `product-owner-${this.config.taskId}-${iteration}`;
+        const poArgs = [
+          '--task-id', this.config.taskId,
+          '--agent-id', poAgentId,
+          '--consensus', String(consensusValidation.average),
+          '--threshold', String(consensusValidation.threshold),
+          '--iteration', String(iteration),
+          '--max-iterations', String(maxIterations),
+          '--timeout', String(timeouts.productOwner),
+        ];
+
+        if (this.config.successCriteriaEnabled) {
+          poArgs.push('--success-criteria', 'enabled');
+        }
+
+        console.log(`Executing Product Owner decision skill (timeout: ${timeouts.productOwner}s)...`);
+
+        const escapedArgs = [escapeShellArg(skillPath), ...poArgs.map(arg => escapeShellArg(arg))].join(' ');
+        const poOutput = execSync(
+          `bash ${escapedArgs}`,
+          { encoding: 'utf-8', timeout: (timeouts.productOwner + 10) * 1000 }
+        );
+
+        // Parse decision from JSON output
+        const jsonMatch = poOutput.match(/\{[\s\S]*"decision":\s*"(PROCEED|ITERATE|ABORT)"[\s\S]*\}/);
+        if (jsonMatch) {
+          const poResult = JSON.parse(jsonMatch[0]);
+          decision = poResult.decision as ProductOwnerDecision;
+          console.log(`Product Owner reasoning: ${poResult.reasoning}`);
+          console.log(`Product Owner confidence: ${poResult.confidence}`);
+        } else {
+          // Fallback: try to extract decision from plain text
+          const decisionMatch = poOutput.match(/Decision:\s*(PROCEED|ITERATE|ABORT)/i);
+          if (decisionMatch && decisionMatch[1]) {
+            decision = decisionMatch[1].toUpperCase() as ProductOwnerDecision;
+          } else {
+            console.warn('Could not parse Product Owner decision, defaulting to PROCEED');
+            decision = 'PROCEED';
+          }
+        }
+      } catch (error: unknown) {
+        console.error(`Product Owner execution failed: ${error instanceof Error ? error.message : String(error)}`);
+        console.warn('Defaulting to PROCEED due to execution error');
+        decision = 'PROCEED';
       }
 
       this.recordDecision(decision);
@@ -741,7 +1203,39 @@ export class Orchestrator {
         console.log(`${'='.repeat(60)}`);
         break;
       } else if (decision === 'ITERATE') {
-        console.log(`Iteration ${iteration} requested review. Iterating...`);
+        console.log(`Product Owner requested iteration. Preparing feedback for iteration ${iteration + 1}...`);
+
+        // Prepare feedback for next iteration with Product Owner context
+        const iterationFeedback = this.prepareFeedback({
+          gatePassRate: gateResult.passRate,
+          consensusAverage: consensusValidation.average,
+          reasons: [
+            `Product Owner requested iteration ${iteration + 1}`,
+            `Gate pass rate: ${(gateResult.passRate * 100).toFixed(2)}%`,
+            `Consensus: ${(consensusValidation.average * 100).toFixed(2)}%`,
+          ],
+        });
+
+        console.log('Feedback prepared:');
+        console.log(`  - Gate: ${(iterationFeedback.gatePassRate! * 100).toFixed(2)}%`);
+        console.log(`  - Consensus: ${(iterationFeedback.consensusAverage! * 100).toFixed(2)}%`);
+        console.log(`  - Reasons: ${iterationFeedback.reasons?.join(', ')}`);
+
+        // Store iteration feedback in Redis for next Loop 3 agents to access
+        // Using proper escaping to prevent Redis command injection (CVSS 9.8)
+        try {
+          const feedbackKey = escapeShellArg(`swarm:${this.config.taskId}:iteration:${iteration + 1}:feedback`);
+          const gatePassRateVal = escapeShellArg(String(iterationFeedback.gatePassRate));
+          const consensusAverageVal = escapeShellArg(String(iterationFeedback.consensusAverage));
+          const reasonsVal = escapeShellArg(iterationFeedback.reasons?.join('; ') || '');
+
+          const cmd = `redis-cli HSET ${feedbackKey} "gate_pass_rate" ${gatePassRateVal} "consensus_average" ${consensusAverageVal} "reasons" ${reasonsVal}`;
+          execSync(cmd, { encoding: 'utf-8' });
+
+          console.log(`Iteration feedback stored in Redis for iteration ${iteration + 1}`);
+        } catch (error: unknown) {
+          console.warn(`Failed to store iteration feedback: ${error instanceof Error ? error.message : String(error)}`);
+        }
 
         // Reset state for next iteration
         this.resetForIteration();
@@ -752,6 +1246,7 @@ export class Orchestrator {
           break;
         }
 
+        console.log(`\nProceeding to iteration ${iteration + 1}...`);
         continue; // Go to next iteration
       } else if (decision === 'ABORT') {
         console.log(`\n${'='.repeat(60)}`);
@@ -769,6 +1264,8 @@ export class Orchestrator {
     console.log(`  Task ID: ${summary.taskId}`);
     console.log(`  Mode: ${summary.mode}`);
     console.log(`  Iterations: ${summary.iteration}/${this.config.maxIterations}`);
+    console.log(`  Completed Agents: ${this.state.completedAgents.size}`);
+    console.log(`  Failed Agents: ${this.state.failedAgents.size}`);
     console.log(`  Decision: ${finalDecision}`);
     console.log(`  Duration: ${(summary.duration / 1000).toFixed(2)}s`);
 

@@ -2,7 +2,7 @@
  * Agent Spawning Helper - TypeScript Implementation
  *
  * Spawns Loop 3 and Loop 2 agents with enriched context injection.
- * Wraps npx claude-flow-novice agent-spawn with format validation and dry-run support.
+ * Wraps npx claude-flow-novice agent with format validation and dry-run support.
  *
  * @module helpers/spawn-agents
  */
@@ -39,6 +39,7 @@ export interface SpawnSummary {
 export interface SpawnAgentsConfig {
   taskId: string;
   iteration: number;
+  phase: 'loop3' | 'loop2' | 'product-owner';
   agents: string[];
   originalContext: string;
   dryRun?: boolean;
@@ -47,10 +48,12 @@ export interface SpawnAgentsConfig {
 }
 
 /**
- * Validates agent type is either loop3 or loop2
+ * Validates agent type name format
+ * Allows agent names like: backend-developer, code-reviewer, security-specialist
  */
 function validateAgentType(agentType: string): boolean {
-  return ['loop3', 'loop2'].includes(agentType.toLowerCase());
+  // Allow alphanumeric, hyphens, underscores (agent names)
+  return /^[a-z0-9_-]+$/i.test(agentType);
 }
 
 /**
@@ -74,6 +77,7 @@ function generateAgentId(
 
 /**
  * Formats the agent spawn CLI command
+ * Correct format: npx claude-flow-novice agent <type> --task-id <id> --context <ctx>
  */
 function formatSpawnCommand(
   agentType: string,
@@ -85,7 +89,7 @@ function formatSpawnCommand(
   return [
     'npx',
     'claude-flow-novice',
-    'agent-spawn',
+    'agent',
     agentType,
     '--task-id',
     taskId,
@@ -110,7 +114,7 @@ function validateCommandFormat(command: string[]): boolean {
     return false;
   }
 
-  if (command[2] !== 'agent-spawn') {
+  if (command[2] !== 'agent') {
     return false;
   }
 
@@ -263,7 +267,7 @@ export async function spawnAgents(config: SpawnAgentsConfig): Promise<SpawnSumma
   // Validate all agents
   for (const agent of config.agents) {
     if (!validateAgentType(agent)) {
-      throw new Error(`Invalid agent type: ${agent}. Must be 'loop3' or 'loop2'`);
+      throw new Error(`Invalid agent type: ${agent}. Must be alphanumeric with hyphens/underscores (e.g., backend-developer)`);
     }
   }
 
@@ -318,13 +322,15 @@ export async function spawnAgents(config: SpawnAgentsConfig): Promise<SpawnSumma
 export async function spawnLoop3Agents(
   taskId: string,
   iteration: number,
+  agentTypes: string[],
   context: string,
   dryRun?: boolean
 ): Promise<SpawnSummary> {
   return spawnAgents({
     taskId,
     iteration,
-    agents: ['loop3'],
+    phase: 'loop3',
+    agents: agentTypes,
     originalContext: context,
     dryRun: dryRun ?? false,
   });
@@ -336,13 +342,15 @@ export async function spawnLoop3Agents(
 export async function spawnLoop2Agents(
   taskId: string,
   iteration: number,
+  agentTypes: string[],
   context: string,
   dryRun?: boolean
 ): Promise<SpawnSummary> {
   return spawnAgents({
     taskId,
     iteration,
-    agents: ['loop2'],
+    phase: 'loop2',
+    agents: agentTypes,
     originalContext: context,
     dryRun: dryRun ?? false,
   });
