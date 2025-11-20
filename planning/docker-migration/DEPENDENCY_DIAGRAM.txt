@@ -596,8 +596,43 @@ PART 9: RELATED DOCUMENTATION
   - Custom Provider Routing: docs/CUSTOM_PROVIDER_ROUTING.md
 
 ================================================================================
+PART 10: SPECIALIZED MAINTENANCE AGENTS
+================================================================================
+
+**CFN CLI Dependency Maintainer Agent**
+  Location: .claude/agents/cfn-dev-team/coordinators/cfn-cli-dependency-maintainer.md
+
+  Purpose:
+    - Maintains CFN Loop CLI execution flow
+    - Dynamically ingests ALL files from DEPENDENCY_DIAGRAM.txt on every invocation
+    - Keeps diagram synchronized with codebase changes
+    - Enforces TypeScript-first priority
+
+  Usage:
+    Task("cfn-cli-dependency-maintainer", "Add new TypeScript helper for X")
+    Task("cfn-cli-dependency-maintainer", "Update diagram after moving file Y")
+    Task("cfn-cli-dependency-maintainer", "Deprecate shell script Z in favor of TypeScript")
+
+  Self-Referential:
+    - This agent reads DEPENDENCY_DIAGRAM.txt to discover what files to ingest
+    - This agent is itself listed in the diagram (meta-circular reference)
+    - On each spawn, it validates all file paths in the diagram are current
+
+================================================================================
 VERSION HISTORY
 ================================================================================
+
+2025-11-20 v3.0.2: Added CFN CLI Dependency Maintainer Agent
+  NEW AGENT: cfn-cli-dependency-maintainer.md
+  - Specialized agent for maintaining CFN Loop CLI execution flow
+  - Dynamically ingests ALL files from DEPENDENCY_DIAGRAM.txt on spawn
+  - Enforces diagram synchronization when files added/removed/changed
+  - Enforces TypeScript-first priority in all changes
+  - Self-referential: uses diagram as source of truth for what to read
+
+  DOCUMENTATION:
+  - Added PART 10: Specialized Maintenance Agents
+  - Documents agent usage patterns and self-referential behavior
 
 2025-11-20 v3.0.1: CRITICAL CORRECTIONS - TypeScript-First Migration
   ⚠️ BREAKING CHANGES - File paths, priorities, and missing files documented
