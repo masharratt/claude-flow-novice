@@ -81,6 +81,7 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
 
 # Parse test results (capture exit code)
 set +e  # Temporarily allow failures
@@ -161,6 +162,10 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
+
+2. **Report Pass Rate**: Return test results in JSON format
+3. **Validate Coverage**: Ensure test coverage meets minimum threshold
    - Coverage: ≥80%
 4. **Store in Redis**: Use test-results key (not confidence key)
 5. **Signal Completion**: Push to completion queue

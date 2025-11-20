@@ -218,7 +218,7 @@ Security Test Execution Summary:
 - Gate Status: PASS (≥95% overall, zero critical vulnerabilities)
 ```
 
-**Note:** Coordination instructions and success criteria provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 
 ## Success Metrics
 

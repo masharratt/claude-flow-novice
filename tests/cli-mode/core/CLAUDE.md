@@ -60,6 +60,26 @@ npx claude-flow-novice agent cfn-v3-coordinator --task-id "$TASK_ID"
 - Longer execution time (1-5 minutes each)
 - Examples: TRUE E2E CLI mode execution, success criteria flow
 
+**North Star E2E Test** (`core/e2e/test-cfn-loop-cli-real-execution.sh`):
+- **MUST be included in `--full` mode** - No exceptions
+- **NO mocks, simulations, or bypasses** - Real production code paths only
+- **5 FULL ITERATIONS** - Validates context passing and ITERATE workflow
+- **Validates complete CLI mode pipeline:**
+  1. Real cfn-spawn spawns cfn-v3-coordinator
+  2. Coordinator invokes real orchestrate-wrapper.sh
+  3. Wrapper validates parameters and calls orchestrate.sh
+  4. Orchestrator spawns real Loop 3 agents via CLI (up to 5 iterations)
+  5. Real test execution and deliverable creation
+  6. Real gate checks (test pass rate ≥0.95 in standard mode)
+  7. Real Loop 2 validators review deliverables
+  8. Real Product Owner makes PROCEED/ITERATE/ABORT decision
+  9. Context passing between iterations validated
+  10. ITERATE → feedback → retry workflow validated
+- **Purpose:** Prevents BUG #21 regressions (tests pass while production fails)
+- **Expected Runtime:** 5-10 minutes (5 iterations with real agent spawning)
+- **Dependencies:** Redis running, NPX available, production scripts unmodified
+- **Configuration:** MODE=standard, MAX_ITERATIONS=5, gate_threshold=0.95, consensus_threshold=0.90
+
 ### 5. Test Structure Compliance
 - [ ] Uses `set -euo pipefail` for strict error handling
 - [ ] Sources `$PROJECT_ROOT/tests/test-utils.sh` for shared helpers
@@ -140,6 +160,10 @@ The `tests/cli-mode/run-all-tests.sh` script MUST:
 - Complete in <20 minutes
 - Require all dependencies (Redis, Docker, NPX, cfn-agent image)
 - Exit code 0 if all tests pass
+- **MUST include North Star E2E test** (`test-cfn-loop-cli-real-execution.sh`)
+  - This test uses REAL agent spawning (no mocks)
+  - Validates production code paths end-to-end
+  - Prevents regressions where tests pass but production fails (BUG #21)
 
 ### Standard Features
 - [ ] Automatic prerequisite checking (Redis, Docker, NPX)
@@ -202,6 +226,41 @@ Before adding a test to core:
 - [ ] Test has clear pass/fail criteria
 - [ ] Test can run idempotently
 - [ ] Legacy tests moved if applicable
+
+## Why the North Star E2E Test Matters
+
+**Background (BUG #21 Lesson):**
+
+During CLI mode development, we had comprehensive test coverage with 100% pass rates. However, production was failing 100% due to a critical gap:
+
+**The Gap:**
+- Tests used: Mock containers with inline scripts (`docker run alpine:latest sh -c "..."`)
+- Production used: Real cfn-spawn → spawn-agent.sh → cfn-agent image → npx CLI
+
+**The Result:**
+- spawn-agent.sh had incorrect CLI syntax: `npx claude-flow-novice agent "$AGENT_TYPE"`
+- Correct syntax requires: `npx claude-flow-novice agent "$AGENT_TYPE" --task-id "$TASK_ID"`
+- Tests never caught this because they bypassed the real spawning mechanism
+
+**The Prevention:**
+
+The North Star E2E test (`test-cfn-loop-cli-real-execution.sh`) prevents this by:
+
+1. **Using ZERO mocks** - Every component is the real production version
+2. **Following exact production flow** - Same spawn commands, same scripts, same images
+3. **Validating container logs** - Checks for CLI errors that only appear in real execution
+4. **Testing deliverables** - Ensures agents actually complete work (prevents "consensus on vapor")
+5. **End-to-end validation** - Coordinator → Orchestrator → Loop 3 → Loop 2 → Product Owner
+
+**This test is the final gate that ensures:**
+- If the test passes, production will work
+- If production fails, the test will catch it
+- No "works in test, fails in production" scenarios
+
+**Runtime Commitment:**
+- Expected: 2-5 minutes
+- Acceptable: Up to 10 minutes in resource-constrained environments
+- Worth it: Prevents hours of production debugging
 
 ## Related Documentation
 

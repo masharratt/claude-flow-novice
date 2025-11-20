@@ -9,10 +9,41 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { glob } from 'glob';
+import { execSync } from 'child_process';
 
 // ES Module compatibility
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * Detect project root dynamically
+ * Uses PROJECT_ROOT env var if set, otherwise tries git, falls back to cwd
+ */
+function getProjectRoot(): string {
+  // 1. Check environment variable
+  if (process.env.PROJECT_ROOT) {
+    return process.env.PROJECT_ROOT;
+  }
+
+  // 2. Try git rev-parse (most reliable)
+  try {
+    const gitRoot = execSync('git rev-parse --show-toplevel', {
+      encoding: 'utf-8',
+      cwd: process.cwd(),
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
+    if (gitRoot) {
+      return gitRoot;
+    }
+  } catch {
+    // Fall through to next method
+  }
+
+  // 3. Fall back to current working directory
+  return process.cwd();
+}
+
+const projectRoot = getProjectRoot();
 
 export interface AgentDefinition {
   // YAML frontmatter fields
@@ -155,14 +186,16 @@ function parseFrontmatter(content: string): { frontmatter: Record<string, any>; 
  * Find agent definition file by agent type/name
  * Searches multiple locations for agent definitions
  */
-async function findAgentFile(agentType: string, baseDir: string = '.claude/agents'): Promise<string | null> {
+async function findAgentFile(agentType: string, baseDir?: string): Promise<string | null> {
   // Normalize agent type (handle both kebab-case and underscores)
   const normalizedType = agentType.toLowerCase().replace(/_/g, '-');
 
   // Search locations (in order of priority)
+  // Use provided baseDir, or construct default path from project root
+  const defaultBaseDir = path.join(projectRoot, '.claude/agents');
   const searchLocations = [
-    baseDir,                                    // Current working directory
-    '.claude/agents',                           // Standard location
+    baseDir || defaultBaseDir,                  // Provided or default working directory
+    defaultBaseDir,                             // Standard location relative to project root
     path.join(__dirname, '../../.claude/agents'), // CLI installation directory
     '/app/.claude/agents',                      // Docker container location
   ];
@@ -217,7 +250,8 @@ export async function parseAgentDefinition(agentType: string): Promise<AgentDefi
   const { frontmatter, body } = parseFrontmatter(content);
 
   // Extract category from path
-  const relativePath = path.relative('.claude/agents', filePath);
+  const agentsPath = path.join(projectRoot, '.claude/agents');
+  const relativePath = path.relative(agentsPath, filePath);
   const category = relativePath.includes('/')
     ? relativePath.split('/')[0]
     : undefined;

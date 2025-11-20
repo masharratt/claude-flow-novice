@@ -547,18 +547,14 @@ Main Chat spawns all agents directly via Task() → No coordinator → Full visi
 ```bash
 # 1. Complete work with enhanced context
 # 2. Automatic context validation (prevents "consensus on vapor")
-# 3. Signal completion
-coordination-signal "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-
-# 4. Report confidence with metadata
-./.claude/skills/cfn-coordination/report-completion.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.85 \
-  --iteration 1 \
-  --result '{"deliverables_created": ["file.ts"], "status": "complete"}'
-
+# 3. Agents use Redis coordination (CLI spawning handles this)
+# 4. Report confidence score and deliverables
 # 5. Agent exits cleanly (orchestrator monitors via enhanced waiting)
+
+# The CLI spawning system automatically handles:
+# - Coordination signal dispatch
+# - Confidence score reporting with metadata
+# - Process health monitoring
 ```
 
 **Task Mode** (spawned via Task() tool in Main Chat):
@@ -570,9 +566,9 @@ coordination-signal "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
 ```
 
 **Enhanced Agent Protocol Requirements:**
-- ✅ **Mandatory completion signaling**: `report-completion.sh` call required
+- ✅ **Completion signaling**: Redis coordination via CLI spawning system
 - ✅ **Context awareness**: Broadcast messages automatically injected
-- ✅ **Metadata tracking**: Agent status and process PID monitored
+- ✅ **Metadata tracking**: Agent status and process PID monitored by orchestrator
 - ✅ **Health checking**: Process health validated during execution
 
 **Orchestration Flow (v3.0 - Test-Driven Self-Validation):**
@@ -593,6 +589,285 @@ coordination-signal "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
    - IF ABORT → Exit with error
 
 **See:** `.claude/commands/CFN_COORDINATOR_PARAMETERS.md` for detailed parameter specifications
+
+
+## 4) Test Execution Guidance for Developers
+
+### When to Run Tests
+
+**Always run tests before committing:**
+- After implementing features or bug fixes
+- Before creating pull requests
+- After modifying agent behavior or coordination logic
+- When validating CFN Loop workflows
+
+**Different test suites for different contexts:**
+- **Local development**: Use npm tests for fast feedback (1-5 minutes)
+- **Pre-commit validation**: Run CLI mode tests (5-10 minutes)
+- **Production validation**: Run Docker mode tests (3-5 minutes)
+- **CI/CD pipeline**: All tests run automatically (see CI/CD documentation)
+
+### Test Suite Selection Matrix
+
+| Context | Command | Duration | Use When |
+|---------|---------|----------|----------|
+| Development | `npm test` | 1-5 min | Making code changes, quick feedback |
+| Unit validation | `npm run test:unit` | ~1 min | Testing isolated functions |
+| Integration | `npm run test:integration` | ~2 min | Testing module interactions |
+| E2E | `npm run test:e2e` | ~5 min | Testing full workflows |
+| CLI validation | `./tests/cli-mode/run-all-tests.sh` | 5-10 min | Before commits, validates `/cfn-loop-cli` |
+| Docker validation | `./tests/docker-mode/run-all-implementations.sh` | 3-5 min | Pre-release, validates containers |
+| CFN Loop | `./tests/cfn-v3/test-e2e-cfn-loop.sh` | 5-15 min | Testing coordinator and orchestration |
+
+### CLI Mode Test Suite (Production Validation)
+
+CLI mode tests validate the end-to-end coordination layer that agents depend on:
+
+```bash
+# Run full CLI test suite
+./tests/cli-mode/run-all-tests.sh
+
+# Expected output indicates:
+# - 8 test suites passing
+# - 159 total assertions validated
+# - Coverage of Redis coordination, thresholds, agent spawning, path resolution
+```
+
+**What gets tested:**
+- `/cfn-loop-cli` slash command workflow
+- Coordinator spawning with environment validation
+- Loop 3 → Loop 2 → Product Owner progression
+- Quality gate enforcement (MVP/Standard/Enterprise modes)
+- Redis coordination blocking and messaging
+- Agent tool access and permissions
+- Path resolution and TASK_ID sanitization
+
+**Run this before:**
+- Committing changes to agent spawning logic
+- Modifying coordinator or orchestrator
+- Changing quality gate thresholds
+- Updating Redis coordination patterns
+
+### Docker Mode Test Suite (Integration Validation)
+
+Docker mode tests validate real container-based orchestration:
+
+```bash
+# Run all 45 Docker tests
+./tests/docker-mode/run-all-implementations.sh
+
+# Three test suites run sequentially:
+# 1. Coordinator spawning (13 tests)
+# 2. Orchestrator workflow (13 tests)
+# 3. TDD compliance (19 tests)
+```
+
+**What gets tested:**
+- Container spawning with proper cleanup
+- Exit code propagation and error handling
+- Service discovery (Redis, Postgres)
+- Network isolation and port conflicts
+- Iteration management and monitoring
+- Process health checking
+- Test-driven validation patterns
+
+**Run this before:**
+- Committing Docker-related changes
+- Modifying spawning logic
+- Changing orchestrator behavior
+- Before releases to production
+
+### Development Test Suite (Fast Feedback)
+
+NPM tests provide rapid feedback during active development:
+
+```bash
+# Full test suite
+npm test
+
+# Run with coverage report
+npm test -- --coverage
+
+# Watch mode for continuous testing
+npm test -- --watch
+
+# Individual test types
+npm run test:unit
+npm run test:integration
+npm run test:e2e
+```
+
+**Use for:**
+- Immediate validation while coding
+- Quick regression checks
+- Coverage analysis
+- Pre-commit validation
+
+### Test Authoring Standards
+
+All tests must follow the standards documented in `tests/CLAUDE.md`:
+
+**Template structure:**
+```bash
+#!/bin/bash
+# tests/docker/<topic>/<name>.sh
+# Phase X :: <one-line purpose> (Bug #<id> / Reference)
+
+set -euo pipefail
+
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+source "$PROJECT_ROOT/tests/test-utils.sh"
+
+cleanup() {
+  # Always clean up: docker rm, rm -rf, git worktree prune, etc.
+}
+trap cleanup EXIT
+
+test_case_name() {
+  log_step "GIVEN <context>"
+  # WHEN <action>
+  # THEN assert_* "<result>"
+}
+
+test_case_name
+```
+
+**Key principles:**
+- Start with `#!/bin/bash` and `set -euo pipefail`
+- Immediately source test utilities: `source "$PROJECT_ROOT/tests/test-utils.sh"`
+- Define cleanup trap that runs even on failure
+- Use GIVEN/WHEN/THEN markers for clarity
+- Use `log_step`, `log_info`, `annotate`, `assert_success` helpers
+- Cite relevant bugs for context (e.g., "Bug #21 validation")
+
+**Critical testing requirement from BUG #21:**
+- Infrastructure tests can use mocks (Docker networking, volumes, Redis connectivity)
+- Integration tests MUST use production code paths:
+  - Use actual spawning scripts (spawn-agent.sh)
+  - Use production images (cfn-agent:latest, not alpine)
+  - Validate actual CLI syntax (not inline scripts)
+  - Check container logs for runtime errors
+
+### Test Documentation Structure
+
+```
+tests/
+├── README.md                      # Test suite overview
+├── CLAUDE.md                      # Test authoring standards
+├── test-utils.sh                  # Shared test helpers
+│
+├── cli-mode/                      # CLI mode validation
+│   ├── README.md                  # CLI test documentation
+│   ├── run-all-tests.sh          # Main test runner
+│   └── test-*.sh                 # Individual test suites
+│
+├── docker-mode/                   # Docker integration tests
+│   ├── README.md                  # Docker test documentation
+│   ├── run-all-implementations.sh # Main test runner
+│   └── implementations/           # 45 production tests
+│
+├── cfn-v3/                        # CFN Loop validation
+│   ├── test-e2e-cfn-loop.sh      # End-to-end test
+│   └── test-coordinator-handoffs.sh
+│
+├── docker/                        # Docker-based core tests
+│   ├── coordination/              # Redis coordination
+│   ├── lifecycle/                 # Container lifecycle
+│   └── perf/                      # Performance tests
+│
+└── enterprise/                    # Enterprise mode tests
+```
+
+### Test Results and Artifacts
+
+Test results are stored in standard locations:
+
+```bash
+# Test results archive
+.artifacts/test-results/
+
+# Coverage reports
+.artifacts/coverage/
+
+# Test logs
+.artifacts/logs/
+
+# Benchmarks
+.artifacts/benchmarks/
+
+# Runtime artifacts
+.artifacts/runtime/
+```
+
+Check these locations to:
+- Verify test pass rates
+- Review coverage metrics
+- Analyze performance benchmarks
+- Debug test failures
+
+### Troubleshooting Test Failures
+
+**Common issues and solutions:**
+
+1. **Redis not available:**
+   ```bash
+   redis-server --daemonize yes
+   # Or: docker run -d -p 6379:6379 redis:7-alpine
+   ```
+
+2. **Docker daemon not running:**
+   ```bash
+   # Start Docker
+   sudo systemctl start docker
+   # Or on Mac: open /Applications/Docker.app
+   ```
+
+3. **Port conflicts:**
+   ```bash
+   docker stop $(docker ps -aq)
+   docker rm $(docker ps -aq)
+   docker network prune -f
+   ```
+
+4. **Permission issues:**
+   ```bash
+   sudo usermod -aG docker $USER
+   newgrp docker
+   ```
+
+5. **Verbose debugging:**
+   ```bash
+   DEBUG=true ./tests/cli-mode/run-all-tests.sh
+   tail -100 .artifacts/logs/test-execution.log
+   ```
+
+### CI/CD Integration
+
+Tests run automatically on every push and pull request via GitHub Actions. See `docker/CI_CD_TEST_INTEGRATION.md` for:
+- Coverage gates (80%+ lines/statements/functions)
+- Test failure notifications
+- Performance benchmarking
+- Security scanning
+- Deployment workflows
+
+**Local pre-commit validation:**
+```bash
+# Before committing to main or feature branches
+npm test && \
+  ./tests/cli-mode/run-all-tests.sh && \
+  ./tests/docker-mode/run-all-implementations.sh
+```
+
+### Related Documentation
+
+- **Test Suite Overview**: `tests/README.md`
+- **Test Authoring Standards**: `tests/CLAUDE.md` (boilerplate, GIVEN/WHEN/THEN patterns, BUG #21 validation)
+- **CLI Mode Tests**: `tests/cli-mode/README.md` (8 suites, 159 assertions)
+- **Docker Mode Tests**: `tests/docker-mode/README.md` (45 production tests, 3 categories)
+- **Test Coverage Matrix**: `tests/TEST_COVERAGE_MATRIX.md`
+- **CFN Loop Architecture**: `docs/CFN_LOOP_ARCHITECTURE.md`
+- **CI/CD Pipeline**: `docker/CI_CD_TEST_INTEGRATION.md`
+
 
 ## 5) Skill Management
 

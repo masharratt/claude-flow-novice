@@ -24,8 +24,39 @@ import { convertToolNames } from './tool-definitions.js';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { execSync } from 'child_process';
 
 const execAsync = promisify(exec);
+
+/**
+ * Detect project root dynamically
+ * Uses PROJECT_ROOT env var if set, otherwise tries git, falls back to cwd
+ */
+function getProjectRoot(): string {
+  // 1. Check environment variable
+  if (process.env.PROJECT_ROOT) {
+    return process.env.PROJECT_ROOT;
+  }
+
+  // 2. Try git rev-parse (most reliable)
+  try {
+    const gitRoot = execSync('git rev-parse --show-toplevel', {
+      encoding: 'utf-8',
+      cwd: process.cwd(),
+      stdio: ['pipe', 'pipe', 'ignore']
+    }).trim();
+    if (gitRoot) {
+      return gitRoot;
+    }
+  } catch {
+    // Fall through to next method
+  }
+
+  // 3. Fall back to current working directory
+  return process.cwd();
+}
+
+const projectRoot = getProjectRoot();
 
 // Bug #6 Fix: Read Redis connection parameters from process.env
 // ENV-001: Standardized environment variable naming (REDIS_PASSWORD for all deployments)
@@ -171,7 +202,7 @@ async function isCustomRoutingEnabled(): Promise<boolean> {
 
   // Check config file (.claude/config/api-provider.json)
   try {
-    const configPath = path.join('.claude', 'config', 'api-provider.json');
+    const configPath = path.join(projectRoot, '.claude', 'config', 'api-provider.json');
     const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
     return config.provider === 'zai' || config.provider === 'z.ai';
   } catch {
@@ -372,7 +403,7 @@ async function executeViaScript(
   console.log(`[agent-executor] Prompt file: ${promptFile}`);
 
   return new Promise((resolve) => {
-    const scriptPath = path.join('.claude', 'skills', 'agent-execution', 'execute-agent.sh');
+    const scriptPath = path.join(projectRoot, '.claude', 'skills', 'agent-execution', 'execute-agent.sh');
 
     // Build environment variables - WHITELIST ONLY APPROACH
     // SECURITY FIX: Do not use ...process.env spread which exposes ALL variables including secrets

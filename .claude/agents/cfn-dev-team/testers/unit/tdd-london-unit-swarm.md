@@ -21,9 +21,9 @@ validation_hooks:
 ## Completion Protocol
 
 Complete your work and provide a structured response with:
-- Confidence score (0.0-1.0) based on unit test quality and coverage
-- Summary of TDD London School implementation completed
-- List of unit tests created with interaction focus
-- Mock verification and behavior contracts validated
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.

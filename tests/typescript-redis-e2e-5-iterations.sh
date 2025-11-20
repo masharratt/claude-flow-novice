@@ -33,6 +33,14 @@
 set -euo pipefail
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
+
+# Load environment variables (needed for REDIS_PASSWORD)
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    set -a
+    source "$PROJECT_ROOT/.env"
+    set +a
+fi
+
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 # Test configuration

@@ -203,6 +203,11 @@ run_e2e_tests() {
     echo ""
     echo -e "${YELLOW}NOTE:${NC} E2E tests may take several minutes to complete"
     echo ""
+    echo -e "${CYAN}North Star Test:${NC} test-cfn-loop-cli-real-execution.sh"
+    echo "  → Full CLI mode execution with REAL agent spawning (no mocks)"
+    echo "  → Validates production code paths end-to-end"
+    echo "  → Prevents regressions like BUG #21 (test passes while production fails)"
+    echo ""
 
     for test in "${tests[@]}"; do
         if run_test "$test"; then
@@ -282,6 +287,7 @@ Modes:
   --quick         Run unit tests only (fast, ~1 minute)
   --integration   Run unit + integration tests (~5 minutes)
   --full          Run all tests including E2E (~15 minutes) [default]
+                  → Includes North Star E2E test (real agent spawning, no mocks)
   --help          Show this help message
 
 Examples:

@@ -289,4 +289,4 @@ Performance Analysis Test Summary:
 - Gate Status: PASS (≥95% in 1/3 suites, actionable recommendations provided)
 ```
 
-**Note:** Coordination instructions and success criteria provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.

@@ -107,10 +107,10 @@ await sqlite.memoryAdapter.set(
 ## Completion Protocol
 
 Complete your work and provide a structured response with:
-- Confidence score (0.0-1.0) based on test coverage and quality
-- Summary of E2E testing completed
-- List of test cases executed and results
-- Performance metrics and any issues identified
+- Confidence score (0.0-1.0) based on work quality
+- Summary of work completed
+- List of deliverables created
+- Any recommendations or findings
 
-**Note:** Coordination instructions are provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 

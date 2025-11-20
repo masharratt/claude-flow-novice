@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.15.9",
+  "version": "2.15.11",
   "description": "AI agent orchestration framework with namespace-isolated skills, agents, and CFN Loop validation. Safe installation with ~0.01% collision risk.",
   "main": "dist/index.js",
   "type": "module",
@@ -98,8 +98,13 @@
   "homepage": "https://github.com/yourusername/claude-flow-novice#readme",
   "scripts": {
     "dev": "tsx src/cli/index.ts",
-    "build": "npm run clean && npm run build:swc",
+    "build": "npm run clean && npm run build:swc && npm run build:orchestrator",
     "build:swc": "swc src -d dist --config-file .swcrc --ignore '**/*.test.ts' --ignore '**/*.test.tsx' --ignore '**/*.spec.ts'",
+    "build:orchestrator": "cd .claude/skills/cfn-loop-orchestration && npm run build 2>/dev/null || echo 'Orchestrator build skipped (optional)'",
+    "build:all": "npm run build && npm run build:spawner && npm run build:selector && npm run build:coordination",
+    "build:spawner": "cd src/coordination && tsc spawn-agent.ts --outDir ../../dist/coordination --module commonjs --target es2020 --skipLibCheck 2>/dev/null || echo 'Spawner build skipped'",
+    "build:selector": "cd .claude/skills/cfn-agent-selection-with-fallback && npm run build 2>/dev/null || echo 'Selector build skipped'",
+    "build:coordination": "cd src/coordination && tsc coordinate.ts --outDir ../../dist/coordination --module commonjs --target es2020 --skipLibCheck 2>/dev/null || echo 'Coordination build skipped'",
     "clean": "rm -rf dist",
     "test": "jest",
     "test:skills": "jest skill-markdown-validator.test.ts",

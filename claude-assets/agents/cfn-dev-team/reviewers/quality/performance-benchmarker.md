@@ -133,7 +133,7 @@ Benchmark Test Execution Summary:
 - Gate Status: PASS (≥95% in 1/3 suites, latency anomalies noted)
 ```
 
-**Note:** Coordination instructions and success criteria provided when spawned via CLI.
+**Note:** Coordination handled automatically by the system.
 
 ## Team Dynamics
 

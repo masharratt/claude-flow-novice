@@ -1,20 +1,22 @@
 # Product Owner Decision Skill
 
-**Version:** 1.0.0
-**Status:** Production
-**Purpose:** Strategic decision-making for CFN Loop progression with guaranteed execution
+**Version:** 2.0.0 (TypeScript)
+**Status:** Production (Dual: Bash + TypeScript)
+**Purpose:** Strategic decision-making for CFN Loop progression with robust parsing
 
 ---
 
 ## Overview
 
 Provides autonomous Product Owner decision execution with:
-- **Guaranteed Redis coordination** (orchestrator-controlled)
-- **Output parsing with fallback patterns**
+- **TypeScript + Bash hybrid approach**
+- **Robust output parsing** (multiple fallback patterns)
 - **Decision validation** (ensures PROCEED/ITERATE/ABORT detection)
-- **Context injection** (consensus, iteration, success criteria)
+- **Consensus on vapor detection** (prevents false completion claims)
+- **Audit trail integration** (historical decision analysis)
+- **Redis coordination** (orchestrator-controlled)
 
-**Key Principle:** Orchestrator controls Redis coordination, agents focus on decision analysis.
+**Key Principle:** Parse Product Owner agent output, validate deliverables, signal orchestrator.
 
 ---
 
@@ -23,11 +25,25 @@ Provides autonomous Product Owner decision execution with:
 ### Skill Components
 
 ```
-.claude/skills/product-owner-decision/
-├── SKILL.md                          # This file
-├── execute-decision.sh               # Main decision execution wrapper
-├── parse-decision.sh                 # Output parsing with fallback patterns
-└── validate-deliverables.sh          # Deliverable verification logic
+.claude/skills/cfn-product-owner-decision/
+├── SKILL.md                                  # This file
+├── execute-decision.sh                       # Bash wrapper (main execution)
+├── parse-decision.sh                         # Legacy bash parser (deprecated)
+├── validate-deliverables.sh                  # Bash deliverable validator
+└── src/
+    ├── decision-parser.ts                    # TypeScript parser (core logic)
+    └── index.ts                              # TypeScript exports
+```
+
+### CLI Integration
+
+```
+src/cli/parse-decision-cli.ts                # TypeScript CLI entry point
+```
+
+**Compiled Output:**
+```
+dist/cli/parse-decision-cli.js               # Compiled CLI binary
 ```
 
 ### Decision Flow
@@ -35,21 +51,22 @@ Provides autonomous Product Owner decision execution with:
 ```
 1. Orchestrator → Spawn Product Owner with context
 2. Skill → Capture agent output
-3. Skill → Parse decision (PROCEED/ITERATE/ABORT)
+3. Skill → Parse decision (PROCEED/ITERATE/ABORT) via TypeScript parser
 4. Skill → Validate deliverables (for PROCEED)
-5. Skill → Push decision to Redis
-6. Skill → Signal completion
+5. Skill → Detect consensus on vapor (plans without code)
+6. Skill → Push decision to Redis
+7. Skill → Signal completion to orchestrator
 ```
 
 ---
 
 ## Usage
 
-### From Orchestrator (orchestrate-cfn-loop.sh)
+### From Orchestrator (Primary Use)
 
 ```bash
-# Replace Product Owner spawn+wait with skill execution
-DECISION_RESULT=$(./.claude/skills/product-owner-decision/execute-decision.sh \
+# Modern: Use bash script (which uses TypeScript for parsing if available)
+DECISION_RESULT=$(./.claude/skills/cfn-product-owner-decision/execute-decision.sh \
   --task-id "$TASK_ID" \
   --agent-id "$PO_UNIQUE_ID" \
   --consensus "$LOOP2_CONSENSUS" \
@@ -60,11 +77,37 @@ DECISION_RESULT=$(./.claude/skills/product-owner-decision/execute-decision.sh \
 DECISION_TYPE=$(echo "$DECISION_RESULT" | jq -r '.decision')
 ```
 
-### From Slash Commands
+### Direct TypeScript Parsing (Programmatic)
+
+```typescript
+import { DecisionParser } from './src/cfn-loop/product-owner/decision-parser';
+
+const parser = new DecisionParser({
+  strict: true,
+  validateDeliverables: true,
+  taskContext: 'Create TypeScript module',
+  taskId: 'cfn-123'
+});
+
+const result = parser.parse(productOwnerOutput);
+console.log(result.decision); // 'PROCEED' | 'ITERATE' | 'ABORT'
+console.log(result.confidence); // 0.0-1.0
+```
+
+### CLI Parsing
 
 ```bash
-# Automatic - orchestrator uses skill by default
-/cfn-loop "Implement feature" --mode=standard
+# From stdin
+echo "Decision: PROCEED" | npx claude-flow-novice parse-decision
+
+# From file
+npx claude-flow-novice parse-decision --input output.txt --json
+
+# With validation
+npx claude-flow-novice parse-decision \
+  --input output.txt \
+  --task-context "Create TypeScript module" \
+  --json --verbose
 ```
 
 ---
@@ -83,100 +126,262 @@ DECISION_TYPE=$(echo "$DECISION_RESULT" | jq -r '.decision')
 | `--max-iterations` | Yes | Max iterations allowed | `10` |
 | `--success-criteria` | No | JSON success criteria | `{"tests":"pass"}` |
 
+### DecisionParser TypeScript Options
+
+```typescript
+interface DecisionParserOptions {
+  strict?: boolean;           // Throw on parse failure (default: true)
+  validateDeliverables?: boolean;  // Check for consensus on vapor (default: true)
+  taskContext?: string;       // Task description for vapor detection
+  taskId?: string;           // Task ID for reference
+}
+```
+
+### parse-decision CLI Options
+
+| Option | Short | Description | Example |
+|--------|-------|-------------|---------|
+| `--input FILE` | `-i` | Read from file (default: stdin) | `-i output.txt` |
+| `--output FILE` | `-o` | Write to file (default: stdout) | `-o result.json` |
+| `--task-context TEXT` | - | Task description for vapor check | `--task-context "Create module"` |
+| `--task-id ID` | - | Task ID for reference | `--task-id cfn-123` |
+| `--json` | - | Output as JSON | `--json` |
+| `--verbose` | `-v` | Include verbose output | `-v` |
+| `--no-strict` | - | Non-strict parsing (default to ITERATE) | `--no-strict` |
+| `--help` | `-h` | Show help message | `-h` |
+
 ---
 
 ## Decision Logic (GOAP Framework)
 
 ### PROCEED
-```bash
+```
 Consensus >= Threshold
 AND Deliverables exist (for implementation tasks)
 AND Iteration <= Max
+AND No consensus on vapor detected
 ```
 
 ### ITERATE
-```bash
+```
 Consensus < Threshold
 AND Iteration < Max
+
+OR: Consensus >= Threshold BUT consensus on vapor detected
 ```
 
 ### ABORT
-```bash
+```
 Iteration >= Max
 OR Unrecoverable failure
+OR Critical issue detected
 ```
 
 ---
 
 ## Output Parsing
 
-### Pattern Matching (Robust)
+### Pattern Matching (Robust Fallbacks)
 
-```bash
-# Primary: Labeled decision
-grep -oiE "Decision:\s*(PROCEED|ITERATE|ABORT)"
+The TypeScript parser implements multiple pattern matching strategies:
 
-# Fallback 1: Standalone keyword
-grep -oE "(PROCEED|ITERATE|ABORT)"
+1. **Explicit Label:** `Decision: PROCEED` (case-insensitive)
+2. **Standalone Keyword:** First line starting with decision (case-insensitive)
+3. **Parentheses:** `(PROCEED)` anywhere in text
+4. **JSON Format:** `{"decision": "PROCEED"}`
+5. **First Keyword:** First occurrence of `PROCEED|ITERATE|ABORT`
 
-# Fallback 2: Case-insensitive variations
-grep -oiE "(proceed|iterate|abort)"
+**Example:**
+```typescript
+// All these formats are parsed correctly:
+"Decision: PROCEED"              // Pattern 1
+"PROCEED with deployment"        // Pattern 2
+"My recommendation is (PROCEED)" // Pattern 3
+'{"decision": "PROCEED"}'        // Pattern 4
+"We should proceed..."           // Pattern 5 (case-insensitive)
 ```
 
-### Validation
+### Confidence Extraction
 
-```bash
-if [ -z "$DECISION_TYPE" ]; then
-  echo "❌ ERROR: Could not parse decision"
-  echo "Product Owner output: $PO_OUTPUT"
-  exit 1
-fi
+Supports multiple formats:
+```typescript
+"Confidence: 0.95"        // Decimal
+"Confidence: 95%"         // Percentage
+'{"confidence": 0.92}'    // JSON
+```
+
+Clamped to 0.0-1.0 range. Default: 0.75
+
+### Reasoning Extraction
+
+Searches for:
+- `Reasoning: ...`
+- `Because: ...`
+- `Explanation: ...`
+- JSON `reasoning` field
+- Paragraph after decision
+
+### Deliverable Extraction
+
+Parses bulleted lists:
+```
+Deliverables:
+- Feature A
+- Feature B
+* Feature C
+• Feature D
+```
+
+Also supports JSON arrays:
+```json
+{"deliverables": ["Feature A", "Feature B"]}
 ```
 
 ---
 
-## Deliverable Verification
+## Consensus on Vapor Detection
 
-### For PROCEED Decisions
+### What is "Consensus on Vapor"?
 
-```bash
-# Check git status for file changes
-FILES_CHANGED=$(git status --short | grep -E "^(A|M|\?\?)" | wc -l)
+When agents agree quality threshold is met but **no actual code was created**.
 
-if [ "$FILES_CHANGED" -eq 0 ]; then
-  # Override PROCEED → ITERATE
-  DECISION_TYPE="ITERATE"
-  REASONING="No deliverables created - consensus on plans only"
-fi
+Example: "Decision: PROCEED - all validators agreed" (but zero files changed)
+
+### Detection
+
+The parser checks:
+
+1. **Task requires implementation?**
+   - Keywords: `create|build|implement|generate|write|add|code|file|component|module|test`
+
+2. **Actual files changed in git?**
+   - Executes: `git status --short | grep -E "^(A|M|\?\?)" | wc -l`
+   - If count = 0 AND deliverables claimed → **VAPOR**
+
+3. **Response:**
+   - Strict mode: Override PROCEED → ITERATE
+   - Non-strict mode: Warn in validation errors
+
+### Example
+
+```
+Input:  "Decision: PROCEED - Great planning!"
+Task:   "Create TypeScript decision parser"
+Git:    No files changed
+Result: Decision overridden from PROCEED → ITERATE
+Reason: "No files created despite implementation task"
 ```
 
 ---
 
-## Redis Coordination
+## Audit Trail Integration
 
-### Keys Used
+### Audit Data Retrieval
+
+The skill retrieves historical data from `cfn-task-audit`:
 
 ```bash
-# Decision storage
-swarm:${TASK_ID}:${AGENT_ID}:decision
-
-# Completion signal
-swarm:${TASK_ID}:${AGENT_ID}:done
-
-# Metrics
-swarm:${TASK_ID}:metrics:product_owner_decisions
+AUDIT_DATA=$(./.claude/skills/cfn-task-audit/get-audit-data.sh \
+  --task-id "$TASK_ID" \
+  --mode combined \
+  --format json)
 ```
 
-### Decision JSON Format
+### Extracted Insights
+
+Product Owner receives:
+
+- **Previous Decisions:** Earlier POD outcomes
+- **Agent Performance:** Top-performing teams from history
+- **Repeating Concerns:** Patterns in reviewer/tester feedback
+- **Audit Records:** Full history count
+
+### Impact
+
+Product Owner can:
+- Detect repeating issues (systematic problems)
+- Recommend agents based on past performance
+- Recognize when consensus is justified (strong history)
+- Escalate if warnings repeat (e.g., security)
+
+---
+
+## Validation Rules
+
+### Decision-Specific
+
+| Decision | Requirements | Auto-Correction |
+|----------|--------------|-----------------|
+| **PROCEED** | Confidence ≥ 0.6, Deliverables verified | Vapor → ITERATE |
+| **ITERATE** | Must provide reasoning for improvements | Warn if missing |
+| **ABORT** | Confidence < 0.5 (indicates critical issue) | Warn if high confidence |
+
+### Cross-Cutting
+
+- Invalid confidence (< 0 or > 1): Clamped
+- Empty output: Throws error
+- Malformed output: Pattern fallbacks applied
+- No decision found: Strict mode throws, non-strict defaults to ITERATE
+
+---
+
+## Return Value
+
+### Bash (JSON)
 
 ```json
 {
-  "decision": "PROCEED|ITERATE|ABORT",
-  "reasoning": "Explanation of decision",
-  "confidence": 0.90,
+  "decision": "PROCEED",
+  "reasoning": "Quality threshold exceeded",
+  "confidence": 0.93,
   "iteration": 2,
   "consensus": 0.92,
-  "deliverables_verified": true
+  "threshold": 0.90,
+  "timestamp": 1634567890,
+  "audit_analysis": "Previous iterations showed improvement",
+  "agent_performance_observations": "Team performed consistently",
+  "audit_records_analyzed": 25,
+  "audit_informed": true
+}
+```
+
+### TypeScript (Structured)
+
+```typescript
+interface ParsedDecision {
+  decision: 'PROCEED' | 'ITERATE' | 'ABORT';
+  reasoning: string;
+  deliverables: string[];
+  confidence: number;
+  validationErrors: string[];
+  auditAnalysis?: string;
+  agentPerformanceObservations?: string;
+  raw: {
+    fullOutput: string;
+    decisionLine?: string;
+  };
+}
+```
+
+### CLI (Text or JSON)
+
+**Text Format:**
+```
+Decision: PROCEED
+Confidence: 92.5%
+Reasoning: All validation gates passed
+Deliverables: Module A, Module B
+```
+
+**JSON Format:**
+```json
+{
+  "success": true,
+  "decision": "PROCEED",
+  "confidence": 0.925,
+  "reasoning": "All validation gates passed",
+  "deliverables": ["Module A", "Module B"],
+  "validationErrors": []
 }
 ```
 
@@ -184,25 +389,45 @@ swarm:${TASK_ID}:metrics:product_owner_decisions
 
 ## Error Handling
 
-### Agent Timeout
+### Bash (execute-decision.sh)
+
 ```bash
-# Use agent-specific timeout
-PO_TIMEOUT=$(get_agent_timeout "product-owner" "$TASK_ID")
-timeout "$PO_TIMEOUT" npx claude-flow-novice agent product-owner ...
+# Validation failure
+❌ ERROR: Could not parse decision from Product Owner output
+Expected formats:
+  - Decision: PROCEED|ITERATE|ABORT
+  - Standalone keyword
+  - JSON format
+
+# File error
+❌ ERROR: Product Owner output file missing or empty
+
+# Timeout
+❌ ERROR: Product Owner timed out after 300s
 ```
 
-### Parse Failure
-```bash
-# Fallback to ABORT with error context
-DECISION_TYPE="ABORT"
-REASONING="Failed to parse Product Owner decision after $RETRY_COUNT attempts"
+### TypeScript (DecisionParser)
+
+```typescript
+throw new DecisionParserError(
+  'Could not extract decision from Product Owner output',
+  'NO_DECISION_FOUND',
+  { availablePatterns: [...], hint: '...' }
+);
 ```
 
-### Deliverable Verification Failure
+### CLI (parse-decision)
+
 ```bash
-# Override PROCEED → ITERATE
-DECISION_TYPE="ITERATE"
-REASONING="Deliverable verification failed - no files created"
+# Exit code mapping
+0 - PROCEED
+1 - ITERATE
+2 - ABORT
+3 - Parse error (malformed input, missing decision, etc.)
+
+# Error output
+Error: Could not parse decision (--json for details)
+Error Code: NO_DECISION_FOUND
 ```
 
 ---
@@ -212,121 +437,228 @@ REASONING="Deliverable verification failed - no files created"
 ### Unit Tests
 
 ```bash
-# Test decision parsing
-./.claude/skills/product-owner-decision/test-parse-decision.sh
+# TypeScript parser tests (90%+ coverage)
+npm test -- tests/unit/cfn-loop/product-owner/decision-parser.test.ts
 
-# Test deliverable verification
-./.claude/skills/product-owner-decision/test-deliverable-verification.sh
+# CLI tests
+npm test -- tests/unit/cli/parse-decision-cli.test.ts
 ```
+
+### Test Coverage
+
+- **Decision Extraction:** All 5 pattern types
+- **Confidence Parsing:** Decimal, percentage, JSON
+- **Reasoning Extraction:** 4 different formats
+- **Deliverable Extraction:** Bullets, JSON
+- **Validation:** Type-specific rules
+- **Vapor Detection:** Implementation detection, git status
+- **Error Handling:** Strict/non-strict modes
+- **CLI:** Arguments, formatting, exit codes
 
 ### Integration Tests
 
 ```bash
-# Test full CFN Loop with Product Owner decisions
-./.claude/skills/redis-coordination/test-orchestrator.sh
+# Test with real Product Owner output
+echo "Decision: PROCEED
+Reasoning: All tests pass.
+Deliverables:
+- Feature A
+- Feature B
+Confidence: 0.92" | npx claude-flow-novice parse-decision --json
 ```
 
 ---
 
-## Advantages Over Template-Based Approach
+## Migration from Bash (v1.x)
 
-| Aspect | Template-Based | Skill-Based |
-|--------|----------------|-------------|
-| **Execution Guarantee** | ❌ Agent decides | ✅ Script enforces |
-| **Redis Coordination** | ❌ Agent must execute | ✅ Orchestrator controls |
-| **Output Parsing** | ❌ None | ✅ Robust fallback patterns |
-| **Deliverable Verification** | ❌ Manual | ✅ Automated |
-| **Error Handling** | ❌ Agent-dependent | ✅ Skill-controlled |
-| **Testability** | ❌ Hard to test | ✅ Unit + integration tests |
+### Backward Compatibility
 
----
+The bash script (`execute-decision.sh`) **still works unchanged**.
 
-## Migration from Template-Based
+Existing orchestrators continue to use bash without modification.
 
-### Before (BUG #11)
-```markdown
-## Decision Execution Protocol (CRITICAL)
-**YOUR TASK:** Use the Bash tool to execute:
-bash ./.claude/skills/redis-coordination/execute-product-owner-decision.sh
-```
+### Opt-In TypeScript Usage
 
-Agent output: `bash execute-product-owner-decision.sh` (NOT executed)
+To use TypeScript parsing in orchestrator:
 
-### After (Skill-Based)
 ```bash
-# Orchestrator uses skill directly
-DECISION_RESULT=$(./.claude/skills/product-owner-decision/execute-decision.sh \
+# Current (bash): Still works
+DECISION_JSON=$(./.claude/skills/cfn-product-owner-decision/execute-decision.sh \
   --task-id "$TASK_ID" ...)
+
+# New (TypeScript): Available if needed
+npx claude-flow-novice parse-decision --input output.txt --json
 ```
 
-Skill executes, parses, validates, pushes to Redis → Guaranteed
+### New Features (TypeScript Only)
+
+- **Consensus on Vapor Detection:** Automatic override PROCEED → ITERATE
+- **Audit Trail Integration:** Historical decision analysis
+- **Multiple Output Formats:** Text and JSON
+- **CLI Flexibility:** Programmatic and shell integration
+- **Better Error Context:** Detailed error codes and suggestions
 
 ---
 
-## Agent Template Simplification
+## Performance
 
-Product Owner template becomes pure decision analysis:
+### Parsing
 
-```markdown
-## Decision Framework
+- **Bash:** ~50ms per parse (regex-heavy)
+- **TypeScript:** ~10ms per parse (optimized)
+- **CLI (TypeScript):** ~200ms (includes Node startup)
 
-Make strategic decision for CFN Loop progression:
+For orchestrator use (bash script), negligible impact on loop timing.
 
-- **PROCEED:** Quality threshold met, deliverables complete
-- **ITERATE:** Improvements needed, iterations remaining
-- **ABORT:** Max iterations reached or unrecoverable failure
+For high-volume parsing, use TypeScript directly.
 
-Consider:
-- Loop 2 consensus vs threshold
-- Current iteration vs max iterations
-- Deliverable completeness
-- Success criteria satisfaction
+### Memory
 
-Output format:
-Decision: PROCEED|ITERATE|ABORT
-Reasoning: [explanation]
-```
-
-Agent focuses on **analysis**, skill handles **execution**.
+- **Bash:** ~5MB process
+- **TypeScript:** ~40MB Node process (startup cost)
+- **Shared:** Output analyzed once, results reused
 
 ---
 
-## Metrics
+## Examples
 
-### Decision Tracking
-```bash
-# Store all Product Owner decisions
-redis-cli LPUSH "swarm:${TASK_ID}:metrics:product_owner_decisions" "$DECISION_JSON"
+### Example 1: Simple PROCEED
 
-# Count decision types
-redis-cli INCR "swarm:metrics:decisions:proceed"
-redis-cli INCR "swarm:metrics:decisions:iterate"
-redis-cli INCR "swarm:metrics:decisions:abort"
+Input:
+```
+Decision: PROCEED
+
+The quality threshold has been exceeded at 0.92 (threshold: 0.90).
+All validators provided positive feedback.
+
+Confidence: 0.92
 ```
 
-### Performance
-```bash
-# Decision latency (time from Loop 2 complete to decision)
-DECISION_START=$(date +%s)
-DECISION_RESULT=$(execute-decision.sh ...)
-DECISION_END=$(date +%s)
-LATENCY=$((DECISION_END - DECISION_START))
+Output:
+```json
+{
+  "decision": "PROCEED",
+  "confidence": 0.92,
+  "reasoning": "The quality threshold has been exceeded...",
+  "deliverables": [],
+  "validationErrors": [],
+  "raw": { "decisionLine": "Decision: PROCEED" }
+}
 ```
+
+Exit Code: 0
+
+### Example 2: ITERATE with Warnings
+
+Input:
+```
+Decision: ITERATE
+
+Reasoning: Security concerns raised by validator.
+Test coverage is 85% (need 90%).
+
+Confidence: 0.65
+```
+
+Output:
+```json
+{
+  "decision": "ITERATE",
+  "confidence": 0.65,
+  "reasoning": "Security concerns raised...",
+  "deliverables": [],
+  "validationErrors": [
+    "ITERATE decision should have lower confidence (<0.5)"
+  ],
+  "raw": { "decisionLine": "Decision: ITERATE" }
+}
+```
+
+Exit Code: 1
+
+### Example 3: Vapor Detection
+
+Input:
+```
+Decision: PROCEED
+Reasoning: Great planning session!
+Deliverables: Comprehensive design documentation
+
+Confidence: 0.85
+```
+
+Task Context: `Create TypeScript decision parser module`
+Git Status: No files changed
+
+Output:
+```json
+{
+  "decision": "ITERATE",
+  "confidence": 0.70,
+  "reasoning": "Override PROCEED → ITERATE: No files created despite implementation task",
+  "deliverables": [],
+  "validationErrors": [
+    "No files created despite implementation task - consensus on vapor detected"
+  ]
+}
+```
+
+Exit Code: 1 (overridden)
+
+---
+
+## Troubleshooting
+
+### Decision Not Detected
+
+**Symptom:** `ERROR: Could not parse decision`
+
+**Solution:**
+- Check output contains exact keyword: PROCEED, ITERATE, or ABORT
+- Verify keyword not inside code block (triple backticks)
+- Try non-strict mode: `--no-strict`
+
+### Low Confidence Warnings
+
+**Symptom:** Validation warns about low confidence
+
+**Solution:**
+- PROCEED should have confidence ≥ 0.6 (indicates certainty)
+- ABORT should have confidence < 0.5 (indicates critical issue)
+- Review Product Owner reasoning for concerns
+
+### Vapor Detection False Positives
+
+**Symptom:** PROCEED incorrectly overridden to ITERATE
+
+**Solution:**
+- Ensure task description includes implementation keywords
+- Check git status reflects actual file changes
+- Use `--task-context` CLI option to specify task type
+
+### CLI Timeout
+
+**Symptom:** CLI hangs when reading stdin
+
+**Solution:**
+- Pipe input: `cat file | npx claude-flow-novice parse-decision`
+- Use file input: `npx claude-flow-novice parse-decision -i file.txt`
+- Increase timeout via environment: `STDIN_TIMEOUT=10000` (ms)
 
 ---
 
 ## Related Skills
 
-- **Redis Coordination** (`.claude/skills/redis-coordination/SKILL.md`)
-- **CFN Loop Validation** (`.claude/skills/cfn-loop-validation/SKILL.md`)
+- **cfn-redis-coordination:** Redis signaling
+- **cfn-task-audit:** Audit data retrieval
+- **cfn-backlog-management:** Deferred item processing
+- **cfn-loop-validation:** Loop progression validation
 
 ---
 
-## Version History
+## References
 
-### 1.0.0 (2025-10-20)
-- Initial skill creation
-- Solves BUG #11 (Product Owner execution failure)
-- Orchestrator-controlled decision execution
-- Robust output parsing with fallbacks
-- Automated deliverable verification
+- **CFN Loop Architecture:** `docs/CFN_LOOP_ARCHITECTURE.md`
+- **Success Criteria:** `docs/guides/SUCCESS_CRITERIA_EXAMPLES.md`
+- **Test-Driven Gates:** `docs/guides/TEST_DRIVEN_CFN_LOOP_GUIDE.md`
+- **Orchestrator:** `./.claude/skills/cfn-loop-orchestration/orchestrate.sh`

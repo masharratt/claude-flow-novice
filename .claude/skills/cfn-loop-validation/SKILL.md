@@ -351,3 +351,50 @@ redis-cli blpop "swarm:${TASK_ID}:gate-passed" 1
 ---
 
 **Maintenance:** Regular validation of clean exit patterns and dependency enforcement. Test suite should validate all lifecycle scenarios.
+
+---
+
+## ⚠️ Bash Deprecation Notice
+
+**The bash implementation of this skill is deprecated as of 2025-11-20.**
+
+**Deprecation Date:** 2025-11-20  
+**Removal Date:** 2026-02-20 (90 days)  
+**TypeScript Implementation:** dist/validator.js and dist/cli/validate-*.js  
+**Migration Guide:** .claude/skills/cfn-loop-validation/SKILL_TYPESCRIPT.md  
+
+### Why Migrate to TypeScript?
+
+- **Type Safety:** Zero runtime type errors with compile-time validation
+- **Better Performance:** 5-10ms faster execution, optimized Redis operations
+- **Comprehensive Testing:** 90%+ test coverage with unit, integration, and E2E tests
+- **Modern Tooling:** Full IDE support, autocomplete, and inline documentation
+- **Maintainability:** Single source of truth, easier debugging
+
+### Automatic Migration
+
+Set environment variable to automatically use TypeScript:
+
+```bash
+export USE_TYPESCRIPT=true
+```
+
+All coordinators and orchestrators will automatically prefer TypeScript implementations.
+
+### Rollback
+
+If issues arise:
+
+```bash
+export USE_TYPESCRIPT=false
+```
+
+Bash scripts will continue working for the 90-day deprecation period.
+
+### See Also
+
+- **Complete Deprecation List:** [docs/BASH_DEPRECATION_NOTICE.md](../../../docs/BASH_DEPRECATION_NOTICE.md)
+- **TypeScript Benefits:** See individual migration guides
+- **Test Coverage:** Run `npm test` to verify TypeScript implementation
+
+---

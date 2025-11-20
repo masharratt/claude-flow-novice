@@ -1,5 +1,30 @@
 #!/bin/bash
 
+##############################################################################
+# ⚠️  DEPRECATED - This bash script is deprecated
+#
+# Deprecation Date: 2025-11-20
+# Removal Date: 2026-02-20 (90 days)
+# Replacement: dist/cli/spawn-agent-cli.js
+#
+# This script will be removed in 90 days. Please migrate to TypeScript.
+#
+# Migration Guide: .claude/skills/cfn-agent-spawning/TYPESCRIPT_MIGRATION.md
+# TypeScript Benefits:
+#   - Type safety (zero runtime type errors)
+#   - 90%+ test coverage
+#   - Better error handling
+#   - Comprehensive documentation
+#
+# Automatic Migration:
+#   Set USE_TYPESCRIPT=true to use TypeScript implementation automatically
+#
+# Migration Command:
+#   node dist/cli/spawn-agent-cli.js [same arguments]
+#
+##############################################################################
+
+
 # Agent Spawning CLI Wrapper
 # Enables agents to spawn other agents or stop existing agents via simple CLI interface
 

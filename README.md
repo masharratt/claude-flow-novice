@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 [![CI Pipeline](https://github.com/yourusername/claude-flow-novice/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/claude-flow-novice/actions/workflows/ci.yml)
-[![Coverage Report](https://img.shields.io/badge/coverage-dynamic-blue)](docs/CI_CD_PIPELINE.md)
+[![Coverage Report](https://img.shields.io/badge/coverage-dynamic-blue)](.github/workflows)
 
 Autonomous self-correcting AI agent orchestration with multi-domain support and intelligent learning capabilities.
 
@@ -437,25 +437,220 @@ See `readme/logs-tools.md` for complete documentation.
 
 ## Testing
 
+Claude Flow Novice includes comprehensive test suites across multiple execution modes and test types. Choose the appropriate test runner based on your development context.
+
+### Quick Start
+
+```bash
+# Run all npm-based tests (unit, integration, e2e)
+npm test
+
+# Run CLI mode test suite (test-driven validation)
+./tests/cli-mode/run-all-tests.sh
+
+# Run Docker mode test suite (45 production tests)
+./tests/docker-mode/run-all-implementations.sh
+```
+
+### Test Execution Modes
+
+#### CLI Mode Tests (Production)
+Run the CLI mode test suite to validate end-to-end coordination, quality gates, and agent spawning:
+
+```bash
+# Full test suite with all assertions
+./tests/cli-mode/run-all-tests.sh
+
+# Expected runtime: ~5-10 minutes
+# Tests: 8 suites, 159 total assertions
+# Coverage: Redis coordination, threshold enforcement, agent spawning, path resolution
+```
+
+**Validates:**
+- `/cfn-loop-cli` slash command workflow
+- Coordinator spawning and orchestration
+- Loop 3 → Loop 2 → Product Owner progression
+- Quality gate enforcement (MVP/Standard/Enterprise modes)
+- Redis coordination layer
+- Agent tool access and permissions
+
+**Prerequisites:**
+- Redis running (`redis-server`)
+- Project built (`npm run build`)
+- Z.ai API key configured (`.env`) for integration tests
+
+**Documentation:** See `tests/cli-mode/README.md` for detailed test descriptions and results.
+
+#### Docker Mode Tests (Integration)
+Run the Docker mode test suite to validate real container-based orchestration:
+
+```bash
+# Run all 45 Docker test implementations
+./tests/docker-mode/run-all-implementations.sh
+
+# Expected runtime: ~3-5 minutes
+# Tests: 45 production tests across 3 suites
+# Coverage: Coordinator spawning, orchestrator workflow, TDD compliance
+```
+
+**Test Suites:**
+- Coordinator Spawning (13 tests): Container cleanup, exit codes, service discovery
+- Orchestrator Workflow (13 tests): Iteration management, monitoring, recovery
+- TDD Compliance (19 tests): Test-driven validation, metrics collection, parallel execution
+
+**Prerequisites:**
+- Docker daemon running (`docker ps`)
+- No port conflicts (Docker networks auto-created)
+- ~2GB available memory for container execution
+
+**Documentation:** See `tests/docker-mode/README.md` for test categories and patterns.
+
+#### NPM-Based Tests (Development)
+Run standard npm test commands for fast feedback during development:
+
 ```bash
 # Run all tests
 npm test
 
 # Run specific test suites
-npm run test:unit
-npm run test:integration
-npm run test:e2e
+npm run test:unit           # Unit tests only
+npm run test:integration    # Integration tests only
+npm run test:e2e           # End-to-end tests only
 
-# CFN Loop end-to-end tests
-./tests/cfn-v3/test-e2e-cfn-loop.sh
-./tests/cfn-v3/test-coordinator-handoffs.sh
+# Run with coverage
+npm test -- --coverage
+
+# Watch mode (re-run on file changes)
+npm test -- --watch
 ```
 
----
+**Expected runtime:**
+- Unit tests: ~1-2 minutes
+- Integration tests: ~2-3 minutes
+- E2E tests: ~3-5 minutes
 
-## Contributing
+#### CFN Loop End-to-End Tests
+Run specialized CFN Loop tests for validation and debugging:
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+```bash
+# Validate CFN Loop coordinator handoffs
+./tests/cfn-v3/test-coordinator-handoffs.sh
+
+# Full CFN Loop e2e test
+./tests/cfn-v3/test-e2e-cfn-loop.sh
+
+# Enterprise change management tests
+./tests/enterprise/run-all-enterprise-tests.sh
+```
+
+### Test Organization
+
+```
+tests/
+├── cli-mode/                          # CLI mode validation (8 tests, 159 assertions)
+│   ├── README.md                      # CLI test documentation
+│   ├── run-all-tests.sh              # Test runner
+│   └── test-*.sh                     # Individual test suites
+├── docker-mode/                       # Docker integration tests (45 tests)
+│   ├── README.md                      # Docker test documentation
+│   ├── run-all-implementations.sh     # Test runner
+│   └── implementations/
+│       ├── coordinator-spawning-real-tests.sh
+│       ├── orchestrator-workflow-real-tests.sh
+│       └── tdd-compliance-real-tests.sh
+├── docker/                            # Docker-based core tests
+│   ├── coordination/                  # Redis coordination tests
+│   ├── lifecycle/                     # Container lifecycle tests
+│   └── perf/                          # Performance benchmarks
+├── cfn-v3/                           # CFN Loop validation tests
+├── enterprise/                        # Enterprise mode tests
+├── CLAUDE.md                          # Test authoring standards
+├── test-utils.sh                      # Shared test utilities
+└── README.md                          # Test suite documentation
+```
+
+### Test Coverage Matrix
+
+| Mode | Type | Tests | Duration | Prerequisites |
+|------|------|-------|----------|---|
+| CLI | Unit + Integration + E2E | 159 assertions | 5-10 min | Redis, npm build |
+| Docker | Production integration | 45 tests | 3-5 min | Docker daemon |
+| NPM | Development | Variable | 1-5 min | Node.js, npm |
+| CFN Loop | Workflow validation | Variable | 5-15 min | Full environment |
+
+### Test Authoring Guidelines
+
+For developers writing new tests, see `tests/CLAUDE.md` which documents:
+- Boilerplate template structure
+- GIVEN/WHEN/THEN assertion patterns
+- Production testing requirements (BUG #21)
+- Infrastructure vs integration test patterns
+- Cleanup and resource management
+- Review checklist for test quality
+
+Key principles:
+- Infrastructure tests (mocks OK): Docker networking, volumes, Redis connectivity
+- Integration tests (real images/scripts): Agent spawning, CLI execution, production workflows
+- Always use `set -euo pipefail` and `trap cleanup EXIT`
+- Route output through `log_step`, `log_info`, `annotate`, `assert_success` helpers
+- Cite relevant bugs in test comments for future context
+
+### CI/CD Integration
+
+Tests run automatically in GitHub Actions on every push and pull request. See [CI/CD Pipeline Documentation](.github/workflows) for:
+- Coverage gates (80%+ lines/statements/functions)
+- Test failure notifications
+- Performance benchmarking
+- Security scanning
+- Deployment workflows
+
+### Troubleshooting
+
+**Redis not available:**
+```bash
+# Start Redis in background
+redis-server --daemonize yes
+
+# Or run in Docker
+docker run -d -p 6379:6379 redis:7-alpine
+```
+
+**Docker permission denied:**
+```bash
+# Add user to docker group
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+**Port conflicts:**
+```bash
+# Stop and remove existing containers
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+
+# Clean up Docker networks
+docker network prune -f
+```
+
+**Test failures with unclear messages:**
+```bash
+# Run with verbose output
+DEBUG=true ./tests/cli-mode/run-all-tests.sh
+DEBUG=true ./tests/docker-mode/run-all-implementations.sh
+
+# Check test logs in .artifacts/
+tail -100 .artifacts/logs/test-execution.log
+```
+
+### Related Documentation
+
+- **Test Suite Overview:** `tests/README.md`
+- **Test Authoring Standards:** `tests/CLAUDE.md`
+- **CLI Mode Details:** `tests/cli-mode/README.md`
+- **Docker Mode Details:** `tests/docker-mode/README.md`
+- **Test Coverage Analysis:** `tests/TEST_COVERAGE_MATRIX.md`
+- **CFN Loop Architecture:** `docs/CFN_LOOP_ARCHITECTURE.md`
+- **CI/CD Pipeline:** `.github/workflows`
 
 ### Development Setup
 
@@ -476,7 +671,7 @@ npm run build
 
 ### CI/CD Pipeline
 
-Comprehensive GitHub Actions automation with unit testing, integration testing, coverage gates (80%+ lines/statements/functions), security scanning, and deployment workflows. See [CI/CD Pipeline Documentation](docs/CI_CD_PIPELINE.md) for details.
+Comprehensive GitHub Actions automation with unit testing, integration testing, coverage gates (80%+ lines/statements/functions), security scanning, and deployment workflows. See [CI/CD Pipeline Documentation](.github/workflows) for details.
 
 ---
 

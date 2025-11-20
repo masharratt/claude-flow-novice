@@ -61,9 +61,9 @@ if ! echo "$CRITERIA_JSON" | jq -e '.test_suites | type == "array"' >/dev/null 2
     exit 1
 fi
 
-# Store in Redis using orchestrator's expected format
-# Orchestrator reads from: cfn_loop:task:${TASK_ID}:context HGET success-criteria
-REDIS_KEY="cfn_loop:task:${TASK_ID}:context"
+# Store in Redis using unified swarm namespace
+# Orchestrator reads from: swarm:${TASK_ID}:context HGET success-criteria
+REDIS_KEY="swarm:${TASK_ID}:context"
 
 # Store as HASH field (not STRING key) to match orchestrator expectations
 if ! redis-cli HSET "$REDIS_KEY" "success-criteria" "$CRITERIA_JSON" > /dev/null 2>&1; then

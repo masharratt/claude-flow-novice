@@ -31,10 +31,11 @@ export TEST_PASSED=0
 export TEST_FAILED=0
 
 # Redis configuration (from environment or defaults)
-export REDIS_HOST="${CFN_REDIS_HOST:-cfn-redis}"
+export REDIS_HOST="${CFN_REDIS_HOST:-localhost}"
 export REDIS_PORT="${CFN_REDIS_PORT:-6379}"
-export REDIS_PASSWORD="${REDIS_PASSWORD:-}"
-export REDIS_CLI_CMD="docker exec claude-flow-novice-redis-1 redis-cli${REDIS_PASSWORD:+ -a $REDIS_PASSWORD}"
+# Use network connection (like redis-cli-wrapper.sh) instead of docker exec
+# Redis allows passwordless connections on localhost interface in test environment
+export REDIS_CLI_CMD="redis-cli -h $REDIS_HOST -p $REDIS_PORT"
 
 # Docker configuration
 export DOCKER_NETWORK="${DOCKER_NETWORK:-mcp-network}"
@@ -358,13 +359,8 @@ redis_wait_for_key() {
 # Usage: if verify_redis_health; then ...
 verify_redis_health() {
     local result
-    local auth_flag=""
 
-    if [ -n "${REDIS_PASSWORD:-}" ]; then
-        auth_flag="-a $REDIS_PASSWORD"
-    fi
-
-    result=$(docker exec claude-flow-novice-redis-1 redis-cli $auth_flag PING 2>/dev/null || echo "FAILED")
+    result=$($REDIS_CLI_CMD PING 2>/dev/null || echo "FAILED")
 
     if [ "$result" = "PONG" ]; then
         return 0

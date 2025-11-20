@@ -1,8 +1,18 @@
 #!/bin/bash
 
 ##############################################################################
+# DEPRECATED: Use ./dist/cli/orchestrator-cli.js instead
+#
+# This bash wrapper is preserved for reference only.
+# Migrate to the TypeScript CLI for improved type safety and performance.
+#
+# NEW: ./dist/cli/orchestrator-cli.js --task-id <id> --mode <mode> ...
+# OLD: ./orchestrate-wrapper.sh --task-id <id> --mode <mode> ...
+##############################################################################
+
+##############################################################################
 # CFN Loop Orchestration Wrapper - Parameter Validation & Fallback Enforcement
-# Version: 1.0.0 (BUG #22 Phase 2 - Parameter Fallback)
+# Version: 1.0.0 (BUG #22 Phase 2 - Parameter Fallback) [DEPRECATED]
 #
 # Purpose:
 # Validates and enforces non-empty parameters for orchestrate.sh invocation.

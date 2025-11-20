@@ -5,6 +5,7 @@
 
 export { MVPOwner } from './mvp-owner.js';
 export { EnterpriseOwnerTeam } from './enterprise-owner-team.js';
+export { DecisionParser, DecisionParserError, parseDecision, parseDecisionFile } from './decision-parser.js';
 
 export type {
   POConfig,
@@ -16,6 +17,8 @@ export type {
   TeamDecisionResult,
   ProductOwner,
 } from './types.js';
+
+export type { ParsedDecision, DecisionParserOptions } from './decision-parser.js';
 
 import { MVPOwner } from './mvp-owner.js';
 import { EnterpriseOwnerTeam } from './enterprise-owner-team.js';
