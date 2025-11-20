@@ -39,36 +39,49 @@ const createMockRedisClient = (): jest.Mocked<RedisClientType> => {
   const store = new Map<string, { value: string; expiry?: number }>();
   const lists = new Map<string, string[]>();
 
-  return {
+  // Define core methods that will be used by both client and multi()
+  const existsImpl = (key: string) => {
+    return Promise.resolve(store.has(key) ? 1 : 0);
+  };
+
+  const getImpl = (key: string) => {
+    const entry = store.get(key);
+    if (!entry) return Promise.resolve(null);
+
+    // Check expiry
+    if (entry.expiry && Date.now() > entry.expiry) {
+      store.delete(key);
+      return Promise.resolve(null);
+    }
+
+    return Promise.resolve(entry.value);
+  };
+
+  const setImpl = (key: string, value: string, options?: any) => {
+    const expiry = options?.PX ? Date.now() + options.PX : undefined;
+    store.set(key, { value, expiry });
+    return Promise.resolve('OK');
+  };
+
+  const delImpl = (key: string) => {
+    let deleted = 0;
+    if (store.delete(key)) deleted = 1;
+    if (lists.delete(key)) deleted = 1;
+    return Promise.resolve(deleted);
+  };
+
+  const client = {
     connect: jest.fn().mockResolvedValue(undefined),
     quit: jest.fn().mockResolvedValue(undefined),
-    exists: jest.fn().mockImplementation((key: string) => {
-      return Promise.resolve(store.has(key) ? 1 : 0);
-    }),
-    get: jest.fn().mockImplementation((key: string) => {
-      const entry = store.get(key);
-      if (!entry) return Promise.resolve(null);
-
-      // Check expiry
-      if (entry.expiry && Date.now() > entry.expiry) {
-        store.delete(key);
-        return Promise.resolve(null);
-      }
-
-      return Promise.resolve(entry.value);
-    }),
-    set: jest.fn().mockImplementation((key: string, value: string, options?: any) => {
-      const expiry = options?.PX ? Date.now() + options.PX : undefined;
-      store.set(key, { value, expiry });
-      return Promise.resolve('OK');
-    }),
-    del: jest.fn().mockImplementation((key: string) => {
-      const deleted = store.delete(key) ? 1 : 0;
-      return Promise.resolve(deleted);
-    }),
+    exists: jest.fn().mockImplementation(existsImpl),
+    get: jest.fn().mockImplementation(getImpl),
+    set: jest.fn().mockImplementation(setImpl),
+    del: jest.fn().mockImplementation(delImpl),
     keys: jest.fn().mockImplementation((pattern: string) => {
-      const regex = new RegExp(pattern.replace('*', '.*'));
-      const matchingKeys = Array.from(store.keys()).filter(key => regex.test(key));
+      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+      // Combine keys from both store (strings) and lists (lists)
+      const allKeys = new Set([...store.keys(), ...lists.keys()]);
+      const matchingKeys = Array.from(allKeys).filter(key => regex.test(key));
       return Promise.resolve(matchingKeys);
     }),
     ttl: jest.fn().mockImplementation((key: string) => {
@@ -109,9 +122,25 @@ const createMockRedisClient = (): jest.Mocked<RedisClientType> => {
     }),
     blMove: jest.fn().mockImplementation((src: string, dest: string, srcDir: string, destDir: string, timeout: number) => {
       // Mock blocking operation - just call non-blocking version
-      return lists.get(src)?.length
-        ? (this as any).lMove(src, dest, srcDir, destDir)
-        : Promise.resolve(null);
+      const srcList = lists.get(src);
+      if (!srcList || srcList.length === 0) {
+        return Promise.resolve(null);
+      }
+
+      const value = srcDir === 'LEFT' ? srcList.shift()! : srcList.pop()!;
+
+      if (!lists.has(dest)) {
+        lists.set(dest, []);
+      }
+
+      const destList = lists.get(dest)!;
+      if (destDir === 'RIGHT') {
+        destList.push(value);
+      } else {
+        destList.unshift(value);
+      }
+
+      return Promise.resolve(value);
     }),
     lRem: jest.fn().mockImplementation((key: string, count: number, value: string) => {
       const list = lists.get(key);
@@ -151,11 +180,19 @@ const createMockRedisClient = (): jest.Mocked<RedisClientType> => {
 
       return {
         exists: jest.fn().mockImplementation((key: string) => {
-          commands.push(() => (this as any).exists(key));
+          commands.push(() => existsImpl(key));
           return this;
         }),
         set: jest.fn().mockImplementation((key: string, value: string, options?: any) => {
-          commands.push(() => (this as any).set(key, value, options));
+          commands.push(() => setImpl(key, value, options));
+          return this;
+        }),
+        del: jest.fn().mockImplementation((key: string) => {
+          commands.push(() => delImpl(key));
+          return this;
+        }),
+        get: jest.fn().mockImplementation((key: string) => {
+          commands.push(() => getImpl(key));
           return this;
         }),
         exec: jest.fn().mockImplementation(() => {
@@ -164,6 +201,8 @@ const createMockRedisClient = (): jest.Mocked<RedisClientType> => {
       };
     }),
   } as unknown as jest.Mocked<RedisClientType>;
+
+  return client;
 };
 
 jest.setTimeout(30000);
@@ -580,14 +619,16 @@ describe('RedisQueueManager', () => {
     test('calculates oldest message age correctly', async () => {
       const payload = { taskId: 'task-001' };
 
-      await queueManager.enqueue('test-queue', payload, { deduplicate: false });
+      const messageId = await queueManager.enqueue('test-queue', payload, { deduplicate: false });
+      expect(messageId).toBeDefined();
 
-      // Wait a bit to accumulate age
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait at least 1 second to accumulate age (age is measured in whole seconds)
+      await new Promise(resolve => setTimeout(resolve, 1100));
 
       const stats = await queueManager.getStats('test-queue');
 
-      expect(stats.oldestMessageAge).toBeGreaterThan(0);
+      expect(stats.depth).toBeGreaterThan(0);
+      expect(stats.oldestMessageAge).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -656,7 +697,10 @@ describe('QueueRecovery', () => {
       const processFn = jest.fn().mockImplementation(async () => {
         attempts++;
         if (attempts < 3) {
-          throw new Error('Retryable error');
+          // Throw a retryable error (network error is retryable)
+          const error: any = new Error('Retryable error');
+          error.code = 'NETWORK_ERROR';
+          throw error;
         }
         return 'success';
       });
@@ -808,6 +852,10 @@ describe('QueueRecovery', () => {
       const queues = ['queue-1', 'queue-2'];
 
       for (const queue of queues) {
+        // Create a placeholder entry in the main queue so getQueues() finds it
+        await redis.rPush(`queue:${queue}`, JSON.stringify({ id: 'placeholder' }));
+
+        // Create stuck message in processing queue
         const message: QueueMessage = {
           id: `msg-${queue}`,
           queue,

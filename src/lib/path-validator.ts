@@ -93,11 +93,19 @@ function decodePathSafely(inputPath: string): {
     try {
       decoded = decodeURIComponent(decoded);
     } catch (error) {
-      // Invalid URL encoding (including malformed UTF-8) indicates attack
-      // e.g., %c0%ae is malformed UTF-8 for overlong encoding
-      invalidEncodingDetected = true;
-      // Treat invalid encoding as a suspicious attack indicator
-      // but continue with the path as-is for analysis
+      // Invalid URL encoding can be legitimate (e.g., file100%, %PATH%)
+      // These are literal percent signs in filenames, not attacks
+      // Only flag as attack if it's malformed UTF-8 (overlong encoding)
+      const errorMessage = (error as Error).message || '';
+
+      // Malformed UTF-8 sequences like %c0%ae are attacks
+      if (decoded.match(/%[cC][0-9a-fA-F]/) || decoded.match(/%[eE][0-9a-fA-F]/)) {
+        invalidEncodingDetected = true;
+        break;
+      }
+
+      // Otherwise, it's just a literal % in the filename - OK
+      // Keep the path as-is and stop decoding
       break;
     }
     iterations++;
@@ -129,8 +137,11 @@ function decodePathSafely(inputPath: string): {
     );
   }
 
-  // Detect if decoding required multiple iterations (possible double-encoding attack)
-  const encodingAttackDetected = iterations > 1;
+  // Detect double+ encoding attacks (3+ iterations = double-encoded or more)
+  // Single-level URL encoding requires 2 iterations: decode + stability check
+  // Example: subdir%2ffile.txt → subdir/file.txt → stable (2 iterations, legitimate)
+  // Example: %252e%252e%252f → %2e%2e%2f → ../ (3 iterations, attack)
+  const encodingAttackDetected = iterations > 2;
 
   // Unicode normalization to handle overlong UTF-8 sequences
   // e.g., %c0%ae (%c0%ae = UTF-8 overlong encoding for ".")

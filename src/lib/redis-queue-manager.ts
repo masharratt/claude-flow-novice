@@ -36,7 +36,7 @@
 import { RedisClientType } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
 import { createLogger } from './logging.js';
-import { createError, ErrorCode, isRetryableError } from './errors.js';
+import { createError, ErrorCode, isRetryableError, StandardError } from './errors.js';
 import { withRetry } from './retry.js';
 import { MessageDeduplicator } from './message-deduplicator.js';
 
@@ -255,6 +255,11 @@ export class RedisQueueManager {
 
       return message.id;
     } catch (error) {
+      // Re-throw duplicate errors without wrapping
+      if (error instanceof StandardError && error.code === ErrorCode.DB_DUPLICATE_KEY) {
+        throw error;
+      }
+
       logger.error('Failed to enqueue message', error instanceof Error ? error : new Error(String(error)), {
         queue,
       });

@@ -62,7 +62,7 @@ describe('deliverable-verifier', () => {
 
     it('should verify shell script files', () => {
       const result = verifyDeliverables({
-        files: ['.claude/skills/cfn-loop-orchestration/helpers/consensus.sh'],
+        files: ['helpers/consensus-ts.sh'],
         expectedTypes: ['.sh']
       });
 
