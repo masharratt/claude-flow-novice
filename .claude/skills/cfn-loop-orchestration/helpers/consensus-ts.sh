@@ -69,11 +69,14 @@ try {
   console.log(\`  Max: \${consensus.max.toFixed(3)}\`);
   console.log();
 
-  const validation = validateConsensus({
+  const validationParams: any = {
     average: consensus.average,
-    threshold: threshold !== null ? threshold : undefined,
     mode
-  });
+  };
+  if (threshold !== null) {
+    validationParams.threshold = threshold;
+  }
+  const validation = validateConsensus(validationParams);
 
   console.log(\`Consensus Validation:\`);
   console.log(\`  Mode: \${validation.mode}\`);

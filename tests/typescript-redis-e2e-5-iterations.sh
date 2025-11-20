@@ -119,6 +119,7 @@ simulate_loop3_agent() {
     }
 
     # WHEN: Agent completes work and reports results (uses completion-reporter via bash wrapper)
+    local tests_passed=$(echo "scale=0; 10 * $pass_rate / 100" | bc)
     bash "$REDIS_SKILL_DIR/report-completion.sh" \
         --task-id "$TEST_TASK_ID" \
         --agent-id "$agent_id" \
@@ -127,7 +128,7 @@ simulate_loop3_agent() {
         --namespace "$NAMESPACE" \
         --test-pass-rate "$pass_rate" \
         --tests-run 10 \
-        --tests-passed "$((10 * pass_rate / 100))" || {
+        --tests-passed "$tests_passed" || {
         log_error "Completion reporting failed (TypeScript integration)"
         return 1
     }
@@ -171,10 +172,11 @@ check_gate_threshold() {
 
     IFS=',' read -ra AGENTS <<< "$agent_ids"
     for agent_id in "${AGENTS[@]}"; do
-        local pass_rate_key="${NAMESPACE}:${TEST_TASK_ID}:${agent_id}:test-results"
-        local pass_rate=$(redis_get "$pass_rate_key" | grep -oP 'passRate":\K[0-9.]+' || echo "0")
+        # Use HGET to retrieve test_pass_rate field from the result hash
+        local result_hash_key="${NAMESPACE}:${TEST_TASK_ID}:${agent_id}:result"
+        local pass_rate=$(redis_hget "$result_hash_key" "test_pass_rate")
 
-        if [ -n "$pass_rate" ]; then
+        if [ -n "$pass_rate" ] && [ "$pass_rate" != "0" ]; then
             total_pass_rate=$(echo "$total_pass_rate + $pass_rate" | bc)
             agent_count=$((agent_count + 1))
         fi
@@ -329,11 +331,11 @@ main() {
         # Simulate varying pass rates to test gate logic
         local pass_rates
         if [ "$iteration" -eq 1 ]; then
-            pass_rates=(0.85 0.90 0.88)  # Below threshold → should iterate
+            pass_rates=(85 90 88)  # Below threshold (avg 87.67%) → should iterate
         elif [ "$iteration" -eq 2 ]; then
-            pass_rates=(0.92 0.94 0.93)  # Below threshold → should iterate
+            pass_rates=(92 94 93)  # Below threshold (avg 93%) → should iterate
         else
-            pass_rates=(0.96 0.97 0.98)  # Above threshold → should proceed to Loop 2
+            pass_rates=(96 97 98)  # Above threshold (avg 97%) → should proceed to Loop 2
         fi
 
         for i in "${!loop3_agents[@]}"; do

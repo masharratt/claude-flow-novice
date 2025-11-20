@@ -963,16 +963,26 @@ Before reporting high confidence:
 Complete your work and provide test-based validation:
 
 1. **Execute Tests**: Run all test suites from success criteria
-# Parse natively (no external dependencies)
-PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-TOTAL=$((PASS + FAIL))
-RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
+   ```bash
+   # Parse natively (no external dependencies)
+   PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+   FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
+   TOTAL=$((PASS + FAIL))
+   RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
 
-# Return results (Main Chat receives automatically in Task Mode)
-echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+   # Return results (Main Chat receives automatically in Task Mode)
+   echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+   ```
+
+2. **Parse Results**: Extract test counts and calculate pass rate
+
+3. **Coverage Check**: Ensure coverage meets minimum thresholds
+   - Core tests: ≥95%
+   - Configuration tests: ≥90%
    - Coverage: ≥80%
+
 4. **Store in Redis**: Use test-results key (not confidence key)
+
 5. **Signal Completion**: Push to completion queue
 
 **Example Report:**

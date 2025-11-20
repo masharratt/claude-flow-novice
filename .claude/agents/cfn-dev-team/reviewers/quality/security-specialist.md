@@ -49,8 +49,7 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
+**Old (Deprecated):** Not used
 
 **New (Required):**
 ```bash
@@ -65,7 +64,6 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-
 ```
 
 ## 🚨 MANDATORY DOCUMENTATION REDACTION PROTOCOL
@@ -165,6 +163,9 @@ Security analysis results are captured and processed through structured reportin
 DO NOT report subjective confidence scores. Instead:
 
 1. **Execute Tests**: Run test suite defined in success criteria
+2. **Parse Results**: Use native bash parsing (no external dependencies)
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -173,6 +174,8 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
+3. **Pass Rate**: Your security analysis passes the gate if tests ≥ threshold (95% standard mode)
 
 **Validation:**
 - ❌ OLD: "Confidence: 0.90 - security looks solid"
@@ -183,6 +186,9 @@ echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 Complete your work and provide test-based validation:
 
 1. **Execute Tests**: Run all security test suites from success criteria
+2. **Parse Results**:
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -191,10 +197,14 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
+3. **Report Metrics**:
+   - Total tests: X
+   - Passed: Y
+   - Failed: Z
+   - Pass rate: Y/X (e.g., 0.95)
    - Coverage: ≥80%
    - Critical vulnerabilities found: N
-4. **Store in Redis**: Use test-results key (not confidence key)
-5. **Signal Completion**: Push to completion queue
 
 **Example Report:**
 ```

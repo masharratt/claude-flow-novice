@@ -2,7 +2,10 @@
 # Report agent completion and confidence to Redis
 # Replaces deprecated invoke-waiting-mode.sh for CFN Loop coordination
 #
-# Usage: report-completion.sh --task-id <id> --agent-id <id> --confidence <0.0-1.0> [--result <json>]
+# Usage:
+#   report-completion.sh --task-id <id> --agent-id <id> --confidence <0.0-1.0>
+#                        [--iteration <n>] [--namespace <ns>] [--result <json>]
+#                        [--test-pass-rate <pct>] [--tests-run <n>] [--tests-passed <n>]
 
 set -euo pipefail
 
@@ -16,6 +19,10 @@ AGENT_ID=""
 CONFIDENCE=""
 RESULT=""
 ITERATION="1"
+NAMESPACE="swarm"
+TEST_PASS_RATE=""
+TESTS_RUN=""
+TESTS_PASSED=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -39,6 +46,22 @@ while [[ $# -gt 0 ]]; do
             ITERATION="$2"
             shift 2
             ;;
+        --namespace)
+            NAMESPACE="$2"
+            shift 2
+            ;;
+        --test-pass-rate)
+            TEST_PASS_RATE="$2"
+            shift 2
+            ;;
+        --tests-run)
+            TESTS_RUN="$2"
+            shift 2
+            ;;
+        --tests-passed)
+            TESTS_PASSED="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown option: $1" >&2
             exit 1
@@ -51,7 +74,9 @@ done
 # Wrapper provides graceful Task mode fallback when Redis unavailable
 if [ -z "$TASK_ID" ] || [ -z "$AGENT_ID" ] || [ -z "$CONFIDENCE" ]; then
     echo "Error: Missing required parameters" >&2
-    echo "Usage: $0 --task-id <id> --agent-id <id> --confidence <0.0-1.0> [--result <json>] [--iteration <n>]" >&2
+    echo "Usage: $0 --task-id <id> --agent-id <id> --confidence <0.0-1.0>" >&2
+    echo "       [--iteration <n>] [--namespace <ns>] [--result <json>]" >&2
+    echo "       [--test-pass-rate <pct>] [--tests-run <n>] [--tests-passed <n>]" >&2
     exit 1
 fi
 
@@ -66,24 +91,44 @@ fi
 # Measured improvement: ~62% coordination overhead reduction in standard mode
 {
     echo "MULTI"
-    echo "LPUSH swarm:${TASK_ID}:${AGENT_ID}:done complete"
-    echo "SET swarm:${TASK_ID}:${AGENT_ID}:confidence $CONFIDENCE EX 3600"
+    echo "LPUSH ${NAMESPACE}:${TASK_ID}:${AGENT_ID}:done complete"
+    echo "SET ${NAMESPACE}:${TASK_ID}:${AGENT_ID}:confidence $CONFIDENCE EX 3600"
+
+    # Build result hash with test metrics if provided
+    RESULT_HASH_ARGS="confidence $CONFIDENCE iteration $ITERATION"
 
     if [ -n "$RESULT" ]; then
-        echo "HSET swarm:${TASK_ID}:${AGENT_ID}:result confidence $CONFIDENCE iteration $ITERATION result $RESULT timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    else
-        echo "HSET swarm:${TASK_ID}:${AGENT_ID}:result confidence $CONFIDENCE iteration $ITERATION timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        RESULT_HASH_ARGS="$RESULT_HASH_ARGS result $RESULT"
     fi
+
+    if [ -n "$TEST_PASS_RATE" ]; then
+        RESULT_HASH_ARGS="$RESULT_HASH_ARGS test_pass_rate $TEST_PASS_RATE"
+    fi
+
+    if [ -n "$TESTS_RUN" ]; then
+        RESULT_HASH_ARGS="$RESULT_HASH_ARGS tests_run $TESTS_RUN"
+    fi
+
+    if [ -n "$TESTS_PASSED" ]; then
+        RESULT_HASH_ARGS="$RESULT_HASH_ARGS tests_passed $TESTS_PASSED"
+    fi
+
+    RESULT_HASH_ARGS="$RESULT_HASH_ARGS timestamp $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+    echo "HSET ${NAMESPACE}:${TASK_ID}:${AGENT_ID}:result $RESULT_HASH_ARGS"
 
     echo "EXEC"
 } | redis-cli > /dev/null
 
 # Step 4: Add to agent completion list (for orchestrator tracking)
-redis-cli LPUSH "swarm:${TASK_ID}:completed_agents" "$AGENT_ID" > /dev/null
+redis-cli LPUSH "${NAMESPACE}:${TASK_ID}:completed_agents" "$AGENT_ID" > /dev/null
 
 # Step 5: Set TTL on keys (auto-cleanup)
-redis-cli EXPIRE "swarm:${TASK_ID}:${AGENT_ID}:result" 3600 > /dev/null
-redis-cli EXPIRE "swarm:${TASK_ID}:${AGENT_ID}:done" 3600 > /dev/null
+redis-cli EXPIRE "${NAMESPACE}:${TASK_ID}:${AGENT_ID}:result" 3600 > /dev/null
+redis-cli EXPIRE "${NAMESPACE}:${TASK_ID}:${AGENT_ID}:done" 3600 > /dev/null
 
 echo "✅ Reported completion for agent: $AGENT_ID (confidence: $CONFIDENCE)"
+if [ -n "$TEST_PASS_RATE" ]; then
+    echo "   Test pass rate: $TEST_PASS_RATE%"
+fi
 exit 0

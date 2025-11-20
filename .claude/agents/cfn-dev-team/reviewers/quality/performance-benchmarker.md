@@ -51,8 +51,7 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
+**Old (Deprecated):** Not used
 
 **New (Required):**
 ```bash
@@ -67,7 +66,6 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-
 ```
 
 ## 🚨 Mandatory Post-Edit Validation
@@ -83,6 +81,8 @@ Refer to [.claude/templates/post-edit-validation.md](../templates/post-edit-vali
 DO NOT report subjective confidence scores. Instead:
 
 1. **Execute Tests**: Run test suite defined in success criteria
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -91,8 +91,9 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
 
-**Validation:**
+**Validation Examples:**
 - ❌ OLD: "Confidence: 0.88 - benchmarks look good"
 - ✅ NEW: "Benchmark Tests: 28/30 passed (93.3% pass rate) - 2 latency outliers detected"
 
@@ -101,6 +102,8 @@ echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 Complete your work and provide test-based validation:
 
 1. **Execute Tests**: Run all benchmark test suites from success criteria
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -109,10 +112,14 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
+
+2. **Validate Results**:
    - Coverage: ≥80%
    - Performance baseline established: Yes/No
-4. **Store in Redis**: Use test-results key (not confidence key)
-5. **Signal Completion**: Push to completion queue
+
+3. **Store Results**: Use test-results key (not confidence key)
+4. **Signal Completion**: Push to completion queue
 
 **Example Report:**
 ```

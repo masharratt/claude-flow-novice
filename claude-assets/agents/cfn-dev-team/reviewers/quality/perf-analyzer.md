@@ -54,8 +54,7 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
+**Old (Deprecated):** Not used
 
 **New (Required):**
 ```bash
@@ -70,7 +69,6 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-
 ```
 
 ## Mandatory Post-Edit Validation
@@ -237,6 +235,8 @@ Remember: Optimize for highest impact with reasonable effort. Focus on critical 
 DO NOT report subjective confidence scores. Instead:
 
 1. **Execute Tests**: Run test suite defined in success criteria
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -245,8 +245,9 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
 
-**Validation:**
+**Validation Examples:**
 - ❌ OLD: "Confidence: 0.86 - analysis is thorough"
 - ✅ NEW: "Analysis Tests: 42/45 passed (93.3% pass rate) - 3 optimization scenarios need validation"
 
@@ -255,6 +256,8 @@ echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 Complete your work and provide test-based validation:
 
 1. **Execute Tests**: Run all performance analysis test suites from success criteria
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -263,11 +266,15 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
+
+2. **Validate Results**:
    - Coverage: ≥80%
    - Bottlenecks identified: N
    - Expected improvement: X%
-4. **Store in Redis**: Use test-results key (not confidence key)
-5. **Signal Completion**: Push to completion queue
+
+3. **Store Results**: Use test-results key (not confidence key)
+4. **Signal Completion**: Push to completion queue
 
 **Example Report:**
 ```

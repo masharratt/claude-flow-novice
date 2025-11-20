@@ -4,6 +4,7 @@
 #
 # Usage:
 #   store-context.sh --task-id <id> --key <key> --value <value> [--namespace <ns>]
+#   store-context.sh --task-id <id> --epic <epic> --mode <mode> [--namespace <ns>]
 #   store-context.sh <task_id> <context_json> (legacy mode)
 
 set -euo pipefail
@@ -18,6 +19,8 @@ KEY=""
 VALUE=""
 NAMESPACE="swarm"
 CONTEXT=""
+EPIC=""
+MODE=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -38,6 +41,14 @@ while [[ $# -gt 0 ]]; do
       NAMESPACE="$2"
       shift 2
       ;;
+    --epic)
+      EPIC="$2"
+      shift 2
+      ;;
+    --mode)
+      MODE="$2"
+      shift 2
+      ;;
     *)
       # Legacy mode: positional arguments
       if [ -z "$TASK_ID" ]; then
@@ -54,8 +65,27 @@ done
 if [ -z "$TASK_ID" ]; then
     echo "Error: --task-id or TASK_ID required" >&2
     echo "Usage: $0 --task-id <id> --key <key> --value <value> [--namespace <ns>]" >&2
+    echo "   or: $0 --task-id <id> --epic <epic> --mode <mode> [--namespace <ns>]" >&2
     echo "   or: $0 <task_id> <context_json> (legacy)" >&2
     exit 1
+fi
+
+# Handle epic+mode mode (new)
+if [ -n "$EPIC" ] && [ -n "$MODE" ]; then
+  # Store epic and mode with task context
+  REDIS_KEY="${NAMESPACE}:${TASK_ID}:context"
+
+  redis-cli HSET "$REDIS_KEY" \
+      "epic" "$EPIC" \
+      "mode" "$MODE" \
+      "updated_at" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+      > /dev/null
+
+  # Set TTL (24 hours)
+  redis-cli EXPIRE "$REDIS_KEY" 86400 > /dev/null
+
+  echo "✅ Context stored: epic=$EPIC, mode=$MODE for task: $TASK_ID"
+  exit 0
 fi
 
 # Handle structured mode (new)
@@ -89,5 +119,5 @@ if [ -n "$CONTEXT" ]; then
   exit 0
 fi
 
-echo "Error: Either --key/--value or <context_json> required" >&2
+echo "Error: Either --epic/--mode, --key/--value, or <context_json> required" >&2
 exit 1

@@ -64,8 +64,7 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
+**Old (Deprecated):** Not used
 
 **New (Required):**
 ```bash
@@ -80,7 +79,6 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-
 ```
 
 ## Post-Edit Validation
@@ -206,6 +204,8 @@ Remember: Code analysis reveals improvement opportunities. Focus on actionable, 
 DO NOT report subjective confidence scores. Instead:
 
 1. **Execute Tests**: Run test suite defined in success criteria
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -214,8 +214,9 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
 
-**Validation:**
+**Validation Examples:**
 - ❌ OLD: "Confidence: 0.83 - quality metrics look solid"
 - ✅ NEW: "Quality Tests: 38/40 passed (95% pass rate) - 2 refactoring validation scenarios need review"
 
@@ -224,6 +225,8 @@ echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
 Complete your work and provide test-based validation:
 
 1. **Execute Tests**: Run all code quality test suites from success criteria
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -232,11 +235,15 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
+
+2. **Validate Results**:
    - Coverage: ≥80%
    - Code smells detected: N
    - Technical debt score: X/10
-4. **Store in Redis**: Use test-results key (not confidence key)
-5. **Signal Completion**: Push to completion queue
+
+3. **Store Results**: Use test-results key (not confidence key)
+4. **Signal Completion**: Push to completion queue
 
 **Example Report:**
 ```

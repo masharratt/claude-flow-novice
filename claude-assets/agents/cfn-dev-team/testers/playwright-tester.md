@@ -63,8 +63,7 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-**Old (Deprecated):**
-```bash
+**Old (Deprecated):** Not used
 
 **New (Required):**
 ```bash
@@ -76,7 +75,6 @@ PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
 TOTAL=$((PASS + FAIL))
 RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
 ```
 
 ## 🚨 Mandatory Post-Edit Validation
@@ -270,6 +268,8 @@ DO NOT report subjective confidence scores. Instead:
 Complete your work and provide test-based validation:
 
 1. **Execute Tests**: Run all Playwright test suites from success criteria
+
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
@@ -278,11 +278,15 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
+```
+
+2. **Validate Results**:
    - Coverage: ≥80%
    - Cross-browser coverage: X/Y browsers
    - Critical flows covered: X/Y
-4. **Store in Redis**: Use test-results key (not confidence key)
-5. **Signal Completion**: Push to completion queue
+
+3. **Store Results**: Use test-results key (not confidence key)
+4. **Signal Completion**: Push to completion queue
 
 **Example Report:**
 ```

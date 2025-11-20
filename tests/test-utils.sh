@@ -289,6 +289,21 @@ redis_get() {
     $REDIS_CLI_CMD GET "$key" 2>/dev/null || echo ""
 }
 
+# Get Redis hash field value
+# Usage: value=$(redis_hget "myhash" "field")
+redis_hget() {
+    local key="$1"
+    local field="$2"
+    $REDIS_CLI_CMD HGET "$key" "$field" 2>/dev/null || echo ""
+}
+
+# Get all Redis hash fields and values
+# Usage: result=$(redis_hgetall "myhash")
+redis_hgetall() {
+    local key="$1"
+    $REDIS_CLI_CMD HGETALL "$key" 2>/dev/null || echo ""
+}
+
 # Check if Redis key exists
 # Usage: if redis_exists "mykey"; then ...
 redis_exists() {
@@ -693,6 +708,8 @@ ASSERTIONS:
 REDIS:
   redis_set key value           - Set Redis key
   redis_get key                 - Get Redis value
+  redis_hget key field          - Get Redis hash field value
+  redis_hgetall key             - Get all hash fields and values
   redis_exists key              - Check if key exists
   redis_del key                 - Delete Redis key
   redis_keys pattern            - Get keys matching pattern
@@ -739,7 +756,7 @@ EOF
 export -f log_step log_info log_success log_warn log_error annotate log_pass log_fail
 export -f assert_success assert_failure assert_equals assert_contains assert_not_contains
 export -f assert_not_empty assert_file_exists assert_dir_exists
-export -f redis_set redis_get redis_exists redis_del redis_keys redis_flush_all
+export -f redis_set redis_get redis_hget redis_hgetall redis_exists redis_del redis_keys redis_flush_all
 export -f redis_wait_for_key verify_redis_health
 export -f wait_for_container cleanup_container get_container_logs is_container_running
 export -f container_exec ensure_network cleanup_network
