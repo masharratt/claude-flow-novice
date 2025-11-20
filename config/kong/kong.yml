@@ -1,0 +1,496 @@
+_format_version: "3.0"
+
+# Transform metadata for distributed Kong deployment
+_transform: true
+
+# Database configuration (for production use)
+database:
+  host: ${KONG_DATABASE_HOST:-kong-database}
+  port: ${KONG_DATABASE_PORT:-5432}
+  user: ${KONG_DATABASE_USER:-kong}
+  password: ${KONG_DATABASE_PASSWORD:-kong_pass}
+  database: ${KONG_DATABASE_NAME:-kong}
+
+# Services (upstream APIs) for CFN Loop system
+services:
+  - name: orchestrator-service
+    url: http://orchestrator:3000
+    protocol: http
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+    retries: 5
+    tags:
+      - production
+      - core
+      - v1
+
+  - name: agent-pool-service
+    url: http://agent-pool:3000
+    protocol: http
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+    retries: 5
+    tags:
+      - production
+      - workers
+      - v1
+
+  - name: prometheus-service
+    url: http://prometheus:9090
+    protocol: http
+    connect_timeout: 30000
+    write_timeout: 30000
+    read_timeout: 30000
+    retries: 3
+    tags:
+      - production
+      - monitoring
+
+  - name: grafana-service
+    url: http://grafana:3000
+    protocol: http
+    connect_timeout: 30000
+    write_timeout: 30000
+    read_timeout: 30000
+    retries: 3
+    tags:
+      - production
+      - monitoring
+
+  - name: redis-coordinator-service
+    url: http://redis-coordinator:6379
+    protocol: tcp
+    connect_timeout: 30000
+    retries: 3
+    tags:
+      - production
+      - coordination
+
+# Routes (external endpoints)
+routes:
+  - name: orchestrator-api-routes
+    service: orchestrator-service
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    paths:
+      - /api/v1/orchestrator
+      - /api/v1/agents
+      - /api/v1/tasks
+      - /api/v1/coordination
+    strip_path: false
+    preserve_host: false
+    tags:
+      - core-api
+      - authenticated
+
+  - name: monitoring-api-routes
+    service: prometheus-service
+    protocols:
+      - https
+    methods:
+      - GET
+    paths:
+      - /api/v1/metrics
+      - /api/v1/prometheus
+    strip_path: false
+    tags:
+      - monitoring-api
+      - restricted
+
+  - name: dashboard-routes
+    service: grafana-service
+    protocols:
+      - https
+    methods:
+      - GET
+      - POST
+    paths:
+      - /dashboard
+      - /grafana
+    strip_path: false
+    tags:
+      - dashboard
+      - authenticated
+
+  - name: health-check-routes
+    service: orchestrator-service
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    paths:
+      - /health
+      - /api/v1/health
+      - /status
+    strip_path: false
+    tags:
+      - health
+      - public
+
+# Global plugins configuration
+plugins:
+  # Rate limiting (global)
+  - name: rate-limiting
+    config:
+      minute: 100
+      hour: 10000
+      day: 100000
+      policy: cluster
+      fault_tolerant: true
+      hide_client_headers: false
+    tags:
+      - global
+
+  # CORS (global)
+  - name: cors
+    config:
+      origins:
+        - "https://app.example.com"
+        - "https://dashboard.example.com"
+        - "http://localhost:3000"
+        - "http://localhost:3001"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+        - PATCH
+      headers:
+        - Accept
+        - Accept-Version
+        - Authorization
+        - Content-Type
+        - Content-MD5
+        - Cache-Control
+        - X-Requested-With
+        - X-API-Key
+        - X-Gateway-Request-ID
+      exposed_headers:
+        - X-Auth-Token
+        - X-Rate-Limit-Limit
+        - X-Rate-Limit-Remaining
+        - X-Rate-Limit-Reset
+        - X-Response-Time
+        - X-Cache-Status
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+    tags:
+      - global
+
+  # Request ID generator
+  - name: request-id
+    config:
+      generator: "uuid#counter"
+      header_name: "X-Gateway-Request-ID"
+      echo_request_id: true
+    tags:
+      - global
+
+  # Request size limiting
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10  # 10MB
+    tags:
+      - global
+
+  # IP restriction (for sensitive endpoints)
+  - name: ip-restriction
+    route: monitoring-api-routes
+    config:
+      allow:
+        - 172.30.0.0/16  # cfn-network
+        - 172.31.0.0/16  # mcp-network
+        - 127.0.0.1
+      deny:
+        - 0.0.0.0/0
+    tags:
+      - security
+
+  # JWT Authentication (for core APIs)
+  - name: jwt
+    service: orchestrator-service
+    config:
+      key_claim_name: "kid"
+      secret_is_base64: false
+      claims_to_verify:
+        - exp
+        - nbf
+        - iat
+      uri_param_names:
+        - jwt
+      cookie_names:
+        - gateway_jwt
+    tags:
+      - authentication
+
+  # API Key authentication (for external access)
+  - name: key-auth
+    service: prometheus-service
+    config:
+      key_names:
+        - apikey
+        - X-API-Key
+      hide_credentials: false
+    tags:
+      - authentication
+
+  # ACL (Access Control List)
+  - name: acl
+    service: orchestrator-service
+    config:
+      allow:
+        - admin
+        - orchestrator
+        - agent-pool
+        - monitoring
+      deny:
+        - blocked
+      hide_groups_header: false
+    tags:
+      - authorization
+
+  # Request transformer (add headers)
+  - name: request-transformer
+    service: orchestrator-service
+    config:
+      add:
+        headers:
+          - X-Gateway: kong
+          - X-Forwarded-Proto: https
+          - X-Gateway-Version: 3.0
+          - X-Request-Start: ${start_time}
+      remove:
+        headers:
+          - X-Internal-Secret
+          - X-Debug-Info
+    tags:
+      - transformation
+
+  # Response transformer
+  - name: response-transformer
+    service: orchestrator-service
+    config:
+      add:
+        headers:
+          - X-Response-Time: ${latency}
+          - X-Cache-Status: ${cache_status}
+          - X-Gateway-Response-ID: ${request_id}
+    tags:
+      - transformation
+
+  # Prometheus metrics
+  - name: prometheus
+    config:
+      per_consumer: true
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+    tags:
+      - metrics
+
+  # Zipkin tracing
+  - name: zipkin
+    config:
+      http_endpoint: http://zipkin:9411/api/v2/spans
+      sample_ratio: 0.1
+      include_service_name_in_header: true
+    tags:
+      - tracing
+
+# Consumers (API clients)
+consumers:
+  - username: orchestrator-client
+    custom_id: orchestrator-v1
+    tags:
+      - internal
+      - core
+    jwt_secrets:
+      - key: orchestrator-key-1
+        algorithm: HS256
+        secret: ${ORCHESTRATOR_JWT_SECRET}
+    acls:
+      - group: orchestrator
+
+  - username: agent-pool-client
+    custom_id: agent-pool-v1
+    tags:
+      - internal
+      - workers
+    jwt_secrets:
+      - key: agent-pool-key-1
+        algorithm: HS256
+        secret: ${AGENT_POOL_JWT_SECRET}
+    acls:
+      - group: agent-pool
+
+  - username: monitoring-client
+    custom_id: monitoring-v1
+    tags:
+      - internal
+      - monitoring
+    keyauth_credentials:
+      - key: ${MONITORING_API_KEY}
+    acls:
+      - group: monitoring
+
+  - username: admin-client
+    custom_id: admin-v1
+    tags:
+      - admin
+    jwt_secrets:
+      - key: admin-key-1
+        algorithm: HS256
+        secret: ${ADMIN_JWT_SECRET}
+    acls:
+      - group: admin
+
+  - username: external-api-client
+    custom_id: external-v1
+    tags:
+      - external
+    keyauth_credentials:
+      - key: ${EXTERNAL_API_KEY}
+    plugins:
+      - name: rate-limiting-advanced
+        config:
+          limit:
+            - 1000   # requests per hour
+            - 5000   # requests per day
+          window_size:
+            - 3600   # 1 hour
+            - 86400   # 1 day
+          window_type: sliding
+          identifier: consumer
+          strategy: cluster
+          sync_rate: 0.5
+
+# Upstreams (load balancing)
+upstreams:
+  - name: orchestrator-upstream
+    algorithm: round-robin
+    hash_on: none
+    hash_fallback: none
+    slots: 10000
+    healthchecks:
+      active:
+        https_verify_certificate: false
+        healthy:
+          interval: 10
+          successes: 3
+        unhealthy:
+          interval: 10
+          http_failures: 3
+          timeouts: 3
+          tcp_failures: 3
+      passive:
+        healthy:
+          http_statuses:
+            - 200
+            - 201
+            - 202
+            - 203
+            - 204
+          successes: 5
+        unhealthy:
+          http_statuses:
+            - 429
+            - 500
+            - 502
+            - 503
+            - 504
+          http_failures: 3
+          tcp_failures: 3
+          timeouts: 3
+    tags:
+      - production
+      - core
+
+  - name: agent-pool-upstream
+    algorithm: least-connections
+    hash_on: none
+    hash_fallback: none
+    slots: 10000
+    healthchecks:
+      active:
+        healthy:
+          interval: 5
+          successes: 2
+        unhealthy:
+          interval: 5
+          http_failures: 2
+          timeouts: 2
+      passive:
+        healthy:
+          http_statuses:
+            - 200
+            - 201
+            - 202
+          successes: 3
+        unhealthy:
+          http_statuses:
+            - 500
+            - 503
+          http_failures: 3
+    tags:
+      - production
+      - workers
+
+# Targets (upstream servers)
+targets:
+  - target: orchestrator:3000
+    weight: 100
+    upstream: orchestrator-upstream
+    tags:
+      - primary
+
+  - target: agent-pool-1:3000
+    weight: 100
+    upstream: agent-pool-upstream
+    tags:
+      - worker-1
+
+  - target: agent-pool-2:3000
+    weight: 100
+    upstream: agent-pool-upstream
+    tags:
+      - worker-2
+
+  - target: agent-pool-3:3000
+    weight: 100
+    upstream: agent-pool-upstream
+    tags:
+      - worker-3
+
+# Certificates
+certificates:
+  - cert: ${KONG_SSL_CERT}
+    key: ${KONG_SSL_KEY}
+    tags:
+      - production
+    snis:
+      - api.example.com
+      - gateway.example.com
+      - kong.example.com
+
+# Service discovery for dynamic environments
+services:
+  - name: docker-registry-service
+    url: http://registry:5000
+    plugins:
+      - name: file-log
+        config:
+          path: /var/log/kong/docker-registry.log
+          reopen: false

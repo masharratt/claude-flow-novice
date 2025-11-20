@@ -1,0 +1,49 @@
+# Kong Prometheus Configuration
+# Metrics collection for Kong API Gateway
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Kong Gateway Metrics
+  - job_name: 'kong-gateway'
+    static_configs:
+      - targets: ['kong:8001']
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Kong Database Metrics
+  - job_name: 'kong-database'
+    static_configs:
+      - targets: ['kong-database:5432']
+    scrape_interval: 30s
+
+  # Kong Redis Metrics
+  - job_name: 'kong-redis'
+    static_configs:
+      - targets: ['kong-redis:6379']
+    scrape_interval: 15s
+
+  # Node Exporter (for system metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+# Alerting
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093

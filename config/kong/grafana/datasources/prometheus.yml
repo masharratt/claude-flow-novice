@@ -1,0 +1,24 @@
+# Kong Grafana Datasource Configuration
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://kong-prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+
+  - name: Kong-Redis
+    type: redis-datasource
+    access: proxy
+    url: redis://kong-redis:6379
+    editable: true
+    jsonData:
+      poolSize: 5
+      timeout: 10
+      pingInterval: 30
