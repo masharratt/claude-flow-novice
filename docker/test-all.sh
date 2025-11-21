@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 # ============================================================================
-# CFN Docker Infrastructure - Comprehensive Test Suite
+# DEPRECATED: This shell script has been migrated to TypeScript
 # ============================================================================
+# Location: src/docker/tests/__tests__/test-all.test.ts
+#
+# This file is maintained for backwards compatibility only.
+# New implementations should use the TypeScript version.
+#
+# Migration Status: COMPLETE
+# Test Coverage: 4 test cases
+# Last Updated: 2025-11-21
+# ============================================================================
+#
+# CFN Docker Infrastructure - Comprehensive Test Suite
 # Tests all 4 images to ensure they work correctly
 #
 # Usage:

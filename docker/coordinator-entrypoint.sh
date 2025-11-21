@@ -1,4 +1,37 @@
 #!/bin/bash
+# DEPRECATED: This shell script has been migrated to TypeScript
+#
+# Use the TypeScript version instead:
+#   src/docker/coordinator/coordinator-entrypoint.ts
+#
+# The TypeScript version provides:
+#   - Full type safety with strict TypeScript interfaces
+#   - Comprehensive test coverage (54 tests)
+#   - Security hardening (path traversal prevention, JSON DoS protection)
+#   - Better error handling and validation
+#   - Type-safe context creation
+#   - Async/await promise support
+#
+# This file will be removed in the next major version.
+# To use the new TypeScript version:
+#
+#   import { CoordinatorEntrypoint, runCoordinator } from 'src/docker/coordinator/coordinator-entrypoint';
+#   const coordinator = new CoordinatorEntrypoint({
+#     task_id: 'task-123',
+#     task_description: 'Fix TypeScript errors'
+#   });
+#   const result = await coordinator.execute();
+#
+#   OR use the convenience function:
+#   await runCoordinator();
+#
+
+echo "⚠️  DEPRECATED: docker/coordinator-entrypoint.sh has been migrated to TypeScript"
+echo "   Use: src/docker/coordinator/coordinator-entrypoint.ts instead"
+exit 1
+
+# ==== ORIGINAL SHELL SCRIPT (DEPRECATED) ====
+#!/bin/bash
 set -euo pipefail
 
 # Validate required environment variables

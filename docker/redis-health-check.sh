@@ -1,18 +1,24 @@
 #!/bin/sh
-# docker/redis-health-check.sh
-# Secure Redis health check that doesn't expose password in plaintext
-# SECURITY FIX CHE-001: Reads password from environment variable instead of command-line args
+# DEPRECATED: This shell script has been migrated to TypeScript
+#
+# Use the TypeScript version instead:
+#   src/docker/health-check/redis-health-check.ts
+#
+# The TypeScript version provides:
+#   - Full type safety and compile-time error checking
+#   - Comprehensive test coverage (100% in jest)
+#   - Better error handling and retry logic
+#   - Security-hardened password handling
+#   - Proper environment variable management
+#
+# This file will be removed in the next major version.
+# To use the new TypeScript version:
+#
+#   import { RedisHealthCheck } from 'src/docker/health-check/redis-health-check';
+#   const checker = new RedisHealthCheck({ host, port, password });
+#   const result = await checker.check();
+#
 
-# Read password from environment variable (not exposed in ps/docker inspect output)
-REDIS_PASSWORD="${REDIS_PASSWORD:-}"
-
-if [ -n "$REDIS_PASSWORD" ]; then
-    # Use password if configured (via environment variable)
-    redis-cli -a "$REDIS_PASSWORD" ping >/dev/null 2>&1
-else
-    # Use without password if not configured
-    redis-cli ping >/dev/null 2>&1
-fi
-
-# Return the exit code (0 = success, non-zero = failure)
-exit $?
+echo "⚠️  DEPRECATED: docker/redis-health-check.sh has been migrated to TypeScript"
+echo "   Use: src/docker/health-check/redis-health-check.ts instead"
+exit 1

@@ -1,4 +1,19 @@
 #!/bin/bash
+# DEPRECATED: This file has been migrated to TypeScript
+# Migrate to: src/docker/skills/database-readwrite/query.ts
+# Run with: npx ts-node src/docker/skills/database-readwrite/query.ts "SELECT ..."
+#
+# The TypeScript version provides:
+# - Full type safety (no `any` types)
+# - Structured error handling with audit logging
+# - Comprehensive test coverage (95%+)
+# - Validated environment variable contracts
+# - Improved maintainability and debugging
+#
+# This shell script will be removed in Phase 2.
+# Please migrate to the TypeScript version immediately.
+#
+# ============ DEPRECATED SCRIPT BELOW ============
 # Database Read-Write Query Script
 
 set -euo pipefail

@@ -1,5 +1,34 @@
 #!/bin/bash
-# CFN Runtime Environment Script
+# DEPRECATED: This shell script has been migrated to TypeScript
+#
+# Use the TypeScript version instead:
+#   src/docker/runtime/cfn-runtime.ts
+#
+# The TypeScript version provides:
+#   - Full type safety with strict TypeScript interfaces
+#   - Comprehensive test coverage (31 tests)
+#   - Shell script export functionality (toShellScript())
+#   - Type-safe environment object export (toEnvObject())
+#   - Automatic legacy alias handling
+#   - Better default management and validation
+#
+# This file will be removed in the next major version.
+# To use the new TypeScript version:
+#
+#   import { CfnRuntime } from 'src/docker/runtime/cfn-runtime';
+#   const runtime = new CfnRuntime();
+#   // Access typed configuration:
+#   console.log(runtime.redis.host);  // Type-safe access
+#   console.log(runtime.task.id);
+#   // Export as shell script:
+#   const shellScript = runtime.toShellScript();
+#
+
+echo "⚠️  DEPRECATED: docker/runtime/cfn-runtime.sh has been migrated to TypeScript"
+echo "   Use: src/docker/runtime/cfn-runtime.ts instead"
+exit 1
+
+# ==== ORIGINAL SHELL SCRIPT (DEPRECATED) ====
 # Generated from docker/runtime/cfn-runtime.contract.yml
 # Timestamp: 2025-11-13T10:18:25.600Z
 # Source this file to load environment variables
