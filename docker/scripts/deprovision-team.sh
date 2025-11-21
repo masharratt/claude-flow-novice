@@ -1,4 +1,22 @@
 #!/bin/bash
+#
+# DEPRECATION NOTICE
+# ==================
+# This shell script is DEPRECATED and should no longer be used.
+# Please use the TypeScript implementation instead:
+#
+#   src/docker/build/   - TypeScript build modules
+#   src/docker/scripts/ - TypeScript script modules
+#
+# The TypeScript versions provide:
+#   - Full type safety with TypeScript
+#   - Better error handling and validation
+#   - Unit test coverage
+#   - Consistent environment variable contracts
+#
+# Migration guide: See docs/SHELL_TO_TYPESCRIPT_MIGRATION.md
+#
+#!/bin/bash
 # deprovision-team.sh - Deprovision a CFN Docker team
 #
 # Usage: ./docker/scripts/deprovision-team.sh --team TEAM_ID [OPTIONS]
