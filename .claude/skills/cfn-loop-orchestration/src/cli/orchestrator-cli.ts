@@ -34,6 +34,7 @@ interface CliArgs {
   loop2Agents?: string[];
   productOwner?: string;
   successCriteriaEnabled?: boolean;
+  workspace?: string;
 }
 
 /**
@@ -128,6 +129,13 @@ function parseArguments(args: string[]): CliArgs {
               `Invalid success-criteria: ${nextArg}. Must be one of: enabled, disabled, true, false`,
             );
           }
+        }
+        break;
+
+      case 'workspace':
+        if (nextArg && !nextArg.startsWith('--')) {
+          cliArgs.workspace = nextArg;
+          i++;
         }
         break;
 
@@ -227,6 +235,10 @@ function buildConfig(args: CliArgs): OrchestrationConfig {
 
   if (args.successCriteriaEnabled !== undefined) {
     config.successCriteriaEnabled = args.successCriteriaEnabled;
+  }
+
+  if (args.workspace) {
+    config.workspace = args.workspace;
   }
 
   return config;

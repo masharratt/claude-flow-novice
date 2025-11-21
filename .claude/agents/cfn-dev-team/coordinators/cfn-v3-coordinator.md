@@ -205,7 +205,8 @@ node "$ORCHESTRATOR_CLI" \
   --loop2-agents "$LOOP2_AGENTS" \
   --product-owner "$PRODUCT_OWNER" \
   --max-iterations "$MAX_ITERATIONS" \
-  --success-criteria "enabled" 2>&1
+  --success-criteria "enabled" \
+  ${WORKSPACE:+--workspace "$WORKSPACE"} 2>&1
 
 EXIT_CODE=$?
 

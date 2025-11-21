@@ -46,6 +46,7 @@ export interface OrchestrationConfig {
   productOwner?: string;
   successCriteriaEnabled?: boolean;
   timeouts?: TimeoutConfig;
+  workspace?: string;
 }
 
 /**
@@ -588,6 +589,7 @@ export class Orchestrator {
       iteration: this.state.iteration,
       phase: this.state.currentPhase,
       timestamp: Date.now(),
+      ...(this.config.workspace && { workspace: this.config.workspace }),
     };
     return JSON.stringify(context);
   }
