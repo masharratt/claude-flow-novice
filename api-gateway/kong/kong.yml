@@ -1,0 +1,659 @@
+_format_version: "3.0"
+
+_transform: true
+
+# Services (upstream APIs)
+services:
+  - name: user-service
+    url: http://user-api:3000
+    protocol: http
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+    retries: 5
+    tags:
+      - production
+      - v1
+      - microservice
+
+  - name: order-service
+    url: http://order-api:4000
+    protocol: http
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+    retries: 5
+    tags:
+      - production
+      - v1
+      - microservice
+
+  - name: payment-service
+    url: http://payment-api:5000
+    protocol: https
+    connect_timeout: 60000
+    write_timeout: 60000
+    read_timeout: 60000
+    retries: 5
+    client_certificate:
+      id: payment-cert
+    tags:
+      - production
+      - v1
+      - pci-compliant
+      - microservice
+
+  - name: notification-service
+    url: http://notification-api:6000
+    protocol: http
+    connect_timeout: 30000
+    write_timeout: 30000
+    read_timeout: 30000
+    retries: 3
+    tags:
+      - production
+      - v1
+      - microservice
+
+# Routes (external endpoints)
+routes:
+  - name: user-routes
+    service: user-service
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+    paths:
+      - /api/v1/users
+      - /api/v1/profiles
+      - /api/v1/auth
+    strip_path: false
+    preserve_host: false
+    tags:
+      - public-api
+      - user-management
+
+  - name: order-routes
+    service: order-service
+    protocols:
+      - https
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+    paths:
+      - /api/v1/orders
+      - /api/v1/cart
+    strip_path: false
+    tags:
+      - authenticated
+      - order-management
+
+  - name: payment-routes
+    service: payment-service
+    protocols:
+      - https
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+    paths:
+      - /api/v1/payments
+      - /api/v1/billing
+    strip_path: false
+    tags:
+      - authenticated
+      - payment-processing
+      - pci-compliant
+
+  - name: notification-routes
+    service: notification-service
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+      - POST
+    paths:
+      - /api/v1/notifications
+      - /api/v1/emails
+      - /api/v1/sms
+    strip_path: false
+    tags:
+      - authenticated
+      - notifications
+
+  - name: health-check
+    service: user-service
+    protocols:
+      - http
+      - https
+    methods:
+      - GET
+    paths:
+      - /health
+      - /status
+    strip_path: false
+    tags:
+      - health-check
+      - monitoring
+
+# Global Plugins
+plugins:
+  # Rate limiting (global)
+  - name: rate-limiting
+    config:
+      minute: 100
+      hour: 10000
+      day: 100000
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+    tags:
+      - global
+      - rate-limiting
+
+  # CORS (global)
+  - name: cors
+    config:
+      origins:
+        - https://app.example.com
+        - https://dashboard.example.com
+        - https://admin.example.com
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - X-Requested-With
+        - X-API-Key
+      exposed_headers:
+        - X-Auth-Token
+        - X-Total-Count
+        - X-Rate-Limit-Limit
+        - X-Rate-Limit-Remaining
+        - X-Rate-Limit-Reset
+      credentials: true
+      max_age: 3600
+      preflight_continue: false
+    tags:
+      - global
+      - cors
+
+  # Request ID
+  - name: request-id
+    config:
+      generator: "uuid4#counter"
+      header_name: "X-Request-ID"
+    tags:
+      - global
+      - tracing
+
+  # Prometheus metrics
+  - name: prometheus
+    config:
+      per_consumer: true
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+    tags:
+      - global
+      - monitoring
+      - prometheus
+
+  # Zipkin tracing
+  - name: zipkin
+    config:
+      http_endpoint: "http://zipkin:9411/api/v2/spans"
+      sample_ratio: 0.1
+      local_service_name: "api-gateway"
+      include_body_content_length: true
+    tags:
+      - global
+      - tracing
+      - zipkin
+
+# Service-specific Plugins
+plugins:
+  # JWT Authentication for user service
+  - name: jwt
+    service: user-service
+    config:
+      key_claim_name: kid
+      secret_is_base64: false
+      claims_to_verify:
+        - exp
+        - nbf
+        - iat
+      uri_param_names:
+        - jwt
+        - token
+      cookie_names:
+        - jwt_token
+      run_on_preflight: false
+    tags:
+      - auth
+      - jwt
+
+  # OAuth2 for order service
+  - name: oauth2
+    service: order-service
+    config:
+      scopes:
+        - email
+        - profile
+        - orders
+        - cart
+      mandatory_scope: true
+      token_expiration: 7200
+      refresh_token_ttl: 604800
+      enable_authorization_code: true
+      enable_client_credentials: true
+      enable_implicit_grant: false
+      enable_password_grant: false
+      hide_credentials: false
+      accept_http_if_already_terminated: true
+      anonymous: ""
+      global_credentials: false
+    tags:
+      - auth
+      - oauth2
+
+  # Request transformer for user service
+  - name: request-transformer
+    service: user-service
+    config:
+      add:
+        headers:
+          - X-Gateway: kong
+          - X-Forwarded-Proto: https
+          - X-Request-Start: ${start_time}
+      remove:
+        headers:
+          - X-Internal-Secret
+          - X-Debug-Info
+      replace:
+        headers:
+          - User-Agent: Kong-Gateway/3.0
+    tags:
+      - transformation
+      - headers
+
+  # Response transformer for user service
+  - name: response-transformer
+    service: user-service
+    config:
+      add:
+        headers:
+          - X-Response-Time: ${latency}
+          - X-Cache-Status: ${cache_status}
+          - X-Upstream-Service: user-service
+      remove:
+        headers:
+          - X-Internal-Error
+          - X-Debug-Info
+    tags:
+      - transformation
+      - headers
+
+  # IP restriction for payment service
+  - name: ip-restriction
+    service: payment-service
+    config:
+      allow:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 203.0.113.0/24  # Office IP range
+      deny:
+        - 0.0.0.0/0
+    tags:
+      - security
+      - ip-restriction
+      - pci-compliant
+
+  # ACL (Access Control List) for payment service
+  - name: acl
+    service: payment-service
+    config:
+      allow:
+        - premium-users
+        - admin-users
+        - payment-processors
+      deny:
+        - blocked-users
+        - suspended-users
+      hide_groups_header: false
+    tags:
+      - security
+      - acl
+      - rbac
+
+  # Advanced rate limiting for payment service
+  - name: rate-limiting-advanced
+    service: payment-service
+    config:
+      limit:
+        - 50      # Tier 1: 50 req/min
+        - 1000    # Tier 2: 1000 req/hour
+        - 5000    # Tier 3: 5000 req/day
+      window_size:
+        - 60      # 1 minute
+        - 3600    # 1 hour
+        - 86400   # 1 day
+      window_type: sliding
+      identifier: consumer
+      namespace: payment-service-limits
+      strategy: cluster
+      sync_rate: 0.5
+      hide_client_headers: false
+      error_code: 429
+      error_message: "Payment rate limit exceeded. Please try again later."
+    tags:
+      - rate-limiting
+      - payment
+      - security
+
+  # Request size limiter for all services
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10  # 10MB
+      require_content_length: true
+    tags:
+      - security
+      - size-limiting
+
+  # Proxy caching for GET requests
+  - name: proxy-cache
+    service: user-service
+    config:
+      response_code:
+        - 200
+        - 201
+        - 301
+        - 302
+      request_method:
+        - GET
+        - HEAD
+      content_type:
+        - application/json
+        - text/html
+        - text/css
+        - application/javascript
+      cache_ttl: 300  # 5 minutes
+      strategy: memory
+    tags:
+      - caching
+      - performance
+
+# Consumers (API clients)
+consumers:
+  - username: mobile-app
+    custom_id: mobile-app-v1
+    tags:
+      - mobile
+      - high-volume
+    jwt_secrets:
+      - key: mobile-app-key
+        algorithm: HS256
+        secret: ${JWT_MOBILE_SECRET}
+    rate_limiting_quota:
+      - minute: 200
+        hour: 5000
+
+  - username: web-app
+    custom_id: web-app-v1
+    tags:
+      - web
+      - standard
+    keyauth_credentials:
+      - key: ${WEB_APP_API_KEY}
+    rate_limiting_quota:
+      - minute: 100
+        hour: 2000
+
+  - username: partner-api
+    custom_id: partner-123
+    tags:
+      - partner
+      - enterprise
+    oauth2_credentials:
+      - name: partner-oauth
+        client_id: ${PARTNER_CLIENT_ID}
+        client_secret: ${PARTNER_CLIENT_SECRET}
+        redirect_uris:
+          - https://partner.example.com/callback
+    rate_limiting_quota:
+      - minute: 500
+        hour: 10000
+
+  - username: internal-service
+    custom_id: internal-service-v1
+    tags:
+      - internal
+      - system
+    hmacauth_credentials:
+      - username: internal-service
+        secret: ${INTERNAL_HMAC_SECRET}
+    rate_limiting_quota:
+      - minute: 1000
+        hour: 50000
+
+# Upstreams (load balancing)
+upstreams:
+  - name: user-service-upstream
+    algorithm: round-robin
+    hash_on: none
+    hash_fallback: none
+    hash_on_cookie_path: /
+    hash_on_cookie: session_id
+    slots: 10000
+    healthchecks:
+      active:
+        https_verify_certificate: true
+        healthy:
+          interval: 10
+          successes: 2
+          http_statuses:
+            - 200
+            - 201
+            - 204
+        unhealthy:
+          interval: 10
+          tcp_failures: 3
+          timeouts: 3
+          http_failures: 3
+          http_statuses:
+            - 404
+            - 500
+            - 502
+            - 503
+            - 504
+      passive:
+        healthy:
+          http_statuses:
+            - 200
+            - 201
+            - 202
+            - 203
+            - 204
+            - 205
+            - 206
+            - 207
+            - 208
+            - 226
+            - 300
+            - 301
+            - 302
+            - 303
+            - 304
+            - 305
+            - 306
+            - 307
+            - 308
+          successes: 5
+        unhealthy:
+          http_statuses:
+            - 429
+            - 500
+            - 503
+            - 504
+          tcp_failures: 3
+          timeouts: 3
+          http_failures: 5
+    tags:
+      - production
+      - load-balancing
+
+  - name: order-service-upstream
+    algorithm: least-connections
+    hash_on: header
+    hash_fallback: cookie
+    hash_on_header: X-User-ID
+    slots: 10000
+    healthchecks:
+      active:
+        https_verify_certificate: true
+        healthy:
+          interval: 15
+          successes: 3
+        unhealthy:
+          interval: 15
+          tcp_failures: 5
+          timeouts: 5
+          http_failures: 5
+    tags:
+      - production
+      - load-balancing
+
+  - name: payment-service-upstream
+    algorithm: consistent-hashing
+    hash_on: header
+    hash_on_header: X-Payment-ID
+    slots: 10000
+    healthchecks:
+      active:
+        https_verify_certificate: true
+        healthy:
+          interval: 5
+          successes: 3
+        unhealthy:
+          interval: 5
+          tcp_failures: 2
+          timeouts: 2
+          http_failures: 2
+    tags:
+      - production
+      - pci-compliant
+      - load-balancing
+
+# Targets (upstream servers)
+targets:
+  # User service targets
+  - target: user-api-1:3000
+    weight: 100
+    upstream: user-service-upstream
+    tags:
+      - primary
+      - zone-a
+
+  - target: user-api-2:3000
+    weight: 100
+    upstream: user-service-upstream
+    tags:
+      - primary
+      - zone-b
+
+  - target: user-api-3:3000
+    weight: 50
+    upstream: user-service-upstream
+    tags:
+      - backup
+      - zone-c
+
+  # Order service targets
+  - target: order-api-1:4000
+    weight: 100
+    upstream: order-service-upstream
+    tags:
+      - primary
+
+  - target: order-api-2:4000
+    weight: 100
+    upstream: order-service-upstream
+    tags:
+      - primary
+
+  # Payment service targets
+  - target: payment-api-1:5000
+    weight: 100
+    upstream: payment-service-upstream
+    tags:
+      - primary
+      - pci-compliant
+
+  - target: payment-api-2:5000
+    weight: 100
+    upstream: payment-service-upstream
+    tags:
+      - primary
+      - pci-compliant
+
+# Certificates
+certificates:
+  - cert: ${API_GATEWAY_CERT}
+    key: ${API_GATEWAY_KEY}
+    tags:
+      - production
+      - ssl
+    snis:
+      - api.example.com
+      - gateway.example.com
+      - payments.example.com
+
+  - cert: ${WILDCARD_CERT}
+    key: ${WILDCARD_KEY}
+    tags:
+      - production
+      - wildcard
+      - ssl
+    snis:
+      - "*.example.com"
+      - "*.api.example.com"
+
+# Plugin configurations for custom plugins
+plugins:
+  - name: custom-auth-plugin
+    service: user-service
+    config:
+      auth_service_url: "http://auth-service:8000/validate"
+      timeout: 5000
+      cache_ttl: 300
+    tags:
+      - custom
+      - auth
+
+  - name: custom-audit-plugin
+    config:
+      audit_service_url: "http://audit-service:9000/events"
+      batch_size: 100
+      flush_interval: 30
+    tags:
+      - custom
+      - audit
+      - logging

@@ -107,7 +107,7 @@ cat > "$CONTEXT_FILE" << CONTEXT_EOF
   "gate_threshold": ${GATE_THRESHOLD:-0.75},
   "consensus_threshold": ${CONSENSUS_THRESHOLD:-0.90},
   "memory_limit": "${MEMORY_LIMIT:-1g}",
-  "network": "${NETWORK:-cfn-network}",
+  "network": "${CFN_NETWORK_NAME:-${NETWORK:-mcp-network}}",
   "redis_host": "${CFN_REDIS_HOST:-cfn-redis}",
   "redis_port": ${CFN_REDIS_PORT:-6379},
   "created_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -149,7 +149,7 @@ fi
     --gate-threshold "${GATE_THRESHOLD:-0.75}" \
     --consensus-threshold "${CONSENSUS_THRESHOLD:-0.90}" \
     --memory-limit "${MEMORY_LIMIT:-1g}" \
-    --network "${NETWORK:-cfn-network}" \
+    --network "${CFN_NETWORK_NAME:-${NETWORK:-mcp-network}}" \
     --context-file "$CONTEXT_FILE" \
     --verbose
 

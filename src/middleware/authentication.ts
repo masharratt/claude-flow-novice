@@ -201,11 +201,25 @@ export class PasswordUtils {
    */
   static async hashPassword(password: string, rounds: number = 12): Promise<string> {
     try {
-      const salt = await bcrypt.genSalt(rounds);
-      return await bcrypt.hash(password, salt);
+      return await bcrypt.hash(password, rounds);
     } catch (error) {
       logger.error('Password hashing error:', error);
       throw new StandardError('Failed to hash password', ErrorCode.INTERNAL_ERROR);
+    }
+  }
+
+  /**
+   * Generate salt for password hashing
+   * 
+   * @param rounds Number of bcrypt rounds (default 12)
+   * @returns Salt string
+   */
+  static async generateSalt(rounds: number = 12): Promise<string> {
+    try {
+      return await bcrypt.genSalt(rounds);
+    } catch (error) {
+      logger.error('Salt generation error:', error);
+      throw new StandardError('Failed to generate salt', ErrorCode.INTERNAL_ERROR);
     }
   }
 

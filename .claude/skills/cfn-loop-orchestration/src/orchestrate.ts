@@ -630,28 +630,43 @@ export class Orchestrator {
       }
 
       try {
-        // Wait for agent completion signal via Redis coordination
-        const coordinationScript = path.join(
-          projectRoot,
-          '.claude/skills/cfn-coordination/coordination-wait.sh'
+        // Agents push completion to legacy done list: swarm:{taskId}:{agentId}:done
+        const redisHost = process.env.CFN_REDIS_HOST || process.env.REDIS_HOST || 'localhost';
+        const redisPort = process.env.CFN_REDIS_PORT || process.env.REDIS_PORT || '6379';
+        const doneListKey = `swarm:${this.config.taskId}:${result.agentId}:done`;
+
+        const escapedHost = escapeShellArg(redisHost);
+        const escapedPort = escapeShellArg(redisPort);
+        const escapedDoneKey = escapeShellArg(doneListKey);
+
+        // Use short blocking chunks to stay under tool time limits
+        const chunkTimeout = Math.min(Math.max(remainingTimeout, 5), 60); // 5-60s
+
+        console.log(
+          `Waiting for agent ${result.agentId} via Redis BLPOP ${doneListKey} (chunk: ${chunkTimeout}s, remaining: ${remainingTimeout}s)...`
         );
 
-        const channel = `agent:${result.agentId}:complete`;
+        // First a quick length check to avoid blocking if already complete
+        try {
+          const len = parseInt(
+            execSync(`redis-cli -h ${escapedHost} -p ${escapedPort} LLEN ${escapedDoneKey}`, { encoding: 'utf8' }).trim(),
+            10
+          );
+          if (!Number.isNaN(len) && len > 0) {
+            execSync(`redis-cli -h ${escapedHost} -p ${escapedPort} LPOP ${escapedDoneKey}`, { stdio: 'ignore' });
+            console.log(`✓ Agent ${result.agentId} completed (pre-existing done signal)`);
+            completedAgents.push(result.agentId);
+            this.markAgentComplete(result.agentId, 'loop3');
+            continue;
+          }
+        } catch {
+          // ignore LLEN errors and continue to BLPOP
+        }
 
-        // Properly escape all user-controlled inputs to prevent shell injection
-        const escapedTaskId = escapeShellArg(this.config.taskId);
-        const escapedChannel = escapeShellArg(channel);
-        const escapedTimeout = escapeShellArg(String(remainingTimeout));
-
-        const cmd = `bash ${coordinationScript} --task-id ${escapedTaskId} --channel ${escapedChannel} --timeout ${escapedTimeout}`;
-
-        console.log(`Waiting for agent ${result.agentId} (timeout: ${remainingTimeout}s)...`);
-
-        // Execute coordination wait (blocking)
-        execSync(cmd, {
-          encoding: 'utf8',
-          stdio: 'inherit',
-          timeout: remainingTimeout * 1000,
+        // Blocking wait chunk
+        execSync(`redis-cli -h ${escapedHost} -p ${escapedPort} BLPOP ${escapedDoneKey} ${chunkTimeout}`, {
+          stdio: 'ignore',
+          timeout: chunkTimeout * 1000,
           cwd: projectRoot,
         });
 
@@ -988,7 +1003,7 @@ export class Orchestrator {
       this.incrementIteration();
 
       console.log(`\n${'='.repeat(60)}`);
-      console.log(`Iteration ${iteration}/${maxIterations}`);
+      console.log(`=== ITERATION ${iteration}/${maxIterations} ===`);
       console.log(`${'='.repeat(60)}`);
 
       // ===== LOOP 3: IMPLEMENTERS =====

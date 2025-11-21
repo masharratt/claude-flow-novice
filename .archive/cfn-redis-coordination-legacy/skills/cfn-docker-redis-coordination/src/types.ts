@@ -77,7 +77,7 @@ export interface ConsensusResult {
   responses_received: number;
   average_confidence: number;
   consensus_reached: boolean;
-  decision: 'PROCEED' | 'COMPLETE' | 'ABORT';
+  decision: 'PROCEED' | 'ITERATE' | 'COMPLETE' | 'ABORT';
   collected_at: string; // ISO 8601 timestamp
 }
 
@@ -164,7 +164,7 @@ export interface CollectConsensusResult {
   responsesReceived: number;
   averageConfidence: number;
   consensusReached: boolean;
-  decision: 'PROCEED' | 'COMPLETE' | 'ABORT';
+  decision: 'PROCEED' | 'ITERATE' | 'COMPLETE' | 'ABORT';
   executionTime: number; // milliseconds
   message: string;
 }
