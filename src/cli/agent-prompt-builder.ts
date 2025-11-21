@@ -86,6 +86,20 @@ The orchestrator will:
 }
 
 /**
+ * Parse shell variable format into JSON object
+ * Example: "WORKSPACE='/tmp/test' MODE='standard'" -> {WORKSPACE: '/tmp/test', MODE: 'standard'}
+ */
+function parseShellVariables(shellContext: string): any {
+  const jsonObj: any = {};
+  const regex = /([A-Z_]+)='([^']*)'/g;
+  let match;
+  while ((match = regex.exec(shellContext)) !== null) {
+    jsonObj[match[1]] = match[2];
+  }
+  return jsonObj;
+}
+
+/**
  * Parse and enrich JSON context into natural language instructions
  */
 function enrichJSONContext(jsonObj: any): string {
@@ -126,9 +140,9 @@ function enrichJSONContext(jsonObj: any): string {
     sections.push(`\n**Batch:** ${jsonObj.batch}`);
   }
 
-  // Add directory context
-  if (jsonObj.directory) {
-    sections.push(`\n**Working Directory:** ${jsonObj.directory}`);
+  // Add directory context - support both 'directory' and 'WORKSPACE' keys
+  if (jsonObj.directory || jsonObj.WORKSPACE) {
+    sections.push(`\n**Working Directory:** ${jsonObj.directory || jsonObj.WORKSPACE}`);
   }
 
   // Add acceptance criteria
@@ -157,11 +171,21 @@ function buildTaskDescription(agentType: string, context: TaskContext): string {
   let desc = '';
 
   if (context.context) {
-    // Try to parse as JSON first
+    // Try to parse context in multiple formats
     let contextStr = context.context.trim();
 
+    // Parse shell variables BEFORE attempting JSON parse
+    if (contextStr.includes('=') && !contextStr.startsWith('{')) {
+      const jsonObj = parseShellVariables(contextStr);
+      desc = enrichJSONContext(jsonObj);
+
+      // Add instruction footer for structured tasks
+      if (jsonObj.files || jsonObj.deliverables) {
+        desc += '\n\n**Process each item systematically and report confidence when complete.**';
+      }
+    }
     // Check if context looks like JSON
-    if ((contextStr.startsWith('{') && contextStr.endsWith('}')) ||
+    else if ((contextStr.startsWith('{') && contextStr.endsWith('}')) ||
         (contextStr.startsWith('[') && contextStr.endsWith(']'))) {
       try {
         const jsonObj = JSON.parse(contextStr);

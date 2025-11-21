@@ -161,6 +161,129 @@ describe('Agent Prompt Builder - Core Functionality', () => {
     });
   });
 
+  describe('Context Enrichment - Shell Variable Parsing', () => {
+    test('should parse shell variable format with WORKSPACE', async () => {
+      const shellContext: TaskContext = {
+        taskId: 'shell-task',
+        iteration: 1,
+        context: "WORKSPACE='/tmp/cfn-cli-real-test-123' MODE='standard' MAX_ITERATIONS='5'",
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, shellContext);
+
+      expect(prompt).toContain('**Working Directory:** /tmp/cfn-cli-real-test-123');
+      expect(prompt).toContain('**Task ID:** shell-task');
+      expect(prompt).toContain('**Iteration:** 1');
+    });
+
+    test('should handle shell variable format with single quotes', async () => {
+      const shellContext: TaskContext = {
+        taskId: 'shell-quotes',
+        iteration: 1,
+        context: "WORKSPACE='/tmp/test' MODE='standard'",
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, shellContext);
+
+      expect(prompt).toContain('**Working Directory:** /tmp/test');
+    });
+
+    test('should parse multiple shell variables correctly', async () => {
+      const shellContext: TaskContext = {
+        taskId: 'multi-var',
+        iteration: 1,
+        context: "WORKSPACE='/tmp/workspace' MODE='enterprise' MAX_ITERATIONS='15' TASK_TYPE='feature'",
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, shellContext);
+
+      expect(prompt).toContain('**Working Directory:** /tmp/workspace');
+    });
+
+    test('should handle empty shell variable values', async () => {
+      const shellContext: TaskContext = {
+        taskId: 'empty-var',
+        iteration: 1,
+        context: "WORKSPACE='' MODE='standard'",
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, shellContext);
+
+      // Empty WORKSPACE should not create a Working Directory section
+      expect(prompt).not.toContain('**Working Directory:**');
+    });
+
+    test('should prioritize shell variable parsing over JSON when equals sign present', async () => {
+      const shellContext: TaskContext = {
+        taskId: 'format-priority',
+        iteration: 1,
+        context: "WORKSPACE='/tmp/test' MODE='standard'",
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, shellContext);
+
+      // Should parse as shell variables, not fail as invalid JSON
+      expect(prompt).toContain('**Working Directory:** /tmp/test');
+    });
+
+    test('should handle shell variables with special characters in paths', async () => {
+      const shellContext: TaskContext = {
+        taskId: 'special-chars',
+        iteration: 1,
+        context: "WORKSPACE='/tmp/cfn-test-123/my-workspace' MODE='standard'",
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, shellContext);
+
+      expect(prompt).toContain('**Working Directory:** /tmp/cfn-test-123/my-workspace');
+    });
+
+    test('should be backward compatible with existing JSON format', async () => {
+      const jsonContext: TaskContext = {
+        taskId: 'backward-compat',
+        iteration: 1,
+        context: JSON.stringify({
+          directory: '/existing/directory',
+        }),
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, jsonContext);
+
+      // Should still work with existing 'directory' key
+      expect(prompt).toContain('**Working Directory:** /existing/directory');
+    });
+
+    test('should support both WORKSPACE and directory in JSON', async () => {
+      const workspaceContext: TaskContext = {
+        taskId: 'workspace-key',
+        iteration: 1,
+        context: JSON.stringify({
+          WORKSPACE: '/tmp/workspace',
+        }),
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, workspaceContext);
+
+      expect(prompt).toContain('**Working Directory:** /tmp/workspace');
+    });
+
+    test('should prefer directory over WORKSPACE when both present in JSON', async () => {
+      const bothContext: TaskContext = {
+        taskId: 'both-keys',
+        iteration: 1,
+        context: JSON.stringify({
+          directory: '/preferred/directory',
+          WORKSPACE: '/fallback/workspace',
+        }),
+      };
+
+      const prompt = await buildAgentPrompt(mockAgentDefinition, bothContext);
+
+      // Should prefer 'directory' key (first in OR condition)
+      expect(prompt).toContain('**Working Directory:** /preferred/directory');
+    });
+  });
+
   describe('Context Enrichment - JSON Parsing', () => {
     test('should parse and enrich JSON context with files', async () => {
       const jsonContext: TaskContext = {
