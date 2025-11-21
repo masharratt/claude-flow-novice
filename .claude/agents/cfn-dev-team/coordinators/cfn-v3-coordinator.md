@@ -183,42 +183,31 @@ echo "🚀 INVOKING ORCHESTRATOR"
 echo "   Orchestrator handles complete CFN Loop execution"
 echo ""
 
-if [[ "$USE_TYPESCRIPT" == "true" && -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js" ]]; then
-  # TypeScript implementation - Direct orchestrator
-  echo "   Using TypeScript orchestrator..."
+ORCHESTRATOR_CLI="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js"
 
-  node "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js" \
-    --task-id "$TASK_ID" \
-    --mode "$MODE" \
-    --loop3-agents "$LOOP3_AGENTS" \
-    --loop2-agents "$LOOP2_AGENTS" \
-    --product-owner "$PRODUCT_OWNER" \
-    --max-iterations "$MAX_ITERATIONS" \
-    --success-criteria "enabled" 2>&1
-
-  EXIT_CODE=$?
-else
-  # Bash fallback - Use wrapper
-  echo "   Using bash orchestrator wrapper..."
-
-  ORCHESTRATOR="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh"
-
-  if [[ ! -f "$ORCHESTRATOR" ]]; then
-    echo "❌ FATAL: Orchestrator not found at $ORCHESTRATOR"
-    exit 1
-  fi
-
-  bash "$ORCHESTRATOR" \
-    --task-id "$TASK_ID" \
-    --mode "$MODE" \
-    --loop3-agents "$LOOP3_AGENTS" \
-    --loop2-agents "$LOOP2_AGENTS" \
-    --product-owner "$PRODUCT_OWNER" \
-    --max-iterations "$MAX_ITERATIONS" \
-    --success-criteria "enabled" 2>&1
-
-  EXIT_CODE=$?
+if [[ ! -f "$ORCHESTRATOR_CLI" ]]; then
+  echo "❌ ERROR: TypeScript orchestrator not built"
+  echo ""
+  echo "Build required before running CFN Loop:"
+  echo "  cd .claude/skills/cfn-loop-orchestration"
+  echo "  npm install"
+  echo "  npm run build"
+  echo ""
+  exit 1
 fi
+
+echo "   Using TypeScript orchestrator (v3.1.0 - no bash fallback)..."
+
+node "$ORCHESTRATOR_CLI" \
+  --task-id "$TASK_ID" \
+  --mode "$MODE" \
+  --loop3-agents "$LOOP3_AGENTS" \
+  --loop2-agents "$LOOP2_AGENTS" \
+  --product-owner "$PRODUCT_OWNER" \
+  --max-iterations "$MAX_ITERATIONS" \
+  --success-criteria "enabled" 2>&1
+
+EXIT_CODE=$?
 
 if [[ $EXIT_CODE -eq 0 ]]; then
   echo ""
@@ -256,15 +245,15 @@ fi
    - Automatic fallback to bash if TypeScript unavailable
    - Automatic fallback to defaults if classification fails
 
-4. **Invoke Orchestrator (TypeScript)** → `cfn-loop-orchestration/dist/cli/orchestrator-cli.js`
-   - Direct TypeScript orchestrator execution (preferred)
-   - Validates parameters and applies fallbacks
-   - Fallback to `orchestrate-wrapper.sh` (bash → TypeScript wrapper)
+4. **Invoke Orchestrator (TypeScript-Only)** → `cfn-loop-orchestration/dist/cli/orchestrator-cli.js`
+   - TypeScript orchestrator execution (REQUIRED - no bash fallback as of v3.1.0)
+   - Build requirement enforced: `npm run build` must complete before execution
+   - Clear error message if dist/ missing
    - Manages complete CFN Loop workflow:
      - Loop 3 spawning and execution
      - Test execution and gate checks
      - Loop 2 spawning and consensus
-     - Product Owner decision parsing
+     - Product Owner decision parsing (TypeScript module)
      - Iteration management
 
 ---
@@ -322,16 +311,16 @@ fi
 
 ---
 
-### 3. Orchestration (TypeScript)
+### 3. Orchestration (TypeScript-Only)
 **Location:** `.claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js`
 **Compiled From:** `src/orchestrate.ts`
 
-**Fallback:** `orchestrate-wrapper.sh` → `orchestrate.sh` (bash wrapper → TypeScript)
+**NO FALLBACK** - TypeScript-only as of v3.1.0 (bash scripts archived)
 
-**Execution Flow:**
-1. TypeScript orchestrator (preferred) - Direct Node.js execution
-2. Bash wrapper → TypeScript (fallback if direct not available)
-3. Pure bash (if TypeScript build missing)
+**Execution Requirements:**
+1. TypeScript build MUST complete: `npm run build`
+2. dist/ directory MUST exist with compiled .js files
+3. Clear error message if build missing (no silent fallback)
 
 **Responsibilities:**
 - Loop 3 agent spawning via CLI
@@ -339,14 +328,16 @@ fi
 - Gate checks (test-driven validation)
 - Loop 2 validator spawning
 - Consensus collection and averaging
-- Product Owner decision parsing
+- Product Owner decision parsing (TypeScript module: product-owner-decision.ts)
 - Iteration management with feedback injection
+- Coordination via TypeScript: coordination-wait.ts, coordination-signal.ts
 
 **Performance:**
-- 52% code reduction vs bash
-- Type-safe agent spawning
-- Enhanced error handling
-- Better test validation
+- 52% code reduction vs deprecated bash implementation
+- Type-safe agent spawning with compile-time checks
+- Enhanced error handling with structured error types
+- Better test validation with TypeScript test parsers
+- No shell injection vulnerabilities
 
 **Exit Codes:**
 - 0 = Success (PROCEED decision)
