@@ -1,8 +1,8 @@
 # MDAP Integration Implementation Plan
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Status:** Planning
-**Dependencies:** Trigger.dev, CFN Loop v3, Playbook System
+**Dependencies:** Trigger.dev, CFN Loop v3, Playbook System, Rust Engine (future)
 
 ---
 
@@ -1357,7 +1357,489 @@ export async function updatePlaybookWithMdapLearnings(
 
 ---
 
-## 11. Implementation Phases
+## 11. Rust Engine Refactor
+
+### Rationale
+
+Replace Trigger.dev's Node.js execution layer with a custom Rust engine while keeping TypeScript/YAML for task definitions. Benefits:
+- 10-100x lower latency on task dispatch
+- 5-10x lower memory per worker
+- Predictable performance (no GC pauses)
+- Higher task density per server
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Task Definitions (YAML/TS)               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
+│  │ coding.yaml │  │  seo.yaml   │  │ content.yaml│          │
+│  └─────────────┘  └─────────────┘  └─────────────┘          │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ Config loader
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Rust Execution Engine                       │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                    Scheduler                          │   │
+│  │  • DAG resolution       • Priority queues            │   │
+│  │  • Dependency tracking  • Batch formation            │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                  Executor Pool                        │   │
+│  │  • Async task runners   • Tier escalation FSM        │   │
+│  │  • Timeout management   • Circuit breakers           │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                  Metrics Collector                    │   │
+│  │  • Zero-copy metrics    • Ring buffers               │   │
+│  │  • Async DB writes      • Prometheus export          │   │
+│  └──────────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                  State Manager                        │   │
+│  │  • Redis coordination   • Checkpointing              │   │
+│  │  • Recovery/replay      • Distributed locks          │   │
+│  └──────────────────────────────────────────────────────┘   │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ gRPC/HTTP
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    External Services                        │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐        │
+│  │ LLM APIs│  │ Redis   │  │Postgres │  │ Workers │        │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Rust Crate Structure
+
+```
+cfn-engine/
+├── Cargo.toml
+├── crates/
+│   ├── cfn-core/              # Core types, traits
+│   │   ├── src/
+│   │   │   ├── task.rs        # Task definition structs
+│   │   │   ├── tier.rs        # Model tier enum
+│   │   │   ├── profile.rs     # TaskProfile (realtime, budget, etc)
+│   │   │   ├── metrics.rs     # Metrics types
+│   │   │   └── error.rs       # Error types
+│   │   └── Cargo.toml
+│   │
+│   ├── cfn-scheduler/         # DAG scheduler
+│   │   ├── src/
+│   │   │   ├── dag.rs         # Dependency graph
+│   │   │   ├── queue.rs       # Priority queue impl
+│   │   │   ├── batch.rs       # Batch formation
+│   │   │   └── scheduler.rs   # Main scheduler loop
+│   │   └── Cargo.toml
+│   │
+│   ├── cfn-executor/          # Task execution
+│   │   ├── src/
+│   │   │   ├── pool.rs        # Worker pool
+│   │   │   ├── runner.rs      # Single task runner
+│   │   │   ├── escalation.rs  # Tier escalation FSM
+│   │   │   ├── timeout.rs     # Timeout handling
+│   │   │   └── circuit.rs     # Circuit breaker
+│   │   └── Cargo.toml
+│   │
+│   ├── cfn-metrics/           # Metrics collection
+│   │   ├── src/
+│   │   │   ├── collector.rs   # Metrics aggregation
+│   │   │   ├── buffer.rs      # Ring buffer impl
+│   │   │   ├── export.rs      # Prometheus/DB export
+│   │   │   └── eval.rs        # Eval scoring
+│   │   └── Cargo.toml
+│   │
+│   ├── cfn-state/             # State management
+│   │   ├── src/
+│   │   │   ├── redis.rs       # Redis coordination
+│   │   │   ├── checkpoint.rs  # Checkpointing
+│   │   │   ├── recovery.rs    # Crash recovery
+│   │   │   └── lock.rs        # Distributed locks
+│   │   └── Cargo.toml
+│   │
+│   ├── cfn-config/            # Config loading
+│   │   ├── src/
+│   │   │   ├── yaml.rs        # YAML task parser
+│   │   │   ├── validate.rs    # Config validation
+│   │   │   └── hot_reload.rs  # Runtime config reload
+│   │   └── Cargo.toml
+│   │
+│   └── cfn-api/               # External API
+│       ├── src/
+│       │   ├── grpc.rs        # gRPC server
+│       │   ├── http.rs        # REST endpoints
+│       │   └── websocket.rs   # Real-time updates
+│       └── Cargo.toml
+│
+└── src/
+    └── main.rs                # Binary entrypoint
+```
+
+### Core Types
+
+```rust
+// cfn-core/src/tier.rs
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ModelTier {
+    T1Haiku = 1,
+    T2Mini = 2,
+    T3Gpt4 = 3,
+    T4Sonnet = 4,
+    T5Opus = 5,
+}
+
+impl ModelTier {
+    pub fn cost_per_million(&self) -> f64 {
+        match self {
+            Self::T1Haiku => 0.25,
+            Self::T2Mini => 0.40,
+            Self::T3Gpt4 => 2.00,
+            Self::T4Sonnet => 3.00,
+            Self::T5Opus => 15.00,
+        }
+    }
+
+    pub fn next(&self) -> Option<Self> {
+        match self {
+            Self::T1Haiku => Some(Self::T2Mini),
+            Self::T2Mini => Some(Self::T3Gpt4),
+            Self::T3Gpt4 => Some(Self::T4Sonnet),
+            Self::T4Sonnet => Some(Self::T5Opus),
+            Self::T5Opus => None,
+        }
+    }
+}
+
+// cfn-core/src/profile.rs
+#[derive(Debug, Clone)]
+pub struct TaskProfile {
+    pub name: String,
+    pub speed_weight: f32,
+    pub cost_weight: f32,
+    pub max_latency_ms: u64,
+    pub max_cost_usd: f64,
+    pub parallelism: usize,
+    pub start_tier: ModelTier,
+}
+
+pub static PROFILES: Lazy<HashMap<&str, TaskProfile>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    m.insert("realtime", TaskProfile {
+        name: "realtime".into(),
+        speed_weight: 0.9,
+        cost_weight: 0.1,
+        max_latency_ms: 5_000,
+        max_cost_usd: 1.00,
+        parallelism: 10,
+        start_tier: ModelTier::T3Gpt4,
+    });
+    m.insert("budget", TaskProfile {
+        name: "budget".into(),
+        speed_weight: 0.1,
+        cost_weight: 0.9,
+        max_latency_ms: 120_000,
+        max_cost_usd: 0.05,
+        parallelism: 2,
+        start_tier: ModelTier::T1Haiku,
+    });
+    m
+});
+```
+
+### Escalation State Machine
+
+```rust
+// cfn-executor/src/escalation.rs
+pub struct EscalationFSM {
+    current_tier: ModelTier,
+    attempts_at_tier: u8,
+    max_attempts_per_tier: u8,
+    total_cost: f64,
+    total_latency_ms: u64,
+    budget: &TaskProfile,
+}
+
+impl EscalationFSM {
+    pub fn new(profile: &TaskProfile) -> Self {
+        Self {
+            current_tier: profile.start_tier,
+            attempts_at_tier: 0,
+            max_attempts_per_tier: 2,
+            total_cost: 0.0,
+            total_latency_ms: 0,
+            budget: profile,
+        }
+    }
+
+    pub fn record_attempt(&mut self, cost: f64, latency_ms: u64) {
+        self.total_cost += cost;
+        self.total_latency_ms += latency_ms;
+        self.attempts_at_tier += 1;
+    }
+
+    pub fn next_action(&mut self) -> EscalationAction {
+        // Budget exceeded
+        if self.total_cost >= self.budget.max_cost_usd {
+            return EscalationAction::Abort(AbortReason::BudgetExceeded);
+        }
+
+        // Latency exceeded
+        if self.total_latency_ms >= self.budget.max_latency_ms {
+            return EscalationAction::Abort(AbortReason::LatencyExceeded);
+        }
+
+        // Retry at current tier
+        if self.attempts_at_tier < self.max_attempts_per_tier {
+            return EscalationAction::Retry(self.current_tier);
+        }
+
+        // Escalate to next tier
+        match self.current_tier.next() {
+            Some(next) => {
+                self.current_tier = next;
+                self.attempts_at_tier = 0;
+                EscalationAction::Escalate(next)
+            }
+            None => EscalationAction::Abort(AbortReason::AllTiersExhausted),
+        }
+    }
+}
+
+pub enum EscalationAction {
+    Retry(ModelTier),
+    Escalate(ModelTier),
+    Abort(AbortReason),
+}
+
+pub enum AbortReason {
+    BudgetExceeded,
+    LatencyExceeded,
+    AllTiersExhausted,
+}
+```
+
+### Scheduler (Lock-Free Queue)
+
+```rust
+// cfn-scheduler/src/queue.rs
+use crossbeam::queue::SegQueue;
+
+pub struct TaskQueue {
+    high_priority: SegQueue<MicroTask>,   // realtime profile
+    normal: SegQueue<MicroTask>,          // balanced
+    low_priority: SegQueue<MicroTask>,    // budget
+}
+
+impl TaskQueue {
+    pub fn enqueue(&self, task: MicroTask) {
+        match task.profile.name.as_str() {
+            "realtime" | "critical" => self.high_priority.push(task),
+            "budget" => self.low_priority.push(task),
+            _ => self.normal.push(task),
+        }
+    }
+
+    pub fn dequeue(&self) -> Option<MicroTask> {
+        self.high_priority.pop()
+            .or_else(|| self.normal.pop())
+            .or_else(|| self.low_priority.pop())
+    }
+}
+```
+
+### Resource Footprint Comparison
+
+| Metric | Node.js (Trigger.dev) | Rust Engine |
+|--------|----------------------|-------------|
+| Memory per worker | 100-500 MB | 10-50 MB |
+| Startup time | 2-5s | <100ms |
+| Task dispatch latency | 5-20ms | <1ms |
+| Tasks/sec (single core) | 1-5k | 50-100k |
+| GC pauses | 10-100ms | 0 |
+| Binary size | N/A (runtime) | ~15 MB |
+
+### Footprint at Scale
+
+**10,000 concurrent micro-tasks:**
+
+| Resource | Node.js | Rust |
+|----------|---------|------|
+| Workers needed | 50-100 | 5-10 |
+| Memory total | 5-50 GB | 500 MB - 1 GB |
+| Servers (8 core) | 6-12 | 1-2 |
+| Monthly cost (AWS) | $500-1000 | $50-100 |
+
+### Dependencies (Cargo.toml)
+
+```toml
+[workspace]
+members = ["crates/*"]
+
+[workspace.dependencies]
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+redis = { version = "0.24", features = ["tokio-comp"] }
+sqlx = { version = "0.7", features = ["postgres", "runtime-tokio"] }
+tonic = "0.10"                    # gRPC
+axum = "0.7"                      # HTTP
+crossbeam = "0.8"                 # Lock-free structures
+dashmap = "5.5"                   # Concurrent HashMap
+metrics = "0.22"                  # Metrics facade
+metrics-exporter-prometheus = "0.13"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+thiserror = "1.0"
+anyhow = "1.0"
+once_cell = "1.19"
+```
+
+### Rust Engine Implementation Phases
+
+**Phase R1: Core Types & Config (1 week)**
+- [ ] cfn-core crate (types, traits)
+- [ ] cfn-config crate (YAML loader)
+- [ ] Unit tests for tier/profile logic
+
+**Phase R2: Scheduler (1 week)**
+- [ ] DAG resolution
+- [ ] Priority queues
+- [ ] Batch formation
+- [ ] Scheduler loop
+
+**Phase R3: Executor (2 weeks)**
+- [ ] Worker pool with tokio
+- [ ] Escalation FSM
+- [ ] Timeout handling
+- [ ] Circuit breaker
+- [ ] LLM API clients (reqwest)
+
+**Phase R4: State & Metrics (1 week)**
+- [ ] Redis coordination
+- [ ] Checkpointing
+- [ ] Metrics collector
+- [ ] Prometheus export
+
+**Phase R5: API Layer (1 week)**
+- [ ] gRPC service definitions
+- [ ] REST endpoints
+- [ ] WebSocket streaming
+
+**Phase R6: Integration (1 week)**
+- [ ] CFN Loop integration
+- [ ] Playbook queries
+- [ ] Docker containerization
+- [ ] Load testing
+
+**Total Rust Engine: 7-8 weeks**
+
+### Task Definition Format (YAML)
+
+```yaml
+# tasks/coding.yaml
+id: coding-task
+type: coding
+profile: balanced
+
+validators:
+  - name: lint
+    command: "npm run lint -- {file}"
+    timeout_ms: 10000
+  - name: typecheck
+    command: "npm run typecheck"
+    timeout_ms: 30000
+  - name: unit-tests
+    command: "npm test -- --testPathPattern={file}"
+    timeout_ms: 60000
+
+red_flags:
+  - name: oversized-diff
+    condition: "diff_lines > 100"
+  - name: syntax-error
+    condition: "parse_error == true"
+  - name: unrelated-files
+    condition: "touched_files - allowed_files > 0"
+
+escalation:
+  max_attempts_per_tier: 2
+  triggers: [test_fail, red_flag, timeout]
+
+context:
+  max_tokens: 8000
+  include_patterns: ["*.ts", "*.tsx"]
+  exclude_patterns: ["*.test.ts", "node_modules/**"]
+```
+
+```yaml
+# tasks/seo.yaml
+id: seo-content
+type: content
+profile: budget
+
+validators:
+  - name: grammar
+    command: "languagetool --json {file}"
+    timeout_ms: 5000
+  - name: keyword-density
+    command: "./scripts/check-keyword-density.sh {file} {keyword}"
+    timeout_ms: 2000
+  - name: readability
+    command: "./scripts/flesch-kincaid.sh {file}"
+    timeout_ms: 2000
+
+red_flags:
+  - name: duplicate-content
+    condition: "plagiarism_score > 0.3"
+  - name: keyword-stuffing
+    condition: "keyword_density > 0.03"
+
+escalation:
+  max_attempts_per_tier: 3
+  triggers: [validator_fail, red_flag]
+```
+
+### API Interface (gRPC)
+
+```protobuf
+// proto/cfn_engine.proto
+syntax = "proto3";
+package cfn;
+
+service CfnEngine {
+  rpc SubmitTask(SubmitTaskRequest) returns (SubmitTaskResponse);
+  rpc GetTaskStatus(TaskStatusRequest) returns (TaskStatusResponse);
+  rpc StreamProgress(TaskStatusRequest) returns (stream ProgressUpdate);
+  rpc CancelTask(CancelTaskRequest) returns (CancelTaskResponse);
+}
+
+message SubmitTaskRequest {
+  string task_type = 1;
+  string description = 2;
+  string profile = 3;
+  map<string, string> context = 4;
+}
+
+message SubmitTaskResponse {
+  string task_id = 1;
+  int32 estimated_micro_tasks = 2;
+}
+
+message ProgressUpdate {
+  string task_id = 1;
+  int32 completed = 2;
+  int32 total = 3;
+  int32 current_tier = 4;
+  double cost_so_far = 5;
+  int64 latency_so_far_ms = 6;
+}
+```
+
+---
+
+## 12. Implementation Phases
 
 ### Phase 1: Foundation (Week 1-2)
 - [x] Trigger.dev infrastructure (from migration plan)
@@ -1391,7 +1873,7 @@ export async function updatePlaybookWithMdapLearnings(
 
 ---
 
-## 12. Success Criteria
+## 13. Success Criteria
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
@@ -1404,7 +1886,7 @@ export async function updatePlaybookWithMdapLearnings(
 
 ---
 
-## 13. Open Questions (Addressed)
+## 14. Open Questions (Addressed)
 
 | Question | Resolution |
 |----------|------------|
@@ -1419,7 +1901,7 @@ export async function updatePlaybookWithMdapLearnings(
 
 ---
 
-## 14. References
+## 15. References
 
 - [MDAP Paper](https://arxiv.org/pdf/2511.09030) - Solving a Million-Step LLM Task with Zero Errors
 - [Trigger.dev Docs](https://trigger.dev/docs)
