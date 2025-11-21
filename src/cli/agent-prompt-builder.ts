@@ -140,9 +140,10 @@ function enrichJSONContext(jsonObj: any): string {
     sections.push(`\n**Batch:** ${jsonObj.batch}`);
   }
 
-  // Add directory context - support both 'directory' and 'WORKSPACE' keys
-  if (jsonObj.directory || jsonObj.WORKSPACE) {
-    sections.push(`\n**Working Directory:** ${jsonObj.directory || jsonObj.WORKSPACE}`);
+  // Add directory context - support 'directory', 'WORKSPACE', and 'workspace' keys
+  const workspacePath = jsonObj.directory || jsonObj.WORKSPACE || jsonObj.workspace;
+  if (workspacePath) {
+    sections.push(`\n**Working Directory:** ${workspacePath}`);
   }
 
   // Add acceptance criteria

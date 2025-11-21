@@ -104,7 +104,7 @@ check_prerequisites() {
     fi
 
     # Check project structure
-    if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh" ]]; then
+    if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh" ]]; then
         echo -e "${RED}ERROR:${NC} CFN Loop orchestration scripts not found"
         all_good=false
     else
