@@ -42,13 +42,7 @@ export default defineConfig({
     hookTimeout: 10000,
 
     // Reporters
-    reporters: ['default', 'html', 'json'],
-
-    // Output directory
-    outputFile: {
-      html: '.artifacts/test-results/index.html',
-      json: '.artifacts/test-results/results.json',
-    },
+    reporters: ['default'],
   },
 
   resolve: {

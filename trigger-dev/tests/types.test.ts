@@ -294,7 +294,7 @@ describe('CFN Loop Type System', () => {
 
       expect(decision.decision).toBe('ABORT');
       expect(decision.abortReason).toBeDefined();
-      expect(decision.abortReason).toContain('Max iterations');
+      expect(decision.abortReason).toContain('10 iterations');
     });
   });
 

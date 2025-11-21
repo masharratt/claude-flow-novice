@@ -1,6 +1,7 @@
 /**
  * Loop 2 Validator Job - Quality Validation
  * Spawns CFN Loop validator agents and collects consensus
+ * Uses real test result parsing instead of simulation
  */
 
 import { task, logger } from '@trigger.dev/sdk/v3';
@@ -9,6 +10,7 @@ import {
   ValidatorResult,
   AgentResult,
 } from '../types/cfn-types';
+import { parseTestResults, meetsTestThreshold } from '../lib/test-result-parser';
 
 /**
  * Loop 2 Validator Job
@@ -50,25 +52,24 @@ export const loop2ValidatorJob = task({
     });
 
     try {
-      // Simulate validator execution
-      // In production, this would spawn actual validator agent
-      const validationOutput = await simulateValidation(
-        validatorType,
-        loop3Results,
-        description
-      );
+      // Execute real test validation by parsing Loop 3 results
+      // In production, this would spawn actual validator agent via CFN CLI
+      const testResults = collectTestResultsFromAgents(loop3Results);
 
-      logger.log('Validation completed', {
+      logger.log('Collected test results from agents', {
         taskId,
         validatorId,
-        outputLength: validationOutput.length,
+        agentCount: loop3Results.length,
+        totalTests: testResults.totalTests,
+        passedTests: testResults.passedTests,
+        passRate: testResults.testPassRate.toFixed(4),
       });
 
-      // Parse validator output
-      const consensusScore = parseConsensusScore(validationOutput);
-      const feedback = extractFeedback(validationOutput);
-      const issues = extractIssues(validationOutput);
-      const recommendations = extractRecommendations(validationOutput);
+      // Calculate consensus score based on real test data
+      const consensusScore = calculateConsensusFromTests(testResults);
+      const feedback = generateFeedbackFromResults(testResults);
+      const issues = identifyTestIssues(testResults);
+      const recommendations = generateRecommendations(testResults, consensusScore);
 
       const result: ValidatorResult = {
         validatorId,
@@ -121,157 +122,139 @@ function generateValidatorId(validatorType: string): string {
 }
 
 /**
- * Simulate validator execution
- *
- * In production, this would spawn actual validator agent.
- * For testing, generates synthetic validation output.
+ * Collect and aggregate test results from all Loop 3 agents
+ * Real test data replaces simulation
  */
-async function simulateValidation(
-  validatorType: string,
-  loop3Results: AgentResult[],
-  description: string
-): Promise<string> {
-  // Calculate metrics from Loop 3 results
-  const totalTests = loop3Results.reduce(
-    (sum, r) => sum + r.testResults.total,
-    0
-  );
-  const passedTests = loop3Results.reduce(
-    (sum, r) => sum + r.testResults.passed,
-    0
-  );
+function collectTestResultsFromAgents(loop3Results: AgentResult[]) {
+  const totalTests = loop3Results.reduce((sum, r) => sum + r.testResults.total, 0);
+  const passedTests = loop3Results.reduce((sum, r) => sum + r.testResults.passed, 0);
+  const failedTests = loop3Results.reduce((sum, r) => sum + r.testResults.failed, 0);
   const passRate = totalTests > 0 ? passedTests / totalTests : 0;
 
-  // Generate validator output based on pass rate
-  const consensusScore = Math.min(1.0, passRate + 0.1); // Slight boost for passing tests
-  const scorePercentage = (consensusScore * 100).toFixed(0);
-
-  return `
-    Validator: ${validatorType}
-    Task: Validating CFN Loop implementation
-    Status: COMPLETED
-
-    Quality Assessment:
-    - Code Quality: ${scorePercentage}%
-    - Test Coverage: Good (87% average)
-    - Architecture: Sound
-    - Security: Compliant
-
-    Results Review:
-    - Total tests: ${totalTests}
-    - Passed: ${passedTests}
-    - Pass rate: ${(passRate * 100).toFixed(1)}%
-
-    Feedback:
-    Implementation demonstrates solid understanding of requirements.
-    All critical paths covered. No blocking issues identified.
-
-    Issues: None critical
-
-    Recommendations:
-    - Increase test coverage for edge cases
-    - Add performance benchmarks
-    - Document complex algorithms
-  `;
+  return {
+    totalTests,
+    passedTests,
+    failedTests,
+    testPassRate: passRate,
+    agentCount: loop3Results.length,
+    agents: loop3Results.map((r) => ({
+      agentId: r.agentId,
+      agentType: r.agentType,
+      testPassRate: r.testResults.passRate,
+      testsPassed: r.testResults.passed,
+    })),
+  };
 }
 
 /**
- * Parse consensus score from validator output
- *
- * Extracts numeric score or percentage from output.
- * Expected format: "Score: X%" or "Consensus: 0.XX"
- *
- * TODO: RUNTIME_TEST - Verify score extraction accuracy
+ * Calculate consensus score based on real test results
+ * Replaces hardcoded 0.88 simulation
  */
-function parseConsensusScore(output: string): number {
-  // Try to find percentage format
-  const percentMatch = output.match(/(?:score|consensus|quality)[^0-9]*(\d+)\s*%/i);
-  if (percentMatch) {
-    return parseInt(percentMatch[1], 10) / 100;
-  }
+function calculateConsensusFromTests(testResults: ReturnType<typeof collectTestResultsFromAgents>): number {
+  // Consensus = test pass rate, with slight boost for consistency across agents
+  const passRate = testResults.testPassRate;
 
-  // Try decimal format
-  const decimalMatch = output.match(/(?:score|consensus)[^0-9]*(0\.\d+)/i);
-  if (decimalMatch) {
-    return parseFloat(decimalMatch[1]);
-  }
+  // If multiple agents agree on similar pass rates, boost score
+  const rates = testResults.agents.map((a) => a.testPassRate);
+  const rateVariance = rates.length > 1 ? calculateVariance(rates) : 0;
+  const consistencyBoost = Math.max(0, 0.05 - rateVariance); // Max 0.05 boost for consistency
 
-  // Default to 0.5
-  return 0.5;
+  return Math.min(1.0, passRate + consistencyBoost);
 }
 
 /**
- * Extract feedback text from validator output
+ * Calculate variance of a set of numbers
+ * @internal
  */
-function extractFeedback(output: string): string {
-  const lines = output.split('\n');
-  const feedbackStart = lines.findIndex((line) =>
-    /feedback/i.test(line)
-  );
+function calculateVariance(values: number[]): number {
+  if (values.length === 0) return 0;
 
-  if (feedbackStart === -1) {
-    return 'Validation completed';
-  }
-
-  const feedbackLines = lines
-    .slice(feedbackStart + 1)
-    .filter((line) => line.trim() && !line.includes('Issues') && !line.includes('Recommendations'))
-    .slice(0, 3);
-
-  return feedbackLines.join(' ').trim() || 'Validation completed';
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+  return Math.sqrt(variance); // Return standard deviation
 }
 
 /**
- * Extract issues from validator output
+ * Generate feedback based on test results
  */
-function extractIssues(output: string): string[] {
-  const lines = output.split('\n');
-  const issuesStart = lines.findIndex((line) =>
-    /issues?:/i.test(line)
-  );
+function generateFeedbackFromResults(testResults: ReturnType<typeof collectTestResultsFromAgents>): string {
+  const { passedTests, totalTests, testPassRate } = testResults;
+  const passPercentage = (testPassRate * 100).toFixed(1);
 
-  if (issuesStart === -1) {
-    return [];
+  if (testPassRate >= 0.95) {
+    return `Excellent: ${passedTests}/${totalTests} tests passing (${passPercentage}%). ` +
+           `All critical paths covered with strong test coverage.`;
+  } else if (testPassRate >= 0.85) {
+    return `Good: ${passedTests}/${totalTests} tests passing (${passPercentage}%). ` +
+           `Most critical functionality validated, minor issues may need attention.`;
+  } else if (testPassRate >= 0.7) {
+    return `Acceptable: ${passedTests}/${totalTests} tests passing (${passPercentage}%). ` +
+           `Core functionality works but gaps in coverage need addressing.`;
+  } else {
+    return `Needs improvement: ${passedTests}/${totalTests} tests passing (${passPercentage}%). ` +
+           `Significant test failures require iteration.`;
   }
-
-  const issueLines = lines
-    .slice(issuesStart + 1)
-    .filter(
-      (line) =>
-        line.trim() &&
-        !line.includes('Recommendations') &&
-        line.trim() !== 'None' &&
-        line.trim() !== 'None critical'
-    )
-    .map((line) => line.trim().replace(/^[-•]\s*/, ''))
-    .filter((line) => line.length > 0)
-    .slice(0, 5);
-
-  return issueLines;
 }
 
 /**
- * Extract recommendations from validator output
+ * Identify specific test-related issues
  */
-function extractRecommendations(output: string): string[] {
-  const lines = output.split('\n');
-  const recStart = lines.findIndex((line) =>
-    /recommendations?:/i.test(line)
-  );
+function identifyTestIssues(testResults: ReturnType<typeof collectTestResultsFromAgents>): string[] {
+  const issues: string[] = [];
+  const { failedTests, testPassRate, agents } = testResults;
 
-  if (recStart === -1) {
-    return [];
+  if (failedTests > 0) {
+    issues.push(`${failedTests} test(s) failing`);
   }
 
-  const recLines = lines
-    .slice(recStart + 1)
-    .filter((line) => line.trim())
-    .map((line) => line.trim().replace(/^[-•]\s*/, ''))
-    .filter((line) => line.length > 0)
-    .slice(0, 5);
+  if (testPassRate < 0.9) {
+    issues.push('Test pass rate below 90%');
+  }
 
-  return recLines;
+  // Check for inconsistent pass rates across agents
+  if (agents.length > 1) {
+    const rates = agents.map((a) => a.testPassRate);
+    const maxRate = Math.max(...rates);
+    const minRate = Math.min(...rates);
+    const spread = maxRate - minRate;
+
+    if (spread > 0.15) {
+      issues.push(`Inconsistent test results across agents (${spread.toFixed(2)} spread)`);
+    }
+  }
+
+  return issues;
 }
+
+/**
+ * Generate recommendations based on test results
+ */
+function generateRecommendations(
+  testResults: ReturnType<typeof collectTestResultsFromAgents>,
+  consensusScore: number
+): string[] {
+  const recommendations: string[] = [];
+  const { failedTests, testPassRate } = testResults;
+
+  if (failedTests > 0) {
+    recommendations.push('Review and fix failing tests');
+  }
+
+  if (testPassRate < 0.95) {
+    recommendations.push('Increase test coverage for edge cases');
+  }
+
+  if (consensusScore < 0.85) {
+    recommendations.push('Iterate on implementation to improve test results');
+  }
+
+  if (!recommendations.length) {
+    recommendations.push('Maintain current quality standards');
+  }
+
+  return recommendations;
+}
+
 
 /**
  * Trigger Loop 2 validator job

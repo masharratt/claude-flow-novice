@@ -666,6 +666,426 @@ git checkout main -- CLAUDE.md
 
 ---
 
+## Phase 7: Production Readiness Validation (Days 26-30)
+
+### 7.1 CFN Loop Compliance Validation
+
+**Context:** CFN Loop iterations (2 iterations completed) identified critical gaps between test design and actual implementation quality.
+
+**Files to Review:**
+- [ ] `/mnt/c/Users/masha/Documents/trigger-test-app/jobs/cfn-loop.ts`
+- [ ] `/mnt/c/Users/masha/Documents/claude-flow-novice/trigger-dev/tests/e2e/north-star-2-iteration-workflow.test.ts`
+- [ ] `/mnt/c/Users/masha/Documents/claude-flow-novice/trigger-dev/tests/e2e/north-star-4-live-validation.test.ts`
+- [ ] `/mnt/c/Users/masha/Documents/claude-flow-novice/trigger-dev/tests/e2e/north-star-5-deliverable-verification.test.ts`
+
+**Critical Findings (Iteration 1 & 2):**
+
+**Loop 3 Gate Results:**
+- Iteration 1: 0.92 confidence (PASSED 0.75 threshold)
+- Iteration 2: 0.915 confidence (PASSED 0.75 threshold)
+
+**Loop 2 Consensus Results:**
+- Iteration 1: 0.75 consensus (FAILED 0.90 threshold)
+- Iteration 2: 0.57 consensus (FAILED - 24% WORSE)
+
+**Root Cause - "Consensus on Vapor" Anti-Pattern:**
+Agents designed comprehensive async architecture with event-driven patterns but implemented MOCK execution with `io.wait()` delays instead of real `io.waitForEvent()` coordination. Validators detected:
+1. Dual execution pattern (events sent but results from local execution)
+2. Test self-validation (test creates deliverables it validates)
+3. Missing error handling and timeouts
+4. High cyclomatic complexity without implementation
+
+**TDD Protocol Violation:**
+Agents reported 0.90+ confidence WITHOUT running tests:
+- Code-analyzer: "13 TODO comments for RUNTIME_TEST" (no tests executed)
+- Integration-tester: "Test will fail even when workflow is correct" (test bug acknowledged but not fixed)
+- Agents wrote: Code → Documentation → Confidence (WRONG)
+- Should write: Test (fail) → Code → Test (pass) → Confidence (RIGHT)
+
+**Product Owner Decision:** ITERATE (both iterations)
+
+---
+
+### 7.2 Async Implementation Requirements
+
+**Current State:** Mock delays with synchronous execution
+```typescript
+// ❌ WRONG - Mock delay (Iteration 1 & 2 implementation)
+await io.wait("agent-cooldown", 2); // Simulated wait
+const results = executeAgentsLocally(); // Synchronous
+
+// Dual execution anti-pattern:
+io.sendEvent('cfn.agent.run', payload); // Send event (unused)
+const agentResults = await runAgentsSync(); // Execute locally (used)
+```
+
+**Required Implementation:** Real async event coordination
+```typescript
+// ✅ CORRECT - Real async coordination
+await io.sendEvent('cfn.agent.run', payload);
+const results = await io.waitForEvent('cfn.agent.complete', {
+  timeout: { seconds: 600 },
+  filter: { taskId: ctx.taskId }
+});
+```
+
+**Validation Criteria:**
+- [ ] ALL `io.wait()` mock delays removed from workflow
+- [ ] ALL agent results obtained via `io.waitForEvent()`
+- [ ] NO dual execution (events XOR local, not both)
+- [ ] Agent completion events properly structured
+- [ ] Timeout protection on all waitForEvent calls
+- [ ] Error handling for event failures
+
+**Tests:**
+- [ ] Validate async event flow (no local execution)
+- [ ] Validate timeout handling
+- [ ] Validate event filtering by taskId
+- [ ] Validate error propagation
+
+---
+
+### 7.3 Test Quality Standards
+
+**Current Issues (Identified by Validators):**
+
+**Issue 1: Test Self-Validation**
+```typescript
+// ❌ WRONG - Test creates what it validates
+it('should create deliverable', async () => {
+  const deliverableDir = `/tmp/trigger-dev-deliverables/${taskId}`;
+  fs.mkdirSync(deliverableDir, { recursive: true }); // Test creates dir
+  fs.writeFileSync(`${deliverableDir}/hello-world.txt`, 'content'); // Test creates file
+
+  // Then validates what it just created
+  expect(fs.existsSync(`${deliverableDir}/hello-world.txt`)).toBe(true);
+});
+```
+
+**Required Pattern:**
+```typescript
+// ✅ CORRECT - Test validates workflow output
+it('should create deliverable via workflow execution', async () => {
+  const result = await sendEvent('cfn.loop.start', payload);
+  expect(result.id).toBeDefined();
+
+  // Poll for workflow-created file (not test-created)
+  const deliverablePath = await waitForNewDeliverable(DELIVERABLES_BASE, 15000);
+  expect(deliverablePath).toBeDefined();
+
+  const content = await fs.readFile(deliverablePath, 'utf-8');
+  expect(content).toContain('Hello'); // Validate actual workflow output
+});
+```
+
+**Issue 2: Workflow Completion Verification**
+Tests validate events are ACCEPTED but not that workflows COMPLETE successfully.
+
+**Required Checks:**
+- [ ] Event accepted (201/200 response)
+- [ ] Workflow run started (query dashboard API)
+- [ ] Workflow completed successfully (not FAILED or TIMEOUT)
+- [ ] Deliverables created by workflow (not by test)
+- [ ] Content matches expected output
+
+**Issue 3: Force Override Logic Unimplemented**
+`north-star-2-iteration-workflow.test.ts` sends `forceIteration` configs but workflow doesn't implement the logic.
+
+**Required Implementation:**
+```typescript
+// In cfn-loop.ts workflow
+if (payload.forceIteration) {
+  const { gateResult, consensusResult, poDecision } = payload.forceIteration;
+
+  // Override gate check
+  if (gateResult === 'FAIL') {
+    return { decision: 'ITERATE', reason: 'Forced gate failure' };
+  }
+
+  // Override consensus check
+  if (consensusResult === 'FAIL') {
+    return { decision: 'ITERATE', reason: 'Forced consensus failure' };
+  }
+
+  // Override PO decision
+  return { decision: poDecision, reason: 'Forced decision' };
+}
+```
+
+**Validation:**
+- [ ] Force override logic implemented in workflow
+- [ ] Tests validate forced gate failures trigger ITERATE
+- [ ] Tests validate forced consensus failures trigger ITERATE
+- [ ] Tests validate forced PO decisions are respected
+
+---
+
+### 7.4 TDD Protocol Enforcement
+
+**Required Agent Workflow:**
+1. **Write failing test FIRST** (before any implementation)
+2. **Run test** (verify it fails for right reason)
+3. **Implement minimal code** to make test pass
+4. **Run test again** (verify it passes)
+5. **Report confidence** based on test pass rate (not subjective)
+
+**Validation Criteria:**
+- [ ] Agent output includes test execution logs
+- [ ] Test pass rate documented in agent reports
+- [ ] Confidence scores derived from test results (not arbitrary)
+- [ ] No "TODO" comments for tests (tests implemented and run)
+- [ ] Test files exist and are executable
+
+**Enforcement Mechanism:**
+```typescript
+// In agent-executor.ts
+export async function executeAgent(params: AgentParams): Promise<AgentResult> {
+  // 1. Agent writes test
+  const testResult = await runTests(params.testCommand);
+
+  // 2. Confidence = test pass rate (objective metric)
+  const confidence = testResult.passRate;
+
+  // 3. Report includes test logs
+  return {
+    confidence,
+    testPassRate: testResult.passRate,
+    testLogs: testResult.stdout,
+    deliverablePath: testResult.deliverablePath,
+  };
+}
+```
+
+**Tests:**
+- [ ] Validate agents execute tests before reporting confidence
+- [ ] Validate confidence scores match test pass rates
+- [ ] Validate test logs included in agent output
+- [ ] Validate agents fail when tests don't exist
+
+---
+
+### 7.5 Error Handling & Timeout Protection
+
+**Current State:** No error handling in workflow (Iteration 2 finding)
+
+**Required Implementation:**
+
+**Timeout Protection:**
+```typescript
+const results = await io.waitForEvent('cfn.agent.complete', {
+  timeout: { seconds: 600 }, // 10 minute timeout
+  filter: { taskId: ctx.taskId },
+  timeoutMessage: 'Agent execution exceeded 10 minute limit',
+});
+```
+
+**Error Handling:**
+```typescript
+try {
+  const results = await io.waitForEvent('cfn.agent.complete', {
+    timeout: { seconds: 600 },
+  });
+} catch (err) {
+  if (err.code === 'TIMEOUT') {
+    return { status: 'FAILED', reason: 'Agent timeout after 10 minutes' };
+  }
+
+  if (err.code === 'EVENT_NOT_FOUND') {
+    return { status: 'FAILED', reason: 'Agent completion event not received' };
+  }
+
+  throw err; // Rethrow unexpected errors
+}
+```
+
+**Validation Criteria:**
+- [ ] All `io.waitForEvent()` calls have explicit timeouts
+- [ ] Timeout errors logged and handled gracefully
+- [ ] Partial failures don't crash entire workflow
+- [ ] Error messages include actionable debugging info
+- [ ] Failed agent runs trigger automatic retries (up to max iterations)
+
+**Tests:**
+- [ ] Simulate agent timeout (validate graceful failure)
+- [ ] Simulate event delivery failure (validate error handling)
+- [ ] Validate partial failures don't block remaining agents
+- [ ] Validate error logs contain taskId and iteration context
+
+---
+
+### 7.6 Deliverable Creation in Workflow
+
+**Current State:** Only tests create deliverables (Iteration 2 finding)
+
+**Required Pattern:**
+```typescript
+// ✅ In cfn-loop.ts workflow (NOT in test)
+run: async (payload, io, ctx) => {
+  // ... execute loops ...
+
+  // Create deliverable directory
+  const deliverableDir = `/tmp/trigger-dev-deliverables/${ctx.taskId}`;
+  await io.runTask('create-deliverable', async () => {
+    await fs.mkdir(deliverableDir, { recursive: true });
+
+    const filePath = path.join(deliverableDir, 'hello-world.txt');
+    const content = `Hello, World!\n\nTask: ${payload.taskDescription}\nCompleted: ${new Date().toISOString()}\n`;
+    await fs.writeFile(filePath, content);
+
+    return { deliverablePath: filePath };
+  });
+
+  return {
+    status: 'COMPLETED',
+    deliverablePath: `${deliverableDir}/hello-world.txt`,
+  };
+}
+```
+
+**Validation:**
+- [ ] Workflow creates deliverable files (not tests)
+- [ ] Deliverable path returned in workflow result
+- [ ] Tests validate deliverables exist after workflow completes
+- [ ] File content matches expected format
+- [ ] Directory structure correct (`/tmp/trigger-dev-deliverables/{taskId}/`)
+
+---
+
+### 7.7 Complexity Reduction
+
+**Current State:** High cyclomatic complexity (Iteration 2 finding)
+
+**Complexity Metrics:**
+- cfn-loop.ts: 560 lines, complexity score TBD
+- Loop 3 nested conditionals and iteration logic
+
+**Refactoring Targets:**
+- [ ] Extract gate check logic to separate function
+- [ ] Extract consensus calculation to separate function
+- [ ] Extract PO decision logic to separate function
+- [ ] Extract iteration control to state machine pattern
+- [ ] Reduce nesting depth (max 3 levels)
+
+**Validation:**
+- [ ] Cyclomatic complexity < 15 per function
+- [ ] Nesting depth < 3 levels
+- [ ] Each function has single responsibility
+- [ ] Code coverage ≥90% after refactoring
+
+---
+
+### 7.8 Dashboard API Integration
+
+**Current State:** Tests validate events accepted but not workflow completion
+
+**Required Implementation:**
+```typescript
+// Query trigger.dev dashboard API for run status
+async function waitForWorkflowCompletion(eventId: string, timeoutMs: number = 30000): Promise<WorkflowStatus> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeoutMs) {
+    const response = await fetch(`${TRIGGER_API_URL}/api/v1/runs/${eventId}`, {
+      headers: { Authorization: `Bearer ${TRIGGER_API_KEY}` },
+    });
+
+    const run = await response.json();
+
+    if (run.status === 'COMPLETED') {
+      return { status: 'COMPLETED', result: run.output };
+    }
+
+    if (run.status === 'FAILED') {
+      return { status: 'FAILED', error: run.error };
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Poll every 2s
+  }
+
+  throw new Error(`Workflow ${eventId} did not complete within ${timeoutMs}ms`);
+}
+```
+
+**Validation:**
+- [ ] Tests query dashboard API for run status
+- [ ] Tests validate COMPLETED status (not just event accepted)
+- [ ] Tests validate workflow output matches expectations
+- [ ] Tests handle FAILED status gracefully
+- [ ] Tests include polling with timeout
+
+---
+
+### 7.9 Production Deployment Checklist
+
+**Infrastructure:**
+- [ ] trigger.dev self-hosted running (localhost:3040)
+- [ ] Worker endpoint responding (localhost:3000/api/trigger)
+- [ ] All 3 CFN Loop events registered (`cfn.loop.start`, `cfn.agent.run`, `cfn.gate.check`)
+- [ ] Dashboard accessible and showing runs
+- [ ] Database migrations applied
+- [ ] Redis/Postgres/MinIO healthy
+
+**Code Quality:**
+- [ ] All `io.wait()` mocks replaced with `io.waitForEvent()`
+- [ ] Test self-validation removed
+- [ ] Force override logic implemented
+- [ ] Error handling complete
+- [ ] Timeout protection on all async operations
+- [ ] Cyclomatic complexity reduced
+- [ ] TDD protocols enforced in agents
+
+**Testing:**
+- [ ] North Star 2 (5-iteration workflow) passing
+- [ ] North Star 4 (live validation) passing
+- [ ] North Star 5 (deliverable verification) passing
+- [ ] All tests use real async coordination (no mocks)
+- [ ] Dashboard API integration validated
+- [ ] 133+ tests passing with ≥85% coverage
+
+**Documentation:**
+- [ ] Async implementation patterns documented
+- [ ] TDD enforcement documented for agent authors
+- [ ] Error handling patterns documented
+- [ ] Force override usage documented
+- [ ] Dashboard API usage documented
+
+**Performance:**
+- [ ] 5-iteration workflow completes < 15 minutes
+- [ ] No memory leaks during extended runs
+- [ ] Event delivery < 2s
+- [ ] Webhook processing < 2s
+
+**Security:**
+- [ ] API keys not hardcoded (use environment variables)
+- [ ] Webhook signatures validated
+- [ ] Input validation on all event payloads
+- [ ] No sensitive data in logs
+
+---
+
+### 7.10 Go-Live Criteria
+
+**All of the following MUST be true before production deployment:**
+
+- [ ] **CFN Loop Validation:** Iteration 3+ achieves Loop 2 consensus ≥0.90
+- [ ] **TDD Compliance:** All agents execute tests before reporting confidence
+- [ ] **Async Implementation:** No mock delays, all `io.waitForEvent()` working
+- [ ] **Test Quality:** No self-validation, all tests validate real workflow outputs
+- [ ] **Error Handling:** All error paths tested and handled gracefully
+- [ ] **Deliverable Creation:** Workflow creates files, tests validate (not create)
+- [ ] **Dashboard Integration:** Tests validate workflow completion via API
+- [ ] **Performance:** 5-iteration workflow < 15 minutes
+- [ ] **Documentation:** All patterns documented with examples
+- [ ] **Rollback Plan:** Tested and documented (git tags, backup branches)
+
+**Sign-Off Required From:**
+- [ ] Technical Lead (async implementation verified)
+- [ ] QA Lead (all tests passing, TDD compliance verified)
+- [ ] Product Owner (deliverables meet acceptance criteria)
+- [ ] Infrastructure Lead (trigger.dev deployment stable)
+
+---
+
 ## Approval Sign-Off
 
 **Project Manager:** _________________ Date: _________

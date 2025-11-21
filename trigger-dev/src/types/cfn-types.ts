@@ -9,6 +9,33 @@
 export type CFNMode = 'mvp' | 'standard' | 'enterprise';
 
 /**
+ * Forced iteration result for controlled testing
+ * Allows test code to inject specific outcomes at each iteration
+ */
+export interface ForceIterationConfig {
+  /** Iteration number to force (1-based) */
+  iteration: number;
+
+  /** Force specific gate result (pass/fail) */
+  gateResult: 'PASS' | 'FAIL';
+
+  /** Force specific consensus result (pass/fail) */
+  consensusResult: 'PASS' | 'FAIL';
+
+  /** Force Product Owner decision */
+  poDecision: 'PROCEED' | 'ITERATE' | 'ABORT';
+
+  /** Optional override for gate pass rate (0.0-1.0) */
+  gatePassRate?: number;
+
+  /** Optional override for consensus score (0.0-1.0) */
+  consensusScore?: number;
+
+  /** Optional reason for forced outcome */
+  reason?: string;
+}
+
+/**
  * CFN Loop iteration state and progress tracking
  */
 export interface CFNLoopPayload {
@@ -35,6 +62,9 @@ export interface CFNLoopPayload {
 
   /** Metadata for tracking */
   metadata?: Record<string, unknown>;
+
+  /** Force specific iteration outcomes for testing (optional, North Star 2) */
+  forceIteration?: ForceIterationConfig;
 }
 
 /**
@@ -277,6 +307,45 @@ export interface ProductOwnerDecision {
 }
 
 /**
+ * Iteration result tracking for North Star 2
+ * Captures outcome of each iteration step (gate, consensus, product owner decision)
+ */
+export interface IterationResult {
+  /** Iteration number (1-based) */
+  iteration: number;
+
+  /** Gate check passed this iteration */
+  gatePassed: boolean;
+
+  /** Actual gate pass rate achieved */
+  gatePassRate: number;
+
+  /** Gate pass rate threshold for mode */
+  gateThreshold: number;
+
+  /** Consensus threshold met this iteration */
+  consensusMet: boolean;
+
+  /** Actual consensus score achieved */
+  consensusScore: number;
+
+  /** Consensus threshold for mode */
+  consensusThreshold: number;
+
+  /** Product Owner decision for this iteration */
+  productOwnerDecision: ProductOwnerDecision;
+
+  /** Timestamp when iteration completed */
+  completedAt: string;
+
+  /** Whether forced override was applied */
+  forceApplied: boolean;
+
+  /** Force configuration if applied */
+  forceConfig?: ForceIterationConfig;
+}
+
+/**
  * CFN Loop final result
  */
 export interface CFNLoopResult {
@@ -309,6 +378,145 @@ export interface CFNLoopResult {
 
   /** Success status */
   success: boolean;
+
+  /** Iteration results tracking (North Star 2) */
+  iterationResults?: IterationResult[];
+
+  /** Track if results from real job execution or simulated */
+  realExecution: boolean;
+}
+
+/**
+ * Agent completion event for io.waitForEvent() polling
+ */
+export interface AgentCompleteEvent {
+  /** Agent specialization type */
+  agentType: string;
+
+  /** Parent task ID */
+  taskId: string;
+
+  /** Current iteration number */
+  iteration: number;
+
+  /** Confidence score (0.0-1.0) */
+  confidence: number;
+
+  /** Path to deliverables (if any) */
+  deliverablePath?: string;
+
+  /** Completion timestamp */
+  completedAt: string;
+
+  /** Test pass rate achieved */
+  testPassRate?: number;
+
+  /** Coverage percentage achieved */
+  coverage?: number;
+}
+
+/**
+ * Gate check completion event
+ */
+export interface GateCheckCompleteEvent {
+  /** Parent task ID */
+  taskId: string;
+
+  /** Iteration number when gate was checked */
+  iteration: number;
+
+  /** Whether gate passed */
+  passed: boolean;
+
+  /** Actual pass rate achieved */
+  passRate: number;
+
+  /** Required threshold for mode */
+  threshold: number;
+
+  /** Completion timestamp */
+  completedAt: string;
+
+  /** Agent results used for gate check */
+  agentResults?: AgentResult[];
+}
+
+/**
+ * Consensus completion event
+ */
+export interface ConsensusCompleteEvent {
+  /** Parent task ID */
+  taskId: string;
+
+  /** Iteration number for consensus */
+  iteration: number;
+
+  /** Whether consensus was met */
+  met: boolean;
+
+  /** Actual consensus score */
+  consensusScore: number;
+
+  /** Required threshold for mode */
+  threshold: number;
+
+  /** Completion timestamp */
+  completedAt: string;
+
+  /** Validator results that contributed to consensus */
+  validatorResults?: ValidatorResult[];
+}
+
+/**
+ * Product Owner decision completion event
+ */
+export interface ProductOwnerCompleteEvent {
+  /** Parent task ID */
+  taskId: string;
+
+  /** Iteration number for decision */
+  iteration: number;
+
+  /** Decision made */
+  decision: 'PROCEED' | 'ITERATE' | 'ABORT';
+
+  /** Detailed reasoning */
+  reasoning: string;
+
+  /** Iteration focus if ITERATE */
+  iterationFocus?: string;
+
+  /** Abort reason if ABORT */
+  abortReason?: string;
+
+  /** Completion timestamp */
+  completedAt: string;
+}
+
+/**
+ * Workflow completion result for polling via io.waitForEvent()
+ */
+export interface WorkflowCompletionResult {
+  /** Unique event ID for tracking */
+  eventId: string;
+
+  /** Overall completion status */
+  status: 'COMPLETED' | 'FAILED' | 'RUNNING';
+
+  /** Final CFN Loop result if completed */
+  result?: CFNLoopResult;
+
+  /** Error message if failed */
+  error?: string;
+
+  /** Completion timestamp */
+  completedAt?: string;
+
+  /** Last known progress percentage (0-100) */
+  progress?: number;
+
+  /** Current iteration if still running */
+  currentIteration?: number;
 }
 
 /**
@@ -366,6 +574,94 @@ export interface ThresholdConfig {
 
   /** Maximum iterations before timeout */
   maxIterations: number;
+}
+
+/**
+ * Check if force iteration config applies to current iteration
+ * @param forceConfig - Force iteration configuration (if any)
+ * @param currentIteration - Current iteration number
+ * @returns true if force config applies to this iteration
+ */
+export function isForceIterationApplicable(
+  forceConfig: ForceIterationConfig | undefined,
+  currentIteration: number
+): boolean {
+  if (!forceConfig) return false;
+  return forceConfig.iteration === currentIteration;
+}
+
+/**
+ * Create an iteration result with optional force override
+ * @param iteration - Iteration number
+ * @param gatePassed - Whether gate passed
+ * @param gatePassRate - Actual gate pass rate
+ * @param gateThreshold - Gate threshold for mode
+ * @param consensusMet - Whether consensus met
+ * @param consensusScore - Actual consensus score
+ * @param consensusThreshold - Consensus threshold for mode
+ * @param productOwnerDecision - Product Owner decision
+ * @param forceConfig - Applied force configuration (if any)
+ * @returns Iteration result object
+ */
+export function createIterationResult(
+  iteration: number,
+  gatePassed: boolean,
+  gatePassRate: number,
+  gateThreshold: number,
+  consensusMet: boolean,
+  consensusScore: number,
+  consensusThreshold: number,
+  productOwnerDecision: ProductOwnerDecision,
+  forceConfig?: ForceIterationConfig
+): IterationResult {
+  return {
+    iteration,
+    gatePassed,
+    gatePassRate,
+    gateThreshold,
+    consensusMet,
+    consensusScore,
+    consensusThreshold,
+    productOwnerDecision,
+    completedAt: new Date().toISOString(),
+    forceApplied: !!forceConfig,
+    forceConfig,
+  };
+}
+
+/**
+ * Validate force iteration config for correctness
+ * @param forceConfig - Force iteration configuration to validate
+ * @returns Validation errors array (empty if valid)
+ */
+export function validateForceIterationConfig(forceConfig: ForceIterationConfig): string[] {
+  const errors: string[] = [];
+
+  if (forceConfig.iteration < 1) {
+    errors.push('ForceIterationConfig.iteration must be >= 1');
+  }
+
+  if (!['PASS', 'FAIL'].includes(forceConfig.gateResult)) {
+    errors.push("ForceIterationConfig.gateResult must be 'PASS' or 'FAIL'");
+  }
+
+  if (!['PASS', 'FAIL'].includes(forceConfig.consensusResult)) {
+    errors.push("ForceIterationConfig.consensusResult must be 'PASS' or 'FAIL'");
+  }
+
+  if (!['PROCEED', 'ITERATE', 'ABORT'].includes(forceConfig.poDecision)) {
+    errors.push("ForceIterationConfig.poDecision must be 'PROCEED', 'ITERATE', or 'ABORT'");
+  }
+
+  if (forceConfig.gatePassRate !== undefined && (forceConfig.gatePassRate < 0 || forceConfig.gatePassRate > 1)) {
+    errors.push('ForceIterationConfig.gatePassRate must be between 0.0 and 1.0');
+  }
+
+  if (forceConfig.consensusScore !== undefined && (forceConfig.consensusScore < 0 || forceConfig.consensusScore > 1)) {
+    errors.push('ForceIterationConfig.consensusScore must be between 0.0 and 1.0');
+  }
+
+  return errors;
 }
 
 /**
