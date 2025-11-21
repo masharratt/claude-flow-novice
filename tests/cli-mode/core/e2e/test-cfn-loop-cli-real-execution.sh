@@ -389,17 +389,14 @@ test_prerequisites() {
     log_success "npx is available"
 
     # Check orchestrator scripts exist
-    if [ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh" ]; then
-        log_error "orchestrate-wrapper.sh not found"
+    if [ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js" ]; then
+        log_error "TypeScript orchestrator not built (run: npm run build)"
         return 1
     fi
-    log_success "orchestrate-wrapper.sh exists"
+    log_success "TypeScript orchestrator built"
 
-    if [ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh" ]; then
-        log_error "orchestrate.sh not found"
-        return 1
-    fi
-    log_success "orchestrate.sh exists"
+    # orchestrate.sh is now archived (v3.1.0 - TypeScript-only execution)
+    log_info "orchestrate.sh deprecated (using TypeScript orchestrator)"
 
     # Create test workspace
     mkdir -p "$TEST_WORKSPACE"

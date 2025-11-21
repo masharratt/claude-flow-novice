@@ -716,6 +716,16 @@ VERSION HISTORY
   - CLI uses recursive discovery with **/*.md glob patterns
   - Agent type strings can use flat names or subdirectory paths
 
+2025-11-20 v3.1.1: CRITICAL BUG - WORKSPACE injection failure
+  - BUG: Agents spawn successfully but don't create deliverables
+  - Root Cause: WORKSPACE path not injected into agent prompts
+  - Impact: E2E test shows empty workspace after 120s timeout
+  - Regression: v2.x shell scripts extracted WORKSPACE, v3.1.0 TypeScript doesn't
+  - Fix Required: Parse shell variable context format (VAR='value' VAR2='value2')
+  - Documentation: docs/BUG_ANALYSIS_V3_1_0_AGENT_DELIVERABLE_FAILURE.md
+  - Fix Plan: docs/FIX_PLAN_WORKSPACE_INJECTION.md
+  - Status: Root cause identified, fix pending implementation
+
 2025-11-20 v3.1.0: BREAKING - Complete shell script deprecation
   - REMOVED all shell script fallbacks (TypeScript-only execution)
   - ARCHIVED 8 shell scripts to archive/legacy-bash/
@@ -743,6 +753,13 @@ VERSION HISTORY
 ================================================================================
 QUICK TROUBLESHOOTING CHECKLIST (v3.1.0)
 ================================================================================
+
+❌ Agents spawn but don't create deliverables? (v3.1.1 BUG)
+  → Check: Are agents receiving WORKSPACE path in prompt?
+  → Issue: WORKSPACE not extracted from shell variable context format
+  → Status: Root cause identified (see docs/BUG_ANALYSIS_V3_1_0_AGENT_DELIVERABLE_FAILURE.md)
+  → Fix: Parse shell variable context format in agent-prompt-builder.ts
+  → Workaround: Use JSON context format instead: {"WORKSPACE": "/tmp/...", "task": "..."}
 
 ❌ "Orchestrator not found" error?
   → Check: Does .claude/skills/cfn-loop-orchestration/dist/ exist?

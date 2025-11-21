@@ -77,7 +77,7 @@ export function parseProductOwnerDecision(
 
   // Pattern 1: Structured format "Decision: PROCEED"
   const structuredMatch = rawOutput.match(/Decision:\s*(PROCEED|ITERATE|ABORT)/i);
-  if (structuredMatch) {
+  if (structuredMatch?.[1]) {
     decisionType = structuredMatch[1].toUpperCase() as 'PROCEED' | 'ITERATE' | 'ABORT';
   }
 
@@ -92,7 +92,7 @@ export function parseProductOwnerDecision(
   // Pattern 3: Case-insensitive search
   if (!decisionType) {
     const caseInsensitiveMatch = rawOutput.match(/\b(proceed|iterate|abort)\b/i);
-    if (caseInsensitiveMatch) {
+    if (caseInsensitiveMatch?.[1]) {
       decisionType = caseInsensitiveMatch[1].toUpperCase() as 'PROCEED' | 'ITERATE' | 'ABORT';
     }
   }
@@ -113,32 +113,36 @@ export function parseProductOwnerDecision(
 
   // Parse reasoning
   const reasoningMatch = rawOutput.match(/Reasoning:\s*(.+?)(?=\n[A-Z]|$)/s);
-  const reasoning = reasoningMatch ? reasoningMatch[1].trim() : 'No reasoning provided';
+  const reasoning = reasoningMatch?.[1]?.trim() ?? 'No reasoning provided';
 
   // Parse confidence
   const confidenceMatch = rawOutput.match(/Confidence:\s*([0-9]+\.?[0-9]*)/);
-  const confidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.85;
+  const confidence = confidenceMatch?.[1] ? parseFloat(confidenceMatch[1]) : 0.85;
 
   // Parse audit analysis (optional)
   const auditAnalysisMatch = rawOutput.match(/Audit Analysis:\s*(.+?)(?=\n[A-Z]|$)/s);
-  const auditAnalysis = auditAnalysisMatch ? auditAnalysisMatch[1].trim() : undefined;
-
-  // Parse agent performance observations (optional)
   const agentPerfMatch = rawOutput.match(/Agent Performance:\s*(.+?)(?=\n[A-Z]|$)/s);
-  const agentPerformance = agentPerfMatch ? agentPerfMatch[1].trim() : undefined;
 
-  return {
+  const result: ProductOwnerDecision = {
     decision: decisionType,
     reasoning,
     confidence,
-    auditAnalysis,
-    agentPerformance,
     timestamp: Date.now(),
     iteration,
     consensus,
     threshold,
     deliverableVerificationRequired: decisionType === 'PROCEED'
   };
+
+  // Add optional fields only if they exist
+  if (auditAnalysisMatch?.[1]) {
+    result.auditAnalysis = auditAnalysisMatch[1].trim();
+  }
+  if (agentPerfMatch?.[1]) {
+    result.agentPerformance = agentPerfMatch[1].trim();
+  }
+
+  return result;
 }
 
 /**

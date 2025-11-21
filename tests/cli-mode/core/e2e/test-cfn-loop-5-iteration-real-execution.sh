@@ -89,12 +89,12 @@ validate_prerequisites() {
   fi
   assert_success "npx is available"
   
-  # Check orchestrate-wrapper.sh
-  if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate-wrapper.sh" ]]; then
-    annotate "orchestrate-wrapper.sh not found"
+  # Check TypeScript orchestrator (dist/cli/orchestrator-cli.js)
+  if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/TypeScript orchestrator (dist/cli/orchestrator-cli.js)" ]]; then
+    annotate "TypeScript orchestrator (dist/cli/orchestrator-cli.js) not found"
     return 1
   fi
-  assert_success "orchestrate-wrapper.sh exists"
+  assert_success "TypeScript orchestrator (dist/cli/orchestrator-cli.js) exists"
   
   # Check orchestrate.sh
   if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh" ]]; then
