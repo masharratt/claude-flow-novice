@@ -18,14 +18,17 @@ Items that require runtime testing with actual trigger.dev infrastructure.
 **Test App:** `/mnt/c/Users/masha/Documents/trigger-test-app`
 **Dashboard:** http://localhost:3040
 
-## Phase 1: Workflows
+## Phase 1: Workflows ✅ COMPLETE (2025-11-21)
 
-| Blocker | File | Description |
-|---------|------|-------------|
-| Job registration | cfn-loop.workflow.ts | `task.define()` runtime behavior |
-| Batch trigger | cfn-loop.workflow.ts | `task.batchTrigger()` parallel execution |
-| Result aggregation | gate-check.job.ts | Job output collection patterns |
-| Workflow state | cfn-loop.workflow.ts | Iteration state persistence |
+| Blocker | File | Status | Notes |
+|---------|------|--------|-------|
+| Job registration | jobs/cfn-loop.ts | ✅ | v2 `defineJob()` with eventTrigger works |
+| Batch trigger | cfn-loop.ts | ✅ | Sequential agent triggering via `io.sendEvent()` |
+| Result aggregation | cfn-loop.ts | ✅ | In-workflow aggregation with confidence scoring |
+| Workflow state | cfn-loop.ts | ✅ | Iteration loop with gate check logic |
+
+**Jobs registered:** cfn-agent, cfn-gate-check, cfn-loop-workflow, example-job
+**SDK version:** @trigger.dev/sdk@2.3.18 (v2 API - v4 incompatible with self-hosted)
 
 ## Phase 2: Integration
 
