@@ -16,7 +16,7 @@ This document defines the complete migration strategy from Redis-based CFN Loop 
 - **Agent Spawning**: CLI-based spawning → trigger.dev job creation
 - **Blocking Operations**: `coordination-wait` (Redis blocking) → webhook event subscriptions
 - **Orchestration**: Bash orchestrate.sh + shell skills → trigger.dev workflows
-- **Task Mode**: DEPRECATED (incompatible with trigger.dev model)
+- **Task Mode**: RETAINED (decouple from Redis - was coupled due to memory leak workarounds)
 
 ### System Boundary Changes:
 ```
@@ -1350,11 +1350,25 @@ export const poCompletionWebhook = trigger.webhook({
 
 ---
 
-## Phase 4: Deprecation & Removal (Days 15-18)
+## Phase 4: Deprecation & Archival (Days 15-18)
 
-### 4.1 Complete File Deletion List
+### 4.1 Archive Strategy (Not Deletion)
 
-**ENTIRE DIRECTORIES TO DELETE:**
+**Archive Location:** `.archive/cfn-redis-coordination-legacy/`
+
+All deprecated code is MOVED (not deleted) to preserve history and enable rollback.
+
+### 4.2 Directories to Archive
+
+**ENTIRE DIRECTORIES TO ARCHIVE:**
+
+```bash
+# Execute these moves during Phase 4
+mv .claude/skills/cfn-coordination/ .archive/cfn-redis-coordination-legacy/skills-cfn-coordination/
+mv .claude/skills/cfn-redis-coordination/ .archive/cfn-redis-coordination-legacy/skills-cfn-redis-coordination/
+mv .claude/skills/cfn-docker-redis-coordination/ .archive/cfn-redis-coordination-legacy/skills-cfn-docker-redis-coordination/
+mv src/coordination/ .archive/cfn-redis-coordination-legacy/src-coordination/
+```
 
 1. `.claude/skills/cfn-coordination/` (58 files, 150+ LOC)
    - `agent-completion.sh`
@@ -1376,13 +1390,28 @@ export const poCompletionWebhook = trigger.webhook({
    - Main shell-based orchestrator
    - All helper functions for Bash orchestration
 
-**FILES TO DELETE:**
+**FILES TO ARCHIVE:**
+
+```bash
+mkdir -p .archive/cfn-redis-coordination-legacy/src-cli/
+mv src/cli/coordination-wait.ts .archive/cfn-redis-coordination-legacy/src-cli/
+mv src/cli/coordination-signal.ts .archive/cfn-redis-coordination-legacy/src-cli/
+```
 
 - `src/cli/coordination-wait.ts` (235 LOC)
 - `src/cli/coordination-signal.ts` (179 LOC)
 - `src/coordination/coordination-wrapper.ts` (300+ LOC)
 - `src/types/coordination.d.ts` (50+ LOC)
 - `src/coordination/` - ENTIRE DIRECTORY
+
+### 4.3 Task Mode: RETAINED (Decouple from Redis)
+
+**Note:** Task Mode is KEPT. It was only coupled to Redis coordination due to memory leak workarounds.
+
+**Refactoring needed:**
+- Remove Redis fallback from Task Mode agents
+- Task Mode will use trigger.dev webhooks OR in-memory coordination
+- See Phase 3 for Task Mode adapter implementation
 
 **PATTERNS TO REMOVE FROM FILES:**
 
@@ -1414,8 +1443,10 @@ Files that need partial deletions (specific functions/patterns):
 - Redis command examples
 - CFN_REDIS_* variable documentation
 
-// .claude/commands/cfn-loop-task.md - ENTIRE FILE DELETE
-- Task Mode is incompatible with trigger.dev
+// .claude/commands/cfn-loop-task.md - REFACTOR (keep file)
+- Remove Redis coordination references
+- Update to use trigger.dev webhooks or in-memory coordination
+- Task Mode RETAINED for debugging/visibility use cases
 ```
 
 **Specific Function Deletions (in large files):**
