@@ -47,6 +47,7 @@ export interface OrchestrationConfig {
   successCriteriaEnabled?: boolean;
   timeouts?: TimeoutConfig;
   workspace?: string;
+  taskDescription?: string;
 }
 
 /**
@@ -590,6 +591,7 @@ export class Orchestrator {
       phase: this.state.currentPhase,
       timestamp: Date.now(),
       ...(this.config.workspace && { workspace: this.config.workspace }),
+      ...(this.config.taskDescription && { taskDescription: this.config.taskDescription }),
     };
     return JSON.stringify(context);
   }

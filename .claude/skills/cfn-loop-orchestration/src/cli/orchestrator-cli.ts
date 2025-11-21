@@ -35,6 +35,7 @@ interface CliArgs {
   productOwner?: string;
   successCriteriaEnabled?: boolean;
   workspace?: string;
+  taskDescription?: string;
 }
 
 /**
@@ -139,6 +140,13 @@ function parseArguments(args: string[]): CliArgs {
         }
         break;
 
+      case 'description':
+        if (nextArg && !nextArg.startsWith('--')) {
+          cliArgs.taskDescription = nextArg;
+          i++;
+        }
+        break;
+
       case 'help':
       case 'h':
         printHelp();
@@ -239,6 +247,10 @@ function buildConfig(args: CliArgs): OrchestrationConfig {
 
   if (args.workspace) {
     config.workspace = args.workspace;
+  }
+
+  if (args.taskDescription) {
+    config.taskDescription = args.taskDescription;
   }
 
   return config;

@@ -90,18 +90,14 @@ validate_prerequisites() {
   assert_success "npx is available"
   
   # Check TypeScript orchestrator (dist/cli/orchestrator-cli.js)
-  if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/TypeScript orchestrator (dist/cli/orchestrator-cli.js)" ]]; then
+  if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js" ]]; then
     annotate "TypeScript orchestrator (dist/cli/orchestrator-cli.js) not found"
     return 1
   fi
   assert_success "TypeScript orchestrator (dist/cli/orchestrator-cli.js) exists"
   
-  # Check orchestrate.sh
-  if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration/orchestrate.sh" ]]; then
-    annotate "orchestrate.sh not found"
-    return 1
-  fi
-  assert_success "orchestrate.sh exists"
+  # Note: orchestrate.sh deprecated, using TypeScript orchestrator-cli.js instead
+  # (checked above)
   
   # Create workspace
   mkdir -p "$WORKSPACE"

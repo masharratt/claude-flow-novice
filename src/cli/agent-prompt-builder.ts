@@ -105,9 +105,10 @@ function parseShellVariables(shellContext: string): any {
 function enrichJSONContext(jsonObj: any): string {
   const sections: string[] = [];
 
-  // Extract task description
-  if (jsonObj.task) {
-    sections.push(`**Task:** ${jsonObj.task}`);
+  // Extract task description (support both 'task' and 'taskDescription' keys)
+  const taskText = jsonObj.task || jsonObj.taskDescription;
+  if (taskText) {
+    sections.push(`**Task:** ${taskText}`);
   }
 
   // Parse files - convert comma-separated string to bullet list
