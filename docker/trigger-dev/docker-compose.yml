@@ -82,6 +82,8 @@ services:
   trigger-webapp:
     image: ghcr.io/triggerdotdev/trigger.dev:latest
     container_name: trigger-dev-webapp
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,6 +97,8 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       TRIGGER_SECRET_KEY: ${TRIGGER_SECRET_KEY}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-trigger}
+      DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-trigger}
+      SESSION_SECRET: ${AUTH_SECRET}
       REDIS_URL: redis://redis:6379
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -140,6 +144,8 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       TRIGGER_SECRET_KEY: ${TRIGGER_SECRET_KEY}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-trigger}
+      DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-trigger}
+      SESSION_SECRET: ${AUTH_SECRET}
       REDIS_URL: redis://redis:6379
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
