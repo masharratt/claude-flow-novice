@@ -443,7 +443,7 @@ test_real_coordinator_spawn() {
     CFN_REDIS_PASSWORD="$CFN_REDIS_PASSWORD" \
     npx claude-flow-novice agent cfn-v3-coordinator \
         --task-id "$TASK_ID" \
-        --context "TASK_DESCRIPTION='$task_description' MODE='standard' MAX_ITERATIONS=5 CFN_DOCKER_MODE='false' EXPECTED_FILES='$EXPECTED_FILE'" \
+        --context "TASK_DESCRIPTION='$task_description' WORKSPACE='$TEST_WORKSPACE' MODE='standard' MAX_ITERATIONS=5 CFN_DOCKER_MODE='false' EXPECTED_FILES='$EXPECTED_FILE'" \
         --timeout 300 \
         >/tmp/coordinator-${TASK_ID}.log 2>&1 &
 
