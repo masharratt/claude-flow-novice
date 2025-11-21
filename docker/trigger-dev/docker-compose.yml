@@ -1,0 +1,172 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: trigger-dev-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-trigger}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trigger-cfn-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: trigger-dev-redis
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trigger-cfn-network
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: trigger-dev-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/minio_data
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    command: server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - trigger-cfn-network
+    restart: unless-stopped
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: trigger-dev-clickhouse
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-trigger}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    ports:
+      - "${CLICKHOUSE_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - trigger-cfn-network
+    restart: unless-stopped
+
+  trigger-webapp:
+    image: ghcr.io/triggerdotdev/trigger.dev:latest
+    container_name: trigger-dev-webapp
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      TRIGGER_SECRET_KEY: ${TRIGGER_SECRET_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-trigger}
+      REDIS_URL: redis://redis:6379
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_URL: http://minio:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-trigger}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      API_DOMAIN: ${API_DOMAIN:-http://localhost:3000}
+      APP_DOMAIN: ${APP_DOMAIN:-http://localhost:3040}
+      AUTH_SECRET: ${AUTH_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "${WEBAPP_PORT:-3040}:3000"
+    volumes:
+      - webapp_data:/app/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - trigger-cfn-network
+    restart: unless-stopped
+
+  trigger-worker:
+    image: ghcr.io/triggerdotdev/trigger.dev:latest
+    container_name: trigger-dev-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      trigger-webapp:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      TRIGGER_SECRET_KEY: ${TRIGGER_SECRET_KEY}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-trigger}
+      REDIS_URL: redis://redis:6379
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_URL: http://minio:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-trigger}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      API_DOMAIN: ${API_DOMAIN:-http://localhost:3000}
+      APP_DOMAIN: ${APP_DOMAIN:-http://localhost:3040}
+      AUTH_SECRET: ${AUTH_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      MAGIC_LINK_SECRET: ${MAGIC_LINK_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      WORKER_ID: ${WORKER_ID:-trigger-worker-1}
+      WORKER_MODE: true
+    networks:
+      - trigger-cfn-network
+    restart: unless-stopped
+
+networks:
+  trigger-cfn-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  clickhouse_data:
+  webapp_data:
