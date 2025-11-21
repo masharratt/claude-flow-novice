@@ -1,6 +1,6 @@
 # MDAP Integration Implementation Plan
 
-**Version:** 1.2.0
+**Version:** 1.3.0
 **Status:** Planning
 **Dependencies:** Trigger.dev, CFN Loop v3, Playbook System, Rust Engine (future)
 
@@ -1735,6 +1735,891 @@ once_cell = "1.19"
 - [ ] Load testing
 
 **Total Rust Engine: 7-8 weeks**
+
+### LLM Client with Retry & Circuit Breaker
+
+```rust
+// cfn-executor/src/llm_client.rs
+use std::time::{Duration, Instant};
+use tokio::time::sleep;
+use reqwest::Client;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone)]
+pub struct LLMClient {
+    client: Client,
+    circuit_breaker: Arc<CircuitBreaker>,
+    providers: HashMap<String, ProviderConfig>,
+}
+
+#[derive(Clone)]
+pub struct ProviderConfig {
+    pub name: String,
+    pub base_url: String,
+    pub api_key: String,
+    pub models: HashMap<ModelTier, String>,
+    pub cost_per_million: CostConfig,
+}
+
+#[derive(Clone)]
+pub struct CostConfig {
+    pub input: f64,
+    pub output: f64,
+}
+
+pub struct CircuitBreaker {
+    state: RwLock<CircuitState>,
+    failure_threshold: u32,
+    recovery_timeout: Duration,
+}
+
+#[derive(Clone)]
+enum CircuitState {
+    Closed { failures: u32 },
+    Open { opened_at: Instant },
+    HalfOpen,
+}
+
+impl CircuitBreaker {
+    pub fn new(failure_threshold: u32, recovery_timeout: Duration) -> Self {
+        Self {
+            state: RwLock::new(CircuitState::Closed { failures: 0 }),
+            failure_threshold,
+            recovery_timeout,
+        }
+    }
+
+    pub async fn check(&self) -> Result<(), CircuitBreakerError> {
+        let state = self.state.read().await;
+        match *state {
+            CircuitState::Open { opened_at } => {
+                if opened_at.elapsed() >= self.recovery_timeout {
+                    drop(state);
+                    let mut state = self.state.write().await;
+                    *state = CircuitState::HalfOpen;
+                    Ok(())
+                } else {
+                    Err(CircuitBreakerError::Open)
+                }
+            }
+            _ => Ok(()),
+        }
+    }
+
+    pub async fn record_success(&self) {
+        let mut state = self.state.write().await;
+        *state = CircuitState::Closed { failures: 0 };
+    }
+
+    pub async fn record_failure(&self) {
+        let mut state = self.state.write().await;
+        match *state {
+            CircuitState::Closed { failures } => {
+                if failures + 1 >= self.failure_threshold {
+                    *state = CircuitState::Open { opened_at: Instant::now() };
+                } else {
+                    *state = CircuitState::Closed { failures: failures + 1 };
+                }
+            }
+            CircuitState::HalfOpen => {
+                *state = CircuitState::Open { opened_at: Instant::now() };
+            }
+            _ => {}
+        }
+    }
+}
+
+impl LLMClient {
+    pub async fn complete(
+        &self,
+        tier: ModelTier,
+        messages: Vec<Message>,
+        max_retries: u32,
+    ) -> Result<LLMResponse, LLMError> {
+        // Tier → Provider routing
+        let provider_name = match tier {
+            ModelTier::T1Haiku | ModelTier::T2Mini => "zai",
+            ModelTier::T3Gpt4 => "openai",
+            ModelTier::T4Sonnet | ModelTier::T5Opus => "anthropic",
+        };
+
+        let provider = self.providers.get(provider_name)
+            .ok_or(LLMError::ProviderNotFound)?;
+
+        let model = provider.models.get(&tier)
+            .ok_or(LLMError::ModelNotFound)?;
+
+        // Retry with exponential backoff
+        let mut attempt = 0;
+        let mut last_error = None;
+
+        while attempt <= max_retries {
+            // Circuit breaker check
+            if let Err(e) = self.circuit_breaker.check().await {
+                return Err(LLMError::CircuitOpen);
+            }
+
+            match self.call_provider(provider, model, &messages).await {
+                Ok(response) => {
+                    self.circuit_breaker.record_success().await;
+                    return Ok(response);
+                }
+                Err(e) => {
+                    self.circuit_breaker.record_failure().await;
+                    last_error = Some(e);
+                    attempt += 1;
+
+                    if attempt <= max_retries {
+                        // Exponential backoff: 100ms, 200ms, 400ms, 800ms...
+                        let delay = Duration::from_millis(100 * (1 << attempt));
+                        sleep(delay).await;
+                    }
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or(LLMError::Unknown))
+    }
+
+    async fn call_provider(
+        &self,
+        provider: &ProviderConfig,
+        model: &str,
+        messages: &[Message],
+    ) -> Result<LLMResponse, LLMError> {
+        let response = match provider.name.as_str() {
+            "anthropic" => self.call_anthropic(provider, model, messages).await?,
+            "openai" | "zai" => self.call_openai_compatible(provider, model, messages).await?,
+            _ => return Err(LLMError::ProviderNotFound),
+        };
+        Ok(response)
+    }
+
+    async fn call_anthropic(
+        &self,
+        provider: &ProviderConfig,
+        model: &str,
+        messages: &[Message],
+    ) -> Result<LLMResponse, LLMError> {
+        let body = serde_json::json!({
+            "model": model,
+            "max_tokens": 4096,
+            "messages": messages
+        });
+
+        let resp = self.client
+            .post(format!("{}/v1/messages", provider.base_url))
+            .header("x-api-key", &provider.api_key)
+            .header("anthropic-version", "2023-06-01")
+            .json(&body)
+            .timeout(Duration::from_secs(120))
+            .send()
+            .await
+            .map_err(|e| LLMError::Network(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            return Err(LLMError::ApiError(resp.status().as_u16()));
+        }
+
+        let data: AnthropicResponse = resp.json().await
+            .map_err(|e| LLMError::ParseError(e.to_string()))?;
+
+        Ok(LLMResponse {
+            content: data.content[0].text.clone(),
+            tokens_in: data.usage.input_tokens,
+            tokens_out: data.usage.output_tokens,
+            cost_usd: calculate_cost(
+                data.usage.input_tokens,
+                data.usage.output_tokens,
+                &provider.cost_per_million
+            ),
+            model: model.to_string(),
+            provider: provider.name.clone(),
+        })
+    }
+
+    async fn call_openai_compatible(
+        &self,
+        provider: &ProviderConfig,
+        model: &str,
+        messages: &[Message],
+    ) -> Result<LLMResponse, LLMError> {
+        let body = serde_json::json!({
+            "model": model,
+            "messages": messages
+        });
+
+        let resp = self.client
+            .post(format!("{}/chat/completions", provider.base_url))
+            .bearer_auth(&provider.api_key)
+            .json(&body)
+            .timeout(Duration::from_secs(120))
+            .send()
+            .await
+            .map_err(|e| LLMError::Network(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            return Err(LLMError::ApiError(resp.status().as_u16()));
+        }
+
+        let data: OpenAIResponse = resp.json().await
+            .map_err(|e| LLMError::ParseError(e.to_string()))?;
+
+        let choice = data.choices.first()
+            .ok_or(LLMError::EmptyResponse)?;
+
+        Ok(LLMResponse {
+            content: choice.message.content.clone(),
+            tokens_in: data.usage.prompt_tokens,
+            tokens_out: data.usage.completion_tokens,
+            cost_usd: calculate_cost(
+                data.usage.prompt_tokens,
+                data.usage.completion_tokens,
+                &provider.cost_per_million
+            ),
+            model: model.to_string(),
+            provider: provider.name.clone(),
+        })
+    }
+}
+
+fn calculate_cost(input: u32, output: u32, config: &CostConfig) -> f64 {
+    (input as f64 / 1_000_000.0 * config.input) +
+    (output as f64 / 1_000_000.0 * config.output)
+}
+```
+
+### Tree-Sitter AST Integration
+
+```rust
+// cfn-core/src/ast.rs
+use tree_sitter::{Parser, Tree, Node, Language};
+use std::collections::HashMap;
+
+extern "C" { fn tree_sitter_typescript() -> Language; }
+
+pub struct ASTParser {
+    parser: Parser,
+}
+
+#[derive(Debug, Clone)]
+pub struct CodeRegion {
+    pub file: String,
+    pub start_line: usize,
+    pub end_line: usize,
+    pub region_type: RegionType,
+    pub name: String,
+    pub dependencies: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RegionType {
+    Function,
+    Class,
+    Interface,
+    TypeAlias,
+    Block,
+    Import,
+    Export,
+}
+
+impl ASTParser {
+    pub fn new() -> Result<Self, ASTError> {
+        let mut parser = Parser::new();
+        let language = unsafe { tree_sitter_typescript() };
+        parser.set_language(language)
+            .map_err(|_| ASTError::LanguageSetup)?;
+        Ok(Self { parser })
+    }
+
+    pub fn parse(&mut self, source: &str) -> Result<Tree, ASTError> {
+        self.parser.parse(source, None)
+            .ok_or(ASTError::ParseFailed)
+    }
+
+    pub fn extract_regions(&mut self, file: &str, source: &str) -> Result<Vec<CodeRegion>, ASTError> {
+        let tree = self.parse(source)?;
+        let root = tree.root_node();
+        let mut regions = Vec::new();
+
+        self.walk_node(&root, source, file, &mut regions);
+        Ok(regions)
+    }
+
+    fn walk_node(&self, node: &Node, source: &str, file: &str, regions: &mut Vec<CodeRegion>) {
+        let kind = node.kind();
+
+        let region_type = match kind {
+            "function_declaration" | "arrow_function" | "method_definition" => Some(RegionType::Function),
+            "class_declaration" => Some(RegionType::Class),
+            "interface_declaration" => Some(RegionType::Interface),
+            "type_alias_declaration" => Some(RegionType::TypeAlias),
+            "import_statement" => Some(RegionType::Import),
+            "export_statement" => Some(RegionType::Export),
+            _ => None,
+        };
+
+        if let Some(region_type) = region_type {
+            let name = self.extract_name(node, source).unwrap_or_default();
+            let deps = self.extract_dependencies(node, source);
+
+            regions.push(CodeRegion {
+                file: file.to_string(),
+                start_line: node.start_position().row,
+                end_line: node.end_position().row,
+                region_type,
+                name,
+                dependencies: deps,
+            });
+        }
+
+        // Recurse into children
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            self.walk_node(&child, source, file, regions);
+        }
+    }
+
+    fn extract_name(&self, node: &Node, source: &str) -> Option<String> {
+        let name_node = node.child_by_field_name("name")?;
+        let name = &source[name_node.start_byte()..name_node.end_byte()];
+        Some(name.to_string())
+    }
+
+    fn extract_dependencies(&self, node: &Node, source: &str) -> Vec<String> {
+        let mut deps = Vec::new();
+        let mut cursor = node.walk();
+
+        // Walk all descendants looking for identifiers
+        fn collect_identifiers(node: &Node, source: &str, deps: &mut Vec<String>) {
+            if node.kind() == "identifier" || node.kind() == "property_identifier" {
+                let text = &source[node.start_byte()..node.end_byte()];
+                deps.push(text.to_string());
+            }
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                collect_identifiers(&child, source, deps);
+            }
+        }
+
+        collect_identifiers(node, source, &mut deps);
+        deps.sort();
+        deps.dedup();
+        deps
+    }
+
+    pub fn find_symbol(&mut self, source: &str, symbol: &str) -> Option<(usize, usize)> {
+        let tree = self.parse(source).ok()?;
+        self.find_symbol_in_node(&tree.root_node(), source, symbol)
+    }
+
+    fn find_symbol_in_node(&self, node: &Node, source: &str, symbol: &str) -> Option<(usize, usize)> {
+        let name = self.extract_name(node, source);
+        if name.as_deref() == Some(symbol) {
+            return Some((node.start_position().row, node.end_position().row));
+        }
+
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if let Some(result) = self.find_symbol_in_node(&child, source, symbol) {
+                return Some(result);
+            }
+        }
+        None
+    }
+}
+```
+
+### Validator Runner
+
+```rust
+// cfn-executor/src/validator.rs
+use std::process::Command;
+use std::time::Duration;
+use tokio::time::timeout;
+
+#[derive(Debug, Clone)]
+pub struct ValidatorConfig {
+    pub name: String,
+    pub command: String,
+    pub timeout_ms: u64,
+}
+
+#[derive(Debug)]
+pub struct ValidatorResult {
+    pub name: String,
+    pub passed: bool,
+    pub output: String,
+    pub duration_ms: u64,
+    pub exit_code: Option<i32>,
+}
+
+pub struct ValidatorRunner {
+    work_dir: PathBuf,
+}
+
+impl ValidatorRunner {
+    pub fn new(work_dir: PathBuf) -> Self {
+        Self { work_dir }
+    }
+
+    pub async fn run_validators(
+        &self,
+        validators: &[ValidatorConfig],
+        context: &HashMap<String, String>,
+    ) -> Vec<ValidatorResult> {
+        let mut results = Vec::new();
+
+        for validator in validators {
+            let result = self.run_single(validator, context).await;
+            results.push(result);
+
+            // Early exit on critical failure
+            if !result.passed && validator.name == "typecheck" {
+                break;
+            }
+        }
+
+        results
+    }
+
+    async fn run_single(
+        &self,
+        validator: &ValidatorConfig,
+        context: &HashMap<String, String>,
+    ) -> ValidatorResult {
+        let start = std::time::Instant::now();
+
+        // Interpolate command with context
+        let command = self.interpolate_command(&validator.command, context);
+
+        let timeout_duration = Duration::from_millis(validator.timeout_ms);
+
+        let result = timeout(timeout_duration, async {
+            tokio::process::Command::new("sh")
+                .arg("-c")
+                .arg(&command)
+                .current_dir(&self.work_dir)
+                .output()
+                .await
+        }).await;
+
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        match result {
+            Ok(Ok(output)) => ValidatorResult {
+                name: validator.name.clone(),
+                passed: output.status.success(),
+                output: String::from_utf8_lossy(&output.stdout).to_string()
+                    + &String::from_utf8_lossy(&output.stderr),
+                duration_ms,
+                exit_code: output.status.code(),
+            },
+            Ok(Err(e)) => ValidatorResult {
+                name: validator.name.clone(),
+                passed: false,
+                output: format!("Execution error: {}", e),
+                duration_ms,
+                exit_code: None,
+            },
+            Err(_) => ValidatorResult {
+                name: validator.name.clone(),
+                passed: false,
+                output: format!("Timeout after {}ms", validator.timeout_ms),
+                duration_ms: validator.timeout_ms,
+                exit_code: None,
+            },
+        }
+    }
+
+    fn interpolate_command(&self, template: &str, context: &HashMap<String, String>) -> String {
+        let mut result = template.to_string();
+        for (key, value) in context {
+            result = result.replace(&format!("{{{}}}", key), value);
+        }
+        result
+    }
+
+    pub fn compute_pass_rate(&self, results: &[ValidatorResult]) -> f64 {
+        if results.is_empty() {
+            return 1.0;
+        }
+        let passed = results.iter().filter(|r| r.passed).count();
+        passed as f64 / results.len() as f64
+    }
+}
+```
+
+### Playbook Integration
+
+```rust
+// cfn-state/src/playbook.rs
+use sqlx::PgPool;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlaybookEntry {
+    pub task_pattern: String,
+    pub success_rate: f64,
+    pub avg_cost: f64,
+    pub recommended_profile: String,
+    pub recommended_start_tier: i32,
+    pub optimal_parallelism: i32,
+    pub expected_micro_tasks: i32,
+    pub tier_success_rates: HashMap<i32, f64>,
+    pub custom_red_flags: Vec<String>,
+    pub critical_test_patterns: Vec<String>,
+}
+
+pub struct PlaybookService {
+    pool: PgPool,
+    cache: DashMap<String, (PlaybookEntry, Instant)>,
+    cache_ttl: Duration,
+}
+
+impl PlaybookService {
+    pub fn new(pool: PgPool) -> Self {
+        Self {
+            pool,
+            cache: DashMap::new(),
+            cache_ttl: Duration::from_secs(300), // 5 min cache
+        }
+    }
+
+    pub async fn query(&self, task_description: &str) -> Option<PlaybookEntry> {
+        // Check cache first
+        let pattern = self.extract_pattern(task_description);
+        if let Some(entry) = self.cache.get(&pattern) {
+            if entry.1.elapsed() < self.cache_ttl {
+                return Some(entry.0.clone());
+            }
+        }
+
+        // Query database
+        let row = sqlx::query_as!(
+            PlaybookRow,
+            r#"
+            SELECT task_pattern, success_rate, avg_cost, mdap_config
+            FROM playbook_entries
+            WHERE task_pattern ILIKE $1
+            ORDER BY success_rate DESC
+            LIMIT 1
+            "#,
+            format!("%{}%", pattern)
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .ok()??;
+
+        let entry = self.parse_entry(row)?;
+
+        // Cache result
+        self.cache.insert(pattern, (entry.clone(), Instant::now()));
+
+        Some(entry)
+    }
+
+    pub async fn record_result(
+        &self,
+        task_description: &str,
+        results: &[MicroTaskResult],
+    ) -> Result<(), sqlx::Error> {
+        let pattern = self.extract_pattern(task_description);
+
+        // Compute stats from results
+        let success_rate = results.iter()
+            .filter(|r| r.success)
+            .count() as f64 / results.len() as f64;
+
+        let total_cost: f64 = results.iter()
+            .map(|r| r.cost_usd)
+            .sum();
+
+        let tier_success = self.compute_tier_success_rates(results);
+        let optimal_start = self.find_optimal_start_tier(&tier_success);
+
+        sqlx::query!(
+            r#"
+            INSERT INTO playbook_entries (
+                task_pattern, success_rate, avg_cost, mdap_config
+            ) VALUES ($1, $2, $3, $4)
+            ON CONFLICT (task_pattern) DO UPDATE SET
+                success_rate = (playbook_entries.success_rate * 0.8 + $2 * 0.2),
+                avg_cost = (playbook_entries.avg_cost * 0.8 + $3 * 0.2),
+                mdap_config = $4,
+                updated_at = NOW()
+            "#,
+            pattern,
+            success_rate,
+            total_cost / results.len() as f64,
+            serde_json::json!({
+                "recommended_start_tier": optimal_start,
+                "tier_success_rates": tier_success,
+                "expected_micro_tasks": results.len(),
+            })
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Invalidate cache
+        self.cache.remove(&pattern);
+
+        Ok(())
+    }
+
+    fn extract_pattern(&self, description: &str) -> String {
+        // Extract key verbs and nouns for pattern matching
+        let keywords: Vec<&str> = description
+            .to_lowercase()
+            .split_whitespace()
+            .filter(|w| w.len() > 3)
+            .filter(|w| !["the", "and", "for", "with", "that", "this"].contains(w))
+            .take(5)
+            .collect();
+
+        keywords.join(" ")
+    }
+
+    fn compute_tier_success_rates(&self, results: &[MicroTaskResult]) -> HashMap<i32, f64> {
+        let mut tier_attempts: HashMap<i32, (u32, u32)> = HashMap::new();
+
+        for result in results {
+            for attempt in &result.attempts {
+                let entry = tier_attempts.entry(attempt.tier).or_insert((0, 0));
+                entry.0 += 1; // total
+                if attempt.success {
+                    entry.1 += 1; // successes
+                }
+            }
+        }
+
+        tier_attempts.into_iter()
+            .map(|(tier, (total, success))| (tier, success as f64 / total as f64))
+            .collect()
+    }
+
+    fn find_optimal_start_tier(&self, rates: &HashMap<i32, f64>) -> i32 {
+        // Find lowest tier with ≥60% success rate
+        for tier in 1..=5 {
+            if rates.get(&tier).copied().unwrap_or(0.0) >= 0.6 {
+                return tier;
+            }
+        }
+        3 // Default to T3 if no good tier found
+    }
+}
+```
+
+### Task Decomposer
+
+```rust
+// cfn-scheduler/src/decomposer.rs
+use crate::ast::{ASTParser, CodeRegion, RegionType};
+
+pub struct TaskDecomposer {
+    llm_client: LLMClient,
+    ast_parser: ASTParser,
+    index: CodebaseIndex,
+}
+
+#[derive(Debug, Clone)]
+pub struct DecompositionResult {
+    pub micro_tasks: Vec<MicroTask>,
+    pub dependencies: Vec<(String, String)>,
+    pub batches: Vec<Vec<MicroTask>>,
+}
+
+impl TaskDecomposer {
+    pub async fn decompose(&mut self, task: &TaskRequest) -> Result<DecompositionResult, DecomposeError> {
+        // Phase 1: Parse intent using LLM
+        let intent = self.parse_intent(&task.description).await?;
+
+        // Phase 2: Find affected code regions using AST
+        let regions = self.find_affected_regions(&intent).await?;
+
+        // Phase 3: Generate micro-tasks
+        let (tasks, deps) = self.generate_micro_tasks(&regions, &intent);
+
+        // Phase 4: Topological sort into batches
+        let batches = self.topological_sort(&tasks, &deps);
+
+        Ok(DecompositionResult {
+            micro_tasks: tasks,
+            dependencies: deps,
+            batches,
+        })
+    }
+
+    async fn parse_intent(&self, description: &str) -> Result<TaskIntent, DecomposeError> {
+        let context = self.index.get_summary();
+
+        let response = self.llm_client.complete(
+            ModelTier::T3Gpt4, // Use T3 for decomposition
+            vec![
+                Message::system(INTENT_PARSER_PROMPT),
+                Message::user(format!(
+                    "Task: {}\n\nCodebase context:\n{}",
+                    description, context
+                )),
+            ],
+            2, // max retries
+        ).await?;
+
+        let intent: TaskIntent = serde_json::from_str(&response.content)
+            .map_err(|e| DecomposeError::ParseFailed(e.to_string()))?;
+
+        Ok(intent)
+    }
+
+    async fn find_affected_regions(&mut self, intent: &TaskIntent) -> Result<Vec<CodeRegion>, DecomposeError> {
+        let mut regions = Vec::new();
+
+        for target in &intent.targets {
+            // Search index for symbol
+            if let Some(locations) = self.index.symbols.get(target) {
+                for loc in locations {
+                    let source = self.index.get_file_content(&loc.file)?;
+                    let file_regions = self.ast_parser.extract_regions(&loc.file, &source)?;
+
+                    // Find region containing target
+                    for region in file_regions {
+                        if region.name == *target {
+                            regions.push(region);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add transitive dependencies for cross-file scope
+        if intent.scope == Scope::CrossFile {
+            regions = self.expand_transitive(&regions);
+        }
+
+        Ok(regions)
+    }
+
+    fn generate_micro_tasks(
+        &self,
+        regions: &[CodeRegion],
+        intent: &TaskIntent,
+    ) -> (Vec<MicroTask>, Vec<(String, String)>) {
+        let mut tasks = Vec::new();
+        let mut deps = Vec::new();
+
+        for region in regions {
+            let task_id = format!("mt-{}-{}", region.file.replace("/", "-"), region.name);
+
+            let prompt = self.generate_prompt(region, intent);
+            let max_diff = self.calculate_max_diff(region, intent);
+
+            tasks.push(MicroTask {
+                id: task_id.clone(),
+                region: region.clone(),
+                prompt,
+                max_diff_lines: max_diff,
+                validation_rules: self.generate_validation_rules(region),
+            });
+
+            // Add dependency edges
+            for dep_name in &region.dependencies {
+                if let Some(dep_task) = tasks.iter().find(|t| t.region.name == *dep_name) {
+                    deps.push((dep_task.id.clone(), task_id.clone()));
+                }
+            }
+        }
+
+        (tasks, deps)
+    }
+
+    fn topological_sort(
+        &self,
+        tasks: &[MicroTask],
+        deps: &[(String, String)],
+    ) -> Vec<Vec<MicroTask>> {
+        let mut in_degree: HashMap<String, usize> = HashMap::new();
+        let mut graph: HashMap<String, Vec<String>> = HashMap::new();
+
+        // Initialize
+        for task in tasks {
+            in_degree.insert(task.id.clone(), 0);
+            graph.insert(task.id.clone(), Vec::new());
+        }
+
+        // Build graph
+        for (from, to) in deps {
+            graph.get_mut(from).unwrap().push(to.clone());
+            *in_degree.get_mut(to).unwrap() += 1;
+        }
+
+        // Kahn's algorithm
+        let mut batches: Vec<Vec<MicroTask>> = Vec::new();
+        let mut remaining: HashSet<String> = tasks.iter().map(|t| t.id.clone()).collect();
+
+        while !remaining.is_empty() {
+            // Find all tasks with in_degree 0
+            let ready: Vec<String> = remaining.iter()
+                .filter(|id| in_degree.get(*id).copied().unwrap_or(0) == 0)
+                .cloned()
+                .collect();
+
+            if ready.is_empty() {
+                // Cycle detected - break arbitrarily
+                break;
+            }
+
+            // Create batch
+            let batch: Vec<MicroTask> = tasks.iter()
+                .filter(|t| ready.contains(&t.id))
+                .cloned()
+                .collect();
+
+            // Update in_degrees
+            for id in &ready {
+                remaining.remove(id);
+                for neighbor in graph.get(id).unwrap_or(&Vec::new()) {
+                    if let Some(deg) = in_degree.get_mut(neighbor) {
+                        *deg = deg.saturating_sub(1);
+                    }
+                }
+            }
+
+            batches.push(batch);
+        }
+
+        batches
+    }
+
+    fn calculate_max_diff(&self, region: &CodeRegion, intent: &TaskIntent) -> usize {
+        let region_size = region.end_line - region.start_line;
+
+        match intent.action {
+            Action::Add => region_size * 2,
+            Action::Modify => (region_size as f64 * 1.5) as usize,
+            Action::Delete => region_size,
+            Action::Refactor => region_size * 3,
+            Action::Fix => std::cmp::min((region_size as f64 * 0.3) as usize, 20),
+        }
+    }
+}
+
+const INTENT_PARSER_PROMPT: &str = r#"
+You are a code task decomposition expert. Parse the user's task into structured intent.
+
+Output JSON with:
+{
+  "action": "add|modify|delete|refactor|fix",
+  "scope": "function|class|module|file|cross-file",
+  "targets": ["functionName", "ClassName", "module/path"],
+  "constraints": ["preserve backward compatibility", "maintain types"],
+  "acceptanceCriteria": ["tests pass", "no type errors"],
+  "estimatedSteps": number,
+  "complexity": "trivial|simple|medium|complex|critical"
+}
+
+Be conservative with complexity estimates.
+"#;
+```
 
 ### Task Definition Format (YAML)
 
