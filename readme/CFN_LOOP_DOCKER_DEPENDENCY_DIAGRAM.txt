@@ -1,0 +1,620 @@
+================================================================================
+CFN LOOP DOCKER MODE EXECUTION FLOW - COMPLETE DEPENDENCY DIAGRAM
+================================================================================
+VERSION: 3.1.0 (Updated: 2025-11-20)
+STATUS: Docker mode orchestration for container-based CFN Loop execution
+
+LEGEND:
+  [D]  = Docker-specific component
+  [TS] = TypeScript implementation
+  [SH] = Shell script (wrapper)
+  [P0] = Critical path
+  [P1] = High value
+  [EX] = External dependency
+  -->  = Direct execution flow
+  ==>  = Container orchestration
+  ...> = Service discovery (Docker DNS)
+
+================================================================================
+PART 1: DOCKER EXECUTION MODES OVERVIEW
+================================================================================
+
+[4 DISTINCT DOCKER MODES]
+
+1. CFN_DOCKER_CLI (Production)
+   Main Chat --> Coordinator Container --> CLI Workers (background)
+   - Coordinator runs inside container
+   - Spawns agents via CLI (background processes)
+   - 95-98% cost savings
+   - Use: Production deployments
+   - Command: /cfn-docker-cli "task description"
+
+2. CFN_DOCKER_TASK (Debugging)
+   Main Chat --> Coordinator Container --> Task() Workers (visible)
+   - Coordinator runs inside container
+   - Spawns agents via Task() tool in Main Chat
+   - Full visibility for debugging
+   - Use: Development, troubleshooting
+   - Command: /cfn-docker-task "task description"
+
+3. CFN_DOCKER_LOOP (Enterprise)
+   Main Chat --> Container Orchestration --> MCP Isolation
+   - Container-based orchestration
+   - MCP server isolation per skill
+   - Resource limits and network isolation
+   - Use: Enterprise deployments with strict isolation
+   - Command: /cfn-docker-loop "task description"
+
+4. CFN_DOCKER_NATIVE (Full Isolation)
+   All execution inside container --> Docker-in-Docker
+   - Coordinator runs inside container
+   - All spawning happens within container
+   - Complete isolation from host
+   - Use: Production environments requiring full isolation
+   - Command: /cfn-docker-native "task description"
+
+================================================================================
+PART 2: CONTAINER ORCHESTRATION FLOW
+================================================================================
+
+[DOCKER COMPOSE ORCHESTRATION]
+
+[USER INVOCATION]
+  |
+  v
+./scripts/docker/run-in-worktree.sh up -d
+  |
+  +--> Calculates branch-specific port offset (deterministic hash)
+  +--> Sets COMPOSE_PROJECT_NAME="cfn-${BRANCH}"
+  +--> Exports port environment variables:
+  |      CFN_REDIS_PORT=$((6379 + OFFSET))
+  |      CFN_POSTGRES_PORT=$((5432 + OFFSET))
+  |      CFN_ORCHESTRATOR_PORT=$((3001 + OFFSET))
+  +--> Runs docker-compose with isolation
+  |
+  v
+docker-compose -p ${COMPOSE_PROJECT_NAME} up -d
+  |
+  +--> Creates isolated network: ${COMPOSE_PROJECT_NAME}_cfn-network
+  +--> Spawns containers with prefixed names:
+         ${COMPOSE_PROJECT_NAME}_redis_1
+         ${COMPOSE_PROJECT_NAME}_postgres_1
+         ${COMPOSE_PROJECT_NAME}_orchestrator_1
+
+[STARTUP SEQUENCE]
+
+1. Infrastructure Services (Redis, Postgres)
+   ./scripts/docker/run-in-worktree.sh up -d redis postgres
+     |
+     v
+2. Wait for Health Checks
+   ./scripts/docker/wait-for-services.sh redis postgres
+     |
+     v
+3. Start Orchestrator
+   ./scripts/docker/run-in-worktree.sh up -d orchestrator
+     |
+     v
+4. Verify Coordinator Can Spawn Agents
+   ./tests/docker-mode/implementations/test-coordinator-spawning.sh
+
+================================================================================
+PART 3: SERVICE DISCOVERY PATTERNS
+================================================================================
+
+[DOCKER DNS RESOLUTION]
+
+CRITICAL: Use SERVICE NAMES, NOT container names
+
+Inside Docker Network:
+  redis       ...> Docker DNS ...> Container IP (dynamic)
+  postgres    ...> Docker DNS ...> Container IP (dynamic)
+  orchestrator...> Docker DNS ...> Container IP (dynamic)
+
+CORRECT CONNECTION PATTERNS:
+
+  # From inside containers (use service names)
+  redis-cli -h redis -p 6379
+  psql -h postgres -U postgres
+  curl http://orchestrator:3001/health
+
+  # From host (use localhost + mapped port)
+  redis-cli -h localhost -p ${CFN_REDIS_PORT}
+  psql -h localhost -p ${CFN_POSTGRES_PORT} -U postgres
+
+WRONG (container names do NOT resolve):
+
+  redis-cli -h cfn-redis -p 6379              # FAILS
+  redis-cli -h cfn-feature-auth_redis_1       # FAILS
+
+[CONTAINER NAMING CONVENTION]
+
+  Service Name:   redis (connect to this)
+  Container Name: ${COMPOSE_PROJECT_NAME}_redis_1 (internal only)
+
+================================================================================
+PART 4: MULTI-WORKTREE ISOLATION
+================================================================================
+
+[PORT ALLOCATION STRATEGY]
+
+  Main/master branch:
+    Offset: 0
+    Redis: 6379, Postgres: 5432, Orchestrator: 3001
+
+  Feature-auth branch (offset ~42):
+    Redis: 6421, Postgres: 5474, Orchestrator: 3043
+
+  Bugfix-validation branch (offset ~78):
+    Redis: 6457, Postgres: 5510, Orchestrator: 3079
+
+  Offset = deterministic hash of branch name (consistent across restarts)
+
+[ENVIRONMENT VARIABLE INJECTION]
+
+Coordinators MUST inject these to spawned agents:
+
+  npx claude-flow-novice agent backend-dev \
+    --task-id "$TASK_ID" \
+    --env COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT_NAME" \
+    --env CFN_REDIS_PORT="$CFN_REDIS_PORT" \
+    --env CFN_POSTGRES_PORT="$CFN_POSTGRES_PORT" \
+    --env WORKTREE_BRANCH="$WORKTREE_BRANCH"
+
+[VOLUME ISOLATION]
+
+Each worktree gets isolated volumes:
+  - redis-data-${BRANCH}:
+  - postgres-data-${BRANCH}:
+
+No shared volumes between worktrees (prevents state contamination)
+
+================================================================================
+PART 5: DOCKER BUILD PIPELINE (WSL2 PERFORMANCE)
+================================================================================
+
+[CRITICAL: LINUX NATIVE STORAGE]
+
+Performance Impact:
+  Windows mount builds:  755 seconds
+  Linux native builds:   <20 seconds
+  Improvement:           96% faster
+
+[CORRECT BUILD PATTERNS]
+
+  # Using docker-build skill (RECOMMENDED - 96% faster)
+  ./.claude/skills/docker-build/build.sh \
+    --dockerfile docker/Dockerfile.agent \
+    --tag cfn-agent:latest
+
+  # Using manual script (also correct)
+  DOCKERFILE="docker/Dockerfile.agent" \
+  IMAGE_NAME="cfn-agent" \
+  ./scripts/docker/build-from-linux.sh
+
+[WRONG BUILD PATTERN]
+
+  # NEVER DO THIS (755s build time on WSL2)
+  docker build -f docker/Dockerfile.agent -t cfn-agent:latest .
+
+[BUILD SCRIPT FLOW]
+
+  build-from-linux.sh
+    |
+    +--> rsync project to /tmp/cfn-build (Linux native)
+    +--> docker build in /tmp/cfn-build (fast I/O)
+    +--> Return built image
+    |
+    v
+  cfn-agent:latest (available in Docker)
+
+================================================================================
+PART 6: FILE EXECUTION ORDER (DOCKER MODE)
+================================================================================
+
+[DOCKER MODE ENTRY POINTS]
+
+1.  .claude/commands/cfn-docker/CFN_DOCKER_CLI.md     (Production CLI mode)
+2.  .claude/commands/cfn-docker/CFN_DOCKER_TASK.md    (Debugging Task mode)
+3.  .claude/commands/cfn-docker/CFN_DOCKER_LOOP.md    (MCP isolation mode)
+4.  .claude/commands/cfn-docker/CFN_DOCKER_NATIVE.md  (Full containerization)
+
+[DOCKER CONFIGURATION FILES]
+
+5.  docker/docker-compose.yml                         (Service definitions)
+6.  docker/docker-compose.override.yml                (Development overrides)
+7.  docker/Dockerfile.agent                           (Agent container image)
+8.  docker/Dockerfile.orchestrator                    (Orchestrator container image)
+9.  docker/Dockerfile.coordinator                     (Coordinator container image)
+
+[DOCKER ORCHESTRATION SCRIPTS]
+
+10. scripts/docker/run-in-worktree.sh      [SH] [P0]  (Isolation wrapper)
+11. scripts/docker/build-from-linux.sh     [SH] [P0]  (WSL2 performance fix)
+12. scripts/docker/wait-for-services.sh    [SH] [P0]  (Health check waiter)
+13. .claude/skills/docker-build/build.sh   [SH] [P0]  (Build skill entry)
+
+[AGENT SPAWNING IN CONTAINERS]
+
+14. src/cli/index.ts                       [TS] [P0]  (NPX spawning logic)
+15. src/cli/spawn-agent-cli.ts             [TS] [P0]  (Agent CLI spawning)
+16. .claude/agents/cfn-dev-team/**/*.md              (Agent profiles)
+
+[COORDINATION IN CONTAINERS]
+
+17. src/cli/coordination-wait.ts           [TS] [P0]  (Blocking wait)
+18. src/cli/coordination-signal.ts         [TS] [P0]  (Completion signaling)
+19. .claude/skills/cfn-coordination/SKILL.md         (Coordination patterns)
+
+================================================================================
+PART 7: DOCKERFILES AND COMPOSE FILES
+================================================================================
+
+[DOCKERFILE HIERARCHY]
+
+docker/
+  |
+  +--> Dockerfile.agent           # Agent container (all agent types)
+  |      FROM node:20-alpine
+  |      WORKDIR /app
+  |      COPY package*.json ./
+  |      RUN npm ci --only=production
+  |      COPY src/ ./src/
+  |      COPY .claude/ ./.claude/
+  |      USER node
+  |      CMD ["node", "dist/cli/index.js"]
+  |
+  +--> Dockerfile.orchestrator    # Orchestrator container
+  |      FROM node:20-alpine
+  |      WORKDIR /app
+  |      (similar structure)
+  |
+  +--> Dockerfile.coordinator     # Coordinator container
+         FROM node:20-alpine
+         WORKDIR /app
+         (similar structure)
+
+[DOCKER COMPOSE STRUCTURE]
+
+docker/docker-compose.yml:
+
+  services:
+    redis:
+      image: redis:7-alpine
+      ports: ["${CFN_REDIS_PORT:-6379}:6379"]
+      volumes: [redis-data:/data]
+      networks: [cfn-network]
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+
+    postgres:
+      image: postgres:15-alpine
+      ports: ["${CFN_POSTGRES_PORT:-5432}:5432"]
+      environment:
+        POSTGRES_PASSWORD: ${CFN_POSTGRES_PASSWORD:-postgres}
+      volumes: [postgres-data:/var/lib/postgresql/data]
+      networks: [cfn-network]
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres"]
+
+    orchestrator:
+      build:
+        context: ..
+        dockerfile: docker/Dockerfile.orchestrator
+      ports: ["${CFN_ORCHESTRATOR_PORT:-3001}:3001"]
+      depends_on:
+        redis: {condition: service_healthy}
+        postgres: {condition: service_healthy}
+      environment:
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
+        - POSTGRES_HOST=postgres
+      networks: [cfn-network]
+
+  volumes:
+    redis-data:
+    postgres-data:
+
+  networks:
+    cfn-network:
+      driver: bridge
+
+[VOLUME MOUNTING PATTERNS]
+
+  CORRECT (read-only source code):
+    - ./src:/app/src:ro
+    - ./.claude:/app/.claude:ro
+
+  CORRECT (writable artifacts):
+    - ./.artifacts:/app/.artifacts:rw
+
+  WRONG (entire project root):
+    - .:/app  # Includes node_modules, .git, temp files
+
+================================================================================
+PART 8: DOCKER MODE TEST SUITE (45 TESTS)
+================================================================================
+
+[TEST SUITE OVERVIEW]
+
+Location: tests/docker-mode/
+Runner:   ./tests/docker-mode/run-all-implementations.sh
+Count:    45 production tests in 3 categories
+
+[CATEGORY 1: COORDINATOR SPAWNING (13 tests)]
+
+  tests/docker-mode/implementations/coordinator/
+    |
+    +--> test-container-lifecycle.sh        # Container start/stop
+    +--> test-environment-injection.sh      # Env var passthrough
+    +--> test-exit-code-propagation.sh      # Error handling
+    +--> test-task-id-sanitization.sh       # Input validation
+    +--> test-agent-spawn-isolation.sh      # Process isolation
+    +--> ... (8 more tests)
+
+[CATEGORY 2: ORCHESTRATOR WORKFLOW (13 tests)]
+
+  tests/docker-mode/implementations/orchestrator/
+    |
+    +--> test-loop3-to-loop2-progression.sh # Gate enforcement
+    +--> test-product-owner-spawning.sh     # PO decision flow
+    +--> test-consensus-collection.sh       # Validator aggregation
+    +--> test-iteration-management.sh       # Iteration counter
+    +--> test-mvp-standard-enterprise.sh    # Mode thresholds
+    +--> ... (8 more tests)
+
+[CATEGORY 3: TDD COMPLIANCE (19 tests)]
+
+  tests/docker-mode/implementations/tdd/
+    |
+    +--> test-execution-validation.sh       # Test runner
+    +--> test-pass-rate-calculation.sh      # Gate math
+    +--> test-success-criteria.sh           # Criteria validation
+    +--> test-deliverable-verification.sh   # Artifact checking
+    +--> test-bug21-compliance.sh           # Production paths
+    +--> ... (14 more tests)
+
+[NORTH STAR TEST (BUG #21 COMPLIANCE)]
+
+  tests/docker-mode/implementations/test-full-workflow-5-iterations.sh
+
+  What gets tested:
+    - Actual spawning scripts (spawn-agent.sh)
+    - Production images (cfn-agent:latest, NOT alpine)
+    - Real CLI syntax (npx claude-flow-novice agent)
+    - Container log validation
+    - Service discovery patterns
+    - Redis coordination blocking
+
+================================================================================
+PART 9: REDIS COORDINATION IN CONTAINERS
+================================================================================
+
+[CONTAINER-TO-CONTAINER REDIS]
+
+  Inside container (use service name):
+    redis-cli -h redis -p 6379
+
+  From host (use localhost + mapped port):
+    redis-cli -h localhost -p ${CFN_REDIS_PORT}
+
+[COORDINATION PATTERNS]
+
+  # Agent completion signal (inside container)
+  ./.claude/skills/cfn-coordination/coordination-signal.sh \
+    "agent:${AGENT_ID}:completed" \
+    "host=redis port=6379"
+
+  # Wait for gate pass (inside container)
+  ./.claude/skills/cfn-coordination/coordination-wait.sh \
+    "swarm:${TASK_ID}:gate-passed" \
+    "timeout=300 host=redis port=6379"
+
+  # Collect consensus (from orchestrator container)
+  ./.claude/skills/cfn-coordination/invoke-waiting-mode.sh \
+    collect \
+    "swarm:${TASK_ID}:consensus"
+
+[KEY DIFFERENCES FROM HOST EXECUTION]
+
+  - Use 'redis' service name (not 'localhost')
+  - Port is always 6379 inside network (not offset port)
+  - Connection pooling managed by Docker DNS
+
+================================================================================
+PART 10: ANTI-PATTERNS (DOCKER MODE SPECIFIC)
+================================================================================
+
+[ANTI-PATTERN: Direct docker build on WSL2]
+
+  WRONG:
+    docker build -f docker/Dockerfile.agent -t cfn-agent:latest .
+    # 755 second build time
+
+  CORRECT:
+    ./.claude/skills/docker-build/build.sh \
+      --dockerfile docker/Dockerfile.agent \
+      --tag cfn-agent:latest
+    # <20 second build time
+
+[ANTI-PATTERN: docker-compose without run-in-worktree.sh]
+
+  WRONG:
+    docker-compose up -d
+    # No isolation, port conflicts between branches
+
+  CORRECT:
+    ./scripts/docker/run-in-worktree.sh up -d
+    # Proper COMPOSE_PROJECT_NAME and port offsets
+
+[ANTI-PATTERN: Container names instead of service names]
+
+  WRONG:
+    redis-cli -h cfn-feature-auth_redis_1 -p 6379
+    # Container names don't resolve via Docker DNS
+
+  CORRECT:
+    redis-cli -h redis -p 6379
+    # Service names resolve via Docker DNS
+
+[ANTI-PATTERN: Mounting entire project root]
+
+  WRONG:
+    volumes:
+      - .:/app
+    # Includes .git, node_modules, temp files
+
+  CORRECT:
+    volumes:
+      - ./src:/app/src:ro
+      - ./.claude:/app/.claude:ro
+
+[ANTI-PATTERN: Hardcoding ports]
+
+  WRONG:
+    redis-cli -h localhost -p 6379
+    # Breaks multi-worktree isolation
+
+  CORRECT:
+    redis-cli -h localhost -p ${CFN_REDIS_PORT}
+    # Uses environment-injected port
+
+[ANTI-PATTERN: Running containers as root]
+
+  WRONG:
+    # No USER directive in Dockerfile
+    # Container runs as root (security vulnerability)
+
+  CORRECT:
+    USER node
+    CMD ["node", "dist/index.js"]
+    # Container runs as non-root user
+
+[ANTI-PATTERN: Mocks in integration tests (BUG #21)]
+
+  WRONG:
+    docker run alpine echo "mock test"
+    # Using alpine instead of production image
+
+  CORRECT:
+    docker run cfn-agent:latest npx claude-flow-novice agent ...
+    # Using production image with real CLI
+
+[ANTI-PATTERN: Skipping health checks]
+
+  WRONG:
+    docker-compose up -d && npx claude-flow-novice agent ...
+    # Race condition: services not ready
+
+  CORRECT:
+    docker-compose up -d
+    ./scripts/docker/wait-for-services.sh redis postgres
+    npx claude-flow-novice agent ...
+
+[ANTI-PATTERN: Missing environment variable injection]
+
+  WRONG:
+    npx claude-flow-novice agent backend-dev --task-id "$TASK_ID"
+    # No COMPOSE_PROJECT_NAME, breaks isolation
+
+  CORRECT:
+    npx claude-flow-novice agent backend-dev \
+      --task-id "$TASK_ID" \
+      --env COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT_NAME" \
+      --env CFN_REDIS_PORT="$CFN_REDIS_PORT"
+
+================================================================================
+PART 11: TROUBLESHOOTING CHECKLIST
+================================================================================
+
+[DOCKER SERVICE ISSUES]
+
+  1. Network exists?
+     docker network ls | grep cfn
+
+  2. Service DNS resolution?
+     docker exec ${COMPOSE_PROJECT_NAME}_orchestrator_1 nslookup redis
+
+  3. Service connectivity?
+     docker exec ${COMPOSE_PROJECT_NAME}_orchestrator_1 nc -zv redis 6379
+
+  4. Network configuration?
+     docker network inspect ${COMPOSE_PROJECT_NAME}_cfn-network
+
+  5. Container logs?
+     docker logs ${COMPOSE_PROJECT_NAME}_orchestrator_1 --tail 100
+
+[BUILD ISSUES]
+
+  1. Using Linux native build?
+     ./.claude/skills/docker-build/build.sh --dockerfile ... --tag ...
+
+  2. Build context transfer time?
+     Should be <1s for Linux native, >700s indicates Windows mount
+
+  3. .dockerignore configured?
+     cat .dockerignore  # Should exclude .git, node_modules
+
+[PORT CONFLICT ISSUES]
+
+  1. Check port usage:
+     lsof -i :6379
+     lsof -i :5432
+     lsof -i :3001
+
+  2. Stop conflicting containers:
+     docker stop $(docker ps -aq)
+     docker rm $(docker ps -aq)
+
+  3. Clean up networks:
+     docker network prune -f
+
+[MULTI-WORKTREE ISSUES]
+
+  1. Correct COMPOSE_PROJECT_NAME?
+     echo $COMPOSE_PROJECT_NAME
+
+  2. Port offset calculated?
+     echo $CFN_REDIS_PORT $CFN_POSTGRES_PORT
+
+  3. Containers prefixed correctly?
+     docker ps --format "{{.Names}}"
+
+================================================================================
+PART 12: DOCUMENTATION REFERENCES
+================================================================================
+
+[DOCKER ARCHITECTURE]
+
+  docker/README.md                          # Docker mode overview
+  docker/DOCKER_COMPOSE_ORCHESTRATION.md    # Service composition patterns
+  docker/CI_CD_TEST_INTEGRATION.md          # CI/CD integration guide
+
+[TEST VALIDATION]
+
+  tests/docker-mode/README.md               # 45-test suite documentation
+  tests/docker-mode/implementations/        # Production test implementations
+  docker/BUG_21_COMPLIANCE.md               # Integration test requirements
+
+[BUILD PERFORMANCE]
+
+  .claude/skills/docker-build/SKILL.md      # Build skill documentation
+  scripts/docker/build-from-linux.sh        # Linux native build script
+  docs/DOCKER_BUILD_PERFORMANCE.md          # Performance optimization guide
+
+[MULTI-WORKTREE COORDINATION]
+
+  scripts/docker/run-in-worktree.sh         # Isolation wrapper script
+  docker/MULTI_WORKTREE_PATTERNS.md         # Team development patterns
+  docs/SERVICE_DISCOVERY.md                 # Docker DNS and networking
+
+[SLASH COMMANDS]
+
+  .claude/commands/cfn-docker/CFN_DOCKER_CLI.md     # Production CLI mode
+  .claude/commands/cfn-docker/CFN_DOCKER_TASK.md    # Debugging task mode
+  .claude/commands/cfn-docker/CFN_DOCKER_LOOP.md    # MCP isolation mode
+  .claude/commands/cfn-docker/CFN_DOCKER_NATIVE.md  # Full containerization
+
+================================================================================
+END OF DOCKER MODE DEPENDENCY DIAGRAM
+================================================================================

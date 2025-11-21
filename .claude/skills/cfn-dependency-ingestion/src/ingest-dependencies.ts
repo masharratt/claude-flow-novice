@@ -23,12 +23,15 @@ import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 // Types
+type DiagramType = 'cli' | 'docker';
+
 interface Options {
   injectContent: boolean;
   priorityFilter: string;
   typeFilter: string;
   includeDeprecated: boolean;
   skipValidation: boolean;
+  diagram: DiagramType;
 }
 
 interface FileInfo {
@@ -46,11 +49,17 @@ interface IngestionResult {
 
 // Constants
 const PROJECT_ROOT = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim();
-const DIAGRAM_PATH = path.join(PROJECT_ROOT, 'readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt');
+const DIAGRAMS: Record<DiagramType, string> = {
+  cli: path.join(PROJECT_ROOT, 'readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt'),
+  docker: path.join(PROJECT_ROOT, 'readme/CFN_LOOP_DOCKER_DEPENDENCY_DIAGRAM.txt'),
+};
 const TOKEN_LIMIT = 25000; // 25k token safety limit (for single-file mode)
 const CHUNK_SIZE = 20000; // 20k tokens per chunk for multi-file mode
 const CHARS_PER_TOKEN = 4; // Rough estimation
 const TEMP_DIR = '/tmp/cfn-dependency-chunks'; // Temp directory for chunk files
+
+// Global state for current diagram (set during parseArgs)
+let DIAGRAM_PATH = DIAGRAMS.cli;
 
 // Parse command-line arguments
 function parseArgs(): Options {
@@ -61,6 +70,7 @@ function parseArgs(): Options {
     typeFilter: '',
     includeDeprecated: false,
     skipValidation: false,
+    diagram: 'cli',
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -80,6 +90,14 @@ function parseArgs(): Options {
       case '--skip-validation':
         options.skipValidation = true;
         break;
+      case '--diagram':
+        const diagramArg = args[++i] || 'cli';
+        if (diagramArg !== 'cli' && diagramArg !== 'docker') {
+          console.error(`Invalid diagram type: ${diagramArg}. Use 'cli' or 'docker'`);
+          process.exit(1);
+        }
+        options.diagram = diagramArg as DiagramType;
+        break;
       case '--help':
       case '-h':
         printHelp();
@@ -90,6 +108,9 @@ function parseArgs(): Options {
         process.exit(1);
     }
   }
+
+  // Set global diagram path based on option
+  DIAGRAM_PATH = DIAGRAMS[options.diagram];
 
   return options;
 }
@@ -102,19 +123,24 @@ Usage:
   node ingest-dependencies.js [options]
 
 Options:
-  --inject-content          Inject file contents directly (default: output Read commands)
-  --priority P0,P1,P2      Filter by priority levels (comma-separated)
-  --type TS,SH             Filter by file type (TS=TypeScript, SH=Shell)
-  --include-deprecated     Include deprecated files
-  --skip-validation        Skip file existence validation
-  --help, -h              Show this help message
+  --diagram cli|docker     Select dependency diagram (default: cli)
+  --inject-content         Inject file contents directly (default: output Read commands)
+  --priority P0,P1,P2     Filter by priority levels (comma-separated)
+  --type TS,SH            Filter by file type (TS=TypeScript, SH=Shell)
+  --include-deprecated    Include deprecated files
+  --skip-validation       Skip file existence validation
+  --help, -h             Show this help message
+
+Diagrams:
+  cli    - CFN_LOOP_DEPENDENCY_DIAGRAM.txt (CLI mode execution flow)
+  docker - CFN_LOOP_DOCKER_DEPENDENCY_DIAGRAM.txt (Docker mode execution flow)
 
 Examples:
-  # Output Read commands (traditional mode)
-  node ingest-dependencies.js
-
-  # Inject content directly (93% fewer tool calls)
+  # CLI mode dependencies (default)
   node ingest-dependencies.js --inject-content
+
+  # Docker mode dependencies
+  node ingest-dependencies.js --diagram docker --inject-content
 
   # P0 files only with content injection
   node ingest-dependencies.js --inject-content --priority P0
@@ -233,10 +259,14 @@ function filterDeprecated(files: string[], includeDeprecated: boolean): string[]
 }
 
 // Categorize files by priority
-function categorizeByPriority(files: string[]): Record<string, string[]> {
+function categorizeByPriority(files: string[], diagramType: DiagramType): Record<string, string[]> {
   const diagramContent = fs.readFileSync(DIAGRAM_PATH, 'utf-8');
+  const diagramFile = diagramType === 'docker'
+    ? 'readme/CFN_LOOP_DOCKER_DEPENDENCY_DIAGRAM.txt'
+    : 'readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt';
+
   const categories: Record<string, string[]> = {
-    diagram: ['readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt'],
+    diagram: [diagramFile],
     P0: [],
     P1: [],
     P2: [],
@@ -401,8 +431,10 @@ ${content}
 }
 
 // Output Read commands (traditional mode)
-function outputReadCommands(categories: Record<string, string[]>): void {
+function outputReadCommands(categories: Record<string, string[]>, diagramType: DiagramType): void {
   const seenFiles = new Set<string>();
+  const modeName = diagramType === 'docker' ? 'Docker' : 'CLI';
+  const diagramFile = categories.diagram[0];
 
   const outputFile = (file: string) => {
     if (!seenFiles.has(file)) {
@@ -411,8 +443,8 @@ function outputReadCommands(categories: Record<string, string[]>): void {
     }
   };
 
-  console.log('# CFN Loop CLI Dependency Ingestion');
-  console.log('# Generated from: readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt');
+  console.log(`# CFN Loop ${modeName} Dependency Ingestion`);
+  console.log(`# Generated from: ${diagramFile}`);
   console.log('');
 
   console.log('# Step 1: Read the dependency diagram');
@@ -481,6 +513,11 @@ function main(): void {
     process.exit(1);
   }
 
+  const modeName = options.diagram === 'docker' ? 'Docker' : 'CLI';
+  const diagramFile = options.diagram === 'docker'
+    ? 'readme/CFN_LOOP_DOCKER_DEPENDENCY_DIAGRAM.txt'
+    : 'readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt';
+
   // Extract and filter files
   let files = extractAllFiles();
   files = validateFileExistence(files, options.skipValidation);
@@ -489,7 +526,7 @@ function main(): void {
   files = filterDeprecated(files, options.includeDeprecated);
 
   // Add diagram to file list
-  const allFiles = ['readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt', ...files];
+  const allFiles = [diagramFile, ...files];
 
   if (options.injectContent) {
     // Content injection mode
@@ -497,11 +534,11 @@ function main(): void {
 
     if (result.exceeded25kLimit) {
       // Fallback to Read commands
-      const categories = categorizeByPriority(files);
-      outputReadCommands(categories);
+      const categories = categorizeByPriority(files, options.diagram);
+      outputReadCommands(categories, options.diagram);
     } else {
       // Output injected content
-      console.log('# CFN Loop CLI Dependency Context');
+      console.log(`# CFN Loop ${modeName} Dependency Context`);
       console.log(`# Files: ${result.files.length}`);
       console.log(`# Estimated tokens: ${result.totalTokens.toLocaleString()}`);
       console.log(`# Token limit: ${TOKEN_LIMIT.toLocaleString()}`);
@@ -510,8 +547,8 @@ function main(): void {
     }
   } else {
     // Traditional Read command mode
-    const categories = categorizeByPriority(files);
-    outputReadCommands(categories);
+    const categories = categorizeByPriority(files, options.diagram);
+    outputReadCommands(categories, options.diagram);
   }
 }
 
