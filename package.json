@@ -104,7 +104,7 @@
     "build:all": "npm run build && npm run build:spawner && npm run build:selector && npm run build:coordination",
     "build:spawner": "cd src/coordination && tsc spawn-agent.ts --outDir ../../dist/coordination --module commonjs --target es2020 --skipLibCheck 2>/dev/null || echo 'Spawner build skipped'",
     "build:selector": "cd .claude/skills/cfn-agent-selection-with-fallback && npm run build 2>/dev/null || echo 'Selector build skipped'",
-    "build:coordination": "cd src/coordination && tsc coordinate.ts --outDir ../../dist/coordination --module commonjs --target es2020 --skipLibCheck 2>/dev/null || echo 'Coordination build skipped'",
+    "build:coordination": "cd src/coordination && tsc store-task-context.ts store-success-criteria.ts --outDir ../../dist/coordination --module es2020 --target es2020 --esModuleInterop --allowSyntheticDefaultImports --skipLibCheck 2>/dev/null || echo 'Coordination build skipped'",
     "clean": "rm -rf dist",
     "test": "jest",
     "test:skills": "jest skill-markdown-validator.test.ts",

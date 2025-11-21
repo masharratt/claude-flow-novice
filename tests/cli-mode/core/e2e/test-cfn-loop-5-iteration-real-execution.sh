@@ -24,26 +24,35 @@ WORKSPACE="/tmp/cfn-5iter-test-${TEST_ID}"
 LOG_FILE="/tmp/cfn-5iter-execution-$(date +%s).log"
 MODE="standard"
 MAX_ITERATIONS=5
+# Default deliverable target
+EXPECTED_FILES="${EXPECTED_FILES:-hello-world.txt}"
+# Cleanup controls
+CLEANUP="${CLEANUP:-true}"         # set to "false" to keep workspace/logs
+PRE_CLEAN="${PRE_CLEAN:-true}"     # set to "false" to skip pre-run cleanup
 
 # Cleanup function
 cleanup() {
   local exit_code=$?
   
   log_info "Starting cleanup process..."
-  
-  # Remove test workspace
-  if [[ -d "$WORKSPACE" ]]; then
-    log_info "Removing test workspace: $WORKSPACE"
-    rm -rf "$WORKSPACE" || true
+
+  if [[ "$CLEANUP" != "false" ]]; then
+    # Remove test workspace
+    if [[ -d "$WORKSPACE" ]]; then
+      log_info "Removing test workspace: $WORKSPACE"
+      rm -rf "$WORKSPACE" || true
+    fi
+
+    # Clean Redis keys
+    log_info "Cleaning Redis keys: cfn_loop:task:${TASK_ID}:*"
+    redis-cli --scan --pattern "cfn_loop:task:${TASK_ID}:*" | xargs -r redis-cli DEL 2>/dev/null || true
+
+    log_info "Cleaning Redis keys: swarm:${TASK_ID}:*"
+    redis-cli --scan --pattern "swarm:${TASK_ID}:*" | xargs -r redis-cli DEL 2>/dev/null || true
+  else
+    log_info "Cleanup skipped (CLEANUP=false). Workspace retained at $WORKSPACE"
   fi
-  
-  # Clean Redis keys
-  log_info "Cleaning Redis keys: cfn_loop:task:${TASK_ID}:*"
-  redis-cli --scan --pattern "cfn_loop:task:${TASK_ID}:*" | xargs -r redis-cli DEL 2>/dev/null || true
-  
-  log_info "Cleaning Redis keys: swarm:${TASK_ID}:*"
-  redis-cli --scan --pattern "swarm:${TASK_ID}:*" | xargs -r redis-cli DEL 2>/dev/null || true
-  
+
   log_info "Cleanup complete (exit code: $exit_code)"
   return $exit_code
 }
@@ -99,9 +108,16 @@ validate_prerequisites() {
   # Note: orchestrate.sh deprecated, using TypeScript orchestrator-cli.js instead
   # (checked above)
   
-  # Create workspace
-  mkdir -p "$WORKSPACE"
-  assert_success "Test workspace created: $WORKSPACE"
+# Create workspace
+if [[ "$PRE_CLEAN" != "false" ]]; then
+  # Remove any residual workspace/keys from prior runs for this TASK_ID
+  rm -rf "$WORKSPACE" || true
+  redis-cli --scan --pattern "cfn_loop:task:${TASK_ID}:*" | xargs -r redis-cli DEL 2>/dev/null || true
+  redis-cli --scan --pattern "swarm:${TASK_ID}:*" | xargs -r redis-cli DEL 2>/dev/null || true
+fi
+
+mkdir -p "$WORKSPACE"
+assert_success "Test workspace created: $WORKSPACE"
   
   assert_success "All prerequisites met"
 }
@@ -116,17 +132,14 @@ spawn_coordinator() {
   log_info "Max Iterations: $MAX_ITERATIONS"
   
   # Build context with iteration requirements
-  local CONTEXT="TASK_DESCRIPTION='Create file hello-world.txt with progressive improvements across 5 iterations:
+  # NOTE: Use double quotes for variable expansion. Single-quoted variables like '${VAR}' are NOT expanded.
+  local CONTEXT="TASK_DESCRIPTION='Create file hello-world.txt in directory $WORKSPACE with progressive improvements across 5 iterations:
 Iteration 1: Basic file (should fail tests - missing greeting)
 Iteration 2: Add Hello (should pass gate but need validator fixes - missing name)
 Iteration 3: Add World (should pass all but PO wants refinement - missing punctuation)
 Iteration 4: Add punctuation (should pass all but PO wants polish - no capitalization)
-Iteration 5: Perfect output: Hello, World! (should PROCEED)' \
-MODE='$MODE' \
-MAX_ITERATIONS=$MAX_ITERATIONS \
-CFN_DOCKER_MODE='false' \
-EXPECTED_FILES='hello-world.txt' \
-WORKSPACE='$WORKSPACE'"
+Iteration 5: Perfect output: Hello, World! (should PROCEED)
+The file MUST be created at $WORKSPACE/hello-world.txt' MODE='$MODE' MAX_ITERATIONS=$MAX_ITERATIONS CFN_DOCKER_MODE='false' EXPECTED_FILES='hello-world.txt' WORKSPACE='$WORKSPACE'"
   
   log_info "Spawning coordinator via npx claude-flow-novice agent..."
   log_info "Redis environment: localhost:6379"
@@ -134,6 +147,17 @@ WORKSPACE='$WORKSPACE'"
   # Spawn coordinator in background
   (
     cd "$PROJECT_ROOT"
+    # Ensure coordinator/agents get the task identifiers and Redis host
+    export TASK_ID="$TASK_ID"
+    export MODE="$MODE"
+    export MAX_ITERATIONS="$MAX_ITERATIONS"
+    export EXPECTED_FILES="$EXPECTED_FILES"
+    export WORKSPACE="$WORKSPACE"
+    # Ensure agents see local Redis (avoids default cfn-redis host)
+    export CFN_REDIS_HOST="${CFN_REDIS_HOST:-localhost}"
+    export CFN_REDIS_PORT="${CFN_REDIS_PORT:-6379}"
+    export REDIS_HOST="${REDIS_HOST:-$CFN_REDIS_HOST}"
+    export REDIS_PORT="${REDIS_PORT:-$CFN_REDIS_PORT}"
     npx claude-flow-novice agent cfn-v3-coordinator \
       --task-id "$TASK_ID" \
       --context "$CONTEXT" \
@@ -206,7 +230,9 @@ verify_iterations() {
   
   while [[ $elapsed -lt $timeout ]]; do
     # Count iterations in log
-    iterations_found=$(grep -c "=== ITERATION" "$WORKSPACE/coordinator.log" 2>/dev/null || echo "0")
+    iterations_found=$(grep -c "=== ITERATION" "$WORKSPACE/coordinator.log" 2>/dev/null || true)
+    iterations_found=${iterations_found:-0}
+    iterations_found=$(echo "$iterations_found" | tr -d '[:space:]')
     
     # Check if workflow completed
     if grep -q "Orchestration complete" "$WORKSPACE/coordinator.log" 2>/dev/null || \

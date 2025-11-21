@@ -96,6 +96,62 @@ function initializeTables() {
                 current_iteration INTEGER DEFAULT 1,
                 max_iterations INTEGER DEFAULT 10
             );
+
+            -- Docker-specific tables for enhanced container monitoring
+            CREATE TABLE IF NOT EXISTS docker_containers (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                task_id TEXT,
+                agent_id TEXT,
+                image TEXT,
+                status TEXT,
+                created_at TEXT,
+                started_at TEXT,
+                exited_at TEXT,
+                exit_code INTEGER,
+                ports TEXT,
+                volumes TEXT,
+                network_id TEXT,
+                metadata TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS docker_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                container_id TEXT NOT NULL,
+                task_id TEXT,
+                timestamp TEXT,
+                stream TEXT,
+                message TEXT,
+                level TEXT DEFAULT 'INFO',
+                metadata TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS docker_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id TEXT UNIQUE,
+                action TEXT,
+                type TEXT,
+                actor_id TEXT,
+                actor_attributes TEXT,
+                timestamp TEXT,
+                status TEXT,
+                metadata TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS docker_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                container_id TEXT NOT NULL,
+                task_id TEXT,
+                timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+                cpu_usage REAL,
+                memory_usage INTEGER,
+                memory_limit INTEGER,
+                network_rx INTEGER,
+                network_tx INTEGER,
+                block_read INTEGER,
+                block_write INTEGER,
+                metadata TEXT
+            );
         `;
 
         db.exec(createTables, (err) => {
