@@ -5,6 +5,10 @@
 
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import { config as loadEnv } from 'dotenv';
+
+// Load .env.local for E2E tests (TRIGGER_API_KEY, TRIGGER_API_URL)
+loadEnv({ path: path.resolve(__dirname, '.env.local') });
 
 export default defineConfig({
   test: {
@@ -35,8 +39,8 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
 
-    // Timeout for each test
-    testTimeout: 10000,
+    // Timeout for each test (extended for live agent execution)
+    testTimeout: 600000, // 10 minutes for live agent execution
 
     // Hook timeout
     hookTimeout: 10000,
