@@ -15,7 +15,12 @@ const client = new TriggerClient({
   apiUrl: process.env.TRIGGER_API_URL || 'http://localhost:3040',
 });
 
-// Register all jobs with the client
+// Explicitly register jobs with the client (v3 SDK requirement)
+client.defineJob(cfnLoopWorkflow);
+client.defineJob(cfnAgentJob);
+client.defineJob(cfnGateCheckJob);
+
+// Export jobs for reference
 export const jobs = {
   cfnLoopWorkflow,
   cfnAgentJob,
@@ -24,6 +29,7 @@ export const jobs = {
 
 // Export client for use in jobs
 export { client };
+export default client;
 
 // Self-invoking registration
 if (require.main === module) {

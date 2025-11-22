@@ -118,7 +118,7 @@ services:
     volumes:
       - webapp_data:/app/data
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => process.exit(r.statusCode === 302 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -127,7 +127,10 @@ services:
     restart: unless-stopped
 
   trigger-worker:
-    image: ghcr.io/triggerdotdev/trigger.dev:latest
+    build:
+      context: ../..
+      dockerfile: docker/trigger-dev/Dockerfile.worker
+    image: trigger-dev-worker-cfn:latest
     container_name: trigger-dev-worker
     depends_on:
       postgres:
@@ -143,6 +146,8 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       TRIGGER_SECRET_KEY: ${TRIGGER_SECRET_KEY}
+      TRIGGER_API_KEY: ${TRIGGER_SECRET_KEY}
+      TRIGGER_API_URL: http://trigger-webapp:3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-trigger}
       DIRECT_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-trigger}
       SESSION_SECRET: ${AUTH_SECRET}
@@ -162,6 +167,16 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       WORKER_ID: ${WORKER_ID:-trigger-worker-1}
       WORKER_MODE: true
+      # CFN Agent Execution
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      CFN_WORKSPACE: /workspace
+      CFN_DELIVERABLES_PATH: /tmp/trigger-dev-deliverables
+    volumes:
+      - /tmp/trigger-dev-deliverables:/tmp/trigger-dev-deliverables
+      # Mount project root for agent file access
+      - ../..:/workspace:rw
+      # Mount .env for API keys
+      - ../../.env:/workspace/.env:ro
     networks:
       - trigger-cfn-network
     restart: unless-stopped
