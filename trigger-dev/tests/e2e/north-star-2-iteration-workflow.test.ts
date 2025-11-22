@@ -65,31 +65,41 @@ function getDeliverablePath(taskId: string, filename: string): string {
 }
 
 // Utility: Poll for workflow completion and return status
+// NO TIMEOUT CONSTRAINT - allows workflows to run as long as needed
 async function pollForWorkflowCompletion(
   eventId: string,
-  timeoutMs: number = 30000,
+  maxAttempts: number = 600, // 600 attempts × 1s = 10 minutes max
   pollIntervalMs: number = 1000
 ): Promise<RunStatus> {
   const startTime = Date.now();
-  while (Date.now() - startTime < timeoutMs) {
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    attempts++;
     try {
       const status = await getRunStatus(eventId, 1);
       if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(status.status)) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        console.log(`✅ Workflow ${eventId} completed in ${elapsed}s (${attempts} polls)`);
         return status;
       }
     } catch (error) {
       // Continue polling if status not available yet
-      console.log(`Polling workflow ${eventId}... (${Math.floor((Date.now() - startTime) / 1000)}s elapsed)`);
+      if (attempts % 10 === 0) { // Log every 10 seconds
+        console.log(`Polling workflow ${eventId}... (${Math.floor((Date.now() - startTime) / 1000)}s elapsed, attempt ${attempts}/${maxAttempts})`);
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
-  throw new Error(`Workflow ${eventId} did not complete within ${timeoutMs}ms`);
+
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  throw new Error(`Workflow ${eventId} did not complete after ${attempts} attempts (${elapsed}s elapsed)`);
 }
 
 describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
   const MODE: CFNMode = 'standard';
   const MAX_ITERATIONS = 5;
-  const JOB_TIMEOUT_MS = 30000; // 30 seconds per iteration
+  const TEST_TIMEOUT_MS = 600000; // 10 minutes per test (removed constraint for live agents)
   const DELIVERABLE_FILE = 'hello-world.txt';
 
   let eventIds: string[] = [];
@@ -155,7 +165,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(result.name).toBe('cfn.loop.start');
       eventIds.push(result.id);
       console.log(`✅ Iteration 1 event triggered: ${result.id}`);
-    }, JOB_TIMEOUT_MS);
+    }, TEST_TIMEOUT_MS);
 
     it('should NOT create deliverable when gate fails', async () => {
       // GIVEN: Gate failure means no deliverable should be created yet
@@ -214,7 +224,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(result.id).toBeDefined();
       eventIds.push(result.id);
       console.log(`✅ Iteration 2 event triggered: ${result.id}`);
-    }, JOB_TIMEOUT_MS);
+    }, TEST_TIMEOUT_MS);
 
     it('should NOT create complete deliverable when consensus fails', async () => {
       // GIVEN: Consensus failure means deliverable incomplete
@@ -274,7 +284,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(result.id).toBeDefined();
       eventIds.push(result.id);
       console.log(`✅ Iteration 3 event triggered: ${result.id}`);
-    }, JOB_TIMEOUT_MS);
+    }, TEST_TIMEOUT_MS);
 
     it('should NOT create final deliverable when PO requests refinement', async () => {
       // GIVEN: PO ITERATE decision means deliverable not final
@@ -334,7 +344,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(result.id).toBeDefined();
       eventIds.push(result.id);
       console.log(`✅ Iteration 4 event triggered: ${result.id}`);
-    }, JOB_TIMEOUT_MS);
+    }, TEST_TIMEOUT_MS);
 
     it('should NOT create final deliverable when PO requests polish', async () => {
       // GIVEN: PO ITERATE decision for polish
@@ -398,15 +408,15 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       iteration5EventId = result.id;
       eventIds.push(result.id);
       console.log(`✅ Iteration 5 event triggered: ${result.id}`);
-    }, JOB_TIMEOUT_MS);
+    }, TEST_TIMEOUT_MS);
 
     it('should create final deliverable when PO PROCEED decision', async () => {
       // GIVEN: Iteration 5 event triggered (workflow should create deliverable)
       expect(iteration5EventId).toBeDefined();
 
-      // WHEN: Waiting for workflow to complete
+      // WHEN: Waiting for workflow to complete (no timeout constraint)
       console.log(`Waiting for workflow ${iteration5EventId} to complete...`);
-      const workflowStatus = await pollForWorkflowCompletion(iteration5EventId, JOB_TIMEOUT_MS);
+      const workflowStatus = await pollForWorkflowCompletion(iteration5EventId);
 
       // THEN: Workflow should complete successfully
       expect(workflowStatus.status).toBe('COMPLETED');
@@ -421,7 +431,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(content.trim()).toBe('Hello, World!');
 
       console.log(`✅ Iteration 5: Final deliverable created with content: "${content.trim()}"`);
-    }, JOB_TIMEOUT_MS * 2); // Double timeout for workflow completion + file verification
+    }, TEST_TIMEOUT_MS); // Extended timeout for live agent execution
 
     it('should verify deliverable contains exact expected content', () => {
       // GIVEN: Deliverable file exists
@@ -492,14 +502,14 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       forceEventId = result.id;
       eventIds.push(result.id);
       console.log(`✅ Force override event triggered: ${result.id}`);
-    }, JOB_TIMEOUT_MS);
+    }, TEST_TIMEOUT_MS);
 
     it('should verify force config is applied correctly', async () => {
       // GIVEN: Force override event triggered
       expect(forceEventId).toBeDefined();
 
-      // WHEN: Polling for workflow completion
-      const workflowStatus = await pollForWorkflowCompletion(forceEventId, JOB_TIMEOUT_MS);
+      // WHEN: Polling for workflow completion (no timeout constraint)
+      const workflowStatus = await pollForWorkflowCompletion(forceEventId);
 
       // THEN: Workflow should complete (force allows proceeding despite failures)
       expect(['COMPLETED', 'FAILED']).toContain(workflowStatus.status);
@@ -512,7 +522,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
           console.log(`✅ Force override applied: ${output.iterationHistory[0].forceApplied}`);
         }
       }
-    }, JOB_TIMEOUT_MS * 2);
+    }, TEST_TIMEOUT_MS);
   });
 
   // ============================================================================

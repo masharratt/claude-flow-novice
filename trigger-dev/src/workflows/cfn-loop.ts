@@ -341,328 +341,122 @@ export const cfnLoopWorkflow = defineJob({
       description: payload.description.substring(0, 100),
     });
 
-    let currentIteration = payload.currentIteration || 1;
-    let allAgentResults: AgentResult[] = [];
-    let latestGateCheck: GateCheckResult | null = null;
-    let latestConsensus: ConsensusResult | null = null;
-    let productOwnerDecision: ProductOwnerDecision | null = null;
+    const state: IterationState = {
+      currentIteration: payload.currentIteration || 1,
+      allAgentResults: [],
+      latestGateCheck: null,
+      latestConsensus: null,
+      productOwnerDecision: null,
+    };
 
-    while (currentIteration <= payload.maxIterations) {
-      await io.logger.log('Iteration started', { taskId: payload.taskId, iteration: currentIteration });
+    // Main iteration loop
+    while (state.currentIteration <= payload.maxIterations) {
+      await io.logger.log('Iteration started', {
+        taskId: payload.taskId,
+        iteration: state.currentIteration,
+      });
 
-      // LOOP 3: Spawn implementer agents
-      const agentTypes = determineAgentTypes(payload);
-      const loop3Results: AgentResult[] = [];
+      const phaseCtx: PhaseContext = {
+        taskId: payload.taskId,
+        iteration: state.currentIteration,
+        io,
+        payload,
+        thresholds,
+      };
 
-      for (const agentType of agentTypes) {
-        try {
-          const result = await io.sendEvent(`spawn-agent-${agentType}-${currentIteration}`, {
-            name: 'cfn.agent.run',
-            payload: {
-              taskId: payload.taskId,
-              agentType,
-              description: payload.description,
-              successCriteria: payload.successCriteria,
-              iterationNumber: currentIteration,
-              previousContext: allAgentResults,
-            },
-          });
-
-          // Wait for agent completion (in real impl, use io.waitForEvent or job chaining)
-          await io.wait('agent-cooldown', 2);
-        } catch (error: any) {
-          await io.logger.error('Event dispatch failed', {
-            taskId: payload.taskId,
-            agentType,
-            iteration: currentIteration,
-            error: error.message,
-          });
-          // Continue with other agents - individual failures handled in collection phase
-        }
-      }
-
-      // Execute real agents and collect results with error handling
+      // Phase 1: Execute Loop 3 agents
       let agentResults: AgentResult[];
       try {
-        agentResults = await io.runTask(`collect-loop3-${currentIteration}`, async () => {
-          const results: AgentResult[] = [];
-          const errors: any[] = [];
-
-          for (const agentType of agentTypes) {
-            try {
-              const execution = await executeAgent({
-                taskId: payload.taskId,
-                agentType,
-                context: payload.description,
-                testCommand: payload.successCriteria.testCommand,
-              });
-              const testResults = await executeTests(payload.successCriteria.testCommand);
-              results.push(toAgentResult(execution, agentType, testResults));
-            } catch (error: any) {
-              await io.logger.error('Agent execution failed', {
-                taskId: payload.taskId,
-                agentType,
-                iteration: currentIteration,
-                error: error.message,
-              });
-              errors.push({ agentType, error: error.message });
-            }
-          }
-
-          // If all agents failed, throw to trigger iteration
-          if (results.length === 0) {
-            throw new Error(`All Loop 3 agents failed: ${JSON.stringify(errors)}`);
-          }
-
-          return results;
-        });
+        agentResults = await executeLoop3Agents(phaseCtx);
       } catch (error: any) {
-        await io.logger.error('Loop 3 collection failed', {
-          taskId: payload.taskId,
-          iteration: currentIteration,
-          error: error.message,
-        });
-
-        // Iterate on complete failure
-        currentIteration++;
-        if (currentIteration > payload.maxIterations) {
-          return buildAbortResult(payload, allAgentResults, latestGateCheck, startTime, 'All agents failed');
+        state.currentIteration++;
+        if (state.currentIteration > payload.maxIterations) {
+          return buildAbortResult(payload, state.allAgentResults, state.latestGateCheck, startTime, 'All agents failed');
         }
         continue;
       }
 
-      loop3Results.push(...agentResults);
-      allAgentResults = allAgentResults.concat(agentResults);
+      state.allAgentResults = state.allAgentResults.concat(agentResults);
 
-      await io.logger.log('Loop 3 completed', {
-        taskId: payload.taskId,
-        agentCount: loop3Results.length,
-        avgPassRate: (loop3Results.reduce((s, r) => s + r.testResults.passRate, 0) / loop3Results.length).toFixed(4),
-      });
+      // Phase 2: Perform gate check
+      const gateResult = await performGateCheck(agentResults, phaseCtx);
+      state.latestGateCheck = gateResult;
 
-      // GATE CHECK: Trigger gate validation
-      try {
-        await io.sendEvent(`gate-check-${currentIteration}`, {
-          name: 'cfn.gate.check',
-          payload: {
-            taskId: payload.taskId,
-            agentResults: loop3Results,
-            mode: payload.mode,
-            iterationNumber: currentIteration,
-          },
-        });
-      } catch (error: any) {
-        await io.logger.error('Gate check event dispatch failed', {
-          taskId: payload.taskId,
-          iteration: currentIteration,
-          error: error.message,
-        });
-        // Continue - gate check is calculated locally
-      }
-
-      // Calculate gate result with error handling
-      let gateResult: GateCheckResult;
-      try {
-        gateResult = await io.runTask(`calculate-gate-${currentIteration}`, async () => {
-          return calculateGateResult(loop3Results, thresholds.loop3PassRateThreshold);
-        });
-      } catch (error: any) {
-        await io.logger.error('Gate calculation failed', {
-          taskId: payload.taskId,
-          iteration: currentIteration,
-          error: error.message,
-        });
-
-        // Fallback: fail the gate to trigger iteration
-        gateResult = {
-          passed: false,
-          passRate: 0,
-          threshold: thresholds.loop3PassRateThreshold,
-          agentResults: loop3Results,
-          reason: `Gate calculation failed: ${error.message}`,
-          checkedAt: new Date().toISOString(),
-        };
-      }
-
-      latestGateCheck = gateResult;
-
-      await io.logger.log('Gate check result', {
-        taskId: payload.taskId,
-        passed: gateResult.passed,
-        passRate: gateResult.passRate.toFixed(4),
-      });
-
-      // Gate failed - iterate
       if (!gateResult.passed) {
-        currentIteration++;
-        if (currentIteration > payload.maxIterations) {
-          return buildAbortResult(payload, allAgentResults, latestGateCheck, startTime, 'Max iterations reached');
+        state.currentIteration++;
+        if (state.currentIteration > payload.maxIterations) {
+          return buildAbortResult(payload, state.allAgentResults, state.latestGateCheck, startTime, 'Max iterations reached');
         }
-        await io.logger.log('Gate failed, iterating', { taskId: payload.taskId, nextIteration: currentIteration });
+        await io.logger.log('Gate failed, iterating', {
+          taskId: payload.taskId,
+          nextIteration: state.currentIteration,
+        });
         continue;
       }
 
-      // LOOP 2: Spawn validators
-      await io.logger.log('Gate passed, spawning validators', { taskId: payload.taskId });
-
-      const validatorTypes = ['code-reviewer', 'qa-engineer', 'security-specialist'].slice(0, thresholds.validatorCount);
-      const validatorResults: ValidatorResult[] = [];
-
-      for (const validatorType of validatorTypes) {
-        await io.sendEvent(`spawn-validator-${validatorType}-${currentIteration}`, {
-          name: 'cfn.agent.run',
-          payload: {
-            taskId: payload.taskId,
-            agentType: validatorType,
-            description: `Validate Loop 3 implementation: ${payload.description}`,
-            successCriteria: payload.successCriteria,
-            iterationNumber: currentIteration,
-            previousContext: loop3Results,
-          },
-        });
-      }
-
-      // Execute real validators and collect results with error handling
-      let validators: ValidatorResult[];
+      // Phase 3: Execute Loop 2 validators (gate passed)
+      let validatorResults: ValidatorResult[];
       try {
-        validators = await io.runTask(`collect-loop2-${currentIteration}`, async () => {
-          const results: ValidatorResult[] = [];
-          const errors: any[] = [];
-
-          for (const validatorType of validatorTypes) {
-            try {
-              const execution = await executeAgent({
-                taskId: payload.taskId,
-                agentType: validatorType,
-                context: `Validate Loop 3 implementation: ${payload.description}`,
-              });
-              results.push(toValidatorResult(execution, validatorType));
-            } catch (error: any) {
-              await io.logger.error('Validator execution failed', {
-                taskId: payload.taskId,
-                validatorType,
-                iteration: currentIteration,
-                error: error.message,
-              });
-              errors.push({ validatorType, error: error.message });
-            }
-          }
-
-          // Require at least 1 validator to succeed
-          if (results.length === 0) {
-            throw new Error(`All Loop 2 validators failed: ${JSON.stringify(errors)}`);
-          }
-
-          return results;
-        });
+        validatorResults = await executeLoop2Validators(agentResults, phaseCtx);
       } catch (error: any) {
-        await io.logger.error('Loop 2 collection failed', {
-          taskId: payload.taskId,
-          iteration: currentIteration,
-          error: error.message,
-        });
-
-        // Iterate on validator failure
-        currentIteration++;
-        if (currentIteration > payload.maxIterations) {
-          return buildAbortResult(payload, allAgentResults, latestGateCheck, startTime, 'All validators failed');
+        state.currentIteration++;
+        if (state.currentIteration > payload.maxIterations) {
+          return buildAbortResult(payload, state.allAgentResults, state.latestGateCheck, startTime, 'All validators failed');
         }
         continue;
       }
 
-      validatorResults.push(...validators);
+      // Phase 4: Collect consensus
+      const consensus = await collectConsensus(validatorResults, phaseCtx);
+      state.latestConsensus = consensus;
 
-      // CONSENSUS: Aggregate validator scores with error handling
-      let consensus: ConsensusResult;
-      try {
-        consensus = await io.runTask(`calculate-consensus-${currentIteration}`, async () => {
-          return calculateConsensus(validatorResults, thresholds.loop2ConsensusThreshold);
-        });
-      } catch (error: any) {
-        await io.logger.error('Consensus calculation failed', {
-          taskId: payload.taskId,
-          iteration: currentIteration,
-          error: error.message,
-        });
+      // Phase 5: Get Product Owner decision
+      const decision = await executeProductOwnerDecision(
+        consensus,
+        gateResult,
+        agentResults,
+        validatorResults,
+        phaseCtx
+      );
+      state.productOwnerDecision = decision;
 
-        // Fallback: fail consensus to trigger iteration
-        consensus = {
-          averageScore: 0,
-          validatorResults,
-          consensusMet: false,
-          threshold: thresholds.loop2ConsensusThreshold,
-          summary: `Consensus calculation failed: ${error.message}`,
-          consensusAt: new Date().toISOString(),
-        };
-      }
-
-      latestConsensus = consensus;
-
-      await io.logger.log('Consensus calculated', {
-        taskId: payload.taskId,
-        averageScore: consensus.averageScore.toFixed(4),
-        consensusMet: consensus.consensusMet,
-      });
-
-      // PRODUCT OWNER: Make decision
-      await io.sendEvent(`spawn-product-owner-${currentIteration}`, {
-        name: 'cfn.agent.run',
-        payload: {
-          taskId: payload.taskId,
-          agentType: 'product-owner',
-          description: `Review implementation and make PROCEED/ITERATE/ABORT decision: ${payload.description}`,
-          successCriteria: payload.successCriteria,
-          iterationNumber: currentIteration,
-          previousContext: [...loop3Results, ...validatorResults as any],
-        },
-      });
-
-      // Parse PO decision with error handling
-      let decision: ProductOwnerDecision;
-      try {
-        decision = await io.runTask(`parse-po-decision-${currentIteration}`, async () => {
-          return parseProductOwnerDecision(consensus, gateResult);
-        });
-      } catch (error: any) {
-        await io.logger.error('Product Owner decision parsing failed', {
-          taskId: payload.taskId,
-          iteration: currentIteration,
-          error: error.message,
-        });
-
-        // Fallback: iterate on parsing failure
-        decision = {
-          decision: 'ITERATE',
-          reasoning: `Decision parsing failed: ${error.message}`,
-          decidedAt: new Date().toISOString(),
-        };
-      }
-
-      productOwnerDecision = decision;
-
-      await io.logger.log('Product Owner decision', {
-        taskId: payload.taskId,
-        decision: decision.decision,
-      });
-
-      // Route based on decision
+      // Phase 6: Route based on decision
       if (decision.decision === 'PROCEED') {
         await io.logger.log('CFN Loop completed with PROCEED', { taskId: payload.taskId });
-        return buildCompletedResult(payload, allAgentResults, latestGateCheck, latestConsensus, decision, startTime);
+        return buildCompletedResult(
+          payload,
+          state.allAgentResults,
+          state.latestGateCheck,
+          state.latestConsensus,
+          decision,
+          startTime
+        );
       }
 
       if (decision.decision === 'ABORT') {
-        await io.logger.log('CFN Loop aborted', { taskId: payload.taskId, reason: decision.abortReason });
+        await io.logger.log('CFN Loop aborted', {
+          taskId: payload.taskId,
+          reason: decision.abortReason,
+        });
         throw new Error(`CFN Loop aborted: ${decision.abortReason}`);
       }
 
-      // ITERATE
-      currentIteration++;
-      await io.logger.log('Iterating per Product Owner', { taskId: payload.taskId, nextIteration: currentIteration });
+      // ITERATE: Continue to next iteration
+      state.currentIteration++;
+      await io.logger.log('Iterating per Product Owner', {
+        taskId: payload.taskId,
+        nextIteration: state.currentIteration,
+      });
     }
 
     // Max iterations exceeded
-    return buildAbortResult(payload, allAgentResults, latestGateCheck, startTime, 'Max iterations exceeded');
+    return buildAbortResult(
+      payload,
+      state.allAgentResults,
+      state.latestGateCheck,
+      startTime,
+      'Max iterations exceeded'
+    );
   },
 });
 
