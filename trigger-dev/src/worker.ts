@@ -1,40 +1,20 @@
-/**
- * trigger.dev Worker Entry Point (v2 SDK)
- * Registers all CFN Loop jobs with the trigger.dev server
- */
+import { configure } from '@trigger.dev/sdk/v3';
+import { cfnLoopV3Task } from './cfn-loop.task';
+import { gateCheckTask } from './gate-check.task';
+import { loop3AgentTask } from './loop3-agent.task';
+import { loop2ValidatorTask } from './loop2-validator.task';
+import { productOwnerTask } from './product-owner.task';
 
-import { TriggerClient } from '@trigger.dev/sdk';
-import { cfnLoopWorkflow } from './workflows/cfn-loop';
-import { cfnAgentJob } from './jobs/cfn-agent';
-import { cfnGateCheckJob } from './jobs/cfn-gate-check';
+// Configure the SDK client from env (TRIGGER_API_KEY/TRIGGER_API_URL)
+configure({});
 
-// Initialize trigger.dev client
-const client = new TriggerClient({
-  id: 'cfn-loop-worker',
-  apiKey: process.env.TRIGGER_API_KEY!,
-  apiUrl: process.env.TRIGGER_API_URL || 'http://localhost:3040',
-});
-
-// Explicitly register jobs with the client (v3 SDK requirement)
-client.defineJob(cfnLoopWorkflow);
-client.defineJob(cfnAgentJob);
-client.defineJob(cfnGateCheckJob);
-
-// Export jobs for reference
-export const jobs = {
-  cfnLoopWorkflow,
-  cfnAgentJob,
-  cfnGateCheckJob,
+// Export tasks so the trigger.dev build/worker can discover them
+export const tasks = {
+  cfnLoopV3Task,
+  gateCheckTask,
+  loop3AgentTask,
+  loop2ValidatorTask,
+  productOwnerTask,
 };
 
-// Export client for use in jobs
-export { client };
-export default client;
-
-// Self-invoking registration
-if (require.main === module) {
-  console.log('Starting CFN Loop trigger.dev worker...');
-  console.log(`API URL: ${process.env.TRIGGER_API_URL || 'http://localhost:3040'}`);
-  console.log('Registered jobs:');
-  Object.keys(jobs).forEach((name) => console.log(`  - ${name}`));
-}
+export default tasks;

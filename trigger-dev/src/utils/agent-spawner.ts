@@ -1,6 +1,19 @@
 /**
- * Agent Spawning Utility
- * Handles spawning CFN Loop agents via CLI with proper context injection
+ * Agent Spawning Utility - DEPRECATED
+ *
+ * ⚠️  THIS MODULE IS DEPRECATED FOR TRIGGER PROCESS
+ *
+ * CLI mode has been completely removed from trigger.dev process.
+ * The trigger process now exclusively handles CFN Docker loops.
+ *
+ * For CLI mode, use the separate CLI process:
+ *   /cfn-loop-cli "task description" --mode=standard
+ *
+ * For Docker execution, use trigger.dev tasks directly.
+ * This file is kept for backward compatibility only.
+ *
+ * @deprecated Use trigger.dev Docker tasks or separate CLI process
+ * @removed CLI spawning functionality - replaced with Docker-only execution
  */
 
 import { exec } from 'child_process';
@@ -135,6 +148,12 @@ export class AgentSpawner {
    * TODO: RUNTIME_TEST - Verify agent-id uniqueness across concurrent spawns
    */
   async spawn(request: AgentSpawningRequest): Promise<AgentSpawningResponse> {
+    // CLI mode has been removed from trigger process
+    throw new Error(
+      `CLI agent spawning is no longer supported in trigger process. ` +
+      `Use trigger.dev Docker tasks for containerized execution or separate CLI process for local development. ` +
+      `Agent: ${request.agentType}, Task: ${request.taskId}`
+    );
     // Validate inputs
     if (!request.agentType || request.agentType.trim() === '') {
       throw new Error('agentType is required');
@@ -171,9 +190,8 @@ export class AgentSpawner {
         spawnedAt: new Date().toISOString(),
         estimatedDurationSeconds: this.estimateDuration(request.agentType),
       };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
+    } catch (error: any) {
+      const errorMessage = error?.message || error || 'Unknown error';
       throw new Error(`Failed to spawn agent ${agentId}: ${errorMessage}`);
     }
   }

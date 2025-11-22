@@ -122,6 +122,21 @@ export async function runCfnLoopV3(payload: CFNLoopPayload): Promise<CFNLoopResu
 
   const success = gatePassed && consensusMet && decision.decision === 'PROCEED';
 
+  // DEBUG: Log success conditions
+  console.log(`DEBUG CFN Loop Task ${payload.taskId}:`, {
+    iteration,
+    maxIterations: payload.maxIterations,
+    gatePassed,
+    gatePassRate,
+    gateThreshold: thresholds.loop3PassRateThreshold,
+    consensusMet,
+    consensusScore,
+    consensusThreshold: thresholds.loop2ConsensusThreshold,
+    decision: decision.decision,
+    success,
+    deliverablePath: success ? resolveDeliverablePath(payload) : 'N/A (not successful)'
+  });
+
   const iterationResult = createIterationResult(
     iteration,
     gatePassed,
@@ -137,12 +152,20 @@ export async function runCfnLoopV3(payload: CFNLoopPayload): Promise<CFNLoopResu
   // Create deliverable when success criteria are satisfied
   if (success) {
     const deliverablePath = resolveDeliverablePath(payload);
-    fs.mkdirSync(path.dirname(deliverablePath), { recursive: true });
-    fs.writeFileSync(
-      deliverablePath,
-      `Hello, World!\nTask: ${payload.taskId}\nIteration: ${iteration}\nTimestamp: ${new Date().toISOString()}\n`
-    );
-    agentResult.deliverables.files.push(deliverablePath);
+    console.log(`DEBUG: Creating deliverable at ${deliverablePath}`);
+    try {
+      fs.mkdirSync(path.dirname(deliverablePath), { recursive: true });
+      fs.writeFileSync(
+        deliverablePath,
+        `Hello, World!\nTask: ${payload.taskId}\nIteration: ${iteration}\nTimestamp: ${new Date().toISOString()}\n`
+      );
+      agentResult.deliverables.files.push(deliverablePath);
+      console.log(`DEBUG: Deliverable created successfully, exists: ${fs.existsSync(deliverablePath)}`);
+    } catch (error) {
+      console.error(`DEBUG: Failed to create deliverable:`, error);
+    }
+  } else {
+    console.log(`DEBUG: Not creating deliverable - success=false`);
   }
 
   return {

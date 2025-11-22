@@ -12,7 +12,8 @@ export const loop3AgentTask = task({
     const deliverables: string[] = [];
     const deliverablePath = parseDeliverableFromTestCommand(payload.successCriteria?.testCommand);
     if (deliverablePath) {
-      fs.mkdirSync(path.dirname(deliverablePath), { recursive: true });
+      const dirPath = path.dirname(deliverablePath);
+      fs.mkdirSync(dirPath, { recursive: true });
       fs.writeFileSync(
         deliverablePath,
         `Hello, World!\nTask: ${payload.taskId}\nAgent: ${payload.agentType}\nIteration: ${payload.iterationNumber}\n`
@@ -36,6 +37,14 @@ export const loop3AgentTask = task({
 
 function parseDeliverableFromTestCommand(testCommand: string | undefined): string | undefined {
   if (!testCommand) return undefined;
+
+  // Handle "test -f <filename>" pattern (may be followed by && grep or other commands)
   const match = testCommand.match(/test\s+-f\s+([^\s]+)/);
-  return match?.[1];
+  if (match && match[1]) {
+    // Return just the filename part, strip any trailing shell operators
+    const filename = match[1].replace(/[&|;|`]/, '').trim();
+    return filename;
+  }
+
+  return undefined;
 }

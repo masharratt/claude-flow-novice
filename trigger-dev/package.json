@@ -2,7 +2,7 @@
   "name": "cfn-loop-trigger-dev",
   "version": "1.0.0",
   "description": "trigger.dev workflow for CFN Loop orchestration",
-  "main": "src/workflows/cfn-loop.workflow.ts",
+  "main": "src/v3/worker.ts",
   "type": "module",
   "trigger.dev": {
     "endpointId": "cfn-loop-workflow"
@@ -27,7 +27,6 @@
     "commander": "^12.0.0"
   },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.53.3",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
