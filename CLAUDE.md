@@ -248,14 +248,15 @@ CREATE TABLE IF NOT EXISTS agents (
 - Full visibility in Main Chat
 - Use: Debugging, learning, short tasks (<5 min)
 
-**2. CLI Mode (Production):**
+**2. CLI Mode (Production - NEW Simplified Architecture):**
 ```bash
-/cfn-loop-cli "Task description" --mode=standard
+/cfn-loop-cli "Task description" --mode=standard --provider kimi
 ```
-- Main Chat spawns ONLY cfn-v3-coordinator
-- Coordinator spawns workers via CLI (background)
-- Cost: $0.054/iteration (64% savings vs Task)
-- Use: Production, long tasks, cost-sensitive
+- Main Chat spawns CLI agents DIRECTLY (no coordinator)
+- CLI agents send Redis completion signals to Main Chat
+- Cost: $0.050/iteration (67% savings vs Task)
+- Use: Production, provider routing, cost-sensitive
+- **NEW:** Simplified 2-layer coordination (Main Chat → CLI agents)
 
 **Mode selection guidance for users:**
 - "execute cfn loop on X" → `/cfn-loop-task` (default)
@@ -264,7 +265,8 @@ CREATE TABLE IF NOT EXISTS agents (
 - "production cfn loop on X" → `/cfn-loop-cli`
 
 **Architecture patterns:**
-- CLI: Main Chat → cfn-v3-coordinator → orchestrate.sh → CLI workers (background)
+- CLI (NEW): Main Chat → CLI agents (direct) + Redis BLPOP coordination
+- CLI (OLD): Main Chat → cfn-v3-coordinator → orchestrate.sh → CLI workers (background)
 - Task: Main Chat → Task() agents (no coordinator, full visibility)
 
 ### Skills-Based Coordination
@@ -284,32 +286,58 @@ CREATE TABLE IF NOT EXISTS agents (
 - Commands: `.claude/commands/cfn/` (45+ commands, subdirectory)
 
 
-**🚨 CRITICAL: Main Chat MUST Use CLI Mode Commands**
+**🚨 CRITICAL: Main Chat CLI Mode - NEW SIMPLIFIED ARCHITECTURE**
 
-**DO NOT spawn Task() agents directly for CFN Loop workflows.**
-Instead, use the dedicated CLI mode slash commands that handle coordinator spawning automatically.
+**CLI Mode (NEW): Main Chat coordinates CLI agents directly via Redis BLPOP signaling.**
+No coordinator required for simplified 2-layer coordination.
 
-**❌ FORBIDDEN - Manual Task() Spawning:**
+**✅ CLI Mode (NEW) - Direct Agent Spawning:**
+```bash
+# NEW: Direct CLI agent spawning with provider routing
+/cfn-loop-cli "Implement feature" --provider kimi
+# Results: Main Chat spawns CLI agent directly, waits via Redis BLPOP
+
+# Provider options (fallback to Z.ai glm-4.6 if not specified)
+--provider zai          # Cost-optimized ($0.50/1M tokens)
+--provider kimi         # Mid-range quality ($2/1M tokens)
+--provider openrouter  # Access 400+ models
+--provider max         # High quality (Anthropic)
+
+# Mode options for quality control
+--mode mvp              # Fast prototyping (70% gates)
+--mode standard         # Production features (95% gates)
+--mode enterprise       # Security/compliance (98% gates)
+```
+
+**❌ DEPRECATED: Manual Task() Spawning:**
 ```javascript
-// WRONG - Don't spawn CFN Loop agents manually from Main Chat
-Task("cfn-v3-coordinator", "Execute CFN Loop...")           // ❌ NO
-Task("backend-developer", "Implement feature...")          // ❌ NO
-Task("tester", "Test feature...")                         // ❌ NO
+// OLD - Complex coordinator spawning (deprecated)
+Task("cfn-v3-coordinator", "Execute CFN Loop...")           // ❌ OLD
+Task("backend-developer", "Implement feature...")          // ❌ OLD
+Task("tester", "Test feature...")                         // ❌ OLD
 ```
 
 **✅ REQUIRED - Use CLI Mode Slash Commands:**
 ```bash
-# PRODUCTION - Enhanced CLI mode v3.0 (default)
-/cfn-loop-cli "Implement JWT authentication" --mode=standard
+# PRODUCTION - NEW Simplified CLI mode (Main Chat coordination)
+/cfn-loop-cli "Implement JWT authentication" --mode=standard --provider kimi
 
 # DEBUGGING - Task mode (full visibility)
 /cfn-loop-task "Fix security bug in auth module" --mode=standard
 
-# QUICK TASKS - Single iteration
-/cfn-loop-single "Update documentation"
+# COST-OPTIMIZED - Use Z.ai for all CLI agents
+/switch-api zai
+/cfn-loop-cli "Batch data processing" --provider zai
 
-# LARGE EPICS - Multi-phase
-/cfn-loop-epic "Build complete authentication system"
+# QUALITY-FOCUSED - Use Anthropic for critical tasks
+/switch-api max
+/cfn-loop-cli "Security audit" --provider max --mode enterprise
+
+# MID-RANGE QUALITY - Use Kimi for balanced cost/quality
+/cfn-loop-cli "Feature development" --provider kimi --mode standard
+
+# FALLBACK - Automatic Z.ai glm-4.6 when no provider specified
+/cfn-loop-cli "Quick prototype" --mode mvp
 ```
 
 **Why CLI Mode Commands?**
