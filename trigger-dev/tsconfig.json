@@ -42,6 +42,7 @@
   "include": [
     "src/types/**/*.ts",
     "src/utils/**/*.ts",
+    "src/v3/**/*.ts",
     "trigger-dev-client.ts"
   ],
   "exclude": [
