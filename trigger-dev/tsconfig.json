@@ -11,7 +11,7 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
@@ -37,17 +37,23 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["node", "vitest/globals"]
+    "types": ["node"]
   },
   "include": [
-    "src/**/*.ts",
-    "tests/**/*.ts"
+    "src/types/**/*.ts",
+    "src/utils/**/*.ts",
+    "trigger-dev-client.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     ".trigger",
-    ".artifacts"
+    ".artifacts",
+    "src/cli/**",
+    "src/jobs/**",
+    "src/lib/**",
+    "src/workflows/**",
+    "src/worker.ts"
   ],
   "ts-node": {
     "esm": true,

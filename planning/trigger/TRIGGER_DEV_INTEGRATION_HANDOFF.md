@@ -285,6 +285,29 @@ Once these pass, rerun the full North Star suite; iteration 5 should create the 
 
 ---
 
+## Implementation Plan (SDK v3 path)
+
+Decision: standardize on `@trigger.dev/sdk/v3` for stability/scalability. The current code mixes v2/v3 APIs and does not compile.
+
+Planned steps:
+- **Build config:** isolate worker build to source only and compile from project root so dist artifacts are produced cleanly. _Done this session: tsconfig now scopes includes to `src` and sets `rootDir` to project root._
+- **API alignment:** refactor v2-style files (`worker.ts`, `src/workflows/cfn-loop.ts`, `src/jobs/*`) to v3 patterns; remove `defineJob` usage. If we abandon v3, we would instead pin `@trigger.dev/sdk@2` (not recommended).
+- **Type fixes:** address `string | undefined` env usage, required fields (e.g., `realExecution` in `CFNLoopResult`), and replace RunHandle placeholders with concrete results.
+- **Entrypoint:** ensure the worker service starts the v3 worker build artifacts (`trigger.dev build`/`dev`) instead of the webapp server; override CMD/ENTRYPOINT in the worker image if necessary.
+- **Docker build:** add `npm run build` during the image build and confirm dist output is located where the entrypoint loads workflows.
+
+Execution done this session:
+- Updated `tsconfig.json` to compile from project root and exclude tests from the build path, surfacing the real API/type errors for the v3 refactor.
+
+Current compiler blockers (API mix):
+- `defineJob` missing from `@trigger.dev/sdk` (v3) across jobs/workflows.
+- `workflow` missing from `@trigger.dev/sdk/v3` in `cfn-loop.workflow.ts`.
+- Missing required fields (`realExecution`) and unsafe `string | undefined` uses (CLI, parsers, job payloads).
+- Task options using `maxAttempts` not present in v3 typings; RunHandle types returned where concrete job results are required.
+- Build still fails until the v3 refactor lands (or we explicitly pin to v2).
+
+---
+
 ## Troubleshooting Guide
 
 ### Worker Container Won't Start
