@@ -12,7 +12,7 @@
 - Spawns agents via CLI with coordinator
 - Redis-based coordination and messaging
 - Background execution with swarm recovery
-- 95-98% cost savings with custom routing
+- Custom provider routing with model translation
 
 ## Standard Key Patterns (v2.14.6)
 

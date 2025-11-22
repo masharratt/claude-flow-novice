@@ -74,6 +74,7 @@
    - Performance metrics
    - Testing frameworks
    - CFN Loop forgiveness mechanisms (17 features)
+   - Provider routing system (cross-provider model compatibility)
    - CFN Error logging skill
 
 2. **[additional-commands.md](./additional-commands.md)**
@@ -97,6 +98,7 @@
    - Comprehensive command reference
    - CFN Loop, Docker, and agent management commands
    - Task Mode vs CLI Mode execution commands
+   - Provider routing commands (/switch-api, /cfn-loop-cli --provider)
 
 ### System Configuration
 1. **[logs-hooks.md](./logs-hooks.md)**
