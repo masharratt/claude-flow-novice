@@ -27,9 +27,9 @@ export interface TaskContext {
 }
 
 /**
- * Build CFN Loop Redis Completion Protocol for CLI Mode
+ * Build CLI Mode Redis Completion Protocol for CLI Mode
  */
-function buildCFNLoopProtocol(taskId: string, agentId: string): string {
+function buildCLIModeProtocol(taskId: string, agentId: string): string {
   return `
 ## CLI Mode Redis Completion Protocol
 
@@ -452,9 +452,9 @@ export async function buildAgentPrompt(
     // Continue without skills
   }
 
-  // 5. CFN Loop protocol (ALWAYS inject when taskId present - enables Redis coordination)
+  // 5. CLI Mode protocol (ALWAYS inject when taskId present - enables Redis coordination)
   if (context.taskId && agentId) {
-    sections.push(buildCFNLoopProtocol(context.taskId, agentId));
+    sections.push(buildCLIModeProtocol(context.taskId, agentId));
     sections.push('');
   }
 

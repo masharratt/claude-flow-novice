@@ -9,7 +9,7 @@
  * - Pre-edit backup injection
  * - Post-edit validation injection
  * - Error handling for missing context
- * - CFN Loop protocol generation
+ * - CLI Mode protocol generation
  * - Environment context building
  * - Skills injection (Phase 5)
  * - Iteration history integration
@@ -93,7 +93,7 @@ describe('Agent Prompt Builder - Core Functionality', () => {
       expect(prompt).toContain('## Task');
       expect(prompt).toContain('Implement JWT authentication');
       expect(prompt).toContain('## Agent Definition');
-      expect(prompt).toContain('## CFN Loop Redis Completion Protocol');
+      expect(prompt).toContain('## CLI Mode Redis Completion Protocol');
       expect(prompt).toContain('## Execution Instructions');
       expect(prompt).toContain('## Pre-Edit Backup Protocol (MANDATORY)');
       expect(prompt).toContain('## Available Tools');
@@ -122,17 +122,17 @@ describe('Agent Prompt Builder - Core Functionality', () => {
       expect(prompt).not.toContain('**Priority:**');
     });
 
-    test('should include CFN Loop protocol when taskId is present', async () => {
+    test('should include CLI Mode protocol when taskId is present', async () => {
       const prompt = await buildAgentPrompt(mockAgentDefinition, mockTaskContext);
 
-      expect(prompt).toContain('## CFN Loop Redis Completion Protocol');
-      expect(prompt).toContain('report-completion.sh');
-      expect(prompt).toContain('--task-id "test-task-123"');
-      expect(prompt).toContain('--agent-id "backend-developer-1"');
-      expect(prompt).toContain('--confidence [YOUR_CONFIDENCE_SCORE]');
+      expect(prompt).toContain('## CLI Mode Redis Completion Protocol');
+      expect(prompt).toContain('redis-cli BLPOP');
+      expect(prompt).toContain('TASK_ID=test-task-123');
+      expect(prompt).toContain('agentId: \'backend-developer-1\'');
+      expect(prompt).toContain('cfn:mainchat:signal:');
     });
 
-    test('should omit CFN Loop protocol when taskId is missing', async () => {
+    test('should omit CLI Mode protocol when taskId is missing', async () => {
       const contextWithoutTaskId: TaskContext = {
         iteration: 1,
         context: 'Simple task',
@@ -140,8 +140,8 @@ describe('Agent Prompt Builder - Core Functionality', () => {
 
       const prompt = await buildAgentPrompt(mockAgentDefinition, contextWithoutTaskId);
 
-      expect(prompt).not.toContain('## CFN Loop Redis Completion Protocol');
-      expect(prompt).not.toContain('report-completion.sh');
+      expect(prompt).not.toContain('## CLI Mode Redis Completion Protocol');
+      expect(prompt).not.toContain('redis-cli BLPOP');
     });
 
     test('should inject agent-specific tools list', async () => {
@@ -673,24 +673,23 @@ describe('Agent Prompt Builder - Core Functionality', () => {
     });
   });
 
-  describe('CFN Loop Protocol Generation', () => {
-    test('should generate complete CFN Loop protocol', async () => {
+  describe('CLI Mode Protocol Generation', () => {
+    test('should generate complete CLI Mode protocol', async () => {
       const prompt = await buildAgentPrompt(mockAgentDefinition, mockTaskContext);
 
-      expect(prompt).toContain('## CFN Loop Redis Completion Protocol');
+      expect(prompt).toContain('## CLI Mode Redis Completion Protocol');
       expect(prompt).toContain('### Step 1: Complete Your Work');
-      expect(prompt).toContain('### Step 2: Calculate Confidence Score');
-      expect(prompt).toContain('### Step 3: Report Completion to Redis');
-      expect(prompt).toContain('### Step 4: Exit Cleanly');
+      expect(prompt).toContain('### Step 2: Signal Completion to Main Chat');
+      expect(prompt).toContain('### Step 3: Exit Cleanly');
     });
 
-    test('should include confidence scoring guidelines', async () => {
+    test('should include CLI coordination rationale', async () => {
       const prompt = await buildAgentPrompt(mockAgentDefinition, mockTaskContext);
 
-      expect(prompt).toContain('0.90-1.0: Excellent, production-ready');
-      expect(prompt).toContain('0.75-0.89: Good, minor issues possible');
-      expect(prompt).toContain('0.50-0.74: Acceptable, needs review');
-      expect(prompt).toContain('0.0-0.49: Poor, significant issues');
+      expect(prompt).toContain('**Why This Protocol:**');
+      expect(prompt).toContain('Main Chat uses Redis BLPOP to wait for your completion signal');
+      expect(prompt).toContain('Enables simple 2-layer coordination (Main Chat → CLI agents)');
+      expect(prompt).toContain('No complex orchestrator needed for CLI mode');
     });
 
     test('should document environment variables', async () => {
@@ -699,16 +698,17 @@ describe('Agent Prompt Builder - Core Functionality', () => {
       expect(prompt).toContain('**Environment Variables Available:**');
       expect(prompt).toContain('- TASK_ID: test-task-123');
       expect(prompt).toContain('- AGENT_ID: backend-developer-1');
-      expect(prompt).toContain('- ITERATION: Current iteration number');
+      expect(prompt).toContain('- PROVIDER: AI provider (zai, kimi, anthropic, etc.)');
+      expect(prompt).toContain('- MODEL: Specific model being used');
     });
 
     test('should explain coordination rationale', async () => {
       const prompt = await buildAgentPrompt(mockAgentDefinition, mockTaskContext);
 
-      expect(prompt).toContain('**Why This Matters:**');
-      expect(prompt).toContain('Enables zero-token coordination');
-      expect(prompt).toContain('Supports adaptive agent specialization');
-      expect(prompt).toContain('Prevents memory leaks');
+      expect(prompt).toContain('**Why This Protocol:**');
+      expect(prompt).toContain('Main Chat uses Redis BLPOP to wait for your completion signal');
+      expect(prompt).toContain('Enables simple 2-layer coordination (Main Chat → CLI agents)');
+      expect(prompt).toContain('No complex orchestrator needed for CLI mode');
     });
   });
 
@@ -884,12 +884,12 @@ describe('Agent Prompt Builder - Core Functionality', () => {
       const prompt = await buildAgentPrompt(mockAgentDefinition, minimalContext);
 
       expect(prompt).toContain('Execute task as backend-developer agent');
-      expect(prompt).not.toContain('## CFN Loop Redis Completion Protocol');
+      expect(prompt).not.toContain('## CLI Mode Redis Completion Protocol');
     });
   });
 
   describe('Integration Tests - Full Prompt Generation', () => {
-    test('should generate complete prompt for standard CFN Loop task', async () => {
+    test('should generate complete prompt for standard CLI Mode task', async () => {
       const fullContext: TaskContext = {
         taskId: 'full-task-789',
         iteration: 1,
@@ -911,7 +911,7 @@ describe('Agent Prompt Builder - Core Functionality', () => {
         '# Agent: backend-developer',
         '## Task',
         '## Agent Definition',
-        '## CFN Loop Redis Completion Protocol',
+        '## CLI Mode Redis Completion Protocol',
         '## Environment Variables',
         '## Execution Instructions',
         '## Pre-Edit Backup Protocol (MANDATORY)',
