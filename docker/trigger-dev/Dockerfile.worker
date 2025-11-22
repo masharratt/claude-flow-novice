@@ -35,9 +35,7 @@ WORKDIR /triggerdotdev/trigger-dev
 RUN npm install
 
 # Build TypeScript to JavaScript (required for worker to load workflows)
-# DISABLED: TypeScript compilation errors need to be fixed first
-# Worker will use ts-node at runtime instead
-# RUN npm run build  # DISABLED: TS compilation errors - using ts-node at runtime
+RUN npm run build
 
 # Copy .claude agent templates (needed for agent spawning)
 COPY .claude /triggerdotdev/.claude

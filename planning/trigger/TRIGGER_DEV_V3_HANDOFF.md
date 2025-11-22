@@ -46,6 +46,9 @@
 - `trigger-dev/src/v3/worker.ts` (exports all v3 tasks)
 - `trigger-dev/trigger-dev-client.ts` (routes to v3 runner)
 - `trigger-dev/tsconfig.json` (includes v3 folder; v2 files excluded)
+- `trigger-dev/src/v3/cfn-loop.task.ts` now honors forceIteration, thresholds, single-iteration PO decisions, and writes deliverables when PROCEED; defaults to PROCEED only on max iteration/success.
+- `trigger-dev/trigger-dev-client.ts` now defaults to hitting trigger.dev HTTP API (`/api/v3/events`) unless `TRIGGER_USE_LOCAL_SHIM=true`; run status polls the API.
+- `docker/trigger-dev/Dockerfile.worker` runs `npm run build` to ship compiled v3 artifacts into the worker image.
 
 ---
 
@@ -59,18 +62,20 @@
 
 2) **Re-enable workflows/jobs in build:**
    - Update tsconfig includes to add migrated workflow files (remove exclusions).
-   - Remove or archive v2 workflow (`src/workflows/cfn-loop.ts`) once replaced.
+   - Remove or archive v2 workflow (src/workflows/cfn-loop.ts) once replaced.
 
 3) **Docker/worker wiring:**
-   - Add `npm run build` to `docker/trigger-dev/Dockerfile.worker`.
-   - Ensure entrypoint runs v3 worker (not webapp). Set envs: `TRIGGER_API_KEY`, `TRIGGER_API_URL=http://trigger-webapp:3000`, `WORKER_MODE=true`, `CFN_WORKSPACE=/workspace`, `CFN_DELIVERABLES_PATH=/tmp/trigger-dev-deliverables`.
-   - Mount `/workspace` and `/tmp/trigger-dev-deliverables`.
+   - Ensure entrypoint runs v3 worker (not webapp). Set envs: TRIGGER_API_KEY, TRIGGER_API_URL=http://trigger-webapp:3000, WORKER_MODE=true, CFN_WORKSPACE=/workspace, CFN_DELIVERABLES_PATH=/tmp/trigger-dev-deliverables.
+   - Mount /workspace and /tmp/trigger-dev-deliverables.
 
 4) **Run North Star against live worker:**
    - Start docker-compose, confirm worker logs show task registration.
    - Run `npm test tests/e2e/north-star-2-iteration-workflow.test.ts` with tests pointed to the remote worker (or env flag).
-   - Verify deliverable exists and content matches “Hello, World!”.
+   - Verify deliverable exists and content matches Hello, World!.
 
+5) **Client/Test alignment for remote worker:**
+   - Tests now default to remote trigger.dev API calls via /api/v3/events; set TRIGGER_USE_LOCAL_SHIM=true only for fallback.
+   - Ensure TRIGGER_API_URL/TRIGGER_API_KEY point at the running trigger.dev stack before executing North Star suites.
 ---
 
 ## Quick Commands
@@ -105,4 +110,3 @@ docker logs -f trigger-dev-worker
 - Update tsconfig to include migrated workflows/jobs.
 - Wire Docker/entrypoint for v3 worker; add build step.
 - Run North Star suite against the live worker and confirm deliverables.
-

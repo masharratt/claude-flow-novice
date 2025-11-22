@@ -27,61 +27,75 @@ export interface TaskContext {
 }
 
 /**
- * Build CFN Loop protocol instructions
+ * Build CFN Loop Redis Completion Protocol for CLI Mode
  */
 function buildCFNLoopProtocol(taskId: string, agentId: string): string {
   return `
-## CFN Loop Redis Completion Protocol
+## CLI Mode Redis Completion Protocol
 
-You are participating in a CFN Loop workflow. Follow this protocol EXACTLY:
+You are running in CLI Mode with Main Chat coordination. Follow this protocol EXACTLY:
 
 ### Step 1: Complete Your Work
 Execute your assigned task (implementation, review, testing, etc.)
 
-### Step 2: Calculate Confidence Score
-Assess your work quality and assign a confidence score (0.0-1.0):
-- 0.90-1.0: Excellent, production-ready
-- 0.75-0.89: Good, minor issues possible
-- 0.50-0.74: Acceptable, needs review
-- 0.0-0.49: Poor, significant issues
+### Step 2: Signal Completion to Main Chat
+Send a Redis signal to notify Main Chat that you're finished:
 
-### Step 3: Report Completion to Redis
 \`\`\`bash
-./.claude/skills/cfn-redis-coordination/report-completion.sh \\
-  --task-id "${taskId}" \\
-  --agent-id "${agentId}" \\
-  --confidence [YOUR_CONFIDENCE_SCORE] \\
-  --iteration \${ITERATION:-1}
+# Use Node.js for Redis communication
+node -e "
+const { createClient } = require('redis');
+const signal = {
+  agentId: '${agentId}',
+  taskId: '${taskId}',
+  status: 'completed',
+  timestamp: new Date().toISOString(),
+  provider: process.env.PROVIDER || 'unknown',
+  model: process.env.MODEL || 'unknown',
+  confidence: 0.90, // Replace with your actual confidence
+  metadata: {
+    iteration: process.env.ITERATION || 1,
+    mode: process.env.MODE || 'standard'
+  }
+};
+
+(async () => {
+  const client = createClient({ url: 'redis://localhost:6379' });
+  await client.connect();
+
+  const signalKey = \`cfn:mainchat:signal:\${process.env.TASK_ID}\`;
+  await client.lPush(signalKey, JSON.stringify(signal));
+
+  console.log(\`✅ Completion signal sent to Main Chat via Redis\`);
+  await client.disconnect();
+})();
+"
 \`\`\`
 
-This script automatically:
-- Signals completion via \`swarm:${taskId}:${agentId}:done\`
-- Stores confidence in \`swarm:${taskId}:${agentId}:confidence\`
-- Creates result hash in \`swarm:${taskId}:${agentId}:result\`
-- Updates SQLite persistence layer
+### Step 3: Exit Cleanly
+After sending the signal, exit immediately. Main Chat is waiting for your Redis signal.
 
-### Step 4: Exit Cleanly
-After reporting, exit immediately. DO NOT enter waiting mode.
-
-The orchestrator will:
-- Collect confidence scores from all agents
-- Run gate check (≥0.75 threshold)
-- Spawn validators if gate passes
-- Spawn fresh agents for iteration N+1 if needed
+**Why This Protocol:**
+- Main Chat uses Redis BLPOP to wait for your completion signal
+- Enables simple 2-layer coordination (Main Chat → CLI agents)
+- No complex orchestrator needed for CLI mode
+- Supports different AI providers via environment variables
 
 **Environment Variables Available:**
 - TASK_ID: ${taskId}
 - AGENT_ID: ${agentId}
-- ITERATION: Current iteration number (default: 1)
-- CONFIDENCE_SCORE: Your final confidence assessment
+- PROVIDER: AI provider (zai, kimi, anthropic, etc.)
+- MODEL: Specific model being used
+- ITERATION: Current iteration number
+- MODE: Execution mode (mvp, standard, enterprise)
 
-**Why This Matters:**
-- Enables zero-token coordination (orchestrator uses Redis BLPOP)
-- Supports adaptive agent specialization (spawn different specialist for iteration N+1)
-- Prevents memory leaks (agents exit after reporting)
-- Confidence scores drive gate checks and consensus validation
+**Main Chat Workflow:**
+1. Spawns you via CLI with specific provider/model
+2. Waits via \`redis-cli BLPOP cfn:mainchat:signal:${taskId}\`
+3. Processes your completion signal when received
+4. Continues with next task or spawns additional agents
 
-**CRITICAL:** Report completion before exiting. Orchestrator is waiting for your signal.
+**CRITICAL:** Send Redis signal before exiting. Main Chat cannot proceed without your completion signal.
 `;
 }
 

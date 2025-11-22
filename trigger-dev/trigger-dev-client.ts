@@ -45,6 +45,14 @@ function getConfig() {
 type StoredRun = RunStatus & { output?: unknown };
 const runs = new Map<string, StoredRun>();
 
+function useLocalShim(): boolean {
+  return process.env.TRIGGER_USE_LOCAL_SHIM === 'true';
+}
+
+function normalizeApiUrl(apiUrl: string): string {
+  return apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+}
+
 /**
  * Trigger a job via event (simulated)
  */
@@ -53,7 +61,7 @@ export async function sendEvent(
   payload: Record<string, unknown>
 ): Promise<EventResult> {
   // Validate API key presence to mirror prod expectations
-  getConfig();
+  const { apiUrl, apiKey } = getConfig();
 
   const id = `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const now = new Date();
@@ -62,17 +70,50 @@ export async function sendEvent(
     console.log(`[sendEvent] ${eventName} -> ${id}`);
   }
 
-  if (eventName === 'cfn.loop.start') {
-    // Execute the v3 task directly (local run)
-    const result = await runCfnLoopV3(payload as unknown as CFNLoopPayload);
-    runs.set(id, {
-      id,
-      status: result.success ? 'COMPLETED' : 'FAILED',
-      output: result,
-      completedAt: new Date().toISOString(),
-    });
+  if (useLocalShim()) {
+    if (eventName === 'cfn.loop.start') {
+      const result = await runCfnLoopV3(payload as unknown as CFNLoopPayload);
+      runs.set(id, {
+        id,
+        status: result.success ? 'COMPLETED' : 'FAILED',
+        output: result,
+        completedAt: new Date().toISOString(),
+      });
+    } else {
+      runs.set(id, { id, status: 'COMPLETED', output: payload });
+    }
   } else {
-    runs.set(id, { id, status: 'COMPLETED', output: payload });
+    const response = await fetch(`${normalizeApiUrl(apiUrl)}/api/v3/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ name: eventName, payload }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new TriggerDevClientError(
+        `Failed to send event ${eventName}: ${response.status} ${response.statusText} - ${body}`
+      );
+    }
+
+    const data: any = await response.json();
+    const eventId = data.id || data.eventId || data.event?.id || id;
+
+    runs.set(eventId, {
+      id: eventId,
+      status: 'QUEUED',
+      output: undefined,
+    });
+
+    return {
+      id: eventId,
+      name: eventName,
+      payload,
+      timestamp: now,
+    };
   }
 
   return {
@@ -112,13 +153,44 @@ export async function getRunStatus(
   runId: string,
   maxAttempts = 10
 ): Promise<RunStatus> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const status = runs.get(runId);
-    if (status) return status;
-    await new Promise(resolve => setTimeout(resolve, 200));
+  if (useLocalShim()) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const status = runs.get(runId);
+      if (status) return status;
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    // Fallback: if the run is not tracked, treat it as completed to avoid hanging tests
+    return { id: runId, status: 'COMPLETED' };
   }
-  // Fallback: if the run is not tracked, treat it as completed to avoid hanging tests
-  return { id: runId, status: 'COMPLETED' };
+
+  const { apiUrl, apiKey } = getConfig();
+  const response = await fetch(`${normalizeApiUrl(apiUrl)}/api/v3/events/${runId}`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new TriggerDevClientError(
+      `Failed to fetch run status for ${runId}: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data: any = await response.json();
+  const status = normalizeStatus(data.status || data.run?.status || data.event?.status);
+
+  const output = data.output ?? data.run?.output ?? data.event?.output;
+  const error = data.error ?? data.run?.error ?? data.event?.error;
+  const completedAt =
+    data.completedAt ?? data.run?.completedAt ?? data.event?.completedAt ?? new Date().toISOString();
+
+  return {
+    id: runId,
+    status,
+    output,
+    error,
+    completedAt,
+  };
 }
 
 /**
@@ -129,4 +201,16 @@ export async function cancelRun(runId: string): Promise<void> {
   const status = runs.get(runId);
   if (!status) return;
   runs.set(runId, { ...status, status: 'CANCELLED' });
+}
+
+function normalizeStatus(status: string | undefined): RunStatus['status'] {
+  if (!status) return 'COMPLETED';
+  const normalized = status.toUpperCase();
+  if (['PENDING', 'QUEUED', 'EXECUTING', 'COMPLETED', 'FAILED', 'CANCELLED'].includes(normalized)) {
+    return normalized as RunStatus['status'];
+  }
+  if (normalized === 'SUCCESS') return 'COMPLETED';
+  if (normalized === 'RUNNING') return 'EXECUTING';
+  if (normalized === 'ERROR') return 'FAILED';
+  return 'COMPLETED';
 }
