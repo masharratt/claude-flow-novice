@@ -4,8 +4,8 @@
  * We simulate event triggering and run status locally.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import { runCfnLoopV3 } from './src/v3/cfn-loop.task';
+import { CFNLoopPayload } from './src/types/cfn-types';
 
 export interface TriggerJobPayload {
   taskId: string;
@@ -62,9 +62,15 @@ export async function sendEvent(
     console.log(`[sendEvent] ${eventName} -> ${id}`);
   }
 
-  // Simulate workflow execution for cfn.loop.start
   if (eventName === 'cfn.loop.start') {
-    handleCfnLoopEvent(id, payload);
+    // Execute the v3 task directly (local run)
+    const result = await runCfnLoopV3(payload as unknown as CFNLoopPayload);
+    runs.set(id, {
+      id,
+      status: result.success ? 'COMPLETED' : 'FAILED',
+      output: result,
+      completedAt: new Date().toISOString(),
+    });
   } else {
     runs.set(id, { id, status: 'COMPLETED', output: payload });
   }
@@ -123,54 +129,4 @@ export async function cancelRun(runId: string): Promise<void> {
   const status = runs.get(runId);
   if (!status) return;
   runs.set(runId, { ...status, status: 'CANCELLED' });
-}
-
-// --- Helpers ---------------------------------------------------------------
-
-function handleCfnLoopEvent(runId: string, payload: Record<string, unknown>) {
-  const taskId = String(payload['taskId'] ?? 'unknown-task');
-  const iteration = Number(payload['currentIteration'] ?? payload['iteration'] ?? 1);
-  const metadata = (payload['metadata'] ?? {}) as Record<string, unknown>;
-  const successCriteria = payload['successCriteria'] as Record<string, unknown> | undefined;
-
-  const deliverablePath =
-    (metadata['deliverablePath'] as string | undefined) ||
-    parseDeliverableFromTestCommand(successCriteria?.testCommand as string | undefined);
-
-  // Iterations 1-4: no deliverable
-  if (iteration < 5) {
-    runs.set(runId, { id: runId, status: 'COMPLETED', output: { iteration, taskId }, completedAt: new Date().toISOString() });
-    return;
-  }
-
-  // Iteration 5: create deliverable and mark completed
-  if (deliverablePath) {
-    try {
-      fs.mkdirSync(path.dirname(deliverablePath), { recursive: true });
-      fs.writeFileSync(deliverablePath, 'Hello, World!\n');
-    } catch (err) {
-      runs.set(runId, { id: runId, status: 'FAILED', error: (err as Error).message });
-      return;
-    }
-  }
-
-  // Force override scenario: mark iteration history
-  const forceConfig = (metadata['forceConfig'] || payload['forceConfig']) as unknown;
-  const output = forceConfig
-    ? { iterationHistory: [{ forceApplied: true, forceConfig }] }
-    : { iterationHistory: [{ forceApplied: false }] };
-
-  runs.set(runId, {
-    id: runId,
-    status: 'COMPLETED',
-    output,
-    completedAt: new Date().toISOString(),
-  });
-}
-
-function parseDeliverableFromTestCommand(testCommand: string | undefined): string | undefined {
-  if (!testCommand) return undefined;
-  const match = testCommand.match(/test\s+-f\s+([^\s]+)/);
-  if (match && match[1]) return match[1];
-  return undefined;
 }
