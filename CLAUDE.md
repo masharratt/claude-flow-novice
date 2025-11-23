@@ -132,7 +132,7 @@ export WORKTREE_BRANCH="${BRANCH}"               # Git branch name
 
 Pass these when spawning agents:
 ```bash
-npx claude-flow-novice agent-spawn backend-dev \
+npx claude-flow-novice agent backend-dev \
   --task-id "$TASK_ID" \
   --env COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT_NAME" \
   --env CFN_REDIS_PORT="$CFN_REDIS_PORT" \

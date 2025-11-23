@@ -19,62 +19,76 @@ LEGEND:
    Shell scripts archived to archive/legacy-bash/ with migration guide
 
 ================================================================================
-PART 1: USER TO COORDINATOR (MAIN CHAT SPAWNING)
+PART 1: USER TO MAIN CHAT (SIMPLIFIED CLI MODE)
 ================================================================================
 
 [USER INVOCATION]
   ↓
-/cfn-loop-cli "task description" --mode=standard
+/cfn-loop-cli "task description" --mode=standard --provider kimi
   ↓
 [MAIN CHAT READS]
 .claude/commands/cfn-loop-cli.md
   ↓
-[MAIN CHAT EXECUTES] (via Bash tool)
-npx claude-flow-novice agent cfn-v3-coordinator \
-  --task-id <sanitized-id> \
-  --context <base64-encoded-context>
+[MAIN CHAT EXECUTES] (DIRECT AGENT SPAWNING)
+Main Chat spawns CLI agents directly:
+  ├─ npx tsx src/cli/spawn-agent-cli.ts <agent-type> \
+  │     --task-id <id> --mode <mode> --provider <provider>
+  ├─ Environment variables injected: PROVIDER, MODEL, TASK_ID
+  └─ Background execution with process monitoring
   ↓
-[NPX CLI SPAWNS] (src/cli/index.ts)
-  ├─ Validates task-id
-  ├─ Decodes context
-  ├─ Reads agent profile: .claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md
-  ├─ Injects coordination skills
-  └─ Spawns Claude API conversation
+[MAIN CHAT WAITS] (Redis BLPOP coordination)
+Main Chat uses Redis BLPOP to wait for completion:
+  ├─ redis-cli BLPOP cfn:mainchat:signal:<task-id> 120s
+  ├─ Each agent signals completion via Redis LPUSH
+  └─ 2-layer coordination: Main Chat → CLI agents
   ↓
-[COORDINATOR AGENT STARTS]
-.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md
-  ├─ Reads task description and mode
-  ├─ Validates success criteria (must have objective tests)
-  ├─ Stores context in Redis (uses bash fallback if needed)
-  └─ Selects agents based on task complexity
+[CLI AGENTS EXECUTE] (simplified protocol)
+  ├─ Agent receives CLI mode protocol injection
+  ├─ Uses "## CLI Mode Redis Completion Protocol"
+  ├─ Provider routing via environment variables
+  ├─ Redis completion signaling:
+  │   └─ node -e "redis.createClient().lPush('cfn:mainchat:signal:<task-id>', JSON.stringify(signal))"
+  └─ Exit cleanly (Main Chat receives signal)
 
 ================================================================================
-PART 2: COORDINATOR TO ORCHESTRATOR (PARAMETER VALIDATION)
+PART 2: MAIN CHAT COORDINATION (REDIS SIGNALING)
 ================================================================================
 
-✅ TYPESCRIPT-ONLY: orchestrate-wrapper.sh REMOVED (v3.1.0)
-   REQUIRED: TypeScript orchestrator (build enforcement with clear error)
-   NO FALLBACK: dist/ must exist or execution fails with build instructions
+[MAIN CHAT REDIS COORDINATION] (NEW: v3.2.0+)
+Main Chat coordinates CLI agents via Redis BLPOP signaling:
+  ├─ Creates unique task ID for coordination
+  ├─ Spawns multiple CLI agents in parallel (if needed)
+  ├─ Uses Redis BLPOP for blocking wait:
+  │   ├─ redis-cli BLPOP cfn:mainchat:signal:<task-id> 120s
+  │   ├─ Returns when any agent pushes completion signal
+  │   └─ Timeout handling with error recovery
+  └─ Process completion signals:
+     ├─ Parse JSON signal: {agentId, taskId, status, timestamp, provider, model, confidence}
+     ├─ Track multiple agent completions
+     └─ Continue workflow or spawn additional agents
 
-[COORDINATOR CALLS - TYPESCRIPT-ONLY PATH (v3.1.0+)]
-node .claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js \
-  --task-id <id> \
-  --mode <standard|mvp|enterprise> \
-  --loop3-agents <agent1,agent2,...> \
-  --loop2-agents <validator1,validator2,...> \
-  --product-owner <product-owner> \
-  --max-iterations <10> \
-  --success-criteria <enabled>
-  ↓
-✅ BUILD REQUIREMENT: dist/ must exist before execution
-   REQUIRED: cd .claude/skills/cfn-loop-orchestration && npm run build
-   ERROR MESSAGE: Clear instructions if dist/ missing (no silent fallback)
-  ↓
-[ORCHESTRATOR ENTRY POINT]
-.claude/skills/cfn-loop-orchestration/src/orchestrate.ts (compiled to dist/orchestrate.js)
-  ├─ NOT index.ts (index.ts is just a barrel export)
-  ├─ CLI entry: src/cli/orchestrator-cli.ts
-  └─ Uses named parameters (--task-id, --mode, etc.)
+[CLI MODE PROTOCOL STRUCTURE] (simplified)
+Agents use "## CLI Mode Redis Completion Protocol":
+  ├─ Step 1: Complete Your Work (implementation, review, testing)
+  ├─ Step 2: Signal Completion to Main Chat:
+  │   ├─ node -e "redis.createClient().connect()"
+  │   ├─ Signal: cfn:mainchat:signal:<task-id>
+  │   ├─ Agent metadata: agentId, taskId, status, provider, model, confidence
+  │   └─ Console confirmation of signal sent
+  └─ Step 3: Exit Cleanly (Main Chat processing begins)
+
+[PROVIDER ROUTING SUPPORT]
+CLI agents support different AI providers via environment variables:
+  ├─ PROVIDER: zai, kimi, anthropic, openrouter, max
+  ├─ MODEL: specific model for the provider
+  ├─ Fallback: Z.ai glm-4.6 when no provider specified
+  └─ Main Chat can route per-agent or use global setting
+
+[REMOVED: COMPLEX 3-LAYER COORDINATION]
+  ❌ DEPRECATED: Main Chat → CLI → Coordinator → Orchestrator → Agents
+  ✅ NEW: Main Chat → Direct CLI Agent Spawning + Redis BLPOP
+  ❌ DEPRECATED: Complex orchestration scripts and coordination layers
+  ✅ NEW: Simple 2-layer coordination with direct Redis signaling
 
 ================================================================================
 PART 3: TYPESCRIPT ORCHESTRATOR (MAIN EXECUTION LOOP)

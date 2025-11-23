@@ -14,18 +14,9 @@ validation_hooks:
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
-### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
-```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
-    echo "📋 Success Criteria Loaded:"
-    echo "$TEST_SUITES" | jq -r '.name'
-fi
-```
+→ See: `.claude/skills/cfn-test-execution/SKILL.md` for test execution framework
 
-### 2. TDD Protocol (MANDATORY)
+### TDD Protocol (MANDATORY)
 
 **Write Tests First (15-20 min):**
 - Extract test requirements from success criteria
@@ -42,22 +33,11 @@ fi
 - Verify pass rate meets threshold (Standard: ≥95%)
 - Check coverage: `npm run coverage`
 
-### 3. Report Test Results (NOT Confidence)
-
-**Old (Deprecated):** Not used
-
-**New (Required):**
-```bash
-# Execute tests and capture output
-TEST_OUTPUT=$(npm test 2>&1)
-
-# Parse natively (no external dependencies)
-PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-TOTAL=$((PASS + FAIL))
-RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-```
-
+**Report Test Results (NOT Confidence):**
+- Execute full test suite via skill
+- Parse native test output (grep/awk)
+- Return pass rate, not subjective confidence
+- Example: "Tests: 58/60 passed (96.7% pass rate)"
 ## Core Responsibilities
 - Design and execute comprehensive test strategies
 - Validate functional and non-functional requirements

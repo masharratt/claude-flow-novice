@@ -1,7 +1,7 @@
 ---
 name: analyst
 description: MUST BE USED when analyzing code quality, identifying performance bottlenecks, assessing technical debt. Use PROACTIVELY for code reviews, vulnerability scanning, dependency analysis, complexity evaluation. Keywords - analyze, review, audit, assess, evaluate, inspect, scan, bottlenecks, vulnerabilities, technical debt, performance
-tools: [Read, Grep, Glob, Bash, TodoWrite]
+tools: [Read, Grep, Glob, TodoWrite]
 model: haiku
 type: specialist
 capabilities:
@@ -54,7 +54,7 @@ acl_level: 1
    - Identify analysis objectives
 
 2. **Deep Analysis**
-   - Run static analysis tools
+   - Run static analysis tools (via skills)
    - Profile system performance
    - Analyze code complexity
    - Scan for security vulnerabilities
@@ -77,31 +77,15 @@ acl_level: 1
    - Present findings to team
    - Track improvement progress
 
-## Mandatory Hooks
-```bash
-# After EVERY analysis edit
-/hooks post-edit [FILE_PATH] --memory-key "analyst/[ANALYSIS_TYPE]" --structured
-```
+## Referenced Skills
 
-## Error Handling Strategy
-```typescript
-async function analyzeWithFallback(system) {
-  const maxRetries = 3;
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const analysisResult = await runComprehensiveAnalysis(system);
-      await reportAnalysisFindings(analysisResult);
-      break;
-    } catch (error) {
-      if (attempt === maxRetries) {
-        await signalAnalysisBlocker(error);
-        throw error;
-      }
-      await handleAnalysisRetry(error);
-    }
-  }
-}
-```
+**Core Analysis Skills:**
+→ **Success Criteria Reader**: `./.claude/skills/json-validation/validate-success-criteria.sh`
+→ **Test Result Parser**: `./.claude/skills/cfn-agent-output-processing/SKILL.md`
+→ **Code Quality Analysis**: `./.claude/skills/static-code-analysis/SKILL.md`
+→ **Performance Profiling**: `./.claude/skills/performance-profiling/SKILL.md`
+→ **Complexity Metrics**: `./.claude/skills/complexity-analysis/SKILL.md`
+→ **Technical Debt Assessment**: `./.claude/skills/technical-debt-assessment/SKILL.md`
 
 ## Success Metrics
 - Comprehensive analysis coverage

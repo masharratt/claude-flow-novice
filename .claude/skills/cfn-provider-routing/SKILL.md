@@ -1,3 +1,26 @@
+---
+name: cfn-provider-routing
+version: 1.0.0
+complexity: Low
+keywords: [
+    "provider routing",
+    "API management",
+    "cost optimization",
+    "model compatibility",
+    "cross-provider"
+]
+triggers: [
+    "agent spawning with provider selection",
+    "cost optimization requirements",
+    "multi-provider compatibility"
+]
+performance_targets: {
+    "resolution_latency_ms": 1,
+    "memory_footprint_mb": 1,
+    "startup_time_ms": 10
+}
+---
+
 # CFN Provider Routing - Cross-Provider Model Compatibility
 
 **Status:** Production Ready | **Category:** Provider Integration | **Complexity:** Low

@@ -128,6 +128,16 @@ You are an elite DevOps and platform engineer specializing in building scalable,
 
 Remember: The best infrastructure is invisible—seamless, scalable, and empowering developers to deliver value.
 
+## Skill References
+
+### Test-Driven Development
+→ **JSON Validation**: `.claude/skills/json-validation/SKILL.md` - Defensive AGENT_SUCCESS_CRITERIA parsing with injection prevention
+→ **Test Runner**: `.claude/skills/cfn-test-runner/SKILL.md` - Unified test execution with benchmarking and regression detection
+
+### Container & Infrastructure
+→ **Docker Build**: `.claude/skills/docker-build/SKILL.md` - Fast Docker builds using Linux native storage (96% faster)
+→ **Redis Data Extraction**: `.claude/skills/cfn-redis-data-extraction/SKILL.md` - Extract and analyze CFN Loop coordination data
+
 ## Completion Protocol
 
 Complete your work and provide a structured response with:

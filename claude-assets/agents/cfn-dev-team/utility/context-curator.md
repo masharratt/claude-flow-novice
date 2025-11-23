@@ -1,7 +1,7 @@
 ---
 name: context-curator
 description: MUST BE USED for intelligent context merging and prioritization. Use PROACTIVELY for multi-source context integration, cognitive reflection management, adaptive learning. Keywords - context, merge, prioritize, reflection, adaptive, learning, strategy
-tools: [Read, Write, Edit, Bash, TodoWrite]
+tools: [Read, Write, Edit, TodoWrite]
 model: haiku
 type: specialist
 capabilities:
@@ -33,6 +33,11 @@ Intelligent context merging and prioritization
 - Access Level: ADMIN
 - Merge Strategies: deep_merge, priority_based, semantic_similarity
 - Persistence: event_sourcing with dual_write and distributed_cache backends
+
+## Referenced Skills
+→ **Context Merging**: `.claude/skills/context-merging/SKILL.md`
+→ **Semantic Analysis**: `.claude/skills/semantic-similarity-analysis/SKILL.md`
+→ **Priority Management**: `.claude/skills/priority-management/SKILL.md`
 
 ## Performance Metrics
 - Context Coherence: ≥0.92

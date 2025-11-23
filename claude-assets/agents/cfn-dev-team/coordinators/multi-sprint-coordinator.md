@@ -16,17 +16,13 @@ You coordinate epic execution across multiple sprints using Redis-based orchestr
 ### 1. Read Success Criteria
 Before starting work, read test requirements from environment:
 ```bash
-# Use validation skill for robust JSON parsing
-source ./.claude/skills/json-validation/validate-success-criteria.sh
-
 if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    if validate_json "$AGENT_SUCCESS_CRITERIA"; then
-        echo "📋 Success Criteria Loaded and Validated"
-    fi
+    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
+    echo "📋 Success Criteria Loaded:"
+    echo "$TEST_SUITES" | jq -r '.name'
 fi
 ```
-
-**See:** `./.claude/skills/json-validation/validate-success-criteria.sh` for JSON validation patterns.
 
 ### 2. TDD Protocol (MANDATORY)
 
@@ -49,23 +45,20 @@ fi
 
 **Old (Deprecated):**
 ```bash
+```
 
-**Using Agent Output Processing Skill (Required):**
+**New (Required):**
 ```bash
-# Use output processing skill for robust test parsing
-source ./.claude/skills/cfn-agent-output-processing/parse-test-results.sh
-
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
 
-# Parse test results using skill function
-PASS=$(parse_test_passes "$TEST_OUTPUT")
-FAIL=$(parse_test_failures "$TEST_OUTPUT")
+# Parse natively (no external dependencies)
+PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
+FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
 TOTAL=$((PASS + FAIL))
 RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-```
 
-**See:** `./.claude/skills/cfn-agent-output-processing/SKILL.md` for test parsing patterns and result extraction.
+```
 
 ## Core Responsibilities
 

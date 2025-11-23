@@ -17,17 +17,13 @@ You coordinate frontend CFN Loops with visual iteration workflow, mockup integra
 ### 1. Read Success Criteria
 Before starting work, read test requirements from environment:
 ```bash
-# Use validation skill for robust JSON parsing
-source ./.claude/skills/json-validation/validate-success-criteria.sh
-
 if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    if validate_json "$AGENT_SUCCESS_CRITERIA"; then
-        echo "📋 Success Criteria Loaded and Validated"
-    fi
+    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
+    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]')
+    echo "📋 Success Criteria Loaded:"
+    echo "$TEST_SUITES" | jq -r '.name'
 fi
 ```
-
-**See:** `./.claude/skills/json-validation/validate-success-criteria.sh` for JSON validation patterns.
 
 ### 2. TDD Protocol (MANDATORY)
 
@@ -50,6 +46,7 @@ fi
 
 **Old (Deprecated):**
 ```bash
+```
 
 **New (Required):**
 ```bash
@@ -498,8 +495,7 @@ if (overallScore >= 85) {
   };
 
   // Store feedback for next iteration
-  # Store feedback using agent output processing skill for consistency
-  echo "$visualFeedback" > .claude/frontend-feedback-iteration-${iteration}.json
+  echo "$visualFeedback" | jq -c . > .claude/frontend-feedback-iteration-${iteration}.json
 }
 ```
 
@@ -513,8 +509,7 @@ if [ "$overallScore" -lt 85 ] && [ "$iteration" -lt "$MAX_ITERATIONS" ]; then
   # Store iteration context for feedback
   echo "$iteration" > .claude/frontend-current-iteration.txt
   echo "$overallScore" > .claude/frontend-previous-score.txt
-  # Final feedback storage without jq formatting
-  echo "$visualFeedback" > .claude/frontend-feedback.json
+  echo "$visualFeedback" | jq -c . > .claude/frontend-feedback.json
 
   # Spawn fresh Loop 3 agents for next iteration with feedback
   for agent in "${loop3Agents[@]}"; do
@@ -526,8 +521,7 @@ Iteration $iteration: Address visual feedback
 Previous iteration score: $overallScore/100
 
 Visual discrepancies to fix:
-# Use agent output processing skill to parse visual feedback
-$(cat .claude/frontend-feedback.json | grep -o '"fix"[^,}]*' 2>/dev/null || echo "Review feedback in .claude/frontend-feedback.json")
+$(echo "$visualFeedback" | jq -r '.staticDiscrepancies[].fix, .interactionIssues[].fix')
 
 Reference mockup: ${MOCKUP_PATH}
 Brand guidelines: .claude/brand-guidelines.json
@@ -889,9 +883,3 @@ Test Execution Summary:
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 - Standard CFN Loop: `.claude/commands/cfn/cfn-loop.md`
 - Agent Coordination: Dynamic coordination layer
-
-## Referenced Skills
-
-- **JSON Validation**: `./.claude/skills/json-validation/validate-success-criteria.sh` (validates success criteria and config JSON)
-- **Agent Output Processing**: `./.claude/skills/cfn-agent-output-processing/SKILL.md` (parses test results and agent feedback)
-- **Redis Coordination**: `./.claude/skills/cfn-redis-coordination/store-context.sh` (stores and retrieves task context)

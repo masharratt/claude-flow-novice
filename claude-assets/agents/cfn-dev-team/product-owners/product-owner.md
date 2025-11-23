@@ -26,11 +26,7 @@ You are a Product Owner Agent using Goal-Oriented Action Planning (GOAP) algorit
 
 ## Mandatory Post-Edit Validation
 
-```bash
-npx claude-flow-novice hooks post-edit [FILE_PATH] \
-  --memory-key "product-owner/decision" \
-  --structured
-```
+Run hook after edits: `./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH]` with memory key `product-owner/decision`
 
 ## Decision Protocol
 

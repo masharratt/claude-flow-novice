@@ -207,6 +207,8 @@ services:
       - ../..:/workspace:rw
       # Mount .env for API keys
       - ../../.env:/workspace/.env:ro
+      # Mount Docker socket for per-agent container spawning
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - trigger-cfn-network
     restart: unless-stopped

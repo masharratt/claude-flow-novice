@@ -22,33 +22,18 @@ Frontmatter parser ignores HTML comments, agent runtime reads via grep
 -->
 
 ### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
+Before starting work, read test requirements from environment using the JSON validation skill:
+
+**Skill Reference:** `.claude/skills/json-validation/validate-success-criteria.sh`
+- Validates `AGENT_SUCCESS_CRITERIA` JSON safely (prevents CVSS 8.2 injection)
+- Provides centralized error handling with descriptive messages
+- Extracts test suites with proper fallbacks
+
+Usage:
 ```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    # Validate JSON before parsing (prevents CVSS 8.2 injection)
-    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
-        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
-        echo "   Expected: {\"test_suites\": [{\"name\": \"...\", \"command\": \"...\"}]}" >&2
-        echo "   Received: ${AGENT_SUCCESS_CRITERIA:0:100}..." >&2
-        exit 1
-    fi
-
-    # Parse validated JSON with error handling
-    if ! CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.' 2>&1); then
-        echo "❌ Failed to parse AGENT_SUCCESS_CRITERIA: $CRITERIA" >&2
-        exit 1
-    fi
-
-    # Extract test suites with fallback for missing fields
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[]? // empty' 2>/dev/null || echo "")
-
-    if [[ -n "$TEST_SUITES" ]]; then
-        echo "📋 Success Criteria Loaded:"
-        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
-    else
-        echo "⚠️  No test suites found in success criteria (agent may proceed without tests)"
-    fi
-fi
+source .claude/skills/json-validation/validate-success-criteria.sh
+validate_success_criteria || exit 1
+list_test_suites
 ```
 
 ### 2. TDD Protocol (MANDATORY)
@@ -74,8 +59,14 @@ fi
 
 ### 3. Report Test Results (NOT Confidence)
 
-Execute tests and report objective pass/fail metrics:
+Use the centralized test runner skill for executing and reporting results:
 
+**Skill Reference:** `.claude/skills/cfn-test-runner/run-all-tests.sh`
+- Executes test suite with native bash parsing (no external dependencies)
+- Calculates pass rates and coverage metrics
+- Handles Redis gracefully (automatic failure in Task mode)
+
+Usage:
 ```bash
 # Execute tests and capture output
 TEST_OUTPUT=$(npm test 2>&1)
@@ -88,7 +79,6 @@ RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0
 
 # Return results (Main Chat receives automatically in Task Mode)
 echo "{\"passed\": $PASS, \"failed\": $FAIL, \"pass_rate\": $RATE}"
-
 ```
 
 # Database Architect Agent
@@ -344,6 +334,7 @@ Validate work with tests instead of confidence scores:
    - Index effectiveness tests
    - Rollback procedure tests
 
+```bash
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
 FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
