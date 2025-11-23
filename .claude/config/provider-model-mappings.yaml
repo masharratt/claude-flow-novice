@@ -1,0 +1,56 @@
+# Provider Model Mappings Configuration
+# Cross-provider model compatibility for CFN Loop agent routing
+
+mappings:
+  # High-quality models for complex tasks
+  sonnet:
+    anthropic: claude-3-5-sonnet-20241022
+    zai: glm-4.6
+    kimi: kimi-k2-turbo-preview
+    openrouter: anthropic/claude-sonnet-4.5
+    gemini: google/gemini-2.0-flash-exp
+    xai: grok-beta
+
+  # Fast models for quick tasks and simple operations
+  haiku:
+    anthropic: claude-3-5-haiku-20241022
+    zai: glm-4.6-flash
+    kimi: kimi-k2-turbo-preview
+    openrouter: anthropic/claude-3.5-haiku
+    gemini: google/gemini-2.0-flash-thinking-exp
+    xai: grok-beta
+
+  # Premium models for critical tasks
+  opus:
+    anthropic: claude-3-opus-20240229
+    zai: glm-4.6
+    kimi: kimi-k2-turbo-preview
+    openrouter: anthropic/claude-sonnet-4.5
+    gemini: google/gemini-pro-exp
+    xai: grok-beta
+
+# Default models when no agent model is specified
+defaults:
+  zai: glm-4.6
+  kimi: kimi-k2-turbo-preview
+  openrouter: anthropic/claude-sonnet-4.5
+  gemini: google/gemini-2.0-flash-001
+  xai: grok-beta
+  anthropic: claude-3-5-sonnet-20241022
+
+# Cost optimization hints
+cost_tiers:
+  economy:
+    zai: glm-4.6-flash
+    kimi: kimi-k2-turbo-preview
+    openrouter: anthropic/claude-3.5-haiku
+
+  standard:
+    zai: glm-4.6
+    kimi: kimi-k2-turbo-preview
+    openrouter: anthropic/claude-sonnet-4.5
+
+  premium:
+    zai: glm-4.6
+    kimi: kimi-k2-turbo-preview
+    openrouter: anthropic/claude-sonnet-4.5
