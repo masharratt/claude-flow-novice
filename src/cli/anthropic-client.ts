@@ -184,8 +184,8 @@ export async function sendMessage(
   const maxTokens = options.maxTokens || 16000; // Sprint 6: 16K hard limit for GLM-4.6 (agents target 10K for buffer)
   const temperature = options.temperature ?? 1.0;
 
-  // Disable streaming for Z.ai (compatibility issue)
-  const enableStreaming = options.stream && config.provider !== 'zai';
+  // Streaming supported for both providers; retry without streaming if a provider rejects it
+  let enableStreaming = !!options.stream;
 
   console.log(`[anthropic-client] Provider: ${config.provider}`);
   console.log(`[anthropic-client] Model: ${model}`);
@@ -241,7 +241,7 @@ export async function sendMessage(
     }
 
     try {
-      // Streaming response
+      // Streaming response (preferred)
       if (enableStreaming) {
         let fullContent = '';
         let inputTokens = 0;
@@ -303,6 +303,14 @@ export async function sendMessage(
         stopReason: response.stop_reason || 'end_turn',
       };
     } catch (error) {
+      // If streaming fails on Z.ai, retry once without streaming before falling back to model fallback logic
+      if (enableStreaming && config.provider === 'zai') {
+        console.warn('[anthropic-client] Streaming failed on z.ai, retrying without streaming:', error);
+        enableStreaming = false;
+        attempts--; // do not consume a model attempt
+        continue;
+      }
+
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(`[anthropic-client] Error with model ${currentModel}:`, lastError.message);
 
