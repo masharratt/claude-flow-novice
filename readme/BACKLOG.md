@@ -1,6 +1,6 @@
 # Claude Flow Novice - Backlog
 
-Last Updated: 2025-11-17
+Last Updated: 2025-11-23
 
 ## Active Items
 
@@ -42,6 +42,46 @@ Implementation:
 - **Date Added**: 2025-11-04
 
 ### P2 - Medium Priority
+
+**[P2] - Phase 1.2: Environment Variable Whitelisting**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Phase 1.2: Environment Variable Whitelisting
+- **Rationale**: All environment variables inherited by containers. Need strict whitelist to prevent leakage.
+- **Proposed Solution**: Implement env var filtering in entrypoint.sh. Estimated 4 hours.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-23
+
+**[P2] - Phase 1.2: Encrypted Credential Storage**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Phase 1.2: Encrypted Credential Storage
+- **Rationale**: Database credentials and .env files currently stored in plaintext. Need encryption at rest.
+- **Proposed Solution**: Implement encrypted config storage using age or SOPS. Estimated 4 hours.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-23
+
+**[P2] - Phase 1.2: Docker Socket Isolation with Rootless Mode**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Phase 1.2: Docker Socket Isolation with Rootless Mode
+- **Rationale**: Unrestricted Docker socket access enables privilege escalation. Need rootless Docker or socket proxy.
+- **Proposed Solution**: Implement docker-socket-proxy or migrate to rootless Docker. Estimated 8 hours.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-23
+
+**[P2] - Phase 1.2: Docker Secrets Integration for API Keys**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Phase 1.2: Docker Secrets Integration for API Keys
+- **Rationale**: API keys currently exposed to agent containers via environment variables. Need Docker secrets or Vault integration.
+- **Proposed Solution**: Implement Docker Swarm secrets or HashiCorp Vault. Estimated 6 hours.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-23
 
 **[P2] - Sync agent-use-case-registry with dynamic agent discovery sy...**
 - **Sprint Backlogged**: Unknown
