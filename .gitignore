@@ -28,7 +28,7 @@ bin/claude-flow-*
 *~
 .DS_Store
 
-# Environment
+# Environment and Secrets (Phase 1.2a)
 .env
 .env.local
 .env.*.local
@@ -37,6 +37,22 @@ bin/claude-flow-*
 .claude/api-configs/env-backups/
 .claude/api-configs/*.env
 .env/worker
+
+# Docker Secrets and Encryption (Phase 1.2a)
+.secrets/                          # Raw unencrypted credential files
+!.secrets/.gitkeep               # Keep directory in git
+docker/trigger-dev/.secrets/     # Development secrets
+.backups/encryption/             # Encrypted file backups
+!.backups/encryption/.gitkeep    # Keep directory in git
+
+# Age Encryption Keys (Phase 1.2a)
+~/.age/                          # User's age key directory
+.age/key.txt                     # Age private key (NEVER commit)
+*.age.key                        # Age private key files (NEVER commit)
+
+# Encrypted Credentials (Phase 1.2a)
+# .env.encrypted IS allowed (contains encrypted credentials)
+# But the age private key is NOT allowed
 
 # Logs
 logs/

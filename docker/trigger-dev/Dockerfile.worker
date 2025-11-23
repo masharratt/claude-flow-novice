@@ -126,14 +126,40 @@ RUN mkdir -p /tmp/trigger-dev-deliverables && \
     chown -R node:node /triggerdotdev /tmp/trigger-dev-deliverables
 
 # ==============================================================================
-# Configure Docker Access (Phase 0 Fix Applied)
+# Docker Access via Socket Proxy (Phase 1.2a Security Hardening)
 # ==============================================================================
-# Phase 0 identified GID mismatch: container 107 vs host 1001
-# Solution: Add node user to docker group (allows socket access)
-# Note: Host docker group GID (1001) differs from container (107)
-#       The usermod creates supplementary group mapping
-RUN groupadd -g 1001 docker-host || true && \
-    usermod -aG docker-host node
+# Phase 1.1 identified direct socket mount as CRITICAL security risk
+# Phase 1.2a implements socket proxy (tecnativa/docker-socket-proxy)
+#
+# Architecture:
+#   Worker Container → Socket Proxy (HTTP) → Docker Daemon
+#
+# Security Benefits:
+# - Worker does not have direct /var/run/docker.sock access
+# - Socket proxy validates all Docker API operations
+# - Dangerous operations (privileged, host network) are blocked
+# - Prevents container escape via unrestricted socket exposure
+#
+# Previous Solution (Phase 0):
+#   RUN groupadd -g 1001 docker-host || true && \
+#       usermod -aG docker-host node
+# Issue: Socket group access allows unrestricted API calls
+#
+# Current Solution (Phase 1.2a):
+#   DOCKER_HOST=tcp://socket-proxy:2375 (set in docker-compose.yml)
+#   Socket proxy controls access via allowlist:
+#   - CONTAINERS=1 (list/inspect containers)
+#   - POST=1 (create, start containers)
+#   - DELETE=1 (remove containers)
+#   - PRIVILEGED=0 (deny --privileged)
+#   - HOST=0 (deny --net=host)
+#   - VOLUMES=0 (deny dangerous mounts)
+#   - SOCKETV2=0 (deny socket exposure to spawned containers)
+#
+# No group membership needed - access controlled by socket proxy
+# ==============================================================================
+# Socket proxy access configured via DOCKER_HOST environment variable
+# No local Docker group membership required
 
 # ==============================================================================
 # Switch to Non-Root User (Security Best Practice)
@@ -160,15 +186,18 @@ CMD ["/triggerdotdev/scripts/entrypoint.sh"]
 # Volume Mounts (Configured at Runtime)
 # ==============================================================================
 # Required mounts for container spawning:
-# - /var/run/docker.sock:/var/run/docker.sock   (Docker API access)
 # - /workspace:/workspace:rw                     (Shared workspace)
+# - DOCKER_HOST=tcp://socket-proxy:2375         (Socket proxy access)
 #
 # Optional mounts:
 # - .env:/workspace/.env:ro                      (Environment secrets)
 #
+# NOTE: /var/run/docker.sock is NO LONGER mounted directly
+# Phase 1.2a Security Hardening: Using socket proxy instead
+#
 # Example:
 #   docker run --rm \
-#     -v /var/run/docker.sock:/var/run/docker.sock \
+#     -e DOCKER_HOST=tcp://socket-proxy:2375 \
 #     -v /path/to/project:/workspace:rw \
 #     cfn-trigger-worker:backend
 

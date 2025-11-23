@@ -79,6 +79,70 @@ services:
       - trigger-cfn-network
     restart: unless-stopped
 
+  # ==============================================================================
+  # Docker Socket Proxy - Phase 1.2a Security Hardening
+  # ==============================================================================
+  # Purpose: Restrict Docker socket access to only required operations
+  # Reference: Requirement 2 (Docker Socket Isolation)
+  #
+  # How It Works:
+  # 1. Socket proxy listens on http://socket-proxy:2375
+  # 2. Worker connects via DOCKER_HOST=unix:///run/docker.sock (through proxy)
+  # 3. All Docker API calls validated against allowed operations
+  # 4. Dangerous operations (privileged, host network) blocked
+  #
+  # Allowed Operations:
+  # - GET /containers/json       (list containers)
+  # - GET /containers/{id}/json  (inspect containers)
+  # - POST /containers/create    (create containers - agent spawning)
+  # - POST /containers/{id}/start (start containers)
+  # - POST /containers/{id}/stop (stop containers)
+  # - DELETE /containers/{id}    (remove containers)
+  #
+  # Blocked Operations:
+  # - Privileged mode (PRIVILEGED=0)
+  # - Host network mode (HOST=0)
+  # - Dangerous volume mounts (VOLUMES=0)
+  # - Socket exposure to spawned containers (SOCKETV2=0)
+  # ==============================================================================
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.4.1
+    container_name: trigger-dev-socket-proxy
+    privileged: true
+    volumes:
+      # Mount host Docker socket (proxy needs direct access)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Container management (required for agent spawning)
+      CONTAINERS: '1'          # GET /containers/json (list)
+      POST: '1'                # Allow POST (create, start)
+      DELETE: '1'              # Allow DELETE (remove)
+
+      # Dangerous operations - explicitly disabled
+      PRIVILEGED: '0'          # Deny --privileged mode
+      HOST: '0'                # Deny --net=host
+      VOLUMES: '0'             # Deny volume mounts outside /workspace
+      SOCKETV2: '0'            # Deny socket exposure to spawned containers
+
+      # Auditing
+      LOG: '1'                 # Enable logging for security audit trail
+    networks:
+      - trigger-cfn-network
+    expose:
+      - "2375"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:2375/containers/json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   trigger-webapp:
     image: ghcr.io/triggerdotdev/trigger.dev:latest
     container_name: trigger-dev-webapp
@@ -155,6 +219,8 @@ services:
         condition: service_healthy
       trigger-webapp:
         condition: service_healthy
+      socket-proxy:
+        condition: service_healthy
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       TRIGGER_SECRET_KEY: ${TRIGGER_SECRET_KEY}
@@ -201,14 +267,20 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       CFN_CUSTOM_ROUTING: ${CFN_CUSTOM_ROUTING:-true}
       CFN_DEFAULT_PROVIDER: ${CFN_DEFAULT_PROVIDER:-zai}
+      # Phase 1.2a: Socket Proxy Access (Security Hardening - Requirement 2)
+      # Worker connects to socket proxy instead of direct socket mount
+      # This prevents escalation attacks through unrestricted socket exposure
+      DOCKER_HOST: tcp://socket-proxy:2375
     volumes:
       - /tmp/trigger-dev-deliverables:/tmp/trigger-dev-deliverables
       # Mount project root for agent file access
       - ../..:/workspace:rw
       # Mount .env for API keys
       - ../../.env:/workspace/.env:ro
-      # Mount Docker socket for per-agent container spawning
-      - /var/run/docker.sock:/var/run/docker.sock
+      # NOTE: Socket mount removed - using socket proxy instead
+      # Previously: /var/run/docker.sock:/var/run/docker.sock
+      # Reason: Direct socket access is CRITICAL security risk
+      # Solution: Socket proxy (tecnativa/docker-socket-proxy) validates all operations
     networks:
       - trigger-cfn-network
     restart: unless-stopped

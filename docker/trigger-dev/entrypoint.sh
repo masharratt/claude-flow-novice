@@ -73,6 +73,97 @@ AGENT_PROFILE_PATH=""
 PROVIDER=""
 PROVIDER_MODEL=""
 
+# Environment variable whitelist for security (Phase 1.2a)
+ENV_WHITELIST=(
+  "AGENT_TYPE"
+  "CFN_CUSTOM_ROUTING"
+  "ANTHROPIC_API_KEY"
+  "ZAI_API_KEY"
+  "KIMI_API_KEY"
+  "GEMINI_API_KEY"
+  "XAI_API_KEY"
+  "OPENROUTER_API_KEY"
+  "ZAI_BASE_URL"
+  "CFN_REDIS_PORT"
+  "CFN_POSTGRES_PORT"
+  "COMPOSE_PROJECT_NAME"
+  "WORKTREE_BRANCH"
+  "DOCKER_HOST"
+  "AGENT_PROFILES_ROOT"
+  "CFN_WORKSPACE"
+  "TRIGGER_API_KEY"
+  "CFN_TASK_ID"
+  "DEBUG"
+  "NODE_ENV"
+  "PATH"
+  "HOME"
+  "USER"
+  "SHELL"
+  "TERM"
+  "LANG"
+  "LC_ALL"
+)
+
+# ==============================================================================
+# Security Functions
+# ==============================================================================
+
+filter_environment_variables() {
+  log_step "Filtering environment variables (Phase 1.2a security hardening)"
+
+  local filtered_count=0
+  local retained_count=0
+  local injection_attempts=0
+
+  # Get all current environment variables
+  local current_env
+  current_env=$(env | cut -d= -f1)
+
+  # Build whitelist lookup for fast checking
+  local whitelist_lookup
+  whitelist_lookup=$(printf '%s\n' "${ENV_WHITELIST[@]}" | sort -u)
+
+  # Check each environment variable
+  while IFS= read -r var_name; do
+    # Skip empty lines
+    [[ -z "$var_name" ]] && continue
+
+    # Check if variable is whitelisted
+    if echo "$whitelist_lookup" | grep -qxF "$var_name"; then
+      # Variable is whitelisted - validate format
+      local var_value="${!var_name}"
+
+      # Check for injection attempts (newlines, null bytes, suspicious patterns)
+      if [[ "$var_value" =~ $'\n'|$'\0'|';'[[:space:]]*'rm'|';'[[:space:]]*'curl' ]]; then
+        log_error "Injection attempt detected in $var_name (filtered)"
+        unset "$var_name"
+        injection_attempts=$((injection_attempts + 1))
+        filtered_count=$((filtered_count + 1))
+      else
+        # Variable is safe and whitelisted
+        log_debug "Retained whitelisted variable: $var_name"
+        retained_count=$((retained_count + 1))
+      fi
+    else
+      # Variable is not whitelisted - remove it
+      log_debug "Filtered non-whitelisted variable: $var_name"
+      unset "$var_name" 2>/dev/null || true
+      filtered_count=$((filtered_count + 1))
+    fi
+  done <<< "$current_env"
+
+  # Log summary
+  log_step "Environment filtering complete:"
+  log_step "  Retained: $retained_count variables"
+  log_step "  Filtered: $filtered_count variables"
+
+  if [[ $injection_attempts -gt 0 ]]; then
+    log_error "  Injection attempts blocked: $injection_attempts"
+  fi
+
+  return 0
+}
+
 # ==============================================================================
 # Validation Functions
 # ==============================================================================
@@ -190,6 +281,73 @@ parse_provider_parameters() {
 }
 
 # ==============================================================================
+# Docker Secrets Loading (Phase 1.2a) - Credential Encryption Support
+# ==============================================================================
+
+load_secrets_or_env() {
+  # Load a secret from Docker secrets or fall back to environment variable
+  #
+  # Priority:
+  # 1. /run/secrets/{SECRET_NAME} (Docker secrets mount)
+  # 2. ${SECRET_NAME} environment variable
+  # 3. Default value (if provided as second arg)
+  #
+  # Usage:
+  #   load_secrets_or_env "ANTHROPIC_API_KEY"
+  #   load_secrets_or_env "API_KEY" "sk-default-value"
+  #
+  # Returns:
+  #   0 - Secret loaded successfully
+  #   1 - Secret not found
+  #
+
+  local secret_name="$1"
+  local default_value="${2:-}"
+
+  # Try Docker secrets first (production with docker-compose secrets)
+  if [[ -f "/run/secrets/${secret_name}" ]]; then
+    log_debug "Loading $secret_name from Docker secrets: /run/secrets/${secret_name}"
+
+    # Read secret file (should be single value, no newlines)
+    local secret_value
+    secret_value=$(cat "/run/secrets/${secret_name}" 2>/dev/null | tr -d '\n\r')
+
+    if [[ -z "$secret_value" ]]; then
+      log_error "$secret_name secret file exists but is empty: /run/secrets/${secret_name}"
+      return 1
+    fi
+
+    # Export the secret as environment variable
+    export "${secret_name}=${secret_value}"
+    log_step "Loaded $secret_name from Docker secrets"
+    return 0
+  fi
+
+  # Fall back to environment variable
+  local env_var="${!secret_name:-}"
+  if [[ -n "$env_var" ]]; then
+    log_debug "Loading $secret_name from environment variable"
+    log_step "Using $secret_name from environment variable"
+    return 0
+  fi
+
+  # Use default if provided
+  if [[ -n "$default_value" ]]; then
+    log_debug "Loading $secret_name from default value"
+    export "${secret_name}=${default_value}"
+    log_step "Using $secret_name with provided default value"
+    return 0
+  fi
+
+  # Secret not found
+  log_error "$secret_name not found in:"
+  log_error "  1. Docker secrets: /run/secrets/${secret_name}"
+  log_error "  2. Environment variable: \${${secret_name}}"
+  log_error "  3. No default value provided"
+  return 1
+}
+
+# ==============================================================================
 # Provider Environment Setup Functions
 # ==============================================================================
 
@@ -227,8 +385,9 @@ setup_provider_environment() {
 setup_zai_environment() {
   log_step "Configuring Z.ai provider"
 
-  if [[ -z "${ZAI_API_KEY:-}" ]]; then
-    log_error "ZAI_API_KEY environment variable is not set"
+  # Load API key from Docker secrets or environment variable (Phase 1.2a)
+  if ! load_secrets_or_env "ZAI_API_KEY"; then
+    log_error "ZAI_API_KEY not found (required for Z.ai provider)"
     return 3
   fi
 
@@ -247,8 +406,9 @@ setup_zai_environment() {
 setup_kimi_environment() {
   log_step "Configuring Kimi provider"
 
-  if [[ -z "${KIMI_API_KEY:-}" ]]; then
-    log_error "KIMI_API_KEY environment variable is not set"
+  # Load API key from Docker secrets or environment variable (Phase 1.2a)
+  if ! load_secrets_or_env "KIMI_API_KEY"; then
+    log_error "KIMI_API_KEY not found (required for Kimi provider)"
     return 3
   fi
 
@@ -265,13 +425,14 @@ setup_kimi_environment() {
 setup_anthropic_environment() {
   log_step "Configuring Anthropic provider"
 
-  if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
-    log_error "ANTHROPIC_API_KEY environment variable is not set"
+  # Load API key from Docker secrets or environment variable (Phase 1.2a)
+  if ! load_secrets_or_env "ANTHROPIC_API_KEY"; then
+    log_error "ANTHROPIC_API_KEY not found (required for Anthropic provider)"
     return 3
   fi
 
   # Anthropic configuration (native)
-  # API key already set in environment
+  # API key already set by load_secrets_or_env
   unset ANTHROPIC_BASE_URL  # Use Anthropic defaults
 
   log_step "Anthropic environment configured"
@@ -283,8 +444,9 @@ setup_anthropic_environment() {
 setup_gemini_environment() {
   log_step "Configuring Gemini provider"
 
-  if [[ -z "${GEMINI_API_KEY:-}" ]]; then
-    log_error "GEMINI_API_KEY environment variable is not set"
+  # Load API key from Docker secrets or environment variable (Phase 1.2a)
+  if ! load_secrets_or_env "GEMINI_API_KEY"; then
+    log_error "GEMINI_API_KEY not found (required for Gemini provider)"
     return 3
   fi
 
@@ -301,8 +463,9 @@ setup_gemini_environment() {
 setup_xai_environment() {
   log_step "Configuring XAi provider"
 
-  if [[ -z "${XAI_API_KEY:-}" ]]; then
-    log_error "XAI_API_KEY environment variable is not set"
+  # Load API key from Docker secrets or environment variable (Phase 1.2a)
+  if ! load_secrets_or_env "XAI_API_KEY"; then
+    log_error "XAI_API_KEY not found (required for XAi provider)"
     return 3
   fi
 
@@ -319,8 +482,9 @@ setup_xai_environment() {
 setup_openrouter_environment() {
   log_step "Configuring OpenRouter provider"
 
-  if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
-    log_error "OPENROUTER_API_KEY environment variable is not set"
+  # Load API key from Docker secrets or environment variable (Phase 1.2a)
+  if ! load_secrets_or_env "OPENROUTER_API_KEY"; then
+    log_error "OPENROUTER_API_KEY not found (required for OpenRouter provider)"
     return 3
   fi
 
@@ -373,8 +537,14 @@ initialize_agent_context() {
 
 main() {
   log_step "==================================================================="
-  log_step "CFN Trigger.dev Worker Entrypoint (Phase 1.1)"
+  log_step "CFN Trigger.dev Worker Entrypoint (Phase 1.2a)"
   log_step "==================================================================="
+
+  # Step 0: Filter environment variables (Phase 1.2a security hardening)
+  if ! filter_environment_variables; then
+    log_error "Environment variable filtering failed"
+    exit 3
+  fi
 
   # Step 1: Validate AGENT_TYPE
   if ! validate_agent_type; then
