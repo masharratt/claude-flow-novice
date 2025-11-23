@@ -11,7 +11,7 @@
     "cfn-trigger": "./dist/cli/index.js"
   },
   "scripts": {
-    "dev": "trigger.dev dev",
+    "dev": "npx trigger.dev dev",
     "deploy": "trigger.dev deploy",
     "test": "vitest run",
     "test:watch": "vitest watch",

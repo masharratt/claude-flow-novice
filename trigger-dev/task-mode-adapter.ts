@@ -1,6 +1,7 @@
 /**
- * CFN Loop Task Mode Adapter
- * Executes agents via trigger.dev or falls back to memory/CLI
+ * CFN Loop Docker Mode Adapter
+ * Executes agents via trigger.dev Docker containers or falls back to memory simulation
+ * CLI mode is no longer supported - use separate CLI process for local development
  */
 
 import { execSync } from 'child_process';
@@ -16,7 +17,7 @@ export interface AgentResult {
   success: boolean;
   output?: unknown;
   error?: string;
-  executionMode: 'trigger.dev' | 'memory' | 'cli';
+  executionMode: 'trigger.dev' | 'memory' | 'docker';
   runId?: string;
 }
 
@@ -68,39 +69,20 @@ async function executeViaTriggerDev(
 }
 
 /**
- * Execute agent via CLI (npx claude-flow-novice agent-spawn)
+ * CLI mode has been removed from trigger process
+ * Use separate CLI process for local development
+ * @deprecated CLI mode is no longer supported in trigger process
  */
-function executeViaCli(
+function executeViaCliDeprecated(
   agentType: string,
   taskId: string,
   options: ExecuteAgentOptions
 ): AgentResult {
-  try {
-    const contextArg = options.context
-      ? `--context '${JSON.stringify(options.context)}'`
-      : '';
-
-    const command = `npx claude-flow-novice agent-spawn ${agentType} --task-id ${taskId} ${contextArg}`;
-
-    const output = execSync(command, {
-      timeout: options.timeout || DEFAULT_TIMEOUT,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    return {
-      success: true,
-      output,
-      executionMode: 'cli',
-    };
-  } catch (err) {
-    const error = err as Error & { stderr?: string };
-    return {
-      success: false,
-      error: error.stderr || error.message,
-      executionMode: 'cli',
-    };
-  }
+  throw new Error(
+    `CLI mode is no longer supported in trigger process. ` +
+    `Use separate CLI mode for local development or Docker execution. ` +
+    `Agent: ${agentType}, Task: ${taskId}`
+  );
 }
 
 /**
@@ -126,12 +108,12 @@ function executeViaMemory(
 }
 
 /**
- * Execute an agent via trigger.dev or fallback mechanisms
+ * Execute an agent via trigger.dev Docker containers or fallback mechanisms
  *
  * Auto-detection:
- * - If TRIGGER_API_URL is set: use trigger.dev
- * - If fallbackToMemory is true and trigger.dev fails: use memory
- * - Otherwise: use CLI mode
+ * - If TRIGGER_API_URL is set: use trigger.dev Docker execution
+ * - If fallbackToMemory is true and trigger.dev fails: use memory simulation
+ * - CLI mode is no longer supported - use separate CLI process
  *
  * @param agentType - Type of agent to spawn (e.g., 'backend-developer', 'tester')
  * @param taskId - Unique task identifier
@@ -149,34 +131,49 @@ export async function executeAgent(
     ...options,
   };
 
-  // Try trigger.dev if configured
+  // Require trigger.dev for Docker execution
   if (isTriggerDevConfigured()) {
     try {
       return await executeViaTriggerDev(agentType, taskId, opts);
     } catch (err) {
-      console.warn(`[trigger.dev] Execution failed: ${(err as Error).message}`);
+      console.warn(`[trigger.dev] Docker execution failed: ${(err as Error).message}`);
 
       if (opts.fallbackToMemory) {
-        console.log('[trigger.dev] Falling back to memory mode');
+        console.log('[trigger.dev] Falling back to memory simulation');
         return executeViaMemory(agentType, taskId, opts);
       }
 
       throw new AgentExecutionError(
-        `Failed to execute agent via trigger.dev: ${(err as Error).message}`,
+        `Failed to execute agent via trigger.dev Docker: ${(err as Error).message}`,
         agentType,
         taskId
       );
     }
   }
 
-  // Use CLI mode when trigger.dev not configured
-  return executeViaCli(agentType, taskId, opts);
+  // CLI mode is no longer supported - throw clear error
+  throw new AgentExecutionError(
+    `Trigger.dev Docker execution not configured and CLI mode is no longer supported. ` +
+    `Set TRIGGER_API_URL and TRIGGER_API_KEY for Docker execution, or use separate CLI process for local development. ` +
+    `Agent: ${agentType}, Task: ${taskId}`,
+    agentType,
+    taskId
+  );
 }
 
 /**
  * Check execution mode that will be used
- * @returns Current execution mode based on environment
+ * @returns Current execution mode based on environment (Docker-only)
  */
-export function getExecutionMode(): 'trigger.dev' | 'cli' {
-  return isTriggerDevConfigured() ? 'trigger.dev' : 'cli';
+export function getExecutionMode(): 'trigger.dev' | 'docker' {
+  return isTriggerDevConfigured() ? 'trigger.dev' : 'docker';
+}
+
+/**
+ * Check if CLI mode is supported (always false now)
+ * @returns false - CLI mode is no longer supported
+ * @deprecated CLI mode has been removed from trigger process
+ */
+export function isCliModeSupported(): boolean {
+  return false;
 }

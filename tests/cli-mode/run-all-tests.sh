@@ -9,7 +9,7 @@ set -euo pipefail
 # CONFIGURATION
 # ============================================================================
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+PROJECT_ROOT=${PROJECT_ROOT:-/workspace}
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 # Colors for output

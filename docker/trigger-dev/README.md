@@ -349,6 +349,59 @@ docker stats
 
 4. Check APP_DOMAIN in `.env` matches your access URL
 
+### Webapp API Errors
+
+**Symptom**: HTTP 500 error when accessing API endpoints like `/api/v1/status`:
+```
+TypeError: Cannot read properties of undefined (reading 'features')
+```
+
+**Root Cause**:
+1. The `/api/v1/status` endpoint doesn't exist in trigger.dev
+2. Missing self-hosted configuration variables
+
+**Solutions**:
+1. **Use legitimate endpoints** - test these instead:
+   ```bash
+   curl -I http://localhost:3040/login    # Should return 200
+   curl -I http://localhost:3040/         # Should return 302 (redirect)
+   ```
+
+2. **Add missing self-hosted configuration** to `.env`:
+   ```env
+   # Self-hosted configuration
+   TRIGGER_TELEMETRY_DISABLED=false
+   TRIGGER_SELF_HOSTED=true
+   TRIGGER_FEATURES_REAL_TIME=true
+   TRIGGER_FEATURES_CATALOG=true
+   TRIGGER_FEATURES_WEBHOOKS=true
+   TRIGGER_FEATURES_BATCHES=true
+   TRIGGER_FEATURES_SCHEDULED=true
+
+   # Organization settings
+   TRIGGER_ORG_SLUG=cfn-b36c
+   TRIGGER_PROJECT_SLUG=cfn
+   TRIGGER_ORG_ID=cmi8xpmpv0002r25mzsrdbu3j
+   TRIGGER_PROJECT_ID=cmi8xpmpz0005r25m7no4zpht
+   ```
+
+3. **Restart services** after updating `.env`:
+   ```bash
+   docker-compose down
+   docker-compose up -d
+   ```
+
+4. **Verify webapp is working**:
+   ```bash
+   # Check login page loads completely
+   curl -s http://localhost:3040/login | head -20
+
+   # Verify environment variables are loaded
+   docker-compose exec trigger-webapp printenv | grep TRIGGER_SELF_HOSTED
+   ```
+
+**Additional Documentation**: See `CLAUDE.md` for detailed troubleshooting and development workflow.
+
 ### Data Persistence Issues
 
 **Verify volumes exist**:

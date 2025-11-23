@@ -1,27 +1,26 @@
 /**
- * North Star Test 2: trigger.dev 5-Iteration Workflow
+ * North Star Test 2: trigger.dev 5-Iteration Workflow (Docker Process)
  *
- * Purpose: Validates complete CFN Loop iteration workflow via trigger.dev
- * Replaces CLI mode test: test-cfn-loop-5-iteration-real-execution.sh
- *
+ * Purpose: Validates complete CFN Loop iteration workflow via trigger.dev Docker containers
  * Test Strategy:
  * - Each iteration is a SEPARATE test case
  * - Tests simulate different failure scenarios at each iteration
  * - Tests verify deliverable creation at correct iteration
- * - Tests validate timeout handling for async job execution
+ * - Tests validate timeout handling for async job execution in Docker environment
  *
  * Validates 5 Iterations with REAL Deliverable Tracking:
  * Iteration 1: Gate failure (test pass rate < 0.95) → ITERATE
  * Iteration 2: Gate pass, Loop 2 consensus failure (< 0.90) → ITERATE
  * Iteration 3: Gate + Loop 2 pass, Product Owner decides ITERATE (refinement needed)
  * Iteration 4: Gate + Loop 2 pass, Product Owner decides ITERATE (polish needed)
- * Iteration 5: All pass, Product Owner decides PROCEED ✅
+ * Iteration 5: All pass, Product Owner decides PROCEED OK
  *
  * Configuration:
  * - Mode: Standard (gate ≥0.95, consensus ≥0.90)
  * - Max Iterations: 5
  * - Job Timeout: 30 seconds per iteration
  * - Deliverable: /tmp/trigger-dev-deliverables/{taskId}/hello-world.txt
+ * - Process: Docker-based CFN Loop execution (CLI mode separate)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -64,11 +63,10 @@ function getDeliverablePath(taskId: string, filename: string): string {
   return path.join('/tmp/trigger-dev-deliverables', taskId, filename);
 }
 
-// Utility: Poll for workflow completion and return status
-// NO TIMEOUT CONSTRAINT - allows workflows to run as long as needed
+// Utility: Poll for workflow completion via remote worker
 async function pollForWorkflowCompletion(
   eventId: string,
-  maxAttempts: number = 600, // 600 attempts × 1s = 10 minutes max
+  maxAttempts: number = 600,
   pollIntervalMs: number = 1000
 ): Promise<RunStatus> {
   const startTime = Date.now();
@@ -76,18 +74,14 @@ async function pollForWorkflowCompletion(
 
   while (attempts < maxAttempts) {
     attempts++;
-    try {
-      const status = await getRunStatus(eventId, 1);
-      if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(status.status)) {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        console.log(`✅ Workflow ${eventId} completed in ${elapsed}s (${attempts} polls)`);
-        return status;
-      }
-    } catch (error) {
-      // Continue polling if status not available yet
-      if (attempts % 10 === 0) { // Log every 10 seconds
-        console.log(`Polling workflow ${eventId}... (${Math.floor((Date.now() - startTime) / 1000)}s elapsed, attempt ${attempts}/${maxAttempts})`);
-      }
+    const status = await getRunStatus(eventId, 1);
+    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(status.status)) {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      console.log(`Workflow ${eventId} completed in ${elapsed}s (${attempts} polls)`);
+      return status;
+    }
+    if (attempts % 10 === 0) {
+      console.log(`Polling workflow ${eventId}... (${Math.floor((Date.now() - startTime) / 1000)}s elapsed, attempt ${attempts}/${maxAttempts})`);
     }
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
@@ -164,7 +158,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(result.id).toBeDefined();
       expect(result.name).toBe('cfn.loop.start');
       eventIds.push(result.id);
-      console.log(`✅ Iteration 1 event triggered: ${result.id}`);
+      console.log(`OK Iteration 1 event triggered: ${result.id}`);
     }, TEST_TIMEOUT_MS);
 
     it('should NOT create deliverable when gate fails', async () => {
@@ -174,7 +168,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
 
       // THEN: File should NOT exist (gate failed, iteration 1 incomplete)
       expect(fileExists).toBe(false);
-      console.log('✅ Iteration 1: No deliverable created (gate failed as expected)');
+      console.log('OK Iteration 1: No deliverable created (gate failed as expected)');
     });
   });
 
@@ -223,7 +217,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
 
       expect(result.id).toBeDefined();
       eventIds.push(result.id);
-      console.log(`✅ Iteration 2 event triggered: ${result.id}`);
+      console.log(`OK Iteration 2 event triggered: ${result.id}`);
     }, TEST_TIMEOUT_MS);
 
     it('should NOT create complete deliverable when consensus fails', async () => {
@@ -233,7 +227,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
 
       // THEN: File should NOT exist (consensus failed, iteration 2 incomplete)
       expect(fileExists).toBe(false);
-      console.log('✅ Iteration 2: No complete deliverable (consensus failed as expected)');
+      console.log('OK Iteration 2: No complete deliverable (consensus failed as expected)');
     });
   });
 
@@ -283,7 +277,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
 
       expect(result.id).toBeDefined();
       eventIds.push(result.id);
-      console.log(`✅ Iteration 3 event triggered: ${result.id}`);
+      console.log(`OK Iteration 3 event triggered: ${result.id}`);
     }, TEST_TIMEOUT_MS);
 
     it('should NOT create final deliverable when PO requests refinement', async () => {
@@ -292,7 +286,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
 
       // THEN: File should NOT exist (PO requested changes)
       expect(fileExists).toBe(false);
-      console.log('✅ Iteration 3: No final deliverable (PO refinement requested as expected)');
+      console.log('OK Iteration 3: No final deliverable (PO refinement requested as expected)');
     });
   });
 
@@ -343,7 +337,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
 
       expect(result.id).toBeDefined();
       eventIds.push(result.id);
-      console.log(`✅ Iteration 4 event triggered: ${result.id}`);
+      console.log(`OK Iteration 4 event triggered: ${result.id}`);
     }, TEST_TIMEOUT_MS);
 
     it('should NOT create final deliverable when PO requests polish', async () => {
@@ -352,7 +346,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
 
       // THEN: File should NOT exist (PO requested final polish)
       expect(fileExists).toBe(false);
-      console.log('✅ Iteration 4: No final deliverable (PO polish requested as expected)');
+      console.log('OK Iteration 4: No final deliverable (PO polish requested as expected)');
     });
   });
 
@@ -407,7 +401,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(result.id).toBeDefined();
       iteration5EventId = result.id;
       eventIds.push(result.id);
-      console.log(`✅ Iteration 5 event triggered: ${result.id}`);
+      console.log(`OK Iteration 5 event triggered: ${result.id}`);
     }, TEST_TIMEOUT_MS);
 
     it('should create final deliverable when PO PROCEED decision', async () => {
@@ -420,7 +414,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
 
       // THEN: Workflow should complete successfully
       expect(workflowStatus.status).toBe('COMPLETED');
-      console.log(`✅ Workflow completed with status: ${workflowStatus.status}`);
+      console.log(`OK Workflow completed with status: ${workflowStatus.status}`);
 
       // THEN: File should exist (created by workflow, not test)
       const fileExists = await waitForFile(deliverablePath, 5000);
@@ -430,7 +424,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       const content = fs.readFileSync(deliverablePath, 'utf-8');
       expect(content.trim()).toBe('Hello, World!');
 
-      console.log(`✅ Iteration 5: Final deliverable created with content: "${content.trim()}"`);
+      console.log(`OK Iteration 5: Final deliverable created with content: "${content.trim()}"`);
     }, TEST_TIMEOUT_MS); // Extended timeout for live agent execution
 
     it('should verify deliverable contains exact expected content', () => {
@@ -446,7 +440,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(content).toContain('World');
       expect(content).toContain('!');
 
-      console.log('✅ Deliverable content verified: Perfect formatting');
+      console.log('OK Deliverable content verified: Perfect formatting');
     });
   });
 
@@ -501,7 +495,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(result.id).toBeDefined();
       forceEventId = result.id;
       eventIds.push(result.id);
-      console.log(`✅ Force override event triggered: ${result.id}`);
+      console.log(`OK Force override event triggered: ${result.id}`);
     }, TEST_TIMEOUT_MS);
 
     it('should verify force config is applied correctly', async () => {
@@ -519,7 +513,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
         const output = workflowStatus.output as any;
         if (output.iterationHistory && output.iterationHistory[0]) {
           expect(output.iterationHistory[0].forceApplied).toBe(true);
-          console.log(`✅ Force override applied: ${output.iterationHistory[0].forceApplied}`);
+          console.log(`OK Force override applied: ${output.iterationHistory[0].forceApplied}`);
         }
       }
     }, TEST_TIMEOUT_MS);
@@ -534,7 +528,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       // GIVEN: All 5 iterations executed
       // THEN: Should have 5 event IDs
       expect(eventIds.length).toBeGreaterThanOrEqual(5);
-      console.log(`✅ All iterations triggered. Event count: ${eventIds.length}`);
+      console.log(`OK All iterations triggered. Event count: ${eventIds.length}`);
       console.log(`Event IDs: ${eventIds.join(', ')}`);
     });
 
@@ -546,7 +540,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(config.maxIterations).toBe(10);
       expect(config.validatorCount).toBe(3);
 
-      console.log('✅ Standard mode thresholds validated:');
+      console.log('OK Standard mode thresholds validated:');
       console.log('  - Gate: ≥0.95');
       console.log('  - Consensus: ≥0.90');
       console.log('  - Max Iterations: 10');
@@ -568,7 +562,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(expectedOutcomes.filter(o => o.outcome === 'PROCEED').length).toBe(1);
       expect(expectedOutcomes[4].outcome).toBe('PROCEED');
 
-      console.log('✅ Iteration progression validated:');
+      console.log('OK Iteration progression validated:');
       console.log('  - Iteration 1: Gate failure → ITERATE');
       console.log('  - Iteration 2: Consensus failure → ITERATE');
       console.log('  - Iteration 3: PO refinement → ITERATE');
@@ -605,7 +599,7 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
       expect(Object.keys(iterationContexts[3]).length).toBe(3);
       expect(Object.keys(iterationContexts[4]).length).toBe(4);
 
-      console.log('✅ Context accumulation validated across 5 iterations');
+      console.log('OK Context accumulation validated across 5 iterations');
     });
   });
 
@@ -617,66 +611,37 @@ describe('North Star Test 2: 5-Iteration CFN Loop Workflow', () => {
     const DELIVERABLE_TASK_ID = `deliverable-verify-${Date.now()}`;
     const deliverablePath = getDeliverablePath(DELIVERABLE_TASK_ID, DELIVERABLE_FILE);
 
-    beforeAll(() => {
-      // Create deliverable directory
-      const dir = path.dirname(deliverablePath);
-      fs.mkdirSync(dir, { recursive: true });
-    });
-
     afterAll(() => {
-      // Cleanup
       const dir = path.dirname(deliverablePath);
       if (fs.existsSync(dir)) {
         fs.rmSync(dir, { recursive: true, force: true });
       }
     });
 
-    it('should create deliverable with correct content', async () => {
-      // GIVEN: Simulating workflow creating the file
-      fs.writeFileSync(deliverablePath, 'Hello, World!');
+    it('should create deliverable with correct content via worker', async () => {
+      const payload: CFNLoopPayload = {
+        taskId: DELIVERABLE_TASK_ID,
+        description: 'Create hello-world deliverable',
+        mode: MODE,
+        maxIterations: 1,
+        currentIteration: 1,
+        startedAt: new Date().toISOString(),
+        successCriteria: {
+          testCommand: `test -f ${deliverablePath} && grep -q "Hello" ${deliverablePath}`,
+          passRateThreshold: 0.8,
+          description: 'Deliverable must contain Hello',
+        },
+      };
 
-      // WHEN: Waiting for file
+      const event = await sendEvent('cfn.loop.start', payload as unknown as Record<string, unknown>);
+      await pollForWorkflowCompletion(event.id, 120, 500);
+
       const fileExists = await waitForFile(deliverablePath, 30000);
-
-      // THEN: File should exist
       expect(fileExists).toBe(true);
-      console.log('✅ Deliverable created successfully');
-    });
 
-    it('should FAIL if deliverable not created within timeout', async () => {
-      // GIVEN: Non-existent deliverable path
-      const missingPath = getDeliverablePath('missing-task-12345', 'missing.txt');
-
-      // WHEN: Waiting for file with short timeout
-      const fileExists = await waitForFile(missingPath, 1000, 200);
-
-      // THEN: File should NOT exist
-      expect(fileExists).toBe(false);
-      console.log('✅ Timeout validation working correctly');
-    });
-
-    it('should verify deliverable contains "Hello" content', async () => {
-      // GIVEN: Deliverable file exists
-      expect(fs.existsSync(deliverablePath)).toBe(true);
-
-      // WHEN: Reading content
       const content = fs.readFileSync(deliverablePath, 'utf-8');
-
-      // THEN: Content should contain "Hello"
       expect(content).toContain('Hello');
-      console.log(`✅ Content validation passed: "${content}"`);
-    });
-
-    it('should verify complete "Hello, World!" content', async () => {
-      // GIVEN: Final iteration deliverable
-      const content = fs.readFileSync(deliverablePath, 'utf-8');
-
-      // THEN: Content should be exactly "Hello, World!"
-      expect(content.trim()).toBe('Hello, World!');
-      expect(content).toContain(',');
-      expect(content).toContain('!');
-
-      console.log('✅ Complete content validation passed');
+      console.log(`OK Deliverable created with content: "${content.trim()}"`);
     });
   });
 });

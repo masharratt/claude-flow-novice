@@ -83,13 +83,13 @@ export async function sendEvent(
       runs.set(id, { id, status: 'COMPLETED', output: payload });
     }
   } else {
-    const response = await fetch(`${normalizeApiUrl(apiUrl)}/api/v3/events`, {
+    const response = await fetch(`${normalizeApiUrl(apiUrl)}/api/v1/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({ name: eventName, payload }),
+      body: JSON.stringify({ event: { name: eventName, payload } }),
     });
 
     if (!response.ok) {
@@ -164,7 +164,7 @@ export async function getRunStatus(
   }
 
   const { apiUrl, apiKey } = getConfig();
-  const response = await fetch(`${normalizeApiUrl(apiUrl)}/api/v3/events/${runId}`, {
+  const response = await fetch(`${normalizeApiUrl(apiUrl)}/api/v1/events/${runId}`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },
