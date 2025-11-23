@@ -1,0 +1,142 @@
+version: '3.9'
+
+services:
+  postgres:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      POSTGRES_INITDB_ARGS: "-c log_statement=all -c log_min_duration_statement=1000"
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    command: redis-server --appendonly yes --appendfsync everysec
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  minio:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    healthcheck:
+      interval: 15s
+      timeout: 10s
+      retries: 3
+
+  clickhouse:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    environment:
+      CLICKHOUSE_DB: trigger_staging
+    healthcheck:
+      interval: 20s
+      timeout: 10s
+      retries: 3
+
+  trigger-webapp:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 384M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+    environment:
+      NODE_ENV: staging
+      LOG_LEVEL: info
+      TRIGGER_TELEMETRY_DISABLED: 'false'
+      NODE_TLS_REJECT_UNAUTHORIZED: '1'
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  trigger-worker:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 768M
+        reservations:
+          cpus: '0.5'
+          memory: 384M
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 60s
+    environment:
+      NODE_ENV: staging
+      LOG_LEVEL: info
+      TRIGGER_TELEMETRY_DISABLED: 'false'
+      CFN_DEVELOPMENT_MODE: 'false'
+      CFN_AGENT_SPAWN_DELAY_MS: '500'
+      ENABLE_METRICS: 'true'
+      METRICS_PORT: '9090'
+
+  socket-proxy:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    environment:
+      AUTH: '1'
+      DEBUG: '0'
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 3

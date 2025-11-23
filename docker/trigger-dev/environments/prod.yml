@@ -1,0 +1,217 @@
+version: '3.9'
+
+services:
+  postgres:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+    environment:
+      POSTGRES_INITDB_ARGS: "-c log_statement=none -c log_min_error_statement=ERROR"
+      POSTGRES_WORK_MEM: '256MB'
+      POSTGRES_MAINTENANCE_WORK_MEM: '1GB'
+      POSTGRES_EFFECTIVE_CACHE_SIZE: '2GB'
+      POSTGRES_SHARED_BUFFERS: '1GB'
+    volumes:
+      - ./backups/postgres:/backups:rw
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-trigger}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  redis:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync always
+      --maxmemory-policy allkeys-lru
+      --maxmemory 1.5g
+      --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - ./backups/redis:/backups:rw
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  minio:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+    volumes:
+      - ./backups/minio:/backups:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+
+  clickhouse:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+    environment:
+      CLICKHOUSE_DB: trigger_production
+      CLICKHOUSE_DEFAULT_MAX_BYTES_BEFORE_EXTERNAL_GROUP_BY: '1000000000'
+      CLICKHOUSE_DEFAULT_MAX_EXECUTION_TIME: '300'
+    volumes:
+      - ./backups/clickhouse:/backups:rw
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  trigger-webapp:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        max_failure_ratio: 0.25
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: warn
+      TRIGGER_TELEMETRY_DISABLED: 'true'
+      NODE_TLS_REJECT_UNAUTHORIZED: '1'
+      PROTOCOL: 'https'
+      ENABLE_METRICS: 'true'
+      METRICS_PORT: '9090'
+      NODE_OPTIONS: "--max-old-space-size=768 --enable-source-maps"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get({hostname: 'localhost', port: 3000, path: '/health', timeout: 5000}, (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  trigger-worker:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        max_failure_ratio: 0.25
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: warn
+      TRIGGER_TELEMETRY_DISABLED: 'true'
+      CFN_DEVELOPMENT_MODE: 'false'
+      CFN_AGENT_SPAWN_DELAY_MS: '1000'
+      ENABLE_METRICS: 'true'
+      METRICS_PORT: '9090'
+      NODE_OPTIONS: "--max-old-space-size=768 --enable-source-maps"
+      WORKER_CONCURRENCY: '10'
+      WORKER_POLL_INTERVAL_MS: '5000'
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get({hostname: 'localhost', port: 9090, path: '/health', timeout: 5000}, (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  socket-proxy:
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+    environment:
+      AUTH: '1'
+      DEBUG: '0'
+      ALLOW_START: 'false'
+      ALLOW_STOP: 'false'
+      ALLOW_RESTART: 'false'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2375/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
