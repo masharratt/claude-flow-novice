@@ -327,7 +327,7 @@ These files are referenced in the dependency diagram but do not exist:
 1. `.claude/skills/cfn-redis-coordination/SKILL.md`
 2. `.claude/agents/cfn-dev-team/coordinators/cfn-cli-dependency-maintainer.md`
 3. `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
-4. `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+4. `.claude/commands/CFN_LOOP_TASK_MODE.md`
 
 **Action:** Update dependency diagram to remove references or create missing files.
 

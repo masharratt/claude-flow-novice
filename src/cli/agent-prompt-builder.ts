@@ -63,7 +63,7 @@ const signal = {
   const client = createClient({ url: 'redis://localhost:6379' });
   await client.connect();
 
-  const signalKey = \`cfn:mainchat:signal:\${process.env.TASK_ID}\`;
+  const signalKey = \`cfn-completion:\${process.env.TASK_ID}\`;
   await client.lPush(signalKey, JSON.stringify(signal));
 
   console.log(\`✅ Completion signal sent to Main Chat via Redis\`);
@@ -91,7 +91,7 @@ After sending the signal, exit immediately. Main Chat is waiting for your Redis 
 
 **Main Chat Workflow:**
 1. Spawns you via CLI with specific provider/model
-2. Waits via \`redis-cli BLPOP cfn:mainchat:signal:${taskId}\`
+2. Waits via \`redis-cli BLPOP cfn-completion:${taskId}\`
 3. Processes your completion signal when received
 4. Continues with next task or spawns additional agents
 

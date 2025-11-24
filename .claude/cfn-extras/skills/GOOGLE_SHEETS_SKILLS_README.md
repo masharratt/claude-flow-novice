@@ -371,7 +371,7 @@ find ./.claude/cfn-extras/skills/google-sheets-* -name "*.sh" \
 
 ## Related Documentation
 
-- **CFN Loop Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **CFN Loop Guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - **Progress Tracking**: `.claude/cfn-extras/skills/google-sheets-progress/SKILL.md`
 - **Validation Rules**: `.claude/cfn-extras/skills/google-sheets-validation/SKILL.md`
 - **Formula Templates**: `.claude/cfn-extras/skills/google-sheets-formula-builder/SKILL.md`

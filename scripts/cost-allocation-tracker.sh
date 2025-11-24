@@ -17,6 +17,10 @@
 
 set -euo pipefail
 
+# Source validation framework for safe arithmetic
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/validation.sh"
+
 # Configuration
 COST_CPU_PER_HOUR=0.05          # $0.05 per CPU core per hour
 COST_MEMORY_PER_GB_HOUR=0.10    # $0.10 per GB per hour
@@ -61,16 +65,46 @@ calculate_container_cost() {
   local runtime_seconds=${4:-3600}  # Default to 1 hour
   local provider=${5:-zai}
 
+  # Validate inputs
+  if ! validate_numeric "$cpu_percent" 0 ; then
+    log_error "Invalid CPU percent: $cpu_percent"
+    echo "0"
+    return 1
+  fi
+
+  if ! validate_numeric "$memory_mb" 0 ; then
+    log_error "Invalid memory MB: $memory_mb"
+    echo "0"
+    return 1
+  fi
+
+  if ! validate_numeric "$runtime_seconds" 1 ; then
+    log_error "Invalid runtime seconds: $runtime_seconds"
+    echo "0"
+    return 1
+  fi
+
   # Assume CPU_PERCENT is for 1 hour execution
-  # Convert to actual CPU-hours
-  local cpu_hours=$(echo "scale=4; ($cpu_percent / 100) * ($runtime_seconds / 3600)" | bc)
-  local memory_gb=$(echo "scale=4; $memory_mb / 1024" | bc)
-  local memory_hours=$(echo "scale=4; $memory_gb * ($runtime_seconds / 3600)" | bc)
+  # Convert to actual CPU-hours (safe division)
+  local cpu_hours
+  cpu_hours=$(safe_divide "$cpu_percent" "100" 4) || return 1
+  cpu_hours=$(safe_arithmetic "$cpu_hours * ($runtime_seconds / 3600)") || return 1
+
+  local memory_gb
+  memory_gb=$(safe_divide "$memory_mb" "1024" 4) || return 1
+
+  local memory_hours
+  memory_hours=$(safe_arithmetic "$memory_gb * ($runtime_seconds / 3600)") || return 1
 
   # Calculate infrastructure costs
-  local cpu_cost=$(echo "scale=6; $cpu_hours * $COST_CPU_PER_HOUR" | bc)
-  local memory_cost=$(echo "scale=6; $memory_hours * $COST_MEMORY_PER_GB_HOUR" | bc)
-  local total_cost=$(echo "scale=6; $cpu_cost + $memory_cost" | bc)
+  local cpu_cost
+  cpu_cost=$(safe_arithmetic "$cpu_hours * $COST_CPU_PER_HOUR") || return 1
+
+  local memory_cost
+  memory_cost=$(safe_arithmetic "$memory_hours * $COST_MEMORY_PER_GB_HOUR") || return 1
+
+  local total_cost
+  total_cost=$(safe_arithmetic "$cpu_cost + $memory_cost") || return 1
 
   echo "$total_cost"
 }
@@ -80,24 +114,35 @@ get_api_cost() {
   local provider=$1
   local tokens=${2:-0}
 
+  # Validate token count
+  if ! validate_numeric "$tokens" 0 ; then
+    log_error "Invalid token count: $tokens"
+    echo "0"
+    return 1
+  fi
+
   if [ "$tokens" -eq 0 ]; then
     echo "0"
-    return
+    return 0
   fi
 
   local cost=0
   case "$provider" in
     zai)
-      cost=$(echo "scale=6; $tokens * ($COST_ZAI / 1000000)" | bc)
+      cost=$(safe_divide "$COST_ZAI" "1000000" 6) || return 1
+      cost=$(safe_arithmetic "$tokens * $cost") || return 1
       ;;
     kimi)
-      cost=$(echo "scale=6; $tokens * ($COST_KIMI / 1000000)" | bc)
+      cost=$(safe_divide "$COST_KIMI" "1000000" 6) || return 1
+      cost=$(safe_arithmetic "$tokens * $cost") || return 1
       ;;
     openrouter)
-      cost=$(echo "scale=6; $tokens * ($COST_OPENROUTER / 1000000)" | bc)
+      cost=$(safe_divide "$COST_OPENROUTER" "1000000" 6) || return 1
+      cost=$(safe_arithmetic "$tokens * $cost") || return 1
       ;;
     anthropic)
-      cost=$(echo "scale=6; $tokens * ($COST_ANTHROPIC / 1000000)" | bc)
+      cost=$(safe_divide "$COST_ANTHROPIC" "1000000" 6) || return 1
+      cost=$(safe_arithmetic "$tokens * $cost") || return 1
       ;;
     *)
       cost=0

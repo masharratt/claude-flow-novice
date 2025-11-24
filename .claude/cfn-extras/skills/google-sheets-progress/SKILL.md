@@ -281,7 +281,7 @@ The skill includes comprehensive test coverage:
 
 ## References
 
-- **CFN Loop Documentation**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **CFN Loop Documentation**: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - **State Management Pattern**: `.claude/skills/cfn-automatic-memory-persistence/SKILL.md`
 - **Coordination Protocols**: `.claude/skills/cfn-coordination/SKILL.md`
 - **Agent Output Standards**: `docs/AGENT_OUTPUT_STANDARDS.md`

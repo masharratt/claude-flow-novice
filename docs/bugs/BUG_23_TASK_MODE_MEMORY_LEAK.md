@@ -134,7 +134,7 @@ Time | Main Chat RSS | Agents Active | Phase
 
 ### Location 1: Task Mode Coordinator Spawning
 
-**File:** `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+**File:** `.claude/commands/CFN_LOOP_TASK_MODE.md`
 
 **Pattern:**
 ```javascript
@@ -339,7 +339,7 @@ const loop3Results = await Promise.all(
 
 ### 1. Documentation Update
 
-**Add to `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`:**
+**Add to `.claude/commands/CFN_LOOP_TASK_MODE.md`:**
 
 ```markdown
 ## Memory Considerations

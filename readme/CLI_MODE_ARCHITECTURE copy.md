@@ -447,7 +447,7 @@ redis-cli BLPOP "cfn-broadcast:${TASK_ID}" 60
 ## Related Documentation
 
 - **CFN Loop Architecture**: `docs/CFN_LOOP_ARCHITECTURE.md`
-- **Task Mode Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **Task Mode Guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - **Coordinator Parameters**: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 - **Custom Provider Routing**: `docs/CUSTOM_PROVIDER_ROUTING.md`
 - **Test Suite Overview**: `tests/README.md`

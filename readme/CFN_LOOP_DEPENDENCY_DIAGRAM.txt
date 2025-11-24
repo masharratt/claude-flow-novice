@@ -585,7 +585,7 @@ PART 9: RELATED DOCUMENTATION
 ================================================================================
 
 [PRIMARY REFERENCES]
-  - CFN Loop Task Mode: .claude/commands/cfn/CFN_LOOP_TASK_MODE.md
+  - CFN Loop Task Mode: .claude/commands/CFN_LOOP_TASK_MODE.md
   - Coordinator Parameters: .claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md
   - Test-Driven Guide: docs/guides/TEST_DRIVEN_CFN_LOOP_GUIDE.md
   - Success Criteria: docs/guides/SUCCESS_CRITERIA_EXAMPLES.md

@@ -55,7 +55,7 @@
    - Task Mode vs CLI Mode execution and cost optimization
    - Performance and resource considerations
 
-4. **[CFN_LOOP_TASK_MODE.md](../.claude/commands/cfn/CFN_LOOP_TASK_MODE.md)**
+4. **[CFN_LOOP_TASK_MODE.md](../.claude/commands/CFN_LOOP_TASK_MODE.md)**
    - Task mode execution guide
    - Agent specialization rules
    - Adaptive validator scaling

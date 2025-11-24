@@ -1,0 +1,120 @@
+{
+  "dashboard": {
+    "title": "CFN Loop - Cost Tracking",
+    "uid": "cfn-cost-tracking",
+    "tags": ["cfn", "cost", "budget"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "5m",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Cost Over Time",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(increase(cfn_agent_cost_dollars_total[1h]))",
+            "legendFormat": "Hourly Cost",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Cost by Team (Last 24h)",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "sum(increase(cfn_agent_cost_dollars_total[24h])) by (team)",
+            "legendFormat": "{{ team }}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {"mode": "continuous-GrYlRd"}
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 3,
+        "title": "Cost by Project (Last 24h)",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum(increase(cfn_agent_cost_dollars_total[24h])) by (project)",
+            "legendFormat": "{{ project }}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Cost by Provider (Last 24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(cfn_agent_cost_dollars_total[24h])) by (provider)",
+            "legendFormat": "{{ provider }}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 5,
+        "title": "Token Usage by Provider (Last 24h)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(increase(cfn_agent_tokens_total[1h])) by (provider, token_type)",
+            "legendFormat": "{{ provider }} - {{ token_type }}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Cost Per Agent Execution (Last 24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(cfn_agent_cost_dollars_total[24h])) / sum(increase(cfn_agent_executions_total[24h]))",
+            "legendFormat": "Avg Cost Per Execution",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 4
+          }
+        },
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 24}
+      }
+    ]
+  },
+  "overwrite": true
+}

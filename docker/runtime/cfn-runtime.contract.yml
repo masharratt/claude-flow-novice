@@ -18,9 +18,9 @@ redis:
     example: "cfn-redis"
     modes:
       cli:
-        override: "cfn-redis"
+        override: "localhost"  # Host-resolvable for CLI agents
       trigger:
-        override: "redis"
+        override: "redis"  # Docker service name for containers
 
   CFN_REDIS_PORT:
     description: "Redis server port"

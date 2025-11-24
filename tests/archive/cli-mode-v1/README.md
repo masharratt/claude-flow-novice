@@ -160,7 +160,7 @@ npx tsx src/cli/spawn-agent-cli.ts backend-developer \
 - **Current Architecture:** `readme/CLI_MODE_ARCHITECTURE copy.md`
 - **Test Standards:** `tests/CLAUDE.md`
 - **Security Fixes:** `docs/BUG_COMMAND_INJECTION_FIX.md` (if created)
-- **CFN Loop Guide:** `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **CFN Loop Guide:** `.claude/commands/CFN_LOOP_TASK_MODE.md`
 
 ## Future Considerations
 

@@ -23,7 +23,7 @@ The CLI mode refactoring represents a significant architectural simplification w
 **Simplified Coordination Pattern:**
 - ✅ Eliminated orchestrator middleman (Main Chat → Agents)
 - ✅ Direct Redis BLPOP signaling reduces coordination overhead
-- ✅ Standardized key namespace: `cfn:mainchat:signal:<task-id>`
+- ✅ Standardized key namespace: `cfn-completion:<task-id>` (collision mitigation)
 - ✅ Clean separation of concerns (Main Chat coordinates, agents execute)
 
 **Cost Optimization:**
@@ -61,11 +61,11 @@ swarm:${taskId}:${agentId}:done
 swarm:${taskId}:${agentId}:confidence
 cfn-completion:${taskId}
 
-# NEW keys:
-cfn:mainchat:signal:${taskId}
+# STANDARDIZED key (collision mitigation):
+cfn-completion:${taskId}
 cfn:broadcast:${taskId}
 ```
-- Three different key patterns for same purpose
+- Previously had three different key patterns, now standardized on `cfn-completion:*`
 - No cleanup strategy for deprecated keys
 - Potential Redis memory leak from orphaned keys
 
@@ -90,7 +90,7 @@ cfn:broadcast:${taskId}
 **Single Point of Blocking:**
 ```typescript
 // Main Chat blocks on BLPOP for each agent sequentially
-redis-cli BLPOP cfn:mainchat:signal:task-123-abc 120
+redis-cli BLPOP cfn-completion:task-123-abc 120
 ```
 - ❌ Serial agent completion (not parallel)
 - ❌ Main Chat cannot coordinate multiple tasks concurrently
@@ -196,12 +196,12 @@ const prompt = process.env.PROMPT || `Execute your assigned task...`;
 await execAsync(`redis-cli ... lpush "swarm:${taskId}:${agentId}:done" ...`);
 await execAsync(`redis-cli ... lpush "cfn-completion:${taskId}" ...`);
 
-// Protocol snippet also duplicates signaling with Node.js
+// Protocol snippet uses Node.js Redis client
 const client = createClient(...);
-await client.lPush(`cfn:mainchat:signal:${taskId}`, ...);
+await client.lPush(`cfn-completion:${taskId}`, ...);
 ```
 - Two different Redis clients (redis-cli vs Node.js library)
-- Three different key patterns for same purpose
+- Now standardized on `cfn-completion:*` key pattern
 - No single source of truth for coordination keys
 
 **main() Function Anti-Pattern:**

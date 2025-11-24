@@ -368,7 +368,7 @@ From epic-ace-integration.json Phase 1.1:
 - IMPLEMENTATION_CHECKLIST.md
 
 **Related Documentation:**
-- CFN Loop Task Mode: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- CFN Loop Task Mode: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - ACE System Skill: `.claude/skills/cfn-ace-system/SKILL.md`
 - CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration/SKILL.md`
 

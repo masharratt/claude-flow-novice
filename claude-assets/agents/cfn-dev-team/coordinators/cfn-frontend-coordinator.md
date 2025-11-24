@@ -879,7 +879,7 @@ Test Execution Summary:
 ## Related Documentation
 
 - Guide: `.claude/commands/cfn/CFN_LOOP_FRONTEND.md`
-- Task Mode Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- Task Mode Guide: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 - Standard CFN Loop: `.claude/commands/cfn/cfn-loop.md`
 - Agent Coordination: Dynamic coordination layer

@@ -95,7 +95,7 @@
 - **Defensive scripting**: PATTERN-025/026/028 plus STRAT-028 for process cleanup.
 
 ## 10. Reference materials
-- <code>.claude/commands/cfn/CFN_LOOP_TASK_MODE.md</code>
+- <code>.claude/commands/CFN_LOOP_TASK_MODE.md</code>
 - <code>.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md</code>
 - <code>.claude/skills/cfn-loop-validation/SKILL.md</code>
 - <code>.claude/skills/cfn-agent-spawning/SKILL.md</code>

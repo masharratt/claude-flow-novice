@@ -129,7 +129,7 @@ describe('Agent Prompt Builder - Core Functionality', () => {
       expect(prompt).toContain('redis-cli BLPOP');
       expect(prompt).toContain('TASK_ID=test-task-123');
       expect(prompt).toContain('agentId: \'backend-developer-1\'');
-      expect(prompt).toContain('cfn:mainchat:signal:');
+      expect(prompt).toContain('cfn-completion:');
     });
 
     test('should omit CLI Mode protocol when taskId is missing', async () => {

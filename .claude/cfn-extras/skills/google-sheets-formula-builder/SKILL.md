@@ -234,4 +234,4 @@ fi
 
 - **Google Sheets API**: https://developers.google.com/sheets/api/reference/rest
 - **Formula Validation**: `google-sheets-validation` skill
-- **CFN Loop Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **CFN Loop Guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md`

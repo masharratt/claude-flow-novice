@@ -195,5 +195,5 @@ grep -B 2 "Category: Optimization" readme/BACKLOG.md
 ## References
 
 - **STRAT-025**: Explicit Deliverable Tracking (adaptive context)
-- **CFN Loop Documentation**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **CFN Loop Documentation**: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - **Sprint Execution**: CLAUDE.md Section 6 - Sprint Context Injection

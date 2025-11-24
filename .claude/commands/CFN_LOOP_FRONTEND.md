@@ -732,7 +732,7 @@ Not generic advice - specific fixes only.`
 
 ## Related Documentation
 
-- **Task Mode Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **Task Mode Guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - **Standard CFN Loop**: `.claude/commands/cfn/cfn-loop.md`
 - **Coordinator Parameters**: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 

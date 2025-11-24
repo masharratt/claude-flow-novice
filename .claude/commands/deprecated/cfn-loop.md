@@ -95,7 +95,7 @@ Extract parameters from command:
 
 ```javascript
 // Read Task Mode guide for agent specialization and workflow
-const taskModeGuide = await Read('.claude/commands/cfn/CFN_LOOP_TASK_MODE.md');
+const taskModeGuide = await Read('.claude/commands/CFN_LOOP_TASK_MODE.md');
 
 // Guide provides:
 // - Agent specialization (Loop 3: implementers, Loop 2: validators, Loop 4: PO)
@@ -274,7 +274,7 @@ Main Chat does NOT spawn a coordinator. Instead, it coordinates directly followi
 
 ```javascript
 // Step 1: Read Task Mode Guide
-const guide = await Read('.claude/commands/cfn/CFN_LOOP_TASK_MODE.md');
+const guide = await Read('.claude/commands/CFN_LOOP_TASK_MODE.md');
 
 // Step 2: Analyze Task Complexity (from guide)
 const complexity = analyzeComplexity({

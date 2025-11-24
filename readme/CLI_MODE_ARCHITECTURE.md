@@ -1098,7 +1098,7 @@ PART 14: RELATED DOCUMENTATION
 [PRIMARY REFERENCES]
 - CFN Loop Architecture: `docs/CFN_LOOP_ARCHITECTURE.md`
 - Dependency Diagram: `readme/CFN_LOOP_DEPENDENCY_DIAGRAM.txt`
-- Task Mode Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- Task Mode Guide: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 
 [CLI MODE SPECIFIC]

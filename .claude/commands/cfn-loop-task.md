@@ -106,7 +106,7 @@ You must execute this CFN Loop directly using the Task() tool to spawn agents.
 Read the complete Task Mode guide for detailed workflow:
 
 ```
-Read('.claude/commands/cfn/CFN_LOOP_TASK_MODE.md')
+Read('.claude/commands/CFN_LOOP_TASK_MODE.md')
 ```
 
 **Expected output:** Complete guide with agent selection, workflow steps, helper scripts
@@ -450,7 +450,7 @@ parse-decision.sh --output "$PO_OUTPUT"
 
 ## Related Documentation
 
-- **Task Mode Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (complete reference)
+- **Task Mode Guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md` (complete reference)
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 - Agent Output Standards: `docs/AGENT_OUTPUT_STANDARDS.md`
 - ACE System: `.claude/skills/cfn-ace-system/SKILL.md`

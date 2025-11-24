@@ -561,7 +561,7 @@ Before running frontend CFN Loop:
 
 - Guide: `.claude/commands/cfn/CFN_LOOP_FRONTEND.md` (742 lines, complete workflow)
 - Coordinator: `.claude/agents/cfn-dev-team/coordinators/cfn-frontend-coordinator.md`
-- Task Mode: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- Task Mode: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - Standard CFN Loop: `.claude/commands/cfn/cfn-loop.md`
 
 ---

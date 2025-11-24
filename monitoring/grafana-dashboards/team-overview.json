@@ -1,0 +1,99 @@
+{
+  "dashboard": {
+    "title": "CFN Loop - Team Overview",
+    "uid": "cfn-team-overview",
+    "tags": ["cfn", "team", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Agents by Team",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(cfn_agent_spawns_total[5m])) by (team)",
+            "legendFormat": "{{ team }}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Success Rate by Team (Last 24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(cfn_agent_executions_total{status=\"success\"}[24h])) by (team) / sum(rate(cfn_agent_executions_total[24h])) by (team)",
+            "legendFormat": "{{ team }}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percentunit",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 0.9, "color": "yellow"},
+                {"value": 0.95, "color": "green"}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Total Cost by Team (Last 24h)",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "sum(increase(cfn_agent_cost_dollars_total[24h])) by (team)",
+            "legendFormat": "{{ team }}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 50, "color": "yellow"},
+                {"value": 100, "color": "red"}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Top 10 Agent Types",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "topk(10, sum(increase(cfn_agent_spawns_total[1h])) by (agent_type))",
+            "legendFormat": "{{ agent_type }}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      }
+    ]
+  },
+  "overwrite": true
+}

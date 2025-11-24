@@ -486,7 +486,7 @@ Implement comprehensive test suites that validate both functional requirements a
 - CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`
 
 **CFN Loop Documentation:**
-- **Task Mode Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management, adaptive validator scaling)
+- **Task Mode Guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management, adaptive validator scaling)
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 
 **Migration Analytics:**

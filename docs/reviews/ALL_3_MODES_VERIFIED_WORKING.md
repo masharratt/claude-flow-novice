@@ -278,7 +278,7 @@ redis-server
 ## Related Documentation
 
 - **CLI Mode Config:** `docs/CLI_MODE_REDIS_CONFIGURATION.md`
-- **Task Mode Guide:** `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **Task Mode Guide:** `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - **CLI Commands:** `.claude/commands/cfn-loop-cli.md`
 - **Docker Worktrees:** `CLAUDE.md` (Multi-Worktree section)
 - **Bug #6 Test:** `tests/docker/validation/validate-bug6-redis-vars.sh`

@@ -289,7 +289,7 @@ The North Star test simulates a complete CFN Loop with progressive improvement:
 - [README.md](../../../README.md) - Project overview
 
 ### CFN Loop Documentation
-- [.claude/commands/cfn/CFN_LOOP_TASK_MODE.md](../../commands/cfn/CFN_LOOP_TASK_MODE.md) - Task mode guide
+- [.claude/commands/CFN_LOOP_TASK_MODE.md](../../commands/cfn/CFN_LOOP_TASK_MODE.md) - Task mode guide
 - [.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md](../../commands/cfn/CFN_COORDINATOR_PARAMETERS.md) - Coordinator parameters
 
 ### Test Documentation

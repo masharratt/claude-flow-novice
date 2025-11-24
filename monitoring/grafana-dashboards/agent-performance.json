@@ -1,0 +1,97 @@
+{
+  "dashboard": {
+    "title": "CFN Loop - Agent Performance",
+    "uid": "cfn-agent-performance",
+    "tags": ["cfn", "agent", "performance"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Agent Execution Duration (P50, P95, P99)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(cfn_agent_execution_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(cfn_agent_execution_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(cfn_agent_execution_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "color": {"mode": "palette-classic"}
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Agent Success/Failure Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(cfn_agent_executions_total{status=\"success\"}[5m]))",
+            "legendFormat": "Success",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(cfn_agent_executions_total{status=\"failure\"}[5m]))",
+            "legendFormat": "Failure",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 3,
+        "title": "Resource Usage by Agent Type",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "avg(cfn_agent_cpu_usage_percent) by (agent_type)",
+            "legendFormat": "CPU - {{ agent_type }}",
+            "refId": "A"
+          },
+          {
+            "expr": "avg(cfn_agent_memory_usage_bytes) by (agent_type) / 1024 / 1024",
+            "legendFormat": "Memory (MB) - {{ agent_type }}",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Slowest Agents (Last 1h)",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, avg(cfn_agent_execution_duration_seconds) by (agent_id, agent_type, team))",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      }
+    ]
+  },
+  "overwrite": true
+}

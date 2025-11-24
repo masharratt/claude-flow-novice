@@ -14,6 +14,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import {
   getEnvValue,
   getNetworkName,
@@ -21,6 +22,10 @@ import {
   validateEnvValue,
   _clearContractCache,
 } from './environment-contract';
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe('Environment Contract Resolver', () => {
   // Store original environment for restoration

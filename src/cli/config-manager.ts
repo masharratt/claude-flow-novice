@@ -1,7 +1,12 @@
 import * as fs from "fs/promises";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import Ajv from "ajv";
 import * as lodash from "lodash";
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface ConfigSchema {
   redis: {

@@ -269,4 +269,4 @@ Rate limit state stored in: `.claude/cfn-extras/.gs-api-quota.json`
 - **Google Sheets API**: https://developers.google.com/sheets/api
 - **Rate Limiting Guide**: https://developers.google.com/sheets/api/guides/limits
 - **Quota Documentation**: `google-sheets-validation` skill
-- **CFN Loop Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **CFN Loop Guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md`

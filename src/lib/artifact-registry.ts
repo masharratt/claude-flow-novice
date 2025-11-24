@@ -8,6 +8,11 @@ import Database from 'better-sqlite3';
 import { createHash } from 'crypto';
 import { readFileSync, existsSync, mkdirSync, statSync } from 'fs';
 import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // ============================================================================
 // Types and Interfaces

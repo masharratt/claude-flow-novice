@@ -1,0 +1,166 @@
+groups:
+  - name: cfn_loop_recording_rules
+    interval: 30s
+    rules:
+      # Agent spawn rate (per minute)
+      - record: cfn:agent_spawn_rate:1m
+        expr: rate(cfn_agent_spawns_total[1m])
+
+      # Agent execution success rate
+      - record: cfn:agent_success_rate:5m
+        expr: |
+          sum(rate(cfn_agent_executions_total{status="success"}[5m])) by (team, agent_type)
+          /
+          sum(rate(cfn_agent_executions_total[5m])) by (team, agent_type)
+
+      # Average agent execution duration (P50, P95, P99)
+      - record: cfn:agent_duration:p50
+        expr: histogram_quantile(0.50, rate(cfn_agent_execution_duration_seconds_bucket[5m]))
+
+      - record: cfn:agent_duration:p95
+        expr: histogram_quantile(0.95, rate(cfn_agent_execution_duration_seconds_bucket[5m]))
+
+      - record: cfn:agent_duration:p99
+        expr: histogram_quantile(0.99, rate(cfn_agent_execution_duration_seconds_bucket[5m]))
+
+      # Cost aggregation by team
+      - record: cfn:cost_by_team:1h
+        expr: sum(increase(cfn_agent_cost_dollars_total[1h])) by (team)
+
+      # Cost aggregation by project
+      - record: cfn:cost_by_project:1h
+        expr: sum(increase(cfn_agent_cost_dollars_total[1h])) by (project)
+
+      # Token usage by provider
+      - record: cfn:tokens_by_provider:1h
+        expr: sum(increase(cfn_agent_tokens_total[1h])) by (provider, token_type)
+
+  - name: cfn_loop_alerts
+    rules:
+      # High agent failure rate
+      - alert: HighAgentFailureRate
+        expr: |
+          (
+            sum(rate(cfn_agent_executions_total{status="failure"}[5m])) by (team, agent_type)
+            /
+            sum(rate(cfn_agent_executions_total[5m])) by (team, agent_type)
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High agent failure rate detected"
+          description: "Agent {{ $labels.agent_type }} in team {{ $labels.team }} has failure rate above 10% (current: {{ $value | humanizePercentage }})"
+
+      # Critical agent failure rate
+      - alert: CriticalAgentFailureRate
+        expr: |
+          (
+            sum(rate(cfn_agent_executions_total{status="failure"}[5m])) by (team, agent_type)
+            /
+            sum(rate(cfn_agent_executions_total[5m])) by (team, agent_type)
+          ) > 0.25
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical agent failure rate detected"
+          description: "Agent {{ $labels.agent_type }} in team {{ $labels.team }} has failure rate above 25% (current: {{ $value | humanizePercentage }})"
+
+      # Slow agent execution (P95 above 5 minutes)
+      - alert: SlowAgentExecution
+        expr: cfn:agent_duration:p95 > 300
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow agent execution detected"
+          description: "P95 agent execution time is above 5 minutes (current: {{ $value | humanizeDuration }})"
+
+      # Health check failures
+      - alert: HealthCheckFailure
+        expr: |
+          rate(cfn_health_check_failure_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Health check failures detected"
+          description: "Health check {{ $labels.check_type }} is failing (error: {{ $labels.error_type }})"
+
+      # Critical health check failures (multiple checks failing)
+      - alert: CriticalHealthCheckFailure
+        expr: |
+          count(rate(cfn_health_check_failure_total[5m]) > 0) >= 2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Multiple health checks failing"
+          description: "Multiple health checks are failing - system may be unhealthy"
+
+      # High cost per hour
+      - alert: HighCostPerHour
+        expr: |
+          sum(rate(cfn_agent_cost_dollars_total[1h])) by (team) > 10
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "High hourly cost detected"
+          description: "Team {{ $labels.team }} is spending more than $10/hour (current: ${{ $value | humanize }})"
+
+      # Docker operation failures
+      - alert: DockerOperationFailures
+        expr: |
+          rate(cfn_docker_operations_total{status="failure"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Docker operation failures detected"
+          description: "Docker {{ $labels.operation }} operations are failing at {{ $value | humanizePercentage }}"
+
+      # High memory usage by agents
+      - alert: HighAgentMemoryUsage
+        expr: |
+          cfn_agent_memory_usage_bytes > 2147483648  # 2GB
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High agent memory usage"
+          description: "Agent {{ $labels.agent_id }} ({{ $labels.agent_type }}) is using {{ $value | humanize1024 }} of memory"
+
+      # CFN Loop stuck (no progress for 30 minutes)
+      - alert: CFNLoopStuck
+        expr: |
+          (time() - max(cfn_loop_iterations_total) by (task_id)) > 1800
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "CFN Loop appears stuck"
+          description: "Task {{ $labels.task_id }} has not progressed in over 30 minutes"
+
+      # Low consensus score
+      - alert: LowConsensusScore
+        expr: |
+          cfn_loop_consensus_score < 0.7
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low CFN Loop consensus score"
+          description: "Task {{ $labels.task_id }} iteration {{ $labels.iteration }} has low consensus ({{ $value | humanizePercentage }})"
+
+      # Low test pass rate
+      - alert: LowTestPassRate
+        expr: |
+          cfn_loop_test_pass_rate < 0.95
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low CFN Loop test pass rate"
+          description: "Task {{ $labels.task_id }} iteration {{ $labels.iteration }} has low test pass rate ({{ $value | humanizePercentage }})"

@@ -865,7 +865,7 @@ CONFIG_PATH=$(./.claude/skills/cfn-task-config-init/initialize-config.sh \
 
 #### Sprint Workflow
 1. Initialize task config (scope, deliverables, criteria)
-2. Main Chat reads config and guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+2. Main Chat reads config and guide: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 3. Spawns Loop 3 agents in parallel with full scope context
 4. Collects confidence scores, checks gate threshold
 5. Spawns Loop 2 validators with acceptance criteria
@@ -891,7 +891,7 @@ Next Action: Proceed to Sprint 2 (epic has 3 sprints remaining)
 - **P3 (background)**: Nice-to-have features, cleanup tasks
 
 #### Documentation
-- Guide: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- Guide: `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - Config Init: `.claude/skills/cfn-task-config-init/SKILL.md`
 - Covers: Agent selection, adaptive scaling, sprint completion, scope management, backlog mechanism
 

@@ -1,22 +1,58 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    cluster: 'cfn-loop'
+    environment: 'development'
 
+# Load alerting and recording rules
 rule_files:
-  # - "first_rules.yml"
-  # - "second_rules.yml"
+  - '/etc/prometheus/rules.yml'
 
+# Scrape configurations
 scrape_configs:
+  # Prometheus self-monitoring
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'redis-exporter'
+  # Node Exporter - Host metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'cfn-host'
+
+  # cAdvisor - Container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    metric_relabel_configs:
+      # Keep only CFN-related containers
+      - source_labels: [name]
+        regex: '^/cfn-.*'
+        action: keep
+      # Extract team label from container name
+      - source_labels: [name]
+        regex: '^/cfn-([^-]+)-.*'
+        target_label: team
+        replacement: '$1'
+      # Extract agent type from container name
+      - source_labels: [name]
+        regex: '^/cfn-[^-]+-([^-]+)-.*'
+        target_label: agent_type
+        replacement: '$1'
+
+  # Redis Exporter - Redis metrics
+  - job_name: 'redis'
     static_configs:
       - targets: ['redis-exporter:9121']
 
-  - job_name: 'cfn-orchestrator'
+  # Trigger.dev application metrics
+  - job_name: 'trigger-dev'
     static_configs:
-      - targets: ['orchestrator:3000']
-    metrics_path: /metrics
-    scrape_interval: 30s
+      - targets: ['host.docker.internal:9091']
+    metrics_path: '/metrics'
+    scrape_interval: 10s

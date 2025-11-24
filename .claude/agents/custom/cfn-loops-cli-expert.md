@@ -56,7 +56,7 @@ npx tsx src/cli/spawn-agent-cli.ts backend-developer \
 **Redis BLPOP Coordination:**
 ```bash
 # ✅ CORRECT - Main Chat waits for agent completion
-redis-cli BLPOP cfn:mainchat:signal:<task-id> 120s
+redis-cli BLPOP cfn-completion:<task-id> 120s
 ```
 
 **Agent Completion Signaling:**
