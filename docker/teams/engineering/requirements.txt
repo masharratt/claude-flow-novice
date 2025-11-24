@@ -1,0 +1,32 @@
+# Python dependencies for Engineering team
+# Version pinned for reproducibility
+
+# Testing frameworks
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+
+# Type checking
+mypy==1.7.1
+
+# Code quality
+pylint==3.0.3
+black==23.12.1
+isort==5.13.2
+flake8==6.1.0
+
+# HTTP clients
+requests==2.31.0
+httpx==0.25.2
+
+# Data validation
+pydantic==2.5.2
+
+# Database drivers
+psycopg2-binary==2.9.9
+redis==5.0.1
+
+# Utilities
+python-dotenv==1.0.0
+click==8.1.7

@@ -1,0 +1,56 @@
+# Base CFN Agent Image
+# Used by all team-specific images
+# Size target: <500MB
+
+FROM node:20-alpine AS base
+
+# Metadata
+LABEL maintainer="cfn-platform@company.com"
+LABEL version="1.0.0"
+LABEL description="Base image for CFN agents - provides core runtime and CLI"
+
+# Install system dependencies
+RUN apk add --no-cache \
+    bash \
+    git \
+    curl \
+    redis \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+# Install CFN Loop CLI globally
+RUN npm install -g claude-flow-novice
+
+# Create non-root user for security
+RUN addgroup -g 1001 cfn && \
+    adduser -D -u 1001 -G cfn cfn
+
+# Create workspace directory with proper permissions
+RUN mkdir -p /workspace /etc/cfn && \
+    chown -R cfn:cfn /workspace /etc/cfn
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Environment defaults (teams can override)
+ENV CFN_AGENT_TIMEOUT=3600
+ENV CFN_MAX_MEMORY=2g
+ENV CFN_LOG_LEVEL=info
+ENV PATH="/usr/local/bin:$PATH"
+
+# Switch to non-root user
+USER cfn
+
+# Health check for base functionality
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD npx claude-flow-novice --version || exit 1
+
+# Default entrypoint (teams inherit this)
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Default command (teams override with agent type)
+CMD ["--help"]

@@ -1,0 +1,27 @@
+# WP-CLI configuration for marketing team agents
+
+# Disable prompts for automation
+disabled_commands: []
+
+# Colorize output
+color: true
+
+# Increase timeout for plugin/theme operations
+request-timeout: 300
+
+# Default WordPress installation settings
+core config:
+  dbname: wordpress
+  dbuser: wp_user
+  dbpass: wp_password
+  dbhost: localhost
+  dbprefix: wp_
+  locale: en_US
+
+# Plugin installation defaults
+plugin install:
+  activate: true
+
+# Theme installation defaults
+theme install:
+  activate: false

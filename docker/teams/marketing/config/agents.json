@@ -1,0 +1,48 @@
+{
+  "team": "marketing",
+  "description": "Content and WordPress development agents",
+  "agents": {
+    "wordpress-specialist": {
+      "language": "php",
+      "linter": "phpcs",
+      "formatter": "phpcbf",
+      "test_command": "phpunit",
+      "memory": "1g",
+      "timeout": 2400,
+      "tags": ["wordpress", "php", "cms"]
+    },
+    "content-specialist": {
+      "language": "markdown",
+      "test_command": "markdownlint",
+      "memory": "512m",
+      "timeout": 1200,
+      "tags": ["content", "seo", "documentation"]
+    },
+    "frontend-designer": {
+      "language": "css",
+      "linter": "stylelint",
+      "formatter": "prettier",
+      "test_command": "npm run test:css",
+      "memory": "768m",
+      "timeout": 1200,
+      "tags": ["css", "sass", "design"]
+    },
+    "seo-specialist": {
+      "language": "javascript",
+      "test_command": "npm run test:seo",
+      "memory": "512m",
+      "timeout": 1800,
+      "tags": ["seo", "analytics", "optimization"]
+    }
+  },
+  "quality_gates": {
+    "phpcs_max_warnings": 5,
+    "accessibility_score_min": 90,
+    "performance_score_min": 85
+  },
+  "resource_limits": {
+    "default_memory": "1g",
+    "default_timeout": 2400,
+    "max_parallel_agents": 4
+  }
+}
