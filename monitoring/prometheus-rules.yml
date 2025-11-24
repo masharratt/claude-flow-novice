@@ -164,3 +164,152 @@ groups:
         annotations:
           summary: "Low CFN Loop test pass rate"
           description: "Task {{ $labels.task_id }} iteration {{ $labels.iteration }} has low test pass rate ({{ $value | humanizePercentage }})"
+
+      # P0 Critical Infrastructure Alerts
+      - alert: RedisConnectivityLost
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          priority: P0
+        annotations:
+          summary: "Redis connectivity lost"
+          description: "Redis instance {{ $labels.instance }} is unreachable for 1 minute. Immediate action required."
+          runbook: "docs/runbooks/redis-connection-loss.md"
+
+      - alert: PostgreSQLConnectivityLost
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          priority: P0
+        annotations:
+          summary: "PostgreSQL connectivity lost"
+          description: "PostgreSQL instance {{ $labels.instance }} is unreachable for 1 minute. Immediate action required."
+          runbook: "docs/runbooks/postgres-connection-loss.md"
+
+      - alert: DockerDaemonUnavailable
+        expr: up{job="docker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          priority: P0
+        annotations:
+          summary: "Docker daemon unavailable"
+          description: "Docker daemon on {{ $labels.instance }} is unavailable for 2 minutes."
+          runbook: "docs/runbooks/docker-daemon-unavailable.md"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.10
+        for: 5m
+        labels:
+          severity: critical
+          priority: P0
+        annotations:
+          summary: "Disk space critical on {{ $labels.instance }}"
+          description: "Less than 10% disk space available on {{ $labels.mountpoint }} ({{ $value | humanizePercentage }} free)"
+          runbook: "docs/runbooks/disk-space-exhaustion.md"
+
+      - alert: HealthCheckConsecutiveFailures
+        expr: |
+          count_over_time((rate(cfn_health_check_failure_total[5m]) > 0)[15m:]) >= 3
+        for: 1m
+        labels:
+          severity: critical
+          priority: P0
+        annotations:
+          summary: "Three consecutive health check failures"
+          description: "System health checks have failed 3 or more times consecutively"
+
+      - alert: CFNLoopStuckCritical
+        expr: |
+          (time() - max(cfn_loop_iterations_total) by (task_id)) > 3600
+        for: 5m
+        labels:
+          severity: critical
+          priority: P0
+        annotations:
+          summary: "CFN Loop critically stuck for over 1 hour"
+          description: "Task {{ $labels.task_id }} has not progressed in over 1 hour"
+          runbook: "docs/runbooks/cfn-loop-stuck.md"
+
+      # P1 Warning Alerts
+      - alert: BackupFailure
+        expr: up{job="backup"} == 0 or increase(backup_failure_total[1h]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          priority: P1
+        annotations:
+          summary: "Backup operation failed"
+          description: "Backup job on {{ $labels.instance }} has failed"
+          runbook: "docs/runbooks/backup-failure.md"
+
+      - alert: CertificateExpiringSoon
+        expr: (ssl_cert_expiry_seconds - time()) < (7 * 24 * 3600)
+        for: 1h
+        labels:
+          severity: warning
+          priority: P1
+        annotations:
+          summary: "SSL certificate expiring within 7 days"
+          description: "Certificate {{ $labels.cn }} expires in less than 7 days"
+          runbook: "docs/runbooks/certificate-expiration.md"
+
+      - alert: AgentMemoryCritical
+        expr: |
+          cfn_agent_memory_usage_bytes > 3221225472  # 3GB
+        for: 5m
+        labels:
+          severity: warning
+          priority: P1
+        annotations:
+          summary: "Agent memory usage exceeds 3GB"
+          description: "Agent {{ $labels.agent_type }} on team {{ $labels.team }} using {{ $value | humanizeBytes }}"
+          runbook: "docs/runbooks/memory-exhaustion.md"
+
+      # P2 Info Alerts
+      - alert: UnusualAgentSpawnRate
+        expr: |
+          abs(cfn:agent_spawn_rate:1m - avg_over_time(cfn:agent_spawn_rate:1m[1h]))
+          > 2 * stddev_over_time(cfn:agent_spawn_rate:1m[1h])
+        for: 10m
+        labels:
+          severity: info
+          priority: P2
+        annotations:
+          summary: "Unusual agent spawn rate detected"
+          description: "Agent spawn rate is {{ $value }} standard deviations from normal"
+
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.20
+        for: 10m
+        labels:
+          severity: info
+          priority: P2
+        annotations:
+          summary: "Disk space warning on {{ $labels.instance }}"
+          description: "Less than 20% disk space available on {{ $labels.mountpoint }} ({{ $value | humanizePercentage }} free)"
+          runbook: "docs/runbooks/disk-space-exhaustion.md"
+
+      - alert: APIRateLimitApproaching
+        expr: |
+          (api_requests_total / api_rate_limit_total) > 0.80
+        for: 5m
+        labels:
+          severity: info
+          priority: P2
+        annotations:
+          summary: "API rate limit approaching for {{ $labels.provider }}"
+          description: "{{ $labels.provider }} API usage at {{ $value | humanizePercentage }} of rate limit"
+
+      - alert: ConsensusScoreLow
+        expr: |
+          cfn_loop_consensus_score < 0.90 and cfn_loop_consensus_score >= 0.70
+        for: 5m
+        labels:
+          severity: info
+          priority: P2
+        annotations:
+          summary: "CFN Loop consensus score below optimal"
+          description: "Task {{ $labels.task_id }} has consensus score {{ $value | humanizePercentage }} (below 0.90 threshold)"

@@ -5,6 +5,13 @@ global:
     cluster: 'cfn-loop'
     environment: 'development'
 
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+      timeout: 10s
+
 # Load alerting and recording rules
 rule_files:
   - '/etc/prometheus/rules.yml'

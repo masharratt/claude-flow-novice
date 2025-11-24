@@ -1,0 +1,130 @@
+# Dockerfile.optimized
+#
+# Multi-stage Docker build for optimal image size and build performance
+# Expected: 50% image size reduction compared to single-stage builds
+#
+# Build with BuildKit for layer caching:
+#   DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile.optimized -t cfn-app:optimized .
+#
+# Features:
+# - Separate build and runtime stages
+# - Minimal runtime dependencies
+# - Layer caching optimization
+# - Security hardening (non-root user)
+
+# ================================
+# Stage 1: Build Stage
+# ================================
+FROM node:18-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    git \
+    && rm -rf /var/cache/apk/*
+
+# Set working directory
+WORKDIR /build
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install ALL dependencies (including devDependencies)
+RUN npm ci --include=dev
+
+# Copy source code
+COPY src/ ./src/
+COPY .claude/ ./.claude/
+COPY scripts/ ./scripts/
+
+# Build TypeScript
+RUN npm run build
+
+# Prune dev dependencies
+RUN npm prune --production
+
+# ================================
+# Stage 2: Runtime Stage
+# ================================
+FROM node:18-alpine AS runtime
+
+# Install runtime dependencies only
+RUN apk add --no-cache \
+    bash \
+    curl \
+    redis \
+    postgresql-client \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfn && \
+    adduser -u 1001 -S cfn -G cfn
+
+# Set working directory
+WORKDIR /app
+
+# Copy production node_modules from builder
+COPY --from=builder --chown=cfn:cfn /build/node_modules ./node_modules
+
+# Copy built application from builder
+COPY --from=builder --chown=cfn:cfn /build/dist ./dist
+
+# Copy runtime scripts and configs
+COPY --chown=cfn:cfn scripts/ ./scripts/
+COPY --chown=cfn:cfn .claude/ ./.claude/
+COPY --chown=cfn:cfn package*.json ./
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV CFN_MODE=production
+
+# Switch to non-root user
+USER cfn
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
+# Expose port
+EXPOSE 3000
+
+# Default command
+CMD ["node", "dist/index.js"]
+
+# ================================
+# Stage 3: Development Stage
+# ================================
+FROM builder AS development
+
+# Install development tools
+RUN npm install -g nodemon ts-node
+
+# Set environment
+ENV NODE_ENV=development
+ENV CFN_MODE=development
+
+# Expose ports
+EXPOSE 3000 9229
+
+# Development command with hot reload
+CMD ["npm", "run", "dev"]
+
+# ================================
+# Build Instructions
+# ================================
+# Production build (optimized):
+#   DOCKER_BUILDKIT=1 docker build --target=runtime -f docker/Dockerfile.optimized -t cfn-app:prod .
+#
+# Development build:
+#   DOCKER_BUILDKIT=1 docker build --target=development -f docker/Dockerfile.optimized -t cfn-app:dev .
+#
+# Size comparison:
+#   docker images | grep cfn-app
+#
+# Expected results:
+#   - Production image: ~150-200 MB (50% reduction from ~300-400 MB)
+#   - Development image: ~300-400 MB (includes dev dependencies)
+#   - Build time: 50-70% faster with BuildKit caching

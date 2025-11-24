@@ -28,6 +28,28 @@ services:
       timeout: 10s
       retries: 3
 
+  # Alertmanager - Alert routing and notification
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: cfn-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alertmanager-config.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    networks:
+      - monitoring
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Grafana - Metrics visualization
   grafana:
     image: grafana/grafana:10.2.2
@@ -48,6 +70,7 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
+      - alertmanager
     healthcheck:
       test: ["CMD", "wget", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
@@ -164,6 +187,7 @@ services:
 
 volumes:
   prometheus-data:
+  alertmanager-data:
   grafana-data:
   loki-data:
   redis-data:
