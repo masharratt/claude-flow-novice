@@ -131,7 +131,11 @@ export const testMultiAgentJob = defineJob({
             timeout
           )
         )
-      );
+      ).catch((error) => {
+        // Enhanced error handling for Promise.all failures
+        io.logger.error('Promise.all agent spawning failed', { jobId, error: error.message });
+        throw error;
+      });
 
       const totalTime = Date.now() - startTime;
 
@@ -216,13 +220,15 @@ async function spawnAgentContainer(
           'docker run --rm',
           `--name ${containerName}`,
           `--hostname ${hostname}`,
-          '--network cfn-network',
+          '--network trigger-dev_trigger-cfn-network',
           '--cpus=1',
           '--memory=2g',
           '--memory-swap=2g',
           `-e TASK_ID=${jobId}`,
           `-e AGENT_ID=${agentId}`,
           `-e AGENT_TYPE=${agentType}`,
+          `-e CFN_REDIS_HOST=redis`,
+          `-e CFN_REDIS_PORT=6379`,
           '-v /workspace:/workspace:rw',
           '-v /tmp/agent-workspace:/tmp/workspace:rw',
           'cfn-agent:test',
