@@ -2,6 +2,45 @@
 
 Last Updated: 2025-11-23
 
+## Completed Items (Phase 1.2a - 2025-11-23)
+
+**[COMPLETED] - Phase 1.2: Environment Variable Whitelisting**
+- **Sprint**: Phase 1.2a
+- **Category**: Security
+- **Description**: Environment variable whitelisting to prevent container variable leakage
+- **Solution Implemented**: 27-variable whitelist in docker/trigger-dev/entrypoint.sh with injection detection
+- **Test Results**: 8/8 tests pass (100%)
+- **Date Completed**: 2025-11-23
+- **Related Files**:
+  - docker/trigger-dev/entrypoint.sh (filter_environment_variables function)
+  - tests/trigger-dev/test-security-hardening.sh (comprehensive tests)
+  - docker/trigger-dev/SECURITY.md (documentation)
+
+**[COMPLETED] - Phase 1.2: Docker Socket Isolation with Rootless Mode**
+- **Sprint**: Phase 1.2a
+- **Category**: Security
+- **Description**: Docker socket isolation preventing privilege escalation
+- **Solution Implemented**: socket-proxy service with restrictive policies
+- **Test Results**: Socket proxy blocks privileged ops, allows spawning (2/2 tests)
+- **Date Completed**: 2025-11-23
+- **Related Files**:
+  - docker/trigger-dev/socket-proxy/docker-compose.yml
+  - tests/trigger-dev/test-security-hardening.sh
+
+**[COMPLETED] - Phase 1.2: Docker Secrets Integration for API Keys**
+- **Sprint**: Phase 1.2a
+- **Category**: Security
+- **Description**: Docker secrets integration for API key management
+- **Solution Implemented**: Docker Compose secrets with fallback env var support
+- **Test Results**: Secrets loading, environment fallback (2/2 tests)
+- **Date Completed**: 2025-11-23
+- **Related Files**:
+  - docker/trigger-dev/docker-compose.secrets.yml
+  - docker/trigger-dev/entrypoint.sh (secret loading logic)
+  - tests/trigger-dev/test-security-hardening.sh
+
+---
+
 ## Active Items
 
 ### P0 - Critical
@@ -17,6 +56,16 @@ Last Updated: 2025-11-23
 - **Date Added**: 2025-11-06
 
 ### P1 - High Priority
+
+**[P1] - Migrate to production secrets management (Docker Secrets or ...**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Migrate to production secrets management (Docker Secrets or AWS Secrets Manager)
+- **Rationale**: WSL2 777 permissions acceptable for dev but critical security issue in multi-tenant cloud deployment. Container isolation requires proper secret permissions (600) to prevent cross-container access.
+- **Proposed Solution**: Option 1: Docker Secrets (in-memory mount at /run/secrets/ with 600 permissions). Option 2: AWS Secrets Manager (runtime API fetch, no filesystem). Option 3: HashiCorp Vault. Required before cloud deployment.
+- **Tags**: `production`, `cloud`, `secrets`, `docker`, `security`
+- **Status**: Backlogged
+- **Date Added**: 2025-11-23
 
 **[P1] - Create memory Redis dashboard for real-time monitoring**
 - **Sprint Backlogged**: Unknown
@@ -43,43 +92,55 @@ Implementation:
 
 ### P2 - Medium Priority
 
-**[P2] - Phase 1.2: Environment Variable Whitelisting**
-- **Sprint Backlogged**: Unknown
-- **Category**: Technical-Debt
-- **Description**: Phase 1.2: Environment Variable Whitelisting
-- **Rationale**: All environment variables inherited by containers. Need strict whitelist to prevent leakage.
-- **Proposed Solution**: Implement env var filtering in entrypoint.sh. Estimated 4 hours.
-- **Tags**: 
+**[P2] - Phase 1.3b: Secret Population and Validation**
+- **Sprint Backlogged**: Phase 1.3b
+- **Category**: Security
+- **Description**: Populate 10 production secrets and validate security gate (Loop 3 security-specialist work)
+- **Rationale**: Phase 1.2a infrastructure complete. Phase 1.3b requires actual secret values to complete security hardening cycle.
+- **Proposed Solution**:
+  1. Populate docker/trigger-dev/secrets/ with 10 required secrets
+  2. Update docker-compose.secrets.yml with 5 missing secret references
+  3. Run validation script to confirm 100% pass rate
+  4. Run pre-deployment security gate (target ≥95%)
+  5. Verify Phase 1.2a regression tests remain at 100%
+- **Estimated Effort**: 4-6 hours
+- **Tags**: `security`, `secrets`, `production`, `phase-1-3b`
+- **Status**: In Progress (infrastructure validated)
+- **Date Added**: 2025-11-23
+- **Related Files**:
+  - docker/trigger-dev/secrets/ (10 files to populate)
+  - docker/trigger-dev/docker-compose.secrets.yml (5 refs to add)
+  - scripts/security/validate-secrets.sh (validation script)
+  - scripts/security/pre-deployment-security-check.sh (gate)
+- **Documentation**: docker/trigger-dev/PHASE_1.3b_INFRASTRUCTURE_VALIDATION.md
+
+**[P2] - Phase 1.3c: Encrypted Credential Storage**
+- **Sprint Backlogged**: Phase 1.3c
+- **Category**: Security
+- **Description**: Implement Age encryption for at-rest secret storage
+- **Rationale**: Phase 1.3b secrets populated. Phase 1.3c adds encryption layer for sensitive data at rest.
+- **Proposed Solution**:
+  1. Generate Age key pair if not exists
+  2. Implement encrypted secret storage in docker/trigger-dev/secrets/
+  3. Update validation script to test decryption
+  4. Document key rotation procedures
+- **Estimated Effort**: 3-4 hours
+- **Tags**: `security`, `encryption`, `age`, `phase-1-3c`
 - **Status**: Backlogged
 - **Date Added**: 2025-11-23
 
-**[P2] - Phase 1.2: Encrypted Credential Storage**
-- **Sprint Backlogged**: Unknown
-- **Category**: Technical-Debt
-- **Description**: Phase 1.2: Encrypted Credential Storage
-- **Rationale**: Database credentials and .env files currently stored in plaintext. Need encryption at rest.
-- **Proposed Solution**: Implement encrypted config storage using age or SOPS. Estimated 4 hours.
-- **Tags**: 
-- **Status**: Backlogged
-- **Date Added**: 2025-11-23
-
-**[P2] - Phase 1.2: Docker Socket Isolation with Rootless Mode**
-- **Sprint Backlogged**: Unknown
-- **Category**: Technical-Debt
-- **Description**: Phase 1.2: Docker Socket Isolation with Rootless Mode
-- **Rationale**: Unrestricted Docker socket access enables privilege escalation. Need rootless Docker or socket proxy.
-- **Proposed Solution**: Implement docker-socket-proxy or migrate to rootless Docker. Estimated 8 hours.
-- **Tags**: 
-- **Status**: Backlogged
-- **Date Added**: 2025-11-23
-
-**[P2] - Phase 1.2: Docker Secrets Integration for API Keys**
-- **Sprint Backlogged**: Unknown
-- **Category**: Technical-Debt
-- **Description**: Phase 1.2: Docker Secrets Integration for API Keys
-- **Rationale**: API keys currently exposed to agent containers via environment variables. Need Docker secrets or Vault integration.
-- **Proposed Solution**: Implement Docker Swarm secrets or HashiCorp Vault. Estimated 6 hours.
-- **Tags**: 
+**[P2] - Phase 1.3d: Git History Secret Remediation**
+- **Sprint Backlogged**: Phase 1.3d
+- **Category**: Security
+- **Description**: Remediate secrets found in git history
+- **Rationale**: Pre-deployment security gate detected potential secrets in git history. Need remediation before production deployment.
+- **Proposed Solution**:
+  1. Review and audit git history for actual secrets
+  2. Rotate any exposed credentials
+  3. Use git-filter-repo or BFG Repo-Cleaner to remove secrets
+  4. Document remediation and coordinate with team
+- **Estimated Effort**: 2-3 hours
+- **Tags**: `security`, `git`, `secrets`, `remediation`, `phase-1-3d`
 - **Status**: Backlogged
 - **Date Added**: 2025-11-23
 
