@@ -346,12 +346,12 @@ export class AgentSpawner {
       return { valid: false, error: 'Task ID must be a non-empty string' };
     }
 
-    // Updated pattern to support mode prefixes (cli:, trigger:)
-    const taskIdPattern = /^(?:cli:|trigger:)?[a-zA-Z0-9_.-]{1,64}$/;
+    // Updated pattern to support namespace prefixes (e.g., cli:, trigger:, task:, orchestrator:)
+    const taskIdPattern = /^([a-z]+:)?[a-zA-Z0-9_.-]{1,64}$/;
     if (!taskIdPattern.test(taskId)) {
       return {
         valid: false,
-        error: 'Invalid task ID format - must contain only alphanumeric characters, dot, underscore, hyphens, and optional mode prefix (cli:, trigger:)'
+        error: 'Invalid task ID format - must contain optional namespace prefix (e.g., "cli:") and alphanumeric characters, dot, underscore, hyphens (max 64 chars)'
       };
     }
 
@@ -381,7 +381,9 @@ export class AgentSpawner {
       // Redis coordination for CLI mode agents (resolved via environment contract)
       CFN_REDIS_HOST: getEnvValue('redis_host', 'cli'),
       CFN_REDIS_PORT: getEnvValue('redis_port', 'cli'),
-      CFN_REDIS_PASSWORD: process.env.CFN_REDIS_PASSWORD || process.env.REDIS_PASSWORD || '',
+      // FIX: Don't use REDIS_PASSWORD from parent env - only explicit CFN_REDIS_PASSWORD
+      // This prevents CLI agents from inheriting the wrong password from shell environment
+      CFN_REDIS_PASSWORD: process.env.CFN_REDIS_PASSWORD || '',
       CFN_NETWORK_NAME: getNetworkName('cli')
     };
 
