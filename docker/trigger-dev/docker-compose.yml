@@ -285,6 +285,10 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       CFN_WORKSPACE: /workspace
       CFN_DELIVERABLES_PATH: /tmp/trigger-dev-deliverables
+      # Redis Configuration for CFN Loop Coordination
+      CFN_REDIS_HOST: ${CFN_REDIS_HOST:-redis}
+      CFN_REDIS_PORT: ${CFN_REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       # AI Provider Configuration for CFN Loop Agent Spawning
       ZAI_API_KEY: ${ZAI_API_KEY}
       KIMI_API_KEY: ${KIMI_API_KEY}
@@ -299,30 +303,40 @@ services:
       - /tmp/trigger-dev-deliverables:/tmp/trigger-dev-deliverables
       # Mount project root for agent file access
       - ../..:/workspace:rw
-      # Mount .env for API keys
-      - ../../.env:/workspace/.env:ro
+      # Mount health check script (read-only) - use direct absolute path
+      - ./health-check.sh:/app/health-check.sh:ro
+      # NOTE: .env mount removed - CVE-004: Secrets exposure
+      # Security Fix: API keys passed via environment variables (explicit list)
+      # Reason: Mounting .env into container violates zero-trust principle
+      # Solution: Explicit environment variable enumeration (no file mounts)
+      #
       # NOTE: Socket mount removed - using socket proxy instead
       # Previously: /var/run/docker.sock:/var/run/docker.sock
       # Reason: Direct socket access is CRITICAL security risk
       # Solution: Socket proxy (tecnativa/docker-socket-proxy) validates all operations
     # ==============================================================================
-    # Health Check (Iteration 1 Feedback - Docker Best Practices)
+    # Health Check (Iteration 2 Fix - Loop 2 Feedback Resolution)
     # ==============================================================================
     # Purpose: Enable automatic health monitoring and recovery
-    # Reference: Iteration 1 feedback - Missing health checks
+    # Reference: Loop 2 feedback - Worker container showing unhealthy status
     #
-    # Strategy: Process validation instead of HTTP endpoint
-    # Rationale: Worker doesn't expose HTTP endpoints, validates process health
+    # Previous Issue: Health check command ["CMD", "node", "-e", "process.exit(0)"]
+    #   - Always returned success (exit 0) regardless of actual health
+    #   - Did not validate dependencies or worker process responsiveness
+    #   - Root cause: Command doesn't test anything, just exits
     #
-    # Alternative strategies considered:
-    # 1. HTTP endpoint: Not applicable (worker is background process)
-    # 2. Redis connectivity: Too strict (Redis restart shouldn't kill worker)
-    # 3. Process validation: Simple, effective (chosen approach)
+    # Current Solution: Comprehensive health check script
+    #   - Tests Node process is running (ps aux | grep node)
+    #   - Tests Redis connectivity (redis-cli PING)
+    #   - Tests PostgreSQL connectivity (pg_isready)
+    #   - Validates worker responsiveness via activity tracking
+    #   - Returns proper exit codes (0 = healthy, 1 = unhealthy)
     #
+    # Script: /app/health-check.sh (mounted from ./health-check.sh)
     # Recovery: Docker Compose automatically restarts unhealthy containers
     # ==============================================================================
     healthcheck:
-      test: ["CMD", "node", "-e", "process.exit(0)"]
+      test: ["CMD", "bash", "/app/health-check.sh"]
       interval: 30s
       timeout: 10s
       retries: 3
