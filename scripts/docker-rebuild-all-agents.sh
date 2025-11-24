@@ -28,11 +28,11 @@ BUILD_START=$(date +%s)
 
 # 1. Base agent image (used by all variants)
 echo "📦 [1/4] Building claude-flow-novice-agent:latest"
-echo "   Dockerfile: Dockerfile.agent"
+echo "   Dockerfile: docker/agent/Dockerfile"
 docker build \
     --progress=plain \
     --cache-from claude-flow-novice-agent:latest \
-    -f Dockerfile.agent \
+    -f docker/agent/Dockerfile \
     -t claude-flow-novice-agent:latest \
     . || {
     echo "❌ Failed to build claude-flow-novice-agent:latest"

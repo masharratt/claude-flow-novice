@@ -49,8 +49,11 @@ WORKDIR /build
 COPY trigger-dev/package.json trigger-dev/tsconfig.json ./
 COPY trigger-dev/src ./src
 
-# Install dependencies and build TypeScript
-RUN npm install && npm run build
+# Install dependencies (including devDependencies for TypeScript build)
+RUN npm install --include=dev
+
+# Build TypeScript
+RUN npm run build
 
 # ==============================================================================
 # Stage 2: Production Runtime

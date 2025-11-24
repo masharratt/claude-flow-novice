@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Defaults
-DOCKERFILE="Dockerfile.agent"
+DOCKERFILE="docker/agent/Dockerfile"
 TAG="claude-flow-novice:agent"
 NO_CACHE=""
 

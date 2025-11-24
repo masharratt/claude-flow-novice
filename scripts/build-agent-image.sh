@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 IMAGE_NAME="claude-flow-novice:agent"
-DOCKERFILE="$PROJECT_ROOT/Dockerfile.agent"
+DOCKERFILE="$PROJECT_ROOT/docker/agent/Dockerfile"
 
 echo "🐳 Building Claude Flow Novice Agent Docker Image..."
 echo "Project Root: $PROJECT_ROOT"
