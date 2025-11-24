@@ -1170,3 +1170,135 @@ production-ready CFN Loop execution with simplified coordination and enhanced pr
 flexibility.
 
 ================================================================================
+FILE DEPENDENCIES
+================================================================================
+
+This section lists all files referenced in this architecture document,
+categorized for dependency ingestion and context management.
+
+[CORE CLI IMPLEMENTATION]
+- src/cli/spawn-agent-cli.ts - CLI agent entry point with task ID prefixing
+- src/cli/agent-executor.ts - Agent execution and Redis coordination
+- src/cli/agent-spawner.ts - Environment injection (CFN_REDIS_HOST=cfn-redis)
+- src/cli/agent-spawn.ts - Agent spawning logic
+- src/cli/agent-command.ts - Agent command handlers
+- src/cli/agent-prompt-builder.ts - CLI Mode protocol generation
+- src/cli/agent-completion.ts - Agent completion tracking
+- src/cli/agent-definition-parser.ts - Agent profile parsing
+
+[CLI SUPPORT MODULES]
+- src/cli/config-manager.ts - Configuration management
+- src/cli/cfn-context.ts - Context management
+- src/cli/cli-agent-context.ts - CLI agent context handling
+- src/cli/process-lifecycle.ts - Process lifecycle management
+- src/cli/iteration-history.ts - Iteration tracking
+- src/cli/cfn-metrics.ts - Metrics collection
+
+[PROVIDER ROUTING]
+- src/cli/anthropic-client.ts - Anthropic API client
+- src/cli/hybrid-routing/agent-use-case-registry.js - Provider routing registry
+
+[COORDINATION INFRASTRUCTURE]
+- .claude/skills/cfn-coordination/coordination-wait.sh - Redis BLPOP blocking
+- .claude/skills/cfn-coordination/coordination-signal.sh - Completion signaling
+- .claude/skills/cfn-coordination/coordination-broadcast.sh - Broadcast messages
+- .claude/skills/cfn-coordination/coordination-collect-consensus.sh - Consensus collection
+
+[AGENT SPAWNING SKILLS]
+- .claude/skills/cfn-agent-spawning/spawn-agent.sh - CLI spawning wrapper
+- .claude/skills/cfn-agent-spawning/spawn-agent-wrapper.sh - Wrapper utilities
+- .claude/skills/cfn-agent-spawning/spawn-worker.sh - Worker spawning
+- .claude/skills/cfn-agent-spawning/spawn-templates.sh - Agent templates
+- .claude/skills/cfn-agent-spawning/get-agent-provider-env.sh - Provider environment
+- .claude/skills/cfn-agent-spawning/parse-agent-provider.sh - Provider parsing
+- .claude/skills/cfn-agent-spawning/check-dependencies.sh - Dependency validation
+
+[CONFIGURATION FILES]
+- docker-compose.yml - Service definitions for CLI mode
+- .env.example - Environment variable templates
+- docker/runtime/cfn-runtime.contract.yml - Runtime contract (shared with Trigger.dev)
+
+[AGENT PROFILES]
+- .claude/agents/cfn-dev-team/developers/backend-developer.md - Backend agent profile
+- .claude/agents/cfn-dev-team/developers/frontend-developer.md - Frontend agent profile
+- .claude/agents/cfn-dev-team/developers/fullstack-developer.md - Fullstack agent profile
+- .claude/agents/cfn-dev-team/reviewers/code-reviewer.md - Code reviewer profile
+- .claude/agents/cfn-dev-team/reviewers/security-specialist.md - Security specialist profile
+- .claude/agents/cfn-dev-team/testers/tester.md - Tester profile
+- .claude/agents/cfn-dev-team/testers/integration-tester.md - Integration tester profile
+
+[SLASH COMMANDS]
+- .claude/commands/cfn-loop-cli.md - CLI mode slash command
+- .claude/commands/cfn-loop-task.md - Task mode slash command
+- .claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md - Coordinator parameters
+- .claude/commands/CFN_LOOP_TASK_MODE.md - Task mode documentation
+
+[TESTING INFRASTRUCTURE]
+**IMPORTANT: All CLI mode tests MUST be created in tests/cli-mode/ or tests/cli/ directories**
+**Purpose: De-risk test sprawl, maintain consistent test locations, prevent fragmentation**
+
+- tests/cli-mode/README.md - CLI mode test documentation (8 suites, 159 assertions)
+- tests/cli-mode/run-all-tests.sh - Main test runner
+- tests/cli-mode/test-redis-coordination.sh - Redis coordination tests
+- tests/cli-mode/test-agent-spawning.sh - Agent spawning tests
+- tests/cli-mode/test-path-resolution.sh - Path resolution tests
+- tests/cli-mode/test-thresholds.sh - Quality gate threshold tests
+- tests/cli-mode/test-cli-coordination.sh - CLI coordination tests
+- tests/cli-mode/test-agent-execution.sh - Agent execution tests
+- tests/cli-mode/test-tool-access.sh - Tool access tests
+- tests/cli/agent-prompt-builder.test.ts - Protocol validation (57 tests)
+- tests/cli/cli-agent-context.test.ts - Context validation tests
+- tests/CLAUDE.md - Test authoring standards and templates
+- tests/TEST_COVERAGE_MATRIX.md - Coverage tracking
+- tests/test-utils.sh - Shared test utilities
+
+**Test Creation Guidelines:**
+- Shell integration tests → tests/cli-mode/test-*.sh
+- TypeScript unit tests → tests/cli/*.test.ts
+- Never create tests outside these directories
+
+[ARCHITECTURE DOCUMENTATION]
+- readme/CLI_MODE_ARCHITECTURE.md - This document (2-layer coordination)
+- readme/CFN_LOOP_CHEATSHEET.md - Quick reference guide
+- readme/README.md - Main project README
+- readme/CLAUDE.md - Documentation guidelines
+
+[OPERATIONAL GUIDES]
+- docs/CFN_LOOP_ARCHITECTURE.md - CFN Loop architecture
+- docs/CUSTOM_PROVIDER_ROUTING.md - Provider configuration
+- docs/TASK_TO_CLI_MIGRATION.md - Migration guide from Task mode
+- docs/BREAKING_CHANGES_V3_2.md - Breaking changes in v3.2
+- docs/ZAI_PROVIDER_INTEGRATION.md - Z.ai provider setup
+- docs/KIM_API_REFERENCE.md - Kimi API reference
+- docs/ANTHROPIC_SETUP.md - Anthropic configuration
+
+[DEPLOYMENT AND OPERATIONS]
+- docker/DEPLOYMENT_GUIDE.md - Docker deployment guide
+- docs/REDIS_SETUP.md - Redis configuration
+- docs/TEAM_DEVELOPMENT_PATTERNS.md - Multi-worktree patterns
+- docs/MONITORING_SETUP.md - Monitoring configuration
+
+[SECURITY AND COMPLIANCE]
+- docs/SECURITY_COMPLIANCE.md - Security guidelines
+- docs/INTERNAL_AUDIT_PROCESSES.md - Audit procedures
+- docs/DATA_PROTECTION_POLICY.md - Data protection policy
+
+[PLANNING AND ANALYSIS]
+- planning/cli-changes-november/CLI_MODE_REDIS_COORDINATION_HANDOFF.md - Recent fixes
+- planning/cli-changes-november/CLI_MIGRATION_CHECKLIST.md - Migration checklist
+- planning/cli-changes-november/CLI_MODE_ENHANCEMENT_ROADMAP.md - Enhancement roadmap
+- docs/CFN_LOOP_CLI_MODE_EXECUTION_ANALYSIS.md - Execution analysis
+- docs/CTO_ASSESSMENT_CLI_MODE_ARCHITECTURE.md - CTO assessment
+
+[COLLISION PREVENTION - CRITICAL]
+- planning/trigger/CLI_TRIGGER_COLLISION_ANALYSIS.md - Collision analysis and mitigation
+- src/cli/generateTaskId.ts - Task ID generation with mode prefixing
+
+[DEPENDENCY MANIFEST]
+- .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt - Complete manifest
+
+See `.claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt`
+for the complete parseable dependency manifest used by the cfn-dependency-ingestion
+skill for context injection.
+
+================================================================================

@@ -5,6 +5,7 @@ tags: [cfn-loop, cli, trigger-dev, docker, dependency-management, typescript-mig
 priority: P0
 tools: [Read, Write, Edit, Bash, Grep, Glob];
 model: sonnet
+skills: [cfn-dependency-ingestion]
 version: 1.3.0
 ---
 
@@ -90,6 +91,96 @@ node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --injec
 ```
 
 **Step 2:** If diagram and code diverge, update diagram FIRST.
+
+## Dependency Management Workflow
+
+**This agent is the SOLE MAINTAINER of CLI process documentation.**
+
+### Dependency Ingestion
+
+Before major edits, ingest dependencies to ensure full context:
+
+```bash
+# Ingest CLI mode dependencies
+node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
+  --inject-content \
+  --skip-validation
+
+# Ingest Trigger mode dependencies (for collision analysis)
+node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/trigger-mode-dependencies.txt \
+  --inject-content \
+  --skip-validation
+```
+
+### Workflow Steps
+
+1. **Before major edits:** Ingest dependencies via cfn-dependency-ingestion skill
+2. **Review file overlaps:** Identify potential conflicts between CLI and Trigger.dev modes
+3. **Update documentation:** Make changes with full context awareness
+4. **Update manifests:** If files added/removed, update manifest files
+5. **Validate cross-references:** Ensure all documentation links are correct
+6. **Test both modes:** Verify changes don't break CLI or Trigger.dev execution
+
+### Identifying Overlaps
+
+Compare manifests to find shared files and potential collision points:
+
+```bash
+# Find files in both manifests (75% overlap expected)
+comm -12 \
+  <(sort .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt | grep -v '^#' | grep -v '^$') \
+  <(sort .claude/skills/cfn-dependency-ingestion/manifests/trigger-mode-dependencies.txt | grep -v '^#' | grep -v '^$')
+```
+
+**Key Overlap Areas:**
+- **Shared configuration:** docker-compose.yml, docker/runtime/cfn-runtime.contract.yml
+- **Coordination protocols:** .claude/skills/cfn-coordination/*.sh (75% shared logic)
+- **Test coverage:** Both modes need isolated test validation
+- **Documentation cross-references:** CLI vs Trigger.dev comparison docs
+
+**Critical Collision Points:**
+- **Redis key namespaces:** MUST include mode prefix (cli: or trigger:)
+- **Service names:** cfn-redis (CLI) vs redis (Trigger.dev)
+- **Network names:** mcp-network (CLI) vs trigger-cfn-network (Trigger.dev)
+- **Task ID prefixes:** cli:<id> vs trigger:<id>
+
+### Manifest Maintenance
+
+**When to update manifests:**
+
+1. **New CLI implementation file added:**
+   - Add to `.claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt`
+   - Update CLI_MODE_ARCHITECTURE.md FILE DEPENDENCIES section
+   - Document in version history
+
+2. **New Trigger.dev job created:**
+   - Add to `.claude/skills/cfn-dependency-ingestion/manifests/trigger-mode-dependencies.txt`
+   - Update TRIGGER_CONTAINER_MODES_ARCHITECTURE.md FILE DEPENDENCIES section
+   - Document in version history
+
+3. **Shared file modified:**
+   - Review both manifests to ensure consistency
+   - Check for mode-specific behavior requirements
+   - Update both architecture docs if behavior diverges
+
+4. **File deprecated or removed:**
+   - Remove from relevant manifest
+   - Update architecture doc FILE DEPENDENCIES section
+   - Archive file reference in version history
+
+### Validation Checklist
+
+Before completing documentation updates:
+
+- [ ] All referenced files in architecture docs are listed in manifests
+- [ ] Manifests use relative paths from project root
+- [ ] Mode-specific behavior differences are documented
+- [ ] Collision prevention measures are highlighted
+- [ ] Cross-references between docs are valid
+- [ ] Both CLI and Trigger.dev test suites pass
+- [ ] Version history updated with changes
 
 ## Core Rules
 

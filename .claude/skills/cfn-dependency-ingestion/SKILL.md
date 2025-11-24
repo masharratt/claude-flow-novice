@@ -15,11 +15,25 @@ tags: [cfn-loop, dependency-management, dynamic-ingestion]
 # Build once (required)
 cd .claude/skills/cfn-dependency-ingestion && bash build.sh
 
-# Traditional mode: Output Read commands
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js
+# Default: Ingest all 3 manifests (CLI + Trigger.dev + Shared)
+# Prevents editing overlapping dependencies between modes
+node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/trigger-mode-dependencies.txt \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/shared-dependencies.txt \
+  --inject-content
 
-# Content injection mode: Inject file contents directly (93% fewer tool calls)
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content
+# CLI mode only (14K tokens)
+node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/shared-dependencies.txt \
+  --inject-content
+
+# Trigger.dev mode only (9K tokens)
+node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/trigger-mode-dependencies.txt \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/shared-dependencies.txt \
+  --inject-content
 ```
 
 ### Shell Script Version (Legacy)

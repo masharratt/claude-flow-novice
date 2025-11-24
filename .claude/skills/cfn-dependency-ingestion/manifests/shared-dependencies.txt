@@ -1,0 +1,57 @@
+# Shared Dependencies - Used by Both CLI and Trigger.dev Modes
+# Version: 1.0.0
+# Last Updated: 2025-11-24
+# Purpose: Common infrastructure used by both execution modes
+# Token Estimate: ~2,200 tokens
+
+# ============================================================================
+# COORDINATION INFRASTRUCTURE (4 files)
+# ============================================================================
+# Redis coordination and blocking mechanisms
+# Used by: CLI mode, Trigger.dev mode
+# Purpose: Agent signaling, blocking waits, consensus collection
+
+.claude/skills/cfn-coordination/coordination-wait.sh
+.claude/skills/cfn-coordination/coordination-signal.sh
+.claude/skills/cfn-coordination/coordination-broadcast.sh
+.claude/skills/cfn-coordination/coordination-collect-consensus.sh
+
+# ============================================================================
+# RUNTIME CONTRACT (1 file)
+# ============================================================================
+# Environment variable contract
+# Used by: CLI mode, Trigger.dev mode
+# Purpose: Defines standard environment variables for agent execution
+
+docker/runtime/cfn-runtime.contract.yml
+
+# ============================================================================
+# DOCKER WORKTREE SUPPORT (1 file)
+# ============================================================================
+# Multi-worktree Docker coordination
+# Used by: CLI mode, Trigger.dev mode
+# Purpose: Enables parallel development in git worktrees with port isolation
+
+scripts/docker/run-in-worktree.sh
+
+# ============================================================================
+# USAGE INSTRUCTIONS
+# ============================================================================
+# This manifest contains infrastructure shared between execution modes.
+#
+# For CLI mode context, ingest:
+#   1. cli-mode-dependencies.txt (~14K tokens)
+#   2. shared-dependencies.txt (~2.2K tokens)
+#   Total: ~16.2K tokens (8% of context window)
+#
+# For Trigger.dev context, ingest:
+#   1. trigger-mode-dependencies.txt (~7.1K tokens)
+#   2. shared-dependencies.txt (~2.2K tokens)
+#   Total: ~9.3K tokens (4.7% of context window)
+#
+# For overlap analysis, ingest:
+#   1. cli-mode-dependencies.txt
+#   2. trigger-mode-dependencies.txt
+#   3. shared-dependencies.txt (loaded once, referenced in both)
+#   Total unique files: 32 + 14 + 6 = 52 files
+#   Total unique tokens: ~18.9K tokens (9.5% of context window)
