@@ -1,0 +1,11 @@
+FROM node:20-alpine
+
+# Install CFN Loop CLI
+RUN npm install -g claude-flow-novice
+
+# Install agent dependencies
+RUN apk add --no-cache bash git redis curl
+
+WORKDIR /workspace
+
+ENTRYPOINT ["npx", "claude-flow-novice", "agent"]

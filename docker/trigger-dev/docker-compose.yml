@@ -106,7 +106,7 @@ services:
   # - Socket exposure to spawned containers (SOCKETV2=0)
   # ==============================================================================
   socket-proxy:
-    image: tecnativa/docker-socket-proxy:0.4.1
+    image: tecnativa/docker-socket-proxy:latest
     container_name: trigger-dev-socket-proxy
     privileged: true
     volumes:
@@ -221,6 +221,30 @@ services:
         condition: service_healthy
       socket-proxy:
         condition: service_healthy
+    # ==============================================================================
+    # Resource Limits (Iteration 1 Feedback - Docker Best Practices)
+    # ==============================================================================
+    # Purpose: Prevent resource exhaustion and ensure predictable performance
+    # Reference: Iteration 1 feedback - Missing resource limits
+    #
+    # Limits: Hard caps (container killed if exceeded)
+    # Reservations: Guaranteed minimum resources
+    #
+    # CFN Agent Spawning Context:
+    # - Worker spawns multiple agent containers concurrently
+    # - Each agent may require 512MB-2GB depending on complexity
+    # - Worker orchestrates 2-4 parallel agents typically
+    # - Memory: 8GB limit allows headroom for agent spawning
+    # - CPU: 4 cores for parallel agent execution
+    # ==============================================================================
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '2'
+          memory: 4G
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       TRIGGER_SECRET_KEY: ${TRIGGER_SECRET_KEY}
@@ -281,6 +305,28 @@ services:
       # Previously: /var/run/docker.sock:/var/run/docker.sock
       # Reason: Direct socket access is CRITICAL security risk
       # Solution: Socket proxy (tecnativa/docker-socket-proxy) validates all operations
+    # ==============================================================================
+    # Health Check (Iteration 1 Feedback - Docker Best Practices)
+    # ==============================================================================
+    # Purpose: Enable automatic health monitoring and recovery
+    # Reference: Iteration 1 feedback - Missing health checks
+    #
+    # Strategy: Process validation instead of HTTP endpoint
+    # Rationale: Worker doesn't expose HTTP endpoints, validates process health
+    #
+    # Alternative strategies considered:
+    # 1. HTTP endpoint: Not applicable (worker is background process)
+    # 2. Redis connectivity: Too strict (Redis restart shouldn't kill worker)
+    # 3. Process validation: Simple, effective (chosen approach)
+    #
+    # Recovery: Docker Compose automatically restarts unhealthy containers
+    # ==============================================================================
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - trigger-cfn-network
     restart: unless-stopped

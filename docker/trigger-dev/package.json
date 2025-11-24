@@ -1,0 +1,33 @@
+{
+  "name": "cfn-trigger-dev-jobs",
+  "version": "0.1.0",
+  "description": "Trigger.dev jobs for CFN Loop agent orchestration",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "trigger.dev",
+    "cfn-loop",
+    "docker",
+    "agent-orchestration"
+  ],
+  "author": "CFN Loop Team",
+  "license": "MIT",
+  "dependencies": {
+    "@trigger.dev/sdk": "^2.3.18",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

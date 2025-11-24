@@ -38,7 +38,10 @@
 # ==============================================================================
 # Stage 1: Build Dependencies (TypeScript compilation)
 # ==============================================================================
-FROM ghcr.io/triggerdotdev/trigger.dev:latest AS builder
+# Base image pinned to SHA256 digest for security and reproducibility
+# Version: latest (as of 2025-11-23)
+# Digest verified: sha256:b35b828b87442376d28bbd6a9d2e11cb5f7e79f7cc78255249f49c7e8c3e0eb9
+FROM ghcr.io/triggerdotdev/trigger.dev@sha256:b35b828b87442376d28bbd6a9d2e11cb5f7e79f7cc78255249f49c7e8c3e0eb9 AS builder
 
 WORKDIR /build
 
@@ -52,7 +55,10 @@ RUN npm install && npm run build
 # ==============================================================================
 # Stage 2: Production Runtime
 # ==============================================================================
-FROM ghcr.io/triggerdotdev/trigger.dev:latest
+# Base image pinned to SHA256 digest for security and reproducibility
+# Version: latest (as of 2025-11-23)
+# Digest verified: sha256:b35b828b87442376d28bbd6a9d2e11cb5f7e79f7cc78255249f49c7e8c3e0eb9
+FROM ghcr.io/triggerdotdev/trigger.dev@sha256:b35b828b87442376d28bbd6a9d2e11cb5f7e79f7cc78255249f49c7e8c3e0eb9
 
 LABEL maintainer="cfn-team"
 LABEL version="1.0.0"

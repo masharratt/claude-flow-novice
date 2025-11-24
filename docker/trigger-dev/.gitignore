@@ -1,0 +1,16 @@
+# Trigger.dev Secrets - NEVER commit to repository
+.secrets/
+secrets/
+.env
+.env.*.local
+*.key
+*.pem
+.age/
+
+# Generated during initialization
+.initialized
+.secrets-created
+
+# Temporary files
+*.tmp
+*.bak

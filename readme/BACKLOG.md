@@ -92,6 +92,16 @@ Implementation:
 
 ### P2 - Medium Priority
 
+**[P2] - Add SHA256 digest pinning for Docker base images (5/7 images...**
+- **Sprint Backlogged**: Unknown
+- **Category**: Technical-Debt
+- **Description**: Add SHA256 digest pinning for Docker base images (5/7 images missing)
+- **Rationale**: Docker specialist identified missing SHA256 pinning in Phase 1.3b validation. Production best practice for supply chain security and reproducible builds. Current implementation relies on tag-based references which can change over time.
+- **Proposed Solution**: Update docker/Dockerfile.trigger-dev, docker/Dockerfile.agent, and other relevant Dockerfiles to use SHA256 digest pinning format: FROM image:tag@sha256:<digest>. Verify digests using 'docker pull' and 'docker inspect'. Update CI/CD to validate digest pinning in all production images.
+- **Tags**: 
+- **Status**: Backlogged
+- **Date Added**: 2025-11-23
+
 **[P2] - Phase 1.3b: Secret Population and Validation**
 - **Sprint Backlogged**: Phase 1.3b
 - **Category**: Security
