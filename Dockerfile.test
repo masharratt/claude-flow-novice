@@ -1,0 +1,6 @@
+FROM alpine:latest
+RUN apk add --no-cache bash
+COPY .claude /app/.claude
+WORKDIR /app
+# Run sanitization before showing environment
+RUN /bin/bash -c "source .claude/skills/cfn-environment-sanitization/sanitize-environment.sh docker-agent docker-task && env | grep -E '(AWS_|OPENAI_|ANTHROPIC_|CFN_)' || echo 'No sensitive vars found'"

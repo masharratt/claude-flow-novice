@@ -1,252 +1,203 @@
-# CFN Docker Monitoring Dashboard
+# CFN Loop Monitoring Infrastructure
 
-Real-time monitoring dashboard for CFN Docker container infrastructure.
+Production-grade monitoring and observability for Trigger.dev per-agent container architecture.
 
-## 🚀 Quick Start
+## Quick Start
 
-### Prerequisites
-- Node.js 16+
-- Docker (for container metrics)
-- Redis (for CFN coordination metrics - optional)
-
-### Installation & Startup
+### 1. Start Monitoring Stack
 
 ```bash
-# From the monitoring directory
-./start-dashboard.sh
+docker-compose -f docker-compose.monitoring.yml up -d
 ```
 
-Or for development mode with auto-reload:
+### 2. Access Dashboards
+
+- **Grafana**: http://localhost:3000 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **Loki**: http://localhost:3100
+
+### 3. View Metrics
+
 ```bash
-./start-dashboard.sh --dev
+# Check Prometheus targets
+curl http://localhost:9090/api/v1/targets
+
+# Query metrics
+curl 'http://localhost:9090/api/v1/query?query=cfn_agent_spawns_total'
+
+# Export metrics for scraping
+curl http://localhost:9091/metrics
 ```
 
-Then open your browser to the shown port (usually 5555):
+## Components
+
+### Prometheus (Port 9090)
+- Metrics collection and storage
+- 30-day retention
+- Alert evaluation every 15s
+
+### Grafana (Port 3000)
+- Metrics visualization
+- Pre-configured dashboards:
+  - Team Overview
+  - Agent Performance
+  - Cost Tracking
+
+### Loki (Port 3100)
+- Log aggregation
+- JSON log parsing
+- Correlation ID tracking
+
+### Promtail
+- Docker container log shipping
+- Automatic label extraction
+- JSON structured log parsing
+
+### Node Exporter (Port 9100)
+- Host-level metrics
+- CPU, memory, disk, network
+
+### cAdvisor (Port 8080)
+- Container-level metrics
+- Resource usage per container
+- Docker metrics
+
+### Redis Exporter (Port 9121)
+- Redis metrics
+- Connection stats
+- Command latency
+
+## Grafana Dashboards
+
+### Team Overview
+- Active agents by team
+- Success rates
+- Cost tracking
+- Alert status
+
+### Agent Performance
+- Execution duration (P50, P95, P99)
+- Success/failure rates
+- Resource usage
+- Slowest agents
+
+### Cost Tracking
+- Total cost over time
+- Cost by team/project
+- Cost by provider
+- Token usage
+- Cost per execution
+
+## Alert Rules
+
+See `prometheus-rules.yml` for complete list:
+
+- High agent failure rate (>10%)
+- Critical failure rate (>25%)
+- Slow execution (P95 > 5min)
+- Health check failures
+- High cost per hour (>$10)
+- CFN Loop stuck (>30min no progress)
+- Low test pass rate (<95%)
+
+## Integration
+
+### Structured Logging
+
+```typescript
+import { logger, createLogger } from '../utils/logging';
+
+// Use default logger
+logger.info('Application started');
+
+// Create logger with context
+const agentLogger = createLogger({
+  agentId: 'agent-123',
+  agentType: 'backend-developer',
+  team: 'platform',
+});
+
+agentLogger.info('Agent spawned', {
+  taskId: 'task-456',
+  project: 'auth-service',
+});
 ```
-http://localhost:5555
+
+### Metrics Recording
+
+```typescript
+import {
+  recordAgentSpawn,
+  recordAgentExecution,
+  recordAgentCost,
+} from '../utils/metrics';
+
+// Record spawn
+recordAgentSpawn({
+  team: 'platform',
+  agentType: 'backend-developer',
+  project: 'auth-service',
+  mode: 'standard',
+});
+
+// Record execution
+recordAgentExecution(
+  { team: 'platform', agentType: 'backend-developer', project: 'auth-service' },
+  45.5, // duration in seconds
+  'success' // or 'failure' / 'timeout'
+);
+
+// Record cost
+recordAgentCost(
+  { team: 'platform', project: 'auth-service', agentType: 'backend-developer', provider: 'kimi' },
+  0.05, // cost in dollars
+  1500, // input tokens
+  500   // output tokens
+);
 ```
 
-## 📊 Features
+## Testing
 
-### Real-time Monitoring
-- **Container Status**: Live monitoring of all CFN-related containers
-- **Resource Usage**: Memory and CPU utilization with visual indicators
-- **System Health**: Overall infrastructure health status
-- **Auto-refresh**: Data updates every 10 seconds
-
-### CFN Loop Integration
-- **Active Tasks**: Track ongoing CFN loop executions
-- **Agent Health**: Monitor agent lifecycle and stuck processes
-- **Confidence Scores**: Average confidence across completed tasks
-- **Memory Alerts**: Detection of potential memory leak issues
-
-### Dashboard Components
-
-1. **System Overview**
-   - Total/Running/Failed containers
-   - System load average
-   - Overall health status
-
-2. **Memory Usage**
-   - Real-time memory utilization
-   - Visual progress bars
-   - Color-coded alerts (green/yellow/red)
-
-3. **CFN Loop Status**
-   - Active/completed/failed tasks
-   - Average confidence scores
-   - Task success rates
-
-4. **Agent Health**
-   - Healthy vs stuck agents
-   - Memory leak detection
-   - Timeout rates
-
-5. **Container List**
-   - Individual container status
-   - Memory and CPU usage per container
-   - Visual status indicators
-
-6. **Live Logs**
-   - Real-time dashboard activity logs
-   - Color-coded log levels
-   - Auto-scrolling log viewer
-
-## 🔧 API Endpoints
-
-The dashboard server provides REST APIs for integration:
-
-### Container Metrics
 ```bash
-GET /api/containers
-# Returns: Container list with status, memory, CPU usage
+# Run unit tests
+npm test src/utils/__tests__/logging.test.ts
+npm test src/utils/__tests__/metrics.test.ts
 
-GET /api/containers/:name/stats
-# Returns: Detailed stats for specific container
+# Run health check manually
+curl -X POST http://localhost:3000/api/v1/events \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "health.check.scheduled", "payload": {"scheduled": false}}'
 ```
 
-### System Metrics
+## Maintenance
+
+### Backup Data
+
 ```bash
-GET /api/system
-# Returns: Memory usage, system load, CPU info
+# Prometheus
+docker run --rm -v prometheus-data:/data -v $(pwd)/backups:/backup \
+  alpine tar czf /backup/prometheus-$(date +%Y%m%d).tar.gz /data
+
+# Grafana
+docker run --rm -v grafana-data:/data -v $(pwd)/backups:/backup \
+  alpine tar czf /backup/grafana-$(date +%Y%m%d).tar.gz /data
+
+# Loki
+docker run --rm -v loki-data:/data -v $(pwd)/backups:/backup \
+  alpine tar czf /backup/loki-$(date +%Y%m%d).tar.gz /data
 ```
 
-### CFN Loop Metrics
+### Cleanup
+
 ```bash
-GET /api/cfn
-# Returns: Active tasks, agent health, confidence scores
+# Stop monitoring stack
+docker-compose -f docker-compose.monitoring.yml down
+
+# Remove volumes (WARNING: deletes all data)
+docker-compose -f docker-compose.monitoring.yml down -v
 ```
 
-### Health Check
-```bash
-GET /api/health
-# Returns: Server health and uptime
-```
+## Documentation
 
-## 🛠️ Technical Details
-
-### Architecture
-- **Frontend**: Vanilla JavaScript with real-time updates
-- **Backend**: Node.js with Express
-- **Container API**: Dockerode for Docker integration
-- **CFN Coordination**: Redis client for task tracking
-
-### Data Sources
-1. **Docker Engine**: Container stats and status
-2. **System /proc**: Memory and load metrics
-3. **Redis Coordination**: CFN loop task state
-4. **Process Monitoring**: Agent health checks
-
-### Update Frequency
-- **Dashboard Data**: 10-second auto-refresh
-- **Container Stats**: Real-time via Docker API
-- **System Metrics**: Per refresh cycle
-- **CFN Loop Data**: Redis key scanning
-
-## 🚨 Alert System
-
-The dashboard includes automatic alerts for:
-
-- **High Memory Usage** (>90%): Critical memory alerts
-- **Container Failures**: Stopped or failed containers
-- **System Overload**: High load averages
-- **Agent Issues**: Stuck or unresponsive agents
-
-Alerts appear as red notification banners and automatically dismiss after 5 seconds.
-
-## 🔍 Monitoring Integration
-
-### Existing CFN Infrastructure
-The dashboard integrates with existing CFN Docker containers:
-
-- `cfn-orchestrator`: Main coordination service
-- `cfn-agent-task/cli`: Task and CLI mode agents
-- `redis-cfn-loop`: Coordination and state management
-- `cfn-telemetry`: Metrics collection service
-- `cadvisor-cfn-loop`: Container monitoring
-- `consensus-engine`: Agent consensus tracking
-- `agent-comm-hub`: Agent communication hub
-
-### Telemetry Data
-When running with full CFN Docker infrastructure, the dashboard provides:
-
-- **Memory Leak Detection**: ANTI-023 protection monitoring
-- **Resource Enforcement**: cgroup limit compliance
-- **Task Progress**: Real-time CFN loop iteration tracking
-- **Agent Lifecycle**: Spawning, execution, and cleanup monitoring
-
-## 📋 Troubleshooting
-
-### Common Issues
-
-**Dashboard won't start:**
-```bash
-# Check Node.js version
-node --version  # Should be 16+
-
-# Install dependencies
-npm install
-```
-
-**No container data:**
-```bash
-# Verify Docker is running
-docker ps
-
-# Check Docker daemon permissions
-sudo usermod -aG docker $USER
-```
-
-**No CFN metrics:**
-```bash
-# Verify Redis connection
-redis-cli ping
-
-# Check CFN Redis keys
-redis-cli KEYS "cfn_loop:*"
-```
-
-**Port conflicts:**
-The dashboard defaults to port 3001. To change:
-```bash
-# Edit server.js line: const PORT = 3001;
-# Then restart: npm start
-```
-
-### Development Mode
-
-For development with auto-reload:
-```bash
-npm run dev
-# or
-./start-dashboard.sh --dev
-```
-
-### Production Deployment
-
-For production use:
-```bash
-# Use PM2 for process management
-npm install -g pm2
-pm2 start server.js --name "cfn-monitoring"
-
-# Or run as a service
-npm start
-```
-
-## 🔒 Security Considerations
-
-- Dashboard runs on localhost by default
-- No authentication built-in (add as needed)
-- Docker socket access required for container metrics
-- Redis connection required for CFN coordination data
-
-## 📈 Performance
-
-- **Memory Usage**: ~50MB base + ~5MB per 100 containers
-- **CPU Usage**: <1% idle, ~5% during data refresh
-- **Network**: Minimal REST API traffic
-- **Storage**: No persistent storage required
-
-## 🤝 Contributing
-
-To extend the dashboard:
-
-1. Add new metrics to relevant API endpoints
-2. Update frontend with new cards/metrics
-3. Add styling to match existing design
-4. Update this README with new features
-
-## 📞 Support
-
-For issues or questions:
-1. Check the troubleshooting section above
-2. Verify all prerequisites are met
-3. Review server console logs for errors
-4. Test individual API endpoints manually
-
----
-
-**Status**: MVP - Functional and ready for production use
-**Version**: 1.0.0
-**Last Updated**: 2025-11-06
+See `docs/MONITORING_GUIDE.md` for complete documentation.

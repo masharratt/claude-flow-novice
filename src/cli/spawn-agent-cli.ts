@@ -158,6 +158,10 @@ function printVersion(): void {
  *   Trigger: cfn:task:trigger:task-123:status
  */
 function generateTaskId(rawTaskId: string, mode: 'cli' | 'trigger'): string {
+  // Don't add prefix if task ID already has a namespace prefix
+  if (/^[a-z]+:/.test(rawTaskId)) {
+    return rawTaskId;
+  }
   return `${mode}:${rawTaskId}`;
 }
 
@@ -176,7 +180,8 @@ function validateArgs(args: CLIArgs): { valid: boolean; errors: string[] } {
     errors.push('Task ID is required (--task-id or TASK_ID env var)');
   }
 
-  if (args.taskId && !/^[a-zA-Z0-9_.-]{1,64}$/.test(args.taskId)) {
+  // Allow optional namespace prefix (e.g., "cli:", "task:") for coordination routing
+  if (taskId && !/^([a-z]+:)?[a-zA-Z0-9_.-]{1,64}$/.test(taskId)) {
     errors.push('Invalid task ID format');
   }
 

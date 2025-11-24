@@ -32,18 +32,20 @@ interface AgentSpawnOptions {
 
 /**
  * Validates taskId format to prevent command injection attacks
- * Pattern: alphanumeric, underscore, hyphen only, 1-64 chars
+ * Pattern: optional namespace prefix (e.g., "cli:", "task:"), alphanumeric, underscore, hyphen, dot (max 64 chars)
+ * Examples: "task-123", "cli:task-456", "orchestrator:batch-789"
  */
 function validateTaskId(taskId: string): { valid: boolean; error?: string } {
   if (typeof taskId !== 'string' || taskId.length === 0) {
     return { valid: false, error: 'Task ID must be a non-empty string' };
   }
 
-  const taskIdPattern = /^[a-zA-Z0-9_-]{1,64}$/;
+  // Allow optional namespace prefix (lowercase letters + colon), followed by alphanumeric/underscore/hyphen/dot
+  const taskIdPattern = /^([a-z]+:)?[a-zA-Z0-9_.-]{1,64}$/;
   if (!taskIdPattern.test(taskId)) {
     return {
       valid: false,
-      error: 'Invalid task ID format - must contain only alphanumeric characters, underscores, and hyphens (max 64 chars)'
+      error: 'Invalid task ID format - must contain optional namespace prefix (e.g., "cli:") and alphanumeric characters, underscores, hyphens, or dots (max 64 chars)'
     };
   }
   return { valid: true };

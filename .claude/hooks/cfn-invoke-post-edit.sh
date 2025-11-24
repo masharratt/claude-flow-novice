@@ -38,6 +38,28 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/cfn-post-edit.config.json"
 
+# Ensure jq is available (fallback to local download if sudo unavailable)
+JQ_CMD="jq"
+if ! command -v jq >/dev/null 2>&1; then
+    JQ_FALLBACK="$SCRIPT_DIR/../tools/jq"
+    if [ ! -x "$JQ_FALLBACK" ]; then
+        mkdir -p "$SCRIPT_DIR/../tools"
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL -o "$JQ_FALLBACK" https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && chmod +x "$JQ_FALLBACK" || true
+        elif command -v wget >/dev/null 2>&1; then
+            wget -q -O "$JQ_FALLBACK" https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && chmod +x "$JQ_FALLBACK" || true
+        fi
+    fi
+    if [ -x "$JQ_FALLBACK" ]; then
+        JQ_CMD="$JQ_FALLBACK"
+    else
+        echo "Error: jq not found and download failed. Install jq or ensure curl/wget access." >&2
+        exit 1
+    fi
+else
+    JQ_CMD="$(command -v jq)"
+fi
+
 # Parse arguments
 FILE_PATH=""
 AGENT_ID="${AGENT_ID:-unknown}"
@@ -46,6 +68,10 @@ BLOCKING=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --agent-id)
+            if [[ -z "${2:-}" ]]; then
+                echo "Error: --agent-id requires a value" >&2
+                exit 1
+            fi
             AGENT_ID="$2"
             shift 2
             ;;
@@ -68,14 +94,14 @@ if [ -z "$FILE_PATH" ]; then
 fi
 
 # Check if hooks are enabled
-ENABLED=$(jq -r '.enabled // true' "$CONFIG_FILE" 2>/dev/null || echo "true")
+ENABLED=$("$JQ_CMD" -r '.enabled // true' "$CONFIG_FILE" 2>/dev/null || echo "true")
 if [ "$ENABLED" != "true" ]; then
     echo "Post-edit hooks disabled in config"
     exit 0
 fi
 
 # Get pipeline path from config
-PIPELINE=$(jq -r '.pipeline // "config/hooks/post-edit-pipeline.js"' "$CONFIG_FILE")
+PIPELINE=$("$JQ_CMD" -r '.pipeline // "config/hooks/post-edit-pipeline.js"' "$CONFIG_FILE")
 
 # Build memory key
 MEMORY_KEY="swarm/${AGENT_ID}/hook-results"
@@ -92,10 +118,10 @@ if [ "$BLOCKING" = true ] && [ $EXIT_CODE -ne 0 ]; then
 fi
 
 # Publish to Redis if enabled
-REDIS_ENABLED=$(jq -r '.redis.enabled // false' "$CONFIG_FILE")
+REDIS_ENABLED=$("$JQ_CMD" -r '.redis.enabled // false' "$CONFIG_FILE")
 if [ "$REDIS_ENABLED" = "true" ] && command -v redis-cli >/dev/null 2>&1; then
-    CHANNEL=$(jq -r '.redis.publishChannel // "swarm:hooks:post-edit"' "$CONFIG_FILE")
-    MESSAGE=$(jq -n \
+    CHANNEL=$("$JQ_CMD" -r '.redis.publishChannel // "swarm:hooks:post-edit"' "$CONFIG_FILE")
+    MESSAGE=$("$JQ_CMD" -n \
         --arg file "$FILE_PATH" \
         --arg agent "$AGENT_ID" \
         --arg exit "$EXIT_CODE" \

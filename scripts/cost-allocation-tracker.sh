@@ -152,11 +152,31 @@ get_api_cost() {
   echo "$cost"
 }
 
-# Extract label from container
+# Extract label from container (sanitized for security)
+# Returns: Sanitized label value or empty string if invalid/missing
 get_container_label() {
   local container_id=$1
   local label=$2
-  docker inspect "$container_id" --format="{{index .Config.Labels \"$label\" }}" 2>/dev/null || echo ""
+
+  # Get raw label value from Docker
+  local raw_label
+  raw_label=$(docker inspect "$container_id" --format="{{index .Config.Labels \"$label\" }}" 2>/dev/null || echo "")
+
+  # Return empty if no label found
+  if [ -z "$raw_label" ]; then
+    echo ""
+    return 0
+  fi
+
+  # Sanitize label to prevent injection attacks (CVSS 7.5 mitigation)
+  local sanitized_label
+  if sanitized_label=$(sanitize_label "$raw_label" 2>/dev/null); then
+    echo "$sanitized_label"
+  else
+    # Invalid label - log warning and return empty
+    log_warn "Invalid label value for '$label' in container $container_id (rejected for security)"
+    echo ""
+  fi
 }
 
 # Get running container stats

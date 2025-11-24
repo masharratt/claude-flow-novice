@@ -70,7 +70,7 @@ test_docker_service() {
 test_docker_network() {
   log_step "Test 3: Docker Network Configuration"
 
-  local network_name="trigger-dev_trigger-cfn-network"
+  local network_name="trigger-cfn-network"
 
   if docker network inspect "$network_name" > /dev/null 2>&1; then
     log_info "✅ PASS: Network exists - $network_name"
@@ -179,7 +179,7 @@ test_agent_spawn() {
 
   if docker run --rm \
     --name test-redis-agent \
-    --network trigger-dev_trigger-cfn-network \
+    --network trigger-cfn-network \
     -e CFN_REDIS_HOST=redis \
     -e CFN_REDIS_PORT=6379 \
     redis:7-alpine \
@@ -187,7 +187,7 @@ test_agent_spawn() {
 
     log_info "✅ PASS: Agent can connect to Redis service"
     annotate "Container: test-redis-agent"
-    annotate "Network: trigger-dev_trigger-cfn-network"
+    annotate "Network: trigger-cfn-network"
     annotate "Redis endpoint: redis:6379"
     return 0
   else
@@ -276,7 +276,7 @@ if [ $failed_tests -eq 0 ]; then
   log_info "Redis infrastructure is ready for CFN Loop agent spawning:"
   log_info "  - Host Redis: 127.0.0.1:6379 (OPERATIONAL)"
   log_info "  - Docker Redis Service: redis:6379 (OPERATIONAL)"
-  log_info "  - Network: trigger-dev_trigger-cfn-network (OPERATIONAL)"
+  log_info "  - Network: trigger-cfn-network (OPERATIONAL)"
   log_info "  - Task Queue: FUNCTIONAL"
   echo ""
   exit 0

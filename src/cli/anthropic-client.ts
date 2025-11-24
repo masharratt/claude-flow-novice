@@ -7,12 +7,28 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { executeTool, type ToolUse, type ToolResult } from './tool-executor.js';
 
 const execAsync = promisify(exec);
+
+// File-based debug logging (for background agents)
+const AGENT_ID = process.env.AGENT_ID || 'unknown';
+const API_LOG_FILE = `/tmp/cfn-api-${AGENT_ID}.log`;
+function apiDebugLog(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  const logEntry = data
+    ? `${timestamp} [${AGENT_ID}] ${message} ${JSON.stringify(data)}\n`
+    : `${timestamp} [${AGENT_ID}] ${message}\n`;
+  try {
+    fsSync.appendFileSync(API_LOG_FILE, logEntry);
+  } catch (err) {
+    // Ignore logging errors
+  }
+}
 
 export interface APIConfig {
   provider: 'anthropic' | 'zai' | 'kimi' | 'openrouter';
@@ -389,12 +405,25 @@ async function executeWithTools(
     // Make API request (non-streaming for now to handle tool_use)
     const response = await client.messages.create(requestParams);
 
+    apiDebugLog('executeWithTools: API response received', {
+      iteration,
+      contentBlockCount: response.content.length,
+      blockTypes: response.content.map(b => b.type),
+      stopReason: response.stop_reason
+    });
+
     totalInputTokens += response.usage.input_tokens;
     totalOutputTokens += response.usage.output_tokens;
 
     // Extract content blocks
     const textBlocks = response.content.filter(block => block.type === 'text');
     const toolUseBlocks = response.content.filter(block => block.type === 'tool_use');
+
+    apiDebugLog('executeWithTools: Blocks extracted', {
+      textBlockCount: textBlocks.length,
+      toolUseBlockCount: toolUseBlocks.length,
+      toolNames: toolUseBlocks.map((b: any) => b.name)
+    });
 
     // Stream text output
     for (const block of textBlocks) {
@@ -493,8 +522,17 @@ export async function executeAgentAPI(
   const redisPort = process.env.CFN_REDIS_PORT || '6379';
 
   try {
+    apiDebugLog('executeAgentAPI: ENTRY', {
+      agentType,
+      agentId,
+      hasTools: !!tools,
+      toolsLength: tools?.length || 0,
+      toolNames: tools?.map(t => t.name) || []
+    });
     console.log(`[anthropic-client] Executing agent: ${agentType}`);
     console.log(`[anthropic-client] Agent ID: ${agentId}`);
+    console.error(`[TOOL DEBUG executeAgentAPI] tools parameter: ${tools ? `Array[${tools.length}]` : 'undefined'}`);
+    console.error(`[TOOL DEBUG executeAgentAPI] tools names: ${tools?.map(t => t.name).join(', ') || 'NONE'}`);
     if (messages && messages.length > 1) {
       console.log(`[anthropic-client] Continuing conversation (${messages.length} messages)`);
     }
@@ -519,6 +557,10 @@ export async function executeAgentAPI(
     let response: MessageResponse;
 
     if (tools && tools.length > 0) {
+      apiDebugLog('executeAgentAPI: Using tool execution path', {
+        toolCount: tools.length,
+        toolNames: tools.map(t => t.name)
+      });
       console.log(`[anthropic-client] Tools enabled: ${tools.map(t => t.name).join(', ')}`);
       response = await executeWithTools(
         {

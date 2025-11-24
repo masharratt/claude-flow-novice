@@ -20,10 +20,20 @@ sanitize_environment() {
     export CFN_AGENT_ID="$agent_id"
     export CFN_TASK_ID="$task_id"
 
-    # Validate critical paths
-    if [ ! -d "/home/user/claude-flow-novice" ]; then
-        echo "ERROR: Project root not found" >&2
-        return 1
+    # Validate critical paths - detect project root dynamically
+    local project_root=""
+    if [ -n "${CFN_PROJECT_ROOT:-}" ]; then
+        project_root="$CFN_PROJECT_ROOT"
+    elif [ -d ".claude" ] && [ -f "package.json" ]; then
+        project_root="$(pwd)"
+    else
+        # Try to find project root by searching upward
+        project_root="$(git rev-parse --show-toplevel 2>/dev/null || echo "$(pwd)")"
+    fi
+    
+    if [ ! -d "$project_root/.claude" ]; then
+        echo "WARNING: CFN project structure not found at $project_root" >&2
+        # Don't fail - continue with sanitization
     fi
 
     # Set secure permissions
