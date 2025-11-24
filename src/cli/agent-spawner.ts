@@ -19,6 +19,8 @@ import { existsSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { execFileSync, spawn as childSpawn } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
+import { generateTaskId } from './spawn-agent-cli';
+import { getEnvValue, getNetworkName } from '../lib/environment-contract';
 
 /**
  * Configuration for spawning an agent
@@ -30,6 +32,7 @@ interface SpawnAgentConfig {
   mode: 'mvp' | 'standard' | 'enterprise';
   provider?: string;
   model?: string;
+  prompt?: string;
   env?: Record<string, string>;
   background?: boolean;
   timeout?: number;
@@ -330,18 +333,25 @@ export class AgentSpawner {
 
   /**
    * Validate task ID format (CVSS 8.9 - command injection prevention)
-   * Pattern: alphanumeric, underscore, hyphen, dot only, max 64 chars
+   * Supports both raw IDs and Phase 1 prefixed IDs (cli:*, trigger:*)
+   * Pattern: alphanumeric, underscore, hyphen, dot, and colon (for mode prefix) only, max 128 chars
+   *
+   * Accepted formats:
+   *   - Raw: task-123 (16 chars)
+   *   - Prefixed: cli:task-123 (20 chars)
+   *   - Prefixed: trigger:task-123 (24 chars)
    */
   private validateTaskId(taskId: string): ValidationResult {
     if (typeof taskId !== 'string' || taskId.length === 0) {
       return { valid: false, error: 'Task ID must be a non-empty string' };
     }
 
-    const taskIdPattern = /^[a-zA-Z0-9_.-]{1,64}$/;
+    // Updated pattern to support mode prefixes (cli:, trigger:)
+    const taskIdPattern = /^(?:cli:|trigger:)?[a-zA-Z0-9_.-]{1,64}$/;
     if (!taskIdPattern.test(taskId)) {
       return {
         valid: false,
-        error: 'Invalid task ID format - must contain only alphanumeric characters, dot, underscore, and hyphens (max 64 chars)'
+        error: 'Invalid task ID format - must contain only alphanumeric characters, dot, underscore, hyphens, and optional mode prefix (cli:, trigger:)'
       };
     }
 
@@ -367,8 +377,18 @@ export class AgentSpawner {
       PROVIDER: provider,
       MODEL: model,
       SPAWNED_AT: new Date().toISOString(),
-      PROJECT_ROOT: this.projectRoot
+      PROJECT_ROOT: this.projectRoot,
+      // Redis coordination for CLI mode agents (resolved via environment contract)
+      CFN_REDIS_HOST: getEnvValue('redis_host', 'cli'),
+      CFN_REDIS_PORT: getEnvValue('redis_port', 'cli'),
+      CFN_REDIS_PASSWORD: process.env.CFN_REDIS_PASSWORD || process.env.REDIS_PASSWORD || '',
+      CFN_NETWORK_NAME: getNetworkName('cli')
     };
+
+    // Add optional prompt parameter if provided
+    if (config.prompt) {
+      env.PROMPT = config.prompt;
+    }
 
     // Merge user-provided environment variables
     if (config.env) {

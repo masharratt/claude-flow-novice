@@ -34,7 +34,10 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - trigger-cfn-network
+      trigger-cfn-network:
+        aliases:
+          - redis          # Original name (Trigger.dev agents use this)
+          - cfn-redis      # Alias for CLI compatibility
     restart: unless-stopped
 
   minio:

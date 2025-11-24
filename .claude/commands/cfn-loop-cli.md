@@ -77,7 +77,7 @@ echo "✅ CLI agent spawned with Task ID: $TASK_ID"
 # Main Chat waits for completion signal via Redis BLPOP
 echo "⏳ Waiting for CLI agent completion..."
 
-SIGNAL_KEY="cfn:mainchat:signal:$TASK_ID"
+SIGNAL_KEY="cfn-completion:$TASK_ID"
 TIMEOUT_SECONDS=120
 
 # Wait for completion signal with timeout

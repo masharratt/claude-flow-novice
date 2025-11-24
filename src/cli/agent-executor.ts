@@ -10,6 +10,7 @@
 import { spawn } from 'child_process';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { createClient, RedisClientType } from 'redis';
 import { AgentDefinition } from './agent-definition-parser.js';
 import { TaskContext, getAgentId } from './agent-prompt-builder.js';
 import { buildCLIAgentSystemPrompt, loadContextFromEnv } from './cli-agent-context.js';
@@ -63,6 +64,52 @@ const projectRoot = getProjectRoot();
 const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
 const redisPort = process.env.CFN_REDIS_PORT || '6379';
 const redisPassword = process.env.CFN_REDIS_PASSWORD || process.env.REDIS_PASSWORD || '';
+
+/**
+ * Validate task ID format to prevent command injection
+ * Allows: alphanumeric, hyphens, underscores
+ * @param taskId - The task ID to validate
+ * @throws Error if taskId is invalid
+ */
+function validateTaskId(taskId: string): void {
+  if (!taskId || !/^[a-zA-Z0-9_-]+$/.test(taskId)) {
+    throw new Error(`Invalid task ID format: "${taskId}". Must contain only alphanumeric characters, hyphens, and underscores.`);
+  }
+}
+
+/**
+ * Validate agent ID format to prevent command injection
+ * Allows: alphanumeric, hyphens, underscores
+ * @param agentId - The agent ID to validate
+ * @throws Error if agentId is invalid
+ */
+function validateAgentId(agentId: string): void {
+  if (!agentId || !/^[a-zA-Z0-9_-]+$/.test(agentId)) {
+    throw new Error(`Invalid agent ID format: "${agentId}". Must contain only alphanumeric characters, hyphens, and underscores.`);
+  }
+}
+
+/**
+ * Create a Redis client with proper connection handling
+ * Uses environment variables for connection configuration
+ * @returns Promise<RedisClientType> - Connected Redis client
+ */
+async function createRedisClient(): Promise<RedisClientType> {
+  const portNum = parseInt(redisPort, 10);
+
+  const client = createClient({
+    host: redisHost,
+    port: portNum,
+    password: redisPassword || undefined,
+    socket: {
+      reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+      connectTimeout: 5000,
+    },
+  });
+
+  await client.connect();
+  return client;
+}
 
 export interface AgentExecutionResult {
   success: boolean;
@@ -160,12 +207,34 @@ async function executeCFNProtocol(
   console.log(`\n[CFN Protocol] Starting for agent ${agentId}`);
   console.log(`[CFN Protocol] Task ID: ${taskId}, Iteration: ${iteration}`);
 
+  // SECURITY FIX: Validate inputs to prevent command injection
+  validateTaskId(taskId);
+  validateAgentId(agentId);
+
+  let redisClient: RedisClientType | null = null;
+
   try {
-    // Step 1: Signal completion
+    // Step 1: Signal completion using Redis client (NOT shell commands)
     console.log('[CFN Protocol] Step 1: Signaling completion...');
-    const authFlag = redisPassword ? `-a "${redisPassword}"` : '';
-    await execAsync(`redis-cli -h "${redisHost}" -p "${redisPort}" ${authFlag} lpush "swarm:${taskId}:${agentId}:done" "complete"`);
-    console.log('[CFN Protocol] ✓ Completion signaled');
+
+    redisClient = await createRedisClient();
+
+    // Signal to orchestrator (CFN Loop coordination) - using parameterized Redis call
+    const orchestratorKey = `swarm:${taskId}:${agentId}:done`;
+    await redisClient.lPush(orchestratorKey, 'complete');
+    console.log('[CFN Protocol] ✓ Orchestrator signal sent');
+
+    // Signal to Main Chat (CLI mode coordination - correct key format) - using parameterized Redis call
+    const agentMetadata = JSON.stringify({
+      agentId,
+      taskId,
+      status: 'completed',
+      iteration,
+      confidence: extractConfidence(output),
+    });
+    const mainChatKey = `cfn-completion:${taskId}`;
+    await redisClient.lPush(mainChatKey, agentMetadata);
+    console.log('[CFN Protocol] ✓ Main Chat signal sent');
 
     // Step 2: Extract and report confidence
     const confidence = extractConfidence(output);
@@ -188,6 +257,11 @@ async function executeCFNProtocol(
   } catch (error) {
     console.error('[CFN Protocol] Error:', error);
     throw error;
+  } finally {
+    // Always close the Redis connection
+    if (redisClient) {
+      await redisClient.quit();
+    }
   }
 }
 
@@ -548,4 +622,73 @@ export async function saveAgentOutput(
   await fs.writeFile(filepath, output, 'utf-8');
 
   return filepath;
+}
+
+/**
+ * Main entry point when run as a script via tsx
+ */
+async function main() {
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  let agentType: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--agent-type' && i + 1 < args.length) {
+      agentType = args[i + 1];
+      break;
+    }
+  }
+
+  if (!agentType) {
+    console.error('[agent-executor] ERROR: --agent-type is required');
+    process.exit(1);
+  }
+
+  // Load agent definition
+  const { parseAgentDefinition } = await import('./agent-definition-parser.js');
+  const definition = await parseAgentDefinition(agentType);
+
+  if (!definition) {
+    console.error(`[agent-executor] ERROR: Agent type not found: ${agentType}`);
+    process.exit(1);
+  }
+
+  // Build task context from environment variables
+  const context: TaskContext = {
+    taskId: process.env.TASK_ID,
+    iteration: process.env.ITERATION ? parseInt(process.env.ITERATION, 10) : 1,
+    mode: process.env.MODE || 'cli',
+    agentId: process.env.AGENT_ID,
+    context: process.env.CONTEXT
+  };
+
+  // Get prompt from environment variable or use default
+  const prompt = process.env.PROMPT || `Execute your assigned task for ${agentType}.
+
+You are part of a CFN Loop workflow. Review any broadcast messages, complete your work, and report your confidence score.`;
+
+  console.log(`[agent-executor] Starting agent: ${agentType}`);
+  console.log(`[agent-executor] Task ID: ${context.taskId || 'none'}`);
+  console.log(`[agent-executor] Iteration: ${context.iteration}`);
+  console.log(`[agent-executor] Prompt source: ${process.env.PROMPT ? 'PROMPT env var' : 'default'}`);
+
+  // Execute agent
+  const result = await executeAgent(definition, prompt, context);
+
+  // Exit with appropriate code
+  if (!result.success) {
+    console.error(`[agent-executor] Agent execution failed: ${result.error || 'unknown error'}`);
+    process.exit(result.exitCode || 1);
+  }
+
+  console.log('[agent-executor] Agent execution completed successfully');
+  process.exit(0);
+}
+
+// Run main if executed as a script
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('[agent-executor] Fatal error:', error);
+    process.exit(1);
+  });
 }
