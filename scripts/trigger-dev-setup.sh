@@ -5,6 +5,18 @@
 set -euo pipefail
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
+
+# Load credentials from root .env (centralized credential management)
+# Note: This script primarily generates local secrets, but loads root .env for consistency
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    set -a  # Auto-export variables
+    source "$PROJECT_ROOT/.env"
+    set +a
+else
+    echo "WARNING: Root .env not found at $PROJECT_ROOT/.env"
+    echo "HINT: This is optional for setup script but required for production scripts"
+fi
+
 TRIGGER_DEV_DIR="$PROJECT_ROOT/docker/trigger-dev"
 ENV_FILE="$TRIGGER_DEV_DIR/.env"
 ENV_TEMPLATE="$TRIGGER_DEV_DIR/.env.template"

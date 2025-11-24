@@ -58,6 +58,15 @@ log_debug() {
 # ==============================================================================
 # Configuration
 # ==============================================================================
+#
+# Credential Management (Centralized):
+# - This script runs inside Docker container
+# - Credentials loaded via load_secrets_or_env() function (see below)
+# - Priority: 1) Docker secrets (/run/secrets/*), 2) Environment variables
+# - Environment variables should be passed via docker-compose.yml or docker run -e
+# - Root .env credentials loaded by host scripts and passed to container
+#
+# ==============================================================================
 
 # Agent configuration
 AGENT_TYPE="${AGENT_TYPE:-}"

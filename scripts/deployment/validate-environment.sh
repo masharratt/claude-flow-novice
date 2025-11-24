@@ -45,6 +45,18 @@ NC='\033[0m' # No Color
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Load credentials from root .env (centralized credential management)
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    set -a  # Auto-export variables
+    source "$PROJECT_ROOT/.env"
+    set +a
+else
+    echo "ERROR: Root .env not found at $PROJECT_ROOT/.env"
+    echo "HINT: Ensure root .env exists with required API keys (ANTHROPIC_API_KEY, ZAI_API_KEY, etc.)"
+    exit 1
+fi
+
 DOCKER_DIR="$PROJECT_ROOT/docker/trigger-dev"
 ENVIRONMENTS_DIR="$DOCKER_DIR/environments"
 

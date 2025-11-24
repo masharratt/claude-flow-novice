@@ -39,6 +39,17 @@ set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Load credentials from root .env (centralized credential management)
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    set -a  # Auto-export variables
+    source "$PROJECT_ROOT/.env"
+    set +a
+else
+    echo "ERROR: Root .env not found at $PROJECT_ROOT/.env"
+    echo "HINT: Ensure root .env exists with required API keys (ANTHROPIC_API_KEY, ZAI_API_KEY, etc.)"
+    exit 1
+fi
+
 # Environment
 ENVIRONMENT="${ENVIRONMENT:-trigger-dev}"
 TARGET_ENV="${1:-trigger-dev}"
