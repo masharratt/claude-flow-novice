@@ -36,6 +36,8 @@ bin/claude-flow-*
 .env.backup.*
 .claude/api-configs/env-backups/
 .claude/api-configs/*.env
+.claude/backups/                     # Settings backups (contain API keys)
+!.claude/backups/.gitkeep            # Keep directory structure
 .env/worker
 
 # Docker Secrets and Encryption (Phase 1.2a)

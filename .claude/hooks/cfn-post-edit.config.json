@@ -10,7 +10,8 @@
     "1": "ERROR",
     "2": "SYNTAX_ERROR",
     "9": "BASH_VALIDATOR_ERROR",
-    "10": "BASH_VALIDATOR_WARNING"
+    "10": "BASH_VALIDATOR_WARNING",
+    "11": "CREDENTIAL_DETECTED"
   },
   "redis": {
     "enabled": true,
@@ -33,12 +34,18 @@
       "enabled": true,
       "validators": ["pipe-safety", "dependency-checker", "line-endings"],
       "timeout": 5000
+    },
+    "credentials": {
+      "enabled": true,
+      "validator": ".claude/hooks/validators/credential-scanner.sh",
+      "blocking": true,
+      "timeout": 10000
     }
   },
   "feedback": {
     "provideSuggestions": true,
     "autoFixable": ["LINT_ISSUES"],
     "nonBlocking": ["TYPE_WARNING", "LINT_ISSUES", "BASH_VALIDATOR_WARNING"],
-    "blocking": ["SYNTAX_ERROR", "BASH_VALIDATOR_ERROR"]
+    "blocking": ["SYNTAX_ERROR", "BASH_VALIDATOR_ERROR", "CREDENTIAL_DETECTED"]
   }
 }
