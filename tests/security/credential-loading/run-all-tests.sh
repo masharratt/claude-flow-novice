@@ -32,16 +32,16 @@ run_test_script() {
 
     if [ ! -f "$script_path" ]; then
         echo -e "${RED}NOT FOUND${NC}"
-        ((FAILED_TESTS++))
-        ((TOTAL_TESTS++))
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
         FAILED_SCRIPTS+=("$script_name")
         return 1
     fi
 
     if ! chmod +x "$script_path"; then
         echo -e "${RED}PERMISSION ERROR${NC}"
-        ((FAILED_TESTS++))
-        ((TOTAL_TESTS++))
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
         FAILED_SCRIPTS+=("$script_name")
         return 1
     fi
@@ -53,16 +53,16 @@ run_test_script() {
     
     if [ $RESULT -eq 0 ]; then
         echo -e "${GREEN}PASSED${NC}"
-        ((PASSED_TESTS++))
-        ((TOTAL_TESTS++))
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
         rm "$OUTPUT"
         return 0
     else
         echo -e "${YELLOW}PARTIAL${NC} (exit code: $RESULT)"
         echo "  Summary output:"
         tail -10 "$OUTPUT" | sed 's/^/    /'
-        ((PASSED_TESTS++))  # Count as passed for now since this is expected
-        ((TOTAL_TESTS++))
+        PASSED_TESTS=$((PASSED_TESTS + 1))  # Count as passed for now since this is expected
+        TOTAL_TESTS=$((TOTAL_TESTS + 1))
         rm "$OUTPUT"
         return 0
     fi

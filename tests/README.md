@@ -69,10 +69,55 @@ tests/docker/run-all-tests.sh --integration   # All integration tests (~10 min)
 tests/docker/run-all-tests.sh --full          # Full suite with E2E (~30 min)
 ```
 
+### Unit Tests (TypeScript/JavaScript)
+```
+tests/unit/
+├── agent-spawner/       Agent spawning and output validation
+├── auth/                Authentication system tests
+├── backup/              Backup manager tests
+├── cache/               Cache and correlation tests
+├── cfn-loop/            CFN Loop orchestration
+├── cli/                 CLI formatting and tools
+├── config/              Configuration management
+├── coordination/        Coordination wrapper
+├── database/            Database services
+├── lock/                Distributed and file locking
+├── metrics/             Metrics logging
+├── security/            Command injection and security
+├── typescript/          TypeScript E2E documentation
+└── [15+ other domains]  Organized by domain
+```
+
+**Run Commands:**
+```bash
+npm test                           # All unit tests
+npm test -- agent-spawner          # Specific domain
+npm test -- --coverage             # With coverage
+```
+
+### Archive Structure
+```
+tests/archive/
+├── historical/          Deprecated tests (8 shell scripts + docs)
+│   ├── cli-mode-comprehensive-test.sh → Use cli-mode/run-all-tests.sh --full
+│   ├── cli-mode-quick-validation.sh → Use cli-mode/run-all-tests.sh --quick
+│   └── [Other deprecated tests]
+└── experimental/        POC and research (59 files across 7 features)
+    ├── api-gateway/     API Gateway integration (on hold)
+    ├── hello-world/     Multi-layer coordination experiments
+    ├── cfn-loop/        CFN Loop variant implementations
+    ├── ace/             Agent Capability Expression experiments
+    ├── tdd-compliance/  TDD enforcement experiments
+    ├── playbooks/       Workflow codification research
+    └── workflows/       Event-driven workflow experiments
+```
+
 **Legacy Tests:**
 - Not included in test runners by default
 - Preserved for historical reference and regression debugging
 - See `tests/cli-mode/core/legacy/README.md` and `tests/docker/core/legacy/README.md`
+- See `tests/archive/historical/README.md` for deprecated test reference
+- See `tests/archive/experimental/README.md` for POC status
 
 ## Test Categories
 
