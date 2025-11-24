@@ -42,13 +42,13 @@ ENVEOF
     
     if [ $? -eq 0 ]; then
         log_info "✓ .env sourcing loads variables correctly"
-        ((PASS_COUNT++))
+        PASS_COUNT=$((PASS_COUNT + 1))
     else
         log_error "✗ .env sourcing failed"
     fi
-    
+
     rm -f "$tmp_env"
-    ((TEST_COUNT++))
+    TEST_COUNT=$((TEST_COUNT + 1))
 }
 
 test_missing_env_file_error() {
@@ -74,13 +74,13 @@ SCRIPTEOF
     
     if echo "$OUTPUT" | grep -q "ERROR: Root .env not found"; then
         log_info "✓ Missing .env file handled correctly"
-        ((PASS_COUNT++))
+        PASS_COUNT=$((PASS_COUNT + 1))
     else
         log_error "✗ Missing .env file not handled correctly"
     fi
-    
+
     rm -f "$tmp_script"
-    ((TEST_COUNT++))
+    TEST_COUNT=$((TEST_COUNT + 1))
 }
 
 test_empty_env_file() {
@@ -106,13 +106,13 @@ test_empty_env_file() {
     
     if [ $? -eq 0 ]; then
         log_info "✓ Empty .env file sources without error"
-        ((PASS_COUNT++))
+        PASS_COUNT=$((PASS_COUNT + 1))
     else
         log_error "✗ Empty .env file caused error"
     fi
-    
+
     rm -f "$tmp_env"
-    ((TEST_COUNT++))
+    TEST_COUNT=$((TEST_COUNT + 1))
 }
 
 test_malformed_env_file() {
@@ -141,13 +141,13 @@ ENVEOF
     
     if [ $? -eq 0 ]; then
         log_info "✓ Malformed .env file partially loads valid entries"
-        ((PASS_COUNT++))
+        PASS_COUNT=$((PASS_COUNT + 1))
     else
         log_error "✗ Malformed .env file handling failed"
     fi
-    
+
     rm -f "$tmp_env"
-    ((TEST_COUNT++))
+    TEST_COUNT=$((TEST_COUNT + 1))
 }
 
 test_env_variable_export() {
@@ -172,13 +172,13 @@ test_env_variable_export() {
     
     if [ $? -eq 0 ]; then
         log_info "✓ set -a correctly exports variables"
-        ((PASS_COUNT++))
+        PASS_COUNT=$((PASS_COUNT + 1))
     else
         log_error "✗ Variable export failed"
     fi
-    
+
     rm -f "$tmp_env"
-    ((TEST_COUNT++))
+    TEST_COUNT=$((TEST_COUNT + 1))
 }
 
 test_fixture_files_exist() {
@@ -197,10 +197,10 @@ test_fixture_files_exist() {
     done
     
     if [ "$all_exist" = true ]; then
-        ((PASS_COUNT++))
+        PASS_COUNT=$((PASS_COUNT + 1))
     fi
-    
-    ((TEST_COUNT++))
+
+    TEST_COUNT=$((TEST_COUNT + 1))
 }
 
 # Run all tests
