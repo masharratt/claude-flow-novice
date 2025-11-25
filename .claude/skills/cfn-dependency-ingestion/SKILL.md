@@ -1,45 +1,52 @@
 ---
 name: cfn-dependency-ingestion
-description: Atomic ingestion of all CFN Loop CLI dependency files by parsing the dependency diagram
-version: 1.0.0
-tags: [cfn-loop, dependency-management, dynamic-ingestion]
+description: Unified atomic ingestion of CFN dependency manifests (trigger-dev, cli-mode, shared)
+version: 2.0.0
+tags: [cfn-loop, dependency-management, dynamic-ingestion, trigger-dev, cli-mode]
 ---
 
 # CFN Dependency Ingestion Skill
 
 ## Quick Start
 
-### TypeScript Version (Recommended - v2.0.0+)
+### Unified Shell Script (v2.0.0+)
 
 ```bash
-# Build once (required)
-cd .claude/skills/cfn-dependency-ingestion && bash build.sh
+# List available manifests
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --list-manifests
 
-# Default: Ingest all 3 manifests (CLI + Trigger.dev + Shared)
-# Prevents editing overlapping dependencies between modes
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
-  --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
-  --manifest .claude/skills/cfn-dependency-ingestion/manifests/trigger-mode-dependencies.txt \
-  --manifest .claude/skills/cfn-dependency-ingestion/manifests/shared-dependencies.txt \
-  --inject-content
+# Trigger.dev infrastructure (P0 critical, ~17K tokens)
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest trigger-dev --priority P0 --inject-content --skip-validation
 
-# CLI mode only (14K tokens)
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
-  --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
-  --manifest .claude/skills/cfn-dependency-ingestion/manifests/shared-dependencies.txt \
-  --inject-content
+# Trigger.dev full context (P0+P1, ~32K tokens)
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest trigger-dev --inject-content --skip-validation
 
-# Trigger.dev mode only (9K tokens)
-node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
-  --manifest .claude/skills/cfn-dependency-ingestion/manifests/trigger-mode-dependencies.txt \
-  --manifest .claude/skills/cfn-dependency-ingestion/manifests/shared-dependencies.txt \
-  --inject-content
+# CLI mode dependencies
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --inject-content --skip-validation
+
+# Shared dependencies
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest shared --inject-content
+
+# Filter by type (TypeScript only)
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest trigger-dev --type TS --inject-content
 ```
 
-### Shell Script Version (Legacy)
+### Legacy: Diagram-Based Ingestion
 
 ```bash
-./.claude/skills/cfn-dependency-ingestion/ingest-dependencies.sh
+# CLI mode from diagram
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --diagram cli
+
+# Docker mode from diagram
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --diagram docker
+```
+
+### TypeScript Version (Legacy)
+
+```bash
+node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
+  --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
+  --inject-content
 ```
 
 **Performance Comparison:**
@@ -364,6 +371,13 @@ When files are added/removed from the dependency diagram:
 - **Agent Profiles:** `.claude/agents/cfn-dev-team/`
 
 ## Version History
+
+- **3.0.0** (2025-11-24): Unified ingestion script
+  - **Merged Skills:** Combined trigger-dev-dependency-ingestion and cfn-dependency-ingestion into single tool
+  - **Unified Interface:** `--manifest <name>` for all manifest-based ingestion
+  - **Available Manifests:** trigger-dev, cli-mode, shared, trigger-mode
+  - **Legacy Support:** `--diagram <type>` for diagram-based parsing
+  - **Token Estimates:** trigger-dev P0 ~17K tokens, full ~32K tokens
 
 - **2.1.0** (2025-11-20): Chunked mode for Task tool agents
   - **Enhancement #6:** Automatic chunking into 20k token files for parallel reads

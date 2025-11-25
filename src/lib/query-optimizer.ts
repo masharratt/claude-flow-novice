@@ -21,6 +21,62 @@ export interface QueryOptimizerConfig {
   refreshInterval?: number; // Materialized view refresh interval in ms (default: 1 hour)
 }
 
+export interface CostByTeam {
+  team_id: string;
+  agent_count: number;
+  completed_count: number;
+  failed_count: number;
+  avg_confidence: number | null;
+  total_cost: number;
+  first_spawn: Date;
+  last_spawn: Date;
+}
+
+export interface CostByAgentType {
+  agent_type: string;
+  agent_count: number;
+  completed_count: number;
+  failed_count: number;
+  avg_confidence: number | null;
+  total_cost: number;
+  avg_duration_seconds: number | null;
+}
+
+export interface DailyCostSummary {
+  date: Date;
+  total_agents: number;
+  completed_count: number;
+  failed_count: number;
+  total_cost: number;
+  avg_confidence: number | null;
+}
+
+export interface AgentRecord {
+  id: string;
+  team_id: string | null;
+  type: string;
+  status: string;
+  spawned_at: Date;
+  completed_at: Date | null;
+  confidence: number | null;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface IndexUsageStats {
+  schemaname: string;
+  tablename: string;
+  indexname: string;
+  index_scans: number;
+  tuples_read: number;
+  tuples_fetched: number;
+}
+
+export interface QueryPlan {
+  'Plan': Record<string, unknown>;
+  'Planning Time': number;
+  'Execution Time': number;
+}
+
 export class QueryOptimizer {
   private pool: Pool;
   private refreshInterval: number;
@@ -79,6 +135,12 @@ export class QueryOptimizer {
         table: 'agents',
         columns: ['status', 'spawned_at'],
         description: 'Composite index for status + time queries',
+      },
+      {
+        name: 'idx_agents_cost_query',
+        table: 'agents',
+        columns: ['team_id', 'spawned_at', 'status'],
+        description: 'Composite index for cost aggregation queries',
       },
     ];
 
@@ -161,12 +223,12 @@ export class QueryOptimizer {
       `);
       console.log('Created materialized view: mv_daily_cost_summary');
 
-      // Create indexes on materialized views
-      await client.query('CREATE INDEX IF NOT EXISTS idx_mv_cost_by_team_team_id ON mv_cost_by_team (team_id)');
-      await client.query('CREATE INDEX IF NOT EXISTS idx_mv_cost_by_agent_type_type ON mv_cost_by_agent_type (agent_type)');
-      await client.query('CREATE INDEX IF NOT EXISTS idx_mv_daily_cost_summary_date ON mv_daily_cost_summary (date)');
+      // Create UNIQUE indexes on materialized views (required for CONCURRENT refresh)
+      await client.query('CREATE UNIQUE INDEX idx_mv_cost_by_team_team_id ON mv_cost_by_team (team_id)');
+      await client.query('CREATE UNIQUE INDEX idx_mv_cost_by_agent_type_type ON mv_cost_by_agent_type (agent_type)');
+      await client.query('CREATE UNIQUE INDEX idx_mv_daily_cost_summary_date ON mv_daily_cost_summary (date)');
 
-      console.log('Created indexes on materialized views');
+      console.log('Created UNIQUE indexes on materialized views for concurrent refresh');
     } finally {
       client.release();
     }
@@ -228,11 +290,11 @@ export class QueryOptimizer {
   /**
    * Optimized query: Get cost by team
    */
-  async getCostByTeam(teamId?: string): Promise<any[]> {
+  async getCostByTeam(teamId?: string): Promise<CostByTeam[]> {
     const client = await this.pool.connect();
     try {
       let query = 'SELECT * FROM mv_cost_by_team';
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (teamId) {
         query += ' WHERE team_id = $1';
@@ -251,11 +313,11 @@ export class QueryOptimizer {
   /**
    * Optimized query: Get cost by agent type
    */
-  async getCostByAgentType(agentType?: string): Promise<any[]> {
+  async getCostByAgentType(agentType?: string): Promise<CostByAgentType[]> {
     const client = await this.pool.connect();
     try {
       let query = 'SELECT * FROM mv_cost_by_agent_type';
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       if (agentType) {
         query += ' WHERE agent_type = $1';
@@ -277,11 +339,11 @@ export class QueryOptimizer {
   async getDailyCostSummary(
     startDate?: Date,
     endDate?: Date
-  ): Promise<any[]> {
+  ): Promise<DailyCostSummary[]> {
     const client = await this.pool.connect();
     try {
       let query = 'SELECT * FROM mv_daily_cost_summary';
-      const params: any[] = [];
+      const params: unknown[] = [];
 
       const conditions: string[] = [];
       if (startDate) {
@@ -313,7 +375,7 @@ export class QueryOptimizer {
   async getAgentsByTeamAndStatus(
     teamId: string,
     status: string
-  ): Promise<any[]> {
+  ): Promise<AgentRecord[]> {
     const client = await this.pool.connect();
     try {
       const query = `
@@ -338,7 +400,7 @@ export class QueryOptimizer {
     status: string,
     startDate: Date,
     endDate: Date
-  ): Promise<any[]> {
+  ): Promise<AgentRecord[]> {
     const client = await this.pool.connect();
     try {
       const query = `
@@ -360,12 +422,12 @@ export class QueryOptimizer {
   /**
    * Analyze query performance
    */
-  async analyzeQuery(query: string, params?: any[]): Promise<any> {
+  async analyzeQuery(query: string, params?: unknown[]): Promise<QueryPlan> {
     const client = await this.pool.connect();
     try {
       const explainQuery = `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`;
       const result = await client.query(explainQuery, params);
-      return result.rows[0]['QUERY PLAN'][0];
+      return result.rows[0]['QUERY PLAN'][0] as QueryPlan;
     } finally {
       client.release();
     }
@@ -374,7 +436,7 @@ export class QueryOptimizer {
   /**
    * Get index usage statistics
    */
-  async getIndexUsageStats(): Promise<any[]> {
+  async getIndexUsageStats(): Promise<IndexUsageStats[]> {
     const client = await this.pool.connect();
     try {
       const query = `

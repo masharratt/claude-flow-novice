@@ -223,3 +223,4 @@ legacy/v1/**/.next/planning/global/
 # Pre-Edit Backup System
 .backups/
 *.backup
+docker/trigger-dev-v4/

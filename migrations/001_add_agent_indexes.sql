@@ -10,6 +10,7 @@ CREATE INDEX IF NOT EXISTS idx_agents_spawned_at ON agents (spawned_at);
 -- Create composite indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_agents_team_status ON agents (team_id, status);
 CREATE INDEX IF NOT EXISTS idx_agents_status_spawned ON agents (status, spawned_at);
+CREATE INDEX IF NOT EXISTS idx_agents_cost_query ON agents (team_id, spawned_at, status);
 
 -- Add index on completed_at for duration calculations
 CREATE INDEX IF NOT EXISTS idx_agents_completed_at ON agents (completed_at);

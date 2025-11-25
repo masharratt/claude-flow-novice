@@ -1,15 +1,19 @@
 {
   "name": "cfn-trigger-dev-jobs",
-  "version": "0.1.0",
-  "description": "Trigger.dev jobs for CFN Loop agent orchestration",
+  "version": "0.2.0",
+  "description": "Trigger.dev v4 tasks for CFN Loop agent orchestration",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch",
+    "dev": "npx trigger dev",
+    "deploy": "npx trigger deploy",
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist .trigger",
+    "trigger:test": "npx trigger test hello-world",
+    "trigger:stress": "npx trigger test hello-world-stress-test"
   },
   "keywords": [
     "trigger.dev",
@@ -20,7 +24,8 @@
   "author": "CFN Loop Team",
   "license": "MIT",
   "dependencies": {
-    "@trigger.dev/sdk": "^2.3.18",
+    "@trigger.dev/sdk": "^4.1.2",
+    "execa": "^9.6.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {

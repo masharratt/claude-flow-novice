@@ -5,3 +5,4 @@
  */
 
 export { testSingleAgentJob } from "./test-single-agent";
+export { helloWorldStressTestJob } from "./hello-world-stress-test";
