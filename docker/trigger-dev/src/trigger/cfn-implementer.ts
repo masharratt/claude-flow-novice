@@ -14,6 +14,15 @@ export interface ImplementerPayload {
   workDir: string;
   iteration: number;
   taskId: string;
+  /** AI provider to use: zai (default), kimi, anthropic, etc. */
+  provider?: 'zai' | 'kimi' | 'anthropic' | 'openrouter' | 'gemini' | 'xai';
+  /** Environment variable overrides (for passing API keys through payload) */
+  _env?: {
+    ANTHROPIC_API_KEY?: string;
+    ANTHROPIC_BASE_URL?: string;
+    ZAI_API_KEY?: string;
+    ZAI_BASE_URL?: string;
+  };
 }
 
 export interface ImplementerResult {
@@ -36,6 +45,74 @@ const TIMEOUT_MS = 600000; // 10 minutes
 const MAX_ATTEMPTS = 2;
 const CLI_COMMAND = 'npx';
 const CLI_PACKAGE = '@anthropic-ai/claude-code';
+
+/**
+ * Provider configuration for routing API calls
+ */
+const PROVIDER_CONFIG: Record<string, { baseUrl?: string; apiKeyEnv: string }> = {
+  zai: { baseUrl: 'https://api.z.ai/api/anthropic', apiKeyEnv: 'ZAI_API_KEY' },
+  kimi: { baseUrl: 'https://api.moonshot.cn/v1', apiKeyEnv: 'KIMI_API_KEY' },
+  anthropic: { apiKeyEnv: 'ANTHROPIC_API_KEY' },
+  openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKeyEnv: 'OPENROUTER_API_KEY' },
+  gemini: { baseUrl: 'https://generativelanguage.googleapis.com/v1beta', apiKeyEnv: 'GEMINI_API_KEY' },
+  xai: { baseUrl: 'https://api.x.ai/v1', apiKeyEnv: 'XAI_API_KEY' },
+};
+
+/**
+ * Build environment variables for CLI execution
+ * Handles provider routing and _env overrides
+ */
+function buildCliEnvironment(payload: ImplementerPayload): Record<string, string | undefined> {
+  const provider = payload.provider || 'zai'; // Default to Z.ai
+  const config = PROVIDER_CONFIG[provider] || PROVIDER_CONFIG.zai;
+
+  // Start with process.env
+  const env: Record<string, string | undefined> = { ...process.env };
+
+  // Get API key: payload._env > process.env[providerKey] > process.env[fallbackKey]
+  let apiKey: string | undefined;
+  let baseUrl: string | undefined;
+
+  if (payload._env) {
+    // Explicit _env overrides take priority
+    apiKey = payload._env.ANTHROPIC_API_KEY || payload._env.ZAI_API_KEY;
+    baseUrl = payload._env.ANTHROPIC_BASE_URL || payload._env.ZAI_BASE_URL;
+  }
+
+  if (!apiKey) {
+    // Try provider-specific env var
+    apiKey = process.env[config.apiKeyEnv];
+  }
+
+  if (!apiKey && provider !== 'anthropic') {
+    // Fallback to ANTHROPIC_API_KEY only if it's not a placeholder
+    const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    if (anthropicKey && !anthropicKey.includes('placeholder')) {
+      apiKey = anthropicKey;
+    }
+  }
+
+  if (!baseUrl && config.baseUrl) {
+    baseUrl = config.baseUrl;
+  }
+
+  // Set the final environment for Claude Code CLI
+  // Claude Code CLI uses ANTHROPIC_API_KEY and ANTHROPIC_BASE_URL
+  if (apiKey) {
+    env.ANTHROPIC_API_KEY = apiKey;
+  }
+  if (baseUrl) {
+    env.ANTHROPIC_BASE_URL = baseUrl;
+  }
+
+  // Log for debugging
+  console.log(`[Implementer] Provider: ${provider}`);
+  console.log(`[Implementer] API key source: ${payload._env?.ANTHROPIC_API_KEY || payload._env?.ZAI_API_KEY ? 'payload._env' : config.apiKeyEnv}`);
+  console.log(`[Implementer] Base URL: ${baseUrl || 'default (api.anthropic.com)'}`);
+  console.log(`[Implementer] API key present: ${!!apiKey}`);
+
+  return env;
+}
 
 /**
  * Build the prompt for Claude Code CLI
@@ -143,31 +220,42 @@ async function executeWithRetry(
     const prompt = buildPrompt(payload);
     const cliArgs = [
       CLI_PACKAGE,
-      '-p',
-      prompt,
-      '--print',
-      '--output-format',
-      'json',
-      '--dangerously-skip-permissions',
+      '--print',                        // Non-interactive mode
+      '--output-format', 'json',        // JSON output for parsing
+      '--dangerously-skip-permissions', // Skip permission prompts
+      prompt,                           // Prompt as final positional argument
     ];
 
     console.log(
       `[Implementer] Attempt ${context.attempt}/${context.maxAttempts}: Spawning Claude Code CLI`
     );
+    console.log(`[Implementer] Executing: ${CLI_COMMAND} ${cliArgs[0]} ${cliArgs[1]} ${cliArgs[2]} ${cliArgs[3]} [prompt...]`);
     console.log(`[Implementer] Working directory: ${payload.workDir}`);
     console.log(`[Implementer] Task ID: ${payload.taskId}`);
     console.log(`[Implementer] Agent type: ${payload.agentType}`);
     console.log(`[Implementer] Iteration: ${payload.iteration}`);
+
+    // Build environment with proper provider routing
+    const cliEnv = buildCliEnvironment(payload);
 
     const result = await execa(CLI_COMMAND, cliArgs, {
       cwd: payload.workDir,
       timeout: context.timeout,
       stripFinalNewline: true,
       reject: false, // Don't throw on non-zero exit
+      env: cliEnv,
     });
 
     const output = result.stdout || result.stderr || '';
     const duration = Date.now() - startTime;
+
+    console.log(`[Implementer] Exit code: ${result.exitCode}`);
+    if (result.stderr) {
+      console.log(`[Implementer] stderr: ${result.stderr.substring(0, 500)}`);
+    }
+    if (result.stdout) {
+      console.log(`[Implementer] stdout length: ${result.stdout.length} chars`);
+    }
 
     // Check if command executed successfully
     if (result.exitCode === 0) {

@@ -21,7 +21,7 @@
  * 8. If iterations >= maxIterations, decision = ABORT
  */
 
-import { task, tasks } from "@trigger.dev/sdk/v3";
+import { task, tasks, batch, runs } from "@trigger.dev/sdk/v3";
 import { cfnTestRunnerTask, type TestRunnerPayload, type TestRunnerResult } from "./cfn-test-runner.js";
 import type { ImplementerResult } from "./cfn-implementer.js";
 import type { ValidatorResult } from "./cfn-validator.js";
@@ -54,6 +54,15 @@ export interface OrchestratorPayload {
   implementerAgents?: string[];
   /** Custom validator agents to spawn (default: standard set) */
   validatorAgents?: string[];
+  /** AI provider to use for all agents: zai (default), kimi, anthropic, etc. */
+  provider?: 'zai' | 'kimi' | 'anthropic' | 'openrouter' | 'gemini' | 'xai';
+  /** Environment variable overrides (for passing API keys through payload) */
+  _env?: {
+    ANTHROPIC_API_KEY?: string;
+    ANTHROPIC_BASE_URL?: string;
+    ZAI_API_KEY?: string;
+    ZAI_BASE_URL?: string;
+  };
 }
 
 /**
@@ -161,6 +170,15 @@ interface ImplementerPayload {
   workDir: string;
   iteration: number;
   taskId: string;
+  /** AI provider to use: zai (default), kimi, anthropic, etc. */
+  provider?: 'zai' | 'kimi' | 'anthropic' | 'openrouter' | 'gemini' | 'xai';
+  /** Environment variable overrides (for passing API keys through payload) */
+  _env?: {
+    ANTHROPIC_API_KEY?: string;
+    ANTHROPIC_BASE_URL?: string;
+    ZAI_API_KEY?: string;
+    ZAI_BASE_URL?: string;
+  };
 }
 
 /**
@@ -176,6 +194,8 @@ async function spawnImplementers(
   implementerAgents: string[]
 ): Promise<{ batchId: string; implementerPayloads: ImplementerPayload[] }> {
   logStep(state, "Spawning Loop 3 implementers", `${implementerAgents.length} agents`);
+  logStep(state, "Provider", payload.provider || "zai (default)");
+  logStep(state, "API keys via _env", payload._env ? "yes" : "no (using process.env)");
 
   const implementerPayloads: ImplementerPayload[] = implementerAgents.map((agentType) => ({
     taskDescription: payload.taskDescription,
@@ -183,6 +203,9 @@ async function spawnImplementers(
     workDir: payload.workDir,
     iteration: state.iteration,
     taskId: `cfn-orchestrator-${Date.now()}`,
+    // Pass through provider and _env for API key routing
+    provider: payload.provider,
+    _env: payload._env,
   }));
 
   // Trigger all implementers in parallel batch
@@ -208,41 +231,110 @@ async function spawnImplementers(
 }
 
 /**
+ * Polling interval for checking task completion (ms)
+ */
+const POLL_INTERVAL_MS = 5000;
+
+/**
+ * Maximum time to wait for a single task (ms) - 10 minutes
+ */
+const POLL_TIMEOUT_MS = 600000;
+
+/**
  * Poll for implementer completion
- * Waits for all implementers in batch to finish
+ * Waits for all implementers in batch to finish using Trigger.dev v4 API:
+ * 1. Retrieve batch to get run IDs
+ * 2. Poll each run until completion
  */
 async function waitForImplementers(
   state: OrchestrationState,
+  batchId: string,
   implementerPayloads: Array<{ agentType: string }>
 ): Promise<ImplementerResult[]> {
-  logStep(state, "Polling implementers", "Waiting for completion");
+  logStep(state, "Polling implementers", `Batch ID: ${batchId}`);
 
   const results: ImplementerResult[] = [];
 
-  // Wait for each implementer to complete
-  // Note: In production, you might use a Redis BLPOP pattern or Trigger.dev run polling
-  for (const payload of implementerPayloads) {
-    try {
-      // Retrieve implementer result (this is pseudo-code for the pattern)
-      // In real implementation, track task handles and retrieve results
-      logStep(state, "Implementer status", `${payload.agentType} - monitoring...`);
-    } catch (err) {
-      logStep(
-        state,
-        "Implementer error",
-        `${payload.agentType}: ${String(err).substring(0, 100)}`
-      );
+  try {
+    // Step 1: Retrieve batch to get run IDs
+    logStep(state, "Retrieving batch", "Getting run IDs from batch");
+    const batchDetails = await batch.retrieve(batchId);
+
+    if (!batchDetails.runs || batchDetails.runs.length === 0) {
+      logStep(state, "Batch empty", "No runs found in batch - tasks may not have started");
+      return results;
     }
+
+    const runIds = batchDetails.runs;
+    logStep(state, "Batch retrieved", `${runIds.length} runs to monitor`);
+
+    // Step 2: Poll each run for completion
+    for (let i = 0; i < runIds.length; i++) {
+      const runId = runIds[i];
+      const agentType = implementerPayloads[i]?.agentType ?? `implementer-${i}`;
+
+      try {
+        logStep(state, "Polling run", `${agentType} (${runId})`);
+
+        // Poll with timeout
+        const runResult = await runs.poll(runId, {
+          pollIntervalMs: POLL_INTERVAL_MS,
+        });
+
+        logStep(state, "Run completed", `${agentType}: ${runResult.status}`);
+
+        // Extract result from run output
+        if (runResult.status === "COMPLETED" && runResult.output) {
+          const output = runResult.output as ImplementerResult;
+          results.push(output);
+
+          // Collect modified files
+          if (output.filesModified && Array.isArray(output.filesModified)) {
+            for (const file of output.filesModified) {
+              state.allFilesModified.add(file);
+            }
+          }
+        } else if (runResult.status === "FAILED") {
+          // Handle error which can be string or object with message
+          const errorMsg = typeof runResult.error === 'string'
+            ? runResult.error
+            : runResult.error?.message ?? "Unknown error";
+          logStep(state, "Run failed", `${agentType}: ${errorMsg}`);
+          // Add a failed result placeholder
+          results.push({
+            success: false,
+            agentType,
+            filesModified: [],
+            output: "",
+            duration: 0,
+            error: errorMsg || "Task failed",
+          });
+        } else {
+          logStep(state, "Run status", `${agentType}: ${runResult.status}`);
+        }
+      } catch (err) {
+        logStep(
+          state,
+          "Polling error",
+          `${agentType}: ${String(err).substring(0, 100)}`
+        );
+        // Add error result
+        results.push({
+          success: false,
+          agentType,
+          filesModified: [],
+          output: "",
+          duration: 0,
+          error: String(err),
+        });
+      }
+    }
+  } catch (err) {
+    logStep(state, "Batch retrieval error", String(err));
+    throw new Error(`Failed to retrieve implementer batch: ${String(err)}`);
   }
 
-  // Collect all modified files
-  for (const result of results) {
-    for (const file of result.filesModified) {
-      state.allFilesModified.add(file);
-    }
-  }
-
-  logStep(state, "Implementers complete", `Files modified: ${results.length}`);
+  logStep(state, "Implementers complete", `${results.length} results, ${state.allFilesModified.size} files modified`);
   return results;
 }
 
@@ -366,27 +458,93 @@ async function spawnValidators(
 
 /**
  * Wait for validator completion and collect consensus
+ * Uses Trigger.dev v4 API to poll for completion:
+ * 1. Retrieve batch to get run IDs
+ * 2. Poll each run until completion
+ * 3. Calculate consensus from confidence scores
  */
 async function waitForValidators(
   state: OrchestrationState,
+  batchId: string,
   validatorPayloads: Array<{ agentType: string }>
 ): Promise<{ results: ValidatorResult[]; consensus: number }> {
-  logStep(state, "Polling validators", "Waiting for completion");
+  logStep(state, "Polling validators", `Batch ID: ${batchId}`);
 
   const results: ValidatorResult[] = [];
 
-  // Wait for each validator to complete
-  for (const payload of validatorPayloads) {
-    try {
-      // Track validator progress
-      logStep(state, "Validator status", `${payload.agentType} - monitoring...`);
-    } catch (err) {
-      logStep(
-        state,
-        "Validator error",
-        `${payload.agentType}: ${String(err).substring(0, 100)}`
-      );
+  try {
+    // Step 1: Retrieve batch to get run IDs
+    logStep(state, "Retrieving validator batch", "Getting run IDs from batch");
+    const batchDetails = await batch.retrieve(batchId);
+
+    if (!batchDetails.runs || batchDetails.runs.length === 0) {
+      logStep(state, "Validator batch empty", "No runs found in batch - tasks may not have started");
+      return { results, consensus: 0 };
     }
+
+    const runIds = batchDetails.runs;
+    logStep(state, "Validator batch retrieved", `${runIds.length} runs to monitor`);
+
+    // Step 2: Poll each run for completion
+    for (let i = 0; i < runIds.length; i++) {
+      const runId = runIds[i];
+      const agentType = validatorPayloads[i]?.agentType ?? `validator-${i}`;
+
+      try {
+        logStep(state, "Polling validator run", `${agentType} (${runId})`);
+
+        // Poll with timeout
+        const runResult = await runs.poll(runId, {
+          pollIntervalMs: POLL_INTERVAL_MS,
+        });
+
+        logStep(state, "Validator run completed", `${agentType}: ${runResult.status}`);
+
+        // Extract result from run output
+        if (runResult.status === "COMPLETED" && runResult.output) {
+          const output = runResult.output as ValidatorResult;
+          results.push(output);
+          logStep(state, "Validator confidence", `${agentType}: ${(output.confidence * 100).toFixed(2)}%`);
+        } else if (runResult.status === "FAILED") {
+          // Handle error which can be string or object with message
+          const errorMsg = typeof runResult.error === 'string'
+            ? runResult.error
+            : runResult.error?.message ?? "Unknown error";
+          logStep(state, "Validator run failed", `${agentType}: ${errorMsg}`);
+          // Add a failed result with 0 confidence
+          results.push({
+            success: false,
+            agentType,
+            confidence: 0,
+            feedback: "Validation failed",
+            issues: [errorMsg || "Task failed"],
+            duration: 0,
+            error: errorMsg || "Task failed",
+          });
+        } else {
+          logStep(state, "Validator run status", `${agentType}: ${runResult.status}`);
+        }
+      } catch (err) {
+        logStep(
+          state,
+          "Validator polling error",
+          `${agentType}: ${String(err).substring(0, 100)}`
+        );
+        // Add error result with 0 confidence
+        results.push({
+          success: false,
+          agentType,
+          confidence: 0,
+          feedback: "Polling failed",
+          issues: [String(err)],
+          duration: 0,
+          error: String(err),
+        });
+      }
+    }
+  } catch (err) {
+    logStep(state, "Validator batch retrieval error", String(err));
+    throw new Error(`Failed to retrieve validator batch: ${String(err)}`);
   }
 
   // Calculate consensus from confidence scores
@@ -527,8 +685,8 @@ export const cfnOrchestratorTask = task({
           implementerAgents
         );
 
-        // Wait for implementers
-        const implementerResults = await waitForImplementers(state, implementerPayloads);
+        // Wait for implementers - pass batchId for proper polling
+        const implementerResults = await waitForImplementers(state, implementerBatchId, implementerPayloads);
 
         // Gate Check: Run tests
         const testResult = await runGateCheck(payload, state, modeConfig);
@@ -564,9 +722,10 @@ export const cfnOrchestratorTask = task({
           validatorAgents
         );
 
-        // Wait for validators
+        // Wait for validators - pass batchId for proper polling
         const { results: validatorResults, consensus } = await waitForValidators(
           state,
+          validatorBatchId,
           validatorPayloads
         );
         finalConsensus = consensus;
