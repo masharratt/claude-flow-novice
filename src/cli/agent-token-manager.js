@@ -13,7 +13,8 @@ const path = require('path');
 class AgentTokenManager {
   constructor(options = {}) {
     // Support CFN standard variables with fallback to legacy MCP_REDIS_URL
-    const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+    // FIX: Default to 'localhost' for CLI mode (host execution), not 'cfn-redis' (Docker)
+    const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
     const redisPort = process.env.CFN_REDIS_PORT || '6379';
     const defaultUrl = `redis://${redisHost}:${redisPort}`;
     this.redisUrl = options.redisUrl || process.env.CFN_REDIS_URL || process.env.MCP_REDIS_URL || defaultUrl;

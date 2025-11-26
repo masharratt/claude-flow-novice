@@ -360,6 +360,12 @@ export class AgentSpawner {
 
   /**
    * Build environment variables for agent execution
+   *
+   * Provider routing: Sets both PROVIDER and CLAUDE_API_PROVIDER for compatibility.
+   * - PROVIDER: New convention used by agent-spawner
+   * - CLAUDE_API_PROVIDER: Legacy convention used by anthropic-client.ts getAPIConfig()
+   *
+   * BUG FIX: Previously only set PROVIDER, but anthropic-client.ts checked CLAUDE_API_PROVIDER
    */
   private buildEnvironment(
     config: SpawnAgentConfig,
@@ -374,7 +380,9 @@ export class AgentSpawner {
       TASK_ID: config.taskId,
       ITERATION: String(config.iteration),
       MODE: config.mode,
+      // Provider routing - set both for compatibility
       PROVIDER: provider,
+      CLAUDE_API_PROVIDER: provider, // BUG FIX: anthropic-client.ts reads this
       MODEL: model,
       SPAWNED_AT: new Date().toISOString(),
       PROJECT_ROOT: this.projectRoot,
@@ -387,6 +395,21 @@ export class AgentSpawner {
       CFN_NETWORK_NAME: getNetworkName('cli')
     };
 
+    // Add provider-specific API keys if available
+    // This ensures spawned agents have access to the correct API key for their provider
+    if (provider === 'zai' && process.env.ZAI_API_KEY) {
+      env.ZAI_API_KEY = process.env.ZAI_API_KEY;
+    }
+    if (provider === 'kimi' && process.env.KIMI_API_KEY) {
+      env.KIMI_API_KEY = process.env.KIMI_API_KEY;
+    }
+    if (provider === 'openrouter' && process.env.OPENROUTER_API_KEY) {
+      env.OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    }
+    if (provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) {
+      env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    }
+
     // Add optional prompt parameter if provided
     if (config.prompt) {
       env.PROMPT = config.prompt;
@@ -396,6 +419,13 @@ export class AgentSpawner {
     if (config.env) {
       Object.assign(env, config.env);
     }
+
+    // Debug logging for provider routing
+    console.error(`[agent-spawner] Building env for agent ${agentId}:`);
+    console.error(`[agent-spawner]   PROVIDER=${provider}, CLAUDE_API_PROVIDER=${provider}`);
+    console.error(`[agent-spawner]   Has ZAI_API_KEY: ${!!env.ZAI_API_KEY}`);
+    console.error(`[agent-spawner]   Has KIMI_API_KEY: ${!!env.KIMI_API_KEY}`);
+    console.error(`[agent-spawner]   Has ANTHROPIC_API_KEY: ${!!env.ANTHROPIC_API_KEY}`);
 
     return env;
   }

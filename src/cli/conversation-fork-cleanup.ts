@@ -10,7 +10,8 @@
 
 import { execSync } from 'child_process';
 
-const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+// FIX: Default to 'localhost' for CLI mode (host execution), not 'cfn-redis' (Docker)
+const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
 const redisPort = process.env.CFN_REDIS_PORT || '6379';
 
 export interface CleanupOptions {

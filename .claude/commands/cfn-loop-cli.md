@@ -1,12 +1,12 @@
 ---
 description: "Execute CFN Loop in simplified CLI mode (Main Chat coordination, provider routing)"
-argument-hint: "<task description> [--mode=mvp|standard|enterprise] [--provider=zai|kimi|anthropic|openrouter] [--model=<model>]"
+argument-hint: "<task description> [--mode=mvp|standard|enterprise] [--provider=zai|kimi|anthropic|openrouter] [--model=<model>] [--agents=N] [--threshold=0.75]"
 allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "SlashCommand"]
 ---
 
-# CFN Loop CLI Mode - Simplified Main Chat Coordination
+# CFN Loop CLI Mode - Parallel Agent Coordination
 
-🚨 **NEW ARCHITECTURE:** Main Chat directly coordinates CLI agents via Redis BLPOP signaling
+🚨 **v2.0 ARCHITECTURE:** Main Chat spawns parallel CLI agents with threshold-based completion
 
 ---
 
@@ -18,6 +18,8 @@ TASK_DESCRIPTION: $ARGUMENTS (extract task, remove flags)
 MODE: Parse from --mode flag or default to "standard"
 PROVIDER: Parse from --provider flag or use Main Chat setting
 MODEL: Parse from --model flag or use provider default
+AGENTS: Parse from --agents flag or default to 4
+THRESHOLD: Parse from --threshold flag or default to 0.75 (3/4 agents)
 ```
 
 **Step 2: Set Environment Variables**
@@ -27,6 +29,7 @@ TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
 echo "📋 Task ID: $TASK_ID"
 echo "🎯 Mode: $MODE"
 echo "🤖 Provider: $PROVIDER (from --provider or Main Chat setting)"
+echo "👥 Agents: $AGENTS (threshold: $THRESHOLD)"
 if [ -n "$MODEL" ]; then
   echo "🧠 Model: $MODEL"
 fi
@@ -53,55 +56,88 @@ fi
 echo "✅ Redis available for Main Chat coordination"
 ```
 
-**Step 4: Spawn Initial CLI Agent (Main Chat Coordination Pattern)**
+**Step 4: Spawn Parallel CLI Agents**
 ```bash
-# Determine first agent type based on task
-# This is a simplified selection - could be enhanced with task classification
-AGENT_TYPE="backend-developer"
+# Define agent types based on task complexity
+# For comprehensive tasks, spawn multiple specialized agents
+AGENT_TYPES=("backend-developer" "tester" "code-reviewer" "security-specialist")
 
-# Spawn first CLI agent with provider routing
-echo "🚀 Spawning CLI agent: $AGENT_TYPE"
+echo "🚀 Spawning $AGENTS parallel CLI agents..."
 
-npx tsx src/cli/spawn-agent-cli.ts "$AGENT_TYPE" \
-  --task-id "$TASK_ID" \
-  --mode "$MODE" \
-  ${PROVIDER:+--provider "$PROVIDER"} \
-  ${MODEL:+--model "$MODEL"} \
-  --background
+# Spawn agents in BACKGROUND (use & to allow Main Chat to continue)
+for i in $(seq 1 $AGENTS); do
+  AGENT_TYPE="${AGENT_TYPES[$((i-1)) % ${#AGENT_TYPES[@]}]}"
+  AGENT_ID="${AGENT_TYPE}-${TASK_ID}-${i}"
 
-echo "✅ CLI agent spawned with Task ID: $TASK_ID"
+  echo "  → Spawning agent $i: $AGENT_TYPE ($AGENT_ID)"
+
+  npx claude-flow-novice agent "$AGENT_TYPE" \
+    --task-id "$TASK_ID" \
+    --mode "$MODE" \
+    --provider "$PROVIDER" \
+    --context "$TASK_DESCRIPTION" \
+    </dev/null >/tmp/agent-${AGENT_ID}.log 2>&1 &
+done
+
+echo "✅ All $AGENTS CLI agents spawned with Task ID: $TASK_ID"
 ```
 
-**Step 5: Wait for Agent Completion (Main Chat BLPOP Pattern)**
+**Step 5: Wait for Threshold Completion (FOREGROUND - Required for Main Chat)**
 ```bash
-# Main Chat waits for completion signal via Redis BLPOP
-echo "⏳ Waiting for CLI agent completion..."
+# CRITICAL: Run monitor in FOREGROUND so Main Chat receives completion signal
+# DO NOT use run_in_background for this monitoring loop
 
-SIGNAL_KEY="cfn-completion:$TASK_ID"
-TIMEOUT_SECONDS=120
+COMPLETION_QUEUE="cfn:cli:${TASK_ID}:completion"
+REQUIRED=$(echo "$AGENTS * $THRESHOLD" | bc | cut -d. -f1)
 
-# Wait for completion signal with timeout
-COMPLETION_SIGNAL=$(timeout $TIMEOUT_SECONDS redis-cli BLPOP "$SIGNAL_KEY" $((TIMEOUT_SECONDS + 10)))
+echo "⏳ Monitoring for completion (${REQUIRED}/$AGENTS agents)..."
+echo "📊 Queue: $COMPLETION_QUEUE"
+echo ""
 
-if [ $? -eq 0 ] && [ -n "$COMPLETION_SIGNAL" ]; then
-  echo "✅ CLI agent completed successfully"
-  echo "📊 Completion signal received via Redis"
+COMPLETED=0
+END_TIME=$(($(date +%s) + 300))  # 5 minute timeout
 
-  # Parse completion signal (second line contains JSON)
-  SIGNAL_DATA=$(echo "$COMPLETION_SIGNAL" | tail -n 1)
-  echo "🔍 Agent signal: $SIGNAL_DATA"
+while [ $(date +%s) -lt $END_TIME ] && [ $COMPLETED -lt $REQUIRED ]; do
+  QUEUE_LEN=$(redis-cli LLEN "$COMPLETION_QUEUE" 2>/dev/null || echo "0")
 
-  # Could spawn additional agents here based on signal content
-  # For now, we'll consider the task complete
-  echo "🎉 CFN Loop CLI task completed"
-else
-  echo "⚠️  CLI agent did not complete within timeout ($TIMEOUT_SECONDS seconds)"
-  echo "💡 Check agent logs or increase timeout if needed"
-fi
+  if [ "$QUEUE_LEN" -gt 0 ]; then
+    SIGNAL=$(redis-cli LPOP "$COMPLETION_QUEUE")
+    if [ -n "$SIGNAL" ] && [ "$SIGNAL" != "(nil)" ]; then
+      COMPLETED=$((COMPLETED + 1))
+      AGENT_ID=$(echo "$SIGNAL" | jq -r '.agentId' 2>/dev/null || echo "unknown")
+      CONFIDENCE=$(echo "$SIGNAL" | jq -r '.confidence' 2>/dev/null || echo "N/A")
+      PROVIDER=$(echo "$SIGNAL" | jq -r '.provider' 2>/dev/null || echo "N/A")
+
+      echo "✅ Agent $COMPLETED completed: $AGENT_ID"
+      echo "   Confidence: $CONFIDENCE, Provider: $PROVIDER"
+      echo ""
+
+      if [ $COMPLETED -ge $REQUIRED ]; then
+        echo "🎉 THRESHOLD MET! ($COMPLETED/$AGENTS agents)"
+        echo "✅ CFN Loop CLI task completed"
+        exit 0
+      fi
+    fi
+  fi
+
+  sleep 3
+done
+
+echo "⏰ Timeout: Only $COMPLETED/$AGENTS agents completed"
+exit 1
 ```
 
-**Step 6: Inform User**
-Report completion status and any additional information.
+**Step 6: Query Agent Status (Optional - Interactive)**
+```bash
+# Main Chat can query individual agent status during execution
+# Example: npx tsx src/cli/coordination/agent-messaging.ts status --task-id "$TASK_ID" --agent-id <agent-id>
+
+# Or send commands to running agents:
+# npx tsx src/cli/coordination/agent-messaging.ts send --task-id "$TASK_ID" --agent-id <agent-id> --command status
+```
+
+**Step 7: Inform User**
+Report completion status, which agents completed, and any additional information.
 
 ---
 
@@ -111,13 +147,55 @@ Report completion status and any additional information.
 
 ## What is CLI Mode?
 
-**NEW CLI Mode Architecture (Simplified):**
-- **Main Chat** directly spawns CLI agents with provider routing
+**v2.0 CLI Mode Architecture (Parallel + Messaging):**
+- **Main Chat** spawns multiple CLI agents in parallel
 - **CLI agents** execute tasks and send Redis completion signals
-- **Main Chat** waits via Redis BLPOP for agent completion
-- **2-layer coordination** (Main Chat → CLI agents)
+- **Main Chat** waits for threshold completion (e.g., 3/4 agents)
+- **Bidirectional messaging** - Main Chat can send commands to running agents
 - **Provider routing** via `--provider` and `--model` flags
-- **Fallback behavior** to Z.ai glm-4.6 if no provider specified
+- **Graceful degradation** - continues when threshold met, doesn't wait for stragglers
+
+## New Features (v2.0)
+
+### Parallel Agent Spawning
+- Spawn multiple agents simultaneously (default: 4)
+- Each agent works independently on the task
+- Different agent types for comprehensive coverage
+
+### Threshold-Based Completion
+- Exit when N/M agents complete (default: 75%)
+- Don't wait for slow/stuck agents
+- Configurable via `--threshold` flag
+
+### Bidirectional Messaging
+Main Chat can communicate with running agents:
+
+**Query agent status:**
+```bash
+npx tsx src/cli/coordination/agent-messaging.ts status \
+  --task-id "$TASK_ID" --agent-id <agent-id>
+```
+
+**Send commands to agents:**
+```bash
+# Request status update
+npx tsx src/cli/coordination/agent-messaging.ts send \
+  --task-id "$TASK_ID" --agent-id <agent-id> --command status
+
+# Redirect agent to new task
+npx tsx src/cli/coordination/agent-messaging.ts send \
+  --task-id "$TASK_ID" --agent-id <agent-id> --command redirect \
+  --payload '{"newTask": "Focus on security tests"}'
+
+# Abort agent
+npx tsx src/cli/coordination/agent-messaging.ts send \
+  --task-id "$TASK_ID" --agent-id <agent-id> --command abort
+
+# Pause agent
+npx tsx src/cli/coordination/agent-messaging.ts send \
+  --task-id "$TASK_ID" --agent-id <agent-id> --command pause \
+  --payload '{"seconds": 30}'
+```
 
 ## Prerequisites
 

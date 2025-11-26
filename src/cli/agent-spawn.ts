@@ -243,7 +243,8 @@ export async function spawnAgent(options: AgentSpawnOptions): Promise<void> {
   if (taskId) {
     // SECURITY FIX (CVSS 8.9): Use safe parameter validation and execFileSync()
     // Prevent command injection by validating all parameters BEFORE execution
-    const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+    // FIX: Default to 'localhost' for CLI mode (host execution), not 'cfn-redis' (Docker)
+    const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
     const redisPort = process.env.CFN_REDIS_PORT || '6379';
 
     // Validate Redis connection parameters

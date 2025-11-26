@@ -58,12 +58,30 @@ export interface MessageResponse {
 
 /**
  * Get API configuration from environment and config files
+ *
+ * Provider resolution order:
+ * 1. CLAUDE_API_PROVIDER env var (legacy)
+ * 2. PROVIDER env var (set by agent-spawner from --provider flag)
+ * 3. Config file (.claude/config/api-provider.json)
+ * 4. Default to Z.ai (cost-effective fallback per project requirements)
+ *
+ * BUG FIX: Previously only checked CLAUDE_API_PROVIDER, ignoring --provider flag
+ * which sets PROVIDER env var via agent-spawner.ts
  */
 export async function getAPIConfig(): Promise<APIConfig> {
-  // Check environment variable
-  const envProvider = process.env.CLAUDE_API_PROVIDER;
+  // Check environment variables - support both CLAUDE_API_PROVIDER (legacy) and PROVIDER (from CLI --provider flag)
+  const envProvider = process.env.CLAUDE_API_PROVIDER || process.env.PROVIDER;
 
-  if (envProvider === 'zai') {
+  // Debug logging for provider routing (helps diagnose auth errors)
+  apiDebugLog('getAPIConfig: Provider detection', {
+    CLAUDE_API_PROVIDER: process.env.CLAUDE_API_PROVIDER,
+    PROVIDER: process.env.PROVIDER,
+    resolved: envProvider
+  });
+  console.error(`[provider-routing] CLAUDE_API_PROVIDER=${process.env.CLAUDE_API_PROVIDER || 'unset'}, PROVIDER=${process.env.PROVIDER || 'unset'}, resolved=${envProvider || 'none'}`);
+
+  if (envProvider === 'zai' || envProvider === 'z.ai') {
+    console.error('[provider-routing] Using Z.ai provider');
     return {
       provider: 'zai',
       apiKey: process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY,
@@ -72,6 +90,7 @@ export async function getAPIConfig(): Promise<APIConfig> {
   }
 
   if (envProvider === 'kimi') {
+    console.error('[provider-routing] Using Kimi provider');
     return {
       provider: 'kimi',
       apiKey: process.env.KIMI_API_KEY,
@@ -80,10 +99,19 @@ export async function getAPIConfig(): Promise<APIConfig> {
   }
 
   if (envProvider === 'openrouter') {
+    console.error('[provider-routing] Using OpenRouter provider');
     return {
       provider: 'openrouter',
       apiKey: process.env.OPENROUTER_API_KEY,
       baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+    };
+  }
+
+  if (envProvider === 'anthropic') {
+    console.error('[provider-routing] Using Anthropic provider (explicit)');
+    return {
+      provider: 'anthropic',
+      apiKey: process.env.ANTHROPIC_API_KEY,
     };
   }
 
@@ -93,6 +121,7 @@ export async function getAPIConfig(): Promise<APIConfig> {
     const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
 
     if (config.provider === 'zai' || config.provider === 'z.ai') {
+      console.error('[provider-routing] Using Z.ai provider (from config file)');
       return {
         provider: 'zai',
         apiKey: config.apiKey || process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY,
@@ -101,6 +130,7 @@ export async function getAPIConfig(): Promise<APIConfig> {
     }
 
     if (config.provider === 'kimi') {
+      console.error('[provider-routing] Using Kimi provider (from config file)');
       return {
         provider: 'kimi',
         apiKey: config.apiKey || process.env.KIMI_API_KEY,
@@ -109,34 +139,78 @@ export async function getAPIConfig(): Promise<APIConfig> {
     }
 
     if (config.provider === 'openrouter') {
+      console.error('[provider-routing] Using OpenRouter provider (from config file)');
       return {
         provider: 'openrouter',
         apiKey: config.apiKey || process.env.OPENROUTER_API_KEY,
         baseURL: config.baseURL || process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
       };
     }
+
+    if (config.provider === 'anthropic') {
+      console.error('[provider-routing] Using Anthropic provider (from config file)');
+      return {
+        provider: 'anthropic',
+        apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
+      };
+    }
   } catch {
     // Config file doesn't exist, use defaults
   }
 
-  // Default to Anthropic
+  // Default to Z.ai (cost-effective fallback per project requirements)
+  // BUG FIX: Previously defaulted to Anthropic which caused auth errors when no provider specified
+  console.error('[provider-routing] Using Z.ai provider (default fallback)');
   return {
-    provider: 'anthropic',
-    apiKey: process.env.ANTHROPIC_API_KEY,
+    provider: 'zai',
+    apiKey: process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY,
+    baseURL: process.env.ZAI_BASE_URL || 'https://api.z.ai/api/anthropic',
   };
 }
 
 /**
+ * Validate provider configuration before creating client
+ * Provides clear error messages for missing credentials
+ */
+export function validateProviderConfig(config: APIConfig): void {
+  if (!config.apiKey) {
+    const envVarMap: Record<string, string> = {
+      'zai': 'ZAI_API_KEY (or ANTHROPIC_API_KEY)',
+      'anthropic': 'ANTHROPIC_API_KEY',
+      'kimi': 'KIMI_API_KEY',
+      'openrouter': 'OPENROUTER_API_KEY'
+    };
+    const requiredVar = envVarMap[config.provider] || `${config.provider.toUpperCase()}_API_KEY`;
+    throw new Error(
+      `[provider-validation] API key not found for provider '${config.provider}'. ` +
+      `Set the ${requiredVar} environment variable.\n` +
+      `Tip: If using --provider flag, ensure the corresponding API key is exported.`
+    );
+  }
+
+  // Provider-specific validation
+  if (config.provider === 'kimi' || config.provider === 'openrouter') {
+    console.error(`[provider-validation] WARNING: Provider '${config.provider}' uses OpenAI-compatible API format.`);
+    console.error(`[provider-validation] The current implementation uses Anthropic SDK which may not be compatible.`);
+    console.error(`[provider-validation] Consider using provider 'zai' or 'anthropic' for now.`);
+  }
+}
+
+/**
  * Create Anthropic client with appropriate configuration
+ *
+ * Supports providers that use Anthropic-compatible API format:
+ * - anthropic: Direct Anthropic API
+ * - zai: Z.ai proxy (Anthropic-compatible)
+ *
+ * For OpenAI-compatible providers (kimi, openrouter), this client
+ * may not work correctly. Future enhancement: add OpenAI client support.
  */
 export async function createClient(): Promise<Anthropic> {
   const config = await getAPIConfig();
 
-  if (!config.apiKey) {
-    throw new Error(
-      `API key not found. Set ${config.provider === 'zai' ? 'ZAI_API_KEY' : 'ANTHROPIC_API_KEY'} environment variable.`
-    );
-  }
+  // Validate configuration before attempting API call
+  validateProviderConfig(config);
 
   const clientOptions: any = {
     apiKey: config.apiKey,
@@ -144,10 +218,12 @@ export async function createClient(): Promise<Anthropic> {
     maxRetries: 2,
   };
 
-  if (config.provider === 'zai' && config.baseURL) {
+  // Z.ai uses Anthropic-compatible API format with custom base URL
+  if ((config.provider === 'zai' || config.provider === 'anthropic') && config.baseURL) {
     clientOptions.baseURL = config.baseURL;
   }
 
+  console.error(`[anthropic-client] Creating client for provider: ${config.provider}`);
   return new Anthropic(clientOptions);
 }
 
@@ -518,7 +594,8 @@ export async function executeAgentAPI(
   const taskId = process.env.TASK_ID;
 
   // Bug #6 Fix: Read Redis connection parameters from process.env and interpolate in TypeScript
-  const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+  // FIX: Default to 'localhost' for CLI mode (host execution), not 'cfn-redis' (Docker)
+  const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
   const redisPort = process.env.CFN_REDIS_PORT || '6379';
 
   try {

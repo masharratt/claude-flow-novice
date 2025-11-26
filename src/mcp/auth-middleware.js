@@ -12,7 +12,8 @@ class MCPAuthMiddleware {
   constructor(options = {}) {
     this.redis = null;
     this.options = {
-      redisUrl: options.redisUrl || process.env.CFN_REDIS_URL || process.env.MCP_REDIS_URL || `redis://${process.env.CFN_REDIS_HOST || 'cfn-redis'}:${process.env.CFN_REDIS_PORT || 6379}`,
+      // FIX: Default to 'localhost' for host execution, Docker deployments should set CFN_REDIS_HOST explicitly
+      redisUrl: options.redisUrl || process.env.CFN_REDIS_URL || process.env.MCP_REDIS_URL || `redis://${process.env.CFN_REDIS_HOST || 'localhost'}:${process.env.CFN_REDIS_PORT || 6379}`,
       tokenExpiry: options.tokenExpiry || '24h',
       authRequired: options.authRequired !== false,
       rateLimitWindow: options.rateLimitWindow || 60, // seconds
