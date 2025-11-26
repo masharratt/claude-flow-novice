@@ -16,6 +16,10 @@ export interface ImplementerPayload {
   taskId: string;
   /** AI provider to use: zai (default), kimi, anthropic, etc. */
   provider?: 'zai' | 'kimi' | 'anthropic' | 'openrouter' | 'gemini' | 'xai';
+  /** Enable post-edit validation pipeline (default: true) */
+  enablePostEdit?: boolean;
+  /** Timeout for post-edit validation per file in ms (default: 30000) */
+  postEditTimeout?: number;
   /** Environment variable overrides (for passing API keys through payload) */
   _env?: {
     ANTHROPIC_API_KEY?: string;
@@ -187,6 +191,111 @@ function extractFilesModified(output: string): string[] {
 }
 
 /**
+ * Check if CFN package is available in working directory
+ */
+async function checkCFNAvailable(workDir: string): Promise<boolean> {
+  try {
+    const result = await execa('npx', ['claude-flow-novice', '--version'], {
+      cwd: workDir,
+      reject: false,
+      timeout: 5000,
+      stdio: 'pipe',
+    });
+    return result.exitCode === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Install CFN package in working directory
+ */
+async function installCFN(workDir: string): Promise<boolean> {
+  console.log(`[Implementer] Installing claude-flow-novice in ${workDir}...`);
+  try {
+    const result = await execa('npm', ['install', 'claude-flow-novice'], {
+      cwd: workDir,
+      timeout: 60000, // 60 second timeout for installation
+      stdio: 'pipe',
+      reject: false,
+    });
+
+    if (result.exitCode === 0) {
+      console.log(`[Implementer] ✓ CFN installed successfully`);
+      return true;
+    } else {
+      console.error(`[Implementer] ✗ CFN installation failed: ${result.stderr}`);
+      return false;
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`[Implementer] ✗ CFN installation error: ${errorMessage}`);
+    return false;
+  }
+}
+
+/**
+ * Run post-edit validation on modified files
+ */
+async function runPostEditValidation(
+  filesModified: string[],
+  payload: ImplementerPayload
+): Promise<void> {
+  const timeout = payload.postEditTimeout ?? 30000; // Default 30 seconds
+  console.log(`[Implementer] Running post-edit validation on ${filesModified.length} files`);
+
+  // Check if CFN is available
+  const cfnAvailable = await checkCFNAvailable(payload.workDir);
+  if (!cfnAvailable) {
+    const installSuccess = await installCFN(payload.workDir);
+    if (!installSuccess) {
+      console.warn(`[Implementer] ⚠ Skipping post-edit validation (CFN unavailable)`);
+      return;
+    }
+  }
+
+  // Run post-edit hook on each file
+  for (const file of filesModified) {
+    try {
+      console.log(`[Implementer] Validating ${file}...`);
+
+      const hookResult = await execa(
+        'npx',
+        [
+          'claude-flow-novice',
+          'post-edit',
+          file,
+          '--agent-id',
+          payload.taskId,
+          '--non-blocking', // Don't fail task on validation errors
+        ],
+        {
+          cwd: payload.workDir,
+          timeout,
+          reject: false,
+          stdio: 'pipe',
+        }
+      );
+
+      if (hookResult.exitCode === 0) {
+        console.log(`[Implementer] ✓ ${file} validated`);
+      } else {
+        console.warn(`[Implementer] ⚠ ${file} validation warnings:`);
+        if (hookResult.stderr) {
+          console.warn(hookResult.stderr.substring(0, 500)); // First 500 chars
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[Implementer] ✗ ${file} validation failed: ${errorMessage}`);
+      // Continue with other files, don't fail entire task
+    }
+  }
+
+  console.log(`[Implementer] Post-edit validation complete`);
+}
+
+/**
  * Validate payload structure
  */
 function validatePayload(payload: unknown): payload is ImplementerPayload {
@@ -241,6 +350,7 @@ async function executeWithRetry(
     const result = await execa(CLI_COMMAND, cliArgs, {
       cwd: payload.workDir,
       timeout: context.timeout,
+      forceKillAfterDelay: 5000, // Force SIGKILL 5 seconds after timeout SIGTERM
       stripFinalNewline: true,
       reject: false, // Don't throw on non-zero exit
       env: cliEnv,
@@ -265,6 +375,18 @@ async function executeWithRetry(
         `[Implementer] ✓ Claude Code completed in ${duration}ms on attempt ${context.attempt}`
       );
       console.log(`[Implementer] Files modified: ${filesModified.length}`);
+
+      // Run post-edit validation if enabled
+      const enablePostEdit = payload.enablePostEdit ?? true; // Default: enabled
+      if (enablePostEdit && filesModified.length > 0) {
+        try {
+          await runPostEditValidation(filesModified, payload);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.warn(`[Implementer] ⚠ Post-edit validation failed: ${errorMessage}`);
+          // Don't fail the task, validation is non-blocking
+        }
+      }
 
       return {
         success: true,
@@ -429,6 +551,7 @@ export async function handleImplementerTask(
 export const cfnImplementerTask = task({
   id: "cfn-implementer",
   retry: { maxAttempts: 2 },
+  maxDuration: 900, // 15 minutes (allows time for CLI + post-edit validation)
   run: async (payload: ImplementerPayload): Promise<ImplementerResult> => {
     return handleImplementerTask(payload);
   },

@@ -6,9 +6,12 @@
  * - 10 programming languages
  *
  * Uses tasks.batchTrigger() for parallel execution.
+ *
+ * NOTE: Trigger.dev v4 API change - batchTrigger() no longer returns runs array.
+ * Use batch.retrieve(batchId) to get run IDs after triggering.
  */
 
-import { task, tasks } from "@trigger.dev/sdk/v3";
+import { task, tasks, runs, batch } from "@trigger.dev/sdk/v3";
 import { helloWorldTask } from "./hello-world.js";
 import * as fs from "fs";
 
@@ -100,46 +103,30 @@ export const stressTestTask = task({
 
     console.log(`Generated ${taskPayloads.length} task payloads`);
 
-    // Trigger all tasks using batchTrigger
+    // Trigger all tasks using batchTrigger - v4 API returns batchId + runCount only
     const batchHandle = await tasks.batchTrigger<typeof helloWorldTask>(
       "hello-world",
       taskPayloads
     );
 
-    // v4 API returns batchId and runs array - handle both old and new formats
-    const runs = batchHandle.runs ?? [];
-    const batchId = batchHandle.batchId ?? "unknown";
-    console.log(`Batch ${batchId} triggered with ${runs.length} runs`);
+    const batchId = batchHandle.batchId;
+    console.log(`Batch ${batchId} triggered with ${batchHandle.runCount} runs`);
+
+    // v4 API: Retrieve batch to get run IDs
+    const batchDetails = await batch.retrieve(batchId);
+    const runIds = batchDetails.runs; // Array<string> of run IDs
+
+    console.log(`Retrieved ${runIds.length} run IDs from batch`);
 
     // Wait for all runs to complete by polling
     const results: Array<{ success: boolean; file?: string; error?: string }> = [];
 
-    // If runs array is empty, try using batchTriggerAndWait instead
-    if (runs.length === 0) {
-      console.log(`No runs returned, batch likely processing asynchronously`);
-      // Return early with batch info - files will be created by child tasks
-      const filesInDir = fs.existsSync(outputDir) ? fs.readdirSync(outputDir) : [];
-      return {
-        success: true,
-        totalTasks: taskPayloads.length,
-        successCount: taskPayloads.length,
-        failureCount: 0,
-        filesCreated: filesInDir.length,
-        uniqueFiles: new Set(filesInDir).size,
-        duplicates: 0,
-        executionTimeMs: Date.now() - startTime,
-        executionTimeSec: Math.round((Date.now() - startTime) / 1000),
-        outputDir,
-        note: `Batch ${batchId} triggered - child tasks running asynchronously`,
-      };
-    }
-
-    for (const run of runs) {
+    for (const runId of runIds) {
       try {
-        // Poll for completion (simple approach)
-        const result = await tasks.retrieve<typeof helloWorldTask>(run);
-        if (result.status === "COMPLETED" && result.output) {
-          results.push({ success: true, file: result.output.file });
+        // Poll for completion using runs.poll()
+        const result = await runs.poll(runId, { pollIntervalMs: 2000 });
+        if (result.status === "COMPLETED" && (result.output as any)?.file) {
+          results.push({ success: true, file: (result.output as any).file });
         } else {
           results.push({ success: false, error: result.status });
         }

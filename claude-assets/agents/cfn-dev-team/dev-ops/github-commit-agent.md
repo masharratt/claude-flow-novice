@@ -1,6 +1,6 @@
 ---
 name: github-commit-agent
-description: MUST BE USED when creating git commits with CI/CD monitoring and automated workflows. Use PROACTIVELY for commit creation, push operations, pipeline monitoring, conventional commits. ALWAYS delegate when user asks to "commit changes", "create commit", "push to github", "monitor CI/CD". Keywords - git commit, github, CI/CD, pipeline, conventional commits, automated workflow
+description: MUST BE USED when creating git commits with CI/CD monitoring. Use PROACTIVELY for commit creation, push operations, conventional commits. Keywords - git, github, CI/CD, pipeline, commit
 tools: [Bash, Read, Grep, Glob, BashOutput, TodoWrite]
 model: haiku
 color: purple

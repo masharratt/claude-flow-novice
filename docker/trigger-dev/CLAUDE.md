@@ -15,6 +15,29 @@ Development guide for Trigger.dev v4 self-hosted infrastructure in CFN Loop envi
 - **Project ID**: `proj_uuvpcrkpfruhlpbpzlov`
 - **CLI Profile**: `self-hosted-v4`
 
+### API Keys (CRITICAL - Two Types!)
+
+Trigger.dev v4 uses **two different key types** for different purposes:
+
+| Key Type | Prefix | Purpose | Used By |
+|----------|--------|---------|---------|
+| Personal Access Token (PAT) | `tr_pat_*` | CLI/management operations | `login`, `whoami`, `deploy`, `dev` |
+| Secret Key | `tr_dev_*` / `tr_prod_*` | Triggering tasks programmatically | `tasks.trigger()`, `tasks.batchTrigger()` |
+
+**IMPORTANT**: The PAT does NOT work for triggering tasks! You must use the Secret Key.
+
+**Current Secret Keys** (from RuntimeEnvironment table):
+- Development: `tr_dev_ffR3mLELFuaaA0txq0lO`
+- Production: `tr_prod_UzJVaNMHDC3Y1pZ82lUd`
+- Staging: `tr_stg_Y3srwpHz9YBT3SSKn1sl`
+- Preview: `tr_preview_8ix43Pt7zhkKNqhQGdqH`
+
+**Get keys from database**:
+```bash
+docker exec trigger-postgres-1 psql -U postgres -d main -c \
+  "SELECT slug, type, \"apiKey\" FROM \"RuntimeEnvironment\";"
+```
+
 ### Start Commands
 ```bash
 # Start v4 infrastructure
@@ -106,25 +129,54 @@ export const helloWorldTask = task({
 });
 ```
 
-### Batch Triggering (v4 API Change)
-**CRITICAL**: In v4, `batchHandle.runs` may be undefined. Always use nullish coalescing:
+### Batch Triggering (v4 API - BREAKING CHANGE)
+
+**CRITICAL**: In Trigger.dev v4 SDK (4.1.2+), `tasks.batchTrigger()` no longer returns a `runs` array.
+
+**v4 Return Type:**
+```typescript
+{
+  batchId: string;      // Batch identifier
+  runCount: number;     // Number of runs created
+  publicAccessToken: string;
+}
+```
+
+**v3 Return Type (DEPRECATED):**
+```typescript
+{
+  batchId: string;
+  runs: Array<{ id: string }>;  // NO LONGER EXISTS IN V4
+}
+```
+
+**Correct v4 Pattern - Use `batch.retrieve()`:**
 
 ```typescript
-// Trigger batch
-const batchHandle = await tasks.batchTrigger<typeof helloWorldTask>(
-  "hello-world",
-  taskPayloads
-);
+import { tasks, runs, batch } from "@trigger.dev/sdk/v3";
 
-// SAFE: Handle undefined runs array
-const runs = batchHandle.runs ?? [];
-const batchId = batchHandle.batchId ?? "unknown";
-console.log(`Batch ${batchId} triggered with ${runs.length} runs`);
+// Step 1: Trigger batch - returns batchId + runCount only
+const batchHandle = await tasks.batchTrigger("hello-world", taskPayloads);
+console.log(`Batch ${batchHandle.batchId} with ${batchHandle.runCount} runs`);
 
-// Process results
-for (const run of runs) {
-  const result = await tasks.retrieve<typeof helloWorldTask>(run);
-  // ...
+// Step 2: Retrieve batch to get run IDs
+const batchDetails = await batch.retrieve(batchHandle.batchId);
+const runIds = batchDetails.runs; // Array<string> of run IDs
+
+// Step 3: Poll each run for completion
+for (const runId of runIds) {
+  const result = await runs.poll(runId, { pollIntervalMs: 2000 });
+  console.log(`Run ${runId}: ${result.status}`);
+}
+```
+
+**Alternative: Real-time subscription:**
+```typescript
+import { runs } from "@trigger.dev/sdk/v3";
+
+// Subscribe to batch updates
+for await (const run of runs.subscribeToBatch(batchHandle.batchId)) {
+  console.log(`Run ${run.id}: ${run.status}`);
 }
 ```
 
@@ -180,12 +232,102 @@ Output shows:
 
 ---
 
+## Programmatic Task Triggering
+
+### SDK Configuration (with Secret Key)
+
+**CRITICAL**: Use the **Secret Key** (`tr_dev_*`), NOT the PAT (`tr_pat_*`)!
+
+```typescript
+import { configure, tasks, runs } from "@trigger.dev/sdk/v3";
+
+// Configure with Secret Key (NOT PAT!)
+configure({
+  secretKey: process.env.TRIGGER_SECRET_KEY, // tr_dev_ffR3mLELFuaaA0txq0lO
+  baseURL: process.env.TRIGGER_API_URL || "http://localhost:8030",
+});
+```
+
+### Triggering a Single Task
+
+```typescript
+// Trigger task
+const handle = await tasks.trigger("hello-world", {
+  outputDir: "/tmp/test",
+  language: "en",
+  greeting: "Hello World!",
+  progLang: "typescript",
+  extension: "ts",
+  agentType: "test",
+});
+
+console.log(`Run ID: ${handle.id}`);
+
+// Wait for completion with polling
+const result = await runs.poll(handle.id, { pollIntervalMs: 1000 });
+console.log(`Status: ${result.status}`);
+console.log(`Output: ${JSON.stringify(result.output)}`);
+```
+
+### Triggering a Batch of Tasks
+
+```typescript
+const payloads = [
+  { outputDir: "/tmp/batch", language: "en", greeting: "Hello", progLang: "typescript", extension: "ts", agentType: "ts" },
+  { outputDir: "/tmp/batch", language: "es", greeting: "Hola", progLang: "python", extension: "py", agentType: "py" },
+];
+
+const batchHandle = await tasks.batchTrigger("hello-world",
+  payloads.map(payload => ({ payload }))
+);
+
+// IMPORTANT: runs may be undefined in v4
+const runHandles = batchHandle.runs ?? [];
+console.log(`Batch ${batchHandle.batchId} with ${runHandles.length} runs`);
+
+// Poll each run for completion
+for (const runHandle of runHandles) {
+  const result = await runs.poll(runHandle.id, { pollIntervalMs: 1000 });
+  console.log(`Run ${runHandle.id}: ${result.status}`);
+}
+```
+
+### Using curl (HTTP API)
+
+```bash
+# Trigger task via HTTP API
+curl -X POST "http://localhost:8030/api/v1/tasks/hello-world/trigger" \
+  -H "Authorization: Bearer tr_dev_ffR3mLELFuaaA0txq0lO" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "payload": {
+      "outputDir": "/tmp/curl-test",
+      "language": "en",
+      "greeting": "Hello from curl!",
+      "progLang": "typescript",
+      "extension": "ts",
+      "agentType": "curl-test"
+    }
+  }'
+```
+
+### Test Script
+
+Run the working test script:
+```bash
+TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO npx tsx test-with-secret-key.ts
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
+| `Invalid API Key` (401) | Using PAT instead of Secret Key | Use `tr_dev_*` key, not `tr_pat_*` |
+| `tasks.retrieve is not a function` | v4 API change | Use `runs.poll()` instead |
 | `batchHandle.runs` undefined | v4 API change | Use `batchHandle.runs ?? []` |
 | Port 5433 in use | Conflict with other DB | Use port 5434 for postgres |
 | "Dev server not connected" | Dev process stopped | Restart `npx trigger.dev@latest dev` |

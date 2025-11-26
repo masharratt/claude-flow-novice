@@ -39,6 +39,8 @@ bin/claude-flow-*
 .claude/backups/                     # Settings backups (contain API keys)
 !.claude/backups/.gitkeep            # Keep directory structure
 .env/worker
+/docker/trigger-dev-v4/.env
+*.env
 
 # Docker Secrets and Encryption (Phase 1.2a)
 .secrets/                          # Raw unencrypted credential files

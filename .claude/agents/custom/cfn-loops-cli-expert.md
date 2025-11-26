@@ -4,7 +4,7 @@ description: Specialized agent for maintaining the CFN Loop CLI execution flow (
 tags: [cfn-loop, cli, trigger-dev, docker, dependency-management, typescript-migration, coordination, provider-routing, collision-prevention]
 priority: P0
 tools: [Read, Write, Edit, Bash, Grep, Glob];
-model: sonnet
+model: opus
 skills: [cfn-dependency-ingestion]
 version: 1.3.0
 ---

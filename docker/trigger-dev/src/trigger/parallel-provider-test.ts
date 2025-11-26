@@ -3,9 +3,11 @@
  *
  * Tests spawning multiple Claude Code CLI agents in parallel
  * with different provider configurations.
+ *
+ * NOTE: Trigger.dev v4 API change - uses runs.poll() for polling task completion.
  */
 
-import { task, tasks } from "@trigger.dev/sdk/v3";
+import { task, tasks, runs } from "@trigger.dev/sdk/v3";
 import type { AIProvider, ClaudeAgentPayload, ClaudeAgentResult } from "./claude-agent.js";
 
 /**
@@ -78,9 +80,7 @@ export const parallelProviderTestTask = task({
     console.log(`[Parallel Test] Triggering ${agentPayloads.length} agents in parallel...`);
 
     const handles = await Promise.all(
-      agentPayloads.map((p) =>
-        tasks.trigger<{ payload: ClaudeAgentPayload }>("claude-agent", p)
-      )
+      agentPayloads.map((p) => tasks.trigger("claude-agent", p))
     );
 
     console.log(`[Parallel Test] All agents triggered, waiting for completion...`);
@@ -94,51 +94,27 @@ export const parallelProviderTestTask = task({
       const providerStartTime = Date.now();
 
       try {
-        // Poll for result
-        let attempts = 0;
-        const maxAttempts = Math.ceil(timeout / 5000);
+        // Use runs.poll() for v4 API
+        const runResult = await runs.poll(handle.id, { pollIntervalMs: 5000 });
 
-        while (attempts < maxAttempts) {
-          const runResult = await tasks.retrieve<{ payload: ClaudeAgentPayload }>(
-            "claude-agent",
-            handle.id
-          );
-
-          if (runResult.status === "COMPLETED") {
-            const output = runResult.output as ClaudeAgentResult;
-            results.push({
-              provider,
-              success: output.success,
-              duration: Date.now() - providerStartTime,
-              output: output.output?.slice(0, 500),
-              error: output.error,
-            });
-            console.log(`[Parallel Test] ${provider}: ${output.success ? "SUCCESS" : "FAILED"}`);
-            break;
-          } else if (runResult.status === "FAILED") {
-            results.push({
-              provider,
-              success: false,
-              duration: Date.now() - providerStartTime,
-              error: String(runResult.error || "Task failed"),
-            });
-            console.log(`[Parallel Test] ${provider}: FAILED - ${runResult.error}`);
-            break;
-          }
-
-          await new Promise((r) => setTimeout(r, 5000));
-          attempts++;
-        }
-
-        // Timeout
-        if (results.length <= i) {
+        if (runResult.status === "COMPLETED") {
+          const output = runResult.output as ClaudeAgentResult;
+          results.push({
+            provider,
+            success: output?.success ?? false,
+            duration: Date.now() - providerStartTime,
+            output: output?.output?.slice(0, 500),
+            error: output?.error,
+          });
+          console.log(`[Parallel Test] ${provider}: ${output?.success ? "SUCCESS" : "FAILED"}`);
+        } else {
           results.push({
             provider,
             success: false,
             duration: Date.now() - providerStartTime,
-            error: "Timeout waiting for result",
+            error: String((runResult as any).error || `Task ended with status: ${runResult.status}`),
           });
-          console.log(`[Parallel Test] ${provider}: TIMEOUT`);
+          console.log(`[Parallel Test] ${provider}: FAILED - ${runResult.status}`);
         }
       } catch (err) {
         results.push({

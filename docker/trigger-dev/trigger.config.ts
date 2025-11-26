@@ -11,7 +11,7 @@ export const config: TriggerConfig = {
   // Self-hosted configuration - Trigger.dev v4 on port 8030
   triggerUrl: process.env.TRIGGER_API_URL || "http://localhost:8030",
   // Required: max task duration (in seconds)
-  maxDuration: 300, // 5 minutes
+  maxDuration: 600, // 10 minutes (allows time for CLI + post-edit validation)
   // Retry configuration
   retries: {
     enabledInDev: true,

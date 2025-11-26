@@ -1,0 +1,32 @@
+{
+    "redis_coordination": [
+        {"prompt": "Implement scalable distributed locking with Redis pub/sub for multi-agent task synchronization", "expected_skill": "redis-coordination", "difficulty": "hard"},
+        {"prompt": "Design a fault-tolerant messaging system with dynamic agent coordination topology", "expected_skill": "redis-coordination", "difficulty": "medium"},
+        {"prompt": "Create a high-performance task queue using Redis blocking lists and atomic operations", "expected_skill": "redis-coordination", "difficulty": "hard"}
+    ],
+    "agent_spawning": [
+        {"prompt": "Develop an intelligent agent deployment framework with dynamic resource optimization and mesh topology", "expected_skill": "agent-spawning", "difficulty": "hard"},
+        {"prompt": "Implement a dependency-aware multi-agent initialization system with adaptive allocation", "expected_skill": "agent-spawning", "difficulty": "medium"},
+        {"prompt": "Design a scalable agent spawning mechanism with automatic type selection and context preservation", "expected_skill": "agent-spawning", "difficulty": "hard"}
+    ],
+    "cfn_loop_validation": [
+        {"prompt": "Create a consensus-driven validation framework with adaptive thresholds and machine learning-assisted scoring", "expected_skill": "cfn-loop-validation", "difficulty": "hard"},
+        {"prompt": "Develop an iterative quality assurance system for complex multi-phase system architectures", "expected_skill": "cfn-loop-validation", "difficulty": "medium"},
+        {"prompt": "Design a multi-mode validation mechanism with intelligent feedback and continuous improvement cycles", "expected_skill": "cfn-loop-validation", "difficulty": "hard"}
+    ],
+    "sqlite_memory": [
+        {"prompt": "Build a secure, multi-tier memory access system with comprehensive 5-level ACL and Redis session management", "expected_skill": "sqlite-memory", "difficulty": "hard"},
+        {"prompt": "Implement an encrypted data persistence layer with TTL-based expiration and contextual memory preservation", "expected_skill": "sqlite-memory", "difficulty": "medium"},
+        {"prompt": "Create a robust memory storage solution with dynamic access control and secure data lifecycle management", "expected_skill": "sqlite-memory", "difficulty": "hard"}
+    ],
+    "hook_pipeline": [
+        {"prompt": "Design an automated post-edit validation system with intelligent ROOT_WARNING detection and TDD enforcement", "expected_skill": "hook-pipeline", "difficulty": "hard"},
+        {"prompt": "Implement a real-time code quality enforcement pipeline with feedback resolution mechanisms", "expected_skill": "hook-pipeline", "difficulty": "medium"},
+        {"prompt": "Develop a comprehensive validation hook framework with automatic code correction and quality metrics", "expected_skill": "hook-pipeline", "difficulty": "hard"}
+    ],
+    "test_execution": [
+        {"prompt": "Create a coordinator-pattern test execution framework to prevent conflicts and optimize resource utilization", "expected_skill": "test-execution", "difficulty": "hard"},
+        {"prompt": "Implement a single-run test caching system for distributed testing environments with minimal overhead", "expected_skill": "test-execution", "difficulty": "medium"},
+        {"prompt": "Design a parallel test distribution strategy with intelligent workload management and conflict prevention", "expected_skill": "test-execution", "difficulty": "hard"}
+    ]
+}

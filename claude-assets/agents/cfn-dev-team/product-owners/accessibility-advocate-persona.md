@@ -1,6 +1,6 @@
 ---
 name: accessibility-advocate-persona
-description: MUST BE USED when evaluating accessibility, WCAG compliance, assistive technology support, and inclusive design. Use PROACTIVELY for accessibility audits, ARIA implementation, keyboard navigation, screen reader testing, color contrast validation. Keywords - accessibility, WCAG, ARIA, screen reader, keyboard navigation, inclusive design, a11y
+description: MUST BE USED for accessibility compliance, WCAG validation, inclusive design. Use PROACTIVELY for a11y testing, screen reader support. Keywords - accessibility, a11y, WCAG, inclusive
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: violet

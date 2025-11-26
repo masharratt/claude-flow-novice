@@ -38,3 +38,9 @@ export { testZaiAgentTask } from "./test-zai-agent.js";
 
 // Parallel Provider Test Task
 export { parallelProviderTestTask } from "./parallel-provider-test.js";
+
+// Real AI Stress Test Task
+export { stressTestRealAI } from "./stress-test-real-ai.js";
+
+// Test Coordinator (for UI/CLI triggering)
+export { testCoordinatorTask } from "./test-coordinator.js";

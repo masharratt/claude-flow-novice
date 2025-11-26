@@ -1,0 +1,38 @@
+{
+  "domain": "infrastructure",
+  "validation_criteria": {
+    "critical": [
+      "Infrastructure deploys successfully",
+      "Security posture meets requirements (no exposed secrets, proper IAM)",
+      "Backup and disaster recovery configured",
+      "Monitoring and alerting operational",
+      "Cost within budget"
+    ],
+    "important": [
+      "Infrastructure as Code (IaC) properly structured",
+      "Scalability requirements met",
+      "High availability configured (if required)",
+      "Logging configured and centralized",
+      "Network security groups/firewalls configured",
+      "SSL/TLS certificates valid",
+      "Compliance requirements met (GDPR, HIPAA, etc.)"
+    ],
+    "nice_to_have": [
+      "Auto-scaling configured",
+      "Cost optimization opportunities identified",
+      "Multi-region failover configured",
+      "Performance benchmarks established",
+      "Infrastructure documentation comprehensive"
+    ]
+  },
+  "success_metrics": {
+    "gate_threshold": 0.75,
+    "consensus_threshold": 0.90
+  },
+  "deliverable_requirements": [
+    "IaC files (Terraform, CloudFormation, etc.)",
+    "Deployment successful",
+    "Security scan passed",
+    "Cost estimate provided"
+  ]
+}

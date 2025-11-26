@@ -2,7 +2,7 @@
 name: security-specialist
 type: validator
 color: "#D32F2F"
-description: MUST BE USED when conducting security audits, vulnerability assessments, penetration testing, or implementing security controls. PROACTIVELY validates threat models, security architecture, cryptographic implementations, Zero Trust deployment. Keywords - security audit, vulnerability, threat model, penetration test, encryption, authentication, CVE, OWASP
+description: MUST BE USED for security review, vulnerability assessment, threat modeling. Use PROACTIVELY for penetration testing, compliance. Keywords - security, vulnerability, threat, compliance
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 priority: critical

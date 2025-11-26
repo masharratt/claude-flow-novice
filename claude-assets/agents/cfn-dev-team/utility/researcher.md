@@ -1,6 +1,6 @@
 ---
 name: researcher
-description: FALLBACK agent for general research when no specialized researcher is available. Use ONLY when research doesn't match security-specialist, code-analyzer, or perf-analyzer. MUST BE USED for broad research, technology evaluation, documentation analysis, web search. Use PROACTIVELY for context analysis, technology comparisons. Keywords - general research, investigate, explore, broad analysis, technology comparison
+description: MUST BE USED for technical research, documentation review, technology evaluation. Use PROACTIVELY for feasibility studies, comparative analysis. Keywords - research, documentation, evaluation, analysis
 tools: [Read, Grep, Glob, TodoWrite, Write, WebSearch, WebFetch]
 model: haiku
 type: specialist

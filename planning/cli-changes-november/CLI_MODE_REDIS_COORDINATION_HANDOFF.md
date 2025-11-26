@@ -1,7 +1,7 @@
 # CLI Mode Redis Coordination - Session Handoff
-**Date:** 2025-11-24
+**Date:** 2025-11-24 (Updated: 2025-11-26)
 **Session ID:** claude/analyze-trigger-coordination-01Pm9zHDVydZ8kixTMeDALCa
-**Status:** Major Progress - 4 Root Causes Fixed via CFN Loop Task Mode
+**Status:** Major Progress - 5 Root Causes Fixed
 
 ---
 
@@ -9,12 +9,14 @@
 
 **Objective:** Debug and fix CLI mode agent Redis coordination failures preventing completion signals from reaching Main Chat.
 
-**Current Status:** Four root causes identified and fixed via CFN Loop Task Mode:
-1. ✅ **FIXED:** Redis hostname resolution (cfn-redis → localhost for CLI mode)
+**Current Status:** Five root causes identified and fixed:
+1. ✅ **FIXED:** Redis hostname resolution in contract (cfn-redis → localhost for CLI mode)
 2. ✅ **FIXED:** Redis password mismatch (removed REDIS_PASSWORD inheritance)
 3. ✅ **FIXED:** Task ID validation regex rejected colons (updated to accept "cli:" prefix)
 4. ✅ **FIXED:** Double-prefix bug in generateTaskId() function
-5. ⚠️ **MONITORING:** End-to-end coordination may require additional validation
+5. ✅ **FIXED (2025-11-26):** Hardcoded `cfn-redis` defaults in 13 CLI source files (changed to `localhost`)
+
+**CRITICAL FIX (2025-11-26):** While the environment contract was fixed, individual CLI source files still had hardcoded `'cfn-redis'` defaults that were used when `CFN_REDIS_HOST` was not set. This caused agents to try connecting to `cfn-redis:6379` instead of `localhost:6379`.
 
 **Impact:** CLI mode agents now spawn successfully with proper task ID validation. File-based logging implemented for future debugging. Completion signal coordination requires end-to-end testing.
 
@@ -138,6 +140,75 @@ if (!/^([a-z]+:)?[a-zA-Z0-9_.-]+$/.test(taskId)) {
 ---
 
 ### Root Cause #4: Double-Prefix Bug in generateTaskId() (FIXED)
+
+**SUPERSEDED BY ROOT CAUSE #5**
+
+---
+
+### Root Cause #5: Hardcoded `cfn-redis` Defaults in CLI Files (FIXED 2025-11-26)
+
+**Issue:** While `cfn-runtime.contract.yml` was fixed to return `localhost` for CLI mode, 13 individual source files still had hardcoded `'cfn-redis'` defaults that were used when `CFN_REDIS_HOST` environment variable was not set.
+
+**Evidence:**
+```bash
+# User reported error from live test (4 agents)
+Error: Command failed: redis-cli -h cfn-redis -p 6379 rpush ...
+Could not connect to Redis at cfn-redis:6379: Temporary failure in name resolution
+```
+
+**Root Cause Analysis:**
+- The environment contract was correctly returning `localhost` for CLI mode
+- But CLI files were NOT using `getEnvValue()` from the contract
+- Instead, they had inline defaults: `process.env.CFN_REDIS_HOST || 'cfn-redis'`
+- This meant agents connected to `cfn-redis:6379` (Docker hostname) instead of `localhost:6379`
+
+**Files Fixed (13 total):**
+
+**src/cli/ (11 files):**
+1. `src/cli/agent-executor.ts` (line 84)
+2. `src/cli/anthropic-client.ts` (line 597)
+3. `src/cli/agent-spawn.ts` (line 246)
+4. `src/cli/cfn-context.ts` (line 25)
+5. `src/cli/iteration-history.ts` (line 17)
+6. `src/cli/cfn-redis.ts` (line 15)
+7. `src/cli/cfn-metrics.ts` (line 15)
+8. `src/cli/conversation-fork.ts` (line 14)
+9. `src/cli/conversation-fork-cleanup.ts` (line 13)
+10. `src/cli/agent-spawner.ts` (already fixed in previous session)
+11. `src/cli/agent-token-manager.js` (line 16)
+
+**src/mcp/ (2 files):**
+12. `src/mcp/playwright-mcp-server-auth.js` (line 24)
+13. `src/mcp/auth-middleware.js` (line 15)
+
+**src/agent/ (1 file):**
+14. `src/agent/skill-mcp-selector.js` (line 271)
+
+**Fix Applied:**
+```typescript
+// BEFORE (all 13 files)
+const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+
+// AFTER (all 13 files)
+// FIX: Default to 'localhost' for CLI mode (host execution), not 'cfn-redis' (Docker)
+const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
+```
+
+**Validation:**
+```bash
+# Verify no hardcoded cfn-redis remains
+grep -r "|| 'cfn-redis'" src/cli/*.ts  # Returns: No matches found
+
+# Verify localhost is now the default
+grep -r "|| 'localhost'" src/cli/*.ts | wc -l  # Returns: 11 files
+```
+
+**Docker Deployment Note:**
+Docker deployments MUST now explicitly set `CFN_REDIS_HOST=cfn-redis` or `CFN_REDIS_HOST=redis` in their environment. The default `localhost` is for host-based CLI execution only.
+
+---
+
+### Root Cause #6 (LEGACY): Double-Prefix Bug in generateTaskId() (FIXED)
 
 **File:** `src/cli/spawn-agent-cli.ts` (lines 161-166, 180)
 **Issue:** `generateTaskId()` function blindly added "cli:" prefix even when task IDs already had prefixes, resulting in invalid IDs like "cli:cli:task-123".

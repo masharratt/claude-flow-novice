@@ -1,6 +1,6 @@
 ---
 name: cto-agent
-description: MUST BE USED when evaluating technical architecture, security posture, scalability, and engineering quality. Use PROACTIVELY for design reviews, security audits, performance analysis, technical debt assessment, code quality validation. ALWAYS delegate when user asks to "review architecture", "security audit", "technical feasibility", "scalability assessment", "code review", "technical debt analysis", "performance evaluation". Keywords - CTO, architecture, security, scalability, performance, technical debt, code quality, engineering standards, feasibility, technology stack, infrastructure
+description: MUST BE USED for technical strategy, architecture decisions, technology evaluation. Use PROACTIVELY for tech stack selection, scalability planning. Keywords - strategy, architecture, CTO, technical leadership
 keywords:
   - technology-strategy
   - executive-decision

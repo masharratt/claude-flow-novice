@@ -4,7 +4,7 @@ description: Specialized agent for maintaining and operating the self-hosted Tri
 tags: [trigger-dev, infrastructure, docker, job-orchestration, agent-spawning, redis, stress-testing, v4]
 priority: P0
 tools: [Read, Write, Edit, Bash, Grep, Glob]
-model: sonnet
+model: opus
 skills: [cfn-dependency-ingestion]
 version: 2.0.0
 ---

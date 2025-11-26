@@ -230,161 +230,72 @@ node specialized/specialized-test-runner.cjs --test product-owner
 
 ### Overview
 
-**Last Updated:** 2025-11-20
-**Current Status:** ✅ Real agent spawning validated, North Star E2E operational
+**Last Updated:** 2025-11-25
+**Architecture:** Main-chat-as-coordinator (no separate coordinator agent)
 
-The CLI Mode test suite validates production `/cfn-loop-cli` workflows with real agent spawning, TypeScript orchestration, and deliverable creation. This is the primary production readiness gate.
+Validates CLI mode with main chat spawning agents directly via `npx claude-flow-novice agent`.
 
 **Test Structure:**
 ```
 tests/cli-mode/
 ├── core/
-│   ├── unit/          # 4 tests - component validation
-│   ├── integration/   # 12 tests - coordination validation (includes handoff tests)
-│   ├── e2e/          # 4 tests - end-to-end workflows
-│   └── legacy/        # Archived tests
-├── run-all-tests.sh   # Main test runner (--quick/--integration/--full)
-└── CLAUDE.md         # Test authoring standards (BUG #21 compliance)
+│   ├── unit/          # Component validation (if any)
+│   ├── integration/   # Coordination validation (if any)
+│   ├── e2e/          # 4 tests - main architecture validations
+│   └── legacy/        # Old coordinator-based tests (archived)
+├── run-all-tests.sh   # Test runner (--quick/--integration/--full)
+└── CLAUDE.md         # Test standards
 ```
 
-**Pass Criteria:**
-- Unit: 100% (4/4 tests)
-- Integration: ≥95% (12/12 tests)
-- E2E: ≥90% (4/4 tests, allow infrastructure issues)
+**E2E Tests (4 core validations):**
+1. `test-agent-launch.sh` - Agents spawn via npx
+2. `test-redis-completion-signal.sh` - Redis LPUSH/BLPOP signaling
+3. `test-agent-tool-access.sh` - File creation, tool access
+4. `test-main-chat-wait-exit.sh` - BLPOP wait/exit pattern
 
-### North Star E2E Tests ⭐
+**Pass Criteria:** E2E ≥90% (allow infrastructure issues)
 
-#### North Star Test 1: Basic Execution
-
-**File:** `tests/cli-mode/core/e2e/test-cfn-loop-cli-real-execution.sh`
-
-**Purpose:** Validate complete CLI mode execution with REAL agents to prevent BUG #21 regressions (tests pass, production fails).
-
-**What It Validates:**
-1. Real coordinator spawning: `npx claude-flow-novice agent cfn-v3-coordinator`
-2. Real orchestrator execution: `orchestrate-wrapper.sh` → `orchestrate.sh` (TypeScript)
-3. Real Loop 3 agent spawning via spawn-agents.ts helper
-4. Real test execution and deliverable creation
-5. Real Loop 2 validators (code-reviewer, tester, security-specialist)
-6. Real Product Owner decision (PROCEED/ITERATE/ABORT)
-
-**Configuration:**
-- Mode: MVP/Standard (configurable)
-- Max Iterations: 2-5
-- Timeout: 180 seconds
-- Loop 3 agents: backend-developer, devops-engineer
-- Loop 2 validators: code-reviewer, tester, security-specialist
-
-**Recent Validation (2025-11-20):**
-```bash
-✅ Coordinator spawned (PID: 62040)
-✅ Orchestrator invoked successfully
-✅ Loop 3 agents spawned (8 processes)
-✅ Deliverable created: hello-world.txt (586 bytes)
-✅ Real CLI syntax validated: npx claude-flow-novice agent <type>
-```
-
-**Runtime:** 2-5 minutes (real agent spawning, NO mocks)
-
-#### North Star Test 2: 5-Iteration Workflow ⭐⭐
-
-**File:** `tests/cli-mode/core/e2e/test-cfn-loop-5-iteration-real-execution.sh`
-
-**Purpose:** Validate complete CFN Loop iteration workflow with REAL agents through all workflow scenarios.
-
-**What It Validates (5 Iterations):**
-1. **Iteration 1:** Gate failure (test pass rate < 0.75) → ITERATE
-2. **Iteration 2:** Gate pass, Loop 2 requests changes (consensus < 0.90) → ITERATE
-3. **Iteration 3:** Gate + Loop 2 pass, Product Owner decides ITERATE (refinement needed)
-4. **Iteration 4:** Gate + Loop 2 pass, Product Owner decides ITERATE (polish needed)
-5. **Iteration 5:** All pass, Product Owner decides PROCEED ✅
-
-**Workflow Scenarios Validated:**
-- ❌ Failed gate check (test pass rate below threshold)
-- ✅ Passed gate check (test pass rate ≥ 0.75)
-- ❌ Failed consensus (validators request changes, consensus < 0.90)
-- ✅ Passed consensus (validators approve, consensus ≥ 0.90)
-- 🔄 Product Owner ITERATE decision (with feedback injection)
-- ✅ Product Owner PROCEED decision (workflow complete)
-
-**Configuration:**
-- Mode: Standard (gate ≥0.75, consensus ≥0.90)
-- Max Iterations: 5
-- Timeout: 600 seconds (10 minutes)
-- Progressive improvement task: hello-world.txt evolves through iterations
-- Loop 3 agents: backend-developer, devops-engineer
-- Loop 2 validators: code-reviewer, tester, security-specialist
-
-**Expected Workflow:**
-```
-Iteration 1: Implement basic → Fail tests → Loop 3 ITERATE
-Iteration 2: Fix tests → Pass gate → Validators find issues → Loop 2 ITERATE
-Iteration 3: Fix issues → Pass all → PO wants refinement → PO ITERATE
-Iteration 4: Refine → Pass all → PO wants polish → PO ITERATE
-Iteration 5: Polish → Pass all → PO approves → PO PROCEED ✅
-```
-
-**Recent Validation (2025-11-20):**
-- Status: ✅ Created and ready for execution
-- Tests: Gate failures, validator feedback, PO decisions, context passing
-- Real agents: No mocks, no simulations
-- Full iteration cycle validated
-
-**Runtime:** 8-10 minutes (5 iterations with real agent spawning)
-
-### Handoff Point Tests (Integration)
-
-**Purpose:** Validate coordination handoff between CFN Loop phases.
-
-**Moved from:** `tests/cfn-v3/` → `tests/cli-mode/core/integration/` (2025-11-20)
-
-| Test | Validates | Key Checks |
-|------|-----------|------------|
-| test-coordinator-handoffs.sh | Task classification → agent selection → orchestrator spawn | Context injection, parameter passing |
-| test-loop3-handoffs.sh | Agent spawn → completion → test pass rate → gate check | Redis coordination, waiting mode |
-| test-loop2-handoffs.sh | Gate blocking → validator spawn → consensus → threshold | BLPOP blocking, consensus ≥0.90 |
-| test-product-owner-handoffs.sh | Decision extraction → deliverable validation → feedback | PROCEED/ITERATE/ABORT, git diff |
-
-**Requirements:**
-- ✅ Production code paths (NO simulations - BUG #21 compliance)
-- ✅ Test-driven validation (v3.0 patterns)
-- ✅ Cleanup traps and GIVEN/WHEN/THEN structure
-- ✅ Real Redis coordination
-
-### Running CLI Mode Tests
+### Running Tests
 
 ```bash
-# Quick mode (unit tests only, ~1 minute)
+# Quick mode (unit only, ~1 min)
 ./tests/cli-mode/run-all-tests.sh --quick
 
-# Integration mode (unit + integration, ~5 minutes)
+# Integration mode (unit + integration, ~5 min)
 ./tests/cli-mode/run-all-tests.sh --integration
 
-# Full mode (all tests including North Star E2E, ~15 minutes)
+# Full mode (all tests, ~15 min)
 ./tests/cli-mode/run-all-tests.sh --full
 ```
 
-### Test Authoring Standards
+### Test Results
+
+**Recent Run (2025-11-25):**
+- `test-agent-launch.sh`: ✅ 4/5 passed (TEST 5 informational)
+- `test-redis-completion-signal.sh`: ✅ 6/6 passed
+- `test-agent-tool-access.sh`: ✅ 9/9 passed
+- `test-main-chat-wait-exit.sh`: ✅ 5/6 passed (TEST 6 informational)
+
+**Overall:** 24/26 critical tests passed (informational failures acceptable)
+
+### Standards
 
 **Location:** `tests/cli-mode/CLAUDE.md`, `tests/CLAUDE.md`
 
-**Critical BUG #21 Lesson:**
-- Integration/E2E tests MUST use production code paths
-- NO simulations or mocks for coordination logic
-- Use real spawn scripts, real images, real CLI syntax
-- Validate actual container logs for runtime errors
+**Key Requirements:**
+- E2E tests use production code paths (no mocks)
+- GIVEN/WHEN/THEN structure
+- Cleanup traps for all resources
+- `set -euo pipefail` strict mode
 
-**Required Template:**
+**Template:**
 ```bash
 #!/bin/bash
-# Phase X :: Purpose (Priority X)
 set -euo pipefail
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 source "$PROJECT_ROOT/tests/test-utils.sh"
-
-cleanup() { # Always cleanup }
+cleanup() { # cleanup resources }
 trap cleanup EXIT
-
 test_scenario() {
   log_step "GIVEN <context>"
   # WHEN <action>
@@ -392,81 +303,7 @@ test_scenario() {
 }
 ```
 
-### TDD Compliance Tests
-
-**Location**: `tests/tdd-compliance/`
-
-**Purpose**: Validate agents follow Test-Driven Development protocols (write tests first, Red-Green-Refactor cycle).
-
-#### Test Coverage
-
-| Test | Purpose | Status | Pass Rate |
-|------|---------|--------|-----------|
-| `test-tests-before-code.sh` | Validates test-before-implementation workflow | ✅ PASSED | 100% (3/3) |
-| `test-red-green-refactor.sh` | Validates Red-Green-Refactor cycle | ✅ PASSED | 100% (4/4) |
-| `test-post-edit-feedback.sh` | Validates post-edit hook feedback | ✅ PASSED | 100% (5/5) |
-| `test-post-edit-error-handling.sh` | Validates error handling in post-edit pipeline | ✅ PASSED | 100% (6/6) |
-| `test-coverage-enforcement.sh` | Validates coverage calculation and gates | ✅ PASSED | 100% (6/6) |
-
-**Overall Success Rate**: 100% (24/24 test scenarios)
-
-**Last Run**: 2025-11-17
-
 ---
-
-### CLI Mode Execution Tests
-
-**Location**: `tests/cli-mode/`
-
-**Purpose**: Validate CLI mode coordinator spawning, Redis coordination, and orchestration workflows.
-
-#### Test Results
-
-| Test | Purpose | Status | Pass Rate |
-|------|---------|--------|-----------|
-| `test-coordinator-spawning.sh` | Validates coordinator spawn configuration and env vars | ✅ PASSED | 100% (23/23) |
-| `test-orchestrator-workflow.sh` | Validates orchestrate.sh execution flow | ✅ PASSED | 91% (21/23, 2 flexible) |
-| `test-threshold-enforcement.sh` | Validates mode-specific thresholds | ✅ PASSED | 100% (6/6) |
-| `test-redis-coordination.sh` | Validates Redis coordination patterns | ✅ PASSED | 100% (7/7) |
-| `test-cfn-loop-e2e-integration.sh` | End-to-end CLI mode execution | ✅ PASSED | 100% |
-
-**Overall Success Rate**: 98% (57/59 tests, 2 flexible checks)
-
-**Last Run**: 2025-11-17
-
-#### Multi-Language Hello World Test (CLI Mode)
-
-**Test**: Create 6 hello world files in different programming languages via CLI mode
-
-**Execution Method**:
-```bash
-export CFN_REDIS_HOST=localhost
-export CFN_REDIS_PORT=6379
-/cfn-loop-cli "Create 6 hello world files..." --mode=mvp
-```
-
-**Agent Hierarchy** (Real CLI Mode - Updated 2025-11-18):
-1. **6 Parallel CLI Mode Agents** (spawned via `npx claude-flow-novice agent`)
-   - `backend-developer` → Created `hello.py` (Python)
-   - `react-frontend-engineer` → Created `hello.js` (JavaScript)
-   - `rust-developer` → Created `hello.rs` (Rust)
-   - `backend-dev` → Created `hello.go` (Go)
-   - `backend-developer` → Created `Hello.java` (Java)
-   - `typescript-specialist` → Created `hello.ts` (TypeScript)
-
-**Execution Pattern**:
-- All 6 agents spawned in parallel (background processes)
-- Each agent receives explicit task description via `--context` parameter
-- 30s timeout per agent with output logged to `/tmp/agent-*-output.log`
-- Agents execute independently with Redis coordination (`CFN_REDIS_HOST=localhost`)
-
-**Result**: ✅ **PASSED** (6/6 files created)
-- Test location: `tests/cli-mode/test-cfn-loop-full-cycle.sh` (Test #4)
-- All 6 files created successfully
-- 1 agent timeout (acceptable in real execution)
-- Validates CLI mode production readiness with parallel agent spawning
-
-**Key Finding**: Test validates **real CLI mode agent spawning** (not simulation). Each agent creates exactly one file in parallel, demonstrating production-ready CLI mode with parallel agent coordination.
 
 ---
 

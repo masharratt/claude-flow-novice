@@ -172,6 +172,10 @@ interface ImplementerPayload {
   taskId: string;
   /** AI provider to use: zai (default), kimi, anthropic, etc. */
   provider?: 'zai' | 'kimi' | 'anthropic' | 'openrouter' | 'gemini' | 'xai';
+  /** Enable post-edit validation pipeline (default: true) */
+  enablePostEdit?: boolean;
+  /** Timeout for post-edit validation per file in ms (default: 30000) */
+  postEditTimeout?: number;
   /** Environment variable overrides (for passing API keys through payload) */
   _env?: {
     ANTHROPIC_API_KEY?: string;
@@ -206,6 +210,9 @@ async function spawnImplementers(
     // Pass through provider and _env for API key routing
     provider: payload.provider,
     _env: payload._env,
+    // Enable post-edit validation by default
+    enablePostEdit: true,
+    postEditTimeout: 30000,
   }));
 
   // Trigger all implementers in parallel batch
@@ -624,6 +631,7 @@ function makeProductOwnerDecision(
  */
 export const cfnOrchestratorTask = task({
   id: "cfn-orchestrator",
+  maxDuration: 1800, // 30 minutes - orchestrator waits for implementers + validators
   retry: {
     maxAttempts: 1, // No retries for orchestrator (iterations built-in)
   },

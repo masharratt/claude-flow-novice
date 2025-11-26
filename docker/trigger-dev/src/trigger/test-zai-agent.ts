@@ -18,6 +18,11 @@ interface ZaiTestPayload {
   outputDir: string;
   /** Simple task for the agent to perform */
   taskDescription?: string;
+  /** Optional: Override environment variables (for production container env bypass) */
+  _env?: {
+    ZAI_API_KEY?: string;
+    ZAI_BASE_URL?: string;
+  };
 }
 
 /**
@@ -60,8 +65,12 @@ export const testZaiAgentTask = task({
     }
 
     // Check for Z.ai environment variables
-    const zaiBaseUrl = process.env.ZAI_BASE_URL || process.env.ANTHROPIC_BASE_URL;
-    const zaiApiKey = process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY;
+    // Priority: payload._env > process.env.ZAI_* > process.env.ANTHROPIC_*
+    const zaiBaseUrl = payload._env?.ZAI_BASE_URL || process.env.ZAI_BASE_URL || process.env.ANTHROPIC_BASE_URL;
+    const zaiApiKey = payload._env?.ZAI_API_KEY || process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY;
+
+    console.log(`[Z.ai Test] Using payload._env: ${!!payload._env}`);
+    console.log(`[Z.ai Test] API key source: ${payload._env?.ZAI_API_KEY ? 'payload' : (process.env.ZAI_API_KEY ? 'ZAI_API_KEY' : 'ANTHROPIC_API_KEY')}`);
 
     if (!zaiApiKey) {
       return {

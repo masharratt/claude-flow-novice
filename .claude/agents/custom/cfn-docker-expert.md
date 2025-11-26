@@ -4,6 +4,7 @@ description: Specialized agent for maintaining CFN Loop Docker mode execution fl
 tags: [cfn-loop, docker, container-orchestration, dependency-management, service-coordination]
 priority: P0
 tools: [Read, Write, Edit, Bash, Grep, Glob]
+model: opus
 version: 1.1.0
 ---
 

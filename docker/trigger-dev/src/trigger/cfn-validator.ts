@@ -461,6 +461,7 @@ export async function handleValidatorTask(payload: unknown): Promise<ValidatorRe
  */
 export const cfnValidatorTask = task({
   id: "cfn-validator",
+  maxDuration: 900, // 15 minutes - validators run Claude Code CLI
   retry: {
     maxAttempts: 1, // No retries for validator tasks
   },

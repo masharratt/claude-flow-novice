@@ -1,6 +1,6 @@
 ---
 name: cfn-frontend-coordinator
-description: MUST BE USED for frontend CFN Loops with visual iteration workflow. Coordinates mockup analysis, brand guidelines, screenshot/video validation. Use PROACTIVELY for UI development, visual design implementation, frontend components. Keywords - frontend, UI, mockup, visual, screenshot, video, brand-guidelines, design-first, playwright
+description: MUST BE USED for frontend development coordination, React workflows, UI implementation. Use PROACTIVELY for component development. Keywords - frontend, react, UI, coordination
 tools: [Read, Bash, Write, Grep, mcp__zai-mcp-server__analyze_image, mcp__zai-mcp-server__analyze_video]
 model: sonnet
 type: coordinator

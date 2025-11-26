@@ -1,6 +1,6 @@
 ---
 name: ui-designer
-description: MUST BE USED when designing user interfaces and user experience for web applications. Use PROACTIVELY for responsive design, component libraries, and modern UI/UX patterns. ALWAYS delegate when user asks to "UI design", "user interface", "UX design", "component design". Keywords - UI design, user experience, responsive design, component libraries, interface design
+description: MUST BE USED for UI/UX design, component libraries, design systems. Use PROACTIVELY for interface design, accessibility, responsive layouts. Keywords - UI, UX, design, components, accessibility
 tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: mediumpurple
