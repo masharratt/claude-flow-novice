@@ -2,13 +2,34 @@
  * MDAP Database Operations
  *
  * Records and queries Multi-Dimensional Agent Performance metrics.
- * Integrates with existing cfn-db infrastructure for persistent storage.
+ * Uses Trigger.dev postgres instance for MDAP metrics storage.
  *
  * @module mdap-db
- * @version 1.0.0
+ * @version 1.1.0
  */
 
-import { pool } from './cfn-db.js';
+import { Pool } from 'pg';
+
+/**
+ * MDAP-specific database pool
+ *
+ * Connects to Trigger.dev postgres instance where mdap_executions table exists.
+ * Default: localhost:5434/main (Trigger.dev postgres)
+ *
+ * Environment variables:
+ * - MDAP_POSTGRES_HOST: Database host (default: localhost)
+ * - MDAP_POSTGRES_PORT: Database port (default: 5434 for Trigger.dev)
+ * - MDAP_POSTGRES_DB: Database name (default: main)
+ * - MDAP_POSTGRES_USER: Database user (default: postgres)
+ * - MDAP_POSTGRES_PASSWORD: Database password (default: postgres)
+ */
+export const pool = new Pool({
+  host: process.env.MDAP_POSTGRES_HOST || process.env.CFN_POSTGRES_HOST || 'localhost',
+  port: parseInt(process.env.MDAP_POSTGRES_PORT || process.env.CFN_POSTGRES_PORT || '5434'),
+  database: process.env.MDAP_POSTGRES_DB || 'main',
+  user: process.env.MDAP_POSTGRES_USER || 'postgres',
+  password: process.env.MDAP_POSTGRES_PASSWORD || 'unsafe-postgres-pw',
+});
 
 // =============================================
 // Type Definitions

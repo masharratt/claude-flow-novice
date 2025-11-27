@@ -133,12 +133,13 @@ export const PROVIDER_MODEL_MAP: ProviderModelMap = {
     5: 'claude-3-opus',                  // Premium tier
   },
 
-  // Z.ai - Single GLM-4.6 model for all tiers
-  // GLM-4.6: $0.40/$1.75 per MTok, 200K context
+  // Z.ai - GLM model tiers (ultra-fast to balanced)
+  // GLM-4.5-air: Ultra-fast, lowest cost (tier 1)
+  // GLM-4.6: Balanced quality/cost (tier 2-5)
   // Best for: Cost-optimized production workloads
   zai: {
-    1: 'glm-4.6',
-    2: 'glm-4.6',
+    1: 'glm-4.5-air',  // Ultra-fast for simple micro-tasks
+    2: 'glm-4.6',      // Balanced for moderate complexity
     3: 'glm-4.6',
     4: 'glm-4.6',
     5: 'glm-4.6',
