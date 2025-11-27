@@ -127,91 +127,173 @@ export interface ModelStats {
 // =============================================
 
 /**
+ * Schema initialization state
+ * - null: not started
+ * - Promise: initialization in progress
+ * - true: completed successfully
+ * - Error: failed
+ */
+let schemaInitState: null | Promise<void> | true | Error = null;
+
+/**
  * Create MDAP tables if they don't exist
  *
- * Called on module initialization to ensure schema exists.
+ * Uses a singleton pattern to ensure schema is created exactly once.
+ * Throws errors instead of swallowing them to surface problems early.
+ *
+ * @param retryCount - Number of retry attempts (default: 3)
+ * @param retryDelayMs - Delay between retries in ms (default: 1000)
  */
-export async function ensureMDAPSchema(): Promise<void> {
-  try {
-    // MDAP executions table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS mdap_executions (
-        id SERIAL PRIMARY KEY,
-        task_id VARCHAR(255) NOT NULL,
-        agent_id VARCHAR(255) NOT NULL,
-        model_tier INTEGER NOT NULL CHECK (model_tier >= 1 AND model_tier <= 5),
-        model_name VARCHAR(255) NOT NULL,
-        provider VARCHAR(50) NOT NULL,
-        success BOOLEAN NOT NULL,
-        confidence DECIMAL(4,3) NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
-        latency_ms INTEGER NOT NULL,
-        estimated_cost DECIMAL(10,6) NOT NULL,
-        input_tokens INTEGER,
-        output_tokens INTEGER,
-        complexity_level VARCHAR(50),
-        was_escalated BOOLEAN DEFAULT FALSE,
-        created_at TIMESTAMP DEFAULT NOW(),
-        CONSTRAINT mdap_exec_unique UNIQUE (task_id, agent_id)
-      )
-    `);
-
-    // Model statistics aggregation table (updated periodically)
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS mdap_model_stats (
-        id SERIAL PRIMARY KEY,
-        task_id VARCHAR(255) NOT NULL,
-        model_tier INTEGER NOT NULL,
-        model_name VARCHAR(255) NOT NULL,
-        provider VARCHAR(50) NOT NULL,
-        total_executions INTEGER DEFAULT 0,
-        successful_executions INTEGER DEFAULT 0,
-        failed_executions INTEGER DEFAULT 0,
-        success_rate DECIMAL(4,3) DEFAULT 0,
-        avg_latency_ms INTEGER DEFAULT 0,
-        avg_confidence DECIMAL(4,3) DEFAULT 0,
-        total_cost DECIMAL(12,6) DEFAULT 0,
-        updated_at TIMESTAMP DEFAULT NOW(),
-        CONSTRAINT mdap_stats_unique UNIQUE (task_id, model_tier, provider)
-      )
-    `);
-
-    // Escalation history table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS mdap_escalations (
-        id SERIAL PRIMARY KEY,
-        task_id VARCHAR(255) NOT NULL,
-        agent_id VARCHAR(255) NOT NULL,
-        from_tier INTEGER NOT NULL,
-        to_tier INTEGER NOT NULL,
-        reason TEXT NOT NULL,
-        trigger_confidence DECIMAL(4,3),
-        trigger_success BOOLEAN,
-        trigger_latency_ms INTEGER,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-
-    // Indexes for common queries
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_mdap_executions_task
-      ON mdap_executions (task_id)
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_mdap_executions_tier
-      ON mdap_executions (model_tier)
-    `);
-
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_mdap_stats_task
-      ON mdap_model_stats (task_id)
-    `);
-
-    console.log('[mdap-db] Schema ensured');
-  } catch (error) {
-    console.error('[mdap-db] Schema setup failed:', (error as Error).message);
-    // Don't throw - allow operations to continue, they'll fail individually if schema missing
+export async function ensureMDAPSchema(retryCount = 3, retryDelayMs = 1000): Promise<void> {
+  // If already successfully initialized, return immediately
+  if (schemaInitState === true) {
+    return;
   }
+
+  // If previous attempt failed, throw the cached error
+  if (schemaInitState instanceof Error) {
+    throw schemaInitState;
+  }
+
+  // If initialization is in progress, wait for it
+  if (schemaInitState instanceof Promise) {
+    return schemaInitState;
+  }
+
+  // Start initialization
+  schemaInitState = doEnsureMDAPSchema(retryCount, retryDelayMs);
+
+  try {
+    await schemaInitState;
+    schemaInitState = true;
+    console.log('[mdap-db] Schema initialized successfully');
+  } catch (error) {
+    schemaInitState = error as Error;
+    throw error;
+  }
+}
+
+/**
+ * Internal schema creation with retry logic
+ */
+async function doEnsureMDAPSchema(retryCount: number, retryDelayMs: number): Promise<void> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= retryCount; attempt++) {
+    try {
+      // Test connection first
+      await pool.query('SELECT 1');
+      console.log(`[mdap-db] Database connection verified (attempt ${attempt}/${retryCount})`);
+
+      // MDAP executions table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS mdap_executions (
+          id SERIAL PRIMARY KEY,
+          task_id VARCHAR(255) NOT NULL,
+          agent_id VARCHAR(255) NOT NULL,
+          model_tier INTEGER NOT NULL CHECK (model_tier >= 1 AND model_tier <= 5),
+          model_name VARCHAR(255) NOT NULL,
+          provider VARCHAR(50) NOT NULL,
+          success BOOLEAN NOT NULL,
+          confidence DECIMAL(4,3) NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
+          latency_ms INTEGER NOT NULL,
+          estimated_cost DECIMAL(10,6) NOT NULL,
+          input_tokens INTEGER,
+          output_tokens INTEGER,
+          complexity_level VARCHAR(50),
+          was_escalated BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          CONSTRAINT mdap_exec_unique UNIQUE (task_id, agent_id)
+        )
+      `);
+
+      // Model statistics aggregation table (updated periodically)
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS mdap_model_stats (
+          id SERIAL PRIMARY KEY,
+          task_id VARCHAR(255) NOT NULL,
+          model_tier INTEGER NOT NULL,
+          model_name VARCHAR(255) NOT NULL,
+          provider VARCHAR(50) NOT NULL,
+          total_executions INTEGER DEFAULT 0,
+          successful_executions INTEGER DEFAULT 0,
+          failed_executions INTEGER DEFAULT 0,
+          success_rate DECIMAL(4,3) DEFAULT 0,
+          avg_latency_ms INTEGER DEFAULT 0,
+          avg_confidence DECIMAL(4,3) DEFAULT 0,
+          total_cost DECIMAL(12,6) DEFAULT 0,
+          updated_at TIMESTAMP DEFAULT NOW(),
+          CONSTRAINT mdap_stats_unique UNIQUE (task_id, model_tier, provider)
+        )
+      `);
+
+      // Escalation history table
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS mdap_escalations (
+          id SERIAL PRIMARY KEY,
+          task_id VARCHAR(255) NOT NULL,
+          agent_id VARCHAR(255) NOT NULL,
+          from_tier INTEGER NOT NULL,
+          to_tier INTEGER NOT NULL,
+          reason TEXT NOT NULL,
+          trigger_confidence DECIMAL(4,3),
+          trigger_success BOOLEAN,
+          trigger_latency_ms INTEGER,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      // Indexes for common queries
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_mdap_executions_task
+        ON mdap_executions (task_id)
+      `);
+
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_mdap_executions_tier
+        ON mdap_executions (model_tier)
+      `);
+
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_mdap_stats_task
+        ON mdap_model_stats (task_id)
+      `);
+
+      // Verify schema was created by checking table exists
+      const verifyResult = await pool.query(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'mdap_executions'
+        ORDER BY ordinal_position
+      `);
+
+      const columns = verifyResult.rows.map(r => r.column_name);
+      const requiredColumns = ['task_id', 'agent_id', 'model_tier', 'model_name', 'provider'];
+      const missingColumns = requiredColumns.filter(c => !columns.includes(c));
+
+      if (missingColumns.length > 0) {
+        throw new Error(`Schema verification failed: missing columns [${missingColumns.join(', ')}]`);
+      }
+
+      console.log(`[mdap-db] Schema verified with ${columns.length} columns`);
+      return; // Success
+    } catch (error) {
+      lastError = error as Error;
+      console.error(
+        `[mdap-db] Schema setup attempt ${attempt}/${retryCount} failed:`,
+        lastError.message
+      );
+
+      if (attempt < retryCount) {
+        console.log(`[mdap-db] Retrying in ${retryDelayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+        // Exponential backoff
+        retryDelayMs *= 2;
+      }
+    }
+  }
+
+  // All retries exhausted
+  throw new Error(`[mdap-db] Schema setup failed after ${retryCount} attempts: ${lastError?.message}`);
 }
 
 // =============================================
@@ -224,9 +306,17 @@ export async function ensureMDAPSchema(): Promise<void> {
  * Stores detailed metrics for each agent execution including
  * model tier, latency, confidence, and cost.
  *
+ * IMPORTANT: This function now ensures schema exists before inserting.
+ * If schema creation fails, the error is thrown (not swallowed).
+ *
  * @param params - Execution parameters
+ * @throws Error if schema cannot be created or insert fails
  */
 export async function recordMDAPExecution(params: MDAPExecutionParams): Promise<void> {
+  // CRITICAL: Ensure schema exists before any database write
+  // This blocks until schema is ready, preventing race condition
+  await ensureMDAPSchema();
+
   try {
     await pool.query(
       `INSERT INTO mdap_executions
@@ -270,8 +360,16 @@ export async function recordMDAPExecution(params: MDAPExecutionParams): Promise<
       `success=${params.success} confidence=${params.confidence.toFixed(2)}`
     );
   } catch (error) {
-    console.error('[mdap-db] Failed to record execution:', (error as Error).message);
-    // Don't throw - MDAP recording is not critical to task execution
+    const err = error as Error;
+    console.error('[mdap-db] Failed to record execution:', err.message);
+    console.error('[mdap-db] Params:', JSON.stringify({
+      taskId: params.taskId,
+      agentId: params.agentId,
+      modelTier: params.modelTier,
+      provider: params.provider,
+    }));
+    // Re-throw to surface the error - callers should handle this
+    throw new Error(`[mdap-db] Failed to record execution: ${err.message}`);
   }
 }
 
@@ -282,8 +380,12 @@ export async function recordMDAPExecution(params: MDAPExecutionParams): Promise<
  * maintain up-to-date statistics for escalation decisions.
  *
  * @param params - Statistics parameters
+ * @throws Error if schema cannot be created or update fails
  */
 export async function updateModelStats(params: ModelStatsParams): Promise<void> {
+  // Ensure schema exists before any database write
+  await ensureMDAPSchema();
+
   try {
     await pool.query(
       `INSERT INTO mdap_model_stats
@@ -322,7 +424,9 @@ export async function updateModelStats(params: ModelStatsParams): Promise<void> 
       `successRate=${params.successRate.toFixed(2)} executions=${params.executionCount}`
     );
   } catch (error) {
-    console.error('[mdap-db] Failed to update stats:', (error as Error).message);
+    const err = error as Error;
+    console.error('[mdap-db] Failed to update stats:', err.message);
+    throw new Error(`[mdap-db] Failed to update stats: ${err.message}`);
   }
 }
 
@@ -330,6 +434,7 @@ export async function updateModelStats(params: ModelStatsParams): Promise<void> 
  * Record an escalation event
  *
  * @param params - Escalation event parameters
+ * @throws Error if schema cannot be created or insert fails
  */
 export async function recordEscalation(params: {
   taskId: string;
@@ -341,6 +446,9 @@ export async function recordEscalation(params: {
   triggerSuccess?: boolean;
   triggerLatencyMs?: number;
 }): Promise<void> {
+  // Ensure schema exists before any database write
+  await ensureMDAPSchema();
+
   try {
     await pool.query(
       `INSERT INTO mdap_escalations
@@ -364,7 +472,9 @@ export async function recordEscalation(params: {
       `T${params.fromTier}->T${params.toTier} reason="${params.reason}"`
     );
   } catch (error) {
-    console.error('[mdap-db] Failed to record escalation:', (error as Error).message);
+    const err = error as Error;
+    console.error('[mdap-db] Failed to record escalation:', err.message);
+    throw new Error(`[mdap-db] Failed to record escalation: ${err.message}`);
   }
 }
 
@@ -604,6 +714,9 @@ export async function getTaskTotalCost(taskId: string): Promise<number> {
  * @param taskId - Task identifier
  */
 export async function refreshTaskStats(taskId: string): Promise<void> {
+  // Ensure schema exists before any database write
+  await ensureMDAPSchema();
+
   try {
     // Aggregate executions into stats
     await pool.query(
@@ -646,7 +759,35 @@ export async function refreshTaskStats(taskId: string): Promise<void> {
   }
 }
 
-// Initialize schema on module load
+// =============================================
+// Module Initialization
+// =============================================
+
+/**
+ * Initialize schema eagerly on module load.
+ *
+ * NOTE: This is a fire-and-forget initialization for eager loading.
+ * Each database operation (recordMDAPExecution, updateModelStats, etc.)
+ * also calls ensureMDAPSchema() which:
+ * 1. Returns immediately if schema already initialized
+ * 2. Waits for ongoing initialization to complete
+ * 3. Throws if schema creation failed
+ *
+ * This eager initialization helps warm up the connection pool
+ * and surface configuration errors early.
+ */
 ensureMDAPSchema().catch(err => {
-  console.warn('[mdap-db] Schema initialization deferred:', err.message);
+  // Log but don't crash - individual operations will retry and throw
+  console.error('[mdap-db] Eager schema initialization failed:', err.message);
+  console.error('[mdap-db] Schema will be retried on first database operation');
 });
+
+/**
+ * Reset schema state (for testing only)
+ *
+ * Allows tests to reset the singleton state and force re-initialization.
+ * @internal
+ */
+export function _resetSchemaState(): void {
+  schemaInitState = null;
+}
