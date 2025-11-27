@@ -230,6 +230,7 @@ export const cfnValidatorV2Task = task({
     // Validators don't escalate on failure (no retry), so failureCount is always 0
     let modelTier: ModelTier;
     let modelName: string;
+    let mdapCost = 0; // Declared at function scope for return statement
 
     if (enableMDAP) {
       // MDAP mode: Force 'simple' complexity (atomic micro-task reviews)
@@ -278,8 +279,9 @@ export const cfnValidatorV2Task = task({
       const cliEnv = buildCliEnv(payload.provider);
 
       // Execute Claude CLI in review mode (--print = no modifications)
+      // CRITICAL: --dangerously-skip-permissions required for non-interactive execution
       const result = await executeClaudeCli(
-        ["--print", "--output-format", "json", "-p", REVIEW_PROMPT],
+        ["--print", "--output-format", "json", "-p", REVIEW_PROMPT, "--dangerously-skip-permissions"],
         {
           cwd: payload.workDir,
           timeout: REVIEW_TIMEOUT_MS,

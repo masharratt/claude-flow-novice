@@ -122,13 +122,14 @@ export async function executeClaudeCli(
   console.log(`[cli-executor] Args: ${args.join(' ')}`);
 
   try {
-    const result = await execa('npx', ['claude-flow-novice', ...args], {
+    const result = await execa('claude', args, {
       cwd: options.cwd,
       timeout,
       forceKillAfterDelay,
       stripFinalNewline,
       reject: false, // Don't throw on non-zero exit
       env: options.env,
+      stdin: 'ignore', // Prevent stdin blocking in non-interactive mode
     });
 
     const durationMs = Date.now() - startTime;
@@ -223,6 +224,7 @@ export async function executeCommand(
       stripFinalNewline,
       reject: false,
       env: options.env,
+      stdin: 'ignore', // Prevent stdin blocking in non-interactive mode
     });
 
     const durationMs = Date.now() - startTime;

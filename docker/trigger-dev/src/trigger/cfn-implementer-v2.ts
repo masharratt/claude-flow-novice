@@ -366,6 +366,7 @@ export const cfnImplementerV2Task = task({
     // The coordinator should have already broken down work into atomic micro-tasks
     let modelTier: ModelTier;
     let modelName: string;
+    let mdapCost = 0; // Declared outside try block for return statement
 
     if (enableMDAP) {
       // MDAP mode: Force 'simple' complexity (atomic micro-tasks)
@@ -441,8 +442,10 @@ export const cfnImplementerV2Task = task({
       console.log(`[implementer-v2] Executing CLI with prompt (${prompt.length} chars)`);
 
       // Execute Claude Code CLI
+      // CRITICAL: --dangerously-skip-permissions is required for non-interactive execution
+      // Without it, the CLI waits for user permission prompts and times out
       const cliResult = await executeClaudeCli(
-        ['-p', prompt, '--allowedTools', 'Edit,Write,Read,Bash,Glob,Grep'],
+        ['-p', prompt, '--allowedTools', 'Edit,Write,Read,Bash,Glob,Grep', '--dangerously-skip-permissions'],
         {
           cwd: payload.workDir,
           timeout: payload.timeout || 600000,
@@ -573,7 +576,7 @@ export const cfnImplementerV2Task = task({
 
       // Record MDAP execution metrics (only if MDAP is enabled)
       if (enableMDAP) {
-        const mdapCost = estimateCost(modelTier, 0, 0); // Token counts not available from CLI
+        mdapCost = estimateCost(modelTier, 0, 0); // Token counts not available from CLI
         try {
           await recordMDAPExecution({
             taskId: payload.taskId,
@@ -660,7 +663,7 @@ export const cfnImplementerV2Task = task({
       }
 
       // Record MDAP failure metrics
-      const mdapCost = estimateCost(modelTier, 0, 0);
+      mdapCost = estimateCost(modelTier, 0, 0);
       try {
         await recordMDAPExecution({
           taskId: payload.taskId,
