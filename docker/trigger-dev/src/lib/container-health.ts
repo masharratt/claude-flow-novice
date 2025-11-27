@@ -19,7 +19,7 @@
  * @see container-metrics.ts for metrics recording
  */
 
-import Docker = require('dockerode');
+import Docker from 'dockerode';
 
 // =============================================
 // Type Definitions

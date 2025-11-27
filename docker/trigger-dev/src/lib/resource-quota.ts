@@ -23,7 +23,7 @@
  * @version 1.0.0
  */
 
-import Docker = require('dockerode');
+import Docker from 'dockerode';
 import * as os from 'os';
 
 // =====================================================

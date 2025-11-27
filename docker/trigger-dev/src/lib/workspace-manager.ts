@@ -17,7 +17,7 @@
 import { execFile, execFileSync } from 'child_process';
 import { promises as fs } from 'fs';
 import { existsSync, statSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, dirname } from 'path';
 import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
@@ -742,7 +742,7 @@ export class WorkspaceManager {
    * @param agentFile - Source file in agent workspace
    */
   private async mergeFile(mainFile: string, agentFile: string): Promise<void> {
-    await fs.mkdir(require('path').dirname(mainFile), { recursive: true });
+    await fs.mkdir(dirname(mainFile), { recursive: true });
     await fs.copyFile(agentFile, mainFile);
   }
 

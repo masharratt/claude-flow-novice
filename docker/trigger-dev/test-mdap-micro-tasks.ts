@@ -152,14 +152,17 @@ async function runMDAPTest() {
       // Poll for result
       const result = await runs.poll(handle.id, {
         pollIntervalMs: 2000,
-        maxAttempts: 60, // 2 minutes
-      });
+      }) as any; // Cast to any for property access flexibility
 
       const microDuration = Date.now() - microStartTime;
 
-      // Trigger.dev v4 SDK: Use isSuccess/isFailed instead of .ok
+      // Trigger.dev v4 SDK: Check status === "COMPLETED" and isSuccess boolean
       // The poll() return type has: status, isSuccess, isFailed, isCompleted, output, error
-      if (result.isSuccess) {
+      // Note: isSuccess is a boolean property on the returned object
+      const isCompleted = result.status === "COMPLETED";
+      const isSuccess = isCompleted && (result.isSuccess === true || result.isFailed === false);
+
+      if (isSuccess) {
         const output = result.output as any;
         console.log(`✅ SUCCESS in ${(microDuration / 1000).toFixed(1)}s`);
         console.log(`   Confidence: ${((output?.confidence || 0) * 100).toFixed(1)}%`);
@@ -181,6 +184,7 @@ async function runMDAPTest() {
         const errorMessage = result.error?.message || result.status || 'Unknown error';
         console.log(`❌ FAILED in ${(microDuration / 1000).toFixed(1)}s`);
         console.log(`   Status: ${result.status}`);
+        console.log(`   isSuccess: ${result.isSuccess}, isFailed: ${result.isFailed}`);
         console.log(`   Error: ${errorMessage}`);
 
         results.push({

@@ -17,7 +17,7 @@
  * - docker/trigger-dev/src/lib/cli-executor.ts (timeout patterns)
  */
 
-import Docker = require('dockerode');
+import Docker from 'dockerode';
 import { Readable } from 'stream';
 
 type DockerContainer = Docker.Container;
