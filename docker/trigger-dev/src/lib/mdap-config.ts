@@ -5,24 +5,45 @@
  * and historical performance. Enables cost-effective agent execution by starting
  * with lower-cost models and escalating only when needed.
  *
+ * MDAP outputs tier names (haiku/sonnet/opus) - provider-specific model mapping
+ * is handled by .claude/config/provider-model-mappings.yaml
+ *
+ * ATOMICITY ENFORCEMENT:
+ * - All tasks are analyzed for atomicity before execution
+ * - Non-atomic tasks are auto-decomposed into micro-tasks
+ * - Each micro-task: one file, one action, <50 lines
+ * - This maximizes T1 success rate (target: >95%)
+ *
  * @module mdap-config
- * @version 1.0.0
+ * @version 2.0.0
  */
+
+import {
+  analyzeAtomicity,
+  enforceAtomicity,
+  getAtomicitySummary,
+  type AtomicityAnalysis,
+  type MicroTask,
+} from './mdap-atomicity.js';
 
 // =============================================
 // Type Definitions
 // =============================================
 
 /**
+ * Canonical model tier names used across all providers
+ * Provider-specific model IDs are resolved via provider-model-mappings.yaml
+ */
+export type ModelTierName = 'haiku' | 'sonnet' | 'opus';
+
+/**
  * Model tier configuration
  */
 export interface ModelTier {
-  /** Tier level (1-5, higher = more capable/expensive) */
-  tier: 1 | 2 | 3 | 4 | 5;
-  /** Human-readable tier name */
-  name: string;
-  /** Default model identifier */
-  model: string;
+  /** Tier level (1-3, higher = more capable/expensive) */
+  tier: 1 | 2 | 3;
+  /** Canonical tier name - maps to provider-specific models via YAML config */
+  name: ModelTierName;
   /** Cost multiplier relative to tier 1 */
   costMultiplier: number;
   /** Target latency in milliseconds */
@@ -31,15 +52,6 @@ export interface ModelTier {
   qualityTarget: number;
   /** Description of appropriate use cases */
   useCase: string;
-}
-
-/**
- * Provider-specific model mapping
- */
-export interface ProviderModelMap {
-  [provider: string]: {
-    [tier: number]: string;
-  };
 }
 
 /**
@@ -52,18 +64,21 @@ export type ComplexityLevel = 'simple' | 'moderate' | 'complex' | 'large';
 // =============================================
 
 /**
- * Five-tier model hierarchy
+ * Three-tier model hierarchy
  *
  * Conservative escalation strategy:
  * - Start with lowest viable tier for task complexity
  * - Escalate +1 tier per failure
- * - Maximum tier is 5 (opus)
+ * - Maximum tier is 3 (opus)
+ *
+ * MDAP only defines tier names (haiku/sonnet/opus).
+ * Provider-specific model IDs are resolved via provider-model-mappings.yaml
  */
 export const MODEL_TIERS: ModelTier[] = [
   {
     tier: 1,
     name: 'haiku',
-    model: 'claude-3-haiku-20240307',
+    model: 'haiku', // Resolved by provider config
     costMultiplier: 1.0,
     latencyTarget: 2000,
     qualityTarget: 0.70,
@@ -71,35 +86,17 @@ export const MODEL_TIERS: ModelTier[] = [
   },
   {
     tier: 2,
-    name: 'mini',
-    model: 'gpt-4o-mini',
-    costMultiplier: 2.5,
-    latencyTarget: 3000,
-    qualityTarget: 0.80,
-    useCase: 'Moderate tasks, balanced cost/quality',
+    name: 'sonnet',
+    model: 'sonnet', // Resolved by provider config
+    costMultiplier: 15.0,
+    latencyTarget: 4000,
+    qualityTarget: 0.90,
+    useCase: 'Moderate to complex tasks, production quality',
   },
   {
     tier: 3,
-    name: 'gpt4',
-    model: 'gpt-4o',
-    costMultiplier: 10.0,
-    latencyTarget: 5000,
-    qualityTarget: 0.90,
-    useCase: 'Complex tasks, high quality requirements',
-  },
-  {
-    tier: 4,
-    name: 'sonnet',
-    model: 'claude-3-5-sonnet-20241022',
-    costMultiplier: 15.0,
-    latencyTarget: 4000,
-    qualityTarget: 0.95,
-    useCase: 'Critical tasks, production quality',
-  },
-  {
-    tier: 5,
     name: 'opus',
-    model: 'claude-3-opus-20240229',
+    model: 'opus', // Resolved by provider config
     costMultiplier: 75.0,
     latencyTarget: 8000,
     qualityTarget: 0.98,
@@ -398,3 +395,137 @@ export function getTierTable(): Array<{
     useCase: t.useCase,
   }));
 }
+
+// =============================================
+// Atomicity-Aware Task Processing
+// =============================================
+
+/**
+ * Task decomposition result
+ */
+export interface TaskDecomposition {
+  /** Original task description */
+  originalTask: string;
+  /** Whether decomposition was needed */
+  wasDecomposed: boolean;
+  /** Atomicity analysis of original task */
+  analysis: AtomicityAnalysis;
+  /** Resulting micro-tasks (1 if already atomic, N if decomposed) */
+  microTasks: MicroTask[];
+  /** Recommended model tier for each micro-task */
+  recommendedTiers: Map<string, ModelTier>;
+}
+
+/**
+ * Process a task description with atomicity enforcement
+ *
+ * This is the main entry point for MDAP task processing.
+ * It analyzes the task, decomposes if needed, and assigns model tiers.
+ *
+ * @param taskDescription - The task to process
+ * @param provider - AI provider (for model selection)
+ * @param forceDecompose - Force decomposition even if task appears atomic
+ * @returns TaskDecomposition with micro-tasks and tier assignments
+ */
+export function processTaskWithAtomicity(
+  taskDescription: string,
+  provider: string = 'zai',
+  forceDecompose: boolean = false
+): TaskDecomposition {
+  // Analyze atomicity
+  const analysis = analyzeAtomicity(taskDescription);
+
+  console.log(`[mdap] Atomicity: ${getAtomicitySummary(analysis)}`);
+
+  // Enforce atomicity (decompose if needed)
+  const microTasks = enforceAtomicity(taskDescription, forceDecompose);
+  const wasDecomposed = microTasks.length > 1 || !analysis.isAtomic;
+
+  if (wasDecomposed) {
+    console.log(`[mdap] Decomposed into ${microTasks.length} micro-tasks:`);
+    microTasks.forEach((mt, i) => {
+      console.log(`  ${i + 1}. ${mt.description} (${mt.action} → ${mt.targetFile})`);
+    });
+  }
+
+  // Assign model tiers to each micro-task
+  const recommendedTiers = new Map<string, ModelTier>();
+
+  for (const microTask of microTasks) {
+    // All micro-tasks start at T1 since they're atomic
+    const tier = selectModelTier(microTask.complexity, 1, 0);
+    recommendedTiers.set(microTask.id, tier);
+  }
+
+  return {
+    originalTask: taskDescription,
+    wasDecomposed,
+    analysis,
+    microTasks,
+    recommendedTiers,
+  };
+}
+
+/**
+ * Get the model for a micro-task
+ *
+ * @param microTask - The micro-task
+ * @param decomposition - The task decomposition containing tier assignments
+ * @param provider - AI provider
+ * @returns Provider-specific model identifier
+ */
+export function getModelForMicroTask(
+  microTask: MicroTask,
+  decomposition: TaskDecomposition,
+  provider: string = 'zai'
+): string {
+  const tier = decomposition.recommendedTiers.get(microTask.id);
+
+  if (!tier) {
+    // Fallback to T1
+    return getModelForProvider(MODEL_TIERS[0], provider);
+  }
+
+  return getModelForProvider(tier, provider);
+}
+
+/**
+ * Check if a task needs decomposition
+ *
+ * Quick check without full decomposition.
+ *
+ * @param taskDescription - Task to check
+ * @returns true if task needs decomposition
+ */
+export function needsDecomposition(taskDescription: string): boolean {
+  const analysis = analyzeAtomicity(taskDescription);
+  return !analysis.isAtomic;
+}
+
+/**
+ * Get atomicity score for a task (0.0-1.0)
+ *
+ * Higher score = more atomic = better for T1.
+ *
+ * @param taskDescription - Task to score
+ * @returns Atomicity score
+ */
+export function getAtomicityScore(taskDescription: string): number {
+  const analysis = analyzeAtomicity(taskDescription);
+
+  if (!analysis.isAtomic) {
+    // Penalize based on violations
+    return Math.max(0.1, 0.5 - (analysis.violations.length * 0.1));
+  }
+
+  return analysis.confidence;
+}
+
+// Re-export atomicity functions for convenience
+export {
+  analyzeAtomicity,
+  enforceAtomicity,
+  getAtomicitySummary,
+  type AtomicityAnalysis,
+  type MicroTask,
+};
