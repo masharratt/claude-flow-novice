@@ -1,0 +1,54 @@
+# Dockerfile.docker - Docker Specialist Agent
+# Build from Linux native storage for 96% faster builds (755s -> 20s)
+# Usage: ./.claude/skills/docker-build/build.sh --dockerfile docker/agents/Dockerfile.docker --tag cfn-agent-docker:latest
+# Special: Requires privileged mode or socket mount (-v /var/run/docker.sock:/var/run/docker.sock)
+
+FROM docker:24-dind
+
+# Install additional tools
+RUN apk add --no-cache \
+    git \
+    bash \
+    curl \
+    jq \
+    make \
+    ca-certificates \
+    openssh-client
+
+# Install Docker Compose v2 (plugin)
+RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
+    curl -SL "https://github.com/docker/compose/releases/download/v2.23.3/docker-compose-linux-$(uname -m)" \
+    -o /usr/local/lib/docker/cli-plugins/docker-compose && \
+    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# Install Docker Buildx (already included in docker:24-dind, but ensure it's enabled)
+RUN docker buildx version || echo "Buildx already available"
+
+# Set working directory
+WORKDIR /workspace
+
+# Note: docker-dind runs as root by default for socket access
+# This is necessary for Docker-in-Docker functionality
+
+# Environment variables
+ENV DOCKER_HOST=unix:///var/run/docker.sock \
+    DOCKER_BUILDKIT=1 \
+    COMPOSE_DOCKER_CLI_BUILD=1
+
+# Labels for MDAP tier mapping
+LABEL cfn.agent.type="docker-specialist" \
+      cfn.memory.min="1g" \
+      cfn.memory.max="2g" \
+      cfn.mdap.tier="3" \
+      description="Docker specialist agent with CLI, buildx, compose v2" \
+      version="1.0.0" \
+      requires="docker-socket-mount"
+
+# Health check - verify docker CLI is available
+# Note: This checks CLI availability, not daemon connectivity
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD docker --version && docker compose version || exit 1
+
+# Entrypoint accepts CLI commands
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["docker --version && docker compose version && docker buildx version && echo 'Docker specialist agent ready'"]

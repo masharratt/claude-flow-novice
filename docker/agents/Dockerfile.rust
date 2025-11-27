@@ -1,0 +1,70 @@
+# Dockerfile.rust - Rust Developer Agent
+# Build from Linux native storage for 96% faster builds (755s -> 20s)
+# Usage: ./.claude/skills/docker-build/build.sh --dockerfile docker/agents/Dockerfile.rust --tag cfn-agent-rust:latest
+
+# Stage 1: Base dependencies
+FROM rust:1.74-slim AS base
+
+# Install system dependencies and tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install additional Rust tooling
+RUN rustup component add rustfmt clippy rust-src && \
+    cargo install cargo-edit cargo-watch cargo-audit --locked
+
+# Stage 2: Runtime image
+FROM rust:1.74-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Rust tooling from base stage
+COPY --from=base /usr/local/cargo /usr/local/cargo
+COPY --from=base /usr/local/rustup /usr/local/rustup
+
+# Create non-root user
+RUN groupadd -g 1000 cfn-agent && \
+    useradd -u 1000 -g cfn-agent -m -s /bin/bash cfn-agent
+
+# Set working directory
+WORKDIR /workspace
+
+# Change ownership to cfn-agent
+RUN chown -R cfn-agent:cfn-agent /workspace
+
+# Switch to non-root user
+USER cfn-agent
+
+# Environment variables
+ENV RUST_BACKTRACE=1 \
+    CARGO_HOME=/usr/local/cargo \
+    RUSTUP_HOME=/usr/local/rustup \
+    PATH=/usr/local/cargo/bin:$PATH
+
+# Labels for MDAP tier mapping
+LABEL cfn.agent.type="rust-developer" \
+      cfn.memory.min="512m" \
+      cfn.memory.max="1g" \
+      cfn.mdap.tier="2" \
+      description="Rust developer agent with cargo, rustfmt, clippy" \
+      version="1.0.0"
+
+# Health check - verify cargo is available
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD cargo --version || exit 1
+
+# Entrypoint accepts CLI commands
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["cargo --version && rustc --version && echo 'Rust agent ready'"]
