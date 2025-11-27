@@ -39,9 +39,11 @@ export interface ValidatorV2Payload {
   workDir: string;
   /** AI provider to use (zai, kimi, anthropic, etc.) */
   provider?: string;
-  /** Override model tier (1-5) for MDAP */
+  /** Enable MDAP tier selection and metrics (default: true) */
+  enableMDAP?: boolean;
+  /** Override model tier (1-5) - only used if enableMDAP is true */
   modelTier?: number;
-  /** Task complexity level for MDAP tier selection */
+  /** Task complexity level for MDAP (should always be 'simple' for atomic reviews) */
   complexityLevel?: 'simple' | 'moderate' | 'complex' | 'large';
 }
 
@@ -220,22 +222,39 @@ export const cfnValidatorV2Task = task({
 
   run: async (payload: ValidatorV2Payload): Promise<ValidatorV2Result> => {
     const startTime = Date.now();
-
-    // MDAP: Select model tier - validators typically use moderate complexity
-    // Validators don't escalate on failure (no retry), so failureCount is always 0
-    const modelTier = selectModelTier(
-      payload.complexityLevel || 'moderate',
-      payload.modelTier || 2, // Default to tier 2 for validators (better quality reviews)
-      0 // Validators don't retry
-    );
+    const enableMDAP = payload.enableMDAP !== false; // Default: true
     const provider = payload.provider || 'zai';
-    const modelName = getModelForProvider(modelTier, provider);
+
+    // MDAP: Select model tier
+    // CRITICAL: For MDAP (micro-tasks), validators review atomic work, so complexity is 'simple'
+    // Validators don't escalate on failure (no retry), so failureCount is always 0
+    let modelTier: ModelTier;
+    let modelName: string;
+
+    if (enableMDAP) {
+      // MDAP mode: Force 'simple' complexity (atomic micro-task reviews)
+      modelTier = selectModelTier(
+        'simple',  // Always atomic for MDAP
+        payload.modelTier || 1,  // Start T1 for simple reviews
+        0 // Validators don't retry
+      );
+      modelName = getModelForProvider(modelTier, provider);
+      console.log(`[validator-v2] MDAP enabled: ${getTierSummary(modelTier)} -> ${modelName}`);
+    } else {
+      // Non-MDAP mode: Use tier 2 (better quality) for moderate complexity reviews
+      modelTier = selectModelTier(
+        payload.complexityLevel || 'moderate',
+        payload.modelTier || 2,
+        0
+      );
+      modelName = getModelForProvider(modelTier, provider);
+      console.log(`[validator-v2] MDAP disabled: Using ${getTierSummary(modelTier)} -> ${modelName}`);
+    }
 
     console.log(`[validator-v2] Starting validation`);
     console.log(`[validator-v2] Task ID: ${payload.taskId}`);
     console.log(`[validator-v2] Agent ID: ${payload.agentId}`);
     console.log(`[validator-v2] Provider: ${provider}`);
-    console.log(`[validator-v2] MDAP: ${getTierSummary(modelTier)} -> ${modelName}`);
 
     await db.logger.info("validator-v2", "Starting validation", {
       taskId: payload.taskId,
@@ -300,25 +319,29 @@ export const cfnValidatorV2Task = task({
         data: { confidence, durationMs },
       });
 
-      // Record MDAP execution metrics
-      const mdapCost = estimateCost(modelTier, 0, 0);
-      try {
-        await recordMDAPExecution({
-          taskId: payload.taskId,
-          agentId: payload.agentId,
-          modelTier: modelTier.tier,
-          modelName,
-          provider,
-          success: true,
-          confidence,
-          latencyMs: durationMs,
-          estimatedCost: mdapCost,
-          complexityLevel: payload.complexityLevel || 'moderate',
-          wasEscalated: false,
-        });
-        console.log(`[validator-v2] MDAP execution recorded: tier=${modelTier.tier} cost=${mdapCost.toFixed(4)}`);
-      } catch (mdapError) {
-        console.warn(`[validator-v2] MDAP recording failed: ${(mdapError as Error).message}`);
+      // Record MDAP execution metrics (only if MDAP is enabled)
+      if (enableMDAP) {
+        const mdapCost = estimateCost(modelTier, 0, 0);
+        try {
+          await recordMDAPExecution({
+            taskId: payload.taskId,
+            agentId: payload.agentId,
+            modelTier: modelTier.tier,
+            modelName,
+            provider,
+            success: true,
+            confidence,
+            latencyMs: durationMs,
+            estimatedCost: mdapCost,
+            complexityLevel: 'simple', // Always simple for MDAP micro-task reviews
+            wasEscalated: false,
+          });
+          console.log(`[validator-v2] MDAP execution recorded: tier=${modelTier.tier} cost=${mdapCost.toFixed(4)}`);
+        } catch (mdapError) {
+          console.warn(`[validator-v2] MDAP recording failed: ${(mdapError as Error).message}`);
+        }
+      } else {
+        console.log(`[validator-v2] MDAP metrics disabled, skipping recordMDAPExecution`);
       }
 
       return {
@@ -367,25 +390,27 @@ export const cfnValidatorV2Task = task({
         errorMessage,
       });
 
-      // Record MDAP failure metrics
-      const mdapCost = estimateCost(modelTier, 0, 0);
-      try {
-        await recordMDAPExecution({
-          taskId: payload.taskId,
-          agentId: payload.agentId,
-          modelTier: modelTier.tier,
-          modelName,
-          provider,
-          success: false,
-          confidence: 0,
-          latencyMs: durationMs,
-          estimatedCost: mdapCost,
-          complexityLevel: payload.complexityLevel || 'moderate',
-          wasEscalated: false,
-        });
-        console.log(`[validator-v2] MDAP failure recorded: tier=${modelTier.tier}`);
-      } catch (mdapError) {
-        console.warn(`[validator-v2] MDAP failure recording failed: ${(mdapError as Error).message}`);
+      // Record MDAP failure metrics (only if MDAP is enabled)
+      if (enableMDAP) {
+        const mdapCost = estimateCost(modelTier, 0, 0);
+        try {
+          await recordMDAPExecution({
+            taskId: payload.taskId,
+            agentId: payload.agentId,
+            modelTier: modelTier.tier,
+            modelName,
+            provider,
+            success: false,
+            confidence: 0,
+            latencyMs: durationMs,
+            estimatedCost: mdapCost,
+            complexityLevel: 'simple', // Always simple for MDAP micro-task reviews
+            wasEscalated: false,
+          });
+          console.log(`[validator-v2] MDAP failure recorded: tier=${modelTier.tier}`);
+        } catch (mdapError) {
+          console.warn(`[validator-v2] MDAP failure recording failed: ${(mdapError as Error).message}`);
+        }
       }
 
       throw error;

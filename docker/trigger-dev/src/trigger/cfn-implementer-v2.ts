@@ -63,11 +63,13 @@ export interface ImplementerV2Payload {
   testCommand?: string;
   /** Additional environment variable overrides */
   _env?: Record<string, string>;
-  /** Task complexity level for MDAP tier selection */
+  /** Enable MDAP tier selection and metrics (default: true) */
+  enableMDAP?: boolean;
+  /** Task complexity level for MDAP tier selection (should always be 'simple' for atomic tasks) */
   complexityLevel?: 'simple' | 'moderate' | 'complex' | 'large';
-  /** Override model tier (1-5) */
+  /** Override model tier (1-5) - only used if enableMDAP is true */
   modelTier?: number;
-  /** Number of previous failures (for escalation) */
+  /** Number of previous failures (for escalation) - only used if enableMDAP is true */
   failureCount?: number;
 }
 
@@ -356,15 +358,35 @@ export const cfnImplementerV2Task = task({
 
   run: async (payload: ImplementerV2Payload): Promise<ImplementerV2Result> => {
     const startTime = Date.now();
-
-    // MDAP: Select model tier based on complexity and failure history
-    const modelTier = selectModelTier(
-      payload.complexityLevel || 'moderate',
-      payload.modelTier || 1,
-      payload.failureCount || 0
-    );
+    const enableMDAP = payload.enableMDAP !== false; // Default: true
     const provider = payload.provider || 'zai';
-    const modelName = getModelForProvider(modelTier, provider);
+
+    // MDAP: Select model tier based on failure history
+    // CRITICAL: For true MDAP (micro-tasks), complexity is always 'simple' (atomic units)
+    // The coordinator should have already broken down work into atomic micro-tasks
+    let modelTier: ModelTier;
+    let modelName: string;
+
+    if (enableMDAP) {
+      // MDAP mode: Force 'simple' complexity (atomic micro-tasks)
+      // Escalate tier ONLY on failures via failureCount
+      modelTier = selectModelTier(
+        'simple',  // Always atomic for MDAP
+        payload.modelTier || 1,
+        payload.failureCount || 0
+      );
+      modelName = getModelForProvider(modelTier, provider);
+      console.log(`[implementer-v2] MDAP enabled: ${getTierSummary(modelTier)} -> ${modelName}`);
+    } else {
+      // Non-MDAP mode: Use tier 2 (balanced) as default, respect complexity hints
+      modelTier = selectModelTier(
+        payload.complexityLevel || 'moderate',
+        payload.modelTier || 2,
+        payload.failureCount || 0
+      );
+      modelName = getModelForProvider(modelTier, provider);
+      console.log(`[implementer-v2] MDAP disabled: Using ${getTierSummary(modelTier)} -> ${modelName}`);
+    }
 
     console.log(`[implementer-v2] Starting implementation`);
     console.log(`[implementer-v2] Task ID: ${payload.taskId}`);
@@ -374,7 +396,6 @@ export const cfnImplementerV2Task = task({
     console.log(`[implementer-v2] Files: ${payload.files.join(', ')}`);
     console.log(`[implementer-v2] Tests: ${payload.tests.join(', ')}`);
     console.log(`[implementer-v2] Provider: ${provider}`);
-    console.log(`[implementer-v2] MDAP: ${getTierSummary(modelTier)} -> ${modelName}`);
     console.log(`[implementer-v2] Complexity: ${payload.complexityLevel || 'moderate'}, Failures: ${payload.failureCount || 0}`);
 
     // Log to database
@@ -550,25 +571,29 @@ export const cfnImplementerV2Task = task({
         console.warn(`[implementer-v2] Database update failed: ${(dbError as Error).message}`);
       }
 
-      // Record MDAP execution metrics
-      const mdapCost = estimateCost(modelTier, 0, 0); // Token counts not available from CLI
-      try {
-        await recordMDAPExecution({
-          taskId: payload.taskId,
-          agentId: payload.agentId,
-          modelTier: modelTier.tier,
-          modelName,
-          provider,
-          success: overallSuccess,
-          confidence,
-          latencyMs: durationMs,
-          estimatedCost: mdapCost,
-          complexityLevel: payload.complexityLevel || 'moderate',
-          wasEscalated: (payload.failureCount || 0) > 0,
-        });
-        console.log(`[implementer-v2] MDAP execution recorded: tier=${modelTier.tier} cost=${mdapCost.toFixed(4)}`);
-      } catch (mdapError) {
-        console.warn(`[implementer-v2] MDAP recording failed: ${(mdapError as Error).message}`);
+      // Record MDAP execution metrics (only if MDAP is enabled)
+      if (enableMDAP) {
+        const mdapCost = estimateCost(modelTier, 0, 0); // Token counts not available from CLI
+        try {
+          await recordMDAPExecution({
+            taskId: payload.taskId,
+            agentId: payload.agentId,
+            modelTier: modelTier.tier,
+            modelName,
+            provider,
+            success: overallSuccess,
+            confidence,
+            latencyMs: durationMs,
+            estimatedCost: mdapCost,
+            complexityLevel: 'simple', // Always simple for MDAP micro-tasks
+            wasEscalated: (payload.failureCount || 0) > 0,
+          });
+          console.log(`[implementer-v2] MDAP execution recorded: tier=${modelTier.tier} cost=${mdapCost.toFixed(4)}`);
+        } catch (mdapError) {
+          console.warn(`[implementer-v2] MDAP recording failed: ${(mdapError as Error).message}`);
+        }
+      } else {
+        console.log(`[implementer-v2] MDAP metrics disabled, skipping recordMDAPExecution`);
       }
 
       // Return result (also stored by Trigger.dev)
