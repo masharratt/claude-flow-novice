@@ -30,6 +30,14 @@ import {
   getModelForProvider,
   estimateCost,
 } from "../lib/mdap-config.js";
+import {
+  getContainerResourcesForTier,
+  shouldEscalate,
+  extractMemoryPeak,
+  extractCpuTime,
+  calculateMemoryUsagePercent,
+} from "../lib/mdap-container-config.js";
+import { recordContainerMetrics, ContainerMetrics } from "../lib/container-metrics.js";
 import { recordMDAPExecution } from "../lib/mdap-db.js";
 import {
   createWorkspaceManager,
@@ -131,6 +139,15 @@ export interface AgentContainerResult {
     tierName: string;
     modelName: string;
     estimatedCost: number;
+    tier: number;
+    wasEscalated: boolean;
+    previousTier?: number;
+    escalationReason?: string;
+    resources: {
+      memory: string;
+      cpus: number;
+      timeout: number;
+    };
   };
 
   /** Workspace isolation information if enabled */
@@ -462,12 +479,18 @@ export const cfnAgentContainerTask = task({
         ];
       }
 
+      // Get tier-based container resources if MDAP enabled
+      let containerResources = { memory: "2g", cpus: 1, timeout: 600000, memoryBytes: 2 * 1024 * 1024 * 1024, pidsLimit: 200 };
+      if (enableMDAP && modelTier !== undefined) {
+        containerResources = getContainerResourcesForTier(modelTier);
+      }
+
       const spawnOptions: ContainerSpawnOptions = {
         name: containerName,
         image,
-        memory: "2g",
-        cpus: 1,
-        timeout,
+        memory: containerResources.memory,
+        cpus: containerResources.cpus,
+        timeout: containerResources.timeout,
         networkMode: "bridge",
         env: finalEnv,
         mounts: containerMounts,
@@ -481,6 +504,11 @@ export const cfnAgentContainerTask = task({
       console.log(`[cfn-agent-container] Spawning container: ${containerName}`);
 
       // 5. Spawn and execute container
+      let actualTier = modelTier;
+      let wasEscalated = false;
+      let previousTierForEscalation: number | undefined;
+      let escalationReasonText: string | undefined;
+
       containerResult = await spawner.spawnAgentContainer(spawnOptions);
 
       console.log(`[cfn-agent-container] Container completed`);
@@ -488,6 +516,39 @@ export const cfnAgentContainerTask = task({
       console.log(`  Duration: ${containerResult.durationMs}ms`);
       console.log(`  Stdout Length: ${containerResult.stdout.length}`);
       console.log(`  Stderr Length: ${containerResult.stderr.length}`);
+
+      // 5.5. Check for escalation and retry if needed
+      if (enableMDAP && modelTier !== undefined && containerResult.exitCode !== 0) {
+        const escalationDecision = shouldEscalate(containerResult, modelTier);
+        if (escalationDecision.shouldEscalate && escalationDecision.newTier && escalationDecision.newTier > modelTier) {
+          previousTierForEscalation = modelTier;
+          escalationReasonText = escalationDecision.reason;
+          console.log(`[cfn-agent-container] Escalation recommended: ${escalationReasonText}`);
+          console.log(`[cfn-agent-container] Retrying with tier ${escalationDecision.newTier}`);
+
+          // Get escalated resources
+          const escalatedResources = getContainerResourcesForTier(escalationDecision.newTier);
+          const escalatedName = `${containerName}-retry`;
+
+          // Retry with escalated tier
+          const escalatedOptions: ContainerSpawnOptions = {
+            ...spawnOptions,
+            name: escalatedName,
+            memory: escalatedResources.memory,
+            cpus: escalatedResources.cpus,
+            timeout: escalatedResources.timeout,
+          };
+
+          containerResult = await spawner.spawnAgentContainer(escalatedOptions);
+          wasEscalated = true;
+          actualTier = escalationDecision.newTier;
+
+          console.log(`[cfn-agent-container] Escalated execution completed`);
+          console.log(`  New Tier: ${actualTier}`);
+          console.log(`  Exit Code: ${containerResult.exitCode}`);
+          console.log(`  Duration: ${containerResult.durationMs}ms`);
+        }
+      }
 
       // 6. Record execution in database
       await recordAgentExecution(payload, containerResult);
@@ -515,15 +576,63 @@ export const cfnAgentContainerTask = task({
           console.log(`[cfn-agent-container] MDAP metrics recorded`);
 
           mdapMetadata = {
-            modelTier,
-            tierName: `Tier ${modelTier}`,
+            modelTier: actualTier || modelTier || 2,
+            tierName: `Tier ${actualTier || modelTier || 2}`,
             modelName,
             estimatedCost: estimatedCostValue,
+            tier: actualTier || modelTier || 2,
+            wasEscalated,
+            previousTier: previousTierForEscalation,
+            escalationReason: escalationReasonText,
+            resources: {
+              memory: containerResources.memory,
+              cpus: containerResources.cpus,
+              timeout: containerResources.timeout,
+            },
           };
         } catch (mdapError) {
           console.warn(
             `[cfn-agent-container] MDAP recording failed: ${
               (mdapError as Error).message
+            }`
+          );
+        }
+      }
+
+      // 7.5. Record container metrics if enabled
+      if (enableMDAP && actualTier !== undefined && containerResult) {
+        try {
+          const memoryPeak = extractMemoryPeak(containerResult);
+          const cpuTime = extractCpuTime(containerResult);
+          const usagePercent = calculateMemoryUsagePercent(memoryPeak, containerResources.memoryBytes);
+
+          await recordContainerMetrics({
+            containerId: containerResult.containerId,
+            taskId: payload.taskId,
+            agentId: payload.agentId,
+            agentType: payload.agentType,
+            mdapTier: actualTier,
+            startedAt: new Date(Date.now() - containerResult.durationMs),
+            completedAt: new Date(),
+            durationMs: containerResult.durationMs,
+            memoryLimitBytes: containerResources.memoryBytes,
+            memoryPeakBytes: memoryPeak,
+            memoryUsagePercent: usagePercent,
+            cpuTimeMs: cpuTime,
+            exitCode: containerResult.exitCode,
+            success: containerResult.exitCode === 0,
+            oomKilled: containerResult.exitCode === 137,
+            timedOut: containerResult.exitCode === 124 || containerResult.durationMs >= containerResources.timeout,
+            wasEscalated,
+            previousTier: previousTierForEscalation,
+            escalationReason: escalationReasonText,
+          });
+
+          console.log(`[cfn-agent-container] Container metrics recorded`);
+        } catch (metricsError) {
+          console.warn(
+            `[cfn-agent-container] Container metrics recording failed: ${
+              (metricsError as Error).message
             }`
           );
         }
