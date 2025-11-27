@@ -523,6 +523,99 @@ CFN_MDAP_CONTAINERS=false  # Ignore tier for container resources
 
 ---
 
+## Coordinator Session Continuation
+
+**Key Architectural Decision:** Coordinator uses session continuation, agents use context rebuilding.
+
+### Coordinator Pattern (Persistent Session)
+
+```typescript
+// Coordinator maintains session across decomposition iterations
+interface CoordinatorSession {
+  sessionId: string;      // Claude CLI session ID (from --output-format json)
+  taskId: string;         // CFN task ID
+  iteration: number;      // Current iteration
+  decisions: Decision[];  // History of decomposition decisions
+}
+
+// Store in Redis
+await redis.set(`cfn:${taskId}:coordinator:session`, sessionId);
+
+// Resume coordinator for next decision
+const result = await executeClaudeCli([
+  '--resume', sessionId,
+  '-p', `Current state: ${JSON.stringify(state)}. Decompose next steps.`,
+  '--output-format', 'json'
+], { cwd: workDir });
+```
+
+### Why Session Continuation for Coordinator?
+
+| Aspect | Context Rebuild | Session Continuation |
+|--------|----------------|---------------------|
+| Memory | Reconstruct from Redis | Full history preserved |
+| Decisions | Must re-explain | Already in context |
+| Latency | Higher (prompt injection) | Lower (resume) |
+| Use Case | Stateless agents | Stateful coordinator |
+
+### Implementation in cfn-orchestrator.ts
+
+```typescript
+export const cfnOrchestratorTask = task({
+  id: "cfn-orchestrator",
+  run: async (payload) => {
+    // 1. Create or resume coordinator session
+    let sessionId = await redis.get(`cfn:${payload.taskId}:coordinator:session`);
+
+    if (!sessionId) {
+      // Initial session - analyze and decompose
+      const result = await executeClaudeCli([
+        '-p', `Analyze task: ${payload.description}. Decompose into agents.`,
+        '--output-format', 'json'
+      ], { cwd: payload.workDir });
+
+      sessionId = JSON.parse(result.stdout).session_id;
+      await redis.set(`cfn:${payload.taskId}:coordinator:session`, sessionId);
+    }
+
+    // 2. Iteration loop
+    while (iteration < maxIterations) {
+      // Resume coordinator to evaluate and decide
+      const decision = await executeClaudeCli([
+        '--resume', sessionId,
+        '-p', `Iteration ${iteration} complete. Results: ${JSON.stringify(results)}. Decide: PROCEED/ITERATE/ABORT`,
+        '--output-format', 'json'
+      ], { cwd: payload.workDir });
+
+      // ... spawn agents, wait, validate ...
+    }
+  }
+});
+```
+
+### Agent Pattern (Stateless, Context Rebuilt)
+
+```typescript
+// Agents are disposable - context injected each time
+const agentPrompt = buildAgentPrompt({
+  definition: agentDefinition,
+  context: {
+    taskDescription,
+    iterationHistory,      // From Redis
+    validatorFeedback,     // From previous iteration
+    successCriteria,       // From Redis
+  }
+});
+
+// No session resumption - fresh each time
+await executeClaudeCli([
+  '-p', agentPrompt,
+  '--dangerously-skip-permissions'
+], { cwd: workDir });
+```
+
+---
+
 ## Next Steps
 
 1. Review and approve this plan
