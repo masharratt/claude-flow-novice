@@ -31,6 +31,14 @@ import {
   estimateCost,
 } from "../lib/mdap-config.js";
 import { recordMDAPExecution } from "../lib/mdap-db.js";
+import {
+  createWorkspaceManager,
+  WorkspaceOptions,
+} from "../lib/workspace-manager.js";
+import {
+  generateAgentMounts,
+  convertToDockerMounts,
+} from "../lib/workspace-mounts.js";
 
 // =============================================
 // Type Definitions
@@ -81,6 +89,15 @@ export interface AgentContainerPayload {
 
   /** Confidence score for MDAP tracking (0.0-1.0, optional) */
   confidence?: number;
+
+  /** Enable workspace isolation (default: true) */
+  workspaceIsolation?: boolean;
+
+  /** Files to copy to isolated workspace */
+  includePatterns?: string[];
+
+  /** Files to exclude from isolated workspace */
+  excludePatterns?: string[];
 }
 
 /**
@@ -114,6 +131,13 @@ export interface AgentContainerResult {
     tierName: string;
     modelName: string;
     estimatedCost: number;
+  };
+
+  /** Workspace isolation information if enabled */
+  workspace?: {
+    path: string;
+    filesCount: number;
+    isolated: boolean;
   };
 
   /** Error message if execution failed */
@@ -303,6 +327,7 @@ export const cfnAgentContainerTask = task({
     const provider = payload.provider || "zai";
     const enableMDAP = payload.enableMDAP !== false;
     const timeout = payload.timeout || 600000; // 10 minutes default
+    const enableWorkspaceIsolation = payload.workspaceIsolation !== false;
 
     console.log(`[cfn-agent-container] Starting agent execution`);
     console.log(`  Task ID: ${payload.taskId}`);
@@ -310,14 +335,52 @@ export const cfnAgentContainerTask = task({
     console.log(`  Agent Type: ${payload.agentType}`);
     console.log(`  Provider: ${provider}`);
     console.log(`  MDAP Enabled: ${enableMDAP}`);
+    console.log(`  Workspace Isolation: ${enableWorkspaceIsolation}`);
 
     let containerResult: ContainerResult | null = null;
     let mdapMetadata: AgentContainerResult["mdap"] | undefined;
+    let workspaceInfo: { path: string; filesCount: number } | undefined;
+    const workspaceManager = createWorkspaceManager();
 
     try {
       // 1. Resolve container image
       const image = getImageForAgentType(payload.agentType);
       console.log(`[cfn-agent-container] Using image: ${image}`);
+
+      // 1.5. Create isolated workspace if enabled
+      let workspaceDirectory = payload.workDir;
+      if (enableWorkspaceIsolation) {
+        console.log(`[cfn-agent-container] Creating isolated workspace`);
+        const workspaceOpts: WorkspaceOptions = {
+          sourceDir: payload.workDir,
+          agentId: payload.agentId,
+          taskId: payload.taskId,
+          includePatterns: payload.includePatterns,
+          excludePatterns: payload.excludePatterns ?? [
+            "node_modules",
+            ".git",
+            "dist",
+            ".next",
+            "build",
+            ".env.local",
+          ],
+        };
+
+        const createdWorkspace =
+          await workspaceManager.createAgentWorkspace(workspaceOpts);
+        workspaceDirectory = createdWorkspace.path;
+        workspaceInfo = {
+          path: createdWorkspace.path,
+          filesCount: createdWorkspace.filesCount,
+        };
+
+        console.log(
+          `[cfn-agent-container] Workspace created: ${createdWorkspace.path}`
+        );
+        console.log(
+          `[cfn-agent-container] Files copied: ${createdWorkspace.filesCount}`
+        );
+      }
 
       // 2. Build environment variables
       const containerEnv = buildContainerEnvironment(payload);
@@ -372,6 +435,33 @@ export const cfnAgentContainerTask = task({
         }
       }
 
+      // 4.5. Generate mounts using workspace-aware configuration
+      let containerMounts: ContainerSpawnOptions["mounts"] = [];
+      if (enableWorkspaceIsolation && workspaceInfo) {
+        // Use workspace-mounts module to generate isolated mounts
+        const mountConfigs = generateAgentMounts({
+          agentWorkspace: workspaceDirectory,
+          taskId: payload.taskId,
+          agentId: payload.agentId,
+        });
+        const dockerMounts = convertToDockerMounts(mountConfigs);
+        containerMounts = dockerMounts.map((dm) => ({
+          source: dm.Source,
+          target: dm.Target,
+          readonly: dm.ReadOnly || false,
+        }));
+        console.log(`[cfn-agent-container] Generated ${containerMounts.length} mounts`);
+      } else {
+        // Fallback to simple mount if isolation disabled
+        containerMounts = [
+          {
+            source: workspaceDirectory,
+            target: "/workspace",
+            readonly: false,
+          },
+        ];
+      }
+
       const spawnOptions: ContainerSpawnOptions = {
         name: containerName,
         image,
@@ -380,13 +470,7 @@ export const cfnAgentContainerTask = task({
         timeout,
         networkMode: "bridge",
         env: finalEnv,
-        mounts: [
-          {
-            source: payload.workDir,
-            target: "/workspace",
-            readonly: false,
-          },
-        ],
+        mounts: containerMounts,
         command: [
           "sh",
           "-c",
@@ -462,11 +546,35 @@ export const cfnAgentContainerTask = task({
         stderr: containerResult.stderr,
         durationMs: containerResult.durationMs,
         mdap: mdapMetadata,
+        workspace: workspaceInfo
+          ? {
+              path: workspaceInfo.path,
+              filesCount: workspaceInfo.filesCount,
+              isolated: true,
+            }
+          : undefined,
       };
 
       console.log(
         `[cfn-agent-container] Task completed successfully: ${finalResult.success}`
       );
+
+      // 11. Cleanup workspace if isolation was enabled
+      if (enableWorkspaceIsolation && workspaceInfo) {
+        try {
+          console.log(
+            `[cfn-agent-container] Cleaning up workspace: ${workspaceInfo.path}`
+          );
+          await workspaceManager.cleanupAgentWorkspace(workspaceInfo.path);
+          console.log(`[cfn-agent-container] Workspace cleanup complete`);
+        } catch (cleanupError) {
+          console.warn(
+            `[cfn-agent-container] Workspace cleanup failed: ${
+              (cleanupError as Error).message
+            }`
+          );
+        }
+      }
 
       return finalResult;
     } catch (error) {
@@ -491,6 +599,23 @@ export const cfnAgentContainerTask = task({
 
       // Note: Container cleanup handled by DockerSpawner internally
 
+      // Cleanup workspace even on failure
+      if (enableWorkspaceIsolation && workspaceInfo) {
+        try {
+          console.log(
+            `[cfn-agent-container] Cleaning up workspace after error: ${workspaceInfo.path}`
+          );
+          await workspaceManager.cleanupAgentWorkspace(workspaceInfo.path);
+          console.log(`[cfn-agent-container] Workspace cleanup complete`);
+        } catch (cleanupError) {
+          console.warn(
+            `[cfn-agent-container] Workspace cleanup failed: ${
+              (cleanupError as Error).message
+            }`
+          );
+        }
+      }
+
       // Return error result
       return {
         success: false,
@@ -500,6 +625,13 @@ export const cfnAgentContainerTask = task({
         stderr: containerResult?.stderr || "",
         durationMs: Date.now() - startTime,
         mdap: mdapMetadata,
+        workspace: workspaceInfo
+          ? {
+              path: workspaceInfo.path,
+              filesCount: workspaceInfo.filesCount,
+              isolated: true,
+            }
+          : undefined,
         error: errorMsg,
       };
     }
