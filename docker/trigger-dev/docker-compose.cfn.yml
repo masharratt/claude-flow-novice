@@ -1,0 +1,94 @@
+# CFN Loop Infrastructure for Trigger.dev Integration
+# Phase 0: Dedicated Postgres (5435) and Redis (6390) for CFN coordination
+#
+# This stack runs ALONGSIDE the Trigger.dev infrastructure:
+# - Trigger.dev: ports 8030 (webapp), 5434 (postgres), 6389 (redis)
+# - CFN: ports 5435 (postgres), 6390 (redis)
+#
+# Usage:
+#   docker compose -f docker-compose.cfn.yml up -d
+#   docker compose -f docker-compose.cfn.yml down
+
+services:
+  # ==========================================================================
+  # CFN PostgreSQL Database
+  # ==========================================================================
+  # Purpose: Store CFN Loop execution data, agent tracking, logs, test results
+  # Port: 5435 (avoids conflict with Trigger.dev postgres on 5432)
+  # ==========================================================================
+  cfn-postgres:
+    image: postgres:15-alpine
+    container_name: cfn-postgres
+    environment:
+      POSTGRES_USER: ${CFN_POSTGRES_USER:-cfn}
+      POSTGRES_PASSWORD: ${CFN_POSTGRES_PASSWORD:-cfn_dev_password}
+      POSTGRES_DB: ${CFN_POSTGRES_DB:-cfn_loop}
+    ports:
+      - "${CFN_POSTGRES_PORT:-5435}:5432"
+    volumes:
+      - cfn-postgres-data:/var/lib/postgresql/data
+      - ./schema/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CFN_POSTGRES_USER:-cfn} -d ${CFN_POSTGRES_DB:-cfn_loop}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - cfn-infrastructure-network
+      - trigger-cfn-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================================================
+  # CFN Redis Coordination
+  # ==========================================================================
+  # Purpose: Real-time coordination signals, completion tracking, agent status
+  # Port: 6390 (avoids conflict with Trigger.dev redis on 6379/6380)
+  # Features: AOF persistence for durability
+  # ==========================================================================
+  cfn-redis:
+    image: redis:7-alpine
+    container_name: cfn-redis
+    ports:
+      - "${CFN_REDIS_PORT:-6390}:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - cfn-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - cfn-infrastructure-network
+      - trigger-cfn-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  cfn-postgres-data:
+    name: cfn-postgres-data
+  cfn-redis-data:
+    name: cfn-redis-data
+
+networks:
+  # Dedicated network for CFN infrastructure inter-service communication
+  cfn-infrastructure-network:
+    name: cfn-infrastructure-network
+    driver: bridge
+  # Shared network with Trigger.dev for task access
+  # Note: This network is created here and should be referenced by Trigger.dev compose
+  # If Trigger.dev is running first, set external: true instead
+  trigger-cfn-network:
+    name: trigger-cfn-network
+    driver: bridge
