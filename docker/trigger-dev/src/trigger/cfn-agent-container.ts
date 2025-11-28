@@ -27,9 +27,9 @@ import * as db from "../lib/cfn-db.js";
 import * as redis from "../lib/cfn-redis.js";
 import {
   selectModelTier,
-  getModelForProvider,
   estimateCost,
 } from "../lib/mdap-config.js";
+import { getModelForProvider } from "../lib/provider-model-resolver.js";
 import {
   getContainerResourcesForTier,
   shouldEscalate,

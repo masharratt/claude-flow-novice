@@ -22,11 +22,11 @@ import * as redis from "../lib/cfn-redis.js";
 import { executeClaudeCli, executeCommand } from "../lib/cli-executor.js";
 import {
   selectModelTier,
-  getModelForProvider,
   estimateCost,
   getTierSummary,
   type ModelTier,
 } from "../lib/mdap-config.js";
+import { getModelForProvider } from "../lib/provider-model-resolver.js";
 import { recordMDAPExecution } from "../lib/mdap-db.js";
 
 // =============================================
