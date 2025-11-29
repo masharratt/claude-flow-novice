@@ -71,6 +71,10 @@ export interface ImplementerV2Payload {
   modelTier?: number;
   /** Number of previous failures (for escalation) - only used if enableMDAP is true */
   failureCount?: number;
+  /** Context hints from MDAP atomicity analysis */
+  contextHints?: string[];
+  /** Pre-read file contents to avoid Read calls */
+  fileContents?: Array<{ path: string; content: string }>;
 }
 
 /**
@@ -198,6 +202,27 @@ export function buildImplementerPrompt(payload: ImplementerV2Payload): string {
   // Agent type context
   parts.push(`You are acting as a ${payload.agentType} agent.`);
   parts.push('');
+
+  // Context hints from MDAP atomicity analysis
+  if (payload.contextHints && payload.contextHints.length > 0) {
+    parts.push('## Context Hints');
+    payload.contextHints.forEach(hint => parts.push(`- ${hint}`));
+    parts.push('');
+  }
+
+  // Pre-read file contents to avoid Read calls
+  if (payload.fileContents && payload.fileContents.length > 0) {
+    parts.push('## Current File Contents');
+    parts.push('These files have been pre-read for you:');
+    parts.push('');
+    payload.fileContents.forEach(({ path, content }) => {
+      parts.push(`### ${path}`);
+      parts.push('```');
+      parts.push(content);
+      parts.push('```');
+      parts.push('');
+    });
+  }
 
   // Files to work on
   if (payload.files.length > 0) {
@@ -398,6 +423,8 @@ export const cfnImplementerV2Task = task({
     console.log(`[implementer-v2] Tests: ${payload.tests.join(', ')}`);
     console.log(`[implementer-v2] Provider: ${provider}`);
     console.log(`[implementer-v2] Complexity: ${payload.complexityLevel || 'moderate'}, Failures: ${payload.failureCount || 0}`);
+    console.log(`[implementer-v2] Context hints: ${payload.contextHints?.length || 0}`);
+    console.log(`[implementer-v2] Pre-read files: ${payload.fileContents?.length || 0}`);
 
     // Log to database
     try {

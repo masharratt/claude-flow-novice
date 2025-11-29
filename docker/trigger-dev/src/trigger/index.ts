@@ -22,6 +22,25 @@ export type { ImplementerPayload, ImplementerResult } from "./cfn-implementer.js
 export { cfnTestRunnerTask } from "./cfn-test-runner.js";
 export type { TestRunnerPayload, TestRunnerResult } from "./cfn-test-runner.js";
 
+// CFN Loop Tasks - Async Validators (Background Execution)
+export { cfnAsyncSecurityValidatorTask } from "./cfn-async-security-validator.js";
+export type {
+  AsyncSecurityValidatorPayload,
+  AsyncSecurityValidatorResult,
+  SecurityFinding,
+} from "./cfn-async-security-validator.js";
+
+export { cfnAsyncPerformanceValidatorTask } from "./cfn-async-performance-validator.js";
+export type {
+  AsyncPerformanceValidatorPayload,
+  AsyncPerformanceValidatorResult,
+  PerformanceIssue,
+} from "./cfn-async-performance-validator.js";
+
+// CFN Loop Tasks - Gate Check Aggregator
+export { cfnGateCheckAggregatorTask } from "./cfn-gate-check-aggregator.js";
+export type { GateCheckPayload, GateCheckResult } from "./cfn-gate-check-aggregator.js";
+
 // CFN Loop Tasks - Validator (Loop 2)
 export { cfnValidatorTask } from "./cfn-validator.js";
 export type { ValidatorPayload, ValidatorResult } from "./cfn-validator.js";
@@ -42,16 +61,11 @@ export type { OrchestratorPayload, OrchestratorResult } from "./cfn-orchestrator
 export { cfnOrchestratorV2Task } from "./cfn-orchestrator-v2.js";
 export type { OrchestratorV2Payload, OrchestratorV2Result } from "./cfn-orchestrator-v2.js";
 
-// CFN Loop Tasks - Strategic Coordinator (Phase 3 v2)
+// CFN Loop Tasks - Strategic Coordinator (Phase 3 v3 - Decomposition Swarm)
 export { cfnCoordinatorTask } from "./cfn-coordinator.js";
 export type {
-  CoordinatorPayload,
-  CoordinatorResult,
-  AgentManifest,
-  Phase,
-  AgentDefinition,
-  TaskPattern,
-  AgentType,
+  CFNCoordinatorPayload,
+  CFNCoordinatorResult,
 } from "./cfn-coordinator.js";
 
 // POC Test Task
@@ -73,3 +87,63 @@ export { testCoordinatorTask } from "./test-coordinator.js";
 export { cfnImplementerV2Task } from "./cfn-implementer-v2.js";
 export type { ImplementerV2Payload, ImplementerV2Result } from "./cfn-implementer-v2.js";
 export { buildImplementerPrompt, runAgentTests, calculateConfidence } from "./cfn-implementer-v2.js";
+
+// CFN Loop Tasks - Implementer Cerebras (MDAP v2 - Fast, Cost-Optimized)
+export { cfnImplementerCerebrasTask } from "./cfn-implementer-cerebras.js";
+export type { ImplementerCerebrasPayload, ImplementerCerebrasResult } from "./cfn-implementer-cerebras.js";
+
+// CFN Loop Tasks - Troubleshooter V2 (Thinking-First Parallel Probing)
+export { cfnTroubleshooterV2Task } from "./cfn-troubleshooter-v2.js";
+export type { TroubleshooterV2Payload, TroubleshooterV2Result } from "./cfn-troubleshooter-v2.js";
+
+// CFN Thinking-Model-Driven Task Decomposer
+export { cfnThinkingDecomposerTask } from "./cfn-thinking-decomposer.js";
+export type {
+  DecomposerPayload,
+  DecomposerResult,
+  DecompositionResult,
+  MicroTask,
+  ValidationCriteria,
+} from "./cfn-thinking-decomposer.js";
+export {
+  performDecomposition,
+  generateCacheKey,
+  assessComplexity,
+  assessRiskLevel,
+  detectSecurityImplications,
+  detectPerformanceImplications,
+} from "./cfn-thinking-decomposer.js";
+
+// CFN Decomposition Swarm - Specialized Decomposers
+export { cfnArchitectureDecomposerTask } from "./cfn-architecture-decomposer.js";
+export type {
+  ArchitectureDecomposerPayload,
+  ArchitectureAnalysis,
+} from "./cfn-architecture-decomposer.js";
+
+export { cfnSecurityDecomposerTask } from "./cfn-security-decomposer.js";
+export type {
+  SecurityDecomposerPayload,
+  SecurityAnalysis,
+} from "./cfn-security-decomposer.js";
+
+export { cfnPerformanceDecomposerTask } from "./cfn-performance-decomposer.js";
+export type {
+  PerformanceDecomposerPayload,
+  PerformanceAnalysis,
+} from "./cfn-performance-decomposer.js";
+
+export { cfnTestingDecomposerTask } from "./cfn-testing-decomposer.js";
+export type {
+  TestingDecomposerPayload,
+  TestingAnalysis,
+} from "./cfn-testing-decomposer.js";
+
+// CFN Decomposition Aggregator - Orchestrates 4 decomposers and merges results
+export { cfnDecompositionAggregatorTask } from "./cfn-decomposition-aggregator.js";
+export type {
+  DecompositionAggregatorPayload,
+  DecompositionPlan,
+  UnifiedMicroTask,
+  ExecutionPhase,
+} from "./cfn-decomposition-aggregator.js";

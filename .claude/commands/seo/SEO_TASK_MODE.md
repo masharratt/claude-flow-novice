@@ -1,29 +1,38 @@
-# SEO Task Mode Guide
+# SEO Task Mode Guide (11-Step Quality-Focused Pipeline)
 
 **Purpose:** Execute SEO content pipeline using Task() spawning from Main Chat (no coordinator agent)
 
 **When to Use:**
 - Debugging SEO pipeline issues
-- Learning the 8-step process
+- Learning the 11-step quality-focused process
 - Single-step testing (keyword research only)
 - Development of new SEO agents
+- Premium content requiring unique angles and depth
 
-**Cost:** $5-15 per full pipeline (Anthropic pricing for all agents)
+**Cost:** $7-20 per full pipeline (Anthropic pricing for all agents)
 
 **Alternative:** CLI Mode via `cfn-seo-coordinator` ($1/pipeline with Z.ai routing)
+
+**Pipeline Version:** 11-Step Quality-Focused (6 validators)
+
+**Legacy Mode:** Use `--legacy` flag for original 9-step Firecrawl pipeline (4 validators)
 
 ---
 
 ## Table of Contents
 
 1. [Quick Start - Full Pipeline](#quick-start-full-pipeline)
-2. [8-Step Pipeline Guide](#8-step-pipeline-guide)
-3. [Agent Selection by Step](#agent-selection-by-step)
-4. [Sprint Workflow](#sprint-workflow)
-5. [Validation Loop](#validation-loop)
-6. [Single-Step Execution](#single-step-execution)
-7. [Content Type Variations](#content-type-variations)
-8. [Troubleshooting](#troubleshooting)
+2. [11-Step Pipeline Guide (Quality-Focused)](#11-step-pipeline-guide)
+3. [NEW: Angle Development (Step 5)](#step-5-angle-development)
+4. [NEW: Depth Injection (Step 8)](#step-8-depth-injection)
+5. [Agent Selection by Step](#agent-selection-by-step)
+6. [Sprint Workflow](#sprint-workflow)
+7. [Validation Loop (6 Validators)](#validation-loop)
+8. [Quality Tier Reporting](#quality-tier-reporting)
+9. [Single-Step Execution](#single-step-execution)
+10. [Content Type Variations](#content-type-variations)
+11. [Legacy Mode (9-Step Pipeline)](#legacy-mode)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -100,26 +109,106 @@ Task("content-seo-strategist", `
   - Addresses user intent
 `)
 
-// Step 4: Research (External - Perplexity API)
-// Note: This step uses Perplexity via OpenRouter, not a CFN agent
-// Main Chat executes this directly or via a research-helper script
-
-// Step 5: Content Writing
-Task("content-seo-strategist", `
-  Write blog post following outline: content/outlines/preserve-family-stories-outline.md
+// Step 4: Research (Enhanced with Example Mining)
+Task("research-specialist", `
+  Deep research for blog post: "preserving family stories"
 
   Context:
   - Outline: content/outlines/preserve-family-stories-outline.md
-  - Research sources: content/research/family-stories-research.md
+  - Primary keyword: "preserve family stories"
+
+  Research Requirements:
+  1. Real examples from Reddit, Quora, Twitter (user stories)
+  2. Expert source identification (genealogists, archivists)
+  3. Counter-examples (common mistakes, what NOT to do)
+  4. Statistical data with citations
+  5. Expert quotes (with attribution)
+
+  Deliverables:
+  - Research document with categorized sources
+  - Real-world examples (at least 5)
+  - Expert insights (at least 3)
+  - Counter-examples (at least 2)
+
+  Output: content/research/family-stories-research.md
+
+  Success Criteria:
+  - ≥5 credible sources cited
+  - ≥5 real examples from social platforms
+  - ≥3 expert sources identified
+  - Counter-examples documented
+`)
+
+// Step 5: Angle Development (NEW)
+Task("angle-developer", `
+  Develop unique content angle for "preserve family stories"
+
+  Context:
+  - Keyword research: content/seo-data/keyword-research-family-stories.json
+  - Competitor analysis: content/seo-data/competitor-analysis-family-stories.md
+  - SERP analysis: content/seo-data/serp-analysis-family-stories.json
+  - Research: content/research/family-stories-research.md
+
+  Deliverables:
+  - Thesis statement (unique perspective/claim)
+  - Narrative pattern (story structure, not just headers)
+  - Voice profile (tone, style, vocabulary)
+  - Differentiation analysis (how this differs from competitors)
+
+  Output: content/angles/family-stories-angle.yaml
+
+  Success Criteria:
+  - Thesis uniqueness score ≥0.80 (compared to competitors)
+  - Voice profile distinct from competitor patterns
+  - Narrative structure supports thesis
+  - Differentiation clearly articulated
+`)
+
+// Step 6: Content Outline (Enhanced with Narrative Arc)
+Task("content-seo-strategist", `
+  Create narrative-driven outline for "preserve family stories"
+
+  Context:
+  - Angle document: content/angles/family-stories-angle.yaml
+  - Keyword research: content/seo-data/keyword-research-family-stories.json
+  - SERP analysis: content/seo-data/serp-analysis-family-stories.json
+  - Research: content/research/family-stories-research.md
+
+  Deliverables:
+  - Story structure outline (not just headers)
+  - Tension point mapping (where to create engagement)
+  - Depth distribution planning (where to go deep)
+  - Internal linking opportunities
+  - CTA placement recommendations
+
+  Output: content/outlines/preserve-family-stories-outline.md
+
+  Success Criteria:
+  - Narrative arc supports angle thesis
+  - Tension points mapped to key sections
+  - Depth distribution planned (not uniform)
+  - Keywords integrated naturally into story flow
+`)
+
+// Step 7: Content Writing (Enhanced with Voice & Examples)
+Task("seo-content-writer", `
+  Write blog post following narrative outline
+
+  Context:
+  - Outline: content/outlines/preserve-family-stories-outline.md
+  - Angle document: content/angles/family-stories-angle.yaml
+  - Research: content/research/family-stories-research.md
   - Brand voice: OurStories (warm, personal, empowering)
   - Target audience: Families, genealogists, memory keepers
 
   Requirements:
   - 1500-2000 words
-  - Conversational, human tone (avoid AI language)
-  - Include personal examples/anecdotes
+  - Apply voice profile from angle document
+  - Integrate real examples from research
+  - Follow narrative arc (not just headers)
+  - Adhere to thesis from angle document
   - Natural keyword integration
-  - Engaging introduction
+  - Engaging introduction with tension
   - Strong CTA at end
 
   Deliverables:
@@ -129,17 +218,49 @@ Task("content-seo-strategist", `
 
   Success Criteria:
   - Meets word count target
+  - Voice profile consistently applied
+  - ≥5 real examples integrated from research
+  - Narrative arc followed (not listicle structure)
+  - Thesis supported throughout
   - Primary keyword appears 3-5 times naturally
-  - Conversational tone (no "delve into", "unlock potential")
-  - Clear value proposition
 `)
 
-// Step 6: SEO Optimization
-Task("technical-seo-specialist", `
-  Optimize blog post for technical SEO
+// Step 8: Depth Injection (NEW)
+Task("depth-enhancer", `
+  Enhance content depth for "preserve family stories"
 
   Context:
-  - Draft: content/drafts/preserve-family-stories.md
+  - Draft article: content/drafts/preserve-family-stories.md
+  - Angle document: content/angles/family-stories-angle.yaml
+  - Research document: content/research/family-stories-research.md
+
+  Enhancement Requirements:
+  1. Add deeper insights to shallow sections
+  2. Expand examples with context and outcomes
+  3. Add counter-examples where missing
+  4. Deepen expert perspectives
+  5. Add nuance to simplistic statements
+
+  Deliverables:
+  - Enhanced article with depth markers
+  - Depth audit report (before/after scores)
+
+  Output: content/enhanced/preserve-family-stories.md
+
+  Success Criteria:
+  - Depth score improvement ≥20% per section
+  - All sections meet minimum depth threshold
+  - Examples expanded with context
+  - Counter-examples added to key claims
+  - Expert insights deepened
+`)
+
+// Step 9: SEO Optimization
+Task("technical-seo-specialist", `
+  Optimize enhanced blog post for technical SEO
+
+  Context:
+  - Enhanced draft: content/enhanced/preserve-family-stories.md
   - Primary keyword: "preserve family stories"
   - Target URL: /blog/preserve-family-stories
 
@@ -150,7 +271,6 @@ Task("technical-seo-specialist", `
   4. Internal linking (3-5 relevant internal links)
   5. Image alt text recommendations
   6. URL slug optimization
-  7. Schema markup preparation (for Step 8)
 
   Deliverables:
   - Optimized blog post (with frontmatter metadata)
@@ -165,7 +285,7 @@ Task("technical-seo-specialist", `
   - Headers optimized (H1 has primary keyword)
 `)
 
-// Step 7: Validation (3 Validators in Parallel)
+// Step 10: Validation (6 Validators in Parallel)
 Task("humanizer-validator", `
   Validate blog post for natural, human-like writing
 
@@ -185,6 +305,7 @@ Task("humanizer-validator", `
   - Specific rewrites recommended
 
   Threshold: ≥0.75 to pass
+  Weight: 0.15
 `)
 
 Task("branding-validator", `
@@ -207,6 +328,7 @@ Task("branding-validator", `
   - Recommended adjustments
 
   Threshold: ≥0.75 to pass
+  Weight: 0.15
 `)
 
 Task("audience-validator", `
@@ -229,18 +351,94 @@ Task("audience-validator", `
   - Suggested improvements
 
   Threshold: ≥0.75 to pass
+  Weight: 0.15
 `)
 
-// Main Chat collects validator scores and calculates consensus
-// IF consensus ≥0.95 → Proceed to Step 8
-// IF consensus <0.95 → Iterate (spawn Step 5 again with validator feedback)
+Task("seo-validator", `
+  Validate blog post SEO optimization
 
-// Step 8: Publishing with Schema
+  Context:
+  - Article: content/optimized/preserve-family-stories.md
+  - Primary keyword: "preserve family stories"
+  - Iteration: 1
+
+  Check for:
+  - Keyword density (not over-optimized)
+  - Header hierarchy (H1 → H2 → H3)
+  - Meta tags quality
+  - Internal linking relevance
+
+  Output Format:
+  - Confidence score: [0.0-1.0]
+  - SEO issues found
+  - Optimization recommendations
+
+  Threshold: ≥0.75 to pass
+  Weight: 0.15
+`)
+
+Task("voice-authenticity-validator", `
+  Validate voice profile adherence (NEW)
+
+  Context:
+  - Article: content/optimized/preserve-family-stories.md
+  - Angle document: content/angles/family-stories-angle.yaml
+  - Iteration: 1
+
+  Check for:
+  - Voice profile consistency with angle document
+  - Tone deviations from intended voice
+  - Vocabulary alignment with voice profile
+  - Narrative adherence to angle thesis
+
+  Output Format:
+  - Confidence score: [0.0-1.0]
+  - Voice deviations found (with line numbers)
+  - Voice adjustment recommendations
+
+  Threshold: ≥0.75 to pass
+  Weight: 0.20
+`)
+
+Task("depth-quality-validator", `
+  Validate content depth and quality (NEW)
+
+  Context:
+  - Article: content/optimized/preserve-family-stories.md
+  - Research document: content/research/family-stories-research.md
+  - Depth audit: content/enhanced/preserve-family-stories-depth-audit.md
+  - Iteration: 1
+
+  Check for:
+  - Depth sufficiency across all sections
+  - Example integration quality
+  - Counter-example presence
+  - Expert insight utilization
+  - Nuance in claims and statements
+
+  Output Format:
+  - Confidence score: [0.0-1.0]
+  - Depth gaps identified (section-level)
+  - Quality improvement recommendations
+
+  Threshold: ≥0.75 to pass
+  Weight: 0.25
+`)
+
+// Main Chat collects validator scores and calculates weighted consensus
+// Weighted consensus formula:
+// consensus = (humanizer * 0.15) + (branding * 0.15) + (audience * 0.15) +
+//             (seo * 0.15) + (voice * 0.20) + (depth * 0.25)
+//
+// IF consensus ≥0.95 → Proceed to Step 11
+// IF consensus <0.95 → Iterate (spawn Steps 7-8 again with validator feedback)
+
+// Step 11: Publishing with Schema
 Task("schema-markup-engineer", `
   Add schema markup and prepare for publishing
 
   Context:
-  - Article: content/optimized/preserve-family-stories.md
+  - Validated article: content/optimized/preserve-family-stories.md
   - URL: https://ourstories.com/blog/preserve-family-stories
   - Author: OurStories Team
   - Published: 2025-11-01
@@ -251,10 +449,12 @@ Task("schema-markup-engineer", `
   3. Add Organization schema
   4. Validate schema with Google Rich Results Test
   5. Final formatting (headings, lists, bold, italics)
+  6. Quality tier reporting (consensus score, tier assignment)
 
   Deliverables:
   - Final blog post with embedded schema
   - Schema validation report
+  - Quality tier report
 
   Output: content/published/preserve-family-stories.md
 
@@ -262,12 +462,209 @@ Task("schema-markup-engineer", `
   - Valid Article schema (no errors in Rich Results Test)
   - Schema includes all required properties
   - Final formatting polished
+  - Quality tier documented
 `)
 ```
 
 ---
 
-## 8-Step Pipeline Guide
+## 11-Step Pipeline Guide (Quality-Focused)
+
+**Overview:** The 11-step pipeline adds **Angle Development** (Step 5) and **Depth Injection** (Step 8) to create premium content with unique perspectives and comprehensive depth.
+
+**New Capabilities:**
+- Unique thesis development (not just keyword targeting)
+- Narrative-driven structure (story arc, not listicles)
+- Voice profile application (consistent tone/style)
+- Real example integration (Reddit, Quora, Twitter)
+- Depth enhancement (nuance, counter-examples, expert insights)
+- 6-validator system (including voice and depth validation)
+- Quality tier reporting (Premium/Standard/Basic)
+
+**When to Use 11-Step vs Legacy:**
+- Use 11-step for: Thought leadership, competitive niches, premium brands, content differentiation
+- Use legacy (9-step) for: Quick turnarounds, basic content, cost-sensitive projects
+
+---
+
+## Pipeline Steps Overview
+
+| Step | Agent | Focus | NEW? |
+|------|-------|-------|------|
+| 1 | seo-analytics-specialist | Keyword research | - |
+| 2 | competitive-seo-analyst | Competitor analysis | - |
+| 3 | serp-analyst | SERP features & PAA | - |
+| 4 | research-specialist | Deep research + examples | Enhanced |
+| 5 | angle-developer | Unique thesis & voice | **NEW** |
+| 6 | content-seo-strategist | Narrative outline | Enhanced |
+| 7 | seo-content-writer | Content writing | Enhanced |
+| 8 | depth-enhancer | Depth injection | **NEW** |
+| 9 | technical-seo-specialist | SEO optimization | - |
+| 10 | 6 validators (parallel) | Quality validation | Enhanced |
+| 11 | schema-markup-engineer | Publishing + schema | - |
+
+---
+
+## Step 5: Angle Development
+
+**Agent:** `angle-developer`
+
+**Purpose:** Develop a unique content angle that differentiates from competitors through thesis, narrative pattern, and voice profile.
+
+**Inputs:**
+- Keyword research (Step 1)
+- Competitor analysis (Step 2)
+- SERP analysis (Step 3)
+- Research document (Step 4)
+
+**Outputs:**
+- Thesis statement (unique perspective/claim)
+- Narrative pattern (story structure)
+- Voice profile (tone, style, vocabulary guidelines)
+- Differentiation analysis
+
+**Process:**
+1. Analyze competitor positioning and identify gaps
+2. Develop unique thesis based on research insights
+3. Define narrative structure that supports thesis
+4. Create voice profile for consistent tone
+5. Document differentiation strategy
+
+**Success Criteria:**
+- Thesis uniqueness score ≥0.80 (vs competitors)
+- Voice profile distinct from competitor patterns
+- Narrative structure supports thesis
+- Differentiation clearly articulated
+
+**Output File:** `content/angles/[topic]-angle.yaml`
+
+**Example Output:**
+```yaml
+topic: "Preserving Family Stories"
+thesis:
+  claim: "Family stories die not from lack of technology, but from lack of emotional permission to ask the hard questions"
+  uniqueness_score: 0.87
+  differentiation: "Competitors focus on tools/methods; we focus on the psychological barriers"
+
+narrative_pattern:
+  structure: "Challenge → Permission → Action"
+  arc:
+    - opening: "Emotional tension (fear of loss)"
+    - middle: "Permission framework (how to ask difficult questions)"
+    - closing: "Empowerment (stories preserved through vulnerability)"
+  tension_points:
+    - "Why we wait until it's too late"
+    - "The questions we're afraid to ask"
+    - "What gets lost when we play it safe"
+
+voice_profile:
+  tone: "Intimate, permission-giving, vulnerable"
+  style: "First-person experiences, direct address, emotional honesty"
+  vocabulary:
+    - use: ["permission", "vulnerability", "courage", "legacy"]
+    - avoid: ["platform", "solution", "leverage", "optimize"]
+  sentence_patterns:
+    - "Short sentences for emotional impact"
+    - "Questions that invite reflection"
+    - "Stories before instructions"
+```
+
+---
+
+## Step 8: Depth Injection
+
+**Agent:** `depth-enhancer`
+
+**Purpose:** Enhance content depth by adding nuance, expanding examples, incorporating counter-examples, and deepening expert insights.
+
+**Inputs:**
+- Draft article (Step 7)
+- Angle document (Step 5)
+- Research document (Step 4)
+
+**Outputs:**
+- Enhanced article with depth markers
+- Depth audit report (before/after scores per section)
+
+**Enhancement Types:**
+1. **Insight Deepening:** Add "why" and "how" to surface-level claims
+2. **Example Expansion:** Add context, outcomes, and lessons to examples
+3. **Counter-Example Integration:** Add what NOT to do and why
+4. **Expert Perspective:** Deepen quotes with context and implications
+5. **Nuance Addition:** Add caveats, exceptions, and situational factors
+
+**Depth Scoring Criteria:**
+- **Level 1 (Shallow):** Surface facts, no context, generic advice
+- **Level 2 (Adequate):** Some context, basic examples, limited nuance
+- **Level 3 (Deep):** Rich context, detailed examples, counter-examples, nuance
+- **Level 4 (Exceptional):** Multiple perspectives, expert synthesis, actionable insights
+
+**Success Criteria:**
+- Depth score improvement ≥20% per section
+- All sections achieve Level 3 (Deep) minimum
+- Examples expanded with context and outcomes
+- Counter-examples added to key claims (≥2)
+- Expert insights deepened with implications
+
+**Output Files:**
+- `content/enhanced/[topic].md` (enhanced article)
+- `content/enhanced/[topic]-depth-audit.md` (before/after report)
+
+**Example Depth Enhancement:**
+
+**Before (Shallow - Level 1):**
+```
+To preserve family stories, record interviews with older relatives. Use a voice recorder app on your phone.
+```
+
+**After (Deep - Level 3):**
+```
+The most powerful family stories live in the moments we're afraid to ask about. When my grandmother was 87, I finally asked about the sister she never mentioned. The two-hour conversation that followed—full of tears, laughter, and truths I'd never imagined—became our family's most treasured recording.
+
+Start with the questions that make you uncomfortable. Not "tell me about your childhood" (too broad, too safe), but "what's the one thing you've never told me?" Use your phone's voice recorder, but more importantly, use your courage. The technical quality matters far less than emotional permission.
+
+Counter-example: My cousin waited for "the right equipment" and never asked. His father passed before the interview happened. Perfect audio quality of silence is still silence.
+```
+
+**Depth Audit Report Example:**
+```markdown
+# Depth Audit Report: Preserving Family Stories
+
+## Section-Level Scores
+
+| Section | Before | After | Improvement |
+|---------|--------|-------|-------------|
+| Introduction | 1.5 | 3.2 | +113% |
+| Core Methods | 2.0 | 3.5 | +75% |
+| Common Mistakes | 1.2 | 3.8 | +217% |
+| Expert Tips | 2.5 | 3.7 | +48% |
+
+## Enhancements Applied
+
+### Introduction
+- Added personal story (grandmother interview)
+- Introduced emotional tension (fear of asking)
+- Deepened "why" (permission > technology)
+
+### Core Methods
+- Expanded 3 examples with outcomes
+- Added 2 counter-examples
+- Integrated expert quote with context
+
+### Common Mistakes
+- Added 4 detailed counter-examples
+- Explained consequences of each mistake
+- Provided specific remediation strategies
+
+### Expert Tips
+- Deepened 2 expert quotes with implications
+- Added nuance to 3 recommendations
+- Included situational factors
+```
+
+---
+
+## 9-Step Pipeline Guide (Firecrawl Enhanced - LEGACY)
 
 ### Step 1: Keyword Research
 
@@ -329,19 +726,58 @@ Task("schema-markup-engineer", `
 
 ---
 
-### Step 3: Content Outline
+### Step 3: SERP Analysis (Firecrawl 🔥)
+
+**Agent:** `serp-analyst` + Firecrawl
+
+**Inputs:**
+- Primary keyword (from Step 1)
+- Competitor URLs (from Step 2)
+
+**Outputs:**
+- SERP feature map (featured snippets, PAA, images, videos)
+- Featured snippet opportunity analysis
+- People Also Ask questions (extracted)
+- SERP gap identification
+- Content format recommendations
+
+**Tools:**
+- Firecrawl (dynamic SERP page rendering)
+- DataForSEO SERP API (structured data)
+
+**Firecrawl Usage:**
+```bash
+# Scrape Google SERP for keyword
+firecrawl scrape \
+  --url "https://google.com/search?q=${keyword}" \
+  --wait-for-selector ".g" \
+  --extract-selectors "h3,span,.related-question-pair"
+```
+
+**Success Criteria:**
+- Featured snippet opportunity identified (if any)
+- ≥5 People Also Ask questions extracted
+- SERP feature gaps documented
+- Content format recommendation (listicle, how-to, guide)
+
+**Output File:** `content/seo-data/serp-analysis-[topic].json`
+
+---
+
+### Step 4: Content Outline
 
 **Agent:** `content-seo-strategist`
 
 **Inputs:**
 - Keyword research (Step 1)
 - Competitor analysis (Step 2)
+- SERP analysis (Step 3) ← NEW
 - Brand voice guidelines
 - Target word count
 
 **Outputs:**
-- H1 title (SEO-optimized)
-- 5-7 H2 sections
+- H1 title (SEO-optimized, targets featured snippet)
+- 5-7 H2 sections (addresses PAA questions)
 - H3 subsections
 - Internal linking strategy
 - CTA placement
@@ -349,35 +785,47 @@ Task("schema-markup-engineer", `
 **Success Criteria:**
 - Primary keyword in H1
 - Secondary keywords in H2s (natural)
-- Logical flow (answers user intent)
+- Addresses PAA questions from SERP analysis
 - Better structure than competitors
 
 **Output File:** `content/outlines/[topic]-outline.md`
 
 ---
 
-### Step 4: Research
+### Step 5: Research & Citations (Firecrawl + Perplexity)
 
-**Method:** Perplexity API via OpenRouter (no CFN agent)
+**Agent:** `research-specialist` + Firecrawl + Perplexity
 
 **Inputs:**
-- Content outline (Step 3)
+- Content outline (Step 4)
 - Research questions (extracted from outline)
+- Source URLs (from competitor analysis)
 
 **Outputs:**
 - Research sources (5-10 credible sources)
-- Key facts/statistics
-- Expert quotes (if available)
+- Key facts/statistics (with citations)
+- Expert quotes (scraped from source pages)
 - Data for content support
 
 **Tools:**
-- Perplexity API (via OpenRouter)
+- Firecrawl (source page scraping)
+- Perplexity API (fact synthesis via OpenRouter)
 - Manual research (Google Scholar, industry publications)
+
+**Firecrawl Usage:**
+```bash
+# Batch scrape source pages for citations
+firecrawl batch-scrape \
+  --urls "source1.com,source2.com,source3.com" \
+  --format markdown \
+  --extract-selectors "blockquote,.expert-quote,.statistic"
+```
 
 **Success Criteria:**
 - ≥5 credible sources cited
 - Data supports outline sections
 - Expert quotes included (where relevant)
+- All citations scraped and verified
 
 **Output File:** `content/research/[topic]-research.md`
 
@@ -398,19 +846,21 @@ curl https://openrouter.ai/api/v1/chat/completions \
 
 ---
 
-### Step 5: Content Writing
+### Step 6: Content Writing
 
-**Agent:** `content-seo-strategist`
+**Agent:** `seo-content-writer`
 
 **Inputs:**
-- Outline (Step 3)
-- Research (Step 4)
+- Outline (Step 4)
+- Research (Step 5)
+- SERP analysis (Step 3) ← incorporates SERP gaps
 - Brand voice guidelines
 - Target word count (1500-2000 for blog)
 
 **Outputs:**
 - Full blog post draft (markdown)
 - Keyword integration (natural)
+- SERP gap coverage
 - Engaging introduction
 - Clear CTA
 
@@ -418,6 +868,7 @@ curl https://openrouter.ai/api/v1/chat/completions \
 - Meets word count target
 - Conversational tone (no AI language)
 - Primary keyword appears 3-5 times naturally
+- Addresses SERP gaps from Step 3
 - Includes personal examples/anecdotes
 - Clear value proposition
 
@@ -425,43 +876,16 @@ curl https://openrouter.ai/api/v1/chat/completions \
 
 ---
 
-### Step 6: SEO Optimization
-
-**Agents:** `technical-seo-specialist` + `programmatic-seo-engineer` (optional)
-
-**Inputs:**
-- Draft (Step 5)
-- Primary keyword
-- Target URL
-
-**Tasks:**
-1. Meta title (50-60 chars, includes keyword)
-2. Meta description (150-160 chars, compelling)
-3. Header optimization (H1, H2s)
-4. Internal linking (3-5 links)
-5. Image alt text
-6. URL slug optimization
-7. Schema markup preparation
-
-**Success Criteria:**
-- Meta title ≤60 chars, includes primary keyword
-- Meta description compelling, ≤160 chars
-- 3-5 internal links added
-- Headers optimized
-
-**Output File:** `content/optimized/[topic].md`
-
----
-
-### Step 7: Validation
+### Step 7: Validation Loop (4 Validators)
 
 **Agents (Parallel):**
 1. `humanizer-validator` (natural writing)
 2. `branding-validator` (brand alignment)
 3. `audience-validator` (persona fit)
+4. `seo-validator` (keyword density, structure) ← NEW
 
 **Inputs:**
-- Optimized article (Step 6)
+- Draft article (Step 6)
 - Iteration number
 
 **Outputs (Per Validator):**
@@ -469,31 +893,125 @@ curl https://openrouter.ai/api/v1/chat/completions \
 - Issues found (with line numbers)
 - Specific rewrites recommended
 
-**Consensus Calculation:**
+**Consensus Calculation (11-Step Quality Pipeline):**
 ```javascript
-// Main Chat collects scores
-const humanizerScore = 0.85;  // From humanizer-validator output
-const brandingScore = 0.90;   // From branding-validator output
-const audienceScore = 0.92;   // From audience-validator output
+// Main Chat collects scores from 6 validators with weights
+const humanizerScore = 0.85;   // Weight: 0.15
+const brandingScore = 0.90;    // Weight: 0.15
+const audienceScore = 0.92;    // Weight: 0.15
+const seoScore = 0.88;         // Weight: 0.15
+const voiceScore = 0.87;       // Weight: 0.20 (NEW)
+const depthScore = 0.91;       // Weight: 0.25 (NEW)
 
-const consensus = (humanizerScore + brandingScore + audienceScore) / 3;
-// consensus = 0.89
+// Weighted consensus calculation
+const consensus = (
+  (humanizerScore * 0.15) +
+  (brandingScore * 0.15) +
+  (audienceScore * 0.15) +
+  (seoScore * 0.15) +
+  (voiceScore * 0.20) +
+  (depthScore * 0.25)
+);
+// consensus = 0.8935
+
+// Quality tier assignment
+let qualityTier;
+if (consensus >= 0.95) {
+  qualityTier = "Premium";
+} else if (consensus >= 0.85) {
+  qualityTier = "Standard";
+} else {
+  qualityTier = "Basic";
+}
 
 if (consensus >= 0.95) {
-  console.log("✅ Validation passed - Proceed to Step 8");
+  console.log(`✅ Validation passed - Proceed to Step 11 [${qualityTier}]`);
 } else {
-  console.log(`🔄 Iteration required - Consensus: ${consensus.toFixed(2)}`);
-  // Spawn Step 5 again with validator feedback
+  console.log(`🔄 Iteration required - Consensus: ${consensus.toFixed(2)} [${qualityTier}]`);
+  // Spawn Steps 7-8 again with validator feedback
 }
 ```
 
 **Thresholds:**
 - Individual validator: ≥0.75
-- Consensus: ≥0.95
+- Weighted consensus: ≥0.95 (for Premium tier)
+
+**Validator Weights (11-Step Pipeline):**
+| Validator | Weight | Rationale |
+|-----------|--------|-----------|
+| humanizer-validator | 0.15 | Base quality check |
+| branding-validator | 0.15 | Brand alignment |
+| audience-validator | 0.15 | Audience fit |
+| seo-validator | 0.15 | Technical SEO |
+| voice-authenticity-validator | 0.20 | Voice differentiation (NEW) |
+| depth-quality-validator | 0.25 | Content depth (NEW) |
+
+**Legacy 9-Step Consensus (Equal Weights):**
+```javascript
+// 4 validators, equal weights
+const consensus = (humanizerScore + brandingScore + audienceScore + seoScore) / 4;
+```
+
+**Thresholds:**
+- Individual validator: ≥0.75
+- Consensus: ≥0.95 (average of 4)
 
 ---
 
-### Step 8: Publishing with Schema
+### Step 8: Internal Linking
+
+**Agent:** `link-building-specialist`
+
+**Inputs:**
+- Validated article (Step 7)
+- Site content inventory
+- Existing internal link structure
+
+**Tasks:**
+1. Analyze existing content for link opportunities
+2. Identify 3-5 contextual internal link targets
+3. Add internal links with optimized anchor text
+4. Suggest external authority links (2-3)
+5. Validate link context and relevance
+
+**Success Criteria:**
+- 3-5 internal links added
+- Anchor text optimized (not over-optimized)
+- Links contextually relevant
+- No broken links
+
+**Output File:** `content/linked/[topic].md`
+
+---
+
+### Step 9: SEO Optimization
+
+**Agent:** `seo-optimizer`
+
+**Inputs:**
+- Linked article (Step 8)
+- Primary keyword
+- Target URL
+
+**Tasks:**
+1. Meta title (50-60 chars, includes keyword)
+2. Meta description (150-160 chars, compelling)
+3. Header hierarchy validation (H1→H2→H3)
+4. Image alt text generation
+5. URL slug optimization
+6. Final keyword density check
+
+**Success Criteria:**
+- Meta title ≤60 chars, includes primary keyword
+- Meta description compelling, ≤160 chars
+- Header hierarchy valid
+- All images have alt text
+
+**Output File:** `content/optimized/[topic].md`
+
+---
+
+### Step 9 (Final): Schema Markup (Publishing)
 
 **Agent:** `schema-markup-engineer`
 
@@ -536,24 +1054,113 @@ if (consensus >= 0.95) {
 
 ---
 
-## Agent Selection by Step
+## Quality Tier Reporting
 
-| Step | Primary Agent | Secondary Agent | Use When |
-|------|---------------|-----------------|----------|
-| 1. Keyword Research | seo-analytics-specialist | - | All content types |
-| 2. Competitor Analysis | competitive-seo-analyst | - | Blog posts, competitive niches |
-| 3. Content Outline | content-seo-strategist | - | All content types |
-| 4. Research | Perplexity API (no agent) | - | Research-heavy content |
-| 5. Writing | content-seo-strategist | - | All content types |
-| 6. SEO Optimization | technical-seo-specialist | programmatic-seo-engineer | All content, programmatic at scale |
-| 7. Validation | humanizer-validator | branding-validator, audience-validator | All content |
-| 8. Publishing | schema-markup-engineer | - | All content |
+**Purpose:** Classify content quality based on weighted validator consensus scores.
+
+**Quality Tiers:**
+
+| Tier | Consensus Range | Characteristics | Use Case |
+|------|----------------|-----------------|----------|
+| **Premium** | ≥0.95 | Exceptional depth, unique voice, strong differentiation | Thought leadership, competitive niches, flagship content |
+| **Standard** | 0.85-0.94 | Good depth, consistent voice, solid quality | Regular blog posts, standard content |
+| **Basic** | 0.75-0.84 | Meets minimum standards, needs iteration | Quick content, cost-sensitive projects |
+| **Below Standard** | <0.75 | Fails validation, requires rework | - |
+
+**Tier Reporting Format:**
+```markdown
+# Quality Report: Preserving Family Stories
+
+**Final Consensus:** 0.9235
+**Quality Tier:** Premium
+
+## Validator Breakdown
+
+| Validator | Score | Weight | Contribution |
+|-----------|-------|--------|--------------|
+| Humanizer | 0.88 | 0.15 | 0.132 |
+| Branding | 0.92 | 0.15 | 0.138 |
+| Audience | 0.94 | 0.15 | 0.141 |
+| SEO | 0.89 | 0.15 | 0.134 |
+| Voice Authenticity | 0.96 | 0.20 | 0.192 |
+| Depth Quality | 0.95 | 0.25 | 0.238 |
+
+**Weighted Consensus:** 0.9235
+
+## Quality Highlights
+- Voice differentiation score: 0.96 (Excellent)
+- Depth improvement: +127% avg across sections
+- Thesis uniqueness: 0.87 (Strong differentiation)
+- Real examples integrated: 7
+- Counter-examples: 4
+
+## Recommendations
+- Tier: Premium - Ready for publication
+- Suggested placement: Homepage feature, pillar content
+- Expected performance: Top 3 SERP within 3-6 months
+```
+
+---
+
+## Agent Selection by Step (11-Step Quality Pipeline)
+
+| Step | Primary Agent | Focus | NEW/Enhanced |
+|------|---------------|-------|--------------|
+| 1. Keyword Research | seo-analytics-specialist | Keyword metrics | - |
+| 2. Competitor Analysis | competitive-seo-analyst | Competitive gaps | - |
+| 3. SERP Analysis | serp-analyst | SERP features | - |
+| 4. Research & Citations | research-specialist | Deep research + examples | Enhanced |
+| 5. Angle Development | angle-developer | Thesis + voice | **NEW** |
+| 6. Content Outline | content-seo-strategist | Narrative structure | Enhanced |
+| 7. Content Writing | seo-content-writer | Voice-driven writing | Enhanced |
+| 8. Depth Injection | depth-enhancer | Content depth | **NEW** |
+| 9. SEO Optimization | technical-seo-specialist | Technical SEO | - |
+| 10. Validation Loop | 6 validators (parallel) | Quality validation | Enhanced |
+| 11. Schema Markup | schema-markup-engineer | Publishing | - |
+
+**Validators (Step 10 - Parallel Execution, Weighted):**
+
+| Validator | Focus | Threshold | Weight |
+|-----------|-------|-----------|--------|
+| humanizer-validator | Natural writing, no AI language | ≥0.75 | 0.15 |
+| branding-validator | Brand voice alignment | ≥0.75 | 0.15 |
+| audience-validator | Persona fit, resonance | ≥0.75 | 0.15 |
+| seo-validator | Keyword density, structure | ≥0.75 | 0.15 |
+| voice-authenticity-validator | Voice profile adherence | ≥0.75 | 0.20 |
+| depth-quality-validator | Content depth, examples | ≥0.75 | 0.25 |
+
+**Consensus Requirement:** ≥0.95 (weighted average) for Premium tier
+
+---
+
+## Agent Selection by Step (9-Step Firecrawl Pipeline - LEGACY)
+
+| Step | Primary Agent | Secondary Tool | Use When |
+|------|---------------|----------------|----------|
+| 1. Keyword Research | seo-analytics-specialist | DataForSEO API | All content types |
+| 2. Competitor Analysis | competitive-seo-analyst | Firecrawl 🔥 | Blog posts, competitive niches |
+| 3. SERP Analysis | serp-analyst | Firecrawl 🔥 | All content (featured snippets, PAA) |
+| 4. Research & Citations | research-specialist | Firecrawl + Perplexity | Research-heavy content |
+| 5. Content Writing | seo-content-writer | - | All content types |
+| 6. Validation Loop | 4 validators (parallel) | - | All content |
+| 7. Internal Linking | link-building-specialist | - | Blog posts, pillar pages |
+| 8. SEO Optimization | seo-optimizer | - | All content |
+| 9. Schema Markup | schema-markup-engineer | Rich Results Test | All content |
+
+**Validators (Step 6 - Parallel Execution, Equal Weights):**
+| Validator | Focus | Threshold |
+|-----------|-------|-----------|
+| humanizer-validator | Natural writing, no AI language | ≥0.75 |
+| branding-validator | Brand voice alignment | ≥0.75 |
+| audience-validator | Persona fit, resonance | ≥0.75 |
+| seo-validator | Keyword density, structure | ≥0.75 |
+
+**Consensus Requirement:** ≥0.95 (simple average of 4 validators)
 
 **Additional Specialists (Use When):**
 - `local-seo-optimizer` - Location pages, GBP content
 - `programmatic-seo-engineer` - Template-based page generation (100+ pages)
 - `geo-optimization-expert` - AI search optimization, citation tracking
-- `link-building-specialist` - Backlink prospecting (post-publishing)
 - `eeat-content-auditor` - E-E-A-T compliance, expert review
 
 ---
@@ -854,39 +1461,195 @@ Task("content-seo-strategist", `
 
 ---
 
+## Legacy Mode (9-Step Pipeline)
+
+**When to Use Legacy Mode:**
+- Quick turnarounds (24-48 hours vs 3-5 days)
+- Cost-sensitive projects ($7-10 vs $15-20)
+- Basic content needs (no differentiation required)
+- High-volume content generation
+- Lower competitive niches
+
+**How to Use Legacy Mode:**
+```javascript
+// Add --legacy flag to CLI command
+/cfn-seo-cli "Write blog post about [topic]" --legacy
+
+// Or manually spawn with original 9-step sequence (see Quick Reference below)
+```
+
+**Legacy vs Quality Pipeline Comparison:**
+
+| Feature | Legacy (9-Step) | Quality (11-Step) |
+|---------|----------------|-------------------|
+| Angle Development | ❌ No | ✅ Yes (Step 5) |
+| Depth Injection | ❌ No | ✅ Yes (Step 8) |
+| Validators | 4 (equal weights) | 6 (weighted) |
+| Voice Validation | ❌ No | ✅ Yes |
+| Depth Validation | ❌ No | ✅ Yes |
+| Quality Tiers | ❌ No | ✅ Yes |
+| Example Mining | Basic | Enhanced (social platforms) |
+| Narrative Structure | Basic outline | Story arc |
+| Cost | $7-10 | $15-20 |
+| Timeline | 1-2 days | 3-5 days |
+| Best For | Volume, basic content | Premium, competitive niches |
+
+---
+
 ## Quick Reference: Agent Spawning by Step
 
+### 11-Step Quality Pipeline (Recommended)
+
 ```javascript
-// Step 1
+// Step 1: Keyword Research
 Task("seo-analytics-specialist", "Keyword research for [topic]")
 
-// Step 2
-Task("competitive-seo-analyst", "Analyze competitors for [keyword]")
+// Step 2: Competitor Analysis
+Task("competitive-seo-analyst", "Analyze top 3 competitors for [keyword]")
 
-// Step 3
-Task("content-seo-strategist", "Create outline for [topic]")
+// Step 3: SERP Analysis
+Task("serp-analyst", "Extract SERP features and PAA for [keyword]")
 
-// Step 4 (no agent - API call)
-// curl Perplexity API for research
+// Step 4: Deep Research (Enhanced)
+Task("research-specialist", `
+  Deep research for [topic]:
+  - Real examples from Reddit, Quora, Twitter
+  - Expert source identification
+  - Counter-examples research
+`)
 
-// Step 5
-Task("content-seo-strategist", "Write blog post from outline")
+// Step 5: Angle Development (NEW)
+Task("angle-developer", `
+  Develop unique angle for [topic]:
+  - Thesis statement
+  - Narrative pattern
+  - Voice profile
+  - Differentiation analysis
+`)
 
-// Step 6
-Task("technical-seo-specialist", "Optimize [draft] for SEO")
+// Step 6: Narrative Outline (Enhanced)
+Task("content-seo-strategist", `
+  Create narrative-driven outline:
+  - Story structure (not just headers)
+  - Tension point mapping
+  - Depth distribution planning
+`)
 
-// Step 7 (parallel)
+// Step 7: Content Writing (Enhanced)
+Task("seo-content-writer", `
+  Write content with:
+  - Voice profile application
+  - Real example integration
+  - Narrative adherence
+`)
+
+// Step 8: Depth Injection (NEW)
+Task("depth-enhancer", `
+  Enhance content depth:
+  - Expand examples with context
+  - Add counter-examples
+  - Deepen expert insights
+  - Add nuance to claims
+`)
+
+// Step 9: SEO Optimization
+Task("technical-seo-specialist", "Optimize meta, headers, internal links")
+
+// Step 10: Validation (6 validators in parallel, weighted)
+Task("humanizer-validator", "Validate natural writing (weight: 0.15)")
+Task("branding-validator", "Validate brand alignment (weight: 0.15)")
+Task("audience-validator", "Validate audience fit (weight: 0.15)")
+Task("seo-validator", "Validate SEO optimization (weight: 0.15)")
+Task("voice-authenticity-validator", "Validate voice profile adherence (weight: 0.20)")
+Task("depth-quality-validator", "Validate content depth (weight: 0.25)")
+
+// Step 11: Schema Markup & Publishing
+Task("schema-markup-engineer", "Add schema, final formatting, quality tier report")
+```
+
+### 9-Step Firecrawl Pipeline (Legacy)
+
+```javascript
+// Step 1: Keyword Research
+Task("seo-analytics-specialist", "Keyword research for [topic]")
+
+// Step 2: Competitor Analysis (Firecrawl)
+Task("competitive-seo-analyst", `
+  Analyze competitors for [keyword]
+  Use Firecrawl to scrape top 5 SERP results
+`)
+
+// Step 3: SERP Analysis (Firecrawl)
+Task("serp-analyst", `
+  Extract SERP features for [keyword]
+  - Featured snippets
+  - People Also Ask
+  - Image/video packs
+  - SERP gaps
+`)
+
+// Step 4: Research & Citations (Firecrawl + Perplexity)
+Task("research-specialist", `
+  Research [topic] with citations
+  Use Firecrawl for source scraping
+  Use Perplexity for fact synthesis
+`)
+
+// Step 5: Content Writing
+Task("seo-content-writer", "Write blog post from outline with SERP gaps addressed")
+
+// Step 6: Validation Loop (4 validators in parallel, equal weights)
 Task("humanizer-validator", "Validate [article] for natural writing")
 Task("branding-validator", "Validate [article] for brand alignment")
 Task("audience-validator", "Validate [article] for audience fit")
+Task("seo-validator", "Validate [article] for keyword density and structure")
 
-// Step 8
+// Step 7: Internal Linking
+Task("link-building-specialist", "Add internal links to [article]")
+
+// Step 8: SEO Optimization
+Task("seo-optimizer", "Optimize [article] meta, headers, images")
+
+// Step 9: Schema Markup
 Task("schema-markup-engineer", "Add schema markup and publish [article]")
 ```
 
 ---
 
-**Version:** 1.0.0
-**Last Updated:** 2025-11-01
+**Version:** 2.0.0 (11-Step Quality-Focused Pipeline)
+**Last Updated:** 2025-11-27
 **Maintained By:** CFN SEO Team
+**Previous Version:** 1.0.0 (9-Step Firecrawl Pipeline - available via --legacy flag)
 **Feedback:** Share your SEO pipeline improvements!
+
+---
+
+## Migration Notes (1.0 → 2.0)
+
+**Breaking Changes:**
+- Default pipeline is now 11-step (was 9-step)
+- Validation uses weighted consensus (was simple average)
+- Quality tier reporting added (Premium/Standard/Basic)
+
+**New Agents Required:**
+- `angle-developer` (Step 5)
+- `depth-enhancer` (Step 8)
+- `voice-authenticity-validator` (Step 10)
+- `depth-quality-validator` (Step 10)
+
+**Backward Compatibility:**
+- Use `--legacy` flag for original 9-step pipeline
+- All legacy agents still supported
+- Legacy consensus calculation unchanged (simple average)
+
+**When to Upgrade:**
+- Competitive niches requiring differentiation
+- Premium content/thought leadership
+- Brands needing voice consistency
+- Content requiring exceptional depth
+
+**When to Stay on Legacy:**
+- High-volume content generation
+- Cost-sensitive projects
+- Quick turnarounds (24-48 hours)
+- Basic SEO content needs

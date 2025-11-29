@@ -44,11 +44,12 @@ interface ProviderMappings {
 // Fallback Mappings (used if YAML not found)
 // =============================================
 
+// Model mappings updated 2025-11-28 - glm-4.5-x for better consistency
 const FALLBACK_MAPPINGS: ProviderMappings = {
   mappings: {
     haiku: {
       anthropic: 'claude-haiku-4-5',
-      zai: 'glm-4.5-air',
+      zai: 'glm-4.5-x',  // Upgraded from glm-4.5-air for better consistency
       kimi: 'kimi-linear',
       openrouter: 'anthropic/claude-haiku-4-5',
       gemini: 'gemini-2.5-flash-lite',
