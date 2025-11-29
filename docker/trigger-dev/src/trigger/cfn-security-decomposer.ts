@@ -1,9 +1,27 @@
 import { task } from "@trigger.dev/sdk/v3";
+import type { ArchitectureAnalysis, ArchitectureComponent, ArchitectureBoundary } from "./cfn-architecture-decomposer.js";
+import {
+  validateDecomposerInput,
+  validateCerebrasResponse,
+  validateDecompositionOutput,
+} from "../lib/validation-schemas.js";
 
 export interface SecurityDecomposerPayload {
   taskId: string;
   taskDescription: string;
   workDir: string;
+  previousContext?: {
+    architecture?: ArchitectureAnalysis;
+    components?: ArchitectureComponent[];
+    boundaries?: ArchitectureBoundary[];
+  };
+}
+
+export interface SecurityBoundary {
+  boundary: string;
+  threatModel: string[];
+  mitigations: string[];
+  complianceRequirements?: string[];
 }
 
 export interface SecurityAnalysis {
@@ -18,6 +36,7 @@ export interface SecurityAnalysis {
     threatVectors: string[];
   }>;
   securityRecommendations: string[];
+  securityBoundaries: SecurityBoundary[];
   riskLevel: "critical" | "high" | "medium" | "low";
 }
 
@@ -28,17 +47,40 @@ export const cfnSecurityDecomposerTask = task({
   run: async (payload: SecurityDecomposerPayload): Promise<SecurityAnalysis> => {
     const startTime = Date.now();
 
-    console.log(`[security-decomposer] Analyzing task: ${payload.taskDescription.substring(0, 80)}...`);
+    // P0 Fix: Task 1 - Input Validation
+    const validated = validateDecomposerInput(payload, "security-decomposer");
+
+    console.log(`[security-decomposer] Analyzing task: ${validated.taskDescription.substring(0, 80)}...`);
 
     try {
+      // Build context section if provided
+      let contextSection = "";
+      if (payload.previousContext?.architecture) {
+        const arch = payload.previousContext.architecture;
+        contextSection = `
+
+ARCHITECTURE CONTEXT (from previous decomposer):
+- Components: ${JSON.stringify(arch.components || [])}
+- Boundaries: ${JSON.stringify(arch.boundaries || [])}
+- Recommendations: ${JSON.stringify(arch.recommendations || [])}
+
+Use this architecture context to identify security implications:
+- Microservices → need inter-service authentication
+- Payment services → PCI compliance requirements
+- API boundaries → input validation, rate limiting
+- Database access → SQL injection prevention
+- Frontend → XSS, CSRF protection`;
+      }
+
       const prompt = `You are a security specialist. Analyze this task for security implications and decompose into security-focused micro-tasks.
 
-Task: ${payload.taskDescription}
+Task: ${validated.taskDescription}${contextSection}
 
 Provide:
 1. Security-focused micro-tasks (ID, title, description, threat vectors)
-2. Security recommendations
-3. Overall risk level (critical|high|medium|low)
+2. Security recommendations informed by architecture
+3. Security boundaries for inter-component communication
+4. Overall risk level (critical|high|medium|low)
 
 Format as JSON:
 {
@@ -53,6 +95,14 @@ Format as JSON:
     }
   ],
   "securityRecommendations": ["...", "..."],
+  "securityBoundaries": [
+    {
+      "boundary": "API Gateway <-> Auth Service",
+      "threatModel": ["Token theft", "Replay attacks"],
+      "mitigations": ["JWT with short expiry", "HTTPS only", "Rate limiting"],
+      "complianceRequirements": ["GDPR", "PCI-DSS"]
+    }
+  ],
   "riskLevel": "critical|high|medium|low"
 }`;
 
@@ -71,42 +121,69 @@ Format as JSON:
       });
 
       if (!response.ok) {
-        throw new Error(`Cerebras API error: ${response.status}`);
+        const errorBody = await response.text();
+        throw new Error(
+          `Cerebras API error: ${response.status} - ${errorBody}\n` +
+            `Check API key validity and quota limits.`
+        );
       }
 
-      const data = (await response.json()) as any;
-      const content = data.choices[0]?.message?.content || "{}";
+      const rawData = await response.json();
 
-      let analysis: any = { microTasks: [], securityRecommendations: [], riskLevel: "low" };
+      // P0 Fix: Task 3 - API Response Validation
+      const data = validateCerebrasResponse(rawData, "security-decomposer");
+      const content = data.choices[0].message.content;
+
+      // Parse and validate decomposition output
+      let analysis: any;
       try {
         analysis = JSON.parse(content);
-      } catch {
-        console.warn("[security-decomposer] Failed to parse JSON");
+      } catch (parseError) {
+        throw new Error(
+          `[security-decomposer] Failed to parse JSON content: ${(parseError as Error).message}\n` +
+            `Raw content (first 200 chars): ${content.substring(0, 200)}\n` +
+            `This indicates malformed JSON from the AI model. Try regenerating.`
+        );
       }
 
+      // P0 Fix: Task 3 - Validate decomposition structure
+      const validatedAnalysis = validateDecompositionOutput(analysis, "security-decomposer");
+
       const result: SecurityAnalysis = {
-        taskId: payload.taskId,
+        taskId: validated.taskId,
         perspective: "security",
-        microTasks: analysis.microTasks || [],
+        microTasks: validatedAnalysis.microTasks.map((task) => ({
+          ...task,
+          rationale: task.rationale || "",
+          threatVectors: [],
+        })),
         securityRecommendations: analysis.securityRecommendations || [],
+        securityBoundaries: analysis.securityBoundaries || [],
         riskLevel: analysis.riskLevel || "low",
       };
 
-      console.log(`[security-decomposer] ✓ Success: Risk level ${result.riskLevel}`);
+      console.log(`[security-decomposer] ✓ Success: Risk level ${result.riskLevel}, ${result.securityBoundaries.length} boundaries`);
       console.log(`  Time: ${Date.now() - startTime}ms`);
 
       return result;
     } catch (error) {
       const errorMsg = (error as Error).message;
-      console.error(`[security-decomposer] ✗ Error: ${errorMsg}`);
+      const errorStack = (error as Error).stack || "No stack trace available";
 
-      return {
-        taskId: payload.taskId,
-        perspective: "security",
-        microTasks: [],
-        securityRecommendations: [],
-        riskLevel: "medium",
-      };
+      // P0 Fix: Enhanced error logging with full context
+      console.error(`[security-decomposer] ✗ Critical Error: ${errorMsg}`);
+      console.error(`[security-decomposer] Stack trace: ${errorStack}`);
+      console.error(
+        `[security-decomposer] Context: taskId=${payload.taskId}, ` +
+          `taskDescription length=${payload.taskDescription?.length || 0} chars`
+      );
+
+      // P0 Fix: Fail fast - do NOT return empty results silently
+      throw new Error(
+        `[security-decomposer] Failed to decompose task: ${errorMsg}\n` +
+          `This is a critical error. Security analysis is mandatory for production tasks.\n` +
+          `Common causes: API key invalid, network timeout, malformed prompt, quota exceeded.`
+      );
     }
   },
 });

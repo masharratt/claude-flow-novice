@@ -25,11 +25,11 @@
  * - Exit code propagated to trigger.dev
  */
 
-import { client, getValidatedConfig } from "../index";
+import { validatedConfig, getValidatedConfig } from "../index.js";
 import { z } from "zod";
 import { spawn } from "child_process";
-import { AgentSpawnError, AgentSpawnResult } from "../types";
-import { validateVolumeMount } from "../config";
+import { AgentSpawnError, AgentSpawnResult } from "../types.js";
+import { validateVolumeMount } from "../config.js";
 
 /**
  * Utility to execute Docker commands with parameterized arguments
@@ -93,7 +93,12 @@ interface ContainerResult {
  *
  * Spawns a single agent container for Phase 1 validation testing.
  */
-export const testSingleAgentJob = client.defineJob({
+interface TestAgentSpawnPayload {
+  agentType: string;
+  taskDescription: string;
+}
+
+export const testSingleAgentJob = {
   id: "test-single-agent",
   name: "Test Single Agent Container Spawning",
   version: "0.1.0",
@@ -103,7 +108,7 @@ export const testSingleAgentJob = client.defineJob({
       schema: TestAgentSpawnSchema,
     },
   },
-  run: async (payload, io, ctx) => {
+  run: async (payload: TestAgentSpawnPayload, io: any, ctx: any) => {
     const { agentType, taskDescription } = payload;
 
     // Generate unique container name
@@ -147,7 +152,7 @@ export const testSingleAgentJob = client.defineJob({
         containerPath: '/workspace',
       });
       // Spawn agent container with resource limits and network configuration
-      const result = await io.runTask<ContainerResult>(
+      const result = await (io as any).runTask(
         "spawn-agent-container",
         async () => {
           // Build Docker command arguments (parameterized to prevent shell injection)
@@ -281,8 +286,8 @@ export const testSingleAgentJob = client.defineJob({
 
       throw error;
     }
-  },
-});
+  }
+};
 
 /**
  * Export job for registration with trigger.dev

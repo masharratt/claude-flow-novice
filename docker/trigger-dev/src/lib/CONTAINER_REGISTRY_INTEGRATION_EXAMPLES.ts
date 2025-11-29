@@ -22,7 +22,7 @@ import {
   RegistryConfig,
   ImageCheckResult,
   ImagePullResult,
-} from './container-registry';
+} from './container-registry.js';
 
 // =============================================
 // Example 1: Application Startup
@@ -43,7 +43,7 @@ export async function initializeApplication(): Promise<void> {
 
   if (!validation.valid) {
     console.error('Registry validation failed:');
-    validation.errors.forEach(err => console.error(`  - ${err}`));
+    validation.errors.forEach((err: string) => console.error(`  - ${err}`));
     process.exit(1);
   }
 
@@ -96,23 +96,23 @@ export async function prepareAgentImages(agentTypes: string[]): Promise<void> {
   console.log('Checking image availability...');
   const availabilityResults = await checkImagesAvailable(images);
 
-  const available = availabilityResults.filter(r => r.available);
-  const missing = availabilityResults.filter(r => !r.available);
+  const available = availabilityResults.filter((r: ImageCheckResult) => r.available);
+  const missing = availabilityResults.filter((r: ImageCheckResult) => !r.available);
 
   console.log(`✓ Available: ${available.length}`);
   if (missing.length > 0) {
     console.warn(`⚠ Missing: ${missing.length}`);
-    missing.forEach(r => console.warn(`  - ${r.image}`));
+    missing.forEach((r: ImageCheckResult) => console.warn(`  - ${r.image}`));
   }
 
   // Step 3: Pre-pull available images
   if (available.length > 0) {
     console.log('Pre-pulling images...');
-    const pullResults = await pullImages(images.filter(img =>
-      availabilityResults.find(r => r.image === img && r.available)
+    const pullResults = await pullImages(images.filter((img: string) =>
+      availabilityResults.find((r: ImageCheckResult) => r.image === img && r.available)
     ));
 
-    pullResults.forEach(result => {
+    pullResults.forEach((result: ImagePullResult) => {
       console.log(`${result.success ? '✓' : '✗'} ${result.image} (${result.method})`);
     });
   }
@@ -202,16 +202,16 @@ export async function initializeCoordinator(agentTypes: string[]): Promise<void>
   console.log('Checking and pulling agent images...');
   const pullResults = await pullImages(images);
 
-  const successful = pullResults.filter(r => r.success).length;
-  const failed = pullResults.filter(r => !r.success).length;
+  const successful = pullResults.filter((r: ImagePullResult) => r.success).length;
+  const failed = pullResults.filter((r: ImagePullResult) => !r.success).length;
 
   console.log(`✓ Ready: ${successful}/${pullResults.length}`);
 
   if (failed > 0) {
     console.warn(`⚠ Failed to pull ${failed} images`);
     pullResults
-      .filter(r => !r.success)
-      .forEach(r => console.warn(`  - ${r.image}: ${r.error}`));
+      .filter((r: ImagePullResult) => !r.success)
+      .forEach((r: ImagePullResult) => console.warn(`  - ${r.image}: ${r.error}`));
 
     // Decide whether to fail or continue
     if (failed > images.length / 2) {
@@ -236,16 +236,16 @@ export async function spawnAgentBatch(
   console.log(`Spawning ${agents.length} agents...`);
 
   // Step 1: Resolve all images upfront
-  const agentTypes = agents.map(a => a.type);
+  const agentTypes = agents.map((a: { type: string; taskId: string }) => a.type);
   const images = getImagesForAgentTypes(agentTypes);
 
   // Step 2: Pre-check all images exist
   console.log(`Checking ${images.length} unique images...`);
   const availability = await checkImagesAvailable(images);
 
-  const missing = availability.filter(r => !r.available);
+  const missing = availability.filter((r: ImageCheckResult) => !r.available);
   if (missing.length > 0) {
-    console.warn(`Missing images: ${missing.map(r => r.image).join(', ')}`);
+    console.warn(`Missing images: ${missing.map((r: ImageCheckResult) => r.image).join(', ')}`);
     // Optionally pull missing images
     for (const result of missing) {
       console.log(`Pulling: ${result.image}`);
@@ -254,7 +254,7 @@ export async function spawnAgentBatch(
   }
 
   // Step 3: Spawn agents in parallel
-  const containerPromises = agents.map(agent =>
+  const containerPromises = agents.map((agent: { type: string; taskId: string }) =>
     spawnAgentContainer(agent.type, agent.taskId, workspaceDir)
   );
 
@@ -363,18 +363,18 @@ export async function validateAllAgentImages(): Promise<{
   available: number;
   missing: string[];
 }> {
-  const agentTypes = Object.keys(AGENT_IMAGE_MAP).filter(k => k !== 'default');
+  const agentTypes = Object.keys(AGENT_IMAGE_MAP).filter((k: string) => k !== 'default');
 
   console.log(`Validating ${agentTypes.length} agent type images...`);
 
   const images = getImagesForAgentTypes(agentTypes);
   const results = await checkImagesAvailable(images);
 
-  const missing = results.filter(r => !r.available).map(r => r.image);
+  const missing = results.filter((r: ImageCheckResult) => !r.available).map((r: ImageCheckResult) => r.image);
 
   return {
     totalTypes: agentTypes.length,
-    available: results.filter(r => r.available).length,
+    available: results.filter((r: ImageCheckResult) => r.available).length,
     missing,
   };
 }
@@ -402,7 +402,7 @@ export async function debugRegistryConfiguration(): Promise<void> {
     'CFN_REGISTRY_INSECURE',
   ];
 
-  envVars.forEach(varName => {
+  envVars.forEach((varName: string) => {
     const value = process.env[varName] || '(not set)';
     console.log(`  ${varName}: ${value}`);
   });
@@ -410,7 +410,7 @@ export async function debugRegistryConfiguration(): Promise<void> {
   // Test agent type resolution
   console.log('\nAgent Type Resolution:');
   const testTypes = ['typescript-specialist', 'backend-developer', 'unknown-type'];
-  testTypes.forEach(type => {
+  testTypes.forEach((type: string) => {
     const image = getImageForAgentType(type);
     console.log(`  ${type}: ${image}`);
   });
@@ -423,7 +423,7 @@ export async function debugRegistryConfiguration(): Promise<void> {
     '',
   ];
 
-  testPaths.forEach(path => {
+  testPaths.forEach((path: string) => {
     const validation = validateImagePath(path);
     const display = path || '(empty)';
     console.log(`  "${display}": ${validation.valid ? 'Valid' : 'Invalid'}`);

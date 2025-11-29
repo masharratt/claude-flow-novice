@@ -13,7 +13,7 @@ import {
   AuthContext,
   Role,
   Operation,
-} from './auth-types';
+} from './auth-types.js';
 
 /**
  * SLA Permission Model

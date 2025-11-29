@@ -111,28 +111,29 @@ export const cfnImplementerCerebrasTask = task({
       await db.logger.info("cerebras-implementer", "Implementation completed", {
         taskId: payload.taskId,
         agentId: payload.agentId,
-        success: result.success,
-        provider: result.provider,
-        metrics: {
-          iterations: result.iterations,
-          tokensUsed: result.totalTokens || 0,
-          timeMs: totalTime,
-          cost: result.cost,
-          modelUsed: result.modelUsed || result.provider,
-          quality: Math.min(100, quality),
+        data: {
+          success: result.success,
+          provider: result.provider,
+          metrics: {
+            iterations: result.iterations,
+            tokensUsed: result.totalTokens || 0,
+            timeMs: totalTime,
+            cost: result.cost,
+            modelUsed: result.modelUsed || result.provider,
+            quality: Math.min(100, quality),
+          },
         },
       });
 
       // Update Redis with completion
-      await redis.lpush(`cfn:complete:${payload.taskId}`, JSON.stringify({
+      await redis.signalCompletion(payload.taskId, {
+        agentId: payload.agentId,
+        status: 'completed',
         success: result.success,
-        iterations: result.iterations,
-        tokensUsed: result.totalTokens || 0,
-        timeMs: totalTime,
-        quality: Math.min(100, quality),
-        provider: result.provider,
-        cost: result.cost,
-      }));
+        confidence: Math.min(100, quality) / 100,
+        durationMs: totalTime,
+        completedAt: Date.now(),
+      });
 
       // Record metrics
       providerRouter.recordMetric({
@@ -174,10 +175,10 @@ export const cfnImplementerCerebrasTask = task({
 
       console.error(`[cerebras-implementer] ✗ Error: ${errorMsg}`);
 
-      await db.logger.error("cerebras-implementer", "Implementation failed", {
+      await db.logger.error("cerebras-implementer", "Implementation failed", new Error(errorMsg), {
         taskId: payload.taskId,
         agentId: payload.agentId,
-        error: errorMsg,
+        data: { error: errorMsg },
       });
 
       await redis.setAgentStatus(payload.agentId, "failed", {
@@ -209,29 +210,21 @@ export const cfnImplementerCerebrasTask = task({
 // Export for testing
 // =============================================
 
+// Testing via Trigger.dev SDK - use tasks.trigger() instead of .run()
+// Example: import { tasks } from "@trigger.dev/sdk/v3";
+// const handle = await tasks.trigger("cfn-implementer-cerebras", { ... payload ... });
+// const result = await runs.poll(handle.id);
 export async function testCerebrasImplementer(
   description: string,
   complexity: "simple" | "moderate" | "complex" = "moderate"
 ) {
   console.log("Testing Cerebras Implementer");
   console.log(`Task: ${description}`);
-  console.log(`Complexity: ${complexity}\n`);
+  console.log(`Complexity: ${complexity}`);
+  console.log("Use tasks.trigger() from @trigger.dev/sdk/v3 to execute this task");
 
-  const result = await cfnImplementerCerebrasTask.run({
-    taskId: `test-${Date.now()}`,
-    agentId: `agent-${Date.now()}`,
-    iterationId: 1,
-    agentType: "cerebras-implementer",
-    taskDescription: description,
-    workDir: "/tmp",
-    complexity,
-    autoIterate: true,
-    maxIterations: 3,
-    timeout: 60000,
-  });
-
-  console.log("\nResults:");
-  console.log(JSON.stringify(result, null, 2));
-
-  return result;
+  return {
+    success: false,
+    message: "Use tasks.trigger() to execute this task via Trigger.dev SDK",
+  };
 }

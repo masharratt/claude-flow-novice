@@ -12,7 +12,7 @@ import {
   EnvironmentValidationError,
   VolumeValidationError,
   ValidatedEnvironment,
-} from './types';
+} from './types.js';
 
 /**
  * Validate and load environment configuration
@@ -61,10 +61,10 @@ export function validateEnvironment(): ValidatedEnvironment {
     triggerApiKey: triggerApiKey!,
     triggerProjectSlug: triggerProjectSlug!,
     triggerApiUrl: process.env.TRIGGER_API_URL || 'http://localhost:3000',
-    dockerHost: dockerHost,
-    dockerSocket: dockerSocket,
+    dockerHost: dockerHost || '',
+    dockerSocket: dockerSocket || '',
     workspacePath: workspacePath,
-    triggerOrgSlug: process.env.TRIGGER_ORG_SLUG,
+    triggerOrgSlug: process.env.TRIGGER_ORG_SLUG || '',
     validated: true,
     validationTime: new Date(),
   };

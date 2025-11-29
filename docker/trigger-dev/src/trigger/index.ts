@@ -147,3 +147,56 @@ export type {
   UnifiedMicroTask,
   ExecutionPhase,
 } from "./cfn-decomposition-aggregator.js";
+
+// Phase 3: Async Validator Integration (Tasks 3.1-3.3)
+export { cfnAsyncValidatorOrchestratorTask } from "./cfn-async-validator-orchestrator.js";
+export type {
+  OrchestratorPayload as AsyncOrchestratorPayload,
+  OrchestratorResult as AsyncOrchestratorResult,
+  ValidatorResult as AsyncValidatorResult,
+} from "./cfn-async-validator-orchestrator.js";
+
+export { cfnValidationPipelineTask } from "./cfn-validation-pipeline.js";
+export type {
+  PipelinePayload,
+  PipelineResult,
+  StreamingValidatorProgress,
+  QualityMetrics,
+} from "./cfn-validation-pipeline.js";
+
+export { cfnQualityGateV2Task } from "./cfn-quality-gate-v2.js";
+export type {
+  QualityGatePayload,
+  QualityGateResult,
+  GateDecision,
+  ValidatorBreakdown,
+} from "./cfn-quality-gate-v2.js";
+
+// Phase 3: Additional Async Validators
+export { cfnAsyncTestingValidatorTask } from "./cfn-async-testing-validator.js";
+export type {
+  AsyncTestingValidatorPayload,
+  AsyncTestingValidatorResult,
+} from "./cfn-async-testing-validator.js";
+
+export { cfnAsyncArchitectureValidatorTask } from "./cfn-async-architecture-validator.js";
+export type {
+  AsyncArchitectureValidatorPayload,
+  AsyncArchitectureValidatorResult,
+} from "./cfn-async-architecture-validator.js";
+
+export { cfnAsyncCodeQualityValidatorTask } from "./cfn-async-code-quality-validator.js";
+export type {
+  AsyncCodeQualityValidatorPayload,
+  AsyncCodeQualityValidatorResult,
+} from "./cfn-async-code-quality-validator.js";
+
+// Phase 5: Troubleshooting Decomposer and Smart Error Recovery
+export { cfnTroubleshootingDecomposerTask } from "./cfn-troubleshooting-decomposer.js";
+export type {
+  TroubleshootingInput,
+  TroubleshootingAnalysis,
+  RootCause,
+  TroubleshootingMicroTask,
+  SuggestedChange,
+} from "./cfn-troubleshooting-decomposer.js";

@@ -244,29 +244,21 @@ function selectProviders(
   // Otherwise, auto-select based on priority
   const priority = payload.providerPriority || "quality";
 
-  switch (complexity) {
-    case "simple":
-      if (priority === "cost") {
-        // Use Groq for all if available (cheapest)
-        return {
-          thinking: "groq",
-          probing: "groq",
-          synthesis: "groq",
-        };
-      }
-      // Fall through to default
-      // eslint-disable-next-line no-fallthrough
-
-    case "moderate":
-    case "complex":
-    default:
-      // Default: Cerebras for all (most reliable)
-      return {
-        thinking: "cerebras",
-        probing: "cerebras",
-        synthesis: "cerebras",
-      };
+  // Cost priority: use Groq if available (for simple errors)
+  if (complexity === "simple" && priority === "cost") {
+    return {
+      thinking: "groq",
+      probing: "groq",
+      synthesis: "groq",
+    };
   }
+
+  // Default: Cerebras for all (most reliable)
+  return {
+    thinking: "cerebras",
+    probing: "cerebras",
+    synthesis: "cerebras",
+  };
 }
 
 // =============================================
@@ -579,33 +571,32 @@ export const cfnTroubleshooterV2Task = task({
       await db.logger.info("troubleshooter-v2", "Troubleshooting completed", {
         taskId: payload.taskId,
         agentId: payload.agentId,
-        success: true,
-        rootCause: diagnosis.rootCause,
-        confidence: diagnosis.confidence,
-        providers: providerNames,
-        metrics: {
-          thinkingTime: thinkingTime,
-          probeTime: probingTime,
-          synthesisTime: synthesisTime,
-          fixTime: fixTime,
-          validationTime: validationTime,
-          totalTime: totalTime,
-          estimatedCost: estimatedCost,
-        },
-      });
-
-      // Update Redis
-      await redis.lpush(
-        `cfn:complete:${payload.taskId}`,
-        JSON.stringify({
+        data: {
           success: true,
           rootCause: diagnosis.rootCause,
           confidence: diagnosis.confidence,
           providers: providerNames,
-          totalTime: totalTime,
-          cost: estimatedCost,
-        })
-      );
+          metrics: {
+            thinkingTime: thinkingTime,
+            probeTime: probingTime,
+            synthesisTime: synthesisTime,
+            fixTime: fixTime,
+            validationTime: validationTime,
+            totalTime: totalTime,
+            estimatedCost: estimatedCost,
+          },
+        },
+      });
+
+      // Update Redis
+      await redis.signalCompletion(payload.taskId, {
+        agentId: payload.agentId,
+        status: 'completed',
+        success: true,
+        confidence: diagnosis.confidence / 100,
+        durationMs: totalTime,
+        completedAt: Date.now(),
+      });
 
       return {
         success: true,
@@ -657,10 +648,10 @@ export const cfnTroubleshooterV2Task = task({
 
       console.error(`[troubleshooter-v2] ✗ Error: ${errorMsg}`);
 
-      await db.logger.error("troubleshooter-v2", "Troubleshooting failed", {
+      await db.logger.error("troubleshooter-v2", "Troubleshooting failed", new Error(errorMsg), {
         taskId: payload.taskId,
         agentId: payload.agentId,
-        error: errorMsg,
+        data: { error: errorMsg },
       });
 
       await redis.setAgentStatus(payload.agentId, "failed", {
@@ -702,11 +693,25 @@ export const cfnTroubleshooterV2Task = task({
           fixTimeMs: 0,
           validationTimeMs: 0,
           totalTimeMs: totalTime,
-          provider: {
-            thinking: payload.thinkingModel || "cerebras",
-            probing: "groq",
+          providersUsed: {
+            thinking: {
+              name: "unknown",
+              latencyMs: 0,
+              cost: 0,
+            },
+            probing: {
+              name: "unknown",
+              latencyMs: 0,
+              cost: 0,
+              parallel: false,
+            },
+            synthesis: {
+              name: "unknown",
+              latencyMs: 0,
+              cost: 0,
+            },
           },
-          cost: 0,
+          totalCost: 0,
           confidence: 0,
         },
         error: errorMsg,
@@ -719,34 +724,16 @@ export const cfnTroubleshooterV2Task = task({
 // Export for testing
 // =============================================
 
+// Testing via Trigger.dev SDK - use tasks.trigger() instead of .run()
+// Example: import { tasks } from "@trigger.dev/sdk/v3";
+// const handle = await tasks.trigger("cfn-troubleshooter-v2", { ... payload ... });
+// const result = await runs.poll(handle.id);
 export async function testTroubleshooterV2() {
   console.log("Testing Troubleshooter V2");
+  console.log("Use tasks.trigger() from @trigger.dev/sdk/v3 to execute this task");
 
-  const result = await cfnTroubleshooterV2Task.run({
-    taskId: `test-${Date.now()}`,
-    agentId: `agent-${Date.now()}`,
-    errorMessage: 'Agent shows "running" even after task completes',
-    errorType: "logic",
-    errorPattern: '"running"',
-    codeFiles: [
-      {
-        path: "src/cfn-implementer.ts",
-        content: `
-if (status === "COMPLETE") {
-  console.log("Done");
-} else {
-  console.log("Still running");
-}
-`,
-      },
-    ],
-    reproductionScript: 'npm test -- agent-status.test.ts',
-    expectedBehavior: "Agent status changes to completed",
-    actualBehavior: "Agent status remains running",
-  });
-
-  console.log("\nResults:");
-  console.log(JSON.stringify(result, null, 2));
-
-  return result;
+  return {
+    success: false,
+    message: "Use tasks.trigger() to execute this task via Trigger.dev SDK",
+  };
 }

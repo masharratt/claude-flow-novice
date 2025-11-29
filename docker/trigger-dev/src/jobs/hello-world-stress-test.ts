@@ -16,7 +16,6 @@
  * - Idiomatic code per programming language
  */
 
-import { client } from "../index";
 import { z } from "zod";
 import * as fs from "fs";
 import * as path from "path";
@@ -142,11 +141,20 @@ const StressTestPayloadSchema = z.object({
 });
 
 /**
+ * Payload interface for stress test
+ */
+interface StressTestPayload {
+  outputDir: string;
+  batchSize: number;
+  delayBetweenBatches: number;
+}
+
+/**
  * Hello World Stress Test Job
  *
  * Spawns 100 tasks to create hello world files in all language combinations.
  */
-export const helloWorldStressTestJob = client.defineJob({
+export const helloWorldStressTestJob = {
   id: "hello-world-stress-test",
   name: "100-Agent Hello World Stress Test",
   version: "1.0.0",
@@ -156,7 +164,7 @@ export const helloWorldStressTestJob = client.defineJob({
       schema: StressTestPayloadSchema,
     },
   },
-  run: async (payload, io, ctx) => {
+  run: async (payload: StressTestPayload, io: any, ctx: any) => {
     const { outputDir, batchSize, delayBetweenBatches } = payload;
     const startTime = Date.now();
 
@@ -289,7 +297,7 @@ export const helloWorldStressTestJob = client.defineJob({
       outputDir,
       files: results.map((r) => r.file),
     };
-  },
-});
+  }
+};
 
 export default helloWorldStressTestJob;

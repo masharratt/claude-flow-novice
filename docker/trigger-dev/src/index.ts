@@ -5,14 +5,14 @@
  * with comprehensive environment validation and error handling.
  */
 
-import { TriggerClient } from "@trigger.dev/sdk";
-import { validateEnvironment, getValidatedConfig, validateDockerConfig } from "./config";
-import { EnvironmentValidationError } from "./types";
+import { validateEnvironment, getValidatedConfig, validateDockerConfig } from "./config.js";
+import { EnvironmentValidationError } from "./types.js";
+import type { ValidatedEnvironment } from "./types.js";
 
 /**
  * Initialize and validate environment before creating client
  */
-function initializeClient(): TriggerClient {
+function initializeClient(): ValidatedEnvironment {
   try {
     // Validate all required environment variables
     const config = validateEnvironment();
@@ -32,15 +32,8 @@ function initializeClient(): TriggerClient {
       `[Trigger.dev] Project: ${config.triggerProjectSlug}, Workspace: ${config.workspacePath}`
     );
 
-    // Initialize trigger.dev client with validated configuration
-    const client = new TriggerClient({
-      id: config.triggerProjectSlug,
-      apiKey: config.triggerApiKey,
-      apiUrl: config.triggerApiUrl,
-    });
-
-    return client;
-  } catch (error) {
+    return config;
+  } catch (error: unknown) {
     if (error instanceof EnvironmentValidationError) {
       console.error("[Trigger.dev] Environment validation failed:");
       error.errors.forEach((err) => {
@@ -54,11 +47,14 @@ function initializeClient(): TriggerClient {
   }
 }
 
-// Create and export configured client
-export const client = initializeClient();
+// Create and export validated configuration
+export const validatedConfig = initializeClient();
 
-// Export configuration for job access
+// Export configuration helper
 export { getValidatedConfig };
 
+// Export types
+export type { ValidatedEnvironment };
+
 // Import and register all jobs
-import "./jobs";
+import "./jobs/index.js";

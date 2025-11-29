@@ -14,3 +14,22 @@ secrets/
 # Temporary files
 *.tmp
 *.bak
+
+# RuVector Database Files
+# Database files (runtime state) - exclude actual DB files
+data/ruvector.db
+data/ruvector.db-wal
+data/ruvector.db-shm
+data/migration/migration-log.json
+
+# Backup files (keep directory structure and policy)
+data/backups/*.backup
+data/backups/*.backup-*
+data/backups/*.metadata
+data/backups/backup.log
+
+# DO NOT exclude:
+# - data/backups/retention-policy.json (configuration)
+# - scripts/backup-ruvector.sh (backup tool)
+# - scripts/migrate-ruvector.sh (migration tool)
+!data/backups/retention-policy.json
