@@ -1,10 +1,32 @@
-# SEO Content Pipeline - Implementation Guide
+# SEO System - Implementation Guide
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Status:** ✅ Production Ready
-**Last Updated:** 2025-11-02
+**Last Updated:** 2025-11-29
 
 ---
+
+## Document Index
+
+This directory contains two systems:
+
+### 1. SEO Content Pipeline (Production)
+The autonomous content generation system with 15 agents and 4-validator consensus.
+- **Status:** Production Ready
+- **See:** Content Pipeline section below
+
+### 2. SEO Intelligence System (Planning)
+Cross-domain learning, competitor analysis, and algorithm prediction.
+- **Status:** Planning
+- **Documents:**
+  - [SEO_INTELLIGENCE_SYSTEM.md](./SEO_INTELLIGENCE_SYSTEM.md) - Master architecture
+  - [COMPETITOR_ANALYSIS_PLAYBOOK.md](./COMPETITOR_ANALYSIS_PLAYBOOK.md) - Deep competitor analysis process
+  - [ALGORITHM_PREDICTION_MODEL.md](./ALGORITHM_PREDICTION_MODEL.md) - Predicting Google changes
+  - [CROSS_DOMAIN_LEARNING.md](./CROSS_DOMAIN_LEARNING.md) - Sharing learnings across domains
+
+---
+
+# Part 1: SEO Content Pipeline
 
 ## 📋 Overview
 
@@ -702,6 +724,67 @@ curl -X POST https://api.example.com/graphql \
 ---
 
 **Status:** ✅ Production Ready
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Maintainer:** CFN SEO Team
 **License:** MIT
+
+---
+
+# Part 2: SEO Intelligence System
+
+## Overview
+
+The intelligence system complements the content pipeline by:
+- Analyzing what makes top-ranking pages successful
+- Deep-diving competitor sites to extract winning patterns
+- Sharing learnings across multiple personal domains
+- Predicting algorithm changes to stay ahead
+
+## Quick Links
+
+| Document | What It Covers |
+|----------|----------------|
+| [SEO_INTELLIGENCE_SYSTEM.md](./SEO_INTELLIGENCE_SYSTEM.md) | Overall architecture, SERP analysis, data collection |
+| [COMPETITOR_ANALYSIS_PLAYBOOK.md](./COMPETITOR_ANALYSIS_PLAYBOOK.md) | Step-by-step process for analyzing winning sites |
+| [ALGORITHM_PREDICTION_MODEL.md](./ALGORITHM_PREDICTION_MODEL.md) | Risk scoring, promotion potential, predictions |
+| [CROSS_DOMAIN_LEARNING.md](./CROSS_DOMAIN_LEARNING.md) | Pattern sharing, confidence scoring, validation |
+
+## Key Concepts
+
+**Global vs Local Knowledge**
+- Global: Patterns that work universally (shareable)
+- Local: Domain-specific data (keywords, rankings)
+
+**Confidence Scoring**
+- Patterns rated 0.0-1.0 based on evidence
+- High confidence (>0.8) = apply with confidence
+- Decays over time without revalidation
+
+**Risk/Potential Scoring**
+- Tactics assessed for deprecation risk
+- Opportunities assessed for promotion potential
+
+## Integration with RuVector
+
+When RuVector is implemented:
+- Patterns stored as embeddings for similarity matching
+- GNN learns which patterns succeed
+- Cross-domain queries become instant
+- Confidence updates automatically
+
+## Getting Started
+
+1. Read [SEO_INTELLIGENCE_SYSTEM.md](./SEO_INTELLIGENCE_SYSTEM.md) for architecture
+2. Run competitor analysis using the [playbook](./COMPETITOR_ANALYSIS_PLAYBOOK.md)
+3. Document patterns with confidence scores
+4. On second domain, begin cross-domain learning
+5. Review algorithm predictions quarterly
+
+---
+
+## Related Files
+
+| File | Description |
+|------|-------------|
+| [SEO_PIPELINE_IMPROVEMENTS.md](./SEO_PIPELINE_IMPROVEMENTS.md) | Research findings for pipeline |
+| [SEO_NPM_TEMPLATIZATION_PLAN.md](./SEO_NPM_TEMPLATIZATION_PLAN.md) | NPM packaging plans |

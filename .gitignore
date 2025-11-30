@@ -204,6 +204,7 @@ hive-mind-prompt-*.txt
 planning/large-coordination/*
 planning/legion/*
 planning/global/
+planning/side-projects
 
 
 # Legacy v1 - exclude build artifacts and large files

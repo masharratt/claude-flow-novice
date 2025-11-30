@@ -152,7 +152,8 @@ async function testExtract() {
 
     if (result.ok && result.data.success) {
       console.log('✅ PASSED - Successfully extracted data');
-      console.log(`   Extracted data:`, JSON.stringify(result.data.data, null, 2).substring(0, 200));
+      const dataStr = JSON.stringify(result.data.data || result.data, null, 2);
+      console.log(`   Extracted data:`, dataStr.substring(0, 200));
       return true;
     } else {
       console.log('⚠️  PARTIAL - Extract endpoint returned:', result.status);

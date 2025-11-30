@@ -200,3 +200,10 @@ export type {
   TroubleshootingMicroTask,
   SuggestedChange,
 } from "./cfn-troubleshooting-decomposer.js";
+
+// MDAP Implementer - Cerebras API Direct (Fast, ~500ms-3s per micro-task)
+export { cfnMDAPImplementerTask } from "./cfn-mdap-implementer.js";
+export type {
+  MDAPImplementerPayload,
+  MDAPImplementerResult,
+} from "./cfn-mdap-implementer.js";

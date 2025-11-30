@@ -5,6 +5,7 @@ import {
   validateDecompositionOutput,
   validateDecomposerOutput,
   validateDependencyGraph,
+  parseJSONFromResponse,
 } from "../lib/validation-schemas.js";
 
 export interface ArchitectureDecomposerPayload {
@@ -130,17 +131,8 @@ Format as JSON with structure:
       const data = validateCerebrasResponse(rawData, "architecture-decomposer");
       const content = data.choices[0].message.content;
 
-      // Parse and validate decomposition output
-      let analysis: any;
-      try {
-        analysis = JSON.parse(content);
-      } catch (parseError) {
-        throw new Error(
-          `[architecture-decomposer] Failed to parse JSON content: ${(parseError as Error).message}\n` +
-            `Raw content (first 200 chars): ${content.substring(0, 200)}\n` +
-            `This indicates malformed JSON from the AI model. Try regenerating.`
-        );
-      }
+      // Parse and validate decomposition output (handles markdown code fences)
+      const analysis = parseJSONFromResponse(content, "architecture-decomposer");
 
       // P0 Fix: Task 3 - Validate decomposition structure
       const validatedAnalysis = validateDecompositionOutput(analysis, "architecture-decomposer");

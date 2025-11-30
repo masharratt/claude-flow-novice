@@ -508,3 +508,133 @@ export function validateDependencyGraph(
     }
   }
 }
+
+// =============================================
+// JSON Extraction Utilities
+// =============================================
+
+/**
+ * Extracts JSON from AI model responses that may include markdown code fences.
+ * Handles: ```json\n{...}\n```, ```\n{...}\n```, or raw JSON.
+ *
+ * @param content Raw content from AI model response
+ * @param contextName Optional context for error messages
+ * @returns Extracted JSON string ready for parsing
+ */
+export function extractJSONFromResponse(content: string, contextName?: string): string {
+  if (!content || typeof content !== "string") {
+    throw new Error(
+      `[${contextName || "extractJSON"}] Empty or invalid content received from AI model`
+    );
+  }
+
+  // Try to extract JSON from markdown code fences (multiple patterns for robustness)
+  // Pattern 1: ```json ... ``` with greedy capture
+  const jsonCodeBlockMatch = content.match(/```json\s*([\s\S]+?)```/);
+  if (jsonCodeBlockMatch && jsonCodeBlockMatch[1].trim()) {
+    return jsonCodeBlockMatch[1].trim();
+  }
+
+  // Pattern 2: ``` ... ``` generic code block
+  const genericCodeBlockMatch = content.match(/```\s*([\s\S]+?)```/);
+  if (genericCodeBlockMatch && genericCodeBlockMatch[1].trim()) {
+    const extracted = genericCodeBlockMatch[1].trim();
+    // Verify it looks like JSON (starts with { or [)
+    if (extracted.startsWith("{") || extracted.startsWith("[")) {
+      return extracted;
+    }
+  }
+
+  // Pattern 3: Find JSON object/array directly in content
+  // Look for outermost { } or [ ] pair
+  const firstBrace = content.indexOf("{");
+  const firstBracket = content.indexOf("[");
+
+  if (firstBrace !== -1) {
+    // Find matching closing brace by counting
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = firstBrace; i < content.length; i++) {
+      const char = content[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (char === "\\") {
+        escape = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (!inString) {
+        if (char === "{") depth++;
+        if (char === "}") {
+          depth--;
+          if (depth === 0) {
+            return content.substring(firstBrace, i + 1);
+          }
+        }
+      }
+    }
+  }
+
+  if (firstBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
+    // Find matching closing bracket by counting
+    let depth = 0;
+    let inString = false;
+    let escape = false;
+    for (let i = firstBracket; i < content.length; i++) {
+      const char = content[i];
+      if (escape) {
+        escape = false;
+        continue;
+      }
+      if (char === "\\") {
+        escape = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (!inString) {
+        if (char === "[") depth++;
+        if (char === "]") {
+          depth--;
+          if (depth === 0) {
+            return content.substring(firstBracket, i + 1);
+          }
+        }
+      }
+    }
+  }
+
+  // Return as-is if no patterns match (let JSON.parse handle the error)
+  return content.trim();
+}
+
+/**
+ * Extracts and parses JSON from AI model responses.
+ * Combines extraction and parsing with detailed error messages.
+ *
+ * @param content Raw content from AI model response
+ * @param contextName Context for error messages
+ * @returns Parsed JSON object
+ */
+export function parseJSONFromResponse<T = unknown>(content: string, contextName: string): T {
+  const extracted = extractJSONFromResponse(content, contextName);
+
+  try {
+    return JSON.parse(extracted) as T;
+  } catch (parseError) {
+    throw new Error(
+      `[${contextName}] Failed to parse JSON content: ${(parseError as Error).message}\n` +
+        `Extracted content (first 300 chars): ${extracted.substring(0, 300)}\n` +
+        `Original content (first 200 chars): ${content.substring(0, 200)}\n` +
+        `This indicates malformed JSON from the AI model. Try regenerating.`
+    );
+  }
+}

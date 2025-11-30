@@ -13,7 +13,7 @@ Self-hosted Firecrawl API integration for the SEO content pipeline. Provides web
 
 ```bash
 # Required
-FIRECRAWL_API_KEY=cf-miifwovbc742201a14340138f3d48001e2036a6078eab91a44c20b5ac1bca03f
+FIRECRAWL_API_KEY=cf-2d9b68acc32900ca0228ab3cc06761763fc41a616d5d77da00ba647a18ff1a0d
 FIRECRAWL_BASE_URL=https://firecrawl-api-ourstories.fly.dev
 
 # Optional
@@ -93,7 +93,7 @@ const seoData = await extractSeoData('https://example.com/article');
 All requests use Bearer token authentication:
 
 ```
-Authorization: Bearer cf-miifwovbc742201a14340138f3d48001e2036a6078eab91a44c20b5ac1bca03f
+Authorization: Bearer cf-2d9b68acc32900ca0228ab3cc06761763fc41a616d5d77da00ba647a18ff1a0d
 ```
 
 ## Rate Limits

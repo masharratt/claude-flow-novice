@@ -10,12 +10,30 @@ import type { PerformanceAnalysis } from "./cfn-performance-decomposer.js";
 import type { TestingAnalysis } from "./cfn-testing-decomposer.js";
 import type { OrchestratorResult } from "./cfn-async-validator-orchestrator.js";
 import type { TroubleshootingAnalysis } from "./cfn-troubleshooting-decomposer.js";
+import type { MDAPImplementerResult } from "./cfn-mdap-implementer.js";
 import { DecompositionPerformanceMonitor, calculateContextSize } from "../lib/decomposition-performance-monitor.js";
 // Phase 4: RuVector Learning Hooks
 import { captureDecompositionToRuVector, updateDecompositionWithValidation } from "../lib/ruvector-learning-hooks.js";
 import { findSimilarDecompositions, generateAdaptivePrompt, trackRagRecall } from "../lib/ruvector-rag-decomposition.js";
 // SLA Enforcement
 import { measureSLA, slaEnforcer, SLACheckResult, SLAs } from "../lib/sla-enforcement.js";
+// Production Monitoring
+import { getLogger } from "../lib/structured-logger.js";
+import { getMetricsCollector } from "../lib/metrics-collector.js";
+import { getHealthChecker } from "../lib/health-check.js";
+
+// Security: Sanitize error messages to prevent API key leakage
+function sanitizeErrorMessage(error: Error | unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  // Mask patterns that look like API keys
+  return message
+    .replace(/tr_(dev|prod|stg|preview)_[a-zA-Z0-9]+/g, 'tr_$1_[REDACTED]')
+    .replace(/sk-[a-zA-Z0-9]{48}/g, 'sk-[REDACTED]')
+    .replace(/Bearer\s+[a-zA-Z0-9_-]+/gi, 'Bearer [REDACTED]')
+    .replace(/api[_-]?key[:\s=]+['"]?[a-zA-Z0-9_-]+['"]?/gi, 'api_key=[REDACTED]')
+    .replace(/token[:\s=]+['"]?[a-zA-Z0-9_-]+['"]?/gi, 'token=[REDACTED]');
+}
 
 // P0 Fix: Task 4 - Timeout Protection Helper
 async function pollWithTimeout<T>(
@@ -47,6 +65,23 @@ async function pollWithTimeout<T>(
     );
   }
 
+  // FIX: Check run status before accessing output
+  // If the task failed, result.output is undefined but status will be 'FAILED'
+  if (result.status === 'FAILED' || result.status === 'CRASHED' || result.status === 'SYSTEM_FAILURE') {
+    throw new Error(
+      `[cfn-coordinator] ${taskName} failed with status: ${result.status}.\n` +
+        `Run ID: ${runId}. Check task logs for details.`
+    );
+  }
+
+  // For completed runs, output should be defined
+  if (result.output === undefined) {
+    throw new Error(
+      `[cfn-coordinator] ${taskName} completed but returned undefined output.\n` +
+        `Run ID: ${runId}, Status: ${result.status}. This indicates a task implementation bug.`
+    );
+  }
+
   return result.output as T;
 }
 
@@ -57,6 +92,16 @@ export interface CFNCoordinatorPayload {
   mode: "mvp" | "standard" | "enterprise";
   maxIterations: number;
   complexity: "simple" | "moderate" | "complex";
+  /**
+   * Enable MDAP (Massively Decomposed Agentic Processes) mode.
+   * When true, uses fast Cerebras API (~500ms-3s per micro-task) instead of
+   * Claude Code CLI (~60s+). Designed for rapid TDD iteration cycles.
+   *
+   * MDAP flow: Generate code → Write files → Run tests → Gate check → Loop if fail
+   *
+   * @default false (uses cfn-implementer-v2 with Claude CLI)
+   */
+  enableMDAP?: boolean;
 }
 
 export interface CFNCoordinatorResult {
@@ -75,6 +120,7 @@ export interface CFNCoordinatorResult {
     success: boolean;
     confidence: number;
     durationMs: number;
+    error?: string; // Present when task failed
   }[];
 
   // Phase 3: Async Validators
@@ -110,6 +156,14 @@ export interface CFNCoordinatorResult {
     troubleshootingTimeMs: number; // Phase 5: Troubleshooting decomposer
     validationTimeMs: number;
   };
+  // Production metrics summary (optional)
+  metricsSummary?: {
+    taskCompletionRate: number;
+    averageTaskDurationMs: number;
+    gateCheckPassRate: number;
+    slaBreachCount: number;
+    errorRate: number;
+  };
 }
 
 /**
@@ -127,6 +181,23 @@ export const cfnCoordinatorTask = task({
 
   run: async (payload: CFNCoordinatorPayload): Promise<CFNCoordinatorResult> => {
     const coordinatorStartTime = Date.now();
+
+    // Initialize structured logger and metrics collector
+    const logger = getLogger('cfn-coordinator').child({ taskId: payload.taskId });
+    const metricsCollector = getMetricsCollector();
+    const healthChecker = getHealthChecker();
+
+    // Optional: Health check at startup (non-blocking)
+    const healthReport = await healthChecker.performAllChecks();
+    if (healthReport.status === 'degraded') {
+      logger.warn('System health degraded at startup', {}, {
+        degradedComponents: healthReport.components.filter(c => c.status === 'degraded').map(c => c.name),
+      });
+    } else if (healthReport.status === 'unhealthy') {
+      logger.warn('System health unhealthy at startup', {}, {
+        unhealthyComponents: healthReport.components.filter(c => c.status === 'unhealthy').map(c => c.name),
+      });
+    }
     const result: CFNCoordinatorResult = {
       taskId: payload.taskId,
       success: false,
@@ -147,18 +218,45 @@ export const cfnCoordinatorTask = task({
     };
 
     try {
-      console.log(`[cfn-coordinator] ========== CFN LOOP COORDINATOR v3 ==========`);
-      console.log(`[cfn-coordinator] Task: ${payload.taskId}`);
-      console.log(`[cfn-coordinator] Description: ${payload.taskDescription.substring(0, 80)}...`);
-      console.log(`[cfn-coordinator] Mode: ${payload.mode}`);
-      console.log(`[cfn-coordinator] Max iterations: ${payload.maxIterations}`);
+      logger.info('CFN Loop Coordinator v3 starting', { mode: payload.mode, maxIterations: payload.maxIterations, complexity: payload.complexity, enableMDAP: payload.enableMDAP || false }, { taskDescription: payload.taskDescription.substring(0, 100), workDir: payload.workDir });
 
       // ===== PHASE 1: SEQUENTIAL DECOMPOSITION WITH CONTEXT PASSING =====
-      console.log(``);
-      console.log(`[cfn-coordinator] ===== PHASE 1: SEQUENTIAL DECOMPOSITION (v3.1) =====`);
+      logger.info('Starting Phase 1: Sequential Decomposition (v3.1)');
       const decompositionStartTime = Date.now();
       const perfMonitor = new DecompositionPerformanceMonitor();
       perfMonitor.start();
+
+      // ===== RUVECTOR RAG: Find Similar Prior Decompositions =====
+      const enableRuVector = process.env.ENABLE_RUVECTOR === 'true';
+      let ragResult: Awaited<ReturnType<typeof findSimilarDecompositions>> | null = null;
+      let enhancedTaskDescription = payload.taskDescription;
+
+      if (enableRuVector) {
+        console.log(`[cfn-coordinator] [rag] RuVector RAG enabled, searching for similar decompositions...`);
+        try {
+          ragResult = await findSimilarDecompositions(payload.taskDescription, {
+            topK: 3,
+            minSimilarity: 0.75,
+            minQualityScore: 0.80,
+            onlySuccessful: true,
+          });
+
+          if (ragResult.hasHighConfidencePrior) {
+            console.log(`[cfn-coordinator] [rag] ✓ High-confidence prior found (quality: ${ragResult.results[0].qualityScore.toFixed(2)})`);
+            enhancedTaskDescription = generateAdaptivePrompt(payload.taskDescription, ragResult);
+            console.log(`[cfn-coordinator] [rag] Generated adaptive prompt with RAG baseline`);
+          } else if (ragResult.results.length > 0) {
+            console.log(`[cfn-coordinator] [rag] Found ${ragResult.results.length} similar decompositions (avg quality: ${ragResult.avgQualityScore.toFixed(2)})`);
+          } else {
+            console.log(`[cfn-coordinator] [rag] No similar decompositions found, using original task description`);
+          }
+        } catch (ragError) {
+          console.warn(`[cfn-coordinator] [rag] ⚠ RAG query failed, continuing without RAG context: ${ragError instanceof Error ? ragError.message : String(ragError)}`);
+          // Graceful degradation: continue with original task description
+        }
+      } else {
+        console.log(`[cfn-coordinator] [rag] RuVector RAG disabled (ENABLE_RUVECTOR=${process.env.ENABLE_RUVECTOR})`);
+      }
 
       // Step 1: Architecture Decomposer (baseline, no context)
       console.log(`[cfn-coordinator] Step 1/4: Architecture decomposition...`);
@@ -168,7 +266,7 @@ export const cfnCoordinatorTask = task({
         async () => {
           const archHandle = await tasks.trigger("cfn-architecture-decomposer", {
             taskId: payload.taskId,
-            taskDescription: payload.taskDescription,
+            taskDescription: enhancedTaskDescription, // Use RAG-enhanced prompt if available
             workDir: payload.workDir,
           });
           // Timeout = SLA target × 48 (accommodates 3 retries + network delays + queue time)
@@ -196,7 +294,7 @@ export const cfnCoordinatorTask = task({
         async () => {
           const secHandle = await tasks.trigger("cfn-security-decomposer", {
             taskId: payload.taskId,
-            taskDescription: payload.taskDescription,
+            taskDescription: enhancedTaskDescription, // Use RAG-enhanced prompt if available
             workDir: payload.workDir,
             previousContext: securityContext,
           });
@@ -227,7 +325,7 @@ export const cfnCoordinatorTask = task({
         async () => {
           const perfHandle = await tasks.trigger("cfn-performance-decomposer", {
             taskId: payload.taskId,
-            taskDescription: payload.taskDescription,
+            taskDescription: enhancedTaskDescription, // Use RAG-enhanced prompt if available
             workDir: payload.workDir,
             previousContext: performanceContext,
           });
@@ -259,7 +357,7 @@ export const cfnCoordinatorTask = task({
         async () => {
           const testHandle = await tasks.trigger("cfn-testing-decomposer", {
             taskId: payload.taskId,
-            taskDescription: payload.taskDescription,
+            taskDescription: enhancedTaskDescription, // Use RAG-enhanced prompt if available
             workDir: payload.workDir,
             previousContext: testingContext,
           });
@@ -386,9 +484,15 @@ export const cfnCoordinatorTask = task({
       );
 
       // ===== PHASE 2: EXECUTION (Loop 3) + ASYNC VALIDATORS =====
-      console.log(``);
       console.log(`[cfn-coordinator] ===== PHASE 2: EXECUTION + ASYNC VALIDATORS =====`);
       const executionStartTime = Date.now();
+      const enableMDAP = payload.enableMDAP ?? false;
+
+      console.log(`[cfn-coordinator] MDAP mode: ${enableMDAP ? "ENABLED (Cerebras API, ~500ms-3s)" : "DISABLED (Claude CLI, ~60s+)"}`);
+
+      // TIER ESCALATION: Track failure counts per micro-task for T1→T2→T3 escalation
+      const microTaskFailureCounts = new Map<string, number>();
+      const MAX_TIER_3_FAILURES = 2; // After T3 fails twice, task is unrecoverable
 
       const implementationHandles: { id: string; microTaskId: string }[] = [];
       const securityValidatorHandles: { id: string; microTaskId: string }[] = [];
@@ -399,53 +503,174 @@ export const cfnCoordinatorTask = task({
         console.log(`[cfn-coordinator] Executing phase ${phase.phase} (${phase.parallelTasks.length} parallel tasks)`);
 
         // Spawn all tasks in this phase
+        // MDAP MODE: Use fast Cerebras API (~500ms-3s per task)
+        // STANDARD MODE: Use Claude Code CLI (~60s+ per task)
         const phaseImplementations = await Promise.all(
           phase.parallelTasks.map((microTaskId) => {
-            const microTask = decompositionPlan.microTasks.find((t) => t.id === microTaskId)!;
-            return tasks.trigger("cfn-implementer-v2", {
-              taskId: `${payload.taskId}-${microTaskId}`,
-              agentId: `agent-${microTaskId}`,
-              iterationId: 1,
-              agentType: "implementer",
-              taskDescription: `${microTask.title}: ${microTask.description}`,
-              workDir: payload.workDir,
-              complexity: payload.complexity,
-              autoIterate: true,
-              maxIterations: 3,
-              timeout: 60000,
-            });
+            const microTask = decompositionPlan.microTasks.find((t) => t.id === microTaskId);
+
+            // BUG FIX: Validate microTask exists before accessing properties
+            if (!microTask) {
+              throw new Error(`MicroTask ${microTaskId} not found in decomposition plan`);
+            }
+
+            if (enableMDAP) {
+              // MDAP: Fast Cerebras-based code generation with tier escalation
+              const failureCount = microTaskFailureCounts.get(microTaskId) || 0;
+              const modelTier = Math.min(1 + failureCount, 3); // T1→T2→T3 escalation
+
+              return tasks.trigger("cfn-mdap-implementer", {
+                taskId: `${payload.taskId}`,
+                microTaskId: microTaskId,
+                taskDescription: `${microTask.title}: ${microTask.description}`,
+                workDir: payload.workDir,
+                targetFile: `src/${microTaskId.replace(/[^a-z0-9]/gi, '-')}.ts`, // Default target
+                contextHints: microTask.perspectives?.map(p => p.rationale).filter(Boolean) || [],
+                modelTier, // Escalated tier based on failures
+                failureCount,
+                language: "typescript",
+              });
+            } else {
+              // Standard: Claude Code CLI (slower, more thorough)
+              return tasks.trigger("cfn-implementer-v2", {
+                taskId: `${payload.taskId}-${microTaskId}`,
+                agentId: `agent-${microTaskId}`,
+                iterationId: 1,
+                agentType: "implementer",
+                taskDescription: `${microTask.title}: ${microTask.description}`,
+                workDir: payload.workDir,
+                // P0 Fix: Required fields for implementer payload
+                files: [], // TODO: Extract target files from micro-task when available
+                tests: [], // TODO: Extract test files from micro-task when available
+                complexity: payload.complexity,
+                autoIterate: true,
+                maxIterations: 3,
+                timeout: 180000, // 3 minutes per implementer (Claude Code CLI needs time)
+              });
+            }
           })
         );
 
         // PERFORMANCE FIX: Parallel polling instead of sequential
         // Wait for all implementations to complete in parallel
+        // FIX: Make polling resilient to failed tasks (don't let one failure kill the batch)
+        // MDAP MODE: Shorter timeout (~30s) since Cerebras API is fast (~500ms-3s)
+        // STANDARD MODE: Longer timeout (~5min) since Claude CLI takes ~60s+
+        const pollTimeout = enableMDAP ? 30000 : 300000;
+
         const pollPromises = phaseImplementations.map((implHandle, i) => {
           const microTaskId = phase.parallelTasks[i];
-          return pollWithTimeout<ImplementerV2Result>(
-            implHandle.id,
-            300000,
-            `Implementer for task ${microTaskId}`
-          ).then(output => ({ implHandle, microTaskId, output }));
+
+          if (enableMDAP) {
+            // MDAP: Poll for MDAPImplementerResult
+            return pollWithTimeout<MDAPImplementerResult>(
+              implHandle.id,
+              pollTimeout,
+              `MDAP Implementer for task ${microTaskId}`
+            )
+              .then((mdapOutput) => {
+                // Convert MDAPImplementerResult to unified format
+                // MDAP returns generatedCode which needs to be written to files
+                const success = mdapOutput.success && mdapOutput.generatedCode.length > 0;
+                return {
+                  implHandle,
+                  microTaskId,
+                  output: {
+                    success,
+                    testsPassed: false, // Tests run in gate check phase for MDAP
+                    confidence: success ? 0.7 : 0.1, // Base confidence, adjusted after tests
+                    filesModified: [mdapOutput.targetFile],
+                    durationMs: mdapOutput.durationMs,
+                    output: mdapOutput.generatedCode,
+                    timedOut: false,
+                    error: mdapOutput.error,
+                  } as ImplementerV2Result,
+                  mdapResult: mdapOutput, // Keep original for file writing
+                  failed: !success,
+                };
+              })
+              .catch((error) => {
+                console.error(`[cfn-coordinator] ⚠ MDAP Implementer ${microTaskId} failed: ${sanitizeErrorMessage(error)}`);
+                return {
+                  implHandle,
+                  microTaskId,
+                  output: {
+                    success: false,
+                    testsPassed: false,
+                    confidence: 0.1,
+                    filesModified: [],
+                    durationMs: 0,
+                    output: "",
+                    timedOut: false,
+                    error: (error as Error).message,
+                  } as ImplementerV2Result,
+                  mdapResult: undefined,
+                  failed: true,
+                };
+              });
+          } else {
+            // Standard: Poll for ImplementerV2Result
+            return pollWithTimeout<ImplementerV2Result>(
+              implHandle.id,
+              pollTimeout,
+              `Implementer for task ${microTaskId}`
+            )
+              .then((output) => ({ implHandle, microTaskId, output, mdapResult: undefined, failed: false }))
+              .catch((error) => {
+                console.error(`[cfn-coordinator] ⚠ Implementer ${microTaskId} failed: ${sanitizeErrorMessage(error)}`);
+                return {
+                  implHandle,
+                  microTaskId,
+                  output: {
+                    success: false,
+                    testsPassed: false,
+                    confidence: 0.1,
+                    filesModified: [],
+                    durationMs: 0,
+                    output: "",
+                    timedOut: false,
+                    error: (error as Error).message,
+                  } as ImplementerV2Result,
+                  mdapResult: undefined,
+                  failed: true,
+                };
+              });
+          }
         });
 
         const outputs = await Promise.all(pollPromises);
 
-        // Process all outputs
-        for (const { implHandle, microTaskId, output } of outputs) {
+        // Process all outputs (both successful and failed)
+        for (const { implHandle, microTaskId, output, mdapResult, failed } of outputs) {
           implementationHandles.push({ id: implHandle.id, microTaskId });
 
-          // RESOLVED (Issue #6): Async validators now receive actual code content
-          // Implementation: Read files from disk in Phase 3 (see line ~482)
-          // File contents are read and passed to cfn-async-validator-orchestrator
-          console.log(`[cfn-coordinator]   ✓ Implementation complete for ${microTaskId}`);
+          if (failed) {
+            console.warn(`[cfn-coordinator]   ⚠ Task ${microTaskId} failed, recording failure result`);
+          } else if (enableMDAP && mdapResult) {
+            // MDAP MODE: Write generated code to file
+            const targetPath = path.isAbsolute(mdapResult.targetFile)
+              ? mdapResult.targetFile
+              : path.join(payload.workDir, mdapResult.targetFile);
 
-          // Placeholder handles (empty for now)
-          // const secHandle = await tasks.trigger("cfn-async-security-validator", {...});
-          // const perfHandle = await tasks.trigger("cfn-async-performance-validator", {...});
-          // securityValidatorHandles.push({ id: secHandle.id, microTaskId });
-          // performanceValidatorHandles.push({ id: perfHandle.id, microTaskId });
+            try {
+              // Ensure directory exists
+              const targetDir = path.dirname(targetPath);
+              if (!fs.existsSync(targetDir)) {
+                fs.mkdirSync(targetDir, { recursive: true });
+              }
+              fs.writeFileSync(targetPath, mdapResult.generatedCode, 'utf-8');
+              console.log(`[cfn-coordinator]   ✓ MDAP: Generated ${mdapResult.generatedCode.length} chars -> ${mdapResult.targetFile} (${mdapResult.durationMs}ms, T${mdapResult.modelTier})`);
+            } catch (writeErr) {
+              console.error(`[cfn-coordinator]   ✗ MDAP: Failed to write ${targetPath}: ${sanitizeErrorMessage(writeErr)}`);
+            }
+          } else {
+            // RESOLVED (Issue #6): Async validators now receive actual code content
+            // Implementation: Read files from disk in Phase 3 (see line ~482)
+            // File contents are read and passed to cfn-async-validator-orchestrator
+            console.log(`[cfn-coordinator]   ✓ Implementation complete for ${microTaskId} (${output.durationMs}ms)`);
+          }
 
-          // Store execution result
+          // Store execution result (including failures)
           result.executionResults.push({
             microTaskId,
             filesModified: output.filesModified,
@@ -453,7 +678,26 @@ export const cfnCoordinatorTask = task({
             success: output.success,
             confidence: output.confidence,
             durationMs: output.durationMs,
+            error: (output as any).error,
           });
+
+          // Record task completion metric
+          metricsCollector.recordTaskCompletion({
+            taskId: microTaskId,
+            status: output.success ? 'completed' : 'failed',
+            completedAt: new Date(),
+            durationMs: output.durationMs,
+          });
+
+          // TIER ESCALATION: Track failures for escalation
+          if (!output.success && enableMDAP) {
+            const currentFailures = microTaskFailureCounts.get(microTaskId) || 0;
+            const newFailures = currentFailures + 1;
+            microTaskFailureCounts.set(microTaskId, newFailures);
+
+            const newTier = Math.min(1 + newFailures, 3);
+            console.log(`[coordinator] Escalating ${microTaskId}: T${1 + currentFailures} -> T${newTier} (failure ${newFailures})`);
+          }
         }
 
         // Wait for all tasks in phase to complete before moving to next phase
@@ -467,7 +711,6 @@ export const cfnCoordinatorTask = task({
       console.log(`[cfn-coordinator]   Time: ${result.metrics.executionTimeMs}ms`);
 
       // ===== PHASE 3: ASYNC VALIDATORS =====
-      console.log(``);
       console.log(`[cfn-coordinator] ===== PHASE 3: ASYNC VALIDATORS =====`);
       const asyncValidationStartTime = Date.now();
 
@@ -543,10 +786,8 @@ export const cfnCoordinatorTask = task({
       console.log(`[cfn-coordinator]   Failures: ${asyncValidationResult.failureCount}`);
       console.log(`[cfn-coordinator]   Escalated: ${asyncValidationResult.escalatedValidators.join(", ") || "none"}`);
       console.log(`[cfn-coordinator]   Time: ${(result.metrics.asyncValidationTimeMs / 1000).toFixed(2)}s`);
-      console.log(``);
 
       // ===== PHASE 4: GATE CHECK =====
-      console.log(``);
       console.log(`[cfn-coordinator] ===== PHASE 4: GATE CHECK =====`);
       const gateCheckStartTime = Date.now();
 
@@ -567,6 +808,16 @@ export const cfnCoordinatorTask = task({
       // Decision logic: pass if composite score >= threshold AND consensus reached
       const gatePassed = compositeScore >= threshold && asyncValidationResult.consensusReached;
 
+      // TIER ESCALATION: Check for unrecoverable tasks (T3 failed MAX_TIER_3_FAILURES times)
+      const unrecoverableTasks: string[] = [];
+      if (enableMDAP) {
+        for (const [microTaskId, failureCount] of Array.from(microTaskFailureCounts.entries())) {
+          if (failureCount >= 3 + MAX_TIER_3_FAILURES) { // T3 starts at failure 3, +2 more = 5 total
+            unrecoverableTasks.push(microTaskId);
+          }
+        }
+      }
+
       // Enhanced gate check result
       result.gateCheckResult = {
         taskId: payload.taskId,
@@ -585,6 +836,10 @@ export const cfnCoordinatorTask = task({
           `Composite score: ${compositeScore.toFixed(1)} (40% impl + 60% validation)`,
           `Consensus: ${asyncValidationResult.consensusReached ? "REACHED" : "FAILED"}`,
           `Escalated validators: ${asyncValidationResult.escalatedValidators.join(", ") || "none"}`,
+          ...(enableMDAP && microTaskFailureCounts.size > 0 ? [
+            `Tier escalations: ${microTaskFailureCounts.size} tasks with failures`,
+            `Unrecoverable tasks: ${unrecoverableTasks.length}`,
+          ] : []),
         ],
         securityAnalysis: {
           totalFindings: securityValidator?.findings.length ?? 0,
@@ -607,6 +862,17 @@ export const cfnCoordinatorTask = task({
 
       result.metrics.gateCheckTimeMs = Date.now() - gateCheckStartTime;
 
+      // Record gate check metric
+      metricsCollector.recordGateCheck({
+        checkId: `gate-${payload.taskId}-${Date.now()}`,
+        passed: result.gateCheckResult.passed,
+        passRate: result.gateCheckResult.compositeScore / 100,
+        testsRun: result.executionResults.length,
+        testsPassed: result.executionResults.filter(r => r.success).length,
+        durationMs: result.metrics.gateCheckTimeMs,
+        completedAt: new Date(),
+      });
+
       console.log(`[cfn-coordinator] ✓ Gate check complete (enhanced with async validation)`);
       console.log(`[cfn-coordinator]   Decision: ${result.gateCheckResult.decision}`);
       console.log(`[cfn-coordinator]   Composite score: ${result.gateCheckResult.compositeScore.toFixed(1)}/100 (threshold: ${result.gateCheckResult.threshold})`);
@@ -616,6 +882,21 @@ export const cfnCoordinatorTask = task({
       console.log(`[cfn-coordinator]   Security findings: ${result.gateCheckResult.securityAnalysis.totalFindings}`);
       console.log(`[cfn-coordinator]   Performance issues: ${result.gateCheckResult.performanceAnalysis.totalIssues}`);
       console.log(`[cfn-coordinator]   Time: ${result.metrics.gateCheckTimeMs}ms`);
+
+      // TIER ESCALATION: Log escalation statistics
+      if (enableMDAP && microTaskFailureCounts.size > 0) {
+        console.log(`[cfn-coordinator] Tier Escalation Stats:`);
+        const t1Tasks = Array.from(microTaskFailureCounts.entries()).filter(([_, c]) => c === 0).length;
+        const t2Tasks = Array.from(microTaskFailureCounts.entries()).filter(([_, c]) => c === 1 || c === 2).length;
+        const t3Tasks = Array.from(microTaskFailureCounts.entries()).filter(([_, c]) => c >= 3).length;
+        console.log(`[cfn-coordinator]   T1: ${t1Tasks} tasks`);
+        console.log(`[cfn-coordinator]   T2: ${t2Tasks} tasks (escalated from T1)`);
+        console.log(`[cfn-coordinator]   T3: ${t3Tasks} tasks (escalated from T2)`);
+        console.log(`[cfn-coordinator]   Unrecoverable: ${unrecoverableTasks.length} tasks`);
+        if (unrecoverableTasks.length > 0) {
+          console.log(`[cfn-coordinator]   Tasks: ${unrecoverableTasks.join(", ")}`);
+        }
+      }
 
       // Phase 4: Update decomposition with validation results (async, non-blocking)
       updateDecompositionWithValidation({
@@ -627,9 +908,18 @@ export const cfnCoordinatorTask = task({
         console.warn(`[learning] Validation update failed: ${err.message}`)
       );
 
+      // Phase 4.2: Track RAG recall (if RAG was used)
+      if (enableRuVector && ragResult !== null) {
+        console.log(`[cfn-coordinator] [rag] Tracking RAG recall effectiveness...`);
+        // Convert compositeScore (0-100) to gate check score (0-1)
+        const finalGateCheckScore = result.gateCheckResult.compositeScore / 100;
+        trackRagRecall(payload.taskId, ragResult, finalGateCheckScore).catch((ragRecallErr) =>
+          console.warn(`[cfn-coordinator] [rag] ⚠ RAG recall tracking failed: ${ragRecallErr instanceof Error ? ragRecallErr.message : String(ragRecallErr)}`)
+        );
+      }
+
       // ===== PHASE 5: VALIDATION (Loop 2) =====
       if (result.gateCheckResult.decision === "PROCEED") {
-        console.log(``);
         console.log(`[cfn-coordinator] ===== PHASE 5: LOOP 2 VALIDATION =====`);
         const validationStartTime = Date.now();
 
@@ -649,7 +939,6 @@ export const cfnCoordinatorTask = task({
         console.log(`[cfn-coordinator]   Approved: ${result.validationResult.approved}`);
         console.log(`[cfn-coordinator]   Time: ${result.metrics.validationTimeMs}ms`);
       } else if (result.gateCheckResult.decision === "ITERATE") {
-        console.log(``);
         console.log(`[cfn-coordinator] ===== PHASE 5: TROUBLESHOOTING ANALYSIS =====`);
         const troubleshootingStartTime = Date.now();
 
@@ -697,17 +986,14 @@ export const cfnCoordinatorTask = task({
         console.log(`[cfn-coordinator]   Estimated fix impact: ${(troubleshootingAnalysis.estimatedFixImpact * 100).toFixed(0)}%`);
         console.log(`[cfn-coordinator]   Known patterns: ${troubleshootingAnalysis.knownPatternCount}/${troubleshootingAnalysis.failedValidatorCount}`);
         console.log(`[cfn-coordinator]   Time: ${result.metrics.troubleshootingTimeMs}ms`);
-        console.log(``);
         console.log(`[cfn-coordinator] ⚠ Iteration would continue with ${troubleshootingAnalysis.microTasks.length} focused tasks (not implemented)`);
         result.finalStatus = "FAILED";
       } else {
-        console.log(``);
         console.log(`[cfn-coordinator] 🛑 Gate check aborted due to safety rails`);
         result.finalStatus = "ABORTED";
       }
 
       // ===== FINAL STATUS =====
-      console.log(``);
       console.log(`[cfn-coordinator] ========== FINAL RESULT ==========`);
 
       result.totalTime = Date.now() - coordinatorStartTime;
@@ -727,7 +1013,6 @@ export const cfnCoordinatorTask = task({
         console.log(`[cfn-coordinator] ❌ FAILED`);
       }
 
-      console.log(``);
       console.log(`[cfn-coordinator] Summary:`);
       console.log(`[cfn-coordinator]   Total time: ${(result.totalTime / 1000).toFixed(1)}s`);
       console.log(`[cfn-coordinator]   Decomposition: ${(result.metrics.decompositionTimeMs / 1000).toFixed(1)}s`);
@@ -747,9 +1032,24 @@ export const cfnCoordinatorTask = task({
         console.log(`[cfn-coordinator] ✓ Total loop SLA met: ${result.totalTime}ms / ${totalLoopSLA.target}ms (${totalLoopSLA.percentOfTarget.toFixed(1)}%)`);
       }
 
+      // Include metrics summary in result
+      result.metricsSummary = {
+        taskCompletionRate: metricsCollector.getTaskCompletionRate(),
+        averageTaskDurationMs: metricsCollector.getAverageTaskDuration(),
+        gateCheckPassRate: metricsCollector.getGateCheckPassRate(),
+        slaBreachCount: metricsCollector.getSLABreachCount(),
+        errorRate: metricsCollector.getErrorRate(),
+      };
+
+      logger.info('Coordinator execution complete', {
+        finalStatus: result.finalStatus,
+        totalTimeMs: result.totalTime,
+        microTasksExecuted: result.executionResults.length,
+      }, { metricsSummary: result.metricsSummary });
+
       return result;
     } catch (error) {
-      const errorMsg = (error as Error).message;
+      const errorMsg = sanitizeErrorMessage(error);
       console.error(`[cfn-coordinator] ✗ Error: ${errorMsg}`);
 
       result.success = false;

@@ -1,0 +1,562 @@
+{
+  "audit_metadata": {
+    "date": "2025-11-29",
+    "auditor": "Security Specialist Agent",
+    "mode": "Standard",
+    "confidence": 0.78,
+    "scope": "MDAP + RuVector Integration",
+    "overall_score": 0.78
+  },
+  "findings": [
+    {
+      "id": "SEC-CRITICAL-001",
+      "title": "API Key Exposed in Error Messages and Logs",
+      "severity": "CRITICAL",
+      "owasp_category": "A09:2021 Logging and Monitoring Failures",
+      "component": "cfn-mdap-implementer.ts, cfn-coordinator.ts",
+      "description": "CEREBRAS_API_KEY is loaded into memory without proper isolation. Vulnerable to stack trace exposure, HTTP header logging, error report leakage, and heap dumps.",
+      "vulnerable_code": "const apiKey = process.env.CEREBRAS_API_KEY; const response = await fetch(..., { headers: { Authorization: `Bearer ${apiKey}` } })",
+      "risk_level": "CRITICAL",
+      "attack_vectors": [
+        "Stack trace exposure in error handlers",
+        "HTTP header logging in proxies/middleware",
+        "Error report services (Sentry, Rollbar)",
+        "Process memory inspection (gcore, gdb)",
+        "Heap dumps in monitoring tools"
+      ],
+      "business_impact": "Attacker gains access to Cerebras API, can make unlimited API calls, potential account compromise, significant financial loss",
+      "remediation": {
+        "priority": 1,
+        "effort": "2 hours",
+        "steps": [
+          "Implement masked logging utility for sensitive data",
+          "Wrap API calls with error isolation",
+          "Add secret scanning in pre-commit hooks",
+          "Use environment variables, never log them",
+          "Implement structured logging without key/value exposure"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-CRITICAL-001"
+      },
+      "compliance": ["SEC-1.2", "A09:2021"],
+      "affected_files": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/trigger/cfn-mdap-implementer.ts:199-204",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/trigger/cfn-coordinator.ts:455"
+      ]
+    },
+    {
+      "id": "SEC-CRITICAL-002",
+      "title": "Missing Rate Limiting on Expensive API Calls",
+      "severity": "CRITICAL",
+      "owasp_category": "A05:2021 Broken Access Control",
+      "component": "cfn-mdap-implementer.ts",
+      "description": "No rate limiting, retry limits, or token budgeting on Cerebras API calls. Attacker can trigger DoS via excessive API calls, exhaust quota, cause financial loss.",
+      "vulnerable_code": "const response = await fetch('https://api.cerebras.ai/v1/chat/completions', { /* no rate limit */ })",
+      "risk_level": "CRITICAL",
+      "attack_vectors": [
+        "Denial of Wallet: Submit 1000 tasks triggering API calls",
+        "Account Lockout: Exceed rate limits, blocking legitimate requests",
+        "Cost Explosion: Each call costs money; budget-unaware",
+        "Token Exhaustion: No quota tracking"
+      ],
+      "business_impact": "Uncontrolled API costs (potentially thousands of dollars), service unavailability, quota lockout preventing legitimate use",
+      "remediation": {
+        "priority": 1,
+        "effort": "3 hours",
+        "steps": [
+          "Use p-queue or similar queue library for concurrency control",
+          "Implement daily token budget tracking",
+          "Set rate limits: max 10 requests/minute (configurable)",
+          "Add timeout handling (30s default)",
+          "Track token usage per request and enforce budget"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-CRITICAL-002"
+      },
+      "environment_variables": [
+        "CEREBRAS_API_RATE_LIMIT_PER_MINUTE=10",
+        "CEREBRAS_API_DAILY_TOKEN_LIMIT=1000000",
+        "CEREBRAS_API_TIMEOUT_MS=30000"
+      ],
+      "compliance": ["SEC-1.1", "A05:2021"],
+      "affected_files": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/trigger/cfn-mdap-implementer.ts:200-210"
+      ]
+    },
+    {
+      "id": "SEC-CRITICAL-003",
+      "title": "Missing HTTPS Certificate Validation",
+      "severity": "CRITICAL",
+      "owasp_category": "A02:2021 Cryptographic Failures",
+      "component": "cfn-mdap-implementer.ts",
+      "description": "No explicit HTTPS certificate validation or pinning for Cerebras API. Vulnerable to MITM attacks if client environment is compromised.",
+      "vulnerable_code": "await fetch('https://api.cerebras.ai/v1/chat/completions', { /* no agent with validation */ })",
+      "risk_level": "CRITICAL",
+      "attack_vectors": [
+        "Man-in-the-middle attack: Intercept API calls, steal API key and prompts",
+        "Certificate spoofing: Impersonate Cerebras API",
+        "Traffic inspection: Proxy can log all requests/responses"
+      ],
+      "business_impact": "Complete API key compromise, task data exfiltration, ability to impersonate legitimate API calls",
+      "remediation": {
+        "priority": 1,
+        "effort": "2 hours",
+        "steps": [
+          "Create HTTPS agent with certificate pinning",
+          "Specify minimum TLS version 1.2",
+          "Pin Cerebras certificate authority",
+          "Disable older TLS versions",
+          "Test certificate validation with proxy"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-CRITICAL-003"
+      },
+      "compliance": ["SEC-1.5", "A02:2021"],
+      "affected_files": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/trigger/cfn-mdap-implementer.ts:204"
+      ]
+    },
+    {
+      "id": "SEC-HIGH-001",
+      "title": "Health Check Endpoint Exposes Internal Details",
+      "severity": "HIGH",
+      "owasp_category": "A01:2021 Broken Access Control",
+      "component": "health-check.ts",
+      "description": "Health check exposes internal configuration details (API key format, database paths, error messages) to unauthenticated users. Enables reconnaissance attacks.",
+      "vulnerable_code": "return { message: 'RuVector API key not configured', details: { apiKeyConfigured: false } }",
+      "risk_level": "HIGH",
+      "attack_vectors": [
+        "API key format enumeration: Reveals key starts with 'rv_'",
+        "Path disclosure: Exposes /var/lib/postgresql/data",
+        "Configuration probing: Attacker learns what's missing"
+      ],
+      "business_impact": "Information leakage enables targeted attacks, helps attackers understand system architecture",
+      "remediation": {
+        "priority": 2,
+        "effort": "1.5 hours",
+        "steps": [
+          "Return generic messages to unauthenticated users",
+          "Don't expose database paths or key format hints",
+          "Require authentication for detailed health checks",
+          "Log internal details to server logs only"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-HIGH-001"
+      },
+      "compliance": ["SEC-1.6", "A01:2021"],
+      "affected_files": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/lib/health-check.ts:30-70"
+      ]
+    },
+    {
+      "id": "SEC-HIGH-002",
+      "title": "Prometheus Metrics Endpoint Exposes Sensitive Information",
+      "severity": "HIGH",
+      "owasp_category": "A09:2021 Logging and Monitoring Failures",
+      "component": "metrics-collector.ts",
+      "description": "Metrics endpoint is publicly accessible (no authentication) and exposes metrics that reveal system behavior and business intelligence (task pass rates, escalation patterns, query latencies).",
+      "vulnerable_code": "lines.push(`cfn_ruvector_latency_avg_ms ${this.getRuVectorAverageLatency()}`); lines.push(`cfn_gate_check_pass_rate ${this.getGateCheckPassRate()}`);",
+      "risk_level": "HIGH",
+      "attack_vectors": [
+        "Business intelligence gathering: Learn task success/failure rates",
+        "System mapping: Understand architecture via latency patterns",
+        "Escalation pattern analysis: Detect quality issues"
+      ],
+      "business_impact": "Competitive intelligence leakage, helps attackers plan attacks based on system performance patterns",
+      "remediation": {
+        "priority": 2,
+        "effort": "1.5 hours",
+        "steps": [
+          "Require OPERATOR+ role for /metrics endpoint",
+          "Implement request rate limiting (100 req/min)",
+          "Aggregate sensitive metrics (no per-model details)",
+          "Create separate admin endpoint with detailed metrics"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-HIGH-002"
+      },
+      "compliance": ["SEC-1.6", "A09:2021"],
+      "affected_files": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/lib/metrics-collector.ts:250-300"
+      ]
+    },
+    {
+      "id": "SEC-HIGH-003",
+      "title": "Authentication Middleware Not Enforced Globally",
+      "severity": "HIGH",
+      "owasp_category": "A01:2021 Broken Access Control",
+      "component": "ruvector-auth.ts",
+      "description": "Authentication middleware exists but is not applied globally. Endpoints may be accessible without authentication if middleware is not explicitly attached. Dev mode enables ADMIN access without credentials if NODE_ENV not set.",
+      "vulnerable_code": "if (authConfig.devMode) { return { role: Role.ADMIN, ... } }  // Dev mode gives free ADMIN!",
+      "risk_level": "HIGH",
+      "attack_vectors": [
+        "Unauthenticated endpoint access: Endpoints without explicit auth middleware",
+        "Dev mode bypass: If NODE_ENV not explicitly set to production",
+        "Default to ADMIN role: Dev mode gives full system access"
+      ],
+      "business_impact": "Complete system compromise if dev mode enabled in production, unauthorized access to collections and data",
+      "remediation": {
+        "priority": 2,
+        "effort": "2 hours",
+        "steps": [
+          "Apply auth middleware globally to all endpoints",
+          "Require explicit opt-in for dev mode: ALLOW_DEV_MODE=true",
+          "Explicitly set NODE_ENV=production",
+          "Define public endpoints (only /health with limited info)",
+          "Add request logging for all accesses"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-HIGH-003"
+      },
+      "environment_variables": [
+        "NODE_ENV=production (REQUIRED)",
+        "ALLOW_DEV_MODE=false (default, require explicit true)"
+      ],
+      "compliance": ["SEC-1.3", "A01:2021"],
+      "affected_files": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/lib/ruvector-auth.ts:50-65"
+      ]
+    },
+    {
+      "id": "SEC-HIGH-004",
+      "title": "Service-to-Service Auth Uses Plaintext Secrets",
+      "severity": "HIGH",
+      "owasp_category": "A02:2021 Cryptographic Failures",
+      "component": "ruvector-auth.ts",
+      "description": "Service secrets stored in environment variables and compared using string equality (timing attack vulnerable). Secrets visible via 'ps aux' and should use timing-safe comparison.",
+      "vulnerable_code": "if (!expectedSecret || serviceSecret !== expectedSecret) return null;  // Timing attack!",
+      "risk_level": "HIGH",
+      "attack_vectors": [
+        "Timing attack: Character-by-character comparison reveals secret length/content",
+        "Environment variable exposure: Secrets visible via ps aux, /proc filesystem",
+        "No secret rotation: Stored in env vars indefinitely"
+      ],
+      "business_impact": "Service-to-service authentication bypass, attackers can impersonate services",
+      "remediation": {
+        "priority": 2,
+        "effort": "1.5 hours",
+        "steps": [
+          "Use crypto.timingSafeEqual() for secret comparison",
+          "Move secrets to Docker Secrets (/run/secrets/)",
+          "Implement secret rotation policy (30-day rotation)",
+          "Add audit logging for service authentication"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-HIGH-004"
+      },
+      "deployment": "Use Docker secrets: docker secret create service_secret_ruvector <secret>",
+      "compliance": ["SEC-1.5", "A02:2021"],
+      "affected_files": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/lib/ruvector-auth.ts:250-270"
+      ]
+    },
+    {
+      "id": "SEC-MEDIUM-001",
+      "title": "Audit Log Not Persisted (In-Memory Only)",
+      "severity": "MEDIUM",
+      "owasp_category": "A09:2021 Logging and Monitoring Failures",
+      "component": "ruvector-auth.ts",
+      "description": "Audit logs stored in-memory only. Lost on process restart. Violates compliance requirements (GDPR, SOC 2) for audit trail retention.",
+      "vulnerable_code": "auditLog.push(entry); if (auditLog.length > 10000) { auditLog.shift(); }  // Loses old logs!",
+      "risk_level": "MEDIUM",
+      "attack_vectors": [
+        "Data loss: Audit logs discarded on restart",
+        "No accountability: Can't investigate past incidents",
+        "Compliance violation: GDPR Article 32 requires record keeping"
+      ],
+      "business_impact": "Loss of audit trail, inability to investigate security incidents, compliance violations",
+      "remediation": {
+        "priority": 3,
+        "effort": "3 hours",
+        "steps": [
+          "Migrate audit logs to PostgreSQL",
+          "Create audit table with proper indexing",
+          "Implement database persistence with fallback to file",
+          "Add query functions for audit log retrieval",
+          "Set retention policy (90-365 days)"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-MEDIUM-001"
+      },
+      "schema": {
+        "table": "auth_audit_log",
+        "columns": [
+          "id UUID PRIMARY KEY",
+          "timestamp TIMESTAMP (indexed)",
+          "event VARCHAR(100) (indexed)",
+          "user_id VARCHAR(256) (indexed)",
+          "role VARCHAR(50)",
+          "operation VARCHAR(100)",
+          "resource VARCHAR(256)",
+          "success BOOLEAN",
+          "error VARCHAR(1000)"
+        ]
+      },
+      "compliance": ["SEC-1.8", "GDPR Article 32"],
+      "affected_files": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/docker/trigger-dev/src/lib/ruvector-auth.ts:400-420"
+      ]
+    },
+    {
+      "id": "SEC-MEDIUM-002",
+      "title": "Missing Configuration Validation at Startup",
+      "severity": "MEDIUM",
+      "owasp_category": "A05:2021 Broken Access Control",
+      "component": "System startup",
+      "description": "No validation of required environment variables at application startup. Missing or invalid configuration discovered at first use, causing runtime errors.",
+      "vulnerable_code": "const cerebraKey = process.env.CEREBRAS_API_KEY;  // Unchecked",
+      "risk_level": "MEDIUM",
+      "attack_vectors": [
+        "Silent failures: System starts without required config",
+        "Error-time discovery: Errors only appear during first API call",
+        "Misconfiguration: Admin sets wrong database URL, discovered late"
+      ],
+      "business_impact": "Operational issues, late discovery of configuration problems, downtime during deployment",
+      "remediation": {
+        "priority": 3,
+        "effort": "1.5 hours",
+        "steps": [
+          "Create validation function for all required env vars",
+          "Check at application startup before listening",
+          "Validate database URL format",
+          "Check JWT secret length (32+ characters)",
+          "Verify directory permissions (RUVECTOR_DB_PATH)"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-MEDIUM-002"
+      },
+      "required_environment_variables": [
+        "CEREBRAS_API_KEY (20+ chars)",
+        "JWT_SECRET (production: 32+ chars)",
+        "DATABASE_URL (valid URL)",
+        "RUVECTOR_DB_PATH (writable directory)"
+      ],
+      "compliance": ["SEC-1.1"],
+      "affected_files": [
+        "docker/trigger-dev/src/trigger/cfn-coordinator.ts",
+        "docker/trigger-dev/src/lib/ruvector-init.ts"
+      ]
+    },
+    {
+      "id": "SEC-MEDIUM-003",
+      "title": "Missing SQL Injection Protection (If Using Database)",
+      "severity": "MEDIUM",
+      "owasp_category": "A03:2021 Injection",
+      "component": "Database queries",
+      "description": "If system uses SQL queries, ensure parameterized queries are used everywhere. Audit log migration must use prepared statements.",
+      "vulnerable_code": "// Example of vulnerable code (if it existed) const query = `SELECT * FROM users WHERE id = ${userId}`",
+      "risk_level": "MEDIUM",
+      "attack_vectors": [
+        "SQL injection: Attacker modifies query via input parameters",
+        "Data exfiltration: Unauthorized access to database records",
+        "Data manipulation: Modify or delete audit logs"
+      ],
+      "business_impact": "Complete database compromise, data theft, audit trail manipulation",
+      "remediation": {
+        "priority": 3,
+        "effort": "2 hours",
+        "steps": [
+          "Use parameterized queries for all SQL",
+          "Use ORM or query builder (TypeORM, Knex) instead of raw SQL",
+          "Validate input types before queries",
+          "Use prepared statements with binding",
+          "Audit all existing queries for injection vulnerabilities"
+        ],
+        "code_example": "// Correct: Prepared statement with parameterized query",
+        "correct_code": "await pool.query('SELECT * FROM users WHERE id = $1', [userId])"
+      },
+      "compliance": ["SEC-1.5", "A03:2021"],
+      "affected_files": [
+        "All database interaction code (to be audited)"
+      ]
+    },
+    {
+      "id": "SEC-MEDIUM-004",
+      "title": "Incomplete Error Handling (May Expose Details)",
+      "severity": "MEDIUM",
+      "owasp_category": "A09:2021 Logging and Monitoring Failures",
+      "component": "Multiple files",
+      "description": "Error handlers may expose stack traces, internal file paths, or configuration details to clients. Need consistent error response pattern.",
+      "vulnerable_code": "throw new Error(`Failed to load config from ${configPath}: ${error.message}`)",
+      "risk_level": "MEDIUM",
+      "attack_vectors": [
+        "Stack trace leakage: Full stack traces sent to clients",
+        "Path disclosure: Internal file paths exposed",
+        "Error chaining: Original error details propagated"
+      ],
+      "business_impact": "Information leakage, helps attackers understand system architecture and find exploitable paths",
+      "remediation": {
+        "priority": 3,
+        "effort": "2 hours",
+        "steps": [
+          "Create consistent error response format",
+          "Log full error details server-side only",
+          "Send generic error messages to clients",
+          "Use error IDs for traceability",
+          "Never expose file paths or config details"
+        ],
+        "code_example": "https://github.com/example/remediation#SEC-MEDIUM-004"
+      },
+      "error_response_format": {
+        "status": 500,
+        "error": {
+          "code": "ERR_INTERNAL",
+          "message": "Internal server error",
+          "traceId": "abc-123-def"
+        }
+      },
+      "server_logging": {
+        "status": 500,
+        "error": "Full stack trace and context logged with traceId"
+      },
+      "compliance": ["SEC-1.6"],
+      "affected_files": [
+        "docker/trigger-dev/src/lib/health-check.ts",
+        "docker/trigger-dev/src/lib/ruvector-init.ts"
+      ]
+    },
+    {
+      "id": "SEC-LOW-001",
+      "title": "Missing Security Best Practices Documentation",
+      "severity": "LOW",
+      "owasp_category": "A09:2021 Logging and Monitoring Failures",
+      "component": "Documentation",
+      "description": "No documented security guidelines for developers. Need runbook for secure operations, incident response, and deployment procedures.",
+      "risk_level": "LOW",
+      "impact": "Developers may make insecure decisions without guidance",
+      "remediation": {
+        "priority": 4,
+        "effort": "4 hours",
+        "steps": [
+          "Create SECURITY.md with guidelines",
+          "Document how to report security issues",
+          "Create incident response playbook",
+          "Document secure deployment checklist",
+          "Add security training links for team"
+        ]
+      },
+      "documentation_sections": [
+        "Secret Management",
+        "API Security",
+        "Database Security",
+        "Incident Response",
+        "Security Update Process"
+      ]
+    },
+    {
+      "id": "SEC-LOW-002",
+      "title": "Missing Graceful Shutdown with Cleanup",
+      "severity": "LOW",
+      "owasp_category": "General Best Practice",
+      "component": "Application lifecycle",
+      "description": "Application may not properly close database connections or flush audit logs on shutdown. Could cause data loss.",
+      "vulnerable_code": "// No cleanup on SIGTERM",
+      "risk_level": "LOW",
+      "impact": "Potential data loss, incomplete audit logs on crash",
+      "remediation": {
+        "priority": 4,
+        "effort": "1 hour",
+        "steps": [
+          "Add signal handlers for SIGTERM and SIGINT",
+          "Gracefully close database connections",
+          "Flush pending audit logs",
+          "Wait for pending requests to complete (timeout 30s)",
+          "Exit cleanly with code 0"
+        ]
+      }
+    }
+  ],
+  "compliance_summary": {
+    "SEC-1.1": {
+      "status": "PARTIAL",
+      "coverage": "70%",
+      "issues": [
+        "SEC-CRITICAL-002 (Rate limiting)",
+        "SEC-MEDIUM-002 (Configuration validation)"
+      ]
+    },
+    "SEC-1.2": {
+      "status": "FAIL",
+      "coverage": "40%",
+      "issues": [
+        "SEC-CRITICAL-001 (API key exposure)"
+      ]
+    },
+    "SEC-1.3": {
+      "status": "PARTIAL",
+      "coverage": "75%",
+      "issues": [
+        "SEC-HIGH-003 (Middleware enforcement)"
+      ]
+    },
+    "SEC-1.4": {
+      "status": "PARTIAL",
+      "coverage": "50%",
+      "issues": [
+        "SEC-HIGH-002 (Metrics rate limiting)"
+      ]
+    },
+    "SEC-1.5": {
+      "status": "FAIL",
+      "coverage": "30%",
+      "issues": [
+        "SEC-CRITICAL-003 (HTTPS validation)",
+        "SEC-HIGH-004 (Service auth timing attack)"
+      ]
+    },
+    "SEC-1.6": {
+      "status": "FAIL",
+      "coverage": "20%",
+      "issues": [
+        "SEC-HIGH-001 (Health check disclosure)",
+        "SEC-HIGH-002 (Metrics disclosure)",
+        "SEC-MEDIUM-004 (Error handling)"
+      ]
+    },
+    "SEC-1.8": {
+      "status": "PARTIAL",
+      "coverage": "50%",
+      "issues": [
+        "SEC-MEDIUM-001 (Audit persistence)"
+      ]
+    }
+  },
+  "remediation_timeline": {
+    "immediate": {
+      "phase": "Phase 1: Critical Issues",
+      "duration": "1 day",
+      "items": [
+        "SEC-CRITICAL-001",
+        "SEC-CRITICAL-002",
+        "SEC-CRITICAL-003"
+      ]
+    },
+    "short_term": {
+      "phase": "Phase 2: High Priority",
+      "duration": "1 day",
+      "items": [
+        "SEC-HIGH-001",
+        "SEC-HIGH-002",
+        "SEC-HIGH-003",
+        "SEC-HIGH-004"
+      ]
+    },
+    "medium_term": {
+      "phase": "Phase 3: Medium Priority",
+      "duration": "1 day",
+      "items": [
+        "SEC-MEDIUM-001",
+        "SEC-MEDIUM-002",
+        "SEC-MEDIUM-003",
+        "SEC-MEDIUM-004"
+      ]
+    },
+    "ongoing": {
+      "phase": "Phase 4: Low Priority",
+      "duration": "Ongoing",
+      "items": [
+        "SEC-LOW-001",
+        "SEC-LOW-002"
+      ]
+    }
+  },
+  "recommendation": "APPROVE with Critical Remediations Required",
+  "deployment_blocked": true,
+  "deployment_unblocked_when": [
+    "All CRITICAL issues remediated",
+    "All HIGH issues remediated",
+    "Deployment checklist verified",
+    "Security review approval from CISO"
+  ]
+}

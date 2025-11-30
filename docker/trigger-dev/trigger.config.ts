@@ -11,10 +11,10 @@ export const config: TriggerConfig = {
   // Self-hosted configuration - Trigger.dev v4 on port 8030
   triggerUrl: process.env.TRIGGER_API_URL || "http://localhost:8030",
   // Required: max task duration (in seconds)
-  // Cerebras: 5-30s per task
-  // Sonnet fallback: ~10s per task
-  // CFN Loop validation: ~15s per task
-  maxDuration: 120, // 2 minutes (covers all providers + iteration + validation)
+  // Coordinator: spawns decomposers + implementers + validators (~10-15 min for full loop)
+  // Implementers: Claude Code CLI execution (~2-3 min each)
+  // Decomposers/Validators: Cerebras API calls (~30s each)
+  maxDuration: 900, // 15 minutes (covers coordinator orchestrating full CFN Loop)
   // Retry configuration
   retries: {
     enabledInDev: true,

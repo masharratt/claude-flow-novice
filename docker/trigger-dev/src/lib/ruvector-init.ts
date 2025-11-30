@@ -12,14 +12,13 @@
  * - performance_patterns: Performance issues and optimization strategies
  */
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { VectorDb: VectorDB, JsDistanceMetric: DistanceMetric } = require('@ruvector/core');
+import { VectorDB, DistanceMetric } from '@ruvector/core';
 import type { DbOptions } from '@ruvector/core';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Type for VectorDB instance
-type VectorDBInstance = InstanceType<typeof VectorDB>;
+// Type for VectorDB instance (VectorDB is exported as 'any', so we use the interface type)
+type VectorDBInstance = any;
 
 /**
  * Security: Secure file write helper function
