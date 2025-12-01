@@ -26,11 +26,27 @@
     "test:coverage": "jest --coverage --collectCoverageFrom='src/lib/ruvector-*.ts'",
     "ruvector:init": "tsx scripts/init-ruvector.ts"
   },
+  "files": [
+    "dist/",
+    "src/",
+    "trigger.config.ts",
+    "tsconfig.json",
+    "README.md",
+    "CLAUDE.md",
+    "DEPLOYMENT_GUIDE.md",
+    "OPERATIONAL_RUNBOOK.md",
+    "DISASTER_RECOVERY_PROCEDURES.md",
+    "SECURITY.md"
+  ],
   "keywords": [
     "trigger.dev",
     "cfn-loop",
     "docker",
-    "agent-orchestration"
+    "agent-orchestration",
+    "mdap",
+    "ruvector",
+    "cerebras",
+    "ai-agents"
   ],
   "author": "CFN Loop Team",
   "license": "MIT",
