@@ -1,6 +1,6 @@
 # Claude Flow Novice - Backlog
 
-Last Updated: 2025-11-23
+Last Updated: 2025-12-01
 
 ## Completed Items (Phase 1.2a - 2025-11-23)
 
@@ -91,6 +91,16 @@ Implementation:
 - **Date Added**: 2025-11-04
 
 ### P2 - Medium Priority
+
+**[P2] - Fix SERP Pattern Analyst test suite failures (28/53 passing)**
+- **Sprint Backlogged**: P2-S3
+- **Category**: Technical-Debt
+- **Description**: Fix SERP Pattern Analyst test suite failures (28/53 passing)
+- **Rationale**: Pre-existing test failures in serp-pattern-analyst.test.ts discovered during P2-S3 validation. Mock setup issues causing cascading failures in Google Custom Search and DataForSEO integration tests.
+- **Proposed Solution**: Refactor test mocks to properly isolate API calls; align test expectations with implementation behavior (throw vs fallback); target 90%+ pass rate
+- **Tags**: `testing`, `serp-analyst`, `technical-debt`
+- **Status**: Backlogged
+- **Date Added**: 2025-12-01
 
 **[P2] - Add SHA256 digest pinning for Docker base images (5/7 images...**
 - **Sprint Backlogged**: Unknown
