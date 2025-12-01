@@ -1,10 +1,45 @@
 # CFN Loop Task Mode - Quick Reference
 
-**Version:** 1.0.0  |  **Date:** 2025-10-28  |  **Status:** Production Ready
+**Version:** 1.1.0  |  **Date:** 2025-12-01  |  **Status:** Production Ready
 
 ---
 
 ## Overview
+
+### RuVector Integration
+
+**RuVector** (Rust-based vector database) provides semantic intelligence for Task Mode agents. Available features:
+
+**Semantic Codebase Search:**
+```bash
+# Search codebase before implementing
+/codebase-search "authentication middleware patterns"
+# Returns: Relevant code snippets with semantic similarity scores
+```
+
+**Stale Documentation Detection:**
+```bash
+# Find outdated docs before refactoring
+/detect-stale-docs
+# Returns: Documents semantically distant from current code
+```
+
+**Automatic Indexing:**
+```bash
+# Reindex after major changes
+/codebase-reindex
+# Updates: Vector embeddings of all code files
+```
+
+**Usage in Task Mode:**
+- Agents can call `/codebase-search` via Skill() tool before implementing
+- Main Chat can search context before spawning agents
+- Post-commit hook auto-reindexes (optional: `.claude/hooks/post-commit-codebase-index`)
+
+**Difference from Trigger.dev Mode:**
+- **Task Mode**: Manual RuVector usage via slash commands and skills
+- **Trigger.dev Mode**: Automatic RuVector analytics (error patterns, model performance tracking)
+- **Both modes**: Same underlying vector database and semantic search capabilities
 
 ### ACE Reflection Flag
 
@@ -537,4 +572,5 @@ Merge and deduplicate reflection data:
 
 ---
 
-**Version:** 1.0.0 (2025-10-28) - Task mode guide: agent specialization, sprint workflow, backlog, adaptive scaling, background processing
+**Version:** 1.1.0 (2025-12-01) - Added RuVector integration, semantic codebase search, stale doc detection
+**Previous:** 1.0.0 (2025-10-28) - Task mode guide: agent specialization, sprint workflow, backlog, adaptive scaling, background processing
