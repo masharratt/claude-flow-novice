@@ -1016,3 +1016,9 @@ export {
   isHighPriorityGap,
   isHighConfidencePattern,
 } from './competitor-analysis';
+
+// ============================================================================
+// SERP PATTERN ANALYSIS TYPES (Phase 2 Sprint 4)
+// ============================================================================
+
+export type { SERPAnalysisResult } from '../../../packages/seo-analysis/src/types/serp-analysis';
