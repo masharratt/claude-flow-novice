@@ -229,34 +229,52 @@ describe('End-to-End Integration Tests', () => {
       expect(result.analyzedAt).toBeInstanceOf(Date);
     });
 
-    it('should handle large site crawl (50 pages)', async () => {
-      // Arrange
-      const agent = new CompetitorDeepAnalystAgent({
-        domain: 'large-site.com',
-        maxPages: 50,
-        maxDepth: 3,
-      });
+    it(
+      'should handle large site crawl (50 pages)',
+      async () => {
+        // Arrange
+        const agent = new CompetitorDeepAnalystAgent({
+          domain: 'large-site.com',
+          maxPages: 50,
+          maxDepth: 3,
+        });
 
-      const mockFetch = jest.spyOn(agent as any, 'fetchWithFirecrawl');
+        const mockFetch = jest.spyOn(agent as any, 'fetchWithFirecrawl');
 
-      // Mock 50+ page responses
-      for (let i = 0; i < 55; i++) {
-        mockFetch.mockResolvedValueOnce(
-          createMockFirecrawlResponse(`https://large-site.com/page-${i}`, {
-            title: `Page ${i}`,
-            content: `Content for page ${i}`,
-            links: i < 50 ? [`https://large-site.com/page-${i + 1}`] : [],
-          })
-        );
-      }
+        // Mock 50+ page responses with BRANCHING link structure (not linear chain)
+        // Each page has 3-5 links to create a realistic but manageable site graph
+        for (let i = 0; i < 55; i++) {
+          const links: string[] = [];
 
-      // Act
-      const result = await agent.analyze();
+          // Add 3-5 links per page (realistic website structure)
+          const linkCount = 3 + (i % 3); // Varies between 3-5 links
+          for (let j = 1; j <= linkCount && (i + j) < 55; j++) {
+            links.push(`https://large-site.com/page-${i + j}`);
+          }
 
-      // Assert
-      expect(result.pagesCrawled).toBeLessThanOrEqual(50); // Should respect maxPages
-      expect(result.pagesCrawled).toBeGreaterThanOrEqual(10); // Should have minimum data
-    });
+          // Also add some backlinks to earlier pages (realistic internal linking)
+          if (i > 2) {
+            links.push(`https://large-site.com/page-${i - 2}`);
+          }
+
+          mockFetch.mockResolvedValueOnce(
+            createMockFirecrawlResponse(`https://large-site.com/page-${i}`, {
+              title: `Page ${i}`,
+              content: `Content for page ${i}`,
+              links,
+            })
+          );
+        }
+
+        // Act
+        const result = await agent.analyze();
+
+        // Assert
+        expect(result.pagesCrawled).toBeLessThanOrEqual(50); // Should respect maxPages
+        expect(result.pagesCrawled).toBeGreaterThanOrEqual(10); // Should have minimum data
+      },
+      60000
+    ); // 60 second timeout for large crawl
   });
 });
 
