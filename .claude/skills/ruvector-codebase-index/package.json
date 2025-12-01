@@ -2,7 +2,25 @@
   "name": "ruvector-codebase-index",
   "version": "1.0.0",
   "type": "module",
-  "description": "RuVector codebase indexing and search skill",
+  "description": "RuVector codebase indexing and search skill with error pattern learning",
+  "main": "index.sh",
+  "files": [
+    "*.sh",
+    "*.js",
+    "*.md",
+    "config.json",
+    "docker/"
+  ],
+  "scripts": {
+    "test": "node test-integration.js"
+  },
+  "keywords": [
+    "ruvector",
+    "semantic-search",
+    "error-patterns",
+    "learning",
+    "codebase-index"
+  ],
   "dependencies": {
     "@ruvector/core": "^0.1.16",
     "openai": "^4.77.3",
