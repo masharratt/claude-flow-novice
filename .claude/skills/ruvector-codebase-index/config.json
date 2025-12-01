@@ -1,4 +1,15 @@
 {
+  "includeDirs": [
+    ".",
+    ".claude",
+    "docker",
+    "docs",
+    "planning",
+    "readme",
+    "scripts",
+    "src",
+    "tests"
+  ],
   "indexableExtensions": [
     ".ts",
     ".tsx",
@@ -36,6 +47,8 @@
     "temp/**",
     "tests/archive/**",
     "packages/*/node_modules/**",
+    ".trigger/tmp/**",
+    "docker/trigger-dev/data/**",
     "*.min.js",
     "*.bundle.js",
     "*.map",

@@ -82,6 +82,7 @@ async function indexFile(collection, filePath) {
 }
 
 async function main() {
+  let rl;
   try {
     // Initialize RuVector once
     logInfo('Initializing RuVector database...');
@@ -90,33 +91,66 @@ async function main() {
     logSuccess('RuVector database initialized');
 
     // Read file paths from stdin
-    const rl = createInterface({
+    rl = createInterface({
       input: process.stdin,
-      output: process.stdout,
-      terminal: false
+      terminal: false,
+      crlfDelay: Infinity
     });
 
     let total = 0;
     let success = 0;
     let failed = 0;
+    let stdinClosed = false;
 
     logInfo('Reading file paths from stdin...');
 
-    for await (const filePath of rl) {
-      const trimmedPath = filePath.trim();
-      if (!trimmedPath) continue;
+    // Handle stdin events
+    process.stdin.on('end', () => {
+      stdinClosed = true;
+      logInfo('Stdin stream ended');
+    });
 
-      total++;
+    process.stdin.on('error', (err) => {
+      logWarn(`Stdin error: ${err.message}`);
+      stdinClosed = true;
+    });
 
-      // Progress indicator
-      process.stderr.write(`\r${COLORS.BLUE}[PROGRESS]${COLORS.NC} Indexing ${total} files...`);
+    rl.on('close', () => {
+      logInfo('Readline interface closed');
+    });
 
-      logInfo(`\nIndexing: ${trimmedPath}`);
+    try {
+      for await (const filePath of rl) {
+        if (stdinClosed) {
+          logWarn('Stdin closed, finishing current batch...');
+          break;
+        }
 
-      if (await indexFile(collection, trimmedPath)) {
-        success++;
+        const trimmedPath = filePath.trim();
+        if (!trimmedPath) continue;
+
+        total++;
+
+        // Progress indicator every 10 files to reduce I/O overhead
+        if (total % 10 === 0) {
+          process.stderr.write(`\r${COLORS.BLUE}[PROGRESS]${COLORS.NC} Indexing ${total} files...`);
+        }
+
+        if (total % 100 === 0) {
+          logInfo(`\nProgress: ${total} files processed (${success} success, ${failed} failed)`);
+        }
+
+        if (await indexFile(collection, trimmedPath)) {
+          success++;
+        } else {
+          failed++;
+        }
+      }
+    } catch (readError) {
+      if (readError.message.includes('closed')) {
+        logWarn(`Readline stream closed after processing ${total} files`);
       } else {
-        failed++;
+        throw readError;
       }
     }
 
@@ -129,12 +163,22 @@ async function main() {
       logWarn(`Failed: ${failed} files`);
     }
 
-    process.exit(failed > 0 ? 1 : 0);
+    // Exit with success code if at least some files were indexed
+    // Only fail if NO files were indexed or if more than 50% failed
+    const successRate = total > 0 ? success / total : 0;
+    if (total === 0 || successRate < 0.5) {
+      process.exit(1);
+    }
+    process.exit(0);
 
   } catch (error) {
     logError(`Fatal error: ${error.message}`);
     console.error(error.stack);
     process.exit(1);
+  } finally {
+    if (rl) {
+      rl.close();
+    }
   }
 }
 

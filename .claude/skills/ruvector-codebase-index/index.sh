@@ -25,6 +25,7 @@ if [[ -f "$PROJECT_ROOT/.env" ]]; then
 fi
 
 # Load configuration
+INCLUDE_DIRS=$(jq -r '.includeDirs[]' "$CONFIG_FILE")
 INDEXABLE_EXTENSIONS=$(jq -r '.indexableExtensions[]' "$CONFIG_FILE")
 IGNORE_PATTERNS=$(jq -r '.ignorePatterns[]' "$CONFIG_FILE")
 MAX_FILE_SIZE=$(jq -r '.maxFileSize' "$CONFIG_FILE")
@@ -109,16 +110,6 @@ find_indexable_files() {
   # Send logs to stderr to avoid polluting stdout
   log_info "Finding indexable files..." >&2
 
-  # Build prune expressions for ignored directories
-  local prune_args=()
-  for pattern in $IGNORE_PATTERNS; do
-    # Only use directory patterns for pruning
-    if [[ "$pattern" == *"/**" ]]; then
-      local dir="${pattern%/**}"
-      prune_args+=("-path" "*/$dir" "-prune" "-o")
-    fi
-  done
-
   # Build extension filter
   local ext_args=("-type" "f" "(")
   local first=true
@@ -132,18 +123,38 @@ find_indexable_files() {
   done
   ext_args+=(")" "-print")
 
-  # Execute find command and filter by size
-  while IFS= read -r file; do
-    [[ -z "$file" ]] && continue
+  # Only search in the directories we actually want to index
+  for dir in $INCLUDE_DIRS; do
+    if [[ "$dir" == "." ]]; then
+      # For root directory, only search files at depth 1 (not recursive)
+      while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
 
-    # Check file size
-    local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
-    if [[ $size -le $MAX_FILE_SIZE ]]; then
-      echo "$file"
-    else
-      log_warn "Skipping large file: $file (${size} bytes)" >&2
+        # Check file size
+        local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
+        if [[ $size -le $MAX_FILE_SIZE ]]; then
+          echo "$file"
+        else
+          log_warn "Skipping large file: $file (${size} bytes)" >&2
+        fi
+      done < <(find "$dir" -maxdepth 1 "${ext_args[@]}" 2>/dev/null)
+    elif [[ -d "$dir" ]]; then
+      # For other directories, search recursively but exclude build artifacts
+      while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
+
+        # Check file size
+        local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
+        if [[ $size -le $MAX_FILE_SIZE ]]; then
+          echo "$file"
+        else
+          log_warn "Skipping large file: $file (${size} bytes)" >&2
+        fi
+      done < <(find "$dir" \
+        \( -path "*/node_modules" -o -path "*/dist" -o -path "*/build" -o -path "*/coverage" -o -path "*/.trigger/tmp" -o -path "*/docker/trigger-dev/data" \) -prune -o \
+        "${ext_args[@]}" 2>/dev/null)
     fi
-  done < <(find . "${prune_args[@]}" "${ext_args[@]}" 2>/dev/null)
+  done
 }
 
 # Index a single file
