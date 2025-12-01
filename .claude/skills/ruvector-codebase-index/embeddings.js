@@ -88,43 +88,37 @@ async function generateBatchEmbeddings(texts) {
 }
 
 /**
- * Store error pattern in RuVector (placeholder - implement with actual RuVector client)
+ * Store error pattern in RuVector
  */
 async function storeErrorPattern(doc) {
   const data = JSON.parse(doc);
-  // TODO: Integrate with RuVector client to store in 'error_patterns' collection
-  console.error('Warning: RuVector storage not yet implemented. Error pattern would be stored:');
-  console.error(JSON.stringify(data, null, 2));
-  return { stored: true, collection: 'error_patterns', id: data.task_id };
+  const { storeErrorPattern: storeError } = await import('./ruvector-learning.js');
+  return await storeError(data);
 }
 
 /**
- * Store learning in RuVector (placeholder - implement with actual RuVector client)
+ * Store learning in RuVector
  */
 async function storeLearning(doc) {
   const data = JSON.parse(doc);
-  // TODO: Integrate with RuVector client to store in 'learnings' collection
-  console.error('Warning: RuVector storage not yet implemented. Learning would be stored:');
-  console.error(JSON.stringify(data, null, 2));
-  return { stored: true, collection: 'learnings', id: data.task_id };
+  const { storeLearning: storeLrn } = await import('./ruvector-learning.js');
+  return await storeLrn(data);
 }
 
 /**
- * Query error patterns from RuVector (placeholder - implement with actual RuVector client)
+ * Query error patterns from RuVector
  */
 async function queryErrorPatterns(taskDescription, limit) {
-  // TODO: Integrate with RuVector client to query 'error_patterns' collection
-  console.error('Warning: RuVector query not yet implemented. Would search for:', taskDescription);
-  return []; // Return empty array for now
+  const { queryErrorPatterns: queryErrors } = await import('./ruvector-learning.js');
+  return await queryErrors(taskDescription, limit);
 }
 
 /**
- * Query learnings from RuVector (placeholder - implement with actual RuVector client)
+ * Query learnings from RuVector
  */
 async function queryLearnings(taskDescription, category, limit) {
-  // TODO: Integrate with RuVector client to query 'learnings' collection
-  console.error('Warning: RuVector query not yet implemented. Would search for:', taskDescription, 'category:', category);
-  return []; // Return empty array for now
+  const { queryLearnings: queryLrn } = await import('./ruvector-learning.js');
+  return await queryLrn(taskDescription, category, limit);
 }
 
 /**
