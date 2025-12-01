@@ -27,6 +27,15 @@ bash .claude/skills/mdap-context-injection/inject.sh --decomposers
 
 # Inject specific file by path
 bash .claude/skills/mdap-context-injection/inject.sh --file docker/trigger-dev/src/trigger/cfn-coordinator.ts
+
+# Include RuVector integration
+bash .claude/skills/mdap-context-injection/inject.sh --ruvector
+
+# Include test files (not in --all by default)
+bash .claude/skills/mdap-context-injection/inject.sh --tests
+
+# Full context with tests
+bash .claude/skills/mdap-context-injection/inject.sh --all --tests
 ```
 
 ## Included Files
@@ -38,6 +47,9 @@ bash .claude/skills/mdap-context-injection/inject.sh --file docker/trigger-dev/s
 - `docker/trigger-dev/src/trigger/cfn-mdap-implementer.ts` - Cerebras code generation
 - `docker/trigger-dev/src/lib/mdap-config.ts` - Tier configuration
 - `docker/trigger-dev/src/lib/mdap-atomicity.ts` - Atomicity analysis
+- `docker/trigger-dev/src/lib/mdap-db.ts` - MDAP database operations
+- `docker/trigger-dev/src/lib/mdap-container-config.ts` - Container configuration
+- `docker/trigger-dev/src/lib/mdap-metrics-tracker.ts` - Metrics tracking
 
 ### Non-MDAP Mode (--all or --cli)
 - `docker/trigger-dev/src/trigger/cfn-cli-sprint-implementer.ts` - Claude CLI execution
@@ -59,6 +71,22 @@ bash .claude/skills/mdap-context-injection/inject.sh --file docker/trigger-dev/s
 - `docker/trigger-dev/src/trigger/cfn-async-security-validator.ts`
 - `docker/trigger-dev/src/trigger/cfn-async-performance-validator.ts`
 
+### RuVector Integration (--all or --ruvector)
+- `docker/trigger-dev/src/lib/ruvector-mdap-analytics.ts` - MDAP model analytics
+- `docker/trigger-dev/src/lib/ruvector-rag-decomposition.ts` - RAG for decomposition
+- `docker/trigger-dev/src/lib/ruvector-learning-hooks.ts` - Learning capture
+- `docker/trigger-dev/src/lib/ruvector-error-pattern-learning.ts` - Error pattern learning
+- `docker/trigger-dev/src/lib/ruvector-schemas.ts` - Schema definitions
+- `docker/trigger-dev/src/lib/ruvector-init.ts` - Initialization
+- `docker/trigger-dev/src/lib/ruvector-auth.ts` - Authentication
+
+### Tests (--tests only, NOT in --all)
+- `docker/trigger-dev/tests/ruvector/mdap-analytics.test.ts` - MDAP analytics tests (38 tests)
+- `docker/trigger-dev/tests/ruvector/test-utils.ts` - Test utilities
+- `docker/trigger-dev/tests/integration/ruvector-mdap-integration.test.ts` - Integration tests (13 tests)
+- `docker/trigger-dev/tests/decomposition/context-passing.test.ts` - Context passing tests
+- `docker/trigger-dev/tests/decomposition/sequential-flow.test.ts` - Sequential flow tests
+
 ## Output Format
 
 Each file is output with clear delimiters:
@@ -76,11 +104,17 @@ Each file is output with clear delimiters:
 | cfn-coordinator.ts | 1095 | ~22K |
 | cfn-mdap-implementer.ts | 431 | ~9K |
 | cfn-cli-sprint-implementer.ts | 484 | ~10K |
-| mdap-config.ts | 428 | ~9K |
-| mdap-atomicity.ts | ~600 | ~12K |
+| mdap-*.ts (6 files) | ~3200 | ~64K |
 | sprint-aggregator.ts | ~250 | ~5K |
 | All decomposers | ~1000 | ~20K |
-| **Total (--all)** | **~4300** | **~87K** |
+| All validators | ~1200 | ~24K |
+| **Total (--all)** | **~7600** | **~90K** |
+| ruvector-*.ts (7 files) | ~4400 | ~88K |
+| Tests (--tests) | ~2000 | ~40K |
+| **Total (--all --ruvector)** | **~12000** | **~178K** |
+| **Total (--all --ruvector --tests)** | **~14000** | **~218K** |
+
+**Note:** `--all` includes core MDAP workflow only (~90K). Use `--ruvector` for analytics/learning and `--tests` for test files.
 
 ## Integration with Agent
 

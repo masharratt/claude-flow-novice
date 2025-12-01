@@ -10,6 +10,8 @@
 #   ./inject.sh --config        # Configuration files
 #   ./inject.sh --decomposers   # Decomposer tasks
 #   ./inject.sh --validators    # Async validators
+#   ./inject.sh --ruvector      # RuVector integration (analytics, RAG, learning)
+#   ./inject.sh --tests         # Test files (mdap-analytics, integration)
 #   ./inject.sh --file <path>   # Specific file
 
 set -euo pipefail
@@ -27,6 +29,9 @@ MDAP_FILES=(
   "docker/trigger-dev/src/trigger/cfn-mdap-implementer.ts"
   "docker/trigger-dev/src/lib/mdap-config.ts"
   "docker/trigger-dev/src/lib/mdap-atomicity.ts"
+  "docker/trigger-dev/src/lib/mdap-db.ts"
+  "docker/trigger-dev/src/lib/mdap-container-config.ts"
+  "docker/trigger-dev/src/lib/mdap-metrics-tracker.ts"
 )
 
 CLI_FILES=(
@@ -59,6 +64,26 @@ VALIDATOR_FILES=(
 
 INDEX_FILES=(
   "docker/trigger-dev/src/trigger/index.ts"
+)
+
+# RuVector integration files
+RUVECTOR_FILES=(
+  "docker/trigger-dev/src/lib/ruvector-mdap-analytics.ts"
+  "docker/trigger-dev/src/lib/ruvector-rag-decomposition.ts"
+  "docker/trigger-dev/src/lib/ruvector-learning-hooks.ts"
+  "docker/trigger-dev/src/lib/ruvector-error-pattern-learning.ts"
+  "docker/trigger-dev/src/lib/ruvector-schemas.ts"
+  "docker/trigger-dev/src/lib/ruvector-init.ts"
+  "docker/trigger-dev/src/lib/ruvector-auth.ts"
+)
+
+# Test files
+TEST_FILES=(
+  "docker/trigger-dev/tests/ruvector/mdap-analytics.test.ts"
+  "docker/trigger-dev/tests/ruvector/test-utils.ts"
+  "docker/trigger-dev/tests/integration/ruvector-mdap-integration.test.ts"
+  "docker/trigger-dev/tests/decomposition/context-passing.test.ts"
+  "docker/trigger-dev/tests/decomposition/sequential-flow.test.ts"
 )
 
 # Output a single file with delimiters
@@ -104,6 +129,8 @@ main() {
   local inject_decomposers=false
   local inject_validators=false
   local inject_index=false
+  local inject_ruvector=false
+  local inject_tests=false
   local specific_file=""
 
   # Parse arguments
@@ -141,6 +168,14 @@ main() {
         inject_index=true
         shift
         ;;
+      --ruvector)
+        inject_ruvector=true
+        shift
+        ;;
+      --tests)
+        inject_tests=true
+        shift
+        ;;
       --file)
         specific_file="$2"
         shift 2
@@ -159,6 +194,8 @@ main() {
         echo "  --decomposers   Decomposer tasks"
         echo "  --validators    Async validators"
         echo "  --index         Index exports (types)"
+        echo "  --ruvector      RuVector integration (analytics, RAG, learning)"
+        echo "  --tests         Test files (mdap-analytics, integration)"
         echo "  --file <path>   Specific file"
         echo "  -h, --help      Show this help"
         exit 0
@@ -176,6 +213,7 @@ main() {
         "$inject_mdap" == "false" && "$inject_cli" == "false" && \
         "$inject_config" == "false" && "$inject_decomposers" == "false" && \
         "$inject_validators" == "false" && "$inject_index" == "false" && \
+        "$inject_ruvector" == "false" && "$inject_tests" == "false" && \
         -z "$specific_file" ]]; then
     inject_all=true
   fi
@@ -190,7 +228,8 @@ main() {
     exit 0
   fi
 
-  # Handle --all
+  # Handle --all (core MDAP workflow only - ~90K tokens)
+  # Use --ruvector and --tests explicitly for extended context
   if [[ "$inject_all" == "true" ]]; then
     inject_coordinator=true
     inject_mdap=true
@@ -198,6 +237,7 @@ main() {
     inject_decomposers=true
     inject_validators=true
     inject_index=true
+    # Note: ruvector and tests not included in --all by default
   fi
 
   # Output requested groups
@@ -227,6 +267,14 @@ main() {
 
   if [[ "$inject_validators" == "true" ]]; then
     output_group VALIDATOR_FILES "VALIDATORS"
+  fi
+
+  if [[ "$inject_ruvector" == "true" ]]; then
+    output_group RUVECTOR_FILES "RUVECTOR INTEGRATION"
+  fi
+
+  if [[ "$inject_tests" == "true" ]]; then
+    output_group TEST_FILES "TESTS"
   fi
 
   echo ""

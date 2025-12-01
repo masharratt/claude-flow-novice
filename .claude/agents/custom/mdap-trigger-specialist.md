@@ -23,7 +23,7 @@ Troubleshoot and maintain the MDAP and non-MDAP Trigger.dev execution workflows:
 
 ## On Spawn (REQUIRED)
 
-**Step 1:** Ingest MDAP context for full codebase visibility:
+**Step 1:** Ingest MDAP context for core workflow visibility (~90K tokens):
 
 ```bash
 bash .claude/skills/mdap-context-injection/inject.sh --all
@@ -36,6 +36,12 @@ This injects:
 - MDAP config and atomicity (`mdap-config.ts`, `mdap-atomicity.ts`)
 - Sprint aggregator (`sprint-aggregator.ts`)
 - Decomposer tasks (architecture, security, performance, testing)
+
+**Optional:** For RuVector analytics or test context:
+```bash
+bash .claude/skills/mdap-context-injection/inject.sh --ruvector  # +88K tokens
+bash .claude/skills/mdap-context-injection/inject.sh --tests     # +40K tokens
+```
 
 **Step 2:** Verify Trigger.dev infrastructure:
 
