@@ -109,11 +109,11 @@ describe('IntelligenceCurator', () => {
 
       await curator.storeCompetitiveIntelligence(intelligence);
 
-      // Verify files were created
+      // Verify files were created (use exact sanitization from implementation)
       const domainDir = path.join(
         testKnowledgeStorePath,
         'competitive-intelligence',
-        'example_com'
+        'example.com' // Domain sanitization keeps dots for valid domains
       );
       const contentStrategyPath = path.join(domainDir, 'content-strategy.json');
       const keywordTargetingPath = path.join(domainDir, 'keyword-targeting.json');

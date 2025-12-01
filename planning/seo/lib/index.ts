@@ -56,3 +56,22 @@ export type {
   LearningCapture,
   IntelligenceLoadResult,
 } from '../types';
+
+// Pattern Manager (Phase 1 Sprint 3)
+export { PatternManager } from './pattern-manager';
+export { RedisContextStore } from './redis-context-store';
+
+// Pipeline Orchestrator (Phase 1 Sprint 4)
+export { PipelineOrchestrator } from './pipeline-orchestrator';
+export { executeStep0 } from './steps/step-0-intelligence-preload';
+export { executeStep12 } from './steps/step-12-learning-capture';
+
+// Pipeline Types
+export type {
+  PipelineTask,
+  PipelineContext,
+  PipelineResult,
+  PipelineStep,
+  PipelineOrchestratorConfig,
+  PatternApplication,
+} from '../types';
