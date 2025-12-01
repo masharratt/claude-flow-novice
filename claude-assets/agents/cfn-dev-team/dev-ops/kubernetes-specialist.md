@@ -1,6 +1,6 @@
 ---
 name: kubernetes-specialist
-description: MUST BE USED for Kubernetes cluster management, Helm charts, operators, service mesh, and container orchestration. Use PROACTIVELY for K8s deployments, autoscaling, ingress, StatefulSets, CRDs, monitoring. ALWAYS delegate for "deploy to Kubernetes", "Helm chart", "K8s operator", "service mesh", "container orchestration". Keywords - Kubernetes, k8s, Helm, operators, containers, pods, deployments, ingress, service mesh, Istio, autoscaling
+description: MUST BE USED for Kubernetes cluster management, Helm charts, operators, service mesh. Use PROACTIVELY for K8s deployments, autoscaling, ingress. Keywords - kubernetes, k8s, helm, containers, pods
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
@@ -18,62 +18,62 @@ model: glm-4.6
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
-### 1. Read Success Criteria
-Before starting work, read test requirements from environment:
+### 1. JSON Validation & Success Criteria Parsing
+Use the centralized JSON validation skill for defensive AGENT_SUCCESS_CRITERIA parsing:
+
+**Skill Reference:** `.claude/skills/json-validation/SKILL.md`
+
 ```bash
-if [[ -n "${AGENT_SUCCESS_CRITERIA:-}" ]]; then
-    # Validate JSON before parsing
-    if ! echo "$AGENT_SUCCESS_CRITERIA" | jq -e '.' >/dev/null 2>&1; then
-        echo "❌ Invalid JSON in AGENT_SUCCESS_CRITERIA" >&2
-        exit 1
-    fi
+# Source the skill for safe JSON validation
+source .claude/skills/json-validation/validate-success-criteria.sh
 
-    CRITERIA=$(echo "$AGENT_SUCCESS_CRITERIA" | jq -r '.')
-    TEST_SUITES=$(echo "$CRITERIA" | jq -r '.test_suites[] // empty')
+# Validate and parse with injection attack prevention
+validate_success_criteria || exit 1
 
-    if [[ -n "$TEST_SUITES" ]]; then
-        echo "📋 Success Criteria Loaded:"
-        echo "$TEST_SUITES" | jq -r '.name // "unnamed"'
-    fi
-fi
+# Access parsed data
+list_test_suites
 ```
+
+**Features:**
+- Prevents JSON injection attacks (CVSS 8.2)
+- Handles missing/malformed data gracefully
+- No external dependencies beyond jq
 
 ### 2. TDD Protocol (MANDATORY)
 
 **Write Tests First (15-20 min):**
-- Extract test requirements from success criteria
+- Extract test requirements from success criteria (via skill above)
 - Write failing tests for each requirement
 - Ensure test coverage ≥80%
 
 **Implement (30-40 min):**
 - Write minimum code to pass tests
-- Run tests continuously (`npm test --watch` or framework equivalent)
+- Run tests continuously (kubectl test, helm test, or framework equivalent)
 - Refactor for quality
 
 **Validate (5 min):**
-- Run full test suite: `npm test` (or framework command from criteria)
+- Run full test suite: `npm test` or `kubectl test` (per framework)
 - Verify pass rate meets threshold (Standard: ≥95%)
-- Check coverage: `npm run coverage`
+- Check coverage: appropriate to your testing framework
 
-### 3. Report Test Results (NOT Confidence)
+### 3. Test Execution & Results Parsing
+Use the centralized test runner skill for consistent test result collection:
 
-**Old (Deprecated):**
+**Skill Reference:** `.claude/skills/cfn-test-runner/SKILL.md`
+
 ```bash
-# Not shown - deprecated pattern
+# Execute tests with benchmarking
+./.claude/skills/cfn-test-runner/run-all-tests.sh \
+  --suite all \
+  --benchmark \
+  --detect-regressions
 ```
 
-**New (Required):**
-```bash
-# Execute tests and capture output
-TEST_OUTPUT=$(npm test 2>&1)
-
-# Parse natively (no external dependencies)
-PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")
-FAIL=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failing)' || echo "0")
-TOTAL=$((PASS + FAIL))
-RATE=$(awk "BEGIN {if ($TOTAL > 0) printf \"%.2f\", $PASS/$TOTAL; else print \"0.00\"}")
-
-```
+**Captures:**
+- Test pass/fail counts
+- Performance metrics
+- Regression detection
+- Historical comparisons
 
 # Kubernetes Specialist Agent
 
@@ -594,6 +594,16 @@ Before reporting high confidence:
 3. **Documentation**: Deployment guides, troubleshooting runbooks
 4. **Monitoring Setup**: Prometheus metrics, Grafana dashboards
 5. **CI/CD Integration**: GitOps workflows, ArgoCD applications
+
+## Skill References
+
+### Test-Driven Development
+→ **JSON Validation**: `.claude/skills/json-validation/SKILL.md` - Defensive AGENT_SUCCESS_CRITERIA parsing with injection prevention
+→ **Test Runner**: `.claude/skills/cfn-test-runner/SKILL.md` - Unified test execution with benchmarking and regression detection
+
+### Container & Orchestration
+→ **Docker Build**: `.claude/skills/docker-build/SKILL.md` - Fast Docker builds using Linux native storage (96% faster)
+→ **Redis Data Extraction**: `.claude/skills/cfn-redis-data-extraction/SKILL.md` - Extract and analyze CFN Loop coordination data
 
 ## Completion Protocol
 

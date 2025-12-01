@@ -1,0 +1,64 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "lib": ["ES2020"],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "checkJs": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@workflows/*": ["src/workflows/*"],
+      "@jobs/*": ["src/jobs/*"],
+      "@types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"]
+    },
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": [
+    "src/types/**/*.ts",
+    "src/utils/**/*.ts",
+    "src/v3/**/*.ts",
+    "trigger-dev-client.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".trigger",
+    ".artifacts",
+    "src/cli/**",
+    "src/jobs/**",
+    "src/lib/**",
+    "src/workflows/**",
+    "src/worker.ts"
+  ],
+  "ts-node": {
+    "esm": true,
+    "experimentalEsm": true,
+    "moduleResolution": "bundler"
+  }
+}

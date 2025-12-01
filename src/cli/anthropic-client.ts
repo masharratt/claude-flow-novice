@@ -7,12 +7,53 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import http from 'http';
+import https from 'https';
 import { executeTool, type ToolUse, type ToolResult } from './tool-executor.js';
 
 const execAsync = promisify(exec);
+
+// File-based debug logging (for background agents)
+const AGENT_ID = process.env.AGENT_ID || 'unknown';
+const API_LOG_FILE = `/tmp/cfn-api-${AGENT_ID}.log`;
+function apiDebugLog(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  const logEntry = data
+    ? `${timestamp} [${AGENT_ID}] ${message} ${JSON.stringify(data)}\n`
+    : `${timestamp} [${AGENT_ID}] ${message}\n`;
+  try {
+    fsSync.appendFileSync(API_LOG_FILE, logEntry);
+  } catch (err) {
+    // Ignore logging errors
+  }
+}
+
+// HTTP Agent configuration with connection pooling limits
+// Prevents memory leaks from unclosed connections in subagent spawning
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 10,        // Limit concurrent connections
+  maxFreeSockets: 5,     // Limit idle connections in pool
+  timeout: 120000,       // 2 minutes
+  keepAliveMsecs: 1000
+});
+
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 10,
+  maxFreeSockets: 5,
+  timeout: 120000,
+  keepAliveMsecs: 1000
+});
+
+// Client singleton with reference counting for proper lifecycle management
+// Fixes memory leak from creating new Anthropic instances per API call
+let clientInstance: Anthropic | null = null;
+let clientRefCount = 0;
 
 export interface APIConfig {
   provider: 'anthropic' | 'zai' | 'kimi' | 'openrouter';
@@ -42,12 +83,30 @@ export interface MessageResponse {
 
 /**
  * Get API configuration from environment and config files
+ *
+ * Provider resolution order:
+ * 1. CLAUDE_API_PROVIDER env var (legacy)
+ * 2. PROVIDER env var (set by agent-spawner from --provider flag)
+ * 3. Config file (.claude/config/api-provider.json)
+ * 4. Default to Z.ai (cost-effective fallback per project requirements)
+ *
+ * BUG FIX: Previously only checked CLAUDE_API_PROVIDER, ignoring --provider flag
+ * which sets PROVIDER env var via agent-spawner.ts
  */
 export async function getAPIConfig(): Promise<APIConfig> {
-  // Check environment variable
-  const envProvider = process.env.CLAUDE_API_PROVIDER;
+  // Check environment variables - support both CLAUDE_API_PROVIDER (legacy) and PROVIDER (from CLI --provider flag)
+  const envProvider = process.env.CLAUDE_API_PROVIDER || process.env.PROVIDER;
 
-  if (envProvider === 'zai') {
+  // Debug logging for provider routing (helps diagnose auth errors)
+  apiDebugLog('getAPIConfig: Provider detection', {
+    CLAUDE_API_PROVIDER: process.env.CLAUDE_API_PROVIDER,
+    PROVIDER: process.env.PROVIDER,
+    resolved: envProvider
+  });
+  console.error(`[provider-routing] CLAUDE_API_PROVIDER=${process.env.CLAUDE_API_PROVIDER || 'unset'}, PROVIDER=${process.env.PROVIDER || 'unset'}, resolved=${envProvider || 'none'}`);
+
+  if (envProvider === 'zai' || envProvider === 'z.ai') {
+    console.error('[provider-routing] Using Z.ai provider');
     return {
       provider: 'zai',
       apiKey: process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY,
@@ -56,6 +115,7 @@ export async function getAPIConfig(): Promise<APIConfig> {
   }
 
   if (envProvider === 'kimi') {
+    console.error('[provider-routing] Using Kimi provider');
     return {
       provider: 'kimi',
       apiKey: process.env.KIMI_API_KEY,
@@ -64,10 +124,19 @@ export async function getAPIConfig(): Promise<APIConfig> {
   }
 
   if (envProvider === 'openrouter') {
+    console.error('[provider-routing] Using OpenRouter provider');
     return {
       provider: 'openrouter',
       apiKey: process.env.OPENROUTER_API_KEY,
       baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+    };
+  }
+
+  if (envProvider === 'anthropic') {
+    console.error('[provider-routing] Using Anthropic provider (explicit)');
+    return {
+      provider: 'anthropic',
+      apiKey: process.env.ANTHROPIC_API_KEY,
     };
   }
 
@@ -77,6 +146,7 @@ export async function getAPIConfig(): Promise<APIConfig> {
     const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
 
     if (config.provider === 'zai' || config.provider === 'z.ai') {
+      console.error('[provider-routing] Using Z.ai provider (from config file)');
       return {
         provider: 'zai',
         apiKey: config.apiKey || process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY,
@@ -85,6 +155,7 @@ export async function getAPIConfig(): Promise<APIConfig> {
     }
 
     if (config.provider === 'kimi') {
+      console.error('[provider-routing] Using Kimi provider (from config file)');
       return {
         provider: 'kimi',
         apiKey: config.apiKey || process.env.KIMI_API_KEY,
@@ -93,46 +164,136 @@ export async function getAPIConfig(): Promise<APIConfig> {
     }
 
     if (config.provider === 'openrouter') {
+      console.error('[provider-routing] Using OpenRouter provider (from config file)');
       return {
         provider: 'openrouter',
         apiKey: config.apiKey || process.env.OPENROUTER_API_KEY,
         baseURL: config.baseURL || process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
       };
     }
+
+    if (config.provider === 'anthropic') {
+      console.error('[provider-routing] Using Anthropic provider (from config file)');
+      return {
+        provider: 'anthropic',
+        apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
+      };
+    }
   } catch {
     // Config file doesn't exist, use defaults
   }
 
-  // Default to Anthropic
+  // Default to Z.ai (cost-effective fallback per project requirements)
+  // BUG FIX: Previously defaulted to Anthropic which caused auth errors when no provider specified
+  console.error('[provider-routing] Using Z.ai provider (default fallback)');
   return {
-    provider: 'anthropic',
-    apiKey: process.env.ANTHROPIC_API_KEY,
+    provider: 'zai',
+    apiKey: process.env.ZAI_API_KEY || process.env.ANTHROPIC_API_KEY,
+    baseURL: process.env.ZAI_BASE_URL || 'https://api.z.ai/api/anthropic',
   };
 }
 
 /**
- * Create Anthropic client with appropriate configuration
+ * Validate provider configuration before creating client
+ * Provides clear error messages for missing credentials
  */
-export async function createClient(): Promise<Anthropic> {
-  const config = await getAPIConfig();
-
+export function validateProviderConfig(config: APIConfig): void {
   if (!config.apiKey) {
+    const envVarMap: Record<string, string> = {
+      'zai': 'ZAI_API_KEY (or ANTHROPIC_API_KEY)',
+      'anthropic': 'ANTHROPIC_API_KEY',
+      'kimi': 'KIMI_API_KEY',
+      'openrouter': 'OPENROUTER_API_KEY'
+    };
+    const requiredVar = envVarMap[config.provider] || `${config.provider.toUpperCase()}_API_KEY`;
     throw new Error(
-      `API key not found. Set ${config.provider === 'zai' ? 'ZAI_API_KEY' : 'ANTHROPIC_API_KEY'} environment variable.`
+      `[provider-validation] API key not found for provider '${config.provider}'. ` +
+      `Set the ${requiredVar} environment variable.\n` +
+      `Tip: If using --provider flag, ensure the corresponding API key is exported.`
     );
   }
+
+  // Provider-specific validation
+  if (config.provider === 'kimi' || config.provider === 'openrouter') {
+    console.error(`[provider-validation] WARNING: Provider '${config.provider}' uses OpenAI-compatible API format.`);
+    console.error(`[provider-validation] The current implementation uses Anthropic SDK which may not be compatible.`);
+    console.error(`[provider-validation] Consider using provider 'zai' or 'anthropic' for now.`);
+  }
+}
+
+/**
+ * Create Anthropic client with appropriate configuration
+ *
+ * Uses singleton pattern with reference counting to prevent memory leaks
+ * from unclosed HTTP connections. Applies to all providers:
+ * - anthropic: Direct Anthropic API
+ * - zai: Z.ai proxy (all GLM models: 4.5, 4.6, etc.)
+ * - kimi: Kimi API (future)
+ * - openrouter: OpenRouter API (future)
+ *
+ * Memory leak fix: Reuses client instance with custom HTTP agents
+ * that enforce connection limits (maxSockets: 10, maxFreeSockets: 5)
+ */
+export async function createClient(): Promise<Anthropic> {
+  // Return existing instance if available
+  if (clientInstance) {
+    clientRefCount++;
+    apiDebugLog('Reusing existing client instance', { refCount: clientRefCount });
+    return clientInstance;
+  }
+
+  const config = await getAPIConfig();
+
+  // Validate configuration before attempting API call
+  validateProviderConfig(config);
 
   const clientOptions: any = {
     apiKey: config.apiKey,
     timeout: 120000, // 2 minutes (120 seconds)
     maxRetries: 2,
+    httpAgent: httpAgent,   // Apply connection limits
+    httpsAgent: httpsAgent, // Apply connection limits
   };
 
-  if (config.provider === 'zai' && config.baseURL) {
+  // Z.ai uses Anthropic-compatible API format with custom base URL
+  if ((config.provider === 'zai' || config.provider === 'anthropic') && config.baseURL) {
     clientOptions.baseURL = config.baseURL;
   }
 
-  return new Anthropic(clientOptions);
+  console.error(`[anthropic-client] Creating new client instance for provider: ${config.provider}`);
+  apiDebugLog('Creating new client instance', { provider: config.provider, baseURL: config.baseURL });
+
+  clientInstance = new Anthropic(clientOptions);
+  clientRefCount = 1;
+
+  return clientInstance;
+}
+
+/**
+ * Dispose Anthropic client and clean up HTTP connections
+ *
+ * Uses reference counting to ensure client is only destroyed when
+ * all operations have completed. Prevents premature disposal during
+ * concurrent API calls.
+ *
+ * Should be called in finally blocks of executeAgentAPI and similar
+ * long-running operations.
+ */
+export function disposeClient(): void {
+  clientRefCount--;
+  apiDebugLog('Disposing client reference', { refCount: clientRefCount });
+
+  if (clientRefCount <= 0 && clientInstance) {
+    // Force cleanup of internal HTTP client/agent
+    // @ts-ignore - accessing internal property for cleanup
+    if (clientInstance.httpClient?.destroy) {
+      clientInstance.httpClient.destroy();
+    }
+
+    apiDebugLog('Client instance destroyed');
+    clientInstance = null;
+    clientRefCount = 0;
+  }
 }
 
 /**
@@ -184,8 +345,8 @@ export async function sendMessage(
   const maxTokens = options.maxTokens || 16000; // Sprint 6: 16K hard limit for GLM-4.6 (agents target 10K for buffer)
   const temperature = options.temperature ?? 1.0;
 
-  // Disable streaming for Z.ai (compatibility issue)
-  const enableStreaming = options.stream && config.provider !== 'zai';
+  // Streaming supported for both providers; retry without streaming if a provider rejects it
+  let enableStreaming = !!options.stream;
 
   console.log(`[anthropic-client] Provider: ${config.provider}`);
   console.log(`[anthropic-client] Model: ${model}`);
@@ -241,48 +402,60 @@ export async function sendMessage(
     }
 
     try {
-      // Streaming response
+      // Streaming response (preferred)
       if (enableStreaming) {
         let fullContent = '';
         let inputTokens = 0;
         let outputTokens = 0;
         let stopReason = 'end_turn';
+        let stream: any = null;
 
-        console.log('[anthropic-client] Creating streaming request...');
-        const stream = await client.messages.create({
-          ...requestParams,
-          stream: true,
-        });
+        try {
+          console.log('[anthropic-client] Creating streaming request...');
+          stream = await client.messages.create({
+            ...requestParams,
+            stream: true,
+          });
 
-        console.log('[anthropic-client] Stream created, processing events...');
-        for await (const event of stream) {
-          console.log('[anthropic-client] Event type:', event.type);
-          if (event.type === 'message_start') {
-            // @ts-ignore - usage exists on message_start
-            inputTokens = event.message.usage?.input_tokens || 0;
-          } else if (event.type === 'content_block_delta') {
-            // @ts-ignore - text exists on delta
-            const text = event.delta?.text || '';
-            fullContent += text;
-            if (onChunk) {
-              onChunk(text);
+          console.log('[anthropic-client] Stream created, processing events...');
+          for await (const event of stream) {
+            console.log('[anthropic-client] Event type:', event.type);
+            if (event.type === 'message_start') {
+              // @ts-ignore - usage exists on message_start
+              inputTokens = event.message.usage?.input_tokens || 0;
+            } else if (event.type === 'content_block_delta') {
+              // @ts-ignore - text exists on delta
+              const text = event.delta?.text || '';
+              fullContent += text;
+              if (onChunk) {
+                onChunk(text);
+              }
+            } else if (event.type === 'message_delta') {
+              // @ts-ignore - usage exists on message_delta
+              outputTokens = event.usage?.output_tokens || 0;
+              // @ts-ignore - stop_reason exists on delta
+              stopReason = event.delta?.stop_reason || 'end_turn';
             }
-          } else if (event.type === 'message_delta') {
-            // @ts-ignore - usage exists on message_delta
-            outputTokens = event.usage?.output_tokens || 0;
-            // @ts-ignore - stop_reason exists on delta
-            stopReason = event.delta?.stop_reason || 'end_turn';
+          }
+
+          return {
+            content: fullContent,
+            usage: {
+              inputTokens,
+              outputTokens,
+            },
+            stopReason,
+          };
+        } finally {
+          // Explicit stream cleanup to prevent memory leaks
+          if (stream?.controller?.abort) {
+            try {
+              stream.controller.abort();
+            } catch (err) {
+              // Ignore abort errors (stream may already be closed)
+            }
           }
         }
-
-        return {
-          content: fullContent,
-          usage: {
-            inputTokens,
-            outputTokens,
-          },
-          stopReason,
-        };
       }
 
       // Non-streaming response
@@ -303,6 +476,14 @@ export async function sendMessage(
         stopReason: response.stop_reason || 'end_turn',
       };
     } catch (error) {
+      // If streaming fails on Z.ai, retry once without streaming before falling back to model fallback logic
+      if (enableStreaming && config.provider === 'zai') {
+        console.warn('[anthropic-client] Streaming failed on z.ai, retrying without streaming:', error);
+        enableStreaming = false;
+        attempts--; // do not consume a model attempt
+        continue;
+      }
+
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(`[anthropic-client] Error with model ${currentModel}:`, lastError.message);
 
@@ -381,12 +562,25 @@ async function executeWithTools(
     // Make API request (non-streaming for now to handle tool_use)
     const response = await client.messages.create(requestParams);
 
+    apiDebugLog('executeWithTools: API response received', {
+      iteration,
+      contentBlockCount: response.content.length,
+      blockTypes: response.content.map(b => b.type),
+      stopReason: response.stop_reason
+    });
+
     totalInputTokens += response.usage.input_tokens;
     totalOutputTokens += response.usage.output_tokens;
 
     // Extract content blocks
     const textBlocks = response.content.filter(block => block.type === 'text');
     const toolUseBlocks = response.content.filter(block => block.type === 'tool_use');
+
+    apiDebugLog('executeWithTools: Blocks extracted', {
+      textBlockCount: textBlocks.length,
+      toolUseBlockCount: toolUseBlocks.length,
+      toolNames: toolUseBlocks.map((b: any) => b.name)
+    });
 
     // Stream text output
     for (const block of textBlocks) {
@@ -481,12 +675,29 @@ export async function executeAgentAPI(
   const taskId = process.env.TASK_ID;
 
   // Bug #6 Fix: Read Redis connection parameters from process.env and interpolate in TypeScript
-  const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+  // FIX: Default to 'localhost' for CLI mode (host execution), not 'cfn-redis' (Docker)
+  const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
   const redisPort = process.env.CFN_REDIS_PORT || '6379';
 
+  // Track memory usage for leak detection
+  const initialMem = process.memoryUsage();
+  apiDebugLog('Memory before API call', {
+    heapUsed: (initialMem.heapUsed / 1024 / 1024).toFixed(2) + 'MB',
+    external: (initialMem.external / 1024 / 1024).toFixed(2) + 'MB'
+  });
+
   try {
+    apiDebugLog('executeAgentAPI: ENTRY', {
+      agentType,
+      agentId,
+      hasTools: !!tools,
+      toolsLength: tools?.length || 0,
+      toolNames: tools?.map(t => t.name) || []
+    });
     console.log(`[anthropic-client] Executing agent: ${agentType}`);
     console.log(`[anthropic-client] Agent ID: ${agentId}`);
+    console.error(`[TOOL DEBUG executeAgentAPI] tools parameter: ${tools ? `Array[${tools.length}]` : 'undefined'}`);
+    console.error(`[TOOL DEBUG executeAgentAPI] tools names: ${tools?.map(t => t.name).join(', ') || 'NONE'}`);
     if (messages && messages.length > 1) {
       console.log(`[anthropic-client] Continuing conversation (${messages.length} messages)`);
     }
@@ -511,6 +722,10 @@ export async function executeAgentAPI(
     let response: MessageResponse;
 
     if (tools && tools.length > 0) {
+      apiDebugLog('executeAgentAPI: Using tool execution path', {
+        toolCount: tools.length,
+        toolNames: tools.map(t => t.name)
+      });
       console.log(`[anthropic-client] Tools enabled: ${tools.map(t => t.name).join(', ')}`);
       response = await executeWithTools(
         {
@@ -587,5 +802,22 @@ export async function executeAgentAPI(
       usage: { inputTokens: 0, outputTokens: 0 },
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    // Dispose client to prevent memory leaks
+    // Reference counting ensures client is only destroyed when all operations complete
+    disposeClient();
+
+    // Track memory after cleanup
+    const finalMem = process.memoryUsage();
+    const heapDelta = (finalMem.heapUsed - initialMem.heapUsed) / 1024 / 1024;
+    apiDebugLog('Memory after API call', {
+      heapUsed: (finalMem.heapUsed / 1024 / 1024).toFixed(2) + 'MB',
+      delta: heapDelta.toFixed(2) + 'MB'
+    });
+
+    // Warn if significant memory growth (>50MB) detected
+    if (heapDelta > 50) {
+      console.warn(`[memory-leak-warning] Heap grew by ${heapDelta.toFixed(2)}MB during agent execution`);
+    }
   }
 }

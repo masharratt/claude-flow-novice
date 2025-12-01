@@ -1,0 +1,309 @@
+# SEO Intelligence Pattern Schema
+# Phase 1 Sprint 3: Pattern Schema & Knowledge Store
+# Version: 1.0.0
+
+# ============================================================================
+# PATTERN SCHEMA DEFINITION
+# ============================================================================
+
+patternSchema:
+  version: "1.0.0"
+  description: "Defines schema for content, technical, and algorithm patterns in SEO intelligence system"
+
+  # Core Pattern Types
+  types:
+    - content      # Content strategy patterns (titles, hooks, structure)
+    - technical    # Technical SEO patterns (schema, linking, performance)
+    - algorithm    # Algorithm intelligence (risks, updates, penalties)
+
+  # Pattern Lifecycle States
+  lifecycleStates:
+    discovery:
+      description: "Newly discovered pattern, not yet validated"
+      minConfidence: 0.0
+      maxConfidence: 0.49
+      allowedTransitions: [validation, archived]
+
+    validation:
+      description: "Pattern under validation with accumulating evidence"
+      minConfidence: 0.50
+      maxConfidence: 0.79
+      allowedTransitions: [promoted, archived]
+      requiredFields: [evidence, metadata.performance]
+
+    promoted:
+      description: "High-confidence pattern ready for production use"
+      minConfidence: 0.80
+      maxConfidence: 1.0
+      allowedTransitions: [validation, archived]
+      requiredFields: [evidence, metadata.performance, metadata.applicability]
+
+    archived:
+      description: "Deprecated or invalidated pattern"
+      minConfidence: 0.0
+      maxConfidence: 1.0
+      allowedTransitions: []
+      requiredFields: [archivedReason, archivedAt]
+
+  # Confidence Scoring Rules
+  confidenceScoring:
+    minValue: 0.0
+    maxValue: 1.0
+    precision: 2  # Decimal places
+
+    calculationMethod: |
+      confidence = (successCount / totalApplications) * evidenceQualityFactor
+      where evidenceQualityFactor = min(evidenceCount / 10, 1.0)
+
+    thresholds:
+      discovery: 0.0     # New patterns start here
+      validation: 0.50   # Transition to validation
+      promoted: 0.80     # Transition to promoted
+      archive: 0.30      # Archive if confidence drops below
+
+  # Evidence Tracking
+  evidenceSchema:
+    required: [source, outcome, capturedAt]
+    optional: [metrics, notes, domain, contentType]
+
+    source:
+      type: string
+      description: "URL, article ID, or data source identifier"
+      examples: ["https://example.com/article", "article-123", "manual-observation"]
+
+    outcome:
+      type: enum
+      values: [success, failure]
+      description: "Whether pattern application succeeded or failed"
+
+    capturedAt:
+      type: date
+      description: "Timestamp when evidence was captured"
+
+    metrics:
+      type: object
+      description: "Quantitative performance metrics"
+      examples:
+        - organicTrafficIncrease: 45.2
+          avgPosition: 3.5
+          ctr: 0.12
+        - backlinksGained: 15
+          domainAuthority: 58
+        - engagementRate: 0.67
+          avgTimeOnPage: 245
+
+    notes:
+      type: string
+      description: "Additional context or observations"
+      maxLength: 500
+
+  # Pattern Metadata
+  metadataSchema:
+    required: [applicability, performance]
+    optional: [domain, keywords, seasonality, updateHistory]
+
+    applicability:
+      contentTypes:
+        type: array
+        description: "Content types this pattern applies to"
+        examples: ["blog-post", "guide", "product-page", "landing-page"]
+
+      industries:
+        type: array
+        description: "Industries where pattern is effective"
+        examples: ["technology", "finance", "healthcare", "ecommerce"]
+
+      restrictions:
+        type: array
+        description: "Scenarios where pattern should NOT be used"
+        examples: ["news-content", "legal-disclaimers", "scientific-papers"]
+
+    performance:
+      successRate:
+        type: number
+        description: "Percentage of successful applications"
+        min: 0.0
+        max: 1.0
+
+      totalApplications:
+        type: number
+        description: "Total times pattern has been applied"
+        min: 0
+
+      avgImpact:
+        type: object
+        description: "Average impact metrics across all applications"
+        examples:
+          trafficIncrease: 35.5
+          positionImprovement: 2.3
+          ctrImprovement: 0.08
+
+    domain:
+      type: string
+      description: "Specific domain for local patterns (optional)"
+
+    keywords:
+      type: array
+      description: "Related keywords or topics"
+
+    seasonality:
+      type: object
+      description: "Seasonal effectiveness patterns"
+      properties:
+        hasSeasonality: boolean
+        peakMonths: array
+        troughMonths: array
+
+    updateHistory:
+      type: array
+      description: "History of pattern updates"
+      items:
+        version: string
+        updatedAt: date
+        changes: string
+        updatedBy: string
+
+# ============================================================================
+# PATTERN CATEGORIES
+# ============================================================================
+
+categories:
+  content:
+    title-tags:
+      description: "Patterns for effective title tag construction"
+      examples: ["power-words", "question-format", "number-format", "how-to-format"]
+
+    hooks:
+      description: "Content hook patterns that drive engagement"
+      examples: ["problem-solution", "curiosity-gap", "authority-signal", "data-driven"]
+
+    structure:
+      description: "Content structure and formatting patterns"
+      examples: ["pyramid", "listicle", "guide", "comparison"]
+
+    headlines:
+      description: "Headline construction patterns"
+      examples: ["emotional-trigger", "benefit-focused", "urgency-driven"]
+
+  technical:
+    schema-markup:
+      description: "Structured data implementation patterns"
+      examples: ["article-schema", "faq-schema", "breadcrumb-schema", "review-schema"]
+
+    internal-linking:
+      description: "Internal linking strategy patterns"
+      examples: ["hub-spoke", "silo-structure", "contextual-linking", "breadcrumb-navigation"]
+
+    performance:
+      description: "Technical performance optimization patterns"
+      examples: ["lazy-loading", "critical-css", "image-optimization", "cdn-usage"]
+
+    crawlability:
+      description: "Crawl optimization patterns"
+      examples: ["xml-sitemap", "robots-txt", "canonical-tags", "hreflang"]
+
+  algorithm:
+    risk-scores:
+      description: "Algorithm risk assessment patterns"
+      examples: ["thin-content-risk", "keyword-stuffing-risk", "link-spam-risk"]
+
+    update-history:
+      description: "Algorithm update impact patterns"
+      examples: ["core-update-recovery", "helpful-content-alignment", "eeat-signals"]
+
+    penalty-recovery:
+      description: "Penalty recovery patterns"
+      examples: ["manual-action-recovery", "algorithmic-penalty-recovery"]
+
+    ranking-factors:
+      description: "Ranking factor patterns"
+      examples: ["content-quality", "backlink-profile", "user-signals", "technical-health"]
+
+# ============================================================================
+# VERSION CONTROL
+# ============================================================================
+
+versionControl:
+  format: "semantic-versioning"  # major.minor.patch
+  changeTypes:
+    - major: "Breaking changes to pattern structure or behavior"
+    - minor: "New patterns or non-breaking enhancements"
+    - patch: "Bug fixes, evidence updates, minor refinements"
+
+  requiredChangeMetadata:
+    - version
+    - updatedAt
+    - changes
+    - updatedBy
+
+# ============================================================================
+# STORAGE CONVENTIONS
+# ============================================================================
+
+storageConventions:
+  fileStructure:
+    global: "knowledge-store/patterns/global/{type}/{category}/"
+    local: "knowledge-store/patterns/local/{domain}/{type}/{category}/"
+
+  filenaming:
+    format: "{pattern-id}_{version}.yaml"
+    examples: ["title-power-words_1.2.0.yaml", "schema-faq_2.0.1.yaml"]
+
+  indexing:
+    indexFile: "knowledge-store/patterns/index.yaml"
+    updateFrequency: "on-write"
+    fields: [id, type, category, confidence, lifecycle, lastUpdated]
+
+# ============================================================================
+# VALIDATION RULES
+# ============================================================================
+
+validationRules:
+  required:
+    - id must be unique across all patterns
+    - type must be one of [content, technical, algorithm]
+    - confidence must be 0.0-1.0
+    - lifecycle must match confidence thresholds
+    - evidence array must have at least 1 item for validation+ states
+
+  constraints:
+    - promoted patterns must have confidence >= 0.80
+    - validation patterns must have >= 3 evidence items
+    - archived patterns must have archivedReason and archivedAt
+    - evidence.source must be non-empty string
+    - metadata.performance.successRate must equal successCount/totalApplications
+
+  warnings:
+    - totalApplications < 5: "Pattern has low sample size"
+    - evidence items > 6 months old: "Consider refreshing evidence"
+    - no evidence in last 90 days: "Pattern may be stale"
+    - successRate < 0.50 in validation: "Consider archiving"
+
+# ============================================================================
+# MIGRATION & IMPORT/EXPORT
+# ============================================================================
+
+migration:
+  importFormats: [yaml, json]
+  exportFormats: [yaml, json]
+  backupBeforeImport: true
+  validateOnImport: true
+  conflictResolution: "newer-version-wins"
+
+# ============================================================================
+# INTEGRATION POINTS
+# ============================================================================
+
+integrationPoints:
+  intelligenceCurator:
+    - loadPatterns: "Query patterns by type, category, confidence"
+    - updateConfidence: "Update pattern confidence based on outcomes"
+    - promotePattern: "Transition pattern from validation to promoted"
+
+  redisContextStore:
+    - cachePatterns: "Cache frequently accessed patterns"
+    - ttl: 3600  # 1 hour for pattern cache
+
+  learningCapture:
+    - recordOutcome: "Add evidence to pattern from content performance"
+    - calculateConfidence: "Recalculate confidence after new evidence"

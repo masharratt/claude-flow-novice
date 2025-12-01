@@ -12,7 +12,8 @@ import { spawn } from 'child_process';
 import { resolve } from 'path';
 
 // Bug #6 Fix: Read Redis connection parameters from process.env
-const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+// FIX: Default to 'localhost' for CLI mode (host execution), not 'cfn-redis' (Docker)
+const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
 const redisPort = process.env.CFN_REDIS_PORT || '6379';
 
 interface MetricsOptions {

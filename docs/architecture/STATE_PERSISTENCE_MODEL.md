@@ -889,7 +889,7 @@ const stateJson = JSON.stringify(stableState, Object.keys(stableState).sort());
 
 - **Database Service**: `/home/user/claude-flow-novice/src/lib/database-service/README.md`
 - **Schema Transform**: `/home/user/claude-flow-novice/docs/SCHEMA_TRANSFORM.md`
-- **CFN Loop**: `/home/user/claude-flow-novice/.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **CFN Loop**: `/home/user/claude-flow-novice/.claude/commands/CFN_LOOP_TASK_MODE.md`
 
 ### Code Examples
 

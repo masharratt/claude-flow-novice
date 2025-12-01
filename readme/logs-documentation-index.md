@@ -55,7 +55,7 @@
    - Task Mode vs CLI Mode execution and cost optimization
    - Performance and resource considerations
 
-4. **[CFN_LOOP_TASK_MODE.md](../.claude/commands/cfn/CFN_LOOP_TASK_MODE.md)**
+4. **[CFN_LOOP_TASK_MODE.md](../.claude/commands/CFN_LOOP_TASK_MODE.md)**
    - Task mode execution guide
    - Agent specialization rules
    - Adaptive validator scaling
@@ -74,6 +74,7 @@
    - Performance metrics
    - Testing frameworks
    - CFN Loop forgiveness mechanisms (17 features)
+   - Provider routing system (cross-provider model compatibility)
    - CFN Error logging skill
 
 2. **[additional-commands.md](./additional-commands.md)**
@@ -97,6 +98,7 @@
    - Comprehensive command reference
    - CFN Loop, Docker, and agent management commands
    - Task Mode vs CLI Mode execution commands
+   - Provider routing commands (/switch-api, /cfn-loop-cli --provider)
 
 ### System Configuration
 1. **[logs-hooks.md](./logs-hooks.md)**

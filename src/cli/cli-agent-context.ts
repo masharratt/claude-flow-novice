@@ -91,6 +91,8 @@ async function loadAgentTemplate(agentType: string): Promise<string> {
       path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'specialists', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'frontend', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'security', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'reviewers', `${agentType}.md`),
+      path.join(process.cwd(), '.claude', 'agents', 'cfn-dev-team', 'reviewers', 'quality', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'coordinators', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'core-agents', `${agentType}.md`),
       path.join(process.cwd(), '.claude', 'agents', 'developers', `${agentType}.md`),

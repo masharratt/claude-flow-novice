@@ -92,9 +92,25 @@ Base URL: https://api.z.ai/api/anthropic
 API Key: ZAI_API_KEY (from .env)
 Cost: $0.50/1M tokens
 Model: glm-4.6 (default when CFN_CUSTOM_ROUTING=true)
+Fallback: glm-4.5-air (automatic on glm-4.6 errors)
 ```
 
 **Note:** When `CFN_CUSTOM_ROUTING=true` and an agent has no provider parameters, it defaults to Z.ai with glm-4.6 model.
+
+#### Memory Management (v2.17.0+)
+
+Z.ai provider includes memory leak prevention measures:
+- **Client Singleton**: Reuses Anthropic SDK client across API calls
+- **HTTP Agent Pooling**: Limits concurrent connections (maxSockets: 10, maxFreeSockets: 5)
+- **Stream Cleanup**: Explicit stream disposal in finally blocks
+- **Reference Counting**: Ensures client disposal only when all operations complete
+
+**Memory Leak Fix (2025-12-01):**
+- Root cause: Unclosed HTTP connections from per-call client creation
+- Impact: All GLM models (4.5, 4.6, future versions)
+- Solution: Singleton pattern + HTTP agent configuration
+- Validation: Integration test enforces <50MB growth per 10 agent spawns
+- Related: `tests/integration/test-zai-memory-leak.sh`
 
 ### 2. Kimi (Moonshot AI)
 ```bash

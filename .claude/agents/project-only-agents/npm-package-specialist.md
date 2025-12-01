@@ -1,6 +1,6 @@
 ---
 name: npm-package-specialist
-description: MUST BE USED for npm package creation, publishing, and maintenance. Use PROACTIVELY for package.json configuration, versioning, dependency management. ALWAYS delegate when user asks to "create package", "publish npm", "setup module", "package configuration". Keywords - npm, package, publish, module, versioning, dependencies, registry
+description: MUST BE USED for npm package development, publishing, dependency management. Use PROACTIVELY for package configuration. Keywords - npm, package, dependencies, publishing
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 provider: zai

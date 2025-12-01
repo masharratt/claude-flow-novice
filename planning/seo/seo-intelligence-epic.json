@@ -1,0 +1,520 @@
+{
+  "epicId": "seo-intelligence-integration",
+  "name": "SEO Intelligence System Integration",
+  "description": "Integrate SEO Intelligence System (SERP analysis, competitor deep-dive, cross-domain learning, algorithm prediction) into the existing 11-step SEO content pipeline to enable pattern reuse, cross-domain learning, and algorithm risk awareness.",
+  "status": "in_progress",
+  "currentPhase": 1,
+  "currentSprint": "P1-S4-complete",
+  "completedSprints": ["P1-S1-research-infrastructure", "P1-S2-intelligence-curator", "P1-S3-pattern-schema", "P1-S4-pipeline-orchestrator"],
+  "owner": "SEO Team",
+  "estimatedDuration": "6 weeks",
+  "overviewFile": "planning/seo/SEO_INTELLIGENCE_INTEGRATION_IMPLEMENTATION.md",
+  "mode": "standard",
+  "expectedOutcomes": [
+    "30% faster content creation through pattern reuse",
+    "25% higher quality scores via proven pattern application",
+    "Cross-domain learning across all projects",
+    "Algorithm risk awareness in content strategy"
+  ],
+  "phases": [
+    {
+      "phase_name": "P1 Foundation - Knowledge Store & Intelligence Curator",
+      "phase_num": 1,
+      "status": "completed",
+      "sprints": [
+        {
+          "sprint_id": "P1-S1-research-infrastructure",
+          "name": "Research Infrastructure",
+          "status": "completed",
+          "completedDate": "2025-11-30",
+          "iterations": 3,
+          "loop3Confidence": 0.95,
+          "loop2Consensus": 0.96,
+          "testPassRate": 0.96,
+          "deliverables": [
+            "planning/seo/lib/research-service.ts",
+            "planning/seo/lib/research-cache.ts",
+            "planning/seo/lib/rate-limiter.ts",
+            "planning/seo/lib/error-sanitizer.ts",
+            "planning/seo/types/research.ts",
+            "planning/seo/lib/__tests__/ (279+ tests)"
+          ]
+        },
+        {
+          "sprint_id": "P1-S2-intelligence-curator",
+          "name": "Intelligence Curator Agent",
+          "status": "completed",
+          "completedDate": "2025-11-30",
+          "iterations": 1,
+          "loop3Confidence": 0.92,
+          "loop2Consensus": 0.92,
+          "testPassRate": 1.0,
+          "deliverables": [
+            "planning/seo/lib/intelligence-curator.ts",
+            "planning/seo/types/index.ts (updated)",
+            "planning/seo/knowledge-store/ (directory structure)",
+            "planning/seo/lib/__tests__/intelligence-curator.test.ts (15 tests)",
+            "planning/seo/knowledge-store/README.md"
+          ]
+        },
+        {
+          "sprint_id": "P1-S3-pattern-schema",
+          "name": "Pattern Schema & Knowledge Store",
+          "status": "completed",
+          "completedDate": "2025-11-30",
+          "iterations": 1,
+          "loop3Confidence": 0.95,
+          "loop2Consensus": 0.95,
+          "testPassRate": 1.0,
+          "deliverables": [
+            "planning/seo/pattern-schema.yaml",
+            "planning/seo/lib/pattern-manager.ts",
+            "planning/seo/lib/redis-context-store.ts",
+            "planning/seo/knowledge-store/seeds/*.yaml (21 patterns)",
+            "planning/seo/lib/__tests__/pattern-manager.test.ts (25 tests)",
+            "planning/seo/lib/__tests__/redis-context-store.test.ts (14 tests)"
+          ]
+        },
+        {
+          "sprint_id": "P1-S4-pipeline-orchestrator",
+          "name": "Pipeline Orchestrator Integration",
+          "status": "completed",
+          "completedDate": "2025-11-30",
+          "iterations": 1,
+          "loop3Confidence": 0.95,
+          "loop2Consensus": 0.95,
+          "testPassRate": 1.0,
+          "deliverables": [
+            "planning/seo/lib/pipeline-orchestrator.ts",
+            "planning/seo/lib/steps/step-0-intelligence-preload.ts",
+            "planning/seo/lib/steps/step-12-learning-capture.ts",
+            "planning/seo/scripts/run-pipeline.ts",
+            "planning/seo/lib/__tests__/pipeline-integration.test.ts (25 tests)",
+            "planning/seo/PHASE_1_COMPLETE.md"
+          ]
+        }
+      ],
+      "description": "Build foundational file-based knowledge store, create intelligence-curator agent, implement Step 0 (pre-load) and Step 12 (learning capture) in pipeline orchestrator.",
+      "deliverables": [
+        "/home/masharratt/.cfn/seo/global-knowledge/content-patterns/title-tags.yaml",
+        "/home/masharratt/.cfn/seo/global-knowledge/content-patterns/hooks.yaml",
+        "/home/masharratt/.cfn/seo/global-knowledge/content-patterns/structure.yaml",
+        "/home/masharratt/.cfn/seo/global-knowledge/technical-patterns/schema.yaml",
+        "/home/masharratt/.cfn/seo/global-knowledge/link-patterns/internal-linking.yaml",
+        "/home/masharratt/.cfn/seo/global-knowledge/algorithm-intelligence/risk-scores.yaml",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-seo-team/intelligence-curator.md",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/scripts/orchestrate-seo-v2.sh",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/pattern-schema.yaml"
+      ],
+      "in_scope": [
+        "Create ~/.cfn/seo/ directory structure for global and local knowledge",
+        "Define pattern schema with confidence scoring and evidence tracking",
+        "Build intelligence-curator agent with pre-pipeline and post-pipeline modes",
+        "Add Step 0 (intelligence injection) to orchestrator",
+        "Add Step 12 (learning capture) to orchestrator",
+        "Implement Redis context storage for intelligence sharing",
+        "Create initial pattern seeds from existing experience",
+        "File-based storage only (no RuVector yet)"
+      ],
+      "out_of_scope": [
+        "RuVector integration (deferred to Phase 5+)",
+        "Cross-domain sync protocol (Phase 4)",
+        "New analysis agents (Phase 2)",
+        "Agent modifications (Phase 3)",
+        "Algorithm prediction model (Phase 5)"
+      ],
+      "loop3_agents": [
+        "backend-developer",
+        "typescript-specialist"
+      ],
+      "loop2_agents": [
+        "code-reviewer",
+        "integration-tester",
+        "seo-specialist"
+      ],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 3,
+      "directory": "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo",
+      "acceptanceCriteria": [
+        "Knowledge store directories exist at ~/.cfn/seo/",
+        "intelligence-curator agent functional for pre-pipeline and post-pipeline modes",
+        "Step 0 successfully loads patterns from file store",
+        "Step 12 captures learnings to local YAML files",
+        "Pattern schema supports confidence scoring and evidence tracking",
+        "Redis stores intelligence context for downstream agents",
+        "Pipeline runs end-to-end with Steps 0 and 12"
+      ]
+    },
+    {
+      "phase_name": "P2 Deep Analysis Agents - Competitor & SERP Pattern Analysis",
+      "phase_num": 2,
+      "description": "Build competitor-deep-analyst and serp-pattern-analyst agents, integrate with Firecrawl for site-wide crawling, add Steps 2.5 and 3.5 to orchestrator.",
+      "deliverables": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-seo-team/competitor-deep-analyst.md",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-seo-team/serp-pattern-analyst.md",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/lib/firecrawl-site-crawler.ts",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/scripts/orchestrate-seo-v2.sh"
+      ],
+      "in_scope": [
+        "Build competitor-deep-analyst agent with site architecture analysis",
+        "Implement content strategy extraction and pattern discovery",
+        "Build serp-pattern-analyst agent with ranking correlation analysis",
+        "Extract winner patterns and compare to global knowledge",
+        "Integrate Firecrawl for site-wide competitor crawling",
+        "Add Step 2.5 (competitor deep-dive) to orchestrator",
+        "Add Step 3.5 (SERP pattern analysis) to orchestrator",
+        "Output replicable patterns and gaps to exploit"
+      ],
+      "out_of_scope": [
+        "Modifying existing agents (Phase 3)",
+        "Cross-domain learning protocol (Phase 4)",
+        "RuVector embedding search",
+        "Algorithm risk scoring (Phase 5)",
+        "Real-time SERP monitoring"
+      ],
+      "loop3_agents": [
+        "backend-developer",
+        "seo-specialist"
+      ],
+      "loop2_agents": [
+        "code-reviewer",
+        "competitive-seo-analyst",
+        "serp-analyst",
+        "integration-tester"
+      ],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 4,
+      "directory": "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo",
+      "acceptanceCriteria": [
+        "competitor-deep-analyst extracts site-wide patterns from 50+ pages",
+        "Competitor analysis identifies architecture patterns, hub pages, and content strategy",
+        "serp-pattern-analyst calculates ranking correlations from SERP data",
+        "SERP analysis identifies winner patterns and SERP feature ownership",
+        "Firecrawl integration successfully crawls competitor sites",
+        "Steps 2.5 and 3.5 execute in orchestrator flow",
+        "Patterns from deep analysis flow to downstream agents"
+      ]
+    },
+    {
+      "phase_name": "P3 Agent Enhancement - Intelligence Consumption",
+      "phase_num": 3,
+      "description": "Modify seo-analytics-specialist, content-seo-strategist, seo-content-writer, and link-building-specialist to consume and apply intelligence patterns from the knowledge store.",
+      "deliverables": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-seo-team/seo-analytics-specialist.md",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-seo-team/content-seo-strategist.md",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-seo-team/seo-content-writer.md",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/agents/cfn-seo-team/link-building-specialist.md",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/tests/test-pattern-application.sh"
+      ],
+      "in_scope": [
+        "Add intelligence_context input to seo-analytics-specialist for keyword pattern hints",
+        "Modify content-seo-strategist to apply structure and SERP patterns in outlines",
+        "Enhance seo-content-writer with style patterns and proven hooks",
+        "Update link-building-specialist to use internal linking patterns",
+        "Track pattern applications in agent outputs",
+        "Store pattern_applications in Redis for learning capture",
+        "Add pattern experiment tracking for new discoveries"
+      ],
+      "out_of_scope": [
+        "Creating new agents",
+        "Modifying other pipeline agents (research-specialist, validators)",
+        "Cross-domain sync (Phase 4)",
+        "Algorithm intelligence (Phase 5)",
+        "Performance optimization"
+      ],
+      "loop3_agents": [
+        "seo-specialist",
+        "typescript-specialist"
+      ],
+      "loop2_agents": [
+        "code-reviewer",
+        "content-seo-strategist",
+        "seo-content-writer",
+        "integration-tester"
+      ],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 3,
+      "directory": "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo",
+      "acceptanceCriteria": [
+        "All 4 target agents accept intelligence_context input",
+        "Agents apply patterns from global knowledge in outputs",
+        "Pattern applications tracked in Redis with pattern IDs and sources",
+        "Outline generation includes pattern_applications section",
+        "Content writing applies style patterns and proven hooks",
+        "Link building uses optimal density and anchor text patterns",
+        "Test suite validates pattern application across all agents"
+      ]
+    },
+    {
+      "phase_name": "P4 Cross-Domain Learning - Pattern Sync & Confidence Decay",
+      "phase_num": 4,
+      "description": "Implement pattern promotion protocol, build sync mechanism for global ↔ local pattern sharing, create confidence decay system, and enable multi-project support.",
+      "deliverables": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/lib/pattern-promotion.ts",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/lib/pattern-sync.ts",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/lib/confidence-scoring.ts",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/scripts/sync-patterns.sh",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/commands/cfn-seo/seo-sync.md",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/tests/test-cross-domain-learning.sh"
+      ],
+      "in_scope": [
+        "Implement pattern lifecycle (discovery → validation → promotion)",
+        "Build eligibility check (confidence >= 0.8, articles >= 5)",
+        "Create anonymization layer (strip domains, URLs, keywords)",
+        "Build global promotion logic with similarity detection",
+        "Implement bidirectional sync protocol",
+        "Create confidence decay system based on outcomes",
+        "Add CLI command: cfn seo sync --direction both",
+        "Enable multi-project pattern sharing",
+        "Archive patterns below 0.4 confidence"
+      ],
+      "out_of_scope": [
+        "RuVector migration (deferred)",
+        "Real-time sync (manual/periodic only)",
+        "Pattern versioning and rollback",
+        "Algorithm intelligence (Phase 5)",
+        "Pattern marketplace or sharing network"
+      ],
+      "loop3_agents": [
+        "backend-developer",
+        "typescript-specialist"
+      ],
+      "loop2_agents": [
+        "code-reviewer",
+        "security-specialist",
+        "integration-tester"
+      ],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 4,
+      "directory": "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo",
+      "acceptanceCriteria": [
+        "Patterns promote from local to global when eligible",
+        "Anonymization strips all domain-specific data",
+        "Similarity detection prevents duplicate global patterns",
+        "Sync protocol successfully shares patterns across projects",
+        "Confidence scores update based on success/failure outcomes",
+        "Patterns below 0.4 confidence archived automatically",
+        "CLI command cfn seo sync executes bidirectional sync",
+        "Multi-project setup can query and contribute to global store"
+      ]
+    },
+    {
+      "phase_name": "P5 Algorithm Intelligence - Risk Scoring & Prediction",
+      "phase_num": 5,
+      "description": "Build algorithm risk scoring system, create prediction model for algorithm updates, integrate with Step 0 warnings, and add risk alerts to pipeline.",
+      "deliverables": [
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/lib/algorithm-risk-scoring.ts",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/lib/algorithm-prediction-model.ts",
+        "/home/masharratt/.cfn/seo/global-knowledge/algorithm-intelligence/risk-scores.yaml",
+        "/home/masharratt/.cfn/seo/global-knowledge/algorithm-intelligence/predictions.yaml",
+        "/home/masharratt/.cfn/seo/global-knowledge/algorithm-intelligence/update-history.yaml",
+        "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo/docs/ALGORITHM_INTELLIGENCE.md"
+      ],
+      "in_scope": [
+        "Build risk scoring for common SEO tactics (programmatic pages, AI content, etc.)",
+        "Create risk levels: low, medium, high, critical",
+        "Integrate risk checks in Step 0 with warnings",
+        "Build prediction model tracking algorithm update patterns",
+        "Document update history and prediction accuracy",
+        "Add critical risk alerts to orchestrator output",
+        "Create algorithm intelligence documentation",
+        "Track prediction accuracy over time (target: 70%)"
+      ],
+      "out_of_scope": [
+        "Real-time Google algorithm monitoring (manual updates)",
+        "Automated content adjustment based on risks",
+        "Legal compliance checks",
+        "Penalty recovery workflows",
+        "Competitive intelligence on algorithm gaming"
+      ],
+      "loop3_agents": [
+        "seo-specialist",
+        "backend-developer"
+      ],
+      "loop2_agents": [
+        "code-reviewer",
+        "seo-analytics-specialist",
+        "competitive-seo-analyst",
+        "integration-tester"
+      ],
+      "loop4_agent": "product-owner",
+      "gate_threshold": 0.75,
+      "consensus_threshold": 0.90,
+      "max_iterations": 10,
+      "estimated_iterations": 3,
+      "directory": "/mnt/c/Users/masha/Documents/claude-flow-novice/planning/seo",
+      "acceptanceCriteria": [
+        "Risk scoring assigns levels (low/medium/high/critical) to tactics",
+        "Step 0 checks planned tactics against risk database",
+        "Critical risks trigger warnings in orchestrator output",
+        "Prediction model documents expected algorithm changes",
+        "Update history tracks actual vs predicted algorithm updates",
+        "Prediction accuracy tracked and reported (target: 70%+)",
+        "Documentation explains risk scoring methodology",
+        "Pipeline adapts recommendations based on algorithm risks"
+      ]
+    }
+  ],
+  "backlog": [
+    {
+      "item": "RuVector migration for pattern embeddings and semantic search",
+      "priority": "medium",
+      "estimatedEffort": "2 weeks",
+      "blockedBy": "Phase 4 completion"
+    },
+    {
+      "item": "Real-time SERP monitoring and rank tracking integration",
+      "priority": "low",
+      "estimatedEffort": "3 weeks",
+      "blockedBy": null
+    },
+    {
+      "item": "Pattern versioning and rollback capability",
+      "priority": "low",
+      "estimatedEffort": "1 week",
+      "blockedBy": "Phase 4 completion"
+    },
+    {
+      "item": "Automated performance testing for intelligence overhead",
+      "priority": "medium",
+      "estimatedEffort": "1 week",
+      "blockedBy": "Phase 3 completion"
+    },
+    {
+      "item": "Pattern marketplace or external pattern sharing network",
+      "priority": "low",
+      "estimatedEffort": "4 weeks",
+      "blockedBy": "Phase 4 completion"
+    }
+  ],
+  "epicAcceptanceCriteria": [
+    "All 5 phases completed successfully with gate and consensus thresholds met",
+    "14-step enhanced pipeline operational (Steps 0, 1-11, 2.5, 3.5, 12)",
+    "3 new agents deployed: intelligence-curator, competitor-deep-analyst, serp-pattern-analyst",
+    "4 existing agents enhanced to consume intelligence patterns",
+    "File-based knowledge store operational at ~/.cfn/seo/",
+    "Cross-domain pattern sync working across projects",
+    "Algorithm risk scoring integrated with Step 0 warnings",
+    "Pipeline metrics show 30% faster content creation and 25% higher quality scores",
+    "50+ validated patterns in global store with confidence > 0.8",
+    "End-to-end tests validate intelligence injection and learning capture"
+  ],
+  "risks": [
+    {
+      "risk": "Pattern overfitting to specific domains",
+      "likelihood": "medium",
+      "impact": "medium",
+      "mitigation": "Confidence decay system, cross-domain validation before promotion"
+    },
+    {
+      "risk": "Performance overhead from intelligence loading",
+      "likelihood": "low",
+      "impact": "medium",
+      "mitigation": "Async intelligence loading, Redis caching, file-based storage optimization"
+    },
+    {
+      "risk": "Pattern staleness after algorithm updates",
+      "likelihood": "medium",
+      "impact": "low",
+      "mitigation": "Forced revalidation after major algorithm updates, confidence decay"
+    },
+    {
+      "risk": "Cross-domain data leakage or privacy issues",
+      "likelihood": "low",
+      "impact": "high",
+      "mitigation": "Strict anonymization before promotion, security review in Phase 4"
+    },
+    {
+      "risk": "Complexity creep and maintenance burden",
+      "likelihood": "medium",
+      "impact": "medium",
+      "mitigation": "Phased rollout with feature flags, comprehensive documentation, automated tests"
+    }
+  ],
+  "metrics": {
+    "pipeline": {
+      "validation_pass_rate_first_try": {
+        "baseline": 0.40,
+        "target": 0.60
+      },
+      "average_iterations_to_pass": {
+        "baseline": 2.1,
+        "target": 1.5
+      },
+      "time_to_completion_minutes": {
+        "baseline": 8,
+        "target": 6
+      },
+      "consensus_score_average": {
+        "baseline": 0.87,
+        "target": 0.91
+      }
+    },
+    "intelligence": {
+      "patterns_in_global_store": {
+        "target": 50,
+        "timeframe": "3 months"
+      },
+      "pattern_confidence_above_0_8": {
+        "target": 0.70
+      },
+      "cross_domain_success_rate": {
+        "target": 0.60
+      },
+      "algorithm_prediction_accuracy": {
+        "target": 0.70
+      }
+    },
+    "quality": {
+      "organic_traffic_increase_90_days": {
+        "target": "+30%"
+      },
+      "average_ranking_position_improvement": {
+        "target": "+5 positions"
+      },
+      "featured_snippet_capture_increase": {
+        "target": "+50%"
+      },
+      "time_on_page_increase": {
+        "target": "+20%"
+      }
+    }
+  },
+  "dependencies": [
+    {
+      "dependency": "Existing SEO pipeline v1.2.0",
+      "type": "internal",
+      "status": "available"
+    },
+    {
+      "dependency": "Redis for context storage",
+      "type": "infrastructure",
+      "status": "available"
+    },
+    {
+      "dependency": "Firecrawl API for site crawling",
+      "type": "external",
+      "status": "available"
+    },
+    {
+      "dependency": "RuVector for pattern embeddings",
+      "type": "internal",
+      "status": "optional_deferred"
+    }
+  ],
+  "createdAt": "2025-11-30",
+  "updatedAt": "2025-11-30",
+  "version": "1.0.0"
+}

@@ -136,7 +136,7 @@ npx cfn-init  # Copy namespace-isolated files
 
 **Reference:**
 - Implementation details: `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`
-- **Task Mode guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management)
+- **Task Mode guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management)
 
 ### Custom Routing (Z.ai Provider Integration)
 
@@ -422,7 +422,7 @@ Implement comprehensive test suites that validate both functional requirements a
 - CFN Loop Validation: `.claude/skills/cfn-loop-validation/SKILL.md`
 
 **CFN Loop Documentation:**
-- **Task Mode Guide**: `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management, adaptive validator scaling)
+- **Task Mode Guide**: `.claude/commands/CFN_LOOP_TASK_MODE.md` (agent specialization, sprint workflow, backlog management, adaptive validator scaling)
 - Coordinator Parameters: `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
 
 **Maintenance Plans:**

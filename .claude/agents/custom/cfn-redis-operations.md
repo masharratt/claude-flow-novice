@@ -1,6 +1,6 @@
 ---
 name: cfn-redis-operations
-description: MUST BE USED for Redis troubleshooting, diagnostics, and operations maintenance. NOT part of CFN Loop coordination. Use for Redis health checks, key inspection, cleanup operations, debugging coordination issues. Keywords - redis-troubleshooting, redis-diagnostics, coordination-debugging, key-inspection, redis-cleanup, maintenance
+description: MUST BE USED for Redis coordination, pub/sub patterns, queue management. Use PROACTIVELY for agent signaling, distributed coordination. Keywords - redis, coordination, pubsub, queue
 tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: coordinator

@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.15.11",
+  "version": "2.17.0",
   "description": "AI agent orchestration framework with namespace-isolated skills, agents, and CFN Loop validation. Safe installation with ~0.01% collision risk.",
   "main": "dist/index.js",
   "type": "module",
@@ -59,11 +59,14 @@
     "tools/simple-complexity.sh",
     "tools/install-lizard.sh",
     "tests/test-memory-leak-task-mode.sh",
+    "tests/integration/test-zai-memory-leak.sh",
     "docs/BUG_19_MEMORY_LEAK_TASK_MODE.md",
     "docs/MEMORY_CLEANUP_GUIDE.md",
     "docs/MEMORY_LEAK_FIX_SUMMARY.md",
     "docs/REDIS_CLEANUP_EXECUTIVE_SUMMARY.md",
     "docs/REDIS_CLEANUP_VERIFICATION_REPORT.md",
+    "docs/quality-assurance/ZAI_MEMORY_LEAK_FIX.md",
+    "docs/architecture/CUSTOM_PROVIDER_ROUTING.md",
     "README.md",
     "LICENSE",
     ".claude/root-claude-distribute/CFN-CLAUDE.md"
@@ -172,6 +175,7 @@
     "js-yaml": "^4.1.1",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
+    "prom-client": "^15.1.3",
     "redis": "^5.8.3",
     "shell-quote": "^1.8.3",
     "socket.io": "^4.8.1",
@@ -206,6 +210,7 @@
     "socket.io-client": "^4.8.1",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",
+    "ts-node": "^10.9.2",
     "tsx": "^4.7.0",
     "typescript": "^5.6.3"
   },

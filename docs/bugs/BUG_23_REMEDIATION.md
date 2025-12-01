@@ -573,6 +573,6 @@ echo "✅ Output truncation test passed (${OUTPUT_SIZE} bytes)"
 ## Related Documentation
 
 - **BUG #23 Analysis:** `docs/BUG_23_TASK_MODE_MEMORY_LEAK.md`
-- **Task Mode Guide:** `.claude/commands/cfn/CFN_LOOP_TASK_MODE.md`
+- **Task Mode Guide:** `.claude/commands/CFN_LOOP_TASK_MODE.md`
 - **Agent Output Standards:** `docs/AGENT_OUTPUT_STANDARDS.md`
 - **Epic Execution:** `.claude/commands/cfn/cfn-loop-epic.md`

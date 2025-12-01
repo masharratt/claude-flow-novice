@@ -1,0 +1,80 @@
+# Trigger.dev Mode Dependencies - Implementation Only
+# Version: 2.0.0
+# Last Updated: 2025-11-24
+# Purpose: Code-only dependencies for CFN Loop Trigger.dev Mode (excludes docs/tests)
+# Token Estimate: ~7,100 tokens
+
+# ============================================================================
+# TRIGGER.DEV JOB DEFINITIONS (4 files)
+# ============================================================================
+# Core job orchestration files
+
+trigger-dev/src/jobs/cfn-loop-3.ts
+trigger-dev/src/jobs/cfn-loop-2.ts
+trigger-dev/src/jobs/product-owner.ts
+trigger-dev/src/jobs/coordinator.ts
+
+# ============================================================================
+# TRIGGER.DEV UTILITIES (3 files)
+# ============================================================================
+# Helper functions and utilities
+
+trigger-dev/src/utils/docker-helper.ts
+trigger-dev/src/utils/redis-helper.ts
+trigger-dev/src/utils/task-generator.ts
+
+# ============================================================================
+# DOCKER CONFIGURATION (4 files)
+# ============================================================================
+# Container orchestration and service definitions
+
+docker/trigger-dev/docker-compose.yml
+docker/trigger-dev/Dockerfile.agent
+docker/trigger-dev/Dockerfile.coordinator
+docker/trigger-dev/.env.example
+
+# ============================================================================
+# TRIGGER.DEV PROJECT CONFIGURATION (3 files)
+# ============================================================================
+# Project configuration and dependencies
+
+trigger-dev/package.json
+trigger-dev/tsconfig.json
+trigger-dev/trigger.config.ts
+
+# ============================================================================
+# SHARED COORDINATION INFRASTRUCTURE (4 files)
+# ============================================================================
+# Redis coordination patterns shared between CLI and Trigger.dev modes
+# NOTE: These files are also in shared-dependencies.txt
+
+.claude/skills/cfn-coordination/coordination-wait.sh
+.claude/skills/cfn-coordination/coordination-signal.sh
+.claude/skills/cfn-coordination/coordination-broadcast.sh
+.claude/skills/cfn-coordination/coordination-collect-consensus.sh
+
+# ============================================================================
+# SHARED RUNTIME CONTRACT (1 file)
+# ============================================================================
+# Environment variable contract shared with CLI mode
+# NOTE: This file is also in shared-dependencies.txt
+
+docker/runtime/cfn-runtime.contract.yml
+
+# ============================================================================
+# SHARED DOCKER WORKTREE SUPPORT (1 file)
+# ============================================================================
+# Multi-worktree Docker coordination shared with CLI mode
+# NOTE: This file is also in shared-dependencies.txt
+
+scripts/docker/run-in-worktree.sh
+
+# ============================================================================
+# USAGE INSTRUCTIONS
+# ============================================================================
+# For full Trigger.dev context, ingest BOTH:
+#   1. This manifest (trigger-mode-dependencies.txt)
+#   2. Shared manifest (shared-dependencies.txt)
+#
+# Combined token estimate: ~7,100 + ~2,200 = ~9,300 tokens
+# Context utilization: ~4.7% of 200K window

@@ -1,10 +1,78 @@
 # CFN Loop Task Mode - Quick Reference
 
-**Version:** 1.0.0  |  **Date:** 2025-10-28  |  **Status:** Production Ready
+**Version:** 1.1.0  |  **Date:** 2025-12-01  |  **Status:** Production Ready
 
 ---
 
 ## Overview
+
+### RuVector Integration
+
+**RuVector** (Rust-based vector database) provides semantic intelligence for Task Mode agents. Available features:
+
+**Semantic Codebase Search:**
+```bash
+# Search codebase before implementing
+/codebase-search "authentication middleware patterns"
+# Returns: Relevant code snippets with semantic similarity scores
+```
+
+**Stale Documentation Detection:**
+```bash
+# Find outdated docs before refactoring
+/detect-stale-docs
+# Returns: Documents semantically distant from current code
+```
+
+**Automatic Indexing:**
+```bash
+# Reindex after major changes
+/codebase-reindex
+# Updates: Vector embeddings of all code files
+```
+
+**Usage in Task Mode:**
+- Agents can call `/codebase-search` via Skill() tool before implementing
+- Main Chat can search context before spawning agents
+- Post-commit hook auto-reindexes (optional: `.claude/hooks/post-commit-codebase-index`)
+
+**Manual Learning & Error Tracking:**
+```bash
+# After task failure - store error pattern for future avoidance
+./.claude/skills/ruvector-codebase-index/store-error-pattern.sh \
+  --task-id "task-123" \
+  --error-type "TypeScript compilation" \
+  --pattern "Missing type imports in multi-file refactor" \
+  --context "Files: auth.ts, types.ts, middleware.ts" \
+  --solution "Always add type imports before interface usage"
+
+# After successful sprint - store learning/pattern
+./.claude/skills/ruvector-codebase-index/store-learning.sh \
+  --task-id "task-123" \
+  --category "PATTERN" \
+  --title "Authentication middleware best practice" \
+  --description "Middleware composition pattern with error handling" \
+  --confidence 0.90 \
+  --tags "auth,middleware,error-handling"
+
+# Query error patterns before similar work
+./.claude/skills/ruvector-codebase-index/query-error-patterns.sh \
+  --task-description "Implement authentication middleware" \
+  --limit 5
+# Returns: Top 5 relevant past failures to avoid
+
+# Query learnings for best practices
+./.claude/skills/ruvector-codebase-index/query-learnings.sh \
+  --task-description "Implement authentication middleware" \
+  --category "PATTERN" \
+  --limit 5
+# Returns: Top 5 relevant successful patterns to follow
+```
+
+**Difference from Trigger.dev Mode:**
+- **Task Mode**: Manual RuVector usage via slash commands and skills (you decide when to store/query)
+- **Trigger.dev Mode**: Automatic RuVector analytics (coordinator stores errors/learnings after every task)
+- **Both modes**: Same underlying vector database, same semantic search, same error pattern/learning storage
 
 ### ACE Reflection Flag
 
@@ -537,4 +605,5 @@ Merge and deduplicate reflection data:
 
 ---
 
-**Version:** 1.0.0 (2025-10-28) - Task mode guide: agent specialization, sprint workflow, backlog, adaptive scaling, background processing
+**Version:** 1.1.0 (2025-12-01) - Added RuVector integration, semantic codebase search, stale doc detection
+**Previous:** 1.0.0 (2025-10-28) - Task mode guide: agent specialization, sprint workflow, backlog, adaptive scaling, background processing

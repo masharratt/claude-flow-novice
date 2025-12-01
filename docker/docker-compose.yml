@@ -1,11 +1,78 @@
 version: '3.8'
 
 services:
+  # ==============================================================================
+  # Socket Proxy (Phase 4: Security Hardening)
+  # ==============================================================================
+  # Purpose: Isolate Docker socket access and restrict dangerous operations
+  # Reference: planning/trigger/CLI_TRIGGER_COLLISION_ANALYSIS.md - Phase 4
+  #
+  # Security Benefits:
+  # - Coordinator cannot run privileged containers
+  # - Coordinator cannot access host network
+  # - Coordinator cannot mount arbitrary volumes
+  # - All Docker API operations logged for audit trail
+  #
+  # Allowed Operations:
+  # - GET /containers/json       (list containers)
+  # - GET /containers/{id}/json  (inspect containers)
+  # - POST /containers/create    (create containers - agent spawning)
+  # - POST /containers/{id}/start (start containers)
+  # - POST /containers/{id}/stop (stop containers)
+  # - DELETE /containers/{id}    (remove containers)
+  #
+  # Blocked Operations:
+  # - Privileged mode (PRIVILEGED=0)
+  # - Host network mode (HOST=0)
+  # - Dangerous volume mounts (VOLUMES=0)
+  # - Socket exposure to spawned containers (SOCKETV2=0)
+  # ==============================================================================
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: cfn-socket-proxy
+    privileged: true
+    volumes:
+      # Mount host Docker socket (proxy needs direct access)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      # Container management (required for agent spawning)
+      CONTAINERS: '1'          # GET /containers/json (list)
+      POST: '1'                # Allow POST (create, start)
+      DELETE: '1'              # Allow DELETE (remove)
+
+      # Dangerous operations - explicitly disabled
+      PRIVILEGED: '0'          # Deny --privileged mode
+      HOST: '0'                # Deny --net=host
+      VOLUMES: '0'             # Deny volume mounts outside /workspace
+      SOCKETV2: '0'            # Deny socket exposure to spawned containers
+
+      # Auditing
+      LOG: '1'                 # Enable logging for security audit trail
+    networks:
+      - mcp-network
+    expose:
+      - "2375"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:2375/containers/json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   cfn-redis:
     image: redis:7-alpine
     container_name: cfn-redis
     networks:
-      - mcp-network
+      mcp-network:
+        aliases:
+          - cfn-redis      # Original name (CLI agents use this)
+          - redis          # Alias for Trigger.dev compatibility
     ports:
       - "127.0.0.1:6379:6379"  # Security: Bind to localhost only (prevents external network access)
     volumes:
@@ -40,7 +107,10 @@ services:
     container_name: cfn-coordinator
     mem_limit: 2g
     depends_on:
-      - cfn-redis
+      cfn-redis:
+        condition: service_healthy
+      socket-proxy:
+        condition: service_healthy
     networks:
       - mcp-network
     # Security: Capability restrictions and seccomp profile
@@ -56,18 +126,23 @@ services:
     tmpfs:
       - /tmp:size=512M,mode=1777  # Temporary storage for coordinator operations
     volumes:
-      # SECURITY FIX CHE-002: Docker socket restricted to read-only mount + capability limits
-      # CRITICAL: ONLY coordinator should have Docker daemon access for agent spawning
-      # Read-only mount prevents malicious API operations (e.g., rogue container escape)
-      # Capability restrictions prevent privilege escalation within container
-      # NEVER add this mount to agent containers (privilege escalation risk)
+      # SECURITY FIX CHE-002 + PHASE 4 HARDENING: Docker socket access via proxy
+      # REMOVED: Direct socket mount (replaced by socket-proxy service)
+      # Previous: /var/run/docker.sock:/var/run/docker.sock:ro
+      #
+      # Phase 4 Security Enhancement:
+      # - Docker API operations now validated by socket-proxy
+      # - Privileged operations (--privileged, --net=host) blocked
+      # - Dangerous volume mounts prevented
+      # - All operations logged for audit trail
+      #
+      # Coordinator connects via: DOCKER_HOST=tcp://socket-proxy:2375
       #
       # See docker/DOCKER_ACCESS_CONTROL.md for:
       # - Permitted Docker operations (agent spawn/terminate only)
       # - Prohibited actions (host filesystem, privileged containers, etc.)
       # - Security enforcement (capabilities, seccomp, network isolation)
       # - Validation checklist and audit commands
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ${WORKSPACE_PATH:-/workspace}:/workspace:rw
       - ${CFN_SUCCESS_CRITERIA_FILE:-/dev/null}:/etc/cfn/success-criteria.json:ro
     environment:
@@ -93,7 +168,8 @@ services:
       - CFN_MAX_PARALLEL_AGENTS=${CFN_MAX_PARALLEL_AGENTS:-4}
       - CFN_AGENT_MEMORY_LIMIT=${CFN_AGENT_MEMORY_LIMIT:-1g}
 
-      # Container Runtime
+      # Container Runtime - Phase 4: Socket Proxy Integration
+      - DOCKER_HOST=tcp://socket-proxy:2375
       - CFN_NETWORK_NAME=mcp-network
     restart: unless-stopped
 

@@ -97,7 +97,7 @@
 - **Monitoring**: STRAT-007 plus STRAT-028 ensure background jobs stay healthy and are cleaned up.
 
 ## 10. Reference materials
-- <code>.claude/commands/cfn/CFN_LOOP_TASK_MODE.md</code> — Task mode specialization strategy.
+- <code>.claude/commands/CFN_LOOP_TASK_MODE.md</code> — Task mode specialization strategy.
 - <code>.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md</code> — argument schema for coordinator or CLI.
 - <code>.claude/skills/cfn-loop-validation/SKILL.md</code> — validation hooks and deliverable checks.
 - <code>.claude/skills/cfn-agent-spawning/SKILL.md</code> plus <code>.claude/skills/cfn-coordination/SKILL.md</code> — spawn and coordination protocols.

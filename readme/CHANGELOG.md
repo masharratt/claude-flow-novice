@@ -122,6 +122,8 @@ tests/integration/run-all-integration-tests.sh
   - Files: `.claude/skills/cfn-changelog-management/SKILL.md,add-changelog-entry.sh`
 ### Bug Fixes
 
+- CLI mode Redis coordination fixes (2025-11-24)
+  - Impact: CLI agents now successfully signal completion to Main Chat
 - Redis auth env vars in CLI agent spawning (2025-11-18)
   - Impact: Redis authentication failures prevented
 - Fixed memory leak in Task Mode conversation fork system - messages now auto-expire after 24h (2025-11-17)

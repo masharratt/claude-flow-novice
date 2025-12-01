@@ -19,6 +19,8 @@ import { existsSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { execFileSync, spawn as childSpawn } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
+import { generateTaskId } from './spawn-agent-cli';
+import { getEnvValue, getNetworkName } from '../lib/environment-contract';
 
 /**
  * Configuration for spawning an agent
@@ -30,6 +32,7 @@ interface SpawnAgentConfig {
   mode: 'mvp' | 'standard' | 'enterprise';
   provider?: string;
   model?: string;
+  prompt?: string;
   env?: Record<string, string>;
   background?: boolean;
   timeout?: number;
@@ -330,18 +333,25 @@ export class AgentSpawner {
 
   /**
    * Validate task ID format (CVSS 8.9 - command injection prevention)
-   * Pattern: alphanumeric, underscore, hyphen, dot only, max 64 chars
+   * Supports both raw IDs and Phase 1 prefixed IDs (cli:*, trigger:*)
+   * Pattern: alphanumeric, underscore, hyphen, dot, and colon (for mode prefix) only, max 128 chars
+   *
+   * Accepted formats:
+   *   - Raw: task-123 (16 chars)
+   *   - Prefixed: cli:task-123 (20 chars)
+   *   - Prefixed: trigger:task-123 (24 chars)
    */
   private validateTaskId(taskId: string): ValidationResult {
     if (typeof taskId !== 'string' || taskId.length === 0) {
       return { valid: false, error: 'Task ID must be a non-empty string' };
     }
 
-    const taskIdPattern = /^[a-zA-Z0-9_.-]{1,64}$/;
+    // Updated pattern to support namespace prefixes (e.g., cli:, trigger:, task:, orchestrator:)
+    const taskIdPattern = /^([a-z]+:)?[a-zA-Z0-9_.-]{1,64}$/;
     if (!taskIdPattern.test(taskId)) {
       return {
         valid: false,
-        error: 'Invalid task ID format - must contain only alphanumeric characters, dot, underscore, and hyphens (max 64 chars)'
+        error: 'Invalid task ID format - must contain optional namespace prefix (e.g., "cli:") and alphanumeric characters, dot, underscore, hyphens (max 64 chars)'
       };
     }
 
@@ -350,6 +360,12 @@ export class AgentSpawner {
 
   /**
    * Build environment variables for agent execution
+   *
+   * Provider routing: Sets both PROVIDER and CLAUDE_API_PROVIDER for compatibility.
+   * - PROVIDER: New convention used by agent-spawner
+   * - CLAUDE_API_PROVIDER: Legacy convention used by anthropic-client.ts getAPIConfig()
+   *
+   * BUG FIX: Previously only set PROVIDER, but anthropic-client.ts checked CLAUDE_API_PROVIDER
    */
   private buildEnvironment(
     config: SpawnAgentConfig,
@@ -364,16 +380,52 @@ export class AgentSpawner {
       TASK_ID: config.taskId,
       ITERATION: String(config.iteration),
       MODE: config.mode,
+      // Provider routing - set both for compatibility
       PROVIDER: provider,
+      CLAUDE_API_PROVIDER: provider, // BUG FIX: anthropic-client.ts reads this
       MODEL: model,
       SPAWNED_AT: new Date().toISOString(),
-      PROJECT_ROOT: this.projectRoot
+      PROJECT_ROOT: this.projectRoot,
+      // Redis coordination for CLI mode agents (resolved via environment contract)
+      CFN_REDIS_HOST: getEnvValue('redis_host', 'cli'),
+      CFN_REDIS_PORT: getEnvValue('redis_port', 'cli'),
+      // FIX: Don't use REDIS_PASSWORD from parent env - only explicit CFN_REDIS_PASSWORD
+      // This prevents CLI agents from inheriting the wrong password from shell environment
+      CFN_REDIS_PASSWORD: process.env.CFN_REDIS_PASSWORD || '',
+      CFN_NETWORK_NAME: getNetworkName('cli')
     };
+
+    // Add provider-specific API keys if available
+    // This ensures spawned agents have access to the correct API key for their provider
+    if (provider === 'zai' && process.env.ZAI_API_KEY) {
+      env.ZAI_API_KEY = process.env.ZAI_API_KEY;
+    }
+    if (provider === 'kimi' && process.env.KIMI_API_KEY) {
+      env.KIMI_API_KEY = process.env.KIMI_API_KEY;
+    }
+    if (provider === 'openrouter' && process.env.OPENROUTER_API_KEY) {
+      env.OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+    }
+    if (provider === 'anthropic' && process.env.ANTHROPIC_API_KEY) {
+      env.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    }
+
+    // Add optional prompt parameter if provided
+    if (config.prompt) {
+      env.PROMPT = config.prompt;
+    }
 
     // Merge user-provided environment variables
     if (config.env) {
       Object.assign(env, config.env);
     }
+
+    // Debug logging for provider routing
+    console.error(`[agent-spawner] Building env for agent ${agentId}:`);
+    console.error(`[agent-spawner]   PROVIDER=${provider}, CLAUDE_API_PROVIDER=${provider}`);
+    console.error(`[agent-spawner]   Has ZAI_API_KEY: ${!!env.ZAI_API_KEY}`);
+    console.error(`[agent-spawner]   Has KIMI_API_KEY: ${!!env.KIMI_API_KEY}`);
+    console.error(`[agent-spawner]   Has ANTHROPIC_API_KEY: ${!!env.ANTHROPIC_API_KEY}`);
 
     return env;
   }

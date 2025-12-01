@@ -1,0 +1,254 @@
+{
+  "review_metadata": {
+    "phase": "Phase 5 Enterprise Multi-Team Architecture",
+    "date": "2025-11-24",
+    "reviewer": "Code Review Agent",
+    "overall_score": 73,
+    "confidence": 0.82,
+    "status": "COMPLETE"
+  },
+  "feedback": [
+    {
+      "id": "CRIT-001",
+      "severity": "CRITICAL",
+      "component": "docker/teams/marketing/Dockerfile",
+      "line_range": "20-21",
+      "issue": "Unsafe Composer installer: Downloads and pipes installer script directly to PHP without checksum verification. Vulnerable to MITM attacks and supply chain compromise.",
+      "suggestion": "Verify installer integrity before execution. Add checksum validation: curl -O installer && curl -O installer.sha512 && sha512sum -c installer.sha512 && php installer && rm installer.sha512. Alternatively, use multi-stage build: COPY --from=composer:2.6 /usr/bin/composer /usr/local/bin/composer"
+    },
+    {
+      "id": "CRIT-002",
+      "severity": "CRITICAL",
+      "component": "docker/teams/marketing/Dockerfile",
+      "line_range": "23-26",
+      "issue": "Unsafe WP-CLI installation: No checksum verification for downloaded phar file. Compromised download could inject malicious code.",
+      "suggestion": "Add SHA512 verification: curl -O wp-cli.phar && curl -O wp-cli.phar.sha512 && sha512sum -c wp-cli.phar.sha512 && chmod +x wp-cli.phar && mv wp-cli.phar /usr/local/bin/wp && rm wp-cli.phar.sha512"
+    },
+    {
+      "id": "CRIT-003",
+      "severity": "CRITICAL",
+      "component": "scripts/cost-allocation-tracker.sh",
+      "line_range": "52, 79, 234",
+      "issue": "bc calculations without error handling. Silent failures if bc not available or arithmetic fails. Returns empty strings instead of errors, propagating to cost reports.",
+      "suggestion": "Check bc availability at script start: if ! command -v bc &>/dev/null; then log_error 'bc required'; exit 1; fi. Wrap calculations with error handling: cpu_hours=$(echo 'scale=4; ...' | bc) || { log_error 'calculation failed'; return 1; }"
+    },
+    {
+      "id": "CRIT-004",
+      "severity": "CRITICAL",
+      "component": "scripts/cost-allocation-tracker.sh",
+      "line_range": "157, 159, 192, 194",
+      "issue": "Unquoted variable expansion in sed could allow regex injection if variables contain special characters like . * [ ]",
+      "suggestion": "Use bash parameter expansion instead of sed: cpu='${cpu%\\%}' to remove trailing %. Or escape sed input: cpu=$(echo \"${cpu//\\\\/\\\\\\\\}\" | sed 's/%$//') for safer substitution"
+    },
+    {
+      "id": "MAJOR-001",
+      "severity": "MAJOR",
+      "component": "docker/teams/base/Dockerfile.base",
+      "line_range": "1-45",
+      "issue": "Missing layer caching optimization. Entrypoint script copy comes after npm install. If entrypoint changes, Docker rebuilds unnecessary layers, wasting build time (10-15% impact).",
+      "suggestion": "Reorder layers: (1) apk install, (2) user/perms, (3) workspace, (4) COPY entrypoint, (5) npm install. This ensures frequently-changing files are copied last to maximize cache hits."
+    },
+    {
+      "id": "MAJOR-002",
+      "severity": "MAJOR",
+      "component": "scripts/cost-allocation-tracker.sh",
+      "line_range": "176-180, 215-225",
+      "issue": "Missing input validation. Team names and dates not validated before use in docker commands. Could allow injection attacks: by-team \"'; rm -rf /; echo '\"",
+      "suggestion": "Add validation functions: validate_team_name() { [[ $1 =~ ^[a-z0-9_-]+$ ]] || [[ $1 == 'all' ]] || return 1; }. Call before processing: validate_team_name \"$team\" || { log_error 'invalid team'; return 1; }"
+    },
+    {
+      "id": "MAJOR-003",
+      "severity": "MAJOR",
+      "component": "scripts/cost-allocation-tracker.sh",
+      "line_range": "380-408",
+      "issue": "Subshell race condition in quota_check(). Pipe creates subshell; overall_ok=false inside subshell doesn't affect parent. Function always reports 'all teams within quotas' even when violations exist.",
+      "suggestion": "Replace pipe with process substitution: while read ... < <(get_running_container_stats). This avoids subshell, allowing parent variables to be modified correctly. Accumulate errors in array: errors+=(\"message\") and report after loop."
+    },
+    {
+      "id": "MAJOR-004",
+      "severity": "MAJOR",
+      "component": "tests",
+      "line_range": "N/A",
+      "issue": "No integration tests between teams. Each team image validated in isolation. Missing tests for: team coexistence on same network, Redis isolation, environment variable leakage, cross-team data access.",
+      "suggestion": "Create docker-compose.integration.yml with eng, marketing, data agents connecting to same Redis. Verify: (1) agents don't see other teams' job queues, (2) team labels properly isolate visibility, (3) network policies work as designed. Add 5-10 integration tests."
+    },
+    {
+      "id": "MINOR-001",
+      "severity": "MINOR",
+      "component": "docker/teams/README.md, QUICK_START.md, build-all-teams.sh",
+      "line_range": "Various",
+      "issue": "Inconsistent documentation references to docker-build skill. README shows examples without --no-cache flag, but build-all-teams.sh uses ${NO_CACHE} variable. Users don't know --no-cache is available until reading script.",
+      "suggestion": "Add note in QUICK_START.md: 'For advanced options (--no-cache, --push), see build-all-teams.sh or scripts/build-team.sh for complete examples with variable expansion support.'"
+    },
+    {
+      "id": "MINOR-002",
+      "severity": "MINOR",
+      "component": "docs",
+      "line_range": "N/A",
+      "issue": "Missing cost allocation documentation. 567-line cost-allocation-tracker.sh has only inline comments, no markdown guide. Users don't understand cost model (CPU=$0.05/core/hr, Memory=$0.10/GB/hr, provider multipliers).",
+      "suggestion": "Create docs/COST_ALLOCATION_TRACKING.md covering: cost model assumptions, provider pricing matrix (Z.ai, Kimi, etc.), team quotas, example reports, CSV export format, and troubleshooting quota violations."
+    },
+    {
+      "id": "MINOR-003",
+      "severity": "MINOR",
+      "component": "docker/teams/engineering/Dockerfile",
+      "line_range": "22-25",
+      "issue": "Loose dependency pinning on system packages. Alpine python3 without version can jump minor versions between rebuilds, causing inconsistency across team members.",
+      "suggestion": "Pin to specific version: python3.11=3.11.8-r0 or use apk info python3 to find exact version tag. Apply same pinning to python3-dev, py3-pip for consistency."
+    },
+    {
+      "id": "MINOR-004",
+      "severity": "MINOR",
+      "component": "docker/teams/data/Dockerfile",
+      "line_range": "32-35",
+      "issue": "Inconsistent version pinning. Jupyter hardcoded (jupyterlab==4.0.9) but other libraries unpinned. Should either pin all or pin none for consistency.",
+      "suggestion": "Either: (1) Move jupyterlab to requirements.txt with pinned version, or (2) Remove hardcoded version from Dockerfile and let requirements.txt manage all versions. Recommend option 1 for reproducible builds."
+    },
+    {
+      "id": "MINOR-005",
+      "severity": "MINOR",
+      "component": "docker/teams/scripts/build-all-teams.sh",
+      "line_range": "52-68",
+      "issue": "No validation that team Dockerfile exists before attempting docker build. Fails with cryptic docker error instead of clear message.",
+      "suggestion": "Check file existence: if [[ ! -f \"docker/teams/${team}/Dockerfile\" ]]; then log_error \"Dockerfile not found\"; exit 1; fi. Add similar check for Dockerfile.base before the loop."
+    },
+    {
+      "id": "MINOR-006",
+      "severity": "MINOR",
+      "component": "docker/teams/base/Dockerfile.base",
+      "line_range": "1-45",
+      "issue": "No reference to .dockerignore in Dockerfile comments. Project has .dockerignore and .dockerignore.production but Dockerfile doesn't mention them.",
+      "suggestion": "Add comment in Dockerfile.base: '# See .dockerignore for excluded files. Use .dockerignore.production in CI/CD builds for smaller context.'"
+    },
+    {
+      "id": "MINOR-007",
+      "severity": "MINOR",
+      "component": "docker/teams",
+      "line_range": "N/A",
+      "issue": "Inconsistent file organization. Base entrypoint at base/entrypoint.sh but team scripts in team/scripts/init.sh. No consistent pattern for where scripts live.",
+      "suggestion": "Standardize: Move base/entrypoint.sh to base/scripts/entrypoint.sh. Create base/scripts/init.sh if needed. All scripts in scripts/ subdirectories for consistency."
+    },
+    {
+      "id": "MINOR-008",
+      "severity": "MINOR",
+      "component": "docker/teams/*/Dockerfile",
+      "line_range": "Various",
+      "issue": "Label inconsistency across images. Base has 'version' and 'maintainer', team images have 'cost-center'. Should be standardized.",
+      "suggestion": "Standardize all labels: version, maintainer, team, cost-center, description. Base should have cost-center='base-000' for consistency. Applied to all Dockerfiles."
+    },
+    {
+      "id": "MINOR-009",
+      "severity": "MINOR",
+      "component": "docker/teams/scripts/build-all-teams.sh",
+      "line_range": "81-82",
+      "issue": "Unsafe head usage. Shows only first 10 cfn-agent images; if more exist, silently truncates output without indication.",
+      "suggestion": "Use docker images --filter: docker images --filter 'reference=cfn-agent*' --format 'table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}'. Shows all images with proper formatting."
+    },
+    {
+      "id": "MINOR-010",
+      "severity": "MINOR",
+      "component": "docker/teams/QUICK_START.md",
+      "line_range": "133",
+      "issue": "Vague Docker registry example. Shows 'myregistry.com' without guidance on actual registry formats (Docker.io, ECR, private registries).",
+      "suggestion": "Clarify: 'Docker.io: docker.io/company. AWS ECR: 123456789.dkr.ecr.us-east-1.amazonaws.com. Google Artifact Registry: us-central1-docker.pkg.dev/project. Private: registry.company.com'"
+    },
+    {
+      "id": "MEDIUM-001",
+      "severity": "MEDIUM",
+      "component": "scripts/cost-allocation-tracker.sh",
+      "line_range": "76-95",
+      "issue": "No secret management validation. Script accepts provider names but doesn't check if required API keys are available in environment.",
+      "suggestion": "Add validate_provider_secrets() function. Check that ZAI_API_KEY, KIMI_API_KEY, etc. are set before using provider. Call validate_provider_secrets \"$provider\" || exit 1 in relevant functions."
+    },
+    {
+      "id": "MEDIUM-002",
+      "severity": "MEDIUM",
+      "component": "docker/teams/*/Dockerfile",
+      "line_range": "Various",
+      "issue": "Long USER root sections create privilege escalation windows. Example: Marketing runs as root for 30+ lines before switching to cfn.",
+      "suggestion": "Minimize root sections: Group all root operations together, explicitly chown any created resources, immediately switch to USER cfn. Add comment: '# Operations after this point run as cfn user'"
+    },
+    {
+      "id": "MEDIUM-003",
+      "severity": "MEDIUM",
+      "component": "docker/teams/scripts/validate-team-image.sh",
+      "line_range": "227-235",
+      "issue": "Security scanning is optional in validate tests. Trivy scan skipped if not installed, but security scans should be mandatory in CI/CD.",
+      "suggestion": "Check if running in CI: if [[ \"${CI:-false}\" == \"true\" ]]; then if ! command -v trivy &>/dev/null; then exit 1; fi. Make scans fail in CI, warn only in local development."
+    }
+  ],
+  "summary": {
+    "total_issues": 22,
+    "critical_count": 4,
+    "major_count": 4,
+    "minor_count": 10,
+    "medium_count": 3,
+    "by_component": {
+      "Dockerfiles": {
+        "critical": 2,
+        "major": 1,
+        "minor": 5,
+        "total": 8
+      },
+      "Shell Scripts": {
+        "critical": 2,
+        "major": 3,
+        "minor": 4,
+        "total": 9
+      },
+      "Documentation": {
+        "critical": 0,
+        "major": 0,
+        "minor": 3,
+        "total": 3
+      },
+      "Testing": {
+        "critical": 0,
+        "major": 1,
+        "minor": 0,
+        "total": 1
+      },
+      "Architecture": {
+        "critical": 0,
+        "major": 0,
+        "minor": 1,
+        "total": 1
+      }
+    },
+    "quality_scores": {
+      "documentation": 75,
+      "dockerfiles": 68,
+      "shell_scripts": 72,
+      "architecture": 82,
+      "security": 62,
+      "testing": 78,
+      "overall": 73
+    },
+    "recommendations": {
+      "critical_blockers": [
+        "Fix Issue CRIT-001: Unsafe Composer installer (checksum verification)",
+        "Fix Issue CRIT-002: Unsafe WP-CLI installation (checksum verification)",
+        "Fix Issue CRIT-003: bc calculation error handling",
+        "Fix Issue CRIT-004: Input validation and sed escaping in cost tracker"
+      ],
+      "pre_release_requirements": [
+        "Address all CRITICAL and MAJOR issues",
+        "Create integration test suite for multi-team validation",
+        "Document cost allocation tracking (Issue MINOR-002)",
+        "Implement mandatory security scanning in CI (Issue MEDIUM-003)"
+      ],
+      "next_iteration": [
+        "Security audit of binary downloads",
+        "Input validation framework for shell scripts",
+        "Multi-team integration tests",
+        "Cost tracking documentation and examples"
+      ]
+    },
+    "production_readiness": {
+      "status": "APPROVED FOR DEVELOPMENT",
+      "required_fixes": "CRITICAL and MAJOR issues must be fixed before production",
+      "estimated_effort": "8-12 hours for critical/major fixes",
+      "post_fix_confidence": 0.90
+    }
+  }
+}

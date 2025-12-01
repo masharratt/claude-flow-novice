@@ -1,9 +1,8 @@
 ---
 name: researcher
-description: FALLBACK agent for general research when no specialized researcher is available. Use ONLY when research doesn't match security-specialist, code-analyzer, or perf-analyzer. MUST BE USED for broad research, technology evaluation, documentation analysis, web search. Use PROACTIVELY for context analysis, technology comparisons. Keywords - general research, investigate, explore, broad analysis, technology comparison
-tools: [Read, Grep, Glob, Bash, TodoWrite, Write, WebSearch, WebFetch]
+description: MUST BE USED for technical research, documentation review, technology evaluation. Use PROACTIVELY for feasibility studies, comparative analysis. Keywords - research, documentation, evaluation, analysis
+tools: [Read, Grep, Glob, TodoWrite, Write, WebSearch, WebFetch]
 model: haiku
-color: teal
 type: specialist
 acl_level: 1
 validation_hooks:
@@ -58,15 +57,17 @@ validation_hooks:
 | Source Diversity | 3 | 5 | 7+ |
 | Validation Rounds | 2 | 4 | 6 |
 
-### Confidence Calculation Formula
-```
-confidence = (
-  (sourceDiversity * 0.3) +
-  (thematicConsistency * 0.3) +
-  (evidenceStrength * 0.2) +
-  (noveltyScore * 0.2)
-)
-```
+### Confidence Calculation
+Research confidence derives from:
+- Source diversity (30%): Multiple independent sources
+- Thematic consistency (30%): Cross-source agreement
+- Evidence strength (20%): Quality of validation evidence
+- Novelty score (20%): Emerging trend identification
+
+## Referenced Skills
+→ **Literature Review**: `.claude/skills/systematic-literature-review/SKILL.md`
+→ **Hypothesis Generation**: `.claude/skills/hypothesis-generation/SKILL.md`
+→ **Evidence Assessment**: `.claude/skills/evidence-assessment/SKILL.md`
 
 ## Technical References
 - Academic Research Methodologies
@@ -105,13 +106,3 @@ Complete your work and provide a structured response with:
 - Any recommendations or findings
 
 **Note:** Coordination handled automatically by the system.
-
-## Post-Edit Hook Validation
-
-```bash
-./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id "${AGENT_ID}"
-```
-
-Triggers:
-- Agent template validator
-- CFN Loop memory validator

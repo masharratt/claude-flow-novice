@@ -1,0 +1,77 @@
+# Dockerfile.backend - Backend Developer Agent
+# IMPORTANT: Build from Linux native storage for 96% faster builds (755s -> 20s)
+# Use: ./.claude/skills/docker-build/build.sh --dockerfile docker/agents/Dockerfile.backend --tag cfn-agent-backend:latest
+
+# Stage 1: Dependencies
+FROM node:20-slim AS deps
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    postgresql-client \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install backend toolchain
+RUN npm install -g prisma@5.7.1 && \
+    npm cache clean --force
+
+# Stage 2: Runtime
+FROM node:20-slim
+
+WORKDIR /workspace
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    postgresql-client \
+    ca-certificates \
+    curl \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy tools from deps stage
+COPY --from=deps /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=deps /usr/local/bin /usr/local/bin
+
+# Create non-root user
+RUN groupadd -g 1000 cfn-agent && \
+    useradd -u 1000 -g cfn-agent -s /bin/bash -m cfn-agent
+
+# Install common backend dependencies globally
+RUN npm install -g \
+    @types/node@20.10.5 \
+    tsx@4.7.0 \
+    dotenv-cli@7.3.0 && \
+    npm cache clean --force
+
+# Create common directories
+RUN mkdir -p /workspace/.npm-cache /workspace/.prisma && \
+    chown -R cfn-agent:cfn-agent /workspace
+
+# Labels for MDAP tier mapping
+LABEL cfn.agent.type="backend-developer" \
+      cfn.memory.min="512m" \
+      cfn.memory.max="1024m" \
+      cfn.mdap.tier="2" \
+      cfn.description="Backend developer agent for API and database work" \
+      cfn.tools="prisma,postgresql-client,git,npm,tsx"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node --version && prisma --version || exit 1
+
+# Switch to non-root user
+USER cfn-agent
+
+# Environment variables
+ENV NODE_ENV=production \
+    PATH="/usr/local/bin:$PATH" \
+    WORKSPACE_PATH="/workspace" \
+    NPM_CONFIG_CACHE="/workspace/.npm-cache"
+
+# Entrypoint accepts Claude CLI commands
+# Example: docker run cfn-agent-backend claude "Create Prisma schema for user authentication"
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["echo 'CFN Backend Agent Ready. Pass Claude CLI commands via docker run.'"]

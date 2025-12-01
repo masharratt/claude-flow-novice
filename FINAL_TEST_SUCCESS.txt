@@ -1,0 +1,1 @@
+Both criteria met: file created and BLPOP signaled

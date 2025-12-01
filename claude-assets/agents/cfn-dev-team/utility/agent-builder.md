@@ -86,6 +86,7 @@ description: MUST BE USED when specific use case. Keywords - relevant, terms
 | `tools` | Yes | `[Tool1, Tool2, Tool3]` | `[Read, Write, Edit, Bash]` |
 | `model` | Yes | `haiku\|sonnet\|opus` | `haiku` |
 | `type` | Yes | `specialist\|coordinator\|validator` | `specialist` |
+| `skills` | No | `skill1, skill2` | `cfn-coordination, cfn-agent-spawning` |
 | `acl_level` | No | `1-5` | `1` |
 | `capabilities` | No | `[cap-1, cap-2]` | `[api-dev, testing]` |
 
@@ -94,6 +95,16 @@ description: MUST BE USED when specific use case. Keywords - relevant, terms
 # Template for description field (single-line for optimal tokenization)
 description: MUST BE USED when [primary use case]. Use PROACTIVELY for [secondary scenarios]. Keywords - [searchable, terms, for, discovery]
 ```
+
+### Claude Code Native Features (v2.0.43+)
+
+**Skills Field (Task Mode Only):**
+```yaml
+# Auto-loads skills when Main Chat spawns via Task() tool
+skills: cfn-coordination, cfn-agent-spawning, cfn-loop-validation
+```
+
+**IMPORTANT:** The `skills` field only works for Task Mode agents (Main Chat spawning). For CLI Mode agents (production), skills must be manually injected via `agent-prompt-builder.ts` because CLI-spawned agents run as separate processes without access to Main Chat's frontmatter parsing.
 
 ## Agent Completion Protocol
 

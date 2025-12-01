@@ -1,0 +1,297 @@
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@cfn-loop.local'
+  resolve_timeout: 5m
+
+# Route alerts based on severity and other labels
+route:
+  group_by: ['alertname', 'team', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    # Critical (P0) alerts -> PagerDuty + Slack critical channel
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 10s
+      repeat_interval: 30m
+      routes:
+        - match:
+            alertname: 'CriticalAgentFailureRate'
+          receiver: 'pagerduty-critical'
+        - match:
+            alertname: 'CriticalHealthCheckFailure'
+          receiver: 'pagerduty-critical'
+        - match:
+            alertname: 'CFNLoopStuck'
+          receiver: 'pagerduty-critical'
+        - match:
+            alertname: 'RedisConnectionLoss'
+          receiver: 'pagerduty-critical'
+        - match:
+            alertname: 'PostgreSQLConnectionLoss'
+          receiver: 'pagerduty-critical'
+        - match:
+            alertname: 'DockerDaemonUnavailable'
+          receiver: 'pagerduty-critical'
+        - match:
+            alertname: 'DiskSpaceExhaustion'
+          receiver: 'pagerduty-critical'
+
+    # Warning (P1) alerts -> Slack warning channel with escalation
+    - match:
+        severity: warning
+      receiver: 'slack-warning'
+      group_wait: 30s
+      repeat_interval: 2h
+      routes:
+        - match:
+            alertname: 'HighCostPerHour'
+          receiver: 'slack-warning-escalate'
+          repeat_interval: 1h
+        - match:
+            alertname: 'SlowAgentExecution'
+          receiver: 'slack-warning-escalate'
+          repeat_interval: 1h
+        - match:
+            alertname: 'HighAgentMemoryUsage'
+          receiver: 'slack-warning-escalate'
+          repeat_interval: 1h
+
+    # Info (P2) alerts -> Slack info channel only
+    - match:
+        severity: info
+      receiver: 'slack-info'
+      group_wait: 1m
+      repeat_interval: 4h
+
+    # Health check specific routing
+    - match:
+        alertname: 'HealthCheckFailure'
+      receiver: 'slack-health'
+      group_wait: 15s
+      repeat_interval: 30m
+
+    # Cost alerts with team-specific routing
+    - match:
+        alertname: 'HighCostPerHour'
+      receiver: 'slack-cost'
+      group_wait: 1m
+      repeat_interval: 1h
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # Inhibit warning alerts if critical alert is firing for same instance
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Inhibit info alerts if warning alert is firing for same service
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'info'
+    equal: ['service']
+
+  # Inhibit all lower severity alerts if CFN Loop is stuck
+  - source_match:
+      alertname: 'CFNLoopStuck'
+    target_match_re:
+      alertname: '(HighAgentFailureRate|SlowAgentExecution|LowConsensusScore|LowTestPassRate)'
+
+  # Inhibit agent-specific alerts if infrastructure is down
+  - source_match_re:
+      alertname: '(RedisConnectionLoss|PostgreSQLConnectionLoss|DockerDaemonUnavailable)'
+    target_match_re:
+      alertname: '(HighAgentFailureRate|SlowAgentExecution|CFNLoopStuck)'
+
+  # Inhibit cost alerts during system-wide outages
+  - source_match_re:
+      alertname: '(CriticalHealthCheckFailure|DiskSpaceExhaustion)'
+    target_match:
+      alertname: 'HighCostPerHour'
+
+# Alert receivers
+receivers:
+  # Default receiver (fallback)
+  - name: 'default'
+    email_configs:
+      - to: 'admin@cfn-loop.local'
+        subject: '[CFN Loop] {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+          {{ end }}
+
+  # PagerDuty integration for critical alerts
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - routing_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}'
+        details:
+          firing: '{{ .Alerts.Firing | len }}'
+          severity: critical
+          summary: '{{ .Annotations.summary }}'
+          description: '{{ .Annotations.description }}'
+          team: '{{ .GroupLabels.team }}'
+          runbook_url: 'https://docs.cfn-loop.local/runbooks/{{ .GroupLabels.alertname | lower }}.html'
+
+  # Slack critical channel
+  - name: 'slack-critical'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#cfn-critical'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          *Team:* {{ .GroupLabels.team | default "Unknown" }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          
+          *Actions:* <https://docs.cfn-loop.local/runbooks/{{ .GroupLabels.alertname | lower }}.md|Runbook> | <https://grafana.cfn-loop.local/d/cfn-overview|Dashboard>
+          
+          {{ range .Alerts }}
+          • {{ .Labels.instance }} - {{ .Annotations.description }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+        icon_emoji: ':rotating_light:'
+        username: 'CFN Loop Alertmanager'
+
+  # Slack warning channel
+  - name: 'slack-warning'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#cfn-warnings'
+        title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+        text: |
+          *Team:* {{ .GroupLabels.team | default "Unknown" }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          
+          *Actions:* <https://docs.cfn-loop.local/runbooks/{{ .GroupLabels.alertname | lower }}.md|Runbook> | <https://grafana.cfn-loop.local/d/cfn-overview|Dashboard>
+          
+          {{ range .Alerts }}
+          • {{ .Labels.instance }} - {{ .Annotations.description }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+        icon_emoji: ':warning:'
+        username: 'CFN Loop Alertmanager'
+
+  # Slack warning channel with escalation
+  - name: 'slack-warning-escalate'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#cfn-warnings'
+        title: '⚠️ WARNING (Escalating): {{ .GroupLabels.alertname }}'
+        text: |
+          *Team:* {{ .GroupLabels.team | default "Unknown" }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          
+          *Escalation:* This alert has been active for over 30 minutes and requires attention.
+          
+          *Actions:* <https://docs.cfn-loop.local/runbooks/{{ .GroupLabels.alertname | lower }}.md|Runbook> | <https://grafana.cfn-loop.local/d/cfn-overview|Dashboard>
+          
+          {{ range .Alerts }}
+          • {{ .Labels.instance }} - {{ .Annotations.description }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+        icon_emoji: ':rotating_light:'
+        username: 'CFN Loop Alertmanager'
+
+  # Slack info channel
+  - name: 'slack-info'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#cfn-info'
+        title: 'ℹ️ INFO: {{ .GroupLabels.alertname }}'
+        text: |
+          *Team:* {{ .GroupLabels.team | default "Unknown" }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          
+          *Actions:* <https://docs.cfn-loop.local/runbooks/{{ .GroupLabels.alertname | lower }}.md|Runbook> | <https://grafana.cfn-loop.local/d/cfn-overview|Dashboard>
+          
+          {{ range .Alerts }}
+          • {{ .Labels.instance }} - {{ .Annotations.description }}
+          {{ end }}
+        color: 'good'
+        send_resolved: true
+        icon_emoji: ':information_source:'
+        username: 'CFN Loop Alertmanager'
+
+  # Slack health check channel
+  - name: 'slack-health'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#cfn-health'
+        title: '🏥 Health Check: {{ .GroupLabels.alertname }}'
+        text: |
+          *Check Type:* {{ .GroupLabels.check_type | default "Unknown" }}
+          *Error Type:* {{ .GroupLabels.error_type | default "Unknown" }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          
+          *Actions:* <https://docs.cfn-loop.local/runbooks/{{ .GroupLabels.alertname | lower }}.md|Runbook> | <https://grafana.cfn-loop.local/d/health-checks|Health Dashboard>
+          
+          {{ range .Alerts }}
+          • {{ .Labels.instance }} - {{ .Annotations.description }}
+          {{ end }}
+        color: '#36a64f'
+        send_resolved: true
+        icon_emoji: ':hospital:'
+        username: 'CFN Loop Health Monitor'
+
+  # Slack cost alerts channel
+  - name: 'slack-cost'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel: '#cfn-cost'
+        title: '💰 Cost Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Team:* {{ .GroupLabels.team | default "Unknown" }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          
+          *Cost Impact:* Review current spending patterns and consider optimization.
+          
+          *Actions:* <https://docs.cfn-loop.local/runbooks/{{ .GroupLabels.alertname | lower }}.md|Runbook> | <https://grafana.cfn-loop.local/d/cfn-cost|Cost Dashboard>
+          
+          {{ range .Alerts }}
+          • {{ .Labels.instance }} - {{ .Annotations.description }}
+          {{ end }}
+        color: '#ff9800'
+        send_resolved: true
+        icon_emoji: ':money_with_wings:'
+        username: 'CFN Loop Cost Monitor'
+
+# Time intervals for different alerting behaviors
+time_intervals:
+  # Business hours for cost alerts (weekdays 9-5)
+  - name: 'business-hours'
+    time_intervals:
+      - times:
+          - start_time: '09:00'
+            end_time: '17:00'
+        weekdays: ['monday:friday']
+
+  # After hours for critical alerts only
+  - name: 'after-hours'
+    time_intervals:
+      - times:
+          - start_time: '17:01'
+            end_time: '08:59'
+        weekdays: ['monday:friday']
+      - weekdays: ['saturday', 'sunday']
+
+# Silence management templates
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

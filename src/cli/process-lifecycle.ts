@@ -1,6 +1,11 @@
 import { EventEmitter } from "events";
 import { readFile } from "fs/promises";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export enum ProcessType {
   EVENT_BUS = "EVENT_BUS",

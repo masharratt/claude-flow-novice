@@ -1,0 +1,57 @@
+{
+  "team": "data",
+  "description": "Data science and analytics agents with ML/AI capabilities",
+  "agents": {
+    "data-scientist": {
+      "language": "python",
+      "linter": "pylint",
+      "formatter": "black",
+      "test_command": "pytest",
+      "memory": "2g",
+      "timeout": 3600,
+      "tags": ["python", "ml", "analytics", "jupyter"]
+    },
+    "ml-engineer": {
+      "language": "python",
+      "linter": "pylint",
+      "formatter": "black",
+      "test_command": "pytest tests/ml/",
+      "memory": "2g",
+      "timeout": 3600,
+      "tags": ["ml", "deep-learning", "model-training"]
+    },
+    "data-engineer": {
+      "language": "python",
+      "linter": "pylint",
+      "formatter": "black",
+      "test_command": "pytest tests/etl/",
+      "memory": "1g",
+      "timeout": 2400,
+      "tags": ["etl", "pipelines", "data-quality"]
+    },
+    "analytics-engineer": {
+      "language": "sql",
+      "test_command": "pytest tests/analytics/",
+      "memory": "1g",
+      "timeout": 1800,
+      "tags": ["sql", "dbt", "analytics"]
+    }
+  },
+  "quality_gates": {
+    "test_coverage_min": 70,
+    "model_accuracy_min": 0.85,
+    "data_quality_score_min": 0.90
+  },
+  "resource_limits": {
+    "default_memory": "2g",
+    "default_timeout": 3600,
+    "max_parallel_agents": 3
+  },
+  "data_paths": {
+    "raw_data": "/workspace/data/raw",
+    "processed_data": "/workspace/data/processed",
+    "models": "/workspace/models",
+    "notebooks": "/workspace/notebooks",
+    "outputs": "/workspace/outputs"
+  }
+}

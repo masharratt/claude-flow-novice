@@ -1,0 +1,68 @@
+# Dockerfile.python - Python Developer Agent
+# Build from Linux native storage for 96% faster builds (755s -> 20s)
+# Usage: ./.claude/skills/docker-build/build.sh --dockerfile docker/agents/Dockerfile.python --tag cfn-agent-python:latest
+
+# Stage 1: Base with poetry
+FROM python:3.12-slim AS base
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install poetry
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+
+# Stage 2: Runtime image
+FROM python:3.12-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -g 1000 cfn-agent && \
+    useradd -u 1000 -g cfn-agent -m -s /bin/bash cfn-agent
+
+# Copy poetry from base stage
+COPY --from=base /root/.local /home/cfn-agent/.local
+RUN ln -s /home/cfn-agent/.local/bin/poetry /usr/local/bin/poetry
+
+# Set working directory
+WORKDIR /workspace
+
+# Change ownership to cfn-agent
+RUN chown -R cfn-agent:cfn-agent /workspace
+
+# Switch to non-root user
+USER cfn-agent
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    VIRTUAL_ENV=/workspace/.venv \
+    PATH="/home/cfn-agent/.local/bin:$PATH"
+
+# Labels for MDAP tier mapping
+LABEL cfn.agent.type="python-developer" \
+      cfn.memory.min="256m" \
+      cfn.memory.max="512m" \
+      cfn.mdap.tier="1" \
+      description="Python developer agent with pip, venv, poetry" \
+      version="1.0.0"
+
+# Health check - verify python and pip are available
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD python --version && pip --version || exit 1
+
+# Entrypoint accepts CLI commands
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["python --version && pip --version && poetry --version && echo 'Python agent ready'"]

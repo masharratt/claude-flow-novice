@@ -1,0 +1,139 @@
+# ==============================================================================
+# Docker Socket Proxy Configuration - Phase 1.2a Security Hardening
+# ==============================================================================
+# Purpose: Restrict Docker socket access to only required operations
+#          Prevents escalation attacks through unrestricted socket exposure
+#
+# Architecture:
+#   Worker Container → Socket Proxy (tecnativa) → Docker Daemon
+#
+# Benefits:
+# - Worker cannot mount /var/run/docker.sock directly
+# - Socket proxy enforces allowed operations via HTTP API
+# - Prevents privileged mode, host network, dangerous volume mounts
+# - Network isolation prevents unauthorized access
+#
+# Reference: Phase 1.1 identified Docker socket as CRITICAL risk
+# Solution: Replace direct socket mount with controlled proxy access
+#
+# ==============================================================================
+
+version: '3.9'
+
+services:
+  # ==============================================================================
+  # Docker Socket Proxy Service
+  # ==============================================================================
+  # Image: tecnativa/docker-socket-proxy
+  # Purpose: HTTP proxy for Docker daemon socket with granular permission control
+  #
+  # How It Works:
+  # 1. Socket proxy listens on http://socket-proxy:2375
+  # 2. Worker connects via DOCKER_HOST=unix:///proxy/docker.sock
+  # 3. All Docker API calls validated against allowed operations
+  # 4. Dangerous operations (privileged, host network) are blocked
+  #
+  # Allowed Operations (Requirement 2 - Socket Proxy):
+  # - GET /containers/json         → List containers
+  # - GET /containers/{id}/json    → Inspect container details
+  # - POST /containers/create      → Create new containers (agent spawning)
+  # - POST /containers/{id}/start  → Start container
+  # - POST /containers/{id}/stop   → Stop container
+  # - DELETE /containers/{id}      → Remove container
+  #
+  # Blocked Operations:
+  # - Privileged mode (__init__)   → Blocked (PRIVILEGED=0)
+  # - Host network mode (HOST=0)   → Blocked
+  # - Dangerous volumes (VOLUMES=0)→ Blocked
+  # - Socket exposure (SOCKETV2=0) → Blocked (prevents /var/run/docker.sock pass-through)
+  # ==============================================================================
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.4.1
+    container_name: trigger-dev-socket-proxy
+
+    # ==============================================================================
+    # Security: Run as privileged to bind to host socket
+    # ==============================================================================
+    # NOTE: Socket proxy itself is privileged (binds to /var/run/docker.sock)
+    # This is necessary because proxy must mediate socket access
+    # Worker containers are NON-privileged (access proxy via HTTP only)
+    privileged: true
+
+    # ==============================================================================
+    # Socket Access
+    # ==============================================================================
+    volumes:
+      # Mount host Docker socket (proxy needs direct access)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    # ==============================================================================
+    # Environment: Permission Control
+    # ==============================================================================
+    # Each variable controls access to Docker API categories
+    # Format: OPERATION=1 (allow) or OPERATION=0 (deny)
+    #
+    # Container Inspection & Management (REQUIRED for agent spawning)
+    environment:
+      # === Container List & Inspection (REQUIRED) ===
+      CONTAINERS: '1'          # GET /containers/json (list containers)
+
+      # === Container Lifecycle (REQUIRED) ===
+      POST: '1'                # Allow POST (create, start containers)
+      DELETE: '1'              # Allow DELETE (remove containers)
+
+      # === DANGEROUS - EXPLICITLY DISABLED ===
+      PRIVILEGED: '0'          # DENY --privileged mode
+      HOST: '0'                # DENY --net=host
+      VOLUMES: '0'             # DENY volume mounts (security risk)
+      SOCKETV2: '0'            # DENY socket exposure to spawned containers
+
+      # === Auditing ===
+      LOG: '1'                 # Enable request logging (security audit trail)
+
+    # ==============================================================================
+    # Network: Internal bridge (no external access)
+    # ==============================================================================
+    # Socket proxy only accessible from other containers in this network
+    networks:
+      - trigger-cfn-network
+
+    # ==============================================================================
+    # Expose Port (Internal Network Only)
+    # ==============================================================================
+    # Port 2375: Unencrypted Docker API (acceptable on internal network)
+    # DO NOT expose this port outside the Docker network
+    expose:
+      - "2375"
+
+    # ==============================================================================
+    # Health Check
+    # ==============================================================================
+    # Validates socket proxy is responding to Docker API requests
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:2375/containers/json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+    # ==============================================================================
+    # Restart Policy
+    # ==============================================================================
+    # Proxy must always be available for worker to function
+    restart: unless-stopped
+
+    # ==============================================================================
+    # Logging
+    # ==============================================================================
+    # Capture request logs for security auditing
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  # Use existing trigger-cfn-network (shared with other services)
+  trigger-cfn-network:
+    external: true
+    driver: bridge

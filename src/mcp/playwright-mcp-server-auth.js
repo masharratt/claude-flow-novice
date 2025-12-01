@@ -21,7 +21,8 @@ class AuthenticatedPlaywrightMCPServer {
 
         // Initialize authentication middleware
         this.auth = new MCPAuthMiddleware({
-            redisUrl: options.redisUrl || process.env.CFN_REDIS_URL || process.env.MCP_REDIS_URL || `redis://${process.env.CFN_REDIS_HOST || 'cfn-redis'}:${process.env.CFN_REDIS_PORT || 6379}`,
+            // FIX: Default to 'localhost' for host execution, Docker deployments should set CFN_REDIS_HOST explicitly
+            redisUrl: options.redisUrl || process.env.CFN_REDIS_URL || process.env.MCP_REDIS_URL || `redis://${process.env.CFN_REDIS_HOST || 'localhost'}:${process.env.CFN_REDIS_PORT || 6379}`,
             authRequired: options.authRequired !== false && process.env.MCP_AUTH_REQUIRED !== 'false',
             agentConfigPath: options.agentConfigPath || process.env.MCP_AGENT_CONFIG || './config/agent-whitelist.json',
             skillConfigPath: options.skillConfigPath || process.env.MCP_SKILL_CONFIG || './config/skill-requirements.json',

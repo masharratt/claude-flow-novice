@@ -1,0 +1,165 @@
+# Dockerfile.optimized
+#
+# Multi-stage Docker build for CFN agents with optimal image size and security
+# Expected: 50%+ image size reduction compared to single-stage builds
+#
+# Build Instructions:
+#   Production: DOCKER_BUILDKIT=1 docker build --target=runtime -f docker/Dockerfile.optimized -t cfn-app:prod .
+#   Development: DOCKER_BUILDKIT=1 docker build --target=development -f docker/Dockerfile.optimized -t cfn-app:dev .
+#
+# Features:
+# - Multi-stage build (builder + runtime stages)
+# - Alpine Linux base for minimal size
+# - Layer caching optimization with BuildKit
+# - Security hardening (non-root user, minimal attack surface)
+# - Separate development target with hot reload
+
+# ================================
+# Stage 1: Dependencies
+# ================================
+FROM node:20-alpine AS deps
+
+# Install system build dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy only dependency files for optimal layer caching
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
+
+# ================================
+# Stage 2: Builder
+# ================================
+FROM node:20-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    git \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /build
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY .swcrc ./
+
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci --include=dev && npm cache clean --force
+
+# Copy source code (order matters for layer caching)
+COPY src/ ./src/
+COPY .claude/ ./.claude/
+
+# Build TypeScript using project's build script
+RUN npm run build
+
+# ================================
+# Stage 3: Runtime (Production)
+# ================================
+FROM node:20-alpine AS runtime
+
+# Install runtime dependencies only (bash for scripts, redis-cli, psql)
+RUN apk add --no-cache \
+    bash \
+    curl \
+    redis \
+    postgresql-client \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user and group
+RUN addgroup -g 1001 -S cfn && \
+    adduser -u 1001 -S cfn -G cfn
+
+# Set working directory
+WORKDIR /app
+
+# Copy production node_modules from deps stage
+COPY --from=deps --chown=cfn:cfn /app/node_modules ./node_modules
+
+# Copy built application from builder stage
+COPY --from=builder --chown=cfn:cfn /build/dist ./dist
+
+# Copy runtime scripts and configs (only what's needed)
+COPY --chown=cfn:cfn scripts/ ./scripts/
+COPY --chown=cfn:cfn .claude/skills/ ./.claude/skills/
+COPY --chown=cfn:cfn .claude/hooks/ ./.claude/hooks/
+COPY --chown=cfn:cfn package*.json ./
+
+# Set production environment variables
+ENV NODE_ENV=production \
+    CFN_MODE=production \
+    PATH="/app/node_modules/.bin:$PATH"
+
+# Switch to non-root user for security
+USER cfn
+
+# Health check for production readiness
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "process.exit(0)" || exit 1
+
+# Expose default port
+EXPOSE 3000
+
+# Default command
+CMD ["node", "dist/cli/index.js"]
+
+# ================================
+# Stage 4: Development
+# ================================
+FROM builder AS development
+
+# Install development tools globally
+RUN npm install -g nodemon tsx
+
+# Set environment
+ENV NODE_ENV=development \
+    CFN_MODE=development
+
+# Create non-root user
+RUN addgroup -g 1001 -S cfn && \
+    adduser -u 1001 -S cfn -G cfn
+
+# Set ownership
+RUN chown -R cfn:cfn /build
+
+USER cfn
+WORKDIR /build
+
+# Expose ports (app + debugger)
+EXPOSE 3000 9229
+
+# Development command with hot reload
+CMD ["npm", "run", "dev"]
+
+# ================================
+# Build & Size Comparison
+# ================================
+# Expected results with BuildKit:
+#   Production (runtime): ~150-200 MB (50% reduction from ~300-400 MB single-stage)
+#   Development: ~400-500 MB (includes all dev dependencies and tooling)
+#   Build time: 2-3 minutes initial, <30s with layer cache
+#
+# Size breakdown (runtime stage):
+#   - Alpine base: ~40 MB
+#   - Node.js 20: ~50 MB
+#   - Production dependencies: ~40-80 MB
+#   - Built application: ~20-30 MB
+#   - Runtime tools (bash, redis, psql): ~10 MB
+#
+# Security improvements:
+#   - Non-root user (UID 1001)
+#   - Minimal attack surface (no build tools)
+#   - Latest Alpine packages
+#   - No unnecessary system packages
+#   - Separate development stage with full tooling

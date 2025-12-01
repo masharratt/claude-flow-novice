@@ -1,0 +1,69 @@
+# Dockerfile.typescript - TypeScript Specialist Agent
+# IMPORTANT: Build from Linux native storage for 96% faster builds (755s -> 20s)
+# Use: ./.claude/skills/docker-build/build.sh --dockerfile docker/agents/Dockerfile.typescript --tag cfn-agent-typescript:latest
+
+# Stage 1: Dependencies
+FROM node:20-slim AS deps
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install TypeScript toolchain
+RUN npm install -g typescript@5.3.3 ts-node@10.9.2 && \
+    npm cache clean --force
+
+# Stage 2: Runtime
+FROM node:20-slim
+
+WORKDIR /workspace
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy TypeScript tools from deps stage
+COPY --from=deps /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=deps /usr/local/bin /usr/local/bin
+
+# Create non-root user
+RUN groupadd -g 1000 cfn-agent && \
+    useradd -u 1000 -g cfn-agent -s /bin/bash -m cfn-agent
+
+# Install common type packages
+RUN npm install -g @types/node@20.10.5 && \
+    npm cache clean --force
+
+# Set ownership
+RUN chown -R cfn-agent:cfn-agent /workspace
+
+# Labels for MDAP tier mapping
+LABEL cfn.agent.type="typescript-specialist" \
+      cfn.memory.min="256m" \
+      cfn.memory.max="512m" \
+      cfn.mdap.tier="1" \
+      cfn.description="TypeScript specialist agent for type checking and refactoring" \
+      cfn.tools="typescript,ts-node,git,npm"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node --version || exit 1
+
+# Switch to non-root user
+USER cfn-agent
+
+# Environment variables
+ENV NODE_ENV=production \
+    PATH="/usr/local/bin:$PATH" \
+    WORKSPACE_PATH="/workspace"
+
+# Entrypoint accepts Claude CLI commands
+# Example: docker run cfn-agent-typescript claude "Fix TypeScript errors in src/app.ts"
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD ["echo 'CFN TypeScript Agent Ready. Pass Claude CLI commands via docker run.'"]

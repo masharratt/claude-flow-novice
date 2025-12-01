@@ -16,6 +16,11 @@ redis:
     legacy_aliases: ["REDIS_HOST", "MCP_REDIS_HOST"]
     required: false
     example: "cfn-redis"
+    modes:
+      cli:
+        override: "localhost"  # Host-resolvable for CLI agents
+      trigger:
+        override: "redis"  # Docker service name for containers
 
   CFN_REDIS_PORT:
     description: "Redis server port"
@@ -349,6 +354,13 @@ container:
     legacy_aliases: ["NETWORK"]
     required: false
     example: "cfn-prod"
+    modes:
+      cli:
+        override: "mcp-network"
+        network: "mcp-network"
+      trigger:
+        override: "trigger-cfn-network"
+        network: "trigger-cfn-network"
 
 # Feature Flags
 features:

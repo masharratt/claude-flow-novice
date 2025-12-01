@@ -96,6 +96,10 @@ function parseArgs(args: string[]): { command: string; agentType?: string; optio
       case '--debug':
         options.debug = true;
         break;
+      case '--provider':
+        options.provider = value;
+        i++;
+        break;
     }
   }
 
@@ -120,6 +124,9 @@ Commands:
 Examples:
   # Spawn an agent
   npx claude-flow-novice agent coder --context "Implement feature"
+
+  # Spawn an agent with ZAI provider
+  npx claude-flow-novice agent coder --provider zai --context "Implement feature"
 
   # List available agents
   npx claude-flow-novice agent --list
@@ -154,6 +161,10 @@ async function main() {
 
   switch (command) {
     case 'agent':
+      // Set provider environment variable if specified
+      if (options.provider) {
+        process.env.CLAUDE_API_PROVIDER = options.provider;
+      }
       await agentCommand(agentType, options);
       break;
 

@@ -13,7 +13,12 @@
 
 import { AgentSpawner } from './agent-spawner';
 import { writeFileSync, readFileSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// ESM-compatible __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 interface CLIArgs {
   agentType?: string;
@@ -22,6 +27,7 @@ interface CLIArgs {
   mode?: 'mvp' | 'standard' | 'enterprise';
   provider?: string;
   model?: string;
+  prompt?: string;
   background?: boolean;
   help?: boolean;
   version?: boolean;
@@ -60,6 +66,8 @@ function parseArgs(args: string[]): CLIArgs {
       parsed.provider = args[++i];
     } else if (arg === '--model') {
       parsed.model = args[++i];
+    } else if (arg === '--prompt') {
+      parsed.prompt = args[++i];
     } else if (!arg.startsWith('-')) {
       if (!parsed.agentType) {
         parsed.agentType = arg;
@@ -89,6 +97,7 @@ OPTIONS:
   -m, --mode <mode>    Mode: mvp, standard, enterprise (default: standard)
   -p, --provider <p>   Provider: zai, anthropic, etc. (default: auto-detect)
       --model <model>  Explicit model name (default: auto-detect)
+      --prompt <text>  Task prompt/description to pass to agent
       --foreground     Run in foreground (default: background)
       --background     Run in background (default)
       --json           Output result as JSON
@@ -130,6 +139,33 @@ function printVersion(): void {
 }
 
 /**
+ * Phase 1: Mode Prefix Function for CLI/Trigger.dev Collision Mitigation
+ *
+ * Generates task ID with mode prefix to prevent Redis key collisions between
+ * CLI mode and Trigger.dev Docker mode. Both modes share identical Redis coordination
+ * patterns and must use isolated namespaces.
+ *
+ * @param rawTaskId - Original task ID without prefix
+ * @param mode - Execution mode: 'cli' for CLI mode, 'trigger' for Trigger.dev
+ * @returns Prefixed task ID in format "MODE:rawTaskId"
+ *
+ * Example:
+ *   generateTaskId('task-123', 'cli')     => 'cli:task-123'
+ *   generateTaskId('task-123', 'trigger') => 'trigger:task-123'
+ *
+ * Redis Key Isolation (After):
+ *   CLI:     cfn:task:cli:task-123:status
+ *   Trigger: cfn:task:trigger:task-123:status
+ */
+function generateTaskId(rawTaskId: string, mode: 'cli' | 'trigger'): string {
+  // Don't add prefix if task ID already has a namespace prefix
+  if (/^[a-z]+:/.test(rawTaskId)) {
+    return rawTaskId;
+  }
+  return `${mode}:${rawTaskId}`;
+}
+
+/**
  * Validate CLI arguments
  */
 function validateArgs(args: CLIArgs): { valid: boolean; errors: string[] } {
@@ -144,7 +180,8 @@ function validateArgs(args: CLIArgs): { valid: boolean; errors: string[] } {
     errors.push('Task ID is required (--task-id or TASK_ID env var)');
   }
 
-  if (args.taskId && !/^[a-zA-Z0-9_.-]{1,64}$/.test(args.taskId)) {
+  // Allow optional namespace prefix (e.g., "cli:", "task:") for coordination routing
+  if (taskId && !/^([a-z]+:)?[a-zA-Z0-9_.-]{1,64}$/.test(taskId)) {
     errors.push('Invalid task ID format');
   }
 
@@ -213,17 +250,19 @@ async function main(): Promise<void> {
   const projectRoot = process.env.PROJECT_ROOT || process.cwd();
   const spawner = new AgentSpawner(projectRoot);
 
-  // Build config
+  // Build config with CLI mode prefix for Redis key isolation (Phase 1)
+  const prefixedTaskId = generateTaskId(taskId!, 'cli');
   const config = {
     agentType: args.agentType!,
-    taskId: taskId!,
+    taskId: prefixedTaskId,
     iteration: args.iteration || 1,
     mode: args.mode || 'standard' as const,
     provider: args.provider,
     model: args.model,
+    prompt: args.prompt,
     background: args.background !== false,
     env: {
-      TASK_ID: taskId!
+      TASK_ID: prefixedTaskId
     }
   };
 
@@ -249,4 +288,4 @@ main().catch((error) => {
   process.exit(2);
 });
 
-export { parseArgs, validateArgs, formatOutput };
+export { parseArgs, validateArgs, formatOutput, generateTaskId };

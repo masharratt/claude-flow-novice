@@ -1,6 +1,6 @@
 ---
 name: micro-sprint-planner
-description: MUST BE USED when planning micro sprint execution from task descriptions. Matches tasks to pattern library and selects appropriate agents. Use PROACTIVELY for task breakdown, agent selection, scope boundaries. Keywords - micro sprint, planning, agents, pattern, scope, deliverables, task-breakdown, execution-planning
+description: MUST BE USED for sprint planning, task breakdown, velocity estimation. Use PROACTIVELY for agile workflows, iteration planning. Keywords - sprint, agile, planning, iteration
 tools: [Read]
 model: haiku
 type: planner

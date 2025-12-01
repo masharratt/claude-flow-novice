@@ -1,0 +1,87 @@
+# Provider Model Mappings Configuration
+# Cross-provider model compatibility for CFN Loop agent routing
+#
+# MDAP outputs tier names (haiku/sonnet/opus) and this config
+# resolves them to provider-specific model IDs.
+#
+# Updated: 2025-11-28 (with latest November 2025 models)
+
+mappings:
+  # T1 - Fast, budget models for simple atomic tasks
+  haiku:
+    anthropic: claude-haiku-4-5           # $1/$5 per MTok, 200K context, 2x speed
+    zai: glm-4.5-x                        # Upgraded from air - better consistency
+    kimi: kimi-linear                     # 48B MoE, efficient attention
+    openrouter: anthropic/claude-haiku-4-5
+    gemini: gemini-2.5-flash-lite         # $0.10/$0.40 per MTok, 1M context
+    xai: grok-4-1-fast-non-reasoning      # $0.20/$0.50 per MTok, 2M context
+
+  # T2 - Balanced quality/cost for production tasks
+  sonnet:
+    anthropic: claude-sonnet-4-5          # $3/$15 per MTok, 200K-1M context
+    zai: glm-4.6                          # $0.36-$0.60/$2 per MTok, 200K context
+    kimi: kimi-k2-instruct-0905           # $0.15/$2.50 per MTok, 256K context
+    openrouter: anthropic/claude-sonnet-4-5-20250929
+    gemini: gemini-2.5-flash              # $0.10/$0.40 per MTok, 1M context
+    xai: grok-4-1-fast-reasoning          # $0.20-$0.40/$0.50-$1 per MTok, 2M context
+
+  # T3 - Premium models for mission-critical tasks
+  opus:
+    anthropic: claude-opus-4-5            # $5/$25 per MTok, 200K context (Nov 24, 2025)
+    zai: glm-4.6                          # Z.ai caps at glm-4.6
+    kimi: kimi-k2-thinking                # Advanced reasoning (Nov 6, 2025)
+    openrouter: anthropic/claude-opus-4-5-20251124
+    gemini: gemini-2.5-pro                # Most powerful Gemini, 1M context
+    xai: grok-4                           # $3/$15 per MTok, 256K context
+
+# Default models when no tier is specified (defaults to sonnet-tier)
+defaults:
+  anthropic: claude-sonnet-4-5
+  zai: glm-4.6
+  kimi: kimi-k2-instruct-0905
+  openrouter: anthropic/claude-sonnet-4-5-20250929
+  gemini: gemini-2.5-flash
+  xai: grok-4-1-fast-reasoning
+
+# Provider metadata (for documentation/tooling)
+providers:
+  anthropic:
+    base_url: https://api.anthropic.com
+    env_key: ANTHROPIC_API_KEY
+    notes: Direct Anthropic API - Claude 4.5 family (Haiku/Sonnet/Opus)
+
+  zai:
+    base_url: https://api.z.ai/api/anthropic
+    env_key: ZAI_API_KEY
+    notes: Zhipu GLM-4.6, $0.36-$0.60/$2 per MTok, 200K context, MIT license
+
+  kimi:
+    base_url: https://api.moonshot.cn/v1
+    env_key: KIMI_API_KEY
+    notes: Moonshot K2, 256K context, 6-10x cheaper than OpenAI/Anthropic
+
+  openrouter:
+    base_url: https://openrouter.ai/api/v1
+    env_key: OPENROUTER_API_KEY
+    notes: Multi-provider routing, uses anthropic/<model> naming
+
+  gemini:
+    base_url: https://generativelanguage.googleapis.com/v1beta
+    env_key: GEMINI_API_KEY
+    notes: Google Gemini 2.5, 1M context, Flash-Lite/Flash/Pro tiers
+
+  xai:
+    base_url: https://api.x.ai/v1
+    env_key: XAI_API_KEY
+    notes: Grok 4.1, 2M context (fast), 256K context (premium)
+
+# Pricing reference (per million tokens, input/output)
+# ┌──────────────┬─────────┬─────────┬─────────┐
+# │ Provider     │ Haiku   │ Sonnet  │ Opus    │
+# ├──────────────┼─────────┼─────────┼─────────┤
+# │ Anthropic    │ $1/$5   │ $3/$15  │ $5/$25  │
+# │ Gemini       │ $0.1/$0.4│$0.1/$0.4│ TBD     │
+# │ xAI          │ $0.2/$0.5│$0.2-0.4/$0.5-1│$3/$15│
+# │ Kimi         │ ~$0.1   │ $0.15/$2.5│$0.15/$2.5│
+# │ Z.ai (GLM)   │ ~$0.3   │ $0.36-0.6/$2│ same  │
+# └──────────────┴─────────┴─────────┴─────────┘

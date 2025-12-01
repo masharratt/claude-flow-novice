@@ -1,6 +1,6 @@
 ---
 name: base-template-generator
-description: MUST BE USED when creating foundational templates, boilerplate code, starter configurations, or scaffolding new projects/components/features. use PROACTIVELY for generating component templates, API endpoint skeletons, database model structures, configuration files, test suite scaffolding, documentation templates, build configurations, project initialization, starter kits, module boilerplate. ALWAYS delegate when user asks to "generate template", "create boilerplate", "scaffold", "initialize project", "setup starter", "create base structure", "generate skeleton", "setup configuration", "create starter template". Keywords - template, boilerplate, scaffold, generate, starter, skeleton, base structure, foundational code, setup, initialization, configuration template, component template, API template, model template, test template, documentation template, project setup, module template, starter kit, base configuration
+description: MUST BE USED when creating templates, boilerplate code, scaffolding projects/components. Use PROACTIVELY for component templates, API skeletons, configuration files. Keywords - template, boilerplate, scaffold, starter, skeleton
 tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
 model: haiku
 color: orange

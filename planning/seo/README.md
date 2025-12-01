@@ -1,10 +1,38 @@
-# SEO Content Pipeline - Implementation Guide
+# SEO System - Implementation Guide
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Status:** ✅ Production Ready
-**Last Updated:** 2025-11-02
+**Last Updated:** 2025-11-29
 
 ---
+
+## Document Index
+
+This directory contains two systems:
+
+### 1. SEO Content Pipeline (Production)
+The autonomous content generation system with 15 agents and 4-validator consensus.
+- **Status:** Production Ready
+- **See:** Content Pipeline section below
+
+### 2. SEO Intelligence System (Phase 1 - In Development)
+Cross-domain learning, competitor analysis, and algorithm prediction.
+- **Status:** Phase 1 Sprint 3 Complete (Pattern Schema & Knowledge Store)
+- **Completed:**
+  - ✅ Phase 1 Sprint 1: Research Service with WebSearch/WebFetch integration
+  - ✅ Phase 1 Sprint 2: Intelligence Curator Agent (Step 0 & Step 12)
+  - ✅ Phase 1 Sprint 3: Pattern Schema & Knowledge Store (Pattern Management, Redis Context Storage)
+- **Documents:**
+  - [SEO_INTELLIGENCE_SYSTEM.md](./SEO_INTELLIGENCE_SYSTEM.md) - Master architecture
+  - [COMPETITOR_ANALYSIS_PLAYBOOK.md](./COMPETITOR_ANALYSIS_PLAYBOOK.md) - Deep competitor analysis process
+  - [ALGORITHM_PREDICTION_MODEL.md](./ALGORITHM_PREDICTION_MODEL.md) - Predicting Google changes
+  - [CROSS_DOMAIN_LEARNING.md](./CROSS_DOMAIN_LEARNING.md) - Sharing learnings across domains
+  - [RESEARCH_SERVICE_IMPLEMENTATION.md](./RESEARCH_SERVICE_IMPLEMENTATION.md) - Sprint 1 implementation
+- **See:** Intelligence Curator section below
+
+---
+
+# Part 1: SEO Content Pipeline
 
 ## 📋 Overview
 
@@ -702,6 +730,843 @@ curl -X POST https://api.example.com/graphql \
 ---
 
 **Status:** ✅ Production Ready
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Maintainer:** CFN SEO Team
 **License:** MIT
+
+---
+
+# Part 2: SEO Intelligence System
+
+## Overview
+
+The intelligence system complements the content pipeline by:
+- Analyzing what makes top-ranking pages successful
+- Deep-diving competitor sites to extract winning patterns
+- Sharing learnings across multiple personal domains
+- Predicting algorithm changes to stay ahead
+
+## Quick Links
+
+| Document | What It Covers |
+|----------|----------------|
+| [SEO_INTELLIGENCE_SYSTEM.md](./SEO_INTELLIGENCE_SYSTEM.md) | Overall architecture, SERP analysis, data collection |
+| [COMPETITOR_ANALYSIS_PLAYBOOK.md](./COMPETITOR_ANALYSIS_PLAYBOOK.md) | Step-by-step process for analyzing winning sites |
+| [ALGORITHM_PREDICTION_MODEL.md](./ALGORITHM_PREDICTION_MODEL.md) | Risk scoring, promotion potential, predictions |
+| [CROSS_DOMAIN_LEARNING.md](./CROSS_DOMAIN_LEARNING.md) | Pattern sharing, confidence scoring, validation |
+| [SEO_INTELLIGENCE_INTEGRATION_IMPLEMENTATION.md](./SEO_INTELLIGENCE_INTEGRATION_IMPLEMENTATION.md) | **Implementation plan** for integrating into pipeline |
+
+## Key Concepts
+
+**Global vs Local Knowledge**
+- Global: Patterns that work universally (shareable)
+- Local: Domain-specific data (keywords, rankings)
+
+**Confidence Scoring**
+- Patterns rated 0.0-1.0 based on evidence
+- High confidence (>0.8) = apply with confidence
+- Decays over time without revalidation
+
+**Risk/Potential Scoring**
+- Tactics assessed for deprecation risk
+- Opportunities assessed for promotion potential
+
+## Integration with RuVector
+
+When RuVector is implemented:
+- Patterns stored as embeddings for similarity matching
+- GNN learns which patterns succeed
+- Cross-domain queries become instant
+- Confidence updates automatically
+
+## Getting Started
+
+1. Read [SEO_INTELLIGENCE_SYSTEM.md](./SEO_INTELLIGENCE_SYSTEM.md) for architecture
+2. Run competitor analysis using the [playbook](./COMPETITOR_ANALYSIS_PLAYBOOK.md)
+3. Document patterns with confidence scores
+4. On second domain, begin cross-domain learning
+5. Review algorithm predictions quarterly
+
+---
+
+# Part 3: Intelligence Curator Agent (Phase 1 Sprint 2)
+
+## 📋 Overview
+
+The Intelligence Curator Agent manages Step 0 (intelligence pre-load) and Step 12 (learning capture) of the enhanced 14-step SEO pipeline. It provides a file-based knowledge store for competitive intelligence, SERP patterns, and learning outcomes.
+
+**Key Features:**
+- Step 0: Pre-load intelligence before pipeline execution
+- Step 12: Capture learning after content generation
+- File-based knowledge store with organized directory structure
+- Integration with ResearchService from Sprint 1
+- Semantic keyword matching for historical learnings
+- Age-based intelligence filtering
+
+**Deliverables:**
+- `lib/intelligence-curator.ts` - Main curator implementation
+- `knowledge-store/` - File-based persistence directory
+- Comprehensive test suite (15 tests, 100% pass rate)
+- TypeScript types for all intelligence data structures
+
+---
+
+## 🏗️ Architecture
+
+### Knowledge Store Structure
+
+```
+knowledge-store/
+├── competitive-intelligence/   # Competitor analysis data
+│   ├── {domain}/
+│   │   ├── content-strategy.json
+│   │   ├── keyword-targeting.json
+│   │   └── backlink-profile.json
+├── serp-patterns/              # SERP feature patterns
+│   ├── {keyword-hash}/
+│   │   ├── featured-snippets.json
+│   │   ├── people-also-ask.json
+│   │   ├── related-searches.json
+│   │   └── metadata.json
+└── learning/                   # Captured learning data
+    ├── successes/
+    │   └── {timestamp}-{topic-hash}.json
+    └── failures/
+        └── {timestamp}-{topic-hash}.json
+```
+
+### Core Operations
+
+**Step 0: Intelligence Pre-Load**
+```typescript
+import { intelligenceCurator } from '@cfn/seo-research-service';
+
+const query = {
+  targetKeyword: 'typescript utility types',
+  competitorDomains: ['example.com', 'competitor.org'],
+  includeHistorical: true,
+  maxAge: 30 // days
+};
+
+const intelligence = await intelligenceCurator.loadIntelligence(query);
+// Returns: competitive data, SERP patterns, historical learnings
+```
+
+**Step 12: Learning Capture**
+```typescript
+import { captureLearning } from '@cfn/seo-research-service';
+
+const learning = {
+  outcome: 'success',
+  topic: 'TypeScript utility types guide',
+  context: {
+    targetKeyword: 'typescript utility types',
+    approach: 'Comprehensive guide with code examples',
+    metrics: { wordCount: 3500, readingTime: 15 }
+  },
+  lessons: [
+    'FAQ schema improved CTR by 25%',
+    'Code examples increased engagement'
+  ],
+  recommendations: [
+    'Add video tutorial',
+    'Create interactive playground'
+  ],
+  capturedAt: new Date()
+};
+
+await captureLearning(learning);
+```
+
+---
+
+## 🚀 Quick Start
+
+### Installation
+
+```bash
+cd planning/seo
+npm install
+npm run build
+```
+
+### Basic Usage
+
+```typescript
+import {
+  IntelligenceCurator,
+  CompetitiveIntelligence,
+  SERPPattern,
+  LearningCapture
+} from '@cfn/seo-research-service';
+
+// Create curator instance
+const curator = new IntelligenceCurator({
+  knowledgeStorePath: './my-knowledge-store',
+  verbose: true
+});
+
+// Store competitive intelligence
+const competitive: CompetitiveIntelligence = {
+  domain: 'competitor.com',
+  contentStrategy: {
+    averageWordCount: 2500,
+    keywordDensity: { 'main keyword': 0.02 },
+    contentTypes: ['blog', 'guide']
+  },
+  keywordTargeting: {
+    primaryKeywords: ['keyword 1', 'keyword 2'],
+    secondaryKeywords: ['related 1'],
+    searchVolumes: { 'keyword 1': 12000 }
+  },
+  backlinks: {
+    total: 1500,
+    domainAuthority: 75,
+    topReferrers: ['github.com', 'stackoverflow.com']
+  },
+  analyzedAt: new Date()
+};
+
+await curator.storeCompetitiveIntelligence(competitive);
+
+// Store SERP patterns
+const pattern: SERPPattern = {
+  keyword: 'test keyword',
+  featuredSnippets: [
+    {
+      type: 'paragraph',
+      structure: 'Definition with examples',
+      example: 'Example content...'
+    }
+  ],
+  peopleAlsoAsk: ['Question 1?', 'Question 2?'],
+  relatedSearches: ['related 1', 'related 2'],
+  capturedAt: new Date()
+};
+
+await curator.storeSerpPattern(pattern);
+```
+
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run Intelligence Curator tests specifically
+npm test -- intelligence-curator
+
+# Run with coverage
+npm run test:coverage
+```
+
+---
+
+## 📊 Data Structures
+
+### IntelligenceQuery
+Configuration for Step 0 intelligence loading:
+```typescript
+interface IntelligenceQuery {
+  targetKeyword: string;
+  competitorDomains?: string[];
+  includeHistorical?: boolean;
+  maxAge?: number; // days
+}
+```
+
+### CompetitiveIntelligence
+Competitor analysis results:
+```typescript
+interface CompetitiveIntelligence {
+  domain: string;
+  contentStrategy: {
+    averageWordCount: number;
+    keywordDensity: Record<string, number>;
+    contentTypes: string[];
+  };
+  keywordTargeting: {
+    primaryKeywords: string[];
+    secondaryKeywords: string[];
+    searchVolumes: Record<string, number>;
+  };
+  backlinks: {
+    total: number;
+    domainAuthority: number;
+    topReferrers: string[];
+  };
+  analyzedAt: Date;
+}
+```
+
+### SERPPattern
+SERP feature analysis:
+```typescript
+interface SERPPattern {
+  keyword: string;
+  featuredSnippets: Array<{
+    type: string;
+    structure: string;
+    example: string;
+  }>;
+  peopleAlsoAsk: string[];
+  relatedSearches: string[];
+  capturedAt: Date;
+}
+```
+
+### LearningCapture
+Learning outcome from content generation:
+```typescript
+interface LearningCapture {
+  outcome: 'success' | 'failure';
+  topic: string;
+  context: {
+    targetKeyword: string;
+    approach: string;
+    metrics?: Record<string, number>;
+  };
+  lessons: string[];
+  recommendations: string[];
+  capturedAt: Date;
+}
+```
+
+### IntelligenceLoadResult
+Combined intelligence load result:
+```typescript
+interface IntelligenceLoadResult {
+  competitive: CompetitiveIntelligence[];
+  serpPatterns: SERPPattern[];
+  learnings: LearningCapture[];
+  metadata: {
+    itemsLoaded: number;
+    oldestItemAge: number;
+    executionTime: number;
+    hasFreshData: boolean;
+  };
+}
+```
+
+---
+
+# Part 4: Pattern Schema & Knowledge Store (Phase 1 Sprint 3)
+
+## 📋 Overview
+
+The Pattern Schema & Knowledge Store system provides structured storage, validation, and querying for SEO intelligence patterns discovered through analysis and testing. Patterns represent proven content, technical, and algorithm intelligence that can be applied across the enhanced 14-step pipeline.
+
+**Key Features:**
+- Typed pattern schema with lifecycle states (discovery, validation, promoted, archived)
+- Confidence scoring based on evidence and outcomes
+- Pattern Manager for loading, querying, and lifecycle management
+- Redis Context Store for pipeline execution context and pattern applications
+- Initial seed data with 15+ proven patterns across content, technical, and algorithm categories
+- Comprehensive test coverage (39 tests, 100% pass rate)
+
+---
+
+## 🏗️ Pattern Schema
+
+### Pattern Types
+- **Content Patterns**: Title tags, hooks, structure, headlines
+- **Technical Patterns**: Schema markup, internal linking, performance optimization
+- **Algorithm Patterns**: Risk scores, update history, ranking factors
+
+### Lifecycle States
+```
+discovery (0.0-0.49) → validation (0.50-0.79) → promoted (0.80-1.0)
+                                                         ↓
+                                                    archived
+```
+
+### Confidence Scoring
+```
+confidence = (successCount / totalApplications) * evidenceQualityFactor
+where evidenceQualityFactor = min(evidenceCount / 10, 1.0)
+```
+
+### Pattern Structure
+```typescript
+interface Pattern {
+  id: string;
+  type: 'content' | 'technical' | 'algorithm';
+  category: string;
+  name: string;
+  description: string;
+  confidence: number; // 0.0-1.0
+  lifecycle: 'discovery' | 'validation' | 'promoted' | 'archived';
+  evidence: PatternEvidence[];
+  metadata: PatternMetadata;
+  createdAt: Date;
+  updatedAt: Date;
+  version: string;
+}
+```
+
+---
+
+## 📊 Seed Patterns
+
+### Content Patterns (7 patterns)
+- **Power Words in Title Tags** (confidence: 0.87, promoted)
+- **Question Format Title Tags** (confidence: 0.92, promoted)
+- **Problem-Solution Hook** (confidence: 0.84, promoted)
+- **Inverted Pyramid Structure** (confidence: 0.65, validation)
+- **Numbered Listicle Structure** (confidence: 0.45, validation)
+- **Data-Driven Opening Hook** (confidence: 0.30, discovery)
+
+### Technical Patterns (6 patterns)
+- **FAQ Schema Implementation** (confidence: 0.94, promoted)
+- **Article Schema with Author Metadata** (confidence: 0.88, promoted)
+- **Hub-and-Spoke Internal Linking** (confidence: 0.82, promoted)
+- **Contextual Anchor Text Linking** (confidence: 0.71, validation)
+- **Image Lazy Loading** (confidence: 0.90, promoted)
+- **Breadcrumb Schema Markup** (confidence: 0.42, discovery)
+
+### Algorithm Intelligence Patterns (8 patterns)
+- **Thin Content Risk Assessment** (confidence: 0.91, promoted)
+- **Keyword Stuffing Risk Detection** (confidence: 0.86, promoted)
+- **Link Spam Risk Assessment** (confidence: 0.78, promoted)
+- **Helpful Content Update 2024 Impact** (confidence: 0.88, promoted)
+- **March 2024 Core Update Impact** (confidence: 0.82, promoted)
+- **Backlink Quality vs Quantity** (confidence: 0.89, promoted)
+- **Content Freshness Signal** (confidence: 0.67, validation)
+- **User Engagement Signals** (confidence: 0.38, discovery)
+
+---
+
+## 🔧 Pattern Manager
+
+### Loading Patterns
+```typescript
+import { PatternManager } from './lib/pattern-manager';
+
+const manager = new PatternManager({
+  knowledgeStorePath: './knowledge-store',
+  validateOnLoad: true,
+  autoSave: true,
+});
+
+// Load all seed patterns
+const count = await manager.loadPatterns();
+console.log(`Loaded ${count} patterns`);
+```
+
+### Querying Patterns
+```typescript
+// Query by type
+const contentPatterns = manager.queryPatterns({ type: 'content' });
+
+// Query by confidence
+const highConfidence = manager.queryPatterns({ minConfidence: 0.80 });
+
+// Query by lifecycle and category
+const promotedSchema = manager.queryPatterns({
+  lifecycle: 'promoted',
+  category: 'schema-markup',
+});
+
+// Query with limit
+const topPatterns = manager.queryPatterns({ limit: 5 });
+```
+
+### Updating Confidence
+```typescript
+import { PatternEvidence } from './types';
+
+const evidence: PatternEvidence = {
+  source: 'https://example.com/article',
+  outcome: 'success',
+  capturedAt: new Date(),
+  metrics: {
+    ctrIncrease: 0.25,
+    avgPosition: 3.5,
+  },
+  notes: 'FAQ schema captured featured snippet',
+};
+
+const result = manager.updateConfidence('schema-faq-v1', evidence);
+console.log(`Confidence updated: ${result.previousConfidence} → ${result.newConfidence}`);
+
+if (result.lifecycleChanged) {
+  console.log(`Promoted to: ${result.newLifecycle}`);
+}
+```
+
+### Promoting Patterns
+```typescript
+// Promote discovery → validation
+const result = manager.promotePattern('pattern-id');
+
+if (result.success) {
+  console.log(`Promoted from ${result.previousLifecycle} to ${result.newLifecycle}`);
+}
+```
+
+---
+
+## 📦 Redis Context Store
+
+### Storing Intelligence Context
+```typescript
+import { RedisContextStore, IntelligenceContext } from './lib/redis-context-store';
+
+const store = new RedisContextStore({
+  host: 'localhost',
+  port: 6379,
+  keyPrefix: 'seo',
+  defaultTtl: 86400, // 24 hours
+});
+
+const context: IntelligenceContext = {
+  taskId: 'pipeline-run-123',
+  targetKeyword: 'typescript patterns',
+  patterns: highConfidencePatterns,
+  metadata: {
+    loadedAt: new Date(),
+    itemsLoaded: 15,
+    hasFreshData: true,
+  },
+};
+
+await store.storeContext(context);
+```
+
+### Recording Pattern Applications
+```typescript
+import { PatternApplication } from './lib/redis-context-store';
+
+const application: PatternApplication = {
+  applicationId: 'app-001',
+  taskId: 'pipeline-run-123',
+  patternId: 'schema-faq-v1',
+  patternType: 'technical',
+  patternCategory: 'schema-markup',
+  appliedAt: new Date(),
+};
+
+await store.storePatternApplication(application);
+
+// Later: update with outcome
+await store.updatePatternOutcome(
+  'pipeline-run-123',
+  'app-001',
+  'success',
+  { ctr: 0.32, position: 2.1 }
+);
+```
+
+### Retrieving Context
+```typescript
+const context = await store.getContext('pipeline-run-123');
+console.log(`Loaded ${context.patterns.length} patterns`);
+
+const applications = await store.getPatternApplications('pipeline-run-123');
+console.log(`Found ${applications.length} pattern applications`);
+```
+
+---
+
+## 🧪 Test Coverage
+
+**Pattern Manager Test Suite:** 25 tests, 100% pass rate
+**Redis Context Store Test Suite:** 14 tests, 100% pass rate
+**Total:** 39 tests, 100% pass rate
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Pattern Loading | 5 | Seed files, type parsing, Date conversion |
+| Pattern Validation | 4 | Required fields, confidence thresholds, lifecycle constraints |
+| Pattern Querying | 6 | Type, category, confidence, lifecycle, keywords, limits |
+| Confidence Updates | 3 | Evidence addition, lifecycle transitions, archiving |
+| Pattern Promotion | 4 | Discovery→validation, validation→promoted, rejection, forced promotion |
+| Pattern Archiving | 1 | Archive with reason |
+| Type Guards | 1 | Lifecycle state identification |
+| Redis Health Check | 1 | Connection verification |
+| Context Storage | 6 | Store, retrieve, delete, TTL, extend TTL, null handling |
+| Application Storage | 4 | Store, retrieve, bulk retrieval, outcome updates |
+| Pattern Caching | 2 | Cache storage and retrieval |
+| Task Cleanup | 1 | Clear all task data |
+
+**Test Execution Time:** ~17 seconds (combined)
+
+---
+
+## 📁 File Locations
+
+| Path | Description |
+|------|-------------|
+| `pattern-schema.yaml` | Complete pattern schema definition |
+| `types/index.ts` | Pattern TypeScript types (updated) |
+| `lib/pattern-manager.ts` | Pattern management implementation |
+| `lib/redis-context-store.ts` | Redis context storage implementation |
+| `lib/__tests__/pattern-manager.test.ts` | Pattern Manager test suite |
+| `lib/__tests__/redis-context-store.test.ts` | Redis Context Store test suite |
+| `knowledge-store/seeds/content-patterns-seeds.yaml` | Content pattern seed data |
+| `knowledge-store/seeds/technical-patterns-seeds.yaml` | Technical pattern seed data |
+| `knowledge-store/seeds/algorithm-intelligence-seeds.yaml` | Algorithm pattern seed data |
+
+---
+
+## 🔄 Integration with Intelligence Curator
+
+The Pattern Schema system integrates with the Intelligence Curator:
+
+**Step 0: Pattern Loading**
+1. Pattern Manager loads relevant patterns based on target keyword
+2. High-confidence patterns (≥0.80) passed to pipeline agents
+3. Patterns cached in Redis for fast retrieval during execution
+
+**During Pipeline Execution:**
+1. Agents apply patterns to content generation
+2. Pattern applications recorded in Redis with context
+3. Real-time pattern effectiveness tracked
+
+**Step 12: Learning Capture & Confidence Updates**
+1. Intelligence Curator captures learning outcomes
+2. Pattern Manager updates confidence scores with new evidence
+3. Patterns automatically promoted or archived based on performance
+4. Updated patterns available for next pipeline run
+
+---
+
+## 🧪 Intelligence Curator Test Coverage
+
+**Test Suite:** 15 tests, 100% pass rate
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Knowledge Store Initialization | 2 | Directory creation, empty results |
+| Competitive Intelligence Storage | 2 | Store/load competitive data |
+| SERP Pattern Storage | 2 | Store/load SERP patterns |
+| Learning Capture | 3 | Success/failure/historical learnings |
+| Age Filtering | 2 | Old data filtering, age calculation |
+| Knowledge Store Statistics | 1 | Accurate count reporting |
+| ResearchService Integration | 1 | Fresh data fetching |
+| Error Handling | 2 | Corrupted files, missing store |
+
+**Test Execution Time:** ~12-14 seconds
+
+---
+
+## 🔄 Integration with Pipeline
+
+The Intelligence Curator integrates with the SEO pipeline at two points:
+
+**Step 0: Pre-Pipeline Intelligence Load**
+1. Coordinator calls `loadIntelligence(query)`
+2. Curator loads competitive intelligence, SERP patterns, and historical learnings
+3. Results passed to content strategist and other agents
+4. Fresh SERP data fetched if needed via ResearchService
+
+**Step 12: Post-Pipeline Learning Capture**
+1. After content generation and validation
+2. Coordinator calls `captureLearning(learning)`
+3. Outcome (success/failure), lessons, and recommendations stored
+4. Future pipeline runs can reference this learning
+
+---
+
+## 📁 File Locations
+
+| Path | Description |
+|------|-------------|
+| `lib/intelligence-curator.ts` | Main curator implementation |
+| `lib/__tests__/intelligence-curator.test.ts` | Test suite |
+| `types/index.ts` | TypeScript type definitions |
+| `knowledge-store/` | File-based persistence directory |
+| `examples/intelligence-curator-usage.ts` | Usage examples |
+
+---
+
+---
+
+## Part 5: Pipeline Orchestrator Integration (Sprint P1-S4)
+
+### 📋 Overview
+
+The **Pipeline Orchestrator** integrates all Phase 1 components into a complete 14-step SEO intelligence pipeline with:
+- **Step 0**: Intelligence Pre-load (before existing pipeline)
+- **Steps 1-11**: Existing SEO pipeline steps (placeholder integration)
+- **Step 12**: Learning Capture (after content generation)
+
+### 🎯 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Pipeline Orchestrator                     │
+│                                                              │
+│  Step 0: Intelligence Pre-load                              │
+│  ├─ Load intelligence via Intelligence Curator              │
+│  ├─ Query applicable patterns via Pattern Manager           │
+│  ├─ Filter by content type and industry                     │
+│  └─ Store context in Redis                                  │
+│                                                              │
+│  Steps 1-11: Existing SEO Pipeline                          │
+│  ├─ Keyword Research                                        │
+│  ├─ Competitor Analysis                                     │
+│  ├─ Content Planning → Outline → Writing                    │
+│  ├─ SEO Optimization → Technical SEO                        │
+│  ├─ Link Building → Publishing                              │
+│  └─ Performance Monitoring → Continuous Improvement         │
+│                                                              │
+│  Step 12: Learning Capture                                  │
+│  ├─ Capture learning via Intelligence Curator               │
+│  ├─ Update pattern confidence via Pattern Manager           │
+│  ├─ Promote patterns (confidence ≥ 0.80)                    │
+│  ├─ Archive patterns (confidence < 0.40)                    │
+│  └─ Clean up Redis context                                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 🚀 Usage
+
+#### CLI Command
+
+```bash
+# Basic usage
+npm run pipeline -- --keyword "TypeScript tutorial" --content-type "guide"
+
+# With industry and competitors
+npm run pipeline -- \
+  --keyword "React best practices" \
+  --content-type "blog" \
+  --industry "software" \
+  --competitors "example.com,competitor.com"
+
+# Verbose mode
+npm run pipeline -- -k "SEO tips" -c "article" -v
+```
+
+#### Programmatic Usage
+
+```typescript
+import { PipelineOrchestrator } from './lib/pipeline-orchestrator';
+
+// Create task
+const task = PipelineOrchestrator.createTask('JavaScript promises', 'guide', {
+  industry: 'software',
+  competitorDomains: ['mdn.dev', 'javascript.info'],
+});
+
+// Create orchestrator
+const orchestrator = new PipelineOrchestrator({ verbose: true });
+
+// Execute pipeline
+const result = await orchestrator.execute(task);
+
+console.log(`Status: ${result.status}`);
+console.log(`Steps Completed: ${result.stepsCompleted}/${result.totalSteps}`);
+console.log(`Patterns Applied: ${result.patternsApplied}`);
+console.log(`Learnings Captured: ${result.learningsCaptured}`);
+```
+
+### 📊 Pipeline Execution Flow
+
+**Step 0: Intelligence Pre-load**
+1. Build intelligence query from task
+2. Load competitive intelligence, SERP patterns, learnings
+3. Query Pattern Manager for applicable patterns
+4. Filter by content type and industry
+5. Identify high-risk patterns (with restrictions)
+6. Store context in Redis for downstream steps
+
+**Steps 1-11: Existing Pipeline**
+- Each step accesses patterns from Redis context
+- Pattern applications tracked during execution
+- Metrics collected for each step
+
+**Step 12: Learning Capture**
+1. Analyze pattern applications
+2. Calculate success rates per pattern
+3. Update pattern confidence with new evidence
+4. Promote high-confidence patterns (≥0.80)
+5. Archive low-confidence patterns (<0.40)
+6. Generate lessons and recommendations
+7. Store learning via Intelligence Curator
+8. Clean up Redis context
+
+### 🧪 Test Coverage
+
+**Test Suite:** 25 tests across 8 categories
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Task Creation & Validation | 7 | Task lifecycle, validation rules |
+| Complete Pipeline Flow | 3 | End-to-end execution, tracking |
+| Step 0: Intelligence Pre-load | 2 | Intelligence load, pattern filtering |
+| Step 12: Learning Capture | 4 | Learning, confidence updates, promotion |
+| Redis Context Lifecycle | 2 | Context storage, cleanup |
+| Error Handling | 2 | Failure capture, error details |
+| Pattern Application Tracking | 3 | Application recording, metrics |
+| Integration Testing | 2 | Component integration |
+
+**All tests pass** ✅
+
+### 📁 File Structure
+
+| Path | Description |
+|------|-------------|
+| `lib/pipeline-orchestrator.ts` | Main orchestrator implementation |
+| `lib/steps/step-0-intelligence-preload.ts` | Step 0 implementation |
+| `lib/steps/step-12-learning-capture.ts` | Step 12 implementation |
+| `scripts/run-pipeline.ts` | CLI command interface |
+| `lib/__tests__/pipeline-integration.test.ts` | E2E integration tests |
+| `types/index.ts` | Pipeline TypeScript types |
+
+### 🔑 Key Features
+
+**Task Management**
+- Unique task ID generation
+- Validation (keyword, content type, domains)
+- Industry and competitor tracking
+
+**Intelligence Integration**
+- Automatic intelligence pre-load
+- Pattern filtering by applicability
+- High-risk pattern warnings
+
+**Learning & Adaptation**
+- Automatic confidence updates
+- Pattern promotion/archival
+- Lesson and recommendation generation
+
+**Redis Context Management**
+- Task-scoped context storage
+- Pattern application tracking
+- Automatic cleanup after capture
+
+### 📈 Performance
+
+- **Complete Pipeline**: 1-3 seconds (with placeholders)
+- **Step 0 (Intelligence Pre-load)**: 150-300ms
+- **Step 12 (Learning Capture)**: 200-400ms
+- **Redis Operations**: <10ms per operation
+
+### 🎓 Phase 1 Complete
+
+**All Sprint Deliverables:**
+- ✅ Sprint P1-S1: ResearchService with caching and rate limiting
+- ✅ Sprint P1-S2: Intelligence Curator with knowledge store
+- ✅ Sprint P1-S3: Pattern Schema, Pattern Manager, Redis Context Store, 21 pattern seeds
+- ✅ Sprint P1-S4: Pipeline Orchestrator with Steps 0 and 12
+
+**Integration Points:**
+1. ResearchService → Intelligence Curator (fresh data fetching)
+2. Intelligence Curator → Pipeline Orchestrator (Step 0, Step 12)
+3. Pattern Manager → Pipeline Orchestrator (pattern loading, confidence updates)
+4. Redis Context Store → Pipeline Orchestrator (task context management)
+
+---
+
+## Related Files
+
+| File | Description |
+|------|-------------|
+| [SEO_PIPELINE_IMPROVEMENTS.md](./SEO_PIPELINE_IMPROVEMENTS.md) | Research findings for pipeline |
+| [SEO_NPM_TEMPLATIZATION_PLAN.md](./SEO_NPM_TEMPLATIZATION_PLAN.md) | NPM packaging plans |
+| [RESEARCH_SERVICE_IMPLEMENTATION.md](./RESEARCH_SERVICE_IMPLEMENTATION.md) | Sprint 1 ResearchService docs |
+| [SPRINT_P1-S1_COMPLETE.md](./SPRINT_P1-S1_COMPLETE.md) | Sprint P1-S1 completion report |
+| [SPRINT_P1-S2_INTELLIGENCE_CURATOR_COMPLETE.md](./SPRINT_P1-S2_INTELLIGENCE_CURATOR_COMPLETE.md) | Sprint P1-S2 completion report |
+| [SPRINT_P1-S3_PATTERN_SCHEMA_COMPLETE.md](./SPRINT_P1-S3_PATTERN_SCHEMA_COMPLETE.md) | Sprint P1-S3 completion report |

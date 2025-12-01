@@ -1,0 +1,52 @@
+{
+  "team": "engineering",
+  "description": "Backend development agents with Python/TypeScript support",
+  "agents": {
+    "backend-developer": {
+      "language": "python",
+      "linter": "pylint",
+      "formatter": "black",
+      "test_command": "pytest",
+      "type_checker": "mypy",
+      "memory": "1g",
+      "timeout": 1800,
+      "tags": ["python", "backend", "api"]
+    },
+    "frontend-developer": {
+      "language": "typescript",
+      "linter": "eslint",
+      "formatter": "prettier",
+      "test_command": "npm test",
+      "type_checker": "tsc",
+      "memory": "1g",
+      "timeout": 1200,
+      "tags": ["typescript", "frontend", "react"]
+    },
+    "database-specialist": {
+      "language": "sql",
+      "linter": "sqlfluff",
+      "test_command": "pytest tests/db/",
+      "memory": "512m",
+      "timeout": 900,
+      "tags": ["sql", "postgres", "migrations"]
+    },
+    "devops-engineer": {
+      "language": "bash",
+      "linter": "shellcheck",
+      "test_command": "bats tests/",
+      "memory": "512m",
+      "timeout": 1200,
+      "tags": ["bash", "docker", "ci-cd"]
+    }
+  },
+  "quality_gates": {
+    "test_coverage_min": 80,
+    "type_check_required": true,
+    "lint_max_errors": 0
+  },
+  "resource_limits": {
+    "default_memory": "1g",
+    "default_timeout": 1800,
+    "max_parallel_agents": 5
+  }
+}

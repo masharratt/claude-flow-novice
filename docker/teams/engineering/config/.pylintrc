@@ -1,0 +1,30 @@
+[MASTER]
+ignore=CVS,.git,__pycache__,venv,.venv,node_modules
+jobs=4
+persistent=yes
+unsafe-load-any-extension=no
+
+[MESSAGES CONTROL]
+disable=C0111,C0103,R0913,R0914,W0511,W0212
+
+[REPORTS]
+output-format=text
+reports=no
+score=yes
+
+[BASIC]
+good-names=i,j,k,ex,Run,_,id,db,pk
+
+[DESIGN]
+max-args=7
+max-locals=15
+max-returns=6
+max-branches=12
+max-statements=50
+
+[FORMAT]
+max-line-length=120
+indent-string='    '
+
+[TYPECHECK]
+generated-members=REQUEST,acl_users,aq_parent

@@ -28,7 +28,7 @@ bin/claude-flow-*
 *~
 .DS_Store
 
-# Environment
+# Environment and Secrets (Phase 1.2a)
 .env
 .env.local
 .env.*.local
@@ -36,6 +36,27 @@ bin/claude-flow-*
 .env.backup.*
 .claude/api-configs/env-backups/
 .claude/api-configs/*.env
+.claude/backups/                     # Settings backups (contain API keys)
+!.claude/backups/.gitkeep            # Keep directory structure
+.env/worker
+/docker/trigger-dev-v4/.env
+*.env
+
+# Docker Secrets and Encryption (Phase 1.2a)
+.secrets/                          # Raw unencrypted credential files
+!.secrets/.gitkeep               # Keep directory in git
+docker/trigger-dev/.secrets/     # Development secrets
+.backups/encryption/             # Encrypted file backups
+!.backups/encryption/.gitkeep    # Keep directory in git
+
+# Age Encryption Keys (Phase 1.2a)
+~/.age/                          # User's age key directory
+.age/key.txt                     # Age private key (NEVER commit)
+*.age.key                        # Age private key files (NEVER commit)
+
+# Encrypted Credentials (Phase 1.2a)
+# .env.encrypted IS allowed (contains encrypted credentials)
+# But the age private key is NOT allowed
 
 # Logs
 logs/
@@ -183,6 +204,7 @@ hive-mind-prompt-*.txt
 planning/large-coordination/*
 planning/legion/*
 planning/global/
+planning/side-projects
 
 
 # Legacy v1 - exclude build artifacts and large files
@@ -204,3 +226,4 @@ legacy/v1/**/.next/planning/global/
 # Pre-Edit Backup System
 .backups/
 *.backup
+docker/trigger-dev-v4/

@@ -10,6 +10,7 @@
 import { spawn } from 'child_process';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { createClient, RedisClientType } from 'redis';
 import { AgentDefinition } from './agent-definition-parser.js';
 import { TaskContext, getAgentId } from './agent-prompt-builder.js';
 import { buildCLIAgentSystemPrompt, loadContextFromEnv } from './cli-agent-context.js';
@@ -21,12 +22,31 @@ import {
   type Message
 } from './conversation-fork.js';
 import { convertToolNames } from './tool-definitions.js';
+import { AgentCommandProcessor, type AgentCommand } from './coordination/agent-messaging.js';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
 
 const execAsync = promisify(exec);
+
+// DEBUG: File-based logging for background agents (stdio: 'ignore' masks errors)
+const AGENT_ID = process.env.AGENT_ID || 'unknown';
+const LOG_FILE = `/tmp/cfn-agent-${AGENT_ID}.log`;
+function debugLog(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  const logEntry = data
+    ? `${timestamp} [${AGENT_ID}] ${message} ${JSON.stringify(data)}\n`
+    : `${timestamp} [${AGENT_ID}] ${message}\n`;
+  try {
+    fsSync.appendFileSync(LOG_FILE, logEntry);
+  } catch (err) {
+    // Ignore logging errors
+  }
+}
+
+debugLog('=== Agent Executor Started ===');
 
 /**
  * Detect project root dynamically
@@ -60,9 +80,79 @@ const projectRoot = getProjectRoot();
 
 // Bug #6 Fix: Read Redis connection parameters from process.env
 // ENV-001: Standardized environment variable naming (REDIS_PASSWORD for all deployments)
-const redisHost = process.env.CFN_REDIS_HOST || 'cfn-redis';
+// ROOT CAUSE #2 FIX: Don't fall back to REDIS_PASSWORD from parent env (CLI mode has no password)
+// FIX: Default to 'localhost' for CLI mode (host execution), not 'cfn-redis' (Docker)
+// CLI agents run on the host and connect to Redis at localhost:6379
+// Docker agents should have CFN_REDIS_HOST explicitly set to their container network hostname
+const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
 const redisPort = process.env.CFN_REDIS_PORT || '6379';
-const redisPassword = process.env.CFN_REDIS_PASSWORD || process.env.REDIS_PASSWORD || '';
+const redisPassword = process.env.CFN_REDIS_PASSWORD || '';
+
+/**
+ * Validate task ID format to prevent command injection
+ * Allows: optional namespace prefix (e.g., "cli:", "task:"), alphanumeric, hyphens, underscores, dots
+ * Pattern: /^([a-z]+:)?[a-zA-Z0-9_.-]+$/
+ * - Optional prefix: lowercase letters followed by colon
+ * - Main ID: alphanumeric, hyphens, underscores, dots
+ * @param taskId - The task ID to validate
+ * @throws Error if taskId is invalid
+ */
+function validateTaskId(taskId: string): void {
+  if (!taskId || !/^([a-z]+:)?[a-zA-Z0-9_.-]+$/.test(taskId)) {
+    throw new Error(`Invalid task ID format: "${taskId}". Must contain optional namespace prefix (e.g., "cli:") and alphanumeric characters, hyphens, underscores, or dots.`);
+  }
+}
+
+/**
+ * Validate agent ID format to prevent command injection
+ * Allows: alphanumeric, hyphens, underscores
+ * @param agentId - The agent ID to validate
+ * @throws Error if agentId is invalid
+ */
+function validateAgentId(agentId: string): void {
+  if (!agentId || !/^[a-zA-Z0-9_-]+$/.test(agentId)) {
+    throw new Error(`Invalid agent ID format: "${agentId}". Must contain only alphanumeric characters, hyphens, and underscores.`);
+  }
+}
+
+/**
+ * Create a Redis client with proper connection handling
+ * Uses environment variables for connection configuration
+ * @returns Promise<RedisClientType> - Connected Redis client
+ */
+async function createRedisClient(): Promise<RedisClientType> {
+  debugLog('createRedisClient: Starting Redis connection attempt');
+  debugLog('Redis config', { host: redisHost, port: redisPort, hasPassword: !!redisPassword });
+  console.error('[DEBUG] createRedisClient: Starting Redis connection...');
+  console.error(`[DEBUG] Redis config: host=${redisHost}, port=${redisPort}, hasPassword=${!!redisPassword}`);
+
+  const portNum = parseInt(redisPort, 10);
+  debugLog(`createRedisClient: Creating client for ${redisHost}:${portNum}`);
+
+  const client = createClient({
+    socket: {
+      host: redisHost,
+      port: portNum,
+      reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+      connectTimeout: 5000,
+    },
+    password: redisPassword || undefined,
+  });
+
+  client.on('error', (err: Error) => {
+    debugLog('Redis Client Error event triggered', { error: err.message, stack: err.stack });
+    console.error('[DEBUG] Redis Client Error:', err);
+  });
+
+  debugLog('createRedisClient: Client created, calling connect()');
+  console.error('[DEBUG] createRedisClient: Client created, attempting connection...');
+
+  await client.connect();
+
+  debugLog('createRedisClient: ✓ Connected successfully');
+  console.error('[DEBUG] createRedisClient: ✓ Connected successfully');
+  return client;
+}
 
 export interface AgentExecutionResult {
   success: boolean;
@@ -145,9 +235,11 @@ function extractConfidence(output: string | undefined): number {
  * Execute CFN Loop protocol after agent completes work
  *
  * Steps:
- * 1. Signal completion to orchestrator
- * 2. Report confidence score
- * 3. Enter waiting mode (if iterations enabled)
+ * 1. Signal completion to orchestrator and Main Chat via Redis (includes confidence)
+ * 2. Exit cleanly (orchestrator spawns next agent if needed)
+ *
+ * Note: Confidence is included in the completion signal JSON payload.
+ * The deprecated report-completion.sh script has been removed (Bug #4 fix).
  */
 async function executeCFNProtocol(
   taskId: string,
@@ -157,46 +249,234 @@ async function executeCFNProtocol(
   enableIterations: boolean = false,
   maxIterations: number = 10
 ): Promise<void> {
+  console.error('[DEBUG] executeCFNProtocol: ENTRY POINT REACHED');
   console.log(`\n[CFN Protocol] Starting for agent ${agentId}`);
   console.log(`[CFN Protocol] Task ID: ${taskId}, Iteration: ${iteration}`);
 
+  // SECURITY FIX: Validate inputs to prevent command injection
+  console.error('[DEBUG] executeCFNProtocol: Validating taskId and agentId...');
+  validateTaskId(taskId);
+  validateAgentId(agentId);
+  console.error('[DEBUG] executeCFNProtocol: Validation passed');
+
+  let redisClient: RedisClientType | null = null;
+
   try {
-    // Step 1: Signal completion
+    // Step 1: Signal completion using Redis client (NOT shell commands)
+    debugLog('executeCFNProtocol: Starting Step 1 (Redis signaling)', { taskId, agentId, iteration });
+    console.error('[DEBUG] executeCFNProtocol: Starting Step 1 (Redis signaling)...');
     console.log('[CFN Protocol] Step 1: Signaling completion...');
-    const authFlag = redisPassword ? `-a "${redisPassword}"` : '';
-    await execAsync(`redis-cli -h "${redisHost}" -p "${redisPort}" ${authFlag} lpush "swarm:${taskId}:${agentId}:done" "complete"`);
-    console.log('[CFN Protocol] ✓ Completion signaled');
 
-    // Step 2: Extract and report confidence
+    debugLog('executeCFNProtocol: Calling createRedisClient()');
+    redisClient = await createRedisClient();
+    debugLog('executeCFNProtocol: Redis client obtained successfully');
+    console.error('[DEBUG] executeCFNProtocol: Redis client obtained');
+
+    // Signal to orchestrator (CFN Loop coordination) - using parameterized Redis call
+    const orchestratorKey = `swarm:${taskId}:${agentId}:done`;
+    debugLog('executeCFNProtocol: Sending orchestrator signal', { key: orchestratorKey });
+    console.error(`[DEBUG] executeCFNProtocol: Sending orchestrator signal to key: swarm:${taskId}:${agentId}:done`);
+
+    await redisClient.lPush(orchestratorKey, 'complete');
+
+    debugLog('executeCFNProtocol: Orchestrator signal sent successfully');
+    console.error('[DEBUG] executeCFNProtocol: Orchestrator signal sent successfully');
+    console.log('[CFN Protocol] ✓ Orchestrator signal sent');
+
+    // Signal to Main Chat (CLI mode coordination - correct key format) - using parameterized Redis call
+    const mainChatKey = `cfn:cli:${taskId}:completion`;
+    debugLog('executeCFNProtocol: Preparing Main Chat signal', { key: mainChatKey });
+    console.error(`[DEBUG] executeCFNProtocol: Preparing Main Chat signal for key: cfn:cli:${taskId}:completion`);
+
     const confidence = extractConfidence(output);
-    console.log(`[CFN Protocol] Step 2: Reporting confidence (${confidence})...`);
+    const agentMetadata = JSON.stringify({
+      agentId,
+      taskId,
+      status: 'completed',
+      iteration,
+      confidence,
+    });
+    debugLog('executeCFNProtocol: Agent metadata prepared', { metadata: agentMetadata, confidence });
 
-    const reportCmd = `./.claude/skills/cfn-redis-coordination/report-completion.sh \
-      --task-id "${taskId}" \
-      --agent-id "${agentId}" \
-      --confidence ${confidence} \
-      --iteration ${iteration}`;
+    await redisClient.lPush(mainChatKey, agentMetadata);
 
-    await execAsync(reportCmd);
-    console.log('[CFN Protocol] ✓ Confidence reported');
+    debugLog('executeCFNProtocol: Main Chat signal sent successfully');
+    console.error('[DEBUG] executeCFNProtocol: Main Chat signal sent successfully');
+    console.log('[CFN Protocol] ✓ Main Chat signal sent');
+    console.log(`[CFN Protocol] ✓ Confidence reported: ${confidence}`);
 
-    // Step 3: Exit cleanly (BUG #18 FIX - removed waiting mode)
+    // Step 2: Exit cleanly (BUG #18 FIX - removed waiting mode)
     // Orchestrator will spawn appropriate specialist agent for next iteration
     // This enables adaptive agent specialization based on feedback type
-    console.log('[CFN Protocol] Step 3: Exiting cleanly (iteration complete)');
+    debugLog('executeCFNProtocol: Step 2 - Exiting cleanly');
+    console.error('[DEBUG] executeCFNProtocol: Step 2 - Exiting cleanly...');
+    console.log('[CFN Protocol] Step 2: Exiting cleanly (iteration complete)');
     console.log('[CFN Protocol] Protocol complete\n');
+    debugLog('executeCFNProtocol: ✓ PROTOCOL COMPLETED SUCCESSFULLY');
+    console.error('[DEBUG] executeCFNProtocol: ✓ PROTOCOL COMPLETED SUCCESSFULLY');
   } catch (error) {
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    } : { error: String(error) };
+    debugLog('executeCFNProtocol: ERROR CAUGHT', errorDetails);
+    console.error('[DEBUG] executeCFNProtocol: ERROR CAUGHT:', error);
     console.error('[CFN Protocol] Error:', error);
     throw error;
+  } finally {
+    // Always close the Redis connection
+    debugLog('executeCFNProtocol: FINALLY block - cleaning up Redis client');
+    console.error('[DEBUG] executeCFNProtocol: FINALLY block - cleaning up Redis client...');
+    if (redisClient) {
+      await redisClient.quit();
+      debugLog('executeCFNProtocol: Redis client closed successfully');
+      console.error('[DEBUG] executeCFNProtocol: Redis client closed');
+    } else {
+      debugLog('executeCFNProtocol: No Redis client to close');
+    }
+    debugLog('executeCFNProtocol: FINALLY block complete');
+    console.error('[DEBUG] executeCFNProtocol: FINALLY block complete');
   }
 }
 
+// ============================================================================
+// Bidirectional Messaging Support (v2.0)
+// ============================================================================
+
 /**
- * Check if custom routing (z.ai) is enabled
+ * Agent state that can be modified by Main Chat commands
+ */
+interface AgentRuntimeState {
+  paused: boolean;
+  abortRequested: boolean;
+  redirectContext?: string;
+  lastCommandTime?: string;
+}
+
+/**
+ * Start command processor for bidirectional messaging with Main Chat
+ *
+ * Enables Main Chat to send commands to running agents:
+ * - status: Request agent status update
+ * - redirect: Redirect agent to new task context
+ * - abort: Request clean agent abort
+ * - pause: Pause agent for N seconds
+ */
+function startCommandProcessor(
+  taskId: string,
+  agentId: string,
+  state: AgentRuntimeState
+): AgentCommandProcessor | null {
+  // Only start if Redis is available and we have valid IDs
+  if (!taskId || !agentId) {
+    debugLog('startCommandProcessor: Skipping - missing taskId or agentId');
+    return null;
+  }
+
+  try {
+    debugLog('startCommandProcessor: Creating processor', { taskId, agentId });
+
+    const processor = new AgentCommandProcessor({
+      taskId,
+      agentId,
+      redisHost: redisHost,
+      redisPort: parseInt(redisPort, 10),
+      redisPassword: redisPassword || undefined
+    });
+
+    // Register redirect handler - updates agent context
+    processor.onCommand('redirect', async (command: AgentCommand) => {
+      debugLog('Command received: redirect', command.payload);
+      console.log(`[agent-msg] Received redirect command`);
+
+      if (command.payload?.newTask) {
+        state.redirectContext = command.payload.newTask as string;
+        state.lastCommandTime = new Date().toISOString();
+        console.log(`[agent-msg] New context: ${state.redirectContext}`);
+      }
+
+      return {
+        agentId,
+        taskId,
+        status: 'running',
+        timestamp: new Date().toISOString(),
+        currentStep: 'Acknowledged redirect',
+        metadata: { redirectedTo: state.redirectContext }
+      };
+    });
+
+    // Register custom status handler with more detail
+    processor.onCommand('status', async (_command: AgentCommand) => {
+      debugLog('Command received: status request');
+      console.log(`[agent-msg] Received status request`);
+
+      return {
+        agentId,
+        taskId,
+        status: state.paused ? 'paused' : (state.abortRequested ? 'aborting' : 'running'),
+        timestamp: new Date().toISOString(),
+        metadata: {
+          paused: state.paused,
+          abortRequested: state.abortRequested,
+          redirectContext: state.redirectContext,
+          lastCommandTime: state.lastCommandTime
+        }
+      };
+    });
+
+    // Register abort handler
+    processor.onCommand('abort', async (_command: AgentCommand) => {
+      debugLog('Command received: abort request');
+      console.log(`[agent-msg] Received abort request - will exit after current task`);
+      state.abortRequested = true;
+      state.lastCommandTime = new Date().toISOString();
+
+      return {
+        agentId,
+        taskId,
+        status: 'aborting',
+        timestamp: new Date().toISOString()
+      };
+    });
+
+    // Start processor in background (non-blocking)
+    processor.start(3).catch(err => {
+      debugLog('Command processor error', { error: err.message });
+      console.error('[agent-msg] Command processor error:', err);
+    });
+
+    debugLog('startCommandProcessor: Started successfully');
+    console.log(`[agent-msg] Command processor started for ${agentId}`);
+
+    return processor;
+  } catch (err) {
+    debugLog('startCommandProcessor: Failed to start', { error: err instanceof Error ? err.message : String(err) });
+    console.error('[agent-msg] Failed to start command processor:', err);
+    return null;
+  }
+}
+
+// ============================================================================
+// Provider Configuration
+// ============================================================================
+
+/**
+ * Supported provider types for API routing
+ */
+type ProviderType = 'anthropic' | 'zai' | 'kimi' | 'openrouter';
+
+/**
+ * Check if custom routing (non-Anthropic) is enabled
+ *
+ * BUG FIX: Now checks both CLAUDE_API_PROVIDER (legacy) and PROVIDER (from --provider flag)
  */
 async function isCustomRoutingEnabled(): Promise<boolean> {
-  // Check environment variable
-  if (process.env.CLAUDE_API_PROVIDER === 'zai') {
+  // Check environment variables - support both conventions
+  const envProvider = process.env.CLAUDE_API_PROVIDER || process.env.PROVIDER;
+
+  if (envProvider && envProvider !== 'anthropic') {
+    debugLog('isCustomRoutingEnabled: Custom provider from env', { provider: envProvider });
     return true;
   }
 
@@ -204,7 +484,9 @@ async function isCustomRoutingEnabled(): Promise<boolean> {
   try {
     const configPath = path.join(projectRoot, '.claude', 'config', 'api-provider.json');
     const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
-    return config.provider === 'zai' || config.provider === 'z.ai';
+    const isCustom = config.provider && config.provider !== 'anthropic';
+    debugLog('isCustomRoutingEnabled: Config file result', { provider: config.provider, isCustom });
+    return isCustom;
   } catch {
     return false;
   }
@@ -212,10 +494,51 @@ async function isCustomRoutingEnabled(): Promise<boolean> {
 
 /**
  * Get API provider configuration
+ *
+ * Resolution order:
+ * 1. CLAUDE_API_PROVIDER env var (legacy)
+ * 2. PROVIDER env var (from CLI --provider flag)
+ * 3. Config file
+ * 4. Default to Z.ai (cost-effective fallback)
+ *
+ * BUG FIX: Previously only returned 'anthropic' | 'zai', now supports all providers
+ * BUG FIX: Previously defaulted to Anthropic, now defaults to Z.ai
  */
-async function getAPIProvider(): Promise<'anthropic' | 'zai'> {
-  const customEnabled = await isCustomRoutingEnabled();
-  return customEnabled ? 'zai' : 'anthropic';
+async function getAPIProvider(): Promise<ProviderType> {
+  // Check environment variables
+  const envProvider = process.env.CLAUDE_API_PROVIDER || process.env.PROVIDER;
+
+  if (envProvider) {
+    const normalized = envProvider.toLowerCase() as ProviderType;
+    if (['anthropic', 'zai', 'z.ai', 'kimi', 'openrouter'].includes(normalized)) {
+      const result = normalized === 'z.ai' ? 'zai' : normalized;
+      debugLog('getAPIProvider: Resolved from env', { envProvider, result });
+      console.error(`[agent-executor] Provider from env: ${result}`);
+      return result as ProviderType;
+    }
+  }
+
+  // Check config file
+  try {
+    const configPath = path.join(projectRoot, '.claude', 'config', 'api-provider.json');
+    const config = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+    if (config.provider) {
+      const normalized = config.provider.toLowerCase();
+      if (['anthropic', 'zai', 'z.ai', 'kimi', 'openrouter'].includes(normalized)) {
+        const result = normalized === 'z.ai' ? 'zai' : normalized;
+        debugLog('getAPIProvider: Resolved from config', { configProvider: config.provider, result });
+        console.error(`[agent-executor] Provider from config: ${result}`);
+        return result as ProviderType;
+      }
+    }
+  } catch {
+    // Config file doesn't exist, use default
+  }
+
+  // Default to Z.ai (cost-effective fallback)
+  debugLog('getAPIProvider: Using default', { result: 'zai' });
+  console.error('[agent-executor] Provider defaulting to: zai');
+  return 'zai';
 }
 
 /**
@@ -226,7 +549,18 @@ async function executeViaAPI(
   prompt: string,
   context: TaskContext
 ): Promise<AgentExecutionResult> {
+  debugLog('executeViaAPI: FUNCTION ENTRY', { agentType: definition.name });
+  console.error('[DEBUG] executeViaAPI: FUNCTION ENTRY');
   const agentId = getAgentId(definition, context);
+
+  debugLog('executeViaAPI: Agent initialized', {
+    agentId,
+    taskId: context.taskId,
+    iteration: context.iteration,
+    hasContext: !!context.context
+  });
+  console.error(`[DEBUG] executeViaAPI: Generated agentId=${agentId}`);
+  console.error(`[DEBUG] executeViaAPI: context.taskId=${context.taskId}, context.iteration=${context.iteration}`);
 
   console.log(`[agent-executor] Executing agent via API: ${definition.name}`);
   console.log(`[agent-executor] Agent ID: ${agentId}`);
@@ -239,6 +573,18 @@ async function executeViaAPI(
     console.log(`[agent-executor] Parsing context: ${context.context}`);
     const contextEnv = parseContextToEnv(context.context);
     console.log(`[agent-executor] Injected env vars: ${Object.keys(contextEnv).join(', ')}`);
+  }
+
+  // v2.0: Initialize runtime state for bidirectional messaging
+  const runtimeState: AgentRuntimeState = {
+    paused: false,
+    abortRequested: false
+  };
+
+  // v2.0: Start command processor for Main Chat communication
+  let commandProcessor: AgentCommandProcessor | null = null;
+  if (context.taskId) {
+    commandProcessor = startCommandProcessor(context.taskId, agentId, runtimeState);
   }
 
   try {
@@ -297,9 +643,23 @@ async function executeViaAPI(
     const { executeAgentAPI } = await import('./anthropic-client.js');
 
     // Convert agent tool names to Anthropic API format
+    debugLog('[TOOL DEBUG] definition.tools check', {
+      hasTools: !!definition.tools,
+      toolsLength: definition.tools?.length || 0,
+      toolNames: definition.tools || []
+    });
+    console.error(`[TOOL DEBUG] definition.tools: ${JSON.stringify(definition.tools)}`);
+
     const tools = definition.tools && definition.tools.length > 0
       ? convertToolNames(definition.tools)
       : undefined;
+
+    debugLog('[TOOL DEBUG] converted tools', {
+      hasConvertedTools: !!tools,
+      convertedToolsCount: tools?.length || 0,
+      convertedToolNames: tools?.map(t => t.name) || []
+    });
+    console.error(`[TOOL DEBUG] Converted tools: ${tools?.map(t => t.name).join(', ') || 'NONE'}`);
 
     const result = await executeAgentAPI(
       definition.name,
@@ -338,10 +698,20 @@ async function executeViaAPI(
 
       // Execute CFN Loop protocol (signal completion, report confidence, enter waiting mode)
       // Iterations are enabled for CFN Loop tasks (indicated by presence of taskId)
+      debugLog('agent-executor: About to execute CFN Protocol', {
+        taskId: context.taskId,
+        agentId,
+        iteration,
+        outputLength: result.output.length
+      });
+      console.error('[DEBUG] agent-executor: About to execute CFN Protocol...');
+      console.error(`[DEBUG] agent-executor: taskId=${context.taskId}, agentId=${agentId}, iteration=${iteration}`);
       try {
         const maxIterations = 10; // Default max iterations
         const enableIterations = true; // Enable iterations for all CFN Loop tasks
 
+        debugLog('agent-executor: Calling executeCFNProtocol', { maxIterations, enableIterations });
+        console.error('[DEBUG] agent-executor: Calling executeCFNProtocol...');
         await executeCFNProtocol(
           context.taskId,
           agentId,
@@ -350,11 +720,20 @@ async function executeViaAPI(
           enableIterations,
           maxIterations
         );
+        debugLog('agent-executor: ✓ executeCFNProtocol returned successfully');
+        console.error('[DEBUG] agent-executor: ✓ executeCFNProtocol returned successfully');
       } catch (error) {
+        const errorDetails = error instanceof Error ? {
+          message: error.message,
+          stack: error.stack
+        } : { error: String(error) };
+        debugLog('agent-executor: ✗ executeCFNProtocol threw error', errorDetails);
+        console.error('[DEBUG] agent-executor: ✗ executeCFNProtocol threw error:', error);
         console.error('[agent-executor] CFN Protocol execution failed:', error);
         // Don't fail the entire agent execution if CFN protocol fails
         // This allows agents to complete even if Redis coordination has issues
       }
+      console.error('[DEBUG] agent-executor: CFN Protocol section complete');
     }
 
     return {
@@ -372,6 +751,13 @@ async function executeViaAPI(
       error: error instanceof Error ? error.message : String(error),
       exitCode: 1,
     };
+  } finally {
+    // v2.0: Clean up command processor
+    if (commandProcessor) {
+      debugLog('executeViaAPI: Stopping command processor');
+      console.log('[agent-msg] Stopping command processor');
+      await commandProcessor.stop();
+    }
   }
 }
 
@@ -510,24 +896,37 @@ export async function executeAgent(
 ): Promise<AgentExecutionResult> {
   const method = options.method || 'auto';
 
+  debugLog('executeAgent: Starting execution', {
+    agentType: definition.name,
+    method,
+    taskId: context.taskId,
+    iteration: context.iteration,
+    agentId: context.agentId || 'not-set'
+  });
+
   // Auto-select execution method
   if (method === 'auto') {
     // Try API execution first, fallback to script if API key not available
     try {
+      debugLog('executeAgent: Attempting API execution');
       return await executeViaAPI(definition, prompt, context);
     } catch (error) {
       if (error instanceof Error && error.message.includes('API key not found')) {
+        debugLog('executeAgent: API key not found, falling back to script');
         console.log('[agent-executor] API key not found, using script fallback');
         return executeViaScript(definition, prompt, context);
       }
+      debugLog('executeAgent: API execution error', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
 
   if (method === 'api') {
+    debugLog('executeAgent: Using API method');
     return executeViaAPI(definition, prompt, context);
   }
 
+  debugLog('executeAgent: Using script method');
   return executeViaScript(definition, prompt, context);
 }
 
@@ -548,4 +947,73 @@ export async function saveAgentOutput(
   await fs.writeFile(filepath, output, 'utf-8');
 
   return filepath;
+}
+
+/**
+ * Main entry point when run as a script via tsx
+ */
+async function main() {
+  // Parse command line arguments
+  const args = process.argv.slice(2);
+  let agentType: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--agent-type' && i + 1 < args.length) {
+      agentType = args[i + 1];
+      break;
+    }
+  }
+
+  if (!agentType) {
+    console.error('[agent-executor] ERROR: --agent-type is required');
+    process.exit(1);
+  }
+
+  // Load agent definition
+  const { parseAgentDefinition } = await import('./agent-definition-parser.js');
+  const definition = await parseAgentDefinition(agentType);
+
+  if (!definition) {
+    console.error(`[agent-executor] ERROR: Agent type not found: ${agentType}`);
+    process.exit(1);
+  }
+
+  // Build task context from environment variables
+  const context: TaskContext = {
+    taskId: process.env.TASK_ID,
+    iteration: process.env.ITERATION ? parseInt(process.env.ITERATION, 10) : 1,
+    mode: process.env.MODE || 'cli',
+    agentId: process.env.AGENT_ID,
+    context: process.env.CONTEXT
+  };
+
+  // Get prompt from environment variable or use default
+  const prompt = process.env.PROMPT || `Execute your assigned task for ${agentType}.
+
+You are part of a CFN Loop workflow. Review any broadcast messages, complete your work, and report your confidence score.`;
+
+  console.log(`[agent-executor] Starting agent: ${agentType}`);
+  console.log(`[agent-executor] Task ID: ${context.taskId || 'none'}`);
+  console.log(`[agent-executor] Iteration: ${context.iteration}`);
+  console.log(`[agent-executor] Prompt source: ${process.env.PROMPT ? 'PROMPT env var' : 'default'}`);
+
+  // Execute agent
+  const result = await executeAgent(definition, prompt, context);
+
+  // Exit with appropriate code
+  if (!result.success) {
+    console.error(`[agent-executor] Agent execution failed: ${result.error || 'unknown error'}`);
+    process.exit(result.exitCode || 1);
+  }
+
+  console.log('[agent-executor] Agent execution completed successfully');
+  process.exit(0);
+}
+
+// Run main if executed as a script
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('[agent-executor] Fatal error:', error);
+    process.exit(1);
+  });
 }

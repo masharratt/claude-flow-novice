@@ -9,7 +9,7 @@ set -euo pipefail
 # CONFIGURATION
 # ============================================================================
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+PROJECT_ROOT=${PROJECT_ROOT:-/workspace}
 source "$PROJECT_ROOT/tests/test-utils.sh"
 
 # Colors for output
@@ -103,12 +103,12 @@ check_prerequisites() {
         echo -e "${GREEN}✓${NC} NPX is available"
     fi
 
-    # Check project structure
-    if [[ ! -f "$PROJECT_ROOT/.claude/skills/cfn-docker-loop-orchestration/orchestrate.sh" ]]; then
-        echo -e "${RED}ERROR:${NC} CFN Loop orchestration scripts not found"
+    # Check project structure (main-chat-as-coordinator architecture)
+    if [[ ! -d "$PROJECT_ROOT/.claude/agents" ]]; then
+        echo -e "${RED}ERROR:${NC} Agent definitions not found"
         all_good=false
     else
-        echo -e "${GREEN}✓${NC} CFN Loop scripts present"
+        echo -e "${GREEN}✓${NC} Agent definitions present"
     fi
 
     if [[ "$all_good" == "false" ]]; then
@@ -201,12 +201,13 @@ run_e2e_tests() {
 
     echo "Found ${#tests[@]} E2E test(s)"
     echo ""
-    echo -e "${YELLOW}NOTE:${NC} E2E tests may take several minutes to complete"
+    echo -e "${YELLOW}NOTE:${NC} E2E tests validate main-chat-as-coordinator architecture"
     echo ""
-    echo -e "${CYAN}North Star Test:${NC} test-cfn-loop-cli-real-execution.sh"
-    echo "  → Full CLI mode execution with REAL agent spawning (no mocks)"
-    echo "  → Validates production code paths end-to-end"
-    echo "  → Prevents regressions like BUG #21 (test passes while production fails)"
+    echo -e "${CYAN}Test Coverage:${NC}"
+    echo "  → test-agent-launch.sh         - (a) Do agents launch?"
+    echo "  → test-redis-completion-signal.sh - (b) Redis communication"
+    echo "  → test-agent-tool-access.sh    - (c) File creation / tool access"
+    echo "  → test-main-chat-wait-exit.sh  - (d) Completion signal to main chat"
     echo ""
 
     for test in "${tests[@]}"; do

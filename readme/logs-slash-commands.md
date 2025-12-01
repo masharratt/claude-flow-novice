@@ -87,37 +87,63 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, CF
 - `--recover`: Recover interrupted task with task-id
 - `--monitor`: Enable real-time monitoring
 
-**Output**: Production deployment with 95% cost savings
+**Output**: Production deployment with provider routing
 
 **Use Cases**: Production deployment, cost-sensitive workloads, long-running tasks
 
 ### `/cfn-loop-cli [options]`
 
-**Purpose**: Execute CFN Loop in CLI mode for production workloads
+**Purpose**: Execute CFN Loop in simplified 2-layer CLI mode for production workloads
 
 **Usage**:
 ```bash
-/cfn-loop-cli "Task description" --mode=standard --background=true
+/cfn-loop-cli "Task description" --mode=standard --provider=kimi
 ```
 
 **Flags**:
 - `--mode`: CFN Loop mode - mvp|standard|enterprise (default: standard)
-- `--spawn-mode`: Agent spawning method - cli|task (default: cli)
+- `--provider`: AI provider - zai|kimi|openrouter|max (default: zai)
 - `--max-iterations`: Maximum loop iterations (default: varies by mode)
-- `--background`: Enable background execution (required for monitoring)
+- `--timeout`: Execution timeout in seconds (default: varies by mode)
 - `--ace-reflect`: Enable adaptive context reflection
 
-**Output**: Task execution in background with Redis coordination
+**Architecture**: Main Chat → CLI Agents (direct Redis BLPOP coordination)
+
+**Provider Options**:
+- `zai`: glm-4.6 model
+- `kimi`: kimi-k2-turbo-preview model
+- `openrouter`: anthropic/claude-sonnet-4.5 model
+- `max`: claude-sonnet-4.5 model
 
 **Example**:
 ```bash
-/cfn-loop-cli "Build payment system" --mode=standard --background=true
-# Output: Task ID for monitoring, agents execute in background
+/cfn-loop-cli "Build payment system" --mode=standard --provider=kimi
+# Output: Direct Main Chat coordination with CLI agents
 ```
 
-**Use Cases**: Production workloads, long tasks, cost-sensitive execution
+**Use Cases**: Production deployment, provider routing, simplified coordination
 
-**Monitoring**: Use `agent-status` or check Redis for progress when `--background=true`
+**Protocol**: CLI Mode Redis Completion Protocol (simplified from CFN Loop protocol)
+
+### `/switch-api [provider]`
+
+**Purpose**: Switch Main Chat and Task tool API provider
+
+**Usage**:
+```bash
+/switch-api kimi
+```
+
+**Parameters**:
+- `provider`: Target provider - zai|kimi|openrouter|max
+
+**Example**:
+```bash
+/switch-api zai
+# Output: Main Chat now uses Z.ai provider for all API calls
+```
+
+**Use Cases**: Provider switching, cost management, quality control
 
 ### `/cfn-loop-frontend [options]`
 
@@ -283,7 +309,7 @@ Claude Flow provides comprehensive slash commands for AI agent orchestration, CF
 - `--recover`: Recover interrupted task with task-id
 - `--monitor`: Enable real-time monitoring
 
-**Output**: Production deployment with 95% cost savings
+**Output**: Production deployment with provider routing
 
 **Example**:
 ```bash
