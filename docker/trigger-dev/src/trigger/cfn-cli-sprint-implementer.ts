@@ -361,6 +361,7 @@ export const cfnCLISprintImplementerTask = task({
       const result = await execa('claude', args, {
         cwd: payload.workDir,
         timeout,
+        maxBuffer: 50 * 1024 * 1024, // 50MB buffer limit (prevents hang on large output)
         reject: false, // Don't throw on non-zero exit
         all: true, // Capture stdout + stderr combined
         stdin: 'ignore', // Don't wait for stdin (prevents blocking)
@@ -373,6 +374,15 @@ export const cfnCLISprintImplementerTask = task({
       const durationMs = Date.now() - startTime;
       const output = result.all || result.stdout || '';
       const timedOut = result.timedOut || false;
+
+      // Process cleanup verification: Check if process was properly terminated
+      if (result.failed && timedOut) {
+        console.warn(`[cli-sprint-implementer] ⚠️  Process timeout - verifying cleanup`);
+        // execa handles SIGTERM automatically on timeout, but log for monitoring
+        if (result.signal) {
+          console.log(`[cli-sprint-implementer] Process terminated with signal: ${result.signal}`);
+        }
+      }
 
       // Get modified files (includes new files since beforeFiles was empty or sparse)
       const afterFiles = getFileMtimes(payload.workDir);

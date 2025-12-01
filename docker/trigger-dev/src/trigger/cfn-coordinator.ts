@@ -524,6 +524,14 @@ export const cfnCoordinatorTask = task({
         const aggregation = aggregateMicroTasksIntoSprints(decompositionPlan, payload.taskId);
         console.log(`[cfn-coordinator] Sprint aggregation: ${getSprintSummary(aggregation)}`);
 
+        // Memory monitoring: baseline measurement
+        const baselineMemory = process.memoryUsage();
+        console.log(`[cfn-coordinator] [memory] Baseline RSS: ${(baselineMemory.rss / 1024 / 1024).toFixed(2)}MB, Heap: ${(baselineMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+
+        // Circuit breaker: Track consecutive sprint failures
+        const MAX_CONSECUTIVE_FAILURES = 3;
+        let consecutiveFailures = 0;
+
         // Execute sprints sequentially (each sprint runs ~60-180s via Claude CLI)
         for (let i = 0; i < aggregation.sprints.length; i++) {
           const sprint = aggregation.sprints[i];
@@ -565,6 +573,25 @@ export const cfnCoordinatorTask = task({
           console.log(`[cfn-coordinator]     Tasks completed: ${sprintResult.microTasksCompleted.length}/${sprint.microTasks.length}`);
           console.log(`[cfn-coordinator]     Files modified: ${sprintResult.filesModified.length}`);
 
+          // Memory monitoring: per-sprint measurement
+          const sprintMemory = process.memoryUsage();
+          console.log(`[cfn-coordinator] [memory] After sprint ${i + 1}: RSS: ${(sprintMemory.rss / 1024 / 1024).toFixed(2)}MB, Heap: ${(sprintMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+
+          // Circuit breaker: Track failures and abort if too many consecutive failures
+          if (!sprintResult.success) {
+            consecutiveFailures++;
+            console.warn(`[cfn-coordinator] ⚠️  Sprint failure ${consecutiveFailures}/${MAX_CONSECUTIVE_FAILURES}`);
+
+            if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+              const errorMsg = `Circuit breaker activated: ${MAX_CONSECUTIVE_FAILURES} consecutive sprint failures`;
+              console.error(`[cfn-coordinator] 🚨 ${errorMsg}`);
+              throw new Error(errorMsg);
+            }
+          } else {
+            // Reset counter on success
+            consecutiveFailures = 0;
+          }
+
           // Record results for each micro-task in the sprint
           for (const microTaskId of sprintResult.microTasksCompleted) {
             implementationHandles.push({ id: sprintHandle.id, microTaskId });
@@ -596,6 +623,15 @@ export const cfnCoordinatorTask = task({
         console.log(`[cfn-coordinator]   Sprints: ${aggregation.sprints.length}`);
         console.log(`[cfn-coordinator]   Micro-tasks: ${result.executionResults.length}`);
         console.log(`[cfn-coordinator]   Successes: ${result.executionResults.filter(r => r.success).length}`);
+
+        // Memory monitoring: final measurement
+        const finalMemory = process.memoryUsage();
+        const memoryGrowth = finalMemory.rss - baselineMemory.rss;
+        console.log(`[cfn-coordinator] [memory] Final RSS: ${(finalMemory.rss / 1024 / 1024).toFixed(2)}MB, Heap: ${(finalMemory.heapUsed / 1024 / 1024).toFixed(2)}MB`);
+        console.log(`[cfn-coordinator] [memory] Memory growth: ${(memoryGrowth / 1024 / 1024).toFixed(2)}MB (${((memoryGrowth / baselineMemory.rss) * 100).toFixed(1)}%)`);
+        if (memoryGrowth > 2 * 1024 * 1024 * 1024) { // >2GB growth
+          console.warn(`[cfn-coordinator] ⚠️  High memory growth detected: ${(memoryGrowth / 1024 / 1024).toFixed(2)}MB`);
+        }
 
       } else {
         // ===== MDAP MODE: PARALLEL MICRO-TASK EXECUTION =====
