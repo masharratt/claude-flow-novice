@@ -17,6 +17,13 @@ CONFIG_FILE="$SCRIPT_DIR/config.json"
 EMBEDDINGS_JS="$SCRIPT_DIR/embeddings.js"
 PARSER_JS="$SCRIPT_DIR/parser.js"
 
+# Load environment variables if .env exists
+if [[ -f "$PROJECT_ROOT/.env" ]]; then
+  set -a  # automatically export all variables
+  source "$PROJECT_ROOT/.env"
+  set +a
+fi
+
 # Load configuration
 INDEXABLE_EXTENSIONS=$(jq -r '.indexableExtensions[]' "$CONFIG_FILE")
 IGNORE_PATTERNS=$(jq -r '.ignorePatterns[]' "$CONFIG_FILE")
@@ -185,16 +192,13 @@ index_file() {
   return 0
 }
 
-# Full reindex from scratch
+# Full reindex from scratch using batch processing
 full_reindex() {
   log_info "Starting full reindex..."
 
   # Clear existing index
   log_info "Clearing existing index..."
   rm -rf "$RUVECTOR_DB_PATH/codebase_index.db"
-
-  # Reinitialize database
-  init_database
 
   # Find all files
   local files=()
@@ -203,30 +207,22 @@ full_reindex() {
   done < <(find_indexable_files)
 
   local total=${#files[@]}
-  local success=0
-  local failed=0
-
   log_info "Found $total files to index"
 
-  # Index each file
-  for ((i=0; i<total; i++)); do
-    local file="${files[$i]}"
-    local progress=$((i + 1))
+  # Use batch indexer for performance (100x+ faster than per-file spawning)
+  log_info "Starting batch indexer..."
 
-    echo -ne "\r${BLUE}[PROGRESS]${NC} Indexing $progress/$total files..."
-
-    if index_file "$file"; then
-      ((success++))
-    else
-      ((failed++))
-    fi
-  done
-
-  echo "" # New line after progress
-
-  log_success "Full reindex completed"
-  log_info "Indexed: $success files"
-  [[ $failed -gt 0 ]] && log_warn "Failed: $failed files"
+  # Pass environment variables explicitly to Node.js subprocess
+  if printf '%s\n' "${files[@]}" | \
+     OPENAI_API_KEY="$OPENAI_API_KEY" \
+     ZAI_API_KEY="${ZAI_API_KEY:-}" \
+     OPENAI_BASE_URL="${OPENAI_BASE_URL:-}" \
+     npx tsx "$SCRIPT_DIR/batch-indexer.js"; then
+    log_success "Full reindex completed successfully"
+  else
+    log_error "Batch indexing failed with exit code $?"
+    exit 1
+  fi
 }
 
 # Incremental update for specific files

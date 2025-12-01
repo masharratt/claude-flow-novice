@@ -13,6 +13,7 @@ Semantic codebase indexing and search using RuVector's vector database. Enables 
 
 ## Features
 
+### Codebase Intelligence
 - **Full Reindexing**: Rebuild entire codebase index from scratch
 - **Incremental Updates**: Update index for specific files only
 - **Auto-Indexing**: Automatic updates on git commits (via hook)
@@ -20,7 +21,20 @@ Semantic codebase indexing and search using RuVector's vector database. Enables 
 - **Stale Documentation Detection**: Identify legacy/outdated .md files automatically
 - **Multi-Language Support**: TypeScript, JavaScript, Python, Rust, Go, Java, C/C++, C#, Ruby, PHP, Swift, Kotlin, Markdown
 - **Metadata Extraction**: Parses exports, dependencies, purpose, complexity
-- **Cost-Optimized**: Supports Z.ai provider for low-cost embeddings
+
+### Error Pattern Learning (New)
+- **Error Storage**: Store failed task patterns with context and solutions
+- **Error Query**: Search for relevant past failures before starting similar work
+- **Automatic Avoidance**: Learn from mistakes to prevent repeating errors
+
+### Learning & Best Practices (New)
+- **Pattern Storage**: Store successful patterns and best practices (PATTERN, STRAT, ANTI, EDGE)
+- **Learning Query**: Search for relevant learnings before implementation
+- **Knowledge Accumulation**: Build organizational knowledge base over time
+- **Confidence Tracking**: Tag learnings with confidence scores and metadata
+
+### Cost Optimization
+- **Z.ai Support**: Use Z.ai provider for low-cost embeddings ($0.50/1M tokens)
 
 ## Quick Start
 
@@ -648,3 +662,115 @@ tail -f /tmp/ruvector-index.log
 1. Run initial reindex: `/codebase-reindex`
 2. Install git hook: `./.claude/skills/ruvector-codebase-index/install-hook.sh`
 3. Try searching: `/codebase-search your query here`
+
+## Error Pattern Learning & Best Practices
+
+### Store Error Pattern
+
+After a task failure, store the error pattern to avoid repeating it:
+
+```bash
+./.claude/skills/ruvector-codebase-index/store-error-pattern.sh \
+  --task-id "task-auth-123" \
+  --error-type "TypeScript compilation" \
+  --pattern "Missing type imports in multi-file refactor" \
+  --context "Files: auth.ts, types.ts, middleware.ts. Forgot to add import { User } from './types'" \
+  --solution "Always add type imports before interface usage. Use import type { } syntax."
+```
+
+### Query Error Patterns
+
+Before starting similar work, check for past failures:
+
+```bash
+./.claude/skills/ruvector-codebase-index/query-error-patterns.sh \
+  --task-description "Implement authentication middleware with TypeScript" \
+  --limit 5
+```
+
+**Output:**
+```
+📚 Relevant error patterns to avoid:
+
+  ❌ TypeScript compilation: Missing type imports in multi-file refactor
+     Context: Files: auth.ts, types.ts, middleware.ts. Forgot to add import { User } from './types'
+     Solution: Always add type imports before interface usage. Use import type { } syntax.
+     (Task: task-auth-123, 2025-12-01T10:30:00Z)
+
+  ❌ Runtime error: Middleware ordering issue
+     Context: Auth middleware must run before rate limiter
+     Solution: Check middleware stack order in app setup
+     (Task: task-api-456, 2025-11-28T14:15:00Z)
+```
+
+### Store Learning/Pattern
+
+After successful implementation, store the pattern for future reference:
+
+```bash
+./.claude/skills/ruvector-codebase-index/store-learning.sh \
+  --task-id "task-auth-123" \
+  --category "PATTERN" \
+  --title "Authentication middleware composition pattern" \
+  --description "Middleware stack: validateToken → enrichUserContext → checkPermissions. Each returns next() on success, throws on failure." \
+  --confidence 0.92 \
+  --tags "auth,middleware,express,composition"
+```
+
+**Categories:**
+- `PATTERN`: Successful implementation patterns to replicate
+- `STRAT`: Strategic approaches that worked well
+- `ANTI`: Anti-patterns to avoid (similar to errors but design-level)
+- `EDGE`: Edge cases and corner case handling
+
+### Query Learnings
+
+Before implementation, search for relevant best practices:
+
+```bash
+./.claude/skills/ruvector-codebase-index/query-learnings.sh \
+  --task-description "Implement authentication middleware with Express" \
+  --category "PATTERN" \
+  --limit 5
+```
+
+**Output:**
+```
+📚 Relevant learnings/patterns:
+
+  ✅ [PATTERN] Authentication middleware composition pattern (confidence: 0.92)
+     Middleware stack: validateToken → enrichUserContext → checkPermissions. Each returns next() on success, throws on failure.
+     Tags: auth,middleware,express,composition
+     (Task: task-auth-123, 2025-12-01T10:30:00Z)
+
+  ✅ [PATTERN] JWT validation best practice (confidence: 0.88)
+     Always verify signature, check expiry, and validate issuer. Use try-catch for decode errors.
+     Tags: jwt,auth,validation,security
+     (Task: task-jwt-789, 2025-11-30T09:45:00Z)
+```
+
+### Workflow Integration
+
+**Task Mode - Before Implementation:**
+```bash
+# 1. Query past errors to avoid
+query-error-patterns.sh --task-description "$TASK" --limit 5
+
+# 2. Query learnings for best practices
+query-learnings.sh --task-description "$TASK" --category "PATTERN" --limit 5
+
+# 3. Implement with learned knowledge
+# ... (agent execution)
+
+# 4a. If failed: Store error pattern
+store-error-pattern.sh --task-id "$TASK_ID" --error-type "..." --pattern "..." --solution "..."
+
+# 4b. If successful: Store learning
+store-learning.sh --task-id "$TASK_ID" --category "PATTERN" --title "..." --description "..." --confidence 0.85
+```
+
+**Trigger.dev Mode:**
+- Coordinator automatically queries error patterns before decomposition
+- MDAP implementer automatically stores failures
+- Coordinator automatically stores successful patterns after validation
+

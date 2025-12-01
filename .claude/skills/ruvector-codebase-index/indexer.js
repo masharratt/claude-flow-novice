@@ -2,13 +2,17 @@
 /**
  * RuVector Indexer - Inserts file embeddings into RuVector database
  *
- * Usage: node indexer.js <file_path> <embedding_json> <metadata_json>
+ * Usage: npx tsx indexer.js <file_path> <embedding_json> <metadata_json>
  */
 
-import { getCollection, COLLECTIONS } from '../../docker/trigger-dev/src/lib/ruvector-init.ts';
+// Dynamic import for TypeScript module (requires tsx runtime)
+const { initializeRuVector, getCollection, COLLECTIONS } = await import('../../../docker/trigger-dev/src/lib/ruvector-init.ts');
 
 async function indexFile(filePath, embedding, metadata) {
   try {
+    // Initialize RuVector if not already initialized
+    await initializeRuVector();
+
     const collection = getCollection(COLLECTIONS.CODEBASE_INDEX);
 
     // Parse inputs
@@ -44,4 +48,6 @@ if (!filePath || !embedding || !metadata) {
   process.exit(1);
 }
 
-indexFile(filePath, embedding, metadata);
+// Use top-level await (ESM modules support this)
+await indexFile(filePath, embedding, metadata);
+process.exit(0);

@@ -36,10 +36,43 @@
 - Main Chat can search context before spawning agents
 - Post-commit hook auto-reindexes (optional: `.claude/hooks/post-commit-codebase-index`)
 
+**Manual Learning & Error Tracking:**
+```bash
+# After task failure - store error pattern for future avoidance
+./.claude/skills/ruvector-codebase-index/store-error-pattern.sh \
+  --task-id "task-123" \
+  --error-type "TypeScript compilation" \
+  --pattern "Missing type imports in multi-file refactor" \
+  --context "Files: auth.ts, types.ts, middleware.ts" \
+  --solution "Always add type imports before interface usage"
+
+# After successful sprint - store learning/pattern
+./.claude/skills/ruvector-codebase-index/store-learning.sh \
+  --task-id "task-123" \
+  --category "PATTERN" \
+  --title "Authentication middleware best practice" \
+  --description "Middleware composition pattern with error handling" \
+  --confidence 0.90 \
+  --tags "auth,middleware,error-handling"
+
+# Query error patterns before similar work
+./.claude/skills/ruvector-codebase-index/query-error-patterns.sh \
+  --task-description "Implement authentication middleware" \
+  --limit 5
+# Returns: Top 5 relevant past failures to avoid
+
+# Query learnings for best practices
+./.claude/skills/ruvector-codebase-index/query-learnings.sh \
+  --task-description "Implement authentication middleware" \
+  --category "PATTERN" \
+  --limit 5
+# Returns: Top 5 relevant successful patterns to follow
+```
+
 **Difference from Trigger.dev Mode:**
-- **Task Mode**: Manual RuVector usage via slash commands and skills
-- **Trigger.dev Mode**: Automatic RuVector analytics (error patterns, model performance tracking)
-- **Both modes**: Same underlying vector database and semantic search capabilities
+- **Task Mode**: Manual RuVector usage via slash commands and skills (you decide when to store/query)
+- **Trigger.dev Mode**: Automatic RuVector analytics (coordinator stores errors/learnings after every task)
+- **Both modes**: Same underlying vector database, same semantic search, same error pattern/learning storage
 
 ### ACE Reflection Flag
 

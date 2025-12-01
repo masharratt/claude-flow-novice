@@ -133,19 +133,36 @@ function extractPurpose(content) {
       .split('\n')
       .map(line => line.replace(/^\s*\*\s?/, '').trim())
       .join(' ')
-      .slice(0, 200); // Limit to 200 chars
+      .slice(0, 500); // Limit to 500 chars
   }
 
   // Match line comments at start of file
   const lineCommentMatch = content.match(/^\/\/\s*(.+)/);
   if (lineCommentMatch) {
-    return lineCommentMatch[1].trim().slice(0, 200);
+    return lineCommentMatch[1].trim().slice(0, 500);
   }
 
   // Match Python docstrings
   const docstringMatch = content.match(/^"""([\s\S]*?)"""/);
   if (docstringMatch) {
-    return docstringMatch[1].trim().slice(0, 200);
+    return docstringMatch[1].trim().slice(0, 500);
+  }
+
+  // Match markdown headings and first paragraph
+  const mdHeadingMatch = content.match(/^#\s+(.+)/m);
+  if (mdHeadingMatch) {
+    // Get heading + first paragraph
+    const heading = mdHeadingMatch[1].trim();
+    const afterHeading = content.slice(content.indexOf(mdHeadingMatch[0]) + mdHeadingMatch[0].length);
+    const paragraphMatch = afterHeading.match(/\n\n(.+?)(?:\n\n|$)/s);
+    const paragraph = paragraphMatch ? paragraphMatch[1].replace(/\n/g, ' ').trim() : '';
+    return (heading + ' ' + paragraph).slice(0, 500);
+  }
+
+  // Fallback: first non-empty paragraph
+  const paragraphMatch = content.match(/^(.+?)(?:\n\n|$)/s);
+  if (paragraphMatch) {
+    return paragraphMatch[1].replace(/\n/g, ' ').trim().slice(0, 500);
   }
 
   return '';

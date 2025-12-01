@@ -11,6 +11,8 @@ import fsSync from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import http from 'http';
+import https from 'https';
 import { executeTool, type ToolUse, type ToolResult } from './tool-executor.js';
 
 const execAsync = promisify(exec);
@@ -29,6 +31,29 @@ function apiDebugLog(message: string, data?: any) {
     // Ignore logging errors
   }
 }
+
+// HTTP Agent configuration with connection pooling limits
+// Prevents memory leaks from unclosed connections in subagent spawning
+const httpAgent = new http.Agent({
+  keepAlive: true,
+  maxSockets: 10,        // Limit concurrent connections
+  maxFreeSockets: 5,     // Limit idle connections in pool
+  timeout: 120000,       // 2 minutes
+  keepAliveMsecs: 1000
+});
+
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 10,
+  maxFreeSockets: 5,
+  timeout: 120000,
+  keepAliveMsecs: 1000
+});
+
+// Client singleton with reference counting for proper lifecycle management
+// Fixes memory leak from creating new Anthropic instances per API call
+let clientInstance: Anthropic | null = null;
+let clientRefCount = 0;
 
 export interface APIConfig {
   provider: 'anthropic' | 'zai' | 'kimi' | 'openrouter';
@@ -199,14 +224,24 @@ export function validateProviderConfig(config: APIConfig): void {
 /**
  * Create Anthropic client with appropriate configuration
  *
- * Supports providers that use Anthropic-compatible API format:
+ * Uses singleton pattern with reference counting to prevent memory leaks
+ * from unclosed HTTP connections. Applies to all providers:
  * - anthropic: Direct Anthropic API
- * - zai: Z.ai proxy (Anthropic-compatible)
+ * - zai: Z.ai proxy (all GLM models: 4.5, 4.6, etc.)
+ * - kimi: Kimi API (future)
+ * - openrouter: OpenRouter API (future)
  *
- * For OpenAI-compatible providers (kimi, openrouter), this client
- * may not work correctly. Future enhancement: add OpenAI client support.
+ * Memory leak fix: Reuses client instance with custom HTTP agents
+ * that enforce connection limits (maxSockets: 10, maxFreeSockets: 5)
  */
 export async function createClient(): Promise<Anthropic> {
+  // Return existing instance if available
+  if (clientInstance) {
+    clientRefCount++;
+    apiDebugLog('Reusing existing client instance', { refCount: clientRefCount });
+    return clientInstance;
+  }
+
   const config = await getAPIConfig();
 
   // Validate configuration before attempting API call
@@ -216,6 +251,8 @@ export async function createClient(): Promise<Anthropic> {
     apiKey: config.apiKey,
     timeout: 120000, // 2 minutes (120 seconds)
     maxRetries: 2,
+    httpAgent: httpAgent,   // Apply connection limits
+    httpsAgent: httpsAgent, // Apply connection limits
   };
 
   // Z.ai uses Anthropic-compatible API format with custom base URL
@@ -223,8 +260,40 @@ export async function createClient(): Promise<Anthropic> {
     clientOptions.baseURL = config.baseURL;
   }
 
-  console.error(`[anthropic-client] Creating client for provider: ${config.provider}`);
-  return new Anthropic(clientOptions);
+  console.error(`[anthropic-client] Creating new client instance for provider: ${config.provider}`);
+  apiDebugLog('Creating new client instance', { provider: config.provider, baseURL: config.baseURL });
+
+  clientInstance = new Anthropic(clientOptions);
+  clientRefCount = 1;
+
+  return clientInstance;
+}
+
+/**
+ * Dispose Anthropic client and clean up HTTP connections
+ *
+ * Uses reference counting to ensure client is only destroyed when
+ * all operations have completed. Prevents premature disposal during
+ * concurrent API calls.
+ *
+ * Should be called in finally blocks of executeAgentAPI and similar
+ * long-running operations.
+ */
+export function disposeClient(): void {
+  clientRefCount--;
+  apiDebugLog('Disposing client reference', { refCount: clientRefCount });
+
+  if (clientRefCount <= 0 && clientInstance) {
+    // Force cleanup of internal HTTP client/agent
+    // @ts-ignore - accessing internal property for cleanup
+    if (clientInstance.httpClient?.destroy) {
+      clientInstance.httpClient.destroy();
+    }
+
+    apiDebugLog('Client instance destroyed');
+    clientInstance = null;
+    clientRefCount = 0;
+  }
 }
 
 /**
@@ -339,42 +408,54 @@ export async function sendMessage(
         let inputTokens = 0;
         let outputTokens = 0;
         let stopReason = 'end_turn';
+        let stream: any = null;
 
-        console.log('[anthropic-client] Creating streaming request...');
-        const stream = await client.messages.create({
-          ...requestParams,
-          stream: true,
-        });
+        try {
+          console.log('[anthropic-client] Creating streaming request...');
+          stream = await client.messages.create({
+            ...requestParams,
+            stream: true,
+          });
 
-        console.log('[anthropic-client] Stream created, processing events...');
-        for await (const event of stream) {
-          console.log('[anthropic-client] Event type:', event.type);
-          if (event.type === 'message_start') {
-            // @ts-ignore - usage exists on message_start
-            inputTokens = event.message.usage?.input_tokens || 0;
-          } else if (event.type === 'content_block_delta') {
-            // @ts-ignore - text exists on delta
-            const text = event.delta?.text || '';
-            fullContent += text;
-            if (onChunk) {
-              onChunk(text);
+          console.log('[anthropic-client] Stream created, processing events...');
+          for await (const event of stream) {
+            console.log('[anthropic-client] Event type:', event.type);
+            if (event.type === 'message_start') {
+              // @ts-ignore - usage exists on message_start
+              inputTokens = event.message.usage?.input_tokens || 0;
+            } else if (event.type === 'content_block_delta') {
+              // @ts-ignore - text exists on delta
+              const text = event.delta?.text || '';
+              fullContent += text;
+              if (onChunk) {
+                onChunk(text);
+              }
+            } else if (event.type === 'message_delta') {
+              // @ts-ignore - usage exists on message_delta
+              outputTokens = event.usage?.output_tokens || 0;
+              // @ts-ignore - stop_reason exists on delta
+              stopReason = event.delta?.stop_reason || 'end_turn';
             }
-          } else if (event.type === 'message_delta') {
-            // @ts-ignore - usage exists on message_delta
-            outputTokens = event.usage?.output_tokens || 0;
-            // @ts-ignore - stop_reason exists on delta
-            stopReason = event.delta?.stop_reason || 'end_turn';
+          }
+
+          return {
+            content: fullContent,
+            usage: {
+              inputTokens,
+              outputTokens,
+            },
+            stopReason,
+          };
+        } finally {
+          // Explicit stream cleanup to prevent memory leaks
+          if (stream?.controller?.abort) {
+            try {
+              stream.controller.abort();
+            } catch (err) {
+              // Ignore abort errors (stream may already be closed)
+            }
           }
         }
-
-        return {
-          content: fullContent,
-          usage: {
-            inputTokens,
-            outputTokens,
-          },
-          stopReason,
-        };
       }
 
       // Non-streaming response
@@ -598,6 +679,13 @@ export async function executeAgentAPI(
   const redisHost = process.env.CFN_REDIS_HOST || 'localhost';
   const redisPort = process.env.CFN_REDIS_PORT || '6379';
 
+  // Track memory usage for leak detection
+  const initialMem = process.memoryUsage();
+  apiDebugLog('Memory before API call', {
+    heapUsed: (initialMem.heapUsed / 1024 / 1024).toFixed(2) + 'MB',
+    external: (initialMem.external / 1024 / 1024).toFixed(2) + 'MB'
+  });
+
   try {
     apiDebugLog('executeAgentAPI: ENTRY', {
       agentType,
@@ -714,5 +802,22 @@ export async function executeAgentAPI(
       usage: { inputTokens: 0, outputTokens: 0 },
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    // Dispose client to prevent memory leaks
+    // Reference counting ensures client is only destroyed when all operations complete
+    disposeClient();
+
+    // Track memory after cleanup
+    const finalMem = process.memoryUsage();
+    const heapDelta = (finalMem.heapUsed - initialMem.heapUsed) / 1024 / 1024;
+    apiDebugLog('Memory after API call', {
+      heapUsed: (finalMem.heapUsed / 1024 / 1024).toFixed(2) + 'MB',
+      delta: heapDelta.toFixed(2) + 'MB'
+    });
+
+    // Warn if significant memory growth (>50MB) detected
+    if (heapDelta > 50) {
+      console.warn(`[memory-leak-warning] Heap grew by ${heapDelta.toFixed(2)}MB during agent execution`);
+    }
   }
 }
