@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.16.1",
+  "version": "2.17.0",
   "description": "AI agent orchestration framework with namespace-isolated skills, agents, and CFN Loop validation. Safe installation with ~0.01% collision risk.",
   "main": "dist/index.js",
   "type": "module",
@@ -59,11 +59,14 @@
     "tools/simple-complexity.sh",
     "tools/install-lizard.sh",
     "tests/test-memory-leak-task-mode.sh",
+    "tests/integration/test-zai-memory-leak.sh",
     "docs/BUG_19_MEMORY_LEAK_TASK_MODE.md",
     "docs/MEMORY_CLEANUP_GUIDE.md",
     "docs/MEMORY_LEAK_FIX_SUMMARY.md",
     "docs/REDIS_CLEANUP_EXECUTIVE_SUMMARY.md",
     "docs/REDIS_CLEANUP_VERIFICATION_REPORT.md",
+    "docs/quality-assurance/ZAI_MEMORY_LEAK_FIX.md",
+    "docs/architecture/CUSTOM_PROVIDER_ROUTING.md",
     "README.md",
     "LICENSE",
     ".claude/root-claude-distribute/CFN-CLAUDE.md"
