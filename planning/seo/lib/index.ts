@@ -75,3 +75,27 @@ export type {
   PipelineOrchestratorConfig,
   PatternApplication,
 } from '../types';
+
+// Competitor Deep Analyst (Phase 2 Sprint 1)
+export { CompetitorDeepAnalystAgent } from './competitor-deep-analyst';
+
+// Competitor Analysis Types
+export type {
+  CompetitorAnalysisConfig,
+  CompetitorAnalysisResult,
+  CrawledPage,
+  SiteArchitecturePattern,
+  ContentStrategyPattern,
+  HubPageMetadata,
+  InternalLinkingPattern,
+  ContentGap,
+} from '../types/competitor-analysis';
+
+export {
+  CompetitorAnalysisError,
+  CompetitorAnalysisErrorCode,
+  isSuccessfulCrawl,
+  isHubPage,
+  isHighPriorityGap,
+  isHighConfidencePattern,
+} from '../types/competitor-analysis';

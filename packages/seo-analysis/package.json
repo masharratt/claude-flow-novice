@@ -1,0 +1,95 @@
+{
+  "name": "@claude-flow-novice/seo-analysis",
+  "version": "1.0.0",
+  "description": "SEO competitor analysis package with Firecrawl-powered web crawling and pattern extraction",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./crawlers": {
+      "import": "./dist/crawlers.mjs",
+      "require": "./dist/crawlers.js",
+      "types": "./dist/crawlers.d.ts"
+    },
+    "./analysis": {
+      "import": "./dist/analysis.mjs",
+      "require": "./dist/analysis.js",
+      "types": "./dist/analysis.d.ts"
+    },
+    "./patterns": {
+      "import": "./dist/patterns.mjs",
+      "require": "./dist/patterns.js",
+      "types": "./dist/patterns.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types",
+    "build:cjs": "tsc --module commonjs --outDir dist",
+    "build:esm": "tsc --module esnext --outDir dist/esm && rename-files dist/esm",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build && npm run test && npm run type-check",
+    "version": "git add -A",
+    "postversion": "git push && git push --tags"
+  },
+  "keywords": [
+    "seo",
+    "competitor-analysis",
+    "web-crawling",
+    "firecrawl",
+    "pattern-extraction",
+    "deep-analysis",
+    "content-strategy"
+  ],
+  "author": "Claude Flow Novice Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/claude-flow-novice/claude-flow-novice.git",
+    "directory": "packages/seo-analysis"
+  },
+  "bugs": {
+    "url": "https://github.com/claude-flow-novice/claude-flow-novice/issues"
+  },
+  "homepage": "https://github.com/claude-flow-novice/claude-flow-novice/tree/main/packages/seo-analysis#readme",
+  "dependencies": {
+    "@mendable/firecrawl": "4.8.0",
+    "axios": "1.13.2",
+    "cheerio": "1.1.2",
+    "dotenv": "17.2.3",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@types/jest": "29.5.11",
+    "@types/node": "20.10.6",
+    "@types/cheerio": "0.22.31",
+    "@typescript-eslint/eslint-plugin": "6.17.0",
+    "@typescript-eslint/parser": "6.17.0",
+    "eslint": "8.56.0",
+    "jest": "29.7.0",
+    "ts-jest": "29.1.1",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3"
+  },
+  "peerDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

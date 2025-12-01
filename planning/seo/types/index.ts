@@ -838,9 +838,9 @@ export function isArchivedPattern(pattern: Pattern): boolean {
 }
 
 /**
- * Type guard: Check if pattern has high confidence
+ * Type guard: Check if SEO pattern has high confidence
  */
-export function isHighConfidencePattern(pattern: Pattern): boolean {
+export function isHighConfidenceSEOPattern(pattern: Pattern): boolean {
   return pattern.confidence >= 0.80;
 }
 
@@ -990,3 +990,29 @@ export interface PipelineOrchestratorConfig {
   /** Maximum retry attempts */
   maxRetries?: number;
 }
+
+// ============================================================================
+// COMPETITOR DEEP ANALYSIS TYPES (Phase 2 Sprint 1)
+// ============================================================================
+
+export {
+  type CompetitorAnalysisConfig,
+  type CompetitorAnalysisResult,
+  type CrawledPage,
+  type CrawlQueueEntry,
+  type CrawlResult,
+  type SiteArchitecturePattern,
+  type ContentStrategyPattern,
+  type HubPageMetadata,
+  type InternalLinkingPattern,
+  type ContentGap,
+  type FirecrawlResponse,
+  CompetitorAnalysisError,
+  CompetitorAnalysisErrorCode,
+  type HubPageScoringFactors,
+  type PatternExtractionConfig,
+  isSuccessfulCrawl,
+  isHubPage,
+  isHighPriorityGap,
+  isHighConfidencePattern,
+} from './competitor-analysis';
