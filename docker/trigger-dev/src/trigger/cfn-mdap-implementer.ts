@@ -1,18 +1,18 @@
 /**
  * CFN MDAP Implementer Task
  *
- * MDAP-specific implementer using Cerebras API as PRIMARY for rapid code generation.
- * Falls back to Groq API when Cerebras is rate-limited or unavailable.
+ * MDAP-specific implementer using Groq API as PRIMARY for rapid code generation.
+ * Falls back to Cerebras API when Groq is rate-limited or unavailable.
  *
  * API Priority Chain:
- * 1. Cerebras (PRIMARY) - Fast inference (~500ms-3s), reliable, best for MDAP
- * 2. Groq (FALLBACK) - Used when Cerebras fails (429 rate limit, API errors)
+ * 1. Groq (PRIMARY) - Cost-effective with billing enabled, slightly cheaper than Cerebras
+ * 2. Cerebras (FALLBACK) - Used when Groq fails (429 rate limit, API errors)
  *
- * Note: Groq free tier (openai/gpt-oss-*) has 0% success rate due to aggressive
- * rate limiting. Use as fallback only, not primary.
+ * Rationale: Groq billing now enabled, providing cost savings with negligible timing difference.
+ * Cerebras remains as reliable fallback for rate limit scenarios.
  *
  * Key differences from cfn-implementer-v2:
- * - Uses Cerebras API directly (NOT Claude Code CLI)
+ * - Uses Groq/Cerebras APIs directly (NOT Claude Code CLI)
  * - Targets ~500ms-3s per micro-task (vs 60+ seconds with CLI)
  * - Returns generated code for external file writing and test execution
  * - Supports 3-tier model escalation per MDAP design
@@ -26,7 +26,7 @@
  * 6. If tests pass, proceed to validation
  *
  * @module cfn-mdap-implementer
- * @version 3.0.0 - Switched back to Cerebras-primary with Groq fallback
+ * @version 3.1.0 - Switched to Groq-primary with Cerebras fallback (cost optimization)
  */
 
 import { task } from "@trigger.dev/sdk/v3";
@@ -123,29 +123,30 @@ export interface MDAPImplementerResult {
 // =============================================
 
 /**
- * Model mapping for MDAP tiers using Cerebras API (PRIMARY)
+ * Model mapping for MDAP tiers using Groq API (PRIMARY)
  *
  * T1 (haiku): Fast, cheap - for atomic tasks
  * T2 (sonnet): Balanced - for moderate complexity
  * T3 (opus): Best quality - for complex/retry scenarios
+ *
+ * Note: Groq billing now enabled, providing cost-effective alternative to Cerebras.
  */
-const CEREBRAS_MODELS: Record<number, string> = {
-  1: "llama3.1-8b",                      // T1 - Fast, first attempt (~2200 tok/s)
-  2: "llama-3.3-70b",                    // T2 - Balanced quality (~2100 tok/s)
-  3: "qwen-3-235b-a22b-instruct-2507",   // T3 - Best for complex/retry (~1400 tok/s)
+const GROQ_MODELS: Record<number, string> = {
+  1: "openai/gpt-oss-20b",    // T1 - Fast, cost-effective
+  2: "openai/gpt-oss-20b",    // T2 - Same model, enhanced prompting
+  3: "openai/gpt-oss-120b",   // T3 - Larger model for complex tasks
 };
 
 /**
- * Model mapping for MDAP tiers using Groq API (FALLBACK)
- * Used when Cerebras is rate-limited or unavailable.
+ * Model mapping for MDAP tiers using Cerebras API (FALLBACK)
+ * Used when Groq is rate-limited or unavailable.
  *
- * Note: Groq free tier is unreliable with aggressive rate limiting.
- * Use as fallback only.
+ * Reliable fallback with fast inference speeds.
  */
-const GROQ_MODELS: Record<number, string> = {
-  1: "openai/gpt-oss-20b",    // T1 fallback
-  2: "openai/gpt-oss-20b",    // T2 fallback (same model, enhanced prompting)
-  3: "openai/gpt-oss-120b",   // T3 fallback - larger model
+const CEREBRAS_MODELS: Record<number, string> = {
+  1: "llama3.1-8b",                      // T1 - Fast fallback (~2200 tok/s)
+  2: "llama-3.3-70b",                    // T2 - Balanced quality (~2100 tok/s)
+  3: "qwen-3-235b-a22b-instruct-2507",   // T3 - Best for complex/retry (~1400 tok/s)
 };
 
 // =============================================
@@ -521,9 +522,9 @@ export const cfnMDAPImplementerTask = task({
       payload.failureCount || 0
     );
 
-    // Use Cerebras models (PRIMARY)
-    let modelName = CEREBRAS_MODELS[modelTier.tier] || CEREBRAS_MODELS[1];
-    let apiUsed: "cerebras" | "groq" = "cerebras";
+    // Use Groq models (PRIMARY)
+    let modelName = GROQ_MODELS[modelTier.tier] || GROQ_MODELS[1];
+    let apiUsed: "cerebras" | "groq" = "groq";
 
     // Check if model is deprecated (auto-escalate if so)
     const isDeprecated = await checkDeprecation(modelName);
@@ -531,10 +532,10 @@ export const cfnMDAPImplementerTask = task({
       console.log(`[mdap-implementer] Model ${modelName} deprecated, escalating tier`);
       const nextTier = Math.min(modelTier.tier + 1, 3) as 1 | 2 | 3;
       modelTier = selectModelTier('simple', nextTier, 0);
-      modelName = CEREBRAS_MODELS[modelTier.tier] || CEREBRAS_MODELS[3];
+      modelName = GROQ_MODELS[modelTier.tier] || GROQ_MODELS[3];
     }
 
-    console.log(`[mdap-implementer] Using ${getTierSummary(modelTier)} -> ${modelName} (Cerebras primary)`);
+    console.log(`[mdap-implementer] Using ${getTierSummary(modelTier)} -> ${modelName} (Groq primary)`);
 
     try {
       // Build prompt
@@ -548,42 +549,42 @@ export const cfnMDAPImplementerTask = task({
         durationMs: number;
       };
 
-      // Try Cerebras first (PRIMARY), fallback to Groq on failure
+      // Try Groq first (PRIMARY), fallback to Cerebras on failure
       try {
-        apiResult = await callCerebrasAPI(prompt, modelName, modelTier);
-        apiUsed = "cerebras";
-        console.log(`[mdap-implementer] Cerebras API call: ${apiResult.durationMs}ms, ${apiResult.inputTokens}+${apiResult.outputTokens} tokens`);
-      } catch (cerebrasError) {
-        const errorMsg = (cerebrasError as Error).message;
+        apiResult = await callGroqAPI(prompt, modelName, modelTier);
+        apiUsed = "groq";
+        console.log(`[mdap-implementer] Groq API call: ${apiResult.durationMs}ms, ${apiResult.inputTokens}+${apiResult.outputTokens} tokens`);
+      } catch (groqError) {
+        const errorMsg = (groqError as Error).message;
 
         // Check if it's a rate limit or API error that warrants fallback
         if (errorMsg.includes('429') || errorMsg.includes('rate limit') ||
             errorMsg.includes('500') || errorMsg.includes('502') ||
             errorMsg.includes('503') || errorMsg.includes('504') ||
-            errorMsg.includes('timeout') || errorMsg.includes('CEREBRAS_API_KEY')) {
+            errorMsg.includes('timeout') || errorMsg.includes('GROQ_API_KEY')) {
 
-          console.log(`[mdap-implementer] Cerebras failed, falling back to Groq: ${errorMsg.substring(0, 100)}`);
+          console.log(`[mdap-implementer] Groq failed, falling back to Cerebras: ${errorMsg.substring(0, 100)}`);
 
-          // Switch to Groq fallback model
-          const groqModelName = GROQ_MODELS[modelTier.tier] || GROQ_MODELS[1];
-          console.log(`[mdap-implementer] Using Groq fallback: ${groqModelName}`);
+          // Switch to Cerebras fallback model
+          const cerebrasModelName = CEREBRAS_MODELS[modelTier.tier] || CEREBRAS_MODELS[1];
+          console.log(`[mdap-implementer] Using Cerebras fallback: ${cerebrasModelName}`);
 
           try {
-            apiResult = await callGroqAPI(prompt, groqModelName, modelTier);
-            apiUsed = "groq";
-            modelName = groqModelName;
-            console.log(`[mdap-implementer] Groq API call: ${apiResult.durationMs}ms, ${apiResult.inputTokens}+${apiResult.outputTokens} tokens`);
-          } catch (groqError) {
+            apiResult = await callCerebrasAPI(prompt, cerebrasModelName, modelTier);
+            apiUsed = "cerebras";
+            modelName = cerebrasModelName;
+            console.log(`[mdap-implementer] Cerebras API call: ${apiResult.durationMs}ms, ${apiResult.inputTokens}+${apiResult.outputTokens} tokens`);
+          } catch (cerebrasError) {
             // Both APIs failed
             throw new Error(
-              `Both Cerebras and Groq APIs failed.\n` +
-              `Cerebras: ${errorMsg.substring(0, 150)}\n` +
-              `Groq: ${(groqError as Error).message.substring(0, 150)}`
+              `Both Groq and Cerebras APIs failed.\n` +
+              `Groq: ${errorMsg.substring(0, 150)}\n` +
+              `Cerebras: ${(cerebrasError as Error).message.substring(0, 150)}`
             );
           }
         } else {
-          // Non-recoverable Cerebras error, don't try fallback
-          throw cerebrasError;
+          // Non-recoverable Groq error, don't try fallback
+          throw groqError;
         }
       }
 
