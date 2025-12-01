@@ -469,3 +469,96 @@ RuVector is designed to be optional. The coordinator runs normally without it, b
 - Quality trend analysis
 
 Once enabled, RuVector continuously improves decomposition quality through accumulated learning.
+
+## Non-MDAP Mode (CLI Sprint Aggregation)
+
+When `enableMDAP: false`, the coordinator uses CLI Sprint mode instead of direct Cerebras API calls:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                       NON-MDAP MODE: CLI SPRINT AGGREGATION                              │
+│                                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────┐ │
+│  │                         PHASE 2: EXECUTION (CLI MODE)                               │ │
+│  │                                                                                       │ │
+│  │  22 micro-tasks are aggregated into 4 sprints by category:                           │ │
+│  │                                                                                       │ │
+│  │  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐          │ │
+│  │  │ Architecture  │  │  Security     │  │ Performance   │  │  Testing      │          │ │
+│  │  │ Sprint (6)    │  │  Sprint (5)   │  │  Sprint (3)   │  │  Sprint (8)   │          │ │
+│  │  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘          │ │
+│  │          │                  │                  │                  │                   │ │
+│  │          ▼                  ▼                  ▼                  ▼                   │ │
+│  │  ┌─────────────────────────────────────────────────────────────────────────────┐     │ │
+│  │  │                     CLI Sprint Implementer (Sequential)                      │     │ │
+│  │  │                                                                              │     │ │
+│  │  │  Each sprint spawns Claude Code CLI subprocess:                              │     │ │
+│  │  │    claude-code --dangerously-skip-permissions -p "EXECUTE: [task list]"     │     │ │
+│  │  │                                                                              │     │ │
+│  │  │  Timeout: 300000ms (5 minutes) per sprint                                    │     │ │
+│  │  │  ^^^^^^^^ CRITICAL: Must match in both coordinator AND implementer          │     │ │
+│  │  │                                                                              │     │ │
+│  │  └─────────────────────────────────────────────────────────────────────────────┘     │ │
+│  │                                                                                       │ │
+│  │  Total: ~6-20 min for 22 tasks (vs ~30-75s in MDAP mode)                             │ │
+│  └─────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### CLI Sprint Timeout Configuration
+
+**IMPORTANT:** Two timeout values must be synchronized:
+
+| Location | Variable | Value | Purpose |
+|----------|----------|-------|---------|
+| `cfn-coordinator.ts:521` | `timeout` (payload) | 300000ms | Passed to CLI sprint implementer |
+| `cfn-coordinator.ts:527` | `pollWithTimeout` | 300000ms | Polling timeout waiting for result |
+| `cfn-cli-sprint-implementer.ts:302` | Default timeout | 300000ms | Used if payload.timeout not set |
+
+**Root Cause of Previous Failures:**
+The coordinator was passing `timeout: 180000` (3 min) which overrode the default, causing sprints to timeout before CLI tasks completed (~195s execution with 180s limit).
+
+### Mode Selection
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                            COORDINATOR MODE SELECTION                                    │
+│                                                                                          │
+│  Payload: { enableMDAP: boolean }                                                        │
+│                                                                                          │
+│                                 ┌───────────────┐                                        │
+│                                 │  enableMDAP   │                                        │
+│                                 └───────┬───────┘                                        │
+│                                         │                                                │
+│                              ┌──────────┴──────────┐                                     │
+│                              │                     │                                     │
+│                         ┌────┴────┐           ┌────┴────┐                                │
+│                         │  true   │           │  false  │                                │
+│                         └────┬────┘           └────┬────┘                                │
+│                              │                     │                                     │
+│                              ▼                     ▼                                     │
+│  ┌──────────────────────────────────┐  ┌──────────────────────────────────┐             │
+│  │        MDAP MODE                  │  │        CLI SPRINT MODE           │             │
+│  │                                   │  │                                   │             │
+│  │  • Direct Cerebras API calls      │  │  • Claude Code CLI subprocess    │             │
+│  │  • ~500ms-3s per micro-task       │  │  • ~90s-300s per sprint          │             │
+│  │  • Parallel execution phases      │  │  • Sequential sprints            │             │
+│  │  • Lower latency, higher cost     │  │  • Higher latency, lower cost    │             │
+│  │  • Best for: rapid TDD iteration  │  │  • Best for: complex multi-file  │             │
+│  │                                   │  │    tasks needing full CLI power  │             │
+│  └──────────────────────────────────┘  └──────────────────────────────────┘             │
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### When to Use Each Mode
+
+| Use Case | Recommended Mode | Reason |
+|----------|-----------------|--------|
+| Simple code generation | MDAP (enableMDAP: true) | Fast iteration, low latency |
+| Complex refactoring | CLI Sprint (enableMDAP: false) | Full Claude CLI capabilities |
+| TDD rapid feedback | MDAP | ~1-3s per task enables tight loops |
+| Multi-file coordination | CLI Sprint | CLI handles file relationships |
+| Production workloads | CLI Sprint | More robust, handles edge cases |
+| Prototyping | MDAP | Speed over robustness |

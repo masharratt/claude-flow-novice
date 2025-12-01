@@ -1,0 +1,41 @@
+{
+  "name": "@cfn/seo-research-service",
+  "version": "1.0.0",
+  "description": "SEO Intelligence ResearchService - Phase 1 Sprint 1",
+  "main": "dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "example": "ts-node lib/example-usage.ts",
+    "clean": "rm -rf dist",
+    "test": "jest",
+    "test:unit": "jest --testPathPattern=lib/__tests__",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "seo",
+    "research",
+    "serp",
+    "content-analysis",
+    "rate-limiting",
+    "caching"
+  ],
+  "author": "CFN SEO Team",
+  "license": "MIT",
+  "dependencies": {
+    "ioredis": "^5.3.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.10.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

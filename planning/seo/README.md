@@ -748,6 +748,7 @@ The intelligence system complements the content pipeline by:
 | [COMPETITOR_ANALYSIS_PLAYBOOK.md](./COMPETITOR_ANALYSIS_PLAYBOOK.md) | Step-by-step process for analyzing winning sites |
 | [ALGORITHM_PREDICTION_MODEL.md](./ALGORITHM_PREDICTION_MODEL.md) | Risk scoring, promotion potential, predictions |
 | [CROSS_DOMAIN_LEARNING.md](./CROSS_DOMAIN_LEARNING.md) | Pattern sharing, confidence scoring, validation |
+| [SEO_INTELLIGENCE_INTEGRATION_IMPLEMENTATION.md](./SEO_INTELLIGENCE_INTEGRATION_IMPLEMENTATION.md) | **Implementation plan** for integrating into pipeline |
 
 ## Key Concepts
 

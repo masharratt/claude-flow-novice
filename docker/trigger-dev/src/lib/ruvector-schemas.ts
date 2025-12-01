@@ -546,3 +546,233 @@ export function isPerformancePatternEntry(obj: any): obj is PerformancePatternEn
     typeof obj.metadata.issueType === 'string'
   );
 }
+
+// =============================================
+// Collection 6: MDAP Model Performance
+// =============================================
+
+/**
+ * MDAP Model Performance Entry
+ *
+ * Stores MDAP model execution metrics for performance analysis
+ * and intelligent tier selection. Enables learning which models
+ * perform best for different task types.
+ *
+ * Use cases:
+ * - Track model success rates and quality scores
+ * - Identify underperforming models for deprecation
+ * - Generate prompt optimization recommendations
+ * - Route tasks to best-performing models
+ */
+export interface MDAPModelPerformanceEntry {
+  /**
+   * Vector embedding source
+   * Combines model context and task pattern for semantic search
+   * Format: "<modelName> | Tier: <tier> | TaskType: <taskType> | Patterns: <failurePatterns.join('; ')>"
+   */
+  text: string;
+
+  /**
+   * Structured metadata for filtering and analytics
+   */
+  metadata: {
+    // Model identification
+    /** Model name (e.g., "openai/gpt-oss-20b", "openai/gpt-oss-120b") */
+    modelName: string;
+
+    /** Tier level (1-3, where 1=haiku, 2=sonnet, 3=opus) */
+    tier: 1 | 2 | 3;
+
+    /** Canonical tier name */
+    tierName: 'haiku' | 'sonnet' | 'opus';
+
+    // Task classification
+    /** Task type that was executed */
+    taskType: 'simple' | 'moderate' | 'complex';
+
+    /** Task category (e.g., "implementation", "refactoring", "testing") */
+    taskCategory: string;
+
+    // Performance metrics
+    /** Success rate over all attempts (0.0-1.0) */
+    successRate: number;
+
+    /** Average validator quality score (0.0-1.0) */
+    avgQualityScore: number;
+
+    /** Average execution duration in milliseconds */
+    avgDurationMs: number;
+
+    /** Average cost per execution */
+    avgCost: number;
+
+    /** Total execution attempts */
+    totalAttempts: number;
+
+    /** Successful attempts */
+    successfulAttempts: number;
+
+    /** Failed attempts */
+    failedAttempts: number;
+
+    // Failure analysis
+    /** List of recurring failure patterns */
+    failurePatterns: string[];
+
+    /** Frequency of each failure pattern */
+    failurePatternFrequency: Record<string, number>;
+
+    /** Common error types encountered */
+    commonErrorTypes: string[];
+
+    // Tier escalation tracking
+    /** Number of times escalation was triggered from this tier */
+    escalationCount: number;
+
+    /** Average number of retries before success */
+    avgRetriesBeforeSuccess: number;
+
+    // Timing
+    /** Unix timestamp of first recorded execution */
+    firstSeen: number;
+
+    /** Unix timestamp of most recent execution */
+    lastSeen: number;
+
+    /** Time window for metrics (hours) */
+    timeWindowHours: number;
+
+    // Status
+    /** Whether model is marked as deprecated */
+    isDeprecated: boolean;
+
+    /** Deprecation reason if applicable */
+    deprecationReason?: string;
+  };
+}
+
+// =============================================
+// Collection 7: Prompt Optimization Recommendations
+// =============================================
+
+/**
+ * Prompt Optimization Recommendation Entry
+ *
+ * Stores AI-generated recommendations for improving prompts
+ * based on failure patterns and success analysis.
+ *
+ * Use cases:
+ * - Suggest prompt improvements based on failure patterns
+ * - Track which prompt modifications improve success rates
+ * - Build a library of effective prompt patterns
+ * - Auto-enhance prompts for struggling models
+ */
+export interface PromptOptimizationRecommendationEntry {
+  /**
+   * Vector embedding source
+   * Combines issue context and recommendation for semantic search
+   * Format: "<modelName> T<tier> | Issue: <issue> | Recommendation: <recommendedAdditions.join('; ')>"
+   */
+  text: string;
+
+  /**
+   * Structured metadata for filtering and analytics
+   */
+  metadata: {
+    // Target identification
+    /** Model name this recommendation applies to */
+    modelName: string;
+
+    /** Tier level (1-3) */
+    tier: 1 | 2 | 3;
+
+    /** Task type this recommendation targets */
+    taskType: string;
+
+    // Issue analysis
+    /** Type of issue being addressed */
+    issue: 'low_quality' | 'high_failure_rate' | 'slow_execution' | 'type_errors' | 'runtime_errors' | 'incomplete_output';
+
+    /** Issue severity (1-10, higher = more severe) */
+    issueSeverity: number;
+
+    /** Detailed description of the issue */
+    issueDescription: string;
+
+    // Current state
+    /** Current prompt features/patterns being used */
+    currentPromptFeatures: string[];
+
+    /** Failure examples that led to this recommendation */
+    failureExamples: string[];
+
+    // Recommendations
+    /** Suggested prompt additions/modifications */
+    recommendedAdditions: string[];
+
+    /** Suggested prompt removals */
+    recommendedRemovals: string[];
+
+    /** Priority level for applying this recommendation */
+    priority: 'critical' | 'high' | 'medium' | 'low';
+
+    /** Rationale explaining why this change helps */
+    rationale: string;
+
+    // Effectiveness tracking
+    /** Confidence in this recommendation (0.0-1.0) */
+    confidence: number;
+
+    /** Number of attempts this recommendation is based on */
+    basedOnAttempts: number;
+
+    /** Whether this recommendation has been applied */
+    applied: boolean;
+
+    /** Success rate after applying recommendation (if applied) */
+    postApplicationSuccessRate?: number;
+
+    /** Improvement delta (postSuccessRate - preSuccessRate) */
+    improvementDelta?: number;
+
+    // Timing
+    /** Unix timestamp when recommendation was generated */
+    timestamp: number;
+
+    /** Unix timestamp when recommendation was applied (if applied) */
+    appliedAt?: number;
+  };
+}
+
+// =============================================
+// MDAP Type Guards
+// =============================================
+
+/**
+ * Type guard for MDAPModelPerformanceEntry
+ */
+export function isMDAPModelPerformanceEntry(obj: any): obj is MDAPModelPerformanceEntry {
+  return (
+    typeof obj === 'object' &&
+    typeof obj.text === 'string' &&
+    typeof obj.metadata === 'object' &&
+    typeof obj.metadata.modelName === 'string' &&
+    typeof obj.metadata.tier === 'number' &&
+    typeof obj.metadata.successRate === 'number'
+  );
+}
+
+/**
+ * Type guard for PromptOptimizationRecommendationEntry
+ */
+export function isPromptOptimizationRecommendationEntry(obj: any): obj is PromptOptimizationRecommendationEntry {
+  return (
+    typeof obj === 'object' &&
+    typeof obj.text === 'string' &&
+    typeof obj.metadata === 'object' &&
+    typeof obj.metadata.modelName === 'string' &&
+    typeof obj.metadata.tier === 'number' &&
+    typeof obj.metadata.issue === 'string' &&
+    Array.isArray(obj.metadata.recommendedAdditions)
+  );
+}

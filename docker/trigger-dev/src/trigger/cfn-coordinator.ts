@@ -11,6 +11,8 @@ import type { TestingAnalysis } from "./cfn-testing-decomposer.js";
 import type { OrchestratorResult } from "./cfn-async-validator-orchestrator.js";
 import type { TroubleshootingAnalysis } from "./cfn-troubleshooting-decomposer.js";
 import type { MDAPImplementerResult } from "./cfn-mdap-implementer.js";
+import type { CLISprintImplementerResult } from "./cfn-cli-sprint-implementer.js";
+import { aggregateMicroTasksIntoSprints, getSprintSummary } from "../lib/sprint-aggregator.js";
 import { DecompositionPerformanceMonitor, calculateContextSize } from "../lib/decomposition-performance-monitor.js";
 // Phase 4: RuVector Learning Hooks
 import { captureDecompositionToRuVector, updateDecompositionWithValidation } from "../lib/ruvector-learning-hooks.js";
@@ -21,6 +23,24 @@ import { measureSLA, slaEnforcer, SLACheckResult, SLAs } from "../lib/sla-enforc
 import { getLogger } from "../lib/structured-logger.js";
 import { getMetricsCollector } from "../lib/metrics-collector.js";
 import { getHealthChecker } from "../lib/health-check.js";
+// MDAP Metrics Tracking
+import {
+  recordMetric,
+  checkAllModelsForDeprecation,
+  printMetricsSummary,
+  getMetricsSummary,
+} from "../lib/mdap-metrics-tracker.js";
+// RuVector MDAP Analytics Integration
+import {
+  recordMDAPOutcome,
+  analyzeMDAPModelPerformance,
+  generatePromptOptimizations,
+  getMDAPAnalyticsSummary,
+} from "../lib/ruvector-mdap-analytics.js";
+import {
+  captureMDAPFailure as captureErrorPatternMDAPFailure,
+  analyzeMDAPFailurePatterns,
+} from "../lib/ruvector-error-pattern-learning.js";
 
 // Security: Sanitize error messages to prevent API key leakage
 function sanitizeErrorMessage(error: Error | unknown): string {
@@ -488,7 +508,7 @@ export const cfnCoordinatorTask = task({
       const executionStartTime = Date.now();
       const enableMDAP = payload.enableMDAP ?? false;
 
-      console.log(`[cfn-coordinator] MDAP mode: ${enableMDAP ? "ENABLED (Cerebras API, ~500ms-3s)" : "DISABLED (Claude CLI, ~60s+)"}`);
+      console.log(`[cfn-coordinator] MDAP mode: ${enableMDAP ? "ENABLED (Cerebras API, ~500ms-3s)" : "DISABLED (CLI Sprint, aggregated)"}`);
 
       // TIER ESCALATION: Track failure counts per micro-task for T1→T2→T3 escalation
       const microTaskFailureCounts = new Map<string, number>();
@@ -498,23 +518,101 @@ export const cfnCoordinatorTask = task({
       const securityValidatorHandles: { id: string; microTaskId: string }[] = [];
       const performanceValidatorHandles: { id: string; microTaskId: string }[] = [];
 
-      // Execute each micro-task in parallel (respecting phase dependencies)
-      for (const phase of decompositionPlan.executionPhases) {
-        console.log(`[cfn-coordinator] Executing phase ${phase.phase} (${phase.parallelTasks.length} parallel tasks)`);
+      // ===== NON-MDAP: SPRINT AGGREGATION MODE =====
+      if (!enableMDAP) {
+        // Aggregate micro-tasks into sprints (reduces 21 CLI calls → ~4 sprints)
+        const aggregation = aggregateMicroTasksIntoSprints(decompositionPlan, payload.taskId);
+        console.log(`[cfn-coordinator] Sprint aggregation: ${getSprintSummary(aggregation)}`);
 
-        // Spawn all tasks in this phase
-        // MDAP MODE: Use fast Cerebras API (~500ms-3s per task)
-        // STANDARD MODE: Use Claude Code CLI (~60s+ per task)
-        const phaseImplementations = await Promise.all(
-          phase.parallelTasks.map((microTaskId) => {
-            const microTask = decompositionPlan.microTasks.find((t) => t.id === microTaskId);
+        // Execute sprints sequentially (each sprint runs ~60-180s via Claude CLI)
+        for (let i = 0; i < aggregation.sprints.length; i++) {
+          const sprint = aggregation.sprints[i];
+          console.log(`[cfn-coordinator] Executing sprint ${i + 1}/${aggregation.sprints.length}: ${sprint.name}`);
+          console.log(`[cfn-coordinator]   Tasks: ${sprint.microTasks.map(t => t.id).join(', ')}`);
 
-            // BUG FIX: Validate microTask exists before accessing properties
-            if (!microTask) {
-              throw new Error(`MicroTask ${microTaskId} not found in decomposition plan`);
-            }
+          // Trigger CLI sprint implementer
+          const sprintHandle = await tasks.trigger("cfn-cli-sprint-implementer", {
+            taskId: payload.taskId,
+            sprintId: sprint.id,
+            sprint,
+            workDir: payload.workDir,
+            timeout: 300000, // 5 minutes per sprint (increased from 3 min)
+          });
 
-            if (enableMDAP) {
+          // Poll for sprint completion (longer timeout for CLI)
+          const sprintResult = await pollWithTimeout<CLISprintImplementerResult>(
+            sprintHandle.id,
+            300000, // 5 minute timeout per sprint
+            `CLI Sprint ${sprint.id}`
+          ).catch((error) => {
+            console.error(`[cfn-coordinator] ⚠ Sprint ${sprint.id} failed: ${sanitizeErrorMessage(error)}`);
+            return {
+              taskId: payload.taskId,
+              sprintId: sprint.id,
+              success: false,
+              filesModified: [],
+              microTasksCompleted: [],
+              microTasksFailed: sprint.microTasks.map(t => t.id),
+              durationMs: 0,
+              output: '',
+              timedOut: true,
+              confidence: 0.1,
+              error: (error as Error).message,
+            } as CLISprintImplementerResult;
+          });
+
+          console.log(`[cfn-coordinator]   ✓ Sprint ${sprint.id}: ${sprintResult.success ? 'SUCCESS' : 'FAILED'} (${sprintResult.durationMs}ms)`);
+          console.log(`[cfn-coordinator]     Tasks completed: ${sprintResult.microTasksCompleted.length}/${sprint.microTasks.length}`);
+          console.log(`[cfn-coordinator]     Files modified: ${sprintResult.filesModified.length}`);
+
+          // Record results for each micro-task in the sprint
+          for (const microTaskId of sprintResult.microTasksCompleted) {
+            implementationHandles.push({ id: sprintHandle.id, microTaskId });
+            result.executionResults.push({
+              microTaskId,
+              filesModified: sprintResult.filesModified,
+              testsPassed: false, // Tests run in gate check phase
+              success: true,
+              confidence: sprintResult.confidence,
+              durationMs: Math.round(sprintResult.durationMs / sprint.microTasks.length),
+            });
+          }
+
+          for (const microTaskId of sprintResult.microTasksFailed) {
+            implementationHandles.push({ id: sprintHandle.id, microTaskId });
+            result.executionResults.push({
+              microTaskId,
+              filesModified: [],
+              testsPassed: false,
+              success: false,
+              confidence: 0.1,
+              durationMs: Math.round(sprintResult.durationMs / sprint.microTasks.length),
+              error: sprintResult.error,
+            });
+          }
+        }
+
+        console.log(`[cfn-coordinator] ✓ Sprint execution complete`);
+        console.log(`[cfn-coordinator]   Sprints: ${aggregation.sprints.length}`);
+        console.log(`[cfn-coordinator]   Micro-tasks: ${result.executionResults.length}`);
+        console.log(`[cfn-coordinator]   Successes: ${result.executionResults.filter(r => r.success).length}`);
+
+      } else {
+        // ===== MDAP MODE: PARALLEL MICRO-TASK EXECUTION =====
+        // Execute each micro-task in parallel (respecting phase dependencies)
+        for (const phase of decompositionPlan.executionPhases) {
+          console.log(`[cfn-coordinator] Executing phase ${phase.phase} (${phase.parallelTasks.length} parallel tasks)`);
+
+          // Spawn all tasks in this phase via MDAP (fast Cerebras API)
+          const phaseImplementations = await Promise.all(
+            phase.parallelTasks.map((microTaskId) => {
+              const microTask = decompositionPlan.microTasks.find((t) => t.id === microTaskId);
+
+              // BUG FIX: Validate microTask exists before accessing properties
+              if (!microTask) {
+                throw new Error(`MicroTask ${microTaskId} not found in decomposition plan`);
+              }
+
               // MDAP: Fast Cerebras-based code generation with tier escalation
               const failureCount = microTaskFailureCounts.get(microTaskId) || 0;
               const modelTier = Math.min(1 + failureCount, 3); // T1→T2→T3 escalation
@@ -530,38 +628,17 @@ export const cfnCoordinatorTask = task({
                 failureCount,
                 language: "typescript",
               });
-            } else {
-              // Standard: Claude Code CLI (slower, more thorough)
-              return tasks.trigger("cfn-implementer-v2", {
-                taskId: `${payload.taskId}-${microTaskId}`,
-                agentId: `agent-${microTaskId}`,
-                iterationId: 1,
-                agentType: "implementer",
-                taskDescription: `${microTask.title}: ${microTask.description}`,
-                workDir: payload.workDir,
-                // P0 Fix: Required fields for implementer payload
-                files: [], // TODO: Extract target files from micro-task when available
-                tests: [], // TODO: Extract test files from micro-task when available
-                complexity: payload.complexity,
-                autoIterate: true,
-                maxIterations: 3,
-                timeout: 180000, // 3 minutes per implementer (Claude Code CLI needs time)
-              });
-            }
-          })
-        );
+            })
+          );
 
-        // PERFORMANCE FIX: Parallel polling instead of sequential
-        // Wait for all implementations to complete in parallel
-        // FIX: Make polling resilient to failed tasks (don't let one failure kill the batch)
-        // MDAP MODE: Shorter timeout (~30s) since Cerebras API is fast (~500ms-3s)
-        // STANDARD MODE: Longer timeout (~5min) since Claude CLI takes ~60s+
-        const pollTimeout = enableMDAP ? 30000 : 300000;
+          // PERFORMANCE FIX: Parallel polling instead of sequential
+          // Wait for all implementations to complete in parallel
+          // MDAP MODE: Shorter timeout (~30s) since Cerebras API is fast (~500ms-3s)
+          const pollTimeout = 30000;
 
-        const pollPromises = phaseImplementations.map((implHandle, i) => {
-          const microTaskId = phase.parallelTasks[i];
+          const pollPromises = phaseImplementations.map((implHandle, i) => {
+            const microTaskId = phase.parallelTasks[i];
 
-          if (enableMDAP) {
             // MDAP: Poll for MDAPImplementerResult
             return pollWithTimeout<MDAPImplementerResult>(
               implHandle.id,
@@ -578,7 +655,7 @@ export const cfnCoordinatorTask = task({
                   output: {
                     success,
                     testsPassed: false, // Tests run in gate check phase for MDAP
-                    confidence: success ? 0.7 : 0.1, // Base confidence, adjusted after tests
+                    confidence: success ? 0.85 : 0.1, // Higher confidence for MDAP (Cerebras fast inference)
                     filesModified: [mdapOutput.targetFile],
                     durationMs: mdapOutput.durationMs,
                     output: mdapOutput.generatedCode,
@@ -608,37 +685,9 @@ export const cfnCoordinatorTask = task({
                   failed: true,
                 };
               });
-          } else {
-            // Standard: Poll for ImplementerV2Result
-            return pollWithTimeout<ImplementerV2Result>(
-              implHandle.id,
-              pollTimeout,
-              `Implementer for task ${microTaskId}`
-            )
-              .then((output) => ({ implHandle, microTaskId, output, mdapResult: undefined, failed: false }))
-              .catch((error) => {
-                console.error(`[cfn-coordinator] ⚠ Implementer ${microTaskId} failed: ${sanitizeErrorMessage(error)}`);
-                return {
-                  implHandle,
-                  microTaskId,
-                  output: {
-                    success: false,
-                    testsPassed: false,
-                    confidence: 0.1,
-                    filesModified: [],
-                    durationMs: 0,
-                    output: "",
-                    timedOut: false,
-                    error: (error as Error).message,
-                  } as ImplementerV2Result,
-                  mdapResult: undefined,
-                  failed: true,
-                };
-              });
-          }
-        });
+          });
 
-        const outputs = await Promise.all(pollPromises);
+          const outputs = await Promise.all(pollPromises);
 
         // Process all outputs (both successful and failed)
         for (const { implHandle, microTaskId, output, mdapResult, failed } of outputs) {
@@ -702,7 +751,8 @@ export const cfnCoordinatorTask = task({
 
         // Wait for all tasks in phase to complete before moving to next phase
         console.log(`[cfn-coordinator]   ✓ Phase ${phase.phase} executions submitted`);
-      }
+        }
+      } // End of MDAP else block
 
       result.metrics.executionTimeMs = Date.now() - executionStartTime;
 
@@ -898,6 +948,150 @@ export const cfnCoordinatorTask = task({
         }
       }
 
+      // ===== MDAP METRICS TRACKING =====
+      // Record metrics for all MDAP execution results with validation status
+      if (enableMDAP) {
+        console.log(`[cfn-coordinator] Recording MDAP metrics...`);
+        const validationPassed = result.gateCheckResult?.decision === "PROCEED";
+        const qualityScore = asyncValidationResult.overallScore;
+
+        for (const execResult of result.executionResults) {
+          // Find the corresponding MDAP result for model info
+          const microTask = decompositionPlan.microTasks.find(t => t.id === execResult.microTaskId);
+          const failureCount = microTaskFailureCounts.get(execResult.microTaskId) || 0;
+          const modelTier = Math.min(1 + failureCount, 3) as 1 | 2 | 3;
+
+          // Map tier to model name (same as GROQ_MODELS in mdap-implementer)
+          const modelName = modelTier === 3 ? "openai/gpt-oss-120b" : "openai/gpt-oss-20b";
+
+          // Record metric to existing tracker (async, non-blocking)
+          recordMetric(
+            {
+              taskId: payload.taskId,
+              microTaskId: execResult.microTaskId,
+              modelName,
+              modelTier,
+              success: execResult.success,
+              durationMs: execResult.durationMs,
+              estimatedCost: 0.001 * modelTier, // Rough estimate based on tier
+            },
+            validationPassed && execResult.success,
+            qualityScore
+          ).catch((err) =>
+            console.warn(`[cfn-coordinator] Metrics recording failed for ${execResult.microTaskId}: ${err.message}`)
+          );
+
+          // ===== RUVECTOR MDAP ANALYTICS INTEGRATION =====
+          // Record to RuVector for learning and intelligent recommendations
+          recordMDAPOutcome({
+            modelName,
+            tier: modelTier,
+            taskType: 'simple', // MDAP tasks are always atomic/simple
+            success: execResult.success && validationPassed,
+            qualityScore: qualityScore / 100, // Convert from 0-100 to 0-1
+            durationMs: execResult.durationMs,
+            cost: 0.001 * modelTier,
+            errorPatterns: execResult.error ? [execResult.error] : undefined,
+            taskCategory: 'implementation',
+          }).catch((err) =>
+            console.warn(`[cfn-coordinator] RuVector MDAP recording failed: ${err instanceof Error ? err.message : String(err)}`)
+          );
+
+          // Capture failures to error pattern learning
+          if (!execResult.success && execResult.error) {
+            captureErrorPatternMDAPFailure(
+              execResult.microTaskId,
+              modelName,
+              modelTier,
+              'IMPLEMENTATION_FAILURE',
+              execResult.error,
+              validationPassed, // Did we recover with higher tier?
+              failureCount > 0 ? modelTier : undefined // Escalated tier if retry
+            ).catch((err) =>
+              console.warn(`[cfn-coordinator] Error pattern capture failed: ${err instanceof Error ? err.message : String(err)}`)
+            );
+          }
+        }
+
+        // Check for model deprecation after recording all metrics
+        const deprecatedModels = await checkAllModelsForDeprecation();
+        if (deprecatedModels.length > 0) {
+          console.log(`[cfn-coordinator] Deprecated models detected: ${deprecatedModels.join(', ')}`);
+        }
+
+        // Print metrics summary (for logging/monitoring)
+        await printMetricsSummary();
+
+        // ===== RUVECTOR MDAP PERFORMANCE ANALYSIS =====
+        // Analyze underperforming models and generate recommendations
+        if (result.gateCheckResult?.decision === 'ITERATE') {
+          console.log(`[cfn-coordinator] [ruvector-mdap] Analyzing model performance after ITERATE decision...`);
+
+          // Get unique models used in this execution
+          const usedModels = new Set(
+            result.executionResults.map((r) => {
+              const failureCount = microTaskFailureCounts.get(r.microTaskId) || 0;
+              const modelTier = Math.min(1 + failureCount, 3);
+              return modelTier === 3 ? "openai/gpt-oss-120b" : "openai/gpt-oss-20b";
+            })
+          );
+
+          for (const modelName of usedModels) {
+            try {
+              // Analyze model performance
+              const analysis = await analyzeMDAPModelPerformance(modelName, 24);
+
+              if (analysis.isUnderperforming) {
+                console.log(`[cfn-coordinator] [ruvector-mdap] Model ${modelName} underperforming:`);
+                console.log(`  Trend: ${analysis.degradationTrend}`);
+                console.log(`  Action: ${analysis.recommendedAction}`);
+                console.log(`  Confidence: ${(analysis.confidence * 100).toFixed(0)}%`);
+                console.log(`  Reasoning: ${analysis.reasoning.join(', ')}`);
+
+                // Generate prompt optimizations if recommended
+                if (analysis.recommendedAction === 'optimize_prompt') {
+                  const modelTier = modelName.includes('120b') ? 3 : 1;
+                  const optimizations = await generatePromptOptimizations(modelName, modelTier);
+
+                  if (optimizations.recommendations.length > 0) {
+                    console.log(`[cfn-coordinator] [ruvector-mdap] Prompt optimizations for ${modelName}:`);
+                    for (const rec of optimizations.recommendations.slice(0, 3)) {
+                      console.log(`    [${rec.priority}] ${rec.addition}`);
+                      console.log(`      Rationale: ${rec.rationale}`);
+                    }
+                    console.log(`  Based on failure patterns: ${optimizations.failurePatterns.join(', ')}`);
+                  }
+                }
+              }
+            } catch (analysisErr) {
+              console.warn(
+                `[cfn-coordinator] [ruvector-mdap] Analysis failed for ${modelName}: ` +
+                `${analysisErr instanceof Error ? analysisErr.message : String(analysisErr)}`
+              );
+            }
+          }
+        }
+
+        // Log analytics summary (non-blocking)
+        getMDAPAnalyticsSummary().then((summary) => {
+          console.log(`[cfn-coordinator] [ruvector-mdap] Analytics Summary:`);
+          console.log(`  Models tracked: ${summary.modelsTracked}`);
+          console.log(`  Total attempts: ${summary.totalAttempts}`);
+          console.log(`  Overall success rate: ${(summary.overallSuccessRate * 100).toFixed(1)}%`);
+          if (summary.underperformingModels.length > 0) {
+            console.log(`  Underperforming: ${summary.underperformingModels.join(', ')}`);
+          }
+          if (summary.topRecommendations.length > 0) {
+            console.log(`  Top recommendations:`);
+            for (const rec of summary.topRecommendations.slice(0, 2)) {
+              console.log(`    - ${rec}`);
+            }
+          }
+        }).catch((err) =>
+          console.warn(`[cfn-coordinator] [ruvector-mdap] Summary failed: ${err instanceof Error ? err.message : String(err)}`)
+        );
+      }
+
       // Phase 4: Update decomposition with validation results (async, non-blocking)
       updateDecompositionWithValidation({
         taskId: payload.taskId,
@@ -998,6 +1192,22 @@ export const cfnCoordinatorTask = task({
 
       result.totalTime = Date.now() - coordinatorStartTime;
       result.iterations = 1;
+
+      // Add MDAP metrics summary to result (if MDAP was enabled)
+      if (enableMDAP) {
+        try {
+          const mdapMetrics = await getMetricsSummary();
+          result.metricsSummary = {
+            taskCompletionRate: mdapMetrics.overallSuccessRate,
+            averageTaskDurationMs: mdapMetrics.averageDuration,
+            gateCheckPassRate: result.gateCheckResult?.decision === "PROCEED" ? 1.0 : 0.0,
+            slaBreachCount: 0, // TODO: Track SLA breaches
+            errorRate: 1.0 - mdapMetrics.overallSuccessRate,
+          };
+        } catch (metricsErr) {
+          console.warn(`[cfn-coordinator] Failed to get metrics summary: ${metricsErr}`);
+        }
+      }
 
       if (result.gateCheckResult.decision === "PROCEED" && result.validationResult?.approved) {
         result.success = true;

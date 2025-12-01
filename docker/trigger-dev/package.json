@@ -14,8 +14,9 @@
     "clean": "rm -rf dist .trigger",
     "trigger:test": "npx trigger test hello-world",
     "trigger:stress": "npx trigger test hello-world-stress-test",
-    "test": "jest --verbose --coverage",
-    "test:watch": "jest --watch",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --verbose --coverage",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest --watch",
+    "test:e2e": "npx tsx tests/e2e/run-e2e.ts",
     "test:insert": "jest tests/ruvector/insert.test.ts",
     "test:query": "jest tests/ruvector/query.test.ts",
     "test:collections": "jest tests/ruvector/collections.test.ts",
@@ -39,8 +40,10 @@
     "claude-flow-novice": "^2.16.1",
     "dockerode": "^4.0.2",
     "execa": "^9.6.0",
+    "openai": "^4.77.3",
     "pg": "^8.16.3",
     "ruvector": "^0.1.24",
+    "typescript": "^5.3.3",
     "zod": "^3.22.4"
   },
   "devDependencies": {

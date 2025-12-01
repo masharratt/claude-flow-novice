@@ -8,6 +8,7 @@
  * - Concurrent operations
  */
 
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import {
   initializeRuVector,
   getCollection,

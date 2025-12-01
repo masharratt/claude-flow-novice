@@ -514,6 +514,77 @@ export function validateDependencyGraph(
 // =============================================
 
 /**
+ * Sanitizes malformed JSON by fixing common issues from LLM outputs.
+ * Handles: trailing commas, missing quotes on property names, comments, mixed quotes.
+ *
+ * @param jsonStr Raw JSON string that may be malformed
+ * @returns Sanitized JSON string
+ */
+export function sanitizeJSON(jsonStr: string): string {
+  let sanitized = jsonStr;
+
+  // Remove single-line comments (// ...)
+  sanitized = sanitized.replace(/\/\/[^\n\r]*/g, '');
+
+  // Remove multi-line comments (/* ... */)
+  sanitized = sanitized.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  // Fix trailing commas before ] or }
+  // Match comma followed by optional whitespace/newlines and then ] or }
+  sanitized = sanitized.replace(/,(\s*[}\]])/g, '$1');
+
+  // Fix unquoted property names (simple cases)
+  // Match word characters followed by : that aren't already quoted
+  // This is a best-effort fix for common patterns like: { id: "value" }
+  sanitized = sanitized.replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:)/g, '$1"$2"$3');
+
+  // Fix single quotes to double quotes (but preserve apostrophes in strings)
+  // This is tricky - we only replace single quotes that are likely JSON delimiters
+  // Pattern: Replace 'value' with "value" for property values
+  sanitized = sanitized.replace(/:(\s*)'([^']*?)'/g, ':$1"$2"');
+
+  // Fix arrays with single-quoted strings like ['a', 'b']
+  sanitized = sanitized.replace(/\[(\s*)'([^']*?)'/g, '[$1"$2"');
+  sanitized = sanitized.replace(/,(\s*)'([^']*?)'/g, ',$1"$2"');
+  sanitized = sanitized.replace(/'(\s*)\]/g, '"$1]');
+
+  return sanitized;
+}
+
+/**
+ * Attempts to extract just the microTasks array from a malformed response.
+ * Used as fallback when full JSON parsing fails.
+ *
+ * @param content Raw content that may contain microTasks array
+ * @param contextName Context for error messages
+ * @returns Partial object with microTasks array if found
+ */
+export function extractMicroTasksArray(content: string, contextName: string): { microTasks: unknown[] } | null {
+  // Try to find microTasks array pattern
+  const microTasksMatch = content.match(/"microTasks"\s*:\s*\[([\s\S]*?)\](?=\s*[,}]|\s*$)/);
+
+  if (!microTasksMatch) {
+    return null;
+  }
+
+  try {
+    // Wrap in minimal object and sanitize
+    const wrapped = `{"microTasks":[${microTasksMatch[1]}]}`;
+    const sanitized = sanitizeJSON(wrapped);
+    const parsed = JSON.parse(sanitized);
+
+    if (Array.isArray(parsed.microTasks) && parsed.microTasks.length > 0) {
+      console.log(`[${contextName}] Recovered ${parsed.microTasks.length} microTasks from malformed JSON`);
+      return parsed;
+    }
+  } catch {
+    // Extraction failed
+  }
+
+  return null;
+}
+
+/**
  * Extracts JSON from AI model responses that may include markdown code fences.
  * Handles: ```json\n{...}\n```, ```\n{...}\n```, or raw JSON.
  *
@@ -617,8 +688,13 @@ export function extractJSONFromResponse(content: string, contextName?: string): 
 }
 
 /**
- * Extracts and parses JSON from AI model responses.
- * Combines extraction and parsing with detailed error messages.
+ * Extracts and parses JSON from AI model responses with robust error recovery.
+ * Combines extraction, sanitization, and parsing with multiple fallback strategies.
+ *
+ * Recovery strategies (in order):
+ * 1. Direct JSON.parse on extracted content
+ * 2. Sanitize JSON (fix trailing commas, unquoted keys, comments)
+ * 3. Extract just microTasks array if full parse fails
  *
  * @param content Raw content from AI model response
  * @param contextName Context for error messages
@@ -627,14 +703,30 @@ export function extractJSONFromResponse(content: string, contextName?: string): 
 export function parseJSONFromResponse<T = unknown>(content: string, contextName: string): T {
   const extracted = extractJSONFromResponse(content, contextName);
 
+  // Strategy 1: Direct parse
   try {
     return JSON.parse(extracted) as T;
-  } catch (parseError) {
-    throw new Error(
-      `[${contextName}] Failed to parse JSON content: ${(parseError as Error).message}\n` +
-        `Extracted content (first 300 chars): ${extracted.substring(0, 300)}\n` +
-        `Original content (first 200 chars): ${content.substring(0, 200)}\n` +
-        `This indicates malformed JSON from the AI model. Try regenerating.`
-    );
+  } catch (directParseError) {
+    // Strategy 2: Sanitize and retry
+    try {
+      const sanitized = sanitizeJSON(extracted);
+      return JSON.parse(sanitized) as T;
+    } catch (sanitizedParseError) {
+      // Strategy 3: Extract just microTasks array (common pattern for decomposers)
+      const microTasksResult = extractMicroTasksArray(content, contextName);
+      if (microTasksResult) {
+        // Return partial result with just microTasks
+        return microTasksResult as T;
+      }
+
+      // All strategies failed
+      throw new Error(
+        `[${contextName}] Failed to parse JSON content after sanitization: ${(sanitizedParseError as Error).message}\n` +
+          `Extracted content (first 300 chars): ${extracted.substring(0, 300)}\n` +
+          `Original content (first 200 chars): ${content.substring(0, 200)}\n` +
+          `This indicates severely malformed JSON from the AI model. ` +
+          `Common issues: trailing commas, unquoted property names, embedded comments, mixed quote styles.`
+      );
+    }
   }
 }

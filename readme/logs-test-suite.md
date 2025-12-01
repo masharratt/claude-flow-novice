@@ -596,9 +596,169 @@ All test results are stored in JSON format with the following structure:
 
 ---
 
+## MDAP and RuVector Test Suites
+
+### MDAP Model Analytics Tests
+
+**Location**: `docker/trigger-dev/tests/ruvector/mdap-analytics.test.ts`
+
+**Purpose**: Validate RuVector intelligence layer for MDAP model performance tracking, prompt optimization, and tier selection.
+
+#### Test Coverage (38 tests)
+
+| Category | Tests | Purpose | Status |
+|----------|-------|---------|--------|
+| A. Recording and Retrieval | 4 | Validate metric storage and persistence | ✅ PASSED |
+| B. Performance Analysis | 6 | Test model performance detection (underperforming, degrading, improving) | ✅ PASSED |
+| C. Prompt Optimization | 6 | Validate AI-generated prompt improvements based on failure patterns | ✅ PASSED |
+| D. Performance Queries | 5 | Test historical pattern queries for task routing | ✅ PASSED |
+| E. Tier Selection | 6 | Validate RuVector-aware tier selection with deprecation | ✅ PASSED |
+| F. Error Pattern Capture | 4 | Test MDAP failure pattern storage and grouping | ✅ PASSED |
+| G. Integration Scenarios | 7 | End-to-end iteration cycles with tier escalation | ✅ PASSED |
+
+#### Latest Results
+
+```json
+{
+  "testSuite": "RuVector MDAP Analytics",
+  "timestamp": "2025-12-01T00:00:00Z",
+  "totalTests": 38,
+  "testsPassed": 38,
+  "testsFailed": 0,
+  "successRate": "100%",
+  "coverage": {
+    "statements": "95.25%",
+    "branches": "84.43%",
+    "functions": "100%",
+    "lines": "94.9%"
+  }
+}
+```
+
+#### Key Features Tested
+
+**Model Performance Analysis**:
+- Detects underperforming models (success rate < 60%)
+- Identifies degradation trends (improving/stable/degrading)
+- Recommends actions (continue/deprecate/escalate_tier/optimize_prompt)
+- Confidence scoring based on data volume
+
+**Prompt Optimization**:
+- Generates prompt improvements from failure patterns
+- Prioritizes recommendations (critical/high/medium/low)
+- Maps error types to specific prompt additions
+- Example: "73% TYPE_ERROR → Add explicit type annotations"
+
+**Intelligent Tier Selection**:
+- Skips deprecated models automatically
+- Routes complex tasks to higher tiers based on history
+- Falls back gracefully when no history exists
+- Tier escalation on iteration failures
+
+### MDAP Integration Tests
+
+**Location**: `docker/trigger-dev/tests/integration/ruvector-mdap-integration.test.ts`
+
+**Purpose**: Validate end-to-end flow from coordinator through RuVector analytics to tier selection.
+
+#### Test Coverage (13 tests)
+
+| Category | Tests | Purpose |
+|----------|-------|---------|
+| Coordinator to RuVector Flow | 2 | Data recording and retrieval |
+| Analysis and Recommendations | 2 | Performance analysis and prompt optimization |
+| Tier Selection with RuVector | 3 | Historical pattern-based routing |
+| Performance Pattern Queries | 2 | Task complexity matching |
+| Metrics Consistency | 2 | Basic tracker + RuVector alignment |
+| Error Recovery Flow | 1 | Failure handling and retry |
+| Summary Statistics | 1 | Aggregate metrics reporting |
+
+#### Latest Results
+
+```json
+{
+  "testSuite": "RuVector MDAP Integration",
+  "timestamp": "2025-12-01T00:00:00Z",
+  "totalTests": 13,
+  "testsPassed": 13,
+  "testsFailed": 0,
+  "successRate": "100%",
+  "duration": "3.2s"
+}
+```
+
+### MDAP Test Execution
+
+```bash
+# Run MDAP analytics tests
+cd docker/trigger-dev
+npm test -- --config jest.config.mdap.cjs tests/ruvector/mdap-analytics.test.ts
+
+# Run integration tests
+npm test -- tests/integration/ruvector-mdap-integration.test.ts
+
+# Run all MDAP tests
+npm test -- --config jest.config.mdap.cjs
+```
+
+### Self-Improvement Flow Validation
+
+**Test validates this learning cycle**:
+
+```
+Iteration 1:
+  → All tasks use T1 (gpt-oss-20b)
+  → Gate check: 59% (FAIL)
+  → RuVector records: 13 failures, 9 successes
+
+RuVector Analysis:
+  → Success rate: 41% (below 60% threshold)
+  → Trend: degrading
+  → Failure patterns: TYPE_ERROR (73%)
+  → Recommendations:
+      - [critical] Add explicit type annotations
+      - [high] Handle null/undefined edge cases
+
+Iteration 2:
+  → Failed tasks escalate to T2
+  → Enhanced prompts applied
+  → Gate check: 68% (FAIL)
+  → RuVector records: T2 better but still below threshold
+
+Iteration 3:
+  → Tasks escalate to T3 (gpt-oss-120b)
+  → RuVector recommends: Skip T1 for future complex tasks
+  → Gate check: 87% (PASS)
+  → Success!
+
+Next Similar Task:
+  → RuVector queries history
+  → Finds: Complex tasks fail 80% on T1
+  → Decision: Start at T2, skip T1 entirely
+  → Result: Pass on first iteration (learned!)
+```
+
+### RuVector Schema Validation
+
+**Collections tested**:
+- `MDAP_MODEL_PERFORMANCE` - Performance metrics by model/tier
+- `PROMPT_OPTIMIZATIONS` - AI-generated prompt improvements
+- Error pattern storage with failure grouping
+- Cross-model performance comparison
+
+### Model Deprecation Testing
+
+**Thresholds validated**:
+- T1: Deprecated if success rate < 60% after 20+ attempts
+- T2: Deprecated if success rate < 75% after 20+ attempts
+- T3: Deprecated if success rate < 85% after 20+ attempts
+- Automatic tier promotion when model deprecated
+
+---
+
 ## Conclusion
 
-The Claude Flow Novice test suite provides comprehensive validation of all system components, from basic agent functionality to complex distributed coordination. The test coverage spans Task Mode, CLI Mode, and Docker Mode, ensuring compatibility across different deployment environments while maintaining high reliability and performance standards.
+The Claude Flow Novice test suite provides comprehensive validation of all system components, from basic agent functionality to complex distributed coordination. The test coverage spans Task Mode, CLI Mode, Docker Mode, and the new MDAP intelligence layer, ensuring compatibility across different deployment environments while maintaining high reliability and performance standards.
 
 **Key Achievements:**
 - ✅ 100% test success rate across all core suites

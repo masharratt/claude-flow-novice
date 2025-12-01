@@ -8,6 +8,7 @@
  * - Collection isolation (queries on one don't affect others)
  */
 
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import {
   initializeRuVector,
   getCollection,

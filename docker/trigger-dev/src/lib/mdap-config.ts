@@ -425,3 +425,68 @@ export {
   type AtomicityAnalysis,
   type MicroTask,
 };
+
+// =============================================
+// RuVector-Aware Tier Selection
+// =============================================
+
+/**
+ * Select model tier with RuVector intelligence
+ *
+ * Uses historical performance data from RuVector to make smarter tier
+ * selection decisions. Falls back to standard selection if RuVector
+ * is unavailable or has insufficient data.
+ *
+ * @param complexityLevel - Task complexity classification
+ * @param currentTier - Current tier if retrying
+ * @param failureCount - Number of previous failures
+ * @param taskType - Optional task type hint
+ * @returns Selected ModelTier
+ *
+ * @example
+ * // With RuVector enabled
+ * const tier = await selectModelTierWithRuVector('simple', 1, 0, 'implementation');
+ * // If RuVector shows T1 has <60% success for similar tasks, may recommend T2
+ */
+export async function selectModelTierWithRuVector(
+  complexityLevel: string,
+  currentTier: number = 1,
+  failureCount: number = 0,
+  taskType?: string
+): Promise<ModelTier> {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { selectModelTierWithRuVector: ruVectorSelect } = await import('./ruvector-mdap-analytics.js');
+
+    // Get RuVector recommendation
+    const recommendedTierNumber = await ruVectorSelect(complexityLevel, failureCount, taskType);
+
+    // Use the higher of current tier, failure-escalated tier, or RuVector recommendation
+    const baseTier = selectModelTier(complexityLevel, currentTier, failureCount);
+    const selectedTierNumber = Math.max(baseTier.tier, recommendedTierNumber);
+
+    const finalTier = Math.min(selectedTierNumber, 3) as 1 | 2 | 3;
+    const modelTier = MODEL_TIERS.find(t => t.tier === finalTier);
+
+    if (!modelTier) {
+      return MODEL_TIERS[1]; // Fallback to tier 2
+    }
+
+    if (modelTier.tier !== baseTier.tier) {
+      console.log(
+        `[mdap-config] RuVector adjusted tier: T${baseTier.tier} -> T${modelTier.tier} ` +
+        `(complexity: ${complexityLevel}, failures: ${failureCount})`
+      );
+    }
+
+    return modelTier;
+  } catch (error) {
+    // Fallback to standard selection if RuVector unavailable
+    console.warn(
+      `[mdap-config] RuVector tier selection failed, using standard: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    return selectModelTier(complexityLevel, currentTier, failureCount);
+  }
+}

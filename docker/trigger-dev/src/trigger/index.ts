@@ -207,3 +207,40 @@ export type {
   MDAPImplementerPayload,
   MDAPImplementerResult,
 } from "./cfn-mdap-implementer.js";
+
+// CLI Sprint Implementer - Aggregated tasks via Claude CLI (Non-MDAP mode)
+export { cfnCLISprintImplementerTask } from "./cfn-cli-sprint-implementer.js";
+export type {
+  CLISprintImplementerPayload,
+  CLISprintImplementerResult,
+  Sprint,
+  SprintMicroTask,
+} from "./cfn-cli-sprint-implementer.js";
+
+// RuVector MDAP Analytics - Intelligent model performance learning
+export {
+  recordMDAPOutcome,
+  analyzeMDAPModelPerformance,
+  generatePromptOptimizations,
+  queryModelPerformancePatterns,
+  selectModelTierWithRuVector,
+  captureMDAPFailure,
+  getMDAPAnalyticsSummary,
+} from "../lib/ruvector-mdap-analytics.js";
+export type {
+  PerformanceAnalysis as MDAPPerformanceAnalysis,
+  PromptOptimization,
+  PromptOptimizationResult,
+  ModelPerformancePattern,
+  MDAPOutcomeInput,
+} from "../lib/ruvector-mdap-analytics.js";
+
+// RuVector Schemas - MDAP Performance Entry Types
+export type {
+  MDAPModelPerformanceEntry,
+  PromptOptimizationRecommendationEntry,
+} from "../lib/ruvector-schemas.js";
+export {
+  isMDAPModelPerformanceEntry,
+  isPromptOptimizationRecommendationEntry,
+} from "../lib/ruvector-schemas.js";

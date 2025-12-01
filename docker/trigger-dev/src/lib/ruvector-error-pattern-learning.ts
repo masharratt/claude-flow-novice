@@ -411,3 +411,293 @@ export function strategyToRetryConfig(strategy: RetryStrategy): RetryConfig {
     backoffFactor: strategy.backoffFactor,
   };
 }
+
+// =============================================
+// Task 4.3.4: MDAP-Specific Error Capture
+// =============================================
+
+/**
+ * MDAP failure record for detailed analysis
+ */
+export interface MDAPFailureRecord {
+  microTaskId: string;
+  modelName: string;
+  tier: number;
+  errorType: string;
+  errorContext: string;
+  retrySucceeded: boolean;
+  escalatedToTier?: number;
+  timestamp: number;
+}
+
+// In-memory MDAP failure store for quick analysis
+const mdapFailureStore: MDAPFailureRecord[] = [];
+
+/**
+ * Capture MDAP implementation failure patterns
+ *
+ * Extends existing error pattern learning with MDAP-specific metadata
+ * for tier escalation analysis and model performance tracking.
+ *
+ * @param microTaskId - Unique micro-task identifier
+ * @param modelName - Model that failed (e.g., "openai/gpt-oss-20b")
+ * @param tier - Model tier (1-3)
+ * @param errorType - Category of error (TIMEOUT, TYPE_ERROR, PARSE_ERROR, etc.)
+ * @param errorContext - Error message/context for pattern matching
+ * @param retrySucceeded - Whether retry with same/escalated tier succeeded
+ * @param escalatedToTier - Tier escalated to (if escalation occurred)
+ *
+ * @example
+ * await captureMDAPFailure(
+ *   "micro-task-123",
+ *   "openai/gpt-oss-20b",
+ *   1,
+ *   "TYPE_ERROR",
+ *   "Property 'foo' does not exist on type 'Bar'",
+ *   false,
+ *   2 // Escalated to T2
+ * );
+ */
+export async function captureMDAPFailure(
+  microTaskId: string,
+  modelName: string,
+  tier: number,
+  errorType: string,
+  errorContext: string,
+  retrySucceeded: boolean,
+  escalatedToTier?: number
+): Promise<void> {
+  try {
+    // Store in memory for quick analysis
+    mdapFailureStore.push({
+      microTaskId,
+      modelName,
+      tier,
+      errorType,
+      errorContext: errorContext.slice(0, 500), // Truncate for storage
+      retrySucceeded,
+      escalatedToTier,
+      timestamp: Date.now(),
+    });
+
+    // Keep store bounded (last 1000 entries)
+    if (mdapFailureStore.length > 1000) {
+      mdapFailureStore.splice(0, mdapFailureStore.length - 1000);
+    }
+
+    // Store in RuVector error_library collection
+    const collection = getCollection(COLLECTIONS.ERROR_LIBRARY);
+
+    // Build error pattern key for matching
+    const patternKey = `MDAP:${modelName}:${errorType}`;
+
+    // Create embedding text for semantic search
+    const embeddingText = `${errorType} | Model: ${modelName} | Tier: ${tier} | Context: ${errorContext.slice(0, 200)}`;
+
+    // Generate simple embedding (in production, use real embedding model)
+    const embedding = generateSimpleEmbedding(embeddingText);
+
+    // Insert into RuVector
+    await collection.insert({
+      id: `mdap-error-${microTaskId}-${Date.now()}`,
+      vector: embedding,
+      metadata: {
+        errorMessage: errorContext.slice(0, 500),
+        errorType,
+        errorPattern: patternKey,
+        rootCause: `MDAP tier ${tier} model ${modelName} failed`,
+        rootCauseConfidence: 0.7,
+        fix: retrySucceeded
+          ? `Retry ${escalatedToTier ? `with tier escalation to T${escalatedToTier}` : 'succeeded'}`
+          : 'Requires manual intervention or further escalation',
+        fixSuccessRate: retrySucceeded ? 1.0 : 0.0,
+        prevention: 'Consider starting at higher tier for similar tasks',
+        timesSeen: 1,
+        firstSeen: Date.now(),
+        lastSeen: Date.now(),
+        component: `cfn-mdap-implementer:${modelName}`,
+        language: 'TypeScript',
+        framework: 'MDAP',
+        severity: escalatedToTier === 3 && !retrySucceeded ? 'high' : 'medium',
+        environments: ['development'],
+        causedBy: [],
+        causes: [],
+        causeConfidence: 0.5,
+        // MDAP-specific metadata
+        mdapModelName: modelName,
+        mdapTier: tier,
+        mdapEscalatedTo: escalatedToTier,
+        mdapRetrySucceeded: retrySucceeded,
+      },
+    });
+
+    console.log(
+      `[error-learning] ✓ Captured MDAP failure: ${modelName} (T${tier}) ` +
+        `${errorType} → ${retrySucceeded ? 'RECOVERED' : 'UNRESOLVED'} ` +
+        `${escalatedToTier ? `(escalated to T${escalatedToTier})` : ''}`
+    );
+  } catch (error) {
+    console.error(
+      `[error-learning] Failed to capture MDAP failure: ${error instanceof Error ? error.message : String(error)}`
+    );
+    // Non-blocking - continue operation even if capture fails
+  }
+}
+
+/**
+ * Analyze MDAP failure patterns for a specific model
+ *
+ * @param modelName - Model name to analyze
+ * @param timeWindowHours - Time window for analysis (default: 24 hours)
+ * @returns Analysis of failure patterns
+ */
+export async function analyzeMDAPFailurePatterns(
+  modelName: string,
+  timeWindowHours: number = 24
+): Promise<{
+  totalFailures: number;
+  errorTypeBreakdown: Record<string, number>;
+  escalationRate: number;
+  recoveryRate: number;
+  mostCommonError: string | null;
+  recommendations: string[];
+}> {
+  const now = Date.now();
+  const windowMs = timeWindowHours * 60 * 60 * 1000;
+
+  // Filter failures for this model in time window
+  const relevantFailures = mdapFailureStore.filter(
+    (f) => f.modelName === modelName && now - f.timestamp < windowMs
+  );
+
+  if (relevantFailures.length === 0) {
+    return {
+      totalFailures: 0,
+      errorTypeBreakdown: {},
+      escalationRate: 0,
+      recoveryRate: 0,
+      mostCommonError: null,
+      recommendations: ['No failure data available for analysis'],
+    };
+  }
+
+  // Calculate metrics
+  const errorTypeBreakdown: Record<string, number> = {};
+  let escalations = 0;
+  let recoveries = 0;
+
+  for (const failure of relevantFailures) {
+    errorTypeBreakdown[failure.errorType] = (errorTypeBreakdown[failure.errorType] || 0) + 1;
+    if (failure.escalatedToTier) escalations++;
+    if (failure.retrySucceeded) recoveries++;
+  }
+
+  const totalFailures = relevantFailures.length;
+  const escalationRate = escalations / totalFailures;
+  const recoveryRate = recoveries / totalFailures;
+
+  // Find most common error
+  let mostCommonError: string | null = null;
+  let maxCount = 0;
+  for (const [errorType, count] of Object.entries(errorTypeBreakdown)) {
+    if (count > maxCount) {
+      maxCount = count;
+      mostCommonError = errorType;
+    }
+  }
+
+  // Generate recommendations
+  const recommendations: string[] = [];
+
+  if (escalationRate > 0.5) {
+    recommendations.push(
+      `High escalation rate (${(escalationRate * 100).toFixed(0)}%) - consider starting at higher tier`
+    );
+  }
+
+  if (recoveryRate < 0.5) {
+    recommendations.push(
+      `Low recovery rate (${(recoveryRate * 100).toFixed(0)}%) - review task atomicity and prompt clarity`
+    );
+  }
+
+  if (mostCommonError) {
+    recommendations.push(`Most common error: ${mostCommonError} (${maxCount} occurrences)`);
+
+    if (mostCommonError.includes('TYPE')) {
+      recommendations.push('Add explicit type annotations to prompts');
+    }
+    if (mostCommonError.includes('TIMEOUT')) {
+      recommendations.push('Reduce task complexity or increase timeout');
+    }
+    if (mostCommonError.includes('PARSE')) {
+      recommendations.push('Simplify expected output format');
+    }
+  }
+
+  return {
+    totalFailures,
+    errorTypeBreakdown,
+    escalationRate,
+    recoveryRate,
+    mostCommonError,
+    recommendations,
+  };
+}
+
+/**
+ * Get MDAP failure summary across all models
+ */
+export async function getMDAPFailureSummary(): Promise<{
+  totalFailures: number;
+  modelBreakdown: Record<string, number>;
+  tierBreakdown: Record<number, number>;
+  overallRecoveryRate: number;
+}> {
+  const modelBreakdown: Record<string, number> = {};
+  const tierBreakdown: Record<number, number> = { 1: 0, 2: 0, 3: 0 };
+  let recoveries = 0;
+
+  for (const failure of mdapFailureStore) {
+    modelBreakdown[failure.modelName] = (modelBreakdown[failure.modelName] || 0) + 1;
+    tierBreakdown[failure.tier] = (tierBreakdown[failure.tier] || 0) + 1;
+    if (failure.retrySucceeded) recoveries++;
+  }
+
+  return {
+    totalFailures: mdapFailureStore.length,
+    modelBreakdown,
+    tierBreakdown,
+    overallRecoveryRate: mdapFailureStore.length > 0 ? recoveries / mdapFailureStore.length : 0,
+  };
+}
+
+/**
+ * Generate simple embedding for text (placeholder - use real embedding model in production)
+ */
+function generateSimpleEmbedding(text: string): Float32Array {
+  const embedding = new Float32Array(1536);
+  const words = text.toLowerCase().split(/\W+/);
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    for (let j = 0; j < word.length; j++) {
+      const index = (word.charCodeAt(j) * (i + 1) * (j + 1)) % 1536;
+      embedding[index] += 0.1;
+    }
+  }
+
+  // Normalize
+  let magnitude = 0;
+  for (let i = 0; i < embedding.length; i++) {
+    magnitude += embedding[i] * embedding[i];
+  }
+  magnitude = Math.sqrt(magnitude);
+  if (magnitude > 0) {
+    for (let i = 0; i < embedding.length; i++) {
+      embedding[i] /= magnitude;
+    }
+  }
+
+  return embedding;
+}

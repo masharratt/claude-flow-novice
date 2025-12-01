@@ -20,6 +20,8 @@
  * @module structured-logger.test
  */
 
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import type { SpyInstance } from 'jest-mock';
 import {
   StructuredLogger,
   initializeLogger,
@@ -29,9 +31,9 @@ import {
 } from '../../src/lib/structured-logger.js';
 
 describe('StructuredLogger', () => {
-  let consoleLogSpy: jest.SpyInstance;
-  let consoleWarnSpy: jest.SpyInstance;
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleLogSpy: SpyInstance;
+  let consoleWarnSpy: SpyInstance;
+  let consoleErrorSpy: SpyInstance;
 
   beforeEach(() => {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});

@@ -90,6 +90,9 @@ export const COLLECTIONS = {
   ERROR_LIBRARY: 'error_library',
   SECURITY_PATTERNS: 'security_patterns',
   PERFORMANCE_PATTERNS: 'performance_patterns',
+  // MDAP Performance Collections (v2.0)
+  MDAP_MODEL_PERFORMANCE: 'mdap_model_performance',
+  PROMPT_OPTIMIZATIONS: 'prompt_optimizations',
 } as const;
 
 /**

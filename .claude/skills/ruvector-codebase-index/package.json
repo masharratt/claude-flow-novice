@@ -1,0 +1,10 @@
+{
+  "name": "ruvector-codebase-index",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "RuVector codebase indexing and search skill",
+  "dependencies": {
+    "openai": "^4.77.3",
+    "typescript": "^5.3.3"
+  }
+}

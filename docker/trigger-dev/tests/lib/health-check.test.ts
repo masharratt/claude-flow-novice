@@ -18,6 +18,8 @@
  * @module health-check.test
  */
 
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import type { SpyInstance } from 'jest-mock';
 import {
   HealthChecker,
   initializeHealthChecker,
@@ -30,6 +32,7 @@ import {
 describe('HealthChecker', () => {
   let checker: HealthChecker;
   let originalEnv: NodeJS.ProcessEnv;
+  let errorSpy: SpyInstance;
 
   beforeEach(() => {
     checker = new HealthChecker();
@@ -386,7 +389,7 @@ describe('HealthChecker', () => {
   describe('Error Handling', () => {
     it('should handle errors gracefully in RuVector check', async () => {
       // Mock console.error to suppress error output
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Simulate error by setting invalid env var
       process.env.RUVECTOR_API_KEY = 'rv_valid';
@@ -401,7 +404,7 @@ describe('HealthChecker', () => {
     });
 
     it('should handle errors gracefully in database check', async () => {
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       process.env.DATABASE_HOST = 'localhost';
       process.env.DATABASE_PORT = '5432';
@@ -416,7 +419,7 @@ describe('HealthChecker', () => {
     });
 
     it('should handle errors gracefully in disk check', async () => {
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await checker.checkDiskSpace();
 
@@ -427,7 +430,7 @@ describe('HealthChecker', () => {
     });
 
     it('should handle errors gracefully in memory check', async () => {
-      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       const result = await checker.checkMemory();
 

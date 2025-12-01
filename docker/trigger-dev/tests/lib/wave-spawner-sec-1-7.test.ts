@@ -21,6 +21,8 @@
  * @module wave-spawner-sec-1-7.test
  */
 
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import type { SpyInstance } from 'jest-mock';
 import {
   validateTaskCount,
   spawnWave,
@@ -209,7 +211,7 @@ describe('Wave Spawner Security Fix sec-1.7', () => {
   // =============================================
 
   describe('Warning Threshold (80% Utilization)', () => {
-    let warnSpy: jest.SpyInstance;
+    let warnSpy: SpyInstance;
 
     beforeEach(() => {
       warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});

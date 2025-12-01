@@ -216,11 +216,36 @@ CEREBRAS_API_KEY=your-cerebras-api-key
 ### E2E Test Summary (2025-11-30)
 | Test | Status | Duration |
 |------|--------|----------|
-| Simple Task Full Flow | ✅ PASSED | 49.2s |
+| Simple Task Full Flow (MDAP) | ✅ PASSED | 49.2s |
 | Validator Consensus Mechanism | ✅ PASSED | 47.5s |
+| Non-MDAP Mode (CLI Sprint) | ⚠️ TIMEOUT FIXED | See below |
 | Context Handoff Through Decomposers | ❌ FAILED | 6.1s |
 
 **Context Handoff Failure:** Race condition - decomposition plan not available quickly enough. Not related to MDAP changes; existing timing issue in test infrastructure.
+
+### CLI Sprint Timeout Issue (FIXED 2025-11-30)
+
+**Problem:** Non-MDAP mode CLI sprint tasks showed "0/22 successful" despite sprints running for ~3 minutes.
+
+**Root Cause Investigation:**
+1. Initial hypothesis: Trigger.dev caching old code with 180s timeout
+2. **Actual root cause:** `cfn-coordinator.ts:521` was explicitly passing `timeout: 180000` to CLI sprint implementer
+3. This overrode the default `300000` in `cfn-cli-sprint-implementer.ts:302`
+
+**Evidence from logs:**
+```
+[cli-sprint-implementer] Executing Claude CLI with args: ... (timeout: 180000ms)
+[cli-sprint-implementer] Duration: 194883ms
+[cli-sprint-implementer] Exit code: undefined
+[cli-sprint-implementer] Timed out: true
+[cli-sprint-implementer] Files modified/created: 0
+```
+
+**Fix Applied:**
+- Updated `cfn-coordinator.ts:521` from `timeout: 180000` to `timeout: 300000`
+- Requires dev server restart to pick up the change
+
+**Key Lesson:** When debugging timeout issues, check both the callee's default AND the caller's explicit override.
 
 ### Performance Comparison
 | Mode | Per-Task Time | 25 Tasks Total |
@@ -459,10 +484,60 @@ The coordinator never fails due to RuVector absence - it simply misses optimizat
 - [x] Coordinator updated with `enableMDAP` flag
 - [x] JSON parsing fix in `validation-schemas.ts`
 - [x] Dev server rebuilt (version 20251130.5+)
-- [x] E2E tests run (2/3 passing)
+- [x] E2E tests run (2/3 passing in MDAP mode)
+- [x] **CLI Sprint timeout fix applied** (`cfn-coordinator.ts:521` → 300000ms)
+- [ ] **PENDING: Restart Trigger.dev dev server** to pick up timeout fix
+- [ ] **PENDING: Re-run Non-MDAP E2E tests** to verify CLI sprint completion
 - [ ] Production deployment (pending approval)
 - [ ] Monitoring/alerting setup (pending)
 - [ ] Cost tracking implementation (future)
+
+---
+
+## Critical Fixes for Incoming Team
+
+### 1. CLI Sprint Timeout (MUST DO FIRST)
+
+The CLI sprint implementer times out before completing all 22 micro-tasks. Fix was applied but needs dev server restart:
+
+```bash
+# 1. Kill existing dev server
+pkill -f "trigger.dev"
+
+# 2. Clear caches (optional but recommended)
+rm -rf .trigger node_modules/.cache
+
+# 3. Restart dev server
+cd docker/trigger-dev
+npx trigger.dev@latest dev --profile self-hosted-v4
+
+# 4. Verify new version number (should be 20251130.34+)
+# Look for: "○ Local worker ready [node] -> 20251130.XX"
+
+# 5. Re-run E2E tests
+TRIGGER_SECRET_KEY=tr_dev_ffR3mLELFuaaA0txq0lO npx tsx tests/e2e/run-e2e.ts
+```
+
+**Verification:** After fix, logs should show:
+- `(timeout: 300000ms)` NOT `(timeout: 180000ms)`
+- `Files modified/created: > 0`
+- `Timed out: false`
+
+### 2. Files Modified in This Session
+
+| File | Change | Line |
+|------|--------|------|
+| `cfn-coordinator.ts` | timeout: 180000 → 300000 | 521 |
+| `cfn-cli-sprint-implementer.ts` | Default timeout already 300000 | 302 |
+
+### 3. Background Processes
+
+Any running Trigger.dev or test processes from this session should be killed before starting fresh:
+
+```bash
+pkill -f "trigger.dev"
+pkill -f "tsx.*e2e"
+```
 
 ---
 

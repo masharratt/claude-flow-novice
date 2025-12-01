@@ -9,6 +9,7 @@
  * - Query timeout handling
  */
 
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from '@jest/globals';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { VectorDb: VectorDB } = require('@ruvector/core');
 import {

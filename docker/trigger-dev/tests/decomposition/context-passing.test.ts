@@ -1,9 +1,9 @@
 import { describe, it, expect } from "@jest/globals";
 import { tasks, runs } from "@trigger.dev/sdk/v3";
-import { cfnArchitectureDecomposerTask } from "../../src/trigger/cfn-architecture-decomposer";
-import { cfnSecurityDecomposerTask } from "../../src/trigger/cfn-security-decomposer";
-import { cfnPerformanceDecomposerTask } from "../../src/trigger/cfn-performance-decomposer";
-import { cfnTestingDecomposerTask } from "../../src/trigger/cfn-testing-decomposer";
+import { cfnArchitectureDecomposerTask } from "../../src/trigger/cfn-architecture-decomposer.js";
+import { cfnSecurityDecomposerTask } from "../../src/trigger/cfn-security-decomposer.js";
+import { cfnPerformanceDecomposerTask } from "../../src/trigger/cfn-performance-decomposer.js";
+import { cfnTestingDecomposerTask } from "../../src/trigger/cfn-testing-decomposer.js";
 
 /**
  * PHASE 2 TASK 2.1: Context Passing Verification Test

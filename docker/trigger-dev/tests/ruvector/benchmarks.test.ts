@@ -9,6 +9,7 @@
  * - Throughput measurement (ops/sec)
  */
 
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from '@jest/globals';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { VectorDb: VectorDB, JsDistanceMetric } = require('@ruvector/core');
 import {

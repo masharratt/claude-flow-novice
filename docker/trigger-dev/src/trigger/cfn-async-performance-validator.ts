@@ -77,6 +77,10 @@ Return JSON:
   "recommendations": ["...", "..."]
 }`;
 
+      // P0 Fix: Add 30s timeout to prevent hanging on slow/unresponsive API
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -89,7 +93,8 @@ Return JSON:
           max_tokens: 2048,
           temperature: 0.5,
         }),
-      });
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
 
       if (!response.ok) {
         throw new Error(`Cerebras API error: ${response.status}`);

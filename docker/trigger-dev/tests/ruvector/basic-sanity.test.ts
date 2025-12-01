@@ -4,6 +4,7 @@
  * Validates basic RuVector functionality before running full test suite
  */
 
+import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { VectorDb: VectorDB } = require('@ruvector/core');
 import * as fs from 'fs';
