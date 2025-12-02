@@ -398,16 +398,47 @@ export async function detectSimilarPatterns(
   try {
     const similarPatterns: SimilarPattern[] = [];
 
-    // P0-1 Fix: Redis key injection prevention - validate all keys before processing
-    const VALID_KEY_REGEX = /^[a-zA-Z0-9:_-]+$/;
+    // SECURITY FIX (Iteration 3): Strengthened regex to prevent namespace confusion
+    // Removed ':' from allowed characters to prevent unauthorized key access
+    const VALID_KEY_REGEX = /^[a-zA-Z0-9_-]+$/;
 
-    // Get all global patterns of the same type
-    const globalPatternKeys = await redis.keys(`${globalStore}:*`);
+    // SECURITY: Use SCAN cursor instead of KEYS to avoid blocking Redis server
+    const globalPatternKeys: string[] = [];
+    let cursor = '0';
+    const MAX_KEYS = 10000; // Safety limit
 
-    // Filter keys to prevent injection attacks
-    const validKeys = globalPatternKeys.filter((key) => VALID_KEY_REGEX.test(key));
+    do {
+      const [nextCursor, keys] = await redis.scan(
+        cursor,
+        'MATCH',
+        `${globalStore}:*`,
+        'COUNT',
+        100
+      );
+      cursor = nextCursor;
 
-    for (const key of validKeys) {
+      // Filter keys to prevent injection attacks and add to collection
+      for (const key of keys) {
+        // Extract key suffix after globalStore prefix
+        const keySuffix = key.replace(`${globalStore}:`, '');
+
+        // Validate suffix only (not full key with namespace)
+        if (VALID_KEY_REGEX.test(keySuffix)) {
+          globalPatternKeys.push(key);
+
+          // Safety limit check
+          if (globalPatternKeys.length >= MAX_KEYS) {
+            console.warn(
+              `[detectSimilarPatterns] Reached MAX_KEYS limit (${MAX_KEYS}), stopping scan`
+            );
+            cursor = '0'; // Break loop
+            break;
+          }
+        }
+      }
+    } while (cursor !== '0');
+
+    for (const key of globalPatternKeys) {
       const globalPatternData = await redis.hgetall(key);
 
       if (!globalPatternData || globalPatternData.pattern_type !== pattern.pattern_type) {

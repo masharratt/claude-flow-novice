@@ -620,19 +620,47 @@ export async function autoArchivePatterns(
   try {
     let archivedCount = 0;
 
-    // Get all pattern keys
-    const patternKeys = await redis.keys(`${store}:*`);
+    // SECURITY: Use SCAN cursor instead of KEYS to avoid blocking Redis server
+    const patternKeys: string[] = [];
+    let cursor = '0';
+    const MAX_KEYS = 10000; // Safety limit
+
+    do {
+      const [nextCursor, keys] = await redis.scan(
+        cursor,
+        'MATCH',
+        `${store}:*`,
+        'COUNT',
+        100
+      );
+      cursor = nextCursor;
+
+      // Filter out non-pattern keys and add to collection
+      for (const key of keys) {
+        if (
+          !key.includes(':applications') &&
+          !key.includes(':history') &&
+          !key.includes(':lifecycle')
+        ) {
+          patternKeys.push(key);
+
+          // Safety limit check
+          if (patternKeys.length >= MAX_KEYS) {
+            console.warn(
+              `[Auto Archive] Reached MAX_KEYS limit (${MAX_KEYS}), stopping scan`
+            );
+            cursor = '0'; // Break loop
+            break;
+          }
+        }
+      }
+    } while (cursor !== '0');
 
     if (verbose) {
       console.log(`[Auto Archive] Checking ${patternKeys.length} patterns for archive eligibility...`);
     }
 
     for (const key of patternKeys) {
-      // Skip non-pattern keys (like applications, history, etc.)
-      if (key.includes(':applications') || key.includes(':history') || key.includes(':lifecycle')) {
-        continue;
-      }
-
       const patternId = key.replace(`${store}:`, '');
 
       // Check eligibility

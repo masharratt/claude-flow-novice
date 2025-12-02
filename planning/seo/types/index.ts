@@ -1025,3 +1025,44 @@ export {
 // ============================================================================
 
 export type { SERPAnalysisResult } from '../../../packages/seo-analysis/src/types/serp-analysis';
+
+// ============================================================================
+// PERFORMANCE TRACKING TYPES (Phase 5 Sprint 2)
+// ============================================================================
+
+export {
+  type TimeWindow,
+  type RankingMetrics,
+  type TrafficMetrics,
+  type CTRMetrics,
+  type ConversionMetrics,
+  type PerformanceMetrics,
+  type ContentPerformance,
+  type AlgorithmUpdateImpact,
+  type PatternPerformanceCorrelation,
+  type PerformanceSuccess,
+  type PerformanceFailure,
+  type PerformancePartial,
+  type PerformanceOutcome,
+  type BatchPerformanceIngestionRequest,
+  type BatchPerformanceIngestionResponse,
+  isValidTimeWindow,
+  isValidRankingMetrics,
+  isValidTrafficMetrics,
+  isValidCTRMetrics,
+  isValidConversionMetrics,
+  isValidPerformanceMetrics,
+  isValidContentPerformance,
+  isValidAlgorithmUpdateImpact,
+  isValidPatternPerformanceCorrelation,
+  isValidBatchPerformanceIngestionRequest,
+  isPerformanceSuccess,
+  isPerformanceFailure,
+  isPerformancePartial,
+  getTimeWindowFromDays,
+  TIME_WINDOW_BOUNDARIES,
+  TIME_WINDOW_DAYS,
+  PERFORMANCE_SCORING_WEIGHTS,
+  PERFORMANCE_CONFIDENCE_THRESHOLDS,
+  ALGORITHM_IMPACT_SEVERITY_THRESHOLDS,
+} from './performance';
