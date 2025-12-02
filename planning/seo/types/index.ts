@@ -874,6 +874,9 @@ export interface PipelineTask {
   /** Competitor domains to analyze (optional) */
   competitorDomains?: string[];
 
+  /** Planned SEO tactics for algorithm risk assessment (optional) */
+  plannedTactics?: string[];
+
   /** Task creation timestamp */
   createdAt: Date;
 }

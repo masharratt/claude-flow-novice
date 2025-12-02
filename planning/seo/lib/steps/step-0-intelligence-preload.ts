@@ -15,6 +15,14 @@ import {
 import { IntelligenceCurator } from '../intelligence-curator';
 import { PatternManager } from '../pattern-manager';
 import { RedisContextStore } from '../redis-context-store';
+import {
+  calculateAggregateRisk,
+  evaluateTactic,
+  AggregateRiskScore,
+  TacticRiskEvaluation,
+  RiskLevel,
+  Logger,
+} from '../algorithm-risk-scoring';
 
 /**
  * Step 0 configuration
@@ -40,6 +48,26 @@ export interface Step0Config {
 }
 
 /**
+ * Risk warning from algorithm risk scoring
+ */
+export interface RiskWarning {
+  /** Warning level */
+  level: 'critical' | 'high' | 'medium' | 'low';
+
+  /** Warning message */
+  message: string;
+
+  /** Recommendation */
+  recommendation: string;
+
+  /** Mitigation strategies */
+  mitigation: string[];
+
+  /** Tactic ID */
+  tacticId?: string;
+}
+
+/**
  * Step 0 execution result
  */
 export interface Step0Result {
@@ -51,6 +79,12 @@ export interface Step0Result {
 
   /** Number of high-risk patterns */
   highRiskPatterns: number;
+
+  /** Algorithm risk warnings */
+  riskWarnings: RiskWarning[];
+
+  /** Overall risk assessment */
+  overallRiskLevel?: RiskLevel;
 
   /** Execution time (ms) */
   executionTime: number;
@@ -138,6 +172,17 @@ export async function executeStep0(
     });
   }
 
+  // Check for algorithm risks in planned tactics
+  const riskWarnings = await checkAlgorithmRisks(context.task.plannedTactics || [], config.verbose);
+
+  if (config.verbose && riskWarnings.length > 0) {
+    console.log(`[Step 0] ${riskWarnings.length} risk warning(s) detected`);
+    riskWarnings.forEach((warning) => {
+      const emoji = warning.level === 'critical' ? '🚨' : warning.level === 'high' ? '⚠️' : 'ℹ️';
+      console.log(`${emoji} ${warning.message}`);
+    });
+  }
+
   // Store context in Redis for downstream pipeline steps
   await config.redisContextStore.storeContext({
     taskId: context.task.taskId,
@@ -146,6 +191,7 @@ export async function executeStep0(
     competitive: intelligence.competitive,
     serpPatterns: intelligence.serpPatterns,
     learnings: intelligence.learnings,
+    riskWarnings, // Add risk warnings to context
     metadata: {
       loadedAt: new Date(),
       itemsLoaded: intelligence.metadata.itemsLoaded,
@@ -162,10 +208,25 @@ export async function executeStep0(
   // Track execution metrics
   context.metrics['step-0-intelligence-preload'] = executionTime;
 
+  // Determine overall risk level
+  const criticalCount = riskWarnings.filter(w => w.level === 'critical').length;
+  const highCount = riskWarnings.filter(w => w.level === 'high').length;
+  let overallRiskLevel: RiskLevel | undefined;
+
+  if (criticalCount > 0) {
+    overallRiskLevel = 'critical';
+  } else if (highCount > 0) {
+    overallRiskLevel = 'high';
+  } else if (riskWarnings.length > 0) {
+    overallRiskLevel = 'medium';
+  }
+
   return {
     intelligenceItemsLoaded: intelligence.metadata.itemsLoaded,
     patternsLoaded: applicablePatterns.length,
     highRiskPatterns: highRiskPatterns.length,
+    riskWarnings,
+    overallRiskLevel,
     executionTime,
   };
 }
@@ -224,4 +285,83 @@ export function shouldApplyPattern(pattern: Pattern, context: PipelineContext): 
   }
 
   return true;
+}
+
+/**
+ * Check algorithm risks for planned tactics
+ *
+ * Evaluates planned tactics against algorithm risk database and returns warnings
+ *
+ * @param plannedTactics - Array of tactic IDs planned for use
+ * @param verbose - Enable verbose logging
+ * @returns Array of risk warnings
+ */
+async function checkAlgorithmRisks(
+  plannedTactics: string[],
+  verbose?: boolean
+): Promise<RiskWarning[]> {
+  const warnings: RiskWarning[] = [];
+
+  if (!plannedTactics || plannedTactics.length === 0) {
+    return warnings; // No tactics to check
+  }
+
+  // Create custom logger based on verbosity
+  const logger: Logger = verbose
+    ? {
+        info: (msg) => console.log(msg),
+        warn: (msg) => console.warn(msg),
+        error: (msg) => console.error(msg),
+      }
+    : {
+        info: () => {}, // Silent
+        warn: () => {}, // Silent
+        error: (msg) => console.error(msg), // Always log errors
+      };
+
+  try {
+    // Calculate aggregate risk for all planned tactics
+    const aggregateRisk = await calculateAggregateRisk(plannedTactics, undefined, { logger });
+
+    if (verbose) {
+      console.log(`[Step 0] Aggregate risk score: ${aggregateRisk.overallRiskScore.toFixed(2)} (${aggregateRisk.overallRiskLevel})`);
+    }
+
+    // Generate warnings for critical and high-risk tactics
+    for (const tactic of aggregateRisk.tacticEvaluations) {
+      if (tactic.riskLevel === 'critical') {
+        warnings.push({
+          level: 'critical',
+          message: `🚨 CRITICAL RISK: ${tactic.tacticName}`,
+          recommendation: 'Avoid this tactic - recent algorithm updates target it heavily',
+          mitigation: tactic.mitigation,
+          tacticId: tactic.tacticId,
+        });
+      } else if (tactic.riskLevel === 'high') {
+        warnings.push({
+          level: 'high',
+          message: `⚠️  HIGH RISK: ${tactic.tacticName}`,
+          recommendation: 'Use with extreme caution and implement all mitigation strategies',
+          mitigation: tactic.mitigation,
+          tacticId: tactic.tacticId,
+        });
+      } else if (tactic.riskLevel === 'medium') {
+        warnings.push({
+          level: 'medium',
+          message: `ℹ️  MEDIUM RISK: ${tactic.tacticName}`,
+          recommendation: 'Monitor carefully and follow best practices',
+          mitigation: tactic.mitigation,
+          tacticId: tactic.tacticId,
+        });
+      }
+    }
+
+    return warnings;
+  } catch (error) {
+    // Log error but don't fail pipeline execution
+    if (verbose) {
+      console.error('[Step 0] Failed to check algorithm risks:', error);
+    }
+    return warnings; // Return empty warnings on error
+  }
 }

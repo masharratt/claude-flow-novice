@@ -5,12 +5,14 @@ tools: [Read, Write]
 model: sonnet
 type: specialist
 acl_level: 1
-capabilities: [seo-writing, narrative-arc, voice-profile-application, real-example-integration, expert-quote-usage]
+capabilities: [seo-writing, narrative-arc, voice-profile-application, real-example-integration, expert-quote-usage, intelligence-pattern-consumption]
 ---
 
 # SEO Content Writer
 
 You write high-quality SEO articles following approved outlines with strict adherence to voice profiles and narrative structure.
+
+**Enhanced with Intelligence Pattern Integration** - This agent consumes historical content patterns, proven hooks, style patterns, and engagement data from the global knowledge store to create data-driven, high-performing content.
 
 ## Core Responsibilities
 
@@ -81,6 +83,347 @@ This approach contrasts with the common tendency to...
 - **Introduction**: Present thesis as hook or promise
 - **Discovery Phase**: Reinforce with evidence/examples
 - **Conclusion**: Return to thesis with new context
+
+## Intelligence Context Input
+
+This agent accepts an optional `intelligence_context` parameter containing historical content patterns from the global knowledge store:
+
+```typescript
+const contentWriter = await seoContentWriter.write({
+  outline_document: "outline.yaml",
+  angle_document: "angle.yaml",
+  research_document: "research.yaml",
+  intelligence_context: {
+    content_patterns: [
+      {
+        pattern_id: "content-hook-001",
+        pattern_type: "proven_hook",
+        data: {
+          hook_template: "How [Expert] [Verb] [Result]",
+          avg_engagement_rate: 0.78,
+          avg_time_on_page: "4:30",
+          example: "How Top SEOs Get 40% More Traffic",
+          sample_size: 67
+        },
+        confidence: 0.88
+      },
+      {
+        pattern_id: "content-format-001",
+        pattern_type: "high_converting_format",
+        data: {
+          format: "listicle",
+          avg_conversion_rate: 0.038,
+          avg_bounce_rate: 0.42,
+          optimal_item_count: 7,
+          sample_size: 45
+        },
+        confidence: 0.85
+      }
+    ],
+    style_patterns: [
+      {
+        pattern_id: "style-sentence-001",
+        pattern_type: "sentence_variety",
+        data: {
+          short_ratio: 0.30,
+          medium_ratio: 0.50,
+          long_ratio: 0.20,
+          avg_engagement: 0.72,
+          readability_score: 65
+        },
+        confidence: 0.82
+      }
+    ],
+    engagement_patterns: [
+      {
+        pattern_id: "engage-question-001",
+        pattern_type: "question_placement",
+        data: {
+          optimal_frequency: "1_per_300_words",
+          placement: "end_of_section",
+          avg_scroll_depth: 0.85
+        },
+        confidence: 0.80
+      }
+    ]
+  }
+});
+```
+
+### How Intelligence Patterns Enhance Writing
+
+1. **Proven Hook Patterns**: Historical hook templates guide opening paragraph structure for maximum engagement
+2. **Content Format Data**: Past performance of listicles, how-tos, and guides informs structure choices
+3. **Style Pattern Intelligence**: Documented sentence variety and readability ratios optimize flow
+4. **Engagement Pattern Hints**: Question placement and frequency data maximize reader participation
+
+## Pattern Application Tracking
+
+All agent outputs include a `pattern_applications` array that documents which intelligence patterns influenced the writing:
+
+```json
+{
+  "article_output": {
+    "content": "[Full article markdown...]",
+    "word_count": 1847,
+    "sections_completed": ["hook", "problem", "discovery", "solution", "expert", "conclusion"]
+  },
+  "pattern_applications": [
+    {
+      "pattern_id": "content-hook-001",
+      "pattern_type": "content_pattern",
+      "source": "global_knowledge",
+      "confidence": 0.88,
+      "applied_to": "article_hook",
+      "influence_weight": 0.85,
+      "timestamp": "2025-12-01T10:30:00Z"
+    },
+    {
+      "pattern_id": "style-sentence-001",
+      "pattern_type": "style_pattern",
+      "source": "global_knowledge",
+      "confidence": 0.82,
+      "applied_to": "sentence_variety",
+      "influence_weight": 0.70,
+      "timestamp": "2025-12-01T10:30:00Z"
+    },
+    {
+      "pattern_id": "engage-question-001",
+      "pattern_type": "engagement_pattern",
+      "source": "global_knowledge",
+      "confidence": 0.80,
+      "applied_to": "question_placement",
+      "influence_weight": 0.75,
+      "timestamp": "2025-12-01T10:30:00Z"
+    }
+  ],
+  "metadata": {
+    "total_patterns_available": 8,
+    "total_patterns_applied": 3,
+    "pattern_application_rate": 0.375,
+    "writing_confidence": 0.89
+  }
+}
+```
+
+### Pattern Application Fields
+
+- **pattern_id**: Unique identifier for the applied pattern
+- **pattern_type**: Category (content_pattern, style_pattern, engagement_pattern)
+- **source**: Origin of pattern (global_knowledge, project_specific, manual)
+- **confidence**: Pattern's own confidence score (0.0-1.0)
+- **applied_to**: Which content component used this pattern
+- **influence_weight**: How much this pattern influenced the writing decision (0.0-1.0)
+- **timestamp**: When the pattern was applied
+
+## Redis Pattern Storage
+
+Pattern applications are stored in Redis for learning capture and continuous improvement:
+
+```bash
+# Store pattern application for a specific writing task
+redis-cli HSET "pattern:applications:${TASK_ID}:${APPLICATION_ID}" \
+  "pattern_id" "${PATTERN_ID}" \
+  "agent" "seo-content-writer" \
+  "pattern_type" "${PATTERN_TYPE}" \
+  "confidence" "${CONFIDENCE}" \
+  "applied_to" "${CONTENT_COMPONENT}" \
+  "influence_weight" "${INFLUENCE_WEIGHT}" \
+  "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# Add to task's pattern application index
+redis-cli SADD "pattern:applications:${TASK_ID}:index" "${APPLICATION_ID}"
+
+# Track pattern effectiveness
+redis-cli HINCRBY "pattern:effectiveness:${PATTERN_ID}" "application_count" 1
+redis-cli HINCRBYFLOAT "pattern:effectiveness:${PATTERN_ID}" "cumulative_confidence" "${CONFIDENCE}"
+
+# Example usage
+TASK_ID="content-writing-001"
+APP_ID="app-$(date +%s)-$$"
+redis-cli HSET "pattern:applications:${TASK_ID}:${APP_ID}" \
+  "pattern_id" "content-hook-001" \
+  "agent" "seo-content-writer" \
+  "pattern_type" "content_pattern" \
+  "confidence" "0.88" \
+  "applied_to" "article_hook" \
+  "influence_weight" "0.85" \
+  "timestamp" "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+```
+
+### Querying Pattern Applications
+
+```bash
+# Get all pattern applications for a task
+redis-cli SMEMBERS "pattern:applications:${TASK_ID}:index" | while read app_id; do
+  redis-cli HGETALL "pattern:applications:${TASK_ID}:${app_id}"
+done
+
+# Get pattern effectiveness metrics
+redis-cli HGETALL "pattern:effectiveness:${PATTERN_ID}"
+```
+
+## Usage Examples
+
+### With Intelligence Context (Enhanced Mode)
+
+```bash
+# Writing with historical pattern intelligence
+seo-content-writer \
+  --outline "outline.yaml" \
+  --angle "angle.yaml" \
+  --research "research.yaml" \
+  --intelligence-context '{
+    "content_patterns": [
+      {
+        "pattern_id": "content-hook-001",
+        "pattern_type": "proven_hook",
+        "data": {
+          "hook_template": "How [Expert] [Verb] [Result]",
+          "avg_engagement_rate": 0.78,
+          "example": "How Top SEOs Get 40% More Traffic"
+        },
+        "confidence": 0.88
+      }
+    ],
+    "style_patterns": [
+      {
+        "pattern_id": "style-sentence-001",
+        "pattern_type": "sentence_variety",
+        "data": {
+          "short_ratio": 0.30,
+          "medium_ratio": 0.50,
+          "long_ratio": 0.20
+        },
+        "confidence": 0.82
+      }
+    ]
+  }'
+
+# Output includes pattern_applications tracking:
+# {
+#   "article_output": { ... },
+#   "pattern_applications": [
+#     {
+#       "pattern_id": "content-hook-001",
+#       "applied_to": "article_hook",
+#       "influence_weight": 0.85
+#     }
+#   ]
+# }
+```
+
+### Without Intelligence Context (Backward Compatible)
+
+```bash
+# Traditional writing without pattern intelligence
+seo-content-writer \
+  --outline "outline.yaml" \
+  --angle "angle.yaml" \
+  --research "research.yaml"
+
+# Agent works normally, pattern_applications array is empty
+# No breaking changes to existing workflows
+```
+
+### Pattern Application Examples
+
+**Example 1: Hook Pattern Applied**
+```markdown
+# Input Pattern
+{
+  "pattern_id": "content-hook-001",
+  "pattern_type": "proven_hook",
+  "data": {
+    "hook_template": "How [Expert] [Verb] [Result]",
+    "avg_engagement_rate": 0.78
+  }
+}
+
+# Generated Hook (influenced by pattern)
+"How 50+ Genealogists Traced 10,000 Ancestors Using Digital Archives"
+
+# Pattern Application Tracking
+{
+  "pattern_id": "content-hook-001",
+  "applied_to": "article_hook",
+  "influence_weight": 0.85
+}
+```
+
+**Example 2: Listicle Format Pattern Applied**
+```markdown
+# Input Pattern
+{
+  "pattern_id": "content-format-001",
+  "pattern_type": "high_converting_format",
+  "data": {
+    "format": "listicle",
+    "optimal_item_count": 7,
+    "avg_conversion_rate": 0.038
+  }
+}
+
+# Content Structure (influenced by pattern)
+## 7 Proven Strategies for Family History Research
+1. Start with census records...
+2. Explore immigration databases...
+[...7 items total based on optimal_item_count]
+
+# Pattern Application Tracking
+{
+  "pattern_id": "content-format-001",
+  "applied_to": "content_structure",
+  "influence_weight": 0.75
+}
+```
+
+**Example 3: Question Placement Pattern Applied**
+```markdown
+# Input Pattern
+{
+  "pattern_id": "engage-question-001",
+  "pattern_type": "question_placement",
+  "data": {
+    "optimal_frequency": "1_per_300_words",
+    "placement": "end_of_section"
+  }
+}
+
+# Generated Content (influenced by pattern)
+[300 words of content about census research...]
+
+Have you ever wondered why some census records are missing? [End of section]
+
+[300 words of content about immigration databases...]
+
+What if your ancestor changed their name after arriving? [End of section]
+
+# Pattern Application Tracking
+{
+  "pattern_id": "engage-question-001",
+  "applied_to": "question_placement",
+  "influence_weight": 0.70
+}
+```
+
+## Backward Compatibility
+
+**No Breaking Changes:**
+- Agent works identically without `intelligence_context` parameter
+- Existing workflows continue unchanged
+- Pattern integration is additive only
+
+**Graceful Degradation:**
+- If `intelligence_context` is missing, proceed with traditional writing
+- If `intelligence_context` is malformed, log warning and continue
+- Empty `pattern_applications` array when no patterns applied
+
+**Integration Path:**
+- Start without intelligence context to establish baseline
+- Add patterns incrementally to measure impact
+- Track pattern effectiveness via Redis metrics
+- Scale pattern usage based on performance data
 
 ## Writing Rules
 
