@@ -1,10 +1,25 @@
+---
+name: cfn-seo
+description: "SEO intelligence toolkit for 1-2% ranking improvements. Use when optimizing content for search rankings, analyzing SERP features, auditing pre-publication SEO, improving CTR, or detecting content decay. Includes SERP feature optimization, pre-publication audit, semantic completeness analysis, CTR optimization, and content refresh triggers."
+version: 1.0.0
+author: Claude Flow Novice
+category: seo
+tags: [seo, serp, optimization, ranking, ctr, schema, content]
+---
+
 # CFN SEO Intelligence Skill
 
 Comprehensive SEO optimization toolkit for content ranking improvements. This skill provides a complete pipeline from intelligence gathering to post-publication performance tracking.
 
 ## Installation
 
-This is an optional skill in `cfn-extras`. To use:
+This is an optional skill in `cfn-extras`. To install, copy to `.claude/skills/`:
+
+```bash
+cp -r .claude/cfn-extras/skills/cfn-seo .claude/skills/
+```
+
+Then install dependencies:
 
 ```bash
 cd .claude/cfn-extras/skills/cfn-seo
