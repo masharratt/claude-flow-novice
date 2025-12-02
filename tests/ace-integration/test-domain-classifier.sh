@@ -5,7 +5,7 @@
 
 set -e
 
-CLASSIFIER_SCRIPT="./.claude/skills/cfn-task-classifier/classify-task.sh"
+CLASSIFIER_SCRIPT="./.claude/skills/task-classifier/classify-task.sh"
 TEST_COUNT=0
 PASS_COUNT=0
 FAIL_COUNT=0

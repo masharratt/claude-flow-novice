@@ -12,6 +12,17 @@ allowed-tools: ["Bash", "TodoWrite", "Read"]
 
 ---
 
+## Pre-requisites
+
+Trigger.dev must be installed via: `npx cfn-init --trigger`
+
+This installs:
+- @trigger.dev/sdk
+- trigger-dev/ workflow directory
+- .env.local template with API key placeholders
+
+---
+
 ## Execution Instructions (AUTO-EXECUTE)
 
 **Step 1: Parse Arguments**
@@ -26,13 +37,14 @@ PASS_RATE: Parse from --pass-rate flag or default based on mode (mvp=0.70, stand
 ```bash
 # Check TRIGGER_API_KEY is set
 if [ -z "$TRIGGER_API_KEY" ]; then
-  # Try loading from trigger-test-app
-  if [ -f "/mnt/c/Users/masha/Documents/trigger-test-app/.env.local" ]; then
-    export $(grep -E '^TRIGGER_' /mnt/c/Users/masha/Documents/trigger-test-app/.env.local | xargs)
-    echo "✅ Loaded trigger.dev credentials from trigger-test-app"
+  # Try loading from project .env.local
+  if [ -f ".env.local" ]; then
+    export $(grep -E '^TRIGGER_' .env.local | xargs)
+    echo "✅ Loaded trigger.dev credentials from .env.local"
   else
     echo "❌ ERROR: TRIGGER_API_KEY not set"
-    echo "   Set TRIGGER_API_KEY environment variable or create .env.local"
+    echo "   Run: npx cfn-init --trigger"
+    echo "   Then edit .env.local with your API keys"
     exit 1
   fi
 fi
@@ -49,7 +61,8 @@ echo "📋 Task ID: $TASK_ID"
 
 **Step 4: Trigger CFN Loop Workflow (REQUIRED - Execute via Bash)**
 ```bash
-cd /mnt/c/Users/masha/Documents/claude-flow-novice/trigger-dev && \
+# Use project-local trigger-dev directory
+cd trigger-dev && \
 TRIGGER_API_KEY="$TRIGGER_API_KEY" \
 TRIGGER_API_URL="$TRIGGER_API_URL" \
 npx tsx src/cli/trigger-cfn-loop.ts \
@@ -99,9 +112,14 @@ After triggering workflow, tell user:
 
 ## Troubleshooting
 
+**trigger.dev not installed:**
+```bash
+npx cfn-init --trigger
+```
+
 **trigger.dev not running:**
 ```bash
-cd /mnt/c/Users/masha/Documents/docker/trigger.dev && docker-compose up -d
+docker-compose -f docker/trigger.dev/docker-compose.yml up -d
 ```
 
 **Check service health:**

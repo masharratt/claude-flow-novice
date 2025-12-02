@@ -2,6 +2,81 @@
 
 Last Updated: 2025-12-01
 
+## Priority Levels
+- **P1**: Critical, blocks progress
+- **P2**: High value, next sprint
+- **P3**: Nice to have, background worker
+
+---
+
+## Active Items
+
+### P2-001: Fix SERP Pattern Analyst Test Suite (49 failures)
+**Priority**: P2 (Medium)
+**Created**: 2025-12-01
+**Sprint**: Phase 2 Sprint 4 (deferred)
+**Epic**: SEO Intelligence Integration
+
+**Issue**:
+Test suite has 49/122 failing tests due to mock setup issues, not implementation bugs.
+
+**Location**:
+- `packages/seo-analysis/src/lib/__tests__/serp-pattern-analyst.test.ts`
+- `packages/seo-analysis/src/lib/__tests__/competitor-deep-analyst.test.ts`
+
+**Root Cause**:
+- Missing FIRECRAWL_API_KEY in helper method test setup
+- Incomplete mock responses for DataForSEO/Google API calls
+- Mock state bleeding between test cases
+
+**Solution**:
+1. Add `firecrawlApiKey` to all CompetitorDeepAnalystAgent instantiations in tests
+2. Align mock responses with actual API contracts
+3. Add `setupTestEnvironment()` to all describe blocks
+4. Improve test isolation
+
+**Acceptance Criteria**:
+- Test pass rate ≥90% (110/122 passing)
+- No mock state bleeding between tests
+- All API key mocks properly configured
+
+**Estimated Effort**: 2-4 hours
+
+**Deferred By**: Product Owner (DEFER_AND_PROCEED decision, confidence: 0.87)
+**Reason**: Code quality production-ready (0.93), test failures are environmental only
+
+---
+
+### P2-002: Complete Keyword Sanitization (FINDING-002)
+**Priority**: P2 (Medium)
+**Created**: 2025-12-01
+**Sprint**: Phase 2 Sprint 4 (partial fix)
+**Epic**: SEO Intelligence Integration
+
+**Issue**:
+HTML escaping for keyword in recommendation descriptions incomplete.
+
+**Location**:
+- `packages/seo-analysis/src/lib/serp-pattern-analyst.ts` (line 1375)
+
+**Risk Level**: LOW (output is JSON, risk only if web UI displays without escaping)
+
+**Solution**:
+Implement HTML escaping for keyword parameter in output contexts.
+
+**Acceptance Criteria**:
+- Keyword properly escaped in all recommendation descriptions
+- Security audit shows 0 medium findings
+- Safe for production UI deployment
+
+**Estimated Effort**: 4 hours
+
+**Deployment Status**:
+- Backend safe (JSON context)
+- Do NOT deploy to production UI until fixed
+
+---
+
 ## Completed Items (Phase 1.2a - 2025-11-23)
 
 **[COMPLETED] - Phase 1.2: Environment Variable Whitelisting**

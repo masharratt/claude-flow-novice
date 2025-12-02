@@ -438,8 +438,9 @@ parse-decision.sh --output "$PO_OUTPUT"
 # Validate deliverables exist
 ./.claude/skills/cfn-product-owner-decision/validate-deliverables.sh --task-id "$TASK_ID"
 
-# Multi-pattern confidence parsing
-./.claude/skills/cfn-loop3-output-processing/parse-confidence.sh --output "$AGENT_OUTPUT"
+# Multi-pattern confidence parsing (use TypeScript version)
+# Note: Bash version deprecated - use cfn-loop-output-processing TypeScript module
+node ./.claude/skills/cfn-loop-output-processing/dist/cli.js parse-confidence --output "$AGENT_OUTPUT"
 ```
 
 ## Related Commands

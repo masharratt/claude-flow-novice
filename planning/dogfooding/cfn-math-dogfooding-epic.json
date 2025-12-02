@@ -1,0 +1,357 @@
+{
+  "epic_name": "cfn-math-mdap-dogfooding",
+  "epic_description": "Test npm distribution of claude-flow-novice by creating clean cfn-math project using MDAP for mathematical problem decomposition. Verify minimal setup, identify blockers, validate RuVector/Trigger.dev/MDAP integration.",
+  "mode": "standard",
+  "provider": "zai",
+  "max_iterations": 10,
+  "success_criteria": [
+    "npm install claude-flow-novice completes without errors in cfn-math directory",
+    "MDAP executes math problem decomposition successfully via Trigger.dev",
+    "Groq API used as primary provider with Cerebras fallback verified",
+    "Setup requires only API keys (no manual dependency setup)",
+    "RuVector integration verified (if applicable to MDAP flow)",
+    "All blocking issues documented with clear reproduction steps",
+    "Setup guide written for external users (<30 minute onboarding)"
+  ],
+  "phases": [
+    {
+      "phase_name": "project-setup",
+      "phase_description": "Create clean cfn-math directory, install claude-flow-novice from npm, configure minimal API keys",
+      "sprints": [
+        {
+          "sprint_name": "directory-and-install",
+          "sprint_description": "Create /mnt/c/Users/masha/Documents/cfn-math directory, initialize Node.js project, install claude-flow-novice package from npm registry",
+          "tasks": [
+            {
+              "task_id": "create-directory",
+              "description": "Create /mnt/c/Users/masha/Documents/cfn-math directory and initialize with npm init -y",
+              "acceptance_criteria": [
+                "Directory exists at /mnt/c/Users/masha/Documents/cfn-math",
+                "package.json created with default configuration",
+                "Directory is outside main claude-flow-novice project"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "simple"
+            },
+            {
+              "task_id": "install-npm-package",
+              "description": "Install claude-flow-novice from npm registry and verify dependencies",
+              "acceptance_criteria": [
+                "npm install claude-flow-novice completes successfully",
+                "node_modules contains claude-flow-novice and dependencies",
+                "Trigger.dev, RuVector, and MDAP coordinator present in node_modules",
+                "No installation errors or warnings"
+              ],
+              "agents": ["backend-developer", "devops-engineer"],
+              "estimated_complexity": "medium"
+            },
+            {
+              "task_id": "configure-api-keys",
+              "description": "Create .env file with minimal API key configuration (Groq, Cerebras, Trigger.dev)",
+              "acceptance_criteria": [
+                ".env file created in cfn-math root directory",
+                "GROQ_API_KEY configured",
+                "CEREBRAS_API_KEY configured",
+                "TRIGGER_DEV_API_KEY configured (if required)",
+                "No other manual setup required"
+              ],
+              "agents": ["devops-engineer"],
+              "estimated_complexity": "simple"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase_name": "mdap-verification",
+      "phase_description": "Verify MDAP coordinator is accessible, Trigger.dev connection works, API keys validated",
+      "sprints": [
+        {
+          "sprint_name": "health-checks",
+          "sprint_description": "Create health check script to verify MDAP commands, Trigger.dev connection, API key validation, RuVector initialization",
+          "tasks": [
+            {
+              "task_id": "verify-mdap-commands",
+              "description": "Check if /cfn-loop-trigger command is available and MDAP coordinator task exists in installed package",
+              "acceptance_criteria": [
+                "/cfn-loop-trigger command discoverable",
+                "MDAP coordinator task found in node_modules",
+                "Command help output displays correctly"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "simple"
+            },
+            {
+              "task_id": "trigger-connection-test",
+              "description": "Test Trigger.dev connection with health check and verify task spawning capability",
+              "acceptance_criteria": [
+                "Trigger.dev instance reachable",
+                "Authentication successful with API key",
+                "Task spawning capability confirmed",
+                "No connection errors"
+              ],
+              "agents": ["devops-engineer"],
+              "estimated_complexity": "medium"
+            },
+            {
+              "task_id": "api-key-validation",
+              "description": "Validate Groq and Cerebras API keys with test calls, verify fallback configuration",
+              "acceptance_criteria": [
+                "Groq API key validated with test request",
+                "Cerebras API key validated with test request",
+                "Fallback configuration detected correctly",
+                "Clear error messages if keys invalid"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "simple"
+            },
+            {
+              "task_id": "ruvector-check",
+              "description": "Check RuVector initialization status and verify if required for MDAP math problems",
+              "acceptance_criteria": [
+                "RuVector package present in node_modules",
+                "Initialization script exists (if applicable)",
+                "Clarify if RuVector needed for math domain",
+                "Database setup requirements documented"
+              ],
+              "agents": ["backend-developer", "database-architect"],
+              "estimated_complexity": "medium"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase_name": "simple-math-test",
+      "phase_description": "Execute MDAP decomposition on basic math problem, verify Groq primary usage, validate results",
+      "sprints": [
+        {
+          "sprint_name": "math-problem-execution",
+          "sprint_description": "Run MDAP coordinator with test problem: 'Calculate sum of squares 1-100, then find prime factorization of result'. Monitor execution, verify API usage, validate correctness.",
+          "tasks": [
+            {
+              "task_id": "create-test-problem",
+              "description": "Create test input file with math problem description and expected decomposition strategy",
+              "acceptance_criteria": [
+                "Test problem file created: cfn-math/tests/sum-of-squares-factorization.txt",
+                "Problem statement clear and unambiguous",
+                "Expected result documented: sum = 338350, factors = 2 × 5^2 × 13 × 521",
+                "Decomposition hints included (if needed)"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "simple"
+            },
+            {
+              "task_id": "execute-mdap",
+              "description": "Execute /cfn-loop-trigger with MDAP mode on test problem, monitor Trigger.dev task execution",
+              "acceptance_criteria": [
+                "MDAP task spawns successfully in Trigger.dev",
+                "Micro-task decomposition occurs (multiple sub-tasks created)",
+                "Groq API called as primary provider",
+                "Execution completes without errors",
+                "Logs captured to cfn-math/logs/mdap-test-run-1.log"
+              ],
+              "agents": ["backend-developer", "devops-engineer"],
+              "estimated_complexity": "complex"
+            },
+            {
+              "task_id": "verify-api-usage",
+              "description": "Verify Groq API used as primary, check Cerebras fallback behavior, track cost metrics",
+              "acceptance_criteria": [
+                "Groq API called first for all micro-tasks",
+                "Token usage tracked (input + output tokens)",
+                "Cost calculated based on Groq pricing",
+                "Cerebras fallback tested (force Groq failure if needed)",
+                "API usage report generated"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "medium"
+            },
+            {
+              "task_id": "validate-results",
+              "description": "Validate mathematical correctness of MDAP output, verify sum and prime factorization",
+              "acceptance_criteria": [
+                "Sum of squares 1-100 = 338350 (verified)",
+                "Prime factorization = 2 × 5^2 × 13 × 521 (verified)",
+                "All intermediate micro-task results correct",
+                "Results validation script created"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "simple"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase_name": "integration-testing",
+      "phase_description": "Test RuVector integration, Trigger.dev coordination, API fallback, error handling, multi-step problems",
+      "sprints": [
+        {
+          "sprint_name": "comprehensive-integration",
+          "sprint_description": "Run integration test suite covering RuVector, Trigger.dev, API failover, error scenarios, and multi-step decomposition",
+          "tasks": [
+            {
+              "task_id": "ruvector-integration-test",
+              "description": "Test RuVector semantic search integration (if used in MDAP flow for code pattern matching)",
+              "acceptance_criteria": [
+                "RuVector initialization confirmed (if applicable)",
+                "Semantic search queries work correctly",
+                "Integration with MDAP coordinator verified",
+                "No performance bottlenecks"
+              ],
+              "agents": ["backend-developer", "database-architect"],
+              "estimated_complexity": "medium"
+            },
+            {
+              "task_id": "trigger-coordination-test",
+              "description": "Test Trigger.dev task spawning, polling, completion detection, and cleanup behavior",
+              "acceptance_criteria": [
+                "Tasks spawn without delays",
+                "Polling detects completion correctly",
+                "No orphaned tasks after execution",
+                "Cleanup behavior verified"
+              ],
+              "agents": ["devops-engineer"],
+              "estimated_complexity": "medium"
+            },
+            {
+              "task_id": "api-fallback-test",
+              "description": "Force Groq API failure (invalid key or rate limit), verify Cerebras fallback automatically",
+              "acceptance_criteria": [
+                "Groq failure detected (429 or 5xx error)",
+                "Cerebras fallback triggered automatically",
+                "No task failure due to API switch",
+                "Fallback logged clearly"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "medium"
+            },
+            {
+              "task_id": "error-handling-test",
+              "description": "Test error scenarios: invalid input, timeout, missing API key, malformed problem",
+              "acceptance_criteria": [
+                "Invalid input rejected with clear error message",
+                "Timeout handled gracefully (no hanging tasks)",
+                "Missing API key detected before execution",
+                "Malformed problem results in actionable error"
+              ],
+              "agents": ["backend-developer", "tester"],
+              "estimated_complexity": "medium"
+            },
+            {
+              "task_id": "multi-step-test",
+              "description": "Test problem requiring 5+ micro-tasks in sequence (e.g., multi-step equation solving)",
+              "acceptance_criteria": [
+                "Problem decomposed into 5+ sequential micro-tasks",
+                "All micro-tasks complete in correct order",
+                "Context passed between micro-tasks correctly",
+                "Final result aggregates all steps"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "complex"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "phase_name": "documentation-and-issues",
+      "phase_description": "Write setup guide, troubleshooting docs, quickstart example, file GitHub issues for blockers",
+      "sprints": [
+        {
+          "sprint_name": "user-documentation",
+          "sprint_description": "Create comprehensive setup guide, troubleshooting guide, quickstart example, and document all issues found",
+          "tasks": [
+            {
+              "task_id": "setup-guide",
+              "description": "Write step-by-step setup guide for external users (<200 lines, <30 minute onboarding)",
+              "acceptance_criteria": [
+                "SETUP_GUIDE.md created in cfn-math directory",
+                "Prerequisites listed (Node.js, Docker, API keys)",
+                "Installation steps clear and tested",
+                "API key configuration documented",
+                "First MDAP execution example included"
+              ],
+              "agents": ["backend-developer", "api-documentation"],
+              "estimated_complexity": "medium"
+            },
+            {
+              "task_id": "troubleshooting-guide",
+              "description": "Document common issues, error messages, and workarounds discovered during testing",
+              "acceptance_criteria": [
+                "TROUBLESHOOTING.md created in cfn-math directory",
+                "All blocking issues documented with reproduction steps",
+                "Workarounds provided for known issues",
+                "Error message index (error code → solution)",
+                "FAQ section for common questions"
+              ],
+              "agents": ["backend-developer", "tester"],
+              "estimated_complexity": "simple"
+            },
+            {
+              "task_id": "quickstart-example",
+              "description": "Create minimal quickstart example that runs in <5 minutes (simple math problem)",
+              "acceptance_criteria": [
+                "examples/quickstart-math-problem.md created",
+                "Example problem is trivial (e.g., 'Calculate 15! and list prime factors')",
+                "Runs in <5 minutes on standard hardware",
+                "All steps copy-pasteable",
+                "Expected output shown"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "simple"
+            },
+            {
+              "task_id": "github-issues",
+              "description": "File GitHub issues for unresolved blockers found during dogfooding test",
+              "acceptance_criteria": [
+                "All blocking issues filed as GitHub issues",
+                "Reproduction steps included in each issue",
+                "Severity labels assigned (blocker, major, minor)",
+                "Workarounds documented in issue comments",
+                "Issue tracker link added to TROUBLESHOOTING.md"
+              ],
+              "agents": ["backend-developer"],
+              "estimated_complexity": "simple"
+            },
+            {
+              "task_id": "summary-report",
+              "description": "Write dogfooding summary report documenting findings, issues, setup time, recommendations",
+              "acceptance_criteria": [
+                "planning/dogfooding/DOGFOODING_RESULTS.md created",
+                "Setup time documented (actual vs estimated)",
+                "All issues summarized with severity",
+                "User experience assessment (1-10 scale)",
+                "Recommendations for npm package improvements",
+                "Cost analysis (Groq vs Cerebras usage)"
+              ],
+              "agents": ["backend-developer", "product-owner"],
+              "estimated_complexity": "medium"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "deliverables": [
+    "cfn-math directory with working MDAP setup",
+    "cfn-math/package.json with claude-flow-novice installed",
+    "cfn-math/.env with minimal API key configuration",
+    "cfn-math/SETUP_GUIDE.md for external users",
+    "cfn-math/TROUBLESHOOTING.md with issue workarounds",
+    "cfn-math/examples/quickstart-math-problem.md",
+    "cfn-math/tests/sum-of-squares-factorization.txt test problem",
+    "cfn-math/logs/mdap-test-run-1.log execution logs",
+    "cfn-math/tests/integration/ comprehensive test suite",
+    "planning/dogfooding/DOGFOODING_RESULTS.md summary report",
+    "GitHub issues for all blocking problems"
+  ],
+  "open_questions": [
+    "Does npm package include Trigger.dev setup, or is external instance required?",
+    "Is RuVector needed for math MDAP, or only for code-related tasks?",
+    "Can MDAP run without Docker, or is container orchestration required?",
+    "Should .env be in cfn-math root, or in a specific subdirectory?",
+    "What is minimum Node.js version required for npm package?"
+  ]
+}

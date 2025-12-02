@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.17.0",
+  "version": "2.18.1",
   "description": "AI agent orchestration framework with namespace-isolated skills, agents, and CFN Loop validation. Safe installation with ~0.01% collision risk.",
   "main": "dist/index.js",
   "type": "module",
@@ -47,6 +47,7 @@
     ".claude/skills/cfn-test-execution/",
     ".claude/skills/cfn-transparency-middleware/",
     ".claude/skills/cfn-webapp-testing/",
+    ".claude/skills/ruvector-codebase-index/",
     ".claude/hooks/cfn-*",
     ".claude/commands/",
     ".claude/cfn-data/",
@@ -69,7 +70,8 @@
     "docs/architecture/CUSTOM_PROVIDER_ROUTING.md",
     "README.md",
     "LICENSE",
-    ".claude/root-claude-distribute/CFN-CLAUDE.md"
+    ".claude/root-claude-distribute/CFN-CLAUDE.md",
+    "trigger-dev/"
   ],
   "keywords": [
     "ai",
