@@ -99,3 +99,60 @@ export {
   isHighPriorityGap,
   isHighConfidencePattern,
 } from '../types/competitor-analysis';
+
+// SERP Feature Optimizer
+export {
+  detectSERPOpportunities,
+  formatForFeaturedSnippet,
+  formatForPAA,
+  formatForVideoCarousel,
+  formatForImagePack,
+  formatForHowTo,
+  formatForTableSnippet,
+  generateFAQSchema,
+  generateHowToSchema,
+  generateVideoObjectSchema,
+  generateArticleSchema,
+  schemaToJSONLD,
+  validateSchema,
+  cacheOptimization,
+  getCachedOptimization,
+  cacheValidation,
+  getCachedValidation,
+} from './serp-feature-optimizer';
+
+// SERP Optimization Types
+export type {
+  SERPFeatureOpportunity,
+  OpportunityDetectionConfig,
+  FeaturedSnippetConfig,
+  PAAConfig,
+  VideoCarouselConfig,
+  ImagePackConfig,
+  HowToConfig,
+  HowToStep,
+  TableSnippetConfig,
+  OptimizationResult,
+  BatchOptimizationResult,
+  SchemaType,
+  FAQPageSchema,
+  FAQQuestion,
+  HowToSchema,
+  HowToStepSchema,
+  VideoObjectSchema,
+  ArticleSchema,
+  ImageObjectSchema,
+  SchemaValidationResult,
+  ValidationError,
+  ValidationWarning,
+  CachedOptimization,
+  SERPFeatureMetrics,
+  OptimizationImpactReport,
+} from '../types/serp-optimization';
+
+export {
+  SERPOptimizationError,
+  SERPOptimizationErrorCode,
+  CACHE_KEYS,
+  CACHE_TTL,
+} from '../types/serp-optimization';
