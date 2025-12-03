@@ -1,3 +1,11 @@
+---
+name: cfn-parameterized-queries
+description: Secure parameterized SQL query execution with SQLite parameter binding - prevents SQL injection
+version: 1.0.0
+tags: [security, sql, sqlite, queries, injection-prevention]
+status: production
+---
+
 # Parameterized Query Skill
 
 ## Overview

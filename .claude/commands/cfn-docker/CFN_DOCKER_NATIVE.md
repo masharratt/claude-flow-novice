@@ -82,7 +82,7 @@ fi
 # Check if coordinator image exists
 if ! docker images | grep -q "cfn-coordinator.*v3"; then
     echo "🔨 Building CFN coordinator image..."
-    docker build -f Dockerfile.cfn-coordinator -t cfn-coordinator:v3 .
+    docker build -f docker/Dockerfile.coordinator -t cfn-coordinator:v3 .
 
     if [[ $? -ne 0 ]]; then
         echo "❌ Failed to build coordinator image"

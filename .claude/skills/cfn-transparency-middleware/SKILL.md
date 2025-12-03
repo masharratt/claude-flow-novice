@@ -1,3 +1,11 @@
+---
+name: cfn-transparency-middleware
+description: Agent interaction capture, logging, and analysis with memory tracking and security
+version: 1.0.0
+tags: [middleware, logging, security, transparency, memory]
+status: production
+---
+
 ## Transparency Middleware
 
 ### Overview

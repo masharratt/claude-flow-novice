@@ -1,0 +1,25 @@
+{
+  "outcome": "success",
+  "topic": "Vue.js tutorial",
+  "context": {
+    "targetKeyword": "Vue.js tutorial",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 179,
+      "step-1-keyword-research": 144.76982095747493,
+      "step-2-competitor-analysis": 147.14691553347234,
+      "step-3-content-planning": 235.62676138826265,
+      "step-4-content-outline": 228.44757369718445,
+      "step-5-content-writing": 151.1272356371478,
+      "step-6-seo-optimization": 122.92903707777478,
+      "step-7-technical-seo": 258.7812034834452,
+      "step-8-link-building-strategy": 198.49072123441715,
+      "step-9-content-publishing": 134.40757861765195,
+      "step-10-performance-monitoring": 158.93562198820183,
+      "step-11-continuous-improvement": 236.04311349748838
+    }
+  },
+  "lessons": [],
+  "recommendations": [],
+  "capturedAt": "2025-12-03T07:55:58.714Z"
+}

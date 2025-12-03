@@ -1,0 +1,25 @@
+{
+  "outcome": "success",
+  "topic": "JavaScript promises",
+  "context": {
+    "targetKeyword": "JavaScript promises",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 189,
+      "step-1-keyword-research": 160.15956627798914,
+      "step-2-competitor-analysis": 162.92869200877686,
+      "step-3-content-planning": 203.64227864160938,
+      "step-4-content-outline": 296.608232320526,
+      "step-5-content-writing": 257.51969888675364,
+      "step-6-seo-optimization": 165.1718175878076,
+      "step-7-technical-seo": 195.83757376881687,
+      "step-8-link-building-strategy": 191.47076123673523,
+      "step-9-content-publishing": 130.70840668060958,
+      "step-10-performance-monitoring": 287.64547892913777,
+      "step-11-continuous-improvement": 224.72983511079013
+    }
+  },
+  "lessons": [],
+  "recommendations": [],
+  "capturedAt": "2025-12-03T07:55:52.389Z"
+}

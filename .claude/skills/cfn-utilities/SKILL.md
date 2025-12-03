@@ -1,11 +1,13 @@
-# CFN Utilities Skill
-
 ---
 name: cfn-utilities
-category: utilities
+description: Reusable bash utility functions for CFN Loop - logging, error handling, retry, file operations
 version: 1.0.0
 tags: [bash, logging, error-handling, retry, file-operations, utilities]
+status: production
+category: utilities
 ---
+
+# CFN Utilities Skill
 
 ## Description
 

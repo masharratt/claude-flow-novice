@@ -1,3 +1,7 @@
+---
+description: Bidirectional pattern synchronization between global and local stores
+---
+
 # /seo-sync - Pattern Synchronization Command
 
 **Phase**: 4 Sprint 2 (Cross-Domain Learning - Pattern Sync)

@@ -1,0 +1,25 @@
+{
+  "outcome": "success",
+  "topic": "Docker tutorial",
+  "context": {
+    "targetKeyword": "Docker tutorial",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 196,
+      "step-1-keyword-research": 131.7945679623736,
+      "step-2-competitor-analysis": 107.80325759216574,
+      "step-3-content-planning": 290.46994633543704,
+      "step-4-content-outline": 196.34867557248245,
+      "step-5-content-writing": 209.70168978298955,
+      "step-6-seo-optimization": 121.9240959508569,
+      "step-7-technical-seo": 168.42742928425292,
+      "step-8-link-building-strategy": 181.66861968596112,
+      "step-9-content-publishing": 272.59732937286566,
+      "step-10-performance-monitoring": 277.69157489390113,
+      "step-11-continuous-improvement": 122.52192893777378
+    }
+  },
+  "lessons": [],
+  "recommendations": [],
+  "capturedAt": "2025-12-03T07:56:08.932Z"
+}

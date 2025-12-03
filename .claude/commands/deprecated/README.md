@@ -1,55 +1,24 @@
-# Deprecated CFN Loop Commands
+# Deprecated Commands
 
-**⚠️ DEPRECATED (Removed 2025-10-31)**
+This folder contains commands that have been deprecated and should no longer be used.
 
-These commands are no longer maintained and have been replaced by the simplified CFN Loop v3.0 command structure.
+## Moved to Skills
 
-## Migration Path
+Several commands were better suited as skills and have been converted:
+- CFN_EXPERT_UPDATE → cfn-expert-update skill
+- parse-epic → cfn-epic-parser skill
+- github-commit → cfn-github-workflow skill
+- suggest-improvements → cfn-project-analysis skill
+- create-handoff → cfn-session-handoff skill
 
-### Old Commands → New Commands
+## Non-Functional
 
-| Deprecated Command | Replacement | Use Case |
-|-------------------|-------------|----------|
-| `/cfn-loop` | `/cfn-loop-cli` or `/cfn-loop-task` | General CFN Loop execution |
-| `/cfn-loop-single` | `/cfn-loop-cli --mode=mvp` | Single focused task |
-| `/cfn-loop-epic` | Multiple `/cfn-loop-cli` calls | Multi-phase epic development |
-| `/cfn-loop-sprints` | Multiple `/cfn-loop-cli` calls | Sprint-based development |
+The following commands reference non-existent tools or files:
+- github.md - References 8 non-existent MCP tools
+- hello-world-tests.md - All tests moved to archive
+- run-tests.md - Missing cfn-test-runner skill
 
-## Current Commands (v3.0)
+## Superseded by Other Features
 
-- `/cfn-loop-cli` - Production CLI mode with background execution
-- `/cfn-loop-task` - Task mode for debugging with full visibility
-- `/cfn-loop-frontend` - Frontend development with visual validation
-- `/cfn-loop-document` - Automated documentation generation
-
-## Key Changes
-
-1. **Simplified Architecture**: 4 current commands instead of 8
-2. **Dual Execution Modes**: CLI (production) vs Task (debugging)
-3. **Background Execution**: CLI mode supports `--background=true`
-4. **Enhanced Monitoring**: Real-time progress tracking via Redis
-5. **Cleaner Separation**: Clear distinction between production and debugging workflows
-
-## Why Deprecated?
-
-- **Command Overload**: Too many similar commands caused confusion
-- **Inconsistent Patterns**: Different parameter structures across commands
-- **Maintenance Complexity**: Supporting multiple execution patterns
-- **User Experience**: Simplified command structure improves adoption
-
-## Documentation
-
-See current command documentation:
-- [`../cfn-loop-cli.md`](../cfn-loop-cli.md)
-- [`../cfn-loop-task.md`](../cfn-loop-task.md)
-- [`../cfn-loop-frontend.md`](../cfn-loop-frontend.md)
-- [`../cfn-loop-document.md`](../cfn-loop-document.md)
-
-## Historical Reference
-
-These files are preserved for:
-- Migration guidance for existing users
-- Historical reference for development decisions
-- Understanding the evolution of CFN Loop architecture
-
-**Note**: These commands will be removed completely in a future major version.
+- context-curate.md - Replaced by RuVector learning system
+- context-*.md - Replaced by RuVector semantic search and pattern management
