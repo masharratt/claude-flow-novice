@@ -131,9 +131,130 @@ historicalSuccessBonus = min(0.15, successScore * 0.15)
 - Tool/app keywords: +0.30
 - Niche-specific adjustments: +0.10
 
+## Weight Configuration
+
+Opportunity scoring weights are critical to the accuracy of scores. All weights **MUST** sum to exactly 1.0 (±0.01 tolerance). Misconfigured weights will produce inflated or deflated opportunity scores, leading to incorrect priority rankings.
+
+### Default Weights (Validated)
+
+The default weights have been carefully tuned and validated to sum to 1.0:
+
+```typescript
+const defaultWeights: OpportunityScorerConfig = {
+  volumeDifficultyWeight: 0.30,           // Volume/difficulty ratio
+  gapBonusWeight: 0.25,                   // Competitive gap detection
+  trendBonusWeight: 0.15,                 // Growing/stable/declining trends
+  quickWinBonusWeight: 0.10,              // Low-hanging fruit opportunities
+  intentBonusWeight: 0.05,                // Search intent alignment
+  patternMatchBonusWeight: 0.10,          // RuVector pattern matching
+  historicalSuccessBonusWeight: 0.05,     // Historical conversion likelihood
+  // TOTAL: 1.00 (exactly)
+};
+```
+
+### Custom Weight Configuration
+
+If you need to adjust weights for your use case, ensure the **total equals 1.0**:
+
+```typescript
+// CORRECT: Weights sum to 1.0
+const customScorer = new OpportunityScorer({
+  volumeDifficultyWeight: 0.35,      // Emphasize volume more
+  gapBonusWeight: 0.20,              // De-emphasize gaps
+  trendBonusWeight: 0.15,
+  quickWinBonusWeight: 0.10,
+  intentBonusWeight: 0.05,
+  patternMatchBonusWeight: 0.10,
+  historicalSuccessBonusWeight: 0.05,
+  // TOTAL: 1.00 ✓
+});
+
+// INCORRECT: This will throw an error
+// Weights sum to 1.20
+const invalidScorer = new OpportunityScorer({
+  volumeDifficultyWeight: 0.5,
+  gapBonusWeight: 0.5,
+  // ... other weights
+  // TOTAL: 1.20 ✗ ERROR
+});
+```
+
+### Weight Validation
+
+The OpportunityScorer validates weights at construction time and throws an error if they don't sum to 1.0 (±0.01 tolerance):
+
+```typescript
+// This will throw an error with details:
+// "Opportunity scorer weight validation failed: weights sum to 1.2000
+//  but must equal 1.0 (±0.01 tolerance). Misconfigured weights will produce
+//  inflated or deflated opportunity scores. Provided weights: [volumeDifficultyWeight: 0.5, ...]"
+
+try {
+  const scorer = new OpportunityScorer({
+    volumeDifficultyWeight: 0.5,
+    gapBonusWeight: 0.5,
+    // ... other weights that total > 1.0
+  });
+} catch (error) {
+  console.error(error.message);
+  // Apply correct weights or use defaults
+}
+```
+
+### Weight Tuning Guidelines
+
+When adjusting weights, consider:
+
+1. **Domain Importance**: If your site operates in a competitive niche, increase `gapBonusWeight`
+2. **Volume Preference**: For high-volume targeting, increase `volumeDifficultyWeight`
+3. **Trend Sensitivity**: For fast-moving niches, increase `trendBonusWeight`
+4. **Quick Wins**: For immediate ROI, increase `quickWinBonusWeight`
+5. **Pattern Matching**: If RuVector patterns are reliable, increase `patternMatchBonusWeight`
+
+### Tolerance and Floating-Point Precision
+
+The validator uses a **0.01 tolerance** to account for floating-point precision errors:
+
+```typescript
+// Valid: sum = 1.005 (within tolerance)
+{
+  volumeDifficultyWeight: 0.3,
+  gapBonusWeight: 0.25,
+  trendBonusWeight: 0.15,
+  quickWinBonusWeight: 0.1,
+  intentBonusWeight: 0.05,
+  patternMatchBonusWeight: 0.105,  // 0.10 + 0.005 floating-point
+  historicalSuccessBonusWeight: 0.05,
+  // TOTAL: 1.005 ✓ (within tolerance)
+}
+
+// Invalid: sum = 1.02 (outside tolerance)
+{
+  volumeDifficultyWeight: 0.3,
+  gapBonusWeight: 0.25,
+  trendBonusWeight: 0.15,
+  quickWinBonusWeight: 0.1,
+  intentBonusWeight: 0.05,
+  patternMatchBonusWeight: 0.11,
+  historicalSuccessBonusWeight: 0.05,
+  // TOTAL: 1.02 ✗ (outside tolerance)
+}
+```
+
 ## Final Score Calculation
 
 ```
+finalScore = min(1.0,
+  volumeDifficultyScore * volumeDifficultyWeight +
+  gapBonus * gapBonusWeight +
+  trendBonus * trendBonusWeight +
+  quickWinBonus * quickWinBonusWeight +
+  intentBonus * intentBonusWeight +
+  patternMatchBonus * patternMatchBonusWeight +
+  historicalSuccessBonus * historicalSuccessBonusWeight
+)
+
+// With default weights:
 finalScore = min(1.0,
   volumeDifficultyScore * 0.30 +
   gapBonus * 0.25 +

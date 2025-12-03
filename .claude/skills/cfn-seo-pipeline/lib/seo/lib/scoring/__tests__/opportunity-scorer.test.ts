@@ -43,12 +43,18 @@ describe('OpportunityScorer', () => {
 
     it('should create with custom config', () => {
       const customScorer = new OpportunityScorer({
-        volumeDifficultyWeight: 0.5,
+        volumeDifficultyWeight: 0.35,
+        gapBonusWeight: 0.25,
+        trendBonusWeight: 0.15,
+        quickWinBonusWeight: 0.1,
+        intentBonusWeight: 0.05,
+        patternMatchBonusWeight: 0.05,
+        historicalSuccessBonusWeight: 0.05,
         minSearchVolume: 500,
       });
 
       const config = customScorer.getConfig();
-      expect(config.volumeDifficultyWeight).toBe(0.5);
+      expect(config.volumeDifficultyWeight).toBe(0.35);
       expect(config.minSearchVolume).toBe(500);
     });
 
@@ -445,6 +451,232 @@ describe('OpportunityScorer', () => {
       expect(consoleSpy).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Weight Validation and Normalization', () => {
+    describe('Default Weights', () => {
+      it('should create scorer with default weights that sum to 1.0', () => {
+        const defaultScorer = new OpportunityScorer();
+        const config = defaultScorer.getConfig();
+
+        const totalWeight =
+          config.volumeDifficultyWeight +
+          config.gapBonusWeight +
+          config.trendBonusWeight +
+          config.quickWinBonusWeight +
+          config.intentBonusWeight +
+          config.patternMatchBonusWeight +
+          config.historicalSuccessBonusWeight;
+
+        expect(Math.abs(totalWeight - 1.0)).toBeLessThanOrEqual(0.01);
+      });
+
+      it('should verify individual default weight values', () => {
+        const defaultScorer = new OpportunityScorer();
+        const config = defaultScorer.getConfig();
+
+        expect(config.volumeDifficultyWeight).toBe(0.3);
+        expect(config.gapBonusWeight).toBe(0.25);
+        expect(config.trendBonusWeight).toBe(0.15);
+        expect(config.quickWinBonusWeight).toBe(0.1);
+        expect(config.intentBonusWeight).toBe(0.05);
+        expect(config.patternMatchBonusWeight).toBe(0.1);
+        expect(config.historicalSuccessBonusWeight).toBe(0.05);
+      });
+    });
+
+    describe('Custom Weights Validation', () => {
+      it('should accept custom weights that sum to 1.0', () => {
+        expect(
+          () =>
+            new OpportunityScorer({
+              volumeDifficultyWeight: 0.35,
+              gapBonusWeight: 0.25,
+              trendBonusWeight: 0.15,
+              quickWinBonusWeight: 0.1,
+              intentBonusWeight: 0.05,
+              patternMatchBonusWeight: 0.05,
+              historicalSuccessBonusWeight: 0.05,
+            }),
+        ).not.toThrow();
+      });
+
+      it('should throw error when weights sum to greater than 1.0', () => {
+        expect(
+          () =>
+            new OpportunityScorer({
+              volumeDifficultyWeight: 0.5,
+              gapBonusWeight: 0.5,
+              trendBonusWeight: 0.2,
+              quickWinBonusWeight: 0.1,
+              intentBonusWeight: 0.05,
+              patternMatchBonusWeight: 0.1,
+              historicalSuccessBonusWeight: 0.05,
+            }),
+        ).toThrow(/weights sum to/);
+      });
+
+      it('should throw error when weights sum to less than 1.0', () => {
+        expect(
+          () =>
+            new OpportunityScorer({
+              volumeDifficultyWeight: 0.2,
+              gapBonusWeight: 0.15,
+              trendBonusWeight: 0.1,
+              quickWinBonusWeight: 0.05,
+              intentBonusWeight: 0.02,
+              patternMatchBonusWeight: 0.03,
+              historicalSuccessBonusWeight: 0.02,
+            }),
+        ).toThrow(/weights sum to/);
+      });
+
+      it('should throw error with detailed weight summary on validation failure', () => {
+        expect(
+          () =>
+            new OpportunityScorer({
+              volumeDifficultyWeight: 0.6,
+              gapBonusWeight: 0.3,
+              trendBonusWeight: 0.15,
+              quickWinBonusWeight: 0.1,
+              intentBonusWeight: 0.05,
+              patternMatchBonusWeight: 0.1,
+              historicalSuccessBonusWeight: 0.05,
+            }),
+        ).toThrow(/volumeDifficultyWeight.*gapBonusWeight.*historicalSuccessBonusWeight/);
+      });
+
+      it('should allow weights within 0.01 tolerance of 1.0 (upper bound)', () => {
+        expect(
+          () =>
+            new OpportunityScorer({
+              volumeDifficultyWeight: 0.3,
+              gapBonusWeight: 0.25,
+              trendBonusWeight: 0.15,
+              quickWinBonusWeight: 0.1,
+              intentBonusWeight: 0.05,
+              patternMatchBonusWeight: 0.105,
+              historicalSuccessBonusWeight: 0.045,
+            }),
+        ).not.toThrow();
+      });
+
+      it('should allow weights within 0.01 tolerance of 1.0 (lower bound)', () => {
+        expect(
+          () =>
+            new OpportunityScorer({
+              volumeDifficultyWeight: 0.3,
+              gapBonusWeight: 0.25,
+              trendBonusWeight: 0.15,
+              quickWinBonusWeight: 0.1,
+              intentBonusWeight: 0.05,
+              patternMatchBonusWeight: 0.095,
+              historicalSuccessBonusWeight: 0.055,
+            }),
+        ).not.toThrow();
+      });
+
+      it('should reject weights exceeding tolerance on high side', () => {
+        expect(
+          () =>
+            new OpportunityScorer({
+              volumeDifficultyWeight: 0.3,
+              gapBonusWeight: 0.25,
+              trendBonusWeight: 0.15,
+              quickWinBonusWeight: 0.1,
+              intentBonusWeight: 0.05,
+              patternMatchBonusWeight: 0.11,
+              historicalSuccessBonusWeight: 0.05,
+            }),
+        ).toThrow(/weights sum to/);
+      });
+
+      it('should reject weights exceeding tolerance on low side', () => {
+        expect(
+          () =>
+            new OpportunityScorer({
+              volumeDifficultyWeight: 0.3,
+              gapBonusWeight: 0.25,
+              trendBonusWeight: 0.15,
+              quickWinBonusWeight: 0.1,
+              intentBonusWeight: 0.05,
+              patternMatchBonusWeight: 0.08,  // Total: 0.98 (outside tolerance)
+              historicalSuccessBonusWeight: 0.05,
+            }),
+        ).toThrow(/weights sum to/);
+      });
+
+      it('should provide helpful error message with configuration guidance', () => {
+        try {
+          new OpportunityScorer({
+            volumeDifficultyWeight: 0.4,
+            gapBonusWeight: 0.4,
+            trendBonusWeight: 0.3,
+            quickWinBonusWeight: 0.1,
+            intentBonusWeight: 0.05,
+            patternMatchBonusWeight: 0.1,
+            historicalSuccessBonusWeight: 0.05,
+          });
+          expect(true).toBe(false); // Should have thrown
+        } catch (error) {
+          expect(error).toBeInstanceOf(Error);
+          expect((error as Error).message).toContain('inflated or deflated');
+          expect((error as Error).message).toContain('OpportunityScorerConfig');
+        }
+      });
+    });
+
+    describe('Weighted Score Calculation', () => {
+      it('should calculate final score as weighted sum of all factors', async () => {
+        const customScorer = new OpportunityScorer({
+          volumeDifficultyWeight: 0.4,
+          gapBonusWeight: 0.2,
+          trendBonusWeight: 0.15,
+          quickWinBonusWeight: 0.1,
+          intentBonusWeight: 0.05,
+          patternMatchBonusWeight: 0.05,
+          historicalSuccessBonusWeight: 0.05,
+        });
+
+        const opp = createOpportunity({
+          searchVolume: 3000,
+          difficulty: 0.3,
+          currentPosition: 15,
+          trend: 'growing',
+          intentAlignment: 0.8,
+          hasGap: true,
+        });
+
+        const factors = await customScorer.scoreOpportunity(opp);
+
+        // Final score should be weighted sum
+        const expectedScore =
+          factors.volumeDifficultyScore * 0.4 +
+          factors.gapBonus * 0.2 +
+          factors.trendBonus * 0.15 +
+          factors.quickWinBonus * 0.1 +
+          factors.intentBonus * 0.05 +
+          factors.patternMatchBonus * 0.05 +
+          factors.historicalSuccessBonus * 0.05;
+
+        expect(Math.abs(factors.finalScore - expectedScore)).toBeLessThan(0.001);
+      });
+
+      it('should not exceed 1.0 when all factors are at maximum', async () => {
+        const opp = createOpportunity({
+          searchVolume: 10000,
+          difficulty: 0.1,
+          currentPosition: 2,
+          trend: 'growing',
+          intentAlignment: 1.0,
+          hasGap: true,
+        });
+
+        const factors = await scorer.scoreOpportunity(opp);
+
+        expect(factors.finalScore).toBeLessThanOrEqual(1.0);
+      });
     });
   });
 });

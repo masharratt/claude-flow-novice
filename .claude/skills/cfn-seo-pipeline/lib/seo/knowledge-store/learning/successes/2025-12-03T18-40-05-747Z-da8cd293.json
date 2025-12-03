@@ -1,0 +1,29 @@
+{
+  "outcome": "success",
+  "topic": "Vue.js tutorial",
+  "context": {
+    "targetKeyword": "Vue.js tutorial",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 2380,
+      "step-1-keyword-research": 260.49785868358686,
+      "step-2-competitor-analysis": 235.14610023303985,
+      "step-3-content-planning": 223.90016651471052,
+      "step-4-content-outline": 156.61069234380506,
+      "step-5-content-writing": 274.34339991185664,
+      "step-6-seo-optimization": 215.5414569806666,
+      "step-7-technical-seo": 114.00261054900906,
+      "step-8-link-building-strategy": 240.88901520479823,
+      "step-9-content-publishing": 211.36194358098425,
+      "step-10-performance-monitoring": 241.69456044009405,
+      "step-11-continuous-improvement": 168.311272781188
+    }
+  },
+  "lessons": [],
+  "recommendations": [
+    "Continue using pattern \"pattern-1-32\" - high success rate",
+    "Continue using pattern \"pattern-4-3\" - high success rate",
+    "Continue using pattern \"pattern-8-92\" - high success rate"
+  ],
+  "capturedAt": "2025-12-03T18:40:05.747Z"
+}

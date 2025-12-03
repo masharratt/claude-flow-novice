@@ -1,0 +1,31 @@
+{
+  "outcome": "success",
+  "topic": "Kubernetes basics",
+  "context": {
+    "targetKeyword": "Kubernetes basics",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 2497,
+      "step-1-keyword-research": 130.7991127239078,
+      "step-2-competitor-analysis": 110.36976005734138,
+      "step-3-content-planning": 166.46844859063384,
+      "step-4-content-outline": 121.62137502675597,
+      "step-5-content-writing": 293.70855020686787,
+      "step-6-seo-optimization": 258.89865400912583,
+      "step-7-technical-seo": 196.79159972578935,
+      "step-8-link-building-strategy": 255.3646288635697,
+      "step-9-content-publishing": 197.7122998399442,
+      "step-10-performance-monitoring": 146.5581680700003,
+      "step-11-continuous-improvement": 125.61373617840758
+    }
+  },
+  "lessons": [
+    "Pattern \"pattern-2-69\" promoted to production (confidence: 0.85)",
+    "Pattern \"pattern-10-20\" promoted to production (confidence: 0.85)"
+  ],
+  "recommendations": [
+    "Continue using pattern \"pattern-2-69\" - high success rate",
+    "Continue using pattern \"pattern-10-20\" - high success rate"
+  ],
+  "capturedAt": "2025-12-03T18:40:28.224Z"
+}

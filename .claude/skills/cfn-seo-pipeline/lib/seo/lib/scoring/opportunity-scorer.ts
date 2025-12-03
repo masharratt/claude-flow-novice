@@ -150,21 +150,51 @@ export class OpportunityScorer {
     this.db = db;
     this.verbose = config.verbose ?? false;
 
-    // Validate weights sum to 1.0
-    const totalWeight =
-      this.config.volumeDifficultyWeight +
-      this.config.gapBonusWeight +
-      this.config.trendBonusWeight +
-      this.config.quickWinBonusWeight +
-      this.config.intentBonusWeight +
-      this.config.patternMatchBonusWeight +
-      this.config.historicalSuccessBonusWeight;
+    // Validate weights sum to 1.0 with strict enforcement
+    this.validateWeights(this.config);
+  }
 
-    if (Math.abs(totalWeight - 1.0) > 0.01) {
-      console.warn(
-        `[Warning] Opportunity scorer weights sum to ${totalWeight.toFixed(2)}, expected 1.0`,
+  /**
+   * Validates that scoring weights sum to exactly 1.0 (±0.01 tolerance)
+   * Throws an error if weights are invalid, as this indicates misconfiguration
+   * that would produce inflated or deflated scores.
+   *
+   * @param config - Configuration with weights to validate
+   * @throws Error if weights do not sum to 1.0 (±0.01 tolerance)
+   */
+  private validateWeights(config: Required<OpportunityScorerConfig>): void {
+    const totalWeight =
+      config.volumeDifficultyWeight +
+      config.gapBonusWeight +
+      config.trendBonusWeight +
+      config.quickWinBonusWeight +
+      config.intentBonusWeight +
+      config.patternMatchBonusWeight +
+      config.historicalSuccessBonusWeight;
+
+    const tolerance = 0.01;
+    if (Math.abs(totalWeight - 1.0) > tolerance) {
+      const weightSummary = [
+        `volumeDifficultyWeight: ${config.volumeDifficultyWeight}`,
+        `gapBonusWeight: ${config.gapBonusWeight}`,
+        `trendBonusWeight: ${config.trendBonusWeight}`,
+        `quickWinBonusWeight: ${config.quickWinBonusWeight}`,
+        `intentBonusWeight: ${config.intentBonusWeight}`,
+        `patternMatchBonusWeight: ${config.patternMatchBonusWeight}`,
+        `historicalSuccessBonusWeight: ${config.historicalSuccessBonusWeight}`,
+      ].join(', ');
+
+      throw new Error(
+        `Opportunity scorer weight validation failed: weights sum to ${totalWeight.toFixed(4)} ` +
+        `but must equal 1.0 (±${tolerance} tolerance). Misconfigured weights will produce ` +
+        `inflated or deflated opportunity scores. Provided weights: [${weightSummary}]. ` +
+        `See OpportunityScorerConfig documentation for default weight values.`,
       );
     }
+
+    this.log(
+      `[Validation] Opportunity scorer weights sum to ${totalWeight.toFixed(4)} (valid)`,
+    );
   }
 
   /**
