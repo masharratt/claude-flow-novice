@@ -50,14 +50,20 @@ export OPENAI_API_KEY=your-key    # OpenAI
 export ZAI_API_KEY=your-key       # Z.ai (cost-optimized)
 ```
 
-### 2. Full Reindex
+### 2. Index Changed Files (Recommended Default)
 
 ```bash
-# Via slash command (recommended)
+# Via slash command (auto-detects git changes)
 /codebase-reindex
 
 # Or directly
-./.claude/skills/ruvector-codebase-index/index.sh --full
+./.claude/skills/cfn-ruvector-codebase-index/index.sh --auto
+```
+
+**For full rebuild (only when needed):**
+```bash
+# Explicitly request full reindex
+./.claude/skills/cfn-ruvector-codebase-index/index.sh --full
 ```
 
 **Expected output:**
@@ -186,13 +192,21 @@ export ZAI_API_KEY=your-key       # Z.ai (cost-optimized)
 ┌─────────────────────────────────────────────────────────────┐
 │ Choose Your Indexing Mode                                   │
 ├─────────────────────────────────────────────────────────────┤
+│ ❓ Regular workflow / After code changes?                   │
+│ ❓ Have uncommitted changes to index?                       │
+│ ❓ Want to index all git-tracked changes?                   │
+│ ❓ Just committed and need to update index?                 │
+│    └─→ USE: --auto (DEFAULT, RECOMMENDED)                   │
+│       Command: /codebase-reindex (or index.sh --auto)       │
+│       Time: 5-30 seconds (only changed files)               │
+│                                                              │
 │ ❓ First time setup?                                        │
 │ ❓ Major codebase restructure?                              │
 │ ❓ Config changed (extensions, ignore patterns)?            │
 │ ❓ Index corrupted or missing?                              │
-│    └─→ USE: --full                                          │
-│       Command: /codebase-reindex                            │
-│       Time: 2-30 minutes (depends on size)                  │
+│    └─→ USE: --full (EXPLICIT ONLY)                          │
+│       Command: index.sh --full                              │
+│       Time: 2-30 minutes (all 8k+ files)                    │
 │                                                              │
 │ ❓ Modified specific files manually?                        │
 │ ❓ Want to index new files without full rebuild?            │
@@ -201,15 +215,8 @@ export ZAI_API_KEY=your-key       # Z.ai (cost-optimized)
 │       Command: index.sh --files src/auth.ts src/utils.ts   │
 │       Time: 1-2 seconds per file                            │
 │                                                              │
-│ ❓ Have uncommitted changes to index?                       │
-│ ❓ Want to index all git-tracked changes?                   │
-│ ❓ Testing before commit?                                   │
-│    └─→ USE: --auto                                          │
-│       Command: index.sh --auto                              │
-│       Time: Depends on number of changed files              │
-│                                                              │
-│ ❓ Regular day-to-day workflow?                             │
 │ ❓ Want automatic updates on every commit?                  │
+│ ❓ Never want to think about indexing?                      │
 │    └─→ USE: Git hook (automatic, background)               │
 │       Setup: install-hook.sh (one-time)                     │
 │       Behavior: Auto-indexes on git commit                  │
@@ -220,9 +227,9 @@ export ZAI_API_KEY=your-key       # Z.ai (cost-optimized)
 
 | Mode | Command | When | Speed |
 |------|---------|------|-------|
-| **Full** | `/codebase-reindex` | First setup, major changes | 2-30 min |
+| **Auto (Default)** | `/codebase-reindex` | Regular workflow, after commits | 5-30s |
+| **Full** | `index.sh --full` | First setup, corruption, config change | 2-30 min |
 | **Specific** | `index.sh --files <paths>` | Manual file updates | 1-2s/file |
-| **Auto** | `index.sh --auto` | Uncommitted git changes | Varies |
 | **Hook** | `install-hook.sh` (once) | Every commit (automatic) | Background |
 
 ---

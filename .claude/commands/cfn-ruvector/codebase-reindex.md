@@ -1,30 +1,37 @@
 ---
-description: Rebuild codebase index from scratch using RuVector semantic search
+description: Update codebase index using git-detected changes (auto mode, incremental)
 ---
 
 # Codebase Reindex Command
 
-Rebuild the entire codebase index from scratch. This clears the existing RuVector database and re-indexes all source files.
+**Default mode: Auto-detection** - Indexes only changed files detected from git status (fast, incremental).
 
 **Use when:**
-- First-time setup of codebase indexing
-- Major codebase restructuring
-- Index appears corrupted or outdated
-- After changing indexing configuration
+- After committing code changes (recommended workflow)
+- Regular updates after development work
+- Need to refresh index for recently modified files
 
-**Process:**
-1. Clears existing RuVector codebase_index database
-2. Scans project for all indexable files (TypeScript, Python, Rust, etc.)
-3. Parses each file for metadata (exports, dependencies, purpose)
-4. Generates embeddings using OpenAI/Z.ai
-5. Stores in RuVector for semantic search
+**Process (--auto mode):**
+1. Detects staged and modified files via `git diff`
+2. Filters for indexable extensions (TypeScript, Python, etc.)
+3. Incrementally updates RuVector database
+4. Only re-indexes changed files
 
-**Estimated time:** 2-5 minutes for typical codebase (1000 files)
+**Estimated time:** 5-30 seconds (depends on number of changed files)
 
 ---
 
-Run the full reindex script:
+**For full rebuild (only when needed):**
+Add `--full` flag if you need to rebuild the entire index from scratch:
+- First-time setup
+- Major codebase restructuring
+- Index corrupted or missing
+- After config changes (extensions, ignore patterns)
 
 ```bash
+# Default: Auto-detect changed files (fast)
+./.claude/skills/cfn-ruvector-codebase-index/index.sh --auto
+
+# Full rebuild (only when explicitly needed)
 ./.claude/skills/cfn-ruvector-codebase-index/index.sh --full
 ```
