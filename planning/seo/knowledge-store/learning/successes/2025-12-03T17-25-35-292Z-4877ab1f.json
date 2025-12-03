@@ -1,0 +1,29 @@
+{
+  "outcome": "success",
+  "topic": "Angular best practices",
+  "context": {
+    "targetKeyword": "Angular best practices",
+    "approach": "blog",
+    "metrics": {
+      "step-0-intelligence-preload": 1,
+      "step-1-keyword-research": 146.14226095748887,
+      "step-2-competitor-analysis": 177.65824485433478,
+      "step-3-content-planning": 263.15369875541677,
+      "step-4-content-outline": 166.3943584774143,
+      "step-5-content-writing": 154.83171048852367,
+      "step-6-seo-optimization": 157.88449292107396,
+      "step-7-technical-seo": 210.74119337202882,
+      "step-8-link-building-strategy": 237.20235516102878,
+      "step-9-content-publishing": 268.91812879601156,
+      "step-10-performance-monitoring": 148.38103928597744,
+      "step-11-continuous-improvement": 286.4525428832455
+    }
+  },
+  "lessons": [],
+  "recommendations": [
+    "Continue using pattern \"pattern-1-56\" - high success rate",
+    "Continue using pattern \"pattern-2-50\" - high success rate",
+    "Continue using pattern \"pattern-8-46\" - high success rate"
+  ],
+  "capturedAt": "2025-12-03T17:25:35.292Z"
+}

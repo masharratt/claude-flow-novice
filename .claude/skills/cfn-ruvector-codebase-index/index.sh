@@ -83,21 +83,8 @@ init_database() {
   # Create data directory if it doesn't exist
   mkdir -p "$RUVECTOR_DB_PATH"
 
-  # Initialize database via Node.js script
-  node -e "
-    import { initializeRuVector, getCollection, COLLECTIONS } from '$PROJECT_ROOT/docker/trigger-dev/src/lib/ruvector-init.ts';
-
-    (async () => {
-      try {
-        await initializeRuVector();
-        const collection = getCollection(COLLECTIONS.CODEBASE_INDEX);
-        console.log('RuVector database initialized successfully');
-      } catch (error) {
-        console.error('Failed to initialize RuVector:', error);
-        process.exit(1);
-      }
-    })();
-  " || {
+  # Initialize database via standalone script (avoids inline eval path resolution issues)
+  npx tsx "$SCRIPT_DIR/init-db.js" || {
     log_error "Failed to initialize RuVector database"
     exit 1
   }

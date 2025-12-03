@@ -1,0 +1,733 @@
+{
+  "epic": {
+    "id": "SEO-RUVECTOR-INTELLIGENCE",
+    "name": "SEO RuVector Intelligence Integration",
+    "description": "Implement intelligent research caching and cluster generation for SEO pipeline using RuVector semantic storage. Enables 80% cost reduction through research reuse, self-improving content patterns, and cross-niche intelligence transfer.",
+    "version": "1.0.0",
+    "created": "2025-12-02",
+    "status": "planned",
+    "priority": "high",
+    "estimatedEffort": "6 weeks",
+    "owner": "cfn-seo-team",
+    "tags": ["seo", "ruvector", "intelligence", "optimization", "cluster-generation"]
+  },
+
+  "objectives": [
+    {
+      "id": "OBJ-1",
+      "description": "Reduce research costs by 80% through intelligent caching",
+      "metric": "research_cost_reduction",
+      "target": 0.80,
+      "measurement": "(baseline_cost - actual_cost) / baseline_cost"
+    },
+    {
+      "id": "OBJ-2",
+      "description": "Enable cluster generation with shared research context",
+      "metric": "cluster_research_sharing",
+      "target": 0.90,
+      "measurement": "articles_using_shared_research / total_cluster_articles"
+    },
+    {
+      "id": "OBJ-3",
+      "description": "Implement self-improving pattern system",
+      "metric": "pattern_confidence_accuracy",
+      "target": 0.70,
+      "measurement": "correlation(confidence_score, actual_performance)"
+    },
+    {
+      "id": "OBJ-4",
+      "description": "Enable cross-niche intelligence transfer",
+      "metric": "cross_niche_success_rate",
+      "target": 0.50,
+      "measurement": "successful_cross_niche_suggestions / total_cross_niche_queries"
+    }
+  ],
+
+  "phases": [
+    {
+      "id": "PHASE-1",
+      "name": "Core Collections Infrastructure",
+      "description": "Create 6 RuVector collections with schemas and basic CRUD operations",
+      "duration": "2 weeks",
+      "sprints": [
+        {
+          "id": "P1-S1",
+          "name": "Collection Schemas and Storage Layer",
+          "description": "Define TypeScript interfaces for all 6 collections and implement unified storage utilities",
+          "tasks": [
+            {
+              "id": "P1-S1-T1",
+              "title": "Create RuVector collection schemas",
+              "description": "Define TypeScript interfaces for seo_expert_sources, seo_statistics, seo_keyword_research, seo_competitor_intelligence, seo_serp_patterns, seo_content_patterns",
+              "agent": "typescript-specialist",
+              "estimatedHours": 4,
+              "dependencies": [],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/schemas.ts"
+              ],
+              "acceptanceCriteria": [
+                "All 6 collection interfaces defined with full typing",
+                "Embedding text generator functions for each collection",
+                "ID generation strategies defined",
+                "Freshness score calculation included"
+              ]
+            },
+            {
+              "id": "P1-S1-T2",
+              "title": "Implement unified storage utilities",
+              "description": "Create storage layer with upsert, insert, update, delete operations supporting deduplication and freshness tracking",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["P1-S1-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/storage.ts"
+              ],
+              "acceptanceCriteria": [
+                "Upsert with deduplication working",
+                "Freshness score auto-calculation on insert/update",
+                "Batch operations supported",
+                "Error handling with retries"
+              ]
+            },
+            {
+              "id": "P1-S1-T3",
+              "title": "Implement unified query utilities",
+              "description": "Create query layer with semantic search, filtering, freshness weighting, and confidence boosting",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["P1-S1-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/queries.ts"
+              ],
+              "acceptanceCriteria": [
+                "Semantic search with similarity threshold",
+                "Freshness-weighted results",
+                "Confidence-boosted ranking",
+                "Filter by cluster_id, niche, date range"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "P1-S2",
+          "name": "Individual Collection Implementations",
+          "description": "Implement CRUD operations for each of the 6 collections",
+          "tasks": [
+            {
+              "id": "P1-S2-T1",
+              "title": "Implement seo_expert_sources collection",
+              "description": "Expert sources with quote merging, authority scoring, and topic tagging",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P1-S1-T2", "P1-S1-T3"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/collections/expert-sources.ts"
+              ],
+              "acceptanceCriteria": [
+                "Store expert with credentials and quotes",
+                "Merge new quotes into existing expert",
+                "Authority score calculation",
+                "Query by topic with semantic search"
+              ]
+            },
+            {
+              "id": "P1-S2-T2",
+              "title": "Implement seo_statistics collection",
+              "description": "Statistics with credibility scoring, time-sensitivity flagging, and citation validation",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P1-S1-T2", "P1-S1-T3"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/collections/statistics.ts"
+              ],
+              "acceptanceCriteria": [
+                "Store statistic with source citation",
+                "Credibility score estimation",
+                "Time-sensitive decay handling",
+                "Deduplication by statistic hash"
+              ]
+            },
+            {
+              "id": "P1-S2-T3",
+              "title": "Implement seo_keyword_research collection",
+              "description": "Keyword research with metrics, PAA questions, and cluster tagging",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P1-S1-T2", "P1-S1-T3"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/collections/keyword-research.ts"
+              ],
+              "acceptanceCriteria": [
+                "Store full keyword research results",
+                "Cluster_id tagging",
+                "3-month TTL with freshness decay",
+                "Query by topic or cluster"
+              ]
+            },
+            {
+              "id": "P1-S2-T4",
+              "title": "Implement seo_competitor_intelligence collection",
+              "description": "Competitor analysis with architecture patterns, content gaps, and hub pages",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P1-S1-T2", "P1-S1-T3"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/collections/competitor-intelligence.ts"
+              ],
+              "acceptanceCriteria": [
+                "Store per-domain competitor analysis",
+                "Architecture pattern extraction",
+                "Content gap prioritization",
+                "6-month TTL with freshness decay"
+              ]
+            },
+            {
+              "id": "P1-S2-T5",
+              "title": "Implement seo_serp_patterns collection",
+              "description": "SERP patterns with feature detection, ranking patterns, and semantic clusters",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P1-S1-T2", "P1-S1-T3"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/collections/serp-patterns.ts"
+              ],
+              "acceptanceCriteria": [
+                "Store SERP analysis by keyword:week",
+                "16 SERP feature types supported",
+                "2-4 week TTL (fast decay)",
+                "Opportunity flagging"
+              ]
+            },
+            {
+              "id": "P1-S2-T6",
+              "title": "Implement seo_content_patterns collection",
+              "description": "Content patterns with confidence scoring, article linking, and performance tracking",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P1-S1-T2", "P1-S1-T3"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/collections/content-patterns.ts"
+              ],
+              "acceptanceCriteria": [
+                "Store patterns by type (ANGLE, STRUCTURE, VOICE, HOOK, CTA, DEPTH)",
+                "Confidence score initialization and updates",
+                "Article ID linking",
+                "Success count tracking"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PHASE-2",
+      "name": "Pipeline Integration",
+      "description": "Integrate RuVector storage and queries into SEO pipeline steps",
+      "duration": "2 weeks",
+      "sprints": [
+        {
+          "id": "P2-S1",
+          "name": "Pre-Research Query Integration",
+          "description": "Modify Step 0 to query existing research before running expensive API calls",
+          "tasks": [
+            {
+              "id": "P2-S1-T1",
+              "title": "Create pre-research intelligence gatherer",
+              "description": "Query all 6 collections before research phase to identify what data exists and what needs to be fetched",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["P1-S2-T1", "P1-S2-T2", "P1-S2-T3", "P1-S2-T4", "P1-S2-T5", "P1-S2-T6"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/pre-research-query.ts"
+              ],
+              "acceptanceCriteria": [
+                "Query all 6 collections for topic",
+                "Return cache status (fresh/stale/missing)",
+                "Calculate research_needed flags",
+                "Return combined intelligence context"
+              ]
+            },
+            {
+              "id": "P2-S1-T2",
+              "title": "Modify Step 0 to use pre-research query",
+              "description": "Integrate pre-research intelligence into step-0-intelligence-preload.ts",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P2-S1-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/steps/step-0-intelligence-preload.ts (modified)"
+              ],
+              "acceptanceCriteria": [
+                "Step 0 queries RuVector before pattern loading",
+                "Cached research populates context",
+                "Research_needed flags set correctly",
+                "Logging of cache hits/misses"
+              ]
+            },
+            {
+              "id": "P2-S1-T3",
+              "title": "Create conditional step execution logic",
+              "description": "Skip research steps if fresh cached data exists",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P2-S1-T2"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/conditional-step-executor.ts"
+              ],
+              "acceptanceCriteria": [
+                "Skip Step 1 if keyword research cached and fresh",
+                "Skip Step 2.5 if competitor intel cached and fresh",
+                "Skip Step 3.5 if SERP patterns cached and fresh",
+                "Always run Step 4 but supplement from cache"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "P2-S2",
+          "name": "Post-Research Storage Integration",
+          "description": "Store research results to RuVector after each research step",
+          "tasks": [
+            {
+              "id": "P2-S2-T1",
+              "title": "Create Step 4.5 research storage step",
+              "description": "New pipeline step to store all research results to RuVector after Step 4 completes",
+              "agent": "backend-developer",
+              "estimatedHours": 8,
+              "dependencies": ["P1-S2-T1", "P1-S2-T2", "P1-S2-T3", "P1-S2-T4", "P1-S2-T5"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/steps/step-4.5-research-storage.ts"
+              ],
+              "acceptanceCriteria": [
+                "Store keyword research with cluster_id",
+                "Store competitor intelligence per domain",
+                "Store SERP patterns with week bucket",
+                "Extract and store expert sources",
+                "Extract and store statistics"
+              ]
+            },
+            {
+              "id": "P2-S2-T2",
+              "title": "Implement expert extraction from research",
+              "description": "Parse research results to identify and extract expert sources with quotes",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P2-S2-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/expert-extractor.ts"
+              ],
+              "acceptanceCriteria": [
+                "Identify expert names and credentials from text",
+                "Extract quotes with context",
+                "Estimate authority score",
+                "Merge with existing experts"
+              ]
+            },
+            {
+              "id": "P2-S2-T3",
+              "title": "Implement statistic extraction from research",
+              "description": "Parse research results to identify and extract statistics with citations",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P2-S2-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/statistic-extractor.ts"
+              ],
+              "acceptanceCriteria": [
+                "Identify numeric claims in text",
+                "Extract source citations",
+                "Estimate credibility score",
+                "Flag time-sensitive statistics"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PHASE-3",
+      "name": "Cluster Generation Integration",
+      "description": "Connect cluster generator to RuVector for shared research context",
+      "duration": "1 week",
+      "sprints": [
+        {
+          "id": "P3-S1",
+          "name": "Cluster Research Context",
+          "description": "Enable clusters to share research across all articles",
+          "tasks": [
+            {
+              "id": "P3-S1-T1",
+              "title": "Create cluster research context builder",
+              "description": "Build shared research context from RuVector for entire cluster",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["P2-S1-T1", "P2-S2-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/cluster-research-context.ts"
+              ],
+              "acceptanceCriteria": [
+                "Query all collections by cluster_id",
+                "Build unified ClusterResearchContext object",
+                "Include cache status per collection",
+                "Calculate research gaps"
+              ]
+            },
+            {
+              "id": "P3-S1-T2",
+              "title": "Integrate cluster context into cluster generator",
+              "description": "Modify cluster-generator.ts to use RuVector research context",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P3-S1-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/cluster-generator.ts (modified)"
+              ],
+              "acceptanceCriteria": [
+                "Cluster generation queries existing research first",
+                "Research allocated to articles from shared context",
+                "cluster_id tagged on all new research",
+                "Efficiency metrics calculated"
+              ]
+            },
+            {
+              "id": "P3-S1-T3",
+              "title": "Create article research allocator",
+              "description": "Allocate appropriate research segments to each article in cluster",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P3-S1-T2"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/article-research-allocator.ts"
+              ],
+              "acceptanceCriteria": [
+                "Filter keywords by article relevance",
+                "Select appropriate experts for article topic",
+                "Select relevant statistics",
+                "Track research segment usage"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PHASE-4",
+      "name": "Performance Feedback Loop",
+      "description": "Close the learning loop with performance-based confidence updates",
+      "duration": "1 week",
+      "sprints": [
+        {
+          "id": "P4-S1",
+          "name": "Confidence Update System",
+          "description": "Update pattern confidence based on article performance",
+          "tasks": [
+            {
+              "id": "P4-S1-T1",
+              "title": "Create confidence updater from performance",
+              "description": "Process GSC/GA4 data to update pattern confidence scores",
+              "agent": "backend-developer",
+              "estimatedHours": 6,
+              "dependencies": ["P1-S2-T6"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/confidence-updater.ts"
+              ],
+              "acceptanceCriteria": [
+                "Calculate performance score from metrics",
+                "Update pattern confidence (boost/reduce)",
+                "Update expert authority scores",
+                "Update statistic credibility scores"
+              ]
+            },
+            {
+              "id": "P4-S1-T2",
+              "title": "Integrate confidence updates into Step 13",
+              "description": "Modify step-13-performance-tracking.ts to trigger confidence updates",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P4-S1-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/steps/step-13-performance-tracking.ts (modified)"
+              ],
+              "acceptanceCriteria": [
+                "Step 13 calls confidence updater",
+                "Patterns used by article identified",
+                "Confidence deltas applied correctly",
+                "Logging of confidence changes"
+              ]
+            },
+            {
+              "id": "P4-S1-T3",
+              "title": "Create Step 12.5 pattern storage",
+              "description": "Store successful content patterns after validation passes",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P1-S2-T6"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/steps/step-12.5-pattern-storage.ts"
+              ],
+              "acceptanceCriteria": [
+                "Extract angle pattern from successful article",
+                "Extract structure pattern",
+                "Extract voice/hook patterns",
+                "Initial confidence based on validation score"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PHASE-5",
+      "name": "Freshness Management",
+      "description": "Implement freshness decay and cleanup operations",
+      "duration": "0.5 weeks",
+      "sprints": [
+        {
+          "id": "P5-S1",
+          "name": "Freshness and Cleanup",
+          "description": "Automated freshness decay and collection maintenance",
+          "tasks": [
+            {
+              "id": "P5-S1-T1",
+              "title": "Create freshness manager",
+              "description": "Calculate and update freshness scores, handle TTL expiration",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P1-S1-T2"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/freshness.ts"
+              ],
+              "acceptanceCriteria": [
+                "Freshness score calculation per collection type",
+                "TTL-based expiration detection",
+                "Batch freshness updates",
+                "Archival of expired entries"
+              ]
+            },
+            {
+              "id": "P5-S1-T2",
+              "title": "Create maintenance cron script",
+              "description": "Weekly/monthly maintenance for freshness updates and pruning",
+              "agent": "backend-developer",
+              "estimatedHours": 2,
+              "dependencies": ["P5-S1-T1"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/scripts/ruvector-maintenance.sh"
+              ],
+              "acceptanceCriteria": [
+                "Weekly freshness score updates",
+                "Monthly pruning of low-freshness entries",
+                "Size monitoring and alerts",
+                "Logging of maintenance actions"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "PHASE-6",
+      "name": "Cross-Niche Intelligence",
+      "description": "Enable intelligence transfer between related topics",
+      "duration": "0.5 weeks",
+      "sprints": [
+        {
+          "id": "P6-S1",
+          "name": "Cross-Niche Queries",
+          "description": "Query across related niches for broader intelligence",
+          "tasks": [
+            {
+              "id": "P6-S1-T1",
+              "title": "Create niche hierarchy",
+              "description": "Define topic relationships for inheritance",
+              "agent": "backend-developer",
+              "estimatedHours": 2,
+              "dependencies": [],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/niche-hierarchy.ts"
+              ],
+              "acceptanceCriteria": [
+                "Niche hierarchy tree defined",
+                "Parent/child/sibling relationships",
+                "Query expansion by hierarchy level"
+              ]
+            },
+            {
+              "id": "P6-S1-T2",
+              "title": "Implement cross-niche query functions",
+              "description": "Query related niches with appropriate thresholds",
+              "agent": "backend-developer",
+              "estimatedHours": 4,
+              "dependencies": ["P6-S1-T1", "P1-S1-T3"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/cross-niche.ts"
+              ],
+              "acceptanceCriteria": [
+                "Cross-niche expert search",
+                "Cross-niche statistic search",
+                "Cross-niche pattern transfer",
+                "Stricter similarity thresholds for cross-niche"
+              ]
+            },
+            {
+              "id": "P6-S1-T3",
+              "title": "Create intelligence analytics",
+              "description": "Track metrics for cache hits, cross-niche success, pattern reuse",
+              "agent": "backend-developer",
+              "estimatedHours": 3,
+              "dependencies": ["P6-S1-T2"],
+              "deliverables": [
+                ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/analytics.ts"
+              ],
+              "acceptanceCriteria": [
+                "Cache hit rate tracking",
+                "Cross-niche success rate",
+                "Pattern reuse rate",
+                "Cost savings calculation"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+
+  "testStrategy": {
+    "unitTests": {
+      "coverage": 80,
+      "locations": [
+        ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/__tests__/"
+      ],
+      "requirements": [
+        "All collection CRUD operations",
+        "Freshness calculations",
+        "Confidence updates",
+        "Query filtering and ranking"
+      ]
+    },
+    "integrationTests": {
+      "coverage": 70,
+      "locations": [
+        ".claude/skills/cfn-seo-pipeline/lib/seo/lib/__tests__/integration/"
+      ],
+      "requirements": [
+        "Full pipeline with RuVector integration",
+        "Cluster generation with shared research",
+        "Performance feedback loop",
+        "Cross-niche queries"
+      ]
+    },
+    "performanceTests": {
+      "requirements": [
+        "Query latency p95 < 500ms",
+        "Storage operation < 100ms",
+        "Batch operations scale linearly"
+      ]
+    }
+  },
+
+  "successCriteria": {
+    "quantitative": [
+      {
+        "metric": "research_cost_reduction",
+        "target": 0.80,
+        "description": "80% reduction in research API costs for clusters"
+      },
+      {
+        "metric": "research_time_reduction",
+        "target": 0.75,
+        "description": "75% reduction in research time for clusters"
+      },
+      {
+        "metric": "cache_hit_rate",
+        "target": 0.60,
+        "description": "60% of queries find usable cached data"
+      },
+      {
+        "metric": "pattern_reuse_rate",
+        "target": 0.50,
+        "description": "50% of articles use stored patterns"
+      },
+      {
+        "metric": "cross_niche_success",
+        "target": 0.50,
+        "description": "50% of cross-niche suggestions are useful"
+      }
+    ],
+    "qualitative": [
+      "Self-improving system where patterns learn from performance",
+      "Growing library of experts and statistics",
+      "Reduced dependency on external APIs",
+      "Consistent content quality from proven patterns"
+    ]
+  },
+
+  "risks": [
+    {
+      "id": "RISK-1",
+      "description": "Data quality degradation from storing low-quality research",
+      "probability": "medium",
+      "impact": "high",
+      "mitigation": "Minimum credibility thresholds, source validation, periodic cleanup"
+    },
+    {
+      "id": "RISK-2",
+      "description": "Stale data misleading content generation",
+      "probability": "medium",
+      "impact": "medium",
+      "mitigation": "Strict freshness scoring, TTL enforcement, query-time weighting"
+    },
+    {
+      "id": "RISK-3",
+      "description": "Over-fitting to stored patterns making content formulaic",
+      "probability": "low",
+      "impact": "medium",
+      "mitigation": "Pattern diversity requirements, exploration factor, innovation mode"
+    },
+    {
+      "id": "RISK-4",
+      "description": "Storage bloat from unbounded collection growth",
+      "probability": "low",
+      "impact": "low",
+      "mitigation": "Max entries per collection, archival policy, size monitoring"
+    }
+  ],
+
+  "dependencies": {
+    "internal": [
+      {
+        "id": "DEP-1",
+        "description": "Existing RuVector skill infrastructure",
+        "location": ".claude/skills/cfn-ruvector-codebase-index/"
+      },
+      {
+        "id": "DEP-2",
+        "description": "SEO pipeline Steps 0-13",
+        "location": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/steps/"
+      },
+      {
+        "id": "DEP-3",
+        "description": "Cluster generator",
+        "location": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/cluster-generator.ts"
+      }
+    ],
+    "external": [
+      {
+        "id": "DEP-4",
+        "description": "OpenAI/Z.ai embeddings API for vector generation",
+        "required": true
+      },
+      {
+        "id": "DEP-5",
+        "description": "RuVector database runtime",
+        "required": true
+      }
+    ]
+  },
+
+  "documentation": {
+    "design": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/DESIGN.md",
+    "api": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/ruvector/API.md",
+    "userGuide": ".claude/commands/seo/SEO_RUVECTOR_INTEGRATION.md"
+  }
+}

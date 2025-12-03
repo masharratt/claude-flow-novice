@@ -180,6 +180,53 @@ export ZAI_API_KEY=your-key       # Z.ai (cost-optimized)
 
 ## Usage Patterns
 
+### Quick Decision Guide: Which Index Mode?
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Choose Your Indexing Mode                                   │
+├─────────────────────────────────────────────────────────────┤
+│ ❓ First time setup?                                        │
+│ ❓ Major codebase restructure?                              │
+│ ❓ Config changed (extensions, ignore patterns)?            │
+│ ❓ Index corrupted or missing?                              │
+│    └─→ USE: --full                                          │
+│       Command: /codebase-reindex                            │
+│       Time: 2-30 minutes (depends on size)                  │
+│                                                              │
+│ ❓ Modified specific files manually?                        │
+│ ❓ Want to index new files without full rebuild?            │
+│ ❓ Debugging index issues for certain files?                │
+│    └─→ USE: --files <path1> <path2> ...                    │
+│       Command: index.sh --files src/auth.ts src/utils.ts   │
+│       Time: 1-2 seconds per file                            │
+│                                                              │
+│ ❓ Have uncommitted changes to index?                       │
+│ ❓ Want to index all git-tracked changes?                   │
+│ ❓ Testing before commit?                                   │
+│    └─→ USE: --auto                                          │
+│       Command: index.sh --auto                              │
+│       Time: Depends on number of changed files              │
+│                                                              │
+│ ❓ Regular day-to-day workflow?                             │
+│ ❓ Want automatic updates on every commit?                  │
+│    └─→ USE: Git hook (automatic, background)               │
+│       Setup: install-hook.sh (one-time)                     │
+│       Behavior: Auto-indexes on git commit                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Quick Reference:**
+
+| Mode | Command | When | Speed |
+|------|---------|------|-------|
+| **Full** | `/codebase-reindex` | First setup, major changes | 2-30 min |
+| **Specific** | `index.sh --files <paths>` | Manual file updates | 1-2s/file |
+| **Auto** | `index.sh --auto` | Uncommitted git changes | Varies |
+| **Hook** | `install-hook.sh` (once) | Every commit (automatic) | Background |
+
+---
+
 ### Full Reindex (From Scratch)
 
 **When to use:**

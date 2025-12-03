@@ -1,0 +1,29 @@
+{
+  "outcome": "success",
+  "topic": "Git basics",
+  "context": {
+    "targetKeyword": "Git basics",
+    "approach": "article",
+    "metrics": {
+      "step-0-intelligence-preload": 1792,
+      "step-1-keyword-research": 187.1581124693535,
+      "step-2-competitor-analysis": 137.50944684576825,
+      "step-3-content-planning": 102.19844565986378,
+      "step-4-content-outline": 126.19477301057344,
+      "step-5-content-writing": 189.6102053527973,
+      "step-6-seo-optimization": 296.72391154991067,
+      "step-7-technical-seo": 189.96785682744513,
+      "step-8-link-building-strategy": 268.0178244835159,
+      "step-9-content-publishing": 105.67599441623115,
+      "step-10-performance-monitoring": 179.82600250579958,
+      "step-11-continuous-improvement": 151.00736884196894
+    }
+  },
+  "lessons": [
+    "Pattern \"pattern-6-67\" archived due to low confidence (0.35)"
+  ],
+  "recommendations": [
+    "Continue using pattern \"pattern-6-67\" - high success rate"
+  ],
+  "capturedAt": "2025-12-03T17:25:55.243Z"
+}

@@ -1,0 +1,29 @@
+{
+  "outcome": "success",
+  "topic": "SEO checklist",
+  "context": {
+    "targetKeyword": "SEO checklist",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 797,
+      "step-1-keyword-research": 215.00590249476835,
+      "step-2-competitor-analysis": 195.25761061235707,
+      "step-3-content-planning": 111.57589396193109,
+      "step-4-content-outline": 256.864342141403,
+      "step-5-content-writing": 287.29894052173836,
+      "step-6-seo-optimization": 182.18442919700925,
+      "step-7-technical-seo": 273.6101618292809,
+      "step-8-link-building-strategy": 170.88888431266216,
+      "step-9-content-publishing": 264.62185582336053,
+      "step-10-performance-monitoring": 214.1414604465653,
+      "step-11-continuous-improvement": 268.09637184648244
+    }
+  },
+  "lessons": [],
+  "recommendations": [
+    "Continue using pattern \"pattern-3-82\" - high success rate",
+    "Continue using pattern \"pattern-5-1\" - high success rate",
+    "Continue using pattern \"pattern-7-6\" - high success rate"
+  ],
+  "capturedAt": "2025-12-03T17:23:00.594Z"
+}
