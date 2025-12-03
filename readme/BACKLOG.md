@@ -47,7 +47,55 @@ Test suite has 49/122 failing tests due to mock setup issues, not implementation
 
 ---
 
-### P2-002: Complete Keyword Sanitization (FINDING-002)
+### P2-002: Implement RuVector Client Functions for SEO Onboarding
+**Priority**: P2 (High Value)
+**Created**: 2025-12-03
+**Sprint**: 1.2 (SEO Onboarding Discovery)
+**Epic**: SEO Site Onboarding & Keyword Discovery System
+
+**Issue**:
+Sprint 1.1 created RuVector schemas but deferred client implementation due to security priority.
+
+**Location**:
+- `.claude/skills/cfn-seo/ruvector/` (to be created: `ruvector-client.ts`)
+
+**Root Cause**:
+Security fixes (SEC-1.1 through SEC-1.6) took priority over RuVector client implementation.
+
+**Solution**:
+Create `ruvector-client.ts` with three core functions:
+1. `upsertSiteProfile(domain: string, profile: SiteProfileMetadata): Promise<void>`
+   - Store/update site profile in `site_profiles` collection
+   - Generate embedding from profile data
+   - Set 180-day TTL
+
+2. `queryCrossSitePatterns(industry: string, limit: number): Promise<CrossSitePatternEntry[]>`
+   - Semantic search across `cross_site_patterns` collection
+   - Filter by industry, sort by confidence score
+   - Return top N patterns
+
+3. `logOnboardingResult(domain: string, results: OnboardingResultsMetadata): Promise<void>`
+   - Store complete onboarding run in `onboarding_results` collection
+   - Include all 7 phase outputs, timestamps, confidence scores
+   - Set 365-day TTL for long-term learning
+
+**Acceptance Criteria**:
+- All 3 functions implemented with full TypeScript type safety
+- Integration with existing RuVector schemas (onboarding-schemas.ts)
+- Error handling for network failures, invalid inputs
+- Unit tests for each function
+- Integration with Phase 1-3 implementations (Sprint 1.2)
+
+**Estimated Effort**: 4-6 hours
+
+**Reference Files**:
+- Schema definitions: `.claude/skills/cfn-seo/ruvector/onboarding-schemas.ts`
+- Storage schema doc: `.claude/skills/cfn-seo/storage-schema.md`
+- Epic: `planning/epics/seo-onboarding-discovery/epic.json`
+
+---
+
+### P2-003: Complete Keyword Sanitization (FINDING-002)
 **Priority**: P2 (Medium)
 **Created**: 2025-12-01
 **Sprint**: Phase 2 Sprint 4 (partial fix)
