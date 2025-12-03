@@ -748,10 +748,36 @@ EXAMPLE:
 EOF
 }
 
+# Pattern matching in file
+# Usage: assert_pattern_in_file "file_path" "regex_pattern" ["description"]
+assert_pattern_in_file() {
+  local file="$1"
+  local pattern="$2"
+  local description="${3:-Pattern found}"
+
+  TEST_TOTAL=$((TEST_TOTAL + 1))
+
+  if [[ ! -f "$file" ]]; then
+    TEST_FAILED=$((TEST_FAILED + 1))
+    log_error "FAIL: File does not exist: $file"
+    return 1
+  fi
+
+  if grep -qE "$pattern" "$file"; then
+    TEST_PASSED=$((TEST_PASSED + 1))
+    log_success "PASS: $description"
+    return 0
+  else
+    TEST_FAILED=$((TEST_FAILED + 1))
+    log_error "FAIL: Pattern not found in $file: $pattern"
+    return 1
+  fi
+}
+
 # Export all functions for use in test scripts
 export -f log_step log_info log_success log_warn log_error annotate log_pass log_fail
 export -f assert_success assert_failure assert_equals assert_contains assert_not_contains
-export -f assert_not_empty assert_file_exists assert_dir_exists
+export -f assert_not_empty assert_file_exists assert_dir_exists assert_pattern_in_file
 export -f redis_set redis_get redis_hget redis_hgetall redis_exists redis_del redis_keys redis_flush_all
 export -f redis_wait_for_key verify_redis_health
 export -f wait_for_container cleanup_container get_container_logs is_container_running
