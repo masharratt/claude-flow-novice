@@ -3,6 +3,7 @@ export default {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  setupFiles: ['<rootDir>/jest.setup.js'],
   moduleNameMapper: {
     // Map .js imports to TypeScript files without extension
     '^(\\.{1,2}/.*)\\.js$': '$1',
