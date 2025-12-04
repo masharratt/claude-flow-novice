@@ -16,7 +16,7 @@ out/
 .turbo/
 claude-assets/
 
-# SEO Knowledge Store - Runtime Learning Data
+# SEO Knowledge Store - Temporary Learning Files (deleted after indexing to RuVector)
 .claude/skills/cfn-seo-pipeline/lib/seo/knowledge-store/learning/
 planning/seo/knowledge-store/learning/
 
@@ -231,3 +231,6 @@ legacy/v1/**/.next/planning/global/
 .backups/
 *.backup
 docker/trigger-dev-v4/
+
+#Learnings - Ruvector
+*/learning/.claude/skills/cfn-seo-pipeline/lib/seo/knowledge-store/learning/

@@ -27,6 +27,7 @@ interface MigrationOptions {
   clear?: boolean;
   dryRun?: boolean;
   verbose?: boolean;
+  keepFiles?: boolean;
 }
 
 /**
@@ -38,6 +39,7 @@ function parseArgs(): MigrationOptions {
     verbose: false,
     clear: false,
     dryRun: false,
+    keepFiles: false,
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -55,6 +57,9 @@ function parseArgs(): MigrationOptions {
         break;
       case '--verbose':
         options.verbose = true;
+        break;
+      case '--keep-files':
+        options.keepFiles = true;
         break;
       case '--help':
       case '-h':
@@ -86,6 +91,7 @@ Options:
   --clear                   Clear existing index before migration
   --dry-run                 Show what would be indexed without doing it
   --verbose                 Show detailed progress
+  --keep-files              Keep JSON files after indexing (default: delete)
   --help, -h                Show this help message
 
 Examples:
@@ -142,6 +148,7 @@ async function migrate(options: MigrationOptions): Promise<void> {
   console.log(`Knowledge Store: ${knowledgeStorePath}`);
   console.log(`Clear Index:     ${options.clear ? 'YES' : 'NO'}`);
   console.log(`Dry Run:         ${options.dryRun ? 'YES' : 'NO'}`);
+  console.log(`Keep Files:      ${options.keepFiles ? 'YES' : 'NO'}`);
   console.log(`Verbose:         ${options.verbose ? 'YES' : 'NO'}`);
   console.log();
 
@@ -170,8 +177,8 @@ async function migrate(options: MigrationOptions): Promise<void> {
     console.log();
 
     const stats = options.dryRun
-      ? { successCount: 0, failureCount: 0, totalIndexed: 0, errors: [] }
-      : await indexer.indexAllLearnings();
+      ? { successCount: 0, failureCount: 0, totalIndexed: 0, deletedCount: 0, errors: [] }
+      : await indexer.indexAllLearnings(!options.keepFiles);
 
     // Print results
     console.log('='.repeat(80));
@@ -181,6 +188,7 @@ async function migrate(options: MigrationOptions): Promise<void> {
     console.log(`✅ Success files indexed: ${stats.successCount}`);
     console.log(`❌ Failure files indexed: ${stats.failureCount}`);
     console.log(`📊 Total indexed:         ${stats.totalIndexed}`);
+    console.log(`🗑️  Files deleted:         ${stats.deletedCount}`);
     console.log(`⚠️  Errors:                ${stats.errors.length}`);
     console.log();
 

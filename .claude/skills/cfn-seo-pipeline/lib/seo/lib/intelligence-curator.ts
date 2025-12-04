@@ -142,7 +142,8 @@ export class IntelligenceCurator {
   /**
    * Step 12: Capture learning from content generation
    *
-   * Stores learning outcome in knowledge store and indexes in RuVector
+   * Indexes learning in RuVector. Temporarily creates JSON file during indexing,
+   * then deletes it after successful indexing (RuVector is primary storage).
    *
    * @param learning - Learning capture data
    */
@@ -155,7 +156,7 @@ export class IntelligenceCurator {
 
     await this.ensureKnowledgeStore();
 
-    // Store as JSON file (backward compatibility for existing tools)
+    // Create temporary JSON file for indexing process
     const timestamp = learning.capturedAt.toISOString().replace(/[:.]/g, '-');
     const topicHash = this.hashString(learning.topic).substring(0, 8);
     const subdirectory = learning.outcome === 'success' ? 'successes' : 'failures';
@@ -171,20 +172,26 @@ export class IntelligenceCurator {
     const data = JSON.stringify(learning, null, 2);
     await fs.writeFile(filepath, data, 'utf-8');
 
-    // Index in RuVector for semantic search
+    // Index in RuVector (primary storage)
     try {
       await this.learningIndexer.indexLearning(learning);
 
+      // Delete JSON file after successful indexing
+      await fs.unlink(filepath);
+
       if (this.config.verbose) {
         console.log(
-          `[IntelligenceCurator] Learning captured and indexed: ${learning.topic}`
+          `[IntelligenceCurator] Learning indexed and JSON deleted: ${learning.topic}`
         );
       }
     } catch (error) {
-      // Don't fail if indexing fails - file storage is primary
+      // Keep JSON file if indexing fails for manual recovery
       if (this.config.verbose) {
-        console.error(`[IntelligenceCurator] Failed to index learning: ${error}`);
+        console.error(
+          `[IntelligenceCurator] Failed to index learning (JSON preserved): ${error}`
+        );
       }
+      throw error; // Propagate error since indexing is now primary
     }
   }
 

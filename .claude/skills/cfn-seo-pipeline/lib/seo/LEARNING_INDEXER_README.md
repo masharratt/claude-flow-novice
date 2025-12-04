@@ -101,46 +101,56 @@ Object.entries(metrics.avgStepTimings).forEach(([step, timing]) => {
 
 ## Data Storage
 
-### Dual Storage Strategy
+### Primary Storage: RuVector Index
 
-1. **JSON Files** (Primary - Backward Compatibility)
-   - Location: `knowledge-store/learning/successes/` and `learning/failures/`
-   - Format: `{timestamp}-{topicHash}.json`
-   - Use: Existing tools, manual inspection, backups
+Learning data is stored **exclusively in RuVector** for semantic search and analytics:
 
-2. **RuVector Index** (Secondary - Semantic Search)
-   - Collection: `learning-captures`
-   - Content: Searchable text + metadata
-   - Use: Pattern discovery, analytics, recommendations
+- **Collection**: `learning-captures`
+- **Content**: Searchable text + metadata
+- **Benefits**: Semantic search, pattern discovery, aggregated analytics
+- **Retrieval**: Via `searchLearnings()` and `getAggregatedMetrics()`
+
+### Temporary JSON Files
+
+JSON files are created **temporarily during indexing** and **deleted after successful indexing**:
+
+- **Purpose**: Intermediate format for indexing process
+- **Lifecycle**: Created → Indexed → Deleted
+- **Preservation**: Only kept if indexing fails (for manual recovery)
+- **Location**: `knowledge-store/learning/successes/` and `learning/failures/`
 
 ### Storage Locations
 
 ```
 .claude/skills/cfn-seo-pipeline/lib/seo/knowledge-store/
 ├── learning/
-│   ├── successes/
-│   │   └── 2025-12-04T12-20-38-637Z-51471d51.json
-│   └── failures/
-│       └── 2025-12-04T12-20-38-719Z-0115d7bf.json
+│   ├── successes/  (empty - files deleted after indexing)
+│   └── failures/   (empty - files deleted after indexing)
 └── [RuVector index data]
 ```
 
-**Note**: Learning JSON files are gitignored as they are runtime artifacts.
+**Note**:
+- Learning directories may contain JSON files temporarily during indexing
+- Files are automatically deleted after successful indexing
+- Only preserved if indexing fails (for manual recovery)
 
 ## Migration
 
 ### One-Time Migration
 
-Index existing learning files:
+Index existing learning files (deletes JSON after indexing by default):
 
 ```bash
-# Default migration
+# Default migration (indexes and deletes JSON files)
 npm run migrate:learning
+
+# Keep JSON files after indexing
+npm run migrate:learning --keep-files
 
 # Clear and rebuild index
 npm run migrate:learning --clear
 
-# Dry run (preview only)
+# Dry run (preview only, no deletion)
 npm run migrate:learning --dry-run --verbose
 
 # Custom knowledge store path

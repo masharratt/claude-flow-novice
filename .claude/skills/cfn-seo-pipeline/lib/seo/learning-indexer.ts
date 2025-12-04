@@ -78,23 +78,27 @@ export class LearningIndexer {
   /**
    * Index all learning files from knowledge store
    *
+   * @param deleteAfterIndexing - Delete JSON files after successful indexing (default: true)
    * @returns Stats about indexed data
    */
-  async indexAllLearnings(): Promise<{
+  async indexAllLearnings(deleteAfterIndexing: boolean = true): Promise<{
     successCount: number;
     failureCount: number;
     totalIndexed: number;
+    deletedCount: number;
     errors: string[];
   }> {
     const stats = {
       successCount: 0,
       failureCount: 0,
       totalIndexed: 0,
+      deletedCount: 0,
       errors: [] as string[],
     };
 
     if (this.verbose) {
       console.log('[LearningIndexer] Starting indexing process...');
+      console.log(`[LearningIndexer] Delete after indexing: ${deleteAfterIndexing}`);
     }
 
     try {
@@ -106,6 +110,12 @@ export class LearningIndexer {
         try {
           await this.indexLearningFile(file, 'success');
           stats.successCount++;
+
+          // Delete JSON file after successful indexing
+          if (deleteAfterIndexing) {
+            await fs.unlink(file);
+            stats.deletedCount++;
+          }
         } catch (error) {
           stats.errors.push(`Failed to index ${file}: ${error}`);
         }
@@ -119,6 +129,12 @@ export class LearningIndexer {
         try {
           await this.indexLearningFile(file, 'failure');
           stats.failureCount++;
+
+          // Delete JSON file after successful indexing
+          if (deleteAfterIndexing) {
+            await fs.unlink(file);
+            stats.deletedCount++;
+          }
         } catch (error) {
           stats.errors.push(`Failed to index ${file}: ${error}`);
         }
@@ -131,6 +147,7 @@ export class LearningIndexer {
         console.log(`  - Successes: ${stats.successCount}`);
         console.log(`  - Failures: ${stats.failureCount}`);
         console.log(`  - Total: ${stats.totalIndexed}`);
+        console.log(`  - Deleted: ${stats.deletedCount}`);
         console.log(`  - Errors: ${stats.errors.length}`);
       }
     } catch (error) {
@@ -391,14 +408,17 @@ export const learningIndexer = new LearningIndexer({ verbose: false });
 
 /**
  * Convenience function: Index all learning data
+ *
+ * @param deleteAfterIndexing - Delete JSON files after successful indexing (default: true)
  */
-export async function indexAllLearnings(): Promise<{
+export async function indexAllLearnings(deleteAfterIndexing?: boolean): Promise<{
   successCount: number;
   failureCount: number;
   totalIndexed: number;
+  deletedCount: number;
   errors: string[];
 }> {
-  return learningIndexer.indexAllLearnings();
+  return learningIndexer.indexAllLearnings(deleteAfterIndexing);
 }
 
 /**

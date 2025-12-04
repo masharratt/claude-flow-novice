@@ -127,7 +127,7 @@ describe('LearningIndexer', () => {
   });
 
   describe('indexAllLearnings', () => {
-    it('should index all learning files from knowledge store', async () => {
+    it('should index and delete all learning files by default', async () => {
       // Create test learning files
       const success1: LearningCapture = {
         outcome: 'success',
@@ -187,7 +187,51 @@ describe('LearningIndexer', () => {
       expect(stats.successCount).toBe(2);
       expect(stats.failureCount).toBe(1);
       expect(stats.totalIndexed).toBe(3);
+      expect(stats.deletedCount).toBe(3);
       expect(stats.errors.length).toBe(0);
+
+      // Verify files were deleted
+      const successFiles = await fs.readdir(
+        path.join(testKnowledgeStorePath, 'learning/successes')
+      );
+      const failureFiles = await fs.readdir(
+        path.join(testKnowledgeStorePath, 'learning/failures')
+      );
+      expect(successFiles.length).toBe(0);
+      expect(failureFiles.length).toBe(0);
+    });
+
+    it('should keep files when deleteAfterIndexing is false', async () => {
+      // Create test learning file
+      const success1: LearningCapture = {
+        outcome: 'success',
+        topic: 'Test keeping files',
+        context: {
+          targetKeyword: 'Test',
+          approach: 'guide',
+          metrics: {},
+        },
+        lessons: [],
+        recommendations: [],
+        capturedAt: new Date().toISOString(),
+      };
+
+      await fs.writeFile(
+        path.join(testKnowledgeStorePath, 'learning/successes/test-keep.json'),
+        JSON.stringify(success1)
+      );
+
+      const stats = await indexer.indexAllLearnings(false);
+
+      expect(stats.successCount).toBe(1);
+      expect(stats.deletedCount).toBe(0);
+
+      // Verify file was NOT deleted
+      const files = await fs.readdir(
+        path.join(testKnowledgeStorePath, 'learning/successes')
+      );
+      expect(files.length).toBe(1);
+      expect(files[0]).toBe('test-keep.json');
     });
 
     it('should handle outcome mismatch errors', async () => {
