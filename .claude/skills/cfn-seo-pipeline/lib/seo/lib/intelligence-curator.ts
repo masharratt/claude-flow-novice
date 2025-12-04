@@ -18,6 +18,7 @@ import {
   ResearchQuery,
 } from '../types';
 import { ResearchService } from './research-service';
+import { LearningIndexer } from '../learning-indexer';
 
 /**
  * Intelligence Curator configuration
@@ -28,6 +29,9 @@ interface IntelligenceCuratorConfig {
 
   /** Custom research service instance */
   researchService?: ResearchService;
+
+  /** Custom learning indexer instance */
+  learningIndexer?: LearningIndexer;
 
   /** Enable verbose logging */
   verbose?: boolean;
@@ -48,6 +52,7 @@ interface IntelligenceCuratorConfig {
 export class IntelligenceCurator {
   private knowledgeStorePath: string;
   private researchService: ResearchService;
+  private learningIndexer: LearningIndexer;
   private config: IntelligenceCuratorConfig;
 
   constructor(config: IntelligenceCuratorConfig = {}) {
@@ -57,6 +62,12 @@ export class IntelligenceCurator {
       path.join(__dirname, '..', 'knowledge-store');
     this.researchService =
       config.researchService || new ResearchService({ verbose: config.verbose });
+    this.learningIndexer =
+      config.learningIndexer ||
+      new LearningIndexer({
+        knowledgeStorePath: this.knowledgeStorePath,
+        verbose: config.verbose,
+      });
   }
 
   /**
@@ -131,7 +142,7 @@ export class IntelligenceCurator {
   /**
    * Step 12: Capture learning from content generation
    *
-   * Stores learning outcome in knowledge store for future reference
+   * Stores learning outcome in knowledge store and indexes in RuVector
    *
    * @param learning - Learning capture data
    */
@@ -144,6 +155,7 @@ export class IntelligenceCurator {
 
     await this.ensureKnowledgeStore();
 
+    // Store as JSON file (backward compatibility for existing tools)
     const timestamp = learning.capturedAt.toISOString().replace(/[:.]/g, '-');
     const topicHash = this.hashString(learning.topic).substring(0, 8);
     const subdirectory = learning.outcome === 'success' ? 'successes' : 'failures';
@@ -159,8 +171,20 @@ export class IntelligenceCurator {
     const data = JSON.stringify(learning, null, 2);
     await fs.writeFile(filepath, data, 'utf-8');
 
-    if (this.config.verbose) {
-      console.log(`[IntelligenceCurator] Learning captured: ${filepath}`);
+    // Index in RuVector for semantic search
+    try {
+      await this.learningIndexer.indexLearning(learning);
+
+      if (this.config.verbose) {
+        console.log(
+          `[IntelligenceCurator] Learning captured and indexed: ${learning.topic}`
+        );
+      }
+    } catch (error) {
+      // Don't fail if indexing fails - file storage is primary
+      if (this.config.verbose) {
+        console.error(`[IntelligenceCurator] Failed to index learning: ${error}`);
+      }
     }
   }
 

@@ -16,6 +16,10 @@ out/
 .turbo/
 claude-assets/
 
+# SEO Knowledge Store - Runtime Learning Data
+.claude/skills/cfn-seo-pipeline/lib/seo/knowledge-store/learning/
+planning/seo/knowledge-store/learning/
+
 # Binaries
 bin/claude-flow-*
 !bin/claude-flow
