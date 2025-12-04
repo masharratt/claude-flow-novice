@@ -178,6 +178,29 @@ export {
 } from './pattern-extractor';
 
 // =============================================
+// Performance Feedback Loop Exports (Sprint 2.2, Step 13)
+// =============================================
+
+export {
+  PerformanceFeedbackManager,
+  type PerformanceMetricsInput,
+  type PatternContentMapping,
+  type MatchedPatterns,
+  type ConfidenceAdjustment,
+  type ConfidenceAdjustmentRules,
+  type PatternConfidenceUpdate,
+  type PerformanceReport,
+  type BatchFeedbackResult,
+  type LearningHistoryEntry,
+  PerformanceFeedbackError,
+  PatternNotFoundError,
+  InvalidMetricsError,
+  StorageError,
+  isValidPerformanceMetricsInput,
+  DEFAULT_ADJUSTMENT_RULES,
+} from './performance-feedback';
+
+// =============================================
 // Convenience Factory Functions
 // =============================================
 
@@ -186,6 +209,7 @@ import { SEO_COLLECTIONS, SEOCollectionName } from './schemas';
 import { SEOStorageManager } from './storage';
 import { SEOQueryManager } from './queries';
 import { PreResearchIntelligenceGatherer } from './pre-research-query';
+import { PerformanceFeedbackManager } from './performance-feedback';
 
 /**
  * Create all SEO collection database instances
@@ -247,6 +271,20 @@ export function createPreResearchGatherer(
 }
 
 /**
+ * Create Performance Feedback Manager instance
+ *
+ * @param queryManager - SEOQueryManager instance
+ * @param vectorDb - VectorDB instance for pattern storage
+ * @returns PerformanceFeedbackManager instance
+ */
+export function createPerformanceFeedbackManager(
+  queryManager: SEOQueryManager,
+  vectorDb: VectorDB
+): PerformanceFeedbackManager {
+  return new PerformanceFeedbackManager(queryManager, vectorDb);
+}
+
+/**
  * Create both Storage and Query managers
  *
  * @param collections - Map of collection databases
@@ -260,11 +298,19 @@ export function createSEOIntelligenceManagers(
   storage: SEOStorageManager;
   query: SEOQueryManager;
   preResearch: PreResearchIntelligenceGatherer;
+  performanceFeedback: PerformanceFeedbackManager;
 } {
   const query = new SEOQueryManager(collections, embeddingFn);
+  const contentPatternsDb = collections.get(SEO_COLLECTIONS.CONTENT_PATTERNS);
+
+  if (!contentPatternsDb) {
+    throw new Error('Content Patterns collection database not found');
+  }
+
   return {
     storage: new SEOStorageManager(collections, embeddingFn),
     query,
     preResearch: new PreResearchIntelligenceGatherer(query),
+    performanceFeedback: new PerformanceFeedbackManager(query, contentPatternsDb),
   };
 }
