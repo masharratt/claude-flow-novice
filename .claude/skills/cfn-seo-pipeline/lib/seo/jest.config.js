@@ -12,11 +12,11 @@ module.exports = {
   // Node environment for testing (not browser)
   testEnvironment: 'node',
 
-  // Use test-specific TypeScript configuration
-  globals: {
-    'ts-jest': {
+  // Use modern ts-jest transform configuration
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
       tsconfig: 'tsconfig.test.json'
-    }
+    }]
   },
 
   // Test file locations

@@ -1,0 +1,12 @@
+{
+  "outcome": "failure",
+  "topic": "Failure test",
+  "context": {
+    "targetKeyword": "Failure test",
+    "approach": "blog",
+    "metrics": {}
+  },
+  "lessons": [],
+  "recommendations": [],
+  "capturedAt": "2025-12-03T23:48:46.399Z"
+}

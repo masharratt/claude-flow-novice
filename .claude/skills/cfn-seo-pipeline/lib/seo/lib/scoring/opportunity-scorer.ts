@@ -95,7 +95,7 @@ export interface PatternMatchResult {
  * Opportunity scoring configuration
  */
 export interface OpportunityScorerConfig {
-  /** Weight for volume/difficulty factor (default: 0.3) */
+  /** Weight for volume/difficulty factor (default: 0.35) */
   volumeDifficultyWeight?: number;
 
   /** Weight for gap bonus (default: 0.25) */
@@ -104,13 +104,13 @@ export interface OpportunityScorerConfig {
   /** Weight for trend bonus (default: 0.15) */
   trendBonusWeight?: number;
 
-  /** Weight for quick win bonus (default: 0.1) */
+  /** Weight for quick win bonus (default: 0.10) */
   quickWinBonusWeight?: number;
 
   /** Weight for intent alignment (default: 0.05) */
   intentBonusWeight?: number;
 
-  /** Weight for pattern match bonus (default: 0.1) */
+  /** Weight for pattern match bonus (default: 0.05) */
   patternMatchBonusWeight?: number;
 
   /** Weight for historical success bonus (default: 0.05) */
@@ -136,12 +136,12 @@ export class OpportunityScorer {
 
   constructor(config: OpportunityScorerConfig = {}, db?: VectorDB) {
     this.config = {
-      volumeDifficultyWeight: config.volumeDifficultyWeight ?? 0.3,
+      volumeDifficultyWeight: config.volumeDifficultyWeight ?? 0.35,
       gapBonusWeight: config.gapBonusWeight ?? 0.25,
       trendBonusWeight: config.trendBonusWeight ?? 0.15,
-      quickWinBonusWeight: config.quickWinBonusWeight ?? 0.1,
+      quickWinBonusWeight: config.quickWinBonusWeight ?? 0.10,
       intentBonusWeight: config.intentBonusWeight ?? 0.05,
-      patternMatchBonusWeight: config.patternMatchBonusWeight ?? 0.1,
+      patternMatchBonusWeight: config.patternMatchBonusWeight ?? 0.05,
       historicalSuccessBonusWeight: config.historicalSuccessBonusWeight ?? 0.05,
       minSearchVolume: config.minSearchVolume ?? 50,
       maxDifficulty: config.maxDifficulty ?? 0.8,
@@ -233,8 +233,13 @@ export class OpportunityScorer {
     } else {
       // Score based on volume/difficulty ratio
       // Higher volume + lower difficulty = higher score
-      const ratio = (opportunity.searchVolume / 1000) / (opportunity.difficulty + 0.1);
-      factors.volumeDifficultyScore = Math.min(1, ratio / 100); // Normalize to 0-1
+      // Formula: sqrt(normalized_volume) * (1 - difficulty)
+      // - Volume normalized: log scale where 5000+ volume = 1.0
+      // - Difficulty inverted: low difficulty (0.2) becomes high multiplier (0.8)
+      // - Square root boosts high volume scenarios
+      const normalizedVolume = Math.min(1.0, opportunity.searchVolume / 5000);
+      const difficultyMultiplier = 1 - opportunity.difficulty;
+      factors.volumeDifficultyScore = Math.min(1.0, Math.sqrt(normalizedVolume) * difficultyMultiplier);
 
       this.log(
         `  Volume/Difficulty: ${factors.volumeDifficultyScore.toFixed(3)} (vol:${opportunity.searchVolume}, diff:${opportunity.difficulty.toFixed(2)})`,

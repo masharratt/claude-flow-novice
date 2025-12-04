@@ -1,0 +1,29 @@
+{
+  "outcome": "success",
+  "topic": "Docker tutorial",
+  "context": {
+    "targetKeyword": "Docker tutorial",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 7810,
+      "step-1-keyword-research": 193.74551903339454,
+      "step-2-competitor-analysis": 128.19373283654934,
+      "step-3-content-planning": 292.0740611759163,
+      "step-4-content-outline": 172.52707923971195,
+      "step-5-content-writing": 244.41025729708932,
+      "step-6-seo-optimization": 214.6448798199968,
+      "step-7-technical-seo": 296.0235066723753,
+      "step-8-link-building-strategy": 192.9561161061473,
+      "step-9-content-publishing": 134.77802145712275,
+      "step-10-performance-monitoring": 250.80470827347324,
+      "step-11-continuous-improvement": 244.1491565251325
+    }
+  },
+  "lessons": [],
+  "recommendations": [
+    "Continue using pattern \"pattern-5-3\" - high success rate",
+    "Continue using pattern \"pattern-6-86\" - high success rate",
+    "Continue using pattern \"pattern-9-27\" - high success rate"
+  ],
+  "capturedAt": "2025-12-04T02:00:38.453Z"
+}

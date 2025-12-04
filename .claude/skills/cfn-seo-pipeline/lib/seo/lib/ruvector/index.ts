@@ -163,6 +163,21 @@ export {
 } from './pre-research-query';
 
 // =============================================
+// Pattern Extractor Exports (Sprint 1.4, Step 12.5)
+// =============================================
+
+export {
+  PatternExtractor,
+  type SiteProfilePattern,
+  type ContentStrategyPattern,
+  type CompetitorPattern,
+  type KeywordClusterPattern,
+  type ExtractedPatterns,
+  type PatternMetadata,
+  type PatternExtractionResult,
+} from './pattern-extractor';
+
+// =============================================
 // Convenience Factory Functions
 // =============================================
 

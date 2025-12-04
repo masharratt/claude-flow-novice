@@ -1,0 +1,27 @@
+{
+  "outcome": "success",
+  "topic": "Redis tutorial",
+  "context": {
+    "targetKeyword": "Redis tutorial",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 4413,
+      "step-1-keyword-research": 215.35285396936717,
+      "step-2-competitor-analysis": 116.52952960522241,
+      "step-3-content-planning": 259.68327643844884,
+      "step-4-content-outline": 121.43693655372942,
+      "step-5-content-writing": 297.033524850365,
+      "step-6-seo-optimization": 198.8682943536218,
+      "step-7-technical-seo": 260.138724504964,
+      "step-8-link-building-strategy": 237.79257610001412,
+      "step-9-content-publishing": 275.4197829019363,
+      "step-10-performance-monitoring": 224.33562124829447,
+      "step-11-continuous-improvement": 179.11051798516257
+    }
+  },
+  "lessons": [],
+  "recommendations": [
+    "Continue using pattern \"pattern-3-13\" - high success rate"
+  ],
+  "capturedAt": "2025-12-03T23:50:54.301Z"
+}

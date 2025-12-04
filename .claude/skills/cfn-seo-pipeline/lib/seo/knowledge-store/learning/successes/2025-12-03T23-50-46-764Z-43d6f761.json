@@ -1,0 +1,33 @@
+{
+  "outcome": "success",
+  "topic": "Git basics",
+  "context": {
+    "targetKeyword": "Git basics",
+    "approach": "article",
+    "metrics": {
+      "step-0-intelligence-preload": 4774,
+      "step-1-keyword-research": 137.52644248429038,
+      "step-2-competitor-analysis": 272.7878420428825,
+      "step-3-content-planning": 108.01715359819882,
+      "step-4-content-outline": 106.64100381275081,
+      "step-5-content-writing": 129.73136513153753,
+      "step-6-seo-optimization": 126.24915677702266,
+      "step-7-technical-seo": 212.22718943516878,
+      "step-8-link-building-strategy": 143.73458297888115,
+      "step-9-content-publishing": 174.50742334284183,
+      "step-10-performance-monitoring": 127.56157177275122,
+      "step-11-continuous-improvement": 295.2813172432842
+    }
+  },
+  "lessons": [
+    "Pattern \"pattern-2-18\" archived due to low confidence (0.35)",
+    "Pattern \"pattern-4-72\" archived due to low confidence (0.35)",
+    "Pattern \"pattern-6-91\" archived due to low confidence (0.35)"
+  ],
+  "recommendations": [
+    "Continue using pattern \"pattern-2-18\" - high success rate",
+    "Continue using pattern \"pattern-4-72\" - high success rate",
+    "Continue using pattern \"pattern-6-91\" - high success rate"
+  ],
+  "capturedAt": "2025-12-03T23:50:46.764Z"
+}

@@ -1,0 +1,315 @@
+{
+  "domain": "test-site.com",
+  "onboardingDate": "2025-12-03",
+  "phase1": {
+    "healthScore": 0.88,
+    "criticalIssues": [
+      {"issue": "Missing canonical tags", "severity": "HIGH", "pageCount": 45},
+      {"issue": "Slow page speed", "severity": "MEDIUM", "pageCount": 120}
+    ],
+    "crawlStats": {
+      "pagesCrawled": 450,
+      "pagesIndexed": 380,
+      "orphanPages": 25,
+      "brokenLinks": 12
+    },
+    "performance": {
+      "lcp": "2.8s",
+      "fid": "150ms",
+      "cls": "0.12"
+    }
+  },
+  "phase2": {
+    "totalPages": 450,
+    "topPages": [
+      {"url": "/genealogy-guide", "traffic": 12500, "keywords": 45, "avgPosition": 8.2},
+      {"url": "/family-tree-tips", "traffic": 8200, "keywords": 32, "avgPosition": 12.5},
+      {"url": "/ancestry-research", "traffic": 6100, "keywords": 28, "avgPosition": 15.3}
+    ],
+    "contentGaps": [
+      "beginner tutorials",
+      "video content",
+      "interactive tools"
+    ],
+    "contentTypes": {
+      "blog": 280,
+      "guides": 95,
+      "tools": 45,
+      "about": 30
+    }
+  },
+  "phase3": {
+    "competitors": [
+      {
+        "domain": "competitor1.com",
+        "da": 65,
+        "ranking_keywords": 12500,
+        "top_keywords": [
+          {"keyword": "family tree software", "position": 3, "volume": 8500, "difficulty": 45},
+          {"keyword": "genealogy tools", "position": 5, "volume": 6200, "difficulty": 42},
+          {"keyword": "ancestry research", "position": 7, "volume": 3400, "difficulty": 38}
+        ],
+        "strengths": ["content depth", "brand authority"],
+        "weaknesses": ["complex UX", "slow site"]
+      },
+      {
+        "domain": "competitor2.com",
+        "da": 58,
+        "ranking_keywords": 8900,
+        "top_keywords": [
+          {"keyword": "family history", "position": 4, "volume": 7100, "difficulty": 40},
+          {"keyword": "genealogy basics", "position": 8, "volume": 4200, "difficulty": 35}
+        ],
+        "strengths": ["beginner-friendly", "video content"],
+        "weaknesses": ["limited features", "poor mobile"]
+      }
+    ],
+    "marketGaps": [
+      "AI-powered research tools",
+      "Collaborative family trees",
+      "DNA integration"
+    ]
+  },
+  "phase4": {
+    "totalKeywords": 2500,
+    "keywordClusters": [
+      {
+        "cluster": "genealogy-software",
+        "keywords": 145,
+        "avgVolume": 3500,
+        "avgDifficulty": 42,
+        "topKeywords": [
+          {"keyword": "best genealogy software", "volume": 8500, "difficulty": 45},
+          {"keyword": "family tree maker", "volume": 6200, "difficulty": 40}
+        ]
+      },
+      {
+        "cluster": "family-history-research",
+        "keywords": 98,
+        "avgVolume": 2800,
+        "avgDifficulty": 38,
+        "topKeywords": [
+          {"keyword": "how to research family history", "volume": 5100, "difficulty": 35},
+          {"keyword": "ancestry research tips", "volume": 3400, "difficulty": 32}
+        ]
+      },
+      {
+        "cluster": "genealogy-basics",
+        "keywords": 76,
+        "avgVolume": 2200,
+        "avgDifficulty": 30,
+        "topKeywords": [
+          {"keyword": "what is genealogy", "volume": 4200, "difficulty": 25},
+          {"keyword": "genealogy for beginners", "volume": 3100, "difficulty": 28}
+        ]
+      }
+    ]
+  },
+  "phase5": {
+    "opportunities": [
+      {
+        "type": "content_gap",
+        "keyword": "ancestry research tools",
+        "volume": 3400,
+        "difficulty": 38,
+        "competitorRanking": 5,
+        "ourRanking": null,
+        "priority": "HIGH",
+        "estimatedTraffic": 1200
+      },
+      {
+        "type": "quick_win",
+        "keyword": "genealogy basics",
+        "volume": 4200,
+        "difficulty": 25,
+        "competitorRanking": 8,
+        "ourRanking": 18,
+        "priority": "HIGH",
+        "estimatedTraffic": 1500
+      },
+      {
+        "type": "technical_improvement",
+        "keyword": "family tree software",
+        "volume": 8500,
+        "difficulty": 45,
+        "competitorRanking": 3,
+        "ourRanking": 15,
+        "priority": "MEDIUM",
+        "estimatedTraffic": 2800,
+        "blockedBy": ["page_speed", "mobile_optimization"]
+      }
+    ],
+    "priorityScore": 0.85
+  },
+  "phase6": {
+    "strategyPillars": [
+      {
+        "pillar": "Technical Excellence",
+        "priority": "P0",
+        "actions": [
+          "Fix canonical tags (45 pages)",
+          "Improve Core Web Vitals",
+          "Mobile optimization",
+          "Schema markup expansion"
+        ],
+        "timeline": "Month 1-2",
+        "budget": 15000
+      },
+      {
+        "pillar": "Content Leadership",
+        "priority": "P1",
+        "actions": [
+          "Create 8 beginner tutorials",
+          "Develop video content series",
+          "Build interactive tools",
+          "Content refresh strategy"
+        ],
+        "timeline": "Month 2-4",
+        "budget": 25000
+      },
+      {
+        "pillar": "Authority Building",
+        "priority": "P2",
+        "actions": [
+          "Link building campaign",
+          "Guest posting strategy",
+          "Industry partnerships",
+          "PR outreach"
+        ],
+        "timeline": "Month 3-6",
+        "budget": 10000
+      }
+    ],
+    "targetKeywords": [
+      "ancestry research tools",
+      "genealogy basics",
+      "family tree software",
+      "family history research"
+    ],
+    "competitiveAdvantage": "User-friendly beginner content with AI-powered tools",
+    "timeline": "6 months",
+    "totalBudget": 50000
+  },
+  "phase7": {
+    "duration": "6 months",
+    "milestones": [
+      {
+        "month": 1,
+        "name": "Technical Foundation",
+        "tasks": [
+          "Fix canonical tags (45 pages)",
+          "Optimize Core Web Vitals",
+          "Mobile optimization audit",
+          "Schema markup implementation"
+        ],
+        "kpis": {
+          "healthScore": 0.90,
+          "pageSpeed": "<2.5s LCP"
+        }
+      },
+      {
+        "month": 2,
+        "name": "Content Launch",
+        "tasks": [
+          "Publish 8 beginner guides",
+          "Launch video series (4 videos)",
+          "Create interactive tool prototype",
+          "Optimize existing top pages"
+        ],
+        "kpis": {
+          "newContent": 8,
+          "videoViews": 5000
+        }
+      },
+      {
+        "month": 3,
+        "name": "Link Building Phase 1",
+        "tasks": [
+          "Outreach campaign (25 sites)",
+          "Guest post strategy (5 posts)",
+          "Industry partnerships (3 partners)",
+          "PR announcement"
+        ],
+        "kpis": {
+          "newBacklinks": 25,
+          "guestPosts": 5
+        }
+      },
+      {
+        "month": 4,
+        "name": "Optimization & Testing",
+        "tasks": [
+          "A/B test landing pages",
+          "Schema markup expansion",
+          "CTR optimization",
+          "Internal linking optimization"
+        ],
+        "kpis": {
+          "ctr": 0.05,
+          "avgPosition": -3
+        }
+      },
+      {
+        "month": 5,
+        "name": "Scaling & Expansion",
+        "tasks": [
+          "Content refresh (top 20 pages)",
+          "Launch advanced features",
+          "Expand keyword targeting",
+          "Additional video content"
+        ],
+        "kpis": {
+          "organicTraffic": 20000,
+          "keywordRankings": 150
+        }
+      },
+      {
+        "month": 6,
+        "name": "Review & Iterate",
+        "tasks": [
+          "Performance review",
+          "Strategy adjustment",
+          "ROI analysis",
+          "Next phase planning"
+        ],
+        "kpis": {
+          "overallScore": 0.90,
+          "trafficGrowth": 1.5
+        }
+      }
+    ],
+    "totalTasks": 24,
+    "dependencies": [
+      {"task": "Content Launch", "dependsOn": ["Technical Foundation"]},
+      {"task": "Link Building", "dependsOn": ["Content Launch"]},
+      {"task": "Optimization", "dependsOn": ["Technical Foundation", "Content Launch"]}
+    ]
+  },
+  "ruvectorIntelligence": {
+    "patternsApplied": 15,
+    "cacheHitRate": 0.45,
+    "costSavings": 125.50,
+    "apiCallsSaved": 42,
+    "confidenceBoost": 0.12,
+    "appliedPatterns": [
+      {"type": "site_profile", "similarity": 0.88},
+      {"type": "content_strategy", "similarity": 0.82},
+      {"type": "keyword_cluster", "similarity": 0.85},
+      {"type": "technical_optimization", "similarity": 0.90}
+    ]
+  },
+  "executiveSummary": {
+    "currentState": "Medium-sized genealogy site with strong content but technical issues",
+    "keyOpportunities": [
+      "Fix technical issues for immediate ranking boost",
+      "Capture beginner audience with educational content",
+      "Build authority through strategic link building"
+    ],
+    "expectedOutcomes": {
+      "trafficGrowth": "150% increase (10k → 25k monthly)",
+      "keywordRankings": "200+ new rankings",
+      "healthScore": "0.88 → 0.95",
+      "roi": "3.5x within 6 months"
+    }
+  }
+}

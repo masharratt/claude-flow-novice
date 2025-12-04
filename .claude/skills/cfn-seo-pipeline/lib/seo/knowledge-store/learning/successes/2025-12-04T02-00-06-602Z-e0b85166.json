@@ -1,0 +1,28 @@
+{
+  "outcome": "success",
+  "topic": "React performance",
+  "context": {
+    "targetKeyword": "React performance",
+    "approach": "article",
+    "metrics": {
+      "step-0-intelligence-preload": 7022,
+      "step-1-keyword-research": 236.6805138231494,
+      "step-2-competitor-analysis": 111.0210794493252,
+      "step-3-content-planning": 127.68290494398582,
+      "step-4-content-outline": 135.65161133296522,
+      "step-5-content-writing": 221.81660738497544,
+      "step-6-seo-optimization": 102.38693853663732,
+      "step-7-technical-seo": 102.04404257708917,
+      "step-8-link-building-strategy": 291.81276751739273,
+      "step-9-content-publishing": 164.48898865164333,
+      "step-10-performance-monitoring": 187.71067775905692,
+      "step-11-continuous-improvement": 241.54490618864358
+    }
+  },
+  "lessons": [],
+  "recommendations": [
+    "Continue using pattern \"pattern-2-19\" - high success rate",
+    "Continue using pattern \"pattern-3-86\" - high success rate"
+  ],
+  "capturedAt": "2025-12-04T02:00:06.602Z"
+}

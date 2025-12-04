@@ -9,6 +9,18 @@
 import { DataForSEOCached } from '../dataforseo-cached';
 import { CostTracker, calculateCacheEfficiency, calculateTimeSavings } from '../cost-tracking';
 
+// Mock the RuVector collections
+jest.mock('../../lib/ruvector', () => ({
+  KeywordResearchCollection: jest.fn().mockImplementation(() => ({
+    query: jest.fn().mockResolvedValue([]),
+    add: jest.fn().mockResolvedValue({ id: 'keyword-test-id' }),
+  })),
+  SERPPatternsCollection: jest.fn().mockImplementation(() => ({
+    query: jest.fn().mockResolvedValue([]),
+    add: jest.fn().mockResolvedValue({ id: 'serp-test-id' }),
+  })),
+}));
+
 /**
  * Mock RuVector database
  */

@@ -1,0 +1,25 @@
+{
+  "outcome": "success",
+  "topic": "Kubernetes basics",
+  "context": {
+    "targetKeyword": "Kubernetes basics",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 8904,
+      "step-1-keyword-research": 138.3046965654698,
+      "step-2-competitor-analysis": 256.4981734394448,
+      "step-3-content-planning": 189.75270637209204,
+      "step-4-content-outline": 206.13780732694462,
+      "step-5-content-writing": 190.09949159591037,
+      "step-6-seo-optimization": 263.4006500916199,
+      "step-7-technical-seo": 165.69151888780777,
+      "step-8-link-building-strategy": 283.3329547193191,
+      "step-9-content-publishing": 117.37619463920734,
+      "step-10-performance-monitoring": 191.54751871515032,
+      "step-11-continuous-improvement": 247.13035070646472
+    }
+  },
+  "lessons": [],
+  "recommendations": [],
+  "capturedAt": "2025-12-04T02:01:01.751Z"
+}

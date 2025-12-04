@@ -1,0 +1,27 @@
+{
+  "outcome": "success",
+  "topic": "MongoDB tutorial",
+  "context": {
+    "targetKeyword": "MongoDB tutorial",
+    "approach": "guide",
+    "metrics": {
+      "step-0-intelligence-preload": 9680,
+      "step-1-keyword-research": 196.54607982365434,
+      "step-2-competitor-analysis": 208.06044934332428,
+      "step-3-content-planning": 183.18744390070464,
+      "step-4-content-outline": 228.46967122745977,
+      "step-5-content-writing": 164.10719250500728,
+      "step-6-seo-optimization": 240.01189743777525,
+      "step-7-technical-seo": 219.47528287296245,
+      "step-8-link-building-strategy": 288.5695577330771,
+      "step-9-content-publishing": 214.22104664352446,
+      "step-10-performance-monitoring": 266.83267722600897,
+      "step-11-continuous-improvement": 144.2794818885043
+    }
+  },
+  "lessons": [],
+  "recommendations": [
+    "Continue using pattern \"pattern-5-28\" - high success rate"
+  ],
+  "capturedAt": "2025-12-04T00:16:45.524Z"
+}
