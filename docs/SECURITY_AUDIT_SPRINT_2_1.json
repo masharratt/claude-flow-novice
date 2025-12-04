@@ -1,0 +1,379 @@
+{
+  "audit": {
+    "title": "Security Audit Report: Sprint 2.1 Keyword Discovery Implementation",
+    "date": "2025-12-03",
+    "auditor": "Security Specialist Agent",
+    "scope": "Keyword discovery integration (GSC, Google Suggest, Reddit, PAA, Competitors)",
+    "status": "ITERATE_REQUIRED",
+    "consensusScore": 0.60,
+    "securityScore": 0.55,
+    "complianceScore": 0.37
+  },
+  "summary": {
+    "criticalVulnerabilities": 3,
+    "highVulnerabilities": 7,
+    "mediumVulnerabilities": 6,
+    "lowVulnerabilities": 4,
+    "recommendation": "ITERATE - Implement critical fixes before production release",
+    "estimatedRemediationHours": 15,
+    "blockersProduction": true
+  },
+  "vulnerabilities": [
+    {
+      "id": "SEC-2.2.1",
+      "severity": "CRITICAL",
+      "title": "No Input Validation on niche Parameter",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/index.ts",
+      "line": 35,
+      "category": "Input Validation",
+      "cwe": "CWE-400,CWE-79",
+      "description": "The niche parameter is passed directly to subreddit queries and database filters without validation. This user-controlled parameter can be 255+ characters, enabling NoSQL injection, XSS via stored data, and buffer overflow attacks.",
+      "impact": "High - Data injection, XSS, DoS",
+      "attackVector": "User-supplied niche parameter in API calls",
+      "remediation": "Implement validateNiche() function with: max 200 char limit, alphanumeric+space+hyphen+underscore whitelist, normalize whitespace",
+      "remediationEffort": "2-3 hours",
+      "testingRequired": ["input validation tests", "boundary tests", "injection tests"],
+      "owasp": ["A01: Broken Access Control", "A03: Injection", "A04: Insecure Design"]
+    },
+    {
+      "id": "SEC-2.3.1",
+      "severity": "CRITICAL",
+      "title": "Missing SSRF Protection on Google Suggest",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/google-suggest-collector.ts",
+      "line": 48,
+      "category": "SSRF Protection",
+      "cwe": "CWE-918",
+      "description": "Google Suggest collector constructs URLs using user-controlled query parameters without validation. Attacker can manipulate language/country parameters for CRLF injection and header manipulation.",
+      "impact": "High - SSRF, HTTP header injection, internal API access",
+      "attackVector": "Malicious language/country parameter: '../../../internal' or CRLF injection",
+      "remediation": "Whitelist supported languages/countries, validate parameters before URL construction, reject invalid values",
+      "remediationEffort": "2-3 hours",
+      "testingRequired": ["SSRF tests", "URL validation tests", "injection tests"],
+      "owasp": ["A03: Injection", "A04: Insecure Design"]
+    },
+    {
+      "id": "SEC-2.6.1",
+      "severity": "CRITICAL",
+      "title": "Information Disclosure in Error Messages",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/gsc-collector.ts",
+      "line": 95,
+      "category": "Error Handling",
+      "cwe": "CWE-209",
+      "description": "Error messages expose internal API endpoints, full error details, and stack traces to users and logs. Enables information gathering, path disclosure, and API endpoint mapping.",
+      "impact": "High - Information disclosure, reconnaissance",
+      "attackVector": "Trigger API errors to expose internal structure",
+      "remediation": "Create error classes per module, return generic errors to users, log detailed errors server-side only",
+      "remediationEffort": "1-2 hours",
+      "testingRequired": ["error message tests", "log validation tests"],
+      "owasp": ["A09: Security Logging and Monitoring"]
+    },
+    {
+      "id": "SEC-2.2.2",
+      "severity": "HIGH",
+      "title": "Seed Keywords Not Validated",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/google-suggest-collector.ts",
+      "line": 185,
+      "category": "Input Validation",
+      "cwe": "CWE-400",
+      "description": "Seed keywords passed to batch collection lack any validation for length or content. Could enable DoS via large keywords, memory exhaustion, or injection attacks.",
+      "impact": "High - DoS, injection, resource exhaustion",
+      "attackVector": "Supply 10MB seed keyword string",
+      "remediation": "Validate array length (max 1000), validate each keyword (max 500 chars), sanitize control characters",
+      "remediationEffort": "2 hours",
+      "testingRequired": ["keyword validation tests", "boundary tests", "DoS tests"],
+      "owasp": ["A04: Insecure Design"]
+    },
+    {
+      "id": "SEC-2.5.1",
+      "severity": "HIGH",
+      "title": "Inadequate Rate Limiting",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/google-suggest-collector.ts",
+      "line": 240,
+      "category": "Rate Limiting",
+      "cwe": "CWE-770",
+      "description": "Rate limiting uses fixed delays (100ms, 500ms, 1000ms) without adaptive throttling or cumulative limits across collectors. Cannot adapt to API quota changes or prevent accidental DoS.",
+      "impact": "High - API quota exhaustion, undetected overuse, cost overruns",
+      "attackVector": "Rapid batch requests exhausting API quota",
+      "remediation": "Implement AdaptiveRateLimiter class with configurable requests/minute, burst size, and sliding window algorithm",
+      "remediationEffort": "2-3 hours",
+      "testingRequired": ["rate limit tests", "quota tests", "load tests"],
+      "owasp": ["A04: Insecure Design"]
+    },
+    {
+      "id": "SEC-2.1.1",
+      "severity": "HIGH",
+      "title": "No API Key Rotation Support",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/gsc-collector.ts",
+      "line": 43,
+      "category": "API Key Management",
+      "cwe": "CWE-798",
+      "description": "API credentials loaded at startup and cached for entire application lifetime. No support for key rotation or emergency revocation without application restart.",
+      "impact": "High - Compromised credentials persist, no emergency response path",
+      "attackVector": "Stolen credential cannot be revoked until app restart",
+      "remediation": "Implement CredentialStore interface with getToken(), refreshToken(), revokeToken() methods. Add token TTL and refresh logic.",
+      "remediationEffort": "3-4 hours",
+      "testingRequired": ["credential refresh tests", "revocation tests", "TTL tests"],
+      "owasp": ["A01: Broken Access Control"]
+    },
+    {
+      "id": "SEC-2.4.1",
+      "severity": "HIGH",
+      "title": "Insufficient Data Sanitization (Reddit Titles)",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/social-collector.ts",
+      "line": 130,
+      "category": "Data Sanitization",
+      "cwe": "CWE-79",
+      "description": "Reddit post titles stored directly without HTML/script sanitization. Could contain HTML entities, scripts, or XSS payloads that persist in database.",
+      "impact": "High - Stored XSS, injection in downstream systems",
+      "attackVector": "Reddit post with title containing <script> tags",
+      "remediation": "Implement sanitizeText() function: remove null bytes, decode/remove HTML entities, remove script tags, strip event handlers, enforce max length",
+      "remediationEffort": "1-2 hours",
+      "testingRequired": ["XSS tests", "HTML entity tests", "sanitization tests"],
+      "owasp": ["A03: Injection", "A06: Vulnerable and Outdated Components"]
+    },
+    {
+      "id": "SEC-2.2.3",
+      "severity": "HIGH",
+      "title": "Missing taskId Validation",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/index.ts",
+      "line": 75,
+      "category": "Input Validation",
+      "cwe": "CWE-22",
+      "description": "taskId parameter not validated. Could contain path traversal sequences if used in file operations, cache keys, or logging.",
+      "impact": "High - Path traversal, cache key collision, log injection",
+      "attackVector": "Supply taskId with ../ sequences for path traversal",
+      "remediation": "Validate taskId as UUID or alphanumeric+hyphen+underscore (max 64 chars), reject path traversal patterns",
+      "remediationEffort": "1 hour",
+      "testingRequired": ["path traversal tests", "format validation tests"],
+      "owasp": ["A01: Broken Access Control"]
+    },
+    {
+      "id": "SEC-2.4.2",
+      "severity": "HIGH",
+      "title": "Subreddit Name Not Validated",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/social-collector.ts",
+      "line": 185,
+      "category": "SSRF Protection",
+      "cwe": "CWE-918",
+      "description": "Subreddit names passed to queryReddit() lack validation, enabling path traversal and query injection into Reddit URLs.",
+      "impact": "High - Path traversal, SSRF, query injection",
+      "attackVector": "Subreddit: 'gaming/../../../etc/passwd' or 'gaming?token=leaked'",
+      "remediation": "Validate subreddit as alphanumeric+underscore+hyphen (max 21 chars), reject path traversal and special characters",
+      "remediationEffort": "1 hour",
+      "testingRequired": ["path traversal tests", "URL injection tests"],
+      "owasp": ["A03: Injection", "A04: Insecure Design"]
+    },
+    {
+      "id": "SEC-2.1.2",
+      "severity": "HIGH",
+      "title": "No Environment Variable Validation on Startup",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/gsc-collector.ts",
+      "line": 216,
+      "category": "Configuration",
+      "cwe": "CWE-924",
+      "description": "API keys loaded from environment but never validated for format or length. Invalid/expired keys only detected during first API call, causing confusing runtime errors.",
+      "impact": "High - Silent failures, confusing errors, audit bypass",
+      "attackVector": "Application starts with invalid credentials, no startup validation",
+      "remediation": "Implement validateEnvironment() function at startup, validate all required credentials, fail fast with clear error messages",
+      "remediationEffort": "1-2 hours",
+      "testingRequired": ["environment validation tests", "startup tests"],
+      "owasp": ["A04: Insecure Design", "A05: Security Misconfiguration"]
+    },
+    {
+      "id": "SEC-2.1.3",
+      "severity": "MEDIUM",
+      "title": "Embedding Cache Not Encrypted",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/semantic-cluster.ts",
+      "line": 1350,
+      "category": "Data Protection",
+      "cwe": "CWE-312",
+      "description": "Cached embeddings stored in plain text in RuVector database. Embeddings can be reverse-engineered to recover original keywords, violating privacy.",
+      "impact": "Medium - Data breach risk, keyword discovery, privacy violation",
+      "attackVector": "Database breach exposes plaintext embeddings and keywords",
+      "remediation": "Add AES-256-GCM encryption for embeddings, implement EMBEDDING_ENCRYPTION_KEY environment variable, store encryption metadata",
+      "remediationEffort": "2-3 hours",
+      "testingRequired": ["encryption tests", "decryption tests", "key rotation tests"],
+      "owasp": ["A02: Cryptographic Failures"]
+    },
+    {
+      "id": "SEC-2.5.2",
+      "severity": "MEDIUM",
+      "title": "Cache Hit Rate Logging May Expose API Usage Patterns",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/index.ts",
+      "line": 280,
+      "category": "Information Disclosure",
+      "cwe": "CWE-532",
+      "description": "Verbose logging of cache hit/miss rates and API call counts could expose usage patterns to attackers with log access.",
+      "impact": "Medium - Information disclosure, usage pattern analysis",
+      "remediation": "Move detailed analytics to secure logging channel, limit production logging to errors only",
+      "remediationEffort": "1 hour",
+      "testingRequired": ["logging tests"]
+    },
+    {
+      "id": "SEC-2.6.2",
+      "severity": "MEDIUM",
+      "title": "Verbose Console Logging of Sensitive Operations",
+      "file": "Multiple discovery files",
+      "category": "Logging",
+      "cwe": "CWE-532",
+      "description": "Console logging includes API endpoints, operation details, and timing information that could aid attackers.",
+      "impact": "Medium - Information disclosure",
+      "remediation": "Use structured logging with log levels, avoid logging sensitive details in production",
+      "remediationEffort": "1 hour",
+      "testingRequired": ["logging output tests"]
+    },
+    {
+      "id": "SEC-2.1.4",
+      "severity": "MEDIUM",
+      "title": "No Credentials Expiration Warnings",
+      "file": ".claude/skills/cfn-seo-pipeline/lib/seo/lib/discovery/gsc-collector.ts",
+      "category": "Key Management",
+      "cwe": "CWE-613",
+      "description": "No mechanism to warn when API credentials are approaching expiration, leading to unexpected service disruption.",
+      "impact": "Medium - Service disruption, operational risk",
+      "remediation": "Track credential age, log warnings when approaching expiration (30/7/1 days), require rotation",
+      "remediationEffort": "1-2 hours"
+    }
+  ],
+  "complianceLevels": {
+    "apiKeyManagement": {
+      "status": "FAIL",
+      "score": 0.4,
+      "passing": ["Environment-based storage", ".env.example documentation"],
+      "failing": ["Key rotation support", "Encryption at rest", "No startup validation"]
+    },
+    "inputValidation": {
+      "status": "FAIL",
+      "score": 0.1,
+      "failing": ["niche parameter", "seed keywords", "taskId", "subreddit names"]
+    },
+    "ssrfProtection": {
+      "status": "FAIL",
+      "score": 0.0,
+      "failing": ["No domain whitelist", "No URL validation", "No parameter validation"]
+    },
+    "dataSanitization": {
+      "status": "PARTIAL",
+      "score": 0.3,
+      "failing": ["HTML/script sanitization missing", "No content validation on import"]
+    },
+    "rateLimiting": {
+      "status": "PARTIAL",
+      "score": 0.4,
+      "issues": ["Fixed delays only", "No adaptive throttling", "No cumulative limits"]
+    },
+    "errorHandling": {
+      "status": "FAIL",
+      "score": 0.0,
+      "failing": ["Information disclosure in messages", "Stack traces exposed", "No error classification"]
+    }
+  },
+  "remediationPlan": {
+    "phase1": {
+      "title": "Critical Path (Block Production)",
+      "duration": "2-3 days",
+      "items": [
+        {
+          "priority": 1,
+          "task": "Input Validation Module",
+          "effort": "2-3 hours",
+          "includes": ["validateNiche()", "validateKeyword()", "validateTaskId()", "validateSubreddit()"]
+        },
+        {
+          "priority": 2,
+          "task": "SSRF Protection",
+          "effort": "2-3 hours",
+          "includes": ["Domain whitelisting", "Parameter validation", "URL validation"]
+        },
+        {
+          "priority": 3,
+          "task": "Error Handling Sanitization",
+          "effort": "1-2 hours",
+          "includes": ["Error classes", "Message sanitization", "Structured logging"]
+        }
+      ]
+    },
+    "phase2": {
+      "title": "High Priority (Before Beta)",
+      "duration": "3-5 days",
+      "items": [
+        {
+          "priority": 4,
+          "task": "Rate Limiting Improvement",
+          "effort": "2-3 hours",
+          "includes": ["AdaptiveRateLimiter class", "Per-API limits", "Monitoring"]
+        },
+        {
+          "priority": 5,
+          "task": "Data Sanitization",
+          "effort": "1-2 hours",
+          "includes": ["sanitizeText() function", "XSS prevention", "Unit tests"]
+        },
+        {
+          "priority": 6,
+          "task": "Environment Validation",
+          "effort": "1-2 hours",
+          "includes": ["validateEnvironment()", "Startup checks", "Clear error messages"]
+        }
+      ]
+    },
+    "phase3": {
+      "title": "Technical Debt (Post Release)",
+      "duration": "1-2 weeks",
+      "items": [
+        {
+          "priority": 7,
+          "task": "API Key Rotation",
+          "effort": "3-4 hours",
+          "includes": ["CredentialStore interface", "Token refresh", "Revocation"]
+        },
+        {
+          "priority": 8,
+          "task": "Embedding Encryption",
+          "effort": "2-3 hours",
+          "includes": ["AES-256-GCM encryption", "Key management", "Decryption path"]
+        }
+      ]
+    }
+  },
+  "testingRequirements": {
+    "unitTests": [
+      "discovery.validation.test.ts",
+      "discovery.ssrf.test.ts",
+      "discovery.errors.test.ts",
+      "discovery.rate-limit.test.ts",
+      "discovery.sanitization.test.ts"
+    ],
+    "integrationTests": [
+      "collectors with validation",
+      "rate limiting under load",
+      "error scenarios and fallbacks",
+      "XSS payload handling",
+      "path traversal attempts"
+    ],
+    "securityTests": [
+      "SSRF attack vectors",
+      "SQL/NoSQL injection patterns",
+      "XSS payload variations",
+      "DoS attack scenarios",
+      "Credential exposure checks"
+    ]
+  },
+  "owasp2021Alignment": {
+    "A01_BrokenAccessControl": ["SEC-2.2.3", "SEC-2.1.1"],
+    "A03_Injection": ["SEC-2.2.1", "SEC-2.3.1", "SEC-2.4.1"],
+    "A04_InsecureDesign": ["SEC-2.2.1", "SEC-2.2.2", "SEC-2.5.1", "SEC-2.4.2", "SEC-2.1.2"],
+    "A05_SecurityMisconfiguration": ["SEC-2.1.2"],
+    "A02_CryptographicFailures": ["SEC-2.1.3"],
+    "A06_VulnerableOutdatedComponents": ["SEC-2.4.1"],
+    "A09_SecurityLoggingMonitoring": ["SEC-2.6.1", "SEC-2.5.2", "SEC-2.6.2"]
+  },
+  "nextSteps": [
+    "Review and approve remediation plan with team",
+    "Create implementation tickets for Phase 1 items",
+    "Develop input validation module first",
+    "Add comprehensive security test suite",
+    "Conduct code review with fixes",
+    "Re-audit before production release"
+  ]
+}
