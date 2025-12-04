@@ -27,9 +27,9 @@ function extractTopKeywords(
   const topKeywords = intelligence.metadata.topKeywords || [];
 
   return topKeywords
-    .filter(kw => (kw.searchVolume ?? 0) >= minSearchVolume)
+    .filter((kw: { keyword: string; position: number; searchVolume: number }) => (kw.searchVolume ?? 0) >= minSearchVolume)
     .slice(0, limit)
-    .map(kw => ({
+    .map((kw: { keyword: string; position: number; searchVolume: number }) => ({
       keyword: kw.keyword,
       volume: kw.searchVolume ?? 0,
       position: kw.position ?? 0,
@@ -44,7 +44,7 @@ function convertToKeywordSources(
   domain: string,
   taskId: string
 ): KeywordSource[] {
-  return keywords.map(kw => ({
+  return keywords.map((kw: { keyword: string; volume: number; position: number }) => ({
     keyword: kw.keyword,
     source: 'competitors' as const,
     metadata: {

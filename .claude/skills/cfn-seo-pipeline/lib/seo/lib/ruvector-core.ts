@@ -12,6 +12,9 @@ import type {
   VectorDB,
   VectorEntry,
   VectorQueryOptions,
+  VectorInsertParams,
+  VectorSearchParams,
+  VectorSearchResult,
   EmbeddingFunction,
   VectorDBFactory,
 } from '../types/ruvector-core';
@@ -71,6 +74,47 @@ export class MockVectorDB implements VectorDB {
   }
 
   /**
+   * Low-level vector insert (used by collection classes)
+   */
+  async insert(params: VectorInsertParams): Promise<void> {
+    const { id, vector, metadata } = params;
+    // Store as VectorEntry with text extracted from metadata if available
+    const text = (metadata as any).text || '';
+    this.store.set(id, { id, text, metadata });
+  }
+
+  /**
+   * Low-level vector search (used by collection classes)
+   */
+  async search(params: VectorSearchParams): Promise<VectorSearchResult[]> {
+    const { vector, k, filter } = params;
+
+    // Get all entries
+    let results = Array.from(this.store.values());
+
+    // Apply filter if provided
+    if (filter) {
+      results = results.filter(filter);
+    }
+
+    // Calculate cosine similarity with query vector
+    const scored = results.map((entry) => {
+      // For mock, generate a deterministic score based on entry properties
+      const score = this.calculateVectorSimilarity(vector, entry);
+      return {
+        id: entry.id,
+        score,
+        metadata: entry.metadata,
+      };
+    });
+
+    // Sort by score descending and return top k
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, k);
+  }
+
+  /**
    * Mock similarity calculation using string overlap
    */
   private calculateSimilarity(text1: string, text2: string): number {
@@ -81,6 +125,22 @@ export class MockVectorDB implements VectorDB {
     const union = new Set([...words1, ...words2]);
 
     return union.size > 0 ? intersection.size / union.size : 0;
+  }
+
+  /**
+   * Mock vector similarity calculation
+   * Returns a deterministic score between 0 and 1
+   */
+  private calculateVectorSimilarity(vector: Float32Array, entry: VectorEntry): number {
+    // Simple hash-based similarity for testing
+    const textHash = (entry.text || '').split('').reduce((acc, char) => {
+      return (acc << 5) - acc + char.charCodeAt(0);
+    }, 0);
+
+    const vectorSum = Array.from(vector).reduce((sum, val) => sum + val, 0);
+    const similarity = Math.abs(Math.sin(textHash + vectorSum));
+
+    return Math.min(1.0, Math.max(0.0, similarity));
   }
 }
 

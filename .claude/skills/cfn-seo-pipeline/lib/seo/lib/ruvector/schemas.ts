@@ -448,6 +448,14 @@ export interface CompetitorIntelligenceEntry {
     /** Identified content gaps */
     contentGaps: ContentGap[];
 
+    // Top keywords
+    /** Top ranking keywords for this competitor */
+    topKeywords?: Array<{
+      keyword: string;
+      position: number;
+      searchVolume: number;
+    }>;
+
     // Authority
     /** Estimated domain authority */
     estimatedAuthority: number;
@@ -925,6 +933,45 @@ export function generateStatisticId(statistic: string): string {
  */
 export function generateKeywordResearchId(keyword: string): string {
   return normalizeForId(keyword);
+}
+
+// =============================================
+// Helper: Pre-Research Result (Step 0.5 Output)
+// =============================================
+
+/**
+ * Pre-research result from Step 0.5
+ *
+ * Contains cached research data from RuVector that can be used to skip
+ * or supplement subsequent research steps.
+ */
+export interface PreResearchResult {
+  /** Cached keyword research data (if available and fresh) */
+  keywordResearch?: KeywordResearchEntry;
+
+  /** Whether keyword research step can be skipped */
+  skipKeywordResearch: boolean;
+
+  /** Cached competitor intelligence data */
+  competitorIntelligence: CompetitorIntelligenceEntry[];
+
+  /** Whether competitor analysis step can be skipped */
+  skipCompetitorAnalysis: boolean;
+
+  /** Cached SERP patterns */
+  serpPatterns?: SERPPatternEntry;
+
+  /** Whether SERP analysis step can be skipped */
+  skipSERPAnalysis: boolean;
+
+  /** Cached expert sources for supplementing research */
+  expertSources: ExpertSourceEntry[];
+
+  /** Cached statistics for supplementing research */
+  statistics: StatisticEntry[];
+
+  /** Cached content patterns for supplementing research */
+  contentPatterns: ContentPatternEntry[];
 }
 
 /**

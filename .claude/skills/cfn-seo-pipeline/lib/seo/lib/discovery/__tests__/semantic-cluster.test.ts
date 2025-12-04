@@ -29,19 +29,54 @@ import type { VectorDB } from '@ruvector/core';
 /**
  * Mock RuVector database implementation
  */
-class MockVectorDB {
+class MockVectorDB implements VectorDB {
   private storage: Map<string, any> = new Map();
 
+  // High-level text-based API
+  async add(id: string, text: string, metadata: Record<string, unknown>): Promise<void> {
+    this.storage.set(id, { id, text, metadata });
+  }
+
+  async query(text: string, options?: any): Promise<any[]> {
+    return Array.from(this.storage.values()).slice(0, options?.limit ?? 10);
+  }
+
+  async update(id: string, text: string, metadata: Record<string, unknown>): Promise<void> {
+    if (!this.storage.has(id)) {
+      throw new Error(`Entry with id ${id} not found`);
+    }
+    this.storage.set(id, { id, text, metadata });
+  }
+
+  // Low-level vector-based API
   async insert(data: any): Promise<void> {
     this.storage.set(data.id, data);
   }
 
-  async search(query: string, options?: any): Promise<any[]> {
-    return Array.from(this.storage.values()).slice(0, options?.limit ?? 10);
+  async search(params: any): Promise<any[]> {
+    // Support both string query and vector params
+    if (typeof params === 'string') {
+      return Array.from(this.storage.values()).slice(0, 10);
+    }
+    const { k, filter } = params;
+    let results = Array.from(this.storage.values());
+    if (filter) {
+      results = results.filter(filter);
+    }
+    return results.slice(0, k || 10).map(entry => ({
+      id: entry.id,
+      score: 0.9,
+      metadata: entry.metadata || entry,
+    }));
   }
 
+  // Common operations
   async delete(id: string): Promise<void> {
     this.storage.delete(id);
+  }
+
+  async exists(id: string): Promise<boolean> {
+    return this.storage.has(id);
   }
 
   async clear(): Promise<void> {

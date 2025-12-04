@@ -115,10 +115,8 @@ async function storePAAInCache(
         searchIntent: 'informational',
         secondaryKeywords: [],
         peopleAlsoAsk: questions,
-        trendData: {
-          currentTrend: 'stable',
-          seasonality: false,
-        },
+        relatedSearches: [],
+        longTailKeywords: [],
       });
 
       console.log(`[PAA Collector] Stored ${questions.length} PAA questions for "${keyword}"`);

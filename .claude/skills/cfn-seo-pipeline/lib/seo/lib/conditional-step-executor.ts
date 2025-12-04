@@ -247,7 +247,7 @@ export class ConditionalStepExecutor {
     }
 
     const avgFreshness =
-      competitorIntelligence.reduce((sum, intel) => sum + intel.metadata.freshnessScore, 0) /
+      competitorIntelligence.reduce((sum: number, intel: CompetitorIntelligenceEntry) => sum + intel.metadata.freshnessScore, 0) /
       competitorIntelligence.length;
 
     return {

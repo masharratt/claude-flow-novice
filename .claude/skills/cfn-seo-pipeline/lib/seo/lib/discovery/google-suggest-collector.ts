@@ -143,10 +143,8 @@ async function storeInCache(
         cpc: 0,
       })),
       peopleAlsoAsk: [],
-      trendData: {
-        currentTrend: 'stable',
-        seasonality: false,
-      },
+      relatedSearches: suggestions,
+      longTailKeywords: [],
     });
 
     console.log(`[Suggest Collector] Stored ${suggestions.length} suggestions for "${keyword}" in cache`);
