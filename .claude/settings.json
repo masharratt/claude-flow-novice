@@ -117,6 +117,17 @@
     "supabase"
   ],
   "mcpServers": {
+    "cerebras-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "cerebras-mcp"
+      ],
+      "env": {
+        "CEREBRAS_API_KEY": "${CEREBRAS_API_KEY}",
+        "CEREBRAS_MODEL": "llama3.1-8b"
+      }
+    },
     "n8n-mcp": {
       "command": "npx",
       "args": [

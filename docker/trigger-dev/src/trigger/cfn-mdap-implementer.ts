@@ -141,12 +141,13 @@ const GROQ_MODELS: Record<number, string> = {
  * Model mapping for MDAP tiers using Cerebras API (FALLBACK)
  * Used when Groq is rate-limited or unavailable.
  *
- * Reliable fallback with fast inference speeds.
+ * Upgraded for high-tier Cerebras access with maximum speed models.
+ * gpt-oss-120b provides 3000 tok/s - fastest available.
  */
 const CEREBRAS_MODELS: Record<number, string> = {
-  1: "llama3.1-8b",                      // T1 - Fast fallback (~2200 tok/s)
-  2: "llama-3.3-70b",                    // T2 - Balanced quality (~2100 tok/s)
-  3: "qwen-3-235b-a22b-instruct-2507",   // T3 - Best for complex/retry (~1400 tok/s)
+  1: "llama3.1-8b",      // T1 - Fast, atomic tasks (~2200 tok/s)
+  2: "qwen-3-32b",       // T2 - Balanced, faster than llama-3.3-70b (~2600 tok/s)
+  3: "gpt-oss-120b",     // T3 - Maximum speed for complex/retry (~3000 tok/s)
 };
 
 // =============================================
