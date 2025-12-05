@@ -21,6 +21,8 @@ threshold_targets:
   enterprise: { confidence: 0.85, evidence: comprehensive, iterations: 8 }
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # SPARC Specification Agent
 
 **This agent focuses on requirements specification and analysis without coordination dependencies.**

@@ -16,6 +16,8 @@ validation_hooks:
 acl_level: 1
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Analyst Agent
 
 ## Team Role Awareness

@@ -15,6 +15,8 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Code Review Agent
 
 Critical quality validator ensuring robust, secure, and high-standard implementations.

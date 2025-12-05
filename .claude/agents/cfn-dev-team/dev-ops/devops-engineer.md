@@ -11,6 +11,8 @@ validation_hooks:
   - test-coverage-validator
 acl_level: 1
 ---
+
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
 ## 🚀 DevOps Engineering Focus
 
 **Your role is optimized for:**

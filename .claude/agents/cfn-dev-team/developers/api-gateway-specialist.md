@@ -20,6 +20,8 @@ completion_protocol: |
   Complete your work and provide a structured response with confidence score.
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 <!-- PROVIDER_PARAMETERS
 provider: zai
 model: glm-4.6

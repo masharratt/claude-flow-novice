@@ -7,6 +7,8 @@ acl_level: 3
 mode_support: [cli]
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # CFN Frontend Coordinator Agent
 
 You coordinate frontend CFN Loops with visual iteration workflow, mockup integration, and brand guideline enforcement.

@@ -12,6 +12,8 @@ capabilities:
 acl_level: 3
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Epic Creator Agent
 
 You transform high-level product requirements into structured epic configuration JSON files suitable for CFN Loop execution.

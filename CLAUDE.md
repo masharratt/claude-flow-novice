@@ -27,7 +27,50 @@ Purpose: concise reference for CFN agents. Focus on persona, mandatory rules, ed
 - Prefer `rg`/`grep` over `find`; when monitoring, sleep-check-sleep loops.
 - All agent communication must use coordination protocols; no ad-hoc file coordination.
 
-## 3) Mandatory Edit Workflow
+## 3) Cerebras MCP & Context Discovery Protocols
+
+### Cerebras MCP Usage (when `mcp__cerebras-mcp__write` available)
+**RULE: Prompt must be SHORTER than expected output.**
+
+Use STRUCTURED BLUEPRINTS, not prose:
+```
+Function: validateEmail(email: string): boolean
+- Regex: /^[^@]+@[^@]+\.[^@]+$/
+- Return: true if match, false otherwise
+```
+
+**BAD**: "I need you to create a function that validates email addresses..."
+**GOOD**: "Function: validateEmail(email: string): boolean\n- Regex test\n- Return boolean"
+
+Always provide `context_files` when code needs imports from existing files.
+
+### Context Discovery Priority (fastest to slowest)
+1. **RuVector semantic search** (for "where is X?" queries):
+   ```bash
+   /codebase-search "authentication middleware pattern"
+   ./.claude/skills/cfn-ruvector-codebase-index/search.sh "query" --top 5
+   ```
+2. **Query past errors** before similar work:
+   ```bash
+   ./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh --task-description "description"
+   ```
+3. **Query learnings** for best practices:
+   ```bash
+   ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "description" --category PATTERN
+   ```
+4. **Grep** only for exact string/symbol matches
+5. **Glob** only for known file patterns (`**/*.test.ts`)
+
+### MDAP Execution Context (when `enableMDAP=true`)
+Applies only in Trigger.dev MDAP mode:
+- Single file only (path provided by decomposer)
+- Target: <50 lines of code, atomic task
+- No file discovery (context pre-injected)
+- Return structured JSON: `{"success": true, "filePath": "...", "linesWritten": N, "confidence": 0.9}`
+
+→ Full protocols: `.claude/agents/SHARED_PROTOCOL.md`
+
+## 4) Mandatory Edit Workflow
 - Pre-Edit Backup (required before any edit/write, including docs):
   ```bash
   BACKUP_PATH=$(./.claude/hooks/cfn-invoke-pre-edit.sh "$FILE_TO_EDIT" --agent-id "$AGENT_ID")
@@ -42,12 +85,12 @@ Purpose: concise reference for CFN agents. Focus on persona, mandatory rules, ed
   ```
 - Hooks are non-blocking; fix issues surfaced by post-edit. Keep backup paths for reference.
 
-## 4) When to Spawn Agents vs Work Solo
+## 5) When to Spawn Agents vs Work Solo
 - Use a single agent (Task) only for simple, isolated work.
 - Use coordinator/CFN Loop for: multi-agent needs, more than three steps, multi-file edits, design decisions, testing plus implementation, quality/security/performance/compliance, docs generation, system integration, or refactors.
 - Triggers to avoid solo work: feature work, cross-cutting changes, research plus implementation, code review/quality gates, or anything requiring validation.
 
-## 5) CFN Loop Modes (user chooses)
+## 6) CFN Loop Modes (user chooses)
 - Default Task Mode:
   - Command: `/cfn-loop-task "Task description" --mode=standard`
   - Spawns all agents directly; full visibility; higher cost.
@@ -82,7 +125,7 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 6) Product Owner agent decides PROCEED/ITERATE/ABORT; orchestrator enforces.  
 7) Report final status, code paths, test results; stop agents cleanly.
 
-## 6) Provider Routing (optional)
+## 7) Provider Routing (optional)
 - Enable custom routing: set `CFN_CUSTOM_ROUTING=true` in `.env`.
 - Provider options: `zai` (default, cost), `kimi` (balanced), `openrouter` (broad access), `max` or `anthropic` (premium), `gemini`, `xai`.
 - Agents without provider parameters default to Z.ai glm-4.6 when custom routing is on.
@@ -97,7 +140,7 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - XAi/Grok style: `xai`.
 - Mixed providers: set per-agent profile; otherwise inherit main chat provider.
 
-## 7) Docker Build Requirements (WSL2)
+## 8) Docker Build Requirements (WSL2)
 - Always build from Linux-native storage; do not build from Windows mounts.
 - Use scripts, not raw `docker build`:
   - Preferred: `./.claude/skills/docker-build/build.sh --dockerfile docker/Dockerfile.agent --tag cfn-agent:latest`
@@ -113,7 +156,7 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - [ ] Document build command and outputs when reporting failures.  
 - [ ] If builds are slow, verify you are not running from a Windows path.
 
-## 8) Multi-Worktree Docker Coordination
+## 9) Multi-Worktree Docker Coordination
 - One git worktree per developer; isolation via `COMPOSE_PROJECT_NAME`.
 - Port offsets auto-calculated with `run-in-worktree.sh` to avoid conflicts.
 - Required environment variables when spawning agents:
@@ -134,7 +177,7 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 4) Connect using service names inside the network; from host, use offset ports.  
 5) Tear down with `./scripts/docker/run-in-worktree.sh down` and prune networks if needed.
 
-## 9) Task Mode SQLite Lifecycle (audited tasks)
+## 10) Task Mode SQLite Lifecycle (audited tasks)
 - Use when Task agents need an audit trail without Redis.
 - Template:
   ```javascript
@@ -158,7 +201,7 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - Keep lifecycle instructions concise and ahead of the task request.  
 - Clean up stale audit rows if the table grows; retention per project policy.
 
-## 10) Coordination Patterns and Namespace Isolation
+## 11) Coordination Patterns and Namespace Isolation
 - Coordination patterns: see `.claude/skills/cfn-coordination/SKILL.md` (chain, broadcast, mesh, consensus collection).
 - Namespace structure: agents `.claude/agents/cfn-dev-team/`; skills `.claude/skills/cfn-*/`; hooks `.claude/hooks/cfn-*`; commands `.claude/commands/cfn/`.
 - Enhanced orchestrator v3.0: `./.claude/skills/cfn-loop-orchestration/orchestrate.sh` (monitors agents, restarts stuck ones, enforces protocols).
@@ -173,7 +216,7 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - Mixing service and container names inside Docker networks.  
 - Manual cleanup instead of orchestrator controls.
 
-## 11) Agent Output Standards
+## 12) Agent Output Standards
 - Bug docs: `docs/BUG_#_*.md` (investigation, fix, validation).
 - Test scripts: `tests/test-*.sh` (checked in).
 - Feature docs: `docs/FEATURE_NAME.md` (architecture/process).
@@ -182,7 +225,7 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - Changelog: `.claude/skills/cfn-changelog-management/add-changelog-entry.sh` (10-100 characters, sparse impact).
 - Full standards: `docs/AGENT_OUTPUT_STANDARDS.md`.
 
-## 12) Test Execution Guidance
+## 13) Test Execution Guidance
 - Always run tests before committing: after features or bugfixes, agent behavior changes, CFN workflow changes.
 - Suites and timing:
   - `npm test` (1-5 minutes, dev feedback)
@@ -218,24 +261,24 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - Permissions: `usermod -aG docker $USER` then `newgrp docker`.
 - Verbose mode: `DEBUG=true ./tests/cli-mode/run-all-tests.sh`; inspect `.artifacts/logs/test-execution.log`.
 
-## 13) Quality and Skill Development
+## 14) Quality and Skill Development
 - Skill guidelines: maximize modularity, explicit interfaces, minimal dependencies, thorough tests.
 - STRAT-005: cover functional requirements and edge cases (timeouts, blocking). Example: `.claude/skills/cfn-coordination/test-orchestrator.sh`.
 - Core skill references: `.claude/skills/cfn-coordination/SKILL.md`, `.claude/skills/cfn-agent-spawning/SKILL.md`, `.claude/skills/cfn-loop-validation/SKILL.md`.
 
-## 14) General Programming Best Practices
+## 15) General Programming Best Practices
 - Regex validation: avoid self-matching patterns (`[[ $AGENTS =~ $AGENTS ]]`); use specific regexes.
 - Comprehensive file validation: check type, permissions, size, and content integrity.
 - Shell scripting: use strict mode `set -euo pipefail`; capture pipeline failures.
 - Process management: use `trap` for signals, manage process groups to avoid zombies; clean up resources.
 - Prefer explicit error handling and early exits to prevent cascading failures.
 
-## 15) Quick Reference: Do / Do Not
+## 16) Quick Reference: Do / Do Not
 - Do: delegate early, run backup hooks, keep responses concise, redact secrets, use service names, build Docker from Linux storage.
 - Do: gate by tests, cite bugs or references in tests, run appropriate suite before commits.
 - Do Not: skip pre-edit backup or post-edit hook; run tests inside agents; build Docker from Windows mounts; hardcode secrets; mix implementer and validator roles; save to project root.
 
-## 16) Key Files and Paths
+## 17) Key Files and Paths
 - Hooks: `./.claude/hooks/cfn-invoke-pre-edit.sh`, `./.claude/hooks/cfn-invoke-post-edit.sh`.
 - Backup revert: `./.claude/skills/pre-edit-backup/revert-file.sh`.
 - Orchestrator: `./.claude/skills/cfn-loop-orchestration/orchestrate.sh`.
@@ -245,7 +288,7 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - CI/CD pipeline: `docker/CI_CD_TEST_INTEGRATION.md`.
 - Analytics: `.artifacts/analytics/context-reduction-report.json`.
 
-## 17) Execution Playbooks (quick recipes)
+## 18) Execution Playbooks (quick recipes)
 - Implement feature (CLI mode):
   1) `/cfn-loop-cli "Implement <feature>" --mode=standard --provider kimi`
   2) Provide acceptance criteria and target paths; cite relevant docs.
@@ -263,25 +306,25 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
   2) Capture build command and timing; store logs if failing.
   3) If failure, collect `/tmp/cfn-build` outputs and Docker logs.
 
-## 18) Common Checks Before and After Work
+## 19) Common Checks Before and After Work
 - Before: confirm mode (task vs CLI), provider choice, environment variables, worktree isolation, and backup path.  
 - During: keep messages concise; avoid mixing roles; use service names; cite paths.  
 - After: run post-edit hook; run appropriate tests; link artifacts; note backlog items.
 
-## 19) Security and Data Handling
+## 20) Security and Data Handling
 - Redact credentials, tokens, and personal data (`[REDACTED]`).  
 - No secrets in code, docs, tests, or environment examples.  
 - Validate inputs (type, size, permissions) before processing.  
 - Prefer least-privilege operations; avoid destructive commands unless explicitly requested.  
 - Scrub task IDs or usernames in shared logs if sensitive.
 
-## 20) Background Monitoring Pattern
+## 21) Background Monitoring Pattern
 - For long-running tasks: execute action, `sleep <n>m`, recheck, repeat; avoid tight loops.  
 - Capture partial logs at each check; stop on errors.  
 - If stuck, restart via orchestrator rather than manual kills.  
 - Clean up child processes to avoid zombies and port leaks.
 
-## 21) Troubleshooting Quick Table
+## 22) Troubleshooting Quick Table
 - Build slow or failing: verify Linux filesystem, use build script, clean `/tmp/cfn-build`.  
 - Redis connection issues: ensure service running, ports offset correct, service name used inside network.  
 - Port conflicts: stop and remove containers, `docker network prune -f`, restart stack.  
@@ -289,33 +332,33 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - Tests flaking: rerun with `DEBUG=true`, inspect `.artifacts/logs/test-execution.log`.  
 - Orchestrator stuck: restart via orchestration script; check Redis coordination keys for stale locks.
 
-## 22) File and Path Conventions
+## 23) File and Path Conventions
 - Place new scripts/tests in relevant subdirectories; never in project root.  
 - Name tests `test-*.sh`; feature docs `FEATURE_NAME.md`; bug docs `BUG_<id>_*.md`.  
 - Use workspace-relative paths when reporting results (for example `src/app.ts:42`).  
 - Do not use URI schemes like file:// or vscode:// in reports.
 
-## 23) Response Formatting for Agents
+## 24) Response Formatting for Agents
 - Be concise and factual; bullets preferred.  
 - Include code paths inline with backticks; add line numbers when available.  
 - In reviews, list findings first (ordered by severity), then questions, then brief summary.  
 - Suggest next steps when natural; number options for quick replies.  
 - Avoid nested bullets and ANSI codes; keep headers short (1-3 words).
 
-## 24) Validation and Gates Recap
+## 25) Validation and Gates Recap
 - Loop 3 gate: test pass rate must meet the mode threshold before validators start.  
 - Loop 2 validators need access to Loop 3 outputs, tests, and logs.  
 - Product Owner decision parsed via `.claude/skills/product-owner-decision/execute-decision.sh`.  
 - Gate failure: iterate Loop 3 only. Gate pass: proceed to validators.  
 - Decision outcomes: PROCEED (done), ITERATE (repeat), ABORT (stop with error).
 
-## 25) Mode Comparison Snapshot
+## 26) Mode Comparison Snapshot
 - MVP: fast prototyping; gate >= 0.70, consensus >= 0.80; up to 5 iterations; 2 validators.  
 - Standard: production default; gate >= 0.95, consensus >= 0.90; up to 10 iterations; 3-5 validators.  
 - Enterprise: compliance focus; gate >= 0.98, consensus >= 0.95; up to 15 iterations; 5-7 validators.  
 - Pick higher modes for security/compliance-sensitive tasks; expect longer runtimes but higher assurance.
 
-## 26) Artifacts and Coverage
+## 27) Artifacts and Coverage
 - Test results: `.artifacts/test-results/` (per-suite archives).  
 - Coverage: `.artifacts/coverage/` (HTML or lcov outputs).  
 - Logs: `.artifacts/logs/` (CLI and orchestrator logs).  
@@ -324,14 +367,14 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - Include artifact paths in reports; avoid attaching large logs inline.  
 - For coverage regressions, note impacted modules and thresholds breached.
 
-## 27) CI/CD Expectations
+## 28) CI/CD Expectations
 - Local pre-commit recommendation: `npm test` then `./tests/cli-mode/run-all-tests.sh` then `./tests/docker-mode/run-all-implementations.sh`.  
 - Ensure Docker daemon is available before running Docker-mode suites.  
 - CI runs GitHub Actions for tests, coverage gates (>=80% lines/statements/functions), security scanning, and deployment.  
 - Before merging, confirm no flaky tests and no unvetted changes to orchestration or spawning scripts.  
 - Record any skipped tests with justification and follow-up owner.
 
-## 28) Incident Response Notes
+## 29) Incident Response Notes
 - Capture exact command, commit hash, environment variables, and logs.  
 - Use `[REDACTED]` when logging sensitive fields.  
 - Prefer rollback via backup scripts rather than git reset.  

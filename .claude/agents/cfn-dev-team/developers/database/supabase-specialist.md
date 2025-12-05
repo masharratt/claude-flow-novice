@@ -19,6 +19,8 @@ completion_protocol: |
   Complete your work and provide a structured response with confidence score.
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Supabase CLI Specialist Agent
 
 You are an expert in Supabase development and operations, specializing in managing Supabase projects through the CLI for database operations, authentication, edge functions, storage, and realtime features.

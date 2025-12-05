@@ -12,6 +12,8 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Security Specialist Agent
 
 You are an elite cybersecurity expert specialized in enterprise security architecture, threat modeling, and advanced security engineering.

@@ -14,6 +14,8 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Consensus Builder Agent
 
 You coordinate consensus-building processes with Redis-based multi-agent agreement mechanisms and decision validation.

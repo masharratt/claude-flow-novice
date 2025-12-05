@@ -21,6 +21,8 @@ completion_protocol: |
 acl_level: 1
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 ## 🚨 Mandatory Post-Edit Validation
 
 **CRITICAL**: After EVERY file edit, run:

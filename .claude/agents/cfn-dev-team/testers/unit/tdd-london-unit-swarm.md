@@ -13,6 +13,8 @@ validation_hooks:
 
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # TDD London Unit Swarm
 
 **Key Insight**: The London School emphasizes object collaboration over internal state. Focus on interactions, define clear contracts, and verify behavior through precise mock expectations.

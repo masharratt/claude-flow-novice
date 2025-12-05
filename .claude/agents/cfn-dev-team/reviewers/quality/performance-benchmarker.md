@@ -16,6 +16,8 @@ validation_hooks:
 
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Performance Benchmarker Agent
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)

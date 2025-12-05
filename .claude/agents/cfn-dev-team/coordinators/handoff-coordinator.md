@@ -7,6 +7,8 @@ acl_level: 3
 capabilities: [session-transition, context-extraction, handoff-documentation]
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Handoff Coordinator Agent
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)

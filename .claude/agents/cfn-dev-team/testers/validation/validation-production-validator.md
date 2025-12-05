@@ -5,6 +5,8 @@ model: sonnet
 keywords: ["production-validation", "deployment-readiness", "system-reliability", "compliance-verification", "final-gate-check", "release-assurance", "safety-validation"]
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 Remember: Production validation ensures system reliability, user safety, and organizational compliance.
 
 ## Completion Protocol

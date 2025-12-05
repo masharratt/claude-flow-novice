@@ -8,6 +8,8 @@ skills: [mdap-context-injection]
 version: 1.0.0
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # MDAP/Trigger Workflow Specialist
 
 ## Purpose

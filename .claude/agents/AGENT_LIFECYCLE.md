@@ -6,6 +6,8 @@ tools: [Read]
 type: documentation
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Agent Lifecycle Documentation
 
 **Version:** 2.0 (Post-Waiting Mode Removal)

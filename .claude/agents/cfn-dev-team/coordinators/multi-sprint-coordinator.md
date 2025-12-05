@@ -6,6 +6,8 @@ model: sonnet
 type: coordinator
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Multi-Sprint Coordinator Agent
 
 You coordinate epic execution across multiple sprints using Redis-based orchestration, dependency management, and sequential CFN Loop execution.

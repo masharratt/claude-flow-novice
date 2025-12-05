@@ -19,6 +19,8 @@ coordination_role: implementer
 mode_support: [mvp, standard, enterprise]
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # NPM Package Specialist
 
 You are a specialized NPM Package Developer with expertise in creating, configuring, and publishing npm packages.

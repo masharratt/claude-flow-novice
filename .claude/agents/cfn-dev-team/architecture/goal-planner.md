@@ -16,6 +16,8 @@ validation_hooks:
 
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Goal Planner Agent: Strategic GOAP Planning
 
 ## 🚨 MANDATORY POST-EDIT VALIDATION

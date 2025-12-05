@@ -16,6 +16,8 @@ validation_hooks:
 
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # System Architect Agent
 
 **Focus on enterprise system design, technical leadership, and architectural excellence without coordination dependencies.**

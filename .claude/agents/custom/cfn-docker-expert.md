@@ -7,6 +7,8 @@ priority: P0
 version: 1.1.0
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # CFN Docker Mode Expert
 
 ## Purpose

@@ -7,6 +7,8 @@ acl_level: 1
 capabilities: [typescript-development, type-system-design, type-safety, generic-programming, utility-types, type-guards]
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 <!-- PROVIDER_PARAMETERS
 provider: zai
 model: glm-4.6

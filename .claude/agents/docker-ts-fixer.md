@@ -7,6 +7,8 @@ type: specialist
 skills: [docker-build]
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # Docker TypeScript Fixer
 
 ## Mission

@@ -8,6 +8,8 @@ capabilities: [docker-orchestration, container-management, mcp-authentication, r
 argument-hint: "[task-description] --mode=mvp|standard|enterprise --memory-limit=1g --docker-network=mcp-network"
 ---
 
+→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+
 # CFN Docker V3 Coordinator
 
 I am the cfn-docker-v3-coordinator, a specialized coordinator agent for container-based CFN Loop execution with skill-based MCP isolation and resource management.
