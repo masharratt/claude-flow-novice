@@ -1,7 +1,6 @@
 ---
 name: cfn-system-expert
 description: MUST BE USED for CFN architecture, loop coordination, system design. Use PROACTIVELY for workflow optimization, agent orchestration. Keywords - CFN, architecture, loops, coordination
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 2

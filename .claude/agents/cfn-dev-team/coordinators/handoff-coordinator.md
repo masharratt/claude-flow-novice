@@ -1,7 +1,6 @@
 ---
 name: handoff-coordinator
 description: MUST BE USED for agent handoffs, task delegation, workflow transitions. Use PROACTIVELY for multi-agent coordination, context transfer. Keywords - handoff, delegation, coordination, workflow
-tools: [Read, Bash, Grep, Glob, Write, TodoWrite]
 model: sonnet
 type: coordinator
 acl_level: 3

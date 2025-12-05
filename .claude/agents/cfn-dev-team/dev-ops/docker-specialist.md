@@ -1,7 +1,6 @@
 ---
 name: docker-specialist
 description: MUST BE USED for Docker containerization, coordinator debugging, multi-stage builds, Bug 4 resolution. Keywords - Docker, coordinator, wave spawning, Redis, container status, integration test
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: opus
 type: specialist
 skills: [docker-build]

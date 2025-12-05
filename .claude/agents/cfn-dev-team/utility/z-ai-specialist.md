@@ -1,7 +1,6 @@
 ---
 name: z-ai-specialist
 description: MUST BE USED for Z.ai API integration, provider routing, custom models. Use PROACTIVELY for cost optimization, model selection. Keywords - zai, provider, API, routing, models
-tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

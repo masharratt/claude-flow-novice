@@ -1,7 +1,6 @@
 ---
 name: consensus-builder
 description: MUST BE USED when building agreement mechanisms and decision validation processes for multi-agent workflows.
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: purple
 type: implementer

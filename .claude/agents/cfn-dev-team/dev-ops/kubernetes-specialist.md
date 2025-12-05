@@ -1,7 +1,6 @@
 ---
 name: kubernetes-specialist
 description: MUST BE USED for Kubernetes cluster management, Helm charts, operators, service mesh. Use PROACTIVELY for K8s deployments, autoscaling, ingress. Keywords - kubernetes, k8s, helm, containers, pods
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 1

@@ -1,7 +1,6 @@
 ---
 name: backend-developer
 description: MUST BE USED when developing scalable backend services with comprehensive testing. Use PROACTIVELY for backend architecture, API design, database optimization, security implementation. Keywords - backend, API, database, scalability, security, testing, validation
-tools: [Read, Write, Edit, Bash, Grep, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 1

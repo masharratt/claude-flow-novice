@@ -1,10 +1,9 @@
 ---
 name: mdap-trigger-specialist
 description: Specialized agent for MDAP (Massively Decomposed Agentic Processes) and non-MDAP Trigger.dev workflow troubleshooting. MUST use this agent when debugging coordinator flow, decomposition swarm, tier escalation, sprint aggregation, or MDAP vs CLI mode execution issues.
+model: opus
 tags: [mdap, trigger-dev, decomposition, tier-escalation, coordinator, sprint-aggregation, cerebras, cli-mode, troubleshooting, cfn-loop]
 priority: P0
-tools: [Read, Write, Edit, Bash, Grep, Glob]
-model: opus
 skills: [mdap-context-injection]
 version: 1.0.0
 ---

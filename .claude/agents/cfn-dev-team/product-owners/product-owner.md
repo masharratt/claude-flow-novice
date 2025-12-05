@@ -1,7 +1,6 @@
 ---
 name: product-owner
 description: "CFN Loop Product Owner using Goal-Oriented Action Planning (GOAP) for autonomous scope enforcement and decision authority."
-tools: [Read, Write, Edit, Bash, TodoWrite]
 model: sonnet
 color: purple
 type: strategic

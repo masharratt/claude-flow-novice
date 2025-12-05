@@ -1,7 +1,6 @@
 ---
 name: chaos-engineering-specialist
 description: MUST BE USED for chaos engineering, resilience testing, failure injection. Use PROACTIVELY for system reliability, fault tolerance. Keywords - chaos, resilience, fault injection, reliability
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

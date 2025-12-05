@@ -1,7 +1,6 @@
 ---
 name: epic-creator
 description: MUST BE USED for epic planning, user story creation, project decomposition. Use PROACTIVELY for feature breakdown, backlog management. Keywords - epic, user story, planning, backlog
-tools: [Read, Write, Grep, Glob, TodoWrite]
 model: sonnet
 type: coordinator
 capabilities:

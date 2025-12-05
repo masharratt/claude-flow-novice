@@ -1,7 +1,6 @@
 ---
 name: contract-tester
 description: MUST BE USED for contract testing, API compatibility, consumer-driven contracts. Use PROACTIVELY for schema validation, version compatibility. Keywords - contract, compatibility, API, validation
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

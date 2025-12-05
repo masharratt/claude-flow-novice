@@ -1,7 +1,6 @@
 ---
 name: mutation-testing-specialist
 description: MUST BE USED for mutation testing, test quality assessment, coverage enhancement. Use PROACTIVELY for test effectiveness validation. Keywords - mutation, test quality, coverage, validation
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

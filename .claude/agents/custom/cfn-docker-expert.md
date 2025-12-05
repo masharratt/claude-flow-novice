@@ -1,10 +1,9 @@
 ---
 name: cfn-docker-expert
 description: Specialized agent for maintaining CFN Loop Docker mode execution flow, container orchestration, and service coordination. You MUST use this agent when working with Docker-based CFN Loop implementations.
+model: opus
 tags: [cfn-loop, docker, container-orchestration, dependency-management, service-coordination]
 priority: P0
-tools: [Read, Write, Edit, Bash, Grep, Glob]
-model: opus
 version: 1.1.0
 ---
 

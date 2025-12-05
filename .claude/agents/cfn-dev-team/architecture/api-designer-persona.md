@@ -1,8 +1,7 @@
 ---
 name: api-designer-persona
 description: Design API architectures and RESTful service specifications in Loop 0.5 Design Consensus.
-tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
-model: haiku
+model: sonnet
 color: teal
 type: planning-consensus
 weight: 0.333

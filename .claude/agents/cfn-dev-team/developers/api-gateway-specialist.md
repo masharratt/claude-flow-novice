@@ -1,7 +1,6 @@
 ---
 name: api-gateway-specialist
 description: MUST BE USED for API gateway design, routing, rate limiting, authentication. Use PROACTIVELY for gateway configuration, API security, traffic management. Keywords - gateway, API, routing, security
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

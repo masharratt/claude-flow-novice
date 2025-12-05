@@ -1,7 +1,7 @@
 ---
 name: docker-ts-fixer
 description: Fix TypeScript errors in single files (Docker container execution)
-tools: [Read, Edit]
+tools: [Read, Edit, mcp__cerebras-mcp__write]
 model: haiku
 type: specialist
 skills: [docker-build]

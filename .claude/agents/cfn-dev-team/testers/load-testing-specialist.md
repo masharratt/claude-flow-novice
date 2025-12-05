@@ -1,7 +1,6 @@
 ---
 name: load-testing-specialist
 description: MUST BE USED for performance testing, load testing, stress testing. Use PROACTIVELY for capacity planning, bottleneck identification. Keywords - load, performance, stress, capacity, testing
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 1

@@ -1,10 +1,9 @@
 ---
 name: cfn-loops-cli-expert
 description: Specialized agent for maintaining the CFN Loop CLI execution flow (both CLI and Trigger.dev modes). You MUST use this agent when making edits to CFN Loops' CLI Mode or Trigger.dev Docker Mode. this agent is NOT for executing or coordinating CLI mode.
+model: opus
 tags: [cfn-loop, cli, trigger-dev, docker, dependency-management, typescript-migration, coordination, provider-routing, collision-prevention]
 priority: P0
-tools: [Read, Write, Edit, Bash, Grep, Glob];
-model: opus
 skills: [cfn-dependency-ingestion]
 version: 1.3.0
 ---

@@ -1,7 +1,6 @@
 ---
 name: data-engineer
 description: MUST BE USED for data pipelines, ETL processes, data warehousing. Use PROACTIVELY for data transformation, batch processing, streaming. Keywords - data, ETL, pipeline, warehouse, processing
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 1

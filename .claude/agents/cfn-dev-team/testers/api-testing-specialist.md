@@ -1,7 +1,6 @@
 ---
 name: api-testing-specialist
 description: MUST BE USED for API testing, contract validation, integration testing. Use PROACTIVELY for REST/GraphQL testing, test automation. Keywords - API testing, integration, contract, validation
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

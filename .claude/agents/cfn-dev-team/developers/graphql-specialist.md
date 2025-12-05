@@ -1,7 +1,6 @@
 ---
 name: graphql-specialist
 description: MUST BE USED for GraphQL API design, schema definition, resolver implementation. Use PROACTIVELY for GraphQL optimization, federation. Keywords - GraphQL, schema, resolvers, API, federation
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 1

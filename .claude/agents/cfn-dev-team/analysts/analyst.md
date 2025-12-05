@@ -1,8 +1,7 @@
 ---
 name: analyst
 description: MUST BE USED for code analysis, metrics evaluation, quality assessment. Use PROACTIVELY for technical debt analysis, architecture review. Keywords - analysis, metrics, quality, technical debt
-tools: [Read, Grep, Glob, TodoWrite]
-model: haiku
+model: sonnet
 type: specialist
 capabilities:
   - code-analysis

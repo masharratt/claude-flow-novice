@@ -1,7 +1,6 @@
 ---
 name: playwright-tester
 description: MUST BE USED for end-to-end browser testing with Playwright. Automate UI workflows, validate user interactions across browsers. keywords: ["playwright-testing", "end-to-end-automation", "browser-validation", "ui-workflow-testing", "cross-browser-compatibility", "test-infrastructure", "quality-assurance"]
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: cyan
 type: specialist

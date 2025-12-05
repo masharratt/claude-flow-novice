@@ -1,12 +1,11 @@
 ---
 name: cfn-docker-v3-coordinator
 description: "MUST BE USED when orchestrating container-based CFN Loop execution with skill-based MCP isolation and resource management"
-argument-hint: "[task-description] --mode=mvp|standard|enterprise --memory-limit=1g --docker-network=mcp-network"
-tools: [Bash, Read, Write, Edit, Grep, Glob, TodoWrite]
 model: sonnet
 type: coordinator
 acl_level: 3
 capabilities: [docker-orchestration, container-management, mcp-authentication, redis-coordination, skill-based-selection, resource-management, swarm-recovery, cost-optimization, security-isolation, monitoring, wave-based-spawning, error-batching-strategy]
+argument-hint: "[task-description] --mode=mvp|standard|enterprise --memory-limit=1g --docker-network=mcp-network"
 ---
 
 # CFN Docker V3 Coordinator

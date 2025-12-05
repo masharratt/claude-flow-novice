@@ -1,7 +1,6 @@
 ---
 name: integration-tester
 description: MUST BE USED for integration testing, system verification, component interaction. Use PROACTIVELY for end-to-end testing, API integration. Keywords - integration, e2e, testing, verification
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

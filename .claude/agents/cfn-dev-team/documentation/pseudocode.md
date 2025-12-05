@@ -1,7 +1,6 @@
 ---
 name: pseudocode
 description: MUST BE USED for algorithm design, logic planning, code outline creation. Use PROACTIVELY for problem decomposition, planning. Keywords - pseudocode, algorithm, logic, planning
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: indigo
 type: specialist

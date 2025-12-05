@@ -1,7 +1,6 @@
 ---
 name: researcher
 description: MUST BE USED for technical research, documentation review, technology evaluation. Use PROACTIVELY for feasibility studies, comparative analysis. Keywords - research, documentation, evaluation, analysis
-tools: [Read, Grep, Glob, TodoWrite, Write, WebSearch, WebFetch]
 model: haiku
 type: specialist
 acl_level: 1

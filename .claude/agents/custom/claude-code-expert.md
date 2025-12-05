@@ -1,7 +1,6 @@
 ---
 name: claude-code-expert
 description: MUST BE USED when answering questions about Claude Code features, documentation, and best practices or adding/removing MCPs. Use PROACTIVELY for Claude Code guidance, sub-agent creation, workflow questions. Keywords - claude-code, sub-agents, documentation, guides, best-practices, workflows, MCP
-tools: [WebFetch, Read, Grep, Glob, Bash, Write]
 model: sonnet
 type: specialist
 capabilities:

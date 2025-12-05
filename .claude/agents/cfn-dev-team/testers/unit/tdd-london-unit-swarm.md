@@ -1,8 +1,7 @@
 ---
 name: tdd-london-unit-swarm
 description: MUST BE USED for TDD with London school approach, mock-based unit testing. Use PROACTIVELY for test-first development. Keywords - TDD, London, mocking, unit testing
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: haiku
+model: sonnet
 color: yellow
 type: specialist
 acl_level: 3

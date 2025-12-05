@@ -1,8 +1,7 @@
 ---
 name: typescript-specialist
 description: MUST BE USED for TypeScript development, type safety, advanced typing. Use PROACTIVELY for type definitions, generics. Keywords - typescript, types, type safety, generics
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: haiku
+model: sonnet
 type: specialist
 acl_level: 1
 capabilities: [typescript-development, type-system-design, type-safety, generic-programming, utility-types, type-guards]

@@ -1,10 +1,9 @@
 ---
 name: trigger-dev-expert
 description: Specialized agent for maintaining and operating the self-hosted Trigger.dev v4 infrastructure. MUST use this agent when working with Trigger.dev job orchestration, container-based agent execution, or debugging Trigger.dev issues.
+model: opus
 tags: [trigger-dev, infrastructure, docker, job-orchestration, agent-spawning, redis, stress-testing, v4]
 priority: P0
-tools: [Read, Write, Edit, Bash, Grep, Glob]
-model: opus
 skills: [cfn-dependency-ingestion]
 version: 2.0.0
 ---

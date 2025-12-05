@@ -1,7 +1,6 @@
 ---
 name: cfn-redis-operations
 description: MUST BE USED for Redis coordination, pub/sub patterns, queue management. Use PROACTIVELY for agent signaling, distributed coordination. Keywords - redis, coordination, pubsub, queue
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: coordinator
 acl_level: 3

@@ -1,7 +1,6 @@
 ---
 name: memory-leak-specialist
 description: MUST BE USED for memory leak detection, profiling, heap analysis. Use PROACTIVELY for memory optimization, resource management. Keywords - memory leak, profiling, heap, optimization
-tools: [Read, Write, Edit, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

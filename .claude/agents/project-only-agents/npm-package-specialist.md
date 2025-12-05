@@ -1,7 +1,6 @@
 ---
 name: npm-package-specialist
 description: MUST BE USED for npm package development, publishing, dependency management. Use PROACTIVELY for package configuration. Keywords - npm, package, dependencies, publishing
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 provider: zai
 color: orange

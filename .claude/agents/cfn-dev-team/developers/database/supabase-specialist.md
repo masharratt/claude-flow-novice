@@ -1,7 +1,6 @@
 ---
 name: supabase-specialist
 description: MUST BE USED for Supabase CLI operations, database migrations, auth setup, edge functions, storage, realtime. Use PROACTIVELY for Supabase project management, schema design, RLS policies. Keywords - supabase, postgres, auth, edge-functions, storage, realtime, migrations, CLI
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 capabilities:

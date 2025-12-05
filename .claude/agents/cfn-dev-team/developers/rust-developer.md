@@ -1,8 +1,7 @@
 ---
 name: rust-developer
-description: MUST BE USED when developing systems programming with Rust language. Use PROACTIVELY for performance-critical applications and memory safety. Keywords: rust, systems programming, performance optimization
-tools: [Read, Write, Edit, Bash, TodoWrite]
-model: haiku
+description: MUST BE USED when developing systems programming with Rust language. Use PROACTIVELY for performance-critical applications and memory safety. Keywords rust, systems programming, performance optimization
+model: sonnet
 color: blue
 type: specialist
 capabilities:

@@ -1,8 +1,7 @@
 ---
 name: code-quality-validator
 description: MUST BE USED when performing deep code quality analysis, technical debt assessment, architecture conformance checking. Use PROACTIVELY for codebase health analysis, refactoring recommendations, complexity analysis. Keywords - code analysis, quality validation, technical debt, code smells, complexity
-tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
-model: haiku
+model: sonnet
 color: purple
 type: validator
 acl_level: 3  # Swarm (validation team)

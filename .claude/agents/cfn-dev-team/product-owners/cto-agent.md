@@ -1,16 +1,10 @@
 ---
 name: cto-agent
 description: MUST BE USED for technical strategy, architecture decisions, technology evaluation. Use PROACTIVELY for tech stack selection, scalability planning. Keywords - strategy, architecture, CTO, technical leadership
-keywords:
-  - technology-strategy
-  - executive-decision
-  - innovation
-  - leadership
-  - technical-vision
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: sonnet
+model: opus
 color: navy
 type: coordinator
+keywords: technology-strategy, executive-decision, innovation, leadership, technical-vision
 acl_level: 4
 validation_hooks:
   - agent-template-validator

@@ -1,7 +1,6 @@
 ---
 name: api-documentation
 description: Specialized API documentation and developer experience optimization
-tools: [Read, Write, Edit, TodoWrite, Bash]
 model: haiku
 color: blue
 type: specialist
