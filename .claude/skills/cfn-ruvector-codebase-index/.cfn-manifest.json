@@ -1,0 +1,22 @@
+{
+  "version": "2.18.1",
+  "description": "CFN RuVector Codebase Index - Semantic search for codebases",
+  "cfn_files": [
+    "search.js",
+    "search.sh", 
+    "index.sh",
+    "indexer.js",
+    "embeddings.js",
+    "init-db.js",
+    "parser.js",
+    "SKILL.md",
+    ".cfn-manifest.json"
+  ],
+  "protected_files": [
+    "config.json",
+    "data/*",
+    "node_modules/*",
+    "package-lock.json"
+  ],
+  "notes": "Files not listed in cfn_files or protected_files are considered custom and will never be overwritten by CFN updates."
+}
