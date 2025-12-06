@@ -234,3 +234,6 @@ docker/trigger-dev-v4/
 
 #Learnings - Ruvector
 */learning/.claude/skills/cfn-seo-pipeline/lib/seo/knowledge-store/learning/
+
+# RuVector database
+.ruvector/

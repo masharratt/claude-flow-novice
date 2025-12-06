@@ -11,7 +11,7 @@ This document provides specific guidance for creating different types of agents 
 
 ---
 
-→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 ## 1. Coder Agents
 

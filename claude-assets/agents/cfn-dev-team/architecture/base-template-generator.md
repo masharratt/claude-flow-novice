@@ -1,8 +1,7 @@
 ---
 name: base-template-generator
 description: MUST BE USED when creating templates, boilerplate code, scaffolding projects/components. Use PROACTIVELY for component templates, API skeletons, configuration files. Keywords - template, boilerplate, scaffold, starter, skeleton
-tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
-model: haiku
+model: sonnet
 color: orange
 type: specialist
 acl_level: 1

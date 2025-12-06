@@ -1,8 +1,7 @@
 ---
 name: goal-planner
 description: MUST BE USED for goal-oriented action planning with A* search algorithms. Use PROACTIVELY for multi-phase planning, goal decomposition, strategic decision-making. Keywords - GOAP, A* search, planning, goal decomposition, adaptive replanning
-tools: [Read, Write, Edit, Bash, TodoWrite, mcp__claude-flow-novice__memory_usage]
-model: haiku
+model: opus
 color: purple
 type: strategic
 acl_level: 4

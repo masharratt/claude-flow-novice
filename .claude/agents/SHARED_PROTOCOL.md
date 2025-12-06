@@ -1,109 +1,64 @@
 # Shared Agent Protocols
 
-> **Include after frontmatter**: Add `→ See: .claude/agents/SHARED_PROTOCOL.md` in agent body
+Include in agent body: `→ See: .claude/agents/SHARED_PROTOCOL.md`
 
 ---
 
-## 1. Cerebras MCP Usage (when `mcp__cerebras-mcp__write` in tools)
+## 1. Cerebras MCP Code Generation
 
-**RULE: Prompt must be SHORTER than expected output.**
+**When:** `mcp__cerebras-mcp__write` tool available
 
-Use STRUCTURED BLUEPRINTS, not prose:
+**Rule:** Prompt must be SHORTER than expected output. Use structured blueprints:
 
 ```
+File: /path/to/file.ts
 Function: validateEmail(email: string): boolean
 Steps:
 - Regex test /^[^@]+@[^@]+\.[^@]+$/
 - Return boolean result
-Errors: none (pure validation)
 Imports: none
+Errors: none
 ```
 
-**BAD** (verbose prose):
-```
-I need you to create a function that validates email addresses.
-The function should take an email string as input and return true
-if valid or false if invalid. Please use a regex pattern...
-```
-
-**GOOD** (structured blueprint):
-```
-Function: validateEmail(email: string): boolean
-- Regex: /^[^@]+@[^@]+\.[^@]+$/
-- Return: true if match, false otherwise
-```
-
-**Always provide `context_files`** when the code needs imports from existing files.
+**Always include `context_files`** for imports from existing files.
 
 ---
 
-## 2. Context Discovery Protocol
+## 2. RuVector Semantic Search
 
-**Priority order** (fastest to slowest):
+**When:** Finding code patterns, implementations, or "where is X?"
 
-1. **RuVector semantic search** (for "where is X?" queries):
-   ```bash
-   /codebase-search "authentication middleware pattern"
-   # Or direct:
-   ./.claude/skills/cfn-ruvector-codebase-index/search.sh "query" --top 5
-   ```
-
-2. **Query past errors** before similar work:
-   ```bash
-   ./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh \
-     --task-description "implement auth middleware"
-   ```
-
-3. **Query learnings** for best practices:
-   ```bash
-   ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh \
-     --task-description "implement auth middleware" --category PATTERN
-   ```
-
-4. **Grep** only for exact string/symbol matches (class names, function calls)
-
-5. **Glob** only for known file patterns (`**/*.test.ts`)
-
----
-
-## 3. MDAP Execution Context (when `enableMDAP=true`)
-
-**Applies only in Trigger.dev MDAP mode. Skip if running in CLI/Task mode.**
-
-**Constraints:**
-- Single file only (path provided by decomposer)
-- Target: <50 lines of code
-- Atomic: one responsibility, no cross-file dependencies
-- No file discovery (context pre-injected)
-
-**Return format:**
-```json
-{
-  "success": true,
-  "filePath": "/path/to/file.ts",
-  "linesWritten": 42,
-  "confidence": 0.92
-}
+```bash
+./.claude/skills/cfn-ruvector-codebase-index/search.sh "query" --top 5
 ```
 
-**Atomicity check before execution:**
-- [ ] Single function/class/module
-- [ ] No imports from files not in context
-- [ ] Self-contained implementation
-- [ ] Testable in isolation
+Query past errors before similar work:
+```bash
+./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh "task description"
+```
 
 ---
 
-## 4. Post-Edit Validation
+## 3. Post-Edit Validation
 
-After ANY file modification (Edit, Write, or Cerebras MCP):
+**When:** After ANY file modification (Edit, Write, or Cerebras MCP)
 
 ```bash
 ./.claude/hooks/cfn-invoke-post-edit.sh "$EDITED_FILE" --agent-id "$AGENT_ID"
 ```
 
-**Note:** Pre-edit backup is automatic via hooks for Edit/Write. For Cerebras MCP on new files, backup is not needed.
+Pre-edit backup is automatic for Edit/Write. Cerebras MCP on new files needs no backup.
 
 ---
 
-*Version: 1.0.0 | Last Updated: 2025-12-05*
+## 4. MDAP Constraints (Trigger.dev mode only)
+
+Skip if CLI/Task mode. When `enableMDAP=true`:
+- Single file only (path from decomposer)
+- Target: <50 lines
+- Atomic: one responsibility
+- Return: `{"success": true, "filePath": "...", "linesWritten": N, "confidence": 0.92}`
+
+---
+
+*Version: 1.1.0*

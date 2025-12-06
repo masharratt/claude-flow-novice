@@ -1,8 +1,7 @@
 ---
 name: performance-benchmarker
 description: Comprehensive performance analysis for distributed consensus protocols
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
-model: haiku
+model: sonnet
 color: gray
 type: specialist
 capabilities:

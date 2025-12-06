@@ -1,7 +1,6 @@
 ---
 name: cfn-frontend-coordinator
 description: MUST BE USED for frontend development coordination, React workflows, UI implementation. Use PROACTIVELY for component development. Keywords - frontend, react, UI, coordination
-tools: [Read, Bash, Write, Grep, mcp__zai-mcp-server__analyze_image, mcp__zai-mcp-server__analyze_video]
 model: sonnet
 type: coordinator
 acl_level: 3

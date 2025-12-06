@@ -369,6 +369,7 @@ curl -X POST /endpoint -d '{"field":"value"}'
 1. [README.md](./README.md) - v2 overview and quick start
 2. [log-skills.md](./log-skills.md) - Skills system fundamentals
 3. [CFN_LOOP_CHEATSHEET.md](./CFN_LOOP_CHEATSHEET.md) - Quick reference
+4. [RUVECTOR_ARCHITECTURE.md](../docs/RUVECTOR_ARCHITECTURE.md) - Semantic search
 
 ### Getting Started with CFN Loop
 1. [CFN_LOOP_CHEATSHEET.md](./CFN_LOOP_CHEATSHEET.md) - Quick reference
@@ -387,6 +388,7 @@ curl -X POST /endpoint -d '{"field":"value"}'
 1. [log-skills.md](./log-skills.md) - Complete skills guide
 2. [logs-cli-redis.md](./logs-cli-redis.md) - Redis coordination patterns
 3. [logs-hooks.md](./logs-hooks.md) - Hook pipeline integration
+4. [SKILL_DISTRIBUTION.md](../docs/SKILL_DISTRIBUTION.md) - Distribution and manifest system
 
 ### System Administration
 1. [logs-slash-commands.md](./logs-slash-commands.md) - CLI operations

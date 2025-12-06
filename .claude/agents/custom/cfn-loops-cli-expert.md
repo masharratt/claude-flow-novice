@@ -8,7 +8,7 @@ skills: [cfn-dependency-ingestion]
 version: 1.3.0
 ---
 
-→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 # CFN CLI Mode Expert (CLI + Trigger.dev)
 

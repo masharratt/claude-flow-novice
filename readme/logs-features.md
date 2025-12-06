@@ -1,12 +1,42 @@
-# Claude Flow Novice - Features Matrix (v2.16.0)
+# Claude Flow Novice - Features Matrix (v2.18.1)
 
-## Integration Standardization (v2.16.0 - PR #16)
+## RuVector Codebase Search (v2.18.1 - NEW)
 
 ### Purpose
-Systematic unification of patterns across 43 skills, eliminating inconsistencies in skill lifecycle, database operations, file system usage, and data formats.
+Semantic codebase search for faster file discovery using vector embeddings.
 
-### Implementation Status
-**27/30 tasks complete (90%)** - PR #16 integration standardization plan
+### Commands
+```bash
+# Index (full)
+./.claude/skills/cfn-ruvector-codebase-index/index.sh --full
+
+# Search
+./.claude/skills/cfn-ruvector-codebase-index/search.sh "authentication logic" --top 5
+
+# Incremental reindex
+/cfn-ruvector:codebase-reindex
+```
+
+### Architecture
+- **Embeddings**: OpenAI text-embedding-3-small (1536 dimensions)
+- **Storage**: @ruvector/core (redb format)
+- **Location**: `.claude/skills/cfn-ruvector-codebase-index/data/`
+
+### Manifest System
+`.cfn-manifest.json` tracks file ownership:
+- `cfn_files`: CFN-managed, updated on package updates
+- `protected_files`: Never touched (config.json, data/*)
+- Unlisted: Custom files, always preserved
+
+### Distribution
+Projects receive skill files via manifest. Custom work preserved during updates.
+
+---
+
+## Integration Standardization (v2.16.0)
+
+### Purpose
+Unification of patterns across skills for lifecycle, database operations, and data formats.
 
 ### Skill Lifecycle Automation
 

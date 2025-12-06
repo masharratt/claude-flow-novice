@@ -7,7 +7,7 @@ acl_level: 3
 capabilities: [redis-diagnostics, key-inspection, redis-health-checks, coordination-debugging, redis-cleanup, log-analysis, connection-testing, performance-monitoring]
 ---
 
-→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 # CFN Redis Operations Troubleshooting Specialist
 

@@ -1,0 +1,1030 @@
+{
+  "epic": {
+    "id": "MATH-001",
+    "name": "Math Intelligence Platform Separation",
+    "description": "Extract math-focused components into standalone math-intelligence-platform project, following SEO separation pattern. Create independent project that depends on CFN for orchestration while containing math-specific agents, skills, Trigger.dev tasks, and RuVector collections.",
+    "status": "planned",
+    "priority": "high",
+    "startDate": "2025-12-04",
+    "targetDate": "2026-01-15",
+    "owner": "Architecture Team",
+    "stakeholders": ["Product", "Engineering", "Math Domain Experts"],
+    "references": {
+      "separationPlan": "planning/MATH_PROJECT_SEPARATION_PLAN.md",
+      "seoMigrationCommit": "8737157a6",
+      "cfnVersion": "2.18.1"
+    }
+  },
+  "objectives": [
+    "Create standalone math-intelligence-platform with zero CFN modifications",
+    "Implement 8 specialized math agents for domain expertise",
+    "Build 6+ math computation skills (equation-solver, proof-assistant, etc.)",
+    "Integrate with shared Trigger.dev v4 infrastructure",
+    "Create math-specific RuVector collections for semantic search",
+    "Maintain unidirectional dependency (Math → CFN, never CFN → Math)",
+    "Achieve complete separation like SEO project (0 CFN references after setup)"
+  ],
+  "successCriteria": [
+    {
+      "criterion": "Zero CFN modifications required",
+      "measurement": "Git diff shows 0 changed files in claude-flow-novice/",
+      "threshold": "0 files"
+    },
+    {
+      "criterion": "Full CFN Loop support",
+      "measurement": "Execute /cfn-loop-cli 'solve equation' successfully",
+      "threshold": "100% success rate"
+    },
+    {
+      "criterion": "Agent spawning via CFN",
+      "measurement": "Math agents spawn using cfn-agent-lifecycle",
+      "threshold": "All 8 agents functional"
+    },
+    {
+      "criterion": "Trigger.dev task execution",
+      "measurement": "Math tasks execute on shared infrastructure",
+      "threshold": "3+ tasks deployed and functional"
+    },
+    {
+      "criterion": "RuVector semantic search",
+      "measurement": "Query math collections successfully",
+      "threshold": "3 collections with >100 items each"
+    },
+    {
+      "criterion": "Environment variable reuse",
+      "measurement": "All CFN env vars work in math project",
+      "threshold": "100% compatibility"
+    },
+    {
+      "criterion": "Clean separation",
+      "measurement": "No production code dependencies between projects",
+      "threshold": "0 bidirectional imports"
+    }
+  ],
+  "phases": [
+    {
+      "id": "PHASE-1",
+      "name": "Project Infrastructure Setup",
+      "duration": "1 week",
+      "sprints": [
+        {
+          "id": "SPRINT-1.1",
+          "name": "Directory Structure & Package Initialization",
+          "duration": "2 days",
+          "tasks": [
+            {
+              "id": "TASK-1.1.1",
+              "name": "Create project directory and initialize npm",
+              "description": "Create math-intelligence-platform directory, run npm init, configure package.json with CFN devDependency",
+              "agentType": "base-template-generator",
+              "estimatedTime": "1 hour",
+              "dependencies": [],
+              "deliverables": [
+                "package.json with claude-flow-novice devDependency",
+                "tsconfig.json with ES module configuration",
+                ".gitignore for node_modules and build artifacts"
+              ]
+            },
+            {
+              "id": "TASK-1.1.2",
+              "name": "Create complete directory structure",
+              "description": "Set up .claude/, config/, docker/, knowledge-store/, src/, tests/, docs/ directories per separation plan",
+              "agentType": "system-architect",
+              "estimatedTime": "1 hour",
+              "dependencies": ["TASK-1.1.1"],
+              "deliverables": [
+                "Complete directory tree matching plan structure",
+                "Placeholder README.md files in each major directory"
+              ]
+            },
+            {
+              "id": "TASK-1.1.3",
+              "name": "Copy CFN hooks to math project",
+              "description": "Copy cfn-invoke-pre-edit.sh and cfn-invoke-post-edit.sh from CFN .claude/hooks/",
+              "agentType": "devops-engineer",
+              "estimatedTime": "30 minutes",
+              "dependencies": ["TASK-1.1.2"],
+              "deliverables": [
+                ".claude/hooks/cfn-invoke-pre-edit.sh",
+                ".claude/hooks/cfn-invoke-post-edit.sh",
+                "Hook execution permissions set (chmod +x)"
+              ]
+            },
+            {
+              "id": "TASK-1.1.4",
+              "name": "Create environment configuration",
+              "description": "Copy CFN .env as template, add math-specific variables per plan, create .env.example",
+              "agentType": "devops-engineer",
+              "estimatedTime": "1 hour",
+              "dependencies": ["TASK-1.1.2"],
+              "deliverables": [
+                ".env.example with CFN inheritance + math extensions",
+                "config/env.ts for environment loading",
+                "Documentation of required vs optional variables"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "automated",
+            "testCommand": "npm run test:structure",
+            "successCriteria": "All directories exist, hooks executable, .env.example complete"
+          }
+        },
+        {
+          "id": "SPRINT-1.2",
+          "name": "Documentation & Project Identity",
+          "duration": "3 days",
+          "tasks": [
+            {
+              "id": "TASK-1.2.1",
+              "name": "Create CLAUDE.md for math project",
+              "description": "Write math-specific CLAUDE.md based on template in separation plan, document CFN integration patterns",
+              "agentType": "api-documentation",
+              "estimatedTime": "2 hours",
+              "dependencies": ["TASK-1.1.4"],
+              "deliverables": [
+                "CLAUDE.md with math agent guidelines",
+                "CFN integration documentation",
+                "Slash command reference"
+              ]
+            },
+            {
+              "id": "TASK-1.2.2",
+              "name": "Create README.md and GETTING_STARTED.md",
+              "description": "Write comprehensive README and getting started guide for new contributors",
+              "agentType": "api-documentation",
+              "estimatedTime": "2 hours",
+              "dependencies": ["TASK-1.2.1"],
+              "deliverables": [
+                "README.md with project overview and quick start",
+                "GETTING_STARTED.md with step-by-step setup",
+                "Architecture diagram in docs/"
+              ]
+            },
+            {
+              "id": "TASK-1.2.3",
+              "name": "Create ARCHITECTURE.md",
+              "description": "Document system architecture, CFN dependency relationship, Trigger.dev integration, RuVector collections",
+              "agentType": "system-architect",
+              "estimatedTime": "3 hours",
+              "dependencies": ["TASK-1.2.1"],
+              "deliverables": [
+                "docs/ARCHITECTURE.md with diagrams",
+                "Component interaction flowcharts",
+                "Dependency graph documentation"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "manual",
+            "reviewers": ["Architecture Team", "Documentation Lead"],
+            "successCriteria": "All docs complete, diagrams clear, setup instructions verified"
+          }
+        }
+      ]
+    },
+    {
+      "id": "PHASE-2",
+      "name": "Math Agent Development",
+      "duration": "1 week",
+      "sprints": [
+        {
+          "id": "SPRINT-2.1",
+          "name": "Core Math Agents",
+          "duration": "4 days",
+          "tasks": [
+            {
+              "id": "TASK-2.1.1",
+              "name": "Create algebra-specialist agent",
+              "description": "Build agent for equation solving, factoring, simplification. Test with CFN loop execution.",
+              "agentType": "agent-builder",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-1.2.1"],
+              "deliverables": [
+                ".claude/agents/math-team/algebra-specialist.md",
+                "Test cases for polynomial equations",
+                "Integration test with /cfn-loop-cli"
+              ]
+            },
+            {
+              "id": "TASK-2.1.2",
+              "name": "Create calculus-specialist agent",
+              "description": "Build agent for derivatives, integrals, series, limits",
+              "agentType": "agent-builder",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-1.2.1"],
+              "deliverables": [
+                ".claude/agents/math-team/calculus-specialist.md",
+                "Test cases for differentiation/integration",
+                "Validation with symbolic computation"
+              ]
+            },
+            {
+              "id": "TASK-2.1.3",
+              "name": "Create proof-validator agent",
+              "description": "Build agent for theorem proving, proof validation, formal logic",
+              "agentType": "agent-builder",
+              "estimatedTime": "5 hours",
+              "dependencies": ["TASK-1.2.1"],
+              "deliverables": [
+                ".claude/agents/math-team/proof-validator.md",
+                "Test cases for proof construction",
+                "Validation logic for common proof methods"
+              ]
+            },
+            {
+              "id": "TASK-2.1.4",
+              "name": "Create math-tutor agent",
+              "description": "Build agent for explanations, step-by-step guidance, educational content",
+              "agentType": "agent-builder",
+              "estimatedTime": "3 hours",
+              "dependencies": ["TASK-1.2.1"],
+              "deliverables": [
+                ".claude/agents/math-team/math-tutor.md",
+                "Test cases for explanations",
+                "Example walkthroughs"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "automated",
+            "testCommand": "npm run test:agents",
+            "successCriteria": "All 4 agents spawn via CFN, execute tasks, return valid results"
+          }
+        },
+        {
+          "id": "SPRINT-2.2",
+          "name": "Specialized Math Agents",
+          "duration": "3 days",
+          "tasks": [
+            {
+              "id": "TASK-2.2.1",
+              "name": "Create statistics-specialist agent",
+              "description": "Build agent for distributions, hypothesis testing, regression",
+              "agentType": "agent-builder",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-2.1.1"],
+              "deliverables": [
+                ".claude/agents/math-team/statistics-specialist.md",
+                "Test cases for statistical analysis"
+              ]
+            },
+            {
+              "id": "TASK-2.2.2",
+              "name": "Create linear-algebra-specialist agent",
+              "description": "Build agent for matrices, vectors, eigenvalues, transformations",
+              "agentType": "agent-builder",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-2.1.1"],
+              "deliverables": [
+                ".claude/agents/math-team/linear-algebra-specialist.md",
+                "Test cases for matrix operations"
+              ]
+            },
+            {
+              "id": "TASK-2.2.3",
+              "name": "Create numerical-analyst agent",
+              "description": "Build agent for numerical methods, approximations, iterative solvers",
+              "agentType": "agent-builder",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-2.1.1"],
+              "deliverables": [
+                ".claude/agents/math-team/numerical-analyst.md",
+                "Test cases for numerical computation"
+              ]
+            },
+            {
+              "id": "TASK-2.2.4",
+              "name": "Create discrete-math-specialist agent",
+              "description": "Build agent for combinatorics, graph theory, discrete structures",
+              "agentType": "agent-builder",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-2.1.1"],
+              "deliverables": [
+                ".claude/agents/math-team/discrete-math-specialist.md",
+                "Test cases for discrete problems"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "integration",
+            "testCommand": "npm run test:agents:integration",
+            "successCriteria": "All 8 agents functional, cross-agent collaboration works"
+          }
+        }
+      ]
+    },
+    {
+      "id": "PHASE-3",
+      "name": "Math Skills Development",
+      "duration": "1 week",
+      "sprints": [
+        {
+          "id": "SPRINT-3.1",
+          "name": "Core Computation Skills",
+          "duration": "4 days",
+          "tasks": [
+            {
+              "id": "TASK-3.1.1",
+              "name": "Create equation-solver skill",
+              "description": "Build skill for solving equations using symbolic methods (nerdamer/mathjs)",
+              "agentType": "backend-developer",
+              "estimatedTime": "6 hours",
+              "dependencies": ["TASK-2.1.1"],
+              "deliverables": [
+                ".claude/skills/equation-solver/solve.sh",
+                ".claude/skills/equation-solver/SKILL.md",
+                "Unit tests for polynomial/rational/exponential equations"
+              ]
+            },
+            {
+              "id": "TASK-3.1.2",
+              "name": "Create symbolic-computation skill",
+              "description": "Build skill for symbolic differentiation, integration, simplification",
+              "agentType": "backend-developer",
+              "estimatedTime": "8 hours",
+              "dependencies": ["TASK-2.1.2"],
+              "deliverables": [
+                ".claude/skills/symbolic-computation/compute.sh",
+                ".claude/skills/symbolic-computation/SKILL.md",
+                "Integration with nerdamer library"
+              ]
+            },
+            {
+              "id": "TASK-3.1.3",
+              "name": "Create latex-formatter skill",
+              "description": "Build skill for converting math expressions to/from LaTeX using KaTeX",
+              "agentType": "backend-developer",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-1.1.4"],
+              "deliverables": [
+                ".claude/skills/latex-formatter/format.sh",
+                ".claude/skills/latex-formatter/SKILL.md",
+                "Bidirectional conversion tests"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "automated",
+            "testCommand": "npm run test:skills",
+            "successCriteria": "All skills executable, produce correct output, handle edge cases"
+          }
+        },
+        {
+          "id": "SPRINT-3.2",
+          "name": "Advanced Math Skills",
+          "duration": "3 days",
+          "tasks": [
+            {
+              "id": "TASK-3.2.1",
+              "name": "Create proof-assistant skill",
+              "description": "Build skill for proof construction guidance, logical validation",
+              "agentType": "backend-developer",
+              "estimatedTime": "8 hours",
+              "dependencies": ["TASK-2.1.3"],
+              "deliverables": [
+                ".claude/skills/proof-assistant/assist.sh",
+                ".claude/skills/proof-assistant/SKILL.md",
+                "Proof templates and validation logic"
+              ]
+            },
+            {
+              "id": "TASK-3.2.2",
+              "name": "Create graph-visualizer skill",
+              "description": "Build skill for function graphing using D3.js",
+              "agentType": "react-frontend-engineer",
+              "estimatedTime": "6 hours",
+              "dependencies": ["TASK-1.1.4"],
+              "deliverables": [
+                ".claude/skills/graph-visualizer/visualize.sh",
+                ".claude/skills/graph-visualizer/SKILL.md",
+                "SVG output generation, interactive plots"
+              ]
+            },
+            {
+              "id": "TASK-3.2.3",
+              "name": "Create problem-generator skill",
+              "description": "Build skill for generating practice problems with solutions",
+              "agentType": "backend-developer",
+              "estimatedTime": "5 hours",
+              "dependencies": ["TASK-3.1.1"],
+              "deliverables": [
+                ".claude/skills/problem-generator/generate.sh",
+                ".claude/skills/problem-generator/SKILL.md",
+                "Problem templates by domain and difficulty"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "integration",
+            "testCommand": "npm run test:skills:integration",
+            "successCriteria": "Skills work together, agents can invoke skills, outputs valid"
+          }
+        }
+      ]
+    },
+    {
+      "id": "PHASE-4",
+      "name": "Trigger.dev Integration",
+      "duration": "1 week",
+      "sprints": [
+        {
+          "id": "SPRINT-4.1",
+          "name": "Trigger.dev Project Setup",
+          "duration": "2 days",
+          "tasks": [
+            {
+              "id": "TASK-4.1.1",
+              "name": "Create math Trigger.dev project",
+              "description": "Initialize new project in Trigger.dev v4 webapp, configure math-platform profile",
+              "agentType": "trigger-dev-expert",
+              "estimatedTime": "2 hours",
+              "dependencies": ["TASK-1.1.4"],
+              "deliverables": [
+                "New project ID (proj_math_xxxxx)",
+                "Dev/prod secret keys",
+                "Profile configuration in .trigger/"
+              ]
+            },
+            {
+              "id": "TASK-4.1.2",
+              "name": "Create trigger.config.ts",
+              "description": "Configure Trigger.dev SDK with math project settings, maxDuration, retry logic",
+              "agentType": "typescript-specialist",
+              "estimatedTime": "1 hour",
+              "dependencies": ["TASK-4.1.1"],
+              "deliverables": [
+                "docker/trigger-dev/trigger.config.ts",
+                "Environment variable mapping",
+                "Task directory configuration"
+              ]
+            },
+            {
+              "id": "TASK-4.1.3",
+              "name": "Set up package.json for Trigger.dev",
+              "description": "Install @trigger.dev/sdk, configure build/dev scripts",
+              "agentType": "npm-package-specialist",
+              "estimatedTime": "1 hour",
+              "dependencies": ["TASK-4.1.1"],
+              "deliverables": [
+                "docker/trigger-dev/package.json with dependencies",
+                "npm scripts for dev/deploy",
+                "TypeScript configuration"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "manual",
+            "testCommand": "npx trigger.dev@latest dev --profile math-platform",
+            "successCriteria": "Dev server starts, connects to Trigger.dev v4, no errors"
+          }
+        },
+        {
+          "id": "SPRINT-4.2",
+          "name": "Math Task Implementation",
+          "duration": "5 days",
+          "tasks": [
+            {
+              "id": "TASK-4.2.1",
+              "name": "Implement math-solver task",
+              "description": "Create task that spawns algebra/calculus agents via execa, returns solutions",
+              "agentType": "backend-developer",
+              "estimatedTime": "6 hours",
+              "dependencies": ["TASK-4.1.3", "TASK-2.1.1"],
+              "deliverables": [
+                "docker/trigger-dev/src/trigger/math-solver.ts",
+                "Task definition with retry logic",
+                "Integration test for task execution"
+              ]
+            },
+            {
+              "id": "TASK-4.2.2",
+              "name": "Implement math-prover task",
+              "description": "Create task that spawns proof-validator agent, constructs proofs",
+              "agentType": "backend-developer",
+              "estimatedTime": "6 hours",
+              "dependencies": ["TASK-4.1.3", "TASK-2.1.3"],
+              "deliverables": [
+                "docker/trigger-dev/src/trigger/math-prover.ts",
+                "Proof method selection logic",
+                "Validation tests"
+              ]
+            },
+            {
+              "id": "TASK-4.2.3",
+              "name": "Implement math-visualizer task",
+              "description": "Create task that generates function graphs, returns SVG/PNG",
+              "agentType": "react-frontend-engineer",
+              "estimatedTime": "6 hours",
+              "dependencies": ["TASK-4.1.3", "TASK-3.2.2"],
+              "deliverables": [
+                "docker/trigger-dev/src/trigger/math-visualizer.ts",
+                "D3.js integration",
+                "Image generation tests"
+              ]
+            },
+            {
+              "id": "TASK-4.2.4",
+              "name": "Implement math-tutor task",
+              "description": "Create task that generates step-by-step explanations",
+              "agentType": "backend-developer",
+              "estimatedTime": "5 hours",
+              "dependencies": ["TASK-4.1.3", "TASK-2.1.4"],
+              "deliverables": [
+                "docker/trigger-dev/src/trigger/math-tutor.ts",
+                "Explanation formatting",
+                "Example walkthroughs"
+              ]
+            },
+            {
+              "id": "TASK-4.2.5",
+              "name": "Deploy and test all tasks",
+              "description": "Deploy tasks to Trigger.dev, test via SDK and HTTP API",
+              "agentType": "trigger-dev-expert",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-4.2.1", "TASK-4.2.2", "TASK-4.2.3", "TASK-4.2.4"],
+              "deliverables": [
+                "Deployed tasks in Trigger.dev webapp",
+                "Test suite for programmatic triggering",
+                "Performance benchmarks"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "automated",
+            "testCommand": "npm run test:trigger:e2e",
+            "successCriteria": "All tasks execute successfully, return valid results, handle errors"
+          }
+        }
+      ]
+    },
+    {
+      "id": "PHASE-5",
+      "name": "RuVector Collections",
+      "duration": "1 week",
+      "sprints": [
+        {
+          "id": "SPRINT-5.1",
+          "name": "Collection Schema Definition",
+          "duration": "2 days",
+          "tasks": [
+            {
+              "id": "TASK-5.1.1",
+              "name": "Define math-formulas collection schema",
+              "description": "Create schema for formula storage with LaTeX, domain, complexity, embeddings",
+              "agentType": "database-architect",
+              "estimatedTime": "2 hours",
+              "dependencies": ["TASK-1.1.4"],
+              "deliverables": [
+                "docker/trigger-dev/src/lib/ruvector-math-collections.ts",
+                "Schema definitions for formulas collection",
+                "Validation rules"
+              ]
+            },
+            {
+              "id": "TASK-5.1.2",
+              "name": "Define math-theorems collection schema",
+              "description": "Create schema for theorem storage with statement, proof, domain, importance",
+              "agentType": "database-architect",
+              "estimatedTime": "2 hours",
+              "dependencies": ["TASK-5.1.1"],
+              "deliverables": [
+                "Schema definitions for theorems collection",
+                "Metadata fields for theorem importance"
+              ]
+            },
+            {
+              "id": "TASK-5.1.3",
+              "name": "Define math-worked-examples collection schema",
+              "description": "Create schema for worked examples with problem, solution, steps, difficulty",
+              "agentType": "database-architect",
+              "estimatedTime": "2 hours",
+              "dependencies": ["TASK-5.1.1"],
+              "deliverables": [
+                "Schema definitions for examples collection",
+                "Step-by-step structure format"
+              ]
+            },
+            {
+              "id": "TASK-5.1.4",
+              "name": "Create RuVector initialization script",
+              "description": "Build script to create collections, set up indexes, configure embeddings",
+              "agentType": "backend-developer",
+              "estimatedTime": "3 hours",
+              "dependencies": ["TASK-5.1.3"],
+              "deliverables": [
+                "docker/trigger-dev/src/lib/ruvector-init.ts",
+                "Collection creation with error handling",
+                "Embedding configuration (OpenAI/Z.ai)"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "automated",
+            "testCommand": "npm run ruvector:init",
+            "successCriteria": "All 3 collections created, schemas validated, indexes built"
+          }
+        },
+        {
+          "id": "SPRINT-5.2",
+          "name": "Collection Seeding & Search",
+          "duration": "5 days",
+          "tasks": [
+            {
+              "id": "TASK-5.2.1",
+              "name": "Seed formulas collection",
+              "description": "Populate collection with 100+ common formulas (algebra, calculus, trig, etc.)",
+              "agentType": "backend-developer",
+              "estimatedTime": "6 hours",
+              "dependencies": ["TASK-5.1.4"],
+              "deliverables": [
+                "knowledge-store/math/formulas/seed-data.json",
+                "Seeding script with batch insert",
+                "Verification of embeddings"
+              ]
+            },
+            {
+              "id": "TASK-5.2.2",
+              "name": "Seed theorems collection",
+              "description": "Populate collection with 50+ important theorems across domains",
+              "agentType": "backend-developer",
+              "estimatedTime": "8 hours",
+              "dependencies": ["TASK-5.1.4"],
+              "deliverables": [
+                "knowledge-store/math/theorems/seed-data.json",
+                "Curated theorem list with proofs",
+                "Domain categorization"
+              ]
+            },
+            {
+              "id": "TASK-5.2.3",
+              "name": "Seed worked-examples collection",
+              "description": "Populate collection with 100+ step-by-step solutions",
+              "agentType": "backend-developer",
+              "estimatedTime": "10 hours",
+              "dependencies": ["TASK-5.1.4"],
+              "deliverables": [
+                "knowledge-store/math/worked-examples/seed-data.json",
+                "Examples across difficulty levels",
+                "Step-by-step formatting validation"
+              ]
+            },
+            {
+              "id": "TASK-5.2.4",
+              "name": "Implement semantic search queries",
+              "description": "Build query functions for finding similar formulas, relevant theorems, example problems",
+              "agentType": "backend-developer",
+              "estimatedTime": "5 hours",
+              "dependencies": ["TASK-5.2.1", "TASK-5.2.2", "TASK-5.2.3"],
+              "deliverables": [
+                "docker/trigger-dev/src/lib/ruvector-math-search.ts",
+                "Query functions for each collection",
+                "Filtering and ranking logic"
+              ]
+            },
+            {
+              "id": "TASK-5.2.5",
+              "name": "Create RuVector integration tests",
+              "description": "Test semantic search accuracy, relevance ranking, performance",
+              "agentType": "api-testing-specialist",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-5.2.4"],
+              "deliverables": [
+                "tests/ruvector/math-collections.test.ts",
+                "Benchmark suite for query performance",
+                "Relevance validation tests"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "automated",
+            "testCommand": "npm run test:ruvector",
+            "successCriteria": "All queries return relevant results, >90% relevance accuracy, <500ms latency"
+          }
+        }
+      ]
+    },
+    {
+      "id": "PHASE-6",
+      "name": "Documentation, Testing & Polish",
+      "duration": "1 week",
+      "sprints": [
+        {
+          "id": "SPRINT-6.1",
+          "name": "Comprehensive Testing",
+          "duration": "4 days",
+          "tasks": [
+            {
+              "id": "TASK-6.1.1",
+              "name": "Write unit tests for math engines",
+              "description": "Test symbolic computation, numeric solvers, graph generation",
+              "agentType": "tdd-london-unit-swarm",
+              "estimatedTime": "8 hours",
+              "dependencies": ["TASK-3.1.2"],
+              "deliverables": [
+                "tests/unit/symbolic.test.ts",
+                "tests/unit/numeric.test.ts",
+                "tests/unit/graphing.test.ts",
+                ">80% code coverage"
+              ]
+            },
+            {
+              "id": "TASK-6.1.2",
+              "name": "Write integration tests",
+              "description": "Test agent coordination, skill invocation, Trigger.dev task execution",
+              "agentType": "integration-tester",
+              "estimatedTime": "10 hours",
+              "dependencies": ["TASK-4.2.5"],
+              "deliverables": [
+                "tests/integration/agent-coordination.test.ts",
+                "tests/integration/cfn-loop-execution.test.ts",
+                "tests/integration/trigger-tasks.test.ts"
+              ]
+            },
+            {
+              "id": "TASK-6.1.3",
+              "name": "Write end-to-end workflow tests",
+              "description": "Test complete user workflows: solve equation, prove theorem, generate visualization",
+              "agentType": "playwright-tester",
+              "estimatedTime": "8 hours",
+              "dependencies": ["TASK-6.1.2"],
+              "deliverables": [
+                "tests/e2e/solve-equation-workflow.test.ts",
+                "tests/e2e/prove-theorem-workflow.test.ts",
+                "tests/e2e/visualize-function-workflow.test.ts"
+              ]
+            },
+            {
+              "id": "TASK-6.1.4",
+              "name": "Performance and load testing",
+              "description": "Test concurrent task execution, memory usage, response times",
+              "agentType": "load-testing-specialist",
+              "estimatedTime": "6 hours",
+              "dependencies": ["TASK-6.1.2"],
+              "deliverables": [
+                "tests/performance/concurrent-agents.test.ts",
+                "tests/performance/trigger-load.test.ts",
+                "Benchmark results and thresholds"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "automated",
+            "testCommand": "npm run test:all",
+            "successCriteria": "All tests pass, >80% coverage, <2s avg response time"
+          }
+        },
+        {
+          "id": "SPRINT-6.2",
+          "name": "Documentation & Examples",
+          "duration": "3 days",
+          "tasks": [
+            {
+              "id": "TASK-6.2.1",
+              "name": "Create API documentation",
+              "description": "Document all agents, skills, Trigger.dev tasks, RuVector queries",
+              "agentType": "api-documentation",
+              "estimatedTime": "6 hours",
+              "dependencies": ["TASK-6.1.1"],
+              "deliverables": [
+                "docs/API_REFERENCE.md",
+                "docs/AGENTS.md",
+                "docs/SKILLS.md",
+                "docs/TRIGGER_TASKS.md"
+              ]
+            },
+            {
+              "id": "TASK-6.2.2",
+              "name": "Create usage examples",
+              "description": "Write 10+ example workflows demonstrating common use cases",
+              "agentType": "api-documentation",
+              "estimatedTime": "5 hours",
+              "dependencies": ["TASK-6.2.1"],
+              "deliverables": [
+                "docs/examples/solve-polynomial.md",
+                "docs/examples/prove-theorem.md",
+                "docs/examples/generate-graph.md",
+                "docs/examples/semantic-search.md",
+                "6+ additional examples"
+              ]
+            },
+            {
+              "id": "TASK-6.2.3",
+              "name": "Create troubleshooting guide",
+              "description": "Document common issues, error messages, debugging strategies",
+              "agentType": "api-documentation",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-6.1.4"],
+              "deliverables": [
+                "docs/TROUBLESHOOTING.md",
+                "Common error catalog",
+                "Debugging checklist"
+              ]
+            },
+            {
+              "id": "TASK-6.2.4",
+              "name": "Create deployment guide",
+              "description": "Document production deployment, environment setup, monitoring",
+              "agentType": "devops-engineer",
+              "estimatedTime": "4 hours",
+              "dependencies": ["TASK-4.2.5"],
+              "deliverables": [
+                "docs/DEPLOYMENT.md",
+                "Production checklist",
+                "Monitoring setup guide"
+              ]
+            }
+          ],
+          "validation": {
+            "type": "manual",
+            "reviewers": ["Documentation Lead", "QA Team"],
+            "successCriteria": "All docs complete, examples work, troubleshooting verified"
+          }
+        }
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "id": "RISK-1",
+      "description": "CFN version compatibility breaks math project",
+      "impact": "high",
+      "probability": "medium",
+      "mitigation": "Pin CFN to specific version (2.18.1), test upgrades in dev environment first"
+    },
+    {
+      "id": "RISK-2",
+      "description": "Trigger.dev v4 infrastructure instability",
+      "impact": "medium",
+      "probability": "low",
+      "mitigation": "Use separate math project ID, fallback to direct agent spawning if Trigger.dev down"
+    },
+    {
+      "id": "RISK-3",
+      "description": "RuVector embedding costs exceed budget",
+      "impact": "medium",
+      "probability": "medium",
+      "mitigation": "Use Z.ai for embeddings ($0.50/1M tokens), batch processing, cache embeddings"
+    },
+    {
+      "id": "RISK-4",
+      "description": "Symbolic computation library limitations",
+      "impact": "medium",
+      "probability": "low",
+      "mitigation": "Use multiple libraries (nerdamer, mathjs), fallback to numeric methods"
+    },
+    {
+      "id": "RISK-5",
+      "description": "Math domain complexity requires more agents than planned",
+      "impact": "low",
+      "probability": "high",
+      "mitigation": "Start with 8 core agents, add specialized agents incrementally as needed"
+    }
+  ],
+  "dependencies": {
+    "external": [
+      {
+        "name": "claude-flow-novice",
+        "version": "^2.18.1",
+        "type": "framework",
+        "critical": true
+      },
+      {
+        "name": "Trigger.dev v4",
+        "version": "4.1.2+",
+        "type": "infrastructure",
+        "critical": true
+      },
+      {
+        "name": "@ruvector/core",
+        "version": "^0.1.15",
+        "type": "library",
+        "critical": true
+      },
+      {
+        "name": "nerdamer",
+        "version": "^1.1.13",
+        "type": "library",
+        "critical": false
+      },
+      {
+        "name": "mathjs",
+        "version": "^12.4.0",
+        "type": "library",
+        "critical": false
+      },
+      {
+        "name": "katex",
+        "version": "^0.16.9",
+        "type": "library",
+        "critical": false
+      },
+      {
+        "name": "d3",
+        "version": "^7.8.5",
+        "type": "library",
+        "critical": false
+      }
+    ],
+    "internal": [
+      {
+        "phase": "PHASE-2",
+        "dependsOn": ["PHASE-1"],
+        "reason": "Agents need project infrastructure"
+      },
+      {
+        "phase": "PHASE-3",
+        "dependsOn": ["PHASE-2"],
+        "reason": "Skills invoked by agents"
+      },
+      {
+        "phase": "PHASE-4",
+        "dependsOn": ["PHASE-2", "PHASE-3"],
+        "reason": "Trigger tasks spawn agents and use skills"
+      },
+      {
+        "phase": "PHASE-5",
+        "dependsOn": ["PHASE-1"],
+        "reason": "RuVector independent but needs config"
+      },
+      {
+        "phase": "PHASE-6",
+        "dependsOn": ["PHASE-2", "PHASE-3", "PHASE-4", "PHASE-5"],
+        "reason": "Documentation and testing require all components"
+      }
+    ]
+  },
+  "metrics": {
+    "development": {
+      "totalTasks": 62,
+      "estimatedEffort": "240 hours",
+      "estimatedDuration": "6 weeks",
+      "teamSize": "4-6 engineers"
+    },
+    "quality": {
+      "codeCoverage": ">80%",
+      "testsPassing": "100%",
+      "documentationCompleteness": "100%",
+      "performanceThreshold": "<2s avg response"
+    },
+    "adoption": {
+      "agentCount": 8,
+      "skillCount": 6,
+      "triggerTaskCount": 4,
+      "ruvectorCollections": 3,
+      "knowledgeItems": ">250"
+    }
+  },
+  "resources": {
+    "team": [
+      {
+        "role": "System Architect",
+        "allocation": "25%",
+        "responsibilities": ["Architecture design", "CFN integration", "Technical decisions"]
+      },
+      {
+        "role": "Backend Engineers",
+        "count": 2,
+        "allocation": "100%",
+        "responsibilities": ["Agent/skill development", "Trigger.dev tasks", "RuVector integration"]
+      },
+      {
+        "role": "Frontend Engineer",
+        "allocation": "50%",
+        "responsibilities": ["Visualization skills", "Graph generation", "UI components"]
+      },
+      {
+        "role": "DevOps Engineer",
+        "allocation": "25%",
+        "responsibilities": ["Environment setup", "Deployment", "Monitoring"]
+      },
+      {
+        "role": "QA Engineer",
+        "allocation": "50%",
+        "responsibilities": ["Test development", "Quality validation", "Performance testing"]
+      },
+      {
+        "role": "Documentation Lead",
+        "allocation": "25%",
+        "responsibilities": ["API docs", "Examples", "User guides"]
+      }
+    ],
+    "infrastructure": [
+      {
+        "service": "Trigger.dev v4",
+        "cost": "$0 (self-hosted)",
+        "notes": "Shared with CFN"
+      },
+      {
+        "service": "RuVector embeddings",
+        "cost": "~$50/month",
+        "notes": "Z.ai provider, ~100M tokens/month"
+      },
+      {
+        "service": "Development servers",
+        "cost": "$100/month",
+        "notes": "Cloud VMs for testing"
+      }
+    ]
+  }
+}

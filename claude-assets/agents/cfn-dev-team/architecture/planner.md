@@ -1,8 +1,7 @@
 ---
 name: planner
 description: MUST BE USED for generic task breakdown, basic coordination, milestone planning. FALLBACK agent when no specialized planner (goal-planner, architect, project managers) exists. Keywords - task decomposition, coordination, planning, milestone tracking
-tools: [TodoWrite, Read, Write, Edit, Bash, Glob, Grep]
-model: haiku
+model: opus
 type: coordinator
 capabilities:
   - task_decomposition

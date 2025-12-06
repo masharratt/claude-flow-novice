@@ -7,7 +7,7 @@ acl_level: 2
 capabilities: [cfn-system-architecture, workflow-optimization, troubleshooting, cost-optimization, redis-coordination, agent-spawning]
 ---
 
-→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 # Claude Flow Novice System Expert
 

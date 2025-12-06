@@ -1,8 +1,7 @@
 ---
 name: devops-engineer
 description: MUST BE USED for CI/CD pipelines, infrastructure automation, deployment. Use PROACTIVELY for build automation, release management. Keywords - devops, CI/CD, deployment, automation
-tools: [Read, Write, Edit, Bash, TodoWrite]
-model: haiku
+model: sonnet
 color: green
 type: specialist
 capabilities: [devops, infrastructure, ci-cd, kubernetes, docker, terraform]

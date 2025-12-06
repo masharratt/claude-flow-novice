@@ -1,7 +1,6 @@
 ---
 name: agent-builder
 description: MUST BE USED when creating, updating, or maintaining Claude Code agent templates. Use PROACTIVELY for agent file creation, frontmatter updates, template validation, agent architecture design. Keywords - agent, template, create, update, maintain, frontmatter, validation, agent-design
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 4
@@ -49,7 +48,6 @@ You are a specialized agent for creating, validating, and designing agent templa
 ---
 name: agent-identifier
 description: MUST BE USED when [specific use case]. Use PROACTIVELY for [scenarios]. Keywords - [relevant, searchable, terms]
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 type: specialist
 acl_level: 1
@@ -60,13 +58,11 @@ capabilities: [capability-1, capability-2, capability-3]
 **Common Mistakes to Avoid:**
 ```yaml
 # ❌ WRONG - Multi-line list format
-tools:
   - Read
   - Write
   - Edit
 
 # ✅ CORRECT - Comma-separated list in brackets
-tools: [Read, Write, Edit]
 
 # ❌ WRONG - Multi-line description with pipe (causes tokenization issues)
 description: |
@@ -132,7 +128,6 @@ Complete your work and provide a structured response with:
 ---
 name: file-formatter
 description: MUST BE USED when formatting code files for consistency. Use PROACTIVELY for code style, linting, formatting. Keywords - format, style, lint, prettier, beautify
-tools: [Read, Write, Edit]
 model: haiku
 type: specialist
 acl_level: 1
@@ -167,7 +162,6 @@ You format code files according to project style guides.
 ---
 name: api-developer
 description: MUST BE USED when implementing REST API endpoints. Use PROACTIVELY for API development, endpoint creation, OpenAPI specs. Keywords - api, rest, endpoint, openapi, swagger, http
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 type: specialist
 acl_level: 1
@@ -239,7 +233,6 @@ Complete your work and provide a structured response with:
 ---
 name: security-reviewer
 description: MUST BE USED when reviewing code for security vulnerabilities. Use PROACTIVELY for security audits, code review, vulnerability scanning. Keywords - security, vulnerability, audit, review, penetration
-tools: [Read, Grep, Glob, TodoWrite]
 model: sonnet
 type: validator
 acl_level: 3
@@ -320,7 +313,6 @@ Complete your work and provide a structured response with:
 ---
 name: feature-coordinator
 description: MUST BE USED when coordinating multi-agent feature development. Use PROACTIVELY for complex features requiring multiple specialists. Keywords - coordinate, orchestrate, feature, multi-agent, workflow
-tools: [Read, Bash, TodoWrite]
 model: sonnet
 type: coordinator
 acl_level: 3

@@ -1,16 +1,16 @@
-# Claude Flow Novice v2.16.0 Documentation
+# Claude Flow Novice v2.18.1 Documentation
 
-**Version:** 2.16.0 (Integration Standardization)
-**Last Updated:** 2025-11-17
+**Version:** 2.18.1 (RuVector Integration)
+**Last Updated:** 2025-12-05
 
 **Package Metrics**:
-- 2.4 MB unpacked
-- 303 files
-- Namespace-isolated installation
+- Namespace-isolated installation (~0.01% collision risk)
+- Semantic codebase search via RuVector
+- Multi-provider routing (Z.ai, Kimi, OpenRouter, Anthropic)
 
 ## Overview
 
-Claude Flow Novice is a production-ready AI agent orchestration framework built on a skills-first architecture with Redis-based coordination, zero-token waiting mechanisms, and multi-loop consensus validation (CFN Loop).
+AI agent orchestration with semantic codebase search, Redis coordination, and multi-loop consensus validation (CFN Loop).
 
 ## CFN Loop Execution Modes
 
@@ -85,7 +85,7 @@ npx claude-flow-novice swarm "Task Description" \
 ### Core Concepts
 - **[Skills System](log-skills.md)** - Modular, reusable agent capabilities
 - **[CFN Loop](cfn-loop-modes.md)** - Three-loop consensus validation framework
-- **[CFN Loop Task Mode](claude-assets/commands/CFN_LOOP_TASK_MODE.md)** - Task execution guide with agent specialization
+- **[RuVector Search](../docs/RUVECTOR_ARCHITECTURE.md)** - Semantic codebase indexing
 - **[Redis Coordination](logs-cli-redis.md)** - Zero-token agent coordination
 
 ### User Guides
@@ -111,14 +111,24 @@ npx claude-flow-novice swarm "Task Description" \
 - **[Deprecated MCP Logs](deprecated-logs-mcp.md)** - Historical MCP implementation
 - **[v1 Documentation](../legacy/readme-v1/)** - Previous documentation version
 
-## Key Features (v2.16.0)
+## Key Features (v2.18.1)
 
-### Integration Standardization (NEW - 90% Complete)
-- **Skill Lifecycle Automation**: Deploy, version, promote skills with single command
-- **Cross-Database Transactions**: Coordinated PostgreSQL + SQLite + Redis operations
-- **File System Standardization**: Unified backups, logging, state persistence
-- **Edge Case Auto-Patching**: Feedback loop generates patches from test failures
-- **Data Format Harmonization**: Consistent JSON schemas across all skill outputs
+### RuVector Codebase Search (NEW)
+- **Semantic Search**: Natural language queries against codebase
+- **OpenAI Embeddings**: text-embedding-3-small (1536 dimensions)
+- **Manifest System**: `.cfn-manifest.json` tracks CFN vs custom files
+- **Safe Distribution**: Custom files preserved during CFN updates
+
+```bash
+# Index codebase
+./.claude/skills/cfn-ruvector-codebase-index/index.sh --full
+
+# Search
+./.claude/skills/cfn-ruvector-codebase-index/search.sh "authentication" --top 5
+
+# Incremental reindex
+/cfn-ruvector:codebase-reindex
+```
 
 ### Skills-First Architecture
 - **Modular Skills**: Independently maintainable, testable capabilities

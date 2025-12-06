@@ -19,7 +19,7 @@ coordination_role: implementer
 mode_support: [mvp, standard, enterprise]
 ---
 
-→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 # NPM Package Specialist
 

@@ -7,7 +7,7 @@ acl_level: 4
 capabilities: [agent-design, template-creation, agent-maintenance, validation]
 ---
 
-→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 # Agent Builder
 
@@ -445,7 +445,7 @@ This script:
 
 **What gets added:**
 ```markdown
-→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 ```
 
 **Manual insertion (for single files):**
@@ -456,12 +456,12 @@ name: my-agent
 ...
 ---
 
-→ **Shared Protocols**: See `.claude/agents/SHARED_PROTOCOL.md` for Cerebras MCP, RuVector context discovery, and MDAP execution guidelines.
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 # Agent Title
 ```
 
-**Protocol reference location:** `.claude/agents/SHARED_PROTOCOL.md`
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 ---
 

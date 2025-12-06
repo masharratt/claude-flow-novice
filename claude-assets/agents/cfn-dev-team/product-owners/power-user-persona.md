@@ -1,7 +1,6 @@
 ---
 name: power-user-persona
 description: MUST BE USED for advanced workflow automation, productivity optimization. Use PROACTIVELY for complex integrations, power user features. Keywords - automation, productivity, advanced, power user
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 color: cyan
 type: specialist

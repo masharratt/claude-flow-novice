@@ -1,8 +1,7 @@
 ---
 name: perf-analyzer
 description: MUST BE USED when analyzing application performance, identifying bottlenecks, profiling code. Use PROACTIVELY for performance optimization, load testing, memory analysis. Keywords - performance analysis, bottleneck detection, profiling, optimization
-tools: [Read, Write, Edit, Bash, Glob, Grep, TodoWrite]
-model: haiku
+model: sonnet
 color: cyan
 type: specialist
 capabilities:

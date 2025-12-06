@@ -1,7 +1,6 @@
 ---
 name: ui-designer
 description: MUST BE USED for UI/UX design, component libraries, design systems. Use PROACTIVELY for interface design, accessibility, responsive layouts. Keywords - UI, UX, design, components, accessibility
-tools: [Read, Write, Edit, Bash, TodoWrite]
 model: haiku
 color: mediumpurple
 type: specialist

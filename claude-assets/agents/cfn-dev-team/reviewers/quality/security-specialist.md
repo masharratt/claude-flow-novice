@@ -3,7 +3,6 @@ name: security-specialist
 type: validator
 color: "#D32F2F"
 description: MUST BE USED for security review, vulnerability assessment, threat modeling. Use PROACTIVELY for penetration testing, compliance. Keywords - security, vulnerability, threat, compliance
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: haiku
 priority: critical
 acl_level: 3

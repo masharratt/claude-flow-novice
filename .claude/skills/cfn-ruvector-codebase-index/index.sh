@@ -110,8 +110,19 @@ find_indexable_files() {
   done
   ext_args+=(")" "-print")
 
+  # Change to project root for consistent path resolution
+  cd "$PROJECT_ROOT" || exit 1
+
   # Only search in the directories we actually want to index
   for dir in $INCLUDE_DIRS; do
+    # Convert . to project root for absolute paths
+    local search_dir="$dir"
+    if [[ "$dir" == "." ]]; then
+      search_dir="$PROJECT_ROOT"
+    elif [[ "$dir" != /* ]]; then
+      search_dir="$PROJECT_ROOT/$dir"
+    fi
+
     if [[ "$dir" == "." ]]; then
       # For root directory, only search files at depth 1 (not recursive)
       while IFS= read -r file; do
@@ -120,12 +131,13 @@ find_indexable_files() {
         # Check file size
         local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
         if [[ $size -le $MAX_FILE_SIZE ]]; then
+          # Output absolute path
           echo "$file"
         else
           log_warn "Skipping large file: $file (${size} bytes)" >&2
         fi
-      done < <(find "$dir" -maxdepth 1 "${ext_args[@]}" 2>/dev/null)
-    elif [[ -d "$dir" ]]; then
+      done < <(find "$search_dir" -maxdepth 1 "${ext_args[@]}" 2>/dev/null)
+    elif [[ -d "$search_dir" ]]; then
       # For other directories, search recursively but exclude build artifacts
       while IFS= read -r file; do
         [[ -z "$file" ]] && continue
@@ -133,11 +145,12 @@ find_indexable_files() {
         # Check file size
         local size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo "0")
         if [[ $size -le $MAX_FILE_SIZE ]]; then
+          # Output absolute path
           echo "$file"
         else
           log_warn "Skipping large file: $file (${size} bytes)" >&2
         fi
-      done < <(find "$dir" \
+      done < <(find "$search_dir" \
         \( -path "*/node_modules" -o -path "*/dist" -o -path "*/build" -o -path "*/coverage" -o -path "*/.trigger/tmp" -o -path "*/docker/trigger-dev/data" \) -prune -o \
         "${ext_args[@]}" 2>/dev/null)
     fi
@@ -203,17 +216,17 @@ full_reindex() {
   local total=${#files[@]}
   log_info "Found $total files to index"
 
-  # Use batch indexer for performance (100x+ faster than per-file spawning)
+  # Use standalone indexer (direct @ruvector/core, no external dependencies)
   log_info "Starting batch indexer..."
 
   # Pass environment variables explicitly to Node.js subprocess
-  # RUVECTOR_DB_PATH tells ruvector-init.ts where to store the database
+  # Run from skill directory to use local node_modules
+  # Files are already absolute paths from find_indexable_files
   if printf '%s\n' "${files[@]}" | \
      OPENAI_API_KEY="$OPENAI_API_KEY" \
      ZAI_API_KEY="${ZAI_API_KEY:-}" \
      OPENAI_BASE_URL="${OPENAI_BASE_URL:-}" \
-     RUVECTOR_DB_PATH="$RUVECTOR_DB_PATH/ruvector.db" \
-     npx tsx "$SCRIPT_DIR/batch-indexer.js"; then
+     bash -c "cd '$SCRIPT_DIR' && npx tsx standalone-indexer.js"; then
     log_success "Full reindex completed successfully"
   else
     log_error "Batch indexing failed with exit code $?"

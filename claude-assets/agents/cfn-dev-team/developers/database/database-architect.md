@@ -1,7 +1,6 @@
 ---
 name: database-architect
 description: MUST BE USED for database design, schema optimization, query performance. Use PROACTIVELY for data modeling, indexing, migrations. Keywords - database, schema, SQL, optimization, modeling
-tools: [Read, Write, Edit, Bash, Grep, Glob, TodoWrite]
 model: sonnet
 type: specialist
 acl_level: 1

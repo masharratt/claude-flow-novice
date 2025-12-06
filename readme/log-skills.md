@@ -1,11 +1,44 @@
 # Skills System Documentation
 
-**Version:** 2.7
-**Status:** Production (Phase 1-3 Feedback Accumulation Complete - 2025-10-21)
+**Version:** 2.18.1
+**Status:** Production
 
 ## Overview
 
-The Skills system is the foundation of Claude Flow Novice v2, providing modular, reusable agent capabilities with explicit coordination interfaces. Skills replace the v1 implicit coordination model with Redis-based pub/sub dependencies.
+Modular, reusable agent capabilities with explicit coordination interfaces and semantic codebase search.
+
+## New: RuVector Codebase Search
+
+**Location:** `.claude/skills/cfn-ruvector-codebase-index/`
+**Purpose:** Semantic search via OpenAI embeddings
+
+```bash
+# Full index
+./.claude/skills/cfn-ruvector-codebase-index/index.sh --full
+
+# Search
+./.claude/skills/cfn-ruvector-codebase-index/search.sh "query" --top 5
+
+# Incremental (git changes)
+/cfn-ruvector:codebase-reindex
+```
+
+**Components:**
+- `index.sh` - Indexing entry point
+- `search.sh` - Query interface
+- `indexer.js` - Batch processor
+- `embeddings.js` - OpenAI API calls
+- `search.js` - Vector similarity
+- `.cfn-manifest.json` - CFN vs custom file tracking
+
+**Manifest System:**
+- `cfn_files`: Overwritten on CFN update
+- `protected_files`: Never touched (config, data)
+- Unlisted files: Custom, preserved
+
+**Requirements:** `OPENAI_API_KEY` or `ZAI_API_KEY`
+
+---
 
 ## Core Principles
 

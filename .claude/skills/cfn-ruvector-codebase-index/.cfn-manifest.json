@@ -1,22 +1,37 @@
 {
-  "version": "2.18.1",
+  "version": "2.18.2",
   "description": "CFN RuVector Codebase Index - Semantic search for codebases",
   "cfn_files": [
-    "search.js",
-    "search.sh", 
     "index.sh",
+    "search.sh",
+    "search.js",
     "indexer.js",
+    "standalone-indexer.js",
     "embeddings.js",
     "init-db.js",
     "parser.js",
+    "get-embedding-text.js",
+    "ruvector-learning.js",
+    "clean-orphaned-entries.sh",
+    "detect-stale-docs.sh",
+    "handle-file-moves.sh",
+    "query-error-patterns.sh",
+    "query-learnings.sh",
+    "store-error-pattern.sh",
+    "store-learning.sh",
+    "install-hook.sh",
+    "package.json",
     "SKILL.md",
     ".cfn-manifest.json"
   ],
   "protected_files": [
     "config.json",
-    "data/*",
     "node_modules/*",
     "package-lock.json"
   ],
-  "notes": "Files not listed in cfn_files or protected_files are considered custom and will never be overwritten by CFN updates."
+  "standard_paths": {
+    "database": ".ruvector/",
+    "skill_root": ".claude/skills/cfn-ruvector-codebase-index"
+  },
+  "notes": "Files not in cfn_files or protected_files are custom, preserved on update. config.json ruvectorDbPath must point to PROJECT_ROOT/.ruvector/ (use ../../../.ruvector)."
 }
