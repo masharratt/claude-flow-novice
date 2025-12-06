@@ -157,13 +157,9 @@ index_file() {
     return 1
   }
 
-  # Extract embedding text
+  # Extract embedding text (using tsx for ES module support)
   local embedding_text
-  embedding_text=$(node -e "
-    import { createEmbeddingText, parseFile } from '$PARSER_JS';
-    const metadata = parseFile('$file_path');
-    console.log(createEmbeddingText('$file_path', metadata));
-  ") || {
+  embedding_text=$(npx tsx "$SCRIPT_DIR/get-embedding-text.js" "$file_path") || {
     log_error "Failed to create embedding text: $file_path"
     return 1
   }
@@ -211,10 +207,12 @@ full_reindex() {
   log_info "Starting batch indexer..."
 
   # Pass environment variables explicitly to Node.js subprocess
+  # RUVECTOR_DB_PATH tells ruvector-init.ts where to store the database
   if printf '%s\n' "${files[@]}" | \
      OPENAI_API_KEY="$OPENAI_API_KEY" \
      ZAI_API_KEY="${ZAI_API_KEY:-}" \
      OPENAI_BASE_URL="${OPENAI_BASE_URL:-}" \
+     RUVECTOR_DB_PATH="$RUVECTOR_DB_PATH/ruvector.db" \
      npx tsx "$SCRIPT_DIR/batch-indexer.js"; then
     log_success "Full reindex completed successfully"
   else

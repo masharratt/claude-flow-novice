@@ -8,3 +8,4 @@ export * from './agents/index.js';
 export * from './coordination/index.js';
 export * from './memory/index.js';
 export * from './cfn-loop/index.js';
+export * from './ruvector/index.js';

@@ -13,7 +13,8 @@
     "cfn-portal": "dist/cli/cfn-portal.js",
     "cfn-context": "dist/cli/cfn-context.js",
     "cfn-metrics": "dist/cli/cfn-metrics.js",
-    "cfn-redis": "dist/cli/cfn-redis.js"
+    "cfn-redis": "dist/cli/cfn-redis.js",
+    "cfn-ruvector": "dist/ruvector/cli.js"
   },
   "files": [
     "dist/",
@@ -89,7 +90,10 @@
     "docker",
     "containers",
     "memory-leaks",
-    "concurrent-execution"
+    "concurrent-execution",
+    "semantic-search",
+    "ruvector",
+    "vector-embeddings"
   ],
   "author": "Claude Flow Novice Team",
   "license": "MIT",
@@ -183,7 +187,11 @@
     "socket.io": "^4.8.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "@ruvector/core": "^0.1.0",
+    "simple-git": "^3.22.0",
+    "cosmiconfig": "^9.0.0",
+    "zod": "^3.22.0"
   },
   "engines": {
     "node": ">=18.0.0"

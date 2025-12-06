@@ -61,5 +61,5 @@
   "embeddingModel": "text-embedding-3-small",
   "embeddingDimensions": 1536,
   "batchSize": 100,
-  "ruvectorDbPath": "./docker/trigger-dev/data"
+  "ruvectorDbPath": "./data"
 }

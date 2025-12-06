@@ -15,8 +15,14 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 CONFIG_FILE="$SCRIPT_DIR/config.json"
 EMBEDDINGS_JS="$SCRIPT_DIR/embeddings.js"
 
-# Load configuration
-RUVECTOR_DB_PATH=$(jq -r '.ruvectorDbPath' "$CONFIG_FILE")
+# Load configuration - resolve relative path from PROJECT_ROOT
+RUVECTOR_DB_PATH_CONFIG=$(jq -r '.ruvectorDbPath' "$CONFIG_FILE")
+# If path starts with ./, resolve it relative to PROJECT_ROOT
+if [[ "$RUVECTOR_DB_PATH_CONFIG" == ./* ]]; then
+  RUVECTOR_DB_PATH="$PROJECT_ROOT/${RUVECTOR_DB_PATH_CONFIG#./}"
+else
+  RUVECTOR_DB_PATH="$RUVECTOR_DB_PATH_CONFIG"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -84,33 +90,29 @@ QUERY_EMBEDDING=$(node "$EMBEDDINGS_JS" "$QUERY") || {
   exit 1
 }
 
-# Search RuVector database
+# Search RuVector database using search.js
 log_info "Searching codebase index..."
 
-SEARCH_RESULTS=$(node -e "
-  import { getCollection, COLLECTIONS } from '$PROJECT_ROOT/docker/trigger-dev/src/lib/ruvector-init.ts';
-
-  (async () => {
-    try {
-      const collection = getCollection(COLLECTIONS.CODEBASE_INDEX);
-
-      const queryEmbedding = $QUERY_EMBEDDING;
-
-      const results = await collection.search({
-        vector: new Float32Array(queryEmbedding),
-        k: $TOP_K,
-      });
-
-      console.log(JSON.stringify(results, null, 2));
-    } catch (error) {
-      console.error('Search failed:', error.message);
-      process.exit(1);
-    }
-  })();
-") || {
-  log_error "Search failed"
+# Run from skill directory to use local node_modules/@ruvector/core
+# (project root has a stub module that doesn't work)
+# Note: search.js expects RUVECTOR_DB_PATH to end with /ruvector.db
+RAW_OUTPUT=$(cd "$SCRIPT_DIR" && RUVECTOR_DB_PATH="$RUVECTOR_DB_PATH/ruvector.db" npx tsx search.js "$QUERY_EMBEDDING" "$TOP_K" 2>&1)
+SEARCH_EXIT=$?
+if [[ $SEARCH_EXIT -ne 0 ]]; then
+  log_error "Search failed (exit $SEARCH_EXIT)"
+  echo "$RAW_OUTPUT" >&2
   exit 1
-}
+fi
+
+# The raw output should be JSON directly (search.js outputs pretty-printed JSON)
+# Just use the raw output as search results - jq will validate
+SEARCH_RESULTS="$RAW_OUTPUT"
+# Validate it's valid JSON
+if ! echo "$SEARCH_RESULTS" | jq empty 2>/dev/null; then
+  log_error "Invalid JSON in search results"
+  echo "$SEARCH_RESULTS" >&2
+  SEARCH_RESULTS="[]"
+fi
 
 # Parse and display results
 echo ""
@@ -119,11 +121,9 @@ echo -e "${GREEN}   Search Results for: \"$QUERY\"${NC}"
 echo -e "${GREEN}═══════════════════════════════════════════════════════${NC}"
 echo ""
 
+# Display results - format matches search.js output: { id: "path", score: 0.xxx }
 echo "$SEARCH_RESULTS" | jq -r '.[] |
-  "[\(.distance | tonumber | . * 100 | round / 100)]  \(.metadata.metadata.filePath)\n" +
-  "    Purpose: \(.metadata.metadata.purpose // "N/A")\n" +
-  "    Exports: \(.metadata.metadata.exports | join(", ") // "N/A")\n" +
-  "    Lines: \(.metadata.metadata.lines), Complexity: \(.metadata.metadata.complexity)\n"
+  "[\(.score | . * 100 | round / 100)]  \(.id)"
 '
 
 log_success "Search completed"
@@ -132,10 +132,6 @@ log_success "Search completed"
 echo ""
 echo -e "${CYAN}[JSON OUTPUT]${NC}"
 echo "$SEARCH_RESULTS" | jq -c '.[] | {
-  filePath: .metadata.metadata.filePath,
-  relevance: .distance,
-  purpose: .metadata.metadata.purpose,
-  exports: .metadata.metadata.exports,
-  lines: .metadata.metadata.lines,
-  complexity: .metadata.metadata.complexity
+  filePath: .id,
+  relevance: .score
 }'
