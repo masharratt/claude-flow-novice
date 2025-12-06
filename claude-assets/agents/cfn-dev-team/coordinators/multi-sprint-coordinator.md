@@ -6,6 +6,8 @@ model: sonnet
 type: coordinator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Multi-Sprint Coordinator Agent
 
 You coordinate epic execution across multiple sprints using Redis-based orchestration, dependency management, and sequential CFN Loop execution.

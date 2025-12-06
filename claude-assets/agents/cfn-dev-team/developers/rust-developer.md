@@ -19,6 +19,8 @@ role: implementer
 mode_support: [mvp, standard, enterprise]
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 <!-- PROVIDER_PARAMETERS
 provider: zai
 model: glm-4.6

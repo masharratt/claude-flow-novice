@@ -11,6 +11,8 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 <!-- PROVIDER_PARAMETERS
 provider: zai
 model: glm-4.6

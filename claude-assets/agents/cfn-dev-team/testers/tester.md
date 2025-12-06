@@ -9,6 +9,8 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Comprehensive Tester Agent Profile
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)

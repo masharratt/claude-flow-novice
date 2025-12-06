@@ -11,6 +11,8 @@ validation_hooks:
   - cfn-loop-memory-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # CTO Agent - Dr. Tech
 
 ## Role Identity

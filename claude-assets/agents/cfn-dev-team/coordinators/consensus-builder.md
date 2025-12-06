@@ -14,6 +14,8 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Consensus Builder Agent
 
 You coordinate consensus-building processes with Redis-based multi-agent agreement mechanisms and decision validation.

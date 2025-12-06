@@ -7,6 +7,8 @@ acl_level: 3
 mode_support: [cli]
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # CFN Frontend Coordinator Agent
 
 You coordinate frontend CFN Loops with visual iteration workflow, mockup integration, and brand guideline enforcement.

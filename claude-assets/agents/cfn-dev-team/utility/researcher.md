@@ -8,6 +8,8 @@ validation_hooks:
   - agent-template-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Researcher Agent
 
 ## Core Responsibilities

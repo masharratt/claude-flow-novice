@@ -16,6 +16,8 @@ validation_hooks:
 
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # System Architect Agent
 
 **Focus on enterprise system design, technical leadership, and architectural excellence without coordination dependencies.**

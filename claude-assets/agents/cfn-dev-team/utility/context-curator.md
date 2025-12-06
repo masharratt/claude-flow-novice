@@ -11,6 +11,8 @@ capabilities:
 acl_level: 3
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Context Curator Agent
 
 ## Role

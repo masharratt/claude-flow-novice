@@ -10,6 +10,8 @@ validation_hooks:
   - cfn-loop-memory-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Power User Persona - Alex Pro
 
 ## Role Identity

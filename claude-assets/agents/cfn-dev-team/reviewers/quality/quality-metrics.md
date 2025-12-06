@@ -47,6 +47,8 @@ Architecture Criteria:
 
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 ## Validation Checklist
 
 Use this checklist before deploying an agent:

@@ -21,6 +21,8 @@ completion_protocol: |
 acl_level: 1
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 ## 🚨 Mandatory Post-Edit Validation
 
 **CRITICAL**: After EVERY file edit, run:

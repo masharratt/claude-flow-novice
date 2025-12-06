@@ -11,6 +11,8 @@ completion_protocol: |
   Complete your work and provide a structured response with confidence score.
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
 <!-- PROVIDER_PARAMETERS

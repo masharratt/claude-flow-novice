@@ -10,6 +10,8 @@ validation_hooks:
 
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Load Testing Specialist Agent
 
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)

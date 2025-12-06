@@ -16,6 +16,8 @@ validation_hooks:
 completion_protocol: |
   Complete your work and provide a structured response with confidence score.
 ---
+
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 ## 🚀 Template Generation Focus
 
 **Your role is optimized for:**

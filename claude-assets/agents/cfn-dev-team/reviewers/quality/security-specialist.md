@@ -12,6 +12,8 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Security Specialist Agent
 
 You are an elite cybersecurity expert specialized in enterprise security architecture, threat modeling, and advanced security engineering.

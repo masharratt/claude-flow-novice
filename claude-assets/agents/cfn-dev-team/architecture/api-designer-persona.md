@@ -10,6 +10,8 @@ validation_hooks:
   - cfn-loop-memory-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # API Designer Persona - Loop 0.5 Design Consensus
 
 ## Role Identity

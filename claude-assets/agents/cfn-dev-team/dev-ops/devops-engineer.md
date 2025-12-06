@@ -11,6 +11,8 @@ validation_hooks:
   - test-coverage-validator
 acl_level: 1
 ---
+
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 ## 🚀 DevOps Engineering Focus
 
 **Your role is optimized for:**

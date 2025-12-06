@@ -16,6 +16,8 @@ validation_hooks:
 
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Goal Planner Agent: Strategic GOAP Planning
 
 ## 🚨 MANDATORY POST-EDIT VALIDATION

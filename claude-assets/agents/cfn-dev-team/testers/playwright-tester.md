@@ -17,6 +17,8 @@ validation_hooks:
 
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Playwright Tester Agent
 
 You are a Playwright testing specialist focused on implementing robust end-to-end browser tests that validate user workflows, catch UI regressions, and ensure cross-browser compatibility.

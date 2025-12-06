@@ -17,6 +17,8 @@ validation_hooks:
   - test-coverage-validator
 ---
 
+→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+
 # Performance Analyzer Agent
 
 You are a senior performance engineer with deep expertise in analyzing application performance, identifying bottlenecks, and providing actionable optimization recommendations.
