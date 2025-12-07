@@ -63,6 +63,48 @@ import {
 // Types
 // =============================================
 
+/** Compiler error with location information */
+export interface CompilerError {
+  /** Error code (e.g., E0599, TS2304) */
+  code: string;
+  /** Line number (1-indexed) */
+  line: number;
+  /** Column number (1-indexed) */
+  column?: number;
+  /** Error message from compiler */
+  message: string;
+  /** Optional suggestion from compiler */
+  suggestion?: string;
+}
+
+/** A single fix instruction from LLM */
+export interface FixInstruction {
+  /** Line number to modify (1-indexed) */
+  line: number;
+  /** Action to perform */
+  action: "replace" | "insert_before" | "insert_after" | "delete";
+  /** New content (required for replace/insert actions) */
+  content?: string;
+  /** End line for multi-line replacements */
+  endLine?: number;
+  /** Original content being replaced (for validation) */
+  original?: string;
+}
+
+/** Result of applying fixes */
+export interface ApplyFixesResult {
+  /** Whether all fixes were applied successfully */
+  success: boolean;
+  /** The modified content */
+  content: string;
+  /** Number of fixes applied */
+  fixesApplied: number;
+  /** Any fixes that failed to apply */
+  failedFixes: Array<{ fix: FixInstruction; reason: string }>;
+  /** Whether syntax validation passed */
+  syntaxValid: boolean;
+}
+
 export interface MDAPImplementerPayload {
   /** CFN Loop task ID */
   taskId: string;
@@ -84,6 +126,22 @@ export interface MDAPImplementerPayload {
   failureCount?: number;
   /** Programming language hint */
   language?: string;
+  /**
+   * Raw output mode - skips JSON wrapping for transformation tasks
+   * When true, the AI response is returned directly without parsing
+   * Use for: YAML transformation, text processing, format conversion
+   */
+  rawOutput?: boolean;
+  /**
+   * Diff mode - LLM returns fix instructions instead of full file
+   * Reduces token usage by ~80-90% for large files
+   * Requires: errors array and fullFileContent
+   */
+  diffMode?: boolean;
+  /** Compiler errors to fix (required for diffMode) */
+  errors?: CompilerError[];
+  /** Full file content for diff mode (required for diffMode) */
+  fullFileContent?: string;
 }
 
 export interface MDAPImplementerResult {
@@ -116,6 +174,14 @@ export interface MDAPImplementerResult {
   error?: string;
   /** Which API was used (cerebras or groq) */
   apiUsed?: "cerebras" | "groq";
+  /** Diff mode specific: fixes that were applied */
+  fixesApplied?: number;
+  /** Diff mode specific: fixes that failed */
+  fixesFailed?: Array<{ fix: FixInstruction; reason: string }>;
+  /** Diff mode specific: whether syntax validation passed */
+  syntaxValid?: boolean;
+  /** Diff mode specific: number of retry attempts for validation */
+  retryCount?: number;
 }
 
 // =============================================
@@ -150,6 +216,395 @@ const CEREBRAS_MODELS: Record<number, string> = {
 };
 
 // =============================================
+// Diff Mode Functions
+// =============================================
+
+/** Max retries for diff mode validation failures */
+const MAX_DIFF_RETRIES = 2;
+
+/**
+ * Validate bracket/brace/paren balance in code
+ * Skips strings and comments for accurate validation
+ */
+function validateSyntax(content: string, language: "typescript" | "rust" | string): boolean {
+  const stack: string[] = [];
+  const pairs: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
+  const opens = new Set(Object.keys(pairs));
+  const closes = new Set(Object.values(pairs));
+
+  let inString = false;
+  let stringChar = "";
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+    const next = content[i + 1];
+    const prev = content[i - 1];
+
+    // Handle newlines
+    if (char === "\n") {
+      inLineComment = false;
+      continue;
+    }
+
+    // Skip line comments
+    if (!inString && !inBlockComment && char === "/" && next === "/") {
+      inLineComment = true;
+      continue;
+    }
+    if (inLineComment) continue;
+
+    // Skip block comments
+    if (!inString && char === "/" && next === "*") {
+      inBlockComment = true;
+      i++;
+      continue;
+    }
+    if (inBlockComment && char === "*" && next === "/") {
+      inBlockComment = false;
+      i++;
+      continue;
+    }
+    if (inBlockComment) continue;
+
+    // Handle strings
+    if ((char === '"' || char === "'" || char === "`") && prev !== "\\") {
+      if (!inString) {
+        inString = true;
+        stringChar = char;
+      } else if (char === stringChar) {
+        inString = false;
+      }
+      continue;
+    }
+    if (inString) continue;
+
+    // Track brackets
+    if (opens.has(char)) {
+      stack.push(pairs[char]);
+    } else if (closes.has(char)) {
+      if (stack.length === 0 || stack.pop() !== char) {
+        return false;
+      }
+    }
+  }
+
+  return stack.length === 0;
+}
+
+/**
+ * Extract error context windows from file content
+ * Returns only the lines around each error for minimal token usage
+ */
+function extractErrorContext(
+  content: string,
+  errors: CompilerError[],
+  windowSize: number = 10
+): string {
+  const lines = content.split('\n');
+  const chunks: string[] = [];
+  const includedRanges: Array<{ start: number; end: number }> = [];
+
+  const sortedErrors = [...errors].sort((a, b) => a.line - b.line);
+
+  for (const error of sortedErrors) {
+    const start = Math.max(0, error.line - 1 - windowSize);
+    const end = Math.min(lines.length, error.line + windowSize);
+
+    const lastRange = includedRanges[includedRanges.length - 1];
+    if (lastRange && start <= lastRange.end + 2) {
+      lastRange.end = Math.max(lastRange.end, end);
+    } else {
+      includedRanges.push({ start, end });
+    }
+  }
+
+  for (const range of includedRanges) {
+    const relevantErrors = sortedErrors.filter(
+      e => e.line > range.start && e.line <= range.end
+    );
+
+    chunks.push(`// Lines ${range.start + 1}-${range.end} (errors: ${relevantErrors.map(e => `L${e.line}:${e.code}`).join(', ')})`);
+
+    for (let i = range.start; i < range.end; i++) {
+      const lineNum = i + 1;
+      const isErrorLine = relevantErrors.some(e => e.line === lineNum);
+      const prefix = isErrorLine ? '>>> ' : '    ';
+      chunks.push(`${prefix}${lineNum}: ${lines[i]}`);
+    }
+    chunks.push('');
+  }
+
+  return chunks.join('\n');
+}
+
+/**
+ * Apply fix instructions to file content deterministically
+ * No LLM involved - pure code transformation with syntax validation
+ */
+function applyFixes(content: string, fixes: FixInstruction[], language: string): ApplyFixesResult {
+  const lines = content.split('\n');
+  const failedFixes: Array<{ fix: FixInstruction; reason: string }> = [];
+  let fixesApplied = 0;
+
+  // Sort fixes in reverse line order to preserve line numbers during modification
+  const sortedFixes = [...fixes].sort((a, b) => {
+    if (b.line !== a.line) return b.line - a.line;
+    const actionPriority = { delete: 3, replace: 2, insert_after: 1, insert_before: 0 };
+    return actionPriority[b.action] - actionPriority[a.action];
+  });
+
+  for (const fix of sortedFixes) {
+    const lineIndex = fix.line - 1;
+
+    if (lineIndex < 0 || lineIndex >= lines.length) {
+      failedFixes.push({
+        fix,
+        reason: `Line ${fix.line} out of range (file has ${lines.length} lines)`
+      });
+      continue;
+    }
+
+    try {
+      switch (fix.action) {
+        case 'replace': {
+          if (fix.content === undefined) {
+            failedFixes.push({ fix, reason: 'Replace action requires content' });
+            continue;
+          }
+          const endLine = fix.endLine ? fix.endLine - 1 : lineIndex;
+          const deleteCount = endLine - lineIndex + 1;
+          const newLines = fix.content.split('\n');
+          lines.splice(lineIndex, deleteCount, ...newLines);
+          fixesApplied++;
+          break;
+        }
+
+        case 'insert_before': {
+          if (fix.content === undefined) {
+            failedFixes.push({ fix, reason: 'Insert action requires content' });
+            continue;
+          }
+          const newLines = fix.content.split('\n');
+          lines.splice(lineIndex, 0, ...newLines);
+          fixesApplied++;
+          break;
+        }
+
+        case 'insert_after': {
+          if (fix.content === undefined) {
+            failedFixes.push({ fix, reason: 'Insert action requires content' });
+            continue;
+          }
+          const newLines = fix.content.split('\n');
+          lines.splice(lineIndex + 1, 0, ...newLines);
+          fixesApplied++;
+          break;
+        }
+
+        case 'delete': {
+          const endLine = fix.endLine ? fix.endLine - 1 : lineIndex;
+          const deleteCount = endLine - lineIndex + 1;
+          lines.splice(lineIndex, deleteCount);
+          fixesApplied++;
+          break;
+        }
+
+        default:
+          failedFixes.push({ fix, reason: `Unknown action: ${(fix as FixInstruction).action}` });
+      }
+    } catch (err) {
+      failedFixes.push({
+        fix,
+        reason: `Exception: ${(err as Error).message}`
+      });
+    }
+  }
+
+  const newContent = lines.join('\n');
+  const syntaxValid = validateSyntax(newContent, language);
+
+  return {
+    success: failedFixes.length === 0 && syntaxValid,
+    content: newContent,
+    fixesApplied,
+    failedFixes,
+    syntaxValid
+  };
+}
+
+/**
+ * Parse fix instructions from LLM response
+ */
+function parseFixInstructions(content: string, contextName: string): { fixes: FixInstruction[]; explanation?: string } {
+  try {
+    const parsed = parseJSONFromResponse<{ fixes: FixInstruction[]; explanation?: string }>(content, contextName);
+
+    if (!parsed.fixes || !Array.isArray(parsed.fixes)) {
+      throw new Error("Response missing 'fixes' array");
+    }
+
+    // Validate each fix has required fields
+    for (const fix of parsed.fixes) {
+      if (typeof fix.line !== 'number' || fix.line < 1) {
+        throw new Error(`Invalid line number: ${fix.line}`);
+      }
+      if (!['replace', 'insert_before', 'insert_after', 'delete'].includes(fix.action)) {
+        throw new Error(`Invalid action: ${fix.action}`);
+      }
+      if (fix.action !== 'delete' && fix.content === undefined) {
+        throw new Error(`Missing content for ${fix.action} action at line ${fix.line}`);
+      }
+    }
+
+    return parsed;
+  } catch (error) {
+    throw new Error(`Failed to parse fix instructions: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * Build diff mode prompt for error fixing
+ */
+function buildDiffModePrompt(payload: MDAPImplementerPayload, tier: ModelTier): string {
+  const sections: string[] = [];
+  const lang = payload.language || 'TypeScript';
+
+  sections.push(`You are an expert ${lang} developer fixing compiler errors.`);
+  sections.push(`Analyze the errors and provide ONLY the specific line fixes needed.`);
+  sections.push('');
+
+  sections.push(`## File: \`${payload.targetFile}\``);
+  sections.push('');
+
+  sections.push(`## Compiler Errors to Fix`);
+  for (const error of payload.errors!) {
+    sections.push(`- **Line ${error.line}** [${error.code}]: ${error.message}`);
+    if (error.suggestion) {
+      sections.push(`  Suggestion: ${error.suggestion}`);
+    }
+  }
+  sections.push('');
+
+  sections.push(`## Code Context (error regions only)`);
+  sections.push('```' + lang.toLowerCase());
+  sections.push(extractErrorContext(payload.fullFileContent!, payload.errors!));
+  sections.push('```');
+  sections.push('');
+
+  if (payload.fileContents && payload.fileContents.length > 0) {
+    sections.push(`## Related Files (for type references)`);
+    for (const { path, content } of payload.fileContents) {
+      sections.push(`### ${path}`);
+      sections.push('```');
+      sections.push(content.slice(0, 1500));
+      sections.push('```');
+    }
+    sections.push('');
+  }
+
+  sections.push(`## Output Format`);
+  sections.push(`Return ONLY valid JSON with fix instructions:`);
+  sections.push('```json');
+  sections.push(JSON.stringify({
+    fixes: [
+      { line: 45, action: "replace", content: "fixed line content here" },
+      { line: 102, action: "insert_after", content: "new line to insert" },
+      { line: 156, action: "delete" }
+    ],
+    explanation: "Brief explanation of fixes"
+  }, null, 2));
+  sections.push('```');
+  sections.push('');
+
+  sections.push(`## Available Actions`);
+  sections.push(`- \`replace\`: Replace line(s) with new content. Use \`endLine\` for multi-line.`);
+  sections.push(`- \`insert_before\`: Insert new line(s) before the specified line.`);
+  sections.push(`- \`insert_after\`: Insert new line(s) after the specified line.`);
+  sections.push(`- \`delete\`: Remove line(s). Use \`endLine\` for multi-line deletion.`);
+  sections.push('');
+
+  if (lang === 'Rust') {
+    sections.push(`## Rust-Specific Guidance`);
+    sections.push(`- E0599 (method not found): Add impl block or use correct trait`);
+    sections.push(`- E0560 (struct field missing): Add the missing field to struct`);
+    sections.push(`- E0308 (type mismatch): Fix the type or add conversion`);
+    sections.push(`- E0277 (trait not implemented): Add impl or derive macro`);
+    sections.push(`- E0382 (moved value): Use clone, reference, or restructure`);
+    sections.push('');
+  } else if (lang === 'TypeScript') {
+    sections.push(`## TypeScript-Specific Guidance`);
+    sections.push(`- TS2304 (cannot find name): Add import or declare`);
+    sections.push(`- TS2339 (property doesn't exist): Add to interface or type assertion`);
+    sections.push(`- TS2345 (argument type): Fix type or add conversion`);
+    sections.push(`- TS2322 (type not assignable): Fix assignment or add type guard`);
+    sections.push('');
+  }
+
+  sections.push(`IMPORTANT: Return ONLY the JSON object with fixes array. Do NOT return full file content.`);
+
+  return sections.join('\n');
+}
+
+/**
+ * Build NACK prompt for retry after validation failure
+ */
+function buildNackPrompt(
+  payload: MDAPImplementerPayload,
+  failedFixes: Array<{ fix: FixInstruction; reason: string }>,
+  syntaxValid: boolean,
+  previousFixes: FixInstruction[]
+): string {
+  const sections: string[] = [];
+  const lang = payload.language || 'TypeScript';
+
+  sections.push(`Your previous fix attempt FAILED. Please provide corrected fixes.`);
+  sections.push('');
+
+  sections.push(`## Validation Failures`);
+  if (!syntaxValid) {
+    sections.push(`- **SYNTAX ERROR**: The resulting code has unbalanced brackets/braces/parentheses`);
+  }
+  if (failedFixes.length > 0) {
+    sections.push(`- **Failed Fixes**:`);
+    for (const { fix, reason } of failedFixes) {
+      sections.push(`  - Line ${fix.line} (${fix.action}): ${reason}`);
+    }
+  }
+  sections.push('');
+
+  sections.push(`## Your Previous Fixes (that failed)`);
+  sections.push('```json');
+  sections.push(JSON.stringify({ fixes: previousFixes }, null, 2));
+  sections.push('```');
+  sections.push('');
+
+  sections.push(`## Original Errors to Fix`);
+  for (const error of payload.errors!) {
+    sections.push(`- **Line ${error.line}** [${error.code}]: ${error.message}`);
+  }
+  sections.push('');
+
+  sections.push(`## Code Context`);
+  sections.push('```' + lang.toLowerCase());
+  sections.push(extractErrorContext(payload.fullFileContent!, payload.errors!));
+  sections.push('```');
+  sections.push('');
+
+  sections.push(`## Instructions`);
+  sections.push(`1. Analyze why your previous fixes failed`);
+  sections.push(`2. Ensure all line numbers are correct (1-indexed)`);
+  sections.push(`3. Ensure bracket/brace balance is maintained`);
+  sections.push(`4. Return corrected JSON with fixes array`);
+  sections.push('');
+
+  sections.push(`IMPORTANT: Return ONLY valid JSON with the corrected fixes array.`);
+
+  return sections.join('\n');
+}
+
+// =============================================
 // Helper Functions
 // =============================================
 
@@ -157,6 +612,17 @@ const CEREBRAS_MODELS: Record<number, string> = {
  * Build implementation prompt for code generation
  */
 function buildImplementationPrompt(payload: MDAPImplementerPayload, tier: ModelTier): string {
+  // RAW OUTPUT MODE: For transformation tasks
+  if (payload.rawOutput) {
+    return payload.taskDescription;
+  }
+
+  // DIFF MODE: Return fix instructions instead of full file
+  if (payload.diffMode && payload.errors && payload.fullFileContent) {
+    return buildDiffModePrompt(payload, tier);
+  }
+
+  // STANDARD MODE: Code generation with JSON wrapping
   const sections: string[] = [];
 
   // Role and task
@@ -508,6 +974,8 @@ export const cfnMDAPImplementerTask = task({
     console.log(`[mdap-implementer] Starting: ${payload.microTaskId}`);
     console.log(`[mdap-implementer] Task: ${payload.taskDescription.substring(0, 80)}...`);
     console.log(`[mdap-implementer] Target: ${payload.targetFile}`);
+    const modeStr = payload.diffMode ? 'DIFF' : (payload.rawOutput ? 'RAW' : 'FULL');
+    console.log(`[mdap-implementer] Mode: ${modeStr}${payload.errors ? ` (${payload.errors.length} errors)` : ''}`);
 
     // Get metrics-based tier recommendation (accounts for deprecation)
     const recommendedTier = await getRecommendedTier(
@@ -588,11 +1056,104 @@ export const cfnMDAPImplementerTask = task({
         }
       }
 
-      // Parse generated code
-      const { code, explanation } = parseGeneratedCode(apiResult.content, "mdap-implementer");
-      console.log(`[mdap-implementer] Generated ${code.length} chars of code`);
-      if (explanation) {
-        console.log(`[mdap-implementer] Explanation: ${explanation}`);
+      // Handle output based on mode
+      let code: string;
+      let explanation: string | undefined;
+      let fixesApplied: number | undefined;
+      let fixesFailed: Array<{ fix: FixInstruction; reason: string }> | undefined;
+      let syntaxValid: boolean | undefined;
+      let retryCount = 0;
+
+      if (payload.rawOutput) {
+        // RAW OUTPUT MODE: Return content directly
+        code = apiResult.content.trim();
+        explanation = "Raw output mode - content returned directly";
+        console.log(`[mdap-implementer] Raw output: ${code.length} chars`);
+      } else if (payload.diffMode && payload.fullFileContent) {
+        // DIFF MODE: Parse fix instructions and apply with retry loop
+        console.log(`[mdap-implementer] Diff mode: parsing fix instructions`);
+
+        let applyResult: ApplyFixesResult | null = null;
+        let currentPrompt = buildDiffModePrompt(payload, modelTier);
+        let previousFixes: FixInstruction[] = [];
+
+        // Retry loop for validation failures
+        for (let attempt = 0; attempt <= MAX_DIFF_RETRIES; attempt++) {
+          retryCount = attempt;
+
+          if (attempt > 0) {
+            // Build NACK prompt for retry
+            console.log(`[mdap-implementer] Diff mode retry ${attempt}/${MAX_DIFF_RETRIES} - validation failed`);
+            currentPrompt = buildNackPrompt(
+              payload,
+              applyResult!.failedFixes,
+              applyResult!.syntaxValid,
+              previousFixes
+            );
+
+            // Call LLM again with NACK prompt
+            try {
+              apiResult = apiUsed === "groq"
+                ? await callGroqAPI(currentPrompt, modelName, modelTier)
+                : await callCerebrasAPI(currentPrompt, modelName, modelTier);
+              console.log(`[mdap-implementer] Retry API call: ${apiResult.durationMs}ms`);
+            } catch (retryError) {
+              console.error(`[mdap-implementer] Retry API call failed: ${(retryError as Error).message}`);
+              break;
+            }
+          }
+
+          try {
+            const parsed = parseFixInstructions(apiResult.content, "mdap-implementer-diff");
+            explanation = parsed.explanation;
+            previousFixes = parsed.fixes;
+
+            console.log(`[mdap-implementer] Received ${parsed.fixes.length} fix instructions`);
+
+            // Apply fixes to original content
+            applyResult = applyFixes(payload.fullFileContent, parsed.fixes, payload.language || 'typescript');
+
+            console.log(`[mdap-implementer] Applied ${applyResult.fixesApplied}/${parsed.fixes.length} fixes, syntax valid: ${applyResult.syntaxValid}`);
+
+            // Check if validation passed
+            if (applyResult.syntaxValid && applyResult.failedFixes.length === 0) {
+              console.log(`[mdap-implementer] Validation passed on attempt ${attempt + 1}`);
+              break;
+            }
+
+            // Log validation failures
+            if (!applyResult.syntaxValid) {
+              console.warn(`[mdap-implementer] Syntax validation failed`);
+            }
+            if (applyResult.failedFixes.length > 0) {
+              console.warn(`[mdap-implementer] Failed fixes: ${applyResult.failedFixes.map(f => `L${f.fix.line}: ${f.reason}`).join(', ')}`);
+            }
+          } catch (parseError) {
+            console.error(`[mdap-implementer] Parse error: ${(parseError as Error).message}`);
+            if (attempt === MAX_DIFF_RETRIES) {
+              throw parseError;
+            }
+          }
+        }
+
+        if (!applyResult) {
+          throw new Error("Failed to apply fixes after all retry attempts");
+        }
+
+        code = applyResult.content;
+        fixesApplied = applyResult.fixesApplied;
+        fixesFailed = applyResult.failedFixes.length > 0 ? applyResult.failedFixes : undefined;
+        syntaxValid = applyResult.syntaxValid;
+
+      } else {
+        // STANDARD MODE: Parse JSON response with full code
+        const parsed = parseGeneratedCode(apiResult.content, "mdap-implementer");
+        code = parsed.code;
+        explanation = parsed.explanation;
+        console.log(`[mdap-implementer] Generated ${code.length} chars of code`);
+        if (explanation) {
+          console.log(`[mdap-implementer] Explanation: ${explanation}`);
+        }
       }
 
       const durationMs = Date.now() - startTime;
@@ -616,6 +1177,10 @@ export const cfnMDAPImplementerTask = task({
           output: apiResult.outputTokens,
         },
         apiUsed,
+        fixesApplied,
+        fixesFailed,
+        syntaxValid,
+        retryCount: retryCount > 0 ? retryCount : undefined,
       };
 
     } catch (error) {
