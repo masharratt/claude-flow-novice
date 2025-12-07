@@ -1,76 +1,104 @@
 {
-  "epicId": "auth-system-v2",
-  "name": "Authentication & Authorization System",
-  "description": "Complete overhaul of authentication and authorization system with JWT, RBAC, OAuth2, and security hardening",
-  "status": "not_started",
-  "owner": "Backend Team",
-  "estimatedDuration": "3-4 weeks",
-  "overviewFile": "planning/example-epic/EPIC_OVERVIEW.md",
-
+  "epic": "user-authentication",
+  "goal": "Users can register, login, and maintain authenticated sessions with JWT tokens",
+  "execution": "cfn-loop",
+  "mode": "standard",
   "phases": [
     {
-      "phaseId": "phase-1-core-auth",
-      "name": "Core Authentication System",
-      "description": "JWT-based authentication with user registration, login, token management",
-      "file": "planning/example-epic/phase-1-core-auth.md",
-      "status": "not_started",
-      "dependencies": [],
-      "estimatedDuration": "1 week",
-
+      "id": "p1",
+      "name": "Core Authentication",
       "sprints": [
         {
-          "sprintId": "sprint-1.1",
-          "name": "User Registration & Password Security",
-          "status": "not_started",
-          "duration": "2 days",
-          "dependencies": [],
-          "acceptanceCriteria": [
-            "User can register with email, username, password",
-            "Passwords hashed with bcrypt (never stored plaintext)",
-            "Duplicate registrations prevented",
-            "Input validation with clear error messages",
-            "Test coverage ≥85%"
-          ]
+          "id": "p1.s1",
+          "name": "User Model and Registration",
+          "description": "Create user model with password hashing and registration endpoint",
+          "files": [
+            "src/models/user.ts",
+            "src/routes/auth.ts",
+            "src/validators/auth.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "User model has id, email, passwordHash, createdAt fields",
+            "hashPassword() uses bcrypt with cost factor 10",
+            "POST /register accepts {email, password}",
+            "Registration validates email format and password strength",
+            "Returns 201 with userId on success, 400 on validation error",
+            "Duplicate email returns 409 Conflict"
+          ],
+          "context": {
+            "dependencies": ["bcrypt", "express", "zod"],
+            "test_command": "npm test -- auth.register",
+            "related_docs": []
+          },
+          "agents": {
+            "loop3": ["backend-developer"],
+            "loop2": ["code-reviewer", "security-specialist"]
+          }
         },
         {
-          "sprintId": "sprint-1.2",
-          "name": "JWT Token Generation",
-          "status": "not_started",
-          "duration": "2 days",
-          "dependencies": ["sprint-1.1"],
-          "acceptanceCriteria": [
-            "JWT access tokens generated with correct payload",
-            "Refresh tokens generated and stored securely",
-            "Token secrets from environment variables",
-            "Token expiration enforced",
-            "Test coverage ≥85%"
-          ]
+          "id": "p1.s2",
+          "name": "Login and JWT Tokens",
+          "description": "Implement login endpoint with JWT token generation and validation",
+          "files": [
+            "src/routes/auth.ts",
+            "src/services/token.ts",
+            "src/middleware/auth.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "POST /login accepts {email, password}",
+            "Returns JWT token on valid credentials",
+            "Returns 401 on invalid email or password",
+            "Token contains userId and expires in 24 hours",
+            "Auth middleware extracts and validates token",
+            "Invalid/expired token returns 401"
+          ],
+          "context": {
+            "dependencies": ["jsonwebtoken"],
+            "test_command": "npm test -- auth.login",
+            "related_docs": []
+          },
+          "agents": {
+            "loop3": ["backend-developer"],
+            "loop2": ["code-reviewer", "security-specialist"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "name": "Session Management",
+      "sprints": [
+        {
+          "id": "p2.s1",
+          "name": "Refresh Tokens and Logout",
+          "description": "Add refresh token rotation and secure logout",
+          "files": [
+            "src/routes/auth.ts",
+            "src/services/token.ts",
+            "src/models/refreshToken.ts"
+          ],
+          "estimatedEffort": "3-4 hours",
+          "criteria": [
+            "Login returns both access and refresh tokens",
+            "POST /refresh exchanges refresh token for new token pair",
+            "Refresh tokens stored in database with expiry",
+            "POST /logout invalidates refresh token",
+            "Refresh token rotation prevents replay attacks",
+            "Expired refresh tokens return 401"
+          ],
+          "context": {
+            "dependencies": ["jsonwebtoken", "uuid"],
+            "test_command": "npm test -- auth.session",
+            "related_docs": []
+          },
+          "agents": {
+            "loop3": ["backend-developer", "database-architect"],
+            "loop2": ["code-reviewer", "security-specialist"]
+          }
         }
       ]
     }
-  ],
-
-  "backlog": [
-    {
-      "id": "backlog-001",
-      "description": "Implement multi-factor authentication",
-      "priority": "high",
-      "source": "phase-2-rbac",
-      "deferredAt": "2025-10-13T14:30:00Z",
-      "reason": "Postponed to focus on core authentication flow"
-    },
-    {
-      "id": "backlog-002",
-      "description": "Add OAuth2 provider support for Microsoft and LinkedIn",
-      "priority": "medium",
-      "source": "phase-3-oauth",
-      "deferredAt": "2025-10-14T09:15:00Z",
-      "reason": "Requires additional provider integration work"
-    }
-  ],
-
-  "epicAcceptanceCriteria": [
-    "All phases complete with ≥90% consensus validation",
-    "Test coverage ≥85% across all phases"
   ]
 }

@@ -1,0 +1,128 @@
+{
+  "epic": "add-audit-fields-to-models",
+  "goal": "All database models have createdAt, updatedAt, and createdBy audit fields",
+  "execution": "mdap",
+  "mode": "mvp",
+  "phases": [
+    {
+      "id": "p1",
+      "name": "Core Models",
+      "sprints": [
+        {
+          "id": "p1.s1",
+          "task": "Add audit fields to User model",
+          "file": "src/models/user.ts",
+          "estimatedLines": 12,
+          "complexity": "simple",
+          "action": "add",
+          "criteria": [
+            "createdAt: Date field with @CreateDateColumn",
+            "updatedAt: Date field with @UpdateDateColumn",
+            "createdBy: string field (nullable)"
+          ],
+          "context": {
+            "imports": ["typeorm"],
+            "depends_on": [],
+            "test_command": "npm test -- user.model.test.ts"
+          }
+        },
+        {
+          "id": "p1.s2",
+          "task": "Add audit fields to Post model",
+          "file": "src/models/post.ts",
+          "estimatedLines": 12,
+          "complexity": "simple",
+          "action": "add",
+          "criteria": [
+            "createdAt: Date field with @CreateDateColumn",
+            "updatedAt: Date field with @UpdateDateColumn",
+            "createdBy: string field (nullable)"
+          ],
+          "context": {
+            "imports": ["typeorm"],
+            "depends_on": [],
+            "test_command": "npm test -- post.model.test.ts"
+          }
+        },
+        {
+          "id": "p1.s3",
+          "task": "Add audit fields to Comment model",
+          "file": "src/models/comment.ts",
+          "estimatedLines": 12,
+          "complexity": "simple",
+          "action": "add",
+          "criteria": [
+            "createdAt: Date field with @CreateDateColumn",
+            "updatedAt: Date field with @UpdateDateColumn",
+            "createdBy: string field (nullable)"
+          ],
+          "context": {
+            "imports": ["typeorm"],
+            "depends_on": [],
+            "test_command": "npm test -- comment.model.test.ts"
+          }
+        },
+        {
+          "id": "p1.s4",
+          "task": "Add audit fields to Category model",
+          "file": "src/models/category.ts",
+          "estimatedLines": 12,
+          "complexity": "simple",
+          "action": "add",
+          "criteria": [
+            "createdAt: Date field with @CreateDateColumn",
+            "updatedAt: Date field with @UpdateDateColumn",
+            "createdBy: string field (nullable)"
+          ],
+          "context": {
+            "imports": ["typeorm"],
+            "depends_on": [],
+            "test_command": "npm test -- category.model.test.ts"
+          }
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "name": "Supporting Models",
+      "sprints": [
+        {
+          "id": "p2.s1",
+          "task": "Add audit fields to Tag model",
+          "file": "src/models/tag.ts",
+          "estimatedLines": 12,
+          "complexity": "simple",
+          "action": "add",
+          "criteria": [
+            "createdAt: Date field with @CreateDateColumn",
+            "updatedAt: Date field with @UpdateDateColumn",
+            "createdBy: string field (nullable)"
+          ],
+          "context": {
+            "imports": ["typeorm"],
+            "depends_on": [],
+            "test_command": "npm test -- tag.model.test.ts"
+          }
+        },
+        {
+          "id": "p2.s2",
+          "task": "Add audit fields to Session model",
+          "file": "src/models/session.ts",
+          "estimatedLines": 12,
+          "complexity": "simple",
+          "action": "add",
+          "criteria": [
+            "createdAt: Date field with @CreateDateColumn",
+            "updatedAt: Date field with @UpdateDateColumn",
+            "createdBy: string field (nullable)"
+          ],
+          "context": {
+            "imports": ["typeorm"],
+            "depends_on": [],
+            "test_command": "npm test -- session.model.test.ts"
+          }
+        }
+      ]
+    }
+  ]
+}
