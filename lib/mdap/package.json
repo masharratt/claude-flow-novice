@@ -1,0 +1,42 @@
+{
+  "name": "@cfn/mdap",
+  "version": "1.0.0",
+  "description": "Modular Decomposition and Processing Library - Standalone AI task processing utilities",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -f *.js *.d.ts",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "files": [
+    "*.ts",
+    "*.js",
+    "*.d.ts",
+    "README.md"
+  ],
+  "keywords": [
+    "ai",
+    "task-decomposition",
+    "processing",
+    "validation",
+    "glm",
+    "cerebras"
+  ],
+  "author": "CFN Team",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cfn/claude-flow-novice.git",
+    "directory": "lib/mdap"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

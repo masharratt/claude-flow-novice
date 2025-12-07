@@ -17,7 +17,7 @@
  * - Retries with Groq if Cerebras returns malformed JSON
  *
  * @module cfn-architecture-decomposer
- * @version 2.0.0 - Enhanced JSON parsing and Groq fallback
+ * @version 3.0.0 - Unified GLM 4.6 with thinking enabled (reasoning needed for decomposition)
  */
 
 import { task } from "@trigger.dev/sdk/v3";
@@ -29,6 +29,11 @@ import {
   validateDependencyGraph,
   parseJSONFromResponse,
 } from "../lib/validation-schemas.js";
+import {
+  callGLMWithThinking,
+  GLM_MODEL_ID,
+  DECOMPOSER_PRESET,
+} from "../lib/glm-provider.js";
 
 export interface ArchitectureDecomposerPayload {
   taskId: string;
@@ -271,25 +276,24 @@ async function parseWithFallback(
       boundaries?: ArchitectureBoundary[];
     };
   } catch (parseError) {
-    // JSON parsing failed even with sanitization - try Groq as fallback
-    console.log(`[${contextName}] Cerebras returned malformed JSON, trying Groq fallback`);
+    // JSON parsing failed even with sanitization - try GLM retry with thinking
+    console.log(`[${contextName}] GLM returned malformed JSON, retrying with thinking enabled`);
     console.log(`[${contextName}] Parse error: ${(parseError as Error).message.substring(0, 100)}`);
 
     try {
-      const groqData = await callGroqAPI(prompt);
-      const groqContent = groqData.choices[0].message.content;
-      return parseJSONFromResponse(groqContent, `${contextName}-groq-fallback`) as {
+      const retryResult = await callGLMWithThinking(prompt, DECOMPOSER_PRESET);
+      return parseJSONFromResponse(retryResult.content, `${contextName}-glm-retry`) as {
         microTasks?: Array<any>;
         recommendations?: string[];
         components?: ArchitectureComponent[];
         boundaries?: ArchitectureBoundary[];
       };
-    } catch (groqError) {
-      // Both Cerebras JSON and Groq failed
+    } catch (retryError) {
+      // Both attempts failed
       throw new Error(
-        `[${contextName}] JSON parsing failed for both Cerebras and Groq.\n` +
-        `Cerebras error: ${(parseError as Error).message.substring(0, 150)}\n` +
-        `Groq error: ${(groqError as Error).message.substring(0, 150)}`
+        `[${contextName}] JSON parsing failed for both GLM attempts.\n` +
+        `Initial error: ${(parseError as Error).message.substring(0, 150)}\n` +
+        `Retry error: ${(retryError as Error).message.substring(0, 150)}`
       );
     }
   }
@@ -353,26 +357,19 @@ Format as JSON with structure:
   ]
 }`;
 
-      let data: { choices: Array<{ message: { content: string } }> };
-      let usedProvider = "Cerebras";
+      // Use unified GLM 4.6 with thinking ENABLED (reasoning needed for decomposition)
+      // https://inference-docs.cerebras.ai/resources/glm-migration#7-minimize-reasoning-when-not-needed
+      console.log(`[architecture-decomposer] Using ${GLM_MODEL_ID} with thinking enabled`);
 
-      // Try Cerebras first, fallback to Groq on 429 or API errors
-      try {
-        data = await callCerebrasAPI(prompt);
-      } catch (cerebrasError) {
-        const errorMsg = (cerebrasError as Error).message;
+      const glmResult = await callGLMWithThinking(prompt, DECOMPOSER_PRESET);
 
-        if (errorMsg.includes('429') || errorMsg.includes('rate limit') ||
-            errorMsg.includes('500') || errorMsg.includes('502') ||
-            errorMsg.includes('503') || errorMsg.includes('504') ||
-            errorMsg.includes('timeout') || errorMsg.includes('CEREBRAS_API_KEY')) {
-          console.log(`[architecture-decomposer] Cerebras failed, falling back to Groq: ${errorMsg.substring(0, 100)}`);
-          data = await callGroqAPI(prompt);
-          usedProvider = "Groq";
-        } else {
-          throw cerebrasError;
-        }
-      }
+      // Convert to expected format for backward compatibility
+      const data = {
+        choices: [{ message: { content: glmResult.content } }]
+      };
+      const usedProvider = "GLM";
+
+      console.log(`[architecture-decomposer] GLM API: ${glmResult.durationMs}ms, ${glmResult.inputTokens}+${glmResult.outputTokens} tokens (thinking: ${glmResult.thinkingEnabled})`);
 
       // P0 Fix: Task 3 - API Response Validation
       const validatedData = validateCerebrasResponse(data, "architecture-decomposer");

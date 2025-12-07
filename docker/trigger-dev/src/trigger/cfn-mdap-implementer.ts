@@ -26,13 +26,19 @@
  * 6. If tests pass, proceed to validation
  *
  * @module cfn-mdap-implementer
- * @version 3.1.0 - Switched to Groq-primary with Cerebras fallback (cost optimization)
+ * @version 4.0.0 - Unified GLM 4.6 model with thinking disabled (speed optimization)
  */
 
 import { task } from "@trigger.dev/sdk/v3";
 import {
   parseJSONFromResponse,
 } from "../lib/validation-schemas.js";
+import {
+  callGLMFast,
+  GLM_MODEL_ID,
+  IMPLEMENTER_PRESET,
+  type GLMResponse,
+} from "../lib/glm-provider.js";
 
 // Security: Sanitize error messages to prevent API key leakage
 function sanitizeErrorMessage(error: Error | unknown): string {
@@ -172,8 +178,8 @@ export interface MDAPImplementerResult {
   };
   /** Error message if failed */
   error?: string;
-  /** Which API was used (cerebras or groq) */
-  apiUsed?: "cerebras" | "groq";
+  /** Which API was used */
+  apiUsed?: "glm" | "cerebras" | "groq";
   /** Diff mode specific: fixes that were applied */
   fixesApplied?: number;
   /** Diff mode specific: fixes that failed */
@@ -189,30 +195,30 @@ export interface MDAPImplementerResult {
 // =============================================
 
 /**
- * Model mapping for MDAP tiers using Groq API (PRIMARY)
+ * UNIFIED MODEL: Always use GLM 4.6 via Cerebras
  *
- * T1 (haiku): Fast, cheap - for atomic tasks
- * T2 (sonnet): Balanced - for moderate complexity
- * T3 (opus): Best quality - for complex/retry scenarios
+ * Per project requirements and Cerebras docs, we use zai-glm-4.6 for ALL tasks:
+ * - Consistent model reduces variability
+ * - Thinking DISABLED for implementation tasks (speed optimization)
+ * - Thinking ENABLED for decomposition tasks (handled by decomposer modules)
  *
- * Note: Groq billing now enabled, providing cost-effective alternative to Cerebras.
+ * See: https://inference-docs.cerebras.ai/resources/glm-migration#7-minimize-reasoning-when-not-needed
+ *
+ * Legacy tier-based model selection is DEPRECATED.
+ * The tier system is retained only for cost estimation and escalation logic.
  */
-const GROQ_MODELS: Record<number, string> = {
-  1: "openai/gpt-oss-20b",    // T1 - Fast, cost-effective
-  2: "openai/gpt-oss-20b",    // T2 - Same model, enhanced prompting
-  3: "openai/gpt-oss-120b",   // T3 - Larger model for complex tasks
-};
+const UNIFIED_MODEL = GLM_MODEL_ID; // "zai-glm-4.6" from glm-provider.ts
 
-/**
- * Model mapping for MDAP tiers using Cerebras API (FALLBACK)
- * Used when Groq is rate-limited or unavailable.
- *
- * Note: Subscription limited to glm-4.6 model across all tiers.
- */
+// Legacy constants kept for backwards compatibility (not used in new code path)
+const GROQ_MODELS: Record<number, string> = {
+  1: GLM_MODEL_ID,
+  2: GLM_MODEL_ID,
+  3: GLM_MODEL_ID,
+};
 const CEREBRAS_MODELS: Record<number, string> = {
-  1: "glm-4.6",      // T1 - Fast, atomic tasks
-  2: "glm-4.6",      // T2 - Same model (subscription limitation)
-  3: "glm-4.6",      // T3 - Same model (subscription limitation)
+  1: GLM_MODEL_ID,
+  2: GLM_MODEL_ID,
+  3: GLM_MODEL_ID,
 };
 
 // =============================================
@@ -990,71 +996,26 @@ export const cfnMDAPImplementerTask = task({
       payload.failureCount || 0
     );
 
-    // Use Groq models (PRIMARY)
-    let modelName = GROQ_MODELS[modelTier.tier] || GROQ_MODELS[1];
-    let apiUsed: "cerebras" | "groq" = "groq";
+    // Use unified GLM 4.6 model (thinking DISABLED for implementation tasks)
+    const modelName = UNIFIED_MODEL;
+    const apiUsed: "glm" | "cerebras" | "groq" = "glm";
 
-    // Check if model is deprecated (auto-escalate if so)
-    const isDeprecated = await checkDeprecation(modelName);
-    if (isDeprecated && modelTier.tier < 3) {
-      console.log(`[mdap-implementer] Model ${modelName} deprecated, escalating tier`);
-      const nextTier = Math.min(modelTier.tier + 1, 3) as 1 | 2 | 3;
-      modelTier = selectModelTier('simple', nextTier, 0);
-      modelName = GROQ_MODELS[modelTier.tier] || GROQ_MODELS[3];
-    }
-
-    console.log(`[mdap-implementer] Using ${getTierSummary(modelTier)} -> ${modelName} (Groq primary)`);
+    console.log(`[mdap-implementer] Using ${getTierSummary(modelTier)} -> ${modelName} (GLM 4.6, thinking disabled)`);
 
     try {
       // Build prompt
       const prompt = buildImplementationPrompt(payload, modelTier);
       console.log(`[mdap-implementer] Prompt length: ${prompt.length} chars`);
 
-      let apiResult: {
-        content: string;
-        inputTokens: number;
-        outputTokens: number;
-        durationMs: number;
-      };
+      let apiResult: GLMResponse;
 
-      // Try Groq first (PRIMARY), fallback to Cerebras on failure
-      try {
-        apiResult = await callGroqAPI(prompt, modelName, modelTier);
-        apiUsed = "groq";
-        console.log(`[mdap-implementer] Groq API call: ${apiResult.durationMs}ms, ${apiResult.inputTokens}+${apiResult.outputTokens} tokens`);
-      } catch (groqError) {
-        const errorMsg = (groqError as Error).message;
-
-        // Check if it's a rate limit or API error that warrants fallback
-        if (errorMsg.includes('429') || errorMsg.includes('rate limit') ||
-            errorMsg.includes('500') || errorMsg.includes('502') ||
-            errorMsg.includes('503') || errorMsg.includes('504') ||
-            errorMsg.includes('timeout') || errorMsg.includes('GROQ_API_KEY')) {
-
-          console.log(`[mdap-implementer] Groq failed, falling back to Cerebras: ${errorMsg.substring(0, 100)}`);
-
-          // Switch to Cerebras fallback model
-          const cerebrasModelName = CEREBRAS_MODELS[modelTier.tier] || CEREBRAS_MODELS[1];
-          console.log(`[mdap-implementer] Using Cerebras fallback: ${cerebrasModelName}`);
-
-          try {
-            apiResult = await callCerebrasAPI(prompt, cerebrasModelName, modelTier);
-            apiUsed = "cerebras";
-            modelName = cerebrasModelName;
-            console.log(`[mdap-implementer] Cerebras API call: ${apiResult.durationMs}ms, ${apiResult.inputTokens}+${apiResult.outputTokens} tokens`);
-          } catch (cerebrasError) {
-            // Both APIs failed
-            throw new Error(
-              `Both Groq and Cerebras APIs failed.\n` +
-              `Groq: ${errorMsg.substring(0, 150)}\n` +
-              `Cerebras: ${(cerebrasError as Error).message.substring(0, 150)}`
-            );
-          }
-        } else {
-          // Non-recoverable Groq error, don't try fallback
-          throw groqError;
-        }
-      }
+      // Use unified GLM 4.6 with thinking DISABLED (per Cerebras docs for implementation tasks)
+      // https://inference-docs.cerebras.ai/resources/glm-migration#7-minimize-reasoning-when-not-needed
+      apiResult = await callGLMFast(prompt, {
+        maxTokens: modelTier.tier >= 3 ? 4096 : 2048,
+        temperature: modelTier.tier >= 3 ? 0.3 : 0.5,
+      });
+      console.log(`[mdap-implementer] GLM API call: ${apiResult.durationMs}ms, ${apiResult.inputTokens}+${apiResult.outputTokens} tokens (thinking: ${apiResult.thinkingEnabled})`);
 
       // Handle output based on mode
       let code: string;
@@ -1091,12 +1052,13 @@ export const cfnMDAPImplementerTask = task({
               previousFixes
             );
 
-            // Call LLM again with NACK prompt
+            // Call GLM again with NACK prompt (thinking still disabled for fixes)
             try {
-              apiResult = apiUsed === "groq"
-                ? await callGroqAPI(currentPrompt, modelName, modelTier)
-                : await callCerebrasAPI(currentPrompt, modelName, modelTier);
-              console.log(`[mdap-implementer] Retry API call: ${apiResult.durationMs}ms`);
+              apiResult = await callGLMFast(currentPrompt, {
+                maxTokens: modelTier.tier >= 3 ? 4096 : 2048,
+                temperature: modelTier.tier >= 3 ? 0.3 : 0.5,
+              });
+              console.log(`[mdap-implementer] Retry API call: ${apiResult.durationMs}ms (thinking: ${apiResult.thinkingEnabled})`);
             } catch (retryError) {
               console.error(`[mdap-implementer] Retry API call failed: ${(retryError as Error).message}`);
               break;

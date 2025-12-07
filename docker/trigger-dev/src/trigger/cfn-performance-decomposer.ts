@@ -17,7 +17,7 @@
  * - Retries with Groq if Cerebras returns malformed JSON
  *
  * @module cfn-performance-decomposer
- * @version 2.0.0 - Enhanced JSON parsing and Groq fallback
+ * @version 3.0.0 - Unified GLM 4.6 with thinking enabled (reasoning needed for decomposition)
  */
 
 import { task } from "@trigger.dev/sdk/v3";
@@ -29,6 +29,11 @@ import {
   validateDecompositionOutput,
   parseJSONFromResponse,
 } from "../lib/validation-schemas.js";
+import {
+  callGLMWithThinking,
+  GLM_MODEL_ID,
+  DECOMPOSER_PRESET,
+} from "../lib/glm-provider.js";
 
 export interface PerformanceDecomposerPayload {
   taskId: string;
@@ -69,184 +74,7 @@ export interface PerformanceAnalysis {
 // =============================================
 
 /**
- * Sleep helper for retry backoff
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Call Cerebras API for decomposition (PRIMARY)
- * Fast inference with reliable rate limits.
- */
-async function callCerebrasAPI(prompt: string): Promise<{
-  choices: Array<{ message: { content: string } }>;
-}> {
-  const apiKey = process.env.CEREBRAS_API_KEY;
-  if (!apiKey) {
-    throw new Error("CEREBRAS_API_KEY environment variable not set");
-  }
-
-  const MAX_RETRIES = 5;
-  const BASE_DELAY_MS = 1000;
-  const MAX_DELAY_MS = 30000;
-
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    let response: Response;
-    try {
-      response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 2048,
-          temperature: 0.7,
-        }),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (response.status === 429) {
-      const retryAfter = response.headers.get('Retry-After');
-      let delayMs: number;
-
-      if (retryAfter) {
-        delayMs = parseInt(retryAfter, 10) * 1000;
-      } else {
-        const exponentialDelay = BASE_DELAY_MS * Math.pow(2, attempt);
-        const jitter = Math.random() * 500;
-        delayMs = Math.min(exponentialDelay + jitter, MAX_DELAY_MS);
-      }
-
-      console.log(`[performance-decomposer] Cerebras rate limited (429), retry ${attempt + 1}/${MAX_RETRIES} after ${Math.round(delayMs)}ms`);
-      await sleep(delayMs);
-      continue;
-    }
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      lastError = new Error(
-        `Cerebras API error: ${response.status} - ${errorBody}\n` +
-        `Check API key validity and quota limits.`
-      );
-
-      if (response.status >= 500 && attempt < MAX_RETRIES - 1) {
-        const delayMs = BASE_DELAY_MS * Math.pow(2, attempt);
-        console.log(`[performance-decomposer] Cerebras server error (${response.status}), retry ${attempt + 1}/${MAX_RETRIES} after ${delayMs}ms`);
-        await sleep(delayMs);
-        continue;
-      }
-
-      throw lastError;
-    }
-
-    return await response.json() as {
-      choices: Array<{ message: { content: string } }>;
-    };
-  }
-
-  throw lastError || new Error(`Cerebras API failed after ${MAX_RETRIES} retries due to rate limiting`);
-}
-
-/**
- * Call Groq API as fallback when Cerebras is rate limited or returns malformed JSON.
- *
- * Note: Groq free tier is unreliable with aggressive rate limiting.
- * Use as fallback only.
- */
-async function callGroqAPI(prompt: string): Promise<{
-  choices: Array<{ message: { content: string } }>;
-}> {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    throw new Error("GROQ_API_KEY environment variable not set for fallback");
-  }
-
-  const MAX_RETRIES = 5;
-  const BASE_DELAY_MS = 1000;
-  const MAX_DELAY_MS = 30000;
-
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    let response: Response;
-    try {
-      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-oss-120b",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 2048,
-          temperature: 0.7,
-        }),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    if (response.status === 429) {
-      const retryAfter = response.headers.get('Retry-After');
-      let delayMs: number;
-
-      if (retryAfter) {
-        delayMs = parseInt(retryAfter, 10) * 1000;
-      } else {
-        const exponentialDelay = BASE_DELAY_MS * Math.pow(2, attempt);
-        const jitter = Math.random() * 500;
-        delayMs = Math.min(exponentialDelay + jitter, MAX_DELAY_MS);
-      }
-
-      console.log(`[performance-decomposer] Groq rate limited (429), retry ${attempt + 1}/${MAX_RETRIES} after ${Math.round(delayMs)}ms`);
-      await sleep(delayMs);
-      continue;
-    }
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      lastError = new Error(
-        `Groq API error: ${response.status} - ${errorBody}\n` +
-        `Check API key validity and quota limits.`
-      );
-
-      if (response.status >= 500 && attempt < MAX_RETRIES - 1) {
-        const delayMs = BASE_DELAY_MS * Math.pow(2, attempt);
-        console.log(`[performance-decomposer] Groq server error (${response.status}), retry ${attempt + 1}/${MAX_RETRIES} after ${delayMs}ms`);
-        await sleep(delayMs);
-        continue;
-      }
-
-      throw lastError;
-    }
-
-    return await response.json() as {
-      choices: Array<{ message: { content: string } }>;
-    };
-  }
-
-  throw lastError || new Error(`Groq API failed after ${MAX_RETRIES} retries due to rate limiting`);
-}
-
-/**
- * Parse decomposition response with fallback to Groq if JSON is malformed.
+ * Parse decomposition response with fallback to GLM if JSON is malformed.
  */
 async function parseWithFallback(
   content: string,
@@ -267,25 +95,24 @@ async function parseWithFallback(
       optimizationStrategy?: string;
     };
   } catch (parseError) {
-    // JSON parsing failed even with sanitization - try Groq as fallback
-    console.log(`[${contextName}] Cerebras returned malformed JSON, trying Groq fallback`);
+    // JSON parsing failed even with sanitization - try GLM retry with thinking
+    console.log(`[${contextName}] GLM returned malformed JSON, retrying with thinking enabled`);
     console.log(`[${contextName}] Parse error: ${(parseError as Error).message.substring(0, 100)}`);
 
     try {
-      const groqData = await callGroqAPI(prompt);
-      const groqContent = groqData.choices[0].message.content;
-      return parseJSONFromResponse(groqContent, `${contextName}-groq-fallback`) as {
+      const retryResult = await callGLMWithThinking(prompt, DECOMPOSER_PRESET);
+      return parseJSONFromResponse(retryResult.content, `${contextName}-glm-retry`) as {
         microTasks?: Array<any>;
         performanceRecommendations?: string[];
         performanceConstraints?: PerformanceConstraint[];
         optimizationStrategy?: string;
       };
-    } catch (groqError) {
-      // Both Cerebras JSON and Groq failed
+    } catch (retryError) {
+      // Both attempts failed
       throw new Error(
-        `[${contextName}] JSON parsing failed for both Cerebras and Groq.\n` +
-        `Cerebras error: ${(parseError as Error).message.substring(0, 150)}\n` +
-        `Groq error: ${(groqError as Error).message.substring(0, 150)}`
+        `[${contextName}] JSON parsing failed for both GLM attempts.\n` +
+        `Initial error: ${(parseError as Error).message.substring(0, 150)}\n` +
+        `Retry error: ${(retryError as Error).message.substring(0, 150)}`
       );
     }
   }
@@ -371,32 +198,24 @@ Format as JSON:
   "optimizationStrategy": "..."
 }`;
 
-      let data: { choices: Array<{ message: { content: string } }> };
-      let usedProvider = "Cerebras";
+      // Use unified GLM 4.6 with thinking ENABLED (reasoning needed for decomposition)
+      console.log(`[performance-decomposer] Using ${GLM_MODEL_ID} with thinking enabled`);
 
-      // Try Cerebras first, fallback to Groq on 429 or API errors
-      try {
-        data = await callCerebrasAPI(prompt);
-      } catch (cerebrasError) {
-        const errorMsg = (cerebrasError as Error).message;
+      const glmResult = await callGLMWithThinking(prompt, DECOMPOSER_PRESET);
 
-        if (errorMsg.includes('429') || errorMsg.includes('rate limit') ||
-            errorMsg.includes('500') || errorMsg.includes('502') ||
-            errorMsg.includes('503') || errorMsg.includes('504') ||
-            errorMsg.includes('timeout') || errorMsg.includes('CEREBRAS_API_KEY')) {
-          console.log(`[performance-decomposer] Cerebras failed, falling back to Groq: ${errorMsg.substring(0, 100)}`);
-          data = await callGroqAPI(prompt);
-          usedProvider = "Groq";
-        } else {
-          throw cerebrasError;
-        }
-      }
+      // Convert to expected format for backward compatibility
+      const data = {
+        choices: [{ message: { content: glmResult.content } }]
+      };
+      const usedProvider = "GLM";
+
+      console.log(`[performance-decomposer] GLM API: ${glmResult.durationMs}ms, ${glmResult.inputTokens}+${glmResult.outputTokens} tokens (thinking: ${glmResult.thinkingEnabled})`);
 
       // P0 Fix: Task 3 - API Response Validation
       const validatedData = validateCerebrasResponse(data, "performance-decomposer");
       const content = validatedData.choices[0].message.content;
 
-      // Parse with enhanced JSON recovery and Groq fallback for malformed JSON
+      // Parse with enhanced JSON recovery and GLM fallback for malformed JSON
       const analysis = await parseWithFallback(content, prompt, "performance-decomposer");
 
       // P0 Fix: Task 3 - Validate decomposition structure

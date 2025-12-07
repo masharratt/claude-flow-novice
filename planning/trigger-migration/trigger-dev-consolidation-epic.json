@@ -1,0 +1,584 @@
+{
+  "epic": "trigger-dev-consolidation",
+  "goal": "Remove Trigger.dev from CFN and Math platforms where it adds unnecessary complexity, consolidate to SEO platform where it provides genuine value for long-running scraping tasks",
+  "execution": "cfn-loop",
+  "mode": "standard",
+  "rationale": {
+    "problem": "Trigger.dev adds enterprise-grade distributed orchestration infrastructure (9 Docker containers, 302MB) for use cases that work fine with local Promise.all()",
+    "analysis": "Provider routing strategy (opus→zai→cerebras) now handles model selection at API level, eliminating original Trigger.dev rationale",
+    "outcome": "Simpler architecture: direct Cerebras API calls for CFN/Math, Trigger.dev only for SEO scraping where multi-worker distribution provides 3-5x throughput"
+  },
+  "phases": [
+    {
+      "id": "p1",
+      "name": "Extract Core Logic",
+      "description": "Extract valuable AI logic from Trigger.dev task wrappers into standalone modules",
+      "sprints": [
+        {
+          "id": "p1.s1",
+          "name": "Create Local MDAP Library Structure",
+          "description": "Set up lib/mdap/ directory structure and copy framework-agnostic modules",
+          "files": [
+            "lib/mdap/index.ts",
+            "lib/mdap/types.ts",
+            "lib/mdap/glm-client.ts",
+            "lib/mdap/validation.ts"
+          ],
+          "estimatedEffort": "1-2 hours",
+          "criteria": [
+            "lib/mdap/ directory created with proper structure",
+            "glm-client.ts copied from docker/trigger-dev/src/lib/glm-provider.ts (already standalone)",
+            "validation.ts copied from docker/trigger-dev/src/lib/validation-schemas.ts",
+            "types.ts contains shared interfaces (CompilerError, FixInstruction, etc.)",
+            "index.ts exports all public modules",
+            "No @trigger.dev/sdk imports in any file"
+          ],
+          "context": {
+            "source_files": [
+              "docker/trigger-dev/src/lib/glm-provider.ts",
+              "docker/trigger-dev/src/lib/validation-schemas.ts"
+            ],
+            "test_command": "npx tsc --noEmit lib/mdap/*.ts",
+            "related_docs": ["docs/MDAP_LESSONS_LEARNED.md"]
+          },
+          "agents": {
+            "loop3": ["typescript-specialist"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p1.s2",
+          "name": "Extract Decomposers",
+          "description": "Extract decomposer logic from Trigger.dev task() wrappers to standalone async functions",
+          "files": [
+            "lib/mdap/decomposers/index.ts",
+            "lib/mdap/decomposers/architecture.ts",
+            "lib/mdap/decomposers/testing.ts",
+            "lib/mdap/decomposers/performance.ts",
+            "lib/mdap/decomposers/security.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "Each decomposer is a standalone async function (not task() wrapped)",
+            "Function signature: async function decompose{Type}(payload): Promise<Analysis>",
+            "All GLM 4.6 calls use callGLMWithThinking from glm-client.ts",
+            "JSON parsing uses parseJSONFromResponse from validation.ts",
+            "No @trigger.dev/sdk imports",
+            "Unit tests pass for each decomposer"
+          ],
+          "context": {
+            "source_files": [
+              "docker/trigger-dev/src/trigger/cfn-architecture-decomposer.ts",
+              "docker/trigger-dev/src/trigger/cfn-testing-decomposer.ts",
+              "docker/trigger-dev/src/trigger/cfn-performance-decomposer.ts",
+              "docker/trigger-dev/src/trigger/cfn-security-decomposer.ts"
+            ],
+            "test_command": "npm test -- decomposers",
+            "pattern": "Remove task({}) wrapper, keep run() body as standalone function"
+          },
+          "agents": {
+            "loop3": ["typescript-specialist", "backend-developer"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p1.s3",
+          "name": "Extract Implementer",
+          "description": "Extract MDAP implementer with diff mode, validation, and retry logic",
+          "files": [
+            "lib/mdap/implementer.ts",
+            "lib/mdap/diff-applicator.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "implementer.ts exports async function implement(payload): Promise<Result>",
+            "Diff mode logic preserved (extractErrorContext, applyFixes, validateSyntax)",
+            "NACK retry loop preserved for validation failures",
+            "Uses callGLMFast from glm-client.ts (thinking disabled)",
+            "diff-applicator.ts contains pure functions for fix application",
+            "No @trigger.dev/sdk imports"
+          ],
+          "context": {
+            "source_files": [
+              "docker/trigger-dev/src/trigger/cfn-mdap-implementer.ts"
+            ],
+            "reference": "/mnt/c/Users/masha/Documents/ourstories-v2/tools/mdap-error-fixer/src/cerebras-parallel-fixer.ts",
+            "test_command": "npm test -- implementer"
+          },
+          "agents": {
+            "loop3": ["typescript-specialist", "backend-developer"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p1.s4",
+          "name": "Create Local Orchestrator",
+          "description": "Create simple orchestrator using Promise.all instead of Trigger.dev SDK",
+          "files": [
+            "lib/mdap/orchestrator.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "orchestrator.ts is ~200 lines (vs 1017 in cfn-orchestrator-v2.ts)",
+            "Uses Promise.all for parallel decomposition",
+            "Uses Promise.all for parallel implementation",
+            "Gate check runs test command via execSync",
+            "Iteration loop with configurable max iterations",
+            "Mode thresholds (mvp/standard/enterprise) preserved",
+            "No @trigger.dev/sdk imports",
+            "No Redis coordination (not needed for local execution)"
+          ],
+          "context": {
+            "source_files": [
+              "docker/trigger-dev/src/trigger/cfn-orchestrator-v2.ts"
+            ],
+            "test_command": "npm test -- orchestrator",
+            "mode_thresholds": {
+              "mvp": { "gate": 0.70, "maxIterations": 5 },
+              "standard": { "gate": 0.95, "maxIterations": 10 },
+              "enterprise": { "gate": 0.98, "maxIterations": 15 }
+            }
+          },
+          "agents": {
+            "loop3": ["backend-developer", "system-architect"],
+            "loop2": ["code-reviewer", "cto-agent"]
+          }
+        },
+        {
+          "id": "p1.s5",
+          "name": "Port Error Fixer from OurStories",
+          "description": "Port P0 fixes from OurStories cerebras-parallel-fixer to lib/mdap/error-fixer.ts",
+          "files": [
+            "lib/mdap/error-fixer.ts"
+          ],
+          "estimatedEffort": "1-2 hours",
+          "criteria": [
+            "Single error per call (maxErrorsPerBatch: 1)",
+            "HARD_ERRORS array for borrow checker errors to skip",
+            "Dynamic context sizing (15-100 lines based on error type)",
+            "Post-fix validation with compiler check",
+            "filterHardErrors() function for --skip-hard flag",
+            "Uses callGLMFast from glm-client.ts",
+            "Parallel processing with configurable concurrency"
+          ],
+          "context": {
+            "source_files": [
+              "/mnt/c/Users/masha/Documents/ourstories-v2/tools/mdap-error-fixer/src/cerebras-parallel-fixer.ts"
+            ],
+            "reference_doc": "docs/MDAP_LESSONS_LEARNED.md",
+            "test_command": "npm test -- error-fixer"
+          },
+          "agents": {
+            "loop3": ["typescript-specialist"],
+            "loop2": ["code-reviewer"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "name": "Remove Trigger.dev from CFN",
+      "description": "Delete Trigger.dev infrastructure and update CFN to use local orchestration",
+      "sprints": [
+        {
+          "id": "p2.s1",
+          "name": "Delete Trigger.dev v4 Infrastructure",
+          "description": "Remove the 302MB trigger-dev-v4 directory and related configs",
+          "files": [
+            "docker/trigger-dev-v4/"
+          ],
+          "estimatedEffort": "30 minutes",
+          "criteria": [
+            "docker/trigger-dev-v4/ directory deleted (302MB recovered)",
+            ".gitignore updated to exclude trigger-dev-v4/",
+            "No broken imports referencing deleted files",
+            "docker-compose files updated to remove trigger services"
+          ],
+          "context": {
+            "backup_recommended": false,
+            "rationale": "Infrastructure is upstream Trigger.dev repo clone, can be re-cloned if needed"
+          },
+          "agents": {
+            "loop3": ["devops-engineer"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p2.s2",
+          "name": "Remove Trigger.dev Task Definitions",
+          "description": "Delete Trigger.dev-specific task wrappers (logic already extracted to lib/mdap/)",
+          "files": [
+            "docker/trigger-dev/src/trigger/cfn-orchestrator.ts",
+            "docker/trigger-dev/src/trigger/cfn-orchestrator-v2.ts",
+            "docker/trigger-dev/src/trigger/cfn-async-validator-orchestrator.ts"
+          ],
+          "estimatedEffort": "30 minutes",
+          "criteria": [
+            "Orchestrator task files deleted",
+            "Decomposer task files deleted (logic in lib/mdap/decomposers/)",
+            "Implementer task file deleted (logic in lib/mdap/implementer.ts)",
+            "Keep docker/trigger-dev/src/lib/ temporarily for reference"
+          ],
+          "context": {
+            "depends_on": ["p1.s2", "p1.s3", "p1.s4"],
+            "verify_extraction": "Ensure all logic is in lib/mdap/ before deletion"
+          },
+          "agents": {
+            "loop3": ["devops-engineer"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p2.s3",
+          "name": "Update CLI Commands",
+          "description": "Update CFN Loop CLI commands to use local orchestrator instead of Trigger.dev SDK",
+          "files": [
+            ".claude/commands/cfn-loop/cfn-loop-cli.md",
+            ".claude/commands/cfn-loop/cfn-loop-task.md"
+          ],
+          "estimatedEffort": "1-2 hours",
+          "criteria": [
+            "Import from lib/mdap/orchestrator instead of @trigger.dev/sdk",
+            "Replace tasks.trigger() with direct orchestrate() call",
+            "Replace runs.poll() with Promise-based waiting",
+            "Remove TRIGGER_API_URL and TRIGGER_SECRET_KEY references",
+            "CLI commands work end-to-end with local orchestration"
+          ],
+          "context": {
+            "depends_on": ["p1.s4"],
+            "test_command": "/cfn-loop-cli 'test task' --mode=mvp"
+          },
+          "agents": {
+            "loop3": ["backend-developer"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p2.s4",
+          "name": "Update Package Dependencies",
+          "description": "Remove @trigger.dev/sdk from package.json and update .env",
+          "files": [
+            "package.json",
+            ".env.example"
+          ],
+          "estimatedEffort": "30 minutes",
+          "criteria": [
+            "@trigger.dev/sdk removed from dependencies",
+            "TRIGGER_API_URL removed from .env.example",
+            "TRIGGER_SECRET_KEY removed from .env.example",
+            "npm install succeeds without Trigger.dev",
+            "npm test passes"
+          ],
+          "context": {
+            "keep_dependencies": ["@cerebras/cerebras_cloud_sdk"],
+            "test_command": "npm install && npm test"
+          },
+          "agents": {
+            "loop3": ["devops-engineer"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p2.s5",
+          "name": "Update Documentation",
+          "description": "Update CLAUDE.md and related docs to remove Trigger.dev references",
+          "files": [
+            "CLAUDE.md",
+            "docker/CLAUDE.md",
+            "docker/trigger-dev/CLAUDE.md"
+          ],
+          "estimatedEffort": "1 hour",
+          "criteria": [
+            "Remove Trigger.dev infrastructure sections from docker/CLAUDE.md",
+            "Update CLAUDE.md to reference lib/mdap/ instead of Trigger.dev tasks",
+            "Delete or archive docker/trigger-dev/CLAUDE.md",
+            "Add lib/mdap/ documentation section"
+          ],
+          "context": {
+            "depends_on": ["p2.s1", "p2.s2", "p2.s3", "p2.s4"]
+          },
+          "agents": {
+            "loop3": ["api-documentation"],
+            "loop2": ["code-reviewer"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "p3",
+      "name": "Remove Trigger.dev from Math Platform",
+      "description": "Clean up Trigger.dev from Math Intelligence Platform (theory explorer already local)",
+      "sprints": [
+        {
+          "id": "p3.s1",
+          "name": "Delete Math Platform Trigger.dev Directory",
+          "description": "Remove trigger-dev/ from math-intelligence-platform",
+          "files": [
+            "/mnt/c/Users/masha/Documents/math-intelligence-platform/trigger-dev/"
+          ],
+          "estimatedEffort": "30 minutes",
+          "criteria": [
+            "trigger-dev/ directory deleted",
+            "@trigger.dev/sdk removed from package.json",
+            "No broken imports in src/",
+            "npm install && npm test passes",
+            "Theory explorer (src/mdap/theory/) continues to work"
+          ],
+          "context": {
+            "verification": "Theory explorer uses Promise.all(), not Trigger.dev",
+            "test_command": "cd /mnt/c/Users/masha/Documents/math-intelligence-platform && npm test"
+          },
+          "agents": {
+            "loop3": ["devops-engineer"],
+            "loop2": ["code-reviewer"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "p4",
+      "name": "Migrate Trigger.dev to SEO Platform",
+      "description": "Set up Trigger.dev in SEO Intelligence Platform for long-running scraping tasks",
+      "sprints": [
+        {
+          "id": "p4.s1",
+          "name": "Copy Infrastructure to SEO Platform",
+          "description": "Copy Trigger.dev v4 infrastructure from CFN to SEO platform",
+          "files": [
+            "/mnt/c/Users/masha/Documents/seo-intelligence-platform/docker/trigger-dev/"
+          ],
+          "estimatedEffort": "1 hour",
+          "criteria": [
+            "docker/trigger-dev/ created in SEO platform",
+            "webapp and worker docker-compose files present",
+            "Docker services start successfully",
+            "Webapp accessible at http://localhost:8030"
+          ],
+          "context": {
+            "source": "docker/trigger-dev-v4/hosting/docker/",
+            "commands": [
+              "docker compose -f webapp/docker-compose.yml -f worker/docker-compose.yml up -d"
+            ]
+          },
+          "agents": {
+            "loop3": ["devops-engineer", "docker-specialist"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p4.s2",
+          "name": "Create Firecrawl Batch Scraping Task",
+          "description": "Create Trigger.dev task for parallel web scraping via Firecrawl",
+          "files": [
+            "/mnt/c/Users/masha/Documents/seo-intelligence-platform/src/trigger/firecrawl-batch.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "Task accepts { urls: string[], options?: ScrapeOptions }",
+            "Processes URLs in parallel with configurable concurrency",
+            "Integrates with existing FirecrawlService",
+            "Returns { total, successful, results[] }",
+            "Retry logic for transient failures",
+            "Rate limiting respected"
+          ],
+          "context": {
+            "existing_service": "src/lib/firecrawl/firecrawl-service.ts",
+            "benefit": "3-5x throughput via Trigger.dev workers vs single-process Promise.all"
+          },
+          "agents": {
+            "loop3": ["backend-developer", "typescript-specialist"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p4.s3",
+          "name": "Create Content Publishing Task",
+          "description": "Create Trigger.dev task for scheduled content publishing",
+          "files": [
+            "/mnt/c/Users/masha/Documents/seo-intelligence-platform/src/trigger/content-publish.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "Task accepts { postId, scheduledTime, platform }",
+            "Waits until scheduled time if in future",
+            "Integrates with existing ContentScheduler",
+            "Guaranteed delivery (survives process restarts)",
+            "Timezone handling via Trigger.dev schedules"
+          ],
+          "context": {
+            "existing_service": "src/lib/publishing/scheduler.ts",
+            "replaces": "Custom polling queue in scheduler.ts (1136 lines)"
+          },
+          "agents": {
+            "loop3": ["backend-developer"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p4.s4",
+          "name": "Create Rank Tracking Task with Schedule",
+          "description": "Create scheduled Trigger.dev task for daily rank tracking",
+          "files": [
+            "/mnt/c/Users/masha/Documents/seo-intelligence-platform/src/trigger/rank-tracker.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "Task accepts { keywords: string[], domains: string[] }",
+            "Scheduled version runs daily at 6 AM (cron: '0 6 * * *')",
+            "Integrates with existing RankTracker",
+            "Stores results in database",
+            "Automatic retry on DataForSEO API failures"
+          ],
+          "context": {
+            "existing_service": "src/lib/monitoring/rank-tracker.ts",
+            "benefit": "Reliable scheduled execution, automatic retry, observability dashboard"
+          },
+          "agents": {
+            "loop3": ["backend-developer"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p4.s5",
+          "name": "Create Trigger.dev Configuration",
+          "description": "Set up trigger.config.ts and package.json for SEO platform",
+          "files": [
+            "/mnt/c/Users/masha/Documents/seo-intelligence-platform/trigger.config.ts",
+            "/mnt/c/Users/masha/Documents/seo-intelligence-platform/package.json"
+          ],
+          "estimatedEffort": "1 hour",
+          "criteria": [
+            "trigger.config.ts with project ID and settings",
+            "@trigger.dev/sdk added to package.json",
+            "trigger:dev and trigger:deploy scripts added",
+            "maxDuration set to 600 (10 min for long scraping)",
+            "Retry config with exponential backoff"
+          ],
+          "context": {
+            "test_command": "npx trigger.dev@latest dev"
+          },
+          "agents": {
+            "loop3": ["devops-engineer"],
+            "loop2": ["code-reviewer"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "p5",
+      "name": "Verification and Cleanup",
+      "description": "Verify all systems work and clean up temporary files",
+      "sprints": [
+        {
+          "id": "p5.s1",
+          "name": "Verify CFN Local Orchestration",
+          "description": "End-to-end test of CFN Loop with local orchestrator",
+          "files": [
+            "tests/mdap/orchestrator.test.ts",
+            "tests/mdap/decomposers.test.ts",
+            "tests/mdap/implementer.test.ts"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "npm test passes for all lib/mdap/ modules",
+            "/cfn-loop-cli 'simple task' --mode=mvp completes successfully",
+            "Decomposers return valid micro-task arrays",
+            "Implementer generates valid code",
+            "Gate check correctly parses test output"
+          ],
+          "context": {
+            "test_command": "npm test -- mdap"
+          },
+          "agents": {
+            "loop3": ["tester", "integration-tester"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p5.s2",
+          "name": "Verify Math Platform",
+          "description": "Verify Math Intelligence Platform works without Trigger.dev",
+          "files": [],
+          "estimatedEffort": "1 hour",
+          "criteria": [
+            "No @trigger.dev imports in codebase (grep returns empty)",
+            "npm test passes (469 tests)",
+            "Theory explorer generates and validates theories",
+            "MDAP engine solves problems end-to-end"
+          ],
+          "context": {
+            "test_command": "cd /mnt/c/Users/masha/Documents/math-intelligence-platform && npm test",
+            "verification": "grep -r '@trigger.dev' src/ should return empty"
+          },
+          "agents": {
+            "loop3": ["tester"],
+            "loop2": ["code-reviewer"]
+          }
+        },
+        {
+          "id": "p5.s3",
+          "name": "Verify SEO Platform Trigger.dev",
+          "description": "End-to-end test of Trigger.dev tasks in SEO platform",
+          "files": [
+            "/mnt/c/Users/masha/Documents/seo-intelligence-platform/tests/trigger/"
+          ],
+          "estimatedEffort": "2-3 hours",
+          "criteria": [
+            "Docker services running (9 containers)",
+            "Dev server starts successfully",
+            "firecrawl-batch task triggers and completes",
+            "content-publish task triggers and completes",
+            "rank-tracker scheduled task appears in dashboard",
+            "Task results visible in Trigger.dev UI"
+          ],
+          "context": {
+            "commands": [
+              "docker compose up -d",
+              "npx trigger.dev@latest dev",
+              "npm run test:trigger"
+            ]
+          },
+          "agents": {
+            "loop3": ["tester", "integration-tester"],
+            "loop2": ["code-reviewer", "devops-engineer"]
+          }
+        },
+        {
+          "id": "p5.s4",
+          "name": "Final Cleanup",
+          "description": "Remove temporary files and update final documentation",
+          "files": [
+            "docker/trigger-dev/src/lib/"
+          ],
+          "estimatedEffort": "1 hour",
+          "criteria": [
+            "docker/trigger-dev/src/lib/ deleted (logic now in lib/mdap/)",
+            "docker/trigger-dev/ directory minimal or deleted",
+            "No orphaned files referencing Trigger.dev in CFN",
+            "Migration plan marked as complete",
+            "CHANGELOG updated with migration summary"
+          ],
+          "context": {
+            "depends_on": ["p5.s1", "p5.s2", "p5.s3"]
+          },
+          "agents": {
+            "loop3": ["devops-engineer"],
+            "loop2": ["code-reviewer"]
+          }
+        }
+      ]
+    }
+  ],
+  "success_metrics": {
+    "cfn_codebase_reduction": "3000+ lines removed",
+    "disk_space_recovered": "302MB (trigger-dev-v4)",
+    "seo_throughput_improvement": "3-5x for scraping tasks",
+    "math_platform_tests": "469 tests passing",
+    "trigger_dev_sdk_in_cfn": "0 imports",
+    "trigger_dev_sdk_in_math": "0 imports"
+  },
+  "rollback_plan": {
+    "cfn": "git checkout HEAD -- docker/trigger-dev/ package.json && npm install",
+    "seo": "rm -rf docker/trigger-dev/ trigger.config.ts src/trigger/ && git checkout HEAD -- package.json && npm install"
+  }
+}

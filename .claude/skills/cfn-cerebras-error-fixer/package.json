@@ -1,0 +1,22 @@
+{
+  "name": "cfn-cerebras-error-fixer",
+  "version": "1.0.0",
+  "description": "Parallel compilation error fixing using Cerebras LLM with JSON diff mode",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "fix:ts": "npx tsx src/typescript-fixer.ts",
+    "fix:rust": "npx tsx src/rust-fixer.ts",
+    "fix:file": "npx tsx src/single-file-fixer.ts"
+  },
+  "dependencies": {
+    "tsx": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
