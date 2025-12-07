@@ -27,7 +27,6 @@ import type {
   ErrorLibraryEntry,
 } from './ruvector-schemas.js';
 import type { DecompositionPlan } from '../trigger/cfn-decomposition-aggregator.js';
-import type { OrchestratorResult } from '../trigger/cfn-async-validator-orchestrator.js';
 import type { RetryAttempt } from '../trigger/cfn-validator-error-recovery.js';
 
 // =============================================

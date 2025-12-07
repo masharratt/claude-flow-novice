@@ -22,7 +22,7 @@
  */
 
 import { task } from "@trigger.dev/sdk/v3";
-import type { ValidatorResult } from "./cfn-async-validator-orchestrator.js";
+import type { ValidatorResult } from "./cfn-validator.js";
 import type { ErrorPattern } from "../lib/ruvector-error-pattern-learning.js";
 import { analyzeErrorPatterns } from "../lib/ruvector-error-pattern-learning.js";
 import { parseJSONFromResponse } from "../lib/validation-schemas.js";

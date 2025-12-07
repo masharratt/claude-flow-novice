@@ -43,7 +43,6 @@ bin/claude-flow-*
 .claude/backups/                     # Settings backups (contain API keys)
 !.claude/backups/.gitkeep            # Keep directory structure
 .env/worker
-/docker/trigger-dev-v4/.env
 *.env
 
 # Docker Secrets and Encryption (Phase 1.2a)
@@ -230,7 +229,6 @@ legacy/v1/**/.next/planning/global/
 # Pre-Edit Backup System
 .backups/
 *.backup
-docker/trigger-dev-v4/
 
 #Learnings - Ruvector
 */learning/.claude/skills/cfn-seo-pipeline/lib/seo/knowledge-store/learning/

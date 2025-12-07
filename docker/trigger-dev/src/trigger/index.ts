@@ -53,21 +53,6 @@ export type {
   ReviewOutput,
 } from "./cfn-validator-v2.js";
 
-// CFN Loop Tasks - Orchestrator (Coordinator)
-export { cfnOrchestratorTask } from "./cfn-orchestrator.js";
-export type { OrchestratorPayload, OrchestratorResult } from "./cfn-orchestrator.js";
-
-// CFN Loop Tasks - Orchestrator v2 (Deterministic with Redis BLPOP coordination)
-export { cfnOrchestratorV2Task } from "./cfn-orchestrator-v2.js";
-export type { OrchestratorV2Payload, OrchestratorV2Result } from "./cfn-orchestrator-v2.js";
-
-// CFN Loop Tasks - Strategic Coordinator (Phase 3 v3 - Decomposition Swarm)
-export { cfnCoordinatorTask } from "./cfn-coordinator.js";
-export type {
-  CFNCoordinatorPayload,
-  CFNCoordinatorResult,
-} from "./cfn-coordinator.js";
-
 // POC Test Task
 export { testClaudePocTask } from "./test-claude-poc.js";
 
@@ -114,64 +99,6 @@ export {
   detectPerformanceImplications,
 } from "./cfn-thinking-decomposer.js";
 
-// CFN Decomposition Swarm - Specialized Decomposers
-export { cfnArchitectureDecomposerTask } from "./cfn-architecture-decomposer.js";
-export type {
-  ArchitectureDecomposerPayload,
-  ArchitectureAnalysis,
-} from "./cfn-architecture-decomposer.js";
-
-export { cfnSecurityDecomposerTask } from "./cfn-security-decomposer.js";
-export type {
-  SecurityDecomposerPayload,
-  SecurityAnalysis,
-} from "./cfn-security-decomposer.js";
-
-export { cfnPerformanceDecomposerTask } from "./cfn-performance-decomposer.js";
-export type {
-  PerformanceDecomposerPayload,
-  PerformanceAnalysis,
-} from "./cfn-performance-decomposer.js";
-
-export { cfnTestingDecomposerTask } from "./cfn-testing-decomposer.js";
-export type {
-  TestingDecomposerPayload,
-  TestingAnalysis,
-} from "./cfn-testing-decomposer.js";
-
-// CFN Decomposition Aggregator - Orchestrates 4 decomposers and merges results
-export { cfnDecompositionAggregatorTask } from "./cfn-decomposition-aggregator.js";
-export type {
-  DecompositionAggregatorPayload,
-  DecompositionPlan,
-  UnifiedMicroTask,
-  ExecutionPhase,
-} from "./cfn-decomposition-aggregator.js";
-
-// Phase 3: Async Validator Integration (Tasks 3.1-3.3)
-export { cfnAsyncValidatorOrchestratorTask } from "./cfn-async-validator-orchestrator.js";
-export type {
-  OrchestratorPayload as AsyncOrchestratorPayload,
-  OrchestratorResult as AsyncOrchestratorResult,
-  ValidatorResult as AsyncValidatorResult,
-} from "./cfn-async-validator-orchestrator.js";
-
-export { cfnValidationPipelineTask } from "./cfn-validation-pipeline.js";
-export type {
-  PipelinePayload,
-  PipelineResult,
-  StreamingValidatorProgress,
-  QualityMetrics,
-} from "./cfn-validation-pipeline.js";
-
-export { cfnQualityGateV2Task } from "./cfn-quality-gate-v2.js";
-export type {
-  QualityGatePayload,
-  QualityGateResult,
-  GateDecision,
-  ValidatorBreakdown,
-} from "./cfn-quality-gate-v2.js";
-
 // Phase 3: Additional Async Validators
 export { cfnAsyncTestingValidatorTask } from "./cfn-async-testing-validator.js";
 export type {
@@ -200,13 +127,6 @@ export type {
   TroubleshootingMicroTask,
   SuggestedChange,
 } from "./cfn-troubleshooting-decomposer.js";
-
-// MDAP Implementer - Cerebras API Direct (Fast, ~500ms-3s per micro-task)
-export { cfnMDAPImplementerTask } from "./cfn-mdap-implementer.js";
-export type {
-  MDAPImplementerPayload,
-  MDAPImplementerResult,
-} from "./cfn-mdap-implementer.js";
 
 // CLI Sprint Implementer - Aggregated tasks via Claude CLI (Non-MDAP mode)
 export { cfnCLISprintImplementerTask } from "./cfn-cli-sprint-implementer.js";

@@ -1,143 +1,169 @@
 ---
-description: "Execute CFN Loop in simplified CLI mode (Main Chat coordination, provider routing)"
-argument-hint: "<task description> [--mode=mvp|standard|enterprise] [--provider=zai|kimi|anthropic|openrouter] [--model=<model>] [--agents=N] [--threshold=0.75]"
+description: "Execute CFN Loop using local MDAP orchestration (no external dependencies)"
+argument-hint: "<task description> [--mode=mvp|standard|enterprise] [--workdir=<path>] [--testcmd=<command>]"
 allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "SlashCommand"]
 ---
 
-# CFN Loop CLI Mode - Parallel Agent Coordination
+# CFN Loop CLI Mode - Local MDAP Orchestration
 
-🚨 **v2.0 ARCHITECTURE:** Main Chat spawns parallel CLI agents with threshold-based completion
+🚨 **v3.0 ARCHITECTURE:** Direct orchestration using local MDAP (no Trigger.dev or Redis required)
 
 ---
 
 ## Execution Instructions (AUTO-EXECUTE)
 
 **Step 1: Parse Arguments**
-```
-TASK_DESCRIPTION: $ARGUMENTS (extract task, remove flags)
-MODE: Parse from --mode flag or default to "standard"
-PROVIDER: Parse from --provider flag or use Main Chat setting
-MODEL: Parse from --model flag or use provider default
-AGENTS: Parse from --agents flag or default to 4
-THRESHOLD: Parse from --threshold flag or default to 0.75 (3/4 agents)
-```
-
-**Step 2: Set Environment Variables**
 ```bash
-# Generate task ID
-TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
-echo "📋 Task ID: $TASK_ID"
-echo "🎯 Mode: $MODE"
-echo "🤖 Provider: $PROVIDER (from --provider or Main Chat setting)"
-echo "👥 Agents: $AGENTS (threshold: $THRESHOLD)"
-if [ -n "$MODEL" ]; then
-  echo "🧠 Model: $MODEL"
-fi
+# Extract task description (remove flags)
+TASK_DESCRIPTION="$ARGUMENTS"
+TASK_DESCRIPTION=$(echo "$TASK_DESCRIPTION" | sed 's/--mode[[:space:]]*[a-zA-Z]*//' | sed 's/--workdir[[:space:]]*[^[:space:]]*//' | sed 's/--testcmd[[:space:]]*"[^"]*"//' | sed 's/--testcmd[[:space:]]*[^[:space:]]*//' | xargs)
 
-# Set working directory
-export PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
-export TASK_ID="$TASK_ID"
-export MODE="$MODE"
-```
+# Parse optional flags
+MODE="standard"
+WORKDIR="$(pwd)"
+TESTCMD="npm test"
 
-**Step 3: Verify Redis Availability (Required for coordination)**
-```bash
-# Check Redis connection
-if ! redis-cli ping >/dev/null 2>&1; then
-  echo "❌ ERROR: Redis not available for Main Chat coordination"
-  echo ""
-  echo "   CLI mode requires Redis for agent coordination."
-  echo "   Options:"
-  echo "   1. Start Redis: docker-compose up -d redis"
-  echo "   2. Use Task mode instead: /cfn-loop-task \"<task>\""
+for arg in $ARGUMENTS; do
+  case $arg in
+    --mode=*)
+      MODE="${arg#*=}"
+      ;;
+    --mode)
+      shift
+      MODE="$1"
+      ;;
+    --workdir=*)
+      WORKDIR="${arg#*=}"
+      ;;
+    --workdir)
+      shift
+      WORKDIR="$1"
+      ;;
+    --testcmd=*)
+      TESTCMD="${arg#*=}"
+      ;;
+    --testcmd)
+      shift
+      TESTCMD="$1"
+      ;;
+  esac
+done
+
+# Validate mode
+if [[ ! "$MODE" =~ ^(mvp|standard|enterprise)$ ]]; then
+  echo "❌ ERROR: Invalid mode '$MODE'. Must be one of: mvp, standard, enterprise"
   exit 1
 fi
 
-echo "✅ Redis available for Main Chat coordination"
+# Validate workdir exists
+if [ ! -d "$WORKDIR" ]; then
+  echo "❌ ERROR: Working directory does not exist: $WORKDIR"
+  exit 1
+fi
 ```
 
-**Step 4: Spawn Parallel CLI Agents**
+**Step 2: Generate Task ID and Set Environment**
 ```bash
-# Define agent types based on task complexity
-# For comprehensive tasks, spawn multiple specialized agents
-AGENT_TYPES=("backend-developer" "tester" "code-reviewer" "security-specialist")
+# Generate unique task ID
+TASK_ID="cfn-cli-$(date +%s%N | tail -c 7)-${RANDOM}"
 
-echo "🚀 Spawning $AGENTS parallel CLI agents..."
-
-# Spawn agents in BACKGROUND (use & to allow Main Chat to continue)
-for i in $(seq 1 $AGENTS); do
-  AGENT_TYPE="${AGENT_TYPES[$((i-1)) % ${#AGENT_TYPES[@]}]}"
-  AGENT_ID="${AGENT_TYPE}-${TASK_ID}-${i}"
-
-  echo "  → Spawning agent $i: $AGENT_TYPE ($AGENT_ID)"
-
-  npx claude-flow-novice agent "$AGENT_TYPE" \
-    --task-id "$TASK_ID" \
-    --mode "$MODE" \
-    --provider "$PROVIDER" \
-    --context "$TASK_DESCRIPTION" \
-    </dev/null >/tmp/agent-${AGENT_ID}.log 2>&1 &
-done
-
-echo "✅ All $AGENTS CLI agents spawned with Task ID: $TASK_ID"
-```
-
-**Step 5: Wait for Threshold Completion (FOREGROUND - Required for Main Chat)**
-```bash
-# CRITICAL: Run monitor in FOREGROUND so Main Chat receives completion signal
-# DO NOT use run_in_background for this monitoring loop
-
-COMPLETION_QUEUE="cfn:cli:${TASK_ID}:completion"
-REQUIRED=$(echo "$AGENTS * $THRESHOLD" | bc | cut -d. -f1)
-
-echo "⏳ Monitoring for completion (${REQUIRED}/$AGENTS agents)..."
-echo "📊 Queue: $COMPLETION_QUEUE"
+echo "📋 Task ID: $TASK_ID"
+echo "🎯 Mode: $MODE"
+echo "📁 Work Dir: $WORKDIR"
+echo "🧪 Test Cmd: $TESTCMD"
+echo "📝 Task: ${TASK_DESCRIPTION:0:100}..."
 echo ""
 
-COMPLETED=0
-END_TIME=$(($(date +%s) + 300))  # 5 minute timeout
-
-while [ $(date +%s) -lt $END_TIME ] && [ $COMPLETED -lt $REQUIRED ]; do
-  QUEUE_LEN=$(redis-cli LLEN "$COMPLETION_QUEUE" 2>/dev/null || echo "0")
-
-  if [ "$QUEUE_LEN" -gt 0 ]; then
-    SIGNAL=$(redis-cli LPOP "$COMPLETION_QUEUE")
-    if [ -n "$SIGNAL" ] && [ "$SIGNAL" != "(nil)" ]; then
-      COMPLETED=$((COMPLETED + 1))
-      AGENT_ID=$(echo "$SIGNAL" | jq -r '.agentId' 2>/dev/null || echo "unknown")
-      CONFIDENCE=$(echo "$SIGNAL" | jq -r '.confidence' 2>/dev/null || echo "N/A")
-      PROVIDER=$(echo "$SIGNAL" | jq -r '.provider' 2>/dev/null || echo "N/A")
-
-      echo "✅ Agent $COMPLETED completed: $AGENT_ID"
-      echo "   Confidence: $CONFIDENCE, Provider: $PROVIDER"
-      echo ""
-
-      if [ $COMPLETED -ge $REQUIRED ]; then
-        echo "🎉 THRESHOLD MET! ($COMPLETED/$AGENTS agents)"
-        echo "✅ CFN Loop CLI task completed"
-        exit 0
-      fi
-    fi
-  fi
-
-  sleep 3
-done
-
-echo "⏰ Timeout: Only $COMPLETED/$AGENTS agents completed"
-exit 1
+# Set environment for any subprocesses
+export CFN_TASK_ID="$TASK_ID"
+export CFN_MODE="$MODE"
+export CFN_WORKDIR="$WORKDIR"
 ```
 
-**Step 6: Query Agent Status (Optional - Interactive)**
+**Step 3: Execute Local MDAP Orchestration**
 ```bash
-# Main Chat can query individual agent status during execution
-# Example: npx tsx src/cli/coordination/agent-messaging.ts status --task-id "$TASK_ID" --agent-id <agent-id>
+# Create a temporary Node.js script to run the orchestrator
+ORCHESTRATOR_SCRIPT="/tmp/cfn-orchestrate-${TASK_ID}.js"
 
-# Or send commands to running agents:
-# npx tsx src/cli/coordination/agent-messaging.ts send --task-id "$TASK_ID" --agent-id <agent-id> --command status
+cat > "$ORCHESTRATOR_SCRIPT" << 'EOF'
+// CFN Loop CLI Orchestrator Script
+// This script uses dynamic import to load the orchestrator
+
+async function runOrchestration() {
+  try {
+    // Import the orchestrator using dynamic import
+    const { orchestrate } = await import('./lib/mdap/orchestrator.js');
+
+    // Get configuration from environment
+    const payload = {
+      taskDescription: process.env.CFN_TASK_DESCRIPTION || '',
+      workDir: process.env.CFN_WORKDIR || process.cwd(),
+      mode: process.env.CFN_MODE || 'standard',
+      testCommand: process.env.CFN_TESTCMD || 'npm test'
+    };
+
+    // Execute orchestration
+    const result = await orchestrate(payload);
+
+    console.log('\n=== ORCHESTRATION RESULT ===');
+    console.log(`Success: ${result.success}`);
+    console.log(`Iterations: ${result.iterations}`);
+    console.log(`Files Processed: ${result.filesProcessed}`);
+    console.log(`Duration: ${result.durationMs}ms`);
+    console.log(`Confidence: ${result.confidence}`);
+
+    if (result.passRate !== undefined) {
+      console.log(`Final Pass Rate: ${(result.passRate * 100).toFixed(1)}%`);
+    }
+
+    // Exit with appropriate code
+    process.exit(result.success ? 0 : 1);
+  } catch (error) {
+    console.error('\n❌ ORCHESTRATION FAILED:');
+    console.error(error.message);
+    console.error(error.stack);
+    process.exit(1);
+  }
+}
+
+// Run the orchestration
+runOrchestration();
+EOF
+
+# Execute orchestration
+echo "🚀 Starting local MDAP orchestration..."
+echo ""
+
+# Run the orchestration script
+export CFN_TASK_DESCRIPTION="$TASK_DESCRIPTION"
+export CFN_TESTCMD="$TESTCMD"
+
+cd "$(dirname "$0")/../.."  # Navigate to project root
+node "$ORCHESTRATOR_SCRIPT"
+ORCHESTRATION_EXIT_CODE=$?
+
+# Cleanup
+rm -f "$ORCHESTRATOR_SCRIPT"
+
+# Report final status
+if [ $ORCHESTRATION_EXIT_CODE -eq 0 ]; then
+  echo ""
+  echo "✅ CFN Loop CLI task completed successfully"
+else
+  echo ""
+  echo "❌ CFN Loop CLI task failed"
+fi
+
+exit $ORCHESTRATION_EXIT_CODE
 ```
 
-**Step 7: Inform User**
-Report completion status, which agents completed, and any additional information.
+**Step 4: Query Agent Status (Optional - Interactive)**
+```bash
+# Not applicable for local orchestration - all status is shown in real-time
+```
+
+**Step 5: Inform User**
+Report completion status, iterations completed, files processed, and test results.
 
 ---
 
@@ -147,162 +173,101 @@ Report completion status, which agents completed, and any additional information
 
 ## What is CLI Mode?
 
-**v2.0 CLI Mode Architecture (Parallel + Messaging):**
-- **Main Chat** spawns multiple CLI agents in parallel
-- **CLI agents** execute tasks and send Redis completion signals
-- **Main Chat** waits for threshold completion (e.g., 3/4 agents)
-- **Bidirectional messaging** - Main Chat can send commands to running agents
-- **Provider routing** via `--provider` and `--model` flags
-- **Graceful degradation** - continues when threshold met, doesn't wait for stragglers
+**v3.0 CLI Mode Architecture (Local MDAP):**
+- **Direct orchestration** using local MDAP orchestrator
+- **No external dependencies** - no Redis, no Trigger.dev
+- **Parallel decomposition** - runs architecture, testing, performance, and security analysis in parallel
+- **Iterative implementation** - continues until gate check passes or max iterations reached
+- **Built-in validation** - runs tests after each iteration to ensure quality
 
-## New Features (v2.0)
+## New Features (v3.0)
 
-### Parallel Agent Spawning
-- Spawn multiple agents simultaneously (default: 4)
-- Each agent works independently on the task
-- Different agent types for comprehensive coverage
+### Local MDAP Integration
+- Uses `lib/mdap/orchestrator.js` for all coordination
+- Parallel decomposition of tasks from multiple perspectives
+- Automatic implementation with security validation
+- Gate checks using configurable test commands
 
-### Threshold-Based Completion
-- Exit when N/M agents complete (default: 75%)
-- Don't wait for slow/stuck agents
-- Configurable via `--threshold` flag
+### Mode-Based Execution
+- **MVP**: Fast prototyping with 70% gate threshold
+- **Standard**: Production quality with 95% gate threshold
+- **Enterprise**: Compliance grade with 98% gate threshold
 
-### Bidirectional Messaging
-Main Chat can communicate with running agents:
-
-**Query agent status:**
-```bash
-npx tsx src/cli/coordination/agent-messaging.ts status \
-  --task-id "$TASK_ID" --agent-id <agent-id>
-```
-
-**Send commands to agents:**
-```bash
-# Request status update
-npx tsx src/cli/coordination/agent-messaging.ts send \
-  --task-id "$TASK_ID" --agent-id <agent-id> --command status
-
-# Redirect agent to new task
-npx tsx src/cli/coordination/agent-messaging.ts send \
-  --task-id "$TASK_ID" --agent-id <agent-id> --command redirect \
-  --payload '{"newTask": "Focus on security tests"}'
-
-# Abort agent
-npx tsx src/cli/coordination/agent-messaging.ts send \
-  --task-id "$TASK_ID" --agent-id <agent-id> --command abort
-
-# Pause agent
-npx tsx src/cli/coordination/agent-messaging.ts send \
-  --task-id "$TASK_ID" --agent-id <agent-id> --command pause \
-  --payload '{"seconds": 30}'
-```
-
-## Prerequisites
-
-**Redis Required:**
-```bash
-# Start Redis for coordination
-docker-compose up -d redis
-
-# Verify Redis is running
-redis-cli ping
-```
-
-**Provider Routing Setup (Optional):**
-```bash
-# Configure Main Chat provider
-/switch-api zai    # Cost-optimized
-/switch-api kimi   # Mid-range quality
-/switch-api max    # High quality (Anthropic)
-```
+### Flexible Configuration
+- Custom working directory support
+- Configurable test commands
+- Auto-detection of target files
+- Language detection from task description
 
 ## Command Options
 
 **Usage Examples:**
 ```
-# Standard mode with default provider
+# Standard mode with default settings
 /cfn-loop-cli "Implement JWT authentication"
-
-# With specific provider
-/cfn-loop-cli "Build API service" --provider kimi
-
-# With specific provider and model
-/cfn-loop-cli "Create React component" --provider openrouter --model gpt-4
 
 # MVP mode for fast prototyping
 /cfn-loop-cli "Build feature prototype" --mode=mvp
 
 # Enterprise mode for critical systems
-/cfn-loop-cli "Security audit" --mode=enterprise --provider max
+/cfn-loop-cli "Security audit" --mode=enterprise
+
+# Custom working directory and test command
+/cfn-loop-cli "Fix failing tests" --workdir ./src --testcmd "npm run test:unit"
 ```
 
 **Options:**
 - `--mode=<mvp|standard|enterprise>`: Quality mode (default: standard)
-- `--provider=<zai|kimi|anthropic|openrouter>`: AI provider (default: Main Chat setting)
-- `--model=<model>`: Specific model (provider-specific)
-
-## Provider Routing Behavior
-
-**Main Chat + Task() tools:** Controlled by `/switch-api` command
-
-**CLI agents:**
-- Uses `--provider` flag if specified
-- Falls back to Main Chat provider setting
-- Default to Z.ai glm-4.6 if no provider configured
-
-**Fallback Hierarchy:**
-1. `--provider` flag (explicit)
-2. Main Chat provider setting (from `/switch-api`)
-3. Z.ai glm-4.6 (cost-effective default)
+- `--workdir=<path>`: Working directory for implementation (default: current directory)
+- `--testcmd=<command>`: Test command for gate checks (default: "npm test")
 
 ## Mode Comparison
 
-| Mode | Quality | Use Case | Description |
-|------|---------|----------|-------------|
-| MVP | Fast (70% gates) | Prototypes, quick experiments | Lower quality gates, fewer iterations |
-| Standard | Production (95% gates) | Most features | Balanced quality and speed |
-| Enterprise | High (98% gates) | Security, compliance | Maximum quality, thorough validation |
+| Mode | Gate Threshold | Max Iterations | Use Case |
+|------|----------------|----------------|----------|
+| MVP | 70% | 5 | Prototypes, quick experiments |
+| Standard | 95% | 10 | Production features |
+| Enterprise | 98% | 15 | Security, compliance |
 
-## How New CLI Mode Works
+## How Local MDAP Works
 
-1. **Main Chat** processes `/cfn-loop-cli` command
-2. **Main Chat** spawns CLI agent directly with provider routing
-3. **CLI Agent** executes task with specified AI provider
-4. **CLI Agent** sends Redis completion signal when finished
-5. **Main Chat** receives signal via Redis BLPOP and continues
-6. **No complex orchestrator needed** - simple 2-layer coordination
+1. **Parse** command arguments and validate inputs
+2. **Decompose** task from 4 perspectives in parallel:
+   - Architecture analysis
+   - Testing requirements
+   - Performance considerations
+   - Security implications
+3. **Implement** generated microtasks in parallel
+4. **Validate** implementation with test command (gate check)
+5. **Iterate** if gate check fails (up to max iterations)
+6. **Report** final results with confidence score
 
-## Agent Environment Variables
+## Security Features
 
-CLI agents automatically receive:
-- `TASK_ID`: Unique task identifier
-- `MODE`: Quality mode (mvp/standard/enterprise)
-- `PROVIDER`: AI provider (zai/kimi/anthropic/openrouter)
-- `MODEL`: Specific AI model
-- `AGENT_ID`: Generated unique agent identifier
+- Input validation for all parameters
+- Whitelisted test commands to prevent injection
+- Path traversal protection
+- Shell metacharacter sanitization
+- Secure command execution without shell
 
-## Redis Signal Format
+## Output Format
 
-CLI agents send completion signals in this format:
+The orchestrator returns structured results:
 ```json
 {
-  "agentId": "agent-backend-dev-12345",
-  "taskId": "cfn-cli-67890",
-  "status": "completed",
-  "timestamp": "2025-11-22T12:00:00.000Z",
-  "provider": "kimi",
-  "model": "moonshot-v1-8k",
-  "confidence": 0.90,
-  "metadata": {
-    "iteration": 1,
-    "mode": "standard"
-  }
+  "success": true,
+  "iterations": 3,
+  "passRate": 0.96,
+  "filesProcessed": 5,
+  "implementationResults": [...],
+  "durationMs": 15420,
+  "confidence": 0.9
 }
 ```
 
 This simplified architecture provides:
-- ✅ **Direct coordination** - Main Chat to CLI agents
-- ✅ **Provider flexibility** - Different AI providers per agent
-- ✅ **Cost optimization** - Use appropriate providers for each task
-- ✅ **Reliable signaling** - Redis BLPOP for coordination
-- ✅ **Simple architecture** - No complex orchestrator needed
+- ✅ **Zero external dependencies** - runs anywhere Node.js is available
+- ✅ **Fast execution** - parallel decomposition and implementation
+- ✅ **Quality assurance** - iterative testing with configurable thresholds
+- ✅ **Security** - input validation and safe command execution
+- ✅ **Flexibility** - configurable modes, directories, and test commands

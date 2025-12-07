@@ -515,7 +515,7 @@ export async function captureMDAPFailure(
         timesSeen: 1,
         firstSeen: Date.now(),
         lastSeen: Date.now(),
-        component: `cfn-mdap-implementer:${modelName}`,
+        component: `mdap-implementer:${modelName}`,
         language: 'TypeScript',
         framework: 'MDAP',
         severity: escalatedToTier === 3 && !retrySucceeded ? 'high' : 'medium',

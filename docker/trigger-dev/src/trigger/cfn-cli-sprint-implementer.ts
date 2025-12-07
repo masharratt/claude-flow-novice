@@ -4,7 +4,7 @@
  * Executes aggregated sprints (combined micro-tasks) via Claude Code CLI.
  * Used in non-MDAP mode where tasks are aggregated to reduce CLI invocations.
  *
- * Key differences from cfn-mdap-implementer:
+ * Key differences from MDAP implementer:
  * - Uses Claude Code CLI (NOT fast Cerebras API)
  * - Handles multiple related micro-tasks in a single CLI execution
  * - Optimized for ~60s execution time per sprint
