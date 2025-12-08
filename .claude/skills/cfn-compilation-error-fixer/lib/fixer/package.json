@@ -1,21 +1,28 @@
 {
-  "name": "cfn-compilation-error-fixer",
+  "name": "cfn-compilation-error-fixer-lib",
   "version": "2.0.0",
-  "description": "Cerebras LLM-powered compilation error fixer with gated validation (Rust & TypeScript)",
+  "description": "CFN compilation error fixer library with gated validation",
   "type": "module",
-  "scripts": {
-    "fix": "npx tsx cerebras-gated-fixer-v2.ts",
-    "fix:dry-run": "npx tsx cerebras-gated-fixer-v2.ts --dry-run",
-    "fix:verbose": "npx tsx cerebras-gated-fixer-v2.ts --verbose",
-    "fix:ts": "npx tsx typescript-gated-fixer-v2.ts",
-    "fix:ts:dry-run": "npx tsx typescript-gated-fixer-v2.ts --dry-run",
-    "fix:ts:verbose": "npx tsx typescript-gated-fixer-v2.ts --verbose"
+  "main": "index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "import": "./index.ts"
+    },
+    "./rust": "./cerebras-gated-fixer-v2.ts",
+    "./typescript": "./typescript-gated-fixer-v2.ts"
   },
   "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1"
+  },
+  "optionalDependencies": {
     "@cerebras/cerebras_cloud_sdk": "^1.0.0"
   },
   "devDependencies": {
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "@types/node": "^20.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

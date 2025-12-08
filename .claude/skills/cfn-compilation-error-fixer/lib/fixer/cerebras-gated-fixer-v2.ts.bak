@@ -12,7 +12,7 @@
  * - Targeted crate compile testing
  */
 
-import createCerebrasClient from './cerebras-wrapper.js';
+import Cerebras from '@cerebras/cerebras_cloud_sdk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
@@ -1349,7 +1349,7 @@ async function main() {
     console.error('No CEREBRAS_API_KEY found');
     process.exit(1);
   }
-  const client = createCerebrasClient(apiKey);
+  const client = new Cerebras({ apiKey });
 
   let iteration = 0;
   let previousErrorCount = Infinity;

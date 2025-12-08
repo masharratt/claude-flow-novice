@@ -1,5 +1,0 @@
-{
-  "agentType": "pseudocode",
-  "toolsUsed": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "TodoWrite"],
-  "confidence": 0.95
-}

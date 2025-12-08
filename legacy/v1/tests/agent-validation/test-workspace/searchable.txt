@@ -1,3 +1,0 @@
-KEYWORD found here
-Other text
-KEYWORD again

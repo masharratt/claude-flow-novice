@@ -1,0 +1,47 @@
+{
+  "name": "cfn-compilation-error-fixer",
+  "version": "2.0.0",
+  "description": "CFN compilation error fixer with gated validation (Rust & TypeScript)",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "cfn-fix-errors": "./bin/fix-errors.sh",
+    "fix-errors": "./bin/fix-errors.sh"
+  },
+  "scripts": {
+    "fix": "npx tsx lib/fixer/cerebras-gated-fixer-v2.ts",
+    "fix:dry-run": "npx tsx lib/fixer/cerebras-gated-fixer-v2.ts --dry-run",
+    "fix:verbose": "npx tsx lib/fixer/cerebras-gated-fixer-v2.ts --verbose",
+    "fix:rust": "npx tsx lib/fixer/cerebras-gated-fixer-v2.ts",
+    "fix:rust:dry-run": "npx tsx lib/fixer/cerebras-gated-fixer-v2.ts --dry-run",
+    "fix:rust:verbose": "npx tsx lib/fixer/cerebras-gated-fixer-v2.ts --verbose",
+    "fix:ts": "npx tsx lib/fixer/typescript-gated-fixer-v2.ts",
+    "fix:ts:dry-run": "npx tsx lib/fixer/typescript-gated-fixer-v2.ts --dry-run",
+    "fix:ts:verbose": "npx tsx lib/fixer/typescript-gated-fixer-v2.ts --verbose",
+    "test": "npm run test:rust && npm run test:typescript",
+    "test:rust": "./test-rust-fixer.sh",
+    "test:typescript": "./test-typescript-fixer.sh",
+    "test:install": "./test-installation.sh",
+    "prepare": "chmod +x bin/fix-errors.sh",
+    "postinstall": "echo 'CFN Compilation Error Fixer installed successfully! Run: npm run fix:rust or npm run fix:ts'"
+  },
+  "dependencies": {},
+  "optionalDependencies": {
+    "@cerebras/cerebras_cloud_sdk": "^1.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "compilation",
+    "error-fixing",
+    "rust",
+    "typescript",
+    "cfn",
+    "cerebras",
+    "llm"
+  ],
+  "author": "CFN Team",
+  "license": "MIT"
+}
