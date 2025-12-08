@@ -228,7 +228,7 @@ async function installLizard() {
   // If all attempts failed, provide instructions
   console.log(chalk.yellow('⚠️ Could not auto-install lizard. Manual installation required:'));
   console.log(chalk.gray('   pip3 install --user lizard'));
-  console.log(chalk.gray('   or run: ./tools/install-lizard.sh'));
+  console.log(chalk.gray('   or run: ./scripts/install-lizard.sh'));
 }
 
 // Parse command line arguments

@@ -104,7 +104,7 @@ npx claude-flow-novice swarm "Task Description" \
 
 ### Maintenance
 - **[Changelog](CHANGELOG.md)** - Version history and breaking changes
-- **[Decision Log](log-descions.md)** - Architecture decision records
+- **[Decision Log](CHANGELOG.md)** - Architecture decision records
 - **[Component Status](COMPONENT_NPM_STATUS.md)** - Dependency health
 
 ### Legacy

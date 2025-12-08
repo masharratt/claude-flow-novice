@@ -106,8 +106,7 @@
    - Post-edit pipeline
    - Lifecycle integration
 
-2. **[logs-tools.md](./logs-tools.md)**
-   - Complexity analysis tools
+2. **Complexity Analysis Tools** (Integrated)
    - Simple bash analyzer (~23ms)
    - Multi-language Lizard integration
    - Automated refactoring via cyclomatic-complexity-reducer agent

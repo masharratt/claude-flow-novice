@@ -7,6 +7,8 @@
 #   ./inject.sh --coordinator   # Main coordinator only
 #   ./inject.sh --mdap          # MDAP implementer + config
 #   ./inject.sh --cli           # CLI sprint implementer
+#   ./inject.sh --docker        # Docker mode files
+#   ./inject.sh --cfn-loop      # CFN Loop orchestration files
 #   ./inject.sh --config        # Configuration files
 #   ./inject.sh --decomposers   # Decomposer tasks
 #   ./inject.sh --validators    # Async validators
@@ -86,6 +88,35 @@ TEST_FILES=(
   "docker/trigger-dev/tests/decomposition/sequential-flow.test.ts"
 )
 
+# Docker mode files
+DOCKER_FILES=(
+  "docker/Dockerfile.agent"
+  "docker/Dockerfile.coordinator"
+  "docker/docker-compose.yml"
+  "docker/docker-compose.cli.yml"
+  "docker/.env.example"
+  "scripts/docker/build-from-linux.sh"
+  "scripts/docker/run-in-worktree.sh"
+)
+
+# CFN Loop orchestration files
+CFN_LOOP_FILES=(
+  ".claude/skills/cfn-loop-orchestration/orchestrate.sh"
+  ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/orchestrate.sh"
+  ".claude/commands/cfn-loop/cfn-loop-cli.md"
+  ".claude/commands/cfn-loop/cfn-loop-task.md"
+  ".claude/agents/SHARED_PROTOCOL.md"
+)
+
+# CLI mode files
+CLI_MODE_FILES=(
+  "scripts/cli/spawn-agent.sh"
+  "scripts/cli/coordinator.sh"
+  ".claude/skills/cfn-agent-spawning/SKILL.md"
+  ".claude/skills/cfn-redis-coordination/SKILL.md"
+  "docs/CLI_MODE_ARCHITECTURE.md"
+)
+
 # Output a single file with delimiters
 output_file() {
   local file="$1"
@@ -125,6 +156,8 @@ main() {
   local inject_coordinator=false
   local inject_mdap=false
   local inject_cli=false
+  local inject_docker=false
+  local inject_cfn_loop=false
   local inject_config=false
   local inject_decomposers=false
   local inject_validators=false
@@ -150,6 +183,14 @@ main() {
         ;;
       --cli)
         inject_cli=true
+        shift
+        ;;
+      --docker)
+        inject_docker=true
+        shift
+        ;;
+      --cfn-loop)
+        inject_cfn_loop=true
         shift
         ;;
       --config)
@@ -190,6 +231,8 @@ main() {
         echo "  --coordinator   Main coordinator (cfn-coordinator.ts)"
         echo "  --mdap          MDAP implementer + config"
         echo "  --cli           CLI sprint implementer"
+        echo "  --docker        Docker mode files"
+        echo "  --cfn-loop      CFN Loop orchestration files"
         echo "  --config        Configuration files"
         echo "  --decomposers   Decomposer tasks"
         echo "  --validators    Async validators"
@@ -211,6 +254,7 @@ main() {
   # Default to --all if no options specified
   if [[ "$inject_all" == "false" && "$inject_coordinator" == "false" && \
         "$inject_mdap" == "false" && "$inject_cli" == "false" && \
+        "$inject_docker" == "false" && "$inject_cfn_loop" == "false" && \
         "$inject_config" == "false" && "$inject_decomposers" == "false" && \
         "$inject_validators" == "false" && "$inject_index" == "false" && \
         "$inject_ruvector" == "false" && "$inject_tests" == "false" && \
@@ -255,6 +299,14 @@ main() {
 
   if [[ "$inject_cli" == "true" ]]; then
     output_group CLI_FILES "CLI SPRINT MODE"
+  fi
+
+  if [[ "$inject_docker" == "true" ]]; then
+    output_group DOCKER_FILES "DOCKER MODE"
+  fi
+
+  if [[ "$inject_cfn_loop" == "true" ]]; then
+    output_group CFN_LOOP_FILES "CFN LOOP ORCHESTRATION"
   fi
 
   if [[ "$inject_config" == "true" ]]; then

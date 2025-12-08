@@ -2,6 +2,8 @@ const express = require('express');
 const { spawn } = require('child_process');
 const redis = require('redis');
 const Docker = require('dockerode');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5555;
@@ -13,6 +15,34 @@ const redisClient = redis.createClient({
 
 // Initialize Docker client
 const docker = new Docker();
+
+// Database paths
+const DB_PATH = path.join(__dirname, '..', 'claude-assets', 'skills', 'cfn-redis-coordination', 'data', 'cfn-loop.db');
+
+// Initialize SQLite database
+let db;
+function initializeSQLite() {
+  return new Promise((resolve, reject) => {
+    db = new sqlite3.Database(DB_PATH, (err) => {
+      if (err) {
+        console.error('Error opening SQLite database:', err.message);
+        reject(err);
+      } else {
+        console.log('✅ Connected to SQLite database');
+        // Test query to verify connection
+        db.get("SELECT name FROM sqlite_master WHERE type='table' LIMIT 1", [], (err, row) => {
+          if (err) {
+            console.error('SQLite test query failed:', err.message);
+            reject(err);
+          } else {
+            console.log('✅ SQLite connection verified');
+            resolve();
+          }
+        });
+      }
+    });
+  });
+}
 
 // Middleware
 app.use(express.json());
@@ -29,6 +59,9 @@ redisClient.on('connect', () => {
 
 // Connect to Redis
 redisClient.connect().catch(console.error);
+
+// Initialize SQLite
+initializeSQLite().catch(console.error);
 
 // Utility functions
 function execCommand(command) {
@@ -218,6 +251,87 @@ app.get('/api/containers/:name/stats', async (req, res) => {
   }
 });
 
+// GET /api/agents - Query SQLite agents table
+app.get('/api/agents', async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({
+        error: 'SQLite database not initialized'
+      });
+    }
+
+    const query = "SELECT * FROM agents ORDER BY spawned_at DESC";
+
+    db.all(query, [], (err, rows) => {
+      if (err) {
+        console.error('Error querying agents table:', err.message);
+        return res.status(500).json({
+          error: 'Database query failed',
+          details: err.message
+        });
+      }
+
+      res.json({
+        success: true,
+        data: rows,
+        count: rows.length
+      });
+    });
+  } catch (error) {
+    console.error('Unexpected error in /api/agents:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      details: error.message
+    });
+  }
+});
+
+// GET /api/redis/signals - Query Redis keys matching 'swarm:*'
+app.get('/api/redis/signals', async (req, res) => {
+  try {
+    if (!redisClient || !redisClient.isOpen) {
+      return res.status(500).json({
+        error: 'Redis connection not available'
+      });
+    }
+
+    const pattern = 'swarm:*';
+    const keys = await redisClient.keys(pattern);
+
+    const signals = [];
+    for (const key of keys) {
+      try {
+        const value = await redisClient.get(key);
+        signals.push({
+          key: key,
+          value: value,
+          timestamp: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn(`Warning: Could not retrieve value for key ${key}:`, err.message);
+        signals.push({
+          key: key,
+          value: null,
+          error: 'Could not retrieve value',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: signals,
+      count: signals.length
+    });
+  } catch (error) {
+    console.error('Error in /api/redis/signals:', error);
+    res.status(500).json({
+      error: 'Failed to retrieve Redis signals',
+      details: error.message
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
@@ -250,6 +364,16 @@ process.on('SIGINT', async () => {
 
   if (redisClient.isOpen) {
     await redisClient.quit();
+  }
+
+  if (db) {
+    db.close((err) => {
+      if (err) {
+        console.error('Error closing SQLite database:', err.message);
+      } else {
+        console.log('✅ SQLite database connection closed');
+      }
+    });
   }
 
   process.exit(0);

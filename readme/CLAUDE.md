@@ -122,7 +122,7 @@
 - Troubleshooting: permissions, native compilation (better-sqlite3), Redis setup
 - Installation metrics: timing, size, dependency count
 
-**[documentation-analysis.md](./documentation-analysis.md)**
+**[logs-documentation-index.md](./logs-documentation-index.md)**
 - Analysis of documentation overlaps and integration opportunities
 - File relationship mapping, merger recommendations
 - Modular vs consolidated documentation strategy
@@ -143,7 +143,7 @@
 - Version history and release notes (user-facing, included in npm package)
 - Sprint summaries, feature releases, bug fixes, migration guides
 
-**[log-changelog.md](./log-changelog.md)**
+**[logs-documentation-index.md](./logs-documentation-index.md)**
 - Detailed internal decision log (development-focused, excluded from npm)
 - Technical decisions, architecture changes, rationale documentation
 

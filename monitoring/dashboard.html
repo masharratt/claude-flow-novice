@@ -320,6 +320,46 @@
                     <span class="metric-value" id="timeout-rate">-</span>
                 </div>
             </div>
+
+            <div class="card">
+                <h3>📊 CFN Agents (SQLite)</h3>
+                <div class="metric">
+                    <span>Total Agents</span>
+                    <span class="metric-value" id="sqlite-total-agents">-</span>
+                </div>
+                <div class="metric">
+                    <span>Active Agents</span>
+                    <span class="metric-value" id="sqlite-active-agents">-</span>
+                </div>
+                <div class="metric">
+                    <span>Completed Agents</span>
+                    <span class="metric-value" id="sqlite-completed-agents">-</span>
+                </div>
+                <div class="metric">
+                    <span>Failed Agents</span>
+                    <span class="metric-value" id="sqlite-failed-agents">-</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📡 Redis Swarm Signals</h3>
+                <div class="metric">
+                    <span>Active Signals</span>
+                    <span class="metric-value" id="redis-signals-count">-</span>
+                </div>
+                <div class="metric">
+                    <span>Latest Signal</span>
+                    <span class="metric-value" id="redis-latest-signal" style="font-size: 0.8em;">-</span>
+                </div>
+                <div class="metric">
+                    <span>Redis Status</span>
+                    <span class="metric-value" id="redis-status">-</span>
+                </div>
+                <div class="metric">
+                    <span>Last Signal Time</span>
+                    <span class="metric-value" id="redis-last-signal-time">-</span>
+                </div>
+            </div>
         </div>
 
         <div class="grid">
@@ -370,6 +410,34 @@
                 return await response.json();
             } catch (error) {
                 console.error('Failed to fetch CFN stats:', error);
+                return null;
+            }
+        }
+
+        async function fetchSQLiteAgents() {
+            try {
+                const response = await fetch('/api/agents');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch agents data');
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Failed to fetch SQLite agents:', error);
+                return null;
+            }
+        }
+
+        async function fetchRedisSignals() {
+            try {
+                const response = await fetch('/api/redis/signals');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch Redis signals');
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Failed to fetch Redis signals:', error);
                 return null;
             }
         }
@@ -480,6 +548,47 @@
                     timeoutRate: '5%'
                 };
 
+                // Fetch SQLite agents data
+                const sqliteAgents = await fetchSQLiteAgents();
+                if (sqliteAgents && sqliteAgents.success) {
+                    const agents = sqliteAgents.data;
+                    const activeCount = agents.filter(a => a.status === 'active' || a.status === 'in_progress').length;
+                    const completedCount = agents.filter(a => a.status === 'completed').length;
+                    const failedCount = agents.filter(a => a.status === 'failed').length;
+
+                    document.getElementById('sqlite-total-agents').textContent = agents.length;
+                    document.getElementById('sqlite-active-agents').textContent = activeCount;
+                    document.getElementById('sqlite-completed-agents').textContent = completedCount;
+                    document.getElementById('sqlite-failed-agents').textContent = failedCount;
+                } else {
+                    document.getElementById('sqlite-total-agents').textContent = '0';
+                    document.getElementById('sqlite-active-agents').textContent = '0';
+                    document.getElementById('sqlite-completed-agents').textContent = '0';
+                    document.getElementById('sqlite-failed-agents').textContent = '0';
+                }
+
+                // Fetch Redis signals
+                const redisSignals = await fetchRedisSignals();
+                if (redisSignals && redisSignals.success) {
+                    const signals = redisSignals.data;
+                    document.getElementById('redis-signals-count').textContent = signals.length;
+                    document.getElementById('redis-status').textContent = 'Connected';
+
+                    if (signals.length > 0) {
+                        const latestSignal = signals[signals.length - 1];
+                        document.getElementById('redis-latest-signal').textContent = latestSignal.key.replace('swarm:', '');
+                        document.getElementById('redis-last-signal-time').textContent = new Date(latestSignal.timestamp).toLocaleTimeString();
+                    } else {
+                        document.getElementById('redis-latest-signal').textContent = 'No signals';
+                        document.getElementById('redis-last-signal-time').textContent = '-';
+                    }
+                } else {
+                    document.getElementById('redis-signals-count').textContent = '0';
+                    document.getElementById('redis-status').textContent = 'Disconnected';
+                    document.getElementById('redis-latest-signal').textContent = '-';
+                    document.getElementById('redis-last-signal-time').textContent = '-';
+                }
+
                 // Update System Overview
                 document.getElementById('total-containers').textContent = containerStats.total;
                 document.getElementById('running-containers').textContent = containerStats.running;
@@ -554,6 +663,8 @@
             addLog('CFN Docker monitoring system initialized', 'success');
             addLog('Connected to Redis coordination system', 'success');
             addLog('Container monitoring active', 'info');
+            addLog('SQLite agents monitoring enabled', 'info');
+            addLog('Redis swarm signals monitoring enabled', 'info');
         }, 1000);
     </script>
 </body>

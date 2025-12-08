@@ -1,8 +1,8 @@
 ---
 name: cfn-mdap-context-injection
 description: Inject MDAP/Trigger workflow code context for troubleshooting
-version: 1.0.0
-tags: [mdap, trigger-dev, context, debugging]
+version: 1.1.0
+tags: [mdap, trigger-dev, context, debugging, docker, cli, cfn-loop]
 status: production
 ---
 
@@ -16,16 +16,22 @@ Injects full MDAP/Trigger workflow code context for troubleshooting. This skill 
 
 ```bash
 # Inject all MDAP-related context
-bash .claude/skills/mdap-context-injection/inject.sh --all
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --all
 
 # Inject only coordinator flow
-bash .claude/skills/mdap-context-injection/inject.sh --coordinator
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --coordinator
 
 # Inject only MDAP implementer
-bash .claude/skills/mdap-context-injection/inject.sh --mdap
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --mdap
 
 # Inject only CLI sprint implementer
-bash .claude/skills/mdap-context-injection/inject.sh --cli
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --cli
+
+# Inject only Docker mode files
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --docker
+
+# Inject only CFN Loop orchestration
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --cfn-loop
 
 # Inject only configuration
 bash .claude/skills/mdap-context-injection/inject.sh --config

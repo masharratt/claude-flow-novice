@@ -8,7 +8,7 @@
 - `command-naming.md` (207 lines) - Binary naming strategy, conflict avoidance
 - `installation-process.md` - Detailed user installation experience (updated for v2.10.6)
 - `npm-distribution-summary.md` - Executive summary with namespace isolation (v2.10.6)
-- `documentation-analysis.md` - Overlap analysis and integration recommendations
+- `logs-documentation-index.md` - Overlap analysis and integration recommendations
 
 **v2.10.6 Updates:**
 - Document claude-assets workaround for npm dotfile extraction bug
@@ -30,7 +30,7 @@
 
 **Clarified Changelog Purpose:**
 - `CHANGELOG.md` - User-facing (included in npm package)
-- `log-changelog.md` - Internal development log (excluded from npm)
+- Internal development log content moved to `logs-documentation-index.md` (excluded from npm)
 
 ---
 
@@ -50,7 +50,7 @@
 ├── command-naming.md - Command naming strategy (NEW ✅)
 ├── installation-process.md - User installation guide (NEW ✅)
 ├── npm-distribution-summary.md - Publishing summary (NEW ✅)
-└── documentation-analysis.md - Integration analysis (NEW ✅)
+└── logs-documentation-index.md - Integration analysis (NEW ✅)
 ```
 
 ---

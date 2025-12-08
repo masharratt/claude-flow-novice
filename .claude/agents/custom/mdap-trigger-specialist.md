@@ -34,7 +34,7 @@ Troubleshoot and maintain the MDAP and non-MDAP Trigger.dev execution workflows:
 **Step 1:** Ingest MDAP context for core workflow visibility (~90K tokens):
 
 ```bash
-bash .claude/skills/mdap-context-injection/inject.sh --all
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --all
 ```
 
 This injects:
@@ -47,8 +47,8 @@ This injects:
 
 **Optional:** For RuVector analytics or test context:
 ```bash
-bash .claude/skills/mdap-context-injection/inject.sh --ruvector  # +88K tokens
-bash .claude/skills/mdap-context-injection/inject.sh --tests     # +40K tokens
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --ruvector  # +88K tokens
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --tests     # +40K tokens
 ```
 
 **Step 2:** Verify Trigger.dev infrastructure:

@@ -507,7 +507,7 @@ if (lines > 200 && ext.match(/\.(sh|js|ts|jsx|tsx|py)$/)) {
     // Use simple-complexity.sh for bash scripts
     if (ext === '.sh') {
       const complexityResult = spawnSync('bash', [
-        'tools/simple-complexity.sh',
+        'scripts/simple-complexity.sh',
         filePath
       ], {
         encoding: 'utf-8',
@@ -591,7 +591,7 @@ if (lines > 200 && ext.match(/\.(sh|js|ts|jsx|tsx|py)$/)) {
                 type: 'complexity',
                 priority: 'critical',
                 message: `Critical complexity level: ${complexity} (threshold: 40)`,
-                action: 'Refactor immediately. Install lizard: ./tools/install-lizard.sh'
+                action: 'Refactor immediately. Install lizard: ./scripts/install-lizard.sh'
               });
             }
           }

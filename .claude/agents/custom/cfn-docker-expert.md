@@ -34,13 +34,24 @@ Maintain the CFN Loop Docker mode execution flow. Keep `readme/CFN_LOOP_DOCKER_D
 
 ## On Spawn (REQUIRED)
 
-**Step 1:** Ingest all Docker dependencies atomically:
+**Step 1:** Ingest Docker context for troubleshooting (~30K tokens):
+
+```bash
+bash .claude/skills/cfn-mdap-context-injection/inject.sh --docker
+```
+
+This injects:
+- Docker configurations (docker-compose, Dockerfiles)
+- Build scripts and environment templates
+- Docker coordination and orchestration logic
+
+**Step 2:** Ingest all Docker dependencies atomically:
 
 ```bash
 node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js --inject-content --skip-validation --diagram readme/CFN_LOOP_DOCKER_DEPENDENCY_DIAGRAM.txt
 ```
 
-**Step 2:** If diagram and code diverge, update diagram FIRST.
+**Step 3:** If diagram and code diverge, update diagram FIRST.
 
 ## Docker Modes
 
