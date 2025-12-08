@@ -1,0 +1,314 @@
+{
+  "epic": {
+    "id": "EPIC-001",
+    "title": "Implementing a real-time chat application",
+    "description": "Development of a comprehensive real-time chat application with messaging, file sharing, and user presence features",
+    "priority": "high",
+    "estimatedDuration": "12 weeks",
+    "budget": "$150,000",
+    "status": "in-review",
+    "personas": [
+      {
+        "name": "product-owner",
+        "reviewOrder": 1,
+        "status": "completed",
+        "insights": [
+          "Core MVP features: real-time messaging, user authentication, basic chat rooms",
+          "Market analysis shows high demand for team collaboration features",
+          "User stories indicate need for message history and search functionality"
+        ],
+        "recommendations": [
+          {
+            "id": "PO-001",
+            "title": "Implement user story mapping before development",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$5,000",
+            "description": "Create detailed user journey maps to ensure feature alignment"
+          },
+          {
+            "id": "PO-002",
+            "title": "Add emoji reactions to messages",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$8,000",
+            "description": "Enhance user engagement with emoji reactions"
+          }
+        ],
+        "costAnalysis": {
+          "developmentCost": "$80,000",
+          "infrastructureCost": "$25,000",
+          "licensingCost": "$10,000",
+          "totalEstimated": "$115,000"
+        }
+      },
+      {
+        "name": "architect",
+        "reviewOrder": 2,
+        "status": "completed",
+        "insights": [
+          "Microservices architecture recommended for scalability",
+          "WebSocket technology essential for real-time communication",
+          "Event-driven pattern will handle message distribution efficiently"
+        ],
+        "recommendations": [
+          {
+            "id": "ARCH-001",
+            "title": "Design microservices architecture with separate services for auth, messaging, and notifications",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$15,000",
+            "description": "Ensure scalability and maintainability"
+          },
+          {
+            "id": "ARCH-002",
+            "title": "Implement API Gateway for service orchestration",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$7,000",
+            "description": "Centralize API management and routing"
+          }
+        ],
+        "costAnalysis": {
+          "architectureDesign": "$20,000",
+          "technologyStack": "$30,000",
+          "scalabilityPlanning": "$10,000"
+        }
+      },
+      {
+        "name": "security-specialist",
+        "reviewOrder": 3,
+        "status": "completed",
+        "insights": [
+          "End-to-end encryption required for message privacy",
+          "OAuth 2.0 implementation for secure authentication",
+          "Rate limiting necessary to prevent message flooding attacks"
+        ],
+        "recommendations": [
+          {
+            "id": "SEC-001",
+            "title": "Implement end-to-end encryption using AES-256",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$12,000",
+            "description": "Ensure message confidentiality"
+          },
+          {
+            "id": "SEC-002",
+            "title": "Add two-factor authentication",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$6,000",
+            "description": "Enhance account security"
+          },
+          {
+            "id": "SEC-003",
+            "title": "Implement message content filtering",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$8,000",
+            "description": "Prevent malicious content sharing"
+          }
+        ],
+        "costAnalysis": {
+          "securityImplementation": "$25,000",
+          "compliance": "$5,000",
+          "securityTesting": "$8,000"
+        }
+      },
+      {
+        "name": "performance-analyst",
+        "reviewOrder": 4,
+        "status": "completed",
+        "insights": [
+          "Message delivery latency should be under 100ms",
+          "Database indexing critical for message history performance",
+          "Caching layer needed for frequently accessed data"
+        ],
+        "recommendations": [
+          {
+            "id": "PERF-001",
+            "title": "Implement Redis caching for session data and recent messages",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$10,000",
+            "description": "Reduce database load and improve response times"
+          },
+          {
+            "id": "PERF-002",
+            "title": "Optimize database queries with proper indexing",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$5,000",
+            "description": "Improve message search and retrieval performance"
+          },
+          {
+            "id": "PERF-003",
+            "title": "Implement CDN for static assets",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$3,000",
+            "description": "Reduce load times for UI components"
+          }
+        ],
+        "costAnalysis": {
+          "performanceOptimization": "$18,000",
+          "monitoringTools": "$7,000",
+          "loadTesting": "$5,000"
+        }
+      },
+      {
+        "name": "accessibility-advocate",
+        "reviewOrder": 5,
+        "status": "completed",
+        "insights": [
+          "WCAG 2.1 AA compliance required",
+          "Screen reader support essential for chat messages",
+          "Keyboard navigation must be fully implemented"
+        ],
+        "recommendations": [
+          {
+            "id": "A11Y-001",
+            "title": "Ensure all interactive elements are keyboard accessible",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$8,000",
+            "description": "Meet WCAG 2.1 AA requirements"
+          },
+          {
+            "id": "A11Y-002",
+            "title": "Add high contrast theme option",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$4,000",
+            "description": "Improve visibility for users with visual impairments"
+          },
+          {
+            "id": "A11Y-003",
+            "title": "Implement voice-to-text input",
+            "type": "suggested",
+            "priority": "low",
+            "estimatedCost": "$12,000",
+            "description": "Alternative input method for accessibility"
+          }
+        ],
+        "costAnalysis": {
+          "accessibilityImplementation": "$15,000",
+          "testing": "$5,000",
+          "audit": "$3,000"
+        }
+      },
+      {
+        "name": "devops-engineer",
+        "reviewOrder": 6,
+        "status": "completed",
+        "insights": [
+          "CI/CD pipeline essential for rapid deployment",
+          "Container orchestration with Kubernetes recommended",
+          "Infrastructure as Code using Terraform for consistency"
+        ],
+        "recommendations": [
+          {
+            "id": "DEVOPS-001",
+            "title": "Set up automated testing in CI pipeline",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$6,000",
+            "description": "Ensure code quality before deployment"
+          },
+          {
+            "id": "DEVOPS-002",
+            "title": "Implement blue-green deployment strategy",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$8,000",
+            "description": "Zero-downtime deployments"
+          },
+          {
+            "id": "DEVOPS-003",
+            "title": "Configure monitoring and alerting with Prometheus",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$5,000",
+            "description": "Proactive issue detection"
+          },
+          {
+            "id": "DEVOPS-004",
+            "title": "Set up automated backup and disaster recovery",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$7,000",
+            "description": "Data protection and business continuity"
+          }
+        ],
+        "costAnalysis": {
+          "infrastructureSetup": "$20,000",
+          "monitoring": "$8,000",
+          "automation": "$10,000"
+        }
+      }
+    ],
+    "implementationRoadmap": [
+      {
+        "phase": "Phase 1: Foundation",
+        "duration": "3 weeks",
+        "deliverables": [
+          "Architecture design",
+          "Security framework",
+          "CI/CD pipeline setup"
+        ],
+        "blockingIssues": ["PO-001", "ARCH-001", "SEC-001", "PERF-001", "A11Y-001"],
+        "cost": "$45,000"
+      },
+      {
+        "phase": "Phase 2: Core Features",
+        "duration": "5 weeks",
+        "deliverables": [
+          "User authentication",
+          "Real-time messaging",
+          "Basic chat rooms"
+        ],
+        "blockingIssues": [],
+        "suggestedIssues": ["DEVOPS-001", "PERF-002"],
+        "cost": "$60,000"
+      },
+      {
+        "phase": "Phase 3: Enhancement",
+        "duration": "4 weeks",
+        "deliverables": [
+          "File sharing",
+          "Message search",
+          "User presence"
+        ],
+        "blockingIssues": [],
+        "suggestedIssues": ["PO-002", "ARCH-002", "SEC-002", "A11Y-002", "DEVOPS-002"],
+        "cost": "$45,000"
+      }
+    ],
+    "totalCostBreakdown": {
+      "development": "$115,000",
+      "infrastructure": "$45,000",
+      "security": "$38,000",
+      "performance": "$30,000",
+      "accessibility": "$23,000",
+      "devops": "$38,000",
+      "total": "$289,000",
+      "contingency": "$28,900",
+      "finalBudget": "$317,900"
+    },
+    "riskAssessment": {
+      "high": [
+        "Real-time performance under load",
+        "Security vulnerabilities in messaging"
+      ],
+      "medium": [
+        "Cross-platform compatibility",
+        "Scalability challenges"
+      ],
+      "low": [
+        "UI/UX refinements",
+        "Additional feature requests"
+      ]
+    }
+  }
+}

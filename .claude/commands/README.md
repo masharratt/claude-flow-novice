@@ -132,6 +132,7 @@ Need to automate something?
 
 ### Planning & Documentation
 - `/write-plan` - Pre-planning phase (generates TDD implementation plan)
+- `/epic-creator-v2` - Create epic configuration with sequential persona reviews (product, architect, security, performance, accessibility, devops)
 - `/cfn-loop-document` - Documentation generation (updates `/readme`)
 
 ### Configuration
