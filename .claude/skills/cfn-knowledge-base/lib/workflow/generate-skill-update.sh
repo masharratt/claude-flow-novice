@@ -5,7 +5,7 @@ set -euo pipefail
 # Creates test cases, proposes logic modifications, updates documentation
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DB_PATH="${DB_PATH:-${SCRIPT_DIR}/workflow-codification.db}"
+DB_PATH="${DB_PATH:-${SCRIPT_DIR}/../../../../data/workflow-codification.db}"
 PROPOSALS_DIR="${PROPOSALS_DIR:-${SCRIPT_DIR}/proposals}"
 
 # Initialize proposals directory

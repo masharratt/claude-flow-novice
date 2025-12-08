@@ -9,7 +9,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ACE_SKILL_DIR="${SCRIPT_DIR}/../../.claude/skills/cfn-ace-system"
 QUERY_SCRIPT="${ACE_SKILL_DIR}/query-contexts.sh"
-DB_PATH="${SCRIPT_DIR}/../../ace-context.db"
+DB_PATH="${SCRIPT_DIR}/../../data/ace-context.db"
 
 # Test counters
 TESTS_RUN=0

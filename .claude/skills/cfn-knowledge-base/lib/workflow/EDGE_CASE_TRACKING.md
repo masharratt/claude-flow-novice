@@ -385,7 +385,7 @@ Store additional context (agent_id, task_id, environment) for debugging.
 
 ## Environment Variables
 
-- `DB_PATH` - Database location (default: `./workflow-codification.db`)
+- `DB_PATH` - Database location (default: `../../../../data/workflow-codification.db`)
 - `RECURRENCE_THRESHOLD` - Threshold for proposal generation (default: 3)
 - `PROPOSALS_DIR` - Proposal output directory (default: `./proposals`)
 

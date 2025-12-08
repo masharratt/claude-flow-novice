@@ -22,7 +22,7 @@ async function main() {
   const initialMem = getMemory();
   console.log('Initial memory:', initialMem);
 
-  const { RedisCoordinator } = require('./.claude/skills/cfn-redis-coordination/dist/redis-client.js');
+  const { RedisCoordinator } = require('../.claude/skills/cfn-redis-coordination/dist/redis-client.js');
 
   for (let i = 0; i < 100; i++) {
     const coordinator = new RedisCoordinator();

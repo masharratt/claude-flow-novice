@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source parameterized query library for SQL injection prevention
 source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
 
-DB_PATH="${DB_PATH:-${SCRIPT_DIR}/workflow-codification.db}"
+DB_PATH="${DB_PATH:-${SCRIPT_DIR}/../../../../data/workflow-codification.db}"
 RECURRENCE_THRESHOLD=3
 
 # Initialize database schema

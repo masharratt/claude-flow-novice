@@ -4,7 +4,7 @@ set -eu
 # Initialize Playbook Database
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DB_PATH="$SCRIPT_DIR/playbook.db"
+DB_PATH="$SCRIPT_DIR/../../../../data/playbook.db"
 
 # Create database if not exists
 sqlite3 "$DB_PATH" <<'EOF'

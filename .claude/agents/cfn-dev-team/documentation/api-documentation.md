@@ -10,6 +10,13 @@ capabilities:
 acl_level: 3  # Swarm-level documentation coordination
 ---
 
+
+# IMPORTANT: Post-Edit Pipeline Requirement
+# After any file modification (Write, Edit, or any code change), you MUST invoke the post-edit pipeline:
+#   ./.claude/hooks/cfn-invoke-post-edit.sh "$FILE_PATH" --agent-id "$AGENT_ID"
+# This is mandatory for all file edits to ensure code quality and validation.
+# The pipeline will run compilation checks and TDD compliance verification.
+
 → **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
 
 # API Documentation Specialist

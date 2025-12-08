@@ -19,7 +19,7 @@ on:
       - 'tests/**'
       - 'package.json'
       - 'tsconfig.json'
-      - '.eslintrc.integration.js'
+      - 'test-utils/.eslintrc.integration.js'
   push:
     branches:
       - main
@@ -50,7 +50,7 @@ jobs:
       - name: Run ESLint with integration rules
         run: |
           npx eslint . --ext .ts,.tsx \
-            --config .eslintrc.integration.js \
+            --config test-utils/.eslintrc.integration.js \
             --format=stylish \
             --max-warnings=0
         continue-on-error: false
@@ -59,7 +59,7 @@ jobs:
         if: always()
         run: |
           npx eslint . --ext .ts,.tsx \
-            --config .eslintrc.integration.js \
+            --config test-utils/.eslintrc.integration.js \
             --format=json \
             --output-file=lint-report.json || true
 

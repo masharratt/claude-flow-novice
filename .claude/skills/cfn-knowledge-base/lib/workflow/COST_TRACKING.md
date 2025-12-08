@@ -615,7 +615,7 @@ Track exit codes to correlate ROI with reliability.
 
 ## Environment Variables
 
-- `DB_PATH` - Database location (default: `./workflow-codification.db`)
+- `DB_PATH` - Database location (default: `../../../../data/workflow-codification.db`)
 - `AI_COST_PER_MILLION` - AI provider cost (default: 0.50)
 - `SCRIPT_COST` - Script execution cost (default: 0.0001)
 - `AVG_AI_INPUT_TOKENS` - Average input tokens (default: 2000)

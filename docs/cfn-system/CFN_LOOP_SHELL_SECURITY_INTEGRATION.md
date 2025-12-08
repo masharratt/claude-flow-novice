@@ -472,7 +472,7 @@ set -euo pipefail
 **Verify Node.js Temp Files:**
 ```bash
 # Check what Node.js script uses for temp files
-grep -n "mktemp\|/tmp/\|temp" "config/hooks/post-edit-pipeline.js"
+grep -n "mktemp\|/tmp/\|temp" "dist/hooks/post-edit-pipeline.js"
 
 # If creating temp files:
 # - Must use Node.js equivalent: os.tmpdir(), tmp module

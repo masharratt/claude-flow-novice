@@ -326,7 +326,7 @@ fi
 
 ## Environment Variables
 
-- `DB_PATH` - Database location (default: `./workflow-codification.db`)
+- `DB_PATH` - Database location (default: `../../../../data/workflow-codification.db`)
 - `PROPOSALS_DIR` - Proposal directory (default: `./proposals`)
 - `RECURRENCE_THRESHOLD` - Edge case threshold (default: 3)
 - `AI_COST_PER_MILLION` - AI cost per 1M tokens (default: 0.50)

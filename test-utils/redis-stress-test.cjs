@@ -35,7 +35,7 @@ function getMemoryUsage() {
 // Import RedisCoordinator from the compiled dist folder
 let RedisCoordinator;
 try {
-    const redisCoordModule = require('./.claude/skills/cfn-redis-coordination/dist/index.js');
+    const redisCoordModule = require('../.claude/skills/cfn-redis-coordination/dist/index.js');
     RedisCoordinator = redisCoordModule.RedisCoordinator;
     console.log('✓ Successfully imported RedisCoordinator');
 } catch (error) {

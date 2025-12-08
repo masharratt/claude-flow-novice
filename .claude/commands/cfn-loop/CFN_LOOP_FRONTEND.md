@@ -732,7 +732,7 @@ Not generic advice - specific fixes only.`
 
 ## Related Documentation
 
-- **Task Mode Guide**: `.claude/commands/cfn-loop/CFN_LOOP_TASK_MODE.md`
+- **Task Mode Guide**: `.claude/commands/cfn-loop/cfn-loop-task.md`
 - **Loop Orchestration**: `.claude/skills/cfn-loop-orchestration-v2/SKILL.md`
 - **Vision Analysis**: `.claude/skills/cfn-vision-analysis/SKILL.md`
 

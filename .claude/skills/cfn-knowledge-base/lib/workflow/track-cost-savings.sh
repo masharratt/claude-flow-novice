@@ -33,7 +33,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 # Load parameterized query library (SQL injection prevention)
 source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
 
-DB_PATH="${DB_PATH:-${SCRIPT_DIR}/workflow-codification.db}"
+DB_PATH="${DB_PATH:-${SCRIPT_DIR}/../../../../data/workflow-codification.db}"
 
 # Cost constants
 AI_COST_PER_MILLION=0.50  # $0.50 per 1M tokens (Z.ai glm-4.6)

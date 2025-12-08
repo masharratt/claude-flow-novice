@@ -25,7 +25,7 @@ console.log('AGENT_ID:', process.env.AGENT_ID || 'undefined');
 async function testRedisOperations() {
     try {
         // Import RedisCoordinator
-        const { RedisCoordinator } = require('./.claude/skills/cfn-redis-coordination/dist/redis-client.js');
+        const { RedisCoordinator } = require('../.claude/skills/cfn-redis-coordination/dist/redis-client.js');
 
         console.log('\n1. Creating RedisCoordinator...');
         const coordinator = new RedisCoordinator();

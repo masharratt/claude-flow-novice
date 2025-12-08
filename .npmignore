@@ -38,8 +38,10 @@ legacy/
 archive/
 backups/
 
+# Configuration (except hooks that are now in dist/)
+config/
+
 # Documentation (except essentials)
-docs/
 planning/
 *REPORT.md
 *SUMMARY.md

@@ -1,12 +1,132 @@
 ---
 description: "Execute CFN Loop in Task Mode with direct agent spawning (visible in main chat)"
-argument-hint: "<task description> [--mode=mvp|standard|enterprise] [--provider=zai|kimi|anthropic|openrouter]"
+argument-hint: "<task description> [--mode=mvp|standard|enterprise]"
 allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "SlashCommand"]
 ---
 
 # CFN Loop Task Mode - Direct Agent Spawning
 
+**Version:** 1.2.0  |  **Date:** 2025-12-08  |  **Status:** Production Ready
+
 🚨 **v3.0 ARCHITECTURE:** Spawn agents directly with local MDAP orchestration support
+
+---
+
+## Quick Overview
+
+### What is Task Mode?
+
+**v3.0 Task Mode Architecture:**
+- **Direct agent spawning** in main chat using Task() tool
+- **Visible execution** - all agent work shown in real-time
+- **Local MDAP support** - agents can use orchestrator for complex tasks
+- **No external dependencies** - works without Redis or Trigger.dev
+
+### Task Mode vs CLI Mode
+
+| Feature | Task Mode | CLI Mode |
+|---------|-----------|----------|
+| Visibility | Full (agents in main chat) | Summary only |
+| Coordination | Manual (Task() tool) | Automated (local MDAP) |
+| External Deps | None | None |
+| Speed | Fast (direct spawning) | Fast (local orchestration) |
+| Control | High (manual workflow) | Automated (configured workflow) |
+
+### When to Use Task Mode
+
+- **Debugging** - Need to see agent thought process
+- **Learning** - Understanding how agents work
+- **Complex coordination** - Require custom agent interactions
+- **Rapid prototyping** - Quick iteration with direct control
+
+---
+
+## TDD Enforcement
+
+**All agents spawned in CFN Loop must follow Test-Driven Development:**
+
+```bash
+# Mandatory TDD Workflow for all agents:
+1. Write tests BEFORE implementation (Red Phase)
+2. Implement code to make tests pass (Green Phase)
+3. Refactor while keeping tests passing (Refactor Phase)
+4. Run tests after each implementation step
+5. Ensure tests cover all functionality and edge cases
+```
+
+**TDD Requirements:**
+- Test files must exist for each implementation file
+- Tests must be written at or before implementation time
+- All tests must pass before task completion
+- Minimum coverage thresholds apply (based on mode)
+
+**Post-Edit Pipeline (Required):**
+After ANY file modification, agents MUST invoke:
+```bash
+./.claude/hooks/cfn-invoke-post-edit.sh "$FILE_PATH" --agent-id "$AGENT_ID"
+```
+This validates compilation and TDD compliance automatically.
+
+---
+
+## RuVector Integration
+
+**RuVector** (Rust-based vector database) provides semantic intelligence for Task Mode agents. Available features:
+
+**Semantic Codebase Search:**
+```bash
+# Search codebase before implementing
+/codebase-search "authentication middleware patterns"
+# Returns: Relevant code snippets with semantic similarity scores
+```
+
+**Stale Documentation Detection:**
+```bash
+# Find outdated docs before refactoring
+/detect-stale-docs
+# Returns: Documents semantically distant from current code
+```
+
+**Automatic Indexing:**
+```bash
+# Reindex after major changes
+/codebase-reindex
+# Updates: Vector embeddings of all code files
+```
+
+**Usage in Task Mode:**
+- Agents can call `/codebase-search` via Skill() tool before implementing
+- Main Chat can search context before spawning agents
+- Post-commit hook auto-reindexes (optional: `.claude/hooks/post-commit-codebase-index`)
+
+**Manual Learning & Error Tracking:**
+```bash
+# After task failure - store error pattern for future avoidance
+./.claude/skills/ruvector-codebase-index/store-error-pattern.sh \
+  --task-id "task-123" \
+  --error-type "TypeScript compilation" \
+  --pattern "Missing type imports in multi-file refactor" \
+  --context "Files: auth.ts, types.ts, middleware.ts" \
+  --solution "Always add type imports before interface usage"
+```
+
+---
+
+## ACE Reflection Flag
+
+```bash
+# Enable ACE reflection after each sprint (captures lessons learned)
+/cfn-loop "Task description" --spawn-mode=task --ace-reflect
+
+# Without ACE reflection (default for backwards compatibility)
+/cfn-loop "Task description" --spawn-mode=task
+```
+
+**When to use `--ace-reflect`:**
+- Long-running epics (3+ sprints) where learning accumulates
+- Complex tasks with multiple iterations
+- Teams building organizational knowledge
+- Post-mortem analysis and continuous improvement
 
 ---
 
@@ -16,11 +136,10 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "SlashCommand"]
 ```bash
 # Extract task description (remove flags)
 TASK_DESCRIPTION="$ARGUMENTS"
-TASK_DESCRIPTION=$(echo "$TASK_DESCRIPTION" | sed 's/--mode[[:space:]]*[a-zA-Z]*//' | sed 's/--provider[[:space:]]*[a-zA-Z]*//' | xargs)
+TASK_DESCRIPTION=$(echo "$TASK_DESCRIPTION" | sed 's/--mode[[:space:]]*[a-zA-Z]*//' | xargs)
 
 # Parse optional flags
 MODE="standard"
-PROVIDER=""
 
 for arg in $ARGUMENTS; do
   case $arg in
@@ -30,13 +149,6 @@ for arg in $ARGUMENTS; do
     --mode)
       shift
       MODE="$1"
-      ;;
-    --provider=*)
-      PROVIDER="${arg#*=}"
-      ;;
-    --provider)
-      shift
-      PROVIDER="$1"
       ;;
   esac
 done
@@ -55,7 +167,6 @@ TASK_ID="cfn-task-$(date +%s%N | tail -c 7)-${RANDOM}"
 
 echo "📋 Task ID: $TASK_ID"
 echo "🎯 Mode: $MODE"
-echo "🤖 Provider: ${PROVIDER:-default}"
 echo "📝 Task: ${TASK_DESCRIPTION:0:100}..."
 echo ""
 ```
@@ -72,6 +183,13 @@ case $MODE in
       AGENT_ID="backend-dev-${TASK_ID}"
 
       TASK: Implement MVP solution for: ${TASK_DESCRIPTION}
+
+      TDD Requirements:
+      - Write tests BEFORE implementation
+      - Create test files for each implementation file
+      - Ensure tests pass before completion
+      - Run tests after each implementation step
+      - Call post-edit pipeline after each file change
 
       Use local MDAP orchestration for complex tasks:
       - Import from lib/mdap/orchestrator.js
@@ -104,6 +222,13 @@ case $MODE in
       AGENT_ID="backend-dev-${TASK_ID}"
 
       TASK: Implement production solution for: ${TASK_DESCRIPTION}
+
+      TDD Requirements:
+      - Write tests BEFORE implementation (Red-Green-Refactor)
+      - Create comprehensive test files for each implementation
+      - Ensure >80% test coverage before completion
+      - Run tests after each implementation step
+      - Call post-edit pipeline after each file change
 
       Use local MDAP orchestration for comprehensive development:
       - Import from lib/mdap/orchestrator.js
@@ -171,6 +296,14 @@ case $MODE in
       AGENT_ID="backend-dev-${TASK_ID}"
 
       TASK: Implement enterprise-grade solution for: ${TASK_DESCRIPTION}
+
+      TDD Requirements:
+      - Write tests BEFORE implementation (Strict TDD)
+      - Create comprehensive test suites for each implementation
+      - Ensure >95% test coverage before completion
+      - Include integration, E2E, performance, and security tests
+      - Run tests after each implementation step
+      - Call post-edit pipeline after each file change
 
       Use local MDAP orchestration with enterprise settings:
       - Import from lib/mdap/orchestrator.js
@@ -282,42 +415,37 @@ echo "  • Performance analysis (if applicable)"
 
 ---
 
-## Background Information (DO NOT show this to user unless they ask)
+## Gate Check Thresholds
 
-**Task**: $ARGUMENTS
+Loop 3 gate checks are based on test pass rates:
 
-## What is Task Mode?
+| Mode | Pass Rate Threshold |
+|------|-------------------|
+| MVP | 70% |
+| Standard | 95% |
+| Enterprise | 98% |
 
-**v3.0 Task Mode Architecture:**
-- **Direct agent spawning** in main chat using Task() tool
-- **Visible execution** - all agent work shown in real-time
-- **Local MDAP support** - agents can use orchestrator for complex tasks
-- **No external dependencies** - works without Redis or Trigger.dev
+---
 
-## Task Mode vs CLI Mode
+---
 
-| Feature | Task Mode | CLI Mode |
-|---------|-----------|----------|
-| Visibility | Full (agents in main chat) | Summary only |
-| Coordination | Manual (Task() tool) | Automated (local MDAP) |
-| External Deps | None | None |
-| Speed | Fast (direct spawning) | Fast (local orchestration) |
-| Control | High (manual workflow) | Automated (configured workflow) |
+## Security Considerations
 
-## When to Use Task Mode
+- All agent execution visible in main chat
+- No background processes or hidden coordination
+- Direct control over agent lifecycle
+- Local MDAP includes security validation
 
-- **Debugging** - Need to see agent thought process
-- **Learning** - Understanding how agents work
-- **Complex coordination** - Require custom agent interactions
-- **Rapid prototyping** - Quick iteration with direct control
+---
 
-## Agent Lifecycle Management
+## Performance Characteristics
 
-Task Mode agents use simple lifecycle:
-1. **Spawn** - Task() tool creates agent
-2. **Execute** - Agent processes task
-3. **Complete** - Agent returns result to main chat
-4. **Cleanup** - No persistent state to manage
+- **Startup**: Instant (no external service initialization)
+- **Execution**: Parallel agent execution
+- **Memory**: Managed by main chat session
+- **Cleanup**: Automatic (no persistent processes)
+
+---
 
 ## Local MDAP Integration
 
@@ -340,23 +468,18 @@ This allows:
 - Automated testing and validation
 - Iterative improvement
 
-## Provider Routing
+---
 
-Provider routing in Task Mode:
-- Use `--provider` flag to specify
-- Defaults to Main Chat provider
-- Supports all providers: zai, kimi, anthropic, openrouter
+## Related Documentation
 
-## Security Considerations
+- **CLI Mode Guide**: `.claude/commands/cfn-loop/cfn-loop-cli.md`
+- **Frontend CFN Loop**: `.claude/commands/cfn-loop/CFN_LOOP_FRONTEND.md`
+- **Agent Lifecycle**: `.claude/agents/SHARED_PROTOCOL.md`
+- **Post-Edit Pipeline**: `.claude/hooks/cfn-post-edit.config.json`
 
-- All agent execution visible in main chat
-- No background processes or hidden coordination
-- Direct control over agent lifecycle
-- Local MDAP includes security validation
+---
 
-## Performance Characteristics
-
-- **Startup**: Instant (no external service initialization)
-- **Execution**: Parallel agent execution
-- **Memory**: Managed by main chat session
-- **Cleanup**: Automatic (no persistent processes)
+**Version History:**
+- v1.2.0 (2025-12-08) - Added TDD enforcement and merged documentation
+- v1.1.0 (2025-12-01) - Added RuVector integration, semantic search
+- v1.0.0 (2025-10-28) - Initial Task mode implementation

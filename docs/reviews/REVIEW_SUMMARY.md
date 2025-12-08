@@ -1,316 +1,230 @@
-# Code Review Summary: Unified Orchestrator Pattern
+# Loop 3 Code Review Summary
 
-**Overall Confidence Score: 0.72 / 1.0**
+**Status:** SPLIT COMMITS REQUIRED
+**Test Results:** 27/27 passing (100%)
+**Consensus Score (Test Fixes):** 0.92 ✓
+**Consensus Score (Full Changeset):** 0.65 ⚠️
 
 ---
 
-## Quick Assessment
+## Quick Verdict
 
-The unified orchestrator pattern for Mode A (wave-based Docker execution) and Mode B (standard CFN Loop) demonstrates solid engineering fundamentals with excellent documentation and modular architecture. However, three critical security vulnerabilities and insufficient error recovery must be addressed before production deployment.
+| Component | Status | Score | Action |
+|-----------|--------|-------|--------|
+| **Test Suite Fixes** | EXCELLENT | 0.92 | ✓ MERGE IMMEDIATELY |
+| **Production Code** | UNREVIEWED | 0.65 | ⚠️ SEPARATE REVIEW NEEDED |
+| **Overall** | MIXED | 0.65 | ⚠️ SPLIT COMMITS FIRST |
 
-**Current Status:** Code review complete. Requires remediation before production use.
+---
+
+## What Was Changed
+
+### Test Suite Fixes (47 lines) - Ready ✓
+**File:** `tests/cli-mode/core/unit/test-agent-tool-access.sh`
+
+Four targeted fixes:
+1. **Line 113:** Recursive grep (-r) for redis-cli in orchestration directory (fixes hardcoded path assumption)
+2. **Line 162:** Case-insensitive pattern matching for CLAUDE.md text (flexible wording match)
+3. **Line 187-189:** Spawn-agent OR file existence check (more resilient validation)
+4. **Line 231-235:** OR logic for multiple valid coordination directory states (.sh.backup, bash-wrappers, data/)
+
+**Result:** All 27 tests passing. Code quality excellent.
+
+### Production Code Changes (173 lines) - BLOCKED ⚠️
+**File:** `src/cli/agent-executor.ts`
+
+New bidirectional messaging feature:
+- New AgentRuntimeState interface
+- startCommandProcessor() function
+- Command handlers for: redirect, status, abort, pause
+- Redis message handling integration
+
+**Issue:** This is a significant feature that requires dedicated security review before merge.
 
 ---
 
 ## Key Findings
 
-### Strengths (What Works Well)
+### Test Suite Fixes: Excellent Quality
 
-1. **Architecture Excellence** (0.78/1.0)
-   - Clear separation of concerns (spawn/monitor/cleanup)
-   - Strong JSON contracts between components
-   - Excellent documentation with architecture diagrams
-   - Backward compatible with existing orchestration
+**✓ All Assertions Correct**
+- Grep patterns validated against actual files
+- Directory structure changes properly handled
+- OR logic correctly captures valid states
+- Test file locations verified
 
-2. **Code Quality** (0.82/1.0)
-   - Consistent Bash strict mode (`set -euo pipefail`)
-   - Proper exit code conventions (0, 1, 2, 3)
-   - Descriptive function naming with clear prefixes
-   - Helper library provides reusable utilities
+**✓ 100% Pass Rate**
+- 27/27 tests passing
+- All tool access validations working
+- No flaky tests
 
-3. **Documentation** (0.90/1.0)
-   - Comprehensive SKILL.md with data flow diagrams
-   - Clear usage examples for all entry points
-   - Parameter documentation complete
-   - Exit code specifications documented
-
-4. **Cost Efficiency**
-   - Achieves 64% cost reduction vs Task-based spawning
-   - Memory-tier mapping reduces memory footprint by 66%
-   - Scales to 100+ concurrent containers
-
-### Vulnerabilities (What Needs Fixing)
-
-1. **Docker CLI Injection** - CRITICAL (0.2/1.0)
-   - **Issue:** User-controlled strings not escaped before Docker CLI
-   - **Location:** `spawn-wave.sh:290` - `TASK_PROMPT=$task_prompt`
-   - **Attack Vector:** Malicious batch_id or task_prompt in wave plan
-   - **Impact:** Container escape, arbitrary code execution
-   - **Fix Time:** 30 minutes
-
-2. **Path Traversal** - CRITICAL (0.4/1.0)
-   - **Issue:** Output file paths not validated
-   - **Locations:** `monitor-wave.sh:374`, `cleanup-wave.sh:315`
-   - **Attack Vector:** `--output "../../../../etc/hosts"`
-   - **Impact:** Arbitrary file write, system compromise
-   - **Fix Time:** 45 minutes
-
-3. **Docker Daemon Failure** - CRITICAL (0.4/1.0)
-   - **Issue:** No health monitoring during container execution
-   - **Location:** `monitor-wave.sh:172-197`
-   - **Impact:** Silent failures, stale monitoring data
-   - **Fix Time:** 1 hour
-
-4. **Transient Failure Recovery** - WARNING (0.65/1.0)
-   - **Issue:** No retry logic for network timeouts
-   - **Location:** `spawn-wave.sh:300`
-   - **Impact:** 10-15% failure rate on transient issues
-   - **Fix Time:** 1.5 hours
-
-5. **Timeout Race Condition** - WARNING (0.55/1.0)
-   - **Issue:** Container completion misreported as timeout
-   - **Location:** `monitor-wave.sh:189-200`
-   - **Impact:** ~5% of edge cases report false timeouts
-   - **Fix Time:** 1 hour
-
-### Technical Debt (What Should Be Fixed)
-
-1. **Mode A/B Integration** - MODERATE
-   - Duplicated orchestration logic
-   - Two separate code paths (200+ lines each)
-   - Maintenance burden will grow
-   - **Fix Time:** 3 hours
-
-2. **Version Negotiation** - MODERATE
-   - No version compatibility checks between skills
-   - Format changes cause silent failures
-   - **Fix Time:** 1 hour
-
-3. **Input Validation Gaps** - MINOR
-   - Pattern validation missing
-   - Timeout bounds not enforced
-   - **Fix Time:** 30 minutes each
+**Minor Issues (Non-blocking)**
+- One test message clarity improvement suggested (cosmetic only)
 
 ---
 
-## Review Metrics
+### Production Code: Requires Separate Review
 
-| Category | Score | Status | Notes |
-|----------|-------|--------|-------|
-| Bash Strict Mode | 1.0 | EXCELLENT | 100% compliant across all scripts |
-| Error Handling | 0.68 | PARTIAL | Gaps in critical Docker failure paths |
-| Input Validation | 0.65 | PARTIAL | Missing path/pattern validation |
-| Security | 0.58 | VULNERABLE | 3 critical issues, 2 high-risk |
-| Documentation | 0.90 | EXCELLENT | Comprehensive, clear, examples included |
-| Modularity | 0.82 | GOOD | Clear functions, some need decomposition |
-| Exit Codes | 0.90 | GOOD | Consistent standards, minor timeout conflict |
-| JSON Output | 1.0 | EXCELLENT | Type-safe, consistent across all scripts |
-| Logging | 0.70 | GOOD | Human-readable, lacks JSON structure |
-| Architecture | 0.78 | GOOD | Strong foundations, integration concerns |
+**Concerns:**
+1. Command validation and authorization logic unclear
+2. Redis message handling could have security implications
+3. No visible integration tests for new feature
+4. Impact on agent control flow needs validation
+
+**Status:** Cannot merge until dedicated security review completed.
 
 ---
 
-## Detailed Recommendations
+## Critical Action Items
 
-### MUST FIX (3 critical issues - ~2 hours)
+### IMMEDIATE (Required Before Merge)
 
-**1. Docker CLI Injection Protection (30 minutes)**
-```bash
-# Current (VULNERABLE):
-docker_opts+=("-e" "TASK_PROMPT=$task_prompt")
+1. **SPLIT COMMITS**
+   ```bash
+   # Commit A: Test fixes only (ready to merge)
+   git add tests/cli-mode/core/unit/test-agent-tool-access.sh
+   git commit -m "fix: update test assertions for CLI mode agent validation"
 
-# Fixed (SAFE):
-docker_opts+=("-e" "TASK_PROMPT=$(echo "$batch_data" | jq -r '@json | .task_prompt')")
-```
-**File:** `.claude/skills/cfn-docker-wave-execution/spawn-wave.sh:290`
+   # Commit B: Production feature (needs separate PR)
+   git add src/cli/agent-executor.ts
+   git commit -m "feat: add bidirectional messaging support to agent executor"
+   ```
 
-**2. Path Validation (45 minutes)**
-```bash
-# Add to all output file handling:
-if [[ ! "$OUTPUT_FILE" =~ ^\.artifacts/ ]]; then
-  log_error "Output file must be in .artifacts/ directory"
-  return 2
-fi
-```
-**Files:**
-- `.claude/skills/cfn-docker-wave-execution/monitor-wave.sh:374`
-- `.claude/skills/cfn-docker-wave-execution/cleanup-wave.sh:315`
+2. **MERGE TEST FIXES**
+   - Ready to merge immediately
+   - All tests passing
+   - No dependencies
+   - Low risk
 
-**3. Docker Health Monitoring (1 hour)**
-```bash
-# In monitoring loop before each poll:
-check_docker_health() {
-  if ! docker ps &>/dev/null; then
-    log_error "Docker daemon unavailable"
-    return 1
-  fi
-}
-```
-**File:** `.claude/skills/cfn-docker-wave-execution/monitor-wave.sh:main loop`
-
-### SHOULD FIX (3 warning issues - ~3.5 hours)
-
-**4. Transient Failure Retry (1.5 hours)**
-- Add exponential backoff to container spawning
-- Improves reliability: 85% → 98%
-
-**5. Timeout Atomicity (1 hour)**
-- Check timeout before each poll cycle
-- Eliminates race condition misreporting
-
-**6. Version Negotiation (1 hour)**
-- Add skill version checks before invocation
-- Graceful degradation on mismatches
-
-### NICE TO HAVE (4 suggestion issues - ~6 hours)
-
-**7. Memory Limit Verification** (1 hour)
-- Verify Docker honored memory constraints
-- Catch misconfiguration early
-
-**8. Extract Shared Patterns** (3 hours)
-- Reduce Mode A/B orchestration duplication
-- Decrease maintenance burden by 40%
-
-**9. Structured JSON Logging** (2 hours)
-- Enable machine parsing and log aggregation
-- Supports centralized monitoring
+3. **SCHEDULE SEPARATE REVIEW**
+   - Create new PR for agent-executor.ts
+   - Request security review
+   - Request integration test validation
 
 ---
 
-## Production Readiness Assessment
+## Detailed Issues Found
 
-**Current Status:** NOT READY FOR PRODUCTION
+### CRITICAL: Scope Mixing
+**Status:** ⚠️ REQUIRES ACTION
+**Severity:** CRITICAL
+Unreviewed production code bundled with test fixes. Must split commits.
 
-| Criterion | Status | Reason |
-|-----------|--------|--------|
-| Security | FAIL | 3 critical vulnerabilities |
-| Reliability | PARTIAL | No retry logic for transient failures |
-| Monitoring | PARTIAL | Silent Docker daemon failures |
-| Documentation | PASS | Comprehensive and clear |
-| Testing | UNTESTED | No test suite reviewed |
-| Error Recovery | PARTIAL | Weak failure handling |
+### WARNING: Test Message Clarity
+**Status:** ℹ️ OPTIONAL
+**Severity:** LOW
+Test message says "CLI mode uses npx claude-flow-novice" but validates "spawn-agent". Cosmetic fix only.
 
-**Estimated Time to Production:**
-- Critical fixes: 2 hours
-- Warning fixes: 2.5 hours
-- Testing & validation: 1.5 hours
-- **Total: ~4-5 hours of focused work**
+### WARNING: Production Security
+**Status:** ⚠️ REQUIRES SEPARATE REVIEW
+**Severity:** HIGH
+New command handling in agent-executor.ts needs security audit before deployment.
 
----
-
-## Confidence Score Explanation
-
-```
-Code Quality:      0.82  (Good structure, minor error handling gaps)
-                   ├─ Strict Mode: 1.0
-                   ├─ Modularity: 0.82
-                   ├─ Error Handling: 0.68 ← Gap in Docker failures
-                   └─ Documentation: 0.90
-
-Security:          0.58  (3 critical vulnerabilities)
-                   ├─ CLI Injection: 0.20 ← CRITICAL
-                   ├─ Path Security: 0.40 ← CRITICAL
-                   ├─ Input Validation: 0.65
-                   └─ Secrets: 1.0
-
-Architecture:      0.78  (Strong, with integration concerns)
-                   ├─ Separation of Concerns: 1.0
-                   ├─ Modularity: 0.85
-                   ├─ Mode A/B Integration: 0.65 ← Duplication
-                   └─ Version Compatibility: 0.50
-
-Best Practices:    0.72  (Good patterns, reliability gaps)
-                   ├─ JSON Output: 1.0
-                   ├─ Exit Codes: 0.90
-                   ├─ Timeout Handling: 0.55 ← Race condition
-                   ├─ Logging: 0.70
-                   └─ Validation: 0.65
-
-OVERALL:           0.72  = (0.82 + 0.58 + 0.78 + 0.72) / 4
-```
+### SUGGESTION: Test Robustness
+**Status:** ℹ️ OPTIONAL
+**Severity:** LOW
+Coordination directory check uses OR logic with 3 conditions. Consider documenting why all are needed.
 
 ---
 
 ## Files Reviewed
 
-| File | Lines | Status | Issues |
-|------|-------|--------|--------|
-| `lib/docker-helpers.sh` | 735 | GOOD | 0 critical, 0 warning |
-| `spawn-wave.sh` | 509 | CONCERNING | 1 critical, 2 warning |
-| `monitor-wave.sh` | 485 | WARNING | 2 critical, 2 warning |
-| `cleanup-wave.sh` | 440 | GOOD | 0 critical, 1 warning |
-| `orchestrate.sh` | 1261 | PARTIAL | 0 critical, 2 warning |
-| **TOTAL** | **3430** | | **3 critical, 7 warning** |
+### Test File (Primary)
+- **Path:** `/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/b12e986fbf40baa4ab6e7d67a62bc26e28e460bda79c231265f4100ae030e4d0/tests/cli-mode/core/unit/test-agent-tool-access.sh`
+- **Lines Changed:** 47
+- **Tests:** 27 (all passing)
+- **Quality:** EXCELLENT
+
+### Production File (Secondary)
+- **Path:** `/mnt/wsl/docker-desktop-bind-mounts/Ubuntu/b12e986fbf40baa4ab6e7d67a62bc26e28e460bda79c231265f4100ae030e4d0/src/cli/agent-executor.ts`
+- **Lines Changed:** 173
+- **Status:** Unreviewed
+- **Quality:** REQUIRES DEDICATED REVIEW
 
 ---
 
-## Next Steps
+## Test Coverage Details
 
-### Immediate (Before Any Production Use)
+**Total Tests:** 27
+**Passed:** 27
+**Failed:** 0
+**Pass Rate:** 100%
 
-1. **Schedule 2-hour security fix session**
-   - Implement Docker CLI injection protection
-   - Add path validation
-   - Enable Docker health monitoring
-
-2. **Run security audit after fixes**
-   - Verify no new injection points introduced
-   - Test with malicious inputs
-
-3. **Add integration tests**
-   - Test with failed Docker daemon
-   - Test with network timeouts
-   - Test with transient failures
-
-### Short Term (v1.0 Release)
-
-4. **Implement warning fixes (2.5 hours)**
-   - Add retry logic
-   - Fix timeout race condition
-   - Add version negotiation
-
-5. **Code review after fixes**
-   - Verify all recommendations implemented
-   - Confirm confidence score ≥0.85
-
-### Medium Term (v1.1+)
-
-6. **Refactor Mode A/B integration**
-   - Extract shared orchestration patterns
-   - Reduce code duplication
-
-7. **Add structured logging**
-   - Enable log aggregation
-   - Improve observability
+### Coverage Areas (All Validated)
+- ✓ Required tools list (Bash, Read, Write, Edit, Grep, Glob, Task)
+- ✓ Bash tool access for coordination
+- ✓ File operation tools
+- ✓ Search tools (with CLAUDE.md verification)
+- ✓ Task tool architecture
+- ✓ Tool permissions in spawn-agent.sh
+- ✓ Coordination protocol validation
 
 ---
 
-## Conclusion
+## Architecture Alignment
 
-The unified orchestrator pattern demonstrates excellent architectural design with clear separation of concerns and comprehensive documentation. The implementation successfully achieves 64% cost reduction through Docker containerization while maintaining clean code quality.
-
-However, three critical security vulnerabilities must be addressed before any production deployment:
-
-1. Unescaped environment variables create Docker CLI injection risk
-2. Output files not validated for path traversal attacks
-3. Silent Docker daemon failures during monitoring
-
-With these three fixes applied (estimated 2 hours), the confidence score increases from 0.72 to 0.85, making the pattern suitable for production use. The additional 7 warning/suggestion issues should be addressed in subsequent iterations to achieve 0.90+ confidence and reduce technical debt.
-
-**Recommended Action:** Allocate 4-5 hours for critical fixes, testing, and re-review before deploying to production environments.
+✓ **Main-Chat-as-Coordinator Pattern** - Tests validate this correctly
+✓ **CLI Mode Spawning** - spawn-agent mechanism validated
+✓ **Directory Structure Changes** - Tests adapted correctly
+✓ **Bash Tool Requirements** - Coordination protocol validated
 
 ---
 
-## Review Artifacts
+## Security Review
 
-- **Detailed Report:** `ORCHESTRATOR_PATTERN_CODE_REVIEW.md` (comprehensive 400+ line analysis)
-- **Structured JSON:** `ORCHESTRATOR_CODE_REVIEW.json` (machine-readable findings)
-- **This Summary:** `REVIEW_SUMMARY.md` (executive overview)
+### Test Code: SAFE ✓
+- No hardcoded credentials
+- No unsafe shell operations
+- Proper error redirection
+- Safe quoting
+
+### Production Code: REQUIRES REVIEW ⚠️
+- Command deserialization needs validation
+- Redis message handling security unclear
+- Context injection safety unverified
+- Authorization checks not visible
 
 ---
 
-**Review Date:** 2025-11-14
-**Reviewer:** Code Quality Agent
-**Confidence Score:** 0.72 / 1.0
-**Status:** REVIEW COMPLETE - REQUIRES CRITICAL FIXES
+## Recommendations
+
+### Action Items
+
+1. ✅ **SPLIT COMMITS FIRST** - Test fixes and production feature must be separate
+2. ✅ **MERGE TEST FIXES** - Ready immediately (low risk, high value)
+3. ✅ **SCHEDULE SECURITY REVIEW** - agent-executor.ts requires dedicated PR
+4. ℹ️ **OPTIONAL:** Improve test message clarity (non-blocking)
+
+### Pattern Recommendations
+
+The flexible grep and OR-based logic in these test fixes could serve as a pattern for similar test updates elsewhere:
+- Use `-r` for directory recursion
+- Use `-i` for case-insensitive patterns
+- Use `\|` for multiple pattern alternatives
+- Use OR logic for multiple valid states
+
+---
+
+## Final Assessment
+
+### Test Suite Fixes
+**Consensus Score: 0.92**
+**Verdict: READY TO PROCEED**
+
+These fixes are excellent quality. All 27 tests pass. Code follows best practices. Only cosmetic improvements suggested. Ready for immediate merge.
+
+### Full Changeset
+**Consensus Score: 0.65**
+**Verdict: SPLIT COMMITS REQUIRED**
+
+Bundling creates risk. Test fixes should merge immediately. Production code must have separate security review before deployment.
+
+---
+
+## Deliverables Included
+
+1. ✓ **CODE_REVIEW_LOOP3_TEST_FIXES.md** - Detailed technical review
+2. ✓ **REVIEW_FEEDBACK.json** - Structured JSON feedback
+3. ✓ **REVIEW_SUMMARY.md** - This file (quick reference)
+
+All files available in project root directory.

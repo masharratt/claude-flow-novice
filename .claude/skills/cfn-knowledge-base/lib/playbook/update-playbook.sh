@@ -4,7 +4,7 @@ set -euo pipefail
 # Update Playbook after Successful CFN Loop
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DB_PATH="$SCRIPT_DIR/playbook.db"
+DB_PATH="$SCRIPT_DIR/../../../../data/playbook.db"
 
 # Import parameterized query library
 source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"

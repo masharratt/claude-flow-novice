@@ -8,7 +8,7 @@ set -euo pipefail
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DB_PATH="${AGENT_LIFECYCLE_DB:-./agent-lifecycle.db}"
+DB_PATH="${AGENT_LIFECYCLE_DB:-${SCRIPT_DIR}/../../../../../data/agent-lifecycle.db}"
 
 # Source parameterized query library for SQL injection prevention
 source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"

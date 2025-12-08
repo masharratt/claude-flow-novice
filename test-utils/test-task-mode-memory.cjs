@@ -510,7 +510,7 @@ async function testContextManager() {
   console.log('📋 Testing Context Manager...');
 
   try {
-    const { ContextManager, RedisCoordinator } = require('./.claude/skills/cfn-redis-coordination/dist/index.js');
+    const { ContextManager, RedisCoordinator } = require('../.claude/skills/cfn-redis-coordination/dist/index.js');
 
     const iterations = 50;
     const managers = [];
@@ -564,7 +564,7 @@ async function testWaitingCoordinator() {
   console.log('📋 Testing Waiting Coordinator...');
 
   try {
-    const { WaitingCoordinator, RedisCoordinator } = require('./.claude/skills/cfn-redis-coordination/dist/index.js');
+    const { WaitingCoordinator, RedisCoordinator } = require('../.claude/skills/cfn-redis-coordination/dist/index.js');
 
     const iterations = 30;
     const coordinators = [];
@@ -608,7 +608,7 @@ async function testCompletionReporter() {
   console.log('📋 Testing Completion Reporter...');
 
   try {
-    const { CompletionReporter, RedisCoordinator } = require('./.claude/skills/cfn-redis-coordination/dist/index.js');
+    const { CompletionReporter, RedisCoordinator } = require('../.claude/skills/cfn-redis-coordination/dist/index.js');
 
     const iterations = 30;
     const reporters = [];
@@ -659,7 +659,7 @@ async function testInitializationOverhead() {
   const times = [];
 
   try {
-    const { RedisCoordinator } = require('./.claude/skills/cfn-redis-coordination/dist/redis-client.js');
+    const { RedisCoordinator } = require('../.claude/skills/cfn-redis-coordination/dist/redis-client.js');
 
     for (let i = 0; i < iterations; i++) {
       const start = performance.now();

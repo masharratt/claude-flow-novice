@@ -58,7 +58,7 @@ Generates comprehensive skill update proposals from edge cases.
 
 ## Database Schema
 
-**Database Location:** `./workflow-codification.db`
+**Database Location:** `../../../../data/workflow-codification.db`
 
 ### Tables
 
@@ -92,7 +92,7 @@ apk add sqlite bash bc coreutils
 
 ## Environment Variables
 
-- `DB_PATH` - Database location (default: `./workflow-codification.db`)
+- `DB_PATH` - Database location (default: `../../../../data/workflow-codification.db`)
 - `PROPOSALS_DIR` - Proposal output directory (default: `./proposals`)
 - `RECURRENCE_THRESHOLD` - Edge case threshold (default: 3)
 - `AI_COST_PER_MILLION` - AI cost per 1M tokens (default: 0.50)

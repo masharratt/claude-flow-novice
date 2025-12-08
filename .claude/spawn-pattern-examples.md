@@ -186,7 +186,7 @@ Task("coder", `
   Read analyzer findings, implement parameterized query fix.
 
   **Post-Edit Hook (MANDATORY):**
-  node config/hooks/post-edit-pipeline.js "src/user.js" --memory-key "swarm/security-fix/coder"
+  node dist/hooks/post-edit-pipeline.js "src/user.js" --memory-key "swarm/security-fix/coder"
 
   **On Completion:**
   redis-cli publish "swarm:security-fix:coder:complete" '{
@@ -304,7 +304,7 @@ Task("backend-dev", `
   Implement PUT /api/users/:id/profile with validation.
 
   **Post-Edit Hook:**
-  node config/hooks/post-edit-pipeline.js "src/api/users.js" --memory-key "swarm/profile-edit/backend"
+  node dist/hooks/post-edit-pipeline.js "src/api/users.js" --memory-key "swarm/profile-edit/backend"
 
   **On Completion:**
   redis-cli publish "swarm:profile-edit:backend:complete" '{"confidence": 0.85}'
@@ -319,7 +319,7 @@ Task("mobile-dev", `
   Build ProfileEditForm component with validation.
 
   **Post-Edit Hook:**
-  node config/hooks/post-edit-pipeline.js "src/components/ProfileEditForm.jsx" --memory-key "swarm/profile-edit/frontend"
+  node dist/hooks/post-edit-pipeline.js "src/components/ProfileEditForm.jsx" --memory-key "swarm/profile-edit/frontend"
 
   **On Completion:**
   redis-cli publish "swarm:profile-edit:frontend:complete" '{"confidence": 0.88}'
@@ -405,7 +405,7 @@ Task("coder", `
   Implement eager loading, add database index, batch queries.
 
   **Post-Edit Hook:**
-  node config/hooks/post-edit-pipeline.js "src/dashboard/queries.js" --memory-key "swarm/perf-dashboard/coder"
+  node dist/hooks/post-edit-pipeline.js "src/dashboard/queries.js" --memory-key "swarm/perf-dashboard/coder"
 
   **On Completion:**
   redis-cli publish "swarm:perf-dashboard:coder:complete" '{"confidence": 0.85}'
