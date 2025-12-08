@@ -1,11 +1,19 @@
-/**
- * Claude Flow Novice v2.0
- * Clean architecture rebuild
- */
+// Export all jobs
+export { seoScrapingJob } from "./jobs/seo-scraping.job";
 
-export * from './core/index.js';
-export * from './agents/index.js';
-export * from './coordination/index.js';
-export * from './memory/index.js';
-export * from './cfn-loop/index.js';
-export * from './ruvector/index.js';
+// Health check endpoint
+export const healthCheck = async () => {
+  return {
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    version: "1.0.0",
+  };
+};
+
+// For local testing
+if (require.main === module) {
+  console.log("SEO Intelligence Platform starting...");
+  healthCheck().then((result) => {
+    console.log("Health check:", result);
+  });
+}

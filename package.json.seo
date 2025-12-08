@@ -34,13 +34,14 @@
   "author": "SEO Platform Team",
   "license": "MIT",
   "dependencies": {
+    "@trigger.dev/sdk": "^3.3.4",
     "@anthropic-ai/sdk": "^0.67.0",
-    "@trigger.dev/sdk": "^4.2.0",
     "@types/node": "^20.10.0",
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "firecrawl-js": "^0.2.5",
     "ioredis": "^5.3.2",
     "lodash": "^4.17.21",
     "openai": "^4.20.1",
@@ -66,7 +67,7 @@
     "node": ">=18.0.0"
   },
   "trigger.dev": {
-    "endpoint": "http://localhost:8030",
+    "endpoint": "ws://localhost:8889",
     "packageManager": "npm"
   }
 }
