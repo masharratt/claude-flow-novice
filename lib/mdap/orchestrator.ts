@@ -60,7 +60,7 @@ export interface OrchestratorResult extends MDAPResult {
   implementationResults: ImplementerResult[];
 }
 
-interface ModeConfig {
+export interface ModeConfig {
   /** Pass rate threshold for gate check */
   gateThreshold: number;
   /** Maximum iterations before abort */

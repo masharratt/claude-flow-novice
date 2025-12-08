@@ -1,0 +1,35 @@
+
+> seo-intelligence-platform@1.0.0 test
+> jest
+
+Test Suites: 0 of 295 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        0.554 s, estimated 134 s
+Ran all test suites.
+Error: Cannot find module 'jest-util'
+Require stack:
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/ts-jest/dist/legacy/config/config-set.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/ts-jest/dist/legacy/ts-jest-transformer.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/ts-jest/dist/index.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/@jest/core/node_modules/jest-util/build/requireOrImportModule.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/@jest/core/node_modules/jest-util/build/index.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/@jest/core/build/FailedTestsInteractiveMode.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/@jest/core/build/plugins/FailedTestsInteractive.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/@jest/core/build/watch.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/@jest/core/build/cli/index.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/@jest/core/build/index.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-cli/build/run.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-cli/build/index.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest-cli/bin/jest.js
+- /mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/jest/bin/jest.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1410:15)
+    at Module._resolveFilename.sharedData.moduleResolveFilenameHook.installedValue [as _resolveFilename] (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/@cspotcode/source-map-support/source-map-support.js:811:30)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1051:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1056:22)
+    at Module._load (node:internal/modules/cjs/loader:1219:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:238:24)
+    at Module.require (node:internal/modules/cjs/loader:1493:12)
+    at require (node:internal/modules/helpers:152:16)
+    at Object.<anonymous> (/mnt/c/Users/masha/Documents/claude-flow-novice/node_modules/ts-jest/dist/legacy/config/config-set.js:54:21)

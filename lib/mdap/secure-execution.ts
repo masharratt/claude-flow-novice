@@ -242,7 +242,7 @@ export async function secureSpawn(
 export async function secureExecSync(
   command: string,
   options: SecureExecutionOptions = {}
-): Promise { stdout: string; stderr: string }> {
+): Promise<{ stdout: string; stderr: string }> {
   const result = await secureSpawn(command, options);
 
   if (result.error) {
