@@ -441,47 +441,54 @@ import { ConfigError, ValidationError } from '../utils/errors.js';
    * Gets user configuration directory
    */ getUserConfigDir() {
         const home = homedir();
-        return join(home, '.claude-flow');
+        // DISABLED: Return .claude instead of creating .claude-flow directory
+        // return join(home, '.claude-flow');
+        return join(home, '.claude');
     }
     /**
    * Creates user config directory if it doesn't exist
    */ async ensureUserConfigDir() {
-        try {
-            await fs.mkdir(this.userConfigDir, {
-                recursive: true
-            });
-        } catch (error) {
-            if (error.code !== 'EEXIST') {
-                throw new ConfigError(`Failed to create config directory: ${error.message}`);
-            }
-        }
+        // DISABLED: Prevent creation of .claude-flow directory
+        // try {
+        //     await fs.mkdir(this.userConfigDir, {
+        //         recursive: true
+        //     });
+        // } catch (error) {
+        //     if (error.code !== 'EEXIST') {
+        //         throw new ConfigError(`Failed to create config directory: ${error.message}`);
+        //     }
+        // }
+        console.warn('ensureUserConfigDir() disabled to prevent .claude-flow directory creation');
     }
     /**
    * Loads all profiles from the profiles directory
    */ async loadProfiles() {
-        const profilesDir = join(this.userConfigDir, 'profiles');
-        try {
-            const entries = await fs.readdir(profilesDir, {
-                withFileTypes: true
-            });
-            for (const entry of entries){
-                if (entry.isFile() && entry.name.endsWith('.json')) {
-                    const profileName = entry.name.replace('.json', '');
-                    const profilePath = join(profilesDir, entry.name);
-                    try {
-                        const content = await fs.readFile(profilePath, 'utf8');
-                        const profileConfig = safeParseJSON(content);
-                        if (profileConfig) {
-                            this.profiles.set(profileName, profileConfig);
-                        }
-                    } catch (error) {
-                        console.warn(`Failed to load profile ${profileName}: ${error.message}`);
-                    }
-                }
-            }
-        } catch (error) {
-        // Profiles directory doesn't exist - this is okay
-        }
+        // DISABLED: Prevent loading profiles from .claude-flow directory
+        console.warn('loadProfiles() disabled to prevent .claude-flow directory access');
+        return;
+        // const profilesDir = join(this.userConfigDir, 'profiles');
+        // try {
+        //     const entries = await fs.readdir(profilesDir, {
+        //         withFileTypes: true
+        //     });
+        //     for (const entry of entries){
+        //         if (entry.isFile() && entry.name.endsWith('.json')) {
+        //             const profileName = entry.name.replace('.json', '');
+        //             const profilePath = join(profilesDir, entry.name);
+        //             try {
+        //                 const content = await fs.readFile(profilePath, 'utf8');
+        //                 const profileConfig = safeParseJSON(content);
+        //                 if (profileConfig) {
+        //                     this.profiles.set(profileName, profileConfig);
+        //                 }
+        //             } catch (error) {
+        //                 console.warn(`Failed to load profile ${profileName}: ${error.message}`);
+        //             }
+        //         }
+        //     }
+        // } catch (error) {
+        // // Profiles directory doesn't exist - this is okay
+        // }
     }
     /**
    * Applies a named profile
@@ -498,42 +505,55 @@ import { ConfigError, ValidationError } from '../utils/errors.js';
     /**
    * Saves current configuration as a profile
    */ async saveProfile(profileName, config) {
-        await this.ensureUserConfigDir();
-        const profilesDir = join(this.userConfigDir, 'profiles');
-        await fs.mkdir(profilesDir, {
-            recursive: true
-        });
-        const profileConfig = config || this.config;
-        const profilePath = join(profilesDir, `${profileName}.json`);
-        const content = JSON.stringify(profileConfig, null, 2);
-        await fs.writeFile(profilePath, content, 'utf8');
-        this.profiles.set(profileName, profileConfig);
+        // DISABLED: Prevent saving profiles to .claude-flow directory
+        console.warn('saveProfile() disabled to prevent .claude-flow directory creation');
+        return;
+        // await this.ensureUserConfigDir();
+        // const profilesDir = join(this.userConfigDir, 'profiles');
+        // await fs.mkdir(profilesDir, {
+        //     recursive: true
+        // });
+        // const profileConfig = config || this.config;
+        // const profilePath = join(profilesDir, `${profileName}.json`);
+        // const content = JSON.stringify(profileConfig, null, 2);
+        // await fs.writeFile(profilePath, content, 'utf8');
+        // this.profiles.set(profileName, profileConfig);
     }
     /**
    * Deletes a profile
    */ async deleteProfile(profileName) {
-        const profilePath = join(this.userConfigDir, 'profiles', `${profileName}.json`);
-        try {
-            await fs.unlink(profilePath);
-            this.profiles.delete(profileName);
-        } catch (error) {
-            if (error.code === 'ENOENT') {
-                throw new ConfigError(`Profile '${profileName}' not found`);
-            }
-            throw new ConfigError(`Failed to delete profile: ${error.message}`);
-        }
+        // DISABLED: Prevent profile operations on .claude-flow directory
+        console.warn('deleteProfile() disabled to prevent .claude-flow directory operations');
+        this.profiles.delete(profileName);
+        return;
+        // const profilePath = join(this.userConfigDir, 'profiles', `${profileName}.json`);
+        // try {
+        //     await fs.unlink(profilePath);
+        //     this.profiles.delete(profileName);
+        // } catch (error) {
+        //     if (error.code === 'ENOENT') {
+        //         throw new ConfigError(`Profile '${profileName}' not found`);
+        //     }
+        //     throw new ConfigError(`Failed to delete profile: ${error.message}`);
+        // }
     }
     /**
    * Lists all available profiles
    */ async listProfiles() {
-        await this.loadProfiles();
-        return Array.from(this.profiles.keys());
+        // DISABLED: Prevent listing profiles from .claude-flow directory
+        console.warn('listProfiles() disabled to prevent .claude-flow directory access');
+        return [];
+        // await this.loadProfiles();
+        // return Array.from(this.profiles.keys());
     }
     /**
    * Gets a specific profile configuration
    */ async getProfile(profileName) {
-        await this.loadProfiles();
-        return this.profiles.get(profileName);
+        // DISABLED: Prevent getting profiles from .claude-flow directory
+        console.warn('getProfile() disabled to prevent .claude-flow directory access');
+        return undefined;
+        // await this.loadProfiles();
+        // return this.profiles.get(profileName);
     }
     /**
    * Gets the current active profile name

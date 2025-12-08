@@ -200,4 +200,4 @@ docker-compose -f docker-compose.monitoring.yml down -v
 
 ## Documentation
 
-See `docs/MONITORING_GUIDE.md` for complete documentation.
+See `docs/guides/MONITORING_GUIDE.md` for complete documentation.

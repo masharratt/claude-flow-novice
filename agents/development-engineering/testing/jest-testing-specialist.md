@@ -181,7 +181,7 @@ module.exports = {
     '!src/**/*.stories.{js,jsx,ts,tsx}',
     '!src/**/index.{js,ts}',
     '!src/types/**',
-    '!src/test-utils/**',
+    '!tests/config/**',
   ],
   coverageDirectory: '<rootDir>/coverage',
   coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
@@ -1196,7 +1196,7 @@ module.exports = {
 import request from 'supertest';
 import { app } from '../app';
 import { db } from '../database';
-import { createTestUser, cleanupDatabase } from '../test-utils';
+import { createTestUser, cleanupDatabase } from '../tests/config';
 import { generateToken } from '../utils/auth';
 
 describe('API Integration Tests', () => {

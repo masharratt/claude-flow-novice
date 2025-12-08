@@ -311,5 +311,5 @@ docker logs cfn-load-agent-1-*
 
 For questions or issues with load testing:
 - See: `tests/CLAUDE.md` for test authoring standards
-- See: `docs/ON_CALL_PROCEDURES.md` for production support
+- See: `docs/guides/ON_CALL_PROCEDURES.md` for production support
 - See: `docs/PERFORMANCE_OPTIMIZATION_GUIDE.md` for tuning guidance

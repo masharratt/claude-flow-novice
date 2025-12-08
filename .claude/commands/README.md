@@ -151,12 +151,10 @@ Need to automate something?
 - `/launch-web-dashboard` - Start web portal (http://localhost:3000)
 - `/list-agents-rebuild` - Regenerate agent list from discovery
 
-### Adaptive Context (ACE System)
-- `/context-stats` - View adaptive context statistics
-- `/context-reflect` - Extract lessons from task execution
-- `/context-query` - Query context bullets by category/tags
-- `/context-inject` - Inject context into CLAUDE.md dynamically
-- `/context-curate` - Merge reflection deltas with deduplication
+### RuVector Integration
+- `/codebase-search` - Semantic search through codebase
+- `/detect-stale-docs` - Find outdated documentation
+- `/codebase-reindex` - Update codebase vector index
 
 ---
 

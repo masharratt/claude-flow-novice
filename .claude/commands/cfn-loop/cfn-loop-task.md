@@ -110,25 +110,6 @@ This validates compilation and TDD compliance automatically.
   --solution "Always add type imports before interface usage"
 ```
 
----
-
-## ACE Reflection Flag
-
-```bash
-# Enable ACE reflection after each sprint (captures lessons learned)
-/cfn-loop "Task description" --spawn-mode=task --ace-reflect
-
-# Without ACE reflection (default for backwards compatibility)
-/cfn-loop "Task description" --spawn-mode=task
-```
-
-**When to use `--ace-reflect`:**
-- Long-running epics (3+ sprints) where learning accumulates
-- Complex tasks with multiple iterations
-- Teams building organizational knowledge
-- Post-mortem analysis and continuous improvement
-
----
 
 ## Execution Instructions (AUTO-EXECUTE)
 
@@ -191,6 +172,12 @@ case $MODE in
       - Run tests after each implementation step
       - Call post-edit pipeline after each file change
 
+      RuVector Requirements:
+      - Before implementing, query for similar patterns:
+        /codebase-search "${TASK_DESCRIPTION}" --top 3
+      - Query past errors: ./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh --task-description "${TASK_DESCRIPTION}"
+      - Focus on speed over perfection but avoid duplication
+
       Use local MDAP orchestration for complex tasks:
       - Import from lib/mdap/orchestrator.js
       - Call orchestrate() with appropriate payload
@@ -229,6 +216,15 @@ case $MODE in
       - Ensure >80% test coverage before completion
       - Run tests after each implementation step
       - Call post-edit pipeline after each file change
+
+      RuVector Requirements:
+      - Before implementing, ALWAYS query for similar patterns:
+        /codebase-search "${TASK_DESCRIPTION}" --top 5
+        /codebase-search "implementation pattern for ${TASK_DESCRIPTION}" --top 3
+      - Query past errors and learnings:
+        ./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh --task-description "${TASK_DESCRIPTION}"
+        ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "${TASK_DESCRIPTION}" --category PATTERN
+      - Use findings to avoid duplication and leverage existing solutions
 
       Use local MDAP orchestration for comprehensive development:
       - Import from lib/mdap/orchestrator.js
@@ -304,6 +300,17 @@ case $MODE in
       - Include integration, E2E, performance, and security tests
       - Run tests after each implementation step
       - Call post-edit pipeline after each file change
+
+      RuVector Requirements:
+      - Before implementing, perform comprehensive analysis:
+        /codebase-search "${TASK_DESCRIPTION}" --top 10
+        /codebase-search "enterprise implementation pattern for ${TASK_DESCRIPTION}" --top 5
+        /codebase-search "compliance requirements for ${TASK_DESCRIPTION}" --top 3
+      - Query all relevant knowledge bases:
+        ./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh --task-description "${TASK_DESCRIPTION}"
+        ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "${TASK_DESCRIPTION}" --category PATTERN
+        ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "${TASK_DESCRIPTION}" --category COMPLIANCE
+      - Document analysis and findings in implementation
 
       Use local MDAP orchestration with enterprise settings:
       - Import from lib/mdap/orchestrator.js
@@ -424,8 +431,6 @@ Loop 3 gate checks are based on test pass rates:
 | MVP | 70% |
 | Standard | 95% |
 | Enterprise | 98% |
-
----
 
 ---
 

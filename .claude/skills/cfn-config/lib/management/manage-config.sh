@@ -3,8 +3,10 @@ set -euo pipefail
 
 # Config Management CLI Wrapper with Nested Support
 
-CONFIG_FILE="${HOME}/.claude-flow-config.json"
-SCHEMA_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-config-management/config.json"
+# DISABLED: Use .claude directory instead of creating .claude-flow-config
+# CONFIG_FILE="${HOME}/.claude-flow-config.json"
+CONFIG_FILE="${HOME}/.claude/config.json"
+SCHEMA_FILE="/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-config/lib/management/config.json"
 
 # Validate JSON against schema
 validate_config() {
