@@ -19,7 +19,7 @@ Event Bus provides a centralized event-driven communication system for agent coo
 ### 1. Event Router and Dispatcher
 The Event Bus uses a pub/sub architecture with the following key components:
 
-**Event Emitter**: Core EventBus class from `.claude/core/event-bus.js`
+**Event Emitter**: Core EventBus class from `.claude/core/cfn-event-bus.js`
 - `emit(event, data)` - Publish an event
 - `on(event, handler)` - Subscribe to an event
 - `once(event, handler)` - Subscribe to one-time event
@@ -383,7 +383,7 @@ Event Bus behavior can be configured via:
 ```bash
 # Reset event statistics to free memory
 node -e "
-  const { eventBus } = require('./.claude/core/event-bus.js');
+  const { eventBus } = require('./.claude/core/cfn-event-bus.js');
   eventBus.resetStats();
   console.log('Stats reset');
 "

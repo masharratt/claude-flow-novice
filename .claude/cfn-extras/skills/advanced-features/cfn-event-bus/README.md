@@ -34,7 +34,7 @@ Event Bus provides a centralized pub/sub system for:
 - System-wide notifications
 - Event filtering and statistics
 
-Built on the QEEventBus architecture from `.claude/core/event-bus.js`.
+Built on the QEEventBus architecture from `.claude/core/cfn-event-bus.js`.
 
 ## Available Scripts
 
@@ -238,7 +238,7 @@ Notify all agents when consensus is reached:
 Reset event statistics:
 ```bash
 node -e "
-  const { eventBus } = require('./.claude/core/event-bus.js');
+  const { eventBus } = require('./.claude/core/cfn-event-bus.js');
   eventBus.resetStats();
 "
 ```

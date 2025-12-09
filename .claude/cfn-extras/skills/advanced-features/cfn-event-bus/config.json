@@ -17,7 +17,7 @@
   ],
   "dependencies": {
     "core": [
-      ".claude/core/event-bus.js"
+      ".claude/core/cfn-event-bus.js"
     ],
     "external": [
       "node",
