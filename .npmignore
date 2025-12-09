@@ -6,15 +6,28 @@ src/
 *.js.map
 *.ts.map
 
-# EXCLUDE .claude/ DIRECTORY - too large for npm
-# Users should clone the repo or use alternative distribution
-.claude/
+# INCLUDE .claude/ DIRECTORY - core functionality
+# Exclude only large build artifacts and duplicates
+!.claude/
+!.claude/**
 
-# Exclude all node_modules within .claude
+# Exclude build artifacts
+.claude/**/target/
+.claude/**/dist/
+.claude/**/build/
+.claude/**/.ruvector/
+.claude/**/index.db
+.claude/**/*.sqlite
+.claude/**/*.sqlite3
+
+# Exclude duplicate node_modules (already cleaned but keep rule)
 .claude/**/node_modules/
-.claude/*/node_modules/
-.claude/*/*/node_modules/
-.claude/*/*/*/node_modules/
+
+# Exclude Rust build artifacts
+.claude/skills/cfn-transparency-middleware/target/
+.claude/skills/cfn-local-ruvector-accelerator/target/
+*.rlib
+*.rmeta
 
 # Build artifacts and temp files
 *.log
