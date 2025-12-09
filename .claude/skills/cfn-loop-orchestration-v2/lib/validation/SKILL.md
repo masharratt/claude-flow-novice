@@ -1,9 +1,18 @@
+---
+name: cfn-loop-validation
+description: "Multi-layer validation and quality gates for CFN Loop workflows. Use when implementing gate checks, consensus validation, or enforcing clean agent exit patterns."
+version: 2.3.0
+tags: [cfn-loop, validation, quality-gates, consensus, typescript]
+status: production
+confidence: 0.98
+---
+
 # CFN Loop Validation Skill
 
 **Purpose:** Implement multi-layer validation and quality gates for CFN Loop workflows with clean agent exit patterns.
 
-**Version:** 2.3.0  
-**Confidence:** 0.98  
+**Version:** 2.3.0
+**Confidence:** 0.98
 **Status:** Production Ready (Robustness Enhanced)
 
 ---

@@ -1,3 +1,11 @@
+---
+name: cfn-local-ruvector-accelerator
+description: "Lightning-fast local RuVector storage optimized for solo development with pure local file storage and vector search. Use when you need instant pattern lookup without PostgreSQL or Docker overhead, or when working offline with local semantic code search."
+version: 1.0.0
+tags: [ruvector, local, vector-search, patterns, offline]
+status: production
+---
+
 # Local RuVector Accelerator
 
 ## Description

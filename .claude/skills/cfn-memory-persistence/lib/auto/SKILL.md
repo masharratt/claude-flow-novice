@@ -1,3 +1,10 @@
+---
+name: cfn-automatic-memory-persistence
+description: "Automatic, structured persistence of agent outputs to SQLite database. Use when tracking agent outputs across CFN Loop workflows, persisting confidence scores, or querying agent execution history."
+version: 1.0.0
+tags: [memory, persistence, sqlite, auto, agent-tracking]
+---
+
 # Automatic Memory Persistence Skill
 
 ## Overview

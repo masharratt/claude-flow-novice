@@ -1,3 +1,11 @@
+---
+name: cfn-loop-output-processing
+description: "Type-safe output processing for Loop 2 validators and Loop 3 implementers. Use when parsing agent confidence scores, feedback, or calculating consensus from multiple validators."
+version: 1.0.0
+tags: [cfn-loop, output-processing, typescript, validation, consensus]
+status: production
+---
+
 # CFN Loop Output Processing - Unified TypeScript Module
 
 **Version:** 1.0.0

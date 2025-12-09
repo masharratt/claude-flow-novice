@@ -1,6 +1,6 @@
 ---
 name: cfn-agent-tooling
-description: Agent development tools - generation and validation
+description: "Agent development tools - generation and validation. Use when creating new agent templates from scaffolding, or validating and linting existing agent profiles for correctness and completeness."
 version: 1.0.0
 tags: [mega-skill, agents, templates, validation, development]
 status: production

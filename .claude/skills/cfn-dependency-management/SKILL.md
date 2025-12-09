@@ -1,6 +1,6 @@
 ---
 name: cfn-dependency-management
-description: Task dependency extraction and context ingestion
+description: "Task dependency extraction and context ingestion. Use when you need to parse task criteria, identify dependencies, generate execution order, or inject context for complex multi-step tasks."
 version: 1.1.0
 tags: [mega-skill, dependencies, extraction, ingestion, orchestration]
 status: production

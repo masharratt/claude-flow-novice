@@ -62,7 +62,7 @@ impl QueryCommand {
         info!("Executing query: {}", self.config.query);
 
         // Load the search engine
-        let mut search_engine = self.search_engine.clone();
+        let mut search_engine = self.search_engine.duplicate()?;
         search_engine.load_or_create()?;
 
         // Perform search
@@ -170,7 +170,7 @@ impl BatchQueryCommand {
         info!("Executing batch queries from: {}", self.batch_file.display());
 
         // Load the search engine
-        let mut search_engine = self.search_engine.clone();
+        let mut search_engine = self.search_engine.duplicate()?;
         search_engine.load_or_create()?;
 
         // Read batch queries

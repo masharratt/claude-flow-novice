@@ -1,6 +1,6 @@
 ---
 name: cfn-docker-runtime
-description: Docker container orchestration for CFN Loop - spawning, coordination, logging, wave execution
+description: "Docker container orchestration for CFN Loop - spawning, coordination, logging, wave execution. Use when running CFN Loop agents in Docker containers, executing waves of parallel agents, coordinating containerized agents via Redis, or managing Docker-based agent lifecycle."
 version: 1.0.0
 tags: [mega-skill, docker, containers, orchestration]
 status: production

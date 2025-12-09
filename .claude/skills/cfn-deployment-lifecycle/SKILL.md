@@ -1,6 +1,6 @@
 ---
 name: cfn-deployment-lifecycle
-description: Skill deployment and promotion lifecycle management
+description: "Skill deployment and promotion lifecycle management. Use when transitioning skills from APPROVED to DEPLOYED status, or promoting skills from staging to production with SLA enforcement."
 version: 1.0.0
 tags: [mega-skill, deployment, promotion, lifecycle]
 status: production

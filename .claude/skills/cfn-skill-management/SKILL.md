@@ -1,6 +1,6 @@
 ---
 name: cfn-skill-management
-description: Skill loading, propagation, and building for CFN
+description: "Skill loading, propagation, and building for CFN. Use when dynamically discovering and loading skills, deploying skills across environments, or creating new skill scaffolding."
 version: 1.0.0
 tags: [mega-skill, skills, loader, builder, deployment]
 status: production

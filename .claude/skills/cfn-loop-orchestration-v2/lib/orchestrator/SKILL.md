@@ -1,6 +1,6 @@
 ---
 name: cfn-loop-orchestration
-description: CFN Loop workflow orchestration - three-loop structure management with gate checks and consensus
+description: "CFN Loop workflow orchestration - three-loop structure management with gate checks and consensus. Use when coordinating Loop 3 implementers and Loop 2 validators, managing iteration cycles, or enforcing quality gates."
 version: 3.1.0
 tags: [orchestration, cfn-loop, workflow, consensus]
 status: production

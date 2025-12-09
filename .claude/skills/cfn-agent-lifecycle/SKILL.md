@@ -1,6 +1,6 @@
 ---
 name: cfn-agent-lifecycle
-description: Unified agent management from selection through completion - spawning, execution, output processing
+description: "Unified agent management from selection through completion - spawning, execution, output processing. Use when selecting agents for tasks, spawning agents with dependency validation, processing agent outputs, or tracking agent lifecycle events with audit trails."
 version: 2.0.0
 tags: [mega-skill, agent-management, lifecycle, spawning]
 status: production

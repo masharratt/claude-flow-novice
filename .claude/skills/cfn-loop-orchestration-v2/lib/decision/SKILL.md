@@ -1,3 +1,11 @@
+---
+name: cfn-product-owner-decision
+description: "Strategic decision-making for CFN Loop progression with robust parsing. Use when evaluating validator consensus and determining PROCEED/ITERATE/ABORT outcomes."
+version: 2.0.0
+tags: [cfn-loop, decision-making, product-owner, typescript, consensus]
+status: production
+---
+
 # Product Owner Decision Skill
 
 **Version:** 2.0.0 (TypeScript)

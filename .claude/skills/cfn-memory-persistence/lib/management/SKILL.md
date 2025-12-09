@@ -1,3 +1,10 @@
+---
+name: cfn-memory-management
+description: "Prevent and detect memory leaks in Claude CLI operations through proactive monitoring, limits, and profiling. Use when managing memory limits for long-running agents, detecting memory leaks, profiling heap usage, or implementing recovery procedures."
+version: 1.0.0
+tags: [memory, monitoring, profiling, leak-detection, performance]
+---
+
 # CFN Memory Management Skill
 
 **Purpose:** Prevent and detect memory leaks in Claude CLI operations through proactive monitoring, limits, and profiling.

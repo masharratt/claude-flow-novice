@@ -237,6 +237,61 @@ Claude Code auto-discovers MCP servers from:
 
 To prevent auto-discovered servers from connecting, add them to `disabledMcpServers`.
 
+## SKILL.md Best Practices
+
+### Description Field is Primary Discovery
+- Claude reads **only the `description` field** at startup to decide when to invoke skills
+- Full SKILL.md content is loaded **only after** Claude decides the skill is relevant
+- Description must answer: **What does it do?** + **When should it be used?**
+
+### Effective Description Formula
+```yaml
+description: "<Capability>. Use when <condition 1>, <condition 2>, or <condition 3>."
+```
+
+**Good example:**
+```yaml
+description: "Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files or when the user mentions PDFs, forms, or document extraction."
+```
+
+**Bad examples:**
+- `"Helps with documents"` - too vague
+- `"Processes data"` - too generic
+- Missing trigger conditions
+
+### Required Frontmatter
+```yaml
+---
+name: lowercase-skill-name    # Max 64 chars, hyphens/lowercase only
+description: What + when      # Max 1024 chars
+version: 1.0.0               # Optional but recommended
+tags: [category, type]       # For organization (not indexed by Claude)
+---
+```
+
+### Content Best Practices
+- **Under 500 lines** in SKILL.md body
+- Use **progressive disclosure** - detailed docs in separate files
+- Include concrete **Quick Start** examples
+- One level deep for reference files (no deep nesting)
+
+### Anti-Patterns to Avoid
+- Missing trigger conditions in description
+- Verbose prose instead of blueprints
+- Time-sensitive information
+- Offering too many options without clear recommendation
+- Inconsistent terminology
+
+### Skill Analysis Checklist
+When reviewing SKILL.md files, verify:
+- [ ] Description includes both capability AND trigger conditions
+- [ ] Uses "Use when..." pattern for discovery
+- [ ] Under 500 lines in body
+- [ ] Has YAML frontmatter with name, description
+- [ ] Includes concrete Quick Start example
+- [ ] No deep nesting of reference files
+- [ ] Consistent terminology throughout
+
 ## Documentation URLs to Reference
 
 Primary resources:
@@ -244,6 +299,7 @@ Primary resources:
 - https://docs.claudecode.com/workflows
 - https://docs.claudecode.com/tools
 - https://docs.claudecode.com/best-practices
+- https://docs.claudecode.com/skills (skill creation guide)
 
 ## Output Format
 

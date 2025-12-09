@@ -1,14 +1,157 @@
+use anyhow::{Result, Context, anyhow};
+use ndarray::{Array1, Array2};
+use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use std::path::{Path, PathBuf};
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write, BufReader, BufWriter};
+use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
+use tracing::info;
+use memmap2::MmapOptions;
+use crate::embeddings::EmbeddingsManager;
+use crate::sqlite_store::SqliteStore;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchConfig {
+    pub dimension: usize,
+    pub batch_size: usize,
+    pub max_results: usize,
+    pub index_path: PathBuf,
+    pub use_mmap: bool,
+}
+
+impl Default for SearchConfig {
+    fn default() -> Self {
+        Self {
+            dimension: 1536,
+            batch_size: 100,
+            max_results: 10,
+            index_path: PathBuf::from("index"),
+            use_mmap: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct VectorIndex {
+    pub vectors: Array2<f32>,
+    pub ids: Vec<String>,
+    pub metadata: HashMap<String, IndexMetadata>,
+}
+
+impl VectorIndex {
+    pub fn new(dimension: usize) -> Self {
+        Self {
+            vectors: Array2::zeros((0, dimension)),
+            ids: Vec::new(),
+            metadata: HashMap::new(),
+        }
+    }
+
+    pub fn add_vector(&mut self, id: String, vector: Array1<f32>, metadata: IndexMetadata) -> Result<()> {
+        if vector.len() != self.vectors.ncols() {
+            return Err(anyhow!("Vector dimension mismatch"));
+        }
+
+        let new_row = self.vectors.nrows();
+        self.vectors.push_row(vector.view())?;
+        self.ids.push(id.clone());
+        self.metadata.insert(id, metadata);
+
+        Ok(())
+    }
+
+    pub fn add_vectors(&mut self, vectors: Vec<Array1<f32>>, ids: Vec<String>, metadata: HashMap<String, IndexMetadata>) -> Result<()> {
+        if vectors.len() != ids.len() {
+            return Err(anyhow!("Vectors and IDs length mismatch"));
+        }
+
+        for (vector, id) in vectors.into_iter().zip(ids.into_iter()) {
+            let meta = metadata.get(&id).cloned().unwrap_or_else(|| IndexMetadata::default());
+            self.add_vector(id, vector, meta)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct IndexMetadata {
+    pub path: String,
+    pub pattern: String,
+    pub context: Option<String>,
+    pub line_number: Option<usize>,
+    pub snippet: Option<String>,
+    pub file_hash: String,
+    pub indexed_at: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct SearchResult {
+    pub id: String,
+    pub path: String,
+    pub pattern: String,
+    pub score: f32,
+    pub context: Option<String>,
+    pub line_number: Option<usize>,
+    pub snippet: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct IndexStats {
+    pub num_vectors: usize,
+    pub dimension: usize,
+    pub index_size_bytes: u64,
+    pub metadata_count: usize,
+}
+
+pub struct SearchEngine {
+    pub index: VectorIndex,
+    pub config: SearchConfig,
+    pub embedding_manager: EmbeddingsManager,
+    pub store: SqliteStore,
+}
+
+impl std::fmt::Debug for SearchEngine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SearchEngine")
+            .field("index", &self.index)
+            .field("config", &self.config)
+            .finish_non_exhaustive()
+    }
+}
+
+impl SearchEngine {
+    /// Create a copy of the search engine by recreating connections
+    pub fn duplicate(&self) -> Result<Self> {
+        let index_path = &self.config.index_path;
+        let embedding_manager = EmbeddingsManager::new(index_path)?;
+        let store = SqliteStore::new(&index_path.join("index.db"))?;
+
+        Ok(Self {
+            index: self.index.clone(),
+            config: self.config.clone(),
+            embedding_manager,
+            store,
+        })
+    }
+}
+
 impl SearchEngine {
     pub fn new(project_dir: &Path) -> Result<Self> {
-        let config = SearchConfig::default();
+        let mut config = SearchConfig::default();
         let index_path = project_dir.join(&config.index_path);
+        // Update config with absolute path for consistent usage
+        config.index_path = index_path.clone();
 
         let embedding_manager = EmbeddingsManager::new(&index_path)?;
+        let store = SqliteStore::new(&index_path.join("index.db"))?;
 
         Ok(Self {
             index: VectorIndex::new(config.dimension),
             config,
             embedding_manager,
+            store,
         })
     }
 
@@ -36,14 +179,12 @@ impl SearchEngine {
     pub fn search(&self, query: &str, max_results: Option<usize>) -> Result<Vec<SearchResult>> {
         let max_results = max_results.unwrap_or(self.config.max_results);
 
-        // Search patterns using SQLite store
-        let pattern_results = self.embedding_manager.store.search_patterns(query, max_results)?;
+        let pattern_results = self.store.search_patterns(query, max_results)?;
 
         let mut results = Vec::new();
 
         for (pattern, score) in pattern_results {
-            // Get full metadata for each pattern
-            if let Some((_, metadata)) = self.embedding_manager.store.get_embedding(&pattern)? {
+            if let Some((_, metadata)) = self.store.get_embedding(&pattern)? {
                 results.push(SearchResult {
                     id: pattern.clone(),
                     path: metadata.path.clone(),
@@ -56,7 +197,6 @@ impl SearchEngine {
             }
         }
 
-        // Sort and limit results
         results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
         results.truncate(max_results);
 
@@ -94,10 +234,8 @@ impl SearchEngine {
         let index_file = self.config.index_path.join("index.bin");
         let metadata_file = self.config.index_path.join("metadata.json");
 
-        // Save vectors and IDs
         self.save_vectors(&index_file)?;
 
-        // Save metadata
         let metadata_json = serde_json::to_string_pretty(&self.index.metadata)?;
         std::fs::write(&metadata_file, metadata_json)?;
 
@@ -114,22 +252,18 @@ impl SearchEngine {
 
         let mut writer = BufWriter::new(file);
 
-        // Write magic number and version
-        writer.write_u32::<LittleEndian>(0x52554345)?; // "RUCE"
-        writer.write_u32::<LittleEndian>(1)?; // Version
+        writer.write_u32::<LittleEndian>(0x52554345)?;
+        writer.write_u32::<LittleEndian>(1)?;
 
-        // Write dimensions and count
         writer.write_u32::<LittleEndian>(self.config.dimension as u32)?;
         writer.write_u32::<LittleEndian>(self.index.vectors.nrows() as u32)?;
 
-        // Write vectors
         for vector in self.index.vectors.rows() {
             for &value in vector.iter() {
                 writer.write_f32::<LittleEndian>(value)?;
             }
         }
 
-        // Write IDs (length-prefixed strings)
         for id in &self.index.ids {
             writer.write_u32::<LittleEndian>(id.len() as u32)?;
             writer.write_all(id.as_bytes())?;
@@ -143,10 +277,8 @@ impl SearchEngine {
         let index_file = self.config.index_path.join("index.bin");
         let metadata_file = self.config.index_path.join("metadata.json");
 
-        // Load vectors and IDs
         self.load_vectors(&index_file)?;
 
-        // Load metadata
         let metadata_json = std::fs::read_to_string(&metadata_file)
             .context("Failed to read metadata file")?;
         self.index.metadata = serde_json::from_str(&metadata_json)
@@ -159,11 +291,9 @@ impl SearchEngine {
         let file = File::open(path)?;
 
         if self.config.use_mmap {
-            // Use memory mapping for large files
             let mmap = unsafe { MmapOptions::new().map(&file)? };
             self.load_vectors_from_slice(&mmap)?;
         } else {
-            // Read normally for smaller files
             let mut reader = BufReader::new(file);
             self.load_vectors_from_reader(&mut reader)?;
         }
@@ -179,19 +309,16 @@ impl SearchEngine {
     }
 
     fn load_vectors_from_reader<R: Read>(&mut self, reader: &mut R) -> Result<()> {
-        // Read and verify magic number
         let magic = reader.read_u32::<LittleEndian>()?;
         if magic != 0x52554345 {
             return Err(anyhow!("Invalid file format"));
         }
 
-        // Read version
         let version = reader.read_u32::<LittleEndian>()?;
         if version != 1 {
             return Err(anyhow!("Unsupported version: {}", version));
         }
 
-        // Read dimensions and count
         let dimension = reader.read_u32::<LittleEndian>()? as usize;
         let count = reader.read_u32::<LittleEndian>()? as usize;
 
@@ -203,7 +330,6 @@ impl SearchEngine {
             ));
         }
 
-        // Read vectors
         let mut vectors = Vec::with_capacity(count * dimension);
         for _ in 0..count * dimension {
             vectors.push(reader.read_f32::<LittleEndian>()?);
@@ -211,7 +337,6 @@ impl SearchEngine {
 
         let vectors_array = Array2::from_shape_vec((count, dimension), vectors)?;
 
-        // Read IDs
         let mut ids = Vec::with_capacity(count);
         for _ in 0..count {
             let len = reader.read_u32::<LittleEndian>()? as usize;
@@ -236,7 +361,7 @@ impl SearchEngine {
     }
 
     fn estimate_index_size(&self) -> u64 {
-        let vectors_size = self.index.vectors.nrows() * self.index.vectors.ncols() * 4; // f32 = 4 bytes
+        let vectors_size = self.index.vectors.nrows() * self.index.vectors.ncols() * 4;
         let ids_size: usize = self.index.ids.iter().map(|id| id.len()).sum();
         (vectors_size + ids_size) as u64
     }
@@ -244,7 +369,6 @@ impl SearchEngine {
     pub fn optimize_index(&mut self) -> Result<()> {
         info!("Optimizing index...");
 
-        // Normalize all vectors
         for mut vector in self.index.vectors.rows_mut() {
             let norm = vector.iter().map(|x| x * x).sum::<f32>().sqrt();
             if norm > 0.0 {
@@ -254,15 +378,13 @@ impl SearchEngine {
             }
         }
 
-        // Optional: Rebuild metadata index for faster lookups
-        self.rebuild_metadata_indexlettes()?;
+        self.rebuild_metadata_index()?;
 
         info!("Index optimized successfully");
         Ok(())
     }
 
     fn rebuild_metadata_index(&mut self) -> Result<()> {
-        // Create path-based index for faster filtering
         let mut path_index: HashMap<String, Vec<String>> = HashMap::new();
 
         for (id, metadata) in &self.index.metadata {
@@ -271,7 +393,6 @@ impl SearchEngine {
                 .push(id.clone());
         }
 
-        // Store path index as metadata
         let path_index_json = serde_json::to_string(&path_index)?;
         let path_index_file = self.config.index_path.join("path_index.json");
         std::fs::write(path_index_file, path_index_json)?;

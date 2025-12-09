@@ -1,6 +1,6 @@
 ---
 name: cfn-knowledge-base
-description: Organizational learning from CFN Loop execution - workflow codification and playbooks
+description: "Organizational learning from CFN Loop execution - workflow codification and playbooks. Use when you need to store successful patterns, query past learnings, track edge cases and failures, or retrieve agent configurations and iteration strategies from previous tasks."
 version: 1.0.0
 tags: [mega-skill, learning, workflow, playbook]
 status: production

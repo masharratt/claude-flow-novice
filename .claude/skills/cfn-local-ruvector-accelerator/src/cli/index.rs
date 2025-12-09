@@ -31,6 +31,7 @@ impl Default for IndexStats {
 
 pub struct IndexCommand {
     project_dir: PathBuf,
+    source_path: PathBuf,  // Path to walk for files (can differ from project_dir)
     index_path: PathBuf,
     file_types: Vec<String>,
     patterns: Option<Vec<String>>,
@@ -53,8 +54,16 @@ impl IndexCommand {
         let search_engine = SearchEngine::new(project_dir).unwrap();
         let store = SqliteStore::new(&index_path.join("index.db")).unwrap();
 
+        // Use path argument for file collection, defaulting to project_dir if path is empty
+        let source_path = if path.as_os_str().is_empty() || path == Path::new(".") {
+            project_dir.to_path_buf()
+        } else {
+            path.to_path_buf()
+        };
+
         Self {
             project_dir: project_dir.to_path_buf(),
+            source_path,
             index_path,
             file_types,
             patterns,
@@ -95,7 +104,7 @@ impl IndexCommand {
             .context("Failed to create index directory")?;
 
         // Initialize search engine
-        let mut search_engine = self.search_engine.clone();
+        let mut search_engine = self.search_engine.duplicate()?;
         search_engine.load_or_create()?;
 
         // Initialize database
@@ -106,11 +115,11 @@ impl IndexCommand {
     }
 
     fn collect_files(&self) -> Result<Vec<PathBuf>> {
-        info!("Collecting files to index");
+        info!("Collecting files to index from: {}", self.source_path.display());
 
         let mut files = Vec::new();
 
-        let walker = WalkDir::new(&self.project_dir)
+        let walker = WalkDir::new(&self.source_path)
             .into_iter()
             .filter_entry(|e| !Self::is_hidden(e))
             .filter_map(|e| e.ok())
@@ -122,6 +131,15 @@ impl IndexCommand {
 
                 // Skip .ruvector directory
                 if e.path().starts_with(&self.index_path) {
+                    return false;
+                }
+
+                // Skip node_modules, target, dist, build directories
+                let path_str = e.path().to_string_lossy();
+                if path_str.contains("/node_modules/") ||
+                   path_str.contains("/target/") ||
+                   path_str.contains("/dist/") ||
+                   path_str.contains("/build/") {
                     return false;
                 }
 
@@ -144,7 +162,14 @@ impl IndexCommand {
     fn is_hidden(entry: &DirEntry) -> bool {
         entry.file_name()
             .to_str()
-            .map(|s| s.starts_with('.'))
+            .map(|s| {
+                // Allow .claude directory (contains agents, skills, commands, hooks)
+                if s == ".claude" {
+                    return false;
+                }
+                // Skip other hidden directories (like .git, .ruvector, etc.)
+                s.starts_with('.')
+            })
             .unwrap_or(false)
     }
 

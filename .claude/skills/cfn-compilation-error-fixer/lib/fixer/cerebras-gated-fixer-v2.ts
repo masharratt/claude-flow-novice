@@ -25,7 +25,7 @@ const CONFIG = {
   maxLayer1Retries: 3,  // Max retries when Layer 1 gates reject
   maxTokens: 4000,
   model: 'zai-glm-4.6',
-  projectPath: '/mnt/c/Users/masha/Documents/ourstories-v2/services/rust-services',
+  projectPath: process.env.RUST_PROJECT_PATH || '/mnt/c/Users/masha/Documents/ourstories-v2/services/rust-services',
   parallelLLMCalls: 10,
   enableLayer3: !process.argv.includes('--no-layer3'),
   enableClippy: !process.argv.includes('--no-clippy'),

@@ -1,6 +1,6 @@
 ---
 name: cfn-compilation-error-fixer
-description: Two-phase compilation error fixer for Rust and TypeScript using Cerebras LLM bulk processing + dedicated agent cleanup
+description: "Two-phase compilation error fixer for Rust and TypeScript using Cerebras LLM bulk processing + dedicated agent cleanup. Use when you have 20+ compilation errors that need fast bulk reduction, or when errors are mostly mechanical (type mismatches, missing imports, syntax issues)."
 version: 2.0.0
 tags: [rust, typescript, compilation, cerebras, error-fixer, cfn]
 status: production

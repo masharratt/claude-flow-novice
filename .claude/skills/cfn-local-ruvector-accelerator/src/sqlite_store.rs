@@ -122,7 +122,7 @@ impl SqliteStore {
             "SELECT pattern FROM embeddings WHERE pattern LIKE ? LIMIT ?"
         )?;
 
-        let mut rows = stmt.query([&format!("%{}%", query)])?;
+        let mut rows = stmt.query(params![format!("%{}%", query), limit as i64])?;
 
         let mut results = Vec::new();
         while let Some(row) = rows.next()? {
