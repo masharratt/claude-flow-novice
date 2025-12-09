@@ -12,6 +12,9 @@ src/
 
 # Exclude all node_modules within .claude
 .claude/**/node_modules/
+.claude/*/node_modules/
+.claude/*/*/node_modules/
+.claude/*/*/*/node_modules/
 
 # Build artifacts and temp files
 *.log
