@@ -157,10 +157,52 @@ database/*.db-wal
 database/*.db-shm
 
 # Rust
-*/target*
-*/target/*
-*target/*
-*/.build-logs/*
+*/target/
+target/
+**/*.rs.bk
+**/*.bk
+
+# Rust Cargo
+**/Cargo.lock
+**/.cargo/
+**/target/
+**/target/debug/
+**/target/release/
+
+# Rust build artifacts
+**/target/.rustc_info.json
+**/target/CACHEDIR.TAG
+**/target/debug/deps/
+**/target/debug/build/
+**/target/debug/.fingerprint/
+**/target/debug/incremental/
+
+# TypeScript build artifacts
+**/dist/
+**/.tsbuildinfo
+**/build/
+
+# Test artifacts and temp files
+tests/epic-skills-validation/
+**/test-*.subtasks.json
+**/test-debug*.subtasks.json
+**/test-final*.subtasks.json
+**/test-simple*.subtasks.json
+**/test-456-subtasks.json
+**/test-789-subtasks.json
+**/test-999-subtasks.json
+**/test-debug*.subtasks.json
+**/test-debug2*.subtasks.json
+
+# Task decomposition prompts and outputs
+.claude/skills/cfn-task-decomposition/prompts/
+**/prompts/*.md
+**/prompts/*.prompt.md
+
+# Claude assets
+.claude/backups/cfn-expert/
+.claude/state/
+.claude/skills/.cfn/
 
 
 
