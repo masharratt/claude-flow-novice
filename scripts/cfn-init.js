@@ -64,11 +64,13 @@ const CFN_PATHS = {
   },
   core: {
     src: path.join(cfnRoot, '.claude/core'),
-    dest: '.claude/core'
+    dest: '.claude/core',
+    pattern: 'cfn-*'
   },
   helpers: {
     src: path.join(cfnRoot, '.claude/helpers'),
-    dest: '.claude/helpers'
+    dest: '.claude/helpers',
+    pattern: 'cfn-*'
   }
 };
 
