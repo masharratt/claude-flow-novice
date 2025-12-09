@@ -6,9 +6,9 @@ src/
 *.js.map
 *.ts.map
 
-# EXPLICITLY INCLUDE .claude/ DIRECTORY (but exclude node_modules)
-!.claude/
-!.claude/**
+# EXCLUDE .claude/ DIRECTORY - too large for npm
+# Users should clone the repo or use alternative distribution
+.claude/
 
 # Exclude all node_modules within .claude
 .claude/**/node_modules/
