@@ -135,3 +135,52 @@ swarm/
 templates/
 readme/
 web-portal/
+
+# Rust/Local RuVector build artifacts
+.claude/skills/cfn-local-ruvector-accelerator/target/
+.claude/skills/cfn-local-ruvector-accelerator/Cargo.lock
+.claude/skills/cfn-local-ruvector-accelerator/index.db
+.claude/skills/cfn-local-ruvector-accelerator/.ruvector/
+.claude/skills/cfn-local-ruvector-accelerator/*.sqlite
+.claude/skills/cfn-local-ruvector-accelerator/*.sqlite3
+
+# Docker files
+docker/
+*.dockerfile
+docker-compose*.yml
+docker-compose*.yaml
+
+# Large documentation files
+docs/CENTRALIZED_*.md
+docs/IMPLEMENTATION_*.md
+docs/CEREBRAS_INTEGRATION_COMPARISON.md
+epics/
+
+# Shellcheck binary
+shellcheck-v0.8.0/
+shellcheck.tar.xz
+
+# Large scripts
+scripts/simple-portal-server.cjs
+scripts/migrate-*.ts
+scripts/migrate-*.js
+scripts/migrate-*.sh
+scripts/security/
+scripts/vault/
+scripts/docker-*.sh
+scripts/npm/
+
+# Archives
+.archive/
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+*.rar
+
+# Large data files
+*.sqlite
+*.sqlite3
+*.db
+*.mdb
+*.data
