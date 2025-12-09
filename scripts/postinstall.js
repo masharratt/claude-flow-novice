@@ -63,11 +63,11 @@ function copyCFNDevTeam(targetDir) {
 
 function updateSkillsAndCommands(targetDir) {
   const sourceDir = path.join(projectRoot, '.claude');
-  const targetDir = path.join(targetDir, '.claude');
+  const targetClaudeDir = path.join(targetDir, '.claude');
 
   // Update skills (preserve existing)
   const sourceSkillsDir = path.join(sourceDir, 'skills');
-  const targetSkillsDir = path.join(targetDir, 'skills');
+  const targetSkillsDir = path.join(targetClaudeDir, 'skills');
 
   if (fs.existsSync(sourceSkillsDir)) {
     if (!fs.existsSync(targetSkillsDir)) {
@@ -92,7 +92,7 @@ function updateSkillsAndCommands(targetDir) {
 
   // Update commands
   const sourceCommandsDir = path.join(sourceDir, 'commands');
-  const targetCommandsDir = path.join(targetDir, 'commands');
+  const targetCommandsDir = path.join(targetClaudeDir, 'commands');
 
   if (fs.existsSync(sourceCommandsDir)) {
     if (fs.existsSync(targetCommandsDir)) {
