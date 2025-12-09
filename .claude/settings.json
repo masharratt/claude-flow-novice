@@ -1,10 +1,10 @@
 {
   "env": {
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.6",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.6",
-    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
-    "ANTHROPIC_AUTH_TOKEN": "22f735783ea54c69a8e5d79b731eb4f4.gDXkwrMNlYcqE8mF"
+    "_ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.6",
+    "_ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6",
+    "_ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.6",
+    "_ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "_ANTHROPIC_AUTH_TOKEN": "22f735783ea54c69a8e5d79b731eb4f4.gDXkwrMNlYcqE8mF"
   },
   "permissions": {
     "allow": [

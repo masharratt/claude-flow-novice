@@ -16,7 +16,7 @@ SPAWNED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Project paths
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
-DB_PATH="${PROJECT_ROOT}/claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db"
+DB_PATH="${PROJECT_ROOT}/.claude/skills/cfn-redis-coordination/data/cfn-loop.db"
 LOG_PATH="${PROJECT_ROOT}/.artifacts/logs/subagent-lifecycle.log"
 
 # Ensure directories exist

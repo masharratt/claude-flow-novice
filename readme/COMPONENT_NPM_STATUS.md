@@ -66,7 +66,7 @@ package/
 │
 ├── dist/                         ← ✅ 101 compiled JS files
 ├── scripts/
-│   ├── init-project.js           ← ✅ cfn-init binary
+│   ├── cfn-init.js               ← ✅ cfn-init binary
 │   └── ... (essential scripts)
 ├── package.json
 ├── README.md

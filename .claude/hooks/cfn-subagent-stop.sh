@@ -17,7 +17,7 @@ COMPLETED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Project paths
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
-DB_PATH="${PROJECT_ROOT}/claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db"
+DB_PATH="${PROJECT_ROOT}/.claude/skills/cfn-redis-coordination/data/cfn-loop.db"
 LOG_PATH="${PROJECT_ROOT}/.artifacts/logs/subagent-lifecycle.log"
 TRANSCRIPT_DIR="${PROJECT_ROOT}/.artifacts/transcripts"
 
@@ -80,6 +80,42 @@ SET metadata = json_set(
 )
 WHERE id = '$AGENT_ID';
 EOF
+
+    # ========================================================================
+    # Feature 3: RuVector Transcript Ingestion
+    # ========================================================================
+
+    # Ingest transcript data into RuVector for semantic search
+    # Determine success flag from agent status/confidence
+    AGENT_SUCCESS="true"
+    AGENT_CONFIDENCE=$(sqlite3 "$DB_PATH" "SELECT confidence FROM agents WHERE id = '$AGENT_ID';" || echo "0")
+
+    # Consider failure if confidence < 0.70 or metadata indicates failure
+    if awk "BEGIN {exit !($AGENT_CONFIDENCE < 0.70)}"; then
+        AGENT_SUCCESS="false"
+    fi
+
+    # Check metadata for explicit failure flag
+    if sqlite3 "$DB_PATH" "SELECT metadata FROM agents WHERE id = '$AGENT_ID';" | grep -q '"success": false'; then
+        AGENT_SUCCESS="false"
+    fi
+
+    # Call RuVector ingestion script (non-blocking, logs errors)
+    RUVECTOR_SCRIPT="${PROJECT_ROOT}/.claude/skills/cfn-local-ruvector-accelerator/ingest-agent-transcript.sh"
+    if [ -f "$RUVECTOR_SCRIPT" ]; then
+        "$RUVECTOR_SCRIPT" \
+            --transcript "$TRANSCRIPT_ARCHIVE" \
+            --agent-id "$AGENT_ID" \
+            --agent-type "$AGENT_TYPE" \
+            --task-id "$TASK_ID" \
+            --success "$AGENT_SUCCESS" \
+            >> "$LOG_PATH" 2>&1 || {
+                echo "[SubagentStop] Warning: RuVector ingestion failed for $AGENT_ID" | tee -a "$LOG_PATH"
+            }
+        echo "[SubagentStop] RuVector ingestion triggered for $AGENT_ID" | tee -a "$LOG_PATH"
+    else
+        echo "[SubagentStop] RuVector ingestion script not found, skipping" | tee -a "$LOG_PATH"
+    fi
 
 else
     echo "[SubagentStop] No transcript available for $AGENT_ID (path: $AGENT_TRANSCRIPT_PATH)" | tee -a "$LOG_PATH"

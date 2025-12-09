@@ -37,37 +37,38 @@ function findCfnRoot() {
 const cfnRoot = findCfnRoot();
 
 // Configuration for CFN initialization paths
+// Source directly from .claude/ folder (no need for separate claude-assets)
 const CFN_PATHS = {
   agents: {
-    src: path.join(cfnRoot, 'claude-assets/agents/cfn-dev-team'),
+    src: path.join(cfnRoot, '.claude/agents/cfn-dev-team'),
     dest: '.claude/agents/cfn-dev-team'
   },
   skills: {
-    src: path.join(cfnRoot, 'claude-assets/skills'),
+    src: path.join(cfnRoot, '.claude/skills'),
     dest: '.claude/skills',
     pattern: 'cfn-*'
   },
-  ruvector: {
-    src: path.join(cfnRoot, 'claude-assets/skills/ruvector-codebase-index'),
-    dest: '.claude/skills/ruvector-codebase-index'
-  },
   hooks: {
-    src: path.join(cfnRoot, 'claude-assets/hooks'),
+    src: path.join(cfnRoot, '.claude/hooks'),
     dest: '.claude/hooks',
     pattern: 'cfn-*'
   },
   commands: {
-    src: path.join(cfnRoot, 'claude-assets/commands'),
+    src: path.join(cfnRoot, '.claude/commands'),
     dest: '.claude/commands',
     selectiveCopy: true // Copy all files to root, overwriting cfn-prefixed ones
   },
-  cfnData: {
-    src: path.join(cfnRoot, 'claude-assets/cfn-data'),
-    dest: '.claude/cfn-data'
-  },
   cfnExtras: {
-    src: path.join(cfnRoot, 'claude-assets/cfn-extras'),
+    src: path.join(cfnRoot, '.claude/cfn-extras'),
     dest: '.claude/cfn-extras'
+  },
+  core: {
+    src: path.join(cfnRoot, '.claude/core'),
+    dest: '.claude/core'
+  },
+  helpers: {
+    src: path.join(cfnRoot, '.claude/helpers'),
+    dest: '.claude/helpers'
   }
 };
 
@@ -77,8 +78,9 @@ async function ensureDirectories() {
     '.claude/skills',
     '.claude/hooks',
     '.claude/commands',
-    '.claude/cfn-data',
-    '.claude/cfn-extras'
+    '.claude/cfn-extras',
+    '.claude/core',
+    '.claude/helpers'
   ];
 
   for (const dir of dirs) {
@@ -99,8 +101,8 @@ async function verifyCfnInstallation() {
 
   // Verify critical directories exist
   const criticalPaths = [
-    path.join(cfnRoot, 'claude-assets/agents/cfn-dev-team'),
-    path.join(cfnRoot, 'claude-assets/skills')
+    path.join(cfnRoot, '.claude/agents/cfn-dev-team'),
+    path.join(cfnRoot, '.claude/skills')
   ];
 
   for (const p of criticalPaths) {
@@ -183,7 +185,7 @@ async function copyFiles(src, dest, pattern, forceOverwrite = true, selectiveCop
 }
 
 async function copyCfnClaudeMarkdown() {
-  const cfnClaudeMdPath = path.join(cfnRoot, 'claude-assets/root-claude-distribute/CFN-CLAUDE.md');
+  const cfnClaudeMdPath = path.join(cfnRoot, '.claude/root-claude-distribute/CFN-CLAUDE.md');
   const destPath = path.resolve(process.cwd(), 'CFN-CLAUDE.md');
 
   if (fs.existsSync(cfnClaudeMdPath)) {
@@ -236,16 +238,12 @@ function parseArgs() {
   const args = process.argv.slice(2);
   const options = {
     force: false,
-    trigger: false,
     help: false
   };
 
   for (const arg of args) {
     if (arg === '--force' || arg === '-f') {
       options.force = true;
-    }
-    if (arg === '--trigger' || arg === '-t') {
-      options.trigger = true;
     }
     if (arg === '--help' || arg === '-h') {
       options.help = true;
@@ -260,74 +258,10 @@ function showHelp() {
   console.log('Usage: cfn-init [options]\n');
   console.log('Options:');
   console.log('  --force, -f     Force reinitialize even if already initialized');
-  console.log('  --trigger, -t   Install Trigger.dev integration for MDAP workflows');
   console.log('  --help, -h      Show this help message\n');
   console.log('Examples:');
   console.log('  npx cfn-init              # Standard initialization');
-  console.log('  npx cfn-init --trigger    # Initialize with Trigger.dev support');
   console.log('  npx cfn-init --force      # Force reinitialize\n');
-}
-
-async function installTriggerDev() {
-  console.log(chalk.blue('\n🔧 Installing Trigger.dev integration...'));
-
-  // Check if @trigger.dev/sdk is already installed
-  const triggerSdkPath = path.resolve(process.cwd(), 'node_modules/@trigger.dev/sdk');
-  if (fs.existsSync(triggerSdkPath)) {
-    console.log(chalk.green('✅ @trigger.dev/sdk already installed'));
-  } else {
-    console.log(chalk.yellow('📦 Installing @trigger.dev/sdk...'));
-    const result = spawnSync('npm', ['install', '@trigger.dev/sdk@^3.0.0'], {
-      encoding: 'utf-8',
-      stdio: 'inherit'
-    });
-    if (result.status !== 0) {
-      console.error(chalk.red('❌ Failed to install @trigger.dev/sdk'));
-      console.log(chalk.yellow('   Manual install: npm install @trigger.dev/sdk'));
-      return false;
-    }
-    console.log(chalk.green('✅ @trigger.dev/sdk installed'));
-  }
-
-  // Copy trigger-dev workflow files from package
-  const triggerSrcDir = path.join(cfnRoot, 'trigger-dev');
-  const triggerDestDir = path.resolve(process.cwd(), 'trigger-dev');
-
-  if (fs.existsSync(triggerSrcDir)) {
-    if (!fs.existsSync(triggerDestDir)) {
-      await cpAsync(triggerSrcDir, triggerDestDir, { recursive: true });
-      console.log(chalk.green('✅ Trigger.dev workflows copied to ./trigger-dev'));
-    } else {
-      console.log(chalk.yellow('⚠️ ./trigger-dev already exists, skipping copy'));
-    }
-  } else {
-    console.log(chalk.yellow('⚠️ Trigger.dev workflows not found in package'));
-    console.log(chalk.gray('   You may need to create trigger-dev/ manually'));
-  }
-
-  // Create .env.local template for Trigger.dev
-  const envLocalPath = path.resolve(process.cwd(), '.env.local');
-  if (!fs.existsSync(envLocalPath)) {
-    const envTemplate = `# Trigger.dev Configuration
-TRIGGER_API_KEY=your_trigger_api_key_here
-TRIGGER_API_URL=http://localhost:3040
-
-# MDAP Provider Keys
-GROQ_API_KEY=your_groq_api_key_here
-CEREBRAS_API_KEY=your_cerebras_api_key_here
-`;
-    fs.writeFileSync(envLocalPath, envTemplate);
-    console.log(chalk.green('✅ Created .env.local template for Trigger.dev'));
-    console.log(chalk.yellow('💡 Edit .env.local with your API keys'));
-  }
-
-  console.log(chalk.green('\n✅ Trigger.dev integration installed'));
-  console.log(chalk.yellow('\n📋 Next steps for Trigger.dev:'));
-  console.log('   1. Start Trigger.dev: docker-compose -f docker/trigger.dev/docker-compose.yml up -d');
-  console.log('   2. Edit .env.local with your TRIGGER_API_KEY');
-  console.log('   3. Run MDAP: npx cfn-loop-trigger "Your task description"');
-
-  return true;
 }
 
 async function initializeCfnProject() {
@@ -354,12 +288,6 @@ async function initializeCfnProject() {
     const missingPaths = requiredPaths.filter(path => !fs.existsSync(path));
 
     if (missingPaths.length === 0 && !options.force) {
-      // Already initialized - but check if trigger was specifically requested
-      if (options.trigger) {
-        console.log(chalk.green('✅ CFN already initialized - installing Trigger.dev integration'));
-        await installTriggerDev();
-        return;
-      }
       console.log(chalk.green('✅ CFN already properly initialized'));
       console.log(chalk.gray('   Use --force to reinitialize'));
       return;
@@ -422,21 +350,13 @@ async function initializeCfnProject() {
     // Install lizard for complexity analysis
     await installLizard();
 
-    // Install Trigger.dev if requested
-    if (options.trigger) {
-      await installTriggerDev();
-    }
-
     // Create marker file to prevent re-initialization
     fs.writeFileSync('.claude/.cfn-initialized', new Date().toISOString());
 
     console.log(chalk.yellow('\n🔍 Next Steps:'));
     console.log('   1. Review CFN-CLAUDE.md in project root');
     console.log('   2. Run your first CFN Loop: npx cfn-loop "Task description"');
-    if (!options.trigger) {
-      console.log('   3. For MDAP/Trigger.dev: npx cfn-init --trigger');
-    }
-    console.log('   4. Check available agents: ls .claude/agents/cfn-dev-team/*/\n');
+    console.log('   3. Check available agents: ls .claude/agents/cfn-dev-team/*/\n');
 
   } catch (error) {
     console.error(chalk.red('❌ CFN Initialization Failed'), error);

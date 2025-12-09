@@ -65,7 +65,7 @@ claude-assets/                 # Auto-generated during npm pack
   └── root-claude-distribute/
       └── CFN-CLAUDE.md        # Project instructions
 scripts/
-  ├── init-project.js          # cfn-init installation script
+  ├── cfn-init.js              # cfn-init installation script
   └── ... (essential scripts)
 README.md                      # User documentation
 LICENSE                        # MIT License

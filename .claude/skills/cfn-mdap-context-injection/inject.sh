@@ -1,6 +1,6 @@
 #!/bin/bash
 # MDAP Context Injection Script
-# Injects full MDAP/Trigger workflow code for troubleshooting
+# Injects full MDAP workflow code for troubleshooting
 #
 # Usage:
 #   ./inject.sh --all           # All MDAP-related files
@@ -24,68 +24,68 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 # File groups
 COORDINATOR_FILES=(
-  "docker/trigger-dev/src/trigger/cfn-coordinator.ts"
+  "lib/mdap/cfn-coordinator.ts"
 )
 
 MDAP_FILES=(
-  "docker/trigger-dev/src/trigger/cfn-mdap-implementer.ts"
-  "docker/trigger-dev/src/lib/mdap-config.ts"
-  "docker/trigger-dev/src/lib/mdap-atomicity.ts"
-  "docker/trigger-dev/src/lib/mdap-db.ts"
-  "docker/trigger-dev/src/lib/mdap-container-config.ts"
-  "docker/trigger-dev/src/lib/mdap-metrics-tracker.ts"
+  "lib/mdap/cfn-mdap-implementer.ts"
+  "lib/mdap/mdap-config.ts"
+  "lib/mdap/mdap-atomicity.ts"
+  "lib/mdap/mdap-db.ts"
+  "lib/mdap/mdap-container-config.ts"
+  "lib/mdap/mdap-metrics-tracker.ts"
 )
 
 CLI_FILES=(
-  "docker/trigger-dev/src/trigger/cfn-cli-sprint-implementer.ts"
-  "docker/trigger-dev/src/lib/sprint-aggregator.ts"
+  "lib/mdap/cfn-cli-sprint-implementer.ts"
+  "lib/mdap/sprint-aggregator.ts"
 )
 
 CONFIG_FILES=(
-  "docker/trigger-dev/src/lib/mdap-config.ts"
-  "docker/trigger-dev/src/lib/sla-enforcement.ts"
-  "docker/trigger-dev/src/lib/health-check.ts"
+  "lib/mdap/mdap-config.ts"
+  "lib/mdap/sla-enforcement.ts"
+  "lib/mdap/health-check.ts"
 )
 
 DECOMPOSER_FILES=(
-  "docker/trigger-dev/src/trigger/cfn-architecture-decomposer.ts"
-  "docker/trigger-dev/src/trigger/cfn-security-decomposer.ts"
-  "docker/trigger-dev/src/trigger/cfn-performance-decomposer.ts"
-  "docker/trigger-dev/src/trigger/cfn-testing-decomposer.ts"
-  "docker/trigger-dev/src/trigger/cfn-decomposition-aggregator.ts"
+  "lib/mdap/cfn-architecture-decomposer.ts"
+  "lib/mdap/cfn-security-decomposer.ts"
+  "lib/mdap/cfn-performance-decomposer.ts"
+  "lib/mdap/cfn-testing-decomposer.ts"
+  "lib/mdap/cfn-decomposition-aggregator.ts"
 )
 
 VALIDATOR_FILES=(
-  "docker/trigger-dev/src/trigger/cfn-async-validator-orchestrator.ts"
-  "docker/trigger-dev/src/trigger/cfn-async-security-validator.ts"
-  "docker/trigger-dev/src/trigger/cfn-async-performance-validator.ts"
-  "docker/trigger-dev/src/trigger/cfn-async-architecture-validator.ts"
-  "docker/trigger-dev/src/trigger/cfn-async-code-quality-validator.ts"
-  "docker/trigger-dev/src/trigger/cfn-async-testing-validator.ts"
+  "lib/mdap/cfn-async-validator-orchestrator.ts"
+  "lib/mdap/cfn-async-security-validator.ts"
+  "lib/mdap/cfn-async-performance-validator.ts"
+  "lib/mdap/cfn-async-architecture-validator.ts"
+  "lib/mdap/cfn-async-code-quality-validator.ts"
+  "lib/mdap/cfn-async-testing-validator.ts"
 )
 
 INDEX_FILES=(
-  "docker/trigger-dev/src/trigger/index.ts"
+  "lib/mdap/index.ts"
 )
 
 # RuVector integration files
 RUVECTOR_FILES=(
-  "docker/trigger-dev/src/lib/ruvector-mdap-analytics.ts"
-  "docker/trigger-dev/src/lib/ruvector-rag-decomposition.ts"
-  "docker/trigger-dev/src/lib/ruvector-learning-hooks.ts"
-  "docker/trigger-dev/src/lib/ruvector-error-pattern-learning.ts"
-  "docker/trigger-dev/src/lib/ruvector-schemas.ts"
-  "docker/trigger-dev/src/lib/ruvector-init.ts"
-  "docker/trigger-dev/src/lib/ruvector-auth.ts"
+  "lib/mdap/ruvector-mdap-analytics.ts"
+  "lib/mdap/ruvector-rag-decomposition.ts"
+  "lib/mdap/ruvector-learning-hooks.ts"
+  "lib/mdap/ruvector-error-pattern-learning.ts"
+  "lib/mdap/ruvector-schemas.ts"
+  "lib/mdap/ruvector-init.ts"
+  "lib/mdap/ruvector-auth.ts"
 )
 
 # Test files
 TEST_FILES=(
-  "docker/trigger-dev/tests/ruvector/mdap-analytics.test.ts"
-  "docker/trigger-dev/tests/ruvector/test-utils.ts"
-  "docker/trigger-dev/tests/integration/ruvector-mdap-integration.test.ts"
-  "docker/trigger-dev/tests/decomposition/context-passing.test.ts"
-  "docker/trigger-dev/tests/decomposition/sequential-flow.test.ts"
+  "tests/ruvector/mdap-analytics.test.ts"
+  "tests/ruvector/test-utils.ts"
+  "tests/integration/ruvector-mdap-integration.test.ts"
+  "tests/decomposition/context-passing.test.ts"
+  "tests/decomposition/sequential-flow.test.ts"
 )
 
 # Docker mode files
@@ -227,7 +227,7 @@ main() {
         echo "Usage: $0 [options]"
         echo ""
         echo "Context Options:"
-        echo "  --all           All MDAP/Trigger files (~90K tokens)"
+        echo "  --all           All MDAP files (~90K tokens)"
         echo "  --coordinator   Main coordinator flow only"
         echo "  --mdap          MDAP implementer + config"
         echo "  --cli           CLI mode files (~25K tokens)"

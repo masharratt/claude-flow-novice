@@ -1,3 +1,12 @@
+// ============================================================================
+// DEPRECATION NOTICE
+// ============================================================================
+// Trigger.dev has been removed from the CFN Loop architecture
+// This file is kept for backward compatibility with the SEO platform
+// The SEO functionality will be refactored to use local execution
+// The configuration is no longer used for trigger.dev deployment
+// ============================================================================
+
 // Trigger.dev configuration - placeholder implementation
 // This file will be fully functional once @trigger.dev/sdk/v3 is installed
 

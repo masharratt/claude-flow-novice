@@ -168,7 +168,7 @@ node_modules/claude-flow-novice/
 │   └── cfn-data/                   # SQLite databases, playbook data
 │
 ├── scripts/
-│   ├── init-project.js             # cfn-init script
+│   ├── cfn-init.js                 # cfn-init script
 │   └── ... (essential scripts)
 ├── package.json                    # Package metadata
 ├── README.md                       # User documentation
