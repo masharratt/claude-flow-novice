@@ -138,7 +138,9 @@ function main() {
 }
 
 // Run the script
-main().catch(error => {
+try {
+  main();
+} catch (error) {
   console.error('CFN post-install failed:', error);
   process.exit(1);
-});
+}
