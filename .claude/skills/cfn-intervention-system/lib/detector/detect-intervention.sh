@@ -4,108 +4,103 @@ set -euo pipefail
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --iteration) ITERATION="$2"; shift 2 ;;
-        --confidence-history) IFS=',' read -ra CONFIDENCE_HISTORY <<< "$2"; shift 2 ;;
-        --feedback-history) IFS=';' read -ra FEEDBACK_HISTORY <<< "$2"; shift 2 ;;
+        --feedback-summary) FEEDBACK_SUMMARY="$2"; shift 2 ;;
+        --confidence-trend) CONFIDENCE_TREND="$2"; shift 2 ;;
+        --iteration-count) ITERATION_COUNT="$2"; shift 2 ;;
+        --confidence-threshold) CONFIDENCE_THRESHOLD="${2:-0.8}"; shift 2 ;;
+        --plateau-threshold) PLATEAU_THRESHOLD="${2:-0.02}"; shift 2 ;;
         *) echo "Unknown parameter: $1"; exit 1 ;;
     esac
 done
 
-# Configuration
-CONFIDENCE_DELTA_THRESHOLD=0.05
-RECURRING_FEEDBACK_THRESHOLD=3
+# Validate inputs
+if [[ -z "${FEEDBACK_SUMMARY:-}" || -z "${CONFIDENCE_TREND:-}" || -z "${ITERATION_COUNT:-}" ]]; then
+    echo '{"error": "Missing required parameters: feedback-summary, confidence-trend, iteration-count"}' | jq .
+    exit 1
+fi
 
-# Confidence Plateau Detection
-detect_confidence_plateau() {
-    if [[ ${#CONFIDENCE_HISTORY[@]} -lt 2 ]]; then
-        echo "false"
-        return
-    fi
+# Extract confidence scores from trend (format: "0.5,0.55,0.57,0.58,0.59")
+IFS=',' read -ra CONFIDENCES <<< "$CONFIDENCE_TREND"
+CONFIDENCE_COUNT=${#CONFIDENCES[@]}
 
-    local last_index=$((${#CONFIDENCE_HISTORY[@]} - 1))
-    local delta=$(echo "${CONFIDENCE_HISTORY[last_index]} - ${CONFIDENCE_HISTORY[last_index-1]}" | bc)
+# Calculate confidence improvement
+if [[ $CONFIDENCE_COUNT -lt 2 ]]; then
+    CONFIDENCE_IMPROVEMENT=0
+else
+    LATEST_CONFIDENCE="${CONFIDENCES[-1]}"
+    EARLIEST_CONFIDENCE="${CONFIDENCES[0]}"
+    CONFIDENCE_IMPROVEMENT=$(echo "$LATEST_CONFIDENCE - $EARLIEST_CONFIDENCE" | bc -l)
+fi
 
-    if (( $(echo "$delta < $CONFIDENCE_DELTA_THRESHOLD" | bc -l) )); then
-        echo "true"
-    else
-        echo "false"
-    fi
-}
-
-# Recurring Feedback Detection
-detect_recurring_feedback() {
-    declare -A feedback_counts
-
-    for theme in "${FEEDBACK_HISTORY[@]}"; do
-        # Extract main theme/keyword
-        cleaned_theme=$(echo "$theme" | cut -d'|' -f1)
-        feedback_counts["$cleaned_theme"]=$((${feedback_counts["$cleaned_theme"]} + 1))
-    done
-
-    for count in "${feedback_counts[@]}"; do
-        if [[ $count -ge $RECURRING_FEEDBACK_THRESHOLD ]]; then
-            echo "true"
-            return
-        fi
-    done
-
-    echo "false"
-}
-
-# Deliverables Stuck Detection
-detect_deliverables_stuck() {
-    # In a real implementation, this would check actual file creation
-    echo "false"
-}
-
-# Main Intervention Detection
-intervention_needed=false
+# Detect intervention triggers
+intervention_needed="false"
 trigger=""
 details=""
 
-if [[ $(detect_confidence_plateau) == "true" ]]; then
-    intervention_needed=true
-    trigger="confidence_plateau"
-    details=$(jq -n \
-        --arg iterations 2 \
-        --arg delta "$(echo "${CONFIDENCE_HISTORY[${#CONFIDENCE_HISTORY[@]}-1]} - ${CONFIDENCE_HISTORY[${#CONFIDENCE_HISTORY[@]}-2]}" | bc)" \
-        --arg threshold "$CONFIDENCE_DELTA_THRESHOLD" \
-        '{
-            "iterations_stuck": $iterations,
-            "confidence_delta": $delta,
-            "threshold": $threshold
-        }')
+# Check 1: Confidence plateau detection
+if [[ $CONFIDENCE_COUNT -ge 3 ]]; then
+    # Calculate average improvement over last 3 iterations
+    SECOND_LAST="${CONFIDENCES[-2]}"
+    THIRD_LAST="${CONFIDENCES[-3]}"
+    
+    IMPROVEMENT_1=$(echo "${CONFIDENCES[-1]} - $SECOND_LAST" | bc -l)
+    IMPROVEMENT_2=$(echo "$SECOND_LAST - $THIRD_LAST" | bc -l)
+    AVG_IMPROVEMENT=$(echo "($IMPROVEMENT_1 + $IMPROVEMENT_2) / 2" | bc -l)
+    
+    # Use bc for floating point comparison
+    IS_PLATEAU=$(echo "$AVG_IMPROVEMENT < $PLATEAU_THRESHOLD" | bc -l)
+    
+    if [[ $IS_PLATEAU == "1" ]]; then
+        intervention_needed="true"
+        trigger="confidence_plateau"
+        details="Confidence improvement averaged $(printf "%.3f" $AVG_IMPROVEMENT) over last 2 iterations, below threshold $(printf "%.3f" $PLATEAU_THRESHOLD)"
+    fi
 fi
 
-if [[ -z "$trigger" ]] && [[ $(detect_recurring_feedback) == "true" ]]; then
-    intervention_needed=true
-    trigger="recurring_feedback"
-    details=$(jq -n \
-        --arg threshold "$RECURRING_FEEDBACK_THRESHOLD" \
-        '{
-            "recurring_themes_count": $threshold
-        }')
+# Check 2: Recurring feedback themes (simple keyword detection)
+if echo "$FEEDBACK_SUMMARY" | grep -qi "recurring\|repeated\|again\|still"; then
+    if [[ "$intervention_needed" == "false" ]]; then
+        intervention_needed="true"
+        trigger="recurring_feedback"
+        details="Recurring feedback patterns detected in summary"
+    fi
 fi
 
-# Generate JSON output
+# Check 3: High iteration count with low confidence
+if [[ $ITERATION_COUNT -gt 5 ]]; then
+    LATEST_CONFIDENCE="${CONFIDENCES[-1]}"
+    IS_BELOW_THRESHOLD=$(echo "$LATEST_CONFIDENCE < $CONFIDENCE_THRESHOLD" | bc -l)
+    
+    if [[ $IS_BELOW_THRESHOLD == "1" && "$intervention_needed" == "false" ]]; then
+        intervention_needed="true"
+        trigger="low_confidence_high_iterations"
+        details="Iteration count ($ITERATION_COUNT) exceeds threshold with confidence $(printf "%.3f" $LATEST_CONFIDENCE) below threshold $(printf "%.3f" $CONFIDENCE_THRESHOLD)"
+    fi
+fi
+
+# Generate output
 jq -n \
-    --arg intervention_needed "$intervention_needed" \
+    --argjson intervention_needed "$intervention_needed" \
     --arg trigger "$trigger" \
-    --argjson details "${details:-null}" \
+    --arg details "$details" \
     '{
-        "intervention_needed": ($intervention_needed == "true"),
+        "intervention_needed": $intervention_needed,
         "trigger": $trigger,
         "details": $details,
-        "recommended_action":
+        "recommended_action": (
             if $trigger == "confidence_plateau" then "swap_agent"
             elif $trigger == "recurring_feedback" then "add_specialist"
-            else null
-            end,
-        "reasoning":
-            if $trigger == "confidence_plateau" then "Confidence improving too slowly, underperforming agent detected"
-            elif $trigger == "recurring_feedback" then "Persistent feedback theme requires specialist intervention"
+            elif $trigger == "low_confidence_high_iterations" then "escalate_for_review"
             else null
             end
+        ),
+        "reasoning": (
+            if $trigger == "confidence_plateau" then "Confidence improving too slowly, underperforming agent detected"
+            elif $trigger == "recurring_feedback" then "Persistent feedback theme requires specialist intervention"
+            elif $trigger == "low_confidence_high_iterations" then "High iteration count with low confidence suggests need for escalation"
+            else null
+            end
+        )
     }'
 
 exit 0

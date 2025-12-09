@@ -1,31 +1,23 @@
 {
-  "redis": {
-    "host": "localhost",
-    "port": 6379,
-    "channel": "agent:transparency"
-  },
-  "storage": {
-    "database": ".claude/swarm-memory.db",
-    "table": "agent_memory"
-  },
-  "logging": {
-    "level": "info",
-    "format": "json",
-    "destination": "console"
-  },
-  "events": {
-    "emit_memory_store": true,
-    "emit_agent_lifecycle": true,
-    "emit_high_value_actions": true
-  },
-  "capture": {
-    "edit_operations": true,
-    "bash_commands": true,
-    "task_spawning": true,
-    "read_operations": false
-  },
-  "security": {
-    "anonymize_sensitive_data": true,
-    "max_payload_size_bytes": 1048576
-  }
+  "transparency_level": "Detailed",
+  "performance_monitoring": true,
+  "context_filtering": true,
+  "message_filtering": true,
+  "max_overhead_percent": 5.0,
+  "queue_size": 1000,
+  "flush_interval_ms": 5000,
+  "exclude_patterns": [
+    "password",
+    "token",
+    "secret",
+    "key",
+    "api_key",
+    "private_key"
+  ],
+  "include_patterns": [],
+  "database_path": "./transparency-middleware.db",
+  "export_formats": [
+    "Json",
+    "Csv"
+  ]
 }

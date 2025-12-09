@@ -24,7 +24,7 @@ log_json() {
         echo "{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$message\"}"
     else
         # Remove outer braces from context and merge
-        context_inner=$(echo "$context" | sed 's/^{//' | sed 's/}$//')
+        context_inner=$(echo "$context" | sed 's/^{//' | sed 's/}*$//')
         echo "{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$message\",\"context\":{$context_inner}}"
     fi
 }

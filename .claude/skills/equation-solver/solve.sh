@@ -149,7 +149,7 @@ validate_variable() {
 # Creates a secure temporary file with proper permissions
 ################################################################################
 create_safe_temp_file() {
-    TEMP_FILE=$(mktemp -t equation-solver.XXXXXXXXXX) || {
+    TEMP_FILE=$(mktemp -t equation-solver.XXXXXXXXXX.cjs) || {
         echo "Error: Failed to create temporary file" >&2
         return 1
     }
@@ -183,14 +183,16 @@ solve_equation() {
 
   try {
     // Load nerdamer - use NODE_PATH for module resolution
-    // Or require directly from script directory
     const path = require('path');
-    const nm = process.env.NM_PATH || '/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/equation-solver/node_modules';
+    const nm = process.env.NM_PATH;
 
+    // Load nerdamer core
     const nerdamer = require(path.join(nm, 'nerdamer'));
-    require(path.join(nm, 'nerdamer/Algebra'));
-    require(path.join(nm, 'nerdamer/Solve'));
-    require(path.join(nm, 'nerdamer/Extra'));
+
+    // Load additional modules by requiring the actual JS files
+    require(path.join(nm, 'nerdamer', 'Algebra.js'));
+    require(path.join(nm, 'nerdamer', 'Solve.js'));
+    require(path.join(nm, 'nerdamer', 'Extra.js'));
 
     const equation = process.argv[2];
     const variable = process.argv[3];
@@ -244,10 +246,12 @@ solve_equation() {
 NODEJS_SCRIPT
 
     # Execute with proper quoting and environment variable for module path
-    if ! NM_PATH="$node_modules_dir" node "$TEMP_FILE" "$equation" "$variable" 2>/dev/null; then
+    local output
+    output=$(NM_PATH="$node_modules_dir" node --input-type=commonjs "$TEMP_FILE" "$equation" "$variable" 2>&1) || {
         echo "Error: Failed to solve equation" >&2
+        echo "Node.js output: $output" >&2
         return 1
-    fi
+    }
 
     return 0
 }

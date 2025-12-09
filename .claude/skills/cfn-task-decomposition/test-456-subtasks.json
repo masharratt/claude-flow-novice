@@ -1,0 +1,60 @@
+{
+  "task_id": "test-456",
+  "original_task": "Fix TypeScript compilation errors in src/components",
+  "decomposition_strategy": "typescript-error-fixing",
+  "subtasks": [
+    {
+      "subtask_id": "test-456-recon",
+      "title": "Directory Reconnaissance",
+      "description": "Explore project structure and identify TypeScript files needing fixes",
+      "agent_type": "researcher",
+      "tool_budget": 5,
+      "expected_tools": ["find", "grep", "Read", "Glob"],
+      "deliverables": ["file-list.txt", "error-classification.json"],
+      "estimated_duration": "5-10 minutes"
+    },
+    {
+      "subtask_id": "test-456-pattern",
+      "title": "Error Pattern Analysis",
+      "description": "Analyze TypeScript errors and identify common patterns",
+      "agent_type": "analyst",
+      "tool_budget": 8,
+      "expected_tools": ["Read", "Grep", "Bash"],
+      "deliverables": ["error-patterns.json", "fix-strategy.md"],
+      "estimated_duration": "10-15 minutes"
+    },
+    {
+      "subtask_id": "test-456-fix",
+      "title": "File-by-File Fixes",
+      "description": "Fix TypeScript errors in identified files using patterns",
+      "agent_type": "backend-developer",
+      "tool_budget": 15,
+      "expected_tools": ["Read", "Edit", "Write", "Bash"],
+      "deliverables": ["fixed-files/", "fix-summary.json"],
+      "estimated_duration": "20-30 minutes",
+      "batch_processing": {
+        "max_files_per_batch": 3,
+        "batches_total": 5
+      }
+    },
+    {
+      "subtask_id": "test-456-validate",
+      "title": "Validation and Testing",
+      "description": "Validate fixes and run TypeScript compilation",
+      "agent_type": "tester",
+      "tool_budget": 10,
+      "expected_tools": ["Bash", "Read", "Write"],
+      "deliverables": ["validation-report.json", "compilation-results.txt"],
+      "estimated_duration": "10-15 minutes"
+    }
+  ],
+  "coordination": {
+    "dependency_order": ["recon", "pattern", "fix", "validate"],
+    "redis_context_keys": {
+      "recon": "test-456:recon:results",
+      "pattern": "test-456:pattern:results",
+      "fix": "test-456:fix:results",
+      "validate": "test-456:validate:results"
+    }
+  }
+}

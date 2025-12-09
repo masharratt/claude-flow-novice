@@ -4,11 +4,9 @@
 
 set -euo pipefail
 
-# Configuration
-TASK_ID="${1}"
-TASK_DESCRIPTION="${2}"
-TOOL_BUDGET="${3:-10}"  # Default 10 tool budget per agent
-COMPLEXITY_THRESHOLD="${4:-medium}"  # low, medium, high
+# Default values
+DEFAULT_TOOL_BUDGET=10
+DEFAULT_COMPLEXITY="medium"
 
 # Colors for output
 RED='\033[0;31m'
@@ -17,11 +15,140 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔧 CFN Loop Task Decomposition${NC}"
-echo "Task ID: $TASK_ID"
-echo "Tool Budget: $TOOL_BUDGET per agent"
-echo "Complexity: $COMPLEXITY_THRESHOLD"
-echo ""
+# Function to show usage
+show_help() {
+    cat << EOF
+Usage: $0 [OPTIONS] [TASK_ID] [TASK_DESCRIPTION] [TOOL_BUDGET] [COMPLEXITY]
+
+Positional arguments:
+  TASK_ID          Task identifier
+  TASK_DESCRIPTION Task description
+  TOOL_BUDGET      Tool budget per agent (default: $DEFAULT_TOOL_BUDGET)
+  COMPLEXITY       Complexity level: low, medium, high (default: $DEFAULT_COMPLEXITY)
+
+Named arguments:
+  --task-id=ID           Task identifier
+  --description=TEXT     Task description
+  --tool-budget=N        Tool budget per agent (default: $DEFAULT_TOOL_BUDGET)
+  --complexity=LEVEL     Complexity level: low, medium, high (default: $DEFAULT_COMPLEXITY)
+  --help, -h             Show this help message
+
+Examples:
+  # Positional arguments
+  $0 task123 "Fix TypeScript errors" 15 high
+
+  # Named arguments
+  $0 --task-id=task123 --description="Fix TypeScript errors" --tool-budget=15 --complexity=high
+
+  # Mixed (named takes precedence)
+  $0 task123 "Fix TypeScript errors" --complexity=high
+EOF
+}
+
+# Function to parse arguments
+parse_arguments() {
+    TASK_ID=""
+    TASK_DESCRIPTION=""
+    TOOL_BUDGET="$DEFAULT_TOOL_BUDGET"
+    COMPLEXITY_THRESHOLD="$DEFAULT_COMPLEXITY"
+
+    # Check for help flag
+    for arg in "$@"; do
+        case $arg in
+            --help|-h)
+                show_help
+                exit 0
+                ;;
+        esac
+    done
+
+    # Parse named arguments
+    local named_args=()
+    local positional_args=()
+    
+    for arg in "$@"; do
+        case $arg in
+            --task-id=*)
+                TASK_ID="${arg#*=}"
+                named_args+=("$arg")
+                ;;
+            --description=*)
+                TASK_DESCRIPTION="${arg#*=}"
+                named_args+=("$arg")
+                ;;
+            --tool-budget=*)
+                TOOL_BUDGET="${arg#*=}"
+                named_args+=("$arg")
+                ;;
+            --complexity=*)
+                COMPLEXITY_THRESHOLD="${arg#*=}"
+                named_args+=("$arg")
+                ;;
+            *)
+                positional_args+=("$arg")
+                ;;
+        esac
+    done
+
+    # If no named arguments were used, parse positional arguments
+    if [ ${#named_args[@]} -eq 0 ]; then
+        case ${#positional_args[@]} in
+            0)
+                echo -e "${RED}Error: Missing required arguments${NC}"
+                show_help
+                exit 1
+                ;;
+            1)
+                TASK_ID="${positional_args[0]}"
+                echo -e "${RED}Error: Missing TASK_DESCRIPTION${NC}"
+                show_help
+                exit 1
+                ;;
+            2)
+                TASK_ID="${positional_args[0]}"
+                TASK_DESCRIPTION="${positional_args[1]}"
+                ;;
+            3)
+                TASK_ID="${positional_args[0]}"
+                TASK_DESCRIPTION="${positional_args[1]}"
+                TOOL_BUDGET="${positional_args[2]}"
+                ;;
+            4|*)
+                TASK_ID="${positional_args[0]}"
+                TASK_DESCRIPTION="${positional_args[1]}"
+                TOOL_BUDGET="${positional_args[2]}"
+                COMPLEXITY_THRESHOLD="${positional_args[3]}"
+                ;;
+        esac
+    else
+        # Named arguments used - validate required ones
+        if [ -z "$TASK_ID" ]; then
+            echo -e "${RED}Error: --task-id is required${NC}"
+            show_help
+            exit 1
+        fi
+        if [ -z "$TASK_DESCRIPTION" ]; then
+            echo -e "${RED}Error: --description is required${NC}"
+            show_help
+            exit 1
+        fi
+    fi
+
+    # Validate values
+    if ! [[ "$TOOL_BUDGET" =~ ^[0-9]+$ ]]; then
+        echo -e "${RED}Error: TOOL_BUDGET must be a number${NC}"
+        exit 1
+    fi
+
+    case "$COMPLEXITY_THRESHOLD" in
+        low|medium|high)
+            ;;
+        *)
+            echo -e "${RED}Error: COMPLEXITY must be one of: low, medium, high${NC}"
+            exit 1
+            ;;
+    esac
+}
 
 # Function to analyze task complexity
 analyze_task_complexity() {
@@ -62,7 +189,7 @@ decompose_typescript_task() {
     local description="$2"
     local output_file=".claude/skills/cfn-task-decomposition/${task_id}-subtasks.json"
 
-    echo -e "${YELLOW}Decomposing TypeScript task...${NC}"
+    echo -e "${YELLOW}Decomposing TypeScript task...${NC}" >&2
 
     # Create subtasks
     cat > "$output_file" << EOF
@@ -128,7 +255,7 @@ decompose_typescript_task() {
 }
 EOF
 
-    echo -e "${GREEN}✓ Task decomposition created: $output_file${NC}"
+    echo -e "${GREEN}✓ Task decomposition created: $output_file${NC}" >&2
     echo "$output_file"
 }
 
@@ -138,7 +265,7 @@ decompose_exploration_task() {
     local description="$2"
     local output_file=".claude/skills/cfn-task-decomposition/${task_id}-subtasks.json"
 
-    echo -e "${YELLOW}Decomposing exploration task...${NC}"
+    echo -e "${YELLOW}Decomposing exploration task...${NC}" >&2
 
     cat > "$output_file" << EOF
 {
@@ -170,7 +297,7 @@ decompose_exploration_task() {
 }
 EOF
 
-    echo -e "${GREEN}✓ Task decomposition created: $output_file${NC}"
+    echo -e "${GREEN}✓ Task decomposition created: $output_file${NC}" >&2
     echo "$output_file"
 }
 
@@ -232,12 +359,21 @@ $deliverables
 - Signal completion via Redis LPUSH to \`${task_id}:${subtask_id}:done\`
 EOF
 
-        echo -e "${GREEN}✓ Created prompt for $subtask_id${NC}"
+        echo -e "${GREEN}✓ Created prompt for $subtask_id${NC}" >&2
     done
 }
 
 # Main execution
 main() {
+    # Parse arguments
+    parse_arguments "$@"
+
+    echo -e "${BLUE}🔧 CFN Loop Task Decomposition${NC}"
+    echo "Task ID: $TASK_ID"
+    echo "Tool Budget: $TOOL_BUDGET per agent"
+    echo "Complexity: $COMPLEXITY_THRESHOLD"
+    echo ""
+
     local complexity_score=$(analyze_task_complexity "$TASK_DESCRIPTION")
     echo -e "${YELLOW}Task Complexity Score: $complexity_score${NC}"
 
@@ -275,5 +411,5 @@ main() {
     fi
 }
 
-# Execute main function
+# Execute main function with all arguments
 main "$@"

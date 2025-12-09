@@ -57,3 +57,12 @@ CRITICAL RULES:
 1. Only create files in DELIVERABLES list
 2. Do not implement anything OUT OF SCOPE
 3. Focus strictly on IN SCOPE tasks
+EOF
+
+# Signal sprint completion
+redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:sprint_completed" "$SPRINT_ID"
+
+# Clean up temporary context file
+rm -f "/tmp/sprint_context_${SPRINT_ID}.txt"
+
+echo "Sprint ${SPRINT_ID} execution completed successfully"

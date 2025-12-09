@@ -1,4 +1,4 @@
 #!/bin/bash
 # CLI wrapper for error capture
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-exec "$SCRIPT_DIR/../lib/capture/capture-agent-error.sh" "$@"
+"$SCRIPT_DIR/../lib/capture/capture-agent-error.sh" "$@"

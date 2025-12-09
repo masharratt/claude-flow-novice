@@ -28,11 +28,17 @@ This mega-skill provides organizational learning:
 
 ```
 knowledge-base/
-├── SKILL.md
+├── SKILL.md              # This file
+├── execute.sh            # Main entry point
+├── cli/
+│   └── knowledge-base.sh # Unified CLI interface
 ├── lib/
 │   ├── workflow/         # From workflow-codification
 │   └── playbook/         # From cfn-playbook
-└── cli/
+└── data/                 # Database files (created on init)
+    ├── workflows.db
+    ├── playbooks.db
+    └── learnings.db
 ```
 
 ---
@@ -54,7 +60,49 @@ knowledge-base/
 
 ---
 
+## Usage
+
+### Main Entry Point
+```bash
+# Initialize databases
+./execute.sh init
+
+# Query for patterns
+./execute.sh query 'authentication'
+
+# Store new learning
+./execute.sh store playbook '{"task_type": "auth", "pattern": "..."}'
+
+# Show help
+./execute.sh help
+```
+
+### Advanced CLI Usage
+```bash
+# Direct CLI access
+./cli/knowledge-base.sh --help
+
+# Query workflow patterns
+./cli/knowledge-base.sh query-workflow --pattern 'auth'
+
+# Query playbook entries
+./cli/knowledge-base.sh query-playbook --task-type bugfix
+
+# Store learning with metadata
+./cli/knowledge-base.sh store-learning \
+  --type workflow \
+  --category edge-case \
+  --data '...' \
+  --confidence 0.85
+```
+
 ## Version History
+
+### 1.1.0 (2025-12-08)
+- Fixed bootstrap utilities path to use shared location
+- Created unified CLI interface
+- Added main execute.sh entry point
+- Integrated workflow and playbook functionality
 
 ### 1.0.0 (2025-12-02)
 - Consolidated workflow + playbook into unified knowledge base

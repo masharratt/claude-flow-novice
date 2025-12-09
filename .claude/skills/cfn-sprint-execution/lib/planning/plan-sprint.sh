@@ -32,49 +32,45 @@ done
 [[ -z "${SPRINT_ID:-}" ]] && { echo "Error: Sprint ID is required"; exit 1; }
 [[ -z "${EPIC_JSON:-}" ]] && { echo "Error: Epic JSON is required"; exit 1; }
 
+# Check if jq is available
+if ! command -v jq &> /dev/null; then
+    echo "Error: jq is required but not installed. Please install jq to continue."
+    exit 1
+fi
+
 # Extract sprint details from epic JSON
 extract_sprint_details() {
     local json="$1"
     local sprint_id="$2"
     
-    # In a real implementation, we'd use jq for robust parsing
-    # This is a simplified placeholder
-    cat << JSON
-{
-    "sprint_id": "$sprint_id",
-    "sprint_name": "OAuth2 Integration",
-    "epic_name": "Authentication System",
-    "deliverables": [
-        "src/auth/oauth2.ts",
-        "tests/auth/oauth2.test.ts"
-    ],
-    "in_scope": [
-        "OAuth2 provider configuration",
-        "Login endpoints",
-        "Token exchange logic",
-        "Basic error handling"
-    ],
-    "out_of_scope": [
-        "Session management (Sprint 2)",
-        "2FA (Sprint 3)",
-        "Admin dashboard (Sprint 4)"
-    ],
-    "acceptance_criteria": [
-        "Users can login with Google",
-        "Users can login with GitHub",
-        "Token exchange works correctly",
-        "Basic tests pass"
-    ],
-    "agents": {
-        "loop3": ["backend-dev", "security-specialist"],
-        "loop2": ["reviewer", "tester", "security-auditor"]
-    },
-    "estimated_iterations": 3,
-    "max_iterations": 5,
-    "complexity": "medium",
-    "context_injection": "Sprint $sprint_id of 5: OAuth2 Integration. Focus ONLY on OAuth2 provider config and token exchange. DO NOT implement sessions, 2FA, or admin features - those are future sprints. Create src/auth/oauth2.ts and tests/auth/oauth2.test.ts."
-}
-JSON
+    # Find the sprint matching the sprint ID
+    local sprint_data
+    sprint_data=$(echo "$json" | jq --arg sid "$sprint_id" '.sprints[] | select(.id == $sid)') || {
+        echo "Error: Failed to parse epic JSON"
+        exit 1
+    }
+    
+    # Check if sprint was found
+    if [[ -z "$sprint_data" || "$sprint_data" == "null" ]]; then
+        echo "Error: Sprint with ID '$sprint_id' not found in epic JSON"
+        exit 1
+    fi
+    
+    # Extract and format the sprint details
+    echo "$sprint_data" | jq '{
+        sprint_id: .id,
+        sprint_name: .name,
+        epic_name: .epic_name,
+        deliverables: .deliverables,
+        in_scope: .in_scope,
+        out_of_scope: .out_of_scope,
+        acceptance_criteria: .acceptance_criteria,
+        agents: .agents,
+        estimated_iterations: .estimated_iterations,
+        max_iterations: .max_iterations,
+        complexity: .complexity,
+        context_injection: .context_injection
+    }'
 }
 
 # Main execution

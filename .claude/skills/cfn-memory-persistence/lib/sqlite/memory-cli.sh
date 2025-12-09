@@ -15,10 +15,9 @@ set -euo pipefail
 
 # Detect project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.claude/skills/cfn-cfn-.claude/skills/cfn-cfn-.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../../../" && pwd)"
 
-# Path to TypeScript CLI
-MEMORY_CLI_TS="$PROJECT_ROOT/src/cli/memory-cli.ts"
+# Path to compiled JavaScript CLI
 MEMORY_CLI_DIST="$PROJECT_ROOT/dist/cli/memory-cli.js"
 
 # Configuration
@@ -43,27 +42,14 @@ check_dependencies() {
     log_error "Node.js is not installed. Please install Node.js to use memory-cli."
     exit 1
   fi
-
-  # Check if tsx is available for TypeScript execution
-  if ! command -v tsx &> /dev/null && ! command -v npx &> /dev/null; then
-    log_error "tsx or npx is not available. Please install tsx or npx."
-    exit 1
-  fi
 }
 
 run_memory_cli() {
-  # Try to run compiled version first (faster), fallback to TypeScript
+  # Check if compiled JavaScript version exists
   if [ -f "$MEMORY_CLI_DIST" ]; then
     node "$MEMORY_CLI_DIST" "$@"
-  elif [ -f "$MEMORY_CLI_TS" ]; then
-    # Use tsx for direct TypeScript execution
-    if command -v tsx &> /dev/null; then
-      tsx "$MEMORY_CLI_TS" "$@"
-    else
-      npx tsx "$MEMORY_CLI_TS" "$@"
-    fi
   else
-    log_error "Memory CLI not found at $MEMORY_CLI_TS or $MEMORY_CLI_DIST"
+    log_error "Memory CLI not found at $MEMORY_CLI_DIST"
     exit 1
   fi
 }
@@ -80,7 +66,7 @@ main() {
   MEMORY_DIR="$PROJECT_ROOT/.artifacts/memory"
   mkdir -p "$MEMORY_DIR"
 
-  # Pass all arguments to TypeScript CLI
+  # Pass all arguments to JavaScript CLI
   run_memory_cli "$@"
 }
 

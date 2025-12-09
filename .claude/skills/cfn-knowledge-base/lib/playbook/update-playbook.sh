@@ -4,10 +4,16 @@ set -euo pipefail
 # Update Playbook after Successful CFN Loop
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 DB_PATH="$SCRIPT_DIR/../../../../data/playbook.db"
 
-# Import parameterized query library
-source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
+# Import parameterized query library from shared location
+if [[ -f "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh" ]]; then
+    source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
+else
+    echo "Error: SQLite parameter utilities not found" >&2
+    exit 1
+fi
 
 TASK_ID=""
 TASK_TYPE=""
@@ -45,28 +51,9 @@ LOOP2_JSON=$(echo "$LOOP2_AGENTS" | jq -Rc 'split(",") | map(gsub("^\\s+|\\s+$";
 KEYWORDS=$(echo "$DESCRIPTION" | tr '[:upper:]' '[:lower:]' | grep -oE '\w+' | sort -u | tr '\n' ',' | sed 's/,$//')
 
 # Insert into playbook using parameterized query
-sqlite_exec "$DB_PATH" "
-INSERT INTO playbook_entries (
-  task_pattern,
-  task_type,
-  task_keywords,
-  loop3_agents,
-  loop2_agents,
-  iterations_required,
-  final_confidence,
-  final_consensus,
-  actual_iterations
-) VALUES (
-  ?1,
-  ?2,
-  ?3,
-  ?4,
-  ?5,
-  ?6,
-  ?7,
-  ?8,
-  ?9
-);" \
+execute_insert "$DB_PATH" \
+  "playbook_entries" \
+  "task_pattern, task_type, task_keywords, loop3_agents, loop2_agents, iterations_required, final_confidence, final_consensus, actual_iterations" \
   "$DESCRIPTION" \
   "$TASK_TYPE" \
   "$KEYWORDS" \

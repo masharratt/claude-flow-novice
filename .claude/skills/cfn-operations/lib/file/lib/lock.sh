@@ -78,7 +78,7 @@ acquire_file_lock() {
         rm -f "$lock_path"
       else
         # Wait and retry
-        sleep "0.${retry_interval}"
+        sleep "${retry_interval:0:1}.${retry_interval:1}" 2>/dev/null || sleep 0.1
         continue
       fi
     fi
@@ -98,11 +98,11 @@ acquire_file_lock() {
         break
       else
         # Lost the race
-        sleep "0.${retry_interval}"
+        sleep "${retry_interval:0:1}.${retry_interval:1}" 2>/dev/null || sleep 0.1
         continue
       fi
     else
-      sleep "0.${retry_interval}"
+      sleep "${retry_interval:0:1}.${retry_interval:1}" 2>/dev/null || sleep 0.1
       continue
     fi
   done

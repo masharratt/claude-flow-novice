@@ -5,7 +5,7 @@ set -e
 
 # Source parameterized query library for SQL injection prevention
 PROJECT_ROOT="/mnt/c/Users/masha/Documents/claude-flow-novice"
-source "$PROJECT_ROOT/.claude/skills/bootstrap/sqlite-params.sh"
+source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
 
 # Temporary test database
 TEST_DB="/tmp/test_memory_persistence_$(date +%s).sqlite"
@@ -26,7 +26,7 @@ CREATE INDEX idx_agent_task ON agent_outputs(agent_id, task_id);
 EOF
 }
 
-# Mock persist-agent-output.sh for testing - using parameterized query
+# Mock persist-agent-output.sh for testing - using direct sqlite3
 mock_persist_agent_output() {
     local task_id="$1"
     local agent_id="$2"
@@ -34,19 +34,15 @@ mock_persist_agent_output() {
     local confidence="$4"
     local iteration="$5"
 
-    sqlite_upsert "$TEST_DB" \
-        "INSERT OR REPLACE INTO agent_outputs (task_id, agent_id, output, confidence, iteration) VALUES (?1, ?2, ?3, ?4, ?5);" \
-        "$task_id" "$agent_id" "$output" "$confidence" "$iteration"
+    sqlite3 "$TEST_DB" "INSERT INTO agent_outputs (task_id, agent_id, output, confidence, iteration) VALUES ('$task_id', '$agent_id', '$output', $confidence, $iteration);"
 }
 
-# Mock query-agent-history.sh for testing - using parameterized query
+# Mock query-agent-history.sh for testing - using direct sqlite3
 mock_query_agent_history() {
     local agent_id="$1"
     local task_id="$2"
 
-    sqlite_select "$TEST_DB" \
-        "SELECT task_id, agent_id, output, confidence, iteration FROM agent_outputs WHERE agent_id = ?1 AND task_id = ?2;" \
-        "$agent_id" "$task_id"
+    sqlite3 "$TEST_DB" "SELECT task_id, agent_id, output, confidence, iteration FROM agent_outputs WHERE agent_id = '$agent_id' AND task_id = '$task_id';"
 }
 
 # Test 1: Successful output persistence with complete fields
@@ -147,11 +143,9 @@ test_iteration_confidence_tracking() {
         mock_persist_agent_output "$task_id" "$agent_id" "${outputs[i]}" "${confidences[i]}" "${iterations[i]}"
     done
 
-    # Verify iterations are tracked - using parameterized query
+    # Verify iterations are tracked - using direct sqlite3
     local iteration_count
-    iteration_count=$(sqlite_select "$TEST_DB" \
-        "SELECT COUNT(DISTINCT iteration) FROM agent_outputs WHERE task_id = ?1 AND agent_id = ?2;" \
-        "$task_id" "$agent_id")
+    iteration_count=$(sqlite3 "$TEST_DB" "SELECT COUNT(DISTINCT iteration) FROM agent_outputs WHERE task_id = '$task_id' AND agent_id = '$agent_id';")
 
     if [ "$iteration_count" -ne 3 ]; then
         echo "Test 4 failed: Incorrect iteration tracking"

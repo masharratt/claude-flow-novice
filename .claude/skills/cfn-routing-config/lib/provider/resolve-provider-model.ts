@@ -13,6 +13,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
+import { URL } from 'url';
+import { fileURLToPath } from 'url';
+
+// ES module equivalents for __filename and __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface ProviderMappings {
   mappings: {
@@ -164,8 +170,31 @@ class ProviderModelResolver {
   }
 }
 
+/**
+ * Helper function to determine if the module is being run directly
+ * Simplified approach for ES modules
+ */
+function isDirectExecution(): boolean {
+  try {
+    const mainModule = process.argv[1];
+    
+    if (!mainModule) {
+      return false;
+    }
+
+    // Compare the current file path with the main module path
+    const currentPath = path.resolve(__filename);
+    const mainPath = path.resolve(mainModule);
+
+    return currentPath === mainPath;
+  } catch (error) {
+    // If any error occurs during detection, assume it's not direct execution
+    return false;
+  }
+}
+
 // CLI interface for testing
-if (require.main === module) {
+if (isDirectExecution()) {
   const args = process.argv.slice(2);
   const resolver = new ProviderModelResolver();
 

@@ -75,7 +75,13 @@ set -euo pipefail
 # Source SQLite parameter binding library (Pattern B - SQL injection prevention)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
+# Use shared bootstrap utilities
+if [[ -f "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh" ]]; then
+    source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
+else
+    echo "Error: SQLite parameter utilities not found" >&2
+    exit 1
+fi
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

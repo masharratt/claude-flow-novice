@@ -6,7 +6,13 @@ set -euo pipefail
 # Import SQLite parameterized query library for SQL injection prevention
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-source "${SCRIPT_DIR}/../bootstrap/sqlite-params.sh"
+# Use shared bootstrap utilities
+if [[ -f "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh" ]]; then
+    source "$PROJECT_ROOT/.claude/skills/shared/bootstrap/sqlite-params.sh"
+else
+    echo "Error: SQLite parameter utilities not found" >&2
+    exit 1
+fi
 
 DB_PATH="$SCRIPT_DIR/../../../../data/playbook.db"
 
@@ -35,7 +41,7 @@ fi
 KEYWORDS=$(echo "$DESCRIPTION" | tr '[:upper:]' '[:lower:]' | grep -oE '\w+' | sort -u | tr '\n' ',' | sed 's/,$//')
 
 # Query for similar tasks (same task type) using parameterized query
-SIMILAR=$(sqlite_select "$DB_PATH" \
+SIMILAR=$(execute_select "$DB_PATH" \
     "SELECT
       task_pattern,
       loop3_agents,
@@ -45,7 +51,7 @@ SIMILAR=$(sqlite_select "$DB_PATH" \
       common_feedback,
       use_count
     FROM playbook_entries
-    WHERE task_type = ?1
+    WHERE task_type = ?
     ORDER BY final_confidence DESC, use_count DESC
     LIMIT 3;" \
     "$TASK_TYPE"

@@ -90,7 +90,7 @@ main() {
     # 1. Initialize middleware
     log "INFO" "Initializing Transparency Middleware"
     safe_execute "node -e \"
-        import TransparencyMiddleware from './src/middleware/transparency-middleware.js';
+        import TransparencyMiddleware from '../src/lib.rs';
         const config = TransparencyMiddleware.loadConfig('./.claude/skills/cfn-transparency-middleware/config.json');
         const middleware = new TransparencyMiddleware(config);
         await middleware.initialize();

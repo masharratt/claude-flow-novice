@@ -1,0 +1,27 @@
+{
+  "task_id": "test-999",
+  "original_task": "Explore directory structure",
+  "decomposition_strategy": "directory-exploration",
+  "subtasks": [
+    {
+      "subtask_id": "test-999-scan",
+      "title": "Targeted Directory Scan",
+      "description": "Scan specific directories for target files using ripgrep",
+      "agent_type": "researcher",
+      "tool_budget": 6,
+      "expected_tools": ["Bash", "rg", "Glob", "Read"],
+      "deliverables": ["target-files.txt", "directory-map.json"],
+      "estimated_duration": "5-8 minutes"
+    },
+    {
+      "subtask_id": "test-999-analyze",
+      "title": "File Content Analysis",
+      "description": "Analyze found files to understand structure and patterns",
+      "agent_type": "analyst",
+      "tool_budget": 8,
+      "expected_tools": ["Read", "Grep", "Write"],
+      "deliverables": ["file-analysis.json", "content-summary.md"],
+      "estimated_duration": "8-12 minutes"
+    }
+  ]
+}

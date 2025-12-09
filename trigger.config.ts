@@ -1,8 +1,24 @@
-import type { TriggerConfig } from "@trigger.dev/sdk/v3";
+// Trigger.dev configuration - placeholder implementation
+// This file will be fully functional once @trigger.dev/sdk/v3 is installed
+
+export interface TriggerConfig {
+  project: string;
+  maxDuration: number;
+  retries?: {
+    enabledInDev?: boolean;
+    default?: {
+      maxAttempts: number;
+      factor: number;
+      minTimeoutInMs: number;
+      maxTimeoutInMs: number;
+      randomize: boolean;
+    };
+  };
+  dirs?: string[];
+}
 
 export const config: TriggerConfig = {
   project: process.env.TRIGGER_PROJECT_ID || "proj_uuvpcrkpfruhlpbpzlov",
-  triggerUrl: process.env.TRIGGER_ENDPOINT || "http://localhost:8030",
   maxDuration: 600, // 10 minutes in seconds (required)
   retries: {
     enabledInDev: true,
@@ -16,3 +32,7 @@ export const config: TriggerConfig = {
   },
   dirs: ["./src/trigger"],
 };
+
+// Note: When @trigger.dev/sdk/v3 is installed, update the import to:
+// import type { TriggerConfig } from "@trigger.dev/sdk/v3";
+// Also remove the local interface definition above

@@ -137,8 +137,9 @@ case "$STATUS" in
         echo "Run: ./claude/skills/hook-pipeline/feedback-resolver.sh --type LINT_ISSUES --auto-resolve"
         exit 6  # Special exit code for LINT_ISSUES
         ;;
-    "NO_STATUS"|"SUCCESS")
+    "NO_STATUS"|"SUCCESS"|"IMPROVEMENTS_SUGGESTED")
         echo "✅ Validation passed"
+        [[ "$STATUS" == "IMPROVEMENTS_SUGGESTED" ]] && echo "ℹ️  Some improvements were suggested but no issues found"
         ;;
     *)
         echo "⚠️  Unknown status: $STATUS"

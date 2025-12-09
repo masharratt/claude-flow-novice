@@ -232,17 +232,21 @@ test_concurrent_access() {
       sleep 2
       $SKILL release-lock \"\$LOCK_INFO\"
     ) &
+    BG_PID=\$!
 
     # Wait a bit for first lock to acquire
     sleep 0.5
 
     # Try to acquire second lock (should wait)
-    START=\$(date +%s)
+    START=\$(date +%s%3N)
     LOCK_INFO=\$($SKILL acquire-lock '$test_file' --agent-id agent-2 --timeout 5000)
-    END=\$(date +%s)
-    WAIT_TIME=\$((END - START))
+    END=\$(date +%s%3N)
+    WAIT_TIME=\$(((END - START) / 1000))
 
     $SKILL release-lock \"\$LOCK_INFO\"
+
+    # Wait for background process to complete
+    wait \$BG_PID 2>/dev/null || true
 
     # Should have waited at least 1 second
     [ \"\$WAIT_TIME\" -ge 1 ]

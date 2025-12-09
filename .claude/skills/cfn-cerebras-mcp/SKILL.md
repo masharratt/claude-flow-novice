@@ -55,4 +55,10 @@ if valid or false if invalid...
 Function: validateEmail(email: string): boolean
 - Regex: /^[^@]+@[^@]+\.[^@]+$/
 - Return: true if match, false otherwise
+
+## Known Issues
+
+- ℹ️ **Documentation Only**: This skill describes the MCP tool that's available in the main chat interface
+- ℹ️ **No Separate Implementation**: There is no separate script to invoke - the tool is used directly
+- ℹ️ **Main Chat Only**: This MCP tool is only available in the main chat, not within spawned agents
 ```

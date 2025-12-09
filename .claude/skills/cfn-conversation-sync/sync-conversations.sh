@@ -13,7 +13,6 @@ DRY_RUN=false
 CODEX_PATHS=(
   "/mnt/c/Users/${USER}/.codex/sessions"
   "${HOME}/.codex/sessions"
-  "/mnt/c/Users/masha/.codex/sessions"
 )
 
 # Colors
@@ -150,7 +149,9 @@ if [ -n "$PROJECT" ]; then
   while IFS= read -r file; do
     if [ -f "$file" ]; then
       cwd=$(head -1 "$file" 2>/dev/null | jq -r '.payload.cwd // empty' 2>/dev/null || echo "")
-      if [[ "$cwd" == *"$PROJECT"* ]]; then
+      norm_cwd=$(echo "$cwd" | sed 's|\\|/|g' | tr '[:upper:]' '[:lower:]')
+      norm_project=$(echo "$PROJECT" | tr '[:upper:]' '[:lower:]')
+      if [[ "$norm_cwd" == *"$norm_project"* ]]; then
         echo "$file" >> "$FILTERED_LIST"
       fi
     fi

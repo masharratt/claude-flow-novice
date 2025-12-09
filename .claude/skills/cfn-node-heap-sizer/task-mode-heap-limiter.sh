@@ -25,7 +25,7 @@ declare -A TOOL_HEAPS=(
     ["validator"]="1024"
     ["reviewer"]="1024"
     ["tester"]="1024"
-})
+)
 
 # Function to detect current execution mode
 detect_execution_mode() {

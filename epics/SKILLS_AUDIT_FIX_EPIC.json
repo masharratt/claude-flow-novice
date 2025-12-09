@@ -1,0 +1,558 @@
+{
+  "epic": {
+    "id": "SKILLS_AUDIT_FIX_EPIC",
+    "name": "Comprehensive Skills Audit and Remediation",
+    "description": "Fix all 38 CFN skills identified in the comprehensive audit, addressing broken implementations, missing dependencies, and documentation issues",
+    "priority": "HIGH",
+    "estimatedDuration": "3-4 weeks",
+    "version": "1.0.0",
+    "created": "2025-01-08",
+    "tags": ["infrastructure", "maintenance", "skills", "audit", "remediation"],
+    "acceptanceCriteria": [
+      "All 38 skills are functional and tested",
+      "Each skill has clear documentation and usage examples",
+      "Mega-skills have unified entry points",
+      "All path resolution issues are resolved",
+      "Dependencies are properly managed",
+      "Test suites exist for all skills"
+    ],
+    "phases": [
+      {
+        "id": "PHASE_1",
+        "name": "Critical Infrastructure Fixes",
+        "description": "Fix foundational issues blocking multiple skills",
+        "estimatedDuration": "1 week",
+        "sprints": [
+          {
+            "id": "SPRINT_1_1",
+            "name": "Common Infrastructure",
+            "description": "Create shared utilities and standards",
+            "duration": "2 days",
+            "status": "pending",
+            "tasks": [
+              {
+                "id": "TASK_BOOTSTRAP_UTILITIES",
+                "name": "Create Bootstrap Utilities",
+                "description": "Implement missing bootstrap/sqlite-params.sh used by multiple skills",
+                "type": "implementation",
+                "complexity": "medium",
+                "estimatedDuration": "4 hours",
+                "dependencies": [],
+                "deliverables": [
+                  ".claude/skills/shared/bootstrap/sqlite-params.sh",
+                  "Documentation for parameterized queries"
+                ],
+                "affectedSkills": [
+                  "cfn-task-planning",
+                  "cfn-knowledge-base",
+                  "cfn-memory-persistence"
+                ]
+              },
+              {
+                "id": "TASK_PATH_STANDARDIZATION",
+                "name": "Standardize Path Resolution",
+                "description": "Create utility functions for consistent path resolution across all skills",
+                "type": "implementation",
+                "complexity": "medium",
+                "estimatedDuration": "6 hours",
+                "dependencies": [],
+                "deliverables": [
+                  ".claude/skills/shared/lib/path-utils.sh",
+                  "Pattern documentation"
+                ],
+                "affectedSkills": [
+                  "cfn-config",
+                  "cfn-mdap-context-injection",
+                  "cfn-project-management",
+                  "cfn-dependency-management"
+                ]
+              },
+              {
+                "id": "TASK_ENTRY_POINT_TEMPLATE",
+                "name": "Create Entry Point Template",
+                "description": "Standardize main execute.sh structure for all skills",
+                "type": "implementation",
+                "complexity": "low",
+                "estimatedDuration": "3 hours",
+                "dependencies": ["TASK_PATH_STANDARDIZATION"],
+                "deliverables": [
+                  ".claude/skills/shared/templates/execute.sh.template",
+                  "Entry point guidelines"
+                ],
+                "affectedSkills": [
+                  "All mega-skills missing entry points"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "SPRINT_1_2",
+            "name": "Dependency Resolution",
+            "description": "Fix TypeScript compilation and missing dependencies",
+            "duration": "3 days",
+            "status": "pending",
+            "tasks": [
+              {
+                "id": "TASK_TYPESCRIPT_SETUP",
+                "name": "Fix TypeScript Configuration",
+                "description": "Resolve TypeScript compilation errors across skills",
+                "type": "implementation",
+                "complexity": "high",
+                "estimatedDuration": "1 day",
+                "dependencies": [],
+                "deliverables": [
+                  "Updated tsconfig.json files",
+                  "Working TypeScript compilation"
+                ],
+                "affectedSkills": [
+                  "cfn-compilation-error-fixer",
+                  "cfn-skill-management",
+                  "cfn-dependency-management"
+                ]
+              },
+              {
+                "id": "TASK_NODE_DEPS",
+                "name": "Install Missing Node Dependencies",
+                "description": "Install and configure missing npm packages",
+                "type": "implementation",
+                "complexity": "medium",
+                "estimatedDuration": "4 hours",
+                "dependencies": [],
+                "deliverables": [
+                  "Updated package.json files",
+                  "Installed dependencies"
+                ],
+                "affectedSkills": [
+                  "equation-solver",
+                  "cfn-transparency-middleware"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "SPRINT_1_3",
+            "name": "Documentation Baseline",
+            "description": "Update all documentation to reflect actual state",
+            "duration": "2 days",
+            "status": "pending",
+            "parallel": true,
+            "tasks": [
+              {
+                "id": "TASK_DOC_AUDIT",
+                "name": "Documentation Reality Check",
+                "description": "Audit and update all SKILL.md files",
+                "type": "documentation",
+                "complexity": "high",
+                "estimatedDuration": "2 days",
+                "dependencies": [],
+                "deliverables": [
+                  "Updated documentation for all skills",
+                  "Known issues section"
+                ],
+                "affectedSkills": [
+                  "All skills with documentation mismatches"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "PHASE_2",
+        "name": "Fix Working Skills",
+        "description": "Address minor issues in skills that are already functional",
+        "estimatedDuration": "3 days",
+        "parallel": true,
+        "sprints": [
+          {
+            "id": "SPRINT_2_1",
+            "name": "Minor Bug Fixes",
+            "description": "Fix small issues in working skills",
+            "duration": "3 days",
+            "status": "pending",
+            "tasks": [
+              {
+                "id": "TASK_FIX_CFN_UTILITIES",
+                "name": "Fix cfn-utilities JSON Bug",
+                "description": "Remove extra closing brace in log_json function",
+                "type": "bugfix",
+                "complexity": "low",
+                "estimatedDuration": "1 hour",
+                "dependencies": [],
+                "affectedSkills": ["cfn-utilities"]
+              },
+              {
+                "id": "TASK_FIX_CONVERSATION_SYNC",
+                "name": "Fix Windows Paths in cfn-conversation-sync",
+                "description": "Add path normalization for Windows/WSL environments",
+                "type": "bugfix",
+                "complexity": "low",
+                "estimatedDuration": "2 hours",
+                "dependencies": ["TASK_PATH_STANDARDIZATION"],
+                "affectedSkills": ["cfn-conversation-sync"]
+              },
+              {
+                "id": "TASK_FIX_NODE_HEAP_SIZER",
+                "name": "Complete cfn-node-heap-sizer Documentation",
+                "description": "Add missing documentation sections",
+                "type": "documentation",
+                "complexity": "low",
+                "estimatedDuration": "2 hours",
+                "dependencies": [],
+                "affectedSkills": ["cfn-node-heap-sizer"]
+              },
+              {
+                "id": "TASK_FIX_ERROR_MANAGEMENT",
+                "name": "Fix CLI Wrappers in cfn-error-management",
+                "description": "Fix path resolution issues in CLI wrappers",
+                "type": "bugfix",
+                "complexity": "low",
+                "estimatedDuration": "2 hours",
+                "dependencies": ["TASK_PATH_STANDARDIZATION"],
+                "affectedSkills": ["cfn-error-management"]
+              },
+              {
+                "id": "TASK_FIX_TEST_FRAMEWORK",
+                "name": "Add CLI Interface to cfn-test-framework",
+                "description": "Create unified CLI interface",
+                "type": "implementation",
+                "complexity": "medium",
+                "estimatedDuration": "4 hours",
+                "dependencies": ["TASK_ENTRY_POINT_TEMPLATE"],
+                "affectedSkills": ["cfn-test-framework"]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "PHASE_3",
+        "name": "Remediate Non-Implemented Skills",
+        "description": "Implement or remove skills that have no working code",
+        "estimatedDuration": "1.5 weeks",
+        "sprints": [
+          {
+            "id": "SPRINT_3_1",
+            "name": "Documentation-Only Skills Decision",
+            "description": "Decide fate of skills with only documentation",
+            "duration": "1 day",
+            "status": "pending",
+            "tasks": [
+              {
+                "id": "TASK_DECIDE_DOC_ONLY",
+                "name": "Evaluate Documentation-Only Skills",
+                "description": "Determine which doc-only skills to implement vs remove",
+                "type": "planning",
+                "complexity": "medium",
+                "estimatedDuration": "1 day",
+                "dependencies": [],
+                "deliverables": [
+                  "Decision matrix for doc-only skills",
+                  "Removal or implementation plan"
+                ],
+                "affectedSkills": [
+                  "cfn-github-workflow",
+                  "cfn-project-analysis",
+                  "cfn-session-handoff",
+                  "cfn-epic-parser",
+                  "cfn-cerebras-mcp"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "SPRINT_3_2",
+            "name": "Remove Unnecessary Skills",
+            "description": "Remove skills decided against implementation",
+            "duration": "1 day",
+            "status": "pending",
+            "dependencies": ["SPRINT_3_1"],
+            "parallel": true,
+            "tasks": [
+              {
+                "id": "TASK_REMOVE_SKILLS",
+                "name": "Remove Selected Skills",
+                "description": "Clean up directories and references for removed skills",
+                "type": "cleanup",
+                "complexity": "low",
+                "estimatedDuration": "4 hours",
+                "dependencies": ["TASK_DECIDE_DOC_ONLY"],
+                "deliverables": [
+                  "Removed skill directories",
+                  "Updated references"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "SPRINT_3_3",
+            "name": "Implement Critical Missing Skills",
+            "description": "Implement essential missing skills",
+            "duration": "5 days",
+            "status": "pending",
+            "dependencies": ["SPRINT_3_1"],
+            "parallel": false,
+            "tasks": [
+              {
+                "id": "TASK_IMPLEMENT_EPIC_PARSER",
+                "name": "Implement cfn-epic-parser",
+                "description": "Create epic parsing functionality",
+                "type": "implementation",
+                "complexity": "high",
+                "estimatedDuration": "2 days",
+                "dependencies": ["TASK_BOOTSTRAP_UTILITIES"],
+                "affectedSkills": ["cfn-epic-parser"]
+              },
+              {
+                "id": "TASK_IMPLEMENT_SESSION_HANDOFF",
+                "name": "Implement cfn-session-handoff",
+                "description": "Create session handoff generation",
+                "type": "implementation",
+                "complexity": "high",
+                "estimatedDuration": "3 days",
+                "dependencies": ["TASK_BOOTSTRAP_UTILITIES", "TASK_ENTRY_POINT_TEMPLATE"],
+                "affectedSkills": ["cfn-session-handoff"]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "PHASE_4",
+        "name": "Fix Complex Skills",
+        "description": "Address skills requiring significant remediation",
+        "estimatedDuration": "1 week",
+        "parallel": true,
+        "sprints": [
+          {
+            "id": "SPRINT_4_1",
+            "name": "Security-Critical Skills",
+            "description": "Fix skills with security implications",
+            "duration": "3 days",
+            "status": "pending",
+            "tasks": [
+              {
+                "id": "TASK_FIX_PARAM_QUERIES",
+                "name": "Fix cfn-parameterized-queries",
+                "description": "Rewrite to prevent SQL injection",
+                "type": "security",
+                "complexity": "high",
+                "estimatedDuration": "2 days",
+                "dependencies": ["TASK_BOOTSTRAP_UTILITIES"],
+                "affectedSkills": ["cfn-parameterized-queries"]
+              },
+              {
+                "id": "TASK_FIX_TRANSPARENCY",
+                "name": "Fix cfn-transparency-middleware",
+                "description": "Complete missing implementation",
+                "type": "implementation",
+                "complexity": "high",
+                "estimatedDuration": "1 day",
+                "dependencies": ["TASK_TYPESCRIPT_SETUP"],
+                "affectedSkills": ["cfn-transparency-middleware"]
+              }
+            ]
+          },
+          {
+            "id": "SPRINT_4_2",
+            "name": "Mega-Skills Integration",
+            "description": "Fix consolidation issues in mega-skills",
+            "duration": "4 days",
+            "status": "pending",
+            "tasks": [
+              {
+                "id": "TASK_FIX_VALIDATION_FRAMEWORK",
+                "name": "Fix cfn-validation-framework",
+                "description": "Add main entry point and fix syntax errors",
+                "type": "implementation",
+                "complexity": "medium",
+                "estimatedDuration": "1 day",
+                "dependencies": ["TASK_ENTRY_POINT_TEMPLATE"],
+                "affectedSkills": ["cfn-validation-framework"]
+              },
+              {
+                "id": "TASK_FIX_DOCKER_RUNTIME",
+                "name": "Fix cfn-docker-runtime",
+                "description": "Create missing CLI entry points",
+                "type": "implementation",
+                "complexity": "medium",
+                "estimatedDuration": "1 day",
+                "dependencies": ["TASK_ENTRY_POINT_TEMPLATE"],
+                "affectedSkills": ["cfn-docker-runtime"]
+              },
+              {
+                "id": "TASK_FIX_AGENT_LIFECYCLE",
+                "name": "Fix cfn-agent-lifecycle",
+                "description": "Fix CRLF endings and missing dependencies",
+                "type": "bugfix",
+                "complexity": "medium",
+                "estimatedDuration": "1 day",
+                "dependencies": ["TASK_BOOTSTRAP_UTILITIES"],
+                "affectedSkills": ["cfn-agent-lifecycle"]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "PHASE_5",
+        "name": "Final Testing and Validation",
+        "description": "Comprehensive testing of all fixed skills",
+        "estimatedDuration": "3 days",
+        "sprints": [
+          {
+            "id": "SPRINT_5_1",
+            "name": "Individual Skill Testing",
+            "description": "Test each skill in isolation",
+            "duration": "2 days",
+            "status": "pending",
+            "parallel": true,
+            "tasks": [
+              {
+                "id": "TASK_TEST_ALL_SKILLS",
+                "name": "Test All Skills",
+                "description": "Execute comprehensive test suite",
+                "type": "testing",
+                "complexity": "medium",
+                "estimatedDuration": "2 days",
+                "dependencies": [
+                  "PHASE_1",
+                  "PHASE_2",
+                  "PHASE_3",
+                  "PHASE_4"
+                ],
+                "deliverables": [
+                  "Test results for all skills",
+                  "Fix verification reports"
+                ],
+                "affectedSkills": ["All skills"]
+              }
+            ]
+          },
+          {
+            "id": "SPRINT_5_2",
+            "name": "Integration Testing",
+            "description": "Test skills in CFN Loop context",
+            "duration": "1 day",
+            "status": "pending",
+            "tasks": [
+              {
+                "id": "TASK_INTEGRATION_TESTS",
+                "name": "CFN Loop Integration",
+                "description": "Verify skills work in CFN Loop",
+                "type": "testing",
+                "complexity": "medium",
+                "estimatedDuration": "1 day",
+                "dependencies": ["SPRINT_5_1"],
+                "deliverables": [
+                  "Integration test results",
+                  "Performance metrics"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "dependencies": {
+      "external": [
+        "Docker daemon for container-related skills",
+        "Redis server for coordination skills",
+        "Node.js 18+ for TypeScript skills",
+        "Bash 4.0+ for shell scripts"
+      ],
+      "internal": [
+        "CFN Loop orchestration system",
+        "Agent spawning framework",
+        "Memory management system"
+      ]
+    },
+    "riskFactors": [
+      {
+        "risk": "Dependency hell with TypeScript versions",
+        "mitigation": "Use local tsconfig.json per skill",
+        "impact": "medium"
+      },
+      {
+        "risk": "Breaking changes in CFN Loop",
+        "mitigation": "Isolate skill implementations",
+        "impact": "high"
+      },
+      {
+        "risk": "Skills depending on removed features",
+        "mitigation": "Audit all dependencies",
+        "impact": "medium"
+      }
+    ],
+    "successMetrics": {
+      "quantitative": [
+        "100% of skills pass syntax validation",
+        "95% of skills have functional tests",
+        "100% of mega-skills have entry points",
+        "0 security vulnerabilities"
+      ],
+      "qualitative": [
+        "All documentation matches implementation",
+        "Skills follow consistent patterns",
+        "Clear error messages and help text"
+      ]
+    },
+    "rollbackPlan": {
+      "description": "Each skill fix will be in its own commit for easy rollback",
+      "backupLocation": ".backups/skills_audit_fix_epic",
+      "rollbackProcedure": "git revert per skill as needed"
+    }
+  },
+  "parallelExecutionAnalysis": {
+    "phaseLevelParallelism": {
+      "PHASE_1": "LOW - Must fix common infrastructure first",
+      "PHASE_2": "HIGH - Minor fixes can be done in parallel",
+      "PHASE_3": "MEDIUM - Decision needed, then parallel implementation/removal",
+      "PHASE_4": "HIGH - Different skill categories can be fixed in parallel",
+      "PHASE_5": "MEDIUM - Individual tests parallel, integration sequential"
+    },
+    "skillLevelParallelism": {
+      "canRunInParallel": [
+        {
+          "group": "Documentation-Only Skills",
+          "skills": ["cfn-github-workflow", "cfn-project-analysis", "cfn-session-handoff", "cfn-epic-parser", "cfn-cerebras-mcp"],
+          "reason": "No shared dependencies or conflicts"
+        },
+        {
+          "group": "Minor Bug Fixes",
+          "skills": ["cfn-utilities", "cfn-conversation-sync", "cfn-node-heap-sizer", "cfn-error-management", "cfn-test-framework"],
+          "reason": "Independent fixes, no shared code"
+        },
+        {
+          "group": "TypeScript Skills",
+          "skills": ["cfn-compilation-error-fixer", "cfn-skill-management", "cfn-dependency-management", "cfn-transparency-middleware"],
+          "reason": "Can fix compilation independently"
+        },
+        {
+          "group": "Mega-Skills",
+          "skills": ["cfn-validation-framework", "cfn-docker-runtime", "cfn-agent-lifecycle", "cfn-operations", "cfn-process-management"],
+          "reason": "Different domains, minimal overlap"
+        }
+      ],
+      "mustRunSequentially": [
+        {
+          "dependency": "Bootstrap utilities must be created before skills that use them",
+          "dependentSkills": ["cfn-task-planning", "cfn-knowledge-base", "cfn-memory-persistence", "cfn-agent-lifecycle"]
+        },
+        {
+          "dependency": "Path standardization must be done before path-dependent skills",
+          "dependentSkills": ["cfn-config", "cfn-mdap-context-injection", "cfn-project-management"]
+        },
+        {
+          "dependency": "TypeScript configuration must be fixed before TypeScript skills",
+          "dependentSkills": ["All TypeScript-based skills"]
+        }
+      ]
+    },
+    "resourceConstraints": {
+      "teamSize": "2-3 developers recommended",
+      "criticalPath": "PHASE_1 → PHASE_3 (decision) → PHASE_4 → PHASE_5",
+      "estimatedDeveloperDays": "45-60 total"
+    }
+  }
+}

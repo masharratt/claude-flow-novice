@@ -1,7 +1,7 @@
 ---
 name: conversation-sync
 description: Sync conversation history from .codex/sessions to .claude.json for context preservation
-version: 1.0.0
+version: 1.0.1
 tags: [conversations, sync, backup, context]
 status: production
 triggers:
@@ -64,8 +64,10 @@ The skill updates `.claude.json` with this structure:
 
 - Conversation files remain in their original locations
 - Only references are added to `.claude.json`
-- Supports both Windows (`/mnt/c/Users/...`) and Linux paths
+- Supports both Windows (`/mnt/c/Users/...`) and Linux paths with automatic normalization
 - Safe to run multiple times (idempotent)
+- Path normalization handles both backslashes (`\`) and forward slashes (`/`)
+- Case-insensitive matching for project filtering (works with mixed-case paths)
 
 ## Location of Conversation Data
 

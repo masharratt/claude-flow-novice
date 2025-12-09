@@ -797,7 +797,7 @@ function runClippyCheck(filePath: string): { warnings: number; critical: string[
 // ============== LAYER 3: ENHANCED LLM REVIEW ==============
 
 async function llmReviewGate(
-  client: Cerebras,
+  client: any,
   originalCode: string,
   fixedCode: string,
   errorMessage: string,
@@ -1106,7 +1106,7 @@ async function processInChunks<T, R>(
 }
 
 async function getLLMFix(
-  client: Cerebras,
+  client: any,
   error: RustError,
   fileContent: string,
   filePath: string,
@@ -1180,7 +1180,7 @@ function generateUnifiedDiff(before: string, after: string, filePath: string): s
 }
 
 async function processFileWithGates(
-  client: Cerebras,
+  client: any,
   filePath: string,
   errors: RustError[],
   feedback?: Map<number, string>

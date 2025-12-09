@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROCESS_MANAGER_SCRIPT="${SCRIPT_DIR}/../lib/lifecycle/process-manager.sh"
+CONFIG_PATH="${SCRIPT_DIR}/../lib/lifecycle/config.json"
+
+show_help() {
+    cat << EOF
+Process Manager Script
+
+Usage: $0 [ACTION] [PROCESS_NAME]
+
+Actions:
+    list                    List all available processes
+    start PROCESS_NAME      Start a specific process
+    stop PROCESS_NAME       Stop a specific process
+    restart PROCESS_NAME    Restart a specific process
+    status PROCESS_NAME     Show status of a specific process
+    help                    Show this help message
+
+Examples:
+    $0 list
+    $0 start webserver
+    $0 stop database
+    $0 restart cache
+    $0 status webserver
+EOF
+}
+
+validate_process_exists() {
+    local process_name="$1"
+    if ! jq -e ".processTypes | has(\"$process_name\")" "$CONFIG_PATH" >/dev/null; then
+        echo "Error: Process '$process_name' not found in configuration"
+        echo "Use '$0 list' to see available processes"
+        exit 1
+    fi
+}
+
+validate_action() {
+    local action="$1"
+    case "$action" in
+        list|start|stop|restart|status|help)
+            return 0
+            ;;
+        *)
+            echo "Error: Invalid action '$action'"
+            echo "Use '$0 help' for usage information"
+            exit 1
+            ;;
+    esac
+}
+
+setup_environment() {
+    if [[ ! -f "$CONFIG_PATH" ]]; then
+        echo "Error: Configuration file not found at $CONFIG_PATH"
+        exit 1
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "Error: jq is required but not installed"
+        exit 1
+    fi
+}
+
+validate_scripts() {
+    local process_name="$1"
+    local script_path
+    script_path="$(jq -r ".processTypes[\"$process_name\"].script" "$CONFIG_PATH")"
+    
+    if [[ "$script_path" == "null" || -z "$script_path" ]]; then
+        echo "Error: No script defined for process '$process_name'"
+        exit 1
+    fi
+
+    if [[ ! -f "$script_path" ]]; then
+        echo "Error: Script not found: $script_path"
+        exit 1
+    fi
+
+    if [[ ! -x "$script_path" ]]; then
+        echo "Error: Script is not executable: $script_path"
+        exit 1
+    fi
+}
+
+start_process() {
+    local process_name="$1"
+    validate_process_exists "$process_name"
+    validate_scripts "$process_name"
+    
+    local script_path
+    script_path="$(jq -r ".processTypes[\"$process_name\"].script" "$CONFIG_PATH")"
+    
+    echo "Starting process: $process_name"
+    "$script_path" start
+}
+
+stop_process() {
+    local process_name="$1"
+    validate_process_exists "$process_name"
+    validate_scripts "$process_name"
+    
+    local script_path
+    script_path="$(jq -r ".processTypes[\"$process_name\"].script" "$CONFIG_PATH")"
+    
+    echo "Stopping process: $process_name"
+    "$script_path" stop
+}
+
+restart_process() {
+    local process_name="$1"
+    echo "Restarting process: $process_name"
+    stop_process "$process_name"
+    sleep 2
+    start_process "$process_name"
+}
+
+show_status() {
+    local process_name="$1"
+    validate_process_exists "$process_name"
+    validate_scripts "$process_name"
+    
+    local script_path
+    script_path="$(jq -r ".processTypes[\"$process_name\"].script" "$CONFIG_PATH")"
+    
+    echo "Status for process: $process_name"
+    "$script_path" status
+}
+
+list_processes() {
+    echo "Available Processes:"
+    echo "===================="
+    jq -r '.processTypes | to_entries[] | 
+        "\(.key)|\(.value.description)|\(.value.dependencies | join(", ") // "none")"' \
+        "$CONFIG_PATH" | while IFS='|' read -r key desc deps; do
+        printf "%-15s %s\n" "$key" "$desc"
+        printf "%15s Dependencies: %s\n" "" "$deps"
+        echo
+    done
+}
+
+main() {
+    setup_environment
+    
+    if [[ $# -eq 0 ]]; then
+        show_help
+        exit 1
+    fi
+    
+    local action="$1"
+    validate_action "$action"
+    
+    case "$action" in
+        help)
+            show_help
+            ;;
+        list)
+            list_processes
+            ;;
+        start|stop|restart|status)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: Process name required for '$action' action"
+                echo "Usage: $0 $action PROCESS_NAME"
+                exit 1
+            fi
+            local process_name="$2"
+            case "$action" in
+                start)
+                    start_process "$process_name"
+                    ;;
+                stop)
+                    stop_process "$process_name"
+                    ;;
+                restart)
+                    restart_process "$process_name"
+                    ;;
+                status)
+                    show_status "$process_name"
+                    ;;
+            esac
+            ;;
+    esac
+}
+
+main "$@"
