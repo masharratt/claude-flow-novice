@@ -1,7 +1,14 @@
+---
+name: cfn-cerebras-coordinator
+description: "Coordinates FAST code generation via Z.ai glm-4.6 with RuVector pattern learning. Use when agents need rapid test generation, bulk code creation, or repetitive boilerplate. Tracks successful prompts for continuous improvement. Ideal for high-volume, low-complexity code tasks."
+version: 2.0.0
+tags: [coordination, code-generation, fast, zai, glm-4.6, pattern-learning, tests]
+---
+
 # Cerebras Coordinator Skill
 
 ## Description
-Integrates Cerebras code generation with RuVector for prompt tracking, success pattern learning, and agent coordination. Agents use this skill to offload code generation to Cerebras while maintaining a searchable database of what works.
+Coordinates **fast code generation** via Z.ai glm-4.6 model with RuVector pattern learning. Agents use this skill to offload rapid test generation and boilerplate code while building a searchable database of successful patterns.
 
 ## Key Features
 - 🚀 **Fast Code Generation**: Uses Cerebras API for rapid code creation
@@ -65,15 +72,22 @@ Agent (Coordinator)        Cerebras Coordinator Skill         RuVector
         |                           |                              |
 ```
 
+## When to Use
+- ✅ **Bulk test generation** - generating many test files quickly
+- ✅ **Boilerplate with patterns** - learning from previous successful generations
+- ✅ **Agent code offloading** - when agents need fast, simple code generation
+- ✅ **Repetitive tasks** - migrations, similar components, data models
+- ❌ **NOT for** complex logic, security code, or architectural decisions
+
 ## Configuration
 
 ```bash
 # Required
-export CEREBRAS_API_KEY="your-cerebras-api-key"
+export ZAI_API_KEY="your-zai-api-key"  # or CEREBRAS_API_KEY for legacy
 export RUVECTOR_INDEX_PATH="./.claude/skills/cfn-ruvector-codebase-index/data"
 
 # Optional
-export CEREBRAS_MODEL="qwen2.5-coder-32b"
+export ZAI_MODEL="glm-4.6"  # Fast, cost-effective model (default)
 export COORDINATION_DB_PATH="./.claude/skills/cfn-cerebras-coordinator/generations.db"
 export DEFAULT_TEST_TIMEOUT="60"
 export MAX_GENERATION_ATTEMPTS="3"

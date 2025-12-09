@@ -89,6 +89,9 @@ fi
 # Convert to absolute path
 PATH_TO_INDEX="$(cd "$PATH_TO_INDEX" && pwd)"
 
+# Convert array to comma-separated string for Python
+FILE_TYPES_STR=$(IFS=','; echo "${FILE_TYPES[*]}")
+
 echo "🔍 Indexing code patterns in: $PATH_TO_INDEX"
 echo "📄 File types: ${FILE_TYPES[*]}"
 if [[ -n "$PATTERNS" ]]; then
@@ -113,7 +116,7 @@ def generate_pattern_id(file_path, content):
 def extract_functions(content, file_type):
     \"\"\"Extract functions/classes from code\"\"\"
     patterns = []
-    
+
     # Simple extraction based on language
     if file_type == 'rs':
         # Rust functions, structs, impls
@@ -121,10 +124,10 @@ def extract_functions(content, file_type):
         fn_pattern = r'^(pub\s+)?(async\s+)?(unsafe\s+)?fn\s+(\w+)'
         struct_pattern = r'^(pub\s+)?struct\s+(\w+)'
         impl_pattern = r'^impl\s+(\w+)\s*(for\s+(\w+))?'
-        
+
         for i, line in enumerate(content.split('\\n')):
-            for pattern, type_name in [(fn_pattern, 'function'), 
-                                      (struct_pattern, 'struct'), 
+            for pattern, type_name in [(fn_pattern, 'function'),
+                                      (struct_pattern, 'struct'),
                                       (impl_pattern, 'impl')]:
                 match = re.match(pattern, line)
                 if match:
@@ -134,13 +137,13 @@ def extract_functions(content, file_type):
                         'line': i + 1,
                         'signature': line.strip()
                     })
-    
+
     elif file_type == 'py':
         # Python functions, classes
         import re
         fn_pattern = r'^\s*def\s+(\w+)'
         class_pattern = r'^\s*class\s+(\w+)'
-        
+
         for i, line in enumerate(content.split('\\n')):
             if re.match(fn_pattern, line):
                 patterns.append({
@@ -151,41 +154,53 @@ def extract_functions(content, file_type):
                 })
             elif re.match(class_pattern, line):
                 patterns.append({
-                    'type': 'class', 
+                    'type': 'class',
                     'name': re.match(class_pattern, line).group(1),
                     'line': i + 1,
                     'signature': line.strip()
                 })
-    
+
     return patterns
 
 # Initialize engine
 engine = SearchEngine('${STORAGE_PATH}/storage')
+
+# Parse file types from shell
+file_types = '${FILE_TYPES_STR}'.split(',')
+verbose = '${VERBOSE}' == 'true'
 
 # Index files
 indexed_count = 0
 pattern_count = 0
 
 print('📂 Scanning files...')
-for file_type in ${FILE_TYPES[@]}:
+for file_type in file_types:
+    file_type = file_type.strip()
+    if not file_type:
+        continue
     pattern = f'**/*.{file_type}'
     files = list(Path('${PATH_TO_INDEX}').rglob(pattern))
-    
+
     for file_path in files:
+        # Skip node_modules, .git, dist, build directories
+        path_str = str(file_path)
+        if any(skip in path_str for skip in ['node_modules', '.git', '/dist/', '/build/', '/target/']):
+            continue
+
         if file_path.is_file():
             try:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                
+
                 if len(content) < 50:  # Skip very small files
                     continue
-                
+
                 # Generate pattern ID
                 pattern_id = generate_pattern_id(str(file_path), content)
-                
+
                 # Extract functions/classes
                 patterns = extract_functions(content, file_type)
-                
+
                 # Prepare metadata
                 metadata = {
                     'file_size': len(content),
@@ -193,7 +208,7 @@ for file_type in ${FILE_TYPES[@]}:
                     'patterns': patterns,
                     'last_modified': os.path.getmtime(file_path)
                 }
-                
+
                 # Store pattern
                 engine.add_pattern(
                     pattern_id=pattern_id,
@@ -202,15 +217,15 @@ for file_type in ${FILE_TYPES[@]}:
                     content=content,
                     metadata=metadata
                 )
-                
+
                 indexed_count += 1
                 pattern_count += len(patterns)
-                
-                if ${VERBOSE}:
+
+                if verbose:
                     print(f'  ✅ {file_path} ({len(patterns)} patterns)')
-                    
+
             except Exception as e:
-                if ${VERBOSE}:
+                if verbose:
                     print(f'  ⚠️  Skipped {file_path}: {e}')
                 continue
 

@@ -1,13 +1,27 @@
+---
+name: cfn-cerebras-code-generator
+description: "FAST code generation via Z.ai glm-4.6 model. Use for rapid test generation, boilerplate code, repetitive patterns, and bulk file creation. Ideal when speed matters more than nuance. Do NOT use for complex architectural decisions or security-critical code."
+version: 2.0.0
+tags: [code-generation, fast, zai, glm-4.6, tests, boilerplate]
+---
+
 # Cerebras Code Generator Skill
 
 ## Description
-Generates code using Cerebras API with context tracking and history management. Acts as an OpenAI-compatible wrapper for Cerebras API.
+Generates code using Z.ai glm-4.6 model for **fast test and code generation**. Use this for rapid iteration when generating tests, boilerplate, and repetitive code patterns.
+
+## When to Use
+- ✅ **Test generation** - unit tests, integration tests, test fixtures
+- ✅ **Boilerplate code** - CRUD operations, API endpoints, data models
+- ✅ **Repetitive patterns** - similar components, migration scripts
+- ✅ **Bulk file creation** - generating multiple similar files quickly
+- ❌ **NOT for** complex architecture, security-critical code, or nuanced logic
 
 ## Configuration
 ```bash
 # Required environment variables
-export CEREBRAS_API_KEY="your-api-key"
-export CEREBRAS_MODEL="qwen2.5-coder-32b"  # or other Cerebras model
+export ZAI_API_KEY="your-api-key"  # or CEREBRAS_API_KEY for legacy
+export ZAI_MODEL="glm-4.6"  # Fast, cost-effective model
 
 # Optional settings
 export CEREBRAS_BASE_URL="https://api.cerebras.ai/v1"

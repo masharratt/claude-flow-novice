@@ -1,10 +1,24 @@
+---
+name: cfn-cerebras-mcp
+description: "FAST code generation via mcp__cerebras-mcp__write tool using Z.ai glm-4.6. Use for rapid test generation, boilerplate creation, and bulk code tasks in main chat. Prompt must be SHORTER than output. Ideal for tests, CRUD, migrations, and repetitive patterns."
+version: 2.0.0
+tags: [mcp, code-generation, fast, zai, glm-4.6, tests, main-chat]
+---
+
 # Cerebras MCP Code Generation
 
-Fast code generation via `mcp__cerebras-mcp__write` tool.
+**FAST** code generation via `mcp__cerebras-mcp__write` tool using Z.ai glm-4.6 model.
 
 ## When to Use
 
-Use for generating or modifying code files when speed matters. Prompt must be SHORTER than expected output.
+Use for **rapid test and code generation** when speed matters more than nuance:
+- ✅ **Test files** - unit tests, integration tests, test fixtures
+- ✅ **Boilerplate** - CRUD endpoints, data models, components
+- ✅ **Bulk creation** - multiple similar files quickly
+- ✅ **Migrations** - database migrations, schema updates
+- ❌ **NOT for** complex architecture, security code, nuanced logic
+
+**Rule**: Prompt must be SHORTER than expected output (blueprint style).
 
 ## Usage
 
