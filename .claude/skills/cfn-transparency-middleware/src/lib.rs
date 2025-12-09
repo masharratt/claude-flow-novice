@@ -10,8 +10,11 @@
 //! - Security filtering for sensitive data
 //! - Export capabilities for audit trails
 
+pub mod cache_manager;
 pub mod memory_schema;
 pub mod memory_repository;
+pub mod agent_metrics;
+pub mod api_handler;
 
 use anyhow::{Result, Context};
 use serde::{Deserialize, Serialize};
@@ -23,6 +26,8 @@ use chrono::{DateTime, Utc};
 // Re-export main types for convenience
 pub use memory_schema::{MemoryEntry, MemoryQuery, EventType, TransparencyLevel, QueryBuilder};
 pub use memory_repository::MemoryRepository;
+pub use agent_metrics::AgentMetrics;
+pub use api_handler::{ApiHandler, Request, Response, ApiResponse, RouteHandler};
 
 /// Configuration for transparency middleware
 #[derive(Debug, Clone, Serialize, Deserialize)]

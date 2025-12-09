@@ -4,9 +4,7 @@ description: MUST BE USED when developing scalable backend services with compreh
 model: sonnet
 type: specialist
 acl_level: 1
-validation_hooks:
-  - agent-template-validator
-  - test-coverage-validator
+validation_hooks: agent-template-validator, test-coverage-validator
 ---
 
 

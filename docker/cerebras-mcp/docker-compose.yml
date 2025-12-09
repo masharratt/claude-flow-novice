@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  cerebras-mcp:
+    build:
+      context: ../../
+      dockerfile: docker/cerebras-mcp/Dockerfile
+    container_name: cerebras-mcp-server
+    environment:
+      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MCP_SERVER_NAME=${MCP_SERVER_NAME:-cerebras-mcp-prod}
+    volumes:
+      - ./logs:/tmp
+      - ${WORKSPACE_DIR:-/workspace}:/workspace:rw
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    # TCP transport (optional)
+    ports:
+      - "${MCP_PORT:-3000}:3000"
+
+  # Optional: Redis for MCP coordination
+  redis:
+    image: redis:7-alpine
+    container_name: cerebras-mcp-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  redis-data:
