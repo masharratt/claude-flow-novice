@@ -385,6 +385,63 @@ if (applicableValidators.length > 0) {
 }
 
 // ============================================================================
+// PHASE 2.6: SQL Injection Detection
+// ============================================================================
+
+if (ext.match(/\.(sql|ts|js|py)$/)) {
+  log('VALIDATING', 'Running SQL injection detection');
+
+  const sqlInjectionPatterns = [
+    // String concatenation in queries
+    { pattern: /['"`]\s*\+\s*\w+\s*\+\s*['"`].*(?:SELECT|INSERT|UPDATE|DELETE|WHERE)/i, risk: 'STRING_CONCATENATION', severity: 'critical' },
+    { pattern: /(?:SELECT|INSERT|UPDATE|DELETE|WHERE).*['"`]\s*\+\s*\w+/i, risk: 'STRING_CONCATENATION', severity: 'critical' },
+
+    // Template literals with variables in SQL
+    { pattern: /\$\{[^}]+\}.*(?:SELECT|INSERT|UPDATE|DELETE|WHERE)/i, risk: 'TEMPLATE_INJECTION', severity: 'high' },
+
+    // f-strings in Python SQL
+    { pattern: /f['"].*(?:SELECT|INSERT|UPDATE|DELETE|WHERE).*\{/i, risk: 'FSTRING_SQL_INJECTION', severity: 'critical' },
+
+    // .format() in Python SQL
+    { pattern: /['"].*(?:SELECT|INSERT|UPDATE|DELETE).*['"]\.format\(/i, risk: 'FORMAT_SQL_INJECTION', severity: 'critical' },
+
+    // Raw user input in query
+    { pattern: /(?:req\.body|req\.query|req\.params|request\.form|request\.args)\.[^\s]+.*(?:SELECT|INSERT|UPDATE|DELETE)/i, risk: 'UNSANITIZED_INPUT', severity: 'critical' },
+
+    // execute() with string concatenation
+    { pattern: /\.execute\s*\(\s*['"`].*\+/i, risk: 'EXECUTE_CONCATENATION', severity: 'critical' },
+    { pattern: /\.execute\s*\(\s*f['"`]/i, risk: 'EXECUTE_FSTRING', severity: 'critical' },
+  ];
+
+  const sqlInjectionIssues = sqlInjectionPatterns
+    .filter(check => check.pattern.test(fileContent))
+    .map(check => ({ type: check.risk, severity: check.severity }));
+
+  if (sqlInjectionIssues.length > 0) {
+    log('SQL_INJECTION_WARNING', `Found ${sqlInjectionIssues.length} potential SQL injection risks`, {
+      issues: sqlInjectionIssues
+    });
+
+    results.sqlInjection = {
+      passed: false,
+      issues: sqlInjectionIssues
+    };
+
+    sqlInjectionIssues.forEach(issue => {
+      results.recommendations.push({
+        type: 'sql-injection',
+        priority: issue.severity,
+        message: `Potential SQL injection: ${issue.type}`,
+        action: 'Use parameterized queries ($1, $2) or prepared statements instead of string concatenation'
+      });
+    });
+  } else {
+    results.sqlInjection = { passed: true, issues: [] };
+    log('SUCCESS', 'No SQL injection risks detected');
+  }
+}
+
+// ============================================================================
 // PHASE 3: Root Directory Detection
 // ============================================================================
 
@@ -728,7 +785,14 @@ const hasComplexityIssue = results.recommendations.find(r => r.type === 'complex
 const hasBashValidatorError = results.bashValidators && results.bashValidators.errors > 0;
 const hasBashValidatorWarning = results.bashValidators && results.bashValidators.warnings > 0;
 
-if (hasBashValidatorError) {
+// Check for SQL injection issues
+const hasSqlInjectionCritical = results.sqlInjection && !results.sqlInjection.passed &&
+  results.sqlInjection.issues.some(issue => issue.severity === 'critical');
+
+if (hasSqlInjectionCritical) {
+  exitCode = 12;
+  finalStatus = 'SQL_INJECTION_CRITICAL';
+} else if (hasBashValidatorError) {
   exitCode = 9;
   finalStatus = 'BASH_VALIDATOR_ERROR';
 } else if (results.rootWarning) {
@@ -770,6 +834,9 @@ const finalResult = {
 };
 
 // Include structured data for feedback handlers
+if (results.sqlInjection) {
+  finalResult.sqlInjection = results.sqlInjection;
+}
 if (results.rootWarning) {
   finalResult.rootWarning = results.rootWarning;
 }

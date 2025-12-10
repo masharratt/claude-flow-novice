@@ -118,6 +118,7 @@
     "yaml": "^2.3.4"
   },
   "devDependencies": {
+    "@cerebras/cerebras_cloud_sdk": "^1.59.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",

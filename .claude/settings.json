@@ -54,7 +54,38 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'FILE=$(cat | jq -r \".tool_input.file_path // .tool_input.path // empty\"); if echo \"$FILE\" | grep -qE \"package\\.json$|package-lock\\.json$|yarn\\.lock$|node_modules/|\\.git/|\\.log$|dist/|build/|\\.db$\"; then echo \"[Hook] Skipping protected file: $FILE\" >&2; exit 0; fi; echo \"[Hook] File edit validated\" >&2; exit 0'"
+            "command": "bash -c 'FILE=$(cat | jq -r \".tool_input.file_path // .tool_input.path // empty\"); [ -z \"$FILE\" ] && exit 0; if echo \"$FILE\" | grep -qE \"^\\.env$|\\.env\\.|^credentials\\.json$|^secrets\\.(json|yaml|yml)$|\\.pem$|\\.key$|/\\.aws/|id_rsa\"; then echo \"BLOCKED: Cannot edit sensitive file: $FILE. Use environment variables or secrets manager.\" >&2; exit 2; fi; exit 0'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r \".tool_input.file_path // .tool_input.path // empty\"); CONTENT=$(echo \"$INPUT\" | jq -r \".tool_input.content // empty\"); [ -z \"$FILE\" ] && exit 0; if echo \"$FILE\" | grep -qE \"\\.json$\"; then if ! echo \"$CONTENT\" | jq . >/dev/null 2>&1; then echo \"BLOCKED: Invalid JSON syntax in $FILE. Please fix JSON before writing.\" >&2; exit 2; fi; fi; exit 0'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r \".tool_input.file_path // .tool_input.path // empty\"); [ -z \"$FILE\" ] && exit 0; if echo \"$FILE\" | grep -qE \"package\\.json$|package-lock\\.json$|node_modules/|\\.git/|dist/|build/|\\.db$\"; then exit 0; fi; if [ -f \"$FILE\" ]; then \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/cfn-invoke-pre-edit.sh\" \"$FILE\" --agent-id \"${AGENT_ID:-hook}\" >/dev/null 2>&1 || true; fi; exit 0'",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__cerebras-mcp__write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); FILE_PATH=$(echo \"$INPUT\" | jq -r \".tool_input.file_path // empty\"); PROMPT=$(echo \"$INPUT\" | jq -r \".tool_input.prompt // empty\" | head -c 300); [ -z \"$FILE_PATH\" ] || [ -z \"$PROMPT\" ] && exit 0; FILE_EXT=\"${FILE_PATH##*.}\"; PATTERNS=\"\"; if [ -f \"./.claude/skills/cfn-local-ruvector-accelerator/query-local.sh\" ]; then PATTERNS=$(./.claude/skills/cfn-local-ruvector-accelerator/query-local.sh --pattern \"$FILE_EXT ${PROMPT:0:100}\" --limit 2 2>/dev/null || echo \"\"); fi; if [ -n \"$PATTERNS\" ]; then echo \"{\\\"additionalContext\\\":\\\"RuVector found similar successful patterns: $PATTERNS\\\"}\"; fi; exit 0'",
+            "timeout": 8
           }
         ]
       }
@@ -65,7 +96,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'echo \"[Hook] Command completed\" >&2; exit 0'"
+            "command": "bash -c 'INPUT=$(cat); EXIT_CODE=$(echo \"$INPUT\" | jq -r \".tool_result.exit_code // 0\"); STDERR=$(echo \"$INPUT\" | jq -r \".tool_result.stderr // empty\"); if [ \"$EXIT_CODE\" != \"0\" ] && [ -n \"$STDERR\" ]; then if [ -f \"./.claude/skills/cfn-error-management/cli/capture-error.sh\" ]; then ./.claude/skills/cfn-error-management/cli/capture-error.sh --error-type BASH_EXECUTION --message \"${STDERR:0:500}\" --context \"bash-tool\" --agent-id \"${AGENT_ID:-hook}\" 2>&1 || true; fi; fi; echo \"[Hook] Command completed (exit: $EXIT_CODE)\" >&2; exit 0'"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__cerebras-mcp__write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); FILE_PATH=$(echo \"$INPUT\" | jq -r \".tool_input.file_path // empty\"); PROMPT=$(echo \"$INPUT\" | jq -r \".tool_input.prompt // empty\" | head -c 500); RESULT=$(echo \"$INPUT\" | jq -r \".tool_result // empty\" | head -c 200); [ -z \"$FILE_PATH\" ] && exit 0; if echo \"$RESULT\" | grep -qiE \"success|written|created|generated\"; then if [ -f \"./.claude/skills/cfn-local-ruvector-accelerator/index-code.sh\" ]; then echo \"[Cerebras-Hook] Indexing successful generation: $FILE_PATH\" >&2; ./.claude/skills/cfn-local-ruvector-accelerator/index-code.sh --path \"$FILE_PATH\" --source cerebras --metadata \"{\\\"prompt\\\":\\\"${PROMPT:0:200}\\\",\\\"success\\\":true}\" 2>&1 || true; fi; fi; exit 0'",
+            "timeout": 10
           }
         ]
       },
@@ -74,7 +115,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'FILE=$(cat | jq -r \".tool_input.file_path // .tool_input.path // empty\"); if echo \"$FILE\" | grep -qE \"package\\.json$|package-lock\\.json$|yarn\\.lock$|node_modules/|\\.git/|\\.log$|dist/|build/|\\.db$\"; then echo \"[Hook] Skipping protected file: $FILE\" >&2; exit 0; fi; echo \"[Hook] File edit completed\" >&2; exit 0'"
+            "command": "bash -c 'INPUT=$(cat); FILE=$(echo \"$INPUT\" | jq -r \".tool_input.file_path // .tool_input.path // empty\"); [ -z \"$FILE\" ] || [ ! -f \"$FILE\" ] && exit 0; if echo \"$FILE\" | grep -qE \"package\\.json$|package-lock\\.json$|node_modules/|\\.git/|dist/|build/\"; then exit 0; fi; cd \"${CLAUDE_PROJECT_DIR:-.}\"; node config/hooks/post-edit-pipeline.js \"$FILE\" --agent-id \"${AGENT_ID:-hook}\" 2>&1 | tail -20 || true; exit 0'",
+            "timeout": 45
           }
         ]
       }
@@ -85,7 +127,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash -c 'export PATH=\"$HOME/bin:$PATH\"; INPUT=$(cat); CUSTOM=$(echo \"$INPUT\" | jq -r \".custom_instructions // \\\"\\\"\"); echo \"🔄 PreCompact Guidance:\"; echo \"📋 IMPORTANT: Review CLAUDE.md in project root for:\"; echo \"   • 54 available agents and concurrent usage patterns\"; echo \"   • Swarm coordination strategies (hierarchical, mesh, adaptive)\"; echo \"   • SPARC methodology workflows with batchtools optimization\"; echo \"   • Critical concurrent execution rules (GOLDEN RULE: 1 MESSAGE = ALL OPERATIONS)\"; if [ -n \"$CUSTOM\" ]; then echo \"🎯 Custom compact instructions: $CUSTOM\"; fi; echo \"\"; echo \"✅ Ready for compact operation\"'"
+            "command": "/bin/bash .claude/hooks/cfn-precompact-enhanced.sh"
           }
         ]
       },
@@ -94,7 +136,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/bin/bash -c 'echo \"🔄 Auto-Compact Guidance (Context Window Full):\"; echo \"📋 CRITICAL: Before compacting, ensure you understand:\"; echo \"   The claude.md file of the directory you are working in\"; echo \"   • Concurrent execution patterns from CLAUDE.md\"; echo \"   • the CFN loop \"; echo \"   • Swarm coordination strategies for complex tasks\"; echo \"⚡ Apply GOLDEN RULE: Always batch operations in single messages\"; echo \"\"; echo \"📊 Recent Metrics Summary (Last 60 min):\"; timeout 30s node src/slash-commands/metrics-summary.js --minutes=60 2>/dev/null || echo \"   Metrics unavailable\"; echo \"✅ Auto-compact proceeding with full agent context\"'"
+            "command": "/bin/bash .claude/hooks/cfn-precompact-enhanced.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"[SessionStart] Initializing session context...\" >&2; if [ -f \"./.claude/hooks/cfn-load-cerebras-env.sh\" ]; then RESULT=$(./.claude/hooks/cfn-load-cerebras-env.sh 2>&1); if echo \"$RESULT\" | jq . >/dev/null 2>&1; then echo \"$RESULT\"; else echo \"$RESULT\" >&2; fi; fi; if [ -f \"./.claude/skills/cfn-memory-persistence/lib/auto/auto-load-session-context.sh\" ]; then ./.claude/skills/cfn-memory-persistence/lib/auto/auto-load-session-context.sh --session-id \"${SESSION_ID:-$(date +%s)}\" 2>&1 || true; fi; if [ -f \"./.claude/skills/cfn-transparency-middleware/invoke-transparency-init.sh\" ]; then ./.claude/skills/cfn-transparency-middleware/invoke-transparency-init.sh --task-id \"${SESSION_ID:-session}\" --level standard 2>&1 || true; fi; echo \"[SessionStart] Context loaded\" >&2; exit 0'",
+            "timeout": 15
           }
         ]
       }
@@ -104,7 +157,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'echo \"[Hook] Session ending\" >&2; exit 0'"
+            "command": "bash -c 'echo \"[SessionEnd] Persisting session state...\" >&2; if [ -f \"./.claude/skills/cfn-memory-persistence/lib/auto/save-session-context.sh\" ]; then ./.claude/skills/cfn-memory-persistence/lib/auto/save-session-context.sh --session-id \"${SESSION_ID:-$(date +%s)}\" 2>&1 || true; fi; if [ -f \"./.claude/skills/cfn-knowledge-base/cli/knowledge-base.sh\" ]; then ./.claude/skills/cfn-knowledge-base/cli/knowledge-base.sh store-learning --type session-end --category completed --confidence 0.85 2>&1 || true; fi; echo \"[SessionEnd] Session ended\" >&2; exit 0'",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); TRANSCRIPT=$(echo \"$INPUT\" | jq -r \".transcript_path // empty\"); AGENT_ID=$(echo \"$INPUT\" | jq -r \".agent_id // empty\"); if [ -f \"./.claude/skills/cfn-agent-lifecycle/cli/lifecycle-hook.sh\" ] && [ -n \"$AGENT_ID\" ]; then ./.claude/skills/cfn-agent-lifecycle/cli/lifecycle-hook.sh complete --agent-id \"$AGENT_ID\" --status completed --confidence 0.92 2>&1 || true; fi; [ -z \"$TRANSCRIPT\" ] || [ ! -f \"$TRANSCRIPT\" ] && exit 0; LINES=$(wc -l < \"$TRANSCRIPT\" 2>/dev/null || echo 0); if [ \"$LINES\" -lt 5 ]; then if ! grep -qiE \"complete|finished|done|summary|deliverable|implemented|created|fixed\" \"$TRANSCRIPT\" 2>/dev/null; then echo \"{\\\"decision\\\":\\\"block\\\",\\\"reason\\\":\\\"Output appears incomplete ($LINES lines, no completion signals). Please provide a summary of work done and deliverables.\\\"}\"; fi; fi; exit 0'",
+            "timeout": 15
           }
         ]
       }
