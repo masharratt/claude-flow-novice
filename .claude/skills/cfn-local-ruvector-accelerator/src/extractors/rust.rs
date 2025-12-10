@@ -4,23 +4,28 @@
 
 use anyhow::{Result, anyhow};
 use crate::extractors::*;
-use tree_sitter::{Parser, Language, Node};
-
-// External tree-sitter language reference
-extern "C" {
-    fn tree_sitter_rust() -> Language;
-}
+use tree_sitter::{Parser, Node};
 
 /// Rust extractor implementation
 pub struct RustExtractor {
     parser: Parser,
 }
 
+impl Clone for RustExtractor {
+    fn clone(&self) -> Self {
+        // Create a new parser instance since tree_sitter::Parser doesn't implement Clone
+        let mut parser = Parser::new();
+        // Note: we can't recover the language from the parser, so we set it again
+        parser.set_language(tree_sitter_rust::language()).ok();
+        Self { parser }
+    }
+}
+
 impl RustExtractor {
     /// Create a new Rust extractor
     pub fn new() -> Result<Self> {
         let mut parser = Parser::new();
-        parser.set_language(unsafe { tree_sitter_rust() })?;
+        parser.set_language(tree_sitter_rust::language())?;
 
         Ok(Self { parser })
     }

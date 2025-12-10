@@ -14,6 +14,12 @@ pub struct TypeScriptExtractor {
     _private: (),
 }
 
+impl Clone for TypeScriptExtractor {
+    fn clone(&self) -> Self {
+        Self { _private: () }
+    }
+}
+
 impl TypeScriptExtractor {
     /// Create a new TypeScript extractor
     pub fn new() -> Result<Self> {

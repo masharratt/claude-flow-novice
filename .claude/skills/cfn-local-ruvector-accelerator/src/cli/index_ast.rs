@@ -7,7 +7,7 @@ use std::sync::{Arc, RwLock};
 use std::rc::Rc;
 use std::cell::RefCell;
 use sha2::{Sha256, Digest};
-use rusqlite::{params, Transaction};
+use rusqlite::{params, Transaction, OptionalExtension};
 use std::collections::HashMap;
 
 use crate::embeddings::EmbeddingsManager;
@@ -396,16 +396,11 @@ impl AstIndexCommand {
                 // Try to find target entity by name
                 let target_entity_id = self.find_target_entity_tx(tx, &reference.target_name, &file_path_str)?;
 
+                // Parse source_id if available; extractors typically don't provide source_id
                 let source_entity_id = reference.source_id
+                    .as_ref()
                     .and_then(|id| id.parse::<i64>().ok())
                     .unwrap_or(0);
-
-                // If source ID is invalid, find it by name and line
-                let source_entity_id = if source_entity_id == 0 {
-                    self.find_entity_by_name_and_line_tx(tx, &reference.source_name, reference.line, &file_path_str)?
-                } else {
-                    source_entity_id
-                };
 
                 let store_reference = StoreReference {
                     id: 0,
@@ -478,7 +473,7 @@ impl AstIndexCommand {
             s.files_processed += 1;
             s.entities_extracted += extraction_result.entities.len();
             s.references_extracted += extraction_result.references.len();
-            s.embeddings_generated += entity_ids.len();
+            s.embeddings_generated += extraction_result.entities.len();
         }
 
         Ok(())
@@ -514,10 +509,7 @@ impl AstIndexCommand {
             crate::extractors::EntityKind::Getter => EntityKind::Method, // Map to method
             crate::extractors::EntityKind::Setter => EntityKind::Method, // Map to method
             crate::extractors::EntityKind::Namespace => EntityKind::Module, // Map to module
-            crate::extractors::EntityKind::Type => EntityKind::TypeAlias, // Map to type alias
             crate::extractors::EntityKind::Parameter => EntityKind::Variable, // Map to variable
-            crate::extractors::EntityKind::Property => EntityKind::Variable, // Map to variable
-            _ => EntityKind::Function, // Default fallback
         }
     }
 
@@ -648,7 +640,7 @@ impl AstIndexCommand {
                     row.get::<_, String>(6)?, // file_path
                 ))
             }
-        ).optional()?;
+        ).optional().map_err(|e| anyhow::anyhow!("Database error: {}", e))?;
 
         if let Some((entity_id, _)) = entity {
             Ok(entity_id)
@@ -690,7 +682,7 @@ impl AstIndexCommand {
         let entity_id = stmt.query_row(
             params![name, file_path, line as i64],
             |row| row.get(0)
-        ).optional()?;
+        ).optional().map_err(|e| anyhow::anyhow!("Database error: {}", e))?;
 
         if let Some(id) = entity_id {
             Ok(id)
@@ -703,7 +695,7 @@ impl AstIndexCommand {
             let entity_id = stmt.query_row(
                 params![name, file_path],
                 |row| row.get(0)
-            ).optional()?;
+            ).optional().map_err(|e| anyhow::anyhow!("Database error: {}", e))?;
 
             if let Some(id) = entity_id {
                 Ok(id)

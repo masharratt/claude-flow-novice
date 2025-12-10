@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::{Result, Context, anyhow};
 use std::path::{Path, PathBuf};
 use rusqlite::Connection;
 use tracing::{info, error};
@@ -52,7 +52,7 @@ impl MigrationCommand {
         std::fs::create_dir_all(db_path.parent().unwrap())
             .context("Failed to create database directory")?;
 
-        let conn = Connection::open(&db_path)
+        let mut conn = Connection::open(&db_path)
             .context("Failed to open database for migration")?;
 
         info!("Starting migration with transaction support");
@@ -60,8 +60,8 @@ impl MigrationCommand {
         // Use the transaction-aware migration
         match self.source_type {
             SourceType::RuVectorPython => {
-                MigrationWithTx::migrate_v1_to_v2_atomic(&conn)?;
-                MigrationWithTx::validate_migration(&conn)?;
+                MigrationWithTx::migrate_v1_to_v2_atomic(&mut conn)?;
+                MigrationWithTx::validate_migration(&mut conn)?;
             }
             _ => {
                 // For other sources, fall back to the original method

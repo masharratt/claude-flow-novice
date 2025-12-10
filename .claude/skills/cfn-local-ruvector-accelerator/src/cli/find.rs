@@ -103,15 +103,16 @@ impl FindCommand {
 
         // Filter by kind if specified
         let filtered_result = if let Some(kind_str) = &self.kind {
-            if let Ok(kind) = EntityKind::from_str(kind_str) {
+            if let Some(kind) = EntityKind::from_str(kind_str) {
                 let filtered_items: Vec<_> = result.results.into_iter()
                     .filter(|item| item.entity.kind == kind)
                     .collect();
 
+                let count = filtered_items.len();
                 crate::query_api::QueryResult {
                     query_type: result.query_type,
                     results: filtered_items,
-                    total_count: filtered_items.len(),
+                    total_count: count,
                 }
             } else {
                 warn!("Invalid entity kind: {}", kind_str);

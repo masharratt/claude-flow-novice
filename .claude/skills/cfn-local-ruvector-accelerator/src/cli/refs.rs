@@ -111,7 +111,7 @@ impl RefsCommand {
             RefsOutputFormat::Simple => self.format_simple(&limited_result),
             RefsOutputFormat::Json => limited_result.format_json()?,
             RefsOutputFormat::Detailed => limited_result.format_detailed(),
-            RefsOutputFormat::Tree => self.format_tree(&limited_result)?,
+            RefsOutputFormat::Tree => self.format_tree(&limited_result),
         };
 
         // Write output

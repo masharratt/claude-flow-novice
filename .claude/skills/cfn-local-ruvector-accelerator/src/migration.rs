@@ -52,7 +52,7 @@ impl MigrationManager {
     }
     
     /// Run all necessary migrations to bring database to latest version
-    pub fn migrate_to_latest(&self) -> Result<()> {
+    pub fn migrate_to_latest(&mut self) -> Result<()> {
         let current_version = self.current_version()?;
         let target_version = 2; // Current latest version
         
@@ -74,7 +74,7 @@ impl MigrationManager {
         Ok(())
     }
     
-    fn run_migrations(&self, from_version: u32, to_version: u32) -> Result<()> {
+    fn run_migrations(&mut self, from_version: u32, to_version: u32) -> Result<()> {
         // Ensure schema version table exists
         self.ensure_schema_version_table()?;
         
@@ -85,9 +85,9 @@ impl MigrationManager {
                 2 => {
                     // Create backup before migration
                     self.create_database_backup(version - 1)?;
-                    
+
                     // Run v1 to v2 migration
-                    SchemaV2::migrate_v1_to_v2(&self.conn)?;
+                    SchemaV2::migrate_v1_to_v2(&mut self.conn)?;
                     
                     // Clean up old data after successful migration
                     self.cleanup_after_migration(version - 1)?;
@@ -132,12 +132,12 @@ impl MigrationManager {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        
+
         self.conn.execute(
             "INSERT OR REPLACE INTO schema_version (version, applied_at) VALUES (?1, ?2)",
-            [version, now as i64]
+            rusqlite::params![version, now as u32]
         )?;
-        
+
         Ok(())
     }
     

@@ -1,4 +1,4 @@
-use anyhow::{Result, Context};
+use anyhow::Result;
 use rusqlite::params;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
@@ -43,8 +43,10 @@ impl QueryApi {
 
         let mut stmt = self.store.conn.prepare(query)?;
         let entities = stmt.query_map([type_name], |row| {
-            self.store.row_to_entity(row).map_err(|e| anyhow::anyhow!("{}", e))
-        })?.collect::<Result<Vec<_>, _>>()?;
+            self.store.row_to_entity(row)
+        })?
+            .collect::<Result<Vec<_>, rusqlite::Error>>()
+            .map_err(|e| anyhow::anyhow!("Failed to fetch entities: {}", e))?;
 
         let results: Vec<QueryResultItem> = entities.into_iter().map(|e| {
             QueryResultItem {
@@ -54,10 +56,11 @@ impl QueryApi {
             }
         }).collect();
 
+        let total_count = results.len();
         Ok(QueryResult {
             query_type: QueryType::FunctionsUsingType { type_name: type_name.to_string() },
             results,
-            total_count: results.len(),
+            total_count,
         })
     }
 
@@ -95,9 +98,11 @@ impl QueryApi {
         let entities = stmt.query_map(
             params![function_name, exclude_module, exclude_pattern],
             |row| {
-                self.store.row_to_entity(row).map_err(|e| anyhow::anyhow!("{}", e))
+                self.store.row_to_entity(row)
             }
-        )?.collect::<Result<Vec<_>, _>>()?;
+        )?
+            .collect::<Result<Vec<_>, rusqlite::Error>>()
+            .map_err(|e| anyhow::anyhow!("Failed to fetch entities: {}", e))?;
 
         let results: Vec<QueryResultItem> = entities.into_iter().map(|e| {
             QueryResultItem {
@@ -107,13 +112,14 @@ impl QueryApi {
             }
         }).collect();
 
+        let total_count = results.len();
         Ok(QueryResult {
             query_type: QueryType::CallersOfFunction {
                 function_name: function_name.to_string(),
                 exclude_module: exclude_module.map(|s| s.to_string()),
             },
             results,
-            total_count: results.len(),
+            total_count,
         })
     }
 
@@ -147,8 +153,10 @@ impl QueryApi {
 
         let mut stmt = self.store.conn.prepare(query)?;
         let entities = stmt.query_map([file_path, file_path], |row| {
-            self.store.row_to_entity(row).map_err(|e| anyhow::anyhow!("{}", e))
-        })?.collect::<Result<Vec<_>, _>>()?;
+            self.store.row_to_entity(row)
+        })?
+            .collect::<Result<Vec<_>, rusqlite::Error>>()
+            .map_err(|e| anyhow::anyhow!("Failed to fetch entities: {}", e))?;
 
         let results: Vec<QueryResultItem> = entities.into_iter().map(|e| {
             QueryResultItem {
@@ -158,10 +166,11 @@ impl QueryApi {
             }
         }).collect();
 
+        let total_count = results.len();
         Ok(QueryResult {
             query_type: QueryType::TypesUsedElsewhere { file_path: file_path.to_string() },
             results,
-            total_count: results.len(),
+            total_count,
         })
     }
 
@@ -193,8 +202,10 @@ impl QueryApi {
 
         let mut stmt = self.store.conn.prepare(query)?;
         let entities = stmt.query_map([trait_name], |row| {
-            self.store.row_to_entity(row).map_err(|e| anyhow::anyhow!("{}", e))
-        })?.collect::<Result<Vec<_>, _>>()?;
+            self.store.row_to_entity(row)
+        })?
+            .collect::<Result<Vec<_>, rusqlite::Error>>()
+            .map_err(|e| anyhow::anyhow!("Failed to fetch entities: {}", e))?;
 
         let results: Vec<QueryResultItem> = entities.into_iter().map(|e| {
             QueryResultItem {
@@ -204,10 +215,11 @@ impl QueryApi {
             }
         }).collect();
 
+        let total_count = results.len();
         Ok(QueryResult {
             query_type: QueryType::Implementations { trait_name: trait_name.to_string() },
             results,
-            total_count: results.len(),
+            total_count,
         })
     }
 
@@ -237,8 +249,10 @@ impl QueryApi {
         let pattern = format!("%{}%", module_path);
         let mut stmt = self.store.conn.prepare(query)?;
         let entities = stmt.query_map([pattern], |row| {
-            self.store.row_to_entity(row).map_err(|e| anyhow::anyhow!("{}", e))
-        })?.collect::<Result<Vec<_>, _>>()?;
+            self.store.row_to_entity(row)
+        })?
+            .collect::<Result<Vec<_>, rusqlite::Error>>()
+            .map_err(|e| anyhow::anyhow!("Failed to fetch entities: {}", e))?;
 
         let results: Vec<QueryResultItem> = entities.into_iter().map(|e| {
             QueryResultItem {
@@ -248,10 +262,11 @@ impl QueryApi {
             }
         }).collect();
 
+        let total_count = results.len();
         Ok(QueryResult {
             query_type: QueryType::PublicAPI { module_path: module_path.to_string() },
             results,
-            total_count: results.len(),
+            total_count,
         })
     }
 
@@ -281,33 +296,34 @@ impl QueryApi {
         let pattern = format!("%{}%", path);
         let mut stmt = self.store.conn.prepare(find_entities_query)?;
         let mut matching_entities = Vec::new();
-        let rows = stmt.query_map([pattern, path], |row| {
+        let rows = stmt.query_map([pattern.as_str(), path], |row| {
             Ok((
-                row.get::<_, i64>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, Option<String>>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, Option<i64>>(4)?,
-                row.get::<_, String>(5)?,
-                row.get::<_, i64>(6)?,
-                row.get::<_, Option<i64>>(7)?,
-                row.get::<_, Option<String>>(8)?,
-                row.get::<_, Option<String>>(9)?,
-                row.get::<_, Option<String>>(10)?,
-                row.get::<_, i64>(14)?,
-                row.get::<_, i64>(15)?,
+                row.get::<_, i64>(0)?,           // id
+                row.get::<_, String>(1)?,        // kind
+                row.get::<_, String>(2)?,        // name
+                row.get::<_, Option<String>>(3)?,  // signature
+                row.get::<_, String>(4)?,        // visibility
+                row.get::<_, Option<i64>>(5)?,   // parent_id
+                row.get::<_, String>(6)?,        // file_path
+                row.get::<_, i64>(7)?,           // line_number
+                row.get::<_, Option<i64>>(8)?,   // column_number
+                row.get::<_, Option<String>>(9)?,  // doc_comment
+                row.get::<_, Option<String>>(10)?,  // attributes
+                row.get::<_, Option<String>>(11)?,  // metadata
+                row.get::<_, i64>(12)?,          // created_at
+                row.get::<_, i64>(13)?,          // updated_at
             ))
         })?;
 
         for row in rows {
             let row = row?;
-            let (id, kind_str, name, signature, visibility_str, parent_id, file_path, line_number, column_number, doc_comment, attributes, metadata, created_at, updated_at, _) = row;
+            let (id, kind_str, name, signature, visibility_str, parent_id, file_path, line_number, column_number, doc_comment, attributes, metadata, created_at, updated_at) = row;
             // For now, just create a simple entity - the full parsing can be done later
             // This is just to get the IDs for reference finding
             matching_entities.push(crate::store_v2::Entity {
                 id,
                 kind: crate::schema_v2::EntityKind::from_str(&kind_str).unwrap_or(crate::schema_v2::EntityKind::Function),
-                name: name.unwrap_or_else(|| "".to_string()),
+                name,
                 signature,
                 visibility: crate::schema_v2::Visibility::from_str(&visibility_str).unwrap_or(crate::schema_v2::Visibility::Private),
                 parent_id,
@@ -377,10 +393,11 @@ impl QueryApi {
             }
         }).collect();
 
+        let total_count = results.len();
         Ok(QueryResult {
             query_type: QueryType::ReferencesToPath { path: path.to_string() },
             results,
-            total_count: results.len(),
+            total_count,
         })
     }
 
@@ -445,9 +462,11 @@ impl QueryApi {
 
         let pattern_like = format!("%{}%", pattern);
         let mut stmt = self.store.conn.prepare(query)?;
-        let entities = stmt.query_map([pattern_like, pattern_like], |row| {
-            self.store.row_to_entity(row).map_err(|e| anyhow::anyhow!("{}", e))
-        })?.collect::<Result<Vec<_>, _>>()?;
+        let entities = stmt.query_map([pattern_like.as_str(), pattern_like.as_str()], |row| {
+            self.store.row_to_entity(row)
+        })?
+            .collect::<Result<Vec<_>, rusqlite::Error>>()
+            .map_err(|e| anyhow::anyhow!("Failed to fetch entities: {}", e))?;
 
         let results: Vec<QueryResultItem> = entities.into_iter().map(|e| {
             QueryResultItem {
@@ -457,10 +476,11 @@ impl QueryApi {
             }
         }).collect();
 
+        let total_count = results.len();
         Ok(QueryResult {
             query_type: QueryType::FunctionPattern { pattern: pattern.to_string() },
             results,
-            total_count: results.len(),
+            total_count,
         })
     }
 }

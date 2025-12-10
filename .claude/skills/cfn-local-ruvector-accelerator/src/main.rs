@@ -257,7 +257,7 @@ fn main() -> Result<()> {
                 file_types,
                 pattern_list,
                 force,
-            );
+            )?;
             let stats = cmd.execute()?;
             println!("✅ Indexed {} files with {} patterns", stats.files_processed, stats.embeddings_generated);
         }

@@ -61,7 +61,7 @@ impl IndexCommand {
         file_types: Vec<String>,
         patterns: Option<Vec<String>>,
         force: bool,
-    ) -> Self {
+    ) -> Result<Self> {
         let index_path = project_dir.join(".ruvector");
         let embeddings_manager = EmbeddingsManager::new(&index_path).unwrap();
         let search_engine = SearchEngine::new(project_dir).unwrap();
@@ -74,7 +74,7 @@ impl IndexCommand {
             path.to_path_buf()
         };
 
-        Self {
+        Ok(Self {
             project_dir: project_dir.to_path_buf(),
             source_path,
             index_path,
@@ -85,9 +85,9 @@ impl IndexCommand {
             search_engine,
             store,
             store_v2,
-            rust_extractor: RustExtractor::new(),
-            typescript_extractor: TypeScriptExtractor::new(),
-        }
+            rust_extractor: RustExtractor::new()?,
+            typescript_extractor: TypeScriptExtractor::new()?,
+        })
     }
 
     pub fn execute(&self) -> Result<IndexStats> {
@@ -141,7 +141,17 @@ impl IndexCommand {
 
         let walker = WalkDir::new(&self.source_path)
             .into_iter()
-            .filter_entry(|e| !Self::is_hidden(e))
+            .filter_entry(|e| {
+                let path = e.path();
+                let name = e.file_name().to_string_lossy();
+
+                // Only exclude specific directories, not hidden ones
+                // This allows .claude and other important hidden folders
+                match name.as_ref() {
+                    "node_modules" | "target" | "dist" | "build" | ".git" => false,
+                    _ => true
+                }
+            })
             .filter_map(|e| e.ok())
             .filter(|e| {
                 if e.file_type().is_dir() {
@@ -152,19 +162,9 @@ impl IndexCommand {
                     return false;
                 }
 
-                let path_str = e.path().to_string_lossy();
-                if path_str.contains("/node_modules/") ||
-                   path_str.contains("/target/") ||
-                   path_str.contains("/dist/") ||
-                   path_str.contains("/build/") {
-                    return false;
-                }
-
-                if let Some(ext) = e.path().extension() {
-                    self.file_types.contains(&ext.to_string_lossy().to_string())
-                } else {
-                    false
-                }
+                // Index ALL files regardless of extension
+                // File type metadata is captured during processing
+                true
             });
 
         for entry in walker {
@@ -385,6 +385,7 @@ impl IndexCommand {
             crate::extractors::EntityKind::Interface => EntityKind::Interface,
             crate::extractors::EntityKind::Struct => EntityKind::Struct,
             crate::extractors::EntityKind::Enum => EntityKind::Enum,
+            crate::extractors::EntityKind::Trait => EntityKind::Trait,
             crate::extractors::EntityKind::TypeAlias => EntityKind::TypeAlias,
             crate::extractors::EntityKind::Module => EntityKind::Module,
             crate::extractors::EntityKind::Namespace => EntityKind::Namespace,

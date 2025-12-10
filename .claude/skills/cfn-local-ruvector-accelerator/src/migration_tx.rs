@@ -10,7 +10,7 @@ use crate::search_engine::IndexMetadata;
 pub struct MigrationWithTx;
 
 impl MigrationWithTx {
-    pub fn migrate_v1_to_v2_atomic(conn: &Connection) -> Result<()> {
+    pub fn migrate_v1_to_v2_atomic(conn: &mut Connection) -> Result<()> {
         info!("Starting atomic migration from v1 to v2 schema");
 
         // Check if v1 tables exist
@@ -23,8 +23,8 @@ impl MigrationWithTx {
             return Ok(());
         }
 
-        // Use a savepoint for nested transaction support
-        let tx = conn.savepoint()?;
+        // Use a transaction for atomic operations
+        let tx = conn.transaction()?;
 
         // Ensure atomic migration - if anything fails, rollback everything
         let migration_result = (|| {
@@ -91,22 +91,20 @@ impl MigrationWithTx {
             )?;
 
             let mut rows = stmt.query([batch_size, offset])?;
-            let batch_count = rows
-                .by_ref()
-                .map(|row| {
-                    let row = row?;
-                    let path: String = row.get(0)?;
-                    let hash: String = row.get(1)?;
-                    let last_indexed: Option<u64> = row.get(2)?;
-                    let patterns_count: Option<u32> = row.get(3)?;
+            let mut batch_count = 0usize;
 
-                    tx.execute(
-                        "INSERT OR IGNORE INTO files (path, hash, last_indexed, patterns_count) VALUES (?1, ?2, ?3, ?4)",
-                        params![path, hash, last_indexed, patterns_count]
-                    )?;
-                    Ok(1)
-                })
-                .sum::<Result<usize, _>>()?;
+            while let Some(row) = rows.next()? {
+                let path: String = row.get(0)?;
+                let hash: String = row.get(1)?;
+                let last_indexed: Option<u64> = row.get(2)?;
+                let patterns_count: Option<u32> = row.get(3)?;
+
+                tx.execute(
+                    "INSERT OR IGNORE INTO files (path, hash, last_indexed, patterns_count) VALUES (?1, ?2, ?3, ?4)",
+                    params![path, hash, last_indexed, patterns_count]
+                )?;
+                batch_count += 1;
+            }
 
             migrated_count += batch_count;
 
@@ -154,7 +152,7 @@ impl MigrationWithTx {
         let batch_size = 100;
 
         // Get total count for progress reporting
-        let total_embeddings: u64 = tx.query_one(
+        let total_embeddings: u64 = tx.query_row(
             "SELECT COUNT(*) FROM old_embeddings",
             [],
             |row| row.get(0)
@@ -170,9 +168,8 @@ impl MigrationWithTx {
             )?;
 
             let mut rows = stmt.query([batch_size, offset])?;
-            let batch_count = 0;
+            let mut batch_count = 0;
             let mut batch_success = 0;
-            let mut batch_errors = 0;
 
             while let Some(row) = rows.next()? {
                 let old_id: i64 = row.get(0)?;
@@ -180,7 +177,7 @@ impl MigrationWithTx {
                 let embedding: Vec<u8> = row.get(2)?;
                 let metadata: String = row.get(3)?;
                 let created_at: u64 = row.get(4)?;
-                let file_hash: String = row.get(5)?;
+                let _file_hash: String = row.get(5)?;
 
                 batch_count += 1;
 
@@ -203,7 +200,7 @@ impl MigrationWithTx {
                                 index_metadata.line_number.unwrap_or(0) as i64,
                                 created_at
                             ],
-                            |row| row.get(0)
+                            |row| row.get::<_, i64>(0)
                         )?;
 
                         // Insert embedding
@@ -235,7 +232,7 @@ impl MigrationWithTx {
                                 line_number,
                                 created_at
                             ],
-                            |row| row.get(0)
+                            |row| row.get::<_, i64>(0)
                         )?;
 
                         // Insert embedding
@@ -250,7 +247,7 @@ impl MigrationWithTx {
             }
 
             total_count += batch_count;
-            batch_errors = batch_count - batch_success;
+            let batch_errors = batch_count - batch_success;
             error_count += batch_errors;
 
             if batch_count == 0 {
@@ -447,20 +444,20 @@ impl MigrationWithTx {
         }
 
         // Check data integrity
-        let entity_count: u64 = conn.query_one(
+        let entity_count: u64 = conn.query_row(
             "SELECT COUNT(*) FROM entities",
             [],
             |row| row.get(0)
         )?;
 
-        let embedding_count: u64 = conn.query_one(
+        let embedding_count: u64 = conn.query_row(
             "SELECT COUNT(*) FROM entity_embeddings",
             [],
             |row| row.get(0)
         )?;
 
         // Check if all embeddings have corresponding entities
-        let orphaned_embeddings: u64 = conn.query_one(
+        let orphaned_embeddings: u64 = conn.query_row(
             "SELECT COUNT(*) FROM entity_embeddings ee LEFT JOIN entities e ON ee.entity_id = e.id WHERE e.id IS NULL",
             [],
             |row| row.get(0)

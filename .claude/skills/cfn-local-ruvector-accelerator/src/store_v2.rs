@@ -1,5 +1,5 @@
 use anyhow::{Result, Context, anyhow};
-use rusqlite::{Connection, params, Row};
+use rusqlite::{Connection, params, Row, OptionalExtension};
 use std::path::Path;
 use serde::{Serialize, Deserialize};
 use tracing::{info, debug, error, warn};
@@ -393,8 +393,10 @@ impl StoreV2 {
         let mut stmt = self.conn.prepare(&query)?;
         let entities = stmt.query_map(&params[..], |row| {
             self.row_to_entity(row)
-        })?.collect::<Result<Vec<_>, _>>()?;
-        
+        })?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| anyhow::anyhow!("Failed to collect entities: {}", e))?;
+
         Ok(entities)
     }
     
@@ -454,18 +456,24 @@ impl StoreV2 {
     }
     
     // Helper methods to convert rows to structs
-    pub(crate) fn row_to_entity(&self, row: &Row) -> Result<Entity> {
+    pub(crate) fn row_to_entity(&self, row: &Row) -> rusqlite::Result<Entity> {
         let created_timestamp: i64 = row.get(14)?;
         let updated_timestamp: i64 = row.get(15)?;
-        
+
+        let kind_str = row.get::<_, String>(1)?;
+        let kind = EntityKind::from_str(&kind_str)
+            .ok_or_else(|| rusqlite::Error::InvalidParameterName(format!("Invalid entity kind: {}", kind_str)))?;
+
+        let visibility_str = row.get::<_, String>(4)?;
+        let visibility = Visibility::from_str(&visibility_str)
+            .ok_or_else(|| rusqlite::Error::InvalidParameterName(format!("Invalid visibility: {}", visibility_str)))?;
+
         Ok(Entity {
             id: row.get(0)?,
-            kind: EntityKind::from_str(&row.get::<_, String>(1)?)
-                .ok_or_else(|| anyhow!("Invalid entity kind"))?,
+            kind,
             name: row.get(2)?,
             signature: row.get(3)?,
-            visibility: Visibility::from_str(&row.get::<_, String>(4)?)
-                .ok_or_else(|| anyhow!("Invalid visibility"))?,
+            visibility,
             parent_id: row.get(5)?,
             file_path: row.get(6)?,
             line_number: row.get(7)?,
@@ -478,15 +486,18 @@ impl StoreV2 {
         })
     }
     
-    fn row_to_reference(&self, row: &Row) -> Result<Reference> {
+    fn row_to_reference(&self, row: &Row) -> rusqlite::Result<Reference> {
         let created_timestamp: i64 = row.get(7)?;
-        
+
+        let ref_kind_str = row.get::<_, String>(3)?;
+        let ref_kind = RefKind::from_str(&ref_kind_str)
+            .ok_or_else(|| rusqlite::Error::InvalidParameterName(format!("Invalid reference kind: {}", ref_kind_str)))?;
+
         Ok(Reference {
             id: row.get(0)?,
             source_entity_id: row.get(1)?,
             target_entity_id: row.get(2)?,
-            ref_kind: RefKind::from_str(&row.get::<_, String>(3)?)
-                .ok_or_else(|| anyhow!("Invalid reference kind"))?,
+            ref_kind,
             file_path: row.get(4)?,
             line_number: row.get(5)?,
             column_number: row.get(6)?,
@@ -495,9 +506,9 @@ impl StoreV2 {
         })
     }
     
-    fn row_to_module(&self, row: &Row) -> Result<Module> {
+    fn row_to_module(&self, row: &Row) -> rusqlite::Result<Module> {
         let created_timestamp: i64 = row.get(5)?;
-        
+
         Ok(Module {
             id: row.get(0)?,
             name: row.get(1)?,
