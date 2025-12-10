@@ -7,14 +7,22 @@ use regex::Regex;
 use std::sync::Arc;
 use std::sync::RwLock;
 use sha2::{Sha256, Digest};
+use rusqlite::params;
 
 use crate::embeddings::EmbeddingsManager;
 use crate::search_engine::{SearchEngine, IndexMetadata};
 use crate::sqlite_store::SqliteStore;
+use crate::extractors::{Extractor, ExtractionResult, Entity, Reference};
+use crate::extractors::rust::RustExtractor;
+use crate::extractors::typescript::TypeScriptExtractor;
+use crate::store_v2::{StoreV2, Entity as StoreEntity, Reference as StoreReference, TypeUsage};
+use crate::schema_v2::{EntityKind, RefKind, Visibility};
 
 #[derive(Debug)]
 pub struct IndexStats {
     pub files_processed: usize,
+    pub entities_extracted: usize,
+    pub references_extracted: usize,
     pub embeddings_generated: usize,
     pub errors: Vec<String>,
 }
@@ -23,6 +31,8 @@ impl Default for IndexStats {
     fn default() -> Self {
         Self {
             files_processed: 0,
+            entities_extracted: 0,
+            references_extracted: 0,
             embeddings_generated: 0,
             errors: Vec::new(),
         }
@@ -31,7 +41,7 @@ impl Default for IndexStats {
 
 pub struct IndexCommand {
     project_dir: PathBuf,
-    source_path: PathBuf,  // Path to walk for files (can differ from project_dir)
+    source_path: PathBuf,
     index_path: PathBuf,
     file_types: Vec<String>,
     patterns: Option<Vec<String>>,
@@ -39,6 +49,9 @@ pub struct IndexCommand {
     embeddings_manager: EmbeddingsManager,
     search_engine: SearchEngine,
     store: SqliteStore,
+    store_v2: StoreV2,
+    rust_extractor: RustExtractor,
+    typescript_extractor: TypeScriptExtractor,
 }
 
 impl IndexCommand {
@@ -53,8 +66,8 @@ impl IndexCommand {
         let embeddings_manager = EmbeddingsManager::new(&index_path).unwrap();
         let search_engine = SearchEngine::new(project_dir).unwrap();
         let store = SqliteStore::new(&index_path.join("index.db")).unwrap();
+        let store_v2 = StoreV2::new(&index_path.join("index_v2.db")).unwrap();
 
-        // Use path argument for file collection, defaulting to project_dir if path is empty
         let source_path = if path.as_os_str().is_empty() || path == Path::new(".") {
             project_dir.to_path_buf()
         } else {
@@ -71,6 +84,9 @@ impl IndexCommand {
             embeddings_manager,
             search_engine,
             store,
+            store_v2,
+            rust_extractor: RustExtractor::new(),
+            typescript_extractor: TypeScriptExtractor::new(),
         }
     }
 
@@ -81,17 +97,15 @@ impl IndexCommand {
             info!("Patterns: {:?}", patterns);
         }
 
-        // Initialize components
         self.initialize()?;
 
-        // Walk directory and collect files
         let files = self.collect_files()?;
 
-        // Process files
         let stats = self.process_files(files)?;
 
-        info!("Index complete: {} files, {} embeddings", 
-              stats.files_processed, stats.embeddings_generated);
+        info!("Index complete: {} files, {} entities, {} references, {} embeddings", 
+              stats.files_processed, stats.entities_extracted, 
+              stats.references_extracted, stats.embeddings_generated);
 
         Ok(stats)
     }
@@ -99,16 +113,22 @@ impl IndexCommand {
     fn initialize(&self) -> Result<()> {
         info!("Initializing index components");
 
-        // Create index directory
         fs::create_dir_all(&self.index_path)
             .context("Failed to create index directory")?;
 
-        // Initialize search engine
         let mut search_engine = self.search_engine.duplicate()?;
         search_engine.load_or_create()?;
 
-        // Initialize database
         self.store.initialize()?;
+
+        self.store_v2.conn.execute(
+            "CREATE TABLE IF NOT EXISTS file_hashes (
+                file_path TEXT PRIMARY KEY,
+                file_hash TEXT NOT NULL,
+                indexed_at INTEGER NOT NULL
+            )",
+            []
+        )?;
 
         info!("Components initialized");
         Ok(())
@@ -124,17 +144,14 @@ impl IndexCommand {
             .filter_entry(|e| !Self::is_hidden(e))
             .filter_map(|e| e.ok())
             .filter(|e| {
-                // Skip directories
                 if e.file_type().is_dir() {
                     return false;
                 }
 
-                // Skip .ruvector directory
                 if e.path().starts_with(&self.index_path) {
                     return false;
                 }
 
-                // Skip node_modules, target, dist, build directories
                 let path_str = e.path().to_string_lossy();
                 if path_str.contains("/node_modules/") ||
                    path_str.contains("/target/") ||
@@ -143,7 +160,6 @@ impl IndexCommand {
                     return false;
                 }
 
-                // Check file extension
                 if let Some(ext) = e.path().extension() {
                     self.file_types.contains(&ext.to_string_lossy().to_string())
                 } else {
@@ -163,11 +179,9 @@ impl IndexCommand {
         entry.file_name()
             .to_str()
             .map(|s| {
-                // Allow .claude directory (contains agents, skills, commands, hooks)
                 if s == ".claude" {
                     return false;
                 }
-                // Skip other hidden directories (like .git, .ruvector, etc.)
                 s.starts_with('.')
             })
             .unwrap_or(false)
@@ -189,11 +203,13 @@ impl IndexCommand {
             }
         }
 
-        let stats_guard = stats.write().unwrap();
+        let stats_guard = stats.read().unwrap();
         let errors_guard = errors.read().unwrap();
 
         let final_stats = IndexStats {
             files_processed: stats_guard.files_processed,
+            entities_extracted: stats_guard.entities_extracted,
+            references_extracted: stats_guard.references_extracted,
             embeddings_generated: stats_guard.embeddings_generated,
             errors: errors_guard.clone(),
         };
@@ -207,102 +223,221 @@ impl IndexCommand {
         stats: &Arc<RwLock<IndexStats>>,
         errors: &Arc<RwLock<Vec<String>>>,
     ) -> Result<()> {
-        // Read file content
-        let content = fs::read_to_string(file_path)
-            .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
+        let file_hash = self.calculate_file_hash(file_path)?;
 
-        // Extract patterns
-        let patterns = self.extract_patterns(&content, file_path)?;
-
-        if patterns.is_empty() {
-            debug!("No patterns found in {}", file_path.display());
+        if !self.force && self.is_file_indexed(file_path, &file_hash)? {
+            debug!("Skipping already indexed file: {}", file_path.display());
             return Ok(());
         }
 
-        // Generate embeddings for patterns
-        let embeddings = self.embeddings_manager.generate_embeddings(&patterns)?;
+        let content = fs::read_to_string(file_path)
+            .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
 
-        // Update stats
+        let extraction_result = self.process_ast_extraction(file_path, &content)?;
+
+        if extraction_result.entities.is_empty() {
+            debug!("No entities found in {}", file_path.display());
+            return Ok(());
+        }
+
+        let entity_ids = self.store_entities(file_path, &extraction_result.entities)?;
+        self.store_references(file_path, &extraction_result.references, &entity_ids)?;
+        self.store_type_usage(file_path, &extraction_result.entities, &entity_ids)?;
+
+        let embeddings = self.generate_entity_embeddings(&extraction_result.entities)?;
+
         {
             let mut s = stats.write().unwrap();
             s.files_processed += 1;
+            s.entities_extracted += extraction_result.entities.len();
+            s.references_extracted += extraction_result.references.len();
             s.embeddings_generated += embeddings.len();
         }
 
-        // Store in search engine
-        self.store_patterns(file_path, patterns, embeddings)?;
+        self.mark_file_indexed(file_path, &file_hash)?;
 
         Ok(())
     }
 
-    fn extract_patterns(&self, content: &str, file_path: &Path) -> Result<Vec<String>> {
-        let mut patterns = Vec::new();
-
-        // Extract lines as patterns
-        for (line_num, line) in content.lines().enumerate() {
-            let trimmed = line.trim();
-            
-            // Skip empty lines and comments
-            if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with('#') {
-                continue;
+    fn process_ast_extraction(&self, file_path: &Path, content: &str) -> Result<ExtractionResult> {
+        let language = self.detect_language(file_path)?;
+        
+        let result = match language.as_str() {
+            "rust" => {
+                let mut extractor = self.rust_extractor.clone();
+                extractor.extract(&file_path.to_string_lossy(), content)?
+            },
+            "typescript" | "javascript" => {
+                let mut extractor = self.typescript_extractor.clone();
+                extractor.extract(&file_path.to_string_lossy(), content)?
+            },
+            _ => {
+                return Ok(ExtractionResult {
+                    entities: Vec::new(),
+                    references: Vec::new(),
+                    errors: vec![format!("Unsupported language: {}", language)],
+                });
             }
+        };
 
-            // Create pattern with context
-            let pattern = format!("{}:{}:{}", 
-                                file_path.file_name().unwrap().to_string_lossy(),
-                                line_num + 1,
-                                trimmed);
-            
-            patterns.push(pattern);
-        }
-
-        // If specific patterns are requested, filter
-        if let Some(ref target_patterns) = self.patterns {
-            let regexes: Vec<Regex> = target_patterns
-                .iter()
-                .filter_map(|p| Regex::new(p).ok())
-                .collect();
-
-            if !regexes.is_empty() {
-                patterns = patterns.into_iter()
-                    .filter(|p| regexes.iter().any(|r| r.is_match(p)))
-                    .collect();
-            }
-        }
-
-        Ok(patterns)
+        Ok(result)
     }
 
-    fn store_patterns(
-        &self,
-        file_path: &Path,
-        patterns: Vec<String>,
-        embeddings: Vec<Vec<f32>>,
-    ) -> Result<()> {
-        let file_hash = self.calculate_file_hash(file_path)?;
-
-        for (i, pattern) in patterns.into_iter().enumerate() {
-            let embedding = embeddings.get(i).ok_or_else(|| anyhow!("Missing embedding for pattern"))?;
-            
-            let metadata = IndexMetadata {
-                path: file_path.to_string_lossy().to_string(),
-                pattern: pattern.clone(),
-                line_number: None, // We'll extract this from the pattern
-                context: None,
-                snippet: None,
-                file_hash: file_hash.clone(),
-                indexed_at: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-            };
-
-            // Store in search engine
-            // Note: We'll need to modify SearchEngine to handle this
-            // For now, just store in database
-            self.store.store_embedding(&pattern, embedding, &metadata)?;
+    fn detect_language(&self, file_path: &Path) -> Result<String> {
+        if let Some(ext) = file_path.extension() {
+            match ext.to_string_lossy().as_ref() {
+                "rs" => Ok("rust".to_string()),
+                "ts" => Ok("typescript".to_string()),
+                "js" => Ok("javascript".to_string()),
+                "tsx" => Ok("typescript".to_string()),
+                "jsx" => Ok("javascript".to_string()),
+                _ => Ok("unknown".to_string()),
+            }
+        } else {
+            Ok("unknown".to_string())
         }
+    }
 
+    fn store_entities(&self, file_path: &Path, entities: &[Entity]) -> Result<Vec<i64>> {
+        let mut entity_ids = Vec::new();
+        
+        for entity in entities {
+            let store_entity = StoreEntity {
+                id: 0,
+                kind: self.convert_entity_kind(&entity.kind),
+                name: entity.name.clone(),
+                signature: Some(entity.signature.clone()),
+                visibility: self.convert_visibility(&entity.visibility),
+                parent_id: None,
+                file_path: file_path.to_string_lossy().to_string(),
+                line_number: entity.line as i64,
+                column_number: Some(entity.column as i64),
+                doc_comment: None,
+                attributes: None,
+                metadata: Some(serde_json::to_string(&entity.metadata)?),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+            };
+            
+            let id = self.store_v2.insert_entity(&store_entity)?;
+            entity_ids.push(id);
+        }
+        
+        Ok(entity_ids)
+    }
+
+    fn store_references(&self, file_path: &Path, references: &[Reference], entity_ids: &[i64]) -> Result<()> {
+        for (reference, &entity_id) in references.iter().zip(entity_ids.iter()) {
+            let store_reference = StoreReference {
+                id: 0,
+                source_entity_id: entity_id,
+                target_entity_id: 0,
+                ref_kind: self.convert_ref_kind(&reference.ref_kind),
+                file_path: file_path.to_string_lossy().to_string(),
+                line_number: reference.line as i64,
+                column_number: Some(reference.column as i64),
+                context: Some(serde_json::to_string(&reference.metadata)?),
+                created_at: chrono::Utc::now(),
+            };
+            
+            self.store_v2.insert_reference(&store_reference)?;
+        }
+        
+        Ok(())
+    }
+
+    fn store_type_usage(&self, file_path: &Path, entities: &[Entity], entity_ids: &[i64]) -> Result<()> {
+        for (entity, &entity_id) in entities.iter().zip(entity_ids.iter()) {
+            if let Some(type_info) = entity.metadata.get("type") {
+                let type_usage = TypeUsage {
+                    id: 0,
+                    entity_id,
+                    type_name: type_info.clone(),
+                    usage_kind: "annotation".to_string(),
+                    file_path: file_path.to_string_lossy().to_string(),
+                    line_number: entity.line as i64,
+                    created_at: chrono::Utc::now(),
+                };
+                
+                self.store_v2.insert_type_usage(&type_usage)?;
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn generate_entity_embeddings(&self, entities: &[Entity]) -> Result<Vec<Vec<f32>>> {
+        let texts: Vec<String> = entities.iter()
+            .map(|e| format!("{}:{}:{}", e.kind.as_str(), e.name, e.signature))
+            .collect();
+        
+        self.embeddings_manager.generate_embeddings(&texts)
+    }
+
+    fn convert_entity_kind(&self, kind: &crate::extractors::EntityKind) -> EntityKind {
+        match kind {
+            crate::extractors::EntityKind::Function => EntityKind::Function,
+            crate::extractors::EntityKind::Method => EntityKind::Method,
+            crate::extractors::EntityKind::Constructor => EntityKind::Constructor,
+            crate::extractors::EntityKind::Getter => EntityKind::Getter,
+            crate::extractors::EntityKind::Setter => EntityKind::Setter,
+            crate::extractors::EntityKind::Class => EntityKind::Class,
+            crate::extractors::EntityKind::Interface => EntityKind::Interface,
+            crate::extractors::EntityKind::Struct => EntityKind::Struct,
+            crate::extractors::EntityKind::Enum => EntityKind::Enum,
+            crate::extractors::EntityKind::TypeAlias => EntityKind::TypeAlias,
+            crate::extractors::EntityKind::Module => EntityKind::Module,
+            crate::extractors::EntityKind::Namespace => EntityKind::Namespace,
+            crate::extractors::EntityKind::Variable => EntityKind::Variable,
+            crate::extractors::EntityKind::Constant => EntityKind::Constant,
+            crate::extractors::EntityKind::Parameter => EntityKind::Parameter,
+            crate::extractors::EntityKind::Import => EntityKind::Import,
+        }
+    }
+
+    fn convert_visibility(&self, visibility: &crate::extractors::Visibility) -> Visibility {
+        match visibility {
+            crate::extractors::Visibility::Public => Visibility::Public,
+            crate::extractors::Visibility::Private => Visibility::Private,
+            crate::extractors::Visibility::Protected => Visibility::Protected,
+            crate::extractors::Visibility::Internal => Visibility::Internal,
+            crate::extractors::Visibility::FilePrivate => Visibility::FilePrivate,
+        }
+    }
+
+    fn convert_ref_kind(&self, ref_kind: &crate::extractors::RefKind) -> RefKind {
+        match ref_kind {
+            crate::extractors::RefKind::Calls => RefKind::Calls,
+            crate::extractors::RefKind::Extends => RefKind::Extends,
+            crate::extractors::RefKind::Implements => RefKind::Implements,
+            crate::extractors::RefKind::Imports => RefKind::Imports,
+            crate::extractors::RefKind::Uses => RefKind::Uses,
+            crate::extractors::RefKind::Instantiates => RefKind::Instantiates,
+            crate::extractors::RefKind::Overrides => RefKind::Overrides,
+            crate::extractors::RefKind::Reads => RefKind::Reads,
+            crate::extractors::RefKind::Writes => RefKind::Writes,
+        }
+    }
+
+    fn is_file_indexed(&self, file_path: &Path, file_hash: &str) -> Result<bool> {
+        let query = "SELECT COUNT(*) FROM file_hashes WHERE file_path = ? AND file_hash = ?";
+        let mut stmt = self.store_v2.conn.prepare(query)?;
+        let count: i64 = stmt.query_row(
+            params![file_path.to_string_lossy(), file_hash],
+            |row| row.get(0)
+        )?;
+        Ok(count > 0)
+    }
+
+    fn mark_file_indexed(&self, file_path: &Path, file_hash: &str) -> Result<()> {
+        self.store_v2.conn.execute(
+            "INSERT OR REPLACE INTO file_hashes (file_path, file_hash, indexed_at) VALUES (?1, ?2, ?3)",
+            params![
+                file_path.to_string_lossy(),
+                file_hash,
+                chrono::Utc::now().timestamp()
+            ]
+        )?;
         Ok(())
     }
 

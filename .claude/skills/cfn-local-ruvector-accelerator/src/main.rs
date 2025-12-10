@@ -8,9 +8,18 @@ mod embeddings;
 mod sqlite_store;
 mod search_engine;
 mod cli;
+mod extractors;
+mod schema_v2;
+mod migration;
+mod migration_tx;
+mod store_v2;
+mod store_v2_tx;
+mod query_api;
+
+#[cfg(test)]
+mod transaction_tests;
 
 use cli::*;
-
 #[derive(Parser)]
 #[command(name = "local-ruvector")]
 #[command(about = "Local RuVector Accelerator - Fast pattern storage and search", long_about = None)]
@@ -158,6 +167,16 @@ enum Commands {
         /// Include embedding vectors
         #[arg(long)]
         include_embeddings: bool,
+    },
+    /// Find entities using structured queries
+    Find {
+        #[command(flatten)]
+        args: cli::find::FindCommand,
+    },
+    /// Find references to an entity
+    Refs {
+        #[command(flatten)]
+        args: cli::refs::RefsCommand,
     },
 }
 
@@ -352,6 +371,18 @@ fn main() -> Result<()> {
             }
             println!("⚠️  Export feature not yet implemented");
             println!("Would export to: {}", path);
+        }
+        Commands::Find { args } => {
+            if !ruvector_dir.exists() {
+                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            }
+            args.execute(&project_path)?;
+        }
+        Commands::Refs { args } => {
+            if !ruvector_dir.exists() {
+                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            }
+            args.execute(&project_path)?;
         }
     }
 
