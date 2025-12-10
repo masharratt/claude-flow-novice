@@ -121,6 +121,9 @@ impl IndexCommand {
 
         self.store.initialize()?;
 
+        // Initialize Schema V2 tables (entities, refs, etc.)
+        crate::schema_v2::SchemaV2::initialize(&self.store_v2.conn)?;
+
         self.store_v2.conn.execute(
             "CREATE TABLE IF NOT EXISTS file_hashes (
                 file_path TEXT PRIMARY KEY,

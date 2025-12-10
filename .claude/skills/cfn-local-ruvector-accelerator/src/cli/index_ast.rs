@@ -126,9 +126,11 @@ impl AstIndexCommand {
     fn initialize(&self) -> Result<()> {
         info!("Initializing AST index components");
 
-        // Initialize database schema v2
+        // Initialize database schema v2 on the connection (not in a transaction)
+        crate::schema_v2::SchemaV2::initialize(&self.store_v2.conn)?;
+
+        // Now create file_hashes and handle force rebuild in a transaction
         let tx = self.store_v2.transaction()?;
-        crate::schema_v2::SchemaV2::initialize(&tx)?;
 
         // Create file_hashes table for incremental indexing
         tx.execute(

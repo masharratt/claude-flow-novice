@@ -207,11 +207,11 @@ impl SchemaV2 {
     pub fn initialize(conn: &Connection) -> Result<()> {
         info!("Initializing Schema v2 with entity-based design");
 
-        // Start transaction for atomic schema creation
-        let tx = conn.unchecked_transaction()?;
-        
+        // Execute schema creation directly on the connection
+        // The caller is responsible for transaction management
+
         // Create entities table - core table for all code entities
-        tx.execute_batch(
+        conn.execute_batch(
             r#"
             CREATE TABLE IF NOT EXISTS entities (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -233,19 +233,18 @@ impl SchemaV2 {
             );
             
             -- Create refs table for cross-file and intra-file references
+            -- Note: target_entity_id can be 0 for unresolved references
             CREATE TABLE IF NOT EXISTS refs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 source_entity_id INTEGER NOT NULL,
-                target_entity_id INTEGER NOT NULL,
+                target_entity_id INTEGER NOT NULL DEFAULT 0,
+                target_name TEXT,
                 ref_kind TEXT NOT NULL,
                 file_path TEXT NOT NULL,
                 line_number INTEGER NOT NULL,
                 column_number INTEGER,
                 context TEXT,
-                created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-                
-                FOREIGN KEY (source_entity_id) REFERENCES entities(id) ON DELETE CASCADE,
-                FOREIGN KEY (target_entity_id) REFERENCES entities(id) ON DELETE CASCADE
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
             );
             
             -- Create type_usage table for tracking type usage in functions/methods
@@ -285,23 +284,21 @@ impl SchemaV2 {
             );
             "#
         )?;
-        
+
         // Create indexes for performance optimization
-        Self::create_indexes(&tx)?;
-        
+        Self::create_indexes(conn)?;
+
         // Create triggers for maintaining updated_at timestamps
-        Self::create_triggers(&tx)?;
-        
-        tx.commit()?;
-        
+        Self::create_triggers(conn)?;
+
         info!("Schema v2 initialized successfully");
         Ok(())
     }
-    
-    fn create_indexes(tx: &rusqlite::Transaction) -> Result<()> {
+
+    fn create_indexes(conn: &Connection) -> Result<()> {
         debug!("Creating performance indexes");
-        
-        tx.execute_batch(
+
+        conn.execute_batch(
             r#"
             -- Entity indexes for fast lookups
             CREATE INDEX IF NOT EXISTS idx_entities_kind ON entities(kind);
@@ -343,14 +340,14 @@ impl SchemaV2 {
             CREATE INDEX IF NOT EXISTS idx_entities_module_lookup ON entities(file_path);
             "#
         )?;
-        
+
         Ok(())
     }
-    
-    fn create_triggers(tx: &rusqlite::Transaction) -> Result<()> {
+
+    fn create_triggers(conn: &Connection) -> Result<()> {
         debug!("Creating database triggers");
-        
-        tx.execute_batch(
+
+        conn.execute_batch(
             r#"
             -- Trigger to update updated_at timestamp on entity modification
             CREATE TRIGGER IF NOT EXISTS update_entity_timestamp
@@ -359,30 +356,9 @@ impl SchemaV2 {
             BEGIN
                 UPDATE entities SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
             END;
-            
-            -- Trigger to maintain file metadata consistency
-            CREATE TRIGGER IF NOT EXISTS update_file_line_count
-                AFTER INSERT ON entities
-            BEGIN
-                UPDATE files 
-                SET patterns_count = (
-                    SELECT COUNT(*) FROM entities WHERE file_path = NEW.file_path
-                )
-                WHERE path = NEW.file_path;
-            END;
-            
-            CREATE TRIGGER IF NOT EXISTS update_file_line_count_delete
-                AFTER DELETE ON entities
-            BEGIN
-                UPDATE files 
-                SET patterns_count = (
-                    SELECT COUNT(*) FROM entities WHERE file_path = OLD.file_path
-                )
-                WHERE path = OLD.file_path;
-            END;
             "#
         )?;
-        
+
         Ok(())
     }
     
