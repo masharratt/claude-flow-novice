@@ -1,95 +1,98 @@
 #!/bin/bash
 set -euo pipefail
 
-# CFN Epic Creator - Main orchestration script
-# Creates comprehensive epic definitions with sequential persona reviews
+# CFN Epic Creator Invoke Script (SECURE VERSION)
+# Wrapper script for invoking the epic creator with security validation
+
+# Source security utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SECURITY_UTILS="$(realpath "${SCRIPT_DIR}/security-utils.sh")"
+
+if [[ -f "$SECURITY_UTILS" ]]; then
+    # shellcheck source=security-utils.sh
+    source "$SECURITY_UTILS"
+else
+    echo "Error: Security utilities not found at $SECURITY_UTILS" >&2
+    exit 1
+fi
 
 # Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EPIC_CREATOR_AGENT="$(realpath "${SCRIPT_DIR}/../../agents/cfn-dev-team/utility/epic-creator-v2.sh")"
+DEFAULT_MODE="standard"
+DEFAULT_TIMEOUT=600
 
 # Default values
-MODE="standard"
+MODE="$DEFAULT_MODE"
 OUTPUT_FILE=""
 ENFORCE_DEVOPS=false
 VERBOSE=false
 VALIDATE_ONLY=false
 SHOW_HELP=false
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
 # Logging functions
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $*"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $*"
-}
-
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $*"
+    if [[ "$VERBOSE" == "true" ]]; then
+        echo "[INFO] $1" >&2
+    fi
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $*" >&2
+    echo "[ERROR] $1" >&2
 }
 
-# Show help message
-show_help() {
-    cat << 'HELP_EOF'
-CFN Epic Creator - Creates comprehensive epic definitions with persona reviews
+log_success() {
+    echo "[SUCCESS] $1" >&2
+}
 
-USAGE:
-    ./invoke.sh "<epic-description>" [OPTIONS]
+# Usage information
+show_usage() {
+    cat << HELP_EOF
+Usage: cfn-epic-creator <epic-description> [OPTIONS]
 
-REQUIRED ARGUMENTS:
-    <epic-description>    Detailed description of the epic to be analyzed
+Creates comprehensive epic definitions with reviews from multiple personas.
+
+ARGUMENTS:
+  <epic-description>    Detailed description of the epic to be analyzed
 
 OPTIONS:
-    -m, --mode <mode>         Review thoroughness level
-                              mvp: Basic reviews only
-                              standard: Full comprehensive reviews (default)
-                              enterprise: Deep dive with compliance and governance
-    
-    -e, --enforce-devops      Make DevOps recommendations blocking instead of suggested
-    
-    -o, --output <path>       Output JSON file path
-                              Default: epic-with-personas-YYYY-MM-DD-HH-mm-ss.json
-    
-    -v, --verbose             Enable verbose logging
-    
-    --validate-only           Validate generated epic JSON without creating file
-    
-    -h, --help                Show this help message
+  -m, --mode <mode>         Review thoroughness level (mvp|standard|enterprise)
+                             - mvp: Essential personas only (PM, Architect, Security)
+                             - standard: All 6 core personas
+                             - enterprise: Additional QA and Performance personas
+                             [default: $DEFAULT_MODE]
+
+  -o, --output <path>       Output JSON file path
+                             If not specified, generates timestamped filename
+
+  -e, --enforce-devops      Include DevOps persona regardless of mode
+
+  -t, --timeout <seconds>  Timeout for persona execution [default: $DEFAULT_TIMEOUT]
+
+  -v, --verbose             Enable verbose logging
+
+  --validate-only          Validate inputs without executing
+
+  -h, --help               Show this help message
 
 EXAMPLES:
-    # Basic usage
-    ./invoke.sh "Build a customer-facing analytics dashboard"
+  # Standard epic creation
+  cfn-epic-creator "Implement user authentication system"
 
-    # Enterprise mode with DevOps enforcement
-    ./invoke.sh "Develop mobile banking app with biometric auth" \
-        --mode=enterprise \
-        --enforce-devops \
-        --output=banking-epic.json
+  # Enterprise mode with custom output
+  cfn-epic-creator "Build microservices API gateway" --mode=enterprise -o epic-api-gateway.json
 
-    # Validate generated structure
-    ./invoke.sh "Create AR furniture placement app" \
-        --validate-only \
-        --verbose
+  # MVP mode with DevOps enforcement
+  cfn-epic-creator "Quick prototype dashboard" --mode=mvp --enforce-devops
 
-EXIT CODES:
-    0    Success
-    1    General error
-    2    Validation error
-    3    Missing required arguments
-    4    Invalid mode specified
-    5    Agent execution failed
+  # Validate epic description without execution
+  cfn-epic-creator "Test epic" --validate-only
+
+SECURITY FEATURES:
+  - Input sanitization and validation
+  - Path traversal protection
+  - Command injection prevention
+  - Secure temporary file creation
+  - Output validation
 
 HELP_EOF
 }
@@ -109,159 +112,24 @@ validate_mode() {
     esac
 }
 
-# Generate default output filename
-generate_output_filename() {
-    local timestamp
-    timestamp=$(date "+%Y-%m-%d-%H-%M-%S")
-    echo "epic-with-personas-${timestamp}.json"
-}
+# Validate timeout parameter
+validate_timeout() {
+    local timeout="$1"
+    if ! [[ "$timeout" =~ ^[0-9]+$ ]]; then
+        log_error "Invalid timeout: $timeout (must be a positive integer)"
+        return 1
+    fi
 
-# Validate JSON structure
-validate_json() {
-    local json_file="$1"
-    
-    if [[ ! -f "$json_file" ]]; then
-        log_error "JSON file not found: $json_file"
+    if [[ $timeout -lt 30 || $timeout -gt 3600 ]]; then
+        log_error "Timeout must be between 30 and 3600 seconds"
         return 1
     fi
-    
-    # Check if valid JSON
-    if ! jq empty "$json_file" 2>/dev/null; then
-        log_error "Invalid JSON format in: $json_file"
-        return 1
-    fi
-    
-    # Validate required structure
-    local validation_errors=0
-    
-    # Check top-level epic object
-    if ! jq -e '.epic' "$json_file" >/dev/null; then
-        log_error "Missing required 'epic' object"
-        validation_errors=$((validation_errors + 1))
-    fi
-    
-    # Check required epic fields
-    local required_fields=("id" "title" "description" "status" "personas")
-    for field in "${required_fields[@]}"; do
-        if ! jq -e ".epic.${field}" "$json_file" >/dev/null; then
-            log_error "Missing required epic field: ${field}"
-            validation_errors=$((validation_errors + 1))
-        fi
-    done
-    
-    # Check personas array
-    if ! jq -e '.epic.personas | type == "array"' "$json_file" >/dev/null; then
-        log_error "epic.personas must be an array"
-        validation_errors=$((validation_errors + 1))
-    else
-        # Check for all 6 required personas
-        local persona_count
-        persona_count=$(jq -r '.epic.personas | length' "$json_file")
-        if [[ "$persona_count" -ne 6 ]]; then
-            log_error "Expected 6 personas, found: $persona_count"
-            validation_errors=$((validation_errors + 1))
-        fi
-        
-        # Validate each persona structure
-        local persona_names=("product-owner" "architect" "security-specialist" "performance-specialist" "accessibility-advocate" "devops-engineer")
-        local found_personas
-        found_personas=$(jq -r '.epic.personas[].name' "$json_file")
-        
-        for persona in "${persona_names[@]}"; do
-            if ! echo "$found_personas" | grep -q "^${persona}$"; then
-                log_error "Missing required persona: $persona"
-                validation_errors=$((validation_errors + 1))
-            fi
-        done
-    fi
-    
-    # Check recommendations structure
-    if ! jq -e '.epic.personas[].recommendations | type == "array"' "$json_file" >/dev/null; then
-        log_error "Persona recommendations must be arrays"
-        validation_errors=$((validation_errors + 1))
-    fi
-    
-    if [[ $validation_errors -gt 0 ]]; then
-        log_error "JSON validation failed with $validation_errors errors"
-        return 1
-    fi
-    
+
     return 0
 }
 
-# Generate summary report
-generate_summary() {
-    local json_file="$1"
-    
-    echo ""
-    log_info "=== Epic Summary Report ==="
-    
-    local epic_id
-    epic_id=$(jq -r '.epic.id' "$json_file")
-    local title
-    title=$(jq -r '.epic.title' "$json_file")
-    local status
-    status=$(jq -r '.epic.status' "$json_file")
-    local mode
-    mode=$(jq -r '.epic.metadata.reviewMode // "standard"' "$json_file")
-    
-    echo -e "Epic ID: ${BLUE}${epic_id}${NC}"
-    echo -e "Title: ${title}"
-    echo -e "Status: ${status}"
-    echo -e "Review Mode: ${mode}"
-    
-    # Persona summary
-    echo ""
-    echo "Persona Reviews:"
-    while IFS= read -r persona; do
-        local persona_name
-        persona_name=$(jq -r '.name' <<< "$persona")
-        local persona_status
-        persona_status=$(jq -r '.status' "$persona")
-        local rec_count
-        rec_count=$(jq -r '.recommendations | length' "$persona")
-        local blocking_count
-        blocking_count=$(jq -r '.recommendations | map(select(.type == "blocking")) | length' "$persona")
-        
-        local status_icon
-        case "$persona_status" in
-            "completed")
-                status_icon="✅"
-                ;;
-            "failed")
-                status_icon="❌"
-                ;;
-            *)
-                status_icon="⚠️"
-                ;;
-        esac
-        
-        echo -e "  ${status_icon} ${persona_name}: ${rec_count} recommendations (${blocking_count} blocking)"
-    done < <(jq -c '.epic.personas[]' "$json_file")
-    
-    # Cost breakdown
-    echo ""
-    echo "Cost Analysis:"
-    if jq -e '.epic.totalCostBreakdown' "$json_file" >/dev/null; then
-        while IFS= read -r cost_item; do
-            local category
-            category=$(jq -r 'keys[0]' <<< "$cost_item")
-            local amount
-            amount=$(jq -r ".${category}" <<< "$cost_item")
-            echo -e "  ${category}: ${YELLOW}${amount}${NC}"
-        done < <(jq -c '.epic.totalCostBreakdown | to_entries | map({(.key): .value})[]' "$json_file")
-    else
-        echo -e "  ${YELLOW}No cost breakdown available${NC}"
-    fi
-    
-    echo ""
-}
-
-# Main execution
-main() {
-    # Parse command line arguments
-    local epic_description=""
-    
+# Parse command line arguments
+parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             -h|--help)
@@ -269,17 +137,44 @@ main() {
                 shift
                 ;;
             -m|--mode)
+                if [[ -z "${2:-}" ]]; then
+                    log_error "Mode requires a value"
+                    return 1
+                fi
                 MODE="$2"
-                validate_mode "$MODE" || exit 4
                 shift 2
+                ;;
+            --mode=*)
+                MODE="${1#--mode=}"
+                shift
+                ;;
+            -o|--output)
+                if [[ -z "${2:-}" ]]; then
+                    log_error "Output path requires a value"
+                    return 1
+                fi
+                OUTPUT_FILE="$2"
+                shift 2
+                ;;
+            --output=*)
+                OUTPUT_FILE="${1#--output=}"
+                shift
                 ;;
             -e|--enforce-devops)
                 ENFORCE_DEVOPS=true
                 shift
                 ;;
-            -o|--output)
-                OUTPUT_FILE="$2"
+            -t|--timeout)
+                if [[ -z "${2:-}" ]]; then
+                    log_error "Timeout requires a value"
+                    return 1
+                fi
+                TIMEOUT="$2"
                 shift 2
+                ;;
+            --timeout=*)
+                TIMEOUT="${1#--timeout=}"
+                shift
                 ;;
             -v|--verbose)
                 VERBOSE=true
@@ -291,128 +186,260 @@ main() {
                 ;;
             -*)
                 log_error "Unknown option: $1"
-                log_error "Use -h or --help for usage information"
-                exit 1
+                return 1
                 ;;
             *)
-                if [[ -z "$epic_description" ]]; then
-                    epic_description="$1"
+                # Epic description (last argument)
+                if [[ -z "${EPIC_DESCRIPTION:-}" ]]; then
+                    EPIC_DESCRIPTION="$1"
                 else
-                    # Append to description with space
-                    epic_description="${epic_description} $1"
+                    log_error "Multiple epic descriptions provided"
+                    return 1
                 fi
                 shift
                 ;;
         esac
     done
-    
-    # Show help if requested
-    if [[ "$SHOW_HELP" == true ]]; then
-        show_help
-        exit 0
+}
+
+# Validate epic description
+validate_epic() {
+    local description="$1"
+
+    log_info "Validating epic description..."
+
+    # Use security utility to validate
+    if ! validated=$(validate_epic_description "$description"); then
+        log_error "Epic description validation failed"
+        return 1
     fi
-    
-    # Validate required arguments
-    if [[ -z "$epic_description" ]]; then
-        log_error "Missing required epic description"
-        log_error "Use -h or --help for usage information"
-        exit 3
+
+    log_info "Epic description validated successfully (${#validated} characters)"
+    return 0
+}
+
+# Validate output file path
+validate_output_file() {
+    local output_file="$1"
+
+    if [[ -z "$output_file" ]]; then
+        return 0  # Empty output file is allowed (will generate default)
     fi
-    
-    # Set default output filename if not provided
-    if [[ -z "$OUTPUT_FILE" ]]; then
-        OUTPUT_FILE="$(generate_output_filename)"
+
+    log_info "Validating output file path: $output_file"
+
+    # Use security utility to validate path
+    if ! validated=$(validate_path "$output_file"); then
+        log_error "Output file path validation failed"
+        return 1
     fi
-    
-    # Verbose logging
-    if [[ "$VERBOSE" == true ]]; then
-        log_info "Epic Description: $epic_description"
-        log_info "Mode: $MODE"
-        log_info "Output File: $OUTPUT_FILE"
-        log_info "Enforce DevOps: $ENFORCE_DEVOPS"
+
+    # Check if directory exists
+    local dir
+    dir=$(dirname "$validated")
+    if [[ ! -d "$dir" ]]; then
+        log_info "Creating output directory: $dir"
+        mkdir -p "$dir"
+        chmod 755 "$dir"
     fi
-    
-    # Check if epic creator agent exists
+
+    OUTPUT_FILE="$validated"
+    log_info "Output file path validated"
+    return 0
+}
+
+# Generate output filename if not provided
+generate_output_filename() {
+    local base_name="epic-with-personas"
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d-%H-%M-%S")
+
+    generate_secure_filename "$base_name" "$timestamp" "json"
+}
+
+# Execute epic creator with security
+execute_epic_creator() {
+    local description="$1"
+    local mode="$2"
+    local output_file="$3"
+    local enforce_devops="$4"
+
+    log_info "Executing epic creator..."
+
+    # Check if epic creator script exists and is executable
     if [[ ! -f "$EPIC_CREATOR_AGENT" ]]; then
-        log_error "Epic creator agent not found: $EPIC_CREATOR_AGENT"
-        exit 5
+        log_error "Epic creator script not found: $EPIC_CREATOR_AGENT"
+        return 1
     fi
-    
-    # Build agent command
-    local agent_cmd=(
-        "$EPIC_CREATOR_AGENT"
-        "$epic_description"
-        --mode="$MODE"
-    )
-    
-    if [[ "$ENFORCE_DEVOPS" == true ]]; then
+
+    if [[ ! -x "$EPIC_CREATOR_AGENT" ]]; then
+        log_error "Epic creator script is not executable: $EPIC_CREATOR_AGENT"
+        return 1
+    fi
+
+    # Prepare command arguments
+    local -a agent_cmd=("$EPIC_CREATOR_AGENT")
+    agent_cmd+=(--mode="$mode")
+
+    if [[ "$enforce_devops" == "true" ]]; then
         agent_cmd+=(--enforce-devops)
     fi
-    
-    if [[ "$VALIDATE_ONLY" == false ]]; then
-        agent_cmd+=(--output="$OUTPUT_FILE")
+
+    if [[ -n "$output_file" ]]; then
+        agent_cmd+=(--output="$output_file")
     fi
-    
-    # Execute epic creator agent
-    log_info "Executing epic creator agent..."
-    if [[ "$VERBOSE" == true ]]; then
-        log_info "Command: ${agent_cmd[*]}"
-    fi
-    
+
+    agent_cmd+=("$description")
+
+    log_info "Command: ${agent_cmd[*]}"
+
+    # Create secure temporary file for output
     local temp_output
-    temp_output=$(mktemp)
-    trap "rm -f '$temp_output'" RETURN
-    
-    if ! "${agent_cmd[@]}" > "$temp_output" 2>&1; then
-        log_error "Epic creator agent execution failed"
-        if [[ "$VERBOSE" == true ]]; then
-            cat "$temp_output"
+    temp_output=$(create_secure_temp "epic-creator" "log")
+
+    # Execute epic creator
+    if "${agent_cmd[@]}" > "$temp_output" 2>&1; then
+        log_info "Epic creator executed successfully"
+
+        # Display output
+        cat "$temp_output"
+
+        # Validate output file if specified
+        if [[ -n "$output_file" ]]; then
+            if [[ ! -f "$output_file" ]]; then
+                log_error "Expected output file not created: $output_file"
+                rm -f "$temp_output"
+                return 1
+            fi
+
+            if ! validate_json_output "$output_file"; then
+                log_error "Output file validation failed: $output_file"
+                rm -f "$temp_output"
+                return 1
+            fi
+
+            log_success "Epic generated successfully: $output_file"
+            log_info "File size: $(stat -c%s "$output_file" 2>/dev/null || stat -f%z "$output_file" 2>/dev/null || echo "unknown") bytes"
         fi
-        exit 5
-    fi
-    
-    # Extract JSON from output if not validate-only
-    if [[ "$VALIDATE_ONLY" == false ]]; then
-        # The agent should have written to the output file directly
-        if [[ ! -f "$OUTPUT_FILE" ]]; then
-            log_error "Expected output file not created: $OUTPUT_FILE"
-            exit 5
-        fi
-        
-        # Validate the generated JSON
-        log_info "Validating generated JSON structure..."
-        if ! validate_json "$OUTPUT_FILE"; then
-            log_error "JSON validation failed"
-            exit 2
-        fi
-        
-        log_success "Epic generated successfully: $OUTPUT_FILE"
-        
-        # Generate summary report
-        generate_summary "$OUTPUT_FILE"
     else
-        # For validate-only, extract JSON from temp output
-        local json_content
-        json_content=$(jq -c '.' "$temp_output" 2>/dev/null || echo '{"error": "No JSON output"}')
-        
-        # Write to temporary file for validation
-        local temp_json
-        temp_json=$(mktemp)
-        trap "rm -f '$temp_json' '$temp_output'" RETURN
-        
-        echo "$json_content" > "$temp_json"
-        
-        if validate_json "$temp_json"; then
-            log_success "JSON structure validation passed"
-            generate_summary "$temp_json"
-        else
-            log_error "JSON structure validation failed"
-            exit 2
-        fi
+        log_error "Epic creator failed"
+        cat "$temp_output"
+        rm -f "$temp_output"
+        return 1
     fi
-    
-    exit 0
+
+    # Cleanup
+    rm -f "$temp_output"
+
+    return 0
 }
+
+# Generate summary from output file
+generate_summary() {
+    local output_file="$1"
+
+    if [[ ! -f "$output_file" ]]; then
+        log_error "Cannot generate summary: output file not found"
+        return 1
+    fi
+
+    log_info "Generating summary..."
+
+    local json_content
+    json_content=$(cat "$output_file")
+
+    local summary
+    summary=$(jq -r '
+        "=== EPIC SUMMARY ===\n" +
+        "Epic ID: " + (.epic_id // "N/A") + "\n" +
+        "Mode: " + (.mode // "N/A") + "\n" +
+        "Created: " + (.created_at // "N/A") + "\n" +
+        "Personas: " + (.personas | length | tostring) + "\n" +
+        "\nDescription Preview:\n" +
+        (.description | if length > 200 then .[0:200] + "..." else . end) + "\n"
+    ' <<< "$json_content")
+
+    echo -e "$summary"
+}
+
+# Main execution
+main() {
+    local epic_description="${EPIC_DESCRIPTION:-}"
+    local timeout="${TIMEOUT:-$DEFAULT_TIMEOUT}"
+
+    # Show help if requested
+    if [[ "$SHOW_HELP" == "true" ]]; then
+        show_usage
+        exit 0
+    fi
+
+    # Check for epic description
+    if [[ -z "$epic_description" ]]; then
+        log_error "Epic description is required"
+        echo ""
+        show_usage
+        exit 1
+    fi
+
+    # Validate inputs
+    log_info "Validating inputs..."
+
+    # Validate epic description
+    if ! validate_epic "$epic_description"; then
+        exit 1
+    fi
+
+    # Validate mode
+    if ! validate_mode "$MODE"; then
+        exit 1
+    fi
+
+    # Validate timeout
+    if ! validate_timeout "$timeout"; then
+        exit 1
+    fi
+
+    # Validate output file
+    if ! validate_output_file "$OUTPUT_FILE"; then
+        exit 1
+    fi
+
+    # Generate output filename if not provided
+    if [[ -z "$OUTPUT_FILE" ]]; then
+        OUTPUT_FILE=$(generate_output_filename)
+        log_info "Generated output filename: $OUTPUT_FILE"
+    fi
+
+    log_info "Validation complete"
+    log_info "Mode: $MODE"
+    log_info "Timeout: ${timeout}s"
+    log_info "Output: $OUTPUT_FILE"
+    log_info "Enforce DevOps: $ENFORCE_DEVOPS"
+
+    # If validate only, exit here
+    if [[ "$VALIDATE_ONLY" == "true" ]]; then
+        log_success "All validations passed - exiting without execution"
+        exit 0
+    fi
+
+    # Execute epic creator
+    if execute_epic_creator "$epic_description" "$MODE" "$OUTPUT_FILE" "$ENFORCE_DEVOPS"; then
+        # Generate summary if output file exists
+        if [[ -f "$OUTPUT_FILE" ]]; then
+            echo ""
+            generate_summary "$OUTPUT_FILE"
+        fi
+
+        log_success "Epic creation completed successfully"
+        exit 0
+    else
+        log_error "Epic creation failed"
+        exit 1
+    fi
+}
+
+# Parse arguments
+parse_arguments "$@"
 
 # Execute main function
 main "$@"

@@ -1,0 +1,253 @@
+{
+  "epic": {
+    "id": "EPIC-329313",
+    "title": "Build a real-time analytics dashboard with user au",
+    "description": "Build a real-time analytics dashboard with user authentication, data visualization, and automated reporting capabilities\n",
+    "priority": "high",
+    "estimatedDuration": "TBD",
+    "budget": "TBD",
+    "status": "in-review",
+    "metadata": {
+      "createdAt": "2025-12-10T01:15:13.018Z",
+      "reviewMode": "standard",
+      "devopsEnforced": false
+    },
+    "personas": [
+      {
+        "name": "product-owner",
+        "reviewOrder": 1,
+        "status": "completed",
+        "insights": [
+          "User-centric approach identified in requirements",
+          "Clear value proposition needed for stakeholder alignment"
+        ],
+        "recommendations": [
+          {
+            "id": "PO-001",
+            "title": "Create detailed user story mapping",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$5,000",
+            "description": "Map user journeys to ensure all features address real user needs"
+          },
+          {
+            "id": "PO-003",
+            "title": "Define success metrics and KPIs",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$3,000",
+            "description": "Establish measurable success criteria for the epic"
+          }
+        ],
+        "costAnalysis": {
+          "productPlanning": "$8,000",
+          "userResearch": "$5,000",
+          "stakeholderManagement": "$4,000"
+        }
+      },
+      {
+        "name": "architect",
+        "reviewOrder": 2,
+        "status": "completed",
+        "insights": [
+          "Architecture must balance complexity with maintainability"
+        ],
+        "recommendations": [
+          {
+            "id": "ARCH-001",
+            "title": "Design system architecture with clear component boundaries",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$15,000",
+            "description": "Create detailed architecture diagrams and component specifications"
+          },
+          {
+            "id": "ARCH-002",
+            "title": "Define integration patterns and data flows",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$8,000",
+            "description": "Document how components will interact and share data"
+          },
+          {
+            "id": "ARCH-004",
+            "title": "Plan for future extensibility and evolution",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$5,000",
+            "description": "Design for anticipated future requirements"
+          }
+        ],
+        "costAnalysis": {
+          "architectureDesign": "$20,000",
+          "technologySelection": "$10,000",
+          "documentation": "$5,000"
+        }
+      },
+      {
+        "name": "security-specialist",
+        "reviewOrder": 3,
+        "status": "completed",
+        "insights": [
+          "Authentication and authorization mechanisms are critical",
+          "Data protection and privacy must be addressed early",
+          "Security should be integrated throughout the development lifecycle"
+        ],
+        "recommendations": [
+          {
+            "id": "SEC-001",
+            "title": "Conduct threat modeling and security assessment",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$12,000",
+            "description": "Identify potential security threats and mitigation strategies"
+          },
+          {
+            "id": "SEC-002",
+            "title": "Implement secure coding standards and reviews",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$8,000",
+            "description": "Establish security guidelines and review processes"
+          },
+          {
+            "id": "SEC-004",
+            "title": "Plan for incident response and monitoring",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$6,000",
+            "description": "Prepare for security incident handling"
+          }
+        ],
+        "costAnalysis": {
+          "securityAssessment": "$15,000",
+          "implementation": "$10,000",
+          "testing": "$8,000"
+        }
+      },
+      {
+        "name": "performance-specialist",
+        "reviewOrder": 4,
+        "status": "completed",
+        "insights": [
+          "Performance requirements will be critical for user experience",
+          "Database performance and query optimization must be considered",
+          "Performance testing should start early and continue throughout"
+        ],
+        "recommendations": [
+          {
+            "id": "PERF-001",
+            "title": "Define performance requirements and success criteria",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$8,000",
+            "description": "Establish measurable performance targets and SLAs"
+          },
+          {
+            "id": "PERF-002",
+            "title": "Implement performance monitoring and alerting",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$6,000",
+            "description": "Set up tools to track performance metrics in production"
+          },
+          {
+            "id": "PERF-004",
+            "title": "Create performance optimization plan",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$5,000",
+            "description": "Identify and plan for performance improvements"
+          }
+        ],
+        "costAnalysis": {
+          "performanceTesting": "$10,000",
+          "monitoring": "$7,000",
+          "optimization": "$8,000"
+        }
+      },
+      {
+        "name": "accessibility-advocate",
+        "reviewOrder": 5,
+        "status": "completed",
+        "insights": [
+          "UI components must meet WCAG 2.1 AA standards",
+          "Accessibility benefits all users, not just those with disabilities"
+        ],
+        "recommendations": [
+          {
+            "id": "A11Y-001",
+            "title": "Ensure WCAG 2.1 AA compliance for all user interfaces",
+            "type": "blocking",
+            "priority": "critical",
+            "estimatedCost": "$10,000",
+            "description": "Make the application accessible to users with disabilities"
+          },
+          {
+            "id": "A11Y-002",
+            "title": "Conduct accessibility testing with assistive technologies",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$6,000",
+            "description": "Test with screen readers, keyboard navigation, and other tools"
+          },
+          {
+            "id": "A11Y-004",
+            "title": "Create accessibility documentation and guides",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$4,000",
+            "description": "Document accessibility features and usage"
+          }
+        ],
+        "costAnalysis": {
+          "accessibilityImplementation": "$15,000",
+          "testing": "$5,000",
+          "training": "$3,000"
+        }
+      },
+      {
+        "name": "devops-engineer",
+        "reviewOrder": 6,
+        "status": "completed",
+        "insights": [
+          "Infrastructure as Code provides reproducibility and consistency"
+        ],
+        "recommendations": [
+          {
+            "id": "DEVOPS-001",
+            "title": "Set up CI/CD pipeline for automated builds and deployments",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$10,000",
+            "description": "Automate testing, building, and deployment processes"
+          },
+          {
+            "id": "DEVOPS-002",
+            "title": "Implement infrastructure monitoring and alerting",
+            "type": "suggested",
+            "priority": "high",
+            "estimatedCost": "$7,000",
+            "description": "Monitor application and infrastructure health"
+          },
+          {
+            "id": "DEVOPS-004",
+            "title": "Create runbooks and operational documentation",
+            "type": "suggested",
+            "priority": "medium",
+            "estimatedCost": "$5,000",
+            "description": "Document operational procedures and troubleshooting"
+          }
+        ],
+        "costAnalysis": {
+          "infrastructureSetup": "$15,000",
+          "automation": "$10,000",
+          "monitoring": "$8,000"
+        }
+      }
+    ],
+    "implementationRoadmap": [],
+    "totalCostBreakdown": {},
+    "riskAssessment": {}
+  }
+}
