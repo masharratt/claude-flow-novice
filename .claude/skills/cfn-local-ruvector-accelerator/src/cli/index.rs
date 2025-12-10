@@ -249,6 +249,11 @@ impl IndexCommand {
 
         let embeddings = self.generate_entity_embeddings(&extraction_result.entities)?;
 
+        // Store embeddings in entity_embeddings table
+        for (entity_id, embedding) in entity_ids.iter().zip(embeddings.iter()) {
+            self.store_v2.store_embedding(*entity_id, embedding, "text-embedding-3-small")?;
+        }
+
         {
             let mut s = stats.write().unwrap();
             s.files_processed += 1;
