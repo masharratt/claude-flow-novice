@@ -7,6 +7,7 @@ use serde_json::json;
 use crate::embeddings::EmbeddingsManager;
 use crate::search_engine::SearchEngine;
 use crate::sqlite_store::SqliteStore;
+use local_ruvector::paths::{get_ruvector_dir, get_v1_index_dir, get_database_path};
 
 pub struct InitCommand {
     project_dir: PathBuf,
@@ -30,8 +31,8 @@ impl InitCommand {
                               self.project_dir.display()));
         }
 
-        // Check if already initialized
-        let ruvector_dir = self.project_dir.join(".ruvector");
+        // Check if already initialized in centralized location
+        let ruvector_dir = get_ruvector_dir()?;
         if ruvector_dir.exists() && !self.force {
             eprintln!("⚠️  RuVector already initialized. Use --force to reinitialize.");
             return Err(anyhow!("Already initialized"));
@@ -42,19 +43,18 @@ impl InitCommand {
     }
 
     pub fn execute(&self) -> Result<()> {
-        info!("Initializing RuVector in: {}", self.project_dir.display());
-
-        let ruvector_dir = self.project_dir.join(".ruvector");
+        let ruvector_dir = get_ruvector_dir()?;
+        info!("Initializing centralized RuVector in: {}", ruvector_dir.display());
 
         // Remove existing directory if forcing
         if self.force && ruvector_dir.exists() {
             fs::remove_dir_all(&ruvector_dir)
-                .context("Failed to remove existing .ruvector directory")?;
+                .context("Failed to remove existing RuVector directory")?;
         }
 
         // Create directory structure
         fs::create_dir_all(&ruvector_dir)
-            .context("Failed to create .ruvector directory")?;
+            .context("Failed to create RuVector directory")?;
 
         // Create subdirectories
         fs::create_dir_all(ruvector_dir.join("embeddings"))?;
@@ -80,7 +80,8 @@ impl InitCommand {
     }
 
     fn create_config(&self) -> Result<()> {
-        let config_path = self.project_dir.join(".ruvector").join("config.json");
+        let ruvector_dir = get_ruvector_dir()?;
+        let config_path = ruvector_dir.join("config.json");
 
         let config = json!({
             "version": "1.0.0",
@@ -100,7 +101,7 @@ impl InitCommand {
     }
 
     fn initialize_database(&self) -> Result<()> {
-        let db_path = self.project_dir.join(".ruvector").join("index.db");
+        let db_path = get_database_path()?;
         let store = SqliteStore::new(&db_path)?;
         store.initialize()?;
 
@@ -109,7 +110,7 @@ impl InitCommand {
     }
 
     fn initialize_embeddings(&self) -> Result<()> {
-        let embeddings_dir = self.project_dir.join(".ruvector");
+        let embeddings_dir = get_ruvector_dir()?;
         let _ = EmbeddingsManager::new(&embeddings_dir)?;
 
         debug!("Embeddings manager initialized");

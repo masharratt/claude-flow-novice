@@ -15,8 +15,10 @@ use crate::sqlite_store::SqliteStore;
 use crate::extractors::{Extractor, ExtractionResult, Entity, Reference};
 use crate::extractors::rust::RustExtractor;
 use crate::extractors::typescript::TypeScriptExtractor;
+use crate::extractors::text_fallback::TextFallbackExtractor;
 use crate::store_v2::{StoreV2, Entity as StoreEntity, Reference as StoreReference, TypeUsage};
 use crate::schema_v2::{EntityKind, RefKind, Visibility};
+use local_ruvector::paths::{get_ruvector_dir, get_database_path, get_v1_index_dir};
 
 #[derive(Debug)]
 pub struct IndexStats {
@@ -52,6 +54,7 @@ pub struct IndexCommand {
     store_v2: StoreV2,
     rust_extractor: RustExtractor,
     typescript_extractor: TypeScriptExtractor,
+    text_fallback_extractor: TextFallbackExtractor,
 }
 
 impl IndexCommand {
@@ -62,11 +65,11 @@ impl IndexCommand {
         patterns: Option<Vec<String>>,
         force: bool,
     ) -> Result<Self> {
-        let index_path = project_dir.join(".ruvector");
-        let embeddings_manager = EmbeddingsManager::new(&index_path).unwrap();
-        let search_engine = SearchEngine::new(project_dir).unwrap();
-        let store = SqliteStore::new(&index_path.join("index.db")).unwrap();
-        let store_v2 = StoreV2::new(&index_path.join("index_v2.db")).unwrap();
+        let index_path = get_ruvector_dir()?;
+        let embeddings_manager = EmbeddingsManager::new(&index_path)?;
+        let search_engine = SearchEngine::new(&index_path)?;
+        let store = SqliteStore::new(&index_path.join("index.db"))?;
+        let store_v2 = StoreV2::new(&get_database_path()?)?;
 
         let source_path = if path.as_os_str().is_empty() || path == Path::new(".") {
             project_dir.to_path_buf()
@@ -87,6 +90,7 @@ impl IndexCommand {
             store_v2,
             rust_extractor: RustExtractor::new()?,
             typescript_extractor: TypeScriptExtractor::new()?,
+            text_fallback_extractor: TextFallbackExtractor::new()?,
         })
     }
 
@@ -148,10 +152,10 @@ impl IndexCommand {
                 let path = e.path();
                 let name = e.file_name().to_string_lossy();
 
-                // Only exclude specific directories, not hidden ones
-                // This allows .claude and other important hidden folders
+                // Exclude build artifacts, dependencies, and temporary files
+                // Allow .claude and other important hidden folders
                 match name.as_ref() {
-                    "node_modules" | "target" | "dist" | "build" | ".git" => false,
+                    "node_modules" | "target" | "dist" | "build" | ".git" | ".artifacts" => false,
                     _ => true
                 }
             })
@@ -269,7 +273,7 @@ impl IndexCommand {
 
     fn process_ast_extraction(&self, file_path: &Path, content: &str) -> Result<ExtractionResult> {
         let language = self.detect_language(file_path)?;
-        
+
         let result = match language.as_str() {
             "rust" => {
                 let mut extractor = self.rust_extractor.clone();
@@ -279,12 +283,15 @@ impl IndexCommand {
                 let mut extractor = self.typescript_extractor.clone();
                 extractor.extract(&file_path.to_string_lossy(), content)?
             },
+            "text" => {
+                // Use text fallback extractor for non-code files
+                let mut extractor = self.text_fallback_extractor.clone();
+                extractor.extract(&file_path.to_string_lossy(), content)?
+            },
             _ => {
-                return Ok(ExtractionResult {
-                    entities: Vec::new(),
-                    references: Vec::new(),
-                    errors: vec![format!("Unsupported language: {}", language)],
-                });
+                // Try text fallback for unknown types
+                let mut extractor = self.text_fallback_extractor.clone();
+                extractor.extract(&file_path.to_string_lossy(), content)?
             }
         };
 
@@ -299,10 +306,14 @@ impl IndexCommand {
                 "js" => Ok("javascript".to_string()),
                 "tsx" => Ok("typescript".to_string()),
                 "jsx" => Ok("javascript".to_string()),
-                _ => Ok("unknown".to_string()),
+                // Text-based file types
+                "json" | "yaml" | "yml" | "md" | "markdown" | "sh" | "bash" | "txt" | "config" | "conf" | "env" => {
+                    Ok("text".to_string())
+                },
+                _ => Ok("text".to_string()), // Default to text fallback for unknown types
             }
         } else {
-            Ok("unknown".to_string())
+            Ok("text".to_string())
         }
     }
 
