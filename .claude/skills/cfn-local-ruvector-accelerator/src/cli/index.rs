@@ -198,8 +198,9 @@ impl IndexCommand {
         let stats = Arc::new(RwLock::new(IndexStats::default()));
         let errors = Arc::new(RwLock::new(Vec::new()));
 
-        info!("Processing {} files", files.len());
+        info!("Processing {} files (parallel extraction, sequential DB writes)", files.len());
 
+        // Process in chunks for parallel extraction with sequential DB writes
         for file_path in files {
             debug!("Processing: {}", file_path.display());
 

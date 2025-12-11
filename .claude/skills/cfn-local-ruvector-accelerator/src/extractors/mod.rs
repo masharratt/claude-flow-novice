@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 pub mod rust;
 pub mod typescript;
-// pub mod typescript_full; // Temporarily disabled due to regex issues
+pub mod text_fallback;
 
 /// Create a Rust extractor instance
 pub fn create_rust_extractor() -> Result<rust::RustExtractor> {
@@ -20,6 +20,11 @@ pub fn create_rust_extractor() -> Result<rust::RustExtractor> {
 /// Create a TypeScript extractor instance
 pub fn create_typescript_extractor() -> Result<typescript::TypeScriptExtractor> {
     typescript::TypeScriptExtractor::new()
+}
+
+/// Create a text fallback extractor instance
+pub fn create_text_fallback_extractor() -> Result<text_fallback::TextFallbackExtractor> {
+    text_fallback::TextFallbackExtractor::new()
 }
 
 /// Common entity kinds across languages

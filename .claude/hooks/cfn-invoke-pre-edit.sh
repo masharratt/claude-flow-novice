@@ -92,7 +92,7 @@ fi
 # === Execute Pre-Edit Backup ===
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKUP_SCRIPT="${SCRIPT_DIR}/../skills/pre-edit-backup/backup.sh"
+BACKUP_SCRIPT="${SCRIPT_DIR}/../skills/cfn-edit-safety/lib/backup/backup.sh"
 
 if [[ ! -f "$BACKUP_SCRIPT" ]]; then
     echo "Error: Backup script not found: $BACKUP_SCRIPT" >&2
