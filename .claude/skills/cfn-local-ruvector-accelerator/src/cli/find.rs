@@ -8,6 +8,7 @@ use serde::Serialize;
 use crate::query_api::{QueryApi, QueryResultFormatter};
 use crate::store_v2::{StoreV2};
 use crate::schema_v2::{EntityKind};
+use crate::paths::get_database_path;
 
 #[derive(Debug, Args)]
 pub struct FindCommand {
@@ -69,9 +70,9 @@ pub enum FindOutputFormat {
 }
 
 impl FindCommand {
-    pub fn execute(&self, project_dir: &Path) -> Result<()> {
-        // Initialize store and query API
-        let db_path = project_dir.join(".ruvector").join("index.db");
+    pub fn execute(&self, _project_dir: &Path) -> Result<()> {
+        // Use centralized database
+        let db_path = get_database_path()?;
         let store = StoreV2::new(&db_path)
             .context("Failed to open database")?;
         let query_api = QueryApi::new(store);

@@ -23,8 +23,10 @@ export class ResultCache<K = string, V = unknown> {
 
     // Simple size limit enforcement
     if (this.cache.size > this.options.maxSize!) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      const firstKey = this.cache.keys().next().value as K | undefined;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
   }
 

@@ -281,8 +281,10 @@ fn main() -> Result<()> {
             batch,
             output,
         } => {
-            if !ruvector_dir.exists() {
-                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            // Check centralized database exists (not local .ruvector dir)
+            let db_path = paths::get_database_path()?;
+            if !db_path.exists() {
+                return Err(anyhow!("RuVector database not found. Run 'init' and 'index' first."));
             }
 
             if let Some(batch_file) = batch {
@@ -318,8 +320,10 @@ fn main() -> Result<()> {
             analyze,
             report,
         } => {
-            if !ruvector_dir.exists() {
-                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            // Check centralized database exists (not local .ruvector dir)
+            let db_path = paths::get_database_path()?;
+            if !db_path.exists() {
+                return Err(anyhow!("RuVector database not found. Run 'init' and 'index' first."));
             }
 
             let output_format = match format {
@@ -343,8 +347,10 @@ fn main() -> Result<()> {
             dry_run,
             force,
         } => {
-            if !ruvector_dir.exists() {
-                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            // Check centralized database exists (not local .ruvector dir)
+            let db_path = paths::get_database_path()?;
+            if !db_path.exists() {
+                return Err(anyhow!("RuVector database not found. Run 'init' and 'index' first."));
             }
 
             let cmd = CleanupCommand::new(
@@ -376,21 +382,27 @@ fn main() -> Result<()> {
             println!("⚠️  Migration feature not yet implemented");
         }
         Commands::Export { path, format: _, include_embeddings: _ } => {
-            if !ruvector_dir.exists() {
-                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            // Check centralized database exists (not local .ruvector dir)
+            let db_path = paths::get_database_path()?;
+            if !db_path.exists() {
+                return Err(anyhow!("RuVector database not found. Run 'init' and 'index' first."));
             }
             println!("⚠️  Export feature not yet implemented");
             println!("Would export to: {}", path);
         }
         Commands::Find { args } => {
-            if !ruvector_dir.exists() {
-                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            // Check centralized database exists (not local .ruvector dir)
+            let db_path = paths::get_database_path()?;
+            if !db_path.exists() {
+                return Err(anyhow!("RuVector database not found. Run 'init' and 'index' first."));
             }
             args.execute(&project_path)?;
         }
         Commands::Refs { args } => {
-            if !ruvector_dir.exists() {
-                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            // Check centralized database exists (not local .ruvector dir)
+            let db_path = paths::get_database_path()?;
+            if !db_path.exists() {
+                return Err(anyhow!("RuVector database not found. Run 'init' and 'index' first."));
             }
             args.execute(&project_path)?;
         }

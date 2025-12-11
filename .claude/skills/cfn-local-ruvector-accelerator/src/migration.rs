@@ -296,8 +296,8 @@ mod tests {
     fn test_fresh_installation() -> Result<()> {
         let dir = tempdir()?;
         let db_path = dir.path().join("test_fresh.db");
-        let manager = MigrationManager::new(&db_path)?;
-        
+        let mut manager = MigrationManager::new(&db_path)?;
+
         manager.migrate_to_latest()?;
         
         assert_eq!(manager.current_version()?, 2);
@@ -310,11 +310,11 @@ mod tests {
     fn test_version_tracking() -> Result<()> {
         let dir = tempdir()?;
         let db_path = dir.path().join("test_version.db");
-        let manager = MigrationManager::new(&db_path)?;
-        
+        let mut manager = MigrationManager::new(&db_path)?;
+
         // Fresh database should have version 0
         assert_eq!(manager.current_version()?, 0);
-        
+
         manager.migrate_to_latest()?;
         
         // Should now be at version 2

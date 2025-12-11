@@ -17,6 +17,7 @@ use crate::extractors::typescript::TypeScriptExtractor;
 use crate::store_v2::{StoreV2, Entity as StoreEntity, Reference as StoreReference, TypeUsage, Module};
 use crate::store_v2_tx::StoreV2WithTx;
 use crate::schema_v2::{EntityKind, RefKind, Visibility};
+use crate::paths::get_database_path;
 
 #[derive(Debug)]
 pub struct IndexStats {
@@ -61,12 +62,16 @@ impl AstIndexCommand {
         patterns: Option<Vec<String>>,
         force: bool,
     ) -> Result<Self> {
+        // Use local .ruvector for embeddings cache, but centralized DB for entities
         let index_path = project_dir.join(".ruvector");
-
-        // Create embeddings manager and store
         fs::create_dir_all(&index_path)?;
+
+        // Embeddings are cached locally per project
         let embeddings_manager = EmbeddingsManager::new(&index_path)?;
-        let store_v2 = StoreV2::new(&index_path.join("index_v2.db"))?;
+
+        // Use centralized database for all entities (multi-project isolation via project_root)
+        let db_path = get_database_path()?;
+        let store_v2 = StoreV2::new(&db_path)?;
 
         // Initialize extractors for different languages
         let mut extractors: HashMap<String, Rc<RefCell<dyn Extractor>>> = HashMap::new();
@@ -333,13 +338,14 @@ impl AstIndexCommand {
 
             // Insert entities and get their IDs
             let mut entity_ids = Vec::new();
+            let project_root_str = self.project_dir.to_string_lossy();
             for entity in &store_entities {
                 let mut stmt = tx.prepare(
                     r#"
                     INSERT INTO entities (
                         kind, name, signature, visibility, parent_id, file_path,
-                        line_number, column_number, doc_comment, attributes, metadata
-                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                        line_number, column_number, doc_comment, attributes, metadata, project_root
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
                     "#
                 )?;
 
@@ -354,7 +360,8 @@ impl AstIndexCommand {
                     entity.column_number,
                     entity.doc_comment,
                     entity.attributes,
-                    entity.metadata
+                    entity.metadata,
+                    project_root_str.as_ref()
                 ])?;
 
                 let entity_id = tx.last_insert_rowid();
@@ -592,7 +599,7 @@ impl AstIndexCommand {
 
     fn find_target_entity(&self, target_name: &str, source_file: &Path) -> Result<i64> {
         // Search for target entity in the same file first
-        let entities = self.store_v2.find_entities_by_name(target_name, 10)?;
+        let entities = self.store_v2.find_entities_by_name(target_name, 10, &self.project_dir)?;
 
         for entity in &entities {
             // Prefer entities in the same file
@@ -623,7 +630,8 @@ impl AstIndexCommand {
                 updated_at: chrono::Utc::now(),
             };
 
-            Ok(self.store_v2.insert_entity(&placeholder)?)
+            let project_root_str = self.project_dir.to_string_lossy();
+            Ok(self.store_v2.insert_entity(&placeholder, &project_root_str)?)
         }
     }
 
@@ -648,12 +656,13 @@ impl AstIndexCommand {
             Ok(entity_id)
         } else {
             // Create a placeholder entity for unknown references
+            let project_root_str = self.project_dir.to_string_lossy();
             let mut stmt = tx.prepare(
                 r#"
                 INSERT INTO entities (
                     kind, name, signature, visibility, parent_id, file_path,
-                    line_number, column_number, doc_comment, attributes, metadata
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                    line_number, column_number, doc_comment, attributes, metadata, project_root
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
                 "#
             )?;
 
@@ -669,6 +678,7 @@ impl AstIndexCommand {
                 None::<String>,
                 None::<String>,
                 None::<String>,
+                project_root_str.as_ref(),
             ])?;
 
             Ok(tx.last_insert_rowid())

@@ -106,15 +106,15 @@ impl StoreV2 {
     }
     
     // Entity operations
-    pub fn insert_entity(&self, entity: &Entity) -> Result<i64> {
-        debug!("Inserting entity: {} ({})", entity.name, entity.kind.as_str());
-        
+    pub fn insert_entity(&self, entity: &Entity, project_root: &str) -> Result<i64> {
+        debug!("Inserting entity: {} ({}) in project {}", entity.name, entity.kind.as_str(), project_root);
+
         self.conn.execute(
             r#"
             INSERT INTO entities (
-                kind, name, signature, visibility, parent_id, file_path, 
-                line_number, column_number, doc_comment, attributes, metadata
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                kind, name, signature, visibility, parent_id, file_path,
+                line_number, column_number, doc_comment, attributes, metadata, project_root
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
             "#,
             params![
                 entity.kind.as_str(),
@@ -127,10 +127,11 @@ impl StoreV2 {
                 entity.column_number,
                 entity.doc_comment,
                 entity.attributes,
-                entity.metadata
+                entity.metadata,
+                project_root
             ],
         )?;
-        
+
         Ok(self.conn.last_insert_rowid())
     }
     

@@ -35,6 +35,13 @@ impl StoreV2WithTx {
         Ok(self.conn.unchecked_transaction()?)
     }
 
+    /// Insert a single entity
+    pub fn insert_entity(&self, entity: &Entity) -> Result<i64> {
+        let entities = vec![entity.clone()];
+        let ids = self.insert_entities_batch(&entities)?;
+        Ok(ids.get(0).copied().unwrap_or(-1))
+    }
+
     // Batch operations with transaction support
     pub fn insert_entities_batch(&self, entities: &[Entity]) -> Result<Vec<i64>> {
         if entities.is_empty() {
@@ -174,127 +181,91 @@ impl StoreV2WithTx {
             return Ok(());
         }
 
-        debug!("Storing batch of {} embeddings", embeddings.len());
+        debug!("Storing embeddings for {} entities", embeddings.len());
         let tx = self.transaction()
-            .context("Failed to start transaction for batch embedding store")?;
+            .context("Failed to start transaction for batch embedding storage")?;
 
-        // Prepare statement once for performance
         {
             let mut stmt = tx.prepare(
-                "INSERT OR REPLACE INTO entity_embeddings (entity_id, embedding, embedding_model) VALUES (?1, ?2, ?3)"
+                r#"
+                INSERT OR REPLACE INTO embeddings (entity_id, embedding, model)
+                VALUES (?1, ?2, ?3)
+                "#
             )?;
 
             for (entity_id, embedding) in embeddings {
-                // Serialize embedding to bytes
-                let embedding_bytes: Vec<u8> = embedding
-                    .iter()
-                    .flat_map(|&v| v.to_le_bytes().to_vec())
-                    .collect();
-
+                let embedding_bytes = unsafe {
+                    std::slice::from_raw_parts(
+                        embedding.as_ptr() as *const u8,
+                        embedding.len() * std::mem::size_of::<f32>(),
+                    )
+                };
                 stmt.execute(params![entity_id, embedding_bytes, model])?;
             }
-        } // stmt is dropped here
+        }
 
         tx.commit()
-            .context("Failed to commit transaction for batch embedding store")?;
+            .context("Failed to commit embedding storage transaction")?;
 
         debug!("Successfully stored {} embeddings", embeddings.len());
         Ok(())
     }
 
-    // Atomic file indexing operations
     pub fn index_file_atomic<F>(&self, file_path: &str, file_hash: &str, f: F) -> Result<()>
     where
         F: FnOnce(&Transaction) -> Result<()>,
     {
         let tx = self.transaction()
-            .context("Failed to start transaction for file indexing")?;
+            .context("Failed to start transaction for atomic file indexing")?;
 
         // Delete existing data for this file
-        debug!("Clearing existing data for file: {}", file_path);
         tx.execute("DELETE FROM entities WHERE file_path = ?", [file_path])?;
-        tx.execute("DELETE FROM refs WHERE file_path = ?", [file_path])?;
-        tx.execute("DELETE FROM type_usage WHERE file_path = ?", [file_path])?;
+        tx.execute("DELETE FROM file_hashes WHERE file_path = ?", [file_path])?;
 
-        // Execute the indexing operation
-        f(&tx)
-            .context("Failed to execute indexing operation")?;
+        // Execute the callback
+        f(&tx)?;
 
-        // Update file hash
+        // Record file hash
         tx.execute(
-            "INSERT OR REPLACE INTO file_hashes (file_path, file_hash, indexed_at) VALUES (?1, ?2, ?3)",
-            params![
-                file_path,
-                file_hash,
-                Utc::now().timestamp()
-            ],
+            "INSERT INTO file_hashes (file_path, file_hash) VALUES (?, ?)",
+            params![file_path, file_hash],
         )?;
 
         tx.commit()
-            .context("Failed to commit transaction for file indexing")?;
+            .context("Failed to commit atomic file indexing transaction")?;
 
-        debug!("Successfully indexed file: {}", file_path);
+        info!("Successfully indexed file: {} with hash: {}", file_path, file_hash);
         Ok(())
     }
 
-    // Atomic schema migration with rollback capability
     pub fn migrate_schema_atomic<F>(&self, migration_name: &str, f: F) -> Result<()>
     where
         F: FnOnce(&Transaction) -> Result<()>,
     {
-        // Check if migration already applied
-        let migration_exists: bool = self.conn.query_row(
-            "SELECT 1 FROM schema_migrations WHERE name = ?",
-            [migration_name],
-            |_| Ok(true)
-        ).unwrap_or(false);
-
-        if migration_exists {
-            info!("Migration {} already applied", migration_name);
-            return Ok(());
-        }
-
         let tx = self.transaction()
-            .context("Failed to start transaction for migration")?;
+            .context("Failed to start transaction for atomic schema migration")?;
 
-        // Create migrations table if not exists
+        // Execute the callback
+        f(&tx)?;
+
+        // Record migration
         tx.execute(
-            r#"
-            CREATE TABLE IF NOT EXISTS schema_migrations (
-                name TEXT PRIMARY KEY,
-                applied_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
-            )
-            "#,
-            [],
-        )?;
-
-        // Execute migration
-        info!("Applying migration: {}", migration_name);
-        f(&tx)
-            .with_context(|| format!("Failed to apply migration: {}", migration_name))?;
-
-        // Mark migration as applied
-        tx.execute(
-            "INSERT INTO schema_migrations (name) VALUES (?)",
-            [migration_name]
+            "INSERT INTO schema_migrations (migration_name, applied_at) VALUES (?, ?)",
+            params![migration_name, Utc::now().timestamp()],
         )?;
 
         tx.commit()
-            .context("Failed to commit migration transaction")?;
+            .context("Failed to commit schema migration transaction")?;
 
-        info!("Successfully applied migration: {}", migration_name);
+        info!("Successfully applied schema migration: {}", migration_name);
         Ok(())
     }
 
-    // Delete all data for a file atomically
     pub fn delete_file_data(&self, file_path: &str) -> Result<()> {
         debug!("Deleting all data for file: {}", file_path);
         let tx = self.transaction()
             .context("Failed to start transaction for file deletion")?;
 
-        // Delete in order to respect foreign key constraints
-        tx.execute("DELETE FROM type_usage WHERE file_path = ?", [file_path])?;
-        tx.execute("DELETE FROM refs WHERE file_path = ?", [file_path])?;
         tx.execute("DELETE FROM entities WHERE file_path = ?", [file_path])?;
         tx.execute("DELETE FROM file_hashes WHERE file_path = ?", [file_path])?;
 
@@ -369,15 +340,15 @@ mod tests {
         let store = StoreV2WithTx::new(&db_path)?;
 
         // Start a transaction that will fail
-        let result = store.conn.unchecked_transaction().and_then(|mut tx| {
+        let result: Result<(), rusqlite::Error> = store.conn.unchecked_transaction().and_then(|mut tx| {
             // Insert some data
             tx.execute(
                 "INSERT INTO entities (kind, name, file_path, line_number) VALUES (?1, ?2, ?3, ?4)",
                 params!["function", "test_func", "/test.rs", 10i64]
             )?;
 
-            // Simulate an error
-            Err(anyhow!("Simulated error"))
+            // Simulate an error - return a proper rusqlite::Error wrapped in Result
+            Err(rusqlite::Error::InvalidParameterName("simulated".to_string()))
         });
 
         // Transaction should have rolled back

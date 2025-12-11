@@ -15,7 +15,7 @@ export class TransactionManager {
     const tx: Transaction = {
       id: `tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       status: 'pending',
-      metadata: options,
+      metadata: options as Record<string, unknown> | undefined,
     };
     this.activeTransactions.set(tx.id, tx);
     return tx;

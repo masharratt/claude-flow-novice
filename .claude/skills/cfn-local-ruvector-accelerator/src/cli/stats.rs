@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use tracing::info;
 use serde::{Serialize, Deserialize};
 
-use crate::search_engine::SearchEngine;
-use crate::sqlite_store::SqliteStore;
+use crate::store_v2::StoreV2;
+use crate::paths::get_database_path;
 
 #[derive(Debug, Clone)]
 pub enum OutputFormat {
@@ -42,26 +42,26 @@ impl StatsCommand {
     pub fn execute(&self) -> Result<()> {
         info!("Gathering statistics");
 
-        let search_engine = SearchEngine::new(Path::new(&self.project_dir))?;
-        let store = SqliteStore::new(&Path::new(&self.project_dir).join(".ruvector/index.db"))?;
+        // Use centralized v2 database
+        let db_path = get_database_path()?;
+        let store = StoreV2::new(&db_path)
+            .context("Failed to open centralized database")?;
 
-        // Load search engine
-        let mut engine = search_engine;
-        engine.load_or_create()?;
-
-        // Get stats from search engine
-        let index_stats = engine.get_stats();
-
-        // Get stats from database
+        // Get stats from v2 database
         let db_stats = store.get_stats()?;
 
-        // Create report
+        // Get database file size
+        let database_size_bytes = std::fs::metadata(&db_path)
+            .map(|m| m.len())
+            .unwrap_or(0);
+
+        // Create report using v2 stats
         let report = StatsReport {
-            total_files: db_stats.num_files,
-            total_embeddings: db_stats.num_embeddings,
-            total_patterns: index_stats.metadata_count,
-            index_size_bytes: index_stats.index_size_bytes,
-            database_size_bytes: db_stats.database_size_bytes,
+            total_files: db_stats.files_count,
+            total_embeddings: db_stats.embeddings_count,
+            total_patterns: db_stats.entities_count, // entities are our "patterns" in v2
+            index_size_bytes: 0, // v2 doesn't have separate index file
+            database_size_bytes,
             file_types: HashMap::new(), // TODO: Calculate actual file types
         };
 
