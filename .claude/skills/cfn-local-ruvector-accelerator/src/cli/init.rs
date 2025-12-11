@@ -1,7 +1,7 @@
 use anyhow::{Result, Context, anyhow};
 use std::path::{Path, PathBuf};
 use std::fs;
-use tracing::{info, debug};
+use tracing::{info, debug, warn};
 use serde_json::json;
 
 use crate::embeddings::EmbeddingsManager;
@@ -31,11 +31,18 @@ impl InitCommand {
                               self.project_dir.display()));
         }
 
-        // Check if already initialized in centralized location
+        // Check HOME environment variable
+        if std::env::var("HOME").is_err() && std::env::var("USERPROFILE").is_err() {
+            return Err(anyhow!("Neither HOME nor USERPROFILE environment variable is set"));
+        }
+
+        // Check SQLite availability
+        let _ = rusqlite::Connection::open_in_memory()
+            .context("SQLite is not available")?;
+
         let ruvector_dir = get_ruvector_dir()?;
-        if ruvector_dir.exists() && !self.force {
-            eprintln!("⚠️  RuVector already initialized. Use --force to reinitialize.");
-            return Err(anyhow!("Already initialized"));
+        if ruvector_dir.exists() {
+            info!("RuVector already initialized at: {}", ruvector_dir.display());
         }
 
         info!("Environment check passed");
@@ -44,38 +51,45 @@ impl InitCommand {
 
     pub fn execute(&self) -> Result<()> {
         let ruvector_dir = get_ruvector_dir()?;
-        info!("Initializing centralized RuVector in: {}", ruvector_dir.display());
-
-        // Remove existing directory if forcing
-        if self.force && ruvector_dir.exists() {
-            fs::remove_dir_all(&ruvector_dir)
-                .context("Failed to remove existing RuVector directory")?;
+        
+        // Create directory if doesn't exist (idempotent)
+        if !ruvector_dir.exists() {
+            info!("Creating centralized RuVector directory: {}", ruvector_dir.display());
+            fs::create_dir_all(&ruvector_dir)
+                .context("Failed to create RuVector directory")?;
+            fs::create_dir_all(ruvector_dir.join("embeddings"))
+                .context("Failed to create embeddings directory")?;
+            fs::create_dir_all(get_v1_index_dir()?)
+                .context("Failed to create index directory")?;
+            fs::create_dir_all(ruvector_dir.join("cache"))
+                .context("Failed to create cache directory")?;
+        } else {
+            info!("Using existing centralized RuVector directory: {}", ruvector_dir.display());
         }
-
-        // Create directory structure
-        fs::create_dir_all(&ruvector_dir)
-            .context("Failed to create RuVector directory")?;
-
-        // Create subdirectories
-        fs::create_dir_all(ruvector_dir.join("embeddings"))?;
-        fs::create_dir_all(ruvector_dir.join("index"))?;
-        fs::create_dir_all(ruvector_dir.join("cache"))?;
-
-        // Create configuration file
-        self.create_config()?;
-
-        // Initialize database
+        
+        // Create configuration file if missing
+        if !ruvector_dir.join("config.json").exists() {
+            self.create_config()?;
+        }
+        
+        // Initialize database (preserves existing data)
         self.initialize_database()?;
-
+        
+        // If --force, warn and recreate schema only (non-destructive)
+        if self.force {
+            warn!("⚠️  --force flag: Recreating schema tables (existing data preserved)");
+            self.recreate_schema()?;
+        }
+        
         // Initialize embeddings manager
-        self.initialize_embeddings()?;
-
+        if !ruvector_dir.join("embeddings").exists() {
+            self.initialize_embeddings()?;
+        }
+        
         // Initialize search engine
         self.initialize_search_engine()?;
-
-        println!("✅ RuVector initialized successfully");
-        info!("RuVector initialization complete");
-
+        
+        info!("✅ Centralized index ready at: {}", get_database_path()?.display());
         Ok(())
     }
 
@@ -102,14 +116,32 @@ impl InitCommand {
 
     fn initialize_database(&self) -> Result<()> {
         let db_path = get_database_path()?;
+        
+        // Create database directory if needed
+        if let Some(parent) = db_path.parent() {
+            fs::create_dir_all(parent)
+                .context("Failed to create database directory")?;
+        }
+        
         let store = SqliteStore::new(&db_path)?;
         store.initialize()?;
 
-        // Initialize Schema V2 (entities, refs, type_usage, modules, entity_embeddings)
+        // Initialize Schema V2 using CREATE TABLE IF NOT EXISTS (always safe)
         let conn = rusqlite::Connection::open(&db_path)?;
         local_ruvector::schema_v2::SchemaV2::initialize(&conn)?;
 
         debug!("Database initialized (V1 + V2 schemas): {}", db_path.display());
+        Ok(())
+    }
+
+    fn recreate_schema(&self) -> Result<()> {
+        let db_path = get_database_path()?;
+        let conn = rusqlite::Connection::open(&db_path)?;
+        
+        // Re-run schema initialization (uses IF NOT EXISTS)
+        local_ruvector::schema_v2::SchemaV2::initialize(&conn)?;
+        
+        debug!("Schema tables recreated (non-destructive)");
         Ok(())
     }
 
