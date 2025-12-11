@@ -107,8 +107,8 @@ impl IndexCommand {
 
         let stats = self.process_files(files)?;
 
-        info!("Index complete: {} files, {} entities, {} references, {} embeddings", 
-              stats.files_processed, stats.entities_extracted, 
+        info!("Index complete: {} files, {} entities, {} references, {} embeddings",
+              stats.files_processed, stats.entities_extracted,
               stats.references_extracted, stats.embeddings_generated);
 
         Ok(stats)

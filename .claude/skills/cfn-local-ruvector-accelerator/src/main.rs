@@ -245,8 +245,14 @@ fn main() -> Result<()> {
             cmd.execute()?;
         }
         Commands::Index { path, types, patterns, force } => {
-            if !ruvector_dir.exists() {
-                return Err(anyhow!("RuVector not initialized. Run 'init' first."));
+            // Auto-initialize RuVector if not already initialized
+            let db_path = local_ruvector::paths::get_database_path()?;
+            if !db_path.exists() {
+                info!("RuVector not initialized, auto-initializing...");
+                let init_cmd = InitCommand::new(&project_path, false);
+                init_cmd.check_environment()?;
+                init_cmd.execute()?;
+                info!("✅ RuVector auto-initialized");
             }
 
             let file_types: Vec<String> = types.split(',').map(|s| s.trim().to_string()).collect();
