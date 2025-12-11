@@ -48,40 +48,49 @@ impl QueryV2 {
             .next()
             .ok_or_else(|| anyhow!("Failed to generate query embedding"))?;
         
-        // 2. Get all embeddings from database
+        // 2. Get all embeddings with entity details
         let mut stmt = self.store.conn.prepare(
-            "SELECT entity_id, embedding FROM entity_embeddings"
+            "SELECT e.id, e.kind, e.name, e.signature, e.visibility, e.parent_id, 
+                    e.file_path, e.line_number, e.column_number, e.doc_comment, 
+                    e.attributes, e.metadata, e.created_at, e.updated_at,
+                    ee.embedding
+             FROM entities e
+             JOIN entity_embeddings ee ON e.id = ee.entity_id"
         )?;
         
         let embedding_rows = stmt.query_map([], |row| {
             let entity_id: i64 = row.get(0)?;
-            let embedding_bytes: Vec<u8> = row.get(1)?;
+            let entity_kind: String = row.get(1)?;
+            let entity_name: String = row.get(2)?;
+            let file_path: String = row.get(6)?;
+            let line_number: i64 = row.get(7)?;
+            let embedding_bytes: Vec<u8> = row.get(14)?;
             
             // Deserialize embedding from bytes
             let mut embedding: Vec<f32> = Vec::with_capacity(embedding_bytes.len() / 4);
             for chunk in embedding_bytes.chunks_exact(4) {
                 let bytes: [u8; 4] = chunk.try_into()
-                    .map_err(|_| rusqlite::Error::InvalidColumnType(0, "embedding".to_string(), rusqlite::types::Type::Blob))?;
+                    .map_err(|_| rusqlite::Error::InvalidColumnType(14, "embedding".to_string(), rusqlite::types::Type::Blob))?;
                 embedding.push(f32::from_le_bytes(bytes));
             }
             
-            Ok((entity_id, embedding))
+            Ok((entity_id, entity_kind, entity_name, file_path, line_number, embedding))
         })?;
         
         // 3. Calculate similarities and filter by threshold
         let mut similarities = Vec::new();
         for row_result in embedding_rows {
-            let (entity_id, embedding) = row_result
+            let (entity_id, entity_kind, entity_name, file_path, line_number, embedding) = row_result
                 .context("Failed to read embedding row")?;
             
             let similarity = Self::cosine_similarity(&query_embedding, &embedding);
             if similarity >= threshold {
-                similarities.push((entity_id, similarity));
+                similarities.push((entity_id, entity_kind, entity_name, file_path, line_number, similarity));
             }
         }
         
         // 4. Sort by similarity descending
-        similarities.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        similarities.sort_by(|a, b| b.5.partial_cmp(&a.5).unwrap_or(std::cmp::Ordering::Equal));
         
         // 5. Limit results
         similarities.truncate(max_results);
@@ -91,23 +100,17 @@ impl QueryV2 {
             return Ok(Vec::new());
         }
         
-        // 6. Get entity details for top results
-        let entity_ids: Vec<i64> = similarities.iter().map(|(id, _)| *id).collect();
-        let entities = self.store.get_entity_batch(&entity_ids)?;
-        
-        // 7. Build search results
+        // 6. Build search results
         let mut results = Vec::new();
-        for (entity_id, similarity) in similarities {
-            if let Some(entity) = entities.iter().find(|e| e.id == entity_id) {
-                results.push(SearchResult {
-                    entity_name: entity.name.clone(),
-                    entity_kind: entity.kind.as_str().to_string(),
-                    file_path: entity.file_path.clone(),
-                    similarity,
-                    line_start: Some(entity.line_number),
-                    line_end: None,
-                });
-            }
+        for (_, entity_kind, entity_name, file_path, line_number, similarity) in similarities {
+            results.push(SearchResult {
+                entity_name,
+                entity_kind,
+                file_path,
+                similarity,
+                line_start: Some(line_number),
+                line_end: None,
+            });
         }
         
         info!("Found {} results for query: {}", results.len(), query);
@@ -137,40 +140,50 @@ impl QueryV2 {
         let embedding = self.store.get_embedding(entity_id)?
             .ok_or_else(|| anyhow!("No embedding found for entity_id: {}", entity_id))?;
         
-        // Get all embeddings from database
+        // Get all embeddings with entity details, excluding the reference entity
         let mut stmt = self.store.conn.prepare(
-            "SELECT entity_id, embedding FROM entity_embeddings WHERE entity_id != ?"
+            "SELECT e.id, e.kind, e.name, e.signature, e.visibility, e.parent_id, 
+                    e.file_path, e.line_number, e.column_number, e.doc_comment, 
+                    e.attributes, e.metadata, e.created_at, e.updated_at,
+                    ee.embedding
+             FROM entities e
+             JOIN entity_embeddings ee ON e.id = ee.entity_id
+             WHERE e.id != ?"
         )?;
         
         let embedding_rows = stmt.query_map([entity_id], |row| {
-            let entity_id: i64 = row.get(0)?;
-            let embedding_bytes: Vec<u8> = row.get(1)?;
+            let other_entity_id: i64 = row.get(0)?;
+            let entity_kind: String = row.get(1)?;
+            let entity_name: String = row.get(2)?;
+            let file_path: String = row.get(6)?;
+            let line_number: i64 = row.get(7)?;
+            let embedding_bytes: Vec<u8> = row.get(14)?;
             
             // Deserialize embedding from bytes
-            let mut embedding: Vec<f32> = Vec::with_capacity(embedding_bytes.len() / 4);
+            let mut other_embedding: Vec<f32> = Vec::with_capacity(embedding_bytes.len() / 4);
             for chunk in embedding_bytes.chunks_exact(4) {
                 let bytes: [u8; 4] = chunk.try_into()
-                    .map_err(|_| rusqlite::Error::InvalidColumnType(0, "embedding".to_string(), rusqlite::types::Type::Blob))?;
-                embedding.push(f32::from_le_bytes(bytes));
+                    .map_err(|_| rusqlite::Error::InvalidColumnType(14, "embedding".to_string(), rusqlite::types::Type::Blob))?;
+                other_embedding.push(f32::from_le_bytes(bytes));
             }
             
-            Ok((entity_id, embedding))
+            Ok((other_entity_id, entity_kind, entity_name, file_path, line_number, other_embedding))
         })?;
         
         // Calculate similarities and filter by threshold
         let mut similarities = Vec::new();
         for row_result in embedding_rows {
-            let (other_entity_id, other_embedding) = row_result
+            let (other_entity_id, entity_kind, entity_name, file_path, line_number, other_embedding) = row_result
                 .context("Failed to read embedding row")?;
             
             let similarity = Self::cosine_similarity(&embedding, &other_embedding);
             if similarity >= threshold {
-                similarities.push((other_entity_id, similarity));
+                similarities.push((other_entity_id, entity_kind, entity_name, file_path, line_number, similarity));
             }
         }
         
         // Sort by similarity descending and limit results
-        similarities.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        similarities.sort_by(|a, b| b.5.partial_cmp(&a.5).unwrap_or(std::cmp::Ordering::Equal));
         similarities.truncate(max_results);
         
         if similarities.is_empty() {
@@ -178,23 +191,17 @@ impl QueryV2 {
             return Ok(Vec::new());
         }
         
-        // Get entity details
-        let entity_ids: Vec<i64> = similarities.iter().map(|(id, _)| *id).collect();
-        let entities = self.store.get_entity_batch(&entity_ids)?;
-        
         // Build search results
         let mut results = Vec::new();
-        for (other_entity_id, similarity) in similarities {
-            if let Some(entity) = entities.iter().find(|e| e.id == other_entity_id) {
-                results.push(SearchResult {
-                    entity_name: entity.name.clone(),
-                    entity_kind: entity.kind.as_str().to_string(),
-                    file_path: entity.file_path.clone(),
-                    similarity,
-                    line_start: Some(entity.line_number),
-                    line_end: None,
-                });
-            }
+        for (_, entity_kind, entity_name, file_path, line_number, similarity) in similarities {
+            results.push(SearchResult {
+                entity_name,
+                entity_kind,
+                file_path,
+                similarity,
+                line_start: Some(line_number),
+                line_end: None,
+            });
         }
         
         info!("Found {} similar entities for entity_id: {}", results.len(), entity_id);
