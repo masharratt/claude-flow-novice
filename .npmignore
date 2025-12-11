@@ -56,6 +56,8 @@ coverage/
 legacy/
 archive/
 backups/
+.backups/
+**/.backups/
 
 # Configuration (except hooks that are now in dist/)
 config/
