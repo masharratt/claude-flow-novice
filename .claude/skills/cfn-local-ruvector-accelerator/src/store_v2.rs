@@ -404,47 +404,47 @@ impl StoreV2 {
     // Statistics
     pub fn get_stats(&self) -> Result<StoreStats> {
         debug!("Getting store statistics");
-        
+
         let entities_count: i64 = self.conn.query_row(
             "SELECT COUNT(*) FROM entities",
             [],
             |row| row.get(0)
         )?;
-        
+
         let refs_count: i64 = self.conn.query_row(
             "SELECT COUNT(*) FROM refs",
             [],
             |row| row.get(0)
         )?;
-        
+
         let type_usage_count: i64 = self.conn.query_row(
             "SELECT COUNT(*) FROM type_usage",
             [],
             |row| row.get(0)
         )?;
-        
+
         let modules_count: i64 = self.conn.query_row(
             "SELECT COUNT(*) FROM modules",
             [],
             |row| row.get(0)
         )?;
-        
+
         let embeddings_count: i64 = self.conn.query_row(
             "SELECT COUNT(*) FROM entity_embeddings",
             [],
             |row| row.get(0)
         )?;
-        
+
         let files_count: i64 = self.conn.query_row(
             "SELECT COUNT(DISTINCT file_path) FROM entities",
             [],
             |row| row.get(0)
         )?;
-        
+
         let db_size = std::fs::metadata("index.db")
             .map(|m| m.len())
             .unwrap_or(0);
-        
+
         Ok(StoreStats {
             entities_count: entities_count as usize,
             refs_count: refs_count as usize,
@@ -455,7 +455,46 @@ impl StoreV2 {
             database_size_bytes: db_size,
         })
     }
-    
+
+    // File cleanup operations (critical for preventing duplicate entries during reindexing)
+    pub fn delete_file_entities(&self, file_path: &str) -> Result<()> {
+        info!("Cleaning old entries for {}", file_path);
+
+        // Delete in correct order to respect FK constraints:
+        // 1. entity_embeddings (references entities.id)
+        // 2. refs (references entities.id via source/target)
+        // 3. type_usage (references entities.id)
+        // 4. entities (primary table)
+
+        debug!("Deleting entity embeddings for file: {}", file_path);
+        self.conn.execute(
+            "DELETE FROM entity_embeddings WHERE entity_id IN (SELECT id FROM entities WHERE file_path = ?)",
+            params![file_path]
+        )?;
+
+        debug!("Deleting references for file: {}", file_path);
+        self.conn.execute(
+            "DELETE FROM refs WHERE file_path = ?",
+            params![file_path]
+        )?;
+
+        debug!("Deleting type usage entries for file: {}", file_path);
+        self.conn.execute(
+            "DELETE FROM type_usage WHERE entity_id IN (SELECT id FROM entities WHERE file_path = ?)",
+            params![file_path]
+        )?;
+
+        debug!("Deleting entities for file: {}", file_path);
+        let deleted_count = self.conn.execute(
+            "DELETE FROM entities WHERE file_path = ?",
+            params![file_path]
+        )?;
+
+        debug!("Deleted {} entities and related records for file: {}", deleted_count, file_path);
+
+        Ok(())
+    }
+
     // Helper methods to convert rows to structs
     pub(crate) fn row_to_entity(&self, row: &Row) -> rusqlite::Result<Entity> {
         let created_timestamp: i64 = row.get(14)?;

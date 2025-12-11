@@ -238,6 +238,10 @@ impl IndexCommand {
             return Ok(());
         }
 
+        // Clean up old entries before reindexing to prevent duplicate entities
+        let file_path_str = file_path.to_string_lossy();
+        self.store_v2.delete_file_entities(&file_path_str)?;
+
         let content = fs::read_to_string(file_path)
             .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
 
