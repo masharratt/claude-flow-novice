@@ -179,8 +179,5 @@
   },
   "optionalDependencies": {
     "docker-compose": "^0.24.6"
-  },
-  "peerDependencies": {
-    "docker": ">=20.0.0"
   }
 }
