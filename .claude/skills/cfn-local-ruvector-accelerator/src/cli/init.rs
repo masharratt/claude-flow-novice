@@ -105,7 +105,11 @@ impl InitCommand {
         let store = SqliteStore::new(&db_path)?;
         store.initialize()?;
 
-        debug!("Database initialized: {}", db_path.display());
+        // Initialize Schema V2 (entities, refs, type_usage, modules, entity_embeddings)
+        let conn = rusqlite::Connection::open(&db_path)?;
+        local_ruvector::schema_v2::SchemaV2::initialize(&conn)?;
+
+        debug!("Database initialized (V1 + V2 schemas): {}", db_path.display());
         Ok(())
     }
 
