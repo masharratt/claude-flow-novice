@@ -1,6 +1,6 @@
 use anyhow::{Result, Context, anyhow};
 use rusqlite::{Connection, params, Row};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tracing::{info, debug, warn, error};
 use crate::embeddings::EmbeddingsManager;
 use crate::store_v2::StoreV2;
@@ -39,26 +39,32 @@ impl QueryV2 {
         })
     }
     
-    pub fn search(&self, query: &str, max_results: usize, threshold: f32) -> Result<Vec<SearchResult>> {
-        debug!("Searching for: {} (max_results: {}, threshold: {})", query, max_results, threshold);
-        
+    pub fn search(&self, query: &str, max_results: usize, threshold: f32, project_root: &Path) -> Result<Vec<SearchResult>> {
+        debug!("Searching for: {} (max_results: {}, threshold: {}) in project root: {}", query, max_results, threshold, project_root.display());
+
         // 1. Generate embedding for query
         let query_embedding = self.embeddings_manager.generate_embeddings(&[query.to_string()])?
             .into_iter()
             .next()
             .ok_or_else(|| anyhow!("Failed to generate query embedding"))?;
-        
-        // 2. Get all embeddings with entity details
+
+        let project_root_str = project_root
+            .to_string_lossy()
+            .to_string();
+        let project_root_pattern = format!("{}%", project_root_str);
+
+        // 2. Get all embeddings with entity details, filtered by project root
         let mut stmt = self.store.conn.prepare(
-            "SELECT e.id, e.kind, e.name, e.signature, e.visibility, e.parent_id, 
-                    e.file_path, e.line_number, e.column_number, e.doc_comment, 
+            "SELECT e.id, e.kind, e.name, e.signature, e.visibility, e.parent_id,
+                    e.file_path, e.line_number, e.column_number, e.doc_comment,
                     e.attributes, e.metadata, e.created_at, e.updated_at,
                     ee.embedding
              FROM entities e
-             JOIN entity_embeddings ee ON e.id = ee.entity_id"
+             JOIN entity_embeddings ee ON e.id = ee.entity_id
+             WHERE e.file_path LIKE ?"
         )?;
         
-        let embedding_rows = stmt.query_map([], |row| {
+        let embedding_rows = stmt.query_map(params![project_root_pattern], |row| {
             let entity_id: i64 = row.get(0)?;
             let entity_kind: String = row.get(1)?;
             let entity_name: String = row.get(2)?;
@@ -133,25 +139,30 @@ impl QueryV2 {
         dot_product / (norm_a * norm_b)
     }
     
-    pub fn search_similar_entities(&self, entity_id: i64, max_results: usize, threshold: f32) -> Result<Vec<SearchResult>> {
-        debug!("Finding entities similar to entity_id: {}", entity_id);
-        
+    pub fn search_similar_entities(&self, entity_id: i64, max_results: usize, threshold: f32, project_root: &Path) -> Result<Vec<SearchResult>> {
+        debug!("Finding entities similar to entity_id: {} in project root: {}", entity_id, project_root.display());
+
         // Get embedding for the reference entity
         let embedding = self.store.get_embedding(entity_id)?
             .ok_or_else(|| anyhow!("No embedding found for entity_id: {}", entity_id))?;
-        
-        // Get all embeddings with entity details, excluding the reference entity
+
+        let project_root_str = project_root
+            .to_string_lossy()
+            .to_string();
+        let project_root_pattern = format!("{}%", project_root_str);
+
+        // Get all embeddings with entity details, excluding the reference entity, filtered by project root
         let mut stmt = self.store.conn.prepare(
-            "SELECT e.id, e.kind, e.name, e.signature, e.visibility, e.parent_id, 
-                    e.file_path, e.line_number, e.column_number, e.doc_comment, 
+            "SELECT e.id, e.kind, e.name, e.signature, e.visibility, e.parent_id,
+                    e.file_path, e.line_number, e.column_number, e.doc_comment,
                     e.attributes, e.metadata, e.created_at, e.updated_at,
                     ee.embedding
              FROM entities e
              JOIN entity_embeddings ee ON e.id = ee.entity_id
-             WHERE e.id != ?"
+             WHERE e.id != ? AND e.file_path LIKE ?"
         )?;
         
-        let embedding_rows = stmt.query_map([entity_id], |row| {
+        let embedding_rows = stmt.query_map(params![entity_id, project_root_pattern], |row| {
             let other_entity_id: i64 = row.get(0)?;
             let entity_kind: String = row.get(1)?;
             let entity_name: String = row.get(2)?;
@@ -239,13 +250,13 @@ mod tests {
         let dir = tempdir()?;
         let db_path = dir.path().join("test_search.db");
         let conn = Connection::open(&db_path)?;
-        
+
         // Initialize schema
         SchemaV2::initialize(&conn)?;
-        
+
         let query = QueryV2::new(&db_path)?;
-        let results = query.search("test query", 10, 0.5)?;
-        
+        let results = query.search("test query", 10, 0.5, dir.path())?;
+
         assert!(results.is_empty());
         Ok(())
     }

@@ -8,6 +8,7 @@ use serde::Serialize;
 
 use crate::query_v2::{QueryV2, SearchResult};
 use crate::paths::get_database_path;
+use crate::path_validator;
 
 #[derive(Debug, Clone)]
 pub enum OutputFormat {
@@ -43,11 +44,15 @@ impl QueryCommand {
         context_lines: usize,
         file_filter: Option<String>,
     ) -> Result<Self> {
+        // Canonicalize project_dir at the start for security
+        let canonical_project_dir = path_validator::canonicalize(project_dir)?;
+        debug!("Project root canonicalized: {}", canonical_project_dir.display());
+
         let db_path = get_database_path()?;
         let query_v2 = QueryV2::new(&db_path)?;
 
         Ok(Self {
-            project_dir: project_dir.to_path_buf(),
+            project_dir: canonical_project_dir,
             config: QueryConfig {
                 query,
                 max_results,
@@ -67,8 +72,8 @@ impl QueryCommand {
         let max_results = self.config.max_results.unwrap_or(10);
         let threshold = self.config.threshold.unwrap_or(0.5);
 
-        // Perform search
-        let results = self.query_v2.search(&self.config.query, max_results, threshold)?;
+        // Perform search with project root isolation
+        let results = self.query_v2.search(&self.config.query, max_results, threshold, &self.project_dir)?;
 
         // Filter by file if specified
         let final_results: Vec<SearchResult> = if let Some(ref file_filter) = self.config.file_filter {
@@ -161,11 +166,15 @@ impl BatchQueryCommand {
         output_file: Option<PathBuf>,
         max_results: Option<usize>,
     ) -> Result<Self> {
+        // Canonicalize project_dir at the start for security
+        let canonical_project_dir = path_validator::canonicalize(project_dir)?;
+        debug!("Project root canonicalized: {}", canonical_project_dir.display());
+
         let db_path = get_database_path()?;
         let query_v2 = QueryV2::new(&db_path)?;
 
         Ok(Self {
-            project_dir: project_dir.to_path_buf(),
+            project_dir: canonical_project_dir,
             batch_file,
             output_file,
             max_results,
@@ -205,8 +214,8 @@ impl BatchQueryCommand {
         // Process each query
         for query in queries {
             debug!("Query: {}", query);
-            
-            let results = self.query_v2.search(&query, max_results, threshold)?;
+
+            let results = self.query_v2.search(&query, max_results, threshold, &self.project_dir)?;
             
             // Write results
             writeln!(output, "Query: {}", query)?;

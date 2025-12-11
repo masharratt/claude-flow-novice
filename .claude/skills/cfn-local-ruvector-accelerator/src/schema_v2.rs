@@ -166,7 +166,7 @@ impl RefKind {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Visibility {
     Public,
     Private,
@@ -229,7 +229,7 @@ impl SchemaV2 {
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
                 updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
                 
-                FOREIGN KEY (parent_id) REFERENCES entities(id) ON DELETE CASCADE
+                FOREIGN KEY (parent_id) REFERENCES entities(id) ON DELETE RESTRICT
             );
             
             -- Create refs table for cross-file and intra-file references
@@ -256,10 +256,10 @@ impl SchemaV2 {
                 file_path TEXT NOT NULL,
                 line_number INTEGER NOT NULL,
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-                
-                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+
+                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE RESTRICT
             );
-            
+
             -- Create modules table for import/export tracking
             CREATE TABLE IF NOT EXISTS modules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -269,18 +269,18 @@ impl SchemaV2 {
                 is_root BOOLEAN NOT NULL DEFAULT FALSE,
                 parent_module_id INTEGER,
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-                
-                FOREIGN KEY (parent_module_id) REFERENCES modules(id) ON DELETE CASCADE
+
+                FOREIGN KEY (parent_module_id) REFERENCES modules(id) ON DELETE RESTRICT
             );
-            
+
             -- Create entity_embeddings table for vector search
             CREATE TABLE IF NOT EXISTS entity_embeddings (
                 entity_id INTEGER PRIMARY KEY,
                 embedding BLOB NOT NULL,
                 embedding_model TEXT NOT NULL,
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-                
-                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE
+
+                FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE RESTRICT
             );
             "#
         )?;
@@ -558,21 +558,22 @@ mod tests {
         let dir = tempdir()?;
         let db_path = dir.path().join("test.db");
         let conn = Connection::open(db_path)?;
-        
+
         SchemaV2::initialize(&conn)?;
-        
+
         // Verify tables exist
-        let tables = conn.prepare(
+        let mut stmt = conn.prepare(
             "SELECT name FROM sqlite_master WHERE type='table'"
-        )?.query_map([], |row| row.get::<_, String>(0))?;
-        
+        )?;
+        let tables = stmt.query_map([], |row| row.get::<_, String>(0))?;
+
         let table_names: Vec<String> = tables.collect::<Result<Vec<_>, _>>()?;
         assert!(table_names.contains(&"entities".to_string()));
         assert!(table_names.contains(&"refs".to_string()));
         assert!(table_names.contains(&"type_usage".to_string()));
         assert!(table_names.contains(&"modules".to_string()));
         assert!(table_names.contains(&"entity_embeddings".to_string()));
-        
+
         Ok(())
     }
     

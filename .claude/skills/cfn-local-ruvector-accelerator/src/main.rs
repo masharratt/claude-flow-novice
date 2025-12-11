@@ -10,9 +10,11 @@ mod search_engine;
 mod cli;
 mod extractors;
 mod paths;
+mod path_validator;
 mod schema_v2;
 mod migration;
 mod migration_tx;
+mod migration_v2;
 mod store_v2;
 mod store_v2_tx;
 mod query_api;
@@ -259,7 +261,7 @@ fn main() -> Result<()> {
             let pattern_list: Option<Vec<String>> = patterns
                 .map(|p| p.split(',').map(|s| s.trim().to_string()).collect());
 
-            let cmd = IndexCommand::new(
+            let mut cmd = IndexCommand::new(
                 &project_path,
                 Path::new(&path),
                 file_types,

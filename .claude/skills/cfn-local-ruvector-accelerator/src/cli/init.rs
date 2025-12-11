@@ -7,6 +7,7 @@ use serde_json::json;
 use crate::embeddings::EmbeddingsManager;
 use crate::search_engine::SearchEngine;
 use crate::sqlite_store::SqliteStore;
+use crate::migration_v2::MigrationV2;
 use local_ruvector::paths::{get_ruvector_dir, get_v1_index_dir, get_database_path};
 
 pub struct InitCommand {
@@ -116,19 +117,42 @@ impl InitCommand {
 
     fn initialize_database(&self) -> Result<()> {
         let db_path = get_database_path()?;
-        
+
         // Create database directory if needed
         if let Some(parent) = db_path.parent() {
             fs::create_dir_all(parent)
                 .context("Failed to create database directory")?;
         }
-        
+
         let store = SqliteStore::new(&db_path)?;
         store.initialize()?;
 
         // Initialize Schema V2 using CREATE TABLE IF NOT EXISTS (always safe)
-        let conn = rusqlite::Connection::open(&db_path)?;
+        let mut conn = rusqlite::Connection::open(&db_path)?;
         local_ruvector::schema_v2::SchemaV2::initialize(&conn)?;
+
+        // Run v2 migration to add multi-project isolation
+        info!("Running database migrations...");
+        match MigrationV2::run_v2_migration(&mut conn) {
+            Ok(()) => {
+                info!("Database migrations completed successfully");
+
+                // Report migration statistics
+                match MigrationV2::get_migration_stats(&conn) {
+                    Ok(stats) => {
+                        info!("Migration stats:");
+                        info!("  Total entities: {}", stats.total_entities);
+                        info!("  Entities with project: {}", stats.entities_with_project);
+                        info!("  Unique projects: {}", stats.project_count);
+                    },
+                    Err(e) => warn!("Failed to get migration stats: {}", e),
+                }
+            },
+            Err(e) => {
+                warn!("Migration failed (non-fatal): {}", e);
+                warn!("Database will continue to work, but multi-project isolation may not be available");
+            }
+        }
 
         debug!("Database initialized (V1 + V2 schemas): {}", db_path.display());
         Ok(())

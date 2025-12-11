@@ -1,12 +1,13 @@
 use anyhow::{Result, Context, anyhow};
 use rusqlite::{Connection, params, Row, OptionalExtension};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use serde::{Serialize, Deserialize};
 use tracing::{info, debug, error, warn};
 use chrono::{DateTime, Utc};
 
 use crate::schema_v2::{EntityKind, RefKind, Visibility};
 use crate::search_engine::SearchResult;
+use crate::path_validator;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entity {
@@ -77,6 +78,13 @@ pub struct StoreV2 {
         Ok(())
     }
 
+/// Escape special characters in LIKE patterns to prevent unintended wildcards
+    fn escape_like_pattern(pattern: &str) -> String {
+        pattern
+            .replace('\\', "\\\\")
+            .replace('%', "\\%")
+            .replace('_', "\\_")
+    }
 
 impl StoreV2 {
     pub fn new(db_path: &Path) -> Result<Self> {
@@ -140,33 +148,45 @@ impl StoreV2 {
         Ok(entity)
     }
     
-    pub fn find_entities_by_name(&self, name: &str, limit: usize) -> Result<Vec<Entity>> {
-        debug!("Finding entities with name: {}", name);
-        
+    pub fn find_entities_by_name(&self, name: &str, limit: usize, project_root: &Path) -> Result<Vec<Entity>> {
+        debug!("Finding entities with name: {} in project root: {}", name, project_root.display());
+
+        let project_root_str = project_root
+            .to_string_lossy()
+            .to_string();
+        let escaped_root = escape_like_pattern(&project_root_str);
+        let project_root_pattern = format!("{}%", escaped_root);
+
         let mut stmt = self.conn.prepare(
-            "SELECT * FROM entities WHERE name = ? ORDER BY file_path, line_number LIMIT ?"
+            "SELECT * FROM entities WHERE name = ? AND file_path LIKE ? ESCAPE '\\' ORDER BY file_path, line_number LIMIT ?"
         )?;
-        
+
         let entities = stmt.query_map(
-            params![name, limit as i64],
+            params![name, project_root_pattern, limit as i64],
             |row| self.row_to_entity(row)
         )?.collect::<Result<Vec<_>, _>>()?;
-        
+
         Ok(entities)
     }
     
-    pub fn find_entities_by_kind(&self, kind: EntityKind, limit: usize) -> Result<Vec<Entity>> {
-        debug!("Finding entities of kind: {}", kind.as_str());
-        
+    pub fn find_entities_by_kind(&self, kind: EntityKind, limit: usize, project_root: &Path) -> Result<Vec<Entity>> {
+        debug!("Finding entities of kind: {} in project root: {}", kind.as_str(), project_root.display());
+
+        let project_root_str = project_root
+            .to_string_lossy()
+            .to_string();
+        let escaped_root = escape_like_pattern(&project_root_str);
+        let project_root_pattern = format!("{}%", escaped_root);
+
         let mut stmt = self.conn.prepare(
-            "SELECT * FROM entities WHERE kind = ? ORDER BY name LIMIT ?"
+            "SELECT * FROM entities WHERE kind = ? AND file_path LIKE ? ESCAPE '\\' ORDER BY name LIMIT ?"
         )?;
-        
+
         let entities = stmt.query_map(
-            params![kind.as_str(), limit as i64],
+            params![kind.as_str(), project_root_pattern, limit as i64],
             |row| self.row_to_entity(row)
         )?.collect::<Result<Vec<_>, _>>()?;
-        
+
         Ok(entities)
     }
     
@@ -184,26 +204,33 @@ impl StoreV2 {
         Ok(entities)
     }
     
-    pub fn search_entities(&self, query: &str, limit: usize) -> Result<Vec<Entity>> {
-        debug!("Searching entities with query: {}", query);
-        
+    pub fn search_entities(&self, query: &str, limit: usize, project_root: &Path) -> Result<Vec<Entity>> {
+        debug!("Searching entities with query: {} in project root: {}", query, project_root.display());
+
+        let project_root_str = project_root
+            .to_string_lossy()
+            .to_string();
+        let escaped_root = escape_like_pattern(&project_root_str);
+        let project_root_pattern = format!("{}%", escaped_root);
+
         let mut stmt = self.conn.prepare(
             r#"
-            SELECT * FROM entities 
-            WHERE name LIKE ? OR signature LIKE ? OR doc_comment LIKE ?
-            ORDER BY 
-                CASE WHEN name LIKE ? THEN 1 ELSE 2 END,
+            SELECT * FROM entities
+            WHERE (name LIKE ? ESCAPE '\' OR signature LIKE ? ESCAPE '\' OR doc_comment LIKE ? ESCAPE '\') AND file_path LIKE ? ESCAPE '\'
+            ORDER BY
+                CASE WHEN name LIKE ? ESCAPE '\' THEN 1 ELSE 2 END,
                 name
             LIMIT ?
             "#
         )?;
-        
-        let pattern = format!("%{}%", query);
+
+        let escaped_query = escape_like_pattern(query);
+        let pattern = format!("%{}%", escaped_query);
         let entities = stmt.query_map(
-            params![pattern, pattern, pattern, pattern, limit as i64],
+            params![pattern, pattern, pattern, project_root_pattern, pattern, limit as i64],
             |row| self.row_to_entity(row)
         )?.collect::<Result<Vec<_>, _>>()?;
-        
+
         Ok(entities)
     }
     
@@ -232,31 +259,45 @@ impl StoreV2 {
         Ok(self.conn.last_insert_rowid())
     }
     
-    pub fn find_references_to_entity(&self, entity_id: i64) -> Result<Vec<Reference>> {
-        debug!("Finding references to entity: {}", entity_id);
-        
+    pub fn find_references_to_entity(&self, entity_id: i64, project_root: &Path) -> Result<Vec<Reference>> {
+        debug!("Finding references to entity: {} in project root: {}", entity_id, project_root.display());
+
+        let project_root_str = project_root
+            .to_string_lossy()
+            .to_string();
+        let escaped_root = escape_like_pattern(&project_root_str);
+        let project_root_pattern = format!("{}%", escaped_root);
+
         let mut stmt = self.conn.prepare(
-            "SELECT * FROM refs WHERE target_entity_id = ? ORDER BY file_path, line_number"
+            "SELECT * FROM refs WHERE target_entity_id = ? AND file_path LIKE ? ESCAPE '\\' ORDER BY file_path, line_number"
         )?;
-        
-        let refs = stmt.query_map([entity_id], |row| {
-            self.row_to_reference(row)
-        })?.collect::<Result<Vec<_>, _>>()?;
-        
+
+        let refs = stmt.query_map(
+            params![entity_id, project_root_pattern],
+            |row| self.row_to_reference(row)
+        )?.collect::<Result<Vec<_>, _>>()?;
+
         Ok(refs)
     }
     
-    pub fn find_references_from_entity(&self, entity_id: i64) -> Result<Vec<Reference>> {
-        debug!("Finding references from entity: {}", entity_id);
-        
+    pub fn find_references_from_entity(&self, entity_id: i64, project_root: &Path) -> Result<Vec<Reference>> {
+        debug!("Finding references from entity: {} in project root: {}", entity_id, project_root.display());
+
+        let project_root_str = project_root
+            .to_string_lossy()
+            .to_string();
+        let escaped_root = escape_like_pattern(&project_root_str);
+        let project_root_pattern = format!("{}%", escaped_root);
+
         let mut stmt = self.conn.prepare(
-            "SELECT * FROM refs WHERE source_entity_id = ? ORDER BY ref_kind, file_path"
+            "SELECT * FROM refs WHERE source_entity_id = ? AND file_path LIKE ? ESCAPE '\\' ORDER BY ref_kind, file_path"
         )?;
-        
-        let refs = stmt.query_map([entity_id], |row| {
-            self.row_to_reference(row)
-        })?.collect::<Result<Vec<_>, _>>()?;
-        
+
+        let refs = stmt.query_map(
+            params![entity_id, project_root_pattern],
+            |row| self.row_to_reference(row)
+        )?.collect::<Result<Vec<_>, _>>()?;
+
         Ok(refs)
     }
     
@@ -282,17 +323,24 @@ impl StoreV2 {
         Ok(self.conn.last_insert_rowid())
     }
     
-    pub fn find_entities_using_type(&self, type_name: &str) -> Result<Vec<i64>> {
-        debug!("Finding entities using type: {}", type_name);
-        
+    pub fn find_entities_using_type(&self, type_name: &str, project_root: &Path) -> Result<Vec<i64>> {
+        debug!("Finding entities using type: {} in project root: {}", type_name, project_root.display());
+
+        let project_root_str = project_root
+            .to_string_lossy()
+            .to_string();
+        let escaped_root = escape_like_pattern(&project_root_str);
+        let project_root_pattern = format!("{}%", escaped_root);
+
         let mut stmt = self.conn.prepare(
-            "SELECT DISTINCT entity_id FROM type_usage WHERE type_name = ?"
+            "SELECT DISTINCT entity_id FROM type_usage WHERE type_name = ? AND file_path LIKE ? ESCAPE '\\'"
         )?;
-        
-        let entity_ids = stmt.query_map([type_name], |row| {
-            row.get(0)
-        })?.collect::<Result<Vec<_>, _>>()?;
-        
+
+        let entity_ids = stmt.query_map(
+            params![type_name, project_root_pattern],
+            |row| row.get(0)
+        )?.collect::<Result<Vec<_>, _>>()?;
+
         Ok(entity_ids)
     }
     
@@ -457,8 +505,15 @@ impl StoreV2 {
     }
 
     // File cleanup operations (critical for preventing duplicate entries during reindexing)
-    pub fn delete_file_entities(&self, file_path: &str) -> Result<()> {
-        info!("Cleaning old entries for {}", file_path);
+    pub fn delete_file_entities(&mut self, file_path: &str, project_root: &Path) -> Result<()> {
+        // Validate path against project root for security
+        path_validator::prevent_traversal(file_path)?;
+        // Use string-based validation that doesn't require filesystem access
+        let project_root_str = project_root.to_str()
+            .ok_or_else(|| anyhow::anyhow!("Project root path is not valid UTF-8"))?;
+        path_validator::validate_against_root_str(file_path, project_root_str)?;
+
+        info!("Cleaning old entries for {} in project root {}", file_path, project_root.display());
 
         // Delete in correct order to respect FK constraints:
         // 1. entity_embeddings (references entities.id)
@@ -466,29 +521,34 @@ impl StoreV2 {
         // 3. type_usage (references entities.id)
         // 4. entities (primary table)
 
+        // Wrap in transaction for atomicity
+        let tx = self.conn.transaction()?;
+
         debug!("Deleting entity embeddings for file: {}", file_path);
-        self.conn.execute(
+        tx.execute(
             "DELETE FROM entity_embeddings WHERE entity_id IN (SELECT id FROM entities WHERE file_path = ?)",
             params![file_path]
         )?;
 
         debug!("Deleting references for file: {}", file_path);
-        self.conn.execute(
+        tx.execute(
             "DELETE FROM refs WHERE file_path = ?",
             params![file_path]
         )?;
 
         debug!("Deleting type usage entries for file: {}", file_path);
-        self.conn.execute(
+        tx.execute(
             "DELETE FROM type_usage WHERE entity_id IN (SELECT id FROM entities WHERE file_path = ?)",
             params![file_path]
         )?;
 
         debug!("Deleting entities for file: {}", file_path);
-        let deleted_count = self.conn.execute(
+        let deleted_count = tx.execute(
             "DELETE FROM entities WHERE file_path = ?",
             params![file_path]
         )?;
+
+        tx.commit()?;
 
         debug!("Deleted {} entities and related records for file: {}", deleted_count, file_path);
 
@@ -497,8 +557,8 @@ impl StoreV2 {
 
     // Helper methods to convert rows to structs
     pub(crate) fn row_to_entity(&self, row: &Row) -> rusqlite::Result<Entity> {
-        let created_timestamp: i64 = row.get(14)?;
-        let updated_timestamp: i64 = row.get(15)?;
+        let created_timestamp: i64 = row.get(12)?;
+        let updated_timestamp: i64 = row.get(13)?;
 
         let kind_str = row.get::<_, String>(1)?;
         let kind = EntityKind::from_str(&kind_str)
