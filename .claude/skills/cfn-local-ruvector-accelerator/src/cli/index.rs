@@ -1,3 +1,47 @@
+//! # RuVector Index Command
+//!
+//! ## IMPORTANT: Run from PROJECT ROOT
+//!
+//! This indexer MUST be run from the project root directory to index all files correctly.
+//! Running from a subdirectory will only index that subdirectory.
+//!
+//! ## Recommended Usage:
+//! ```bash
+//! cd /path/to/project-root
+//! local-ruvector index --path . --types rs,ts,js,json,md,sh --force
+//! ```
+//!
+//! ## Supported File Types (default):
+//! - rs, ts, js, json, md, sh, yaml, yml, txt, config
+//! - Use --types to specify custom extensions
+//!
+//! ## Excluded Directories (see EXCLUDED_DIRS constant - 52 patterns):
+//! - Dependencies: node_modules, vendor, .pnpm, .yarn
+//! - Build artifacts: target, dist, build, out, .next, .nuxt, .output, .turbo, .parcel-cache
+//! - VCS: .git, .svn, .hg
+//! - IDE: .idea, .vscode, .vs
+//! - Cache: .cache, __pycache__, .pytest_cache, .mypy_cache, .ruff_cache, coverage, .nyc_output
+//! - Virtual envs: .venv, venv, env
+//! - IaC: .terraform, .serverless, .aws-sam
+//! - Project-specific: .artifacts, .ruvector, .archive, archive
+//! - Backups/temp: backups, .backups, backup, tmp, .tmp, temp, logs
+//! - Test artifacts: __snapshots__, __mocks__, playwright-report, test-results
+//! - Doc builds: _site, .docusaurus, site
+//! - NOTE: .claude directory IS included (contains important config)
+//!
+//! ## Excluded Files (see EXCLUDED_FILES constant - 41 patterns):
+//! - Secrets: .env*, credentials.json, secrets.json, .npmrc, .pypirc, .netrc, id_rsa, *.pem, *.key
+//! - Lock files: package-lock.json, yarn.lock, pnpm-lock.yaml, Cargo.lock, go.sum, etc.
+//! - Backups: *.bak, *.backup, *.orig, *.swp, *~
+//! - Minified/generated: *.min.js, *.min.css, *.bundle.js, *.chunk.js, *.js.map, *.d.ts
+//! - Binary/data: *.wasm, *.db, *.sqlite
+//! - Build info: *.snap, *.eslintcache, *.tsbuildinfo
+//!
+//! ## Multi-Project Isolation:
+//! - Each project root is isolated via project_root column in v2 schema
+//! - Centralized database at ~/.local/share/ruvector/index_v2.db
+//! - Queries are scoped to the project root passed during indexing
+
 use anyhow::{Result, Context, anyhow};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -18,7 +62,154 @@ use crate::extractors::typescript::TypeScriptExtractor;
 use crate::extractors::text_fallback::TextFallbackExtractor;
 use crate::store_v2::{StoreV2, Entity as StoreEntity, Reference as StoreReference, TypeUsage};
 use crate::schema_v2::{EntityKind, RefKind, Visibility};
+use crate::path_validator;
 use local_ruvector::paths::{get_ruvector_dir, get_database_path, get_v1_index_dir};
+
+/// Directories to exclude from indexing.
+/// These are typically build artifacts, dependencies, VCS, or sensitive directories.
+const EXCLUDED_DIRS: &[&str] = &[
+    // Package managers & dependencies
+    "node_modules",      // npm/yarn/pnpm dependencies
+    "vendor",            // Go/PHP vendor dependencies
+    ".pnpm",             // pnpm store
+    ".yarn",             // Yarn 2+ PnP cache
+
+    // Build artifacts
+    "target",            // Rust/Maven build artifacts
+    "dist",              // JS/TS build output
+    "build",             // Generic build output
+    "out",               // Common output directory
+    ".next",             // Next.js build
+    ".nuxt",             // Nuxt.js build
+    ".output",           // Nitro/Nuxt output
+    ".turbo",            // Turborepo cache
+    ".parcel-cache",     // Parcel bundler cache
+    ".webpack",          // Webpack cache
+
+    // Version control
+    ".git",              // Git repository data
+    ".svn",              // Subversion
+    ".hg",               // Mercurial
+
+    // IDE & editor
+    ".idea",             // JetBrains IDEs
+    ".vscode",           // VS Code (may contain sensitive settings)
+    ".vs",               // Visual Studio
+
+    // Cache & temp
+    ".cache",            // Generic cache directories
+    "__pycache__",       // Python bytecode cache
+    ".pytest_cache",     // Pytest cache
+    ".mypy_cache",       // Mypy cache
+    ".ruff_cache",       // Ruff linter cache
+    "coverage",          // Test coverage reports
+    ".nyc_output",       // NYC coverage output
+    ".eslintcache",      // ESLint cache (dir form)
+
+    // Virtual environments
+    ".venv",             // Python virtual environments
+    "venv",              // Python venv (alternate)
+    ".env",              // dotenv directories (not files)
+    "env",               // Generic env directory
+
+    // Infrastructure as Code
+    ".terraform",        // Terraform state/cache
+    ".serverless",       // Serverless framework
+    ".aws-sam",          // AWS SAM
+
+    // Project-specific
+    ".artifacts",        // CFN Loop artifacts
+    ".ruvector",         // RuVector local index (avoid self-indexing)
+    ".archive",          // Archived/deprecated code
+    "archive",           // Archive directories
+
+    // Backups & generated
+    "backups",           // Backup directories
+    ".backups",          // Hidden backup directories
+    "backup",            // Singular backup directory
+    ".backup",           // Hidden singular backup
+    "tmp",               // Temporary files
+    ".tmp",              // Hidden temp files
+    "temp",              // Temp directory
+    "logs",              // Log directories
+    ".logs",             // Hidden logs
+
+    // Test artifacts (not source code)
+    "__snapshots__",     // Jest snapshots
+    "__mocks__",         // Jest mocks (usually generated)
+    ".storybook",        // Storybook config (not source)
+    "storybook-static",  // Storybook build output
+    "playwright-report", // Playwright test reports
+    "test-results",      // Generic test results
+
+    // Documentation builds
+    "_site",             // Jekyll output
+    ".docusaurus",       // Docusaurus cache
+    "site",              // MkDocs output
+];
+
+/// File patterns to exclude from indexing.
+/// These are sensitive files or files that shouldn't be semantically indexed.
+const EXCLUDED_FILES: &[&str] = &[
+    // Sensitive/secrets
+    ".env",              // Environment variables (secrets!)
+    ".env.local",        // Local env overrides
+    ".env.development",  // Dev env
+    ".env.production",   // Prod env
+    ".env.test",         // Test env
+    ".env.example",      // Example env (may contain structure hints)
+    "credentials.json",  // GCP/generic credentials
+    "secrets.json",      // Generic secrets
+    "secrets.yaml",      // Kubernetes secrets
+    "service-account.json", // GCP service account
+    ".npmrc",            // npm auth tokens
+    ".pypirc",           // PyPI auth
+    ".netrc",            // Network credentials
+    "id_rsa",            // SSH private key
+    "id_ed25519",        // SSH private key
+    ".pem",              // Certificate/key files
+    ".key",              // Key files
+
+    // Lock files (large, not useful for semantic search)
+    "package-lock.json", // npm lock
+    "yarn.lock",         // Yarn lock
+    "pnpm-lock.yaml",    // pnpm lock
+    "Cargo.lock",        // Rust lock
+    "poetry.lock",       // Python poetry lock
+    "Gemfile.lock",      // Ruby bundler lock
+    "composer.lock",     // PHP composer lock
+    "go.sum",            // Go module checksums
+    "flake.lock",        // Nix flake lock
+
+    // Backups
+    ".bak",              // Generic backup extension
+    ".backup",           // Backup files
+    ".orig",             // Original files (merge conflicts)
+    ".swp",              // Vim swap files
+    ".swo",              // Vim swap files
+    "~",                 // Emacs backup files
+
+    // Generated/minified (not useful for semantic search)
+    ".min.js",           // Minified JS
+    ".min.css",          // Minified CSS
+    ".bundle.js",        // Bundled JS
+    ".chunk.js",         // Webpack chunks
+    ".js.map",           // JavaScript source maps
+    ".css.map",          // CSS source maps
+    ".d.ts",             // TypeScript declarations (generated, verbose)
+    ".d.ts.map",         // TypeScript declaration maps
+
+    // Binary/data files (can't extract meaningful entities)
+    ".wasm",             // WebAssembly binary
+    ".db",               // SQLite/database files
+    ".sqlite",           // SQLite files
+    ".sqlite3",          // SQLite3 files
+
+    // Large generated files
+    ".snap",             // Jest snapshots
+    ".eslintcache",      // ESLint cache file
+    ".tsbuildinfo",      // TypeScript incremental build info
+];
 
 #[derive(Debug)]
 pub struct IndexStats {
@@ -94,12 +285,16 @@ impl IndexCommand {
         })
     }
 
-    pub fn execute(&self) -> Result<IndexStats> {
+    pub fn execute(&mut self) -> Result<IndexStats> {
         info!("Starting index process");
         info!("File types: {:?}", self.file_types);
         if let Some(ref patterns) = self.patterns {
             info!("Patterns: {:?}", patterns);
         }
+
+        // Canonicalize project_dir at the start for security
+        let _canonical_project_dir = path_validator::canonicalize(&self.project_dir)?;
+        debug!("Project root canonicalized: {}", _canonical_project_dir.display());
 
         self.initialize()?;
 
@@ -143,21 +338,19 @@ impl IndexCommand {
 
     fn collect_files(&self) -> Result<Vec<PathBuf>> {
         info!("Collecting files to index from: {}", self.source_path.display());
+        info!("Excluded directories: {} patterns", EXCLUDED_DIRS.len());
+        info!("Excluded files: {} patterns", EXCLUDED_FILES.len());
 
         let mut files = Vec::new();
 
         let walker = WalkDir::new(&self.source_path)
             .into_iter()
             .filter_entry(|e| {
-                let path = e.path();
                 let name = e.file_name().to_string_lossy();
 
-                // Exclude build artifacts, dependencies, and temporary files
-                // Allow .claude and other important hidden folders
-                match name.as_ref() {
-                    "node_modules" | "target" | "dist" | "build" | ".git" | ".artifacts" => false,
-                    _ => true
-                }
+                // Exclude build artifacts, dependencies, and sensitive directories
+                // Allow .claude and other important folders (not in EXCLUDED_DIRS)
+                !EXCLUDED_DIRS.contains(&name.as_ref())
             })
             .filter_map(|e| e.ok())
             .filter(|e| {
@@ -169,8 +362,25 @@ impl IndexCommand {
                     return false;
                 }
 
-                // Index ALL files regardless of extension
-                // File type metadata is captured during processing
+                let file_name = e.file_name().to_string_lossy();
+
+                // Exclude sensitive files by exact name match
+                if EXCLUDED_FILES.contains(&file_name.as_ref()) {
+                    return false;
+                }
+
+                // Exclude files by suffix pattern (e.g., ".min.js", ".bak")
+                for pattern in EXCLUDED_FILES {
+                    if pattern.starts_with('.') && file_name.ends_with(pattern) {
+                        return false;
+                    }
+                }
+
+                // Exclude emacs backup files ending with ~
+                if file_name.ends_with('~') {
+                    return false;
+                }
+
                 true
             });
 
@@ -182,19 +392,8 @@ impl IndexCommand {
         Ok(files)
     }
 
-    fn is_hidden(entry: &DirEntry) -> bool {
-        entry.file_name()
-            .to_str()
-            .map(|s| {
-                if s == ".claude" {
-                    return false;
-                }
-                s.starts_with('.')
-            })
-            .unwrap_or(false)
-    }
 
-    fn process_files(&self, files: Vec<PathBuf>) -> Result<IndexStats> {
+    fn process_files(&mut self, files: Vec<PathBuf>) -> Result<IndexStats> {
         let stats = Arc::new(RwLock::new(IndexStats::default()));
         let errors = Arc::new(RwLock::new(Vec::new()));
 
@@ -226,7 +425,7 @@ impl IndexCommand {
     }
 
     fn process_file(
-        &self,
+        &mut self,
         file_path: &Path,
         stats: &Arc<RwLock<IndexStats>>,
         errors: &Arc<RwLock<Vec<String>>>,
@@ -240,7 +439,7 @@ impl IndexCommand {
 
         // Clean up old entries before reindexing to prevent duplicate entities
         let file_path_str = file_path.to_string_lossy();
-        self.store_v2.delete_file_entities(&file_path_str)?;
+        self.store_v2.delete_file_entities(&file_path_str, &self.project_dir)?;
 
         let content = fs::read_to_string(file_path)
             .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
@@ -324,7 +523,8 @@ impl IndexCommand {
 
     fn store_entities(&self, file_path: &Path, entities: &[Entity]) -> Result<Vec<i64>> {
         let mut entity_ids = Vec::new();
-        
+        let project_root_str = self.project_dir.to_string_lossy();
+
         for entity in entities {
             let store_entity = StoreEntity {
                 id: 0,
@@ -342,11 +542,11 @@ impl IndexCommand {
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             };
-            
-            let id = self.store_v2.insert_entity(&store_entity)?;
+
+            let id = self.store_v2.insert_entity(&store_entity, &project_root_str)?;
             entity_ids.push(id);
         }
-        
+
         Ok(entity_ids)
     }
 
