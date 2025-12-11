@@ -61,6 +61,7 @@ pub struct Module {
     pub created_at: DateTime<Utc>,
 }
 
+#[derive(Debug)]
 pub struct StoreV2 {
     pub(crate) conn: Connection,
 }

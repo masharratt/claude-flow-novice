@@ -6,7 +6,8 @@ use std::io::{BufRead, BufReader, Write};
 use tracing::{info, debug, warn, error};
 use serde::Serialize;
 
-use crate::search_engine::{SearchEngine, SearchResult};
+use crate::query_v2::{QueryV2, SearchResult};
+use crate::paths::get_database_path;
 
 #[derive(Debug, Clone)]
 pub enum OutputFormat {
@@ -29,7 +30,7 @@ pub struct QueryConfig {
 pub struct QueryCommand {
     project_dir: PathBuf,
     config: QueryConfig,
-    search_engine: SearchEngine,
+    query_v2: QueryV2,
 }
 
 impl QueryCommand {
@@ -41,10 +42,11 @@ impl QueryCommand {
         output_format: OutputFormat,
         context_lines: usize,
         file_filter: Option<String>,
-    ) -> Self {
-        let search_engine = SearchEngine::new(project_dir).unwrap();
+    ) -> Result<Self> {
+        let db_path = get_database_path()?;
+        let query_v2 = QueryV2::new(&db_path)?;
 
-        Self {
+        Ok(Self {
             project_dir: project_dir.to_path_buf(),
             config: QueryConfig {
                 query,
@@ -54,36 +56,27 @@ impl QueryCommand {
                 context_lines,
                 file_filter,
             },
-            search_engine,
-        }
+            query_v2,
+        })
     }
 
     pub fn execute(&self) -> Result<()> {
         info!("Executing query: {}", self.config.query);
 
-        // Load the search engine
-        let mut search_engine = self.search_engine.duplicate()?;
-        search_engine.load_or_create()?;
+        // Set default values
+        let max_results = self.config.max_results.unwrap_or(10);
+        let threshold = self.config.threshold.unwrap_or(0.5);
 
         // Perform search
-        let results = search_engine.search(&self.config.query, self.config.max_results)?;
-
-        // Filter by threshold if specified
-        let filtered_results: Vec<SearchResult> = if let Some(threshold) = self.config.threshold {
-            results.into_iter()
-                .filter(|r| r.score >= threshold)
-                .collect()
-        } else {
-            results
-        };
+        let results = self.query_v2.search(&self.config.query, max_results, threshold)?;
 
         // Filter by file if specified
         let final_results: Vec<SearchResult> = if let Some(ref file_filter) = self.config.file_filter {
-            filtered_results.into_iter()
-                .filter(|r| r.path.contains(file_filter))
+            results.into_iter()
+                .filter(|r| r.file_path.contains(file_filter))
                 .collect()
         } else {
-            filtered_results
+            results
         };
 
         // Output results
@@ -99,7 +92,16 @@ impl QueryCommand {
 
     fn output_simple(&self, results: &[SearchResult]) -> Result<()> {
         for result in results {
-            println!("{}", result.pattern);
+            let line_info = result.line_start
+                .map(|l| format!(":{}", l))
+                .unwrap_or_default();
+            println!("{} {} in {}{} (similarity: {:.3})",
+                result.entity_kind,
+                result.entity_name,
+                result.file_path,
+                line_info,
+                result.similarity
+            );
         }
         Ok(())
     }
@@ -107,13 +109,12 @@ impl QueryCommand {
     fn output_json(&self, results: &[SearchResult]) -> Result<()> {
         let json_results: Vec<serde_json::Value> = results.iter()
             .map(|r| json!({
-                "id": r.id,
-                "path": r.path,
-                "pattern": r.pattern,
-                "score": r.score,
-                "context": r.context,
-                "line_number": r.line_number,
-                "snippet": r.snippet
+                "entity_kind": r.entity_kind,
+                "entity_name": r.entity_name,
+                "file_path": r.file_path,
+                "similarity": r.similarity,
+                "line_start": r.line_start,
+                "line_end": r.line_end
             }))
             .collect();
 
@@ -123,16 +124,21 @@ impl QueryCommand {
 
     fn output_detailed(&self, results: &[SearchResult]) -> Result<()> {
         for (i, result) in results.iter().enumerate() {
-            println!("{}. {} (score: {:.3})", i + 1, result.path, result.score);
-            if let Some(line) = result.line_number {
-                println!("   Line: {}", line);
+            let line_info = result.line_start.map(|l| format!(":{}", l)).unwrap_or_default();
+            println!("{}. {} {} in {}{} (similarity: {:.3})", 
+                i + 1, 
+                result.entity_kind, 
+                result.entity_name,
+                result.file_path,
+                line_info,
+                result.similarity
+            );
+            println!("   File: {}", result.file_path);
+            if let Some(line_start) = result.line_start {
+                println!("   Line: {}", line_start);
             }
-            println!("   Pattern: {}", result.pattern);
-            if let Some(snippet) = &result.snippet {
-                println!("   Snippet: {}", snippet);
-            }
-            if let Some(context) = &result.context {
-                println!("   Context: {}", context);
+            if let Some(line_end) = result.line_end {
+                println!("   End Line: {}", line_end);
             }
             println!();
         }
@@ -145,7 +151,7 @@ pub struct BatchQueryCommand {
     batch_file: PathBuf,
     output_file: Option<PathBuf>,
     max_results: Option<usize>,
-    search_engine: SearchEngine,
+    query_v2: QueryV2,
 }
 
 impl BatchQueryCommand {
@@ -154,24 +160,21 @@ impl BatchQueryCommand {
         batch_file: PathBuf,
         output_file: Option<PathBuf>,
         max_results: Option<usize>,
-    ) -> Self {
-        let search_engine = SearchEngine::new(project_dir).unwrap();
+    ) -> Result<Self> {
+        let db_path = get_database_path()?;
+        let query_v2 = QueryV2::new(&db_path)?;
 
-        Self {
+        Ok(Self {
             project_dir: project_dir.to_path_buf(),
             batch_file,
             output_file,
             max_results,
-            search_engine,
-        }
+            query_v2,
+        })
     }
 
     pub fn execute(&self) -> Result<()> {
         info!("Executing batch queries from: {}", self.batch_file.display());
-
-        // Load the search engine
-        let mut search_engine = self.search_engine.duplicate()?;
-        search_engine.load_or_create()?;
 
         // Read batch queries
         let file = File::open(&self.batch_file)?;
@@ -195,22 +198,28 @@ impl BatchQueryCommand {
             Box::new(std::io::stdout())
         };
 
+        // Set default values
+        let max_results = self.max_results.unwrap_or(10);
+        let threshold = 0.5;
+
         // Process each query
         for query in queries {
             debug!("Query: {}", query);
             
-            let results = search_engine.search(&query, self.max_results)?;
+            let results = self.query_v2.search(&query, max_results, threshold)?;
             
             // Write results
             writeln!(output, "Query: {}", query)?;
             for result in results {
-                let snippet = result.snippet.as_deref().unwrap_or(&result.pattern);
-                writeln!(output, "{},{},{},\"{}\",\"{}\"",
-                    result.id,
-                    result.path,
-                    result.score,
-                    result.pattern,
-                    snippet
+                let line_info = result.line_start
+                    .map(|l| format!(":{}", l))
+                    .unwrap_or_default();
+                writeln!(output, "{} {} in {}{} (similarity: {:.3})",
+                    result.entity_kind,
+                    result.entity_name,
+                    result.file_path,
+                    line_info,
+                    result.similarity
                 )?;
             }
             writeln!(output)?;

@@ -16,6 +16,7 @@ mod migration_tx;
 mod store_v2;
 mod store_v2_tx;
 mod query_api;
+mod query_v2;
 
 #[cfg(test)]
 mod transaction_tests;
@@ -282,7 +283,7 @@ fn main() -> Result<()> {
                     Path::new(&batch_file).to_path_buf(),
                     output.map(PathBuf::from),
                     Some(max_results),
-                );
+                )?;
                 cmd.execute()?;
             } else {
                 let output_format = match format {
@@ -299,7 +300,7 @@ fn main() -> Result<()> {
                     output_format,
                     context,
                     file,
-                );
+                )?;
                 cmd.execute()?;
             }
         }
