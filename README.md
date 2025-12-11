@@ -219,6 +219,62 @@ bash tests/cli-mode/test-*.sh
 bash tests/docker/validation/validate-bug6-redis-vars.sh
 ```
 
+## RuVector - Semantic Codebase Search
+
+**Centralized Index:** `~/.local/share/ruvector/index_v2.db`
+
+RuVector provides dual-mode code intelligence with a centralized index shared across all projects:
+
+### Dual Storage Architecture
+
+| Schema | Purpose | Query Type | Use Case |
+|--------|---------|------------|----------|
+| **V1** (embeddings, files) | Semantic similarity | Vector distance | "Find code similar to X" |
+| **V2** (entities, refs, modules) | Structured relationships | SQL joins | "Who calls this function?" |
+
+**V1 - Semantic Search:**
+- Stores text chunks with OpenAI embeddings (text-embedding-3-small, 1536 dims)
+- Queries: Fuzzy semantic similarity via cosine distance
+- Returns: Code that's semantically related regardless of exact syntax
+
+**V2 - Code Intelligence:**
+- Stores AST entities (functions, classes, interfaces) with relationships
+- Queries: Precise SQL on structured code graph
+- Returns: Exact references, callers, type usage, module dependencies
+
+### Usage
+
+```bash
+# Build RuVector
+cd .claude/skills/cfn-local-ruvector-accelerator
+cargo build --release
+
+# Initialize centralized index
+./target/release/local-ruvector init
+
+# Index current project (all file types)
+./target/release/local-ruvector index --path . --types rs,ts,js,json,md,sh
+
+# Semantic search across all indexed projects
+./target/release/local-ruvector query --pattern "authentication middleware"
+
+# SQL queries on code structure
+sqlite3 ~/.local/share/ruvector/index_v2.db "
+  SELECT * FROM refs WHERE target_name = 'MyFunction';
+"
+```
+
+**Supported Files:**
+- AST extraction: Rust (.rs), TypeScript/JavaScript (.ts, .tsx, .js, .jsx)
+- Text indexing: JSON, YAML, Markdown (.md), Shell scripts (.sh)
+- Auto-excluded: `.artifacts/` (logs/reports)
+
+**Benefits:**
+- Cross-project semantic search
+- Shared learnings across codebases
+- Dual query modes (semantic + structural)
+- Full paths preserve project context
+
 ## Support
 
 - **Documentation Issues**: File issue at GitHub repo

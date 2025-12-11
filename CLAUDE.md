@@ -46,9 +46,17 @@ Always provide `context_files` when code needs imports from existing files.
 
 ### Context Discovery Priority (fastest to slowest)
 1. **RuVector semantic search** (for "where is X?" queries):
+   - **Centralized index:** `~/.local/share/ruvector/index_v2.db` (shared across all projects)
+   - **Dual storage:** V1 (semantic/fuzzy) + V2 (structural/SQL)
+   - **V1 queries:** "Find similar code" via vector embeddings (cosine similarity)
+   - **V2 queries:** "Find callers/refs" via SQL on AST entities
    ```bash
+   # Semantic search
    /codebase-search "authentication middleware pattern"
-   ./.claude/skills/cfn-ruvector-codebase-index/search.sh "query" --top 5
+   ./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query --pattern "auth"
+
+   # Structural SQL query
+   sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT * FROM refs WHERE target_name = 'MyFunction';"
    ```
 2. **Query past errors** before similar work:
    ```bash
