@@ -9,6 +9,7 @@ mod sqlite_store;
 mod search_engine;
 mod cli;
 mod extractors;
+mod paths;
 mod schema_v2;
 mod migration;
 mod migration_tx;

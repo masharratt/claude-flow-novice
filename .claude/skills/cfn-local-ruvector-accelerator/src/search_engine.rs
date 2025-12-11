@@ -10,6 +10,7 @@ use tracing::info;
 use memmap2::MmapOptions;
 use crate::embeddings::EmbeddingsManager;
 use crate::sqlite_store::SqliteStore;
+use crate::paths::get_v1_index_dir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchConfig {
@@ -138,15 +139,15 @@ impl SearchEngine {
 }
 
 impl SearchEngine {
-    pub fn new(project_dir: &Path) -> Result<Self> {
+    pub fn new(_project_dir: &Path) -> Result<Self> {
         let mut config = SearchConfig::default();
-        let index_path = project_dir.join(&config.index_path);
-        // Update config with absolute path for consistent usage
+        // Use centralized V1 index directory (~/.local/share/ruvector/index/)
+        let index_path = get_v1_index_dir()?;
         config.index_path = index_path.clone();
-
+        
         let embedding_manager = EmbeddingsManager::new(&index_path)?;
         let store = SqliteStore::new(&index_path.join("index.db"))?;
-
+        
         Ok(Self {
             index: VectorIndex::new(config.dimension),
             config,
