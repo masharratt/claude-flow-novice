@@ -24,7 +24,7 @@ Purpose: concise reference for CFN agents. Focus on persona, mandatory rules, ed
 - Do not run tests inside agents; run once via coordinator/main chat, agents read results.
 - Never save to project root; use appropriate subdirectories.
 - Never hardcode secrets; always redact as `[REDACTED]`.
-- Use `rg`/`grep` for known exact strings (faster); use RuVector for "where is X?" semantic searches.
+- Use RuVector SQL for indexed projects (400x faster than grep); use grep only for non-indexed projects or non-code strings.
 - When monitoring, sleep-check-sleep loops.
 - All agent communication must use coordination protocols; no ad-hoc file coordination.
 

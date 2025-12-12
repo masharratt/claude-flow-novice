@@ -2,17 +2,24 @@
 
 ## WHEN TO USE THIS SKILL
 
-**USE grep/rg when (FASTER for these):**
-- You know the exact variable/function name: `rg "myVariableName"`
-- Searching for literal strings (error messages, imports)
-- Simple pattern matching you've done before
+**USE RuVector V2 SQL for ALL indexed projects (400x FASTER than grep):**
+```bash
+# Exact name lookup - 0.002s vs grep's 0.8s
+sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT file_path, line_number FROM entities WHERE name = 'MyFunction';"
 
-**USE RuVector when (BETTER for these):**
-- "Where is authentication implemented?" (semantic search)
-- Finding similar patterns across codebase
-- Looking for callers/references to a function (V2 SQL)
+# Fuzzy search - 0.004s
+sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT file_path, line_number FROM entities WHERE name LIKE '%Store%' LIMIT 10;"
+```
+
+**USE grep/rg ONLY when:**
+- Project is NOT indexed yet
+- Searching for strings that aren't code entities (error messages, comments, config values)
+- Quick one-off search in small directory
+
+**USE RuVector semantic search when:**
+- "Where is authentication implemented?" (conceptual search)
+- Finding similar patterns you can't name exactly
 - Discovering how a feature is built
-- You don't know the exact name to search for
 
 ## Quick Commands
 
