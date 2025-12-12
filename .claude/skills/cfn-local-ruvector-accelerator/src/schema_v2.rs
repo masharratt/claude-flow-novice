@@ -226,9 +226,10 @@ impl SchemaV2 {
                 doc_comment TEXT,
                 attributes TEXT,
                 metadata TEXT,
+                project_root TEXT NOT NULL DEFAULT '',
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
                 updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-                
+
                 FOREIGN KEY (parent_id) REFERENCES entities(id) ON DELETE RESTRICT
             );
             
@@ -282,6 +283,14 @@ impl SchemaV2 {
 
                 FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE RESTRICT
             );
+
+            -- Create files table for tracking indexed files (stats and legacy compatibility)
+            CREATE TABLE IF NOT EXISTS files (
+                path TEXT PRIMARY KEY,
+                hash TEXT NOT NULL,
+                last_indexed INTEGER NOT NULL,
+                patterns_count INTEGER NOT NULL DEFAULT 0
+            );
             "#
         )?;
 
@@ -311,6 +320,8 @@ impl SchemaV2 {
             CREATE INDEX IF NOT EXISTS idx_entities_kind_name ON entities(kind, name);
             CREATE INDEX IF NOT EXISTS idx_entities_file_kind ON entities(file_path, kind);
             CREATE INDEX IF NOT EXISTS idx_entities_parent_kind ON entities(parent_id, kind);
+            CREATE INDEX IF NOT EXISTS idx_entities_project_root ON entities(project_root);
+            CREATE INDEX IF NOT EXISTS idx_entities_project_file ON entities(project_root, file_path);
             
             -- Reference indexes
             CREATE INDEX IF NOT EXISTS idx_refs_source ON refs(source_entity_id);
@@ -338,6 +349,10 @@ impl SchemaV2 {
             
             -- Entity-module relationship index (via file path)
             CREATE INDEX IF NOT EXISTS idx_entities_module_lookup ON entities(file_path);
+
+            -- Files table indexes
+            CREATE INDEX IF NOT EXISTS idx_files_hash ON files(hash);
+            CREATE INDEX IF NOT EXISTS idx_files_last_indexed ON files(last_indexed);
             "#
         )?;
 

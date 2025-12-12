@@ -432,14 +432,21 @@ impl IndexCommand {
     ) -> Result<()> {
         let file_hash = self.calculate_file_hash(file_path)?;
 
+        // Check if file is already indexed with same hash (incremental indexing)
         if !self.force && self.is_file_indexed(file_path, &file_hash)? {
-            debug!("Skipping already indexed file: {}", file_path.display());
+            debug!("Skipping already indexed file (unchanged): {}", file_path.display());
             return Ok(());
         }
 
-        // Clean up old entries before reindexing to prevent duplicate entities
+        // Non-destructive update: Only delete entities for THIS specific file
+        // The delete_file_entities already scopes to project_root for multi-project safety
         let file_path_str = file_path.to_string_lossy();
-        self.store_v2.delete_file_entities(&file_path_str, &self.project_dir)?;
+
+        // Only clean up if the file was previously indexed (avoid unnecessary DB operations)
+        if self.is_file_in_index(file_path)? {
+            debug!("Updating existing file entries: {}", file_path.display());
+            self.store_v2.delete_file_entities(&file_path_str, &self.project_dir)?;
+        }
 
         let content = fs::read_to_string(file_path)
             .with_context(|| format!("Failed to read file: {}", file_path.display()))?;
@@ -470,7 +477,7 @@ impl IndexCommand {
             s.embeddings_generated += embeddings.len();
         }
 
-        self.mark_file_indexed(file_path, &file_hash)?;
+        self.mark_file_indexed(file_path, &file_hash, extraction_result.entities.len())?;
 
         Ok(())
     }
@@ -654,15 +661,33 @@ impl IndexCommand {
         Ok(count > 0)
     }
 
-    fn mark_file_indexed(&self, file_path: &Path, file_hash: &str) -> Result<()> {
+    /// Check if file exists in the index (regardless of hash)
+    fn is_file_in_index(&self, file_path: &Path) -> Result<bool> {
+        let query = "SELECT COUNT(*) FROM file_hashes WHERE file_path = ?";
+        let mut stmt = self.store_v2.conn.prepare(query)?;
+        let count: i64 = stmt.query_row(
+            params![file_path.to_string_lossy()],
+            |row| row.get(0)
+        )?;
+        Ok(count > 0)
+    }
+
+    fn mark_file_indexed(&self, file_path: &Path, file_hash: &str, patterns_count: usize) -> Result<()> {
+        let timestamp = chrono::Utc::now().timestamp();
+        let file_path_str = file_path.to_string_lossy().to_string();
+
+        // Update file_hashes table (for incremental indexing)
         self.store_v2.conn.execute(
             "INSERT OR REPLACE INTO file_hashes (file_path, file_hash, indexed_at) VALUES (?1, ?2, ?3)",
-            params![
-                file_path.to_string_lossy(),
-                file_hash,
-                chrono::Utc::now().timestamp()
-            ]
+            params![&file_path_str, file_hash, timestamp]
         )?;
+
+        // Also update the files table (for legacy compatibility and stats)
+        self.store_v2.conn.execute(
+            "INSERT OR REPLACE INTO files (path, hash, last_indexed, patterns_count) VALUES (?1, ?2, ?3, ?4)",
+            params![&file_path_str, file_hash, timestamp, patterns_count as i64]
+        )?;
+
         Ok(())
     }
 
