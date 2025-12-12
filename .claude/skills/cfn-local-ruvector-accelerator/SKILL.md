@@ -2,17 +2,17 @@
 
 ## WHEN TO USE THIS SKILL
 
-**USE RuVector INSTEAD OF grep/rg when:**
-- Searching for "where is X implemented?"
-- Finding similar code patterns across the codebase
-- Looking for callers/references to a function
-- Discovering how a feature is built
-- Finding related files for a task
+**USE grep/rg when (FASTER for these):**
+- You know the exact variable/function name: `rg "myVariableName"`
+- Searching for literal strings (error messages, imports)
+- Simple pattern matching you've done before
 
-**USE grep/rg ONLY when:**
-- Searching for an exact string match (e.g., error message text)
-- Looking for a specific variable name you already know
-- Simple literal pattern matching
+**USE RuVector when (BETTER for these):**
+- "Where is authentication implemented?" (semantic search)
+- Finding similar patterns across codebase
+- Looking for callers/references to a function (V2 SQL)
+- Discovering how a feature is built
+- You don't know the exact name to search for
 
 ## Quick Commands
 
