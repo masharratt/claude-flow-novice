@@ -29,8 +29,8 @@ sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT file_path, line_number FROM 
 /codebase-search "authentication middleware pattern"
 /cfn-ruvector-search "error handling in API routes"
 
-# CLI direct
-./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query --pattern "user login flow"
+# CLI direct (note: query text is positional, use --max-results not --limit)
+./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query "user login flow" --max-results 5
 ```
 
 ### Structural Search (V2 - SQL on AST)
@@ -78,8 +78,10 @@ sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT project_root, COUNT(*) FROM 
 
 Before implementing changes, ALWAYS query RuVector first:
 ```bash
-# Find similar patterns
+# Find similar patterns (slash command uses --top, CLI uses --max-results)
 /codebase-search "relevant search terms" --top 5
+# Or via CLI:
+./local-ruvector query "relevant search terms" --max-results 5
 
 # Query past errors
 ./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh --task-description "description"
