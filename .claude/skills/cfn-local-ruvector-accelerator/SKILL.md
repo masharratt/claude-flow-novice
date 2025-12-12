@@ -48,6 +48,27 @@ sqlite3 ~/.local/share/ruvector/index_v2.db \
   "SELECT COUNT(*) FROM entities WHERE project_root = '/path/to/project';"
 ```
 
+## Prerequisites
+
+**OPENAI_API_KEY is REQUIRED for indexing.** Indexing will fail without a valid key.
+
+```bash
+# Option 1: Export before running
+export OPENAI_API_KEY="sk-..."
+
+# Option 2: Add to shell profile (~/.bashrc or ~/.zshrc)
+echo 'export OPENAI_API_KEY="sk-..."' >> ~/.bashrc
+source ~/.bashrc
+
+# Option 3: Inline with command
+OPENAI_API_KEY="sk-..." ./local-ruvector index --path /project
+```
+
+**Verify key is set:**
+```bash
+echo $OPENAI_API_KEY  # Should show your key (not empty)
+```
+
 ## Index Management
 
 ```bash

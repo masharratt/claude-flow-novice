@@ -99,6 +99,15 @@ impl AstIndexCommand {
     }
 
     pub fn execute(&mut self) -> Result<IndexStats> {
+        // Fail early if OPENAI_API_KEY is not set
+        if std::env::var("OPENAI_API_KEY").is_err() {
+            error!("OPENAI_API_KEY environment variable is required for indexing");
+            return Err(anyhow!(
+                "OPENAI_API_KEY not found. Set it with: export OPENAI_API_KEY=\"sk-...\"\n\
+                 Indexing requires a valid OpenAI API key for generating embeddings."
+            ));
+        }
+
         let start_time = std::time::Instant::now();
 
         info!("Starting AST-based index process");

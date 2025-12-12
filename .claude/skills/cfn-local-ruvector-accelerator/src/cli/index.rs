@@ -46,7 +46,7 @@ use anyhow::{Result, Context, anyhow};
 use std::fs;
 use std::path::{Path, PathBuf};
 use walkdir::{WalkDir, DirEntry};
-use tracing::{info, debug, warn};
+use tracing::{info, debug, warn, error};
 use regex::Regex;
 use std::sync::Arc;
 use std::sync::RwLock;
@@ -286,6 +286,15 @@ impl IndexCommand {
     }
 
     pub fn execute(&mut self) -> Result<IndexStats> {
+        // Fail early if OPENAI_API_KEY is not set
+        if std::env::var("OPENAI_API_KEY").is_err() {
+            error!("OPENAI_API_KEY environment variable is required for indexing");
+            return Err(anyhow!(
+                "OPENAI_API_KEY not found. Set it with: export OPENAI_API_KEY=\"sk-...\"\n\
+                 Indexing requires a valid OpenAI API key for generating embeddings."
+            ));
+        }
+
         info!("Starting index process");
         info!("File types: {:?}", self.file_types);
         if let Some(ref patterns) = self.patterns {

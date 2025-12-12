@@ -101,13 +101,10 @@ impl EmbeddingsManager {
         debug!("Generating embeddings for {} texts", texts.len());
 
         if self.config.api_key.is_none() {
-            warn!("OpenAI API key not found, falling back to dummy embeddings");
-            let mut embeddings = Vec::with_capacity(texts.len());
-            for text in texts {
-                embeddings.push(self.generate_dummy_embedding(text));
-            }
-            info!("Generated {} dummy embeddings", embeddings.len());
-            return Ok(embeddings);
+            error!("OPENAI_API_KEY environment variable not set");
+            return Err(anyhow!(
+                "OPENAI_API_KEY not found. Set it with: export OPENAI_API_KEY=\"sk-...\""
+            ));
         }
 
         let mut all_embeddings = Vec::with_capacity(texts.len());
