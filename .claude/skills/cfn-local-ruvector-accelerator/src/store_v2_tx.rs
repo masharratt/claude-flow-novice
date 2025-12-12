@@ -225,10 +225,11 @@ impl StoreV2WithTx {
         // Execute the callback
         f(&tx)?;
 
-        // Record file hash
+        // Record file hash with current timestamp
+        let current_time = chrono::Utc::now().timestamp();
         tx.execute(
-            "INSERT INTO file_hashes (file_path, file_hash) VALUES (?, ?)",
-            params![file_path, file_hash],
+            "INSERT INTO file_hashes (file_path, file_hash, indexed_at) VALUES (?, ?, ?)",
+            params![file_path, file_hash, current_time],
         )?;
 
         tx.commit()
@@ -308,6 +309,7 @@ mod tests {
             doc_comment: None,
             attributes: None,
             metadata: None,
+            project_root: "/test/project".to_string(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }).collect();

@@ -359,21 +359,21 @@ mod tests {
 
         SchemaV2::initialize(&conn)?;
 
-        // Insert test entities with different path patterns
+        // Insert test entities with project_root set (schema now requires it)
         conn.execute(
-            "INSERT INTO entities (kind, name, file_path, line_number) VALUES (?, ?, ?, ?)",
-            params!["struct", "Test1", "/home/user/project/src/main.rs", 10]
+            "INSERT INTO entities (kind, name, file_path, line_number, project_root) VALUES (?, ?, ?, ?, ?)",
+            params!["struct", "Test1", "/home/user/project/src/main.rs", 10, "/home/user/project"]
         )?;
 
         conn.execute(
-            "INSERT INTO entities (kind, name, file_path, line_number) VALUES (?, ?, ?, ?)",
-            params!["function", "Test2", "/var/app/lib/utils.rs", 20]
+            "INSERT INTO entities (kind, name, file_path, line_number, project_root) VALUES (?, ?, ?, ?, ?)",
+            params!["function", "Test2", "/var/app/lib/utils.rs", 20, "/var/app"]
         )?;
 
-        // Run migration
+        // Run migration (will be skipped since schema already has project_root)
         MigrationV2::run_v2_migration(&mut conn)?;
 
-        // Verify project_root extraction
+        // Verify project_root values
         let project1: String = conn.query_row(
             "SELECT project_root FROM entities WHERE name = ?",
             params!["Test1"],

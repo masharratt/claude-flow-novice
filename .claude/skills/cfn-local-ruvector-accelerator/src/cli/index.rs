@@ -546,6 +546,7 @@ impl IndexCommand {
                 doc_comment: None,
                 attributes: None,
                 metadata: Some(serde_json::to_string(&entity.metadata)?),
+                project_root: project_root_str.to_string(),
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             };

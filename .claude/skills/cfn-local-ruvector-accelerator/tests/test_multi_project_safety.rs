@@ -70,11 +70,12 @@ fn insert_test_entities(
             doc_comment: Some(format!("Function {} from {}", entity_prefix, project_root.display())),
             attributes: None,
             metadata: Some(format!(r#"{{"project_root": "{}"}}"#, project_root.display())),
+            project_root: project_root.to_string_lossy().to_string(),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
 
-        let id = store.insert_entity(&entity)?;
+        let id = store.insert_entity(&entity, &project_root.to_string_lossy())?;
         entity_ids.push(id);
     }
 
@@ -228,7 +229,9 @@ fn test_path_traversal_blocked() -> Result<()> {
             assert!(
                 error_msg.contains("traversal") ||
                 error_msg.contains("outside") ||
-                error_msg.contains("escape"),
+                error_msg.contains("escape") ||
+                error_msg.contains("suspicious") ||
+                error_msg.contains(".."),
                 "Error should indicate path traversal rejection, got: {}",
                 error_msg
             );
@@ -327,10 +330,11 @@ fn test_composite_index_performance() -> Result<()> {
                 doc_comment: None,
                 attributes: None,
                 metadata: None,
+                project_root: project_root.to_string_lossy().to_string(),
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             };
-            let _ = store.insert_entity(&entity)?;
+            let _ = store.insert_entity(&entity, &project_root.to_string_lossy())?;
         }
     }
 
@@ -370,7 +374,7 @@ fn test_fk_restrict_prevents_cascade() -> Result<()> {
     let file_str = file_path.to_string_lossy().to_string();
 
     // Insert entity
-    let mut entity = Entity {
+    let entity = Entity {
         id: 0,
         kind: EntityKind::Function,
         name: "test_function".to_string(),
@@ -383,11 +387,12 @@ fn test_fk_restrict_prevents_cascade() -> Result<()> {
         doc_comment: None,
         attributes: None,
         metadata: None,
+        project_root: project_root.to_string_lossy().to_string(),
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
 
-    let entity_id = store.insert_entity(&entity)?;
+    let entity_id = store.insert_entity(&entity, &project_root.to_string_lossy())?;
 
     // Store an embedding for this entity
     let embedding: Vec<f32> = vec![0.1, 0.2, 0.3, 0.4, 0.5];

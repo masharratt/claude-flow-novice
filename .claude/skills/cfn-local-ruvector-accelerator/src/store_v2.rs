@@ -23,6 +23,7 @@ pub struct Entity {
     pub doc_comment: Option<String>,
     pub attributes: Option<String>,
     pub metadata: Option<String>,
+    pub project_root: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -558,8 +559,9 @@ impl StoreV2 {
 
     // Helper methods to convert rows to structs
     pub(crate) fn row_to_entity(&self, row: &Row) -> rusqlite::Result<Entity> {
-        let created_timestamp: i64 = row.get(12)?;
-        let updated_timestamp: i64 = row.get(13)?;
+        let project_root: String = row.get(12)?;
+        let created_timestamp: i64 = row.get(13)?;
+        let updated_timestamp: i64 = row.get(14)?;
 
         let kind_str = row.get::<_, String>(1)?;
         let kind = EntityKind::from_str(&kind_str)
@@ -582,6 +584,7 @@ impl StoreV2 {
             doc_comment: row.get(9)?,
             attributes: row.get(10)?,
             metadata: row.get(11)?,
+            project_root,
             created_at: DateTime::from_timestamp(created_timestamp, 0).unwrap_or_default(),
             updated_at: DateTime::from_timestamp(updated_timestamp, 0).unwrap_or_default(),
         })
@@ -664,11 +667,12 @@ mod tests {
             doc_comment: Some("Test function".to_string()),
             attributes: None,
             metadata: None,
+            project_root: "/test/project".to_string(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
         
-        let entity_id = store.insert_entity(&entity)?;
+        let entity_id = store.insert_entity(&entity, "/test/project")?;
         assert!(entity_id > 0);
         
         // Retrieve entity

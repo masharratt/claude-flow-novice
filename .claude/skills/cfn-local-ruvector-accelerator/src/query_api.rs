@@ -310,14 +310,15 @@ impl QueryApi {
                 row.get::<_, Option<String>>(9)?,  // doc_comment
                 row.get::<_, Option<String>>(10)?,  // attributes
                 row.get::<_, Option<String>>(11)?,  // metadata
-                row.get::<_, i64>(12)?,          // created_at
-                row.get::<_, i64>(13)?,          // updated_at
+                row.get::<_, String>(12)?,       // project_root
+                row.get::<_, i64>(13)?,          // created_at
+                row.get::<_, i64>(14)?,          // updated_at
             ))
         })?;
 
         for row in rows {
             let row = row?;
-            let (id, kind_str, name, signature, visibility_str, parent_id, file_path, line_number, column_number, doc_comment, attributes, metadata, created_at, updated_at) = row;
+            let (id, kind_str, name, signature, visibility_str, parent_id, file_path, line_number, column_number, doc_comment, attributes, metadata, project_root, created_at, updated_at) = row;
             // For now, just create a simple entity - the full parsing can be done later
             // This is just to get the IDs for reference finding
             matching_entities.push(crate::store_v2::Entity {
@@ -333,6 +334,7 @@ impl QueryApi {
                 doc_comment,
                 attributes,
                 metadata,
+                project_root,
                 created_at: chrono::DateTime::from_timestamp(created_at, 0).unwrap_or_default(),
                 updated_at: chrono::DateTime::from_timestamp(updated_at, 0).unwrap_or_default(),
             });
@@ -366,6 +368,7 @@ impl QueryApi {
                     doc_comment: None,
                     attributes: None,
                     metadata: None,
+                    project_root: "".to_string(),
                     created_at: chrono::DateTime::from_timestamp(0, 0).unwrap_or_default(),
                     updated_at: chrono::DateTime::from_timestamp(0, 0).unwrap_or_default(),
                 };

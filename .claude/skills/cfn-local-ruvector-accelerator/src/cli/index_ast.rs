@@ -299,6 +299,7 @@ impl AstIndexCommand {
             let mut entity_map = HashMap::new();
             let mut type_usages = Vec::new();
 
+            let project_root_str = self.project_dir.to_string_lossy().to_string();
             for (idx, entity) in extraction_result.entities.iter().enumerate() {
                 let store_entity = StoreEntity {
                     id: 0,
@@ -313,6 +314,7 @@ impl AstIndexCommand {
                     doc_comment: None, // TODO: Extract doc comments
                     attributes: None, // TODO: Extract attributes
                     metadata: Some(serde_json::to_string(&entity.metadata)?),
+                    project_root: project_root_str.clone(),
                     created_at: chrono::Utc::now(),
                     updated_at: chrono::Utc::now(),
                 };
@@ -613,6 +615,7 @@ impl AstIndexCommand {
             Ok(entity.id)
         } else {
             // Create a placeholder entity for unknown references
+            let project_root_str = self.project_dir.to_string_lossy().to_string();
             let placeholder = StoreEntity {
                 id: 0,
                 kind: EntityKind::Function,
@@ -626,11 +629,11 @@ impl AstIndexCommand {
                 doc_comment: None,
                 attributes: None,
                 metadata: None,
+                project_root: project_root_str.clone(),
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             };
 
-            let project_root_str = self.project_dir.to_string_lossy();
             Ok(self.store_v2.insert_entity(&placeholder, &project_root_str)?)
         }
     }

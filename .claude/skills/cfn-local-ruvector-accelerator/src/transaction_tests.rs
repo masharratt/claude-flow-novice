@@ -44,6 +44,7 @@ fn test_atomic_file_indexing_with_rollback() -> Result<()> {
         doc_comment: None,
         attributes: None,
         metadata: None,
+        project_root: "/test/project".to_string(),
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
@@ -67,6 +68,7 @@ fn test_atomic_file_indexing_with_rollback() -> Result<()> {
             doc_comment: None,
             attributes: None,
             metadata: None,
+            project_root: "/test/project".to_string(),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
@@ -84,6 +86,7 @@ fn test_atomic_file_indexing_with_rollback() -> Result<()> {
             doc_comment: None,
             attributes: None,
             metadata: None,
+            project_root: "/test/project".to_string(),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
@@ -92,8 +95,8 @@ fn test_atomic_file_indexing_with_rollback() -> Result<()> {
             r#"
             INSERT INTO entities (
                 kind, name, signature, visibility, parent_id, file_path,
-                line_number, column_number, doc_comment, attributes, metadata
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                line_number, column_number, doc_comment, attributes, metadata, project_root
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
             "#
         )?;
 
@@ -109,6 +112,7 @@ fn test_atomic_file_indexing_with_rollback() -> Result<()> {
             entity1.doc_comment,
             entity1.attributes,
             entity1.metadata,
+            entity1.project_root,
         ])?;
 
         stmt.execute(params![
@@ -123,6 +127,7 @@ fn test_atomic_file_indexing_with_rollback() -> Result<()> {
             entity2.doc_comment,
             entity2.attributes,
             entity2.metadata,
+            entity2.project_root,
         ])?;
 
         Ok(())
@@ -220,6 +225,7 @@ fn test_batch_insert_rollback() -> Result<()> {
             doc_comment: None,
             attributes: None,
             metadata: None,
+            project_root: "/test/project".to_string(),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         });

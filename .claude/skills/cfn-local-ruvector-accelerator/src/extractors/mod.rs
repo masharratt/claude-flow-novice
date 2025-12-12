@@ -28,7 +28,7 @@ pub fn create_text_fallback_extractor() -> Result<text_fallback::TextFallbackExt
 }
 
 /// Common entity kinds across languages
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EntityKind {
     // Functions
     Function,
