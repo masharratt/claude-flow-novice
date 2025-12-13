@@ -1,38 +1,31 @@
 ---
-description: Search codebase using natural language queries via RuVector semantic index
+description: Search codebase using RuVector semantic index (400x faster than grep)
 arguments:
   query:
     description: Natural language search query
     required: true
   --top:
-    description: Number of results to return (default 5)
+    description: Number of results to return (default 10)
     required: false
 ---
 
 # Codebase Search Command
 
-Search your indexed codebase using natural language queries. Uses RuVector's semantic search to find relevant files based on meaning, not just keywords.
+Search your indexed codebase using RuVector. Uses SQLite index for fast lookups.
 
 **Examples:**
-- `/codebase-search authentication logic`
-- `/codebase-search React components for user profile --top 10`
-- `/codebase-search database migration utilities`
-- `/codebase-search error handling patterns`
-
-**Returns:**
-- File paths ranked by relevance
-- File purpose and exports
-- Code metrics (lines, complexity)
-- Relevance scores
+- `/cfn-ruvector:cfn-codebase-search authentication logic`
+- `/cfn-ruvector:cfn-codebase-search React components --top 20`
+- `/cfn-ruvector:cfn-codebase-search database migration`
 
 **Prerequisites:**
-- Codebase must be indexed first (run `/codebase-reindex`)
-- OPENAI_API_KEY or ZAI_API_KEY must be set
+- Codebase must be indexed: `./local-ruvector index --path . --force`
+- OPENAI_API_KEY must be set for indexing
 
 ---
 
 Execute the search:
 
 ```bash
-./.claude/skills/cfn-ruvector-codebase-index/search.sh "{{query}}" {{#if top}}--top {{top}}{{/if}}
+./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query "{{query}}" --max-results {{#if top}}{{top}}{{else}}10{{/if}}
 ```

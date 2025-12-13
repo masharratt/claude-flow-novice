@@ -1,37 +1,33 @@
 ---
-description: Update codebase index using git-detected changes (auto mode, incremental)
+description: Update codebase index (default incremental, --force for full rebuild)
 ---
 
 # Codebase Reindex Command
 
-**Default mode: Auto-detection** - Indexes only changed files detected from git status (fast, incremental).
+**Default mode:** Incremental - only re-indexes files with changed hashes (fast).
 
 **Use when:**
-- After committing code changes (recommended workflow)
-- Regular updates after development work
-- Need to refresh index for recently modified files
+- After code changes
+- Regular development workflow
+- Need to refresh index
 
-**Process (--auto mode):**
-1. Detects staged and modified files via `git diff`
-2. Filters for indexable extensions (TypeScript, Python, etc.)
-3. Incrementally updates RuVector database
-4. Only re-indexes changed files
+**For full rebuild:**
+Add `--force` flag for complete reindex:
+- First-time setup
+- Major restructuring
+- Index issues
 
-**Estimated time:** 5-30 seconds (depends on number of changed files)
+**Prerequisites:**
+- OPENAI_API_KEY must be set: `export OPENAI_API_KEY="sk-..."`
 
 ---
 
-**For full rebuild (only when needed):**
-Add `--full` flag if you need to rebuild the entire index from scratch:
-- First-time setup
-- Major codebase restructuring
-- Index corrupted or missing
-- After config changes (extensions, ignore patterns)
+Execute reindex:
 
 ```bash
-# Default: Auto-detect changed files (fast)
-./.claude/skills/cfn-ruvector-codebase-index/index.sh --auto
+# Incremental (default - only changed files)
+./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector index --path . --types rs,ts,js,py,sh,md
 
-# Full rebuild (only when explicitly needed)
-./.claude/skills/cfn-ruvector-codebase-index/index.sh --full
+# Full rebuild (when needed)
+# ./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector index --path . --types rs,ts,js,py,sh,md --force
 ```

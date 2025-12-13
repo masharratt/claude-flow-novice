@@ -1,46 +1,34 @@
 ---
-description: "Semantic code search with RuVector"
+description: "Semantic code search with RuVector (400x faster than grep)"
 argument-hint: "<query>"
 ---
 
-# /search - Semantic Code Search
+# RuVector Search
 
-Quick semantic search through your codebase using RuVector.
+Quick semantic search through your indexed codebase.
 
 ## Usage
 
-```bash
-/search "authentication middleware"
-/search "error handling pattern"
-/search "database connection setup"
+```
+/cfn-ruvector-search "authentication middleware"
+/cfn-ruvector-search "error handling pattern"
 ```
 
 ## What it does
 
-- Searches for semantically similar code (not just text matching)
-- Returns the most relevant code snippets with similarity scores
-- Helps find existing implementations before building new ones
+- Queries pre-built SQLite index (not filesystem scan)
+- Returns file paths with line numbers
+- 400x faster than grep for indexed projects
 
-## Examples
+## Prerequisites
 
-Find similar implementations:
+- Project must be indexed first
+- Run: `./local-ruvector index --path . --force`
+
+---
+
+Execute search:
+
 ```bash
-/search "user login flow"
-```
-
-Find error patterns:
-```bash
-/search "timeout error handling"
-```
-
-Find API patterns:
-```bash
-/search "REST API validation"
-```
-
-## Advanced Options
-
-For more control, use the full command:
-```bash
-/codebase-search "query" --top 10 --full
+./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query "$ARGUMENTS" --max-results 10
 ```
