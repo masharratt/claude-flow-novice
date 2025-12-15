@@ -15,7 +15,7 @@
 //! - rs, ts, js, json, md, sh, yaml, yml, txt, config
 //! - Use --types to specify custom extensions
 //!
-//! ## Excluded Directories (see EXCLUDED_DIRS constant - 52 patterns):
+//! ## Excluded Directories (see EXCLUDED_DIRS constant - 54 patterns):
 //! - Dependencies: node_modules, vendor, .pnpm, .yarn
 //! - Build artifacts: target, dist, build, out, .next, .nuxt, .output, .turbo, .parcel-cache
 //! - VCS: .git, .svn, .hg
@@ -23,7 +23,7 @@
 //! - Cache: .cache, __pycache__, .pytest_cache, .mypy_cache, .ruff_cache, coverage, .nyc_output
 //! - Virtual envs: .venv, venv, env
 //! - IaC: .terraform, .serverless, .aws-sam
-//! - Project-specific: .artifacts, .ruvector, .archive, archive
+//! - Project-specific: .artifacts, .ruvector, .archive, archive, .archived, archived
 //! - Backups/temp: backups, .backups, backup, tmp, .tmp, temp, logs
 //! - Test artifacts: __snapshots__, __mocks__, playwright-report, test-results
 //! - Doc builds: _site, .docusaurus, site
@@ -122,6 +122,8 @@ const EXCLUDED_DIRS: &[&str] = &[
     ".ruvector",         // RuVector local index (avoid self-indexing)
     ".archive",          // Archived/deprecated code
     "archive",           // Archive directories
+    ".archived",         // Archived code (alternate naming)
+    "archived",          // Archived directories
 
     // Backups & generated
     "backups",           // Backup directories
