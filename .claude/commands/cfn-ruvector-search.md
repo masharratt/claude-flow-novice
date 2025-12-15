@@ -30,5 +30,7 @@ Quick semantic search through your indexed codebase.
 Execute search:
 
 ```bash
-./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query "$ARGUMENTS" --max-results 10
+RUVECTOR_BIN="${HOME}/.local/bin/local-ruvector"
+[ ! -f "$RUVECTOR_BIN" ] && RUVECTOR_BIN="./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector"
+"$RUVECTOR_BIN" query "$ARGUMENTS" --max-results 10
 ```

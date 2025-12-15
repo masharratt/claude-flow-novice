@@ -25,9 +25,12 @@ Add `--force` flag for complete reindex:
 Execute reindex:
 
 ```bash
+RUVECTOR_BIN="${HOME}/.local/bin/local-ruvector"
+[ ! -f "$RUVECTOR_BIN" ] && RUVECTOR_BIN="./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector"
+
 # Incremental (default - only changed files)
-./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector index --path . --types rs,ts,js,py,sh,md
+"$RUVECTOR_BIN" index --path . --types rs,ts,js,py,sh,md
 
 # Full rebuild (when needed)
-# ./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector index --path . --types rs,ts,js,py,sh,md --force
+# "$RUVECTOR_BIN" index --path . --types rs,ts,js,py,sh,md --force
 ```

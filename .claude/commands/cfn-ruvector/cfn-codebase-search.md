@@ -27,5 +27,7 @@ Search your indexed codebase using RuVector. Uses SQLite index for fast lookups.
 Execute the search:
 
 ```bash
-./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query "{{query}}" --max-results {{#if top}}{{top}}{{else}}10{{/if}}
+RUVECTOR_BIN="${HOME}/.local/bin/local-ruvector"
+[ ! -f "$RUVECTOR_BIN" ] && RUVECTOR_BIN="./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector"
+"$RUVECTOR_BIN" query "{{query}}" --max-results {{#if top}}{{top}}{{else}}10{{/if}}
 ```

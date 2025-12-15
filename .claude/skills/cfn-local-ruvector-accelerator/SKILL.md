@@ -29,8 +29,8 @@ sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT file_path, line_number FROM 
 /codebase-search "authentication middleware pattern"
 /cfn-ruvector-search "error handling in API routes"
 
-# CLI direct (note: query text is positional, use --max-results not --limit)
-./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query "user login flow" --max-results 5
+# CLI direct (global install preferred)
+local-ruvector query "user login flow" --max-results 5
 ```
 
 ### Structural Search (V2 - SQL on AST)
@@ -47,6 +47,19 @@ sqlite3 ~/.local/share/ruvector/index_v2.db \
 sqlite3 ~/.local/share/ruvector/index_v2.db \
   "SELECT COUNT(*) FROM entities WHERE project_root = '/path/to/project';"
 ```
+
+## Installation
+
+**Global install (recommended for multi-project use):**
+```bash
+# From claude-flow-novice project
+./scripts/install-ruvector-global.sh
+
+# Verify
+local-ruvector --version
+```
+
+This installs to `~/.local/bin/local-ruvector` for access from any project.
 
 ## Prerequisites
 
@@ -73,7 +86,7 @@ echo $OPENAI_API_KEY  # Should show your key (not empty)
 
 ```bash
 # Index a project (first time or full rebuild)
-./target/release/local-ruvector index --path /path/to/project --types rs,ts,py
+local-ruvector index --path /path/to/project --types rs,ts,py
 
 # Incremental update (after code changes)
 /codebase-reindex
@@ -102,7 +115,7 @@ Before implementing changes, ALWAYS query RuVector first:
 # Find similar patterns (slash command uses --top, CLI uses --max-results)
 /codebase-search "relevant search terms" --top 5
 # Or via CLI:
-./local-ruvector query "relevant search terms" --max-results 5
+local-ruvector query "relevant search terms" --max-results 5
 
 # Query past errors
 ./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh --task-description "description"

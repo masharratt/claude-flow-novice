@@ -54,7 +54,7 @@ Always provide `context_files` when code needs imports from existing files.
    ```bash
    # Semantic search
    /codebase-search "authentication middleware pattern"
-   ./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector query --pattern "auth"
+   local-ruvector query --pattern "auth"
 
    # Structural SQL query
    sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT * FROM refs WHERE target_name = 'MyFunction';"
