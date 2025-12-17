@@ -1,3 +1,211 @@
+# Dependencies
+node_modules/
+.deno/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+# dist/ symlink preserved - points to .claude-flow-novice/dist
+!dist
+build/
+out/
+*.exe
+.turbo/
+claude-assets/
+
+# SEO Knowledge Store - Temporary Learning Files (deleted after indexing to RuVector)
+.claude/skills/cfn-seo-pipeline/lib/seo/knowledge-store/learning/
+planning/seo/knowledge-store/learning/
+
+# Binaries
+bin/claude-flow-*
+!bin/claude-flow
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment and Secrets (Phase 1.2a)
+.env
+.env.local
+.env.*.local
+.env.keys
+.env.backup.*
+.claude/api-configs/env-backups/
+.claude/api-configs/*.env
+.claude/backups/                     # Settings backups (contain API keys)
+!.claude/backups/.gitkeep            # Keep directory structure
+.env/worker
+*.env
+
+# Docker Secrets and Encryption (Phase 1.2a)
+.secrets/                          # Raw unencrypted credential files
+!.secrets/.gitkeep               # Keep directory in git
+docker/trigger-dev/.secrets/     # Development secrets
+.backups/encryption/             # Encrypted file backups
+!.backups/encryption/.gitkeep    # Keep directory in git
+
+# Age Encryption Keys (Phase 1.2a)
+~/.age/                          # User's age key directory
+.age/key.txt                     # Age private key (NEVER commit)
+*.age.key                        # Age private key files (NEVER commit)
+
+# Encrypted Credentials (Phase 1.2a)
+# .env.encrypted IS allowed (contains encrypted credentials)
+# But the age private key is NOT allowed
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Test artifacts and coverage
+coverage/
+coverage-*/
+*.lcov
+test-results/
+*.tsbuildinfo
+
+# Legacy test artifacts
+playwright-report/
+.nyc_output/
+
+# Test output directories
+tests/results/
+tests/logs/
+tests/temp-*/
+
+# Enterprise test systems (gitignored during development)
+tests/enterprise/
+
+# Artifacts directory (ephemeral test/build data)
+.artifacts/
+.artifacts/**
+
+# Allow persistent databases (permanent project knowledge)
+!.artifacts/database/
+!.artifacts/database/swarm-memory.db
+!.artifacts/database/coordination-state.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+*.egg
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+*.tmp
+*.temp
+.cache/
+tmp/
+
+# Claude-Flow specific
+claude-flow.db
+claude-flow.config.json
+.claude-flow*
+# memory/
+# sessions/
+
+# MCP/Swarm
+.ruv-swarm/
+mcp-server.log
+swarm-debug.log
+memory/backups/
+ui_*.log
+init-output.log
+
+# Development
+*.pid
+*.seed
+*.pid.lock
+package
+test-init
+test-full-init
+swarm-runs
+
+# Temporary files
+analyzing
+the
+claude-flow-mcp-wrapper
+
+# SQLite Database Files
+.swarm/memory.db*
+.hive-mind/hive.db*
+
+# Database files (runtime state)
+database/*.db
+database/*.db-wal
+database/*.db-shm
+
+# Rust
+*/target/
+target/
+**/*.rs.bk
+**/*.bk
+
+# Rust Cargo
+**/Cargo.lock
+**/.cargo/
+**/target/
+**/target/debug/
+**/target/release/
+
+# Rust build artifacts
+**/target/.rustc_info.json
+**/target/CACHEDIR.TAG
+**/target/debug/deps/
+**/target/debug/build/
+**/target/debug/.fingerprint/
+**/target/debug/incremental/
+
+# TypeScript build artifacts
+**/dist/
+**/.tsbuildinfo
+**/build/
+
+# Test artifacts and temp files
+tests/epic-skills-validation/
+**/test-*.subtasks.json
+**/test-debug*.subtasks.json
+**/test-final*.subtasks.json
+**/test-simple*.subtasks.json
+**/test-456-subtasks.json
+**/test-789-subtasks.json
+**/test-999-subtasks.json
+**/test-debug*.subtasks.json
+**/test-debug2*.subtasks.json
+
+# Task decomposition prompts and outputs
+.claude/skills/cfn-task-decomposition/prompts/
+**/prompts/*.md
+**/prompts/*.prompt.md
+
+# Claude assets
+.claude/backups/cfn-expert/
+.claude/state/
+.claude/skills/.cfn/
+
+
+
 # Claude Flow generated files
 .claude/settings.local.json
 # CRITICAL: Contains API keys and sensitive credentials - NEVER commit this file
@@ -43,7 +251,7 @@ hive-mind-prompt-*.txt
 planning/large-coordination/*
 planning/legion/*
 planning/global/
-planning/side-projects/
+planning/side-projects
 
 
 # Legacy v1 - exclude build artifacts and large files
