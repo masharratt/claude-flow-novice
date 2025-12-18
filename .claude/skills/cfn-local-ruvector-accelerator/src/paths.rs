@@ -22,8 +22,10 @@ pub fn get_database_path() -> Result<PathBuf> {
     Ok(get_ruvector_dir()?.join("index_v2.db"))
 }
 
-/// Get the legacy V1 index path (for migration)
-/// Location: ~/.local/share/ruvector/index/
+/// DEPRECATED: V1 index is no longer used
+/// All operations should use index_v2.db via get_database_path()
+/// This function remains only for migration cleanup
+#[deprecated(since = "2.0.0", note = "V1 index removed. Use get_database_path() for V2.")]
 pub fn get_v1_index_dir() -> Result<PathBuf> {
     Ok(get_ruvector_dir()?.join("index"))
 }

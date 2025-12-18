@@ -1,3 +1,13 @@
+//! DEPRECATED: V1 Search Engine
+//!
+//! This module is deprecated. All new code should use:
+//! - `query_v2::QueryV2` for semantic search
+//! - `store_v2::StoreV2` for storage operations
+//! - `schema_v2::SchemaV2` for database initialization
+//!
+//! The V1 system used a separate index directory (~/.local/share/ruvector/index/).
+//! V2 uses a single centralized database (~/.local/share/ruvector/index_v2.db).
+
 use anyhow::{Result, Context, anyhow};
 use ndarray::{Array1, Array2};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
@@ -10,6 +20,7 @@ use tracing::info;
 use memmap2::MmapOptions;
 use crate::embeddings::EmbeddingsManager;
 use crate::sqlite_store::SqliteStore;
+#[allow(deprecated)]
 use crate::paths::get_v1_index_dir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

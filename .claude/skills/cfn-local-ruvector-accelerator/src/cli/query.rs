@@ -70,7 +70,7 @@ impl QueryCommand {
 
         // Set default values
         let max_results = self.config.max_results.unwrap_or(10);
-        let threshold = self.config.threshold.unwrap_or(0.5);
+        let threshold = self.config.threshold.unwrap_or(0.3);
 
         // Perform search with project root isolation
         let results = self.query_v2.search(&self.config.query, max_results, threshold, &self.project_dir)?;

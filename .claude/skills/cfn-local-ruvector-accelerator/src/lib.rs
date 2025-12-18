@@ -24,6 +24,7 @@ pub use embeddings::EmbeddingsManager;
 pub use sqlite_store::SqliteStore;
 pub use search_engine::SearchEngine;
 pub use paths::{get_ruvector_dir, get_database_path};
+// V1 index functions are deprecated - use V2 via get_database_path()
 pub use store_v2::StoreV2;
 pub use store_v2_tx::StoreV2WithTx;
 pub use schema_v2::SchemaV2;

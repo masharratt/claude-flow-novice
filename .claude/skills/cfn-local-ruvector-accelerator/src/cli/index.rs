@@ -63,7 +63,8 @@ use crate::extractors::text_fallback::TextFallbackExtractor;
 use crate::store_v2::{StoreV2, Entity as StoreEntity, Reference as StoreReference, TypeUsage};
 use crate::schema_v2::{EntityKind, RefKind, Visibility};
 use crate::path_validator;
-use local_ruvector::paths::{get_ruvector_dir, get_database_path, get_v1_index_dir};
+use local_ruvector::paths::{get_ruvector_dir, get_database_path};
+// V1 index is deprecated - all operations use V2 (index_v2.db)
 
 /// Directories to exclude from indexing.
 /// These are typically build artifacts, dependencies, VCS, or sensitive directories.

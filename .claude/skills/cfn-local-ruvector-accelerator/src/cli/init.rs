@@ -8,7 +8,8 @@ use crate::embeddings::EmbeddingsManager;
 use crate::search_engine::SearchEngine;
 use crate::sqlite_store::SqliteStore;
 use crate::migration_v2::MigrationV2;
-use local_ruvector::paths::{get_ruvector_dir, get_v1_index_dir, get_database_path};
+use local_ruvector::paths::{get_ruvector_dir, get_database_path};
+// V1 index is deprecated - all operations use V2 (index_v2.db)
 
 pub struct InitCommand {
     project_dir: PathBuf,
@@ -60,8 +61,7 @@ impl InitCommand {
                 .context("Failed to create RuVector directory")?;
             fs::create_dir_all(ruvector_dir.join("embeddings"))
                 .context("Failed to create embeddings directory")?;
-            fs::create_dir_all(get_v1_index_dir()?)
-                .context("Failed to create index directory")?;
+            // V1 index directory no longer created - using centralized V2 database
             fs::create_dir_all(ruvector_dir.join("cache"))
                 .context("Failed to create cache directory")?;
         } else {

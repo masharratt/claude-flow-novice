@@ -1,75 +1,109 @@
 #!/bin/bash
-# Post-commit hook for incremental codebase indexing
-# Automatically updates RuVector index with committed files
-#
-# Install: ln -s ../../.claude/hooks/post-commit-codebase-index .git/hooks/post-commit
+# Post-commit hook - incremental RuVector indexing
+# Handles: Added, Modified, Deleted, and Renamed files
+# Symlink: ln -sf ../../.claude/hooks/post-commit-codebase-index .git/hooks/post-commit
 
 set -euo pipefail
 
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../skills/ruvector-codebase-index" && pwd)"
-INDEX_SCRIPT="$SKILL_DIR/index.sh"
-MOVE_HANDLER="$SKILL_DIR/handle-file-moves.sh"
+# Config
+INDEXABLE_EXT="ts|tsx|js|jsx|rs|py|sh|md"
+LOG_FILE="/tmp/ruvector-post-commit.log"
+DB_PATH="$HOME/.local/share/ruvector/index_v2.db"
+PROJECT_ROOT="$(pwd)"
 
 # Colors
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${BLUE}[RuVector]${NC} Post-commit indexing hook triggered"
+log() { echo -e "${BLUE}[RuVector]${NC} $1" | tee -a "$LOG_FILE"; }
+log_success() { echo -e "${GREEN}[RuVector]${NC} $1" | tee -a "$LOG_FILE"; }
+log_warn() { echo -e "${YELLOW}[RuVector]${NC} $1" | tee -a "$LOG_FILE"; }
 
-# Check if indexing is enabled
-if [[ "${RUVECTOR_AUTO_INDEX:-true}" != "true" ]]; then
-  echo -e "${YELLOW}[RuVector]${NC} Auto-indexing disabled (set RUVECTOR_AUTO_INDEX=true to enable)"
+# Find ruvector binary
+RUVECTOR_BIN="${RUVECTOR_BIN:-}"
+[ -z "$RUVECTOR_BIN" ] && command -v local-ruvector >/dev/null && RUVECTOR_BIN="local-ruvector"
+[ -z "$RUVECTOR_BIN" ] && [ -x "$HOME/.local/bin/local-ruvector" ] && RUVECTOR_BIN="$HOME/.local/bin/local-ruvector"
+
+# Check if binary exists
+if [ -z "$RUVECTOR_BIN" ]; then
+  log_warn "local-ruvector binary not found"
   exit 0
 fi
 
-# Check if API key is available
-if [[ -z "${OPENAI_API_KEY:-}" && -z "${ZAI_API_KEY:-}" ]]; then
-  echo -e "${YELLOW}[RuVector]${NC} Skipping indexing: No API key found"
+# Check if auto-index is enabled
+if [ "${RUVECTOR_AUTO_INDEX:-true}" != "true" ]; then
+  log_warn "Auto-indexing disabled"
   exit 0
 fi
 
-# STEP 1: Handle file moves/renames (delete old entries, index new locations)
-echo -e "${BLUE}[RuVector]${NC} Checking for file moves..."
-"$MOVE_HANDLER" --from-commit 2>&1 | tee -a /tmp/ruvector-moves.log
+log "Checking committed files..."
 
-# STEP 2: Get list of added/modified files from the last commit
-COMMITTED_FILES=$(git diff-tree --no-commit-id --name-only --diff-filter=AM -r HEAD 2>/dev/null || echo "")
+# === Handle DELETED files (D) ===
+DELETED_FILES=$(git diff-tree --no-commit-id --name-only --diff-filter=D -r HEAD 2>/dev/null || true)
+DELETED_INDEXABLE=$(echo "$DELETED_FILES" | grep -E "\.($INDEXABLE_EXT)$" || true)
 
-if [[ -z "$COMMITTED_FILES" ]]; then
-  echo -e "${YELLOW}[RuVector]${NC} No files to index"
-  exit 0
+if [ -n "$DELETED_INDEXABLE" ] && [ -f "$DB_PATH" ]; then
+  DELETE_COUNT=$(echo "$DELETED_INDEXABLE" | grep -c . || echo 0)
+  log "Removing $DELETE_COUNT deleted file(s) from index..."
+
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    FULL_PATH="$PROJECT_ROOT/$file"
+    # Escape single quotes for SQL
+    SAFE_PATH=$(echo "$FULL_PATH" | sed "s/'/''/g")
+    sqlite3 "$DB_PATH" "DELETE FROM entities WHERE file_path = '$SAFE_PATH';" 2>/dev/null || true
+    echo "  Removed: $file" >> "$LOG_FILE"
+  done <<< "$DELETED_INDEXABLE"
+
+  log_success "Removed $DELETE_COUNT deleted file(s) from index"
 fi
 
-# Filter for indexable files
-CONFIG_FILE="$SKILL_DIR/config.json"
-INDEXABLE_EXTENSIONS=$(jq -r '.indexableExtensions[]' "$CONFIG_FILE" 2>/dev/null || echo "")
+# === Handle RENAMED files (R) ===
+# Git shows renames as: R100\told_path\tnew_path
+RENAMED_FILES=$(git diff-tree --no-commit-id -r -M --diff-filter=R HEAD 2>/dev/null | awk '{print $6 "\t" $7}' || true)
 
-INDEXABLE_FILES=()
-while IFS= read -r file; do
-  if [[ -f "$file" ]]; then
-    ext=".${file##*.}"
-    if echo "$INDEXABLE_EXTENSIONS" | grep -q "$ext"; then
-      INDEXABLE_FILES+=("$file")
+if [ -n "$RENAMED_FILES" ] && [ -f "$DB_PATH" ]; then
+  RENAME_COUNT=$(echo "$RENAMED_FILES" | grep -c . || echo 0)
+  log "Updating $RENAME_COUNT renamed file(s) in index..."
+
+  while IFS=$'\t' read -r old_path new_path; do
+    [ -z "$old_path" ] || [ -z "$new_path" ] && continue
+    # Only process indexable file types
+    if echo "$new_path" | grep -qE "\.($INDEXABLE_EXT)$"; then
+      OLD_FULL="$PROJECT_ROOT/$old_path"
+      NEW_FULL="$PROJECT_ROOT/$new_path"
+      SAFE_OLD=$(echo "$OLD_FULL" | sed "s/'/''/g")
+      SAFE_NEW=$(echo "$NEW_FULL" | sed "s/'/''/g")
+      sqlite3 "$DB_PATH" "UPDATE entities SET file_path = '$SAFE_NEW' WHERE file_path = '$SAFE_OLD';" 2>/dev/null || true
+      echo "  Renamed: $old_path -> $new_path" >> "$LOG_FILE"
     fi
-  fi
-done <<< "$COMMITTED_FILES"
+  done <<< "$RENAMED_FILES"
 
-if [[ ${#INDEXABLE_FILES[@]} -eq 0 ]]; then
-  echo -e "${YELLOW}[RuVector]${NC} No indexable files in commit"
+  log_success "Updated $RENAME_COUNT renamed file(s) in index"
+fi
+
+# === Handle ADDED and MODIFIED files (AM) ===
+# Check for API key (only needed for indexing new/modified files)
+if [ -z "${OPENAI_API_KEY:-}" ] && [ -z "${ZAI_API_KEY:-}" ]; then
+  log_warn "No API key found - skipping new file indexing"
   exit 0
 fi
 
-echo -e "${BLUE}[RuVector]${NC} Indexing ${#INDEXABLE_FILES[@]} file(s)..."
+FILES=$(git diff-tree --no-commit-id --name-only --diff-filter=AM -r HEAD 2>/dev/null || true)
+INDEXABLE_FILES=$(echo "$FILES" | grep -E "\.($INDEXABLE_EXT)$" || true)
 
-# Run indexing in background to not block git operations
-(
-  "$INDEX_SCRIPT" --files "${INDEXABLE_FILES[@]}" > /tmp/ruvector-index.log 2>&1
-  echo -e "${GREEN}[RuVector]${NC} Index updated successfully"
-) &
+if [ -z "$INDEXABLE_FILES" ]; then
+  log "No new/modified indexable files"
+  exit 0
+fi
 
-# Don't wait for indexing to complete
-echo -e "${BLUE}[RuVector]${NC} Indexing started in background (check /tmp/ruvector-index.log for details)"
+FILE_COUNT=$(echo "$INDEXABLE_FILES" | grep -c . || echo 0)
+log "$FILE_COUNT file(s) added/modified, triggering incremental index..."
+echo "$INDEXABLE_FILES" >> "$LOG_FILE"
+nohup bash -c "$RUVECTOR_BIN index --path . >> '$LOG_FILE' 2>&1 && echo '[RuVector] Index updated' >> '$LOG_FILE'" >/dev/null 2>&1 &
+log "Indexing started in background (log: $LOG_FILE)"
 
 exit 0

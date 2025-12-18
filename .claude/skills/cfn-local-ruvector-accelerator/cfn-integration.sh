@@ -1,10 +1,10 @@
 #!/bin/bash
 # CFN Integration Script for Local RuVector Accelerator
+# Works for both source repo and npm-installed packages
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BINARY_PATH="$SCRIPT_DIR/target/release/local-ruvector"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Colors for output
@@ -30,12 +30,53 @@ log_error() {
     echo -e "${RED}❌ $1${NC}"
 }
 
+# Find binary - check multiple locations
+find_binary() {
+    # 1. Check if in PATH
+    if command -v local-ruvector &> /dev/null; then
+        echo "$(command -v local-ruvector)"
+        return 0
+    fi
+
+    # 2. Check ~/.local/bin
+    if [[ -x "$HOME/.local/bin/local-ruvector" ]]; then
+        echo "$HOME/.local/bin/local-ruvector"
+        return 0
+    fi
+
+    # 3. Check local target directory (source repo)
+    if [[ -x "$SCRIPT_DIR/target/release/local-ruvector" ]]; then
+        echo "$SCRIPT_DIR/target/release/local-ruvector"
+        return 0
+    fi
+
+    return 1
+}
+
 # Ensure binary exists
-if [[ ! -f "$BINARY_PATH" ]]; then
-    log_info "Building Local RuVector..."
-    cd "$SCRIPT_DIR"
-    cargo build --release
-    log_success "Build complete"
+BINARY_PATH=""
+if ! BINARY_PATH=$(find_binary); then
+    # Try to build if Rust is available
+    if command -v cargo &> /dev/null && [[ -f "$SCRIPT_DIR/Cargo.toml" ]]; then
+        log_info "Building Local RuVector..."
+        cd "$SCRIPT_DIR"
+        cargo build --release
+        BINARY_PATH="$SCRIPT_DIR/target/release/local-ruvector"
+
+        # Install to ~/.local/bin for future use
+        if [[ -n "$HOME" ]]; then
+            mkdir -p "$HOME/.local/bin"
+            cp "$BINARY_PATH" "$HOME/.local/bin/local-ruvector"
+            chmod +x "$HOME/.local/bin/local-ruvector"
+            log_success "Installed local-ruvector to ~/.local/bin/"
+        fi
+        log_success "Build complete"
+    else
+        log_error "local-ruvector binary not found and cannot build (Rust not available)"
+        log_info "Install Rust: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+        log_info "Then run: npm run ruvector:local:build"
+        exit 1
+    fi
 fi
 
 # CFN integration commands
