@@ -22,11 +22,13 @@ Purpose: concise reference for CFN agents. Focus on persona, mandatory rules, ed
 - Batch operations: one message per batch (spawns, edits, shell, todos, memory).
 - Never mix implementers and validators in one message.
 - Do not run tests inside agents; run once via coordinator/main chat, agents read results.
+- **ANTI-024: Never run test commands with `run_in_background: true`** - orphaned test processes cause memory leaks. Always run tests synchronously. If tests hang, investigate; don't background them.
 - Never save to project root; use appropriate subdirectories.
 - Never hardcode secrets; always redact as `[REDACTED]`.
 - Use RuVector SQL for indexed projects (400x faster than grep); use grep only for non-indexed projects or non-code strings.
 - When monitoring, sleep-check-sleep loops.
 - All agent communication must use coordination protocols; no ad-hoc file coordination.
+- Run `./.claude/cfn-scripts/check-memory.sh` periodically to detect orphaned test processes; use `--kill` to clean them up.
 
 ## 3) Cerebras MCP & Context Discovery Protocols
 
@@ -384,11 +386,37 @@ Anti-patterns: pausing to ask what next, manual Task() for CLI workflows, skippi
 - Record any skipped tests with justification and follow-up owner.
 
 ## 29) Incident Response Notes
-- Capture exact command, commit hash, environment variables, and logs.  
-- Use `[REDACTED]` when logging sensitive fields.  
-- Prefer rollback via backup scripts rather than git reset.  
-- If orchestration deadlocks, restart orchestrator and clear stale Redis keys scoped to the task.  
+- Capture exact command, commit hash, environment variables, and logs.
+- Use `[REDACTED]` when logging sensitive fields.
+- Prefer rollback via backup scripts rather than git reset.
+- If orchestration deadlocks, restart orchestrator and clear stale Redis keys scoped to the task.
 - File incidents or backlog items using `.claude/skills/cfn-backlog-management/add-backlog-item.sh` with cause and remediation.
+
+## 30) Memory Leak Prevention (ANTI-024)
+Background test processes can become orphaned and accumulate memory. Use these tools to prevent and recover:
+
+**CLI Commands (available after npm install):**
+- `npx cfn-check-memory` - Report orphaned test processes
+- `npx cfn-check-memory --kill` - Kill orphaned processes
+- `npx cfn-check-memory --kill 500` - Kill only if total MB > 500
+- `npx cfn-run-limited 6G <command>` - Run command with 6GB memory limit (systemd cgroups)
+
+**NPM Scripts:**
+- `npm run test:safe` - Full test suite with 6GB limit
+- `npm run test:unit:safe` - Unit tests with 2GB limit
+- `npm run check:memory` - Report orphans
+- `npm run check:memory:kill` - Kill orphans
+
+**Prevention Rules:**
+- Never use `run_in_background: true` for test commands
+- Jest config enforces: `maxWorkers: 4`, `forceExit: true`, `workerIdleMemoryLimit: 512MB`
+- If tests hang, investigate root cause; don't background them
+
+**Recovery:**
+```bash
+npx cfn-check-memory --kill    # Kill all orphaned test processes
+ps aux | grep -E "(jest|vitest|node.*test)" | grep -v grep  # Manual check
+```
 
 ---
 

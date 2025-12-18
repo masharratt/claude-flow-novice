@@ -5,13 +5,15 @@
   "main": "index.js",
   "type": "module",
   "bin": {
-    "cfn-init": "./scripts/cfn-init.js"
+    "cfn-init": "./scripts/cfn-init.js",
+    "cfn-check-memory": "./.claude/cfn-scripts/check-memory.sh",
+    "cfn-run-limited": "./.claude/cfn-scripts/run-with-memory-limit.sh"
   },
   "scripts": {
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "test:unit": "jest --testPathPattern=tests/unit --coverage --coverageDirectory=coverage/unit",
-    "test:integration": "jest --testPathPattern=tests/integration --coverage --coverageDirectory=coverage/integration",
-    "test:e2e": "jest --testPathPattern=tests/e2e --coverage --coverageDirectory=coverage/e2e",
+    "test:unit": "./.claude/cfn-scripts/run-with-memory-limit.sh 2G jest --testPathPattern=tests/unit --coverage --coverageDirectory=coverage/unit",
+    "test:integration": "./.claude/cfn-scripts/run-with-memory-limit.sh 4G jest --testPathPattern=tests/integration --coverage --coverageDirectory=coverage/integration",
+    "test:e2e": "./.claude/cfn-scripts/run-with-memory-limit.sh 6G jest --testPathPattern=tests/e2e --coverage --coverageDirectory=coverage/e2e",
     "test:docker": "./tests/docker-mode/run-all-implementations.sh",
     "test:cli": "./tests/cli-mode/run-all-tests.sh",
     "test:cfn-v3": "./tests/cfn-v3/test-e2e-cfn-loop.sh",
@@ -61,6 +63,8 @@
     "ruvector:local:query": "./.claude/skills/cfn-local-ruvector-accelerator/cfn-integration.sh query",
     "ruvector:local:stats": "./.claude/skills/cfn-local-ruvector-accelerator/cfn-integration.sh stats",
     "ruvector:local:build": "cd .claude/skills/cfn-local-ruvector-accelerator && cargo build --release",
+    "check:memory": "./.claude/cfn-scripts/check-memory.sh",
+    "check:memory:kill": "./.claude/cfn-scripts/check-memory.sh --kill",
     "ci:pre-commit": "npm run lint && npm run test:unit && npm run security:audit",
     "ci:full": "npm run test && npm run lint:fix && npm run security:audit && npm run performance:benchmark",
     "dev:watch": "concurrently \"npm run build:watch\" \"nodemon dist/index.js\"",
