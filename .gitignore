@@ -203,7 +203,7 @@ tests/epic-skills-validation/
 .claude/backups/cfn-expert/
 .claude/state/
 .claude/skills/.cfn/
-
+*/backups/*
 
 
 # Claude Flow generated files
