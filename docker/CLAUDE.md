@@ -1068,6 +1068,55 @@ docker exec cfn-redis redis-cli FLUSHALL
 
 ---
 
+## Multi-Worktree Coordination
+
+### Overview
+
+One git worktree per developer with isolation via `COMPOSE_PROJECT_NAME`. Port offsets are auto-calculated with `run-in-worktree.sh` to avoid conflicts.
+
+### Required Environment Variables
+
+When spawning agents in a worktree context:
+
+```bash
+export COMPOSE_PROJECT_NAME="cfn-${BRANCH}"
+export CFN_REDIS_PORT="${CFN_REDIS_PORT}"
+export CFN_POSTGRES_PORT="${CFN_POSTGRES_PORT}"
+export WORKTREE_BRANCH="${BRANCH}"
+```
+
+### Service Names
+
+Use service names inside Docker networks (not container names):
+- `redis` (not `cfn-redis-feature-branch`)
+- `postgres` (not `cfn-postgres-feature-branch`)
+- `orchestrator` (not `cfn-orchestrator-xyz`)
+
+### Port Examples
+
+| Worktree | Redis | Postgres | API |
+|----------|-------|----------|-----|
+| main | 6379 | 5432 | 3001 |
+| feature-auth | ~6421 | ~5474 | ~3043 |
+| bugfix-validation | ~6457 | ~5510 | ~3079 |
+
+### Playbook
+
+1. Create or enter worktree with branch-specific name
+2. Run `./scripts/docker/run-in-worktree.sh up -d` to start services
+3. Export project/port env vars before spawning agents
+4. Connect using service names inside the network; from host, use offset ports
+5. Tear down with `./scripts/docker/run-in-worktree.sh down` and prune networks if needed
+
+### Checklist
+
+- [ ] Start stack with `./scripts/docker/run-in-worktree.sh up -d`
+- [ ] Isolate Redis keys by task IDs
+- [ ] Avoid shared volumes between worktrees
+- [ ] Use service names only inside Docker network
+
+---
+
 ## File Structure
 
 ```

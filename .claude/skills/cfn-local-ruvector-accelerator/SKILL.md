@@ -1,25 +1,41 @@
+---
+name: ruvector-code-search
+description: "MANDATORY: Query RuVector BEFORE using grep, glob, find, or search. Performs 400x faster semantic and structural code search via SQL on indexed codebase. Use for finding functions, classes, patterns, callers, and implementations. Agents MUST query RuVector first; grep is only allowed after RuVector returns zero results."
+allowed-tools: Bash, Read, SlashCommand
+---
+
 # RuVector Local Semantic Code Search
 
-## WHEN TO USE THIS SKILL
+## MANDATORY: QUERY RUVECTOR BEFORE GREP/GLOB
 
-**USE RuVector V2 SQL for ALL indexed projects (400x FASTER than grep):**
+**This is a PROTOCOL REQUIREMENT, not a suggestion. Failure to query RuVector first is a violation.**
+
+### WHY THIS IS MANDATORY
+- RuVector SQL: 0.002s | grep: 0.8s (400x slower)
+- Agents using grep first waste tokens and time
+- Index already exists at `~/.local/share/ruvector/index_v2.db`
+
+### ALWAYS USE RUVECTOR FIRST
 ```bash
-# Exact name lookup - 0.002s vs grep's 0.8s
+# Exact name lookup - 0.002s
 sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT file_path, line_number FROM entities WHERE name = 'MyFunction';"
 
 # Fuzzy search - 0.004s
 sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT file_path, line_number FROM entities WHERE name LIKE '%Store%' LIMIT 10;"
+
+# Semantic search
+/codebase-search "authentication middleware pattern"
 ```
 
-**USE grep/rg ONLY when:**
-- Project is NOT indexed yet
-- Searching for strings that aren't code entities (error messages, comments, config values)
-- Quick one-off search in small directory
+### GREP IS ONLY ALLOWED WHEN:
+- RuVector query returned zero results AND project confirmed not indexed
+- Searching literal strings (error messages, comments, config values)
+- Explicit user request for grep
 
-**USE RuVector semantic search when:**
-- "Where is authentication implemented?" (conceptual search)
-- Finding similar patterns you can't name exactly
-- Discovering how a feature is built
+### FOR CONCEPTUAL QUESTIONS:
+- "Where is X implemented?" → RuVector semantic search
+- "Find similar patterns" → RuVector embeddings
+- "How is feature Y built?" → RuVector first, then read files
 
 ## Quick Commands
 
@@ -108,20 +124,23 @@ sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT project_root, COUNT(*) FROM 
 ~/.local/share/ruvector/index_v2.db
 ```
 
-## For Agents
+## For Agents (MANDATORY PROTOCOL)
 
-Before implementing changes, ALWAYS query RuVector first:
+**DO NOT use grep/glob until you have queried RuVector. This is enforced.**
+
 ```bash
-# Find similar patterns (slash command uses --top, CLI uses --max-results)
+# STEP 1: Query RuVector FIRST (required)
 /codebase-search "relevant search terms" --top 5
-# Or via CLI:
-local-ruvector query "relevant search terms" --max-results 5
+# Or SQL:
+sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT file_path, line_number FROM entities WHERE name LIKE '%keyword%';"
 
-# Query past errors
+# STEP 2: Query past errors before similar work
 ./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh --task-description "description"
 
-# Query learnings
+# STEP 3: Query learnings for patterns
 ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "description" --category PATTERN
+
+# STEP 4: Only if RuVector returns nothing, then use grep
 ```
 
-This prevents duplicated work and leverages existing solutions.
+**Violation of this protocol wastes tokens and time. RuVector exists to prevent duplicated work.**

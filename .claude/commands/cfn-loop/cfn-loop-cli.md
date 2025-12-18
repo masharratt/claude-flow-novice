@@ -265,6 +265,15 @@ The orchestrator returns structured results:
 }
 ```
 
+## Validation Flow Summary
+
+1. **Loop 3 Gate:** Test pass rate must meet mode threshold before validators start
+2. **Loop 2 Validators:** Need access to Loop 3 outputs, tests, and logs
+3. **Product Owner Decision:** Parsed via `.claude/skills/product-owner-decision/execute-decision.sh`
+4. **Gate Failure:** Iterate Loop 3 only
+5. **Gate Pass:** Proceed to validators
+6. **Decision Outcomes:** PROCEED (done), ITERATE (repeat), ABORT (stop with error)
+
 This simplified architecture provides:
 - ✅ **Zero external dependencies** - runs anywhere Node.js is available
 - ✅ **Fast execution** - parallel decomposition and implementation
