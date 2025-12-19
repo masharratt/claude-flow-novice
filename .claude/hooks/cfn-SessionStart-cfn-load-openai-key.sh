@@ -3,13 +3,19 @@
 # SessionStart hook: Load OpenAI API key from root .env file
 # This ensures OPENAI_API_KEY is available for embedding generation
 #
-# IMPORTANT: SessionStart hooks must OUTPUT JSON to set env vars.
-# Using 'export' only affects the subprocess, not Claude Code.
+# IMPORTANT: SessionStart hooks must write to CLAUDE_ENV_FILE to set env vars.
+# JSON output and 'export' do NOT work - only CLAUDE_ENV_FILE persists.
 
 set -e
 
 # Path to root .env file
 ROOT_ENV="${PROJECT_ROOT:-.}/.env"
+
+# Check if CLAUDE_ENV_FILE is available (only in SessionStart hooks)
+if [[ -z "$CLAUDE_ENV_FILE" ]]; then
+    echo "⚠️  CLAUDE_ENV_FILE not set - not running as SessionStart hook" >&2
+    exit 0
+fi
 
 # Check if .env exists
 if [[ ! -f "$ROOT_ENV" ]]; then
@@ -32,10 +38,9 @@ if grep -q "^OPENAI_API_KEY=" "$ROOT_ENV"; then
         exit 0
     fi
 
-    # Output JSON to set environment variable in Claude Code
-    # This is how SessionStart hooks properly set env vars
-    echo "{\"env\":{\"OPENAI_API_KEY\":\"$OPENAI_KEY\"}}"
-    echo "✅ Loaded OPENAI_API_KEY from root .env (${OPENAI_KEY:0:10}...)" >&2
+    # Write to CLAUDE_ENV_FILE - this is how SessionStart hooks set env vars
+    echo "export OPENAI_API_KEY=\"$OPENAI_KEY\"" >> "$CLAUDE_ENV_FILE"
+    echo "✅ Loaded OPENAI_API_KEY from .env (${OPENAI_KEY:0:10}...)" >&2
 else
     echo "⚠️  Warning: OPENAI_API_KEY not found in $ROOT_ENV. OpenAI embeddings will not work." >&2
 fi
