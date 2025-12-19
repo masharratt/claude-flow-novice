@@ -134,13 +134,10 @@ sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT project_root, COUNT(*) FROM 
 # Or SQL:
 sqlite3 ~/.local/share/ruvector/index_v2.db "SELECT file_path, line_number FROM entities WHERE name LIKE '%keyword%';"
 
-# STEP 2: Query past errors before similar work
-./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh --task-description "description"
+# STEP 2: Query past errors/patterns
+./.claude/skills/cfn-local-ruvector-accelerator/query-agent-patterns.sh "description"
 
-# STEP 3: Query learnings for patterns
-./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "description" --category PATTERN
-
-# STEP 4: Only if RuVector returns nothing, then use grep
+# STEP 3: Only if RuVector returns nothing, then use grep
 ```
 
 **Violation of this protocol wastes tokens and time. RuVector exists to prevent duplicated work.**
