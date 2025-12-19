@@ -29,13 +29,31 @@ Analyzes all `.md` files in the codebase to detect legacy/outdated documentation
 - Score 2-4: **POSSIBLY STALE** (minor issues)
 
 **Prerequisites:**
-- Codebase must be indexed first (`/codebase-reindex`)
-- ZAI_API_KEY must be set (for semantic search)
+- Codebase must be indexed first (`/cfn-codebase-reindex`)
+- OPENAI_API_KEY must be set (for semantic search)
 
 ---
 
-Run the stale documentation detector:
+**Note:** This is a planned feature. Currently use these manual queries:
 
 ```bash
-./.claude/skills/cfn-ruvector-codebase-index/detect-stale-docs.sh
+# Find docs older than 90 days with no recent code references
+sqlite3 ~/.local/share/ruvector/index_v2.db "
+SELECT e.file_path, e.name,
+       datetime(e.created_at, 'unixepoch') as indexed_at
+FROM entities e
+WHERE e.file_path LIKE '%.md'
+  AND e.project_root LIKE '%$(pwd)%'
+  AND (e.name LIKE '%legacy%' OR e.name LIKE '%deprecated%' OR e.name LIKE '%old%')
+LIMIT 20;"
+
+# Find orphan docs (no references)
+sqlite3 ~/.local/share/ruvector/index_v2.db "
+SELECT DISTINCT e.file_path
+FROM entities e
+LEFT JOIN refs r ON e.id = r.source_entity_id OR e.id = r.target_entity_id
+WHERE e.file_path LIKE '%.md'
+  AND e.project_root LIKE '%$(pwd)%'
+  AND r.id IS NULL
+LIMIT 20;"
 ```
