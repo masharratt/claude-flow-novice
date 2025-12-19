@@ -27,10 +27,11 @@ Search your indexed codebase using RuVector. Uses SQLite index for fast lookups.
 Execute the search:
 
 ```bash
-# Load API key from .env if not set
-if [[ -z "$OPENAI_API_KEY" ]] && [[ -f ".env" ]]; then
-    export OPENAI_API_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2- | tr -d '"')
+# Load from .env if current key is invalid
+if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]] && [[ -f ".env" ]]; then
+    export OPENAI_API_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
 fi
+[[ ! "$OPENAI_API_KEY" =~ ^sk- ]] && { echo "❌ OPENAI_API_KEY invalid. Add to .env" >&2; exit 1; }
 
 RUVECTOR_BIN="${HOME}/.local/bin/local-ruvector"
 [ ! -f "$RUVECTOR_BIN" ] && RUVECTOR_BIN="./.claude/skills/cfn-local-ruvector-accelerator/target/release/local-ruvector"

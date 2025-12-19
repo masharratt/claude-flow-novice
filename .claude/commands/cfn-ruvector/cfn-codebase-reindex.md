@@ -25,24 +25,19 @@ Execute reindex:
 
 ```bash
 # --- FAIL-FAST: Validate OpenAI API Key ---
-# Load from .env if not set
-if [[ -z "$OPENAI_API_KEY" ]] && [[ -f ".env" ]]; then
-    export OPENAI_API_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2- | tr -d '"')
+# Always load from .env if current key is invalid (placeholder or missing)
+if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]] && [[ -f ".env" ]]; then
+    export OPENAI_API_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
 fi
 
-# Validate key exists and format
-if [[ -z "$OPENAI_API_KEY" ]]; then
-    echo "❌ FATAL: OPENAI_API_KEY not set. Embeddings require a valid key." >&2
-    echo "   Set in .env or export OPENAI_API_KEY=sk-..." >&2
-    exit 1
-fi
-
+# Final validation
 if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]]; then
-    echo "❌ FATAL: OPENAI_API_KEY invalid (must start with 'sk-'). Current: ${OPENAI_API_KEY:0:20}..." >&2
+    echo "❌ FATAL: Valid OPENAI_API_KEY not found." >&2
+    echo "   Add to .env: OPENAI_API_KEY=sk-..." >&2
     exit 1
 fi
 
-echo "✅ OpenAI key validated: ${OPENAI_API_KEY:0:10}..."
+echo "✅ OpenAI key: ${OPENAI_API_KEY:0:12}..."
 
 # --- Setup ---
 RUVECTOR_BIN="${HOME}/.local/bin/local-ruvector"
