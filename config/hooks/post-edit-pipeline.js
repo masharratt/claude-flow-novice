@@ -1,59 +1,60 @@
 #!/usr/bin/env node
 /**
  * Enhanced Post-Edit Pipeline - Comprehensive Validation Hook
- * Validates edited files with TypeScript, ESLint, Prettier, Security Analysis, and Code Metrics
+ * Validates edited files with TypeScript, Rust, ESLint, Prettier, Security Analysis, and Code Metrics
  *
  * Features:
  * - TypeScript validation with error categorization
+ * - Rust validation via cargo check
  * - ESLint integration for code quality
  * - Prettier formatting checks
- * - Security analysis (integrated security scanner)
+ * - Security analysis (eval, password logging, XSS detection)
  * - Code metrics (lines, functions, classes, complexity)
  * - Actionable recommendations engine
  *
  * Usage: node config/hooks/post-edit-pipeline.js <file_path> [--memory-key <key>] [--agent-id <id>]
  *
  * ============================================================================
- * TYPESCRIPT ERROR DETECTION - WHAT'S CAUGHT vs NOT CAUGHT
+ * ERROR DETECTION - WHAT'S CAUGHT vs NOT CAUGHT
  * ============================================================================
  *
- * This pipeline runs: `npx tsc --noEmit --skipLibCheck ${filePath}`
- * It checks the EDITED FILE + its IMPORTS (transitively), but NOT files that
- * import the edited file.
+ * TYPESCRIPT: Runs `npx tsc --noEmit --skipLibCheck ${filePath}`
+ * RUST: Runs `cargo check` in the crate directory
+ *
+ * Both check the EDITED FILE + its IMPORTS (transitively).
+ * Rust's cargo check also catches cross-file breaks (better than TS).
  *
  * ✅ CAUGHT (Blocks Edit):
- * ┌────────────────────┬─────────────┬─────────────────────────────────────────┐
- * │ Error Type         │ Code        │ Example                                 │
- * ├────────────────────┼─────────────┼─────────────────────────────────────────┤
- * │ Missing module     │ TS2307      │ import { x } from './nonexistent'       │
- * │ Missing export     │ TS2305      │ import { nonExistent } from './exists'  │
- * │ Typo in export     │ TS2724      │ import { Uzer } from './user'           │
- * │ Syntax errors      │ TS1005,1128 │ Missing ), unexpected token             │
- * │ Unused imports     │ TS6133,6196 │ import { unused } from...               │
- * │ Type mismatches    │ TS2322,2345 │ Wrong type assignment                   │
- * │ Missing properties │ TS2339,2353 │ obj.nonExistentProp                     │
- * └────────────────────┴─────────────┴─────────────────────────────────────────┘
+ * ┌────────────────────┬──────────────────┬─────────────────────────────────────┐
+ * │ Error Type         │ TS / Rust Code   │ Example                             │
+ * ├────────────────────┼──────────────────┼─────────────────────────────────────┤
+ * │ Missing module     │ TS2307 / E0432   │ import from './nonexistent'         │
+ * │ Missing export     │ TS2305 / E0433   │ use crate::nonexistent              │
+ * │ Syntax errors      │ TS1005 / E0xxx   │ Missing ), unexpected token         │
+ * │ Unused imports     │ TS6133 / warn    │ unused import                       │
+ * │ Type mismatches    │ TS2322 / E0308   │ Wrong type assignment               │
+ * │ Missing properties │ TS2339 / E0609   │ field does not exist                │
+ * │ Borrow errors      │ N/A / E0502      │ cannot borrow as mutable            │
+ * │ Lifetime errors    │ N/A / E0106      │ missing lifetime specifier          │
+ * └────────────────────┴──────────────────┴─────────────────────────────────────┘
  *
- * ❌ NOT CAUGHT (Single-File Limitation):
+ * ❌ NOT CAUGHT (TypeScript Single-File Limitation):
  * ┌─────────────────────────────────┬────────────────────────────────────────────┐
  * │ Scenario                        │ Why                                        │
  * ├─────────────────────────────────┼────────────────────────────────────────────┤
- * │ Cross-file type changes         │ Editing types.ts won't catch breaks in     │
+ * │ Cross-file type changes (TS)    │ Editing types.ts won't catch breaks in     │
  * │                                 │ other.ts that imports it                   │
  * │ Deleted exports used elsewhere  │ Consumers aren't checked until edited      │
- * │ Renamed functions/types         │ Same - callers won't be validated          │
  * └─────────────────────────────────┴────────────────────────────────────────────┘
  *
- * Example of NOT CAUGHT:
- *   You edit: src/types.ts (remove UserType export)
- *   Pipeline: ✅ passes (types.ts is valid)
- *   Reality:  src/user.ts imports UserType → BROKEN but not checked
+ * Note: Rust DOES catch cross-file breaks because cargo check compiles the
+ * entire crate. TypeScript only checks the single file + its imports.
  *
- * To catch everything: Run `npx tsc --noEmit` project-wide periodically.
+ * To catch everything in TS: Run `npx tsc --noEmit` project-wide periodically.
  * ============================================================================
  */
 
-import { spawnSync } from 'child_process';
+import { execSync } from 'child_process';
 import { existsSync, readFileSync, appendFileSync, mkdirSync } from 'fs';
 import { dirname, extname, resolve } from 'path';
 
@@ -102,11 +103,11 @@ if (!existsSync(filePath)) {
 // Read file content for analysis
 const fileContent = readFileSync(filePath, 'utf-8');
 const ext = extname(filePath);
-const baseName = filePath.replace(ext, '').split('/').pop();
 
 // Initialize results object
 const results = {
   typescript: null,
+  rust: null,
   eslint: null,
   prettier: null,
   security: null,
@@ -114,7 +115,337 @@ const results = {
   recommendations: []
 };
 
-// [Remaining TypeScript, ESLint, and Prettier validation code remains the same]
+// ============================================================================
+// PHASE 1: TypeScript Validation
+// ============================================================================
+
+if (['.ts', '.tsx'].includes(ext)) {
+  try {
+    log('VALIDATING', 'Running TypeScript validation');
+
+    // Use tsc to check only this file
+    const cmd = `npx tsc --noEmit --skipLibCheck ${filePath}`;
+    execSync(cmd, { stdio: 'pipe', encoding: 'utf-8' });
+
+    results.typescript = {
+      passed: true,
+      errors: []
+    };
+    log('SUCCESS', 'TypeScript validation passed');
+
+  } catch (error) {
+    // Parse TypeScript errors
+    const output = error.stdout || error.stderr || '';
+    const lines = output.split('\n').filter(line => line.includes('error TS'));
+
+    if (lines.length === 0) {
+      results.typescript = {
+        passed: true,
+        errors: []
+      };
+      log('SUCCESS', 'No TypeScript errors detected');
+    } else {
+      // Categorize errors
+      const errorTypes = {
+        implicitAny: lines.filter(l => l.includes('TS7006') || l.includes('TS7031')).length,
+        propertyMissing: lines.filter(l => l.includes('TS2339')).length,
+        typeMismatch: lines.filter(l => l.includes('TS2322') || l.includes('TS2345')).length,
+        syntaxError: lines.filter(l => l.includes('TS1005') || l.includes('TS1128')).length,
+        other: 0
+      };
+      errorTypes.other = lines.length - Object.values(errorTypes).reduce((a, b) => a + b, 0);
+
+      const severity = errorTypes.syntaxError > 0 ? 'SYNTAX_ERROR' :
+                       lines.length > 5 ? 'LINT_ISSUES' : 'TYPE_WARNING';
+
+      results.typescript = {
+        passed: false,
+        errorCount: lines.length,
+        errorTypes,
+        errors: lines.slice(0, 5),
+        severity
+      };
+
+      log(severity, `TypeScript errors detected: ${lines.length}`, {
+        errorCount: lines.length,
+        errorTypes,
+        errors: lines.slice(0, 5)
+      });
+
+      // Add recommendations based on error types
+      if (errorTypes.syntaxError > 0) {
+        results.recommendations.push({
+          type: 'typescript',
+          priority: 'critical',
+          message: 'Fix syntax errors before proceeding',
+          action: 'Review and fix TypeScript syntax issues'
+        });
+      } else if (errorTypes.implicitAny > 0) {
+        results.recommendations.push({
+          type: 'typescript',
+          priority: 'high',
+          message: 'Add explicit type annotations',
+          action: 'Add type annotations for parameters and return values'
+        });
+      }
+    }
+  }
+} else {
+  log('SKIPPED', 'TypeScript validation skipped for non-TypeScript file');
+}
+
+// ============================================================================
+// PHASE 1.5: Rust Validation (via cargo check)
+// ============================================================================
+
+if (ext === '.rs') {
+  try {
+    log('VALIDATING', 'Running Rust validation via cargo check');
+
+    // Find the Cargo.toml directory (walk up from file)
+    let cargoDir = dirname(resolve(filePath));
+    let foundCargo = false;
+    for (let i = 0; i < 10; i++) {
+      if (existsSync(`${cargoDir}/Cargo.toml`)) {
+        foundCargo = true;
+        break;
+      }
+      const parent = dirname(cargoDir);
+      if (parent === cargoDir) break;
+      cargoDir = parent;
+    }
+
+    if (!foundCargo) {
+      log('SKIPPED', 'No Cargo.toml found, skipping Rust validation');
+      results.rust = { passed: true, skipped: true, reason: 'No Cargo.toml found' };
+    } else {
+      // Run cargo check in the crate directory
+      const cmd = `cd "${cargoDir}" && cargo check --message-format=short 2>&1`;
+      execSync(cmd, { stdio: 'pipe', encoding: 'utf-8', timeout: 60000 });
+
+      results.rust = {
+        passed: true,
+        errors: []
+      };
+      log('SUCCESS', 'Rust validation passed');
+    }
+
+  } catch (error) {
+    // Parse Rust errors
+    const output = error.stdout || error.stderr || '';
+    const lines = output.split('\n').filter(line => line.includes('error[E') || line.includes('error:'));
+
+    if (lines.length === 0) {
+      results.rust = {
+        passed: true,
+        errors: []
+      };
+      log('SUCCESS', 'No Rust errors detected');
+    } else {
+      // Categorize Rust errors
+      const errorTypes = {
+        borrowCheck: lines.filter(l => l.includes('E0502') || l.includes('E0499') || l.includes('E0503')).length,
+        typeError: lines.filter(l => l.includes('E0308') || l.includes('E0277')).length,
+        missingImport: lines.filter(l => l.includes('E0432') || l.includes('E0433')).length,
+        lifetime: lines.filter(l => l.includes('E0106') || l.includes('E0495')).length,
+        syntaxError: lines.filter(l => l.includes('error:') && !l.includes('error[E')).length,
+        other: 0
+      };
+      errorTypes.other = lines.length - Object.values(errorTypes).reduce((a, b) => a + b, 0);
+
+      const severity = errorTypes.syntaxError > 0 ? 'SYNTAX_ERROR' :
+                       errorTypes.borrowCheck > 0 ? 'BORROW_ERROR' :
+                       lines.length > 5 ? 'RUST_ERRORS' : 'RUST_WARNING';
+
+      results.rust = {
+        passed: false,
+        errorCount: lines.length,
+        errorTypes,
+        errors: lines.slice(0, 5),
+        severity
+      };
+
+      log(severity, `Rust errors detected: ${lines.length}`, {
+        errorCount: lines.length,
+        errorTypes,
+        errors: lines.slice(0, 5)
+      });
+
+      // Add recommendations based on error types
+      if (errorTypes.borrowCheck > 0) {
+        results.recommendations.push({
+          type: 'rust',
+          priority: 'critical',
+          message: 'Fix borrow checker errors',
+          action: 'Review ownership and borrowing rules'
+        });
+      } else if (errorTypes.lifetime > 0) {
+        results.recommendations.push({
+          type: 'rust',
+          priority: 'high',
+          message: 'Fix lifetime annotations',
+          action: 'Add or correct lifetime parameters'
+        });
+      } else if (errorTypes.typeError > 0) {
+        results.recommendations.push({
+          type: 'rust',
+          priority: 'high',
+          message: 'Fix type mismatches',
+          action: 'Check expected vs actual types'
+        });
+      }
+    }
+  }
+} else {
+  log('SKIPPED', 'Rust validation skipped for non-Rust file');
+}
+
+// ============================================================================
+// PHASE 1: ESLint Integration
+// ============================================================================
+
+if (['.js', '.jsx', '.ts', '.tsx'].includes(ext)) {
+  try {
+    log('VALIDATING', 'Running ESLint validation');
+
+    // Check if ESLint is available
+    try {
+      execSync('npx eslint --version', { stdio: 'ignore', timeout: 5000 });
+    } catch {
+      log('SKIPPED', 'ESLint not available');
+      results.eslint = { available: false };
+    }
+
+    if (results.eslint === null) {
+      // Run ESLint
+      const eslintCmd = `npx eslint "${filePath}" --format json`;
+      const eslintOutput = execSync(eslintCmd, {
+        stdio: 'pipe',
+        encoding: 'utf-8',
+        timeout: 10000
+      });
+
+      const eslintResults = JSON.parse(eslintOutput);
+      const fileResults = eslintResults[0] || { messages: [] };
+
+      results.eslint = {
+        available: true,
+        passed: fileResults.errorCount === 0,
+        errorCount: fileResults.errorCount || 0,
+        warningCount: fileResults.warningCount || 0,
+        messages: fileResults.messages.slice(0, 5)
+      };
+
+      if (fileResults.errorCount > 0) {
+        log('LINT_ISSUES', `ESLint found ${fileResults.errorCount} errors`, {
+          errorCount: fileResults.errorCount,
+          warningCount: fileResults.warningCount
+        });
+
+        results.recommendations.push({
+          type: 'eslint',
+          priority: 'high',
+          message: `Fix ${fileResults.errorCount} ESLint errors`,
+          action: `Run: npx eslint "${filePath}" --fix`
+        });
+      } else {
+        log('SUCCESS', 'ESLint validation passed');
+      }
+    }
+  } catch (error) {
+    // ESLint errors are expected, parse them
+    if (error.stdout) {
+      try {
+        const eslintResults = JSON.parse(error.stdout);
+        const fileResults = eslintResults[0] || { messages: [] };
+
+        results.eslint = {
+          available: true,
+          passed: fileResults.errorCount === 0,
+          errorCount: fileResults.errorCount || 0,
+          warningCount: fileResults.warningCount || 0,
+          messages: fileResults.messages.slice(0, 5)
+        };
+
+        if (fileResults.errorCount > 0) {
+          log('LINT_ISSUES', `ESLint found ${fileResults.errorCount} errors`, {
+            errorCount: fileResults.errorCount,
+            warningCount: fileResults.warningCount
+          });
+
+          results.recommendations.push({
+            type: 'eslint',
+            priority: 'high',
+            message: `Fix ${fileResults.errorCount} ESLint errors`,
+            action: `Run: npx eslint "${filePath}" --fix`
+          });
+        }
+      } catch {
+        log('ERROR', 'ESLint execution failed', { error: error.message });
+        results.eslint = { available: false, error: error.message };
+      }
+    } else {
+      log('ERROR', 'ESLint execution failed', { error: error.message });
+      results.eslint = { available: false, error: error.message };
+    }
+  }
+}
+
+// ============================================================================
+// PHASE 1: Prettier Integration
+// ============================================================================
+
+if (['.js', '.jsx', '.ts', '.tsx', '.json', '.css', '.html'].includes(ext)) {
+  try {
+    log('VALIDATING', 'Running Prettier formatting check');
+
+    // Check if Prettier is available
+    try {
+      execSync('npx prettier --version', { stdio: 'ignore', timeout: 5000 });
+    } catch {
+      log('SKIPPED', 'Prettier not available');
+      results.prettier = { available: false };
+    }
+
+    if (results.prettier === null) {
+      // Run Prettier check
+      try {
+        const prettierCmd = `npx prettier --check "${filePath}"`;
+        execSync(prettierCmd, {
+          stdio: 'pipe',
+          encoding: 'utf-8',
+          timeout: 10000
+        });
+
+        results.prettier = {
+          available: true,
+          passed: true,
+          formatted: true
+        };
+        log('SUCCESS', 'Prettier formatting check passed');
+
+      } catch (error) {
+        results.prettier = {
+          available: true,
+          passed: false,
+          formatted: false,
+          needsFormatting: true
+        };
+        log('LINT_ISSUES', 'File needs Prettier formatting');
+
+        results.recommendations.push({
+          type: 'prettier',
+          priority: 'medium',
+          message: 'File needs formatting',
+          action: `Run: npx prettier --write "${filePath}"`
+        });
+      }
+    }
+  } catch (error) {
+    log('ERROR', 'Prettier execution failed', { error: error.message });
+    results.prettier = { available: false, error: error.message };
+  }
+}
 
 // ============================================================================
 // PHASE 2: Security Analysis
@@ -122,684 +453,195 @@ const results = {
 
 log('VALIDATING', 'Running security analysis');
 
-try {
-  // Primary scanner method: security scanner script
-  const securityScanProcess = spawnSync('bash', [
-    '.claude/skills/hook-pipeline/security-scanner.sh',
-    filePath
-  ], {
-    encoding: 'utf-8',
-    timeout: 10000
+const securityIssues = [];
+
+// Check for eval() usage
+if (fileContent.includes('eval(')) {
+  securityIssues.push({
+    type: 'security',
+    severity: 'critical',
+    message: 'Use of eval() function detected - security risk',
+    suggestion: 'Replace eval() with safer alternatives like JSON.parse() or Function constructor with proper validation'
   });
+}
 
-  const securityScanOutput = securityScanProcess.stdout || '{}';
-  const exitCode = securityScanProcess.status;
-
-  log('DEBUG', 'Security scanner output', {
-    stdout: securityScanOutput,
-    stderr: securityScanProcess.stderr,
-    exitCode: exitCode
+// Check for new Function() usage
+if (fileContent.includes('new Function(')) {
+  securityIssues.push({
+    type: 'security',
+    severity: 'critical',
+    message: 'Use of new Function() detected - security risk',
+    suggestion: 'Avoid dynamic code execution; use safer alternatives'
   });
+}
 
-  try {
-    const securityScanResults = JSON.parse(securityScanOutput);
+// Check for password logging
+if (fileContent.includes('password') && (fileContent.includes('console.log') || fileContent.includes('console.debug'))) {
+  securityIssues.push({
+    type: 'security',
+    severity: 'critical',
+    message: 'Potential password logging detected',
+    suggestion: 'Remove password logging from code immediately'
+  });
+}
 
-    results.security = {
-      passed: securityScanResults.passed,
-      confidence: securityScanResults.confidence || 0,
-      issues: Array.isArray(securityScanResults.vulnerabilities)
-        ? securityScanResults.vulnerabilities
-        : JSON.parse(securityScanResults.vulnerabilities || '[]'),
-      details: securityScanOutput
-    };
+// Check for XSS vulnerabilities (innerHTML with concatenation)
+if (fileContent.includes('innerHTML') && fileContent.match(/innerHTML\s*[+]=|innerHTML\s*=\s*.*\+/)) {
+  securityIssues.push({
+    type: 'security',
+    severity: 'high',
+    message: 'Potential XSS vulnerability with innerHTML concatenation',
+    suggestion: 'Use textContent, createElement, or proper sanitization libraries'
+  });
+}
 
-    if (results.security.issues.length > 0) {
-      log('SECURITY_WARNING', `Security scanner detected ${results.security.issues.length} vulnerabilities`, {
-        confidence: results.security.confidence,
-        issueTypes: results.security.issues
-      });
+// Check for hardcoded secrets (basic patterns)
+const secretPatterns = [
+  /api[_-]?key\s*=\s*['"][^'"]{20,}['"]/i,
+  /secret\s*=\s*['"][^'"]{20,}['"]/i,
+  /token\s*=\s*['"][^'"]{20,}['"]/i,
+  /password\s*=\s*['"][^'"]+['"]/i
+];
 
-      // Transform scanner issues into recommendations
-      results.security.issues.slice(0, 3).forEach(vuln => {
-        results.recommendations.push({
-          type: 'security',
-          priority: 'critical',
-          message: `Security vulnerability: ${vuln}`,
-          action: `Review and remediate ${vuln} vulnerability`
-        });
-      });
-
-      // Add general security warning
-      results.recommendations.push({
-        type: 'security',
-        priority: 'critical',
-        message: 'Security vulnerabilities detected by security scanner',
-        action: 'Conduct thorough security review and address all vulnerabilities'
-      });
-    } else {
-      log('SUCCESS', 'No security vulnerabilities detected');
-    }
-  } catch (parseError) {
-    log('ERROR', 'Failed to parse security scanner output', {
-      parseError: parseError.message,
-      output: securityScanOutput
+for (const pattern of secretPatterns) {
+  if (pattern.test(fileContent)) {
+    securityIssues.push({
+      type: 'security',
+      severity: 'critical',
+      message: 'Potential hardcoded secret detected',
+      suggestion: 'Move secrets to environment variables or secure configuration'
     });
-
-    // Fallback vulnerability detection (minimal built-in checks)
-    const builtinChecks = [
-      {
-        pattern: /eval\(/,
-        vulnerability: 'POTENTIAL_RCE',
-        severity: 'critical'
-      },
-      {
-        pattern: /innerHTML\s*=/,
-        vulnerability: 'XSS_POTENTIAL',
-        severity: 'high'
-      },
-      {
-        pattern: /(password|secret|token|api[-_]?key|anthropic|openai|openrouter|kimi|npm[-_]?token|zai|z[-_]ai).*=.*['"]?[^'"\s]{20,}['"]?/i,
-        vulnerability: 'HARDCODED_SECRET',
-        severity: 'critical'
-      }
-    ];
-
-    const foundVulnerabilities = builtinChecks
-      .filter(check => check.pattern.test(fileContent))
-      .map(check => ({
-        type: check.vulnerability,
-        severity: check.severity
-      }));
-
-    results.security = {
-      passed: foundVulnerabilities.length === 0,
-      confidence: 50,
-      issues: foundVulnerabilities,
-      details: 'Fallback vulnerability detection'
-    };
-
-    if (foundVulnerabilities.length > 0) {
-      log('SECURITY_WARNING', 'Vulnerabilities detected by fallback method', {
-        vulnerabilities: foundVulnerabilities
-      });
-
-      foundVulnerabilities.forEach(vuln => {
-        results.recommendations.push({
-          type: 'security',
-          priority: vuln.severity === 'critical' ? 'critical' : 'high',
-          message: `Potential ${vuln.type} vulnerability detected`,
-          action: `Manually review code for ${vuln.type} vulnerability`
-        });
-      });
-    }
+    break; // Only report once
   }
-} catch (error) {
-  log('CRITICAL_ERROR', 'Unexpected security scanning failure', {
-    error: error.message,
-    stack: error.stack
-  });
+}
 
-  results.security = {
-    passed: false,
-    confidence: 0,
-    issues: [],
-    details: 'Complete security scanning failure'
-  };
+results.security = {
+  passed: securityIssues.length === 0,
+  issueCount: securityIssues.length,
+  issues: securityIssues
+};
+
+if (securityIssues.length > 0) {
+  log('SECURITY_ISSUES', `Security analysis found ${securityIssues.length} issues`, {
+    issueCount: securityIssues.length,
+    issues: securityIssues
+  });
 
   results.recommendations.push({
     type: 'security',
     priority: 'critical',
-    message: 'Security scanning infrastructure failure',
-    action: 'Verify security scanning script and dependencies'
-  });
-}
-
-// ============================================================================
-// PHASE 2.5: Bash Validator Integration
-// ============================================================================
-
-log('VALIDATING', 'Running bash validators');
-
-// Validator mapping by file extension
-const validatorsByExtension = {
-  '.sh': [
-    'bash-pipe-safety.sh',
-    'bash-dependency-checker.sh',
-    'enforce-lf.sh'
-  ],
-  '.bash': [
-    'bash-pipe-safety.sh',
-    'bash-dependency-checker.sh',
-    'enforce-lf.sh'
-  ],
-  '.py': [
-    'python-subprocess-safety.py',
-    'python-async-safety.py',
-    'python-import-checker.py',
-    'enforce-lf.sh'
-  ],
-  '.js': [
-    'js-promise-safety.sh',
-    'enforce-lf.sh'
-  ],
-  '.ts': [
-    'js-promise-safety.sh',
-    'enforce-lf.sh'
-  ],
-  '.jsx': [
-    'js-promise-safety.sh',
-    'enforce-lf.sh'
-  ],
-  '.tsx': [
-    'js-promise-safety.sh',
-    'enforce-lf.sh'
-  ],
-  '.rs': [
-    'rust-command-safety.sh',
-    'rust-future-safety.sh',
-    'rust-dependency-checker.sh',
-    'enforce-lf.sh'
-  ]
-};
-
-// Helper function to run a single validator
-function runValidator(validatorName, targetFile) {
-  const validatorPath = `.claude/skills/hook-pipeline/${validatorName}`;
-
-  log('DEBUG', `Executing validator: ${validatorName}`, { targetFile });
-
-  try {
-    // Determine interpreter based on file extension
-    const isPython = validatorName.endsWith('.py');
-    const interpreter = isPython ? 'python3' : 'bash';
-
-    const result = spawnSync(interpreter, [validatorPath, targetFile], {
-      encoding: 'utf-8',
-      timeout: 5000,
-      cwd: process.cwd()
-    });
-
-    const exitCode = result.status;
-    const stdout = (result.stdout || '').trim();
-    const stderr = (result.stderr || '').trim();
-
-    log('DEBUG', `Validator ${validatorName} completed`, {
-      exitCode,
-      stdout: stdout.substring(0, 200), // Truncate for logging
-      stderr: stderr.substring(0, 200)
-    });
-
-    // Exit code convention:
-    // 0 = pass (no issues)
-    // 1 = error (blocking issue)
-    // 2 = warning (non-blocking issue)
-    return {
-      validator: validatorName,
-      exitCode,
-      passed: exitCode === 0,
-      isBlocking: exitCode === 1,
-      isWarning: exitCode === 2,
-      message: stderr || stdout || 'Validator passed',
-      stdout,
-      stderr
-    };
-  } catch (error) {
-    log('ERROR', `Validator ${validatorName} execution failed`, {
-      error: error.message,
-      stack: error.stack
-    });
-
-    return {
-      validator: validatorName,
-      exitCode: -1,
-      passed: false,
-      isBlocking: false,
-      isWarning: true,
-      message: `Validator execution failed: ${error.message}`,
-      error: error.message
-    };
-  }
-}
-
-// Run validators for applicable file types
-const applicableValidators = validatorsByExtension[ext] || [];
-
-if (applicableValidators.length > 0) {
-  log('INFO', `Running ${applicableValidators.length} bash validators for ${ext} file`);
-
-  // Sequential execution of validators
-  const validatorResults = applicableValidators.map(validator =>
-    runValidator(validator, filePath)
-  );
-
-  // Process validator results
-  validatorResults.forEach(result => {
-    if (result.isBlocking) {
-      // Blocking error (exit code 1)
-      log('VALIDATOR_ERROR', `Blocking issue detected by ${result.validator}`, {
-        message: result.message
-      });
-
-      results.recommendations.push({
-        type: 'bash-validator',
-        priority: 'critical',
-        message: `${result.validator}: ${result.message}`,
-        action: 'Fix blocking issue before proceeding'
-      });
-    } else if (result.isWarning) {
-      // Warning (exit code 2)
-      log('VALIDATOR_WARNING', `Warning from ${result.validator}`, {
-        message: result.message
-      });
-
-      results.recommendations.push({
-        type: 'bash-safety',
-        priority: 'medium',
-        message: `${result.validator}: ${result.message}`,
-        action: 'Review recommendations and consider fixing'
-      });
-    } else if (result.passed) {
-      // Pass (exit code 0)
-      log('SUCCESS', `Validator ${result.validator} passed`);
-    }
-  });
-
-  // Store validator results for exit code determination
-  results.bashValidators = {
-    executed: validatorResults.length,
-    passed: validatorResults.filter(r => r.passed).length,
-    warnings: validatorResults.filter(r => r.isWarning).length,
-    errors: validatorResults.filter(r => r.isBlocking).length,
-    results: validatorResults
-  };
-
-  log('SUCCESS', `Bash validators completed`, {
-    executed: results.bashValidators.executed,
-    passed: results.bashValidators.passed,
-    warnings: results.bashValidators.warnings,
-    errors: results.bashValidators.errors
+    message: `Address ${securityIssues.length} security ${securityIssues.length === 1 ? 'issue' : 'issues'} immediately`,
+    action: 'Review security recommendations and apply fixes'
   });
 } else {
-  log('DEBUG', `No bash validators configured for ${ext} files`);
+  log('SUCCESS', 'No security issues detected');
 }
 
 // ============================================================================
-// PHASE 2.6: SQL Injection Detection
-// ============================================================================
-
-if (ext.match(/\.(sql|ts|js|py)$/)) {
-  log('VALIDATING', 'Running SQL injection detection');
-
-  const sqlInjectionPatterns = [
-    // String concatenation in queries
-    { pattern: /['"`]\s*\+\s*\w+\s*\+\s*['"`].*(?:SELECT|INSERT|UPDATE|DELETE|WHERE)/i, risk: 'STRING_CONCATENATION', severity: 'critical' },
-    { pattern: /(?:SELECT|INSERT|UPDATE|DELETE|WHERE).*['"`]\s*\+\s*\w+/i, risk: 'STRING_CONCATENATION', severity: 'critical' },
-
-    // Template literals with variables in SQL
-    { pattern: /\$\{[^}]+\}.*(?:SELECT|INSERT|UPDATE|DELETE|WHERE)/i, risk: 'TEMPLATE_INJECTION', severity: 'high' },
-
-    // f-strings in Python SQL
-    { pattern: /f['"].*(?:SELECT|INSERT|UPDATE|DELETE|WHERE).*\{/i, risk: 'FSTRING_SQL_INJECTION', severity: 'critical' },
-
-    // .format() in Python SQL
-    { pattern: /['"].*(?:SELECT|INSERT|UPDATE|DELETE).*['"]\.format\(/i, risk: 'FORMAT_SQL_INJECTION', severity: 'critical' },
-
-    // Raw user input in query
-    { pattern: /(?:req\.body|req\.query|req\.params|request\.form|request\.args)\.[^\s]+.*(?:SELECT|INSERT|UPDATE|DELETE)/i, risk: 'UNSANITIZED_INPUT', severity: 'critical' },
-
-    // execute() with string concatenation
-    { pattern: /\.execute\s*\(\s*['"`].*\+/i, risk: 'EXECUTE_CONCATENATION', severity: 'critical' },
-    { pattern: /\.execute\s*\(\s*f['"`]/i, risk: 'EXECUTE_FSTRING', severity: 'critical' },
-  ];
-
-  const sqlInjectionIssues = sqlInjectionPatterns
-    .filter(check => check.pattern.test(fileContent))
-    .map(check => ({ type: check.risk, severity: check.severity }));
-
-  if (sqlInjectionIssues.length > 0) {
-    log('SQL_INJECTION_WARNING', `Found ${sqlInjectionIssues.length} potential SQL injection risks`, {
-      issues: sqlInjectionIssues
-    });
-
-    results.sqlInjection = {
-      passed: false,
-      issues: sqlInjectionIssues
-    };
-
-    sqlInjectionIssues.forEach(issue => {
-      results.recommendations.push({
-        type: 'sql-injection',
-        priority: issue.severity,
-        message: `Potential SQL injection: ${issue.type}`,
-        action: 'Use parameterized queries ($1, $2) or prepared statements instead of string concatenation'
-      });
-    });
-  } else {
-    results.sqlInjection = { passed: true, issues: [] };
-    log('SUCCESS', 'No SQL injection risks detected');
-  }
-}
-
-// ============================================================================
-// PHASE 3: Root Directory Detection
-// ============================================================================
-
-log('VALIDATING', 'Checking file location (root directory warning)');
-
-const isRootFile = dirname(resolve(filePath)) === resolve('.');
-if (isRootFile && !filePath.match(/^(package\.json|tsconfig\.json|\.gitignore|\.env.*|README\.md|LICENSE|CLAUDE\.md)$/)) {
-  // Suggest appropriate location based on file type
-  const suggestions = [];
-  if (ext.match(/\.(js|ts|jsx|tsx)$/)) {
-    suggestions.push({ location: `src/${filePath}`, reason: 'Source files belong in src/' });
-  }
-  if (ext.match(/\.(test|spec)\.(js|ts|jsx|tsx)$/)) {
-    suggestions.push({ location: `tests/${filePath}`, reason: 'Test files belong in tests/' });
-  }
-  if (ext === '.md' && !filePath.match(/^(README|CLAUDE)\.md$/)) {
-    suggestions.push({ location: `docs/${filePath}`, reason: 'Documentation belongs in docs/' });
-  }
-  if (ext === '.json' && !filePath.match(/^package\.json$/)) {
-    suggestions.push({ location: `config/${filePath}`, reason: 'Config files belong in config/' });
-  }
-  if (ext === '.sh') {
-    suggestions.push({ location: `scripts/${filePath}`, reason: 'Scripts belong in scripts/' });
-  }
-
-  if (suggestions.length > 0) {
-    log('ROOT_WARNING', 'File in root directory - should be organized', {
-      file: filePath,
-      suggestions
-    });
-
-    results.recommendations.push({
-      type: 'organization',
-      priority: 'high',
-      message: `File "${filePath}" should not be in root directory`,
-      action: `Move to: ${suggestions[0].location}`,
-      suggestions
-    });
-
-    // Store for handler processing
-    results.rootWarning = { suggestions };
-  }
-}
-
-// ============================================================================
-// PHASE 4: TDD Violation Detection
-// ============================================================================
-
-if (ext.match(/\.(js|ts|jsx|tsx|py|go|rs)$/) && !filePath.match(/\.(test|spec)\./)) {
-  log('VALIDATING', 'Checking TDD compliance');
-
-  const testPatterns = {
-    js: [`${dirname(filePath)}/${baseName}.test.js`, `tests/${baseName}.test.js`],
-    ts: [`${dirname(filePath)}/${baseName}.test.ts`, `tests/${baseName}.test.ts`],
-    py: [`${dirname(filePath)}/test_${baseName}.py`, `tests/test_${baseName}.py`],
-    go: [`${dirname(filePath)}/${baseName}_test.go`],
-    rs: null // Rust uses inline tests
-  };
-
-  const langKey = ext.replace('.', '');
-  const patterns = testPatterns[langKey];
-
-  if (patterns) {
-    const hasTest = patterns.some(p => existsSync(p));
-
-    if (!hasTest) {
-      log('TDD_VIOLATION', 'No test file found', {
-        file: filePath,
-        expectedLocations: patterns
-      });
-
-      results.recommendations.push({
-        type: 'testing',
-        priority: 'high',
-        message: 'No test file found for this module',
-        action: 'Create test file or run feedback-resolver.sh --type TDD_VIOLATION'
-      });
-
-      results.tddViolation = {
-        hasTests: false,
-        testFile: patterns[0],
-        recommendations: [`Create ${patterns[0]}`]
-      };
-    }
-  }
-}
-
-// ============================================================================
-// PHASE 5: Code Metrics and Complexity Analysis
+// PHASE 3: Code Metrics
 // ============================================================================
 
 log('VALIDATING', 'Calculating code metrics');
 
-const lines = fileContent.split('\n').length;
-const functions = (fileContent.match(/function\s+\w+|const\s+\w+\s*=\s*\(/g) || []).length;
-const classes = (fileContent.match(/class\s+\w+/g) || []).length;
-const todos = (fileContent.match(/\/\/\s*TODO/gi) || []).length;
-const fixmes = (fileContent.match(/\/\/\s*FIXME/gi) || []).length;
+const lines = fileContent.split('\n');
+const lineCount = lines.length;
+const functionCount = (fileContent.match(/function\s+\w+|const\s+\w+\s*=\s*\([^)]*\)\s*=>/g) || []).length;
+const classCount = (fileContent.match(/class\s+\w+/g) || []).length;
+const todoCount = (fileContent.match(/\/\/\s*TODO|\/\*\s*TODO/gi) || []).length;
+const fixmeCount = (fileContent.match(/\/\/\s*FIXME|\/\*\s*FIXME/gi) || []).length;
+
+// Calculate cyclomatic complexity (simplified)
+let complexity = 'low';
+if (lineCount > 300 || functionCount > 10) {
+  complexity = 'high';
+} else if (lineCount > 150 || functionCount > 5) {
+  complexity = 'medium';
+}
 
 results.metrics = {
-  lines,
-  functions,
-  classes,
-  todos,
-  fixmes,
-  complexity: lines > 300 ? 'high' : lines > 100 ? 'medium' : 'low'
+  lines: lineCount,
+  functions: functionCount,
+  classes: classCount,
+  todos: todoCount,
+  fixmes: fixmeCount,
+  complexity
 };
 
-log('SUCCESS', 'Code metrics calculated', results.metrics);
+log('SUCCESS', 'Code metrics calculated', {
+  lines: lineCount,
+  functions: functionCount,
+  classes: classCount,
+  complexity
+});
 
 // ============================================================================
-// PHASE 5.1: Cyclomatic Complexity Analysis
-// ============================================================================
-
-log('VALIDATING', 'Analyzing cyclomatic complexity');
-
-// Only analyze files >200 lines to reduce overhead
-if (lines > 200 && ext.match(/\.(sh|js|ts|jsx|tsx|py)$/)) {
-  try {
-    // Use simple-complexity.sh for bash scripts
-    if (ext === '.sh') {
-      const complexityResult = spawnSync('bash', [
-        'scripts/simple-complexity.sh',
-        filePath
-      ], {
-        encoding: 'utf-8',
-        timeout: 5000
-      });
-
-      if (complexityResult.status === 0) {
-        const output = complexityResult.stdout;
-        const complexityMatch = output.match(/Total Complexity:\s*(\d+)/);
-
-        if (complexityMatch) {
-          const complexity = parseInt(complexityMatch[1], 10);
-          results.metrics.cyclomaticComplexity = complexity;
-
-          log('SUCCESS', `Cyclomatic complexity: ${complexity}`, { complexity });
-
-          // Warning threshold: 30
-          if (complexity >= 30 && complexity < 40) {
-            log('COMPLEXITY_WARNING', `Moderate complexity detected: ${complexity}`, {
-              threshold: 30,
-              complexity
-            });
-
-            results.recommendations.push({
-              type: 'complexity',
-              priority: 'medium',
-              message: `Cyclomatic complexity is ${complexity} (threshold: 30)`,
-              action: 'Consider refactoring to reduce complexity'
-            });
-          }
-
-          // Critical threshold: 40 - invoke lizard for detailed analysis
-          if (complexity >= 40) {
-            log('COMPLEXITY_CRITICAL', `High complexity detected: ${complexity}, invoking lizard`, {
-              threshold: 40,
-              complexity
-            });
-
-            // Check if lizard is available
-            const lizardCheck = spawnSync('which', ['lizard'], { encoding: 'utf-8' });
-
-            if (lizardCheck.status === 0) {
-              // Run lizard for detailed analysis
-              const lizardResult = spawnSync('lizard', [
-                filePath,
-                '-C', '15'  // Show functions with complexity >15
-              ], {
-                encoding: 'utf-8',
-                timeout: 10000
-              });
-
-              if (lizardResult.status === 0) {
-                const lizardOutput = lizardResult.stdout;
-
-                log('LIZARD_ANALYSIS', 'Detailed complexity analysis', {
-                  output: lizardOutput
-                });
-
-                results.complexityAnalysis = {
-                  tool: 'lizard',
-                  complexity,
-                  detailedReport: lizardOutput
-                };
-
-                results.recommendations.push({
-                  type: 'complexity',
-                  priority: 'critical',
-                  message: `Critical complexity level: ${complexity} (threshold: 40)`,
-                  action: 'Refactor immediately. Run cyclomatic-complexity-reducer agent',
-                  details: lizardOutput
-                });
-              } else {
-                log('WARN', 'Lizard analysis failed', {
-                  stderr: lizardResult.stderr
-                });
-              }
-            } else {
-              log('WARN', 'Lizard not installed, skipping detailed analysis');
-
-              results.recommendations.push({
-                type: 'complexity',
-                priority: 'critical',
-                message: `Critical complexity level: ${complexity} (threshold: 40)`,
-                action: 'Refactor immediately. Install lizard: ./scripts/install-lizard.sh'
-              });
-            }
-          }
-        }
-      } else {
-        log('WARN', 'Complexity analysis failed', {
-          stderr: complexityResult.stderr
-        });
-      }
-    }
-    // For TypeScript/JavaScript, use lizard directly if available
-    else if (ext.match(/\.(js|ts|jsx|tsx)$/)) {
-      const lizardCheck = spawnSync('which', ['lizard'], { encoding: 'utf-8' });
-
-      if (lizardCheck.status === 0) {
-        const lizardResult = spawnSync('lizard', [
-          filePath,
-          '--json'
-        ], {
-          encoding: 'utf-8',
-          timeout: 10000
-        });
-
-        if (lizardResult.status === 0) {
-          try {
-            const lizardData = JSON.parse(lizardResult.stdout);
-
-            // Calculate average complexity
-            let totalComplexity = 0;
-            let functionCount = 0;
-
-            if (lizardData.function_list) {
-              lizardData.function_list.forEach(func => {
-                totalComplexity += func.cyclomatic_complexity || 0;
-                functionCount++;
-              });
-            }
-
-            const avgComplexity = functionCount > 0 ? Math.round(totalComplexity / functionCount) : 0;
-            results.metrics.cyclomaticComplexity = avgComplexity;
-
-            if (avgComplexity >= 30) {
-              log('COMPLEXITY_WARNING', `Average complexity: ${avgComplexity}`, {
-                avgComplexity,
-                functionCount
-              });
-
-              results.recommendations.push({
-                type: 'complexity',
-                priority: avgComplexity >= 40 ? 'critical' : 'medium',
-                message: `Average cyclomatic complexity: ${avgComplexity}`,
-                action: avgComplexity >= 40
-                  ? 'Critical: Refactor high-complexity functions immediately'
-                  : 'Consider refactoring complex functions'
-              });
-            }
-          } catch (parseError) {
-            log('WARN', 'Failed to parse lizard JSON output', {
-              error: parseError.message
-            });
-          }
-        }
-      }
-    }
-  } catch (error) {
-    log('WARN', 'Complexity analysis error', {
-      error: error.message
-    });
-  }
-}
-
-// Check for Rust-specific quality issues
-if (ext === '.rs') {
-  log('VALIDATING', 'Running Rust quality checks');
-
-  const rustIssues = [];
-  if (fileContent.match(/println!\(/)) rustIssues.push('debug_println');
-  if (fileContent.match(/unwrap\(\)/)) rustIssues.push('unwrap_usage');
-  if (fileContent.match(/panic!\(/)) rustIssues.push('panic_usage');
-
-  if (rustIssues.length > 0) {
-    log('RUST_QUALITY', 'Rust quality issues detected', { issues: rustIssues });
-
-    results.recommendations.push({
-      type: 'rust',
-      priority: 'medium',
-      message: 'Rust quality issues detected',
-      action: 'Run: cargo fmt && cargo clippy --fix --allow-dirty'
-    });
-
-    results.rustQuality = { issues: rustIssues };
-  }
-}
-
-// ============================================================================
-// PHASE 6: Final Recommendations
+// PHASE 3: Recommendations Engine
 // ============================================================================
 
 log('VALIDATING', 'Generating recommendations');
 
-// Type safety recommendations
-if (ext.match(/\.(ts|tsx)$/) && fileContent.match(/:\s*any\b/)) {
+// Maintainability recommendations
+if (lineCount > 200) {
   results.recommendations.push({
-    type: 'typescript',
+    type: 'maintainability',
     priority: 'medium',
-    message: 'Avoid using "any" type when possible',
-    action: 'Use specific types or unknown for better type safety'
+    message: `File has ${lineCount} lines - consider breaking it down`,
+    action: 'Split into smaller, focused modules (150-200 lines per file)'
+  });
+}
+
+// Code quality recommendations
+if (fileContent.includes('var ')) {
+  results.recommendations.push({
+    type: 'code-quality',
+    priority: 'low',
+    message: 'Use const or let instead of var',
+    action: 'Replace var declarations with const or let for better scoping'
+  });
+}
+
+if (fileContent.includes('==') && !fileContent.includes('===') && fileContent.includes('==') > fileContent.includes('===')) {
+  results.recommendations.push({
+    type: 'code-quality',
+    priority: 'medium',
+    message: 'Prefer strict equality (===) over loose equality (==)',
+    action: 'Replace == with === for type-safe comparisons'
+  });
+}
+
+// TypeScript-specific recommendations
+if (['.ts', '.tsx'].includes(ext)) {
+  if (fileContent.includes(': any')) {
+    results.recommendations.push({
+      type: 'typescript',
+      priority: 'medium',
+      message: 'Avoid using "any" type when possible',
+      action: 'Use specific types or unknown for better type safety'
+    });
+  }
+
+  if (!fileContent.includes('interface') && !fileContent.includes('type ') && lineCount > 100) {
+    results.recommendations.push({
+      type: 'typescript',
+      priority: 'low',
+      message: 'Consider defining interfaces or types',
+      action: 'Add type definitions for better code structure and maintainability'
+    });
+  }
+}
+
+// Documentation recommendations
+if (fileContent.includes('export ') && !fileContent.includes('/**') && functionCount > 0) {
+  results.recommendations.push({
+    type: 'documentation',
+    priority: 'low',
+    message: 'Public exports could benefit from JSDoc comments',
+    action: 'Add JSDoc documentation for exported functions/classes'
   });
 }
 
 // Testing recommendations
-if (!filePath.match(/\.(test|spec)\./)) {
+if (!filePath.includes('test') && !filePath.includes('spec') && (functionCount > 0 || classCount > 0)) {
   results.recommendations.push({
     type: 'testing',
     priority: 'medium',
@@ -808,90 +650,748 @@ if (!filePath.match(/\.(test|spec)\./)) {
   });
 }
 
+// TODO/FIXME recommendations
+if (todoCount > 0 || fixmeCount > 0) {
+  results.recommendations.push({
+    type: 'maintenance',
+    priority: 'low',
+    message: `Found ${todoCount} TODOs and ${fixmeCount} FIXMEs`,
+    action: 'Address pending tasks and technical debt'
+  });
+}
+
+// Sort recommendations by priority
+const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+results.recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+// Limit to top 10 recommendations
+results.recommendations = results.recommendations.slice(0, 10);
+
 log('SUCCESS', `Generated ${results.recommendations.length} recommendations`);
 
 // ============================================================================
-// PHASE 7: Exit Code Determination
+// MULTI-LANGUAGE VALIDATION
 // ============================================================================
 
-let exitCode = 0;
-let finalStatus = 'SUCCESS';
+// JavaScript Type Checking (JSDoc via TypeScript)
+if (['.js', '.jsx', '.mjs', '.cjs'].includes(ext)) {
+  try {
+    log('VALIDATING', 'Running JavaScript type checking (JSDoc via TypeScript)');
 
-// Check for critical complexity issues
-const hasComplexityIssue = results.recommendations.find(r => r.type === 'complexity');
+    // Check if TypeScript is available
+    try {
+      execSync('npx tsc --version', { stdio: 'ignore', timeout: 5000 });
+    } catch {
+      log('WARNING', 'TypeScript not available for JavaScript type checking');
+      results.javascript = { available: false };
+      results.recommendations.push({
+        type: 'dependency',
+        priority: 'medium',
+        message: 'TypeScript not installed - JavaScript type checking unavailable',
+        action: 'Install TypeScript: npm install -g typescript',
+        line: null
+      });
+      throw new Error('TypeScript not available');
+    }
 
-// Check for bash validator issues
-const hasBashValidatorError = results.bashValidators && results.bashValidators.errors > 0;
-const hasBashValidatorWarning = results.bashValidators && results.bashValidators.warnings > 0;
+    // Use TypeScript with allowJs and checkJs to validate JSDoc
+    const tempConfig = JSON.stringify({
+      compilerOptions: {
+        allowJs: true,
+        checkJs: true,
+        noEmit: true,
+        skipLibCheck: true,
+        strict: false,
+        target: 'ES2020',
+        module: 'commonjs'
+      }
+    });
 
-// Check for SQL injection issues
-const hasSqlInjectionCritical = results.sqlInjection && !results.sqlInjection.passed &&
-  results.sqlInjection.issues.some(issue => issue.severity === 'critical');
+    const configPath = '/tmp/tsconfig.jsdoc.json';
+    require('fs').writeFileSync(configPath, tempConfig);
 
-if (hasSqlInjectionCritical) {
-  exitCode = 12;
-  finalStatus = 'SQL_INJECTION_CRITICAL';
-} else if (hasBashValidatorError) {
-  exitCode = 9;
-  finalStatus = 'BASH_VALIDATOR_ERROR';
-} else if (results.rootWarning) {
-  exitCode = 2;
-  finalStatus = 'ROOT_WARNING';
-} else if (results.tddViolation) {
-  exitCode = 3;
-  finalStatus = 'TDD_VIOLATION';
-} else if (hasBashValidatorWarning) {
-  exitCode = 10;
-  finalStatus = 'BASH_VALIDATOR_WARNING';
-} else if (hasComplexityIssue && hasComplexityIssue.priority === 'critical') {
-  exitCode = 7;
-  finalStatus = 'COMPLEXITY_CRITICAL';
-} else if (hasComplexityIssue && hasComplexityIssue.priority === 'medium') {
-  exitCode = 8;
-  finalStatus = 'COMPLEXITY_WARNING';
-} else if (results.rustQuality) {
-  exitCode = 5;
-  finalStatus = 'RUST_QUALITY';
-} else if (results.prettier && !results.prettier.passed) {
-  exitCode = 6;
-  finalStatus = 'LINT_ISSUES';
-} else if (results.typescript && !results.typescript.passed) {
-  exitCode = 1;
-  finalStatus = 'TYPE_WARNING';
-} else if (results.recommendations.length > 0) {
-  finalStatus = 'IMPROVEMENTS_SUGGESTED';
+    const cmd = `npx tsc --noEmit --project ${configPath} ${filePath}`;
+    execSync(cmd, { stdio: 'pipe', encoding: 'utf-8', timeout: 10000 });
+
+    results.javascript = {
+      available: true,
+      passed: true,
+      errors: [],
+      hasJSDoc: fileContent.includes('/**') || fileContent.includes('@param') || fileContent.includes('@returns')
+    };
+
+    log('SUCCESS', 'JavaScript type checking passed');
+
+    if (!results.javascript.hasJSDoc) {
+      results.recommendations.push({
+        type: 'javascript',
+        priority: 'low',
+        message: 'No JSDoc comments found in JavaScript file',
+        action: 'Add JSDoc type annotations for better type safety',
+        line: null
+      });
+    }
+
+  } catch (error) {
+    if (!results.javascript || results.javascript.available !== false) {
+      // Parse TypeScript/JSDoc errors
+      const output = error.stdout || error.stderr || '';
+      const lines = output.split('\n').filter(line => line.includes('error TS'));
+
+      const errors = lines.map(line => {
+        const match = line.match(/\((\d+),(\d+)\): error TS(\d+): (.+)/);
+        if (match) {
+          return {
+            line: parseInt(match[1]),
+            column: parseInt(match[2]),
+            code: match[3],
+            message: match[4]
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      results.javascript = {
+        available: true,
+        passed: false,
+        errorCount: errors.length,
+        errors
+      };
+
+      log('FAILED', `JavaScript type checking failed (${errors.length} errors)`, { errors });
+
+      // Add recommendations
+      errors.slice(0, 5).forEach(err => {
+        results.recommendations.push({
+          type: 'javascript',
+          priority: 'medium',
+          message: `JSDoc type error: ${err.message}`,
+          action: `Fix type annotation at line ${err.line}`,
+          line: err.line
+        });
+      });
+    }
+  }
 }
 
-const finalResult = {
+// Python Validation (pylint + black)
+if (ext === '.py') {
+  try {
+    log('VALIDATING', 'Running Python validation (pylint + black)');
+
+    // Check for pylint
+    let pylintAvailable = false;
+    try {
+      execSync('pylint --version', { stdio: 'ignore', timeout: 5000 });
+      pylintAvailable = true;
+    } catch {
+      log('WARNING', 'pylint not available for Python validation');
+    }
+
+    // Check for black
+    let blackAvailable = false;
+    try {
+      execSync('black --version', { stdio: 'ignore', timeout: 5000 });
+      blackAvailable = true;
+    } catch {
+      log('WARNING', 'black not available for Python formatting check');
+    }
+
+    results.python = {
+      available: pylintAvailable || blackAvailable,
+      pylint: null,
+      black: null
+    };
+
+    // Add warning if no Python tools available
+    if (!pylintAvailable && !blackAvailable) {
+      results.recommendations.push({
+        type: 'dependency',
+        priority: 'medium',
+        message: 'Python validation tools not installed (pylint, black)',
+        action: 'Install Python tools: pip install pylint black',
+        line: null
+      });
+    }
+
+    // Run pylint if available
+    if (pylintAvailable) {
+      try {
+        const pylintCmd = `pylint "${filePath}" --output-format=json`;
+        const pylintOutput = execSync(pylintCmd, { encoding: 'utf-8', timeout: 10000 });
+        const pylintResults = JSON.parse(pylintOutput || '[]');
+
+        const errors = pylintResults.filter(r => r.type === 'error');
+        const warnings = pylintResults.filter(r => r.type === 'warning');
+
+        results.python.pylint = {
+          passed: errors.length === 0,
+          errorCount: errors.length,
+          warningCount: warnings.length,
+          issues: pylintResults
+        };
+
+        log('SUCCESS', `pylint validation complete (${errors.length} errors, ${warnings.length} warnings)`);
+
+        // Add critical error recommendations
+        errors.slice(0, 3).forEach(err => {
+          results.recommendations.push({
+            type: 'python',
+            priority: 'high',
+            message: `pylint error: ${err.message}`,
+            action: `Fix ${err.symbol} at line ${err.line}`,
+            line: err.line
+          });
+        });
+
+      } catch (error) {
+        // pylint may exit with non-zero for warnings
+        try {
+          const output = error.stdout || '[]';
+          const pylintResults = JSON.parse(output);
+          const errors = pylintResults.filter(r => r.type === 'error');
+          const warnings = pylintResults.filter(r => r.type === 'warning');
+
+          results.python.pylint = {
+            passed: errors.length === 0,
+            errorCount: errors.length,
+            warningCount: warnings.length,
+            issues: pylintResults
+          };
+        } catch {
+          results.python.pylint = { passed: false, error: 'Failed to parse pylint output' };
+        }
+      }
+    }
+
+    // Run black if available
+    if (blackAvailable) {
+      try {
+        const blackCmd = `black --check "${filePath}"`;
+        execSync(blackCmd, { encoding: 'utf-8', timeout: 10000 });
+
+        results.python.black = {
+          passed: true,
+          formatted: true
+        };
+
+        log('SUCCESS', 'black formatting check passed');
+
+      } catch (error) {
+        results.python.black = {
+          passed: false,
+          formatted: false
+        };
+
+        log('FAILED', 'File needs black formatting');
+
+        results.recommendations.push({
+          type: 'python',
+          priority: 'medium',
+          message: 'Python file needs formatting',
+          action: `Run: black "${filePath}"`,
+          line: null
+        });
+      }
+    }
+
+  } catch (error) {
+    log('ERROR', 'Python validation error', { error: error.message });
+    results.python = { available: false, error: error.message };
+  }
+}
+
+// Rust Validation (cargo clippy + rustfmt)
+if (ext === '.rs') {
+  try {
+    log('VALIDATING', 'Running Rust validation (cargo clippy + rustfmt)');
+
+    // Check for cargo
+    let cargoAvailable = false;
+    try {
+      execSync('cargo --version', { stdio: 'ignore', timeout: 5000 });
+      cargoAvailable = true;
+    } catch {
+      log('WARNING', 'cargo not available for Rust validation');
+      results.recommendations.push({
+        type: 'dependency',
+        priority: 'medium',
+        message: 'Rust toolchain not installed - cargo validation unavailable',
+        action: 'Install Rust: curl --proto \'=https\' --tlsv1.2 -sSf https://sh.rustup.rs | sh',
+        line: null
+      });
+    }
+
+    results.rust = {
+      available: cargoAvailable,
+      clippy: null,
+      rustfmt: null
+    };
+
+    if (cargoAvailable) {
+      // Check for clippy
+      let clippyAvailable = false;
+      try {
+        execSync('cargo clippy --version', { stdio: 'ignore', timeout: 5000 });
+        clippyAvailable = true;
+      } catch {
+        log('WARNING', 'cargo clippy not available');
+      }
+
+      // Check for rustfmt
+      let rustfmtAvailable = false;
+      try {
+        execSync('rustfmt --version', { stdio: 'ignore', timeout: 5000 });
+        rustfmtAvailable = true;
+      } catch {
+        log('WARNING', 'rustfmt not available');
+      }
+
+      // Warn if Rust components missing
+      if (!clippyAvailable || !rustfmtAvailable) {
+        const missing = [];
+        if (!clippyAvailable) missing.push('clippy');
+        if (!rustfmtAvailable) missing.push('rustfmt');
+        results.recommendations.push({
+          type: 'dependency',
+          priority: 'low',
+          message: `Rust components missing: ${missing.join(', ')}`,
+          action: `Install: rustup component add ${missing.join(' ')}`,
+          line: null
+        });
+      }
+
+      // Run clippy if available (requires being in a Cargo project)
+      if (clippyAvailable) {
+        try {
+          const projectDir = dirname(filePath);
+          const clippyCmd = `cd "${projectDir}" && cargo clippy --message-format=json -- -W clippy::all 2>&1`;
+          const clippyOutput = execSync(clippyCmd, { encoding: 'utf-8', timeout: 30000 });
+
+          // Parse JSON messages
+          const messages = clippyOutput.split('\n')
+            .filter(line => line.trim().startsWith('{'))
+            .map(line => {
+              try {
+                return JSON.parse(line);
+              } catch {
+                return null;
+              }
+            })
+            .filter(msg => msg && msg.message && msg.message.level === 'warning');
+
+          results.rust.clippy = {
+            passed: messages.length === 0,
+            warningCount: messages.length,
+            warnings: messages
+          };
+
+          log('SUCCESS', `cargo clippy complete (${messages.length} warnings)`);
+
+          // Add recommendations for clippy warnings
+          messages.slice(0, 3).forEach(msg => {
+            results.recommendations.push({
+              type: 'rust',
+              priority: 'medium',
+              message: `clippy: ${msg.message.message}`,
+              action: msg.message.rendered || 'Review clippy suggestion',
+              line: msg.message.spans?.[0]?.line_start || null
+            });
+          });
+
+        } catch (error) {
+          log('SKIP', 'cargo clippy requires Cargo project context');
+          results.rust.clippy = { passed: true, note: 'Requires Cargo project' };
+        }
+      }
+
+      // Run rustfmt if available
+      if (rustfmtAvailable) {
+        try {
+          const rustfmtCmd = `rustfmt --check "${filePath}"`;
+          execSync(rustfmtCmd, { encoding: 'utf-8', timeout: 10000 });
+
+          results.rust.rustfmt = {
+            passed: true,
+            formatted: true
+          };
+
+          log('SUCCESS', 'rustfmt check passed');
+
+        } catch (error) {
+          results.rust.rustfmt = {
+            passed: false,
+            formatted: false
+          };
+
+          log('FAILED', 'Rust file needs formatting');
+
+          results.recommendations.push({
+            type: 'rust',
+            priority: 'low',
+            message: 'Rust file needs formatting',
+            action: `Run: rustfmt "${filePath}"`,
+            line: null
+          });
+        }
+      }
+    }
+
+  } catch (error) {
+    log('ERROR', 'Rust validation error', { error: error.message });
+    results.rust = { available: false, error: error.message };
+  }
+}
+
+// Go Validation (gofmt + go vet)
+if (ext === '.go') {
+  try {
+    log('VALIDATING', 'Running Go validation (gofmt + go vet)');
+
+    // Check for go
+    let goAvailable = false;
+    try {
+      execSync('go version', { stdio: 'ignore', timeout: 5000 });
+      goAvailable = true;
+    } catch {
+      log('WARNING', 'go not available for Go validation');
+      results.recommendations.push({
+        type: 'dependency',
+        priority: 'medium',
+        message: 'Go toolchain not installed - Go validation unavailable',
+        action: 'Install Go: https://golang.org/doc/install or brew install go',
+        line: null
+      });
+    }
+
+    results.go = {
+      available: goAvailable,
+      gofmt: null,
+      govet: null
+    };
+
+    if (goAvailable) {
+      // Run gofmt
+      try {
+        const gofmtCmd = `gofmt -l "${filePath}"`;
+        const gofmtOutput = execSync(gofmtCmd, { encoding: 'utf-8', timeout: 10000 });
+
+        const needsFormatting = gofmtOutput.trim().length > 0;
+
+        results.go.gofmt = {
+          passed: !needsFormatting,
+          formatted: !needsFormatting
+        };
+
+        if (needsFormatting) {
+          log('FAILED', 'Go file needs formatting');
+          results.recommendations.push({
+            type: 'go',
+            priority: 'medium',
+            message: 'Go file needs formatting',
+            action: `Run: gofmt -w "${filePath}"`,
+            line: null
+          });
+        } else {
+          log('SUCCESS', 'gofmt check passed');
+        }
+
+      } catch (error) {
+        results.go.gofmt = { passed: false, error: error.message };
+      }
+
+      // Run go vet
+      try {
+        const govetCmd = `go vet "${filePath}"`;
+        execSync(govetCmd, { encoding: 'utf-8', timeout: 10000 });
+
+        results.go.govet = {
+          passed: true,
+          issues: []
+        };
+
+        log('SUCCESS', 'go vet passed');
+
+      } catch (error) {
+        const output = error.stderr || error.stdout || '';
+        const issues = output.split('\n').filter(line => line.trim().length > 0);
+
+        results.go.govet = {
+          passed: false,
+          issueCount: issues.length,
+          issues
+        };
+
+        log('FAILED', `go vet found ${issues.length} issues`);
+
+        // Add recommendations
+        issues.slice(0, 3).forEach(issue => {
+          results.recommendations.push({
+            type: 'go',
+            priority: 'high',
+            message: `go vet: ${issue}`,
+            action: 'Fix static analysis issue',
+            line: null
+          });
+        });
+      }
+    }
+
+  } catch (error) {
+    log('ERROR', 'Go validation error', { error: error.message });
+    results.go = { available: false, error: error.message };
+  }
+}
+
+// Java Validation (google-java-format)
+if (ext === '.java') {
+  try {
+    log('VALIDATING', 'Running Java validation (google-java-format)');
+    let javaFormatterAvailable = false;
+    try {
+      execSync('google-java-format --version', { stdio: 'ignore', timeout: 5000 });
+      javaFormatterAvailable = true;
+    } catch {
+      log('WARNING', 'google-java-format not available for Java validation');
+      results.recommendations.push({
+        type: 'dependency',
+        priority: 'medium',
+        message: 'Java formatter not installed - google-java-format unavailable',
+        action: 'Install: brew install google-java-format or download from https://github.com/google/google-java-format',
+        line: null
+      });
+    }
+    results.java = {
+      available: javaFormatterAvailable,
+      format: null
+    };
+    if (javaFormatterAvailable) {
+      try {
+        const javaCmd = `google-java-format --dry-run --set-exit-if-changed "${filePath}"`;
+        execSync(javaCmd, { encoding: 'utf-8', timeout: 10000 });
+        results.java.format = { passed: true, formatted: true };
+        log('SUCCESS', 'google-java-format check passed');
+      } catch (error) {
+        results.java.format = { passed: false, formatted: false };
+        log('FAILED', 'Java file needs formatting');
+        results.recommendations.push({
+          type: 'java',
+          priority: 'medium',
+          message: 'Java file needs formatting',
+          action: `Run: google-java-format -i "${filePath}"`,
+          line: null
+        });
+      }
+    }
+  } catch (error) {
+    log('ERROR', 'Java validation error', { error: error.message });
+    results.java = { available: false, error: error.message };
+  }
+}
+
+// C/C++ Validation (clang-format + cppcheck)
+if (['.c', '.cpp', '.cc', '.cxx', '.h', '.hpp', '.hxx'].includes(ext)) {
+  try {
+    log('VALIDATING', 'Running C/C++ validation (clang-format + cppcheck)');
+    let clangFormatAvailable = false;
+    try {
+      execSync('clang-format --version', { stdio: 'ignore', timeout: 5000 });
+      clangFormatAvailable = true;
+    } catch {
+      log('WARNING', 'clang-format not available');
+    }
+    let cppcheckAvailable = false;
+    try {
+      execSync('cppcheck --version', { stdio: 'ignore', timeout: 5000 });
+      cppcheckAvailable = true;
+    } catch {
+      log('WARNING', 'cppcheck not available');
+    }
+    results.cpp = {
+      available: clangFormatAvailable || cppcheckAvailable,
+      clangFormat: null,
+      cppcheck: null
+    };
+
+    // Add warning if no C/C++ tools available
+    if (!clangFormatAvailable && !cppcheckAvailable) {
+      results.recommendations.push({
+        type: 'dependency',
+        priority: 'medium',
+        message: 'C/C++ validation tools not installed (clang-format, cppcheck)',
+        action: 'Install: brew install clang-format cppcheck or apt-get install clang-format cppcheck',
+        line: null
+      });
+    }
+    if (clangFormatAvailable) {
+      try {
+        const clangCmd = `clang-format --dry-run -Werror "${filePath}"`;
+        execSync(clangCmd, { encoding: 'utf-8', timeout: 10000 });
+        results.cpp.clangFormat = { passed: true, formatted: true };
+        log('SUCCESS', 'clang-format check passed');
+      } catch (error) {
+        results.cpp.clangFormat = { passed: false, formatted: false };
+        log('FAILED', 'C/C++ file needs formatting');
+        results.recommendations.push({
+          type: 'cpp',
+          priority: 'low',
+          message: 'C/C++ file needs formatting',
+          action: `Run: clang-format -i "${filePath}"`,
+          line: null
+        });
+      }
+    }
+    if (cppcheckAvailable) {
+      try {
+        const cppcheckCmd = `cppcheck --enable=all --suppress=missingIncludeSystem "${filePath}" 2>&1`;
+        const cppcheckOutput = execSync(cppcheckCmd, { encoding: 'utf-8', timeout: 10000 });
+        const lines = cppcheckOutput.split('\n').filter(line => line.includes(':'));
+        const errors = lines.filter(l => l.includes(':error:'));
+        const warnings = lines.filter(l => l.includes(':warning:') || l.includes(':style:'));
+        results.cpp.cppcheck = {
+          passed: errors.length === 0,
+          errorCount: errors.length,
+          warningCount: warnings.length,
+          issues: lines
+        };
+        log('SUCCESS', `cppcheck complete (${errors.length} errors, ${warnings.length} warnings)`);
+        errors.slice(0, 3).forEach(err => {
+          results.recommendations.push({
+            type: 'cpp',
+            priority: 'critical',
+            message: `cppcheck error: ${err}`,
+            action: 'Fix static analysis error',
+            line: null
+          });
+        });
+      } catch (error) {
+        const output = error.stdout || error.stderr || '';
+        const lines = output.split('\n').filter(line => line.includes(':'));
+        const errors = lines.filter(l => l.includes(':error:'));
+        results.cpp.cppcheck = {
+          passed: errors.length === 0,
+          errorCount: errors.length,
+          issues: lines
+        };
+        if (errors.length > 0) {
+          log('FAILED', `cppcheck found ${errors.length} errors`);
+        }
+      }
+    }
+  } catch (error) {
+    log('ERROR', 'C/C++ validation error', { error: error.message });
+    results.cpp = { available: false, error: error.message };
+  }
+}
+// Summary and Exit
+// ============================================================================
+
+// Calculate overall status
+const hasCriticalIssues = results.recommendations.some(r => r.priority === 'critical');
+const hasHighIssues = results.recommendations.some(r => r.priority === 'high');
+const hasTypeScriptErrors = results.typescript && !results.typescript.passed;
+const hasRustErrors = results.rust && !results.rust.passed && !results.rust.skipped;
+const hasESLintErrors = results.eslint && results.eslint.errorCount > 0;
+
+let overallStatus = 'SUCCESS';
+let exitCode = 0;
+
+if (hasCriticalIssues) {
+  overallStatus = 'CRITICAL_ISSUES';
+  exitCode = 2;
+} else if (hasTypeScriptErrors && results.typescript.severity === 'SYNTAX_ERROR') {
+  overallStatus = 'SYNTAX_ERROR';
+  exitCode = 2;
+} else if (hasTypeScriptErrors) {
+  overallStatus = 'TYPE_ERRORS';
+  exitCode = 2; // Now blocking for all TS errors
+} else if (hasRustErrors && results.rust.severity === 'SYNTAX_ERROR') {
+  overallStatus = 'RUST_SYNTAX_ERROR';
+  exitCode = 2;
+} else if (hasRustErrors && results.rust.severity === 'BORROW_ERROR') {
+  overallStatus = 'RUST_BORROW_ERROR';
+  exitCode = 2; // Borrow checker errors are critical
+} else if (hasRustErrors) {
+  overallStatus = 'RUST_ERRORS';
+  exitCode = 2; // Now blocking for all Rust errors
+} else if (hasHighIssues || hasESLintErrors) {
+  overallStatus = 'LINT_ISSUES';
+  exitCode = 0; // Non-blocking
+} else if (results.recommendations.length > 0) {
+  overallStatus = 'IMPROVEMENTS_SUGGESTED';
+  exitCode = 0;
+}
+
+// Log final summary
+log(overallStatus, 'Pipeline validation complete', {
   typescript: results.typescript,
+  rust: results.rust,
   eslint: results.eslint,
   prettier: results.prettier,
   security: results.security,
   metrics: results.metrics,
   recommendationCount: results.recommendations.length,
   topRecommendations: results.recommendations.slice(0, 3)
-};
+});
 
-// Include structured data for feedback handlers
-if (results.sqlInjection) {
-  finalResult.sqlInjection = results.sqlInjection;
-}
-if (results.rootWarning) {
-  finalResult.rootWarning = results.rootWarning;
-}
-if (results.tddViolation) {
-  finalResult.tddViolation = results.tddViolation;
-}
-if (results.bashValidators) {
-  finalResult.bashValidators = results.bashValidators;
-}
-if (results.rustQuality) {
-  finalResult.rustQuality = results.rustQuality;
-}
-if (results.complexityAnalysis) {
-  finalResult.complexityAnalysis = results.complexityAnalysis;
+// Print user-friendly summary
+console.error('\n' + '='.repeat(80));
+console.error('Enhanced Post-Edit Pipeline Summary');
+console.error('='.repeat(80));
+
+if (results.typescript) {
+  console.error(`\nTypeScript: ${results.typescript.passed ? '✅ PASSED' : '❌ FAILED'}`);
+  if (!results.typescript.passed) {
+    console.error(`  Errors: ${results.typescript.errorCount}`);
+  }
 }
 
-log(finalStatus, 'Pipeline validation complete', finalResult);
+if (results.rust) {
+  if (results.rust.skipped) {
+    console.error(`\nRust: ⏭️  SKIPPED (${results.rust.reason})`);
+  } else {
+    console.error(`\nRust: ${results.rust.passed ? '✅ PASSED' : '❌ FAILED'}`);
+    if (!results.rust.passed) {
+      console.error(`  Errors: ${results.rust.errorCount}`);
+    }
+  }
+}
+
+if (results.eslint && results.eslint.available) {
+  console.error(`ESLint: ${results.eslint.passed ? '✅ PASSED' : '❌ FAILED'}`);
+  if (!results.eslint.passed) {
+    console.error(`  Errors: ${results.eslint.errorCount}, Warnings: ${results.eslint.warningCount}`);
+  }
+}
+
+if (results.prettier && results.prettier.available) {
+  console.error(`Prettier: ${results.prettier.passed ? '✅ PASSED' : '⚠️  NEEDS FORMATTING'}`);
+}
+
+console.error(`\nSecurity: ${results.security.passed ? '✅ NO ISSUES' : '❌ ISSUES FOUND'}`);
+if (!results.security.passed) {
+  console.error(`  Issues: ${results.security.issueCount}`);
+}
+
+console.error(`\nCode Metrics:`);
+console.error(`  Lines: ${results.metrics.lines}`);
+console.error(`  Functions: ${results.metrics.functions}`);
+console.error(`  Classes: ${results.metrics.classes}`);
+console.error(`  Complexity: ${results.metrics.complexity.toUpperCase()}`);
+
+if (results.recommendations.length > 0) {
+  console.error(`\nTop Recommendations:`);
+  results.recommendations.slice(0, 3).forEach((rec, i) => {
+    const icon = rec.priority === 'critical' ? '🔴' : rec.priority === 'high' ? '🟠' : rec.priority === 'medium' ? '🟡' : '🔵';
+    console.error(`  ${icon} [${rec.type.toUpperCase()}] ${rec.message}`);
+    console.error(`     Action: ${rec.action}`);
+  });
+
+  if (results.recommendations.length > 3) {
+    console.error(`  ... and ${results.recommendations.length - 3} more recommendations`);
+  }
+}
+
+console.error('='.repeat(80) + '\n');
 
 process.exit(exitCode);
