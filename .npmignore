@@ -59,8 +59,9 @@ backups/
 .backups/
 **/.backups/
 
-# Configuration (except hooks that are now in dist/)
+# Configuration (except hooks for post-edit pipeline)
 config/
+!config/hooks/
 
 # Documentation (except essentials)
 planning/
