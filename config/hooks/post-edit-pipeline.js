@@ -12,6 +12,45 @@
  * - Actionable recommendations engine
  *
  * Usage: node config/hooks/post-edit-pipeline.js <file_path> [--memory-key <key>] [--agent-id <id>]
+ *
+ * ============================================================================
+ * TYPESCRIPT ERROR DETECTION - WHAT'S CAUGHT vs NOT CAUGHT
+ * ============================================================================
+ *
+ * This pipeline runs: `npx tsc --noEmit --skipLibCheck ${filePath}`
+ * It checks the EDITED FILE + its IMPORTS (transitively), but NOT files that
+ * import the edited file.
+ *
+ * ✅ CAUGHT (Blocks Edit):
+ * ┌────────────────────┬─────────────┬─────────────────────────────────────────┐
+ * │ Error Type         │ Code        │ Example                                 │
+ * ├────────────────────┼─────────────┼─────────────────────────────────────────┤
+ * │ Missing module     │ TS2307      │ import { x } from './nonexistent'       │
+ * │ Missing export     │ TS2305      │ import { nonExistent } from './exists'  │
+ * │ Typo in export     │ TS2724      │ import { Uzer } from './user'           │
+ * │ Syntax errors      │ TS1005,1128 │ Missing ), unexpected token             │
+ * │ Unused imports     │ TS6133,6196 │ import { unused } from...               │
+ * │ Type mismatches    │ TS2322,2345 │ Wrong type assignment                   │
+ * │ Missing properties │ TS2339,2353 │ obj.nonExistentProp                     │
+ * └────────────────────┴─────────────┴─────────────────────────────────────────┘
+ *
+ * ❌ NOT CAUGHT (Single-File Limitation):
+ * ┌─────────────────────────────────┬────────────────────────────────────────────┐
+ * │ Scenario                        │ Why                                        │
+ * ├─────────────────────────────────┼────────────────────────────────────────────┤
+ * │ Cross-file type changes         │ Editing types.ts won't catch breaks in     │
+ * │                                 │ other.ts that imports it                   │
+ * │ Deleted exports used elsewhere  │ Consumers aren't checked until edited      │
+ * │ Renamed functions/types         │ Same - callers won't be validated          │
+ * └─────────────────────────────────┴────────────────────────────────────────────┘
+ *
+ * Example of NOT CAUGHT:
+ *   You edit: src/types.ts (remove UserType export)
+ *   Pipeline: ✅ passes (types.ts is valid)
+ *   Reality:  src/user.ts imports UserType → BROKEN but not checked
+ *
+ * To catch everything: Run `npx tsc --noEmit` project-wide periodically.
+ * ============================================================================
  */
 
 import { spawnSync } from 'child_process';
