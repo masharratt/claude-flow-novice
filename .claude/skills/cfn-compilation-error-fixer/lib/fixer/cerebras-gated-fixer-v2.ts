@@ -12,10 +12,14 @@
  * - Targeted crate compile testing
  */
 
+import * as dotenv from 'dotenv';
 import createCerebrasClient from './cerebras-wrapper.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // ============== CONFIGURATION ==============
 

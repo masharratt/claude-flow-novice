@@ -9,10 +9,14 @@
  * - Phase 2: Dedicated agent cleanup (high quality)
  */
 
+import * as dotenv from 'dotenv';
 import Cerebras from '@cerebras/cerebras_cloud_sdk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execFileSync, spawnSync } from 'child_process';
+
+// Load environment variables from .env file
+dotenv.config();
 import {
   gateLineCountDelta,
   gateMethodSignature,
@@ -167,9 +171,9 @@ function validateApiKey(apiKey: string | undefined): boolean {
     return false;
   }
 
-  // Check for basic format (starts with sk- and reasonable length)
-  if (!apiKey.startsWith('sk-') || apiKey.length < 20) {
-    console.error('❌ Security: Invalid API key format');
+  // Check for basic format (starts with sk- or csk- and reasonable length)
+  if ((!apiKey.startsWith('sk-') && !apiKey.startsWith('csk-')) || apiKey.length < 20) {
+    console.error('❌ Security: Invalid API key format (expected sk-* or csk-*)');
     return false;
   }
 
