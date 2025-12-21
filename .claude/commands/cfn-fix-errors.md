@@ -6,7 +6,7 @@ allowed-tools: ["Task", "TaskOutput", "TodoWrite", "Read", "Bash"]
 
 # CFN Fix Errors - Agent Coordination Mode
 
-**Version:** 1.1.0  |  **Date:** 2025-12-21  |  **Status:** Production Ready
+**Version:** 1.2.0  |  **Date:** 2025-12-21  |  **Status:** Production Ready
 
 ## Quick Overview
 
@@ -58,14 +58,54 @@ echo "Session ID: $SESSION_ID | Language: $LANGUAGE | Max Parallel: $MAX_PARALLE
 **For Rust:**
 ```bash
 cd [PROJECT_ROOT]
-SQLX_OFFLINE=true cargo check 2>&1 | grep "^error\[" | awk -F':' '{print $1}' | sort | uniq -c | sort -rn
+# Cargo errors: file paths are on lines starting with "-->"
+SQLX_OFFLINE=true cargo check 2>&1 | grep "^\s*-->" | awk '{print $2}' | awk -F':' '{print $1}' | sort | uniq -c | sort -rn
 ```
 
-**For TypeScript:**
+**For TypeScript (tsc):**
 ```bash
 cd [PROJECT_ROOT]
-# Try common script names: typecheck, type-check, or tsc
+# TypeScript compiler errors: file paths before first parenthesis
 npm run typecheck 2>&1 | grep "error TS" | awk -F'(' '{print $1}' | sort | uniq -c | sort -rn
+```
+
+**For TypeScript (ESLint):**
+```bash
+cd [PROJECT_ROOT]
+# ESLint: file paths are on separate lines, extract .ts/.tsx files
+npm run lint 2>&1 > /tmp/eslint-output.txt
+grep -B1 "error" /tmp/eslint-output.txt | grep -v "error\|--" | grep "\.tsx\?$" | sort | uniq -c | sort -rn
+```
+
+**Alternative (Universal TypeScript/ESLint parser):**
+```bash
+# Save full output first
+npm run lint 2>&1 > /tmp/lint-output.txt || npm run typecheck 2>&1 > /tmp/lint-output.txt
+
+# Parse with Python for robust extraction
+python3 << 'PARSE_SCRIPT'
+import re
+from collections import defaultdict
+
+error_counts = defaultdict(int)
+current_file = None
+
+with open('/tmp/lint-output.txt', 'r') as f:
+    for line in f:
+        # ESLint format: file path on its own line
+        if line.strip().endswith('.ts') or line.strip().endswith('.tsx'):
+            current_file = line.strip()
+        # ESLint error line
+        elif re.search(r'^\s+\d+:\d+\s+(error|warning)', line) and current_file:
+            error_counts[current_file] += 1
+        # TSC format: file.ts(line,col): error TS
+        elif match := re.match(r'^(.+\.tsx?)\(\d+,\d+\):\s+error', line):
+            error_counts[match.group(1)] += 1
+
+# Print sorted by error count
+for file, count in sorted(error_counts.items(), key=lambda x: -x[1])[:30]:
+    print(f"{count:6d} {file}")
+PARSE_SCRIPT
 ```
 
 **OUTPUT FORMAT:**
@@ -296,5 +336,6 @@ phase2Queue = ["src/db.ts", "src/models.ts"]
 
 ## Version History
 
+- v1.2.0 (2025-12-21) - Fixed error file extraction patterns for Rust and TypeScript/ESLint
 - v1.1.0 (2025-12-21) - Clarified instructions, removed pseudocode confusion
 - v1.0.0 (2025-12-21) - Initial coordination mode implementation
