@@ -71,6 +71,10 @@ const CFN_PATHS = {
     src: path.join(cfnRoot, '.claude/helpers'),
     dest: '.claude/helpers',
     pattern: 'cfn-*'
+  },
+  configHooks: {
+    src: path.join(cfnRoot, 'config/hooks'),
+    dest: 'config/hooks'
   }
 };
 
@@ -82,7 +86,8 @@ async function ensureDirectories() {
     '.claude/commands',
     '.claude/cfn-extras',
     '.claude/core',
-    '.claude/helpers'
+    '.claude/helpers',
+    'config/hooks'
   ];
 
   for (const dir of dirs) {
@@ -282,7 +287,8 @@ async function initializeCfnProject() {
     '.claude/agents/cfn-dev-team',
     '.claude/skills',
     '.claude/hooks',
-    '.claude/commands'
+    '.claude/commands',
+    'config/hooks'
   ];
 
   if (fs.existsSync(markerPath)) {
