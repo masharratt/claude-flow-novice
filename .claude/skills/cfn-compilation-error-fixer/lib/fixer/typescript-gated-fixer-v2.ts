@@ -33,6 +33,10 @@ import {
 
 // ============== CONFIGURATION ==============
 
+// Parse --file and --agent-id parameters
+const fileArg = process.argv.find(arg => arg.startsWith('--file='));
+const agentIdArg = process.argv.find(arg => arg.startsWith('--agent-id='));
+
 const CONFIG = {
   maxGlobalIterations: 5,
   maxFileRetries: 2,
@@ -47,6 +51,8 @@ const CONFIG = {
   verbose: process.argv.includes('--verbose'),
   includeTypes: process.argv.includes('--types') ? ['ts', 'tsx'] : ['ts', 'tsx'],
   excludePattern: process.env.TS_EXCLUDE_PATTERN || 'node_modules|dist|build|\\.git',
+  singleFile: fileArg ? fileArg.split('=')[1] : null,  // Single-file mode
+  agentId: agentIdArg ? agentIdArg.split('=')[1] : null,  // Agent ID for coordination mode
   // Security limits
   maxFileSize: 1024 * 1024, // 1MB
   maxLineLength: 1000,
@@ -867,6 +873,13 @@ async function main() {
   console.log(`   Model: ${CONFIG.model}`);
   console.log(`   Dry run: ${CONFIG.dryRun}`);
 
+  if (CONFIG.singleFile) {
+    console.log(`   Single-File Mode: ${CONFIG.singleFile}`);
+    if (CONFIG.agentId) {
+      console.log(`   Agent ID: ${CONFIG.agentId}`);
+    }
+  }
+
   if (CONFIG.dryRun) {
     console.log(`   Patch dir: ${CONFIG.patchDir}`);
   }
@@ -898,6 +911,30 @@ async function main() {
       errorsByFile.set(error.file, []);
     }
     errorsByFile.get(error.file)!.push(error);
+  }
+
+  // Single-file mode: filter to only the specified file
+  if (CONFIG.singleFile) {
+    const normalizedPath = path.normalize(CONFIG.singleFile);
+    const matchingFiles = Array.from(errorsByFile.keys()).filter(f =>
+      f === normalizedPath || f.endsWith(normalizedPath) || normalizedPath.endsWith(f)
+    );
+
+    if (matchingFiles.length === 0) {
+      console.log(`\n✅ Single-file mode: No errors found in ${CONFIG.singleFile}`);
+      console.log('   File may have already been fixed or has no compilation errors.');
+      return;
+    }
+
+    // Keep only the matching file
+    const singleFileErrors = new Map<string, TypeScriptError[]>();
+    for (const file of matchingFiles) {
+      singleFileErrors.set(file, errorsByFile.get(file)!);
+    }
+    errorsByFile.clear();
+    for (const [k, v] of singleFileErrors) {
+      errorsByFile.set(k, v);
+    }
   }
 
   console.log(`   Across ${errorsByFile.size} files\n`);

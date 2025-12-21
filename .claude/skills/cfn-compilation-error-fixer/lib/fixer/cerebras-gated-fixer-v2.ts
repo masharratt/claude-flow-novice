@@ -19,6 +19,10 @@ import { execSync } from 'child_process';
 
 // ============== CONFIGURATION ==============
 
+// Parse --file and --agent-id parameters
+const fileArg = process.argv.find(arg => arg.startsWith('--file='));
+const agentIdArg = process.argv.find(arg => arg.startsWith('--agent-id='));
+
 const CONFIG = {
   maxGlobalIterations: 5,
   maxFileRetries: 2,
@@ -32,6 +36,8 @@ const CONFIG = {
   dryRun: process.argv.includes('--dry-run'),
   patchDir: '/tmp/rust-fix-patches',
   verbose: process.argv.includes('--verbose'),
+  singleFile: fileArg ? fileArg.split('=')[1] : null,  // Single-file mode
+  agentId: agentIdArg ? agentIdArg.split('=')[1] : null,  // Agent ID for coordination mode
 };
 
 // ============== TYPE DEFINITIONS ==============
@@ -1342,6 +1348,12 @@ async function main() {
   console.log(`Layer 3 LLM Review: ${CONFIG.enableLayer3 ? 'ON' : 'OFF'}`);
   console.log(`Clippy: ${CONFIG.enableClippy ? 'ON' : 'OFF'}`);
   console.log(`Dry-Run: ${CONFIG.dryRun ? 'ON' : 'OFF'}`);
+  if (CONFIG.singleFile) {
+    console.log(`Single-File Mode: ${CONFIG.singleFile}`);
+    if (CONFIG.agentId) {
+      console.log(`Agent ID: ${CONFIG.agentId}`);
+    }
+  }
   console.log();
 
   const apiKey = loadCerebrasKey();
@@ -1380,7 +1392,17 @@ async function main() {
     const fileFeedback = new Map<string, Map<number, string>>();
 
     let totalApplied = 0;
-    const files = [...allErrors.entries()];
+    let files = [...allErrors.entries()];
+
+    // Single-file mode: filter to only the specified file
+    if (CONFIG.singleFile) {
+      files = files.filter(([filePath]) => filePath === CONFIG.singleFile);
+      if (files.length === 0) {
+        console.log(`\nSingle-file mode: No errors found in ${CONFIG.singleFile}`);
+        console.log('File may have already been fixed or has no compilation errors.');
+        break;
+      }
+    }
 
     for (const [filePath, errors] of files) {
       const fullPath = path.join(CONFIG.projectPath, filePath);
