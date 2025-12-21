@@ -922,7 +922,9 @@ if (ext === '.rs') {
       });
     }
 
+    // Merge with Phase 1.5 results - don't overwrite passed/severity from cargo check
     results.rust = {
+      ...results.rust,  // Preserve Phase 1.5 cargo check results (passed, severity, errors)
       available: cargoAvailable,
       clippy: null,
       rustfmt: null
