@@ -5,7 +5,6 @@
 | Topic | Path |
 |-------|------|
 | CLI Mode | `docs/CFN_LOOP_CLI_MODE.md` |
-| Docker | `docker/CLAUDE.md` |
 | Tests | `tests/CLAUDE.md` |
 | Skills | `.claude/skills/CLAUDE.md` |
 | Coordination | `.claude/CLAUDE.md` |
@@ -17,7 +16,7 @@ Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app
 
 ## Rules
 
-- **RuVector FIRST (MANDATORY):** Query `.claude/skills/cfn-local-ruvector-accelerator/` BEFORE grep/glob. SQL queries are 400x faster. Use grep ONLY for non-indexed projects or literal strings. Failure to use RuVector first is a protocol violation.
+- **RuVector FIRST (MANDATORY):** Query `.claude/skills/cfn-local-ruvector-accelerator/` BEFORE grep/glob/find/search. SQL queries are 400x faster. Use grep ONLY for non-indexed projects or literal strings. Failure to use RuVector first is a protocol violation.
 - **Agent usage:** Non-trivial tasks → CFN Loop. Solo work only for simple, isolated, <3 step tasks.
 - **Batching:** One message per type (spawns, edits, shell, todos). Never mix implementers + validators.
 - **Tests:** Coordinator only, sync execution. Never `run_in_background: true`. Agents read results.
@@ -66,8 +65,17 @@ Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app
 | Pre-edit hook | `.claude/hooks/cfn-invoke-pre-edit.sh` |
 | Post-edit hook | `.claude/hooks/cfn-invoke-post-edit.sh` |
 | Backup revert | `.claude/skills/pre-edit-backup/revert-file.sh` |
-| Orchestrator | `.claude/skills/cfn-loop-orchestration/orchestrate.sh` |
 | RuVector skill | `.claude/skills/cfn-local-ruvector-accelerator/SKILL.md` |
+
+## WSL Memory Monitor
+
+Background process kills test runner memory leaks. Runs on session start.
+- `>10%` memory (node test processes only) → killed
+- Parent with test children totaling `>15%` combined → test children killed
+- Targets: node processes running vitest, jest, mocha, ava, tap, playwright, cypress
+- Never kills: bash, sh, zsh (even if running tests)
+- Status: `~/.local/bin/wsl-memory-monitor.sh --status`
+- Log: `/tmp/wsl-memory-monitor.log`
 
 ## Security
 
@@ -75,4 +83,3 @@ Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app
 - Redact: credentials, tokens, PII → `[REDACTED]`
 - Incidents: capture command, commit, env, logs
 - Rollback: use backup scripts, not `git checkout`
-- Deadlocks: restart orchestrator, clear stale Redis keys

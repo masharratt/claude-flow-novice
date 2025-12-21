@@ -112,3 +112,61 @@ Detailed scenario-specific plans live under the following documents:
 3. `tests/docker/TEST_SUITE_EXECUTION_PLAYBOOK.md`
 
 Refer back to this file whenever creating or reviewing test scripts referenced by those plans.
+
+---
+
+## Test Suites and Timing
+
+Run tests before committing: after features/bugfixes, agent behavior changes, or CFN workflow changes.
+
+| Suite | Command | Duration | Use Case |
+|-------|---------|----------|----------|
+| Full | `npm test` | 1-5 min | Dev feedback |
+| Unit | `npm run test:unit` | ~1 min | Quick iteration |
+| Integration | `npm run test:integration` | ~2 min | API/component tests |
+| E2E | `npm run test:e2e` | ~5 min | Full flow validation |
+| CLI Mode | `./tests/cli-mode/run-all-tests.sh` | 5-10 min | `/cfn-loop-cli` validation |
+| Docker | `./tests/docker-mode/run-all-implementations.sh` | 3-5 min | 45 integration tests |
+| CFN V3 | `./tests/cfn-v3/test-e2e-cfn-loop.sh` | 5-15 min | Coordinator/orchestration |
+
+### When to Run Which Suite
+
+- **CLI mode tests:** Before commits touching agent spawning, coordination thresholds, or Redis patterns
+- **Docker suite:** Before Docker-related changes or releases
+- **Full suite:** Before merging PRs
+
+### Test Artifacts
+
+- Results: `.artifacts/test-results/`
+- Coverage: `.artifacts/coverage/`
+- Logs: `.artifacts/logs/`
+- Runtime: `.artifacts/runtime/`
+
+---
+
+## Test-Driven Gates (v3.0+)
+
+### Loop 3 Gate
+
+Pass rate must meet mode threshold before validators start.
+
+### Loop 2 Consensus Thresholds
+
+| Mode | Gate Pass Rate | Consensus |
+|------|----------------|-----------|
+| MVP | >= 0.70 | >= 0.80 |
+| Standard | >= 0.95 | >= 0.90 |
+| Enterprise | >= 0.98 | >= 0.95 |
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Redis missing | `redis-server --daemonize yes` or docker `redis:7-alpine` |
+| Docker not running | `systemctl start docker` or start Docker.app |
+| Port conflicts | `docker stop $(docker ps -aq) && docker rm $(docker ps -aq) && docker network prune -f` |
+| Permissions | `usermod -aG docker $USER` then `newgrp docker` |
+| Verbose debugging | `DEBUG=true ./tests/cli-mode/run-all-tests.sh` |
+| Inspect logs | `.artifacts/logs/test-execution.log` |
