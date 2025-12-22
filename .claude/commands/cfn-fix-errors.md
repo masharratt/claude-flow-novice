@@ -277,7 +277,12 @@ WORKFLOW:
 
 CONSTRAINTS:
 - Fix ONLY errors in [FILE_PATH] - do not modify other files
-- Do NOT run linters on the entire codebase (eslint . is FORBIDDEN)
+- Do NOT run linters/checkers on the entire codebase:
+  - `eslint .` is FORBIDDEN
+  - `cargo check` (full project) is FORBIDDEN
+  - `npm run lint` (full project) is FORBIDDEN
+  - `npm run typecheck` (full project) is FORBIDDEN
+- Use errors from /tmp/ output files - do NOT regenerate them
 - Do NOT add unnecessary dependencies
 - Preserve existing functionality
 - Keep fixes minimal and targeted
