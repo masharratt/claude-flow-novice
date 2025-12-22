@@ -296,11 +296,16 @@ COMMON FIX PATTERNS:
 
 REPORT FORMAT:
 ```
-FIXES APPLIED:
+SUMMARY: [2 sentence summary of what was fixed and outcome]
+
+FIXES APPLIED: [count]
 - Line X: [description of fix]
 - Line Y: [description of fix]
 
+ROUNDS: [number of fix iterations attempted]
+ERRORS FIXED: [count of errors resolved in this file]
 VALIDATION: [PASS/FAIL]
+POST-EDIT RESPONSE: [final output from post-edit pipeline]
 REMAINING ERRORS: [count or "none"]
 ```
 ```
