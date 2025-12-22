@@ -6,483 +6,236 @@ allowed-tools: ["Task", "TaskOutput", "TodoWrite", "Read", "Bash"]
 
 # CFN Fix Errors - Agent Coordination Mode
 
-**Version:** 2.1.0  |  **Date:** 2025-12-21  |  **Status:** Production Ready
+**Version:** 3.1.0  |  **Date:** 2025-12-21  |  **Status:** Production Ready
 
 ---
 
-## QUICK REFERENCE (Follow This Process)
+## QUICK REFERENCE
 
-### Step-by-Step Execution:
+### Get Errors (with caching for speed)
 
-1. **Get errors** → Save to `/tmp/` (tsc, eslint, or cargo check)
-2. **Phase 0** → Fix root-cause files (types, core modules) ONE AT A TIME, blocking
-3. **Commit** → After Phase 0 completes, commit all changes
-4. **Phase 1** → Spawn up to 5 agents with `run_in_background: true`
-5. **Monitor** → Use `TaskOutput(taskId, {block: false})` to check agent status
-6. **Respawn** → When an agent completes, IMMEDIATELY spawn next agent for next file
-7. **Commit** → Every 20 files fixed, commit changes to git
-8. **Commit** → After Phase 1 completes, commit remaining changes
-9. **Phase 2** → When <40 errors remain, spawn cleanup agent
-10. **Commit** → After Phase 2 completes, final commit
-
-### Critical Rules:
-
-```
-AGENTS: Always spawn with run_in_background: true (max 5 concurrent)
-RESPAWN: When TaskOutput shows "completed", spawn next agent immediately
-COMMITS: git add && git commit:
-  - After Phase 0 completes
-  - Every 20 files fixed in Phase 1
-  - After Phase 1 completes
-  - After Phase 2 completes
-NO FULL CHECKS: Agents must NOT run eslint ./cargo check on full project
-SINGLE FILE: Each agent fixes ONE file only, then exits
+**TypeScript (tsc) - use incremental:**
+```bash
+npm run typecheck 2>&1 | tee /tmp/tsc-errors.txt
+# Ensure tsconfig.json has: "incremental": true, "tsBuildInfoFile": ".tsbuildinfo"
 ```
 
-### Agent Spawn Template:
+**TypeScript (ESLint) - use cache:**
+```bash
+npx eslint . --ext .ts,.tsx --cache --cache-location /tmp/.eslintcache 2>&1 | tee /tmp/eslint-errors.txt
+```
+
+**Rust (incremental by default):**
+```bash
+SQLX_OFFLINE=true cargo check 2>&1 | tee /tmp/cargo-errors.txt
+```
+
+### Find Files with Most Errors
+
+**TypeScript (tsc):**
+```bash
+grep "error TS" /tmp/tsc-errors.txt | awk -F'(' '{print $1}' | sort | uniq -c | sort -rn | head -20
+```
+
+**TypeScript (ESLint):**
+```bash
+grep -B1 "error" /tmp/eslint-errors.txt | grep "\.tsx\?$" | sort | uniq -c | sort -rn | head -20
+```
+
+**Rust:**
+```bash
+grep "^\s*-->" /tmp/cargo-errors.txt | awk '{print $2}' | awk -F':' '{print $1}' | sort | uniq -c | sort -rn | head -20
+```
+
+Output: files sorted by error count (fix highest counts first)
+
+### Three-Phase Execution
+
+| Phase | Files | Mode | Rule |
+|-------|-------|------|------|
+| 0 | Strategic root-causes | Sequential | `run_in_background: false` |
+| 1 | Remaining files | Up to 5 parallel | `run_in_background: true` |
+| 2 | Cross-file errors | Sequential | `run_in_background: false` |
+
+**Triggers:** Phase 0 completes → Phase 1 spawns → <40 errors remain → Phase 2 spawns
+
+### Critical Rules
+
+- **Background ONLY for Phase 1:** Agents restart chat when done. Spawn next immediately.
+- **Single file per agent:** Each agent fixes one file, validates, then exits.
+- **Commits via background agent:** Spawn commit agent every 20 files / after each phase.
+- **Refresh errors at 15 files:** After 15 fixes, spawn background agent to re-run error gathering.
+- **No full checks:** Agents forbidden: `eslint .` `cargo check` `npm run lint` `npm run typecheck` (full project)
+- **Report facts only:** Files fixed, errors remaining. No CFN effectiveness commentary.
+
+### Spawn Templates
+
+**Phase 0 & 2 (blocking):**
 ```typescript
-Task("typescript-specialist",  // or "rust-developer"
+Task("typescript-specialist" /* or "rust-developer" */,
   `Fix errors in: [FILE_PATH]
    PROJECT: [ROOT]
    Read errors from /tmp/[errors].txt
-   Fix file, run post-edit validation, report results.`,
-  {run_in_background: true}
-);
-```
-
-### Monitor & Respawn Loop:
-```typescript
-// Check all active agents (non-blocking)
-for (const agent of activeAgents) {
-  const result = TaskOutput(agent.taskId, {block: false});
-  if (result.status === "completed") {
-    filesFixed++;
-    removeFromActive(agent);
-    // IMMEDIATELY spawn next agent
-    if (fileQueue.length > 0) spawnNextAgent();
-    // Commit every 20 files
-    if (filesFixed % 20 === 0) gitCommit();
-  }
-}
-```
-
----
-
-## Quick Overview
-
-Main chat coordinates error fixing in two phases:
-- **Phase 0**: Fix strategic root-cause files first (prevents cascading errors)
-- **Phase 1**: Parallel agents fix remaining files (up to 5 concurrent)
-- **Phase 2**: Cleanup of cross-file errors
-
-### Key Features
-- **Phase 0 strategic fixes** - identify and fix root-cause files first
-- **Max 5 parallel agents** with continuous spawning in Phase 1
-- **Single-file focus** - each agent fixes one file only
-- **Post-edit validation** confirms fixes are correct
-- **Agents solve independently** - no external tools, just expertise
-- **Automatic Phase 2** transition at <40 errors
-
-### When to Use
-- 20+ compilation errors
-- Errors may have cascading dependencies
-- Want visibility into agent progress
-- Need systematic error reduction
-
----
-
-## Execution Instructions (Follow These Steps)
-
-### Step 1: Parse Arguments and Initialize
-
-**YOU SHOULD:** Parse the command arguments and set up session tracking.
-
-```bash
-# Extract language from arguments (first word before any flags)
-LANGUAGE="typescript"  # or "rust" from user's command
-
-# Parse optional flags (use defaults if not provided)
-MAX_PARALLEL=5
-MAX_CYCLES=10
-
-# Generate unique session ID
-SESSION_ID="cfn-fix-$(date +%s | tail -c 6)-${RANDOM}"
-echo "Session ID: $SESSION_ID | Language: $LANGUAGE | Max Parallel: $MAX_PARALLEL"
-```
-
-**VALIDATE:** Language must be "rust", "typescript", or "ts"
-
----
-
-### Step 2: Get Error Files and Analyze
-
-**YOU SHOULD:** Run the appropriate type checker and get files with errors.
-
-**For Rust:**
-```bash
-cd [PROJECT_ROOT]
-# Cargo errors: file paths are on lines starting with "-->"
-SQLX_OFFLINE=true cargo check 2>&1 | tee /tmp/cargo-errors.txt | grep "^\s*-->" | awk '{print $2}' | awk -F':' '{print $1}' | sort | uniq -c | sort -rn
-```
-
-**For TypeScript (tsc):**
-```bash
-cd [PROJECT_ROOT]
-npm run typecheck 2>&1 | tee /tmp/tsc-errors.txt | grep "error TS" | awk -F'(' '{print $1}' | sort | uniq -c | sort -rn
-```
-
-**For TypeScript (ESLint):**
-```bash
-cd [PROJECT_ROOT]
-npm run lint 2>&1 > /tmp/eslint-output.txt
-grep -B1 "error" /tmp/eslint-output.txt | grep -v "error\|--" | grep "\.tsx\?$" | sort | uniq -c | sort -rn
-```
-
-**Alternative (Universal TypeScript/ESLint parser):**
-```bash
-npm run lint 2>&1 > /tmp/lint-output.txt || npm run typecheck 2>&1 > /tmp/lint-output.txt
-
-python3 << 'PARSE_SCRIPT'
-import re
-from collections import defaultdict
-
-error_counts = defaultdict(int)
-current_file = None
-
-with open('/tmp/lint-output.txt', 'r') as f:
-    for line in f:
-        if line.strip().endswith('.ts') or line.strip().endswith('.tsx'):
-            current_file = line.strip()
-        elif re.search(r'^\s+\d+:\d+\s+(error|warning)', line) and current_file:
-            error_counts[current_file] += 1
-        elif match := re.match(r'^(.+\.tsx?)\(\d+,\d+\):\s+error', line):
-            error_counts[match.group(1)] += 1
-
-for file, count in sorted(error_counts.items(), key=lambda x: -x[1])[:30]:
-    print(f"{count:6d} {file}")
-PARSE_SCRIPT
-```
-
----
-
-### Step 3: Phase 0 - Identify Strategic Root-Cause Files
-
-**YOU SHOULD:** Analyze the error output to identify files that should be fixed FIRST because they cause cascading errors.
-
-**Root-Cause File Indicators:**
-
-1. **Type Definition Files** (highest priority):
-   - `*.d.ts` files
-   - `types.ts`, `types/*.ts`
-   - `interfaces.ts`, `models.ts`
-   - Files with "Cannot find type" errors pointing to them
-
-2. **Core/Base Modules**:
-   - `index.ts` files that re-export many modules
-   - Files imported by 5+ other error files
-   - Base classes/interfaces extended by other files
-
-3. **Configuration Files**:
-   - `config.ts`, `constants.ts`
-   - Environment/settings files
-
-4. **Dependency Analysis** (from error messages):
-   - Look for patterns like "Cannot find module './X'" - fix X first
-   - Look for "Type 'X' is not assignable" where X is defined elsewhere
-   - Look for "Property 'X' does not exist on type 'Y'" - fix Y's definition first
-
-**YOU SHOULD:** Create a Phase 0 queue of 3-8 strategic files to fix first.
-
-**Example Analysis:**
-```
-ERROR ANALYSIS:
-- 15 files have "Cannot find module './types/api'"
-  → Fix: src/types/api.ts FIRST (root cause)
-
-- 8 files have "Type 'UserData' is not assignable"
-  → Fix: src/models/user.ts FIRST (type definition issue)
-
-- 12 files import from src/utils/index.ts which has errors
-  → Fix: src/utils/index.ts FIRST (cascading imports)
-
-PHASE 0 QUEUE (fix in order):
-1. src/types/api.ts (15 dependents)
-2. src/models/user.ts (8 dependents)
-3. src/utils/index.ts (12 dependents)
-```
-
----
-
-### Step 4: Execute Phase 0 - Strategic Fixes (Sequential)
-
-**YOU SHOULD:** Fix Phase 0 files ONE AT A TIME with full cross-file context.
-
-**For EACH file in Phase 0 queue:**
-
-1. **Spawn a dedicated agent** (NOT in background):
-```typescript
-Task("rust-developer" OR "typescript-specialist",
-  `Fix errors in: [FILE_PATH]
-
-PROJECT: [PROJECT_ROOT]
-CONTEXT: This is a Phase 0 strategic file that other files depend on.
-
-YOUR TASK:
-1. Read the file and understand its purpose
-2. Check the error output in /tmp/[cargo-errors|tsc-errors|eslint-output].txt
-3. Fix ALL errors in this file
-4. Consider how your fixes affect files that import/use this file
-5. Run post-edit validation: .claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH]
-6. If validation fails, adjust your fix
-
-IMPORTANT:
-- This file is a root cause - other files depend on it
-- Ensure exports/types remain compatible
-- Do NOT change the public API unless necessary to fix errors
-- Focus on type correctness and import resolution
-
-Report: List of fixes made and any breaking changes.`,
-  {run_in_background: false}  // BLOCKING - wait for completion
-);
-```
-
-2. **After each Phase 0 fix, recheck errors:**
-```bash
-# Rerun type checker to see cascading improvements
-npm run typecheck 2>&1 | grep "error" | wc -l
-# or for Rust:
-SQLX_OFFLINE=true cargo check 2>&1 | grep "^error" | wc -l
-```
-
-3. **Update file queue** - remove files that no longer have errors
-
-**PHASE 0 COMPLETE when:** All strategic files are fixed.
-
----
-
-### Step 5: Execute Phase 1 - Parallel Agent Spawning
-
-**YOU SHOULD:** Spawn agents continuously, maintaining exactly 5 active agents at any time.
-
-**Agent Spawn Pattern:**
-
-```typescript
-// While there are files to process OR active agents running:
-while (fileQueue.length > 0 || activeAgents.length > 0) {
-
-  // Spawn up to 5 agents
-  while (activeAgents.length < MAX_PARALLEL && fileQueue.length > 0) {
-    const file = fileQueue.shift();
-    const agentId = `${LANGUAGE}-fixer-${SESSION_ID}-${sanitize(file)}`;
-
-    // Use Task tool with background=true
-    const taskId = Task("rust-developer" OR "typescript-specialist",
-      `[SEE AGENT PROMPT BELOW]`,
-      {run_in_background: true}
-    );
-
-    // Track this agent
-    activeAgents.push({file, agentId, taskId, attempts: 1});
-  }
-
-  // Monitor agents (non-blocking check)
-  for (const agent of activeAgents) {
-    const result = TaskOutput(agent.taskId, {block: false, timeout: 0});
-
-    if (result.status === "completed") {
-      if (result.success) {
-        markFileComplete(agent.file);
-      } else if (agent.attempts < 2) {
-        // Retry once
-        agent.attempts++;
-        requeue(agent.file);
-      } else {
-        // Defer to Phase 2
-        markFileDeferred(agent.file);
-      }
-      removeFromActive(agent);
-    }
-  }
-
-  // Brief pause before next check
-  sleep(2000);
-}
-```
-
----
-
-### Step 6: Phase 1 Agent Prompt
-
-**USE THIS PROMPT for each Phase 1 agent:**
-
-```
-Fix compilation errors in: [FILE_PATH]
-
-PROJECT: [PROJECT_ROOT]
-LANGUAGE: [typescript|rust]
-AGENT_ID: [GENERATED_AGENT_ID]
-
-YOUR TASK:
-1. Read the file to understand context
-2. Identify all errors in this file from the type checker output
-3. Fix each error using your expertise
-4. Run post-edit validation after fixes
-
-WORKFLOW:
-1. Read the file: cat [FILE_PATH]
-2. Get specific errors for this file from /tmp/[tsc-errors|cargo-errors|eslint-output].txt
-3. Make targeted fixes - edit only what's needed
-4. Validate: .claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id [AGENT_ID]
-5. If validation shows new errors, adjust
-
-CONSTRAINTS:
-- Fix ONLY errors in [FILE_PATH] - do not modify other files
-- Do NOT run linters/checkers on the entire codebase:
-  - `eslint .` is FORBIDDEN
-  - `cargo check` (full project) is FORBIDDEN
-  - `npm run lint` (full project) is FORBIDDEN
-  - `npm run typecheck` (full project) is FORBIDDEN
-- Use errors from /tmp/ output files - do NOT regenerate them
-- Do NOT add unnecessary dependencies
-- Preserve existing functionality
-- Keep fixes minimal and targeted
-
-COMMON FIX PATTERNS:
-- Missing imports: Add the import statement
-- Type errors: Add proper type annotations
-- Unused variables: Prefix with _ or remove if truly unused
-- Missing exports: Add export keyword
-- Null checks: Add optional chaining or null guards
-
-REPORT FORMAT:
-```
-SUMMARY: [2 sentence summary of what was fixed and outcome]
-
-FIXES APPLIED: [count]
-- Line X: [description of fix]
-- Line Y: [description of fix]
-
-ROUNDS: [number of fix iterations attempted]
-ERRORS FIXED: [count of errors resolved in this file]
-VALIDATION: [PASS/FAIL]
-POST-EDIT RESPONSE: [final output from post-edit pipeline]
-REMAINING ERRORS: [count or "none"]
-```
-```
-
----
-
-### Step 7: Monitor Progress and Transition
-
-**YOU SHOULD:** Track progress and decide when to transition to Phase 2.
-
-**Progress Tracking:**
-```bash
-# Check current error count
-npm run typecheck 2>&1 | grep "error" | wc -l
-# or
-SQLX_OFFLINE=true cargo check 2>&1 | grep "^error" | wc -l
-```
-
-**Transition to Phase 2 when ANY of these conditions are met:**
-- Error count < 40
-- 3 consecutive cycles with no improvement
-- All files have been attempted twice
-- Remaining errors require cross-file coordination
-
----
-
-### Step 8: Phase 2 - Cross-File Cleanup
-
-**YOU SHOULD:** Spawn a dedicated cleanup agent for remaining errors.
-
-```typescript
-Task("rust-developer" OR "typescript-specialist",
-  `Phase 2 Cleanup: Fix remaining cross-file errors
-
-PROJECT: [PROJECT_ROOT]
-REMAINING_ERRORS: [error count]
-DEFERRED_FILES: [list of files that couldn't be fixed in Phase 1]
-
-CONTEXT:
-Phase 0 fixed strategic root-cause files.
-Phase 1 fixed [X] files with single-file errors.
-Now fix remaining errors that require cross-file understanding.
-
-YOUR TASK:
-1. Run full type check to get current errors
-2. Analyze error patterns across files
-3. Fix errors that span multiple files
-4. Ensure type consistency across modules
-
-APPROACH:
-- Group related errors by type/module
-- Fix shared types/interfaces first
-- Then fix usage sites
-- Run validation after each group of fixes
-
-REPORT: Summary of remaining errors and fixes applied.`,
+   Context: Phase [0|2] strategic work.
+   Report: fixes made, remaining errors.`,
   {run_in_background: false}
 );
 ```
 
+**Phase 1 (background):**
+```typescript
+Task("typescript-specialist" /* or "rust-developer" */,
+  `Fix errors in: [FILE_PATH]
+   PROJECT: [ROOT]
+   Read errors from /tmp/[errors].txt
+   Validate: .claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id [ID]
+   Report: SUMMARY, FIXES APPLIED, ERRORS FIXED, VALIDATION, REMAINING ERRORS.`,
+  {run_in_background: true}
+);
+```
+
 ---
 
-## State Management
+## Setup
 
-**YOU SHOULD:** Maintain state in /tmp/phase-state.json:
+### Parse Arguments
+
+```bash
+LANGUAGE="${1:-typescript}"  # typescript|rust
+MAX_PARALLEL="${2:-5}"
+MAX_CYCLES="${3:-10}"
+SESSION_ID="cfn-fix-$(date +%s | tail -c 6)-${RANDOM}"
+```
+
+Validate: language ∈ {rust, typescript, ts}
+
+---
+
+## Phase 0: Identify Root-Cause Files
+
+Analyze errors to find files that block others:
+
+**Priority indicators:**
+1. **Type definitions:** `*.d.ts`, `types.ts`, `types/*.ts`, `interfaces.ts`, `models.ts`
+2. **Core modules:** `index.ts` with re-exports, imported by 5+ error files
+3. **Config files:** `config.ts`, `constants.ts`
+4. **Error patterns:** "Cannot find module './X'" (fix X first) / "Type 'X' not assignable" (fix definition) / "Property missing on type 'Y'" (fix Y)
+
+**Build Phase 0 queue** (3-8 files, in dependency order):
+
+```
+- src/types/api.ts (15 files blocked by this)
+- src/models/user.ts (8 files blocked)
+- src/utils/index.ts (12 files blocked)
+```
+
+### Execute Phase 0
+
+For each file:
+1. Spawn agent (blocking mode)
+2. Agent reads file, checks `/tmp/[errors].txt`, fixes ALL errors in file
+3. Agent runs: `.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH]`
+4. Recheck total error count to see cascading improvements
+5. Remove from queue if no more errors
+
+**Commit after Phase 0 completes.**
+
+---
+
+## Phase 1: Parallel Fixes
+
+Spawn continuous waves (max 5 concurrent):
+1. Spawn agent with background mode
+2. Agent fixes [FILE_PATH], validates, exits → chat restarts
+3. Check which agent finished, spawn next file immediately
+4. Continue until file queue empty
+
+**Continuous Error Tracking (no full recheck needed):**
+
+Each agent's post-edit hook updates `/tmp/error-tracker.json`:
+```bash
+# Post-edit hook appends per-file error count
+# Query anytime: jq '.totalErrors' /tmp/error-tracker.json
+```
+
+**Background tasks during Phase 1:**
+```
+Every 5 files → Query error tracker (instant, no recheck):
+  ERRORS=$(jq '.totalErrors' /tmp/error-tracker.json)
+
+At 15 files → Spawn background agent for incremental recheck (uses cache, ~5-10s):
+  Task("general-purpose",
+    `Run incremental typecheck (cached): npm run typecheck 2>&1 > /tmp/tsc-errors-refresh.txt
+     Update /tmp/error-tracker.json with actual count
+     Report: synced error count`,
+    {run_in_background: true});
+
+At 20 files → Spawn background commit agent:
+  Task("general-purpose",
+    `Run: git add -A && git commit -m "fix: batch of 20 error fixes"
+     Report: commit hash`,
+    {run_in_background: true});
+```
+
+**Benefits of incremental + cache:**
+- First full check: 30-60s
+- Cached incremental check (15 files changed): 5-10s (80%+ faster)
+- Error tracker query: <0.1s (instant)
+
+---
+
+## Phase 2: Cross-File Cleanup
+
+Trigger when: error count <40 OR 3 cycles no improvement OR all files attempted twice
+
+1. Spawn single cleanup agent (blocking mode)
+2. Agent analyzes remaining errors across files
+3. Groups errors by type/module, fixes shared types first, then usage sites
+4. Commit after completion
+
+---
+
+## State Tracking (Optional)
+
+Maintain `/tmp/phase-state.json`:
 
 ```json
 {
-  "sessionId": "cfn-fix-123456-7890",
+  "sessionId": "cfn-fix-123456",
   "language": "typescript",
-  "startTime": "2025-12-21T10:00:00Z",
+  "phase": "1",
   "initialErrors": 150,
   "currentErrors": 45,
-  "phase": "1",
-  "phase0Files": [
-    {"file": "src/types/api.ts", "status": "completed", "dependents": 15}
-  ],
-  "phase1Files": [
-    {"file": "src/api/handler.ts", "attempts": 1, "status": "in_progress", "agentId": "abc123"}
-  ],
-  "deferredFiles": [],
-  "activeAgents": ["abc123", "def456"]
+  "phase0Files": [{"file": "src/types/api.ts", "status": "completed"}],
+  "activeAgents": ["abc123"]
 }
 ```
 
 ---
 
-## Quick Reference
+## Reference
 
-| Phase | Purpose | Execution | Agent Count |
-|-------|---------|-----------|-------------|
-| 0 | Root-cause files | Sequential | 1 at a time |
-| 1 | Parallel fixes | Continuous spawn | Up to 5 |
-| 2 | Cross-file cleanup | Sequential | 1 dedicated |
-
-**Agent Types:**
-- Rust: `rust-developer`
-- TypeScript: `typescript-specialist`
-
-**Validation Hook:**
+**Post-edit validation:**
 ```bash
 .claude/hooks/cfn-invoke-post-edit.sh [FILE] --agent-id [ID]
 ```
 
----
-
-## Related Documentation
-
-- **Post-Edit Hooks**: `.claude/hooks/cfn-invoke-post-edit.sh`
-- **Agent Templates**: `.claude/agents/cfn-dev-team/developers/`
-- **Task Mode Reference**: `.claude/commands/cfn-loop-task.md`
+**Agent report format:**
+```
+SUMMARY: [2 sentences: what was fixed, outcome]
+FIXES APPLIED: [count]
+- Line X: [fix description]
+ERRORS FIXED: [count]
+VALIDATION: [PASS/FAIL]
+REMAINING ERRORS: [count or "none"]
+```
 
 ---
 
 ## Version History
-- v2.1.0 (2025-12-21) - Added quick reference at top, commit every 20 files, clearer respawn instructions
-- v2.0.0 (2025-12-21) - Removed Cerebras, added Phase 0 for strategic root-cause files
-- v1.2.0 (2025-12-21) - Fixed error file extraction patterns for Rust and TypeScript/ESLint
-- v1.1.0 (2025-12-21) - Clarified instructions, removed pseudocode confusion
-- v1.0.0 (2025-12-21) - Initial coordination mode implementation
+- v3.1.0 (2025-12-21) - Continuous error tracking, incremental/cached builds, background commits
+- v3.0.0 (2025-12-21) - Sparse rewrite: removed 200 lines, consolidated duplicates, moved quick reference to top
+- v2.2.0 (2025-12-21) - Clarified background mode (Phase 1 only), no manual monitoring
+- v2.1.0 (2025-12-21) - Added quick reference, commit every 20 files
+- v2.0.0 (2025-12-21) - Added Phase 0 strategic root-cause files
+- v1.0.0 (2025-12-21) - Initial implementation
