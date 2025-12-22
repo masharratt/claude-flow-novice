@@ -6,7 +6,67 @@ allowed-tools: ["Task", "TaskOutput", "TodoWrite", "Read", "Bash"]
 
 # CFN Fix Errors - Agent Coordination Mode
 
-**Version:** 2.0.0  |  **Date:** 2025-12-21  |  **Status:** Production Ready
+**Version:** 2.1.0  |  **Date:** 2025-12-21  |  **Status:** Production Ready
+
+---
+
+## QUICK REFERENCE (Follow This Process)
+
+### Step-by-Step Execution:
+
+1. **Get errors** → Save to `/tmp/` (tsc, eslint, or cargo check)
+2. **Phase 0** → Fix root-cause files (types, core modules) ONE AT A TIME, blocking
+3. **Commit** → After Phase 0 completes, commit all changes
+4. **Phase 1** → Spawn up to 5 agents with `run_in_background: true`
+5. **Monitor** → Use `TaskOutput(taskId, {block: false})` to check agent status
+6. **Respawn** → When an agent completes, IMMEDIATELY spawn next agent for next file
+7. **Commit** → Every 20 files fixed, commit changes to git
+8. **Commit** → After Phase 1 completes, commit remaining changes
+9. **Phase 2** → When <40 errors remain, spawn cleanup agent
+10. **Commit** → After Phase 2 completes, final commit
+
+### Critical Rules:
+
+```
+AGENTS: Always spawn with run_in_background: true (max 5 concurrent)
+RESPAWN: When TaskOutput shows "completed", spawn next agent immediately
+COMMITS: git add && git commit:
+  - After Phase 0 completes
+  - Every 20 files fixed in Phase 1
+  - After Phase 1 completes
+  - After Phase 2 completes
+NO FULL CHECKS: Agents must NOT run eslint ./cargo check on full project
+SINGLE FILE: Each agent fixes ONE file only, then exits
+```
+
+### Agent Spawn Template:
+```typescript
+Task("typescript-specialist",  // or "rust-developer"
+  `Fix errors in: [FILE_PATH]
+   PROJECT: [ROOT]
+   Read errors from /tmp/[errors].txt
+   Fix file, run post-edit validation, report results.`,
+  {run_in_background: true}
+);
+```
+
+### Monitor & Respawn Loop:
+```typescript
+// Check all active agents (non-blocking)
+for (const agent of activeAgents) {
+  const result = TaskOutput(agent.taskId, {block: false});
+  if (result.status === "completed") {
+    filesFixed++;
+    removeFromActive(agent);
+    // IMMEDIATELY spawn next agent
+    if (fileQueue.length > 0) spawnNextAgent();
+    // Commit every 20 files
+    if (filesFixed % 20 === 0) gitCommit();
+  }
+}
+```
+
+---
 
 ## Quick Overview
 
@@ -421,7 +481,7 @@ REPORT: Summary of remaining errors and fixes applied.`,
 ---
 
 ## Version History
-
+- v2.1.0 (2025-12-21) - Added quick reference at top, commit every 20 files, clearer respawn instructions
 - v2.0.0 (2025-12-21) - Removed Cerebras, added Phase 0 for strategic root-cause files
 - v1.2.0 (2025-12-21) - Fixed error file extraction patterns for Rust and TypeScript/ESLint
 - v1.1.0 (2025-12-21) - Clarified instructions, removed pseudocode confusion
