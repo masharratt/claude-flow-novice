@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Epic Creator v2 - Sequential Persona Review Agent (SECURE VERSION)
-# Creates comprehensive epic definitions with sequential reviews from 6 key personas
+# Creates comprehensive epic definitions with sequential reviews from 8 key personas
 # Security-hardened with input validation and secure file operations
 
 # Source security utilities
@@ -140,6 +140,16 @@ create_epic_json() {
       "name": "Security Specialist",
       "perspective": "Threats, vulnerabilities, compliance requirements",
       "focus_areas": ["threat model", "security controls", "compliance", "risk assessment"]
+    },
+    {
+      "name": "Test Specialist",
+      "perspective": "Production readiness, test coverage, quality gates, integration verification",
+      "focus_areas": ["test strategy", "integration tests", "e2e tests", "regression coverage", "production smoke tests", "implementation wiring tests", "call path coverage"]
+    },
+    {
+      "name": "Strategic Alignment Reviewer",
+      "perspective": "High-level coherence, cross-cutting concerns, plan consistency, integration completeness",
+      "focus_areas": ["requirement alignment", "scope consistency", "dependency conflicts", "stakeholder expectations", "architectural mismatches", "implementation integration", "dead code detection", "call path validation", "feature wiring completeness"]
     },
     {
       "name": "DevOps Engineer",

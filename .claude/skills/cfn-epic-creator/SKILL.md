@@ -1,6 +1,6 @@
 ---
 name: cfn-epic-creator
-description: "Creates comprehensive epic definitions with sequential reviews from 6 key personas. Use when you need to analyze requirements from multiple perspectives and generate structured epic documentation with cost estimates and risk assessments."
+description: "Creates comprehensive epic definitions with sequential reviews from 8 key personas. Use when you need to analyze requirements from multiple perspectives and generate structured epic documentation with cost estimates and risk assessments."
 version: 1.0.0
 tags: [epic, creator, personas, analysis, cost-estimation, requirements]
 status: production
@@ -10,7 +10,7 @@ status: production
 
 ## Overview
 
-The cfn-epic-creator skill provides orchestration for creating comprehensive epic definitions through sequential reviews from six key personas: Product Owner, Architect, Security Specialist, Performance Specialist, Accessibility Advocate, and DevOps Engineer.
+The cfn-epic-creator skill provides orchestration for creating comprehensive epic definitions through sequential reviews from eight key personas: Product Manager, Architect, Security Specialist, Test Specialist, Strategic Alignment Reviewer, DevOps Engineer, Backend Developer, and Frontend Developer.
 
 ## Usage
 
@@ -199,18 +199,28 @@ The generated JSON follows this structure:
         "...": "..."
       },
       {
-        "name": "performance-specialist",
+        "name": "test-specialist",
         "reviewOrder": 4,
         "...": "..."
       },
       {
-        "name": "accessibility-advocate",
+        "name": "strategic-alignment-reviewer",
         "reviewOrder": 5,
         "...": "..."
       },
       {
         "name": "devops-engineer",
         "reviewOrder": 6,
+        "...": "..."
+      },
+      {
+        "name": "backend-developer",
+        "reviewOrder": 7,
+        "...": "..."
+      },
+      {
+        "name": "frontend-developer",
+        "reviewOrder": 8,
         "...": "..."
       }
     ],
@@ -223,12 +233,14 @@ The generated JSON follows this structure:
 
 ## Persona Review Order
 
-1. **Product Owner** - Business value, user stories, market fit
+1. **Product Manager** - Business value, user stories, market fit
 2. **Architect** - System design, technology choices, scalability
 3. **Security Specialist** - Security posture, vulnerabilities, compliance
-4. **Performance Specialist** - Performance metrics, optimization, monitoring
-5. **Accessibility Advocate** - WCAG compliance, inclusive design
+4. **Test Specialist** - Production readiness, test coverage, quality gates, integration verification
+5. **Strategic Alignment Reviewer** - High-level coherence, plan consistency, integration completeness, dead code detection
 6. **DevOps Engineer** - Deployment, operations, infrastructure
+7. **Backend Developer** - API design, data structures, business logic
+8. **Frontend Developer** - User interface, experience, client-side logic
 
 ## Integration with CFN Loop
 

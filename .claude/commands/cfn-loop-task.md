@@ -6,11 +6,33 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "SlashCommand"]
 
 # CFN Loop Task Mode - Direct Agent Spawning
 
-**Version:** 1.3.0  |  **Date:** 2025-12-14  |  **Status:** Production Ready
+**Version:** 1.4.0  |  **Date:** 2025-12-25  |  **Status:** Production Ready
 
 ## Quick Overview
 
 Task Mode spawns agents directly in main chat with full visibility. Uses test-driven gate validation (not confidence scores).
+
+### Autonomous Progression (MANDATORY)
+
+**Keep moving forward. Only pause for critical issues.**
+
+- **AUTO-PROGRESS:** After each step completes, immediately spawn agents for the next step
+- **NO WAITING:** Do not wait for user confirmation between iterations or steps
+- **KEEP SPAWNING:** Gate fail → spawn Loop 3 again. Gate pass → spawn validators. Validators pass → spawn next task.
+
+**STOP FOR USER FEEDBACK ONLY WHEN:**
+1. **Corruption/rollback needed** - Commits broke the codebase beyond repair, need git rollback
+2. **Architectural mismatch** - RCA identifies fundamental design conflicts that require rewrite
+3. **Critical security issue** - Credentials exposed, injection vulnerabilities found
+4. **External system failure** - CI/CD down, package registry unavailable, API deprecated
+
+**DO NOT STOP FOR:**
+- Test regressions (loop fixes them - keep iterating)
+- Test pass rate drops (keep iterating, RCA will analyze)
+- Coverage gaps (keep iterating)
+- Single file conflicts (RCA handles it)
+- Validator rejections (incorporate feedback and continue)
+- Max iterations reached (report results but don't block)
 
 ### When to Use Task Mode
 - **Debugging** - Need to see agent thought process
@@ -161,6 +183,9 @@ esac
 ```bash
 echo "Running gate check..."
 
+# HARD CAP: Max 10 iterations regardless of mode
+MAX_ITERATIONS=10
+
 # Parse agent output for test results
 TESTS_PASSED=${LOOP3_RESULT.tests_passed:-0}
 TESTS_TOTAL=${LOOP3_RESULT.tests_total:-1}
@@ -173,13 +198,55 @@ GATE_RESULT=$(npx ts-node .claude/skills/cfn-loop-orchestration-v2/lib/orchestra
 
 if echo "$GATE_RESULT" | grep -q '"passed": false'; then
   echo "GATE FAILED - Iterating Loop 3"
-  # Re-run Loop 3 with feedback
   ITERATION=$((ITERATION + 1))
+
+  # Test regressions are NOT a stop condition - the loop fixes them
+  # Only stop for: corruption needing rollback, architectural mismatch, security issues
+  echo "Pass rate: ${PASS_RATE} - Loop will continue iterating to fix"
+
+  # After 3 failed iterations, invoke root cause analysis
+  if [ $ITERATION -eq 3 ]; then
+    echo "3 iterations failed - Spawning root cause analyst..."
+
+    Task("root-cause-analyst", `
+      AGENT_ID="rca-${TASK_ID}"
+
+      TASK: Analyze why Loop 3 implementation keeps failing for: ${TASK_DESCRIPTION}
+
+      INVESTIGATION SCOPE:
+      1. Review test failures from previous iterations
+      2. Identify blocking patterns (missing dependencies, architectural issues, incorrect assumptions)
+      3. Check for circular dependencies or integration conflicts
+      4. Analyze error logs and stack traces
+
+      REQUIRED OUTPUT:
+      {
+        "root_causes": [
+          {"issue": "<description>", "severity": "critical|high|medium", "fix": "<specific solution>"}
+        ],
+        "recommended_approach": "<concrete implementation strategy>",
+        "files_to_modify": [...],
+        "tests_to_add": [...],
+        "blockers_to_remove": [...]
+      }
+
+      This analysis will be passed to the next Loop 3 iteration to prevent repeated failures.
+    `)
+
+    # Store RCA findings for next iteration
+    RCA_FINDINGS=${RCA_RESULT}
+    echo "Root cause analysis complete. Findings will guide next iteration."
+  fi
+
   if [ $ITERATION -lt $MAX_ITERATIONS ]; then
-    # Spawn Loop 3 again with failure context
+    # Spawn Loop 3 again with failure context (and RCA findings if available)
+    if [ -n "$RCA_FINDINGS" ]; then
+      echo "Re-running Loop 3 with root cause analysis guidance..."
+      # RCA_FINDINGS passed to Loop 3 agents in next iteration
+    fi
     continue
   else
-    echo "Max iterations reached. Gate still failing."
+    echo "Max iterations (10) reached. Gate still failing."
     exit 1
   fi
 fi
@@ -239,12 +306,26 @@ case $MODE in
   "enterprise") CONSENSUS_THRESHOLD="0.95" ;;
 esac
 
+# AUTONOMOUS PROGRESSION: Default to ITERATE, rarely ABORT
 if (( $(echo "$CONSENSUS_RATE >= $CONSENSUS_THRESHOLD" | bc -l) )); then
   echo "PROCEED - Consensus reached ($CONSENSUS_RATE >= $CONSENSUS_THRESHOLD)"
+  # Immediately spawn next task if queued
 else
   echo "ITERATE - Consensus not met ($CONSENSUS_RATE < $CONSENSUS_THRESHOLD)"
-  # Loop back to Step 2
+  # Auto-continue to next iteration - DO NOT STOP
+  # Loop back to Step 2 immediately
 fi
+
+# ABORT CONDITIONS (RARE - only use when truly unrecoverable):
+# - Fundamental architectural mismatch that RCA confirms cannot be fixed
+# - Security vulnerability that cannot be patched without full rewrite
+# - External dependency completely unavailable (API deprecated, package removed)
+#
+# DO NOT ABORT FOR:
+# - Test failures (iterate)
+# - Coverage gaps (iterate)
+# - Validator rejections (iterate with feedback)
+# - Performance issues (iterate with optimization)
 ```
 
 ---
@@ -252,11 +333,14 @@ fi
 ## Validation Flow Summary
 
 1. **Loop 3 Gate:** Test pass rate must meet mode threshold before validators start
-2. **Loop 2 Validators:** Need access to Loop 3 outputs, tests, and logs
-3. **Product Owner Decision:** Parsed via `.claude/skills/product-owner-decision/execute-decision.sh`
-4. **Gate Failure:** Iterate Loop 3 only
-5. **Gate Pass:** Proceed to validators
-6. **Decision Outcomes:** PROCEED (done), ITERATE (repeat), ABORT (stop with error)
+2. **Root Cause Analysis:** After 3 failed iterations, `root-cause-analyst` agent investigates blockers
+3. **Loop 2 Validators:** Need access to Loop 3 outputs, tests, and logs
+4. **Product Owner Decision:** Auto-progress; ABORT is rare (corruption/rollback only)
+5. **Gate Failure:** Auto-iterate Loop 3 (max 10 iterations) - test regressions are NOT a stop condition
+6. **Gate Pass:** Auto-proceed to validators
+7. **Decision Outcomes:** PROCEED (done), ITERATE (auto-repeat), ABORT (rare - corruption/security only)
+
+**Stop conditions:** Corruption needing rollback, architectural mismatch requiring rewrite, security issues, external system failures. Test failures/regressions are handled by the loop.
 
 ---
 
@@ -269,6 +353,7 @@ fi
 ---
 
 **Version History:**
+- v1.4.0 (2025-12-25) - Hard cap 10 iterations for all modes; root cause analyst after 3 failures
 - v1.3.0 (2025-12-14) - Fixed to use test-based gate checks, not confidence scores
 - v1.2.0 (2025-12-08) - Added TDD enforcement
 - v1.1.0 (2025-12-01) - Added RuVector integration

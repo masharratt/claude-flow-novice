@@ -32,19 +32,56 @@ SQLX_OFFLINE=true cargo check 2>&1 | tee /tmp/cargo-errors.txt
 
 ### Find Files with Most Errors
 
-**TypeScript (tsc):**
+**TypeScript (tsc) - Direct pipeline:**
+```bash
+npm run typecheck 2>&1 | grep "error TS" | awk -F'(' '{print $1}' | sort | uniq -c | sort -rn | head -20
+```
+
+**TypeScript (tsc) - From saved file:**
 ```bash
 grep "error TS" /tmp/tsc-errors.txt | awk -F'(' '{print $1}' | sort | uniq -c | sort -rn | head -20
 ```
 
-**TypeScript (ESLint):**
+**TypeScript (ESLint) - From saved file:**
 ```bash
 grep -B1 "error" /tmp/eslint-errors.txt | grep "\.tsx\?$" | sort | uniq -c | sort -rn | head -20
+```
+
+**Universal TypeScript/ESLint Parser (most robust):**
+```bash
+# Run either linter or typecheck to output file
+npm run lint 2>&1 > /tmp/lint-output.txt || npm run typecheck 2>&1 > /tmp/lint-output.txt
+
+# Python parser for comprehensive error extraction
+python3 << 'PARSE_SCRIPT'
+import re
+from collections import defaultdict
+
+error_counts = defaultdict(int)
+current_file = None
+
+with open('/tmp/lint-output.txt', 'r') as f:
+    for line in f:
+        if line.strip().endswith('.ts') or line.strip().endswith('.tsx'):
+            current_file = line.strip()
+        elif re.search(r'^\s+\d+:\d+\s+(error|warning)', line) and current_file:
+            error_counts[current_file] += 1
+        elif match := re.match(r'^(.+\.tsx?)\(\d+,\d+\):\s+error', line):
+            error_counts[match.group(1)] += 1
+
+for file, count in sorted(error_counts.items(), key=lambda x: -x[1])[:30]:
+    print(f"{count:6d} {file}")
+PARSE_SCRIPT
 ```
 
 **Rust:**
 ```bash
 grep "^\s*-->" /tmp/cargo-errors.txt | awk '{print $2}' | awk -F':' '{print $1}' | sort | uniq -c | sort -rn | head -20
+```
+
+**Quick Error Count Check:**
+```bash
+npm run typecheck 2>&1 | grep "error" | wc -l
 ```
 
 Output: files sorted by error count (fix highest counts first)
@@ -63,9 +100,10 @@ Output: files sorted by error count (fix highest counts first)
 
 - **Background ONLY for Phase 1:** Agents restart chat when done. Spawn next immediately.
 - **Single file per agent:** Each agent fixes one file, validates, then exits.
+- **Exit nofifications:** from background agents will signal main chat to spawn new agents in phase 1
 - **Commits via background agent:** Spawn commit agent every 20 files / after each phase.
 - **Refresh errors at 15 files:** After 15 fixes, spawn background agent to re-run error gathering.
-- **No full checks:** Agents forbidden: `eslint .` `cargo check` `npm run lint` `npm run typecheck` (full project)
+- **No full checks:** Agents forbidden: `eslint .` `cargo check` `npm run lint` `npm run typecheck` `npx tsc` or any other full projects commands
 - **Report facts only:** Files fixed, errors remaining. No CFN effectiveness commentary.
 
 ### Spawn Templates
@@ -82,14 +120,22 @@ Task("typescript-specialist" /* or "rust-developer" */,
 );
 ```
 
-**Phase 1 (background):**
+**Phase 1 (background) - CRITICAL: NO-TSC ENFORCEMENT:**
 ```typescript
 Task("typescript-specialist" /* or "rust-developer" */,
-  `Fix errors in: [FILE_PATH]
-   PROJECT: [ROOT]
-   Read errors from /tmp/[errors].txt
-   Validate: .claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id [ID]
-   Report: SUMMARY, FIXES APPLIED, ERRORS FIXED, VALIDATION, REMAINING ERRORS.`,
+  `# FORBIDDEN: Do NOT run npx tsc, npm run typecheck, or cargo check
+  # Use ruvector skills in place of 'search' or 'find' 
+  # REQUIRED: Use CFN hooks for validation
+
+  ## MANDATORY WORKFLOW:
+  1. Before edit: ./.claude/hooks/cfn-invoke-pre-edit.sh [FILE_PATH] --agent-id $ID
+  2. Make edits with Edit tool
+  3. After edit: ./.claude/hooks/cfn-invoke-post-edit.sh [FILE_PATH] --agent-id $ID
+  4. The post-edit hook handles verification - DO NOT RUN TSC YOURSELF
+
+  Fix errors in: [FILE_PATH]
+  Read errors from /tmp/[errors].txt
+  Report: SUMMARY, FIXES APPLIED, ERRORS FIXED, VALIDATION.`,
   {run_in_background: true}
 );
 ```
@@ -147,8 +193,9 @@ For each file:
 Spawn continuous waves (max 5 concurrent):
 1. Spawn agent with background mode
 2. Agent fixes [FILE_PATH], validates, exits → chat restarts
-3. Check which agent finished, spawn next file immediately
-4. Continue until file queue empty
+3. Do not check outputs, instead wait for background agent exit notification, spawn next file immediately
+4. Check agent counts to ensure max amount of agents are running
+5. Continue until file queue empty
 
 **Continuous Error Tracking (no full recheck needed):**
 
