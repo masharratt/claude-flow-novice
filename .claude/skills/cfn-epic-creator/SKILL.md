@@ -14,135 +14,14 @@ The cfn-epic-creator skill provides orchestration for creating comprehensive epi
 
 ## Usage
 
-### Basic Epic Creation
+The epic creator is a **main chat workflow** - not a standalone script. Main chat:
+1. Creates base JSON
+2. Spawns 10 persona agents sequentially
+3. Each persona edits the epic file directly
+4. Simplifier runs last and returns recommendations (no edits)
+5. User approves which simplifications to apply
 
-```bash
-# Create epic with default settings
-./.claude/skills/cfn-epic-creator/invoke.sh "Build a customer-facing analytics dashboard"
-
-# Create epic with specific output file
-./.claude/skills/cfn-epic-creator/invoke.sh "Develop mobile banking app" \
-    --output=banking-epic.json
-
-# Create epic in enterprise mode
-./.claude/skills/cfn-epic-creator/invoke.sh "Implement AI-powered fraud detection" \
-    --mode=enterprise
-```
-
-### Advanced Usage
-
-```bash
-# Enterprise mode with DevOps enforcement
-./invoke.sh "Global supply chain management system" \
-    --mode=enterprise \
-    --enforce-devops \
-    --output=supply-chain-epic.json \
-    --verbose
-
-# MVP mode for rapid prototyping
-./invoke.sh "Simple proof-of-concept for AR furniture placement" \
-    --mode=mvp
-
-# Validate without creating file
-./invoke.sh "Complex multi-region deployment strategy" \
-    --validate-only \
-    --verbose
-```
-
-### Command Line Options
-
-- `<epic-description>`: Detailed description of the epic to be analyzed (required)
-- `-m, --mode <mode>`: Review thoroughness level
-  - `mvp`: Basic reviews, focus on critical items only (~60% fewer recommendations)
-  - `standard`: Full comprehensive reviews (default)
-  - `enterprise`: Deep dive with compliance and governance focus
-- `-e, --enforce-devops`: Make DevOps recommendations blocking instead of suggested
-- `-o, --output <path>`: Output JSON file path (default: auto-generated with timestamp)
-- `-v, --verbose`: Enable verbose logging
-- `--validate-only`: Validate generated epic JSON without creating file
-- `-h, --help`: Show help message
-
-## Supporting Scripts
-
-### validate-epic.sh
-
-Validates generated epic JSON structure and content.
-
-```bash
-# Basic validation
-./validate-epic.sh epic.json
-
-# Verbose validation with details
-./validate-epic.sh epic.json --verbose
-
-# Strict validation (treat warnings as errors)
-./validate-epic.sh epic.json --strict
-```
-
-Options:
-- `-v, --verbose`: Show detailed validation output
-- `-s, --strict`: Enable strict validation (fails on warnings)
-- `-h, --help`: Show help message
-
-### parse-personas.sh
-
-Extracts specific persona insights from generated epic JSON.
-
-```bash
-# Show all persona insights
-./parse-personas.sh epic.json
-
-# Extract specific persona
-./parse-personas.sh epic.json --persona=architect
-
-# Filter by recommendation type
-./parse-personas.sh epic.json --type=blocking
-
-# Export as markdown
-./parse-personas.sh epic.json --format=markdown --output=personas.md
-
-# Show counts only
-./parse-personas.sh epic.json --count
-```
-
-Options:
-- `-p, --persona <name>`: Filter by specific persona
-- `-t, --type <type>`: Filter by recommendation type (blocking/suggested)
-- `-r, --priority <prio>`: Filter by priority (critical/high/medium/low)
-- `-f, --format <fmt>`: Output format (text/json/markdown)
-- `-c, --count`: Show only counts per persona
-- `-s, --summary`: Show summarized insights only
-- `-o, --output <file>`: Write output to file
-
-### estimate-costs.sh
-
-Aggregates cost estimates from all personas in epic JSON.
-
-```bash
-# Show cost summary
-./estimate-costs.sh epic.json
-
-# Detailed breakdown by persona
-./estimate-costs.sh epic.json --format=detailed
-
-# Export as CSV
-./estimate-costs.sh epic.json --format=csv --output=costs.csv
-
-# Filter by blocking recommendations only
-./estimate-costs.sh epic.json --type=blocking
-
-# Sort by highest cost
-./estimate-costs.sh epic.json --sort-by=total
-```
-
-Options:
-- `-p, --persona <name>`: Show costs for specific persona only
-- `-t, --type <type>`: Filter by recommendation type (blocking/suggested)
-- `-r, --priority <prio>`: Filter by priority
-- `-f, --format <fmt>`: Output format (summary/detailed/csv/json)
-- `-c, --currency <curr>`: Currency symbol for display (default: $)
-- `-s, --sort-by <field>`: Sort personas by field (total/blocking/suggested/name)
-- `-o, --output <file>`: Write output to file
+See **Main Chat Execution Process** below for details.
 
 ## Output Structure
 
@@ -255,11 +134,35 @@ The epic creator uses a sequential persona review process. Main chat spawns each
 
 ### Step 1: Create Base Epic JSON
 
-```bash
-./.claude/skills/cfn-epic-creator/invoke.sh "Your epic description" --output=/tmp/epic.json
+Main chat creates the base JSON directly:
+
+```json
+{
+  "epic_id": "unique-id",
+  "description": "Your epic description",
+  "mode": "standard",
+  "created_at": "2025-01-01T00:00:00Z",
+  "personas": [
+    {"name": "Product Manager", "focus": "business value, user stories"},
+    {"name": "Architect", "focus": "system design, scalability"},
+    {"name": "Security Specialist", "focus": "threats, compliance"},
+    {"name": "Test Specialist", "focus": "test strategy, coverage"},
+    {"name": "Strategic Alignment Reviewer", "focus": "integration gaps, dead code"},
+    {"name": "Code Standards Reviewer", "focus": "types, naming, contracts"},
+    {"name": "DevOps Engineer", "focus": "deployment, monitoring"},
+    {"name": "Backend Developer", "focus": "APIs, data models"},
+    {"name": "Frontend Developer", "focus": "UI/UX, components"},
+    {"name": "Simplifier", "focus": "complexity reduction"}
+  ],
+  "reviews": [],
+  "userStories": [],
+  "technicalRequirements": {},
+  "implementationRoadmap": [],
+  "riskAssessment": {}
+}
 ```
 
-This creates the base JSON with persona metadata and an empty `reviews: []` array.
+Write this to a file (e.g., `docs/epics/my-epic.json`).
 
 ### Step 2: Spawn Personas Sequentially
 
@@ -369,77 +272,20 @@ Main chat presents Simplifier's recommendations to the user. User chooses which 
 ### Example Main Chat Flow
 
 ```
-1. Create base: invoke.sh "Build payment system" --output=/tmp/epic.json
-2. Task(product-owner, "Review /tmp/epic.json from business perspective...")
-3. Task(system-architect, "Review /tmp/epic.json from architecture perspective...")
-4. Task(security-specialist, "Review /tmp/epic.json from security perspective...")
-5. Task(tester, "Review /tmp/epic.json from testing perspective...")
-6. Task(strategic-alignment-reviewer, "Review /tmp/epic.json for integration gaps...")
-7. Task(code-standards-reviewer, "Review /tmp/epic.json for code consistency...")
-8. Task(devops-engineer, "Review /tmp/epic.json from operations perspective...")
-9. Task(backend-developer, "Review /tmp/epic.json from backend perspective...")
-10. Task(react-frontend-engineer, "Review /tmp/epic.json from frontend perspective...")
-11. Read /tmp/epic.json - full epic with all reviews
+1. Create base JSON and write to docs/epics/my-epic.json
+2. Task(product-owner, "Review docs/epics/my-epic.json from business perspective...")
+3. Task(system-architect, "Review docs/epics/my-epic.json from architecture perspective...")
+4. Task(security-specialist, "Review docs/epics/my-epic.json from security perspective...")
+5. Task(tester, "Review docs/epics/my-epic.json from testing perspective...")
+6. Task(strategic-alignment-reviewer, "Review docs/epics/my-epic.json for integration gaps...")
+7. Task(code-standards-reviewer, "Review docs/epics/my-epic.json for code consistency...")
+8. Task(devops-engineer, "Review docs/epics/my-epic.json from operations perspective...")
+9. Task(backend-developer, "Review docs/epics/my-epic.json from backend perspective...")
+10. Task(react-frontend-engineer, "Review docs/epics/my-epic.json from frontend perspective...")
+11. Task(simplifier, "Review docs/epics/my-epic.json for complexity...") → returns recommendations
+12. Present simplifier recommendations to user
+13. Apply approved simplifications
 ```
-
-## Integration with CFN Loop
-
-The epic creator integrates seamlessly with CFN Loop workflows:
-
-```bash
-# Direct integration
-./invoke.sh "Implement real-time data processing pipeline" \
-  --mode=standard \
-  --output=pipeline-epic.json
-
-# Parse and validate in pipeline
-./validate-epic.sh pipeline-epic.json
-./parse-personas.sh pipeline-epic.json --format=markdown --output=pipeline-personas.md
-./estimate-costs.sh pipeline-epic.json --format=csv --output=pipeline-costs.csv
-```
-
-## Testing
-
-Run the comprehensive test suite:
-
-```bash
-# Run all tests
-./test-invoke.sh
-
-# Run specific test
-./test-invoke.sh --test generation
-
-# Keep logs for debugging
-./test-invoke.sh --keep-logs
-```
-
-The test suite validates:
-- Help functionality and error handling
-- Argument parsing and validation
-- Epic generation in all modes
-- JSON structure validation
-- Persona parsing and filtering
-- Cost estimation and formatting
-- Integration scenarios
-- Error handling edge cases
-
-## Dependencies
-
-- `jq`: Required for JSON processing
-  - Ubuntu/Debian: `sudo apt-get install jq`
-  - macOS: `brew install jq`
-- `bc`: Required for cost calculations (in estimate-costs.sh)
-  - Ubuntu/Debian: `sudo apt-get install bc`
-  - macOS: Pre-installed
-
-## Exit Codes
-
-- `0`: Success
-- `1`: General error
-- `2`: Validation error
-- `3`: Missing required arguments
-- `4`: Invalid mode specified
-- `5`: Agent execution failed
 
 ## Best Practices
 
@@ -450,89 +296,14 @@ The test suite validates:
    - Success criteria
    - Constraints and assumptions
 
-2. **Choose Appropriate Mode**:
-   - Use `mvp` for rapid prototyping and early validation
-   - Use `standard` for most production projects
-   - Use `enterprise` for regulated industries or large-scale systems
+2. **Review Simplifier Recommendations**: The Simplifier runs last and identifies:
+   - Features to remove (not needed for v1)
+   - Features to defer to v2
+   - Consolidation opportunities
+   - Simpler alternatives
+   - AI/LLM opportunities
 
-3. **DevOps Considerations**:
-   - Enable `--enforce-devops` for production systems
-   - Review DevOps recommendations carefully for operational impact
-
-4. **Cost Analysis**:
-   - Use cost estimates for budget planning
-   - Prioritize blocking recommendations
-   - Consider total cost of ownership, not just implementation
-
-5. **Follow-up Actions**:
-   - Validate generated epics before proceeding
-   - Extract persona insights for stakeholder review
-   - Use cost breakdowns for financial planning
-   - Track implementation against recommendations
-
-## Examples
-
-### E-commerce Platform Epic
-
-```bash
-./invoke.sh \
-  "Build a scalable e-commerce platform with product catalog, shopping cart, payment processing, order management, and admin dashboard. Must support 100,000 concurrent users, multiple currencies, and real-time inventory updates." \
-  --mode=enterprise \
-  --enforce-devops \
-  --output=ecommerce-epic.json
-```
-
-### API Integration Epic
-
-```bash
-./invoke.sh \
-  "Integrate third-party payment gateways (Stripe, PayPal, Square) with existing order processing system. Include webhook handling, error retry logic, and comprehensive logging." \
-  --mode=standard \
-  --output=payment-integration-epic.json
-```
-
-### Data Migration Epic
-
-```bash
-./invoke.sh \
-  "Migrate legacy customer database from Oracle to PostgreSQL with zero downtime. Include data validation, rollback procedures, and performance optimization." \
-  --mode=enterprise \
-  --enforce-devops
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Invalid JSON output**
-   - Run validate-epic.sh to check structure
-   - Check agent logs for errors
-   - Ensure epic description is clear and complete
-
-2. **Missing recommendations**
-   - Try enterprise mode for comprehensive analysis
-   - Check if keywords trigger specific persona insights
-   - Review epic description for missing context
-
-3. **Cost estimation shows $0**
-   - Check if estimatedCost fields are populated
-   - Verify currency format is recognized
-   - Run with --verbose to see parsing details
-
-4. **DevOps recommendations not blocking**
-   - Use --enforce-devops flag
-   - Check DevOps persona status in output
-   - Review deployment-related keywords in description
-
-### Debug Mode
-
-Enable verbose logging to debug issues:
-
-```bash
-./invoke.sh "Your epic description" \
-    --verbose \
-    --output=debug-epic.json
-
-# Then validate with details
-./validate-epic.sh debug-epic.json --verbose
-```
+3. **Iterate Based on Feedback**: After reviewing, you can:
+   - Accept all simplifications
+   - Accept some, reject others
+   - Ask personas to revise based on new constraints

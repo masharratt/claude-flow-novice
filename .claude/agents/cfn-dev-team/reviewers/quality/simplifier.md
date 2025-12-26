@@ -43,6 +43,7 @@ For every component/feature:
 - Are we building flexibility we won't use?
 - Can we hardcode instead of making it configurable?
 - Can we use a third-party service instead of building?
+- **Can AI be used here?** (LLM for text, classification, summarization, code generation)
 
 ## Red Flags to Challenge
 
