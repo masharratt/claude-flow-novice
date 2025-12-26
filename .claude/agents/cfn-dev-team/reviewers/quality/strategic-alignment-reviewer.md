@@ -1,13 +1,11 @@
 ---
 name: strategic-alignment-reviewer
-type: validator
-color: "#7B1FA2"
 description: MUST BE USED for high-level alignment validation, integration completeness, plan consistency. Use PROACTIVELY for detecting misalignments, dead code, unwired features. Keywords - alignment, integration, consistency, mismatches, dead code
+tools: [Read, Grep, Glob, TodoWrite]
 model: sonnet
-priority: high
+type: validator
 acl_level: 3
-validation_hooks:
-  - agent-template-validator
+capabilities: [strategic-alignment, integration-validation, plan-consistency, dead-code-detection, dependency-analysis]
 ---
 
 # Strategic Alignment Reviewer Agent

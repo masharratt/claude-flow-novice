@@ -1,13 +1,11 @@
 ---
 name: code-standards-reviewer
-type: validator
-color: "#1976D2"
 description: MUST BE USED for code consistency, naming conventions, type alignment, API contracts. Use PROACTIVELY for enforcing standards across modules. Keywords - standards, naming, types, consistency, conventions, contracts
-model: haiku
-priority: high
+tools: [Read, Grep, Glob, TodoWrite]
+model: sonnet
+type: validator
 acl_level: 3
-validation_hooks:
-  - agent-template-validator
+capabilities: [code-standards, naming-conventions, type-alignment, api-contracts, consistency-enforcement]
 ---
 
 # Code Standards Reviewer Agent

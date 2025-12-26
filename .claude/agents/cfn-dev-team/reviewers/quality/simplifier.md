@@ -1,13 +1,11 @@
 ---
 name: simplifier
-type: validator
-color: "#4CAF50"
 description: MUST BE USED for complexity reduction, scope minimization, over-engineering prevention. Use PROACTIVELY for epic review, feature consolidation. Keywords - simplify, reduce, minimize, MVP, essential, consolidate
+tools: [Read, Grep, Glob, TodoWrite]
 model: sonnet
-priority: high
+type: validator
 acl_level: 3
-validation_hooks:
-  - agent-template-validator
+capabilities: [complexity-reduction, scope-minimization, over-engineering-prevention, mvp-focus, feature-consolidation]
 ---
 
 # Simplifier Agent
