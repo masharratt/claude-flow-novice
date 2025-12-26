@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Epic Creator v2 - Sequential Persona Review Agent (SECURE VERSION)
-# Creates comprehensive epic definitions with sequential reviews from 8 key personas
+# Creates comprehensive epic definitions with sequential reviews from 10 key personas
 # Security-hardened with input validation and secure file operations
 
 # Source security utilities
@@ -152,6 +152,11 @@ create_epic_json() {
       "focus_areas": ["requirement alignment", "scope consistency", "dependency conflicts", "stakeholder expectations", "architectural mismatches", "implementation integration", "dead code detection", "call path validation", "feature wiring completeness"]
     },
     {
+      "name": "Code Standards Reviewer",
+      "perspective": "Code consistency, naming conventions, type alignment, API contracts",
+      "focus_areas": ["type definitions alignment", "naming convention enforcement", "API contract consistency", "interface mismatches", "consistent patterns across modules", "variable naming standards", "code style uniformity"]
+    },
+    {
       "name": "DevOps Engineer",
       "perspective": "Deployment, monitoring, reliability, automation",
       "focus_areas": ["deployment", "monitoring", "reliability", "automation"]
@@ -165,6 +170,11 @@ create_epic_json() {
       "name": "Frontend Developer",
       "perspective": "User interface, experience, client-side logic",
       "focus_areas": ["ui/ux", "client architecture", "state management", "performance"]
+    },
+    {
+      "name": "Simplifier",
+      "perspective": "Complexity reduction, scope minimization, essential features only",
+      "focus_areas": ["unnecessary complexity", "scope creep", "over-engineering", "MVP focus", "feature consolidation", "redundant components", "simpler alternatives"]
     }
   ]'
 

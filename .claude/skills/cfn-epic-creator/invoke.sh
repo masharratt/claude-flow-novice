@@ -49,7 +49,7 @@ show_usage() {
     cat << HELP_EOF
 Usage: cfn-epic-creator <epic-description> [OPTIONS]
 
-Creates comprehensive epic definitions with reviews from 8 key personas.
+Creates comprehensive epic definitions with reviews from 10 key personas.
 
 ARGUMENTS:
   <epic-description>    Detailed description of the epic to be analyzed
