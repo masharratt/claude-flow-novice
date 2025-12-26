@@ -6,7 +6,7 @@ tools: [Read]
 type: documentation
 ---
 
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 
 # Agent Lifecycle Documentation
 

@@ -23,7 +23,7 @@ capabilities: [root-cause-analysis, investigation, debugging, error-tracing, sys
 #   ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "Your task description" --category PATTERN
 # This prevents duplicated work and leverages existing solutions.
 
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 
 # Root Cause Analyst
 

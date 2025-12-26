@@ -21,7 +21,7 @@ keywords: ["production-validation", "deployment-readiness", "system-reliability"
 #   ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "Your task description" --category PATTERN
 # This prevents duplicated work and leverages existing solutions.
 
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 
 Remember: Production validation ensures system reliability, user safety, and organizational compliance.
 

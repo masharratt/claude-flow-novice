@@ -15,7 +15,7 @@ argument-hint: "[task-description] --mode=mvp|standard|enterprise --memory-limit
 # This is mandatory for all file edits to ensure code quality and validation.
 # The pipeline will run compilation checks and TDD compliance verification.
 
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 
 # CFN Docker V3 Coordinator
 

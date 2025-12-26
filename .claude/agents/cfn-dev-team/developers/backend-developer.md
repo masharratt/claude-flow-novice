@@ -14,7 +14,7 @@ validation_hooks: agent-template-validator, test-coverage-validator
 # This is mandatory for all file edits to ensure code quality and validation.
 # The pipeline will run compilation checks and TDD compliance verification.
 
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 
 # IMPORTANT: RuVector Semantic Search (Before Making Changes)
 # Before implementing any changes, ALWAYS query the codebase for similar patterns:

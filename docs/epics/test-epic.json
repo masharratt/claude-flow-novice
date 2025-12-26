@@ -1,0 +1,1770 @@
+{
+  "epic_id": "e9a84ef618d22fc2",
+  "description": "Build a simple todo app with user authentication and task management",
+  "mode": "standard",
+  "created_at": "2025-12-26T06:46:17Z",
+  "personas": [
+    {
+      "name": "Product Manager",
+      "perspective": "Strategic value, user needs, market fit",
+      "focus_areas": [
+        "business objectives",
+        "user stories",
+        "acceptance criteria",
+        "success metrics"
+      ]
+    },
+    {
+      "name": "Architect",
+      "perspective": "System design, scalability, technical constraints",
+      "focus_areas": [
+        "architecture",
+        "scalability",
+        "performance",
+        "technical debt"
+      ]
+    },
+    {
+      "name": "Security Specialist",
+      "perspective": "Threats, vulnerabilities, compliance requirements",
+      "focus_areas": [
+        "threat model",
+        "security controls",
+        "compliance",
+        "risk assessment"
+      ]
+    },
+    {
+      "name": "Test Specialist",
+      "perspective": "Production readiness, test coverage, quality gates, integration verification",
+      "focus_areas": [
+        "test strategy",
+        "integration tests",
+        "e2e tests",
+        "regression coverage",
+        "production smoke tests",
+        "implementation wiring tests",
+        "call path coverage"
+      ]
+    },
+    {
+      "name": "Strategic Alignment Reviewer",
+      "perspective": "High-level coherence, cross-cutting concerns, plan consistency, integration completeness",
+      "focus_areas": [
+        "requirement alignment",
+        "scope consistency",
+        "dependency conflicts",
+        "stakeholder expectations",
+        "architectural mismatches",
+        "implementation integration",
+        "dead code detection",
+        "call path validation",
+        "feature wiring completeness"
+      ]
+    },
+    {
+      "name": "Code Standards Reviewer",
+      "perspective": "Code consistency, naming conventions, type alignment, API contracts",
+      "focus_areas": [
+        "type definitions alignment",
+        "naming convention enforcement",
+        "API contract consistency",
+        "interface mismatches",
+        "consistent patterns across modules",
+        "variable naming standards",
+        "code style uniformity"
+      ]
+    },
+    {
+      "name": "Backend Developer",
+      "perspective": "API design, data structures, business logic",
+      "focus_areas": [
+        "api design",
+        "data models",
+        "services",
+        "integrations"
+      ]
+    },
+    {
+      "name": "Frontend Developer",
+      "perspective": "User interface, experience, client-side logic",
+      "focus_areas": [
+        "ui/ux",
+        "client architecture",
+        "state management",
+        "performance"
+      ]
+    },
+    {
+      "name": "Simplifier",
+      "perspective": "Complexity reduction, scope minimization, essential features only",
+      "focus_areas": [
+        "unnecessary complexity",
+        "scope creep",
+        "over-engineering",
+        "MVP focus",
+        "feature consolidation",
+        "redundant components",
+        "simpler alternatives"
+      ]
+    }
+  ],
+  "reviews": [
+    {
+      "persona": "product-owner",
+      "reviewOrder": 1,
+      "status": "completed",
+      "insights": [
+        "Core value proposition: Enable individual users to organize tasks with secure personal data storage",
+        "Primary user segment: Individual productivity users seeking simple, reliable task management",
+        "Key differentiator: Simplicity over feature bloat - focus on core todo functionality with authentication",
+        "Success depends on seamless authentication UX and zero data loss",
+        "Scope is appropriately constrained for MVP - no team collaboration, no integrations, no advanced features"
+      ],
+      "recommendations": [
+        "Prioritize authentication flow polish - this is the user's first impression and trust anchor",
+        "Implement data persistence validation early to prevent catastrophic data loss scenarios",
+        "Add basic task filtering (active/completed) before launch - users expect this baseline functionality",
+        "Consider password reset flow as table stakes for authentication - users will lock themselves out",
+        "Build task creation/editing as atomic operations with optimistic UI for perceived performance"
+      ],
+      "risks": [
+        "Authentication complexity could delay MVP - recommend social auth (OAuth) or passwordless for simplicity",
+        "Data loss during beta would destroy user trust - need robust backup/recovery strategy",
+        "Performance degradation with large task lists (>1000 items) could trigger negative reviews",
+        "Scope creep pressure for features (tags, priorities, due dates) - must defend MVP boundaries",
+        "Security vulnerability in auth system would be catastrophic for user data confidentiality"
+      ]
+    },
+    {
+      "persona": "system-architect",
+      "reviewOrder": 2,
+      "status": "completed",
+      "insights": [
+        "Architecture is well-suited for MVP - simple layered design (presentation, API, business logic, data) supports quick iteration",
+        "MVP scope supports horizontal scaling through stateless API design - ready for cloud-native deployment",
+        "Three-tier architecture enables independent frontend/backend development and testing in parallel",
+        "Database schema is simple and normalized, supporting future indexing and query optimization without refactoring",
+        "Session management strategy (stateless JWT preferred) aligns with horizontal scaling and distributed deployment",
+        "API-first design enables future mobile client support without backend changes",
+        "Monolithic deployment is appropriate for MVP - simplifies DevOps complexity while maintaining separation of concerns"
+      ],
+      "recommendations": [
+        "Use stateless JWT tokens with refresh token rotation for session management - supports horizontal scaling and simplifies deployment",
+        "Implement optimistic locking (version fields) on task updates to prevent concurrent update conflicts without complex distributed transactions",
+        "Design API to use pagination by default (limit/offset) for task list queries - prevents N+1 queries and memory issues as user task count grows",
+        "Establish API versioning strategy (v1) from start - protects frontend/mobile clients during backend evolution",
+        "Use single database with connection pooling for MVP - revisit sharding only if user base exceeds performance benchmarks",
+        "Implement structured logging (JSON) from day one - essential for production debugging and performance analysis",
+        "Design data model to support future filtering without schema changes - add 'tags' field as nullable but empty for MVP",
+        "Use database transactions for multi-step operations (create task + audit log) to prevent inconsistency"
+      ],
+      "risks": [
+        "N+1 query problems if task list endpoint doesn't paginate - could cause severe performance degradation at scale",
+        "Concurrent update conflicts without optimistic locking could cause data corruption or user frustration",
+        "Weak password hashing (MD5, SHA1) would create security vulnerability - must use bcrypt/argon2 with salt",
+        "Storing session data in memory (no Redis) limits horizontal scaling - recommend lightweight Redis for MVP+ phase",
+        "Missing database indices on frequently-queried fields (user_id, created_at) would cause table scans and slow queries",
+        "Uncontrolled session token lifetime could leave abandoned sessions consuming memory/resources",
+        "API without rate limiting on auth endpoints exposes brute force attack surface",
+        "Cross-origin request issues if frontend and backend deployed separately without proper CORS configuration"
+      ]
+    },
+    {
+      "persona": "simplifier",
+      "reviewOrder": 10,
+      "status": "completed",
+      "simplifications": [
+        {
+          "target": "US-003 Password Reset Flow",
+          "current": "Email-based password reset with token expiration, email service integration, multiple endpoints",
+          "simplified": "Eliminate entirely - users can create new account if locked out. Add in v2 if user feedback demands it",
+          "savings": "24 hours development + $10/month email service + reduced complexity in users table (no reset token fields)",
+          "risk": "low"
+        },
+        {
+          "target": "Email Verification (US-002, User Service)",
+          "current": "Email verification flow with verification emails, email_verified fields, verify-email endpoint",
+          "simplified": "Eliminate - accept any valid email format. Add verification only if spam/abuse becomes issue",
+          "savings": "16 hours development + reduced email service usage",
+          "risk": "low"
+        },
+        {
+          "target": "Audit Logs Table",
+          "current": "Full audit trail with JSONB old/new values, entity tracking, immutable append-only table",
+          "simplified": "Use application logging for errors/issues. Add audit table in v2 if compliance requires it",
+          "savings": "20 hours development + database storage + query complexity",
+          "risk": "medium"
+        },
+        {
+          "target": "Refresh Tokens Table + Rotation",
+          "current": "Separate refresh_tokens table with token hashing, expiration, revocation tracking. 15min access + 7day refresh tokens",
+          "simplified": "Single JWT token with 24-hour expiration. Re-login after 24 hours. Eliminates entire table and refresh endpoint",
+          "savings": "16 hours development + simplified session management + one less database table",
+          "risk": "low"
+        },
+        {
+          "target": "Optimistic Locking (version field)",
+          "current": "Version field on tasks table, concurrent update conflict detection and handling",
+          "simplified": "Last-write-wins for MVP. Single user editing own tasks rarely has conflicts. Add if users report issues",
+          "savings": "12 hours development + simpler update logic + one less field per task",
+          "risk": "low"
+        },
+        {
+          "target": "User Profile Fields (first_name, last_name)",
+          "current": "Collect and store user names, profile management endpoints (GET/PUT /users/profile)",
+          "simplified": "Email only for authentication. No profile management needed for todo app",
+          "savings": "8 hours development + 2 fewer database fields + eliminated user service endpoints",
+          "risk": "low"
+        },
+        {
+          "target": "Task Description Field",
+          "current": "Optional 1000-character description field with validation, UI form field, database storage",
+          "simplified": "Title only (200 chars). Most todos don't need descriptions. Add in v2 if requested",
+          "savings": "6 hours development + simpler forms + reduced storage",
+          "risk": "low"
+        },
+        {
+          "target": "Soft Deletes (deleted_at fields)",
+          "current": "Soft delete on users and tasks tables, WHERE deleted_at IS NULL in all queries, quarterly archival",
+          "simplified": "Hard deletes with confirmation dialog. Simpler queries, no archival process needed",
+          "savings": "8 hours development + simpler data model + faster queries",
+          "risk": "medium"
+        },
+        {
+          "target": "US-007 Edit Task",
+          "current": "Edit task title and description with save/cancel, validation, last modified tracking",
+          "simplified": "Defer to v2. Users can delete and recreate task for MVP. Focus on core create/complete/delete flow",
+          "savings": "12 hours development + simpler UI",
+          "risk": "medium"
+        },
+        {
+          "target": "Advanced Monitoring (Grafana, DataDog, Structured Logging)",
+          "current": "Winston JSON logging, DataDog/CloudWatch integration, Grafana dashboards, log aggregation",
+          "simplified": "Console logging + cloud provider default monitoring (free tier). Add advanced monitoring post-launch if needed",
+          "savings": "24 hours development + $20/month monitoring cost",
+          "risk": "medium"
+        },
+        {
+          "target": "Rate Limiting Middleware",
+          "current": "express-rate-limit on auth endpoints (5 attempts/15min) and API endpoints (100 req/min)",
+          "simplified": "Defer to v2. Cloud provider DDoS protection sufficient for MVP with limited users",
+          "savings": "8 hours development + simpler middleware stack",
+          "risk": "medium"
+        },
+        {
+          "target": "Remember Me Functionality",
+          "current": "Checkbox UI, different token expiration logic, additional session management complexity",
+          "simplified": "Single 24-hour session for everyone. Eliminates checkbox and branching session logic",
+          "savings": "4 hours development + simpler auth flow",
+          "risk": "low"
+        },
+        {
+          "target": "US-009 Task Filtering",
+          "current": "Filter UI tabs (All/Active/Completed), task counts, filter state persistence, API filtering support",
+          "simplified": "Defer filtering UI to v2. Show all tasks in simple list. Client-side filtering can be added quickly if needed",
+          "savings": "8 hours development + simpler UI initially",
+          "risk": "low"
+        },
+        {
+          "target": "WCAG 2.1 AA Compliance",
+          "current": "Full accessibility audit, ARIA labels, screen reader testing, keyboard nav for all features",
+          "simplified": "Basic semantic HTML + keyboard support for main actions. Full AA compliance in v2",
+          "savings": "16 hours testing and refinement",
+          "risk": "medium"
+        },
+        {
+          "target": "Database Analytics Fields (last_login_at, completed_at)",
+          "current": "Track timestamps for analytics - last login, task completion time, etc.",
+          "simplified": "Remove last_login_at. Keep completed_at only if showing completion checkmark is needed. Analytics via app logs",
+          "savings": "4 hours development + reduced database writes",
+          "risk": "low"
+        }
+      ],
+      "features_to_remove": [
+        "US-003: Password Reset Flow (entire story)",
+        "Email verification system",
+        "User profile management (first/last name, profile endpoints)",
+        "audit_logs database table",
+        "refresh_tokens database table",
+        "Remember Me checkbox",
+        "Rate limiting middleware",
+        "Advanced monitoring infrastructure (Grafana, DataDog)",
+        "Optimistic locking version field",
+        "Soft delete functionality"
+      ],
+      "features_to_defer": [
+        "US-007: Edit Task (defer to v2 - delete/recreate for MVP)",
+        "US-009: Task Filtering UI (defer to v2 - show all tasks initially)",
+        "Task description field (title-only for MVP)",
+        "WCAG 2.1 AA full compliance (basic accessibility only)",
+        "Structured JSON logging (console logs sufficient)",
+        "Database transaction wrappers (add only where proven needed)",
+        "Email verification (add if spam/abuse occurs)"
+      ],
+      "consolidations": [
+        {
+          "merge": ["Access tokens (15min) + Refresh tokens (7 days)"],
+          "into": "Single JWT token (24 hours) - eliminates refresh_tokens table and /refresh-token endpoint"
+        },
+        {
+          "merge": ["User Service endpoints (GET/PUT profile, verify email)"],
+          "into": "Eliminate entirely - no profile management needed for todo app"
+        },
+        {
+          "merge": ["Audit logging + Application logging"],
+          "into": "Application logs only (console/file) - sufficient for MVP troubleshooting"
+        }
+      ],
+      "infrastructure_simplifications": [
+        {
+          "current": "PostgreSQL managed database ($30/month)",
+          "simplified": "SQLite file-based database (free, zero configuration)",
+          "savings": "$30/month + eliminates connection pooling complexity",
+          "risk": "low - sufficient for thousands of users, can migrate to PostgreSQL later if needed"
+        },
+        {
+          "current": "Email service (SendGrid/SES $10/month)",
+          "simplified": "Eliminate - no password reset or verification emails needed",
+          "savings": "$10/month",
+          "risk": "low"
+        },
+        {
+          "current": "Monitoring service (DataDog/CloudWatch $20/month)",
+          "simplified": "Cloud provider free tier monitoring",
+          "savings": "$20/month",
+          "risk": "medium"
+        },
+        {
+          "current": "CDN/Storage (CloudFront/S3 $15/month)",
+          "simplified": "Serve static files directly from app server for MVP",
+          "savings": "$15/month",
+          "risk": "low - acceptable performance for MVP traffic levels"
+        }
+      ],
+      "complexity_reduction": {
+        "before_score": 8,
+        "after_score": 4,
+        "reduction_percentage": "50%",
+        "development_time_saved": "166 hours (out of 404 total) = 41% faster",
+        "infrastructure_cost_saved": "$75/month (out of $125/month) = 60% cheaper",
+        "database_tables_eliminated": 2,
+        "user_stories_eliminated": 2,
+        "user_stories_deferred": 2,
+        "total_features_simplified": 15
+      },
+      "risk_assessment": {
+        "low_risk_simplifications": 9,
+        "medium_risk_simplifications": 6,
+        "high_risk_simplifications": 0,
+        "overall_recommendation": "PROCEED - simplifications significantly reduce complexity while maintaining core value proposition. All medium-risk items have clear v2 migration paths"
+      }
+    }
+  ],
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "User Registration",
+      "asA": "new user",
+      "iWant": "to create an account with email and password",
+      "soThat": "I can securely store my personal todo list",
+      "acceptanceCriteria": [
+        "User can register with valid email and password (min 8 characters)",
+        "System validates email format and password strength",
+        "System prevents duplicate email registration",
+        "User receives confirmation after successful registration",
+        "User is automatically logged in after registration"
+      ],
+      "priority": "P0",
+      "storyPoints": 5
+    },
+    {
+      "id": "US-002",
+      "title": "User Login",
+      "asA": "registered user",
+      "iWant": "to log in with my credentials",
+      "soThat": "I can access my personal todo list",
+      "acceptanceCriteria": [
+        "User can log in with valid email and password",
+        "System shows clear error for invalid credentials",
+        "Session persists across browser refreshes",
+        "User sees their task list immediately after login",
+        "System includes 'Remember Me' option for extended sessions"
+      ],
+      "priority": "P0",
+      "storyPoints": 3
+    },
+    {
+      "id": "US-003",
+      "title": "Password Reset",
+      "asA": "user who forgot password",
+      "iWant": "to reset my password via email",
+      "soThat": "I can regain access to my account",
+      "acceptanceCriteria": [
+        "User can request password reset via email",
+        "System sends reset link to registered email",
+        "Reset link expires after 1 hour",
+        "User can set new password via reset link",
+        "System invalidates old password after reset"
+      ],
+      "priority": "P1",
+      "storyPoints": 5
+    },
+    {
+      "id": "US-004",
+      "title": "Create Todo Task",
+      "asA": "logged-in user",
+      "iWant": "to create a new todo task",
+      "soThat": "I can track things I need to do",
+      "acceptanceCriteria": [
+        "User can create task with title (required, max 200 chars)",
+        "User can optionally add description (max 1000 chars)",
+        "Task appears immediately in task list with optimistic UI",
+        "System persists task to database",
+        "System shows error if creation fails and allows retry"
+      ],
+      "priority": "P0",
+      "storyPoints": 3
+    },
+    {
+      "id": "US-005",
+      "title": "View Todo List",
+      "asA": "logged-in user",
+      "iWant": "to see all my tasks in one list",
+      "soThat": "I can review what I need to do",
+      "acceptanceCriteria": [
+        "User sees all tasks ordered by creation date (newest first)",
+        "Each task displays title, status, and creation date",
+        "List updates in real-time when tasks are added/modified",
+        "System handles empty state with helpful message",
+        "List loads in under 2 seconds for up to 1000 tasks"
+      ],
+      "priority": "P0",
+      "storyPoints": 2
+    },
+    {
+      "id": "US-006",
+      "title": "Complete Todo Task",
+      "asA": "logged-in user",
+      "iWant": "to mark tasks as complete",
+      "soThat": "I can track my progress",
+      "acceptanceCriteria": [
+        "User can toggle task status with single click/tap",
+        "Completed tasks show visual indicator (checkmark, strikethrough)",
+        "Status updates persist immediately",
+        "User can uncomplete a task if needed",
+        "System preserves completion timestamp"
+      ],
+      "priority": "P0",
+      "storyPoints": 2
+    },
+    {
+      "id": "US-007",
+      "title": "Edit Todo Task",
+      "asA": "logged-in user",
+      "iWant": "to edit task details",
+      "soThat": "I can update tasks as needs change",
+      "acceptanceCriteria": [
+        "User can edit task title and description",
+        "Changes save automatically or with explicit save action",
+        "System validates input constraints (length limits)",
+        "User can cancel edit without saving changes",
+        "System shows last modified timestamp"
+      ],
+      "priority": "P1",
+      "storyPoints": 3
+    },
+    {
+      "id": "US-008",
+      "title": "Delete Todo Task",
+      "asA": "logged-in user",
+      "iWant": "to delete tasks I no longer need",
+      "soThat": "I can keep my list clean and relevant",
+      "acceptanceCriteria": [
+        "User can delete individual tasks",
+        "System prompts for confirmation before deletion",
+        "Deleted task removes from list immediately",
+        "Deletion is permanent (no undo required for MVP)",
+        "System prevents accidental bulk deletion"
+      ],
+      "priority": "P1",
+      "storyPoints": 2
+    },
+    {
+      "id": "US-009",
+      "title": "Filter Tasks",
+      "asA": "logged-in user",
+      "iWant": "to filter tasks by status",
+      "soThat": "I can focus on active or completed tasks",
+      "acceptanceCriteria": [
+        "User can filter to show: All, Active, Completed tasks",
+        "Filter selection persists during session",
+        "Task count displays for each filter option",
+        "Filter applies without page reload",
+        "Default view shows all tasks"
+      ],
+      "priority": "P1",
+      "storyPoints": 2
+    },
+    {
+      "id": "US-010",
+      "title": "User Logout",
+      "asA": "logged-in user",
+      "iWant": "to securely log out",
+      "soThat": "others cannot access my tasks on shared devices",
+      "acceptanceCriteria": [
+        "User can log out from any page",
+        "System invalidates session immediately",
+        "User redirects to login page after logout",
+        "System clears local session data",
+        "Logout works even if backend is temporarily unavailable"
+      ],
+      "priority": "P0",
+      "storyPoints": 1
+    }
+  ],
+  "successMetrics": {
+    "userEngagement": [
+      {
+        "metric": "Daily Active Users (DAU)",
+        "target": "60% of registered users",
+        "measurement": "Users who log in and interact with tasks daily",
+        "timeframe": "30 days post-launch"
+      },
+      {
+        "metric": "Task Creation Rate",
+        "target": "Average 5+ tasks per user per week",
+        "measurement": "Total tasks created divided by active users",
+        "timeframe": "Ongoing"
+      },
+      {
+        "metric": "Task Completion Rate",
+        "target": "40% of tasks marked complete within 7 days",
+        "measurement": "Percentage of tasks completed within week of creation",
+        "timeframe": "Ongoing"
+      }
+    ],
+    "userRetention": [
+      {
+        "metric": "7-Day Retention",
+        "target": "50% of new users return within 7 days",
+        "measurement": "Users who create account and return within week",
+        "timeframe": "First 90 days"
+      },
+      {
+        "metric": "30-Day Retention",
+        "target": "30% of users remain active after 30 days",
+        "measurement": "Users active in month 2 vs registration month",
+        "timeframe": "Ongoing"
+      }
+    ],
+    "systemReliability": [
+      {
+        "metric": "Uptime",
+        "target": "99.5% availability",
+        "measurement": "Percentage of time service is available",
+        "timeframe": "Monthly"
+      },
+      {
+        "metric": "Data Integrity",
+        "target": "Zero data loss incidents",
+        "measurement": "Count of reported task loss or corruption",
+        "timeframe": "Ongoing"
+      },
+      {
+        "metric": "API Response Time",
+        "target": "P95 < 500ms for all endpoints",
+        "measurement": "95th percentile response time",
+        "timeframe": "Daily"
+      }
+    ],
+    "userSatisfaction": [
+      {
+        "metric": "Authentication Success Rate",
+        "target": "95% successful logins",
+        "measurement": "Successful logins / total login attempts",
+        "timeframe": "Daily"
+      },
+      {
+        "metric": "Error Rate",
+        "target": "<1% of user actions result in errors",
+        "measurement": "Failed actions / total actions",
+        "timeframe": "Daily"
+      }
+    ],
+    "businessMetrics": [
+      {
+        "metric": "User Growth Rate",
+        "target": "20% month-over-month new user growth",
+        "measurement": "New registrations compared to previous month",
+        "timeframe": "Monthly"
+      },
+      {
+        "metric": "Cost Per User",
+        "target": "<$0.50/user/month infrastructure cost",
+        "measurement": "Total hosting cost / active users",
+        "timeframe": "Monthly"
+      }
+    ]
+  },
+  "technicalRequirements": {
+    "backend": [
+      {
+        "requirement": "RESTful API Design",
+        "description": "API must follow REST conventions with proper HTTP methods and status codes",
+        "priority": "P0",
+        "implementation": "Express.js/Node.js with OpenAPI/Swagger documentation"
+      },
+      {
+        "requirement": "Authentication & Session Management",
+        "description": "Stateless JWT tokens with refresh token rotation. Access tokens expire in 15 minutes, refresh tokens in 7 days",
+        "priority": "P0",
+        "implementation": "jsonwebtoken library with secure cookie storage for refresh tokens"
+      },
+      {
+        "requirement": "Password Security",
+        "description": "Passwords hashed with bcrypt (cost factor 12+) with random salt. Minimum 8 characters enforced",
+        "priority": "P0",
+        "implementation": "bcryptjs library"
+      },
+      {
+        "requirement": "Database Transactions",
+        "description": "Multi-step operations wrapped in transactions to guarantee consistency",
+        "priority": "P0",
+        "implementation": "PostgreSQL transaction management"
+      },
+      {
+        "requirement": "Query Optimization",
+        "description": "Task list queries use pagination (default 50 items/page, max 100). Indexed queries on user_id, created_at",
+        "priority": "P0",
+        "implementation": "Database indices + SQL query analysis"
+      },
+      {
+        "requirement": "Rate Limiting",
+        "description": "Auth endpoints limited to 5 failed attempts/15 min per IP. API endpoints limited to 100 req/min per user",
+        "priority": "P1",
+        "implementation": "express-rate-limit middleware"
+      },
+      {
+        "requirement": "Input Validation",
+        "description": "All inputs validated server-side for type, length, format. Sanitized to prevent SQL injection and XSS",
+        "priority": "P0",
+        "implementation": "joi/express-validator"
+      },
+      {
+        "requirement": "Error Handling",
+        "description": "Consistent error responses with error codes, messages, and request IDs for debugging",
+        "priority": "P0",
+        "implementation": "Centralized error handler middleware"
+      },
+      {
+        "requirement": "Structured Logging",
+        "description": "JSON-formatted logs with request ID, user ID, timestamp, level, message. Centralized log aggregation ready",
+        "priority": "P1",
+        "implementation": "winston logger"
+      },
+      {
+        "requirement": "API Versioning",
+        "description": "API routes prefixed with version (v1). Supports future API evolution without breaking clients",
+        "priority": "P1",
+        "implementation": "/api/v1/ route structure"
+      }
+    ],
+    "frontend": [
+      {
+        "requirement": "Responsive Design",
+        "description": "Application functional on mobile (320px+) and desktop. Touch-friendly UI with 44px+ tap targets",
+        "priority": "P0",
+        "implementation": "CSS Grid/Flexbox with mobile-first approach"
+      },
+      {
+        "requirement": "Optimistic UI Updates",
+        "description": "Task actions (create, complete, delete) show immediate visual feedback before server confirmation",
+        "priority": "P0",
+        "implementation": "Local state update + background API call with rollback on failure"
+      },
+      {
+        "requirement": "Client-Side Validation",
+        "description": "Form validation before API call. Real-time feedback on password strength and email format",
+        "priority": "P0",
+        "implementation": "React form library + HTML5 validation"
+      },
+      {
+        "requirement": "State Management",
+        "description": "Single source of truth for auth state, tasks, UI state. Minimal context API usage or Redux if complex",
+        "priority": "P0",
+        "implementation": "React Context or Zustand for simple state"
+      },
+      {
+        "requirement": "Error Handling",
+        "description": "User-friendly error messages. Network errors show retry option. Auth errors redirect to login",
+        "priority": "P0",
+        "implementation": "Global error boundary + toast notifications"
+      },
+      {
+        "requirement": "Performance",
+        "description": "Initial page load <3 seconds (3G). Task list renders <500ms. Code splitting for auth and dashboard",
+        "priority": "P1",
+        "implementation": "Webpack code splitting, lazy loading, React.memo for components"
+      },
+      {
+        "requirement": "Accessibility",
+        "description": "WCAG 2.1 AA compliance. Keyboard navigation, semantic HTML, ARIA labels, screen reader support",
+        "priority": "P1",
+        "implementation": "semantic HTML5, aria-labels, focus management"
+      },
+      {
+        "requirement": "Offline Capability",
+        "description": "MVP: No offline support. Future: Service worker for read-only access to cached tasks",
+        "priority": "P3",
+        "implementation": "Service worker (deferred to MVP+)"
+      }
+    ],
+    "database": [
+      {
+        "requirement": "Normalized Schema",
+        "description": "3NF normalization. Users and tasks in separate tables with proper foreign keys",
+        "priority": "P0",
+        "implementation": "PostgreSQL"
+      },
+      {
+        "requirement": "Backup Strategy",
+        "description": "Automated daily backups with point-in-time recovery capability. Test restore procedures weekly",
+        "priority": "P0",
+        "implementation": "PostgreSQL pg_dump + cloud storage"
+      },
+      {
+        "requirement": "Connection Pooling",
+        "description": "Max 20 connections, min 5. Idle timeout 30 seconds to prevent connection exhaustion",
+        "priority": "P0",
+        "implementation": "pg-pool or pgBouncer"
+      },
+      {
+        "requirement": "Audit Logging",
+        "description": "All data mutations logged with user_id, timestamp, action, old/new values for troubleshooting",
+        "priority": "P1",
+        "implementation": "Trigger-based or application-level audit table"
+      }
+    ],
+    "infrastructure": [
+      {
+        "requirement": "HTTPS Only",
+        "description": "All traffic encrypted. HSTS header with 1-year max-age. TLS 1.2 minimum",
+        "priority": "P0",
+        "implementation": "Let's Encrypt with auto-renewal"
+      },
+      {
+        "requirement": "CORS Configuration",
+        "description": "Frontend and API can be deployed separately. Specific origin whitelist (not wildcard)",
+        "priority": "P0",
+        "implementation": "cors middleware with configurable origins"
+      },
+      {
+        "requirement": "Health Check Endpoint",
+        "description": "GET /api/v1/health returns 200 with database connectivity status",
+        "priority": "P1",
+        "implementation": "Lightweight health check middleware"
+      },
+      {
+        "requirement": "Monitoring & Alerting",
+        "description": "Track API response times, error rates, database query performance. Alert on >5% error rate",
+        "priority": "P1",
+        "implementation": "DataDog/CloudWatch + Grafana dashboards"
+      },
+      {
+        "requirement": "CI/CD Pipeline",
+        "description": "Automated testing on commit. Staging deployment on merge. Production with manual approval",
+        "priority": "P1",
+        "implementation": "GitHub Actions or GitLab CI"
+      }
+    ]
+  },
+  "systemComponents": {
+    "architecture": {
+      "pattern": "Three-Tier Layered Architecture",
+      "description": "Presentation (React SPA) -> API Layer (Express.js) -> Data Layer (PostgreSQL). Supports independent scaling and testing",
+      "rationale": "Simplicity for MVP while maintaining separation of concerns. Stateless API enables horizontal scaling"
+    },
+    "presentation": [
+      {
+        "component": "Auth Pages (Login/Register/Reset)",
+        "responsibility": "User authentication flows with form validation and error handling",
+        "technologies": "React, React Router, axios",
+        "dependencies": ["Auth API", "State Management"]
+      },
+      {
+        "component": "Task Dashboard",
+        "responsibility": "Display user's tasks, provide CRUD interfaces, show filters",
+        "technologies": "React, state management",
+        "dependencies": ["Task API", "State Management"]
+      },
+      {
+        "component": "Task Form Component",
+        "responsibility": "Reusable form for create/edit task operations with validation",
+        "technologies": "React, form validation library",
+        "dependencies": ["Input Validation"]
+      },
+      {
+        "component": "Navigation & Layout",
+        "responsibility": "Header with user menu, logout button, responsive layout",
+        "technologies": "React, CSS",
+        "dependencies": ["Auth State"]
+      }
+    ],
+    "apiLayer": [
+      {
+        "component": "Authentication Service",
+        "responsibility": "Register, login, logout, password reset. JWT token generation and validation",
+        "endpoints": [
+          "POST /api/v1/auth/register",
+          "POST /api/v1/auth/login",
+          "POST /api/v1/auth/logout",
+          "POST /api/v1/auth/refresh-token",
+          "POST /api/v1/auth/forgot-password",
+          "POST /api/v1/auth/reset-password"
+        ],
+        "technologies": "Express.js, jsonwebtoken, bcryptjs"
+      },
+      {
+        "component": "Task Service",
+        "responsibility": "CRUD operations for tasks. Query filtering and pagination",
+        "endpoints": [
+          "GET /api/v1/tasks (paginated, filtered)",
+          "POST /api/v1/tasks",
+          "GET /api/v1/tasks/:id",
+          "PUT /api/v1/tasks/:id",
+          "DELETE /api/v1/tasks/:id"
+        ],
+        "technologies": "Express.js, database ORM"
+      },
+      {
+        "component": "User Service",
+        "responsibility": "User profile management, email verification",
+        "endpoints": [
+          "GET /api/v1/users/profile",
+          "PUT /api/v1/users/profile",
+          "POST /api/v1/users/verify-email"
+        ],
+        "technologies": "Express.js"
+      },
+      {
+        "component": "Health Check Service",
+        "responsibility": "System health monitoring for load balancers",
+        "endpoints": [
+          "GET /api/v1/health"
+        ],
+        "technologies": "Express.js"
+      },
+      {
+        "component": "Error Handling Middleware",
+        "responsibility": "Centralized error handling and response formatting",
+        "technologies": "Express.js middleware"
+      },
+      {
+        "component": "Rate Limiting Middleware",
+        "responsibility": "Prevent brute force attacks and abuse",
+        "technologies": "express-rate-limit"
+      },
+      {
+        "component": "Logging Middleware",
+        "responsibility": "Structured logging of all requests and errors",
+        "technologies": "winston, morgan"
+      }
+    ],
+    "dataLayer": [
+      {
+        "component": "User Repository",
+        "responsibility": "User data persistence and queries",
+        "operations": ["create", "findByEmail", "findById", "update", "delete"],
+        "technologies": "PostgreSQL ORM (Prisma, Sequelize, or TypeORM)"
+      },
+      {
+        "component": "Task Repository",
+        "responsibility": "Task data persistence, queries with filtering and pagination",
+        "operations": ["create", "findByUserId", "findById", "update", "delete", "updateStatus"],
+        "technologies": "PostgreSQL ORM"
+      },
+      {
+        "component": "Audit Log Repository",
+        "responsibility": "Mutation audit trail for data changes",
+        "operations": ["create", "findByEntityId"],
+        "technologies": "PostgreSQL"
+      },
+      {
+        "component": "Session Token Repository",
+        "responsibility": "Refresh token storage for logout and revocation",
+        "operations": ["create", "findByToken", "delete", "deleteByUserId"],
+        "technologies": "PostgreSQL or Redis (for MVP, PostgreSQL sufficient)"
+      }
+    ],
+    "externalServices": [
+      {
+        "service": "Email Provider",
+        "purpose": "Send password reset and verification emails",
+        "provider": "SendGrid or AWS SES",
+        "reliability": "3-5 minute delivery SLA",
+        "fallback": "Resend email option after 5 minutes"
+      }
+    ]
+  },
+  "dataModels": {
+    "users": {
+      "table": "users",
+      "description": "User account and authentication data",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "constraints": "PRIMARY KEY, NOT NULL",
+          "description": "Unique user identifier"
+        },
+        {
+          "name": "email",
+          "type": "VARCHAR(255)",
+          "constraints": "UNIQUE, NOT NULL, INDEX",
+          "description": "User email address for login and communication"
+        },
+        {
+          "name": "password_hash",
+          "type": "VARCHAR(255)",
+          "constraints": "NOT NULL",
+          "description": "Bcrypt hashed password (cost factor 12)"
+        },
+        {
+          "name": "first_name",
+          "type": "VARCHAR(100)",
+          "constraints": "NOT NULL",
+          "description": "User's first name"
+        },
+        {
+          "name": "last_name",
+          "type": "VARCHAR(100)",
+          "constraints": "NOT NULL",
+          "description": "User's last name"
+        },
+        {
+          "name": "email_verified",
+          "type": "BOOLEAN",
+          "constraints": "DEFAULT false, NOT NULL",
+          "description": "Email verification status"
+        },
+        {
+          "name": "email_verified_at",
+          "type": "TIMESTAMP",
+          "constraints": "NULLABLE",
+          "description": "Timestamp of email verification"
+        },
+        {
+          "name": "password_reset_token",
+          "type": "VARCHAR(255)",
+          "constraints": "NULLABLE, UNIQUE",
+          "description": "One-time password reset token"
+        },
+        {
+          "name": "password_reset_expires",
+          "type": "TIMESTAMP",
+          "constraints": "NULLABLE",
+          "description": "Password reset token expiration time (1 hour)"
+        },
+        {
+          "name": "last_login_at",
+          "type": "TIMESTAMP",
+          "constraints": "NULLABLE",
+          "description": "Last successful login timestamp for analytics"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "constraints": "DEFAULT CURRENT_TIMESTAMP, NOT NULL, INDEX",
+          "description": "Account creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "constraints": "DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+          "description": "Last profile update timestamp"
+        },
+        {
+          "name": "deleted_at",
+          "type": "TIMESTAMP",
+          "constraints": "NULLABLE",
+          "description": "Soft delete timestamp for GDPR compliance"
+        }
+      ],
+      "indices": [
+        "CREATE UNIQUE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL",
+        "CREATE INDEX idx_users_created_at ON users(created_at)"
+      ],
+      "constraints": [
+        "email must match RFC 5322 format",
+        "password_hash required, never null",
+        "Soft delete prevents data loss during cleanup"
+      ]
+    },
+    "tasks": {
+      "table": "tasks",
+      "description": "User tasks with status, timestamps, and audit tracking",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "constraints": "PRIMARY KEY, NOT NULL",
+          "description": "Unique task identifier"
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "constraints": "NOT NULL, INDEX, FOREIGN KEY (users.id)",
+          "description": "Owner of the task"
+        },
+        {
+          "name": "title",
+          "type": "VARCHAR(200)",
+          "constraints": "NOT NULL",
+          "description": "Task title/headline (max 200 chars)"
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "constraints": "NULLABLE",
+          "description": "Detailed task description (max 1000 chars)"
+        },
+        {
+          "name": "status",
+          "type": "ENUM('active', 'completed')",
+          "constraints": "DEFAULT 'active', NOT NULL, INDEX",
+          "description": "Task completion status"
+        },
+        {
+          "name": "completed_at",
+          "type": "TIMESTAMP",
+          "constraints": "NULLABLE",
+          "description": "Timestamp when task marked complete"
+        },
+        {
+          "name": "version",
+          "type": "INTEGER",
+          "constraints": "DEFAULT 1, NOT NULL",
+          "description": "Optimistic lock version for concurrent updates"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "constraints": "DEFAULT CURRENT_TIMESTAMP, NOT NULL, INDEX",
+          "description": "Task creation timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "constraints": "DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, NOT NULL",
+          "description": "Last modification timestamp"
+        },
+        {
+          "name": "deleted_at",
+          "type": "TIMESTAMP",
+          "constraints": "NULLABLE",
+          "description": "Soft delete timestamp"
+        }
+      ],
+      "indices": [
+        "CREATE INDEX idx_tasks_user_id ON tasks(user_id)",
+        "CREATE INDEX idx_tasks_status ON tasks(status) WHERE deleted_at IS NULL",
+        "CREATE INDEX idx_tasks_created_at ON tasks(user_id, created_at DESC) WHERE deleted_at IS NULL"
+      ],
+      "constraints": [
+        "user_id must reference existing user",
+        "title required and max 200 characters",
+        "description optional, max 1000 characters",
+        "version field enables optimistic locking",
+        "Soft delete for data preservation"
+      ]
+    },
+    "audit_logs": {
+      "table": "audit_logs",
+      "description": "Immutable audit trail of data mutations for debugging and compliance",
+      "fields": [
+        {
+          "name": "id",
+          "type": "BIGSERIAL",
+          "constraints": "PRIMARY KEY",
+          "description": "Audit log entry ID"
+        },
+        {
+          "name": "entity_type",
+          "type": "VARCHAR(50)",
+          "constraints": "NOT NULL, INDEX",
+          "description": "Type of entity modified (users, tasks)"
+        },
+        {
+          "name": "entity_id",
+          "type": "UUID",
+          "constraints": "NOT NULL, INDEX",
+          "description": "ID of modified entity"
+        },
+        {
+          "name": "action",
+          "type": "ENUM('create', 'update', 'delete')",
+          "constraints": "NOT NULL, INDEX",
+          "description": "Type of modification"
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "constraints": "NOT NULL, INDEX",
+          "description": "User who performed the action"
+        },
+        {
+          "name": "old_values",
+          "type": "JSONB",
+          "constraints": "NULLABLE",
+          "description": "Previous field values (for updates)"
+        },
+        {
+          "name": "new_values",
+          "type": "JSONB",
+          "constraints": "NULLABLE",
+          "description": "New field values"
+        },
+        {
+          "name": "timestamp",
+          "type": "TIMESTAMP",
+          "constraints": "DEFAULT CURRENT_TIMESTAMP, NOT NULL, INDEX",
+          "description": "When the modification occurred"
+        }
+      ],
+      "indices": [
+        "CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id)",
+        "CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp DESC)"
+      ],
+      "constraints": [
+        "Append-only table (no updates or deletes)",
+        "JSONB for flexible schema evolution",
+        "Can be archived to cold storage monthly"
+      ]
+    },
+    "refresh_tokens": {
+      "table": "refresh_tokens",
+      "description": "Refresh token storage for session management and logout",
+      "fields": [
+        {
+          "name": "id",
+          "type": "UUID",
+          "constraints": "PRIMARY KEY, NOT NULL",
+          "description": "Token identifier"
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "constraints": "NOT NULL, INDEX, FOREIGN KEY (users.id)",
+          "description": "User associated with token"
+        },
+        {
+          "name": "token_hash",
+          "type": "VARCHAR(255)",
+          "constraints": "UNIQUE, NOT NULL",
+          "description": "Hashed refresh token (never store plaintext)"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMP",
+          "constraints": "NOT NULL, INDEX",
+          "description": "Token expiration time (7 days from issue)"
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMP",
+          "constraints": "NULLABLE, INDEX",
+          "description": "Revocation timestamp if logged out early"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "constraints": "DEFAULT CURRENT_TIMESTAMP, NOT NULL",
+          "description": "Token creation timestamp"
+        }
+      ],
+      "indices": [
+        "CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id)",
+        "CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at)"
+      ],
+      "constraints": [
+        "Tokens expire after 7 days regardless of usage",
+        "Revoked tokens cannot be used even if not expired",
+        "Background job cleans expired tokens weekly"
+      ]
+    }
+  },
+  "implementationRoadmap": {
+    "phases": [
+      {
+        "phase": 1,
+        "name": "Foundation - Database & Authentication Infrastructure",
+        "duration": "2 weeks",
+        "deliverables": [
+          "PostgreSQL schema with all tables, indices, and constraints defined",
+          "User registration API endpoint with email validation and bcrypt hashing",
+          "User login API endpoint with JWT token generation and refresh token management",
+          "Session validation middleware for protected routes",
+          "User logout endpoint with token revocation",
+          "Password reset flow (request + reset via email)",
+          "Error handling middleware with structured logging",
+          "Rate limiting on auth endpoints (5 failed attempts/15 min)",
+          "Basic health check endpoint",
+          "Login/Register/Reset Password UI components",
+          "Session state management in React"
+        ],
+        "architecturalFocus": [
+          "Establish API versioning pattern (/api/v1)",
+          "Implement stateless JWT architecture for horizontal scaling",
+          "Set up database connection pooling configuration",
+          "Establish error response format standards",
+          "Define logging structure (JSON format with request IDs)"
+        ],
+        "dependencies": [],
+        "exitCriteria": [
+          "Users can register with valid email/password validation",
+          "Users can login and receive JWT access token + refresh token",
+          "JWT tokens validate on protected endpoints",
+          "Password reset works end-to-end via email",
+          "Session persists across page refreshes",
+          "Auth endpoints have >95% success rate",
+          "Rate limiting prevents brute force attacks",
+          "Security audit passes for authentication implementation",
+          "All auth errors logged with request IDs for debugging",
+          "API documentation generated from code"
+        ],
+        "risks": [
+          "JWT secret key management and rotation",
+          "Email deliverability issues delaying password reset",
+          "Race conditions in token refresh flows",
+          "Session token storage security on frontend"
+        ],
+        "testingStrategy": [
+          "Unit tests for password hashing and JWT generation",
+          "Integration tests for full auth flows (register->login->protected resource)",
+          "Security tests for brute force prevention",
+          "Email delivery verification tests"
+        ]
+      },
+      {
+        "phase": 2,
+        "name": "Core Functionality - Task Management & Data Persistence",
+        "duration": "2 weeks",
+        "deliverables": [
+          "Task CRUD API endpoints (create, read, update, delete) with full validation",
+          "Pagination and filtering support (status, created_at sorting) on list endpoint",
+          "Optimistic locking (version field) to prevent concurrent update conflicts",
+          "Task list UI component with pagination controls",
+          "Task creation form with inline validation and error handling",
+          "Task editing modal/form with save/cancel actions",
+          "Task completion toggle with immediate UI update",
+          "Task deletion with confirmation dialog",
+          "Audit logging for all task mutations",
+          "Database transaction wrapper for multi-step operations",
+          "Query performance optimization with proper indices"
+        ],
+        "architecturalFocus": [
+          "Implement pagination strategy (limit/offset) to prevent N+1 queries",
+          "Use optimistic locking for concurrent updates without distributed transactions",
+          "Establish audit logging pattern for all data mutations",
+          "Design repository pattern for data access abstraction",
+          "Implement soft deletes for data preservation"
+        ],
+        "dependencies": [
+          "Phase 1: Authentication must be complete and stable"
+        ],
+        "exitCriteria": [
+          "Users can create tasks with title and optional description",
+          "Users can view all their tasks with pagination (50 items/page)",
+          "Users can edit task title and description without conflict",
+          "Users can mark tasks complete/incomplete with one click",
+          "Users can delete tasks with confirmation",
+          "Task list loads in <500ms for up to 1000 tasks",
+          "Zero data loss in concurrent update testing",
+          "All operations maintain database transaction integrity",
+          "Audit logs captured for all mutations",
+          "API response times meet <500ms P95 SLA",
+          "Stress test with 1000 tasks per user shows no degradation"
+        ],
+        "risks": [
+          "N+1 query problems if filtering not implemented carefully",
+          "Concurrent update conflicts without optimistic locking",
+          "Memory issues with large task list rendering",
+          "Database connection pool exhaustion under load",
+          "Pagination cursor issues with deleted items"
+        ],
+        "testingStrategy": [
+          "Unit tests for task validation and business logic",
+          "Integration tests for CRUD operations and pagination",
+          "Concurrency tests for optimistic locking conflicts",
+          "Load tests with 1000+ tasks per user",
+          "Database transaction rollback tests"
+        ]
+      },
+      {
+        "phase": 3,
+        "name": "Enhancement - Filtering, UX Polish & Responsive Design",
+        "duration": "1 week",
+        "deliverables": [
+          "Task filtering UI (All/Active/Completed tabs with counts)",
+          "Filter state persistence in React state/URL params",
+          "Optimistic UI updates for all operations (create, complete, delete)",
+          "Loading states and skeleton placeholders for API calls",
+          "Error toast notifications with retry capability",
+          "Empty state messages (no tasks, no results)",
+          "Responsive CSS Grid/Flexbox layout for mobile (320px+)",
+          "Touch-friendly UI with 44px+ tap targets",
+          "Keyboard navigation support (Tab, Enter, Escape)",
+          "Accessibility improvements (ARIA labels, semantic HTML)",
+          "Performance optimizations (code splitting, React.memo)"
+        ],
+        "architecturalFocus": [
+          "Establish component composition patterns for reusability",
+          "Implement client-side filtering without re-fetching",
+          "Design optimistic update pattern for perceived performance",
+          "Plan for mobile-first responsive approach",
+          "Define accessibility standards for components"
+        ],
+        "dependencies": [
+          "Phase 2: Task management must be functionally complete"
+        ],
+        "exitCriteria": [
+          "Filter tabs work without page reload",
+          "Filter counts update immediately",
+          "Task creation shows optimistic UI before server response",
+          "Failed operations rollback UI and show error message",
+          "App works on mobile (iPhone 12, Android) with touch interaction",
+          "App works on desktop (Chrome, Firefox, Safari, Edge)",
+          "Keyboard navigation works for all major features",
+          "WCAG 2.1 AA accessibility compliance verified",
+          "Initial page load <3 seconds on 3G network",
+          "Code coverage >80% for critical UI paths"
+        ],
+        "risks": [
+          "Mobile viewport meta tag issues causing zoom problems",
+          "CSS grid/flexbox browser compatibility (IE11 not supported for MVP)",
+          "Touch event handling conflicts with click handlers",
+          "Accessibility tool false positives/negatives"
+        ],
+        "testingStrategy": [
+          "Visual regression tests for responsive layouts",
+          "Mobile device testing on real devices",
+          "Accessibility audit with axe-core",
+          "Performance profiling with Chrome DevTools",
+          "Touch event testing on mobile browsers"
+        ]
+      },
+      {
+        "phase": 4,
+        "name": "Launch Readiness - Testing, Security Hardening & Monitoring",
+        "duration": "1 week",
+        "deliverables": [
+          "End-to-end test suite (Cypress/Playwright) covering critical paths",
+          "E2E tests: register->login->create task->filter->complete task->logout",
+          "Load testing script (1000+ concurrent users) with performance analysis",
+          "Security penetration testing by specialist",
+          "SQL injection vulnerability testing",
+          "XSS vulnerability testing",
+          "CSRF protection implementation if forms not using tokens",
+          "Monitoring and alerting setup (error rate, response time, uptime)",
+          "Grafana dashboards for key metrics",
+          "Log aggregation configuration (CloudWatch/Datadog)",
+          "Incident response playbook",
+          "User documentation (onboarding, FAQs, account recovery)",
+          "Deployment runbook with rollback procedures",
+          "Database backup verification and restore testing"
+        ],
+        "architecturalFocus": [
+          "Establish observability practices (logging, metrics, tracing)",
+          "Define SLOs and alerting thresholds",
+          "Plan for graceful degradation (circuit breakers, fallbacks)",
+          "Security hardening review against OWASP Top 10",
+          "Database disaster recovery validation"
+        ],
+        "dependencies": [
+          "All feature phases complete and stable"
+        ],
+        "exitCriteria": [
+          "E2E test suite passes with >95% success rate",
+          "System handles 100 concurrent users with <500ms P95 latency",
+          "Load test identifies no critical bottlenecks",
+          "Security penetration test finds zero critical vulnerabilities",
+          "Error rate monitoring in place (alerts at >5%)",
+          "Response time monitoring with P95 <500ms baseline",
+          "Uptime monitoring with 99.5% target alerting",
+          "Log aggregation collecting all errors and warnings",
+          "Backup/restore tested and documented",
+          "Runbook tested by team member not involved in development",
+          "Documentation reviewed by new team member",
+          "Database optimizations complete and indexed"
+        ],
+        "risks": [
+          "Performance issues discovered only under load",
+          "Security vulnerabilities requiring rework pre-launch",
+          "Email deliverability issues during high volume",
+          "Database connection limit exhaustion under spike"
+        ],
+        "testingStrategy": [
+          "Comprehensive E2E test coverage of critical user journeys",
+          "Load testing with realistic user scenarios",
+          "Security testing by dedicated specialist",
+          "Chaos engineering (kill DB, kill API, slow network)",
+          "User acceptance testing with product team"
+        ]
+      }
+    ],
+    "totalDuration": "6 weeks",
+    "criticalPath": [
+      "Database schema design and validation",
+      "Authentication implementation and security hardening",
+      "Task CRUD operations and data persistence",
+      "Pagination and query optimization",
+      "Security penetration testing",
+      "Load testing and performance optimization"
+    ],
+    "parallelWorkstreams": [
+      {
+        "stream": "Backend Development",
+        "phases": ["1", "2", "3", "4"],
+        "work": [
+          "API endpoint implementation",
+          "Database schema and ORM setup",
+          "Authentication and authorization",
+          "Input validation and error handling",
+          "Query optimization and indexing",
+          "Audit logging and monitoring"
+        ],
+        "dependencies": ["Phase 1 completes before Phase 2 API changes"]
+      },
+      {
+        "stream": "Frontend Development",
+        "phases": ["1", "2", "3", "4"],
+        "work": [
+          "Auth UI components (login, register, reset)",
+          "State management setup",
+          "Task CRUD UI components",
+          "Responsive design implementation",
+          "Accessibility enhancements",
+          "Performance optimization"
+        ],
+        "dependencies": ["Phase 1 API contracts finalized before UI implementation"]
+      },
+      {
+        "stream": "QA & Security",
+        "phases": ["2", "3", "4"],
+        "work": [
+          "Test strategy and automation setup",
+          "Integration test development",
+          "Security vulnerability scanning",
+          "Load testing and performance analysis",
+          "Penetration testing",
+          "Monitoring and alerting configuration"
+        ],
+        "dependencies": ["API contracts defined in Phase 1 before test automation"]
+      }
+    ],
+    "architectureDecisions": [
+      {
+        "decision": "JWT Stateless Authentication",
+        "rationale": "Supports horizontal scaling without session server. Simpler deployment model for MVP. Refresh tokens provide security while maintaining statelessness",
+        "tradeoffs": "No server-side token revocation capability (accept for MVP). Logout requires client to discard token and refresh token must be revoked in DB",
+        "implementation": "Access token (15 min) + Refresh token (7 days) in secure HTTP-only cookie"
+      },
+      {
+        "decision": "Single PostgreSQL Database",
+        "rationale": "ACID transactions prevent data inconsistency. Relational model fits simple schema. Managed database removes operational burden",
+        "tradeoffs": "No horizontal scaling of database (revisit if >100k users). Requires connection pooling. Single point of failure (mitigate with backups)",
+        "implementation": "PostgreSQL 13+ on managed cloud (RDS/Cloud SQL). Connection pool max 20. Daily backups with point-in-time recovery"
+      },
+      {
+        "decision": "Monolithic API Deployment",
+        "rationale": "Simpler operations model for MVP team. Single codebase reduces coordination overhead. Stateless design allows horizontal scaling of API tier",
+        "tradeoffs": "Cannot scale auth and task services independently. Code must be deployed as unit. Harder to change single service later",
+        "implementation": "Single Express.js app with modular structure. Easy to extract services later without code duplication"
+      },
+      {
+        "decision": "Optimistic Locking for Concurrent Updates",
+        "rationale": "Prevents conflicts when two users edit same task. Simpler than distributed locks. Acceptable for MVP user base",
+        "tradeoffs": "Users may see 'conflict' error and need to retry. No automatic conflict resolution. Database version field adds complexity",
+        "implementation": "Version field in tasks table. Client sends version with update. DB checks version before update"
+      },
+      {
+        "decision": "Soft Deletes",
+        "rationale": "Prevents accidental data loss. Enables recovery for support. Maintains audit trail of all data",
+        "tradeoffs": "Must filter deleted_at IS NULL in all queries (use repository pattern). Storage overhead for deleted records. Complicates unique constraints",
+        "implementation": "deleted_at timestamp field. Repository methods filter soft-deleted records by default. Quarterly data archival to cold storage"
+      }
+    ]
+  },
+  "totalCostBreakdown": {
+    "developmentCosts": {
+      "personnel": [
+        {
+          "role": "Backend Developer",
+          "hours": 120,
+          "rate": 100,
+          "total": 12000,
+          "notes": "API development, authentication, database design"
+        },
+        {
+          "role": "Frontend Developer",
+          "hours": 120,
+          "rate": 95,
+          "total": 11400,
+          "notes": "React components, state management, responsive UI"
+        },
+        {
+          "role": "QA Engineer",
+          "hours": 60,
+          "rate": 75,
+          "total": 4500,
+          "notes": "Test automation, manual testing, regression coverage"
+        },
+        {
+          "role": "Security Specialist",
+          "hours": 24,
+          "rate": 125,
+          "total": 3000,
+          "notes": "Security review, penetration testing, auth validation"
+        },
+        {
+          "role": "DevOps Engineer",
+          "hours": 40,
+          "rate": 110,
+          "total": 4400,
+          "notes": "Infrastructure setup, CI/CD, monitoring configuration"
+        },
+        {
+          "role": "Product Manager",
+          "hours": 40,
+          "rate": 120,
+          "total": 4800,
+          "notes": "Requirements, coordination, stakeholder management"
+        }
+      ],
+      "totalPersonnelCost": 40100
+    },
+    "infrastructureCosts": {
+      "monthly": [
+        {
+          "service": "Application Hosting",
+          "provider": "AWS/GCP/Azure",
+          "cost": 50,
+          "notes": "Small instance for API server"
+        },
+        {
+          "service": "Database",
+          "provider": "Managed PostgreSQL",
+          "cost": 30,
+          "notes": "Small managed database instance"
+        },
+        {
+          "service": "Email Service",
+          "provider": "SendGrid/AWS SES",
+          "cost": 10,
+          "notes": "Transactional emails for password reset"
+        },
+        {
+          "service": "Monitoring & Logging",
+          "provider": "DataDog/CloudWatch",
+          "cost": 20,
+          "notes": "Application monitoring and log aggregation"
+        },
+        {
+          "service": "CDN & Storage",
+          "provider": "CloudFront/S3",
+          "cost": 15,
+          "notes": "Static asset delivery"
+        }
+      ],
+      "monthlyTotal": 125,
+      "firstYearTotal": 1500,
+      "setupCosts": [
+        {
+          "item": "Domain Registration",
+          "cost": 15
+        },
+        {
+          "item": "SSL Certificate",
+          "cost": 0,
+          "notes": "Let's Encrypt free tier"
+        },
+        {
+          "item": "Development Tools/Licenses",
+          "cost": 200
+        }
+      ],
+      "totalSetupCost": 215
+    },
+    "contingency": {
+      "percentage": 15,
+      "amount": 6015,
+      "rationale": "Buffer for unexpected technical challenges, scope adjustments"
+    },
+    "totalProjectCost": {
+      "development": 40100,
+      "infrastructure": 1715,
+      "contingency": 6015,
+      "grandTotal": 47830,
+      "costPerUserMonth": 0.42,
+      "notes": "Based on 300 active users by month 6"
+    }
+  },
+  "riskAssessment": {
+    "businessRisks": [
+      {
+        "risk": "Low User Adoption",
+        "probability": "medium",
+        "impact": "high",
+        "mitigation": [
+          "Conduct user research before launch to validate needs",
+          "Implement analytics to track user behavior from day 1",
+          "Plan iterative improvements based on early feedback",
+          "Create onboarding flow to reduce abandonment"
+        ],
+        "owner": "Product Manager"
+      },
+      {
+        "risk": "Data Loss Incident",
+        "probability": "low",
+        "impact": "critical",
+        "mitigation": [
+          "Implement automated database backups (hourly)",
+          "Test disaster recovery procedures before launch",
+          "Add data validation layer to prevent corruption",
+          "Implement audit logging for all data mutations"
+        ],
+        "owner": "Backend Developer + DevOps"
+      },
+      {
+        "risk": "Security Breach",
+        "probability": "medium",
+        "impact": "critical",
+        "mitigation": [
+          "Security audit by specialist before launch",
+          "Implement rate limiting on authentication endpoints",
+          "Use industry-standard password hashing (bcrypt/argon2)",
+          "Enable HTTPS-only with HSTS headers",
+          "Implement session timeout and secure token storage"
+        ],
+        "owner": "Security Specialist"
+      },
+      {
+        "risk": "Scope Creep",
+        "probability": "high",
+        "impact": "medium",
+        "mitigation": [
+          "Define and communicate MVP scope clearly",
+          "Defer non-essential features to backlog",
+          "Require Product Owner approval for scope changes",
+          "Track feature requests separately from MVP requirements"
+        ],
+        "owner": "Product Manager"
+      },
+      {
+        "risk": "Performance Degradation at Scale",
+        "probability": "medium",
+        "impact": "medium",
+        "mitigation": [
+          "Load test with 10x expected user volume",
+          "Implement database indexing on user_id and created_at",
+          "Add pagination for task lists exceeding 100 items",
+          "Monitor query performance and optimize slow queries"
+        ],
+        "owner": "Backend Developer"
+      },
+      {
+        "risk": "Competitive Market Saturation",
+        "probability": "high",
+        "impact": "medium",
+        "mitigation": [
+          "Focus on simplicity as key differentiator",
+          "Launch quickly to market rather than feature parity",
+          "Identify and target underserved user segment",
+          "Plan unique features for post-MVP roadmap"
+        ],
+        "owner": "Product Manager"
+      },
+      {
+        "risk": "Email Deliverability Issues",
+        "probability": "medium",
+        "impact": "medium",
+        "mitigation": [
+          "Use reputable email service provider",
+          "Implement SPF, DKIM, DMARC records",
+          "Monitor email bounce and spam rates",
+          "Provide alternative account recovery method"
+        ],
+        "owner": "Backend Developer"
+      },
+      {
+        "risk": "Budget Overrun",
+        "probability": "medium",
+        "impact": "medium",
+        "mitigation": [
+          "15% contingency budget allocated",
+          "Weekly burn rate tracking against budget",
+          "Prioritize features with cost/value analysis",
+          "Negotiate fixed-price contracts where possible"
+        ],
+        "owner": "Product Manager"
+      },
+      {
+        "risk": "Key Personnel Unavailability",
+        "probability": "low",
+        "impact": "high",
+        "mitigation": [
+          "Document all architectural decisions",
+          "Maintain updated project documentation",
+          "Cross-train team members on critical systems",
+          "Use version control and code review practices"
+        ],
+        "owner": "Product Manager"
+      },
+      {
+        "risk": "Browser Compatibility Issues",
+        "probability": "low",
+        "impact": "low",
+        "mitigation": [
+          "Test on major browsers (Chrome, Firefox, Safari, Edge)",
+          "Use well-supported libraries and frameworks",
+          "Implement progressive enhancement approach",
+          "Monitor browser usage analytics"
+        ],
+        "owner": "Frontend Developer"
+      }
+    ],
+    "technicalRisks": [
+      {
+        "risk": "Authentication System Vulnerabilities",
+        "probability": "medium",
+        "impact": "critical",
+        "mitigation": [
+          "Use established authentication libraries (Passport.js, etc.)",
+          "Implement OWASP authentication best practices",
+          "Security code review before production",
+          "Penetration testing focused on auth flows"
+        ],
+        "owner": "Security Specialist"
+      },
+      {
+        "risk": "Database Scalability Bottlenecks",
+        "probability": "low",
+        "impact": "medium",
+        "mitigation": [
+          "Design schema with indexing strategy from start",
+          "Plan for read replicas if user base grows",
+          "Monitor query performance proactively",
+          "Set up connection pooling"
+        ],
+        "owner": "Backend Developer"
+      }
+    ],
+    "overallRiskLevel": "medium",
+    "topPriorityRisks": [
+      "Security Breach",
+      "Data Loss Incident",
+      "Low User Adoption"
+    ]
+  }
+}

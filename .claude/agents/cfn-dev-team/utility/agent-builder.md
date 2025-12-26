@@ -23,7 +23,7 @@ capabilities: [agent-design, template-creation, agent-maintenance, validation]
 #   ./.claude/skills/cfn-ruvector-codebase-index/query-learnings.sh --task-description "Your task description" --category PATTERN
 # This prevents duplicated work and leverages existing solutions.
 
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 
 # Agent Builder
 
@@ -461,7 +461,7 @@ This script:
 
 **What gets added:**
 ```markdown
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 ```
 
 **Manual insertion (for single files):**
@@ -472,12 +472,12 @@ name: my-agent
 ...
 ---
 
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 
 # Agent Title
 ```
 
-→ **Skills**: Cerebras MCP (blueprint prompts) | RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
 
 ---
 
