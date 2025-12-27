@@ -10,16 +10,17 @@ status: production
 
 ## Overview
 
-The cfn-epic-creator skill provides orchestration for creating comprehensive epic definitions through sequential reviews from ten key personas: Product Manager, Architect, Security Specialist, Test Specialist, Strategic Alignment Reviewer, Code Standards Reviewer, DevOps Engineer, Backend Developer, Frontend Developer, and Simplifier.
+The cfn-epic-creator skill provides orchestration for creating comprehensive epic definitions through sequential reviews from eleven persona reviews: Simplifier (initial scope reduction), Product Manager, Architect, Security Specialist, Backend Developer, Frontend Developer, DevOps Engineer, Test Specialist, Code Standards Reviewer, Strategic Alignment Reviewer, and Simplifier (final complexity check).
 
 ## Usage
 
 The epic creator is a **main chat workflow** - not a standalone script. Main chat:
 1. Creates base JSON
-2. Spawns 10 persona agents sequentially
-3. Each persona edits the epic file directly
-4. Simplifier runs last and returns recommendations (no edits)
-5. User approves which simplifications to apply
+2. Spawns Simplifier for initial scope reduction (review only - returns recommendations)
+3. User approves initial simplifications
+4. Spawns 9 persona agents sequentially (each edits epic directly)
+5. Spawns Simplifier for final complexity review (review only - returns recommendations)
+6. User approves final simplifications
 
 See **Main Chat Execution Process** below for details.
 
@@ -117,16 +118,17 @@ The generated JSON follows this structure:
 
 ## Persona Review Order
 
-1. **Product Manager** - Business value, user stories, market fit
-2. **Architect** - System design, technology choices, scalability
-3. **Security Specialist** - Security posture, vulnerabilities, compliance
-4. **Test Specialist** - Production readiness, test coverage, quality gates, integration verification
-5. **Strategic Alignment Reviewer** - High-level coherence, plan consistency, integration completeness, dead code detection
-6. **Code Standards Reviewer** - Type alignment, naming conventions, API contract consistency
-7. **DevOps Engineer** - Deployment, operations, infrastructure
-8. **Backend Developer** - API design, data structures, business logic
-9. **Frontend Developer** - User interface, experience, client-side logic
-10. **Simplifier** - Complexity reduction, scope minimization, over-engineering prevention
+1. **Simplifier (Initial)** - Early scope reduction, feature elimination, YAGNI enforcement (REVIEW ONLY - returns recommendations)
+2. **Product Manager** - Business value, user stories, market fit (on refined scope)
+3. **Architect** - System design, technology choices, scalability, feasibility
+4. **Security Specialist** - Security posture, vulnerabilities, compliance, threat modeling
+5. **Backend Developer** - API design, data structures, business logic (defines API contract)
+6. **Frontend Developer** - User interface, experience, client-side logic (depends on backend API)
+7. **DevOps Engineer** - Deployment, operations, infrastructure (knows full stack)
+8. **Test Specialist** - Production readiness, test coverage, quality gates, integration verification
+9. **Code Standards Reviewer** - Type alignment, naming conventions, API contract consistency
+10. **Strategic Alignment Reviewer** - High-level coherence, plan consistency, integration completeness, dead code detection
+11. **Simplifier (Final)** - Complexity reduction, scope creep detection, over-engineering prevention (REVIEW ONLY - returns recommendations)
 
 ## Main Chat Execution Process
 
@@ -143,16 +145,17 @@ Main chat creates the base JSON directly:
   "mode": "standard",
   "created_at": "2025-01-01T00:00:00Z",
   "personas": [
+    {"name": "Simplifier (Initial)", "focus": "scope reduction, feature elimination"},
     {"name": "Product Manager", "focus": "business value, user stories"},
-    {"name": "Architect", "focus": "system design, scalability"},
-    {"name": "Security Specialist", "focus": "threats, compliance"},
-    {"name": "Test Specialist", "focus": "test strategy, coverage"},
-    {"name": "Strategic Alignment Reviewer", "focus": "integration gaps, dead code"},
+    {"name": "Architect", "focus": "system design, scalability, feasibility"},
+    {"name": "Security Specialist", "focus": "threats, compliance, threat modeling"},
+    {"name": "Backend Developer", "focus": "APIs, data models (defines API contract)"},
+    {"name": "Frontend Developer", "focus": "UI/UX, components (depends on backend)"},
+    {"name": "DevOps Engineer", "focus": "deployment, monitoring, infrastructure"},
+    {"name": "Test Specialist", "focus": "test strategy, coverage, quality gates"},
     {"name": "Code Standards Reviewer", "focus": "types, naming, contracts"},
-    {"name": "DevOps Engineer", "focus": "deployment, monitoring"},
-    {"name": "Backend Developer", "focus": "APIs, data models"},
-    {"name": "Frontend Developer", "focus": "UI/UX, components"},
-    {"name": "Simplifier", "focus": "complexity reduction"}
+    {"name": "Strategic Alignment Reviewer", "focus": "integration gaps, coherence"},
+    {"name": "Simplifier (Final)", "focus": "scope creep detection, complexity review"}
   ],
   "reviews": [],
   "userStories": [],
@@ -170,16 +173,17 @@ For each persona, spawn a Task agent that reads the epic, analyzes it, and adds 
 
 | Order | Agent | Focus |
 |-------|-------|-------|
-| 1 | `product-owner` | Business value, user stories, market fit |
-| 2 | `system-architect` | System design, scalability, technical constraints |
-| 3 | `security-specialist` | Threats, vulnerabilities, compliance |
-| 4 | `tester` | Test strategy, coverage, production readiness |
-| 5 | `strategic-alignment-reviewer` | Integration gaps, dead code, misalignments |
-| 6 | `code-standards-reviewer` | Types, naming, API contracts |
-| 7 | `devops-engineer` | Deployment, monitoring, infrastructure |
-| 8 | `backend-developer` | API design, data models, services |
-| 9 | `react-frontend-engineer` | UI/UX, client architecture |
-| 10 | `simplifier` | Complexity reduction, scope minimization (REVIEW ONLY - does not edit epic) |
+| 1 | `simplifier` | Initial scope reduction, feature elimination (REVIEW ONLY - returns recommendations to user) |
+| 2 | `product-owner` | Business value, user stories, market fit (on refined scope) |
+| 3 | `system-architect` | System design, scalability, feasibility, technical constraints |
+| 4 | `security-specialist` | Threats, vulnerabilities, compliance, threat modeling |
+| 5 | `backend-developer` | API design, data models, services (defines API contract first) |
+| 6 | `react-frontend-engineer` | UI/UX, client architecture (depends on backend API) |
+| 7 | `devops-engineer` | Deployment, monitoring, infrastructure (knows full stack) |
+| 8 | `tester` | Test strategy, coverage, production readiness |
+| 9 | `code-standards-reviewer` | Types, naming, API contracts, consistency |
+| 10 | `strategic-alignment-reviewer` | Integration gaps, dead code, misalignments, coherence |
+| 11 | `simplifier` | Final complexity review, scope creep detection (REVIEW ONLY - returns recommendations to user) |
 
 ### Step 3: Persona Task Template
 
@@ -209,16 +213,16 @@ YOUR JOB: Review the epic AND add your contributions to it.
 }
 
 2. ADD YOUR CONTRIBUTIONS to the epic itself:
+   - Simplifier (Initial & Final): **REVIEW ONLY** - returns recommendations, does not edit
    - Product Owner: Add user stories, acceptance criteria, success metrics
-   - Architect: Add technical requirements, system components, data models
-   - Security: Add security requirements, threat mitigations, compliance needs
-   - Tester: Add test cases, quality gates, validation criteria
-   - Alignment Reviewer: Flag integration gaps, add missing connections
-   - Code Standards: Add naming conventions, type requirements, API contracts
+   - Architect: Add technical requirements, system components, data models, feasibility analysis
+   - Security: Add security requirements, threat mitigations, compliance needs, threat model
+   - Backend: Add API endpoints, services, database schemas (defines API contract)
+   - Frontend: Add UI components, user flows, client requirements (uses backend API)
    - DevOps: Add deployment requirements, monitoring needs, infrastructure specs
-   - Backend: Add API endpoints, services, database schemas
-   - Frontend: Add UI components, user flows, client requirements
-   - Simplifier: **REVIEW ONLY** - see Step 5 below
+   - Tester: Add test cases, quality gates, validation criteria
+   - Code Standards: Add naming conventions, type requirements, API contracts
+   - Strategic Alignment: Flag integration gaps, add missing connections, coherence validation
 
 3. UPDATE these epic sections based on your expertise:
    - implementationRoadmap: Add phases/tasks from your domain
@@ -228,16 +232,12 @@ YOUR JOB: Review the epic AND add your contributions to it.
 Write the updated JSON back to /tmp/epic.json
 ```
 
-### Step 4: Result (After 9 Personas)
+### Step 4: Simplifier - Initial Scope Reduction
 
-After personas 1-9 complete, `/tmp/epic.json` contains the full epic with contributions and reviews.
-
-### Step 5: Simplifier (Final Review - No Edits)
-
-The Simplifier runs LAST and does NOT edit the epic. Instead:
+The Simplifier runs FIRST before any other personas. It analyzes the base epic and does NOT edit it. Instead:
 
 ```
-Read /tmp/epic.json and analyze for unnecessary complexity.
+Read /tmp/epic.json and analyze for unnecessary scope and complexity.
 
 DO NOT edit the epic. Instead:
 
@@ -245,13 +245,14 @@ DO NOT edit the epic. Instead:
 2. RETURN your findings to main chat for user review:
 
 {
-  "persona": "simplifier",
+  "persona": "simplifier-initial",
+  "phase": "scope-reduction",
   "status": "completed",
   "simplifications": [
     {
       "target": "component/feature",
-      "issue": "why it's over-engineered",
-      "suggestion": "simpler alternative",
+      "issue": "why it's unnecessary for v1",
+      "suggestion": "defer to v2 or eliminate",
       "defer_to_v2": true/false
     }
   ],
@@ -267,24 +268,72 @@ Write review to /tmp/epic.json reviews array.
 Return full findings to main chat - USER DECIDES what to apply.
 ```
 
-Main chat presents Simplifier's recommendations to the user. User chooses which simplifications to accept, then main chat applies approved changes.
+Main chat presents initial Simplifier recommendations to user. User approves scope reduction, then main chat applies changes before spawning other personas.
+
+### Step 5: Core Personas (2-10)
+
+After initial simplification, personas 2-10 analyze the refined epic and add their contributions. Each persona edits the epic directly.
+
+After personas 2-10 complete, `/tmp/epic.json` contains the full epic with contributions and reviews.
+
+### Step 6: Simplifier - Final Complexity Review
+
+The Simplifier runs AGAIN at the end and does NOT edit the epic. Instead:
+
+```
+Read /tmp/epic.json and analyze for scope creep and over-engineering.
+
+DO NOT edit the epic. Instead:
+
+1. ADD your review to the reviews array only
+2. RETURN your findings to main chat for user review:
+
+{
+  "persona": "simplifier-final",
+  "phase": "complexity-review",
+  "status": "completed",
+  "scope_creep_detected": ["feature X added by persona Y", "..."],
+  "over_engineering": [
+    {
+      "target": "component/feature",
+      "issue": "why it's over-engineered",
+      "suggestion": "simpler alternative",
+      "added_by": "persona-name"
+    }
+  ],
+  "features_to_remove": ["feature 1", "feature 2"],
+  "features_to_defer": ["feature 3", "feature 4"],
+  "consolidations": [
+    {"merge": ["A", "B"], "into": "single feature"}
+  ],
+  "complexity_reduction": "estimated % reduction"
+}
+
+Write review to /tmp/epic.json reviews array.
+Return full findings to main chat - USER DECIDES what to apply.
+```
+
+Main chat presents final Simplifier recommendations to user. User chooses which simplifications to accept, then main chat applies approved changes.
 
 ### Example Main Chat Flow
 
 ```
 1. Create base JSON and write to docs/epics/my-epic.json
-2. Task(product-owner, "Review docs/epics/my-epic.json from business perspective...")
-3. Task(system-architect, "Review docs/epics/my-epic.json from architecture perspective...")
-4. Task(security-specialist, "Review docs/epics/my-epic.json from security perspective...")
-5. Task(tester, "Review docs/epics/my-epic.json from testing perspective...")
-6. Task(strategic-alignment-reviewer, "Review docs/epics/my-epic.json for integration gaps...")
-7. Task(code-standards-reviewer, "Review docs/epics/my-epic.json for code consistency...")
-8. Task(devops-engineer, "Review docs/epics/my-epic.json from operations perspective...")
-9. Task(backend-developer, "Review docs/epics/my-epic.json from backend perspective...")
-10. Task(react-frontend-engineer, "Review docs/epics/my-epic.json from frontend perspective...")
-11. Task(simplifier, "Review docs/epics/my-epic.json for complexity...") → returns recommendations
-12. Present simplifier recommendations to user
-13. Apply approved simplifications
+2. Task(simplifier, "Review docs/epics/my-epic.json for initial scope reduction...") → returns recommendations
+3. Present initial simplifier recommendations to user
+4. Apply approved scope reductions to epic
+5. Task(product-owner, "Review docs/epics/my-epic.json from business perspective...")
+6. Task(system-architect, "Review docs/epics/my-epic.json from architecture perspective...")
+7. Task(security-specialist, "Review docs/epics/my-epic.json from security perspective...")
+8. Task(backend-developer, "Review docs/epics/my-epic.json from backend perspective...")
+9. Task(react-frontend-engineer, "Review docs/epics/my-epic.json from frontend perspective...")
+10. Task(devops-engineer, "Review docs/epics/my-epic.json from operations perspective...")
+11. Task(tester, "Review docs/epics/my-epic.json from testing perspective...")
+12. Task(code-standards-reviewer, "Review docs/epics/my-epic.json for code consistency...")
+13. Task(strategic-alignment-reviewer, "Review docs/epics/my-epic.json for integration gaps...")
+14. Task(simplifier, "Review docs/epics/my-epic.json for scope creep and complexity...") → returns recommendations
+15. Present final simplifier recommendations to user
+16. Apply approved simplifications
 ```
 
 ## Best Practices
@@ -296,9 +345,18 @@ Main chat presents Simplifier's recommendations to the user. User chooses which 
    - Success criteria
    - Constraints and assumptions
 
-2. **Review Simplifier Recommendations**: The Simplifier runs last and identifies:
-   - Features to remove (not needed for v1)
-   - Features to defer to v2
+2. **Review Simplifier Recommendations**: The Simplifier runs TWICE:
+
+   **Initial Pass (before other personas):**
+   - Early scope reduction
+   - Feature elimination
+   - YAGNI enforcement
+   - Defer non-essential features to v2
+   - Saves other personas from analyzing unnecessary scope
+
+   **Final Pass (after all personas):**
+   - Scope creep detection
+   - Over-engineering prevention
    - Consolidation opportunities
    - Simpler alternatives
    - AI/LLM opportunities
