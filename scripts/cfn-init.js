@@ -358,6 +358,33 @@ async function initializeCfnProject() {
     // Install lizard for complexity analysis
     await installLizard();
 
+    // Build TypeScript hooks to ensure compiled files exist
+    console.log(chalk.blue('\n🔨 Building TypeScript hooks...'));
+    const buildResult = spawnSync('npm', ['run', 'build'], {
+      encoding: 'utf-8',
+      cwd: process.cwd()
+    });
+
+    if (buildResult.status === 0) {
+      console.log(chalk.green('✅ TypeScript hooks compiled successfully'));
+
+      // Verify critical hook files exist
+      const criticalHooks = [
+        'dist/hooks/post-edit-pipeline.js',
+        'dist/hooks/backup-manager.js',
+        'dist/hooks/post-edit-validator.js'
+      ];
+
+      const missingHooks = criticalHooks.filter(hook => !fs.existsSync(hook));
+      if (missingHooks.length > 0) {
+        console.warn(chalk.yellow(`⚠️ Some hook files not found after build: ${missingHooks.join(', ')}`));
+      }
+    } else {
+      console.warn(chalk.yellow('⚠️ TypeScript build had issues (non-critical):'));
+      console.warn(chalk.gray(buildResult.stderr || buildResult.stdout || 'Unknown error'));
+      console.warn(chalk.gray('Post-edit hooks may not work until build succeeds'));
+    }
+
     // Create marker file to prevent re-initialization
     fs.writeFileSync('.claude/.cfn-initialized', new Date().toISOString());
 
