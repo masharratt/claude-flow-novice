@@ -1,112 +1,73 @@
 #!/bin/bash
-# init-local-ruvector.sh - One-command setup for local RuVector
+# init-local-ruvector.sh - Verify and setup local RuVector
+# Ensures the Rust binary is installed and PATH is configured
 
 set -e
 
-STORAGE_PATH="${HOME}/.local-ruvector"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BINARY_PATH="$HOME/.local/bin/local-ruvector"
+DB_PATH="$HOME/.local/share/ruvector/index_v2.db"
 
-echo "🚀 Initializing Local RuVector Accelerator..."
+echo "🚀 Checking Local RuVector Installation..."
+echo ""
 
-# Create storage directory structure
-echo "📁 Creating storage structure at ${STORAGE_PATH}..."
-mkdir -p "${STORAGE_PATH}/storage"
-mkdir -p "${STORAGE_PATH}/indexes"
-mkdir -p "${STORAGE_PATH}/config"
-
-# Create default config
-echo "⚙️ Creating default configuration..."
-cat > "${STORAGE_PATH}/config/settings.json" << EOF
-{
-    "version": "1.0",
-    "embedding_dimension": 1536,
-    "similarity_threshold": 0.7,
-    "max_patterns_per_query": 100,
-    "cache_size": 1000,
-    "auto_cleanup": {
-        "enabled": true,
-        "days_old": 30,
-        "min_usage": 5
-    }
-}
-EOF
-
-# Initialize Python environment
-echo "🐍 Setting up Python environment..."
-if command -v python3 &> /dev/null; then
-    PYTHON="python3"
-elif command -v python &> /dev/null; then
-    PYTHON="python"
-else
-    echo "❌ Error: Python not found. Please install Python 3.7+"
-    exit 1
-fi
-
-# Install required Python packages
-echo "📦 Installing required packages..."
-${PYTHON} -m pip install --quiet numpy scikit-learn sqlite3 2>/dev/null || {
-    echo "⚠️ Installing required packages system-wide..."
-    ${PYTHON} -m pip install numpy scikit-learn
-}
-
-# Test imports
-echo "🧪 Testing dependencies..."
-${PYTHON} -c "
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-import sqlite3
-print('✅ All dependencies imported successfully')
-" || {
-    echo "❌ Error: Failed to import required dependencies"
-    exit 1
-}
-
-# Create CLI links
-echo "🔗 Creating CLI commands..."
-chmod +x "${SCRIPT_DIR}/index-code.sh"
-chmod +x "${SCRIPT_DIR}/query-local.sh"
-
-# Create convenience symlinks
-BIN_DIR="${HOME}/.local/bin"
-mkdir -p "${BIN_DIR}"
-
-# Remove old symlinks if they exist
-rm -f "${BIN_DIR}/index-code" "${BIN_DIR}/query-local"
-
-# Create new symlinks
-ln -s "${SCRIPT_DIR}/index-code.sh" "${BIN_DIR}/index-code"
-ln -s "${SCRIPT_DIR}/query-local.sh" "${BIN_DIR}/query-local"
-
-# Check if BIN_DIR is in PATH
-if [[ ":$PATH:" != *":${BIN_DIR}:"* ]]; then
+# Check if binary exists in PATH
+if command -v local-ruvector &>/dev/null; then
+    BINARY_LOCATION=$(command -v local-ruvector)
+    VERSION=$(local-ruvector --version 2>/dev/null || echo "unknown")
+    echo "✅ local-ruvector found in PATH"
+    echo "   Location: $BINARY_LOCATION"
+    echo "   Version: $VERSION"
+elif [[ -x "$BINARY_PATH" ]]; then
+    VERSION=$($BINARY_PATH --version 2>/dev/null || echo "unknown")
+    echo "✅ local-ruvector found at $BINARY_PATH"
+    echo "   Version: $VERSION"
     echo ""
-    echo "⚠️  Add ${BIN_DIR} to your PATH:"
-    echo "   export PATH=\"\$PATH:${BIN_DIR}\""
-    echo "   echo 'export PATH=\"\$PATH:${BIN_DIR}\"' >> ~/.bashrc"
+    echo "⚠️  Binary not in PATH. Add to your shell profile:"
+    echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
+else
+    echo "❌ local-ruvector binary not found"
+    echo ""
+    echo "📦 Installation options:"
+    echo ""
+    echo "   Option 1 - Use install script (if available):"
+    echo "   ./scripts/install-ruvector-global.sh"
+    echo ""
+    echo "   Option 2 - Build from source (requires Rust):"
+    echo "   cd $SCRIPT_DIR"
+    echo "   cargo build --release"
+    echo "   cp target/release/local-ruvector ~/.local/bin/"
+    echo ""
+    exit 1
 fi
 
-# Initialize the database
-echo "🗄️ Initializing database..."
-${PYTHON} -c "
-import sys
-sys.path.append('${SCRIPT_DIR}')
-from search_engine_v2 import SearchEngine
-engine = SearchEngine('${STORAGE_PATH}/storage')
-print('✅ Database initialized')
-"
+echo ""
+
+# Check database
+if [[ -f "$DB_PATH" ]]; then
+    DB_SIZE=$(du -h "$DB_PATH" | cut -f1)
+    ENTITY_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM entities;" 2>/dev/null || echo "0")
+    PROJECT_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(DISTINCT project_root) FROM entities WHERE project_root != '';" 2>/dev/null || echo "0")
+
+    echo "✅ Database found"
+    echo "   Location: $DB_PATH"
+    echo "   Size: $DB_SIZE"
+    echo "   Entities: $ENTITY_COUNT"
+    echo "   Projects: $PROJECT_COUNT"
+else
+    echo "⚠️  No database found at $DB_PATH"
+    echo "   Index a project with: local-ruvector index --path /your/project"
+fi
 
 echo ""
-echo "🎉 Local RuVector Accelerator initialized successfully!"
+echo "📖 Quick Start:"
+echo "   # Index a project"
+echo "   local-ruvector index --path ~/projects/my-app --types ts,tsx,js,jsx,py"
 echo ""
-echo "📍 Storage location: ${STORAGE_PATH}"
-echo "📖 Quick start:"
-echo "   index-code --path /path/to/project"
-echo "   query-local --pattern 'authentication middleware'"
+echo "   # Query via SQL"
+echo "   sqlite3 $DB_PATH \"SELECT file_path, name FROM entities WHERE name LIKE '%auth%' LIMIT 10;\""
 echo ""
-echo "💡 For help:"
-echo "   index-code --help"
-echo "   query-local --help"
-EOF
-
-# Make script executable
-chmod +x "${BASH_SOURCE[0]}"
+echo "   # Semantic search"
+echo "   local-ruvector query \"authentication middleware\""
+echo ""
+echo "🎉 Local RuVector is ready!"

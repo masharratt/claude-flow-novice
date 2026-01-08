@@ -34,7 +34,7 @@ for ext in "${file_types[@]}"; do
     fi
 
     # Index this file type
-    ./target/release/local-ruvector index --path ../.. --types ${ext} --force
+    local-ruvector index --path ../.. --types ${ext} --force
 
     if [ $? -eq 0 ]; then
         echo "✅ Successfully indexed .${ext} files"

@@ -1,18 +1,17 @@
 #!/bin/bash
-# query-local.sh - Query local RuVector for patterns
+# query-local.sh - Query local RuVector for patterns using Rust binary
+# This is a wrapper around the Rust binary for convenience
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-STORAGE_PATH="${HOME}/.local-ruvector"
+DB_PATH="$HOME/.local/share/ruvector/index_v2.db"
 
 # Parse arguments
 PATTERN=""
 FILE_TYPE=""
 LIMIT=10
-MIN_SIMILARITY=0.7
-SHOW_CONTENT=false
-JSON_OUTPUT=false
+KIND=""
 HELP=false
 
 while [[ $# -gt 0 ]]; do
@@ -25,21 +24,13 @@ while [[ $# -gt 0 ]]; do
             FILE_TYPE="$2"
             shift 2
             ;;
+        --kind)
+            KIND="$2"
+            shift 2
+            ;;
         --limit)
             LIMIT="$2"
             shift 2
-            ;;
-        --min-similarity)
-            MIN_SIMILARITY="$2"
-            shift 2
-            ;;
-        --show-content)
-            SHOW_CONTENT=true
-            shift
-            ;;
-        --json)
-            JSON_OUTPUT=true
-            shift
             ;;
         --help|-h)
             HELP=true
@@ -59,111 +50,78 @@ if [[ "$HELP" == true ]] || [[ -z "$PATTERN" ]]; then
     cat << EOF
 Usage: query-local [OPTIONS] PATTERN
 
-Query local RuVector for similar code patterns
+Query local RuVector database for code patterns
 
 Arguments:
-  PATTERN               Search pattern or description
+  PATTERN               Search pattern (entity name or partial match)
 
 Options:
-  --pattern PATTERN     Search pattern or description
-  --file-type TYPE      Filter by file type (rs, py, js, etc.)
+  --pattern PATTERN     Search pattern
+  --file-type TYPE      Filter by file extension (rs, py, js, etc.)
+  --kind KIND           Filter by entity kind (function, struct, class, etc.)
   --limit NUMBER        Maximum results (default: 10)
-  --min-similarity NUM  Minimum similarity threshold (default: 0.7)
-  --show-content        Show full content of matching patterns
-  --json                Output results in JSON format
   --help, -h           Show this help
 
+Database Location:
+  $DB_PATH
+
 Examples:
-  query-local "authentication middleware"
-  query-local --file-type rs "error handling"
-  query-local --limit 5 --show-content "database connection"
-  query-local --json "API endpoint"
+  query-local "MyFunction"
+  query-local --kind function "auth"
+  query-local --file-type rs --limit 20 "handler"
+
+Advanced SQL queries:
+  # Find all functions
+  sqlite3 $DB_PATH "SELECT file_path, name, line_number FROM entities WHERE kind = 'function' LIMIT 10;"
+
+  # Find by file path pattern
+  sqlite3 $DB_PATH "SELECT name, line_number FROM entities WHERE file_path LIKE '%auth%';"
+
+  # Count entities per project
+  sqlite3 $DB_PATH "SELECT project_root, COUNT(*) FROM entities GROUP BY project_root;"
 
 EOF
     exit 0
 fi
 
-# Check if storage exists
-if [[ ! -d "$STORAGE_PATH" ]]; then
-    echo "❌ Error: Local RuVector not initialized"
-    echo "   Run: init-local-ruvector"
+# Check if database exists
+if [[ ! -f "$DB_PATH" ]]; then
+    echo "❌ Error: RuVector database not found at $DB_PATH"
+    echo "   Run: local-ruvector index --path /your/project"
     exit 1
 fi
 
+# Build SQL query
+SQL="SELECT file_path, name, kind, line_number FROM entities WHERE name LIKE '%${PATTERN}%'"
+
+if [[ -n "$FILE_TYPE" ]]; then
+    SQL="$SQL AND file_path LIKE '%.${FILE_TYPE}'"
+fi
+
+if [[ -n "$KIND" ]]; then
+    SQL="$SQL AND kind = '${KIND}'"
+fi
+
+SQL="$SQL LIMIT ${LIMIT};"
+
+echo "🔍 Searching for: $PATTERN"
+[[ -n "$FILE_TYPE" ]] && echo "📄 File type filter: $FILE_TYPE"
+[[ -n "$KIND" ]] && echo "🏷️  Kind filter: $KIND"
+echo ""
+
 # Run query
-cd "$SCRIPT_DIR"
-python3 -c "
-import sys
-import json
-from search_engine_v2 import SearchEngine
+RESULTS=$(sqlite3 -header -column "$DB_PATH" "$SQL" 2>/dev/null)
 
-# Initialize engine
-engine = SearchEngine('${STORAGE_PATH}/storage')
-
-# Perform search
-results = engine.search(
-    query_pattern='${PATTERN}',
-    file_type='${FILE_TYPE}' if '${FILE_TYPE}' else None,
-    limit=${LIMIT},
-    min_similarity=${MIN_SIMILARITY}
-)
-
-if not results:
-    print('😔 No matching patterns found')
-    print(f'💡 Try adjusting the similarity threshold (current: ${MIN_SIMILARITY})')
-    sys.exit(0)
-
-# Format output
-if ${JSON_OUTPUT}:
-    output = []
-    for result in results:
-        output.append({
-            'id': result['id'],
-            'file_path': result['file_path'],
-            'file_type': result['file_type'],
-            'similarity': round(result['similarity'], 3),
-            'composite_score': round(result['composite_score'], 3),
-            'success_rate': result['success_rate'],
-            'usage_count': result['usage_count'],
-            'metadata': result['metadata'],
-            'content': result['content'] if ${SHOW_CONTENT} else None
-        })
-    print(json.dumps(output, indent=2))
-else:
-    print(f'🔍 Found {len(results)} patterns matching \"${PATTERN}\"')
-    print()
-    
-    for i, result in enumerate(results, 1):
-        print(f'{i}. {result[\"file_path\"]}')
-        print(f'   📄 Type: {result[\"file_type\"]}')
-        print(f'   🎯 Similarity: {result[\"similarity\"]:.3f}')
-        print(f'   ⭐ Score: {result[\"composite_score\"]:.3f}')
-        print(f'   ✅ Success Rate: {result[\"success_rate\"]:.2f}')
-        print(f'   📊 Usage: {result[\"usage_count\"]} times')
-        
-        # Show patterns from metadata
-        if result['metadata'] and 'patterns' in result['metadata']:
-            patterns = result['metadata']['patterns']
-            if patterns:
-                print(f'   🔧 Contains: {len(patterns)} items')
-                for pattern in patterns[:3]:  # Show first 3
-                    print(f'      - {pattern[\"type\"]}: {pattern[\"name\"]}')
-                if len(patterns) > 3:
-                    print(f'      ... and {len(patterns) - 3} more')
-        
-        # Show content if requested
-        if ${SHOW_CONTENT}:
-            print()
-            print('   📝 Content:')
-            # Show first 20 lines
-            lines = result['content'].split('\\n')
-            for line in lines[:20]:
-                print(f'      {line}')
-            if len(lines) > 20:
-                print(f'      ... ({len(lines) - 20} more lines)')
-        
-        print()
-"
-
-# Make script executable
-chmod +x "${BASH_SOURCE[0]}"
+if [[ -z "$RESULTS" ]]; then
+    echo "😔 No matching patterns found for '$PATTERN'"
+    echo ""
+    echo "💡 Tips:"
+    echo "   - Try a broader search term"
+    echo "   - Check if your project is indexed: sqlite3 $DB_PATH 'SELECT COUNT(*) FROM entities;'"
+    echo "   - Reindex if needed: local-ruvector index --path /your/project"
+else
+    echo "$RESULTS"
+    echo ""
+    COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM entities WHERE name LIKE '%${PATTERN}%';")
+    echo "📊 Total matches: $COUNT (showing up to $LIMIT)"
+fi
