@@ -1,6 +1,6 @@
 {
   "name": "claude-flow-novice",
-  "version": "2.18.39",
+  "version": "2.18.40",
   "description": "Claude Flow Novice - Advanced orchestration platform for multi-agent AI workflows with CFN Loop architecture\n\nIncludes Local RuVector Accelerator and all CFN skills for complete functionality.",
   "main": "index.js",
   "type": "module",
