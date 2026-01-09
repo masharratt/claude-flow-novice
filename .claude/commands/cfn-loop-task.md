@@ -1,359 +1,295 @@
 ---
 description: "Execute CFN Loop in Task Mode with direct agent spawning (visible in main chat)"
-argument-hint: "<task description> [--mode=mvp|standard|enterprise] [--max-iterations=n] [--ace-reflect]"
-allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "SlashCommand"]
+argument-hint: "<task description> [--mode=mvp|standard|enterprise] [--max-iterations=n]"
+allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "Grep", "Glob"]
 ---
 
-# CFN Loop Task Mode - Direct Agent Spawning
+# CFN Loop Task Mode
 
-**Version:** 1.4.0  |  **Date:** 2025-12-25  |  **Status:** Production Ready
-
-## Quick Overview
-
-Task Mode spawns agents directly in main chat with full visibility. Uses test-driven gate validation (not confidence scores).
-
-### Autonomous Progression (MANDATORY)
-
-**Keep moving forward. Only pause for critical issues.**
-
-- **AUTO-PROGRESS:** After each step completes, immediately spawn agents for the next step
-- **NO WAITING:** Do not wait for user confirmation between iterations or steps
-- **KEEP SPAWNING:** Gate fail → spawn Loop 3 again. Gate pass → spawn validators. Validators pass → spawn next task.
-
-**STOP FOR USER FEEDBACK ONLY WHEN:**
-1. **Corruption/rollback needed** - Commits broke the codebase beyond repair, need git rollback
-2. **Architectural mismatch** - RCA identifies fundamental design conflicts that require rewrite
-3. **Critical security issue** - Credentials exposed, injection vulnerabilities found
-4. **External system failure** - CI/CD down, package registry unavailable, API deprecated
-
-**DO NOT STOP FOR:**
-- Test regressions (loop fixes them - keep iterating)
-- Test pass rate drops (keep iterating, RCA will analyze)
-- Coverage gaps (keep iterating)
-- Single file conflicts (RCA handles it)
-- Validator rejections (incorporate feedback and continue)
-- Max iterations reached (report results but don't block)
-
-### When to Use Task Mode
-- **Debugging** - Need to see agent thought process
-- **Learning** - Understanding how agents work
-- **Complex coordination** - Require custom agent interactions
+**You are the coordinator. You MUST execute this loop until PROCEED or max iterations.**
 
 ---
 
-## TDD Gate Enforcement (MANDATORY)
+## MANDATORY: Initialize State Tracking
 
-**Gate checks are based on TEST PASS RATES, not confidence scores.**
+**IMMEDIATELY create this todo list using TodoWrite:**
 
-After Loop 3 agents complete, run gate validation:
-```bash
-# Get test results
-TEST_OUTPUT=$(npm test 2>&1 || true)
-PASS_COUNT=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passed)' | head -1 || echo "0")
-TOTAL_COUNT=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= total)' | head -1 || echo "1")
-
-# Calculate pass rate
-if [ "$TOTAL_COUNT" -gt 0 ]; then
-  PASS_RATE=$(echo "scale=4; $PASS_COUNT / $TOTAL_COUNT" | bc)
-else
-  PASS_RATE="0"
-fi
-
-# Validate gate
-npx ts-node .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/gate-check.ts \
-  --pass-rate "$PASS_RATE" \
-  --mode "$MODE"
+```
+1. [pending] Parse arguments and initialize task
+2. [pending] LOOP 3: Spawn implementation agents
+3. [pending] GATE CHECK: Run tests and validate pass rate
+4. [pending] LOOP 2: Spawn validator agents (ONLY if gate passed)
+5. [pending] PRODUCT OWNER: Review validator feedback, filter out-of-scope, decide
 ```
 
-### Gate Thresholds
-| Mode | Pass Rate Threshold |
-|------|-------------------|
-| MVP | 70% |
-| Standard | 95% |
-| Enterprise | 98% |
-
-**CRITICAL:** Validators MUST NOT start until gate check passes.
+**You MUST update todo status as you complete each phase. Do NOT skip phases.**
 
 ---
 
-## Post-Edit Pipeline (MANDATORY)
+## THE LOOP (Execute Until Done)
 
-After ANY file modification, run:
-```bash
-./.claude/hooks/cfn-invoke-post-edit.sh "$FILE_PATH" --agent-id "$AGENT_ID"
 ```
-
-Or if using project-local pipeline:
-```bash
-node config/hooks/post-edit-pipeline.js "$FILE" --agent-id "${AGENT_ID:-hook}"
+┌─────────────────────────────────────────────────────────────┐
+│  ITERATION = 1                                              │
+│                                                             │
+│  WHILE iteration <= MAX_ITERATIONS:                         │
+│    ├── LOOP 3: Spawn implementation agents                  │
+│    ├── GATE CHECK: Run npm test, calculate pass rate        │
+│    │     ├── IF pass_rate < threshold: iteration++, CONTINUE│
+│    │     └── IF pass_rate >= threshold: PROCEED to Loop 2   │
+│    ├── LOOP 2: Spawn validator agents                       │
+│    ├── PRODUCT OWNER: Review validator feedback             │
+│    │     ├── Filter out-of-scope validator requirements     │
+│    │     ├── PROCEED: In-scope work complete, EXIT          │
+│    │     ├── ITERATE: In-scope issues remain, CONTINUE      │
+│    │     └── ABORT: Corruption/security only, EXIT          │
+│    └── END WHILE                                            │
+│                                                             │
+│  MAX_ITERATIONS reached: Report and EXIT                    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Execution Instructions (AUTO-EXECUTE)
+## PHASE 1: Parse Arguments
 
-**Step 1: Parse Arguments**
+**Mark todo #1 as in_progress, then execute:**
+
 ```bash
-TASK_DESCRIPTION="$ARGUMENTS"
-TASK_DESCRIPTION=$(echo "$TASK_DESCRIPTION" | sed 's/--mode[[:space:]]*[a-zA-Z]*//' | sed 's/--max-iterations[[:space:]]*[0-9]*//' | xargs)
-
-MODE="standard"
+# Parse from $ARGUMENTS
+MODE="standard"  # or mvp, enterprise
 MAX_ITERATIONS=10
-
-for arg in $ARGUMENTS; do
-  case $arg in
-    --mode=*) MODE="${arg#*=}" ;;
-    --max-iterations=*) MAX_ITERATIONS="${arg#*=}" ;;
-  esac
-done
-
-if [[ ! "$MODE" =~ ^(mvp|standard|enterprise)$ ]]; then
-  echo "ERROR: Invalid mode '$MODE'. Must be: mvp, standard, enterprise"
-  exit 1
-fi
-
-TASK_ID="cfn-task-$(date +%s%N | tail -c 7)-${RANDOM}"
-echo "Task ID: $TASK_ID | Mode: $MODE | Max Iterations: $MAX_ITERATIONS"
+TASK_ID="cfn-task-$(date +%s)-${RANDOM}"
+ITERATION=1
 ```
 
-**Step 2: Spawn Loop 3 Agents (Implementation)**
-```bash
-case $MODE in
-  "mvp")
-    Task("backend-developer", `
-      AGENT_ID="backend-dev-${TASK_ID}"
+| Mode | Gate Threshold | Consensus Threshold |
+|------|----------------|---------------------|
+| mvp | 70% | 80% |
+| standard | 95% | 90% |
+| enterprise | 98% | 95% |
 
-      TASK: Implement MVP for: ${TASK_DESCRIPTION}
+**Mark todo #1 as completed. Proceed to Phase 2.**
 
-      TDD REQUIREMENTS (MANDATORY):
-      1. Write tests BEFORE implementation (Red phase)
-      2. Implement to make tests pass (Green phase)
-      3. Refactor while keeping tests green
-      4. Run: npm test -- --reporter=json after implementation
-      5. Report actual pass/fail counts, NOT confidence scores
+---
 
-      POST-EDIT (MANDATORY):
-      After each file edit, run:
-      ./.claude/hooks/cfn-invoke-post-edit.sh "$FILE_PATH" --agent-id "$AGENT_ID"
+## PHASE 2: LOOP 3 - Implementation Agents
 
-      RETURN FORMAT:
-      {
-        "tests_passed": <number>,
-        "tests_total": <number>,
-        "pass_rate": <0.0-1.0>,
-        "files_created": [...],
-        "files_modified": [...]
-      }
-    `)
-    ;;
+**Mark todo #2 as in_progress.**
 
-  "standard"|"enterprise")
-    Task("backend-developer", `
-      AGENT_ID="backend-dev-${TASK_ID}"
+**Spawn using Task tool with subagent_type="backend-developer":**
 
-      TASK: Implement production solution for: ${TASK_DESCRIPTION}
+```
+TASK: Implement for iteration ${ITERATION}: ${TASK_DESCRIPTION}
 
-      TDD REQUIREMENTS (MANDATORY - London School):
-      1. Write unit tests with mocks FIRST
-      2. Write integration tests for component interactions
-      3. Implement to make all tests pass
-      4. Achieve ${MODE === 'standard' ? '80' : '95'}% coverage minimum
-      5. Run: npm test -- --reporter=json after implementation
-      6. Report actual pass/fail counts, NOT confidence scores
+REQUIREMENTS:
+1. Write tests FIRST (TDD)
+2. Implement to make tests pass
+3. Run: npm test
+4. Report: { "tests_passed": N, "tests_total": M, "files_modified": [...] }
 
-      POST-EDIT (MANDATORY):
-      After each file edit, run:
-      ./.claude/hooks/cfn-invoke-post-edit.sh "$FILE_PATH" --agent-id "$AGENT_ID"
-
-      RETURN FORMAT:
-      {
-        "tests_passed": <number>,
-        "tests_total": <number>,
-        "pass_rate": <0.0-1.0>,
-        "coverage_percent": <number>,
-        "files_created": [...],
-        "files_modified": [...]
-      }
-    `)
-    ;;
-esac
+AGENT_ID: loop3-impl-${TASK_ID}-iter${ITERATION}
 ```
 
-**Step 3: Run Gate Check (BEFORE validators)**
+**WAIT for agent to complete and return results.**
+
+**Mark todo #2 as completed. Proceed to Phase 3.**
+
+---
+
+## PHASE 3: GATE CHECK (Mandatory Before Loop 2)
+
+**Mark todo #3 as in_progress.**
+
+**YOU MUST RUN THIS - DO NOT SKIP:**
+
 ```bash
-echo "Running gate check..."
+# Run tests
+npm test 2>&1 | tee /tmp/test-output-${TASK_ID}.txt
 
-# HARD CAP: Max 10 iterations regardless of mode
-MAX_ITERATIONS=10
+# Parse results (adjust grep pattern for your test runner)
+PASS_COUNT=$(grep -oP '\d+(?= pass)' /tmp/test-output-${TASK_ID}.txt | head -1 || echo 0)
+TOTAL_COUNT=$(grep -oP '\d+(?= (test|spec))' /tmp/test-output-${TASK_ID}.txt | head -1 || echo 1)
+PASS_RATE=$(echo "scale=2; $PASS_COUNT / $TOTAL_COUNT" | bc)
 
-# Parse agent output for test results
-TESTS_PASSED=${LOOP3_RESULT.tests_passed:-0}
-TESTS_TOTAL=${LOOP3_RESULT.tests_total:-1}
-PASS_RATE=$(echo "scale=4; $TESTS_PASSED / $TESTS_TOTAL" | bc)
-
-# Run gate validation
-GATE_RESULT=$(npx ts-node .claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/gate-check.ts \
-  --pass-rate "$PASS_RATE" \
-  --mode "$MODE" 2>&1)
-
-if echo "$GATE_RESULT" | grep -q '"passed": false'; then
-  echo "GATE FAILED - Iterating Loop 3"
-  ITERATION=$((ITERATION + 1))
-
-  # Test regressions are NOT a stop condition - the loop fixes them
-  # Only stop for: corruption needing rollback, architectural mismatch, security issues
-  echo "Pass rate: ${PASS_RATE} - Loop will continue iterating to fix"
-
-  # After 3 failed iterations, invoke root cause analysis
-  if [ $ITERATION -eq 3 ]; then
-    echo "3 iterations failed - Spawning root cause analyst..."
-
-    Task("root-cause-analyst", `
-      AGENT_ID="rca-${TASK_ID}"
-
-      TASK: Analyze why Loop 3 implementation keeps failing for: ${TASK_DESCRIPTION}
-
-      INVESTIGATION SCOPE:
-      1. Review test failures from previous iterations
-      2. Identify blocking patterns (missing dependencies, architectural issues, incorrect assumptions)
-      3. Check for circular dependencies or integration conflicts
-      4. Analyze error logs and stack traces
-
-      REQUIRED OUTPUT:
-      {
-        "root_causes": [
-          {"issue": "<description>", "severity": "critical|high|medium", "fix": "<specific solution>"}
-        ],
-        "recommended_approach": "<concrete implementation strategy>",
-        "files_to_modify": [...],
-        "tests_to_add": [...],
-        "blockers_to_remove": [...]
-      }
-
-      This analysis will be passed to the next Loop 3 iteration to prevent repeated failures.
-    `)
-
-    # Store RCA findings for next iteration
-    RCA_FINDINGS=${RCA_RESULT}
-    echo "Root cause analysis complete. Findings will guide next iteration."
-  fi
-
-  if [ $ITERATION -lt $MAX_ITERATIONS ]; then
-    # Spawn Loop 3 again with failure context (and RCA findings if available)
-    if [ -n "$RCA_FINDINGS" ]; then
-      echo "Re-running Loop 3 with root cause analysis guidance..."
-      # RCA_FINDINGS passed to Loop 3 agents in next iteration
-    fi
-    continue
-  else
-    echo "Max iterations (10) reached. Gate still failing."
-    exit 1
-  fi
-fi
-
-echo "GATE PASSED - Proceeding to validators"
+echo "Gate Check: ${PASS_COUNT}/${TOTAL_COUNT} = ${PASS_RATE}"
 ```
 
-**Step 4: Spawn Loop 2 Validators (ONLY after gate passes)**
-```bash
-Task("code-reviewer", `
-  AGENT_ID="reviewer-${TASK_ID}"
+**DECISION POINT:**
 
-  TASK: Validate implementation for: ${TASK_DESCRIPTION}
+```
+IF pass_rate >= threshold:
+    → Mark todo #3 completed
+    → PROCEED to Phase 4 (Loop 2)
 
-  VALIDATION CHECKLIST:
-  - [ ] Tests exist for all new code
-  - [ ] Tests follow TDD pattern (written before implementation)
-  - [ ] Coverage meets threshold for ${MODE} mode
-  - [ ] No hardcoded secrets or credentials
-  - [ ] Post-edit hooks were invoked
-
-  Return: PASS or FAIL with specific findings
-`)
-
-Task("tester", `
-  AGENT_ID="tester-${TASK_ID}"
-
-  TASK: Run comprehensive tests for: ${TASK_DESCRIPTION}
-
-  Execute:
-  1. npm test -- --coverage
-  2. Report pass/fail counts
-  3. Report coverage percentages
-
-  Return: Test report with actual metrics, not estimates
-`)
+IF pass_rate < threshold:
+    → Log: "Gate FAILED (${PASS_RATE} < ${THRESHOLD}). Iterating..."
+    → ITERATION = ITERATION + 1
+    → IF iteration > MAX_ITERATIONS: Report failure and EXIT
+    → Reset todo #2 to pending, mark #3 as pending
+    → GO BACK TO PHASE 2 (spawn Loop 3 again with failure context)
 ```
 
-**Step 5: Product Owner Decision**
-```bash
-# Collect validator results
-VALIDATOR_PASS_COUNT=0
-VALIDATOR_TOTAL=2
+**DO NOT proceed to Loop 2 if gate failed. ITERATE.**
 
-for result in "${VALIDATOR_RESULTS[@]}"; do
-  if echo "$result" | grep -qi "PASS"; then
-    VALIDATOR_PASS_COUNT=$((VALIDATOR_PASS_COUNT + 1))
-  fi
-done
+---
 
-CONSENSUS_RATE=$(echo "scale=2; $VALIDATOR_PASS_COUNT / $VALIDATOR_TOTAL" | bc)
+## PHASE 4: LOOP 2 - Validator Agents
 
-# Mode-specific consensus thresholds
-case $MODE in
-  "mvp") CONSENSUS_THRESHOLD="0.80" ;;
-  "standard") CONSENSUS_THRESHOLD="0.90" ;;
-  "enterprise") CONSENSUS_THRESHOLD="0.95" ;;
-esac
+**Mark todo #4 as in_progress.**
 
-# AUTONOMOUS PROGRESSION: Default to ITERATE, rarely ABORT
-if (( $(echo "$CONSENSUS_RATE >= $CONSENSUS_THRESHOLD" | bc -l) )); then
-  echo "PROCEED - Consensus reached ($CONSENSUS_RATE >= $CONSENSUS_THRESHOLD)"
-  # Immediately spawn next task if queued
-else
-  echo "ITERATE - Consensus not met ($CONSENSUS_RATE < $CONSENSUS_THRESHOLD)"
-  # Auto-continue to next iteration - DO NOT STOP
-  # Loop back to Step 2 immediately
-fi
+**ONLY execute this phase if Gate Check passed.**
 
-# ABORT CONDITIONS (RARE - only use when truly unrecoverable):
-# - Fundamental architectural mismatch that RCA confirms cannot be fixed
-# - Security vulnerability that cannot be patched without full rewrite
-# - External dependency completely unavailable (API deprecated, package removed)
-#
-# DO NOT ABORT FOR:
-# - Test failures (iterate)
-# - Coverage gaps (iterate)
-# - Validator rejections (iterate with feedback)
-# - Performance issues (iterate with optimization)
+**Spawn validators in parallel using Task tool:**
+
+**Validator 1: code-reviewer**
+```
+TASK: Review implementation for: ${TASK_DESCRIPTION}
+
+CHECKLIST:
+- [ ] Tests exist and pass
+- [ ] No hardcoded secrets
+- [ ] Code follows project patterns
+
+Return: PASS or FAIL with findings
+AGENT_ID: loop2-reviewer-${TASK_ID}
+```
+
+**Validator 2: tester**
+```
+TASK: Validate test coverage for: ${TASK_DESCRIPTION}
+
+Execute: npm test -- --coverage
+Return: { "pass": true/false, "coverage": N%, "findings": [...] }
+AGENT_ID: loop2-tester-${TASK_ID}
+```
+
+**Collect results from both validators.**
+
+**Mark todo #4 as completed. Proceed to Phase 5.**
+
+---
+
+## PHASE 5: Product Owner Decision
+
+**Mark todo #5 as in_progress.**
+
+**Spawn Product Owner agent using Task tool with subagent_type="product-owner":**
+
+```
+TASK: Review validator feedback and make scope-aware decision
+
+CONTEXT:
+- Task: ${TASK_DESCRIPTION}
+- Mode: ${MODE}
+- Iteration: ${ITERATION}
+- Gate pass rate: ${PASS_RATE}
+
+VALIDATOR FEEDBACK:
+${VALIDATOR_1_FEEDBACK}
+${VALIDATOR_2_FEEDBACK}
+
+YOUR RESPONSIBILITIES:
+1. Review each validator finding
+2. Classify each finding as IN-SCOPE or OUT-OF-SCOPE
+3. OUT-OF-SCOPE items: Log for backlog, do NOT require iteration
+4. IN-SCOPE items: Determine if they block PROCEED
+
+DECISION CRITERIA:
+- PROCEED: All in-scope requirements met, tests pass, no blocking issues
+- ITERATE: In-scope issues remain that need fixing
+- ABORT: Only for corruption, security vulnerabilities, or architectural dead-ends
+
+RETURN FORMAT:
+{
+  "decision": "PROCEED" | "ITERATE" | "ABORT",
+  "in_scope_findings": [...],
+  "out_of_scope_findings": [...],
+  "reasoning": "...",
+  "iteration_guidance": "..." (if ITERATE)
+}
+
+AGENT_ID: product-owner-${TASK_ID}-iter${ITERATION}
+```
+
+**WAIT for Product Owner agent to return decision.**
+
+**Handle Decision:**
+
+```
+IF decision == "PROCEED":
+    → Mark todo #5 completed
+    → Report success: "Task complete. Out-of-scope items logged to backlog."
+    → EXIT
+
+IF decision == "ITERATE":
+    → Log: "PO requested iteration. In-scope issues: ${IN_SCOPE_FINDINGS}"
+    → ITERATION = ITERATION + 1
+    → IF iteration > MAX_ITERATIONS: Report and EXIT
+    → Reset todos #2-#5 to pending
+    → Include PO's iteration_guidance in next Loop 3 context
+    → GO BACK TO PHASE 2
+
+IF decision == "ABORT":
+    → Log: "PO aborted: ${REASONING}"
+    → Report failure with reasoning
+    → EXIT
+```
+
+**The Product Owner is the ONLY agent that can approve PROCEED or request ABORT.**
+
+---
+
+## Iteration Context Injection
+
+**When iterating, include this context for Loop 3 agents:**
+
+```
+PREVIOUS ITERATION FAILED:
+- Iteration: ${ITERATION - 1}
+- Gate pass rate: ${PASS_RATE}
+- Validator feedback: ${FEEDBACK}
+- Files with issues: ${PROBLEM_FILES}
+
+FIX THESE SPECIFIC ISSUES before re-running tests.
+```
+
+**After 3 failed iterations, spawn root-cause-analyst before next Loop 3:**
+```
+Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 ```
 
 ---
 
-## Validation Flow Summary
+## Quick Reference
 
-1. **Loop 3 Gate:** Test pass rate must meet mode threshold before validators start
-2. **Root Cause Analysis:** After 3 failed iterations, `root-cause-analyst` agent investigates blockers
-3. **Loop 2 Validators:** Need access to Loop 3 outputs, tests, and logs
-4. **Product Owner Decision:** Auto-progress; ABORT is rare (corruption/rollback only)
-5. **Gate Failure:** Auto-iterate Loop 3 (max 10 iterations) - test regressions are NOT a stop condition
-6. **Gate Pass:** Auto-proceed to validators
-7. **Decision Outcomes:** PROCEED (done), ITERATE (auto-repeat), ABORT (rare - corruption/security only)
+| Phase | What Happens | Next If Success | Next If Fail |
+|-------|--------------|-----------------|--------------|
+| 1. Parse | Initialize vars | → Phase 2 | N/A |
+| 2. Loop 3 | Implementation agents | → Phase 3 | Retry |
+| 3. Gate | Test pass rate check | → Phase 4 | → Phase 2 (iterate) |
+| 4. Loop 2 | Validator agents | → Phase 5 | Retry |
+| 5. PO | Scope filter + decision | EXIT (PROCEED) | → Phase 2 (iterate) |
 
-**Stop conditions:** Corruption needing rollback, architectural mismatch requiring rewrite, security issues, external system failures. Test failures/regressions are handled by the loop.
-
----
-
-## Related Documentation
-
-- **Full Task Mode Guide**: `.claude/commands/cfn-loop/cfn-loop-task.md`
-- **CLI Mode Guide**: `.claude/commands/cfn-loop/cfn-loop-cli.md`
-- **Gate Check Implementation**: `.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/helpers/gate-check.ts`
+**Product Owner Role:**
+- Filters validator feedback into IN-SCOPE vs OUT-OF-SCOPE
+- OUT-OF-SCOPE items go to backlog, don't block PROCEED
+- Only IN-SCOPE issues can trigger ITERATE
+- ABORT is rare (corruption, security, dead-end architecture)
 
 ---
 
-**Version History:**
-- v1.4.0 (2025-12-25) - Hard cap 10 iterations for all modes; root cause analyst after 3 failures
-- v1.3.0 (2025-12-14) - Fixed to use test-based gate checks, not confidence scores
-- v1.2.0 (2025-12-08) - Added TDD enforcement
-- v1.1.0 (2025-12-01) - Added RuVector integration
+## Reminders
+
+- **DO NOT skip Gate Check** - Phase 3 is mandatory after every Loop 3
+- **DO NOT spawn Loop 2 if gate failed** - Iterate Loop 3 instead
+- **DO NOT skip Product Owner** - Only PO can approve PROCEED
+- **DO NOT iterate on out-of-scope items** - PO filters these to backlog
+- **DO NOT stop on test failures** - That's what iteration fixes
+- **DO update todos** - This tracks your state as coordinator
+- **DO pass validator feedback to PO** - PO needs full context to decide
+- **DO inject PO guidance into next iteration** - Use iteration_guidance from PO
+
+---
+
+**Version:** 2.0.0 | **Date:** 2026-01-09 | Restructured with enforced state tracking + Product Owner scope filtering
