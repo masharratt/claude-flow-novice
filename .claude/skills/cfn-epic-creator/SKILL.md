@@ -336,6 +336,91 @@ Main chat presents final Simplifier recommendations to user. User chooses which 
 16. Apply approved simplifications
 ```
 
+## Selective Agent Validation
+
+Instead of running all 11 personas, you can declare specific agents in your preferred order.
+
+### Usage
+
+```bash
+# Run specific agents in order
+cfn-epic-creator "Build dashboard" --agents=typescript-specialist,tester,integration-tester,react-frontend-engineer
+
+# Run agents within each sprint context (keeps context close to execution)
+cfn-epic-creator "Build feature" --agents=typescript-specialist,tester --per-sprint
+```
+
+### Available Agents
+
+| Agent | Focus Area |
+|-------|-----------|
+| `typescript-specialist` | Cross-file type safety, imports/exports, type contracts |
+| `tester` | Test strategy, coverage requirements, quality gates |
+| `integration-tester` | End-to-end workflow validation, component wiring |
+| `react-frontend-engineer` | UI components, branding, breaking error prevention |
+| `backend-developer` | API design, data structures, service contracts |
+| `rust-developer` | Systems programming, memory safety, performance optimization |
+| `security-specialist` | Security review, vulnerability assessment |
+| `code-standards-reviewer` | Naming conventions, type alignment, API consistency |
+| `strategic-alignment-reviewer` | Integration gaps, dead code detection |
+| `simplifier` | Scope reduction, over-engineering prevention |
+| `product-owner` | Business value, user stories, acceptance criteria |
+| `system-architect` | System design, scalability, technical constraints |
+| `devops-engineer` | Deployment, infrastructure, monitoring |
+
+### Per-Sprint Validation (--per-sprint)
+
+When `--per-sprint` is enabled, validation agents run within each sprint/phase context rather than at the epic level. This:
+
+1. **Keeps context close to execution** - agents see only the files/tasks in that sprint
+2. **Catches sprint-specific issues** - type mismatches within a sprint's scope
+3. **Reduces cognitive load** - smaller context window for more focused review
+
+**Example workflow with --per-sprint:**
+
+```
+Sprint 1: Core Types
+├── typescript-specialist reviews Sprint 1 files only
+├── tester defines tests for Sprint 1 deliverables
+└── Validation report for Sprint 1
+
+Sprint 2: API Layer
+├── typescript-specialist reviews Sprint 2 files + Sprint 1 interfaces
+├── tester defines integration tests
+└── Validation report for Sprint 2
+
+Sprint 3: UI Components
+├── react-frontend-engineer reviews Sprint 3 files
+├── integration-tester validates full wiring
+└── Validation report for Sprint 3
+```
+
+### Common Agent Combinations
+
+**TypeScript-First Validation:**
+```bash
+--agents=typescript-specialist,code-standards-reviewer,tester
+```
+Sets types/imports/exports consistency, then validates naming conventions, then defines tests.
+
+**Full-Stack Review:**
+```bash
+--agents=backend-developer,react-frontend-engineer,integration-tester
+```
+API contracts first, then UI components, then wiring validation.
+
+**Quality Focus:**
+```bash
+--agents=simplifier,tester,security-specialist,code-standards-reviewer
+```
+Scope reduction, test strategy, security review, standards enforcement.
+
+**Haiku Model Optimization:**
+```bash
+--agents=typescript-specialist,tester,integration-tester,react-frontend-engineer --per-sprint
+```
+Focused agents with per-sprint context for smaller models.
+
 ## Best Practices
 
 1. **Clear Epic Descriptions**: Provide detailed, specific descriptions including:

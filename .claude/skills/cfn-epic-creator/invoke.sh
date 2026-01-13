@@ -28,6 +28,8 @@ ENFORCE_DEVOPS=false
 VERBOSE=false
 VALIDATE_ONLY=false
 SHOW_HELP=false
+AGENTS=""
+PER_SPRINT=false
 
 # Logging functions
 log_info() {
@@ -66,6 +68,13 @@ OPTIONS:
 
   -e, --enforce-devops      Include DevOps persona regardless of mode
 
+  -a, --agents <list>       Ordered comma-separated list of agents to use
+                             Overrides default persona sequence
+                             Example: typescript-specialist,tester,integration-tester,react-frontend-engineer
+
+  --per-sprint              Run validation agents within each sprint/phase
+                             Keeps context close to implementation details
+
   -t, --timeout <seconds>  Timeout for persona execution [default: $DEFAULT_TIMEOUT]
 
   -v, --verbose             Enable verbose logging
@@ -84,8 +93,29 @@ EXAMPLES:
   # MVP mode with DevOps enforcement
   cfn-epic-creator "Quick prototype dashboard" --mode=mvp --enforce-devops
 
+  # Custom agents in specific order
+  cfn-epic-creator "Build dashboard" --agents=typescript-specialist,tester,integration-tester,react-frontend-engineer
+
+  # Per-sprint validation (runs agents within each sprint context)
+  cfn-epic-creator "Build feature" --agents=typescript-specialist,tester --per-sprint
+
   # Validate epic description without execution
   cfn-epic-creator "Test epic" --validate-only
+
+AVAILABLE AGENTS:
+  typescript-specialist     Cross-file type safety, imports/exports, type contracts
+  tester                    Test strategy, coverage requirements, quality gates
+  integration-tester        End-to-end workflow validation, component wiring
+  react-frontend-engineer   UI components, branding, breaking error prevention
+  backend-developer         API design, data structures, service contracts
+  rust-developer            Systems programming, memory safety, performance
+  security-specialist       Security review, vulnerability assessment
+  code-standards-reviewer   Naming conventions, type alignment, API consistency
+  strategic-alignment-reviewer Integration gaps, dead code detection
+  simplifier                Scope reduction, over-engineering prevention
+  product-owner             Business value, user stories, acceptance criteria
+  system-architect          System design, scalability, technical constraints
+  devops-engineer           Deployment, infrastructure, monitoring
 
 SECURITY FEATURES:
   - Input sanitization and validation
@@ -128,6 +158,60 @@ validate_timeout() {
     return 0
 }
 
+# Valid agent names for epic validation
+VALID_AGENTS=(
+    "typescript-specialist"
+    "tester"
+    "integration-tester"
+    "react-frontend-engineer"
+    "backend-developer"
+    "rust-developer"
+    "security-specialist"
+    "code-standards-reviewer"
+    "strategic-alignment-reviewer"
+    "simplifier"
+    "product-owner"
+    "system-architect"
+    "devops-engineer"
+)
+
+# Validate agent name
+validate_agent_name() {
+    local agent="$1"
+    for valid in "${VALID_AGENTS[@]}"; do
+        if [[ "$agent" == "$valid" ]]; then
+            return 0
+        fi
+    done
+    log_error "Invalid agent: $agent"
+    log_error "Valid agents: ${VALID_AGENTS[*]}"
+    return 1
+}
+
+# Validate agents list (comma-separated)
+validate_agents() {
+    local agents_str="$1"
+
+    if [[ -z "$agents_str" ]]; then
+        return 0  # Empty is allowed (uses default)
+    fi
+
+    log_info "Validating agents list: $agents_str"
+
+    IFS=',' read -ra agent_array <<< "$agents_str"
+
+    for agent in "${agent_array[@]}"; do
+        # Trim whitespace
+        agent=$(echo "$agent" | xargs)
+        if ! validate_agent_name "$agent"; then
+            return 1
+        fi
+    done
+
+    log_info "Agents list validated: ${#agent_array[@]} agents"
+    return 0
+}
+
 # Parse command line arguments
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
@@ -162,6 +246,22 @@ parse_arguments() {
                 ;;
             -e|--enforce-devops)
                 ENFORCE_DEVOPS=true
+                shift
+                ;;
+            -a|--agents)
+                if [[ -z "${2:-}" ]]; then
+                    log_error "Agents list requires a value"
+                    return 1
+                fi
+                AGENTS="$2"
+                shift 2
+                ;;
+            --agents=*)
+                AGENTS="${1#--agents=}"
+                shift
+                ;;
+            --per-sprint)
+                PER_SPRINT=true
                 shift
                 ;;
             -t|--timeout)
@@ -263,6 +363,8 @@ execute_epic_creator() {
     local mode="$2"
     local output_file="$3"
     local enforce_devops="$4"
+    local agents="${5:-}"
+    local per_sprint="${6:-false}"
 
     log_info "Executing epic creator..."
 
@@ -287,6 +389,14 @@ execute_epic_creator() {
 
     if [[ -n "$output_file" ]]; then
         agent_cmd+=(--output="$output_file")
+    fi
+
+    if [[ -n "$agents" ]]; then
+        agent_cmd+=(--agents="$agents")
+    fi
+
+    if [[ "$per_sprint" == "true" ]]; then
+        agent_cmd+=(--per-sprint)
     fi
 
     agent_cmd+=("$description")
@@ -404,6 +514,11 @@ main() {
         exit 1
     fi
 
+    # Validate agents list
+    if ! validate_agents "$AGENTS"; then
+        exit 1
+    fi
+
     # Generate output filename if not provided
     if [[ -z "$OUTPUT_FILE" ]]; then
         OUTPUT_FILE=$(generate_output_filename)
@@ -415,6 +530,10 @@ main() {
     log_info "Timeout: ${timeout}s"
     log_info "Output: $OUTPUT_FILE"
     log_info "Enforce DevOps: $ENFORCE_DEVOPS"
+    if [[ -n "$AGENTS" ]]; then
+        log_info "Custom Agents: $AGENTS"
+    fi
+    log_info "Per-Sprint Validation: $PER_SPRINT"
 
     # If validate only, exit here
     if [[ "$VALIDATE_ONLY" == "true" ]]; then
@@ -423,7 +542,7 @@ main() {
     fi
 
     # Execute epic creator
-    if execute_epic_creator "$epic_description" "$MODE" "$OUTPUT_FILE" "$ENFORCE_DEVOPS"; then
+    if execute_epic_creator "$epic_description" "$MODE" "$OUTPUT_FILE" "$ENFORCE_DEVOPS" "$AGENTS" "$PER_SPRINT"; then
         # Generate summary if output file exists
         if [[ -f "$OUTPUT_FILE" ]]; then
             echo ""
