@@ -3,7 +3,7 @@ name: security-specialist
 type: validator
 color: "#D32F2F"
 description: MUST BE USED for security review, vulnerability assessment, threat modeling. Use PROACTIVELY for penetration testing, compliance. Keywords - security, vulnerability, threat, compliance
-model: haiku
+model: sonnet
 priority: critical
 acl_level: 3
 validation_hooks:

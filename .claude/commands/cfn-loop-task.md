@@ -10,6 +10,47 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Bash", "Grep", "Glob"]
 
 ---
 
+## ⚡ AUTONOMOUS PROGRESSION (CRITICAL)
+
+**DO NOT stop to ask questions. Keep progressing by launching agents for next steps.**
+
+| Stop For | Keep Going For |
+|----------|----------------|
+| Major regression (tests went from passing to failing) | Minor test failures (iterate to fix) |
+| Structural mismatch (wrong architecture/framework) | Missing files (create them) |
+| Security vulnerability found | Code style issues |
+| Corrupted state requiring manual recovery | Ambiguous implementation details |
+| Unclear requirements (feedback for epic improvement) | |
+
+**Rules:**
+- If uncertain about approach, pick the simpler option and iterate
+- Spawn agents to investigate unknowns instead of asking user
+- Only escalate to user for irreversible decisions or access issues
+- Test failures are expected - that's why we iterate
+
+---
+
+## 🎯 0/0 POLICY (EXIT CRITERIA)
+
+**Before PROCEED decision, verify:**
+
+| Metric | Requirement |
+|--------|-------------|
+| Compilation errors (scoped work) | **0** |
+| Compilation errors (scoped tests) | **0** |
+| Todos remaining (scoped work) | **0** |
+
+```bash
+# Verify 0/0 before PROCEED
+npm run typecheck 2>&1 | grep -c "error" || echo "0"  # Must be 0
+npm run build 2>&1 | grep -c "error" || echo "0"      # Must be 0
+# Review TodoWrite - all scoped items must be completed
+```
+
+**If not 0/0:** ITERATE, do not PROCEED. Fix errors before next gate check.
+
+---
+
 ## MANDATORY: Initialize State Tracking
 
 **IMMEDIATELY create this todo list using TodoWrite:**
@@ -184,6 +225,7 @@ CONTEXT:
 - Mode: ${MODE}
 - Iteration: ${ITERATION}
 - Gate pass rate: ${PASS_RATE}
+- Epic file: ${EPIC_FILE_PATH} (if applicable)
 
 VALIDATOR FEEDBACK:
 ${VALIDATOR_1_FEEDBACK}
@@ -194,6 +236,13 @@ YOUR RESPONSIBILITIES:
 2. Classify each finding as IN-SCOPE or OUT-OF-SCOPE
 3. OUT-OF-SCOPE items: Log for backlog, do NOT require iteration
 4. IN-SCOPE items: Determine if they block PROCEED
+5. **EPIC CONSISTENCY CHECK**: Identify naming/reference mismatches in epic document
+
+EPIC CONSISTENCY CHECK:
+- Compare implemented names (files, modules, functions) against epic references
+- Flag mismatches (e.g., phase 1 creates "AuthService" but phase 3 references "AuthenticationService")
+- If mismatches found: Update epic document to match implementation
+- Document all corrections in epic_corrections field
 
 DECISION CRITERIA:
 - PROCEED: All in-scope requirements met, tests pass, no blocking issues
@@ -206,11 +255,16 @@ RETURN FORMAT:
   "in_scope_findings": [...],
   "out_of_scope_findings": [...],
   "reasoning": "...",
-  "iteration_guidance": "..." (if ITERATE)
+  "iteration_guidance": "..." (if ITERATE),
+  "epic_corrections": [
+    {"location": "Phase 3, step 2", "was": "XY", "now": "X", "reason": "Match phase 1 implementation"}
+  ]
 }
 
 AGENT_ID: product-owner-${TASK_ID}-iter${ITERATION}
 ```
+
+**If epic_corrections returned:** Update the epic file to fix inconsistencies before next iteration.
 
 **WAIT for Product Owner agent to return decision.**
 
@@ -276,6 +330,7 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 - OUT-OF-SCOPE items go to backlog, don't block PROCEED
 - Only IN-SCOPE issues can trigger ITERATE
 - ABORT is rare (corruption, security, dead-end architecture)
+- **Epic consistency**: Fixes naming mismatches between phases (e.g., "X" vs "XY")
 
 ---
 
@@ -286,10 +341,19 @@ Task(subagent_type="root-cause-analyst", prompt="Analyze repeated failures...")
 - **DO NOT skip Product Owner** - Only PO can approve PROCEED
 - **DO NOT iterate on out-of-scope items** - PO filters these to backlog
 - **DO NOT stop on test failures** - That's what iteration fixes
+- **DO NOT ask the user questions** - Make reasonable assumptions and iterate
 - **DO update todos** - This tracks your state as coordinator
 - **DO pass validator feedback to PO** - PO needs full context to decide
 - **DO inject PO guidance into next iteration** - Use iteration_guidance from PO
+- **DO spawn agents to investigate unknowns** - Instead of asking user
+
+**When to escalate to user (ONLY these cases):**
+- Access denied / permission errors
+- Irreversible destructive action needed
+- Major regression detected (tests were passing, now failing)
+- Structural mismatch with existing codebase
+- Unclear requirements (helps improve epic creation process)
 
 ---
 
-**Version:** 2.0.0 | **Date:** 2026-01-09 | Restructured with enforced state tracking + Product Owner scope filtering
+**Version:** 2.2.0 | **Date:** 2026-01-13 | Added 0/0 policy, epic consistency check, autonomous progression

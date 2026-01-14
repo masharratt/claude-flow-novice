@@ -12,7 +12,7 @@
 #   ./inject.sh --config        # Configuration files
 #   ./inject.sh --decomposers   # Decomposer tasks
 #   ./inject.sh --validators    # Async validators
-#   ./inject.sh --ruvector      # RuVector integration (analytics, RAG, learning)
+#   ./inject.sh --codesearch      # CodeSearch integration (analytics, RAG, learning)
 #   ./inject.sh --tests         # Test files (mdap-analytics, integration)
 #   ./inject.sh --file <path>   # Specific file
 
@@ -68,22 +68,22 @@ INDEX_FILES=(
   "lib/mdap/index.ts"
 )
 
-# RuVector integration files
+# CodeSearch integration files
 RUVECTOR_FILES=(
-  "lib/mdap/ruvector-mdap-analytics.ts"
-  "lib/mdap/ruvector-rag-decomposition.ts"
-  "lib/mdap/ruvector-learning-hooks.ts"
-  "lib/mdap/ruvector-error-pattern-learning.ts"
-  "lib/mdap/ruvector-schemas.ts"
-  "lib/mdap/ruvector-init.ts"
-  "lib/mdap/ruvector-auth.ts"
+  "lib/mdap/codesearch-mdap-analytics.ts"
+  "lib/mdap/codesearch-rag-decomposition.ts"
+  "lib/mdap/codesearch-learning-hooks.ts"
+  "lib/mdap/codesearch-error-pattern-learning.ts"
+  "lib/mdap/codesearch-schemas.ts"
+  "lib/mdap/codesearch-init.ts"
+  "lib/mdap/codesearch-auth.ts"
 )
 
 # Test files
 TEST_FILES=(
-  "tests/ruvector/mdap-analytics.test.ts"
-  "tests/ruvector/test-utils.ts"
-  "tests/integration/ruvector-mdap-integration.test.ts"
+  "tests/codesearch/mdap-analytics.test.ts"
+  "tests/codesearch/test-utils.ts"
+  "tests/integration/codesearch-mdap-integration.test.ts"
   "tests/decomposition/context-passing.test.ts"
   "tests/decomposition/sequential-flow.test.ts"
 )
@@ -162,7 +162,7 @@ main() {
   local inject_decomposers=false
   local inject_validators=false
   local inject_index=false
-  local inject_ruvector=false
+  local inject_codesearch=false
   local inject_tests=false
   local specific_file=""
 
@@ -209,8 +209,8 @@ main() {
         inject_index=true
         shift
         ;;
-      --ruvector)
-        inject_ruvector=true
+      --codesearch)
+        inject_codesearch=true
         shift
         ;;
       --tests)
@@ -237,7 +237,7 @@ main() {
         echo "  --decomposers   Decomposer tasks"
         echo "  --validators    Async validators"
         echo "  --index         Index exports (types)"
-        echo "  --ruvector      RuVector integration (~88K tokens)"
+        echo "  --codesearch      CodeSearch integration (~88K tokens)"
         echo "  --tests         Test files (~40K tokens)"
         echo "  --file <path>   Specific file"
         echo ""
@@ -250,7 +250,7 @@ main() {
         echo "Used By:"
         echo "  cfn-docker-expert     --> --docker"
         echo "  cfn-loops-cli-expert  --> --cli [+ --cfn-loop]"
-        echo "  mdap-trigger-specialist --> --all [+ --ruvector --tests]"
+        echo "  mdap-trigger-specialist --> --all [+ --codesearch --tests]"
         echo ""
         echo "  -h, --help      Show this help"
         exit 0
@@ -269,7 +269,7 @@ main() {
         "$inject_docker" == "false" && "$inject_cfn_loop" == "false" && \
         "$inject_config" == "false" && "$inject_decomposers" == "false" && \
         "$inject_validators" == "false" && "$inject_index" == "false" && \
-        "$inject_ruvector" == "false" && "$inject_tests" == "false" && \
+        "$inject_codesearch" == "false" && "$inject_tests" == "false" && \
         -z "$specific_file" ]]; then
     inject_all=true
   fi
@@ -285,7 +285,7 @@ main() {
   fi
 
   # Handle --all (core MDAP workflow only - ~90K tokens)
-  # Use --ruvector and --tests explicitly for extended context
+  # Use --codesearch and --tests explicitly for extended context
   if [[ "$inject_all" == "true" ]]; then
     inject_coordinator=true
     inject_mdap=true
@@ -293,7 +293,7 @@ main() {
     inject_decomposers=true
     inject_validators=true
     inject_index=true
-    # Note: ruvector and tests not included in --all by default
+    # Note: codesearch and tests not included in --all by default
   fi
 
   # Output requested groups
@@ -333,7 +333,7 @@ main() {
     output_group VALIDATOR_FILES "VALIDATORS"
   fi
 
-  if [[ "$inject_ruvector" == "true" ]]; then
+  if [[ "$inject_codesearch" == "true" ]]; then
     output_group RUVECTOR_FILES "RUVECTOR INTEGRATION"
   fi
 

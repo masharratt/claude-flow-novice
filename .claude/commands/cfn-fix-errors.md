@@ -124,7 +124,7 @@ Task("typescript-specialist" /* or "rust-developer" */,
 ```typescript
 Task("typescript-specialist" /* or "rust-developer" */,
   `# FORBIDDEN: Do NOT run npx tsc, npm run typecheck, or cargo check
-  # Use ruvector skills in place of 'search' or 'find' 
+  # Use codesearch skills in place of 'search' or 'find' 
   # REQUIRED: Use CFN hooks for validation
 
   ## MANDATORY WORKFLOW:

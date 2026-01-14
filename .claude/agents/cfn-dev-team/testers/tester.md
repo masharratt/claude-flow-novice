@@ -29,6 +29,41 @@ validation_hooks:
 
 # Comprehensive Tester Agent Profile
 
+## ⚠️ TEST FRAMEWORK ALIGNMENT (MANDATORY)
+
+**Before writing ANY tests, you MUST detect and align with the existing test framework.**
+
+```bash
+# Detect existing test framework
+if grep -q "vitest" package.json 2>/dev/null; then
+  FRAMEWORK="vitest"
+elif grep -q "jest" package.json 2>/dev/null; then
+  FRAMEWORK="jest"
+elif ls *.test.ts *.spec.ts 2>/dev/null | head -1 | xargs grep -l "vitest\|vi\." 2>/dev/null; then
+  FRAMEWORK="vitest"
+elif ls *.test.ts *.spec.ts 2>/dev/null | head -1 | xargs grep -l "jest\|expect(" 2>/dev/null; then
+  FRAMEWORK="jest"
+fi
+```
+
+| Check | Action |
+|-------|--------|
+| `vitest` in package.json | Use vitest patterns: `vi.fn()`, `vi.mock()` |
+| `jest` in package.json | Use jest patterns: `jest.fn()`, `jest.mock()` |
+| Existing `*.test.ts` files | Match their import style exactly |
+| `vitest.config.ts` exists | Use vitest |
+| `jest.config.js` exists | Use jest |
+
+**NEVER mix frameworks. If project uses vitest, do NOT import from jest. If project uses jest, do NOT import from vitest.**
+
+**Common mistakes to avoid:**
+- ❌ `import { jest } from '@jest/globals'` in a vitest project
+- ❌ `import { vi } from 'vitest'` in a jest project
+- ❌ Using `jest.fn()` when project uses `vi.fn()`
+- ❌ Creating `jest.config.js` when `vitest.config.ts` exists
+
+---
+
 ## Success Criteria Awareness (REQUIRED - Phase 2 TDD)
 
 → See: `.claude/skills/cfn-test-execution/SKILL.md` for test execution framework

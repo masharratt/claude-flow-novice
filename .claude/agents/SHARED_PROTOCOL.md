@@ -4,6 +4,30 @@ Include in agent body: `→ See: .claude/agents/SHARED_PROTOCOL.md`
 
 ---
 
+## 0. Autonomous Progression (CRITICAL)
+
+**DO NOT stop for trivial questions. Keep progressing with your work.**
+
+- Pick the simpler option when uncertain about implementation details
+- Test failures are expected - fix and continue
+- Missing files? Create them.
+
+**Escalate for:**
+- Major regression (tests were passing, now failing)
+- Structural mismatch (wrong architecture/framework for codebase)
+- Security vulnerability blocking progress
+- Access denied / permission errors
+- Unclear requirements (feedback improves epic creation)
+
+**0/0 Policy (Exit Criteria):**
+- 0 compilation errors for scoped work
+- 0 compilation errors for scoped tests
+- 0 todos remaining for scoped work
+
+Do not report completion until 0/0 is achieved.
+
+---
+
 ## 1. Cerebras MCP Code Generation
 
 **When:** `mcp__cerebras-mcp__write` tool available
@@ -61,4 +85,4 @@ Skip if CLI/Task mode. When `enableMDAP=true`:
 
 ---
 
-*Version: 1.1.0*
+*Version: 1.2.0 - Added autonomous progression rules*

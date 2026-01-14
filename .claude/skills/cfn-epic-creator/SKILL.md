@@ -180,7 +180,7 @@ For each persona, spawn a Task agent that reads the epic, analyzes it, and adds 
 | 5 | `backend-developer` | API design, data models, services (defines API contract first) |
 | 6 | `react-frontend-engineer` | UI/UX, client architecture (depends on backend API) |
 | 7 | `devops-engineer` | Deployment, monitoring, infrastructure (knows full stack) |
-| 8 | `tester` | Test strategy, coverage, production readiness |
+| 8 | `tester` | Test strategy, coverage, production readiness **[MUST ALIGN WITH EXISTING FRAMEWORK - vitest/jest]** |
 | 9 | `code-standards-reviewer` | Types, naming, API contracts, consistency |
 | 10 | `strategic-alignment-reviewer` | Integration gaps, dead code, misalignments, coherence |
 | 11 | `simplifier` | Final complexity review, scope creep detection (REVIEW ONLY - returns recommendations to user) |
@@ -220,7 +220,7 @@ YOUR JOB: Review the epic AND add your contributions to it.
    - Backend: Add API endpoints, services, database schemas (defines API contract)
    - Frontend: Add UI components, user flows, client requirements (uses backend API)
    - DevOps: Add deployment requirements, monitoring needs, infrastructure specs
-   - Tester: Add test cases, quality gates, validation criteria
+   - Tester: Add test cases, quality gates, validation criteria **[MUST ALIGN WITH EXISTING FRAMEWORK]**
    - Code Standards: Add naming conventions, type requirements, API contracts
    - Strategic Alignment: Flag integration gaps, add missing connections, coherence validation
 
@@ -420,6 +420,29 @@ Scope reduction, test strategy, security review, standards enforcement.
 --agents=typescript-specialist,tester,integration-tester,react-frontend-engineer --per-sprint
 ```
 Focused agents with per-sprint context for smaller models.
+
+## Test Framework Alignment (MANDATORY)
+
+**The tester persona MUST detect and align with existing test frameworks before defining test strategies.**
+
+```bash
+# Detect existing framework FIRST
+grep -q "vitest" package.json && echo "USE VITEST"
+grep -q "jest" package.json && echo "USE JEST"
+ls vitest.config.* 2>/dev/null && echo "USE VITEST"
+ls jest.config.* 2>/dev/null && echo "USE JEST"
+```
+
+| If Found | Use |
+|----------|-----|
+| `vitest` in package.json | `vi.fn()`, `vi.mock()`, `import { describe, it, expect } from 'vitest'` |
+| `jest` in package.json | `jest.fn()`, `jest.mock()`, `import { describe, it, expect } from '@jest/globals'` |
+| `vitest.config.ts` | vitest patterns |
+| `jest.config.js` | jest patterns |
+
+**NEVER mix vitest and jest in the same project. This causes compilation errors.**
+
+---
 
 ## Best Practices
 

@@ -23,10 +23,10 @@ Outputs portions of CFN MDAP codebase grouped by functional area for debugging. 
 # How to use
 Basic: bash inject.sh --docker
 Advanced: bash inject.sh --docker --cfn-loop (combined contexts)
-Full: bash inject.sh --all --ruvector --tests (~260K tokens)
+Full: bash inject.sh --all --codesearch --tests (~260K tokens)
 
 # Parameters
---all, --coordinator, --mdap, --cli, --docker, --cfn-loop, --config, --decomposers, --validators, --index, --ruvector, --tests, --file <path>
+--all, --coordinator, --mdap, --cli, --docker, --cfn-loop, --config, --decomposers, --validators, --index, --codesearch, --tests, --file <path>
 
 # Expected output
 Concatenated file contents with === FILE: path === delimiters

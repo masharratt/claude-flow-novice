@@ -1,0 +1,405 @@
+# Feature Status
+
+**Last Updated:** 2026-01-13 | **Version:** 2.18.40 | **Status:** Production
+
+---
+
+## Purpose
+
+This document tracks the production readiness of all Claude Flow Novice (CFN) npm package features. Use it to:
+- Verify feature status before releases
+- Identify test coverage gaps
+- Understand component integration status
+- Track development progress from Dev → Beta → Prod
+
+## Structure
+
+1. **Core Orchestration** - CFN Loop execution modes and coordination
+2. **Skills System** - Reusable modular capabilities
+3. **Agent Ecosystem** - Specialized AI agents by role
+4. **CLI & Commands** - User-facing interfaces
+5. **Infrastructure** - Databases, hooks, testing
+
+## Update Requirements
+
+This file MUST be updated when:
+- Features move between Dev/Beta/Prod status
+- New skills or agents are added
+- Test coverage changes significantly
+- Breaking changes are introduced
+
+---
+
+## Core Orchestration
+
+### CFN Loop System
+
+| Feature | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| Loop 3 (Implementers) | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration/` | Coders, researchers, architects execute tasks |
+| Loop 2 (Validators) | ✅ Prod | ✅ | `.claude/skills/cfn-loop-validation/` | Reviewers, testers validate output |
+| Loop 1 (Product Owner) | ✅ Prod | ✅ | `.claude/agents/cfn-dev-team/product-owners/` | Strategic oversight, PROCEED/ITERATE/ABORT |
+| Gate Check System | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration-v2/` | Threshold validation before Loop 2 |
+| Consensus Collection | ✅ Prod | ✅ | `.claude/skills/cfn-loop-orchestration-v2/` | Validator aggregation with confidence scoring |
+
+### Execution Modes
+
+| Mode | Status | Tests | Location | Description |
+|------|--------|-------|----------|-------------|
+| Task Mode | ✅ Prod | ✅ | `.claude/commands/cfn-loop-task.md` | Main Chat spawns Task() agents directly ($0.15/iter) |
+| CLI Mode | ✅ Prod | ✅ | `.claude/commands/cfn-loop-cli.md` | Coordinator spawns CLI agents ($0.054/iter) |
+| MVP Mode | ✅ Prod | ✅ | Orchestrator config | Fast iteration, 70% gate, 5 max iterations |
+| Standard Mode | ✅ Prod | ✅ | Orchestrator config | Balanced, 95% gate, 10 max iterations |
+| Enterprise Mode | ✅ Prod | ✅ | Orchestrator config | Rigorous, 98% gate, 15 max iterations |
+
+### Provider Routing
+
+| Provider | Status | Tests | Location | Description |
+|----------|--------|-------|----------|-------------|
+| Anthropic | ✅ Prod | ✅ | Default | Native Claude integration |
+| Z.ai | ✅ Prod | ⚠️ | `.claude/commands/cost-routing/` | GLM-4.6 model, 95-98% cost savings |
+| OpenRouter | ⚠️ Beta | ⚠️ | `.claude/commands/cost-routing/` | Multi-model support |
+| Kimi | ⚠️ Beta | ⚠️ | `.claude/commands/cost-routing/` | Balanced provider |
+| Cerebras | ✅ Prod | ✅ | `.claude/skills/cfn-compilation-error-fixer/` | Bulk error fixing (20+ errors) |
+
+---
+
+## Skills System (.claude/skills/)
+
+### Coordination Skills
+
+| Skill | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| cfn-loop-orchestration | ✅ Prod | ✅ | `cfn-loop-orchestration/` | Core orchestrator v3.0 |
+| cfn-loop-orchestration-v2 | ✅ Prod | ✅ | `cfn-loop-orchestration-v2/` | Gate checks, consensus |
+| cfn-redis-coordination | ✅ Prod | ✅ | `cfn-redis-coordination/` | Zero-token agent waiting via BLPOP |
+| cfn-agent-lifecycle | ✅ Prod | ✅ | `cfn-agent-lifecycle/` | Agent creation → deletion |
+| cfn-agent-spawning | ✅ Prod | ✅ | `cfn-agent-spawning/` | CLI agent spawning |
+
+### Code Intelligence Skills
+
+| Skill | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| cfn-codesearch | ✅ Prod | ✅ | `cfn-codesearch/` | Semantic codebase indexing (400x faster than grep) |
+| cfn-codebase-reindex | ✅ Prod | ✅ | `cfn-codesearch/cfn-codebase-reindex/` | Incremental indexing |
+| cfn-codebase-search | ✅ Prod | ✅ | `cfn-codesearch/cfn-codebase-search/` | Query interface |
+| cfn-detect-stale-docs | ✅ Prod | ✅ | `cfn-codesearch/cfn-detect-stale-docs/` | Documentation freshness checking |
+
+### Validation & Testing Skills
+
+| Skill | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| cfn-loop-validation | ✅ Prod | ✅ | `cfn-loop-validation/` | Validation framework |
+| cfn-test-framework | ✅ Prod | ✅ | `cfn-test-framework/` | Test orchestration |
+| cfn-validation-framework | ✅ Prod | ✅ | `cfn-validation-framework/` | Test validation |
+| cfn-edit-safety | ✅ Prod | ✅ | `cfn-edit-safety/` | Pre/post-edit backup & validation |
+
+### Planning & Management Skills
+
+| Skill | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| cfn-planning | ✅ Prod | ✅ | `cfn-planning/` | Epic decomposition, scope management |
+| cfn-sprint-execution | ✅ Prod | ✅ | `cfn-sprint-execution/` | Sprint planning & checkpointing |
+| cfn-task-planning | ✅ Prod | ✅ | `cfn-task-planning/` | Task decomposition |
+| cfn-task-intelligence | ✅ Prod | ✅ | `cfn-task-intelligence/` | Task classification, complexity estimation |
+| cfn-epic-creator | ✅ Prod | ✅ | `cfn-epic-creator/` | Epic workflow (11 persona reviews) |
+| cfn-epic-parser | ✅ Prod | ✅ | `cfn-epic-parser/` | MDAP epic conversion |
+
+### Infrastructure Skills
+
+| Skill | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| cfn-memory-persistence | ✅ Prod | ✅ | `cfn-memory-persistence/` | SQLite + Redis storage |
+| cfn-error-management | ✅ Prod | ✅ | `cfn-error-management/` | Unified error handling |
+| cfn-transparency-middleware | ✅ Prod | ✅ | `cfn-transparency-middleware/` | Audit trails (Rust) |
+| cfn-parameterized-queries | ✅ Prod | ✅ | `cfn-parameterized-queries/` | SQL injection prevention |
+| cfn-utilities | ✅ Prod | ✅ | `cfn-utilities/` | Bash utility functions |
+
+### Deployment Skills
+
+| Skill | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| cfn-skill-management | ✅ Prod | ✅ | `cfn-skill-management/` | Skill discovery & deployment |
+| cfn-deployment-lifecycle | ✅ Prod | ✅ | `cfn-deployment-lifecycle/` | Skill promotion pipeline |
+| cfn-project-management | ✅ Prod | ✅ | `cfn-project-management/` | Backlog & changelog |
+| cfn-knowledge-base | ⚠️ Beta | ⚠️ | `cfn-knowledge-base/` | Organizational learning |
+
+---
+
+## Agent Ecosystem (.claude/agents/cfn-dev-team/)
+
+### Coordinators
+
+| Agent | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| cfn-v3-coordinator | ✅ Prod | ✅ | `coordinators/` | Primary orchestrator |
+| cfn-frontend-coordinator | ✅ Prod | ✅ | `coordinators/` | React workflow coordination |
+| handoff-coordinator | ✅ Prod | ✅ | `coordinators/` | Agent handoffs, context transfer |
+
+### Developers
+
+| Agent | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| backend-developer | ✅ Prod | ✅ | `developers/` | Backend services, APIs |
+| react-frontend-engineer | ✅ Prod | ✅ | `developers/frontend/` | React components, UI |
+| rust-developer | ✅ Prod | ✅ | `developers/` | Systems programming |
+| database-architect | ✅ Prod | ✅ | `developers/database/` | Schema design, optimization |
+| api-gateway-specialist | ✅ Prod | ✅ | `developers/` | Gateway design, routing |
+| typescript-specialist | ✅ Prod | ✅ | `developers/` | Type safety, generics |
+| graphql-specialist | ⚠️ Beta | ⚠️ | `developers/` | GraphQL APIs |
+| agent-builder | ✅ Prod | ✅ | `developers/` | Agent template creation |
+
+### Reviewers & Quality
+
+| Agent | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| code-reviewer | ✅ Prod | ✅ | `reviewers/quality/` | Code quality validation |
+| code-quality-validator | ✅ Prod | ✅ | `reviewers/quality/` | Technical debt assessment |
+| security-specialist | ✅ Prod | ✅ | `reviewers/quality/` | Security review, threat modeling |
+| analyst | ✅ Prod | ✅ | `analysts/` | Code analysis, metrics |
+
+### Testers
+
+| Agent | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| tester | ✅ Prod | ✅ | `testers/` | Comprehensive testing |
+| playwright-tester | ✅ Prod | ✅ | `testers/` | E2E browser testing |
+| interaction-tester | ✅ Prod | ✅ | `testers/` | UI, accessibility testing |
+| perf-analyzer | ✅ Prod | ✅ | `testers/` | Performance analysis |
+| test-validation-agent | ✅ Prod | ✅ | `testers/` | Test result validation |
+
+### Product Owners
+
+| Agent | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| product-owner | ✅ Prod | ✅ | `product-owners/` | GOAP planning, scope enforcement |
+| cto-agent | ⚠️ Beta | ⚠️ | `csuite/` | Technical strategy |
+
+### DevOps
+
+| Agent | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| devops-engineer | ✅ Prod | ✅ | `dev-ops/` | CI/CD, infrastructure |
+| docker-specialist | ✅ Prod | ✅ | `dev-ops/` | Container management |
+| fly-io-specialist | ✅ Prod | ✅ | `dev-ops/` | Fly.io deployments |
+
+### Specialists
+
+| Agent | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| supabase-specialist | ✅ Prod | ✅ | `developers/database/` | Supabase CLI, migrations |
+| memgraph-specialist | ⚠️ Beta | ⚠️ | `developers/database/` | Graph database operations |
+| mem0-specialist | ⚠️ Beta | ⚠️ | `developers/database/` | AI memory layer |
+
+---
+
+## CLI & Commands (.claude/commands/)
+
+### Primary Commands
+
+| Command | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| /cfn-loop-task | ✅ Prod | ✅ | `cfn-loop-task.md` | Task mode execution |
+| /cfn-loop-cli | ✅ Prod | ✅ | `cfn-loop-cli.md` | CLI mode execution |
+| /cfn-fix-errors | ✅ Prod | ✅ | `cfn-fix-errors.md` | Automated error fixing |
+| /cfn-check-errors | ✅ Prod | ✅ | `cfn-check-errors.md` | Error detection |
+| /cfn-codesearch-search | ✅ Prod | ✅ | `cfn-codesearch-search.md` | Semantic code search |
+
+### Planning Commands
+
+| Command | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| /write-plan | ✅ Prod | ✅ | `write-plan.md` | TDD planning phase |
+| /sparc | ✅ Prod | ✅ | `sparc.md` | SPARC methodology |
+| /workflow | ✅ Prod | ✅ | `workflow.md` | Event-driven automation |
+| /epic-creator-v2 | ✅ Prod | ✅ | `cfn-epic-creator-v2.md` | Epic creation (11 personas) |
+
+### Utility Commands
+
+| Command | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| /cfn-loop-document | ⚠️ Beta | ⚠️ | `cfn-loop/` | Documentation generation |
+| /cfn-mode | ✅ Prod | ✅ | `cfn-loop/` | Toggle spawning mode |
+| /cfn-switch-api | ✅ Prod | ✅ | `cost-routing/` | Switch API providers |
+
+---
+
+## Infrastructure
+
+### Databases
+
+| Component | Status | Tests | Location | Description |
+|-----------|--------|-------|----------|-------------|
+| Redis Coordination | ✅ Prod | ✅ | `.claude/skills/cfn-redis-coordination/` | Zero-token agent waiting |
+| SQLite Memory | ✅ Prod | ✅ | `.claude/skills/cfn-memory-persistence/` | Agent memory, audit trails |
+| CodeSearch Index | ✅ Prod | ✅ | `~/.local/share/ruvector/` | Centralized semantic index |
+
+### Hooks System
+
+| Hook | Status | Tests | Location | Description |
+|------|--------|-------|----------|-------------|
+| Pre-edit Backup | ✅ Prod | ✅ | `.claude/hooks/cfn-invoke-pre-edit.sh` | Backup before file changes |
+| Post-edit Validation | ✅ Prod | ✅ | `.claude/hooks/cfn-invoke-post-edit.sh` | Validate after changes |
+| Session Start | ✅ Prod | ✅ | `.claude/hooks/SessionStart-*` | Session initialization |
+| WSL Memory Monitor | ✅ Prod | ✅ | `~/.local/bin/wsl-memory-monitor.sh` | Kill orphaned test processes |
+
+### Docker Support
+
+| Component | Status | Tests | Location | Description |
+|-----------|--------|-------|----------|-------------|
+| Agent Execution | ✅ Prod | ✅ | `docker/` | Isolated agent containers |
+| Orchestrator | ✅ Prod | ✅ | `docker/` | Coordinator containers |
+| Playwright Testing | ✅ Prod | ✅ | `docker/` | Browser test containers |
+| Multi-worktree | ✅ Prod | ✅ | `docker-compose.yml` | Port auto-offset per branch |
+
+### Testing Infrastructure
+
+| Component | Status | Tests | Location | Description |
+|-----------|--------|-------|----------|-------------|
+| Jest Unit Tests | ✅ Prod | ✅ | `tests/` | Component/unit testing |
+| Integration Tests | ✅ Prod | ✅ | `tests/` | Service integration |
+| E2E Tests | ✅ Prod | ✅ | `tests/` | Playwright tests |
+| Docker Tests | ✅ Prod | ✅ | `tests/` | Container testing |
+
+---
+
+## NPM Package (package.json)
+
+### Package Info
+
+| Property | Value |
+|----------|-------|
+| Name | claude-flow-novice |
+| Version | 2.18.40 |
+| License | MIT |
+| Node | ≥18.0.0 |
+| npm | ≥9.0.0 |
+
+### Key Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run build` | Build project |
+| `npm run test` | Full test suite |
+| `npm run test:unit` | Unit tests only |
+| `npm run test:integration` | Integration tests |
+| `npm run test:e2e` | E2E Playwright tests |
+| `npm run lint` | ESLint checks |
+| `npm run typecheck` | TypeScript validation |
+| `npm run ci:pre-commit` | Pre-commit checks |
+| `npm run ci:full` | Full CI pipeline |
+
+### Key Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| @anthropic-ai/sdk | Claude API integration |
+| express | HTTP server |
+| ioredis | Redis client |
+| sqlite3 | Local storage |
+| jest | Testing framework |
+| playwright | Browser automation |
+| typescript | Type checking |
+
+---
+
+## Test Coverage
+
+| Area | Files | Coverage | Notes |
+|------|-------|----------|-------|
+| Unit Tests | 50+ | High | Component/unit level |
+| Integration Tests | 30+ | Medium | Service integration |
+| E2E Tests | 20+ | Medium | Playwright tests |
+| Docker Tests | 10+ | Medium | Container testing |
+| Skill Tests | 15+ | Medium | Skill validation |
+
+---
+
+## Status Legend
+
+| Icon | Meaning |
+|------|---------|
+| ✅ Prod | Production-ready, fully tested |
+| ⚠️ Beta | Feature complete, limited testing |
+| ⚠️ Dev | Under development |
+| ❌ None | Not implemented or no tests |
+
+---
+
+## Performance Characteristics
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Task Mode Cost | $0.15/iteration | Full visibility, debugging |
+| CLI Mode Cost | $0.054/iteration | Production, cost-optimized |
+| Z.ai Routing Cost | $0.004-0.010/iteration | 95-98% savings |
+| Memory per Agent | 1-2 GB | CLI: 1GB, Task: 2GB |
+| Redis Latency | <100ms | Agent wake-up time |
+| CodeSearch Speed | 400x | Faster than grep |
+
+### Mode Thresholds
+
+| Mode | Gate | Consensus | Max Iterations | Validators |
+|------|------|-----------|----------------|------------|
+| MVP | ≥0.70 | ≥0.80 | 5 | 2 |
+| Standard | ≥0.95 | ≥0.90 | 10 | 3-5 |
+| Enterprise | ≥0.98 | ≥0.95 | 15 | 5-7 |
+
+### Timeouts
+
+| Loop | Timeout | Notes |
+|------|---------|-------|
+| Loop 1 (PO) | 300s | Strategic decisions |
+| Loop 2 (Validators) | 600s | Review and validation |
+| Loop 3 (Implementers) | 900s | Code execution |
+| Minimum | 60s | Lower bound |
+| Maximum | 1800s | Upper bound |
+
+---
+
+## Architecture Notes
+
+**Package Type:** npm package for Claude Code setups
+
+**Integration Pattern:**
+```
+Consumer Project
+       │
+       ▼
+┌──────────────────────────────────────┐
+│  claude-flow-novice (npm package)    │
+│  ┌─────────────┐  ┌──────────────┐  │
+│  │ Skills (41) │  │ Agents (74)  │  │
+│  └──────┬──────┘  └──────┬───────┘  │
+│         │                │           │
+│         └────────┬───────┘           │
+│                  ▼                   │
+│         CFN Loop Orchestration       │
+└──────────────────────────────────────┘
+```
+
+**Coordination Patterns:**
+- Chain: Sequential agent execution
+- Broadcast: Parallel agent spawning
+- Mesh: Multi-agent bidirectional communication
+- Consensus: Validator aggregation with scoring
+
+---
+
+## Security Features
+
+| Feature | Status | Location |
+|---------|--------|----------|
+| Input Validation | ✅ Prod | Joi schemas across skills |
+| Secret Protection | ✅ Prod | Environment-based, no hardcoding |
+| SQL Injection Prevention | ✅ Prod | `cfn-parameterized-queries/` |
+| Audit Logging | ✅ Prod | SQLite + Redis trails |
+| ACL Levels | ✅ Prod | Levels 1-5 for agents/skills |
+
+---
+
+## Current Development Phase
+
+**Phase:** Production
+**Active Consumers:** Internal projects (daily-reach, fireside-family)
+**Last Major Release:** v2.18.40 (2026-01-13)

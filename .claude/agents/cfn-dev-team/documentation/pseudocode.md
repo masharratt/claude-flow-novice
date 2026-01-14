@@ -1,7 +1,7 @@
 ---
 name: pseudocode
 description: MUST BE USED for algorithm design, logic planning, code outline creation. Use PROACTIVELY for problem decomposition, planning. Keywords - pseudocode, algorithm, logic, planning
-model: haiku
+model: opus
 color: indigo
 type: specialist
 capabilities:

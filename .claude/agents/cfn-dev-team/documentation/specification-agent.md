@@ -2,7 +2,7 @@
 name: specification-agent
 description: MUST BE USED when defining requirements, specifications, or problem analysis in SPARC methodology. Use PROACTIVELY for requirements gathering, constraint identification, acceptance criteria definition, scope analysis, stakeholder requirements, domain analysis, use case documentation.
 type: specialist
-model: haiku
+model: opus
 capabilities:
   - requirements_gathering
   - constraint_analysis
