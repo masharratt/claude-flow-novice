@@ -91,6 +91,59 @@ interface TechnologyAssessment {
 - Security: Zero-trust security model
 - Reliability: Fault tolerance, disaster recovery planning
 
+## Structural Output Requirements (MANDATORY for Epic Creation)
+
+When participating in epic creation via `cfn-epic-creator`, you MUST produce structural output in `technicalRequirements`. This is validated by `validate-epic.sh` before implementation proceeds.
+
+### Required Deliverables
+
+Add these fields to the epic's `technicalRequirements` object:
+
+| Field | Content | Example |
+|-------|---------|---------|
+| `components` or `modules` | List of modules with responsibilities | `[{name: "AuthService", responsibility: "Handle authentication"}]` |
+| `interfaces` or `api` | Interface contracts, function signatures | `[{name: "IAuthService", methods: ["login()", "logout()"]}]` |
+| `dependencies` | Internal and external dependency map | `{internal: ["user-service"], external: ["passport"]}` |
+| `architecture` | High-level pattern | `"modular-monolith"` or `"microservices"` |
+
+### Validation Criteria
+
+Your structural output is validated against these checks:
+- `technicalRequirements` exists and is non-empty
+- At least one of: `components`, `modules`, `services`, `architecture`
+- At least one of: `interfaces`, `api`, `endpoints`, `contracts`
+- `dependencies` or `integrations` mapping exists
+
+### Example Structural Output
+
+```json
+{
+  "technicalRequirements": {
+    "components": [
+      {"name": "AuthService", "responsibility": "JWT authentication", "dependencies": ["TokenManager"]},
+      {"name": "TokenManager", "responsibility": "Token lifecycle", "dependencies": []}
+    ],
+    "interfaces": [
+      {"name": "IAuthService", "methods": ["login(credentials): Promise<Token>", "logout(): void"]}
+    ],
+    "dependencies": {
+      "internal": ["user-service", "config-service"],
+      "external": ["jsonwebtoken", "passport"]
+    },
+    "architecture": "modular-monolith"
+  }
+}
+```
+
+### Why This Matters
+
+Without structural output, implementation agents receive vague requirements like "Build authentication" instead of concrete guidance on what components exist, how they interact, and what dependencies are needed. This causes:
+- Design decisions made mid-implementation
+- Inconsistent architecture across agents
+- Failed structural validation (blocks implementation)
+
+**Reference:** `.claude/skills/cfn-epic-creator/SKILL.md:452-479` for full validation criteria.
+
 ## Collaboration & Integration
 
 ### Agent Collaboration

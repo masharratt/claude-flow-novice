@@ -109,9 +109,29 @@ The generated JSON follows this structure:
         "...": "..."
       }
     ],
-    "implementationRoadmap": [],
+    "technicalRequirements": {
+      "components": [
+        {"name": "ComponentA", "responsibility": "Handles X", "dependencies": ["ComponentB"]},
+        {"name": "ComponentB", "responsibility": "Handles Y", "dependencies": []}
+      ],
+      "interfaces": [
+        {"name": "IService", "methods": ["getData(): Promise<Data>", "setData(d: Data): void"]}
+      ],
+      "dependencies": {
+        "internal": ["shared-utils", "auth-service"],
+        "external": ["react", "axios"]
+      },
+      "architecture": "modular-monolith"
+    },
+    "implementationRoadmap": [
+      {"phase": 1, "name": "Core Infrastructure", "tasks": ["task1", "task2"]},
+      {"phase": 2, "name": "Feature Implementation", "tasks": ["task3", "task4"]}
+    ],
     "totalCostBreakdown": {},
-    "riskAssessment": {}
+    "riskAssessment": {
+      "technical": [{"risk": "API breaking changes", "mitigation": "Version API endpoints"}],
+      "operational": [{"risk": "Deployment downtime", "mitigation": "Blue-green deployment"}]
+    }
   }
 }
 ```
@@ -215,7 +235,12 @@ YOUR JOB: Review the epic AND add your contributions to it.
 2. ADD YOUR CONTRIBUTIONS to the epic itself:
    - Simplifier (Initial & Final): **REVIEW ONLY** - returns recommendations, does not edit
    - Product Owner: Add user stories, acceptance criteria, success metrics
-   - Architect: Add technical requirements, system components, data models, feasibility analysis
+   - Architect: **STRUCTURAL OUTPUT REQUIRED** - Add to technicalRequirements:
+     * `components` or `modules`: List of components/modules with responsibilities
+     * `interfaces` or `api`: Interface definitions, function signatures, contracts
+     * `dependencies`: Internal and external dependency mapping
+     * `architecture`: High-level architecture pattern (monolith, microservices, etc.)
+     * Also add: data models, feasibility analysis, scalability considerations
    - Security: Add security requirements, threat mitigations, compliance needs, threat model
    - Backend: Add API endpoints, services, database schemas (defines API contract)
    - Frontend: Add UI components, user flows, client requirements (uses backend API)
@@ -441,6 +466,74 @@ ls jest.config.* 2>/dev/null && echo "USE JEST"
 | `jest.config.js` | jest patterns |
 
 **NEVER mix vitest and jest in the same project. This causes compilation errors.**
+
+---
+
+## Structural Validation Requirements
+
+Before an epic proceeds to implementation, it must pass **structural validation**. This ensures the epic has sufficient architectural detail for agents to implement without design ambiguity.
+
+### When Validation Runs
+
+Structural validation is a **gate between epic creation and implementation**:
+
+```
+Epic Creation Workflow:
+───────────────────────────────────────────────────────────────
+Step 1-2:   Main Chat creates JSON, Simplifier reviews scope
+Step 3-12:  9 Personas review (Architect adds structural data)
+Step 13-14: Final Simplifier review, user approves
+Step 15:    ⬇️ STRUCTURAL VALIDATION GATE ⬇️
+            ./.claude/skills/cfn-epic-creator/validate-epic.sh $EPIC -v
+
+            ├─ PASS (≥71%): Proceed to implementation
+            └─ FAIL (<71%): Loop back to Architect for structural review
+───────────────────────────────────────────────────────────────
+```
+
+### Required Structural Elements
+
+| Element | Location | Required Content | Responsible Persona |
+|---------|----------|-----------------|---------------------|
+| **Module Breakdown** | `technicalRequirements.components` or `.modules` | List of modules with responsibilities | **Architect** |
+| **Interfaces** | `technicalRequirements.interfaces` or `.api` | Function signatures, type contracts | **Architect** |
+| **Dependencies** | `technicalRequirements.dependencies` | Internal and external dependency map | **Architect** |
+| **Roadmap** | `implementationRoadmap` | Ordered phases with tasks | All personas contribute |
+| **Risks** | `riskAssessment` | Identified risks with mitigations | All personas contribute |
+
+### Validation Checks (7 total)
+
+1. `technicalRequirements` exists and non-empty
+2. `implementationRoadmap` has phases
+3. Architect provided ≥3 insights
+4. Module/component breakdown defined
+5. Interface/API contracts defined
+6. Dependency mapping exists
+7. Risk assessment populated
+
+### Structural Completeness Score
+
+Score = (passed_checks / 7) × 100%
+
+| Score | Status | Action |
+|-------|--------|--------|
+| 100% (7/7) | ✅ Ready | Proceed to implementation |
+| 71-99% (5-6/7) | ⚠️ Minor gaps | User decides: proceed or enhance |
+| <71% (≤4/7) | ⚠️ Significant gaps | Architect review required |
+
+### Running Validation
+
+```bash
+# Standard validation (warnings only)
+./.claude/skills/cfn-epic-creator/validate-epic.sh epic.json -v
+
+# Strict mode (>2 warnings = FAIL, blocks implementation)
+./.claude/skills/cfn-epic-creator/validate-epic.sh epic.json -v -s
+```
+
+### Strict Mode (`-s` flag)
+
+In strict mode, epics with >2 structural warnings fail validation (exit code 1). Use for production epics where implementation quality is critical.
 
 ---
 

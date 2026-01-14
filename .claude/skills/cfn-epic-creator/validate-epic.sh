@@ -41,8 +41,19 @@ REQUIRED ARGUMENTS:
 
 OPTIONS:
     -v, --verbose    Show detailed validation output
-    -s, --strict     Enable strict validation (fails on warnings)
+    -s, --strict     Enable strict validation (fails on warnings, requires >71% structural completeness)
     -h, --help       Show this help message
+
+VALIDATION CHECKS:
+    1. JSON Schema     - Required fields, persona structure, field formats
+    2. Persona Review  - All required personas present with reviews
+    3. Recommendations - Valid type (blocking/suggested) and priority
+    4. Structural      - Architecture readiness for implementation:
+                         - technicalRequirements with components/modules
+                         - Interface/API definitions
+                         - Dependency mapping
+                         - Implementation roadmap
+                         - Risk assessment
 
 EXIT CODES:
     0    Validation passed
@@ -159,15 +170,17 @@ validate_json_structure() {
     else
         local persona_count
         persona_count=$(jq -r '.epic.personas | length' "$json_file")
-        if [[ "$persona_count" -ne 6 ]]; then
-            log_error "Expected exactly 6 personas, found: $persona_count"
+        # SKILL.md defines 9 core personas (Simplifier passes are review-only, not stored)
+        if [[ "$persona_count" -lt 6 ]]; then
+            log_error "Expected at least 6 personas, found: $persona_count"
             validation_errors=$((validation_errors + 1))
         elif [[ "$verbose" == true ]]; then
-            log_success "Found correct number of personas: $persona_count"
+            log_success "Found $persona_count personas (minimum 6 required)"
         fi
-        
-        # Validate each persona
-        local required_persona_names=("product-owner" "architect" "security-specialist" "performance-specialist" "accessibility-advocate" "devops-engineer")
+
+        # Validate each persona - aligned with SKILL.md persona order
+        # Core personas that must be present for structural validation
+        local required_persona_names=("product-owner" "architect" "security-specialist" "backend-developer" "devops-engineer" "tester")
         local found_personas
         found_personas=$(jq -r '.epic.personas[].name' "$json_file")
         
@@ -211,10 +224,16 @@ validate_json_structure() {
         if [[ "$verbose" == true ]]; then
             log_info "Validating epic metadata..."
         fi
-        
+
         validate_metadata "$json_file" "$verbose" || validation_errors=$((validation_errors + 1))
     fi
-    
+
+    # Validate structural completeness (new: checks architecture readiness)
+    if [[ "$verbose" == true ]]; then
+        log_info "Validating structural completeness..."
+    fi
+    validate_structural_completeness "$json_file" "$verbose" "$strict" || validation_errors=$((validation_errors + 1))
+
     # Report results
     echo ""
     log_info "=== Validation Results ==="
@@ -270,11 +289,11 @@ validate_persona_structure() {
         fi
     done
     
-    # Check reviewOrder
+    # Check reviewOrder (1-11 range to support all personas including Simplifier passes)
     local review_order
     review_order=$(jq -r "${persona_query} | .reviewOrder" "$json_file")
-    if [[ ! "$review_order" =~ ^[1-6]$ ]]; then
-        log_error "Invalid reviewOrder for ${persona_name}: $review_order (must be 1-6)"
+    if [[ ! "$review_order" =~ ^([1-9]|1[01])$ ]]; then
+        log_error "Invalid reviewOrder for ${persona_name}: $review_order (must be 1-11)"
         return 1
     fi
     
@@ -410,6 +429,149 @@ validate_metadata() {
         fi
     fi
     
+    return 0
+}
+
+# Validate structural completeness for implementation readiness
+# This ensures the epic has enough architectural detail to guide implementation
+validate_structural_completeness() {
+    local json_file="$1"
+    local verbose="${2:-false}"
+    local strict="${3:-false}"
+
+    local structural_warnings=0
+    local structural_errors=0
+
+    if [[ "$verbose" == true ]]; then
+        log_info "Validating structural completeness..."
+    fi
+
+    # Check 1: technicalRequirements must exist and have content
+    if ! jq -e '.epic.technicalRequirements' "$json_file" >/dev/null 2>&1; then
+        log_warning "Missing epic.technicalRequirements - implementation will lack technical guidance"
+        structural_warnings=$((structural_warnings + 1))
+    else
+        local tech_req_keys
+        tech_req_keys=$(jq -r '.epic.technicalRequirements | keys | length' "$json_file")
+        if [[ "$tech_req_keys" -lt 1 ]]; then
+            log_warning "epic.technicalRequirements is empty"
+            structural_warnings=$((structural_warnings + 1))
+        elif [[ "$verbose" == true ]]; then
+            log_success "Found technicalRequirements with $tech_req_keys categories"
+        fi
+    fi
+
+    # Check 2: implementationRoadmap must exist with phases
+    if ! jq -e '.epic.implementationRoadmap' "$json_file" >/dev/null 2>&1; then
+        log_warning "Missing epic.implementationRoadmap - no phase breakdown for implementation"
+        structural_warnings=$((structural_warnings + 1))
+    else
+        local roadmap_phases
+        roadmap_phases=$(jq -r '.epic.implementationRoadmap | length' "$json_file")
+        if [[ "$roadmap_phases" -lt 1 ]]; then
+            log_warning "epic.implementationRoadmap is empty - add implementation phases"
+            structural_warnings=$((structural_warnings + 1))
+        elif [[ "$verbose" == true ]]; then
+            log_success "Found implementationRoadmap with $roadmap_phases phases"
+        fi
+    fi
+
+    # Check 3: Architect persona must have provided architecture details
+    local architect_insights
+    architect_insights=$(jq -r '.epic.personas[] | select(.name == "architect") | .insights | length // 0' "$json_file")
+    if [[ "$architect_insights" -lt 3 ]]; then
+        log_warning "Architect persona has fewer than 3 insights - may lack sufficient architectural detail"
+        structural_warnings=$((structural_warnings + 1))
+    elif [[ "$verbose" == true ]]; then
+        log_success "Architect provided $architect_insights insights"
+    fi
+
+    # Check 4: Look for module/component definitions in technicalRequirements
+    local has_components
+    has_components=$(jq -r '
+        .epic.technicalRequirements |
+        (has("components") or has("modules") or has("services") or has("architecture"))
+    ' "$json_file" 2>/dev/null || echo "false")
+
+    if [[ "$has_components" != "true" ]]; then
+        log_warning "No component/module breakdown found in technicalRequirements"
+        log_warning "  Add: components, modules, services, or architecture section"
+        structural_warnings=$((structural_warnings + 1))
+    elif [[ "$verbose" == true ]]; then
+        log_success "Found component/module breakdown in technicalRequirements"
+    fi
+
+    # Check 5: Look for interface/API definitions
+    local has_interfaces
+    has_interfaces=$(jq -r '
+        .epic.technicalRequirements |
+        (has("interfaces") or has("api") or has("endpoints") or has("contracts"))
+    ' "$json_file" 2>/dev/null || echo "false")
+
+    if [[ "$has_interfaces" != "true" ]]; then
+        log_warning "No interface/API definitions found in technicalRequirements"
+        log_warning "  Add: interfaces, api, endpoints, or contracts section"
+        structural_warnings=$((structural_warnings + 1))
+    elif [[ "$verbose" == true ]]; then
+        log_success "Found interface/API definitions in technicalRequirements"
+    fi
+
+    # Check 6: Look for dependency mapping
+    local has_dependencies
+    has_dependencies=$(jq -r '
+        .epic.technicalRequirements |
+        (has("dependencies") or has("integrations") or has("external"))
+    ' "$json_file" 2>/dev/null || echo "false")
+
+    if [[ "$has_dependencies" != "true" ]]; then
+        log_warning "No dependency mapping found in technicalRequirements"
+        log_warning "  Add: dependencies, integrations, or external section"
+        structural_warnings=$((structural_warnings + 1))
+    elif [[ "$verbose" == true ]]; then
+        log_success "Found dependency mapping in technicalRequirements"
+    fi
+
+    # Check 7: riskAssessment should exist for complex epics
+    if ! jq -e '.epic.riskAssessment' "$json_file" >/dev/null 2>&1; then
+        log_warning "Missing epic.riskAssessment - risks may not be documented"
+        structural_warnings=$((structural_warnings + 1))
+    else
+        local risk_count
+        risk_count=$(jq -r '.epic.riskAssessment | if type == "array" then length else (keys | length) end' "$json_file" 2>/dev/null || echo "0")
+        if [[ "$risk_count" -lt 1 ]]; then
+            log_warning "epic.riskAssessment is empty"
+            structural_warnings=$((structural_warnings + 1))
+        elif [[ "$verbose" == true ]]; then
+            log_success "Found riskAssessment with $risk_count items"
+        fi
+    fi
+
+    # Calculate structural completeness score
+    local max_checks=7
+    local passed_checks=$((max_checks - structural_warnings))
+    local completeness_score
+    completeness_score=$(echo "scale=2; $passed_checks / $max_checks * 100" | bc)
+
+    echo ""
+    log_info "=== Structural Completeness ==="
+    log_info "Score: ${completeness_score}% ($passed_checks/$max_checks checks passed)"
+
+    if [[ $structural_warnings -eq 0 ]]; then
+        log_success "✅ Epic is structurally complete - ready for implementation"
+    elif [[ $structural_warnings -le 2 ]]; then
+        log_warning "⚠️  Epic has minor structural gaps ($structural_warnings warnings)"
+        log_info "    Consider enhancing before implementation"
+    else
+        log_warning "⚠️  Epic has significant structural gaps ($structural_warnings warnings)"
+        log_info "    Architect review recommended before implementation"
+    fi
+
+    # In strict mode, treat structural warnings as errors
+    if [[ "$strict" == true && $structural_warnings -gt 2 ]]; then
+        log_error "Strict mode: >2 structural warnings treated as errors"
+        return 1
+    fi
+
     return 0
 }
 
