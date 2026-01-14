@@ -15,7 +15,7 @@ src/
 .claude/**/target/
 .claude/**/dist/
 .claude/**/build/
-.claude/**/.ruvector/
+.claude/**/.codesearch/
 .claude/**/index.db
 .claude/**/*.sqlite
 .claude/**/*.sqlite3
@@ -25,7 +25,7 @@ src/
 
 # Exclude Rust build artifacts
 .claude/skills/cfn-transparency-middleware/target/
-.claude/skills/cfn-local-ruvector-accelerator/target/
+.claude/skills/cfn-codesearch/target/
 *.rlib
 *.rmeta
 
@@ -158,13 +158,13 @@ templates/
 readme/
 web-portal/
 
-# Rust/Local RuVector build artifacts
-.claude/skills/cfn-local-ruvector-accelerator/target/
-.claude/skills/cfn-local-ruvector-accelerator/Cargo.lock
-.claude/skills/cfn-local-ruvector-accelerator/index.db
-.claude/skills/cfn-local-ruvector-accelerator/.ruvector/
-.claude/skills/cfn-local-ruvector-accelerator/*.sqlite
-.claude/skills/cfn-local-ruvector-accelerator/*.sqlite3
+# Rust/CodeSearch build artifacts
+.claude/skills/cfn-codesearch/target/
+.claude/skills/cfn-codesearch/Cargo.lock
+.claude/skills/cfn-codesearch/index.db
+.claude/skills/cfn-codesearch/.codesearch/
+.claude/skills/cfn-codesearch/*.sqlite
+.claude/skills/cfn-codesearch/*.sqlite3
 
 # Docker files
 docker/
