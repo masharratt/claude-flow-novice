@@ -135,7 +135,7 @@ Enables:
 - Path collision scenario: Two projects with same relative filename
 - Impact: All projects sharing common filenames (main.rs, lib.rs, etc.)
 
-**RUVECTOR_ISOLATION_AUDIT.md:**
+**CODESEARCH_ISOLATION_AUDIT.md:**
 - Multi-project attack vectors
 - Path-based isolation weaknesses
 - Transaction and consistency issues

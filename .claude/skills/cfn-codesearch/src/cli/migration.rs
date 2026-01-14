@@ -7,7 +7,7 @@ use crate::migration_tx::MigrationWithTx;
 
 #[derive(Debug, Clone)]
 pub enum SourceType {
-    RuVectorPython,
+    CodeSearchPython,
     CodeBERT,
     Whoosh,
     Elastic,
@@ -37,7 +37,7 @@ impl MigrationCommand {
 
     pub fn execute(&self) -> Result<()> {
         match self.source_type {
-            SourceType::RuVectorPython => self.migrate_from_python(),
+            SourceType::CodeSearchPython => self.migrate_from_python(),
             SourceType::CodeBERT => self.migrate_from_codebert(),
             SourceType::Whoosh => self.migrate_from_whoosh(),
             SourceType::Elastic => self.migrate_from_elastic(),
@@ -46,7 +46,7 @@ impl MigrationCommand {
 
     /// Execute migration with transaction support
     pub fn execute_with_tx(&self) -> Result<()> {
-        let db_path = self.project_dir.join(".ruvector/index_v2.db");
+        let db_path = self.project_dir.join(".codesearch/index_v2.db");
 
         // Ensure database directory exists
         std::fs::create_dir_all(db_path.parent().unwrap())
@@ -59,7 +59,7 @@ impl MigrationCommand {
 
         // Use the transaction-aware migration
         match self.source_type {
-            SourceType::RuVectorPython => {
+            SourceType::CodeSearchPython => {
                 MigrationWithTx::migrate_v1_to_v2_atomic(&mut conn)?;
                 MigrationWithTx::validate_migration(&mut conn)?;
             }
@@ -74,7 +74,7 @@ impl MigrationCommand {
     }
 
     fn migrate_from_python(&self) -> Result<()> {
-        println!("⚠️  Migration from Python RuVector not yet implemented");
+        println!("⚠️  Migration from Python CodeSearch not yet implemented");
         if self.dry_run {
             println!("Would migrate from: {}", self.source_path.display());
         }

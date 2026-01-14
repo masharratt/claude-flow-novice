@@ -71,7 +71,7 @@ cargo check
    - Simplify error handling for better compatibility
    - Test script on multiple shells (bash, zsh)
 
-2. **Pattern to Store in RuVector**:
+2. **Pattern to Store in CodeSearch**:
    ```json
    {
      "type": "rust_borrow_checker_fix",
@@ -84,12 +84,12 @@ cargo check
 
 3. **Integration Notes**:
    - The fix script concept works well
-   - Pattern matching from RuVector would improve fixes
+   - Pattern matching from CodeSearch would improve fixes
    - Direct integration with Cerebras would enhance automation
 
 ## Conclusion
 
-The approach of fixing existing code with TDD + RuVector patterns is viable. The main script needs minor fixes for shell compatibility, but the core concept of:
+The approach of fixing existing code with TDD + CodeSearch patterns is viable. The main script needs minor fixes for shell compatibility, but the core concept of:
 1. Analyzing errors
 2. Querying fix patterns
 3. Applying solutions

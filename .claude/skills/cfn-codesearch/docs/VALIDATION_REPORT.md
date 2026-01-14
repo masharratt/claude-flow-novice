@@ -1,7 +1,7 @@
-# AST-Aware RuVector Accelerator - Implementation Validation Report
+# AST-Aware CodeSearch Accelerator - Implementation Validation Report
 
 ## Executive Summary
-The AST-Aware RuVector Accelerator implementation **partially matches its intent**. The architecture is well-designed with proper separation of concerns, but the TypeScript extractor is incomplete, and several integration issues prevent end-to-end functionality.
+The AST-Aware CodeSearch Accelerator implementation **partially matches its intent**. The architecture is well-designed with proper separation of concerns, but the TypeScript extractor is incomplete, and several integration issues prevent end-to-end functionality.
 
 **Overall Assessment: 65% Complete**
 - Rust extractor: 85% complete
@@ -37,7 +37,7 @@ The AST-Aware RuVector Accelerator implementation **partially matches its intent
   - Path expressions
 
 ### Implementation Details:
-- File: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-ruvector-accelerator/src/extractors/rust.rs` (424 lines)
+- File: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-codesearch-accelerator/src/extractors/rust.rs` (424 lines)
 - Uses tree-sitter-rust 0.20 for AST parsing
 - Entity struct includes: id, kind, name, file_path, line, column, signature, visibility, parent_id, metadata
 - Reference struct includes: id, file_path, line, column, ref_kind, source_id, target_name
@@ -71,7 +71,7 @@ The AST-Aware RuVector Accelerator implementation **partially matches its intent
 
 ### What's NOT Working (Stub Implementation):
 ✗ **No actual AST extraction implemented** - returns empty results
-✗ File: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-ruvector-accelerator/src/extractors/typescript.rs` (80 lines)
+✗ File: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-codesearch-accelerator/src/extractors/typescript.rs` (80 lines)
 ✗ Only 29 lines of actual code (rest is tests and struct definitions)
 ✗ extract() method returns: `ExtractionResult { entities: Vec::new(), references: Vec::new(), errors: ["TypeScript AST extractor not yet fully implemented"] }`
 
@@ -196,7 +196,7 @@ CREATE TABLE entity_embeddings (
 
 ### Critical Issue:
 ✗ **Uses dummy embeddings, not real embeddings**
-- File: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-ruvector-accelerator/src/embeddings.rs`
+- File: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-codesearch-accelerator/src/embeddings.rs`
 - generate_dummy_embedding() creates 1536-dimensional vector using hash function
 - No actual API calls to embedding service (OpenAI text-embedding-ada-002)
 - Marked as "Generate a simple dummy embedding for now"
@@ -245,7 +245,7 @@ CREATE TABLE entity_embeddings (
 ### Compilation Status:
 ✓ Compiles successfully (with 107 warnings)
 ✓ CLI commands available:
-  - `local-ruvector index-ast` - core functionality
+  - `local-codesearch index-ast` - core functionality
 
 ---
 

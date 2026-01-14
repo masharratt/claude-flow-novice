@@ -69,7 +69,7 @@ INDEX_FILES=(
 )
 
 # CodeSearch integration files
-RUVECTOR_FILES=(
+CODESEARCH_FILES=(
   "lib/mdap/codesearch-mdap-analytics.ts"
   "lib/mdap/codesearch-rag-decomposition.ts"
   "lib/mdap/codesearch-learning-hooks.ts"
@@ -334,7 +334,7 @@ main() {
   fi
 
   if [[ "$inject_codesearch" == "true" ]]; then
-    output_group RUVECTOR_FILES "RUVECTOR INTEGRATION"
+    output_group CODESEARCH_FILES "CODESEARCH INTEGRATION"
   fi
 
   if [[ "$inject_tests" == "true" ]]; then

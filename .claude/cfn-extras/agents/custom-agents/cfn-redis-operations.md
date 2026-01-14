@@ -14,7 +14,7 @@ capabilities: [redis-diagnostics, key-inspection, redis-health-checks, coordinat
 # This is mandatory for all file edits to ensure code quality and validation.
 # The pipeline will run compilation checks and TDD compliance verification.
 
-→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  CodeSearch (semantic search) | Post-edit hook (file validation)
 
 # CFN Redis Operations Troubleshooting Specialist
 

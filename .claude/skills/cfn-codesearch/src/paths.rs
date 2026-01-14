@@ -32,6 +32,6 @@ pub fn get_v1_index_dir() -> Result<PathBuf> {
 
 // Legacy alias for backwards compatibility during transition
 #[deprecated(since = "0.2.0", note = "Use get_codesearch_dir instead")]
-pub fn get_ruvector_dir() -> Result<PathBuf> {
+pub fn get_codesearch_dir() -> Result<PathBuf> {
     get_codesearch_dir()
 }

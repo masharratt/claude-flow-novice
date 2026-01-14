@@ -42,7 +42,7 @@ error[E0596]: cannot borrow `self.users` as mutable more than once at a time
 ```
 🔍 Querying fix patterns for: rs errors - borrow checker
 
-📚 Fix patterns from RuVector:
+📚 Fix patterns from CodeSearch:
 
 Pattern 1 (95% success rate):
 // Rust Borrow Checker Fix:
@@ -165,10 +165,10 @@ test result: ok. 3 passed; 0 failed
   --agent-id "$AGENT_ID" \
   --file-path "src/services/user_service.rs" \
   --success true \
-  --learnings "Fixed borrow checker using HashMap entry() API pattern from RuVector. Pattern had 95% success rate."
+  --learnings "Fixed borrow checker using HashMap entry() API pattern from CodeSearch. Pattern had 95% success rate."
 ```
 
-**Stored in RuVector for future:**
+**Stored in CodeSearch for future:**
 ```json
 {
   "type": "code_fix",
@@ -251,4 +251,4 @@ The system would:
 4. Apply fix with proper error handling
 5. Validate with concurrent tests
 
-This shows how the Cerebras backend developer can efficiently fix errors by learning from past successful fixes stored in RuVector, while maintaining TDD discipline.
+This shows how the Cerebras backend developer can efficiently fix errors by learning from past successful fixes stored in CodeSearch, while maintaining TDD discipline.

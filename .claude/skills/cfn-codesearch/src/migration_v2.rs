@@ -3,7 +3,7 @@ use rusqlite::{Connection, params};
 use tracing::{info, warn, error, debug};
 use std::path::Path;
 
-/// Multi-project isolation schema migration for RuVector v2
+/// Multi-project isolation schema migration for CodeSearch v2
 ///
 /// This migration adds `project_root` column to the entities table to enable
 /// proper isolation between different projects indexed in the same database.

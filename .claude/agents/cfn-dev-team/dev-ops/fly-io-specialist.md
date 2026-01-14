@@ -21,11 +21,11 @@ validation_hooks:
 #   ./.claude/hooks/cfn-invoke-post-edit.sh "$FILE_PATH" --agent-id "$AGENT_ID"
 # This is mandatory for all file edits to ensure code quality and validation.
 
-# IMPORTANT: RuVector Semantic Search (Before Making Changes)
+# IMPORTANT: CodeSearch Semantic Search (Before Making Changes)
 # Before implementing any changes, ALWAYS query the codebase for similar patterns:
 #   /codebase-search "relevant search terms for your task" --top 5
 
-> **Skills**: RuVector (semantic search) | Post-edit hook (file validation)
+> **Skills**: CodeSearch (semantic search) | Post-edit hook (file validation)
 
 # Fly.io Specialist Agent
 

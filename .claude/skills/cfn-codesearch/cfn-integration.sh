@@ -186,8 +186,8 @@ Examples:
   cfn-local-codesearch coordinate agent-123 src/auth.rs "create auth middleware"
 
 Environment Variables:
-  RUVECTOR_VERBOSE=1     Enable verbose logging
-  RUVECTOR_PROJECT_DIR    Override project directory
+  CODESEARCH_VERBOSE=1     Enable verbose logging
+  CODESEARCH_PROJECT_DIR    Override project directory
 
 EOF
 }

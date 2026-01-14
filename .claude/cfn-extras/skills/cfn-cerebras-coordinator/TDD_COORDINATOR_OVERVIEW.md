@@ -9,7 +9,7 @@ This directory contains two TDD coordinators with different approaches:
 1. Generate tests
 2. Generate implementation
 3. Run tests once
-4. Log to RuVector
+4. Log to CodeSearch
 
 **Best For**:
 - Simple, well-understood features
@@ -29,7 +29,7 @@ This directory contains two TDD coordinators with different approaches:
 **Purpose**: Iterative TDD with intelligent error recovery
 
 **Workflow**:
-1. Gather context (RuVector + files)
+1. Gather context (CodeSearch + files)
 2. Generate tests (RED phase)
 3. Verify tests fail
 4. Generate implementation (GREEN phase)
@@ -58,7 +58,7 @@ This directory contains two TDD coordinators with different approaches:
 | Feature | Original | Conversation |
 |---------|----------|--------------|
 | Iterations | 1 | 1-N (configurable) |
-| Context gathering | Basic | RuVector + files |
+| Context gathering | Basic | CodeSearch + files |
 | Error recovery | None | Full conversation history |
 | Red phase validation | No | Yes |
 | Fix analysis | No | Yes (with history) |

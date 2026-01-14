@@ -177,7 +177,7 @@ Each test:
 
 This test suite directly validates fixes for vulnerabilities identified in:
 - **`DATABASE_SAFETY_AUDIT.md`**: Critical cross-project deletion vulnerability
-- **`RUVECTOR_ISOLATION_AUDIT.md`**: Multi-project attack vectors
+- **`CODESEARCH_ISOLATION_AUDIT.md`**: Multi-project attack vectors
 - **Vulnerability**: Relative paths without project discriminators
 
 ### Attack Vectors Covered

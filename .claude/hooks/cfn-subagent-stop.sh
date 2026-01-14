@@ -82,10 +82,10 @@ WHERE id = '$AGENT_ID';
 EOF
 
     # ========================================================================
-    # Feature 3: RuVector Transcript Ingestion
+    # Feature 3: CodeSearch Transcript Ingestion
     # ========================================================================
 
-    # Ingest transcript data into RuVector for semantic search
+    # Ingest transcript data into CodeSearch for semantic search
     # Determine success flag from agent status/confidence
     AGENT_SUCCESS="true"
     AGENT_CONFIDENCE=$(sqlite3 "$DB_PATH" "SELECT confidence FROM agents WHERE id = '$AGENT_ID';" || echo "0")
@@ -100,21 +100,21 @@ EOF
         AGENT_SUCCESS="false"
     fi
 
-    # Call RuVector ingestion script (non-blocking, logs errors)
-    RUVECTOR_SCRIPT="${PROJECT_ROOT}/.claude/skills/cfn-local-ruvector-accelerator/ingest-agent-transcript.sh"
-    if [ -f "$RUVECTOR_SCRIPT" ]; then
-        "$RUVECTOR_SCRIPT" \
+    # Call CodeSearch ingestion script (non-blocking, logs errors)
+    CODESEARCH_SCRIPT="${PROJECT_ROOT}/.claude/skills/cfn-codesearch/ingest-agent-transcript.sh"
+    if [ -f "$CODESEARCH_SCRIPT" ]; then
+        "$CODESEARCH_SCRIPT" \
             --transcript "$TRANSCRIPT_ARCHIVE" \
             --agent-id "$AGENT_ID" \
             --agent-type "$AGENT_TYPE" \
             --task-id "$TASK_ID" \
             --success "$AGENT_SUCCESS" \
             >> "$LOG_PATH" 2>&1 || {
-                echo "[SubagentStop] Warning: RuVector ingestion failed for $AGENT_ID" | tee -a "$LOG_PATH"
+                echo "[SubagentStop] Warning: CodeSearch ingestion failed for $AGENT_ID" | tee -a "$LOG_PATH"
             }
-        echo "[SubagentStop] RuVector ingestion triggered for $AGENT_ID" | tee -a "$LOG_PATH"
+        echo "[SubagentStop] CodeSearch ingestion triggered for $AGENT_ID" | tee -a "$LOG_PATH"
     else
-        echo "[SubagentStop] RuVector ingestion script not found, skipping" | tee -a "$LOG_PATH"
+        echo "[SubagentStop] CodeSearch ingestion script not found, skipping" | tee -a "$LOG_PATH"
     fi
 
 else

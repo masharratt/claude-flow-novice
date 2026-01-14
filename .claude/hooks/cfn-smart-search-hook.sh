@@ -1,13 +1,13 @@
 #!/bin/bash
 set -euo pipefail
-exec 2>/tmp/ruvector-search-hook.log
+exec 2>/tmp/codesearch-search-hook.log
 
 INPUT=$(timeout 1 cat || echo "{}")
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty')
 PATTERN=$(echo "$INPUT" | jq -r '.tool_input.pattern // empty')
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> /tmp/ruvector-search-hook.log
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> /tmp/codesearch-search-hook.log
 }
 
 # Load API key from .env if not set
@@ -68,37 +68,37 @@ $UNCOMMITTED
     fi
 fi
 
-# Query RuVector V2 SQL first (no API key needed)
-RUVECTOR_RESULTS=""
-DB_PATH="$HOME/.local/share/ruvector/index_v2.db"
+# Query CodeSearch V2 SQL first (no API key needed)
+CODESEARCH_RESULTS=""
+DB_PATH="$HOME/.local/share/codesearch/index_v2.db"
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 if [[ -f "$DB_PATH" ]]; then
-    log "Querying RuVector SQL for: $PATTERN (project: $PROJECT_ROOT)"
+    log "Querying CodeSearch SQL for: $PATTERN (project: $PROJECT_ROOT)"
     # Escape pattern for SQL LIKE
     SAFE_PATTERN=$(echo "$PATTERN" | sed "s/'/''/g")
     SAFE_ROOT=$(echo "$PROJECT_ROOT" | sed "s/'/''/g")
-    RUVECTOR_RESULTS=$(timeout 3 sqlite3 -separator ':' "$DB_PATH" \
+    CODESEARCH_RESULTS=$(timeout 3 sqlite3 -separator ':' "$DB_PATH" \
         "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 8" 2>/dev/null | head -10 || true)
-    if [[ -n "$RUVECTOR_RESULTS" ]]; then
-        log "RuVector SQL returned results"
-        CONTEXT="${CONTEXT}RuVector indexed matches for '$PATTERN':
-$RUVECTOR_RESULTS
+    if [[ -n "$CODESEARCH_RESULTS" ]]; then
+        log "CodeSearch SQL returned results"
+        CONTEXT="${CONTEXT}CodeSearch indexed matches for '$PATTERN':
+$CODESEARCH_RESULTS
 
 "
     fi
 else
-    log "RuVector index not found at $DB_PATH"
+    log "CodeSearch index not found at $DB_PATH"
 fi
 
 # Fallback to semantic search if SQL found nothing and API key available
-if [[ -z "$RUVECTOR_RESULTS" ]] && command -v local-ruvector >/dev/null 2>&1; then
+if [[ -z "$CODESEARCH_RESULTS" ]] && command -v local-codesearch >/dev/null 2>&1; then
     if load_api_key; then
         log "SQL returned nothing, trying semantic search for: $PATTERN"
         # Strip ANSI codes from output
-        SEMANTIC_RESULTS=$(timeout 5 local-ruvector query "$PATTERN" --max-results 5 --threshold 0.3 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -8 || true)
+        SEMANTIC_RESULTS=$(timeout 5 local-codesearch query "$PATTERN" --max-results 5 --threshold 0.3 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -8 || true)
         if [[ -n "$SEMANTIC_RESULTS" ]]; then
             log "Semantic search returned results"
-            CONTEXT="${CONTEXT}RuVector semantic matches for '$PATTERN':
+            CONTEXT="${CONTEXT}CodeSearch semantic matches for '$PATTERN':
 $SEMANTIC_RESULTS
 
 "

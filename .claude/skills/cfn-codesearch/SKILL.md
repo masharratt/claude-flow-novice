@@ -6,7 +6,7 @@ allowed-tools: Bash, Read, SlashCommand
 
 # CodeSearch Local Semantic Code Search
 
-## MANDATORY: QUERY RUVECTOR BEFORE GREP/GLOB
+## MANDATORY: QUERY CODESEARCH BEFORE GREP/GLOB
 
 **This is a PROTOCOL REQUIREMENT, not a suggestion. Failure to query CodeSearch first is a violation.**
 
@@ -15,7 +15,7 @@ allowed-tools: Bash, Read, SlashCommand
 - Agents using grep first waste tokens and time
 - Index already exists at `~/.local/share/codesearch/index_v2.db`
 
-### ALWAYS USE RUVECTOR FIRST
+### ALWAYS USE CODESEARCH FIRST
 ```bash
 # Exact name lookup - 0.002s
 sqlite3 ~/.local/share/codesearch/index_v2.db "SELECT file_path, line_number FROM entities WHERE name = 'MyFunction';"
@@ -135,7 +135,7 @@ sqlite3 ~/.local/share/codesearch/index_v2.db "SELECT project_root, COUNT(*) FRO
 sqlite3 ~/.local/share/codesearch/index_v2.db "SELECT file_path, line_number FROM entities WHERE name LIKE '%keyword%';"
 
 # STEP 2: Query past errors/patterns
-./.claude/skills/cfn-local-codesearch-accelerator/query-agent-patterns.sh "description"
+./.claude/skills/cfn-codesearch/query-agent-patterns.sh "description"
 
 # STEP 3: Only if CodeSearch returns nothing, then use grep
 ```

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 4 of the AST-Aware RuVector Accelerator implements a high-level query interface for agent use cases, replacing complex grep patterns with structured SQL queries. The implementation provides fast (<50ms) queries on 10k+ entity indexes with support for both Rust and TypeScript codebases.
+Phase 4 of the AST-Aware CodeSearch Accelerator implements a high-level query interface for agent use cases, replacing complex grep patterns with structured SQL queries. The implementation provides fast (<50ms) queries on 10k+ entity indexes with support for both Rust and TypeScript codebases.
 
 ## Features Implemented
 
@@ -19,55 +19,55 @@ The QueryApi struct provides six core query methods:
 
 ### 2. CLI Commands
 
-#### `ruvector find` Command
+#### `codesearch find` Command
 Structured search with multiple filter options:
 
 ```bash
 # Find functions using a type
-ruvector find --uses-type Album
+codesearch find --uses-type Album
 
 # Find callers of a function, excluding certain module
-ruvector find --called-by create_album --exclude tests
+codesearch find --called-by create_album --exclude tests
 
 # Find types from a file used elsewhere
-ruvector find --types-from src/models.rs
+codesearch find --types-from src/models.rs
 
 # Find implementations of a trait
-ruvector find --implements Display
+codesearch find --implements Display
 
 # Find public API of a module
-ruvector find --public-api auth
+codesearch find --public-api auth
 
 # Filter by entity kind
-ruvector find --uses-type String --kind function
+codesearch find --uses-type String --kind function
 
 # Output in different formats
-ruvector find --uses-type Album --format json
-ruvector find --uses-type Album --format csv --output results.csv
+codesearch find --uses-type Album --format json
+codesearch find --uses-type Album --format csv --output results.csv
 ```
 
-#### `ruvector refs` Command
+#### `codesearch refs` Command
 Find all references to an entity:
 
 ```bash
 # Simple reference search
-ruvector refs create_album
+codesearch refs create_album
 
 # With specific entity kind
-ruvector refs Album --kind struct
+codesearch refs Album --kind struct
 
 # Group results by file
-ruvector refs Album --group-by-file
+codesearch refs Album --group-by-file
 
 # Tree format for visual hierarchy
-ruvector refs Album --format tree
+codesearch refs Album --format tree
 
 # Filter to specific file
-ruvector refs Album --file src/main.rs
+codesearch refs Album --file src/main.rs
 
 # Inbound/outbound reference filtering
-ruvector refs create_album --inbound
-ruvector refs create_album --outbound
+codesearch refs create_album --inbound
+codesearch refs create_album --outbound
 ```
 
 ### 3. Performance Optimizations
@@ -113,10 +113,10 @@ The references query enables safe refactoring:
 
 ```bash
 # Before renaming a function
-ruvector refs old_function_name --format tree
+codesearch refs old_function_name --format tree
 
 # Check all uses of a type before major changes
-ruvector find --uses-type MyStruct --format detailed
+codesearch find --uses-type MyStruct --format detailed
 ```
 
 ### Code Analysis
@@ -125,10 +125,10 @@ Understand codebase structure and dependencies:
 
 ```bash
 # Public API surface
-ruvector find --public-api . --format json
+codesearch find --public-api . --format json
 
 # Type usage statistics
-ruvector find --types-from src/lib.rs --format detailed
+codesearch find --types-from src/lib.rs --format detailed
 ```
 
 ## Database Schema
@@ -198,7 +198,7 @@ The query API is designed to work seamlessly with CFN agents:
 ### Common Issues
 
 1. **Slow queries**: Check database indexes with `EXPLAIN QUERY PLAN`
-2. **No results**: Verify entities are indexed with `ruvector stats`
+2. **No results**: Verify entities are indexed with `codesearch stats`
 3. **JSON errors**: Ensure entity names are properly quoted
 
 ### Debug Queries
@@ -206,5 +206,5 @@ The query API is designed to work seamlessly with CFN agents:
 Enable debug logging to see actual SQL queries:
 
 ```bash
-RUST_LOG=debug ruvector find --uses-type Album
+RUST_LOG=debug codesearch find --uses-type Album
 ```

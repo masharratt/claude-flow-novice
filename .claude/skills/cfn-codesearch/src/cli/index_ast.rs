@@ -62,8 +62,8 @@ impl AstIndexCommand {
         patterns: Option<Vec<String>>,
         force: bool,
     ) -> Result<Self> {
-        // Use local .ruvector for embeddings cache, but centralized DB for entities
-        let index_path = project_dir.join(".ruvector");
+        // Use local .codesearch for embeddings cache, but centralized DB for entities
+        let index_path = project_dir.join(".codesearch");
         fs::create_dir_all(&index_path)?;
 
         // Embeddings are cached locally per project
@@ -188,7 +188,7 @@ impl AstIndexCommand {
                     return false;
                 }
 
-                // Skip .ruvector directory
+                // Skip .codesearch directory
                 if e.path().starts_with(&self.index_path) {
                     return false;
                 }

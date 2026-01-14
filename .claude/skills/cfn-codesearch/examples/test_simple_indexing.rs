@@ -59,7 +59,7 @@ fn main() -> Result<()> {
     }
 
     // Check database size
-    let index_path = project_path.join(".ruvector");
+    let index_path = project_path.join(".codesearch");
     let db_path = index_path.join("index.db");
     if db_path.exists() {
         let db_size = std::fs::metadata(&db_path)?.len();

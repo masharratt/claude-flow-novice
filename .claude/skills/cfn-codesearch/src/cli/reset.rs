@@ -17,7 +17,7 @@ impl ResetCommand {
     }
 
     pub fn execute(&self) -> Result<()> {
-        let ruvector_dir = self.project_dir.join(".ruvector");
+        let codesearch_dir = self.project_dir.join(".codesearch");
         
         if !self.confirm {
             eprintln!("⚠️  This will delete all indexed data!");
@@ -25,11 +25,11 @@ impl ResetCommand {
             return Ok(());
         }
 
-        if ruvector_dir.exists() {
-            fs::remove_dir_all(&ruvector_dir)?;
-            info!("Reset complete: removed .ruvector directory");
+        if codesearch_dir.exists() {
+            fs::remove_dir_all(&codesearch_dir)?;
+            info!("Reset complete: removed .codesearch directory");
         } else {
-            info!("No RuVector data found to reset");
+            info!("No CodeSearch data found to reset");
         }
 
         Ok(())

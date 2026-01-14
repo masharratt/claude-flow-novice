@@ -44,7 +44,7 @@ impl InitCommand {
 
         let codesearch_dir = get_codesearch_dir()?;
         if codesearch_dir.exists() {
-            info!("RuVector already initialized at: {}", codesearch_dir.display());
+            info!("CodeSearch already initialized at: {}", codesearch_dir.display());
         }
 
         info!("Environment check passed");
@@ -56,16 +56,16 @@ impl InitCommand {
         
         // Create directory if doesn't exist (idempotent)
         if !codesearch_dir.exists() {
-            info!("Creating centralized RuVector directory: {}", codesearch_dir.display());
+            info!("Creating centralized CodeSearch directory: {}", codesearch_dir.display());
             fs::create_dir_all(&codesearch_dir)
-                .context("Failed to create RuVector directory")?;
+                .context("Failed to create CodeSearch directory")?;
             fs::create_dir_all(codesearch_dir.join("embeddings"))
                 .context("Failed to create embeddings directory")?;
             // V1 index directory no longer created - using centralized V2 database
             fs::create_dir_all(codesearch_dir.join("cache"))
                 .context("Failed to create cache directory")?;
         } else {
-            info!("Using existing centralized RuVector directory: {}", codesearch_dir.display());
+            info!("Using existing centralized CodeSearch directory: {}", codesearch_dir.display());
         }
         
         // Create configuration file if missing

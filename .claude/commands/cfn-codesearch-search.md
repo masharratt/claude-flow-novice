@@ -30,7 +30,7 @@ Quick semantic search through your indexed codebase.
 Execute search:
 
 ```bash
-RUVECTOR_BIN="${HOME}/.local/bin/local-codesearch"
-[ ! -f "$RUVECTOR_BIN" ] && RUVECTOR_BIN="./.claude/skills/cfn-local-codesearch-accelerator/target/release/local-codesearch"
-"$RUVECTOR_BIN" query "$ARGUMENTS" --max-results 10
+CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
+[ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="./.claude/skills/cfn-codesearch/target/release/local-codesearch"
+"$CODESEARCH_BIN" query "$ARGUMENTS" --max-results 10
 ```

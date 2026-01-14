@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Rust AST Extractor is implemented as part of Phase 2 of the AST-Aware RuVector Accelerator. It provides entity and reference extraction from Rust source code using tree-sitter.
+The Rust AST Extractor is implemented as part of Phase 2 of the AST-Aware CodeSearch Accelerator. It provides entity and reference extraction from Rust source code using tree-sitter.
 
 ## Architecture
 
@@ -138,7 +138,7 @@ Once tree-sitter is integrated:
 ## Usage Example
 
 ```rust
-use local_ruvector::extractors::create_rust_extractor;
+use local_codesearch::extractors::create_rust_extractor;
 
 let mut extractor = create_rust_extractor()?;
 let source = r#"
@@ -165,7 +165,7 @@ The implementation includes comprehensive tests:
    - Demonstrates full extraction workflow
    - Shows entity and reference output
 
-## Integration with RuVector
+## Integration with CodeSearch
 
 Once complete, the extractor will integrate with:
 
@@ -203,10 +203,10 @@ Once complete, the extractor will integrate with:
 
 ## File Locations
 
-- Core extractor: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-ruvector-accelerator/src/extractors/rust.rs`
-- Module definitions: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-ruvector-accelerator/src/extractors/mod.rs`
-- Tests: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-ruvector-accelerator/tests/test_rust_extractor.rs`
-- Example: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-ruvector-accelerator/examples/rust_ast_extractor_demo.rs`
+- Core extractor: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-codesearch-accelerator/src/extractors/rust.rs`
+- Module definitions: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-codesearch-accelerator/src/extractors/mod.rs`
+- Tests: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-codesearch-accelerator/tests/test_rust_extractor.rs`
+- Example: `/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-local-codesearch-accelerator/examples/rust_ast_extractor_demo.rs`
 
 ## Confidence Score
 

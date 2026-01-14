@@ -1,4 +1,4 @@
-VALIDATION FINDINGS - AST-Aware RuVector Accelerator
+VALIDATION FINDINGS - AST-Aware CodeSearch Accelerator
 =====================================================
 
 CONFIDENCE SCORE: 0.78 (High confidence in findings)

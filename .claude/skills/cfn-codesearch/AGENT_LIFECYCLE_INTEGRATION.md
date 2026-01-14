@@ -335,7 +335,7 @@ Run with broader query:
 
 ## References
 
-- Analysis document: `docs/RUVECTOR_INTEGRATION_ANALYSIS.md`
+- Analysis document: `docs/CODESEARCH_INTEGRATION_ANALYSIS.md`
 - Subagent hooks: `.claude/hooks/cfn-subagent-*.sh`
 - CodeSearch accelerator: `.claude/skills/cfn-local-codesearch-accelerator/`
 - Lifecycle database: `.claude/skills/cfn-redis-coordination/data/cfn-loop.db`

@@ -6,7 +6,7 @@ tools: [Read]
 type: documentation
 ---
 
-→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  CodeSearch (semantic search) | Post-edit hook (file validation)
 
 # Agent Lifecycle Documentation
 

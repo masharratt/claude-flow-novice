@@ -5,8 +5,8 @@
 //! - `store_v2::StoreV2` for storage operations
 //! - `schema_v2::SchemaV2` for database initialization
 //!
-//! The V1 system used a separate index directory (~/.local/share/ruvector/index/).
-//! V2 uses a single centralized database (~/.local/share/ruvector/index_v2.db).
+//! The V1 system used a separate index directory (~/.local/share/codesearch/index/).
+//! V2 uses a single centralized database (~/.local/share/codesearch/index_v2.db).
 
 use anyhow::{Result, Context, anyhow};
 use ndarray::{Array1, Array2};
@@ -152,7 +152,7 @@ impl SearchEngine {
 impl SearchEngine {
     pub fn new(_project_dir: &Path) -> Result<Self> {
         let mut config = SearchConfig::default();
-        // Use centralized V1 index directory (~/.local/share/ruvector/index/)
+        // Use centralized V1 index directory (~/.local/share/codesearch/index/)
         let index_path = get_v1_index_dir()?;
         config.index_path = index_path.clone();
         

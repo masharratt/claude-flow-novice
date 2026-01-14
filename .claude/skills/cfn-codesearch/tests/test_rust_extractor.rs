@@ -1,5 +1,5 @@
 use anyhow::Result;
-use local_ruvector::extractors::{Extractor, create_rust_extractor};
+use local_codesearch::extractors::{Extractor, create_rust_extractor};
 
 #[test]
 fn test_rust_extractor_basic() -> Result<()> {
@@ -33,17 +33,17 @@ fn test_rust_extractor_basic() -> Result<()> {
 
     // Check for function entity
     let function = result.entities.iter()
-        .find(|e| e.kind == local_ruvector::extractors::EntityKind::Function);
+        .find(|e| e.kind == local_codesearch::extractors::EntityKind::Function);
     assert!(function.is_some(), "Should find function entity");
 
     // Check for struct entity
     let struct_entity = result.entities.iter()
-        .find(|e| e.kind == local_ruvector::extractors::EntityKind::Struct);
+        .find(|e| e.kind == local_codesearch::extractors::EntityKind::Struct);
     assert!(struct_entity.is_some(), "Should find struct entity");
 
     // Check for impl entity
     let impl_entity = result.entities.iter()
-        .find(|e| e.kind == local_ruvector::extractors::EntityKind::Class);
+        .find(|e| e.kind == local_codesearch::extractors::EntityKind::Class);
     assert!(impl_entity.is_some(), "Should find impl entity");
 
     println!("Extracted {} entities and {} references",
@@ -114,24 +114,24 @@ fn test_extract_complex_rust_code() -> Result<()> {
         .collect();
 
     // Should have imports, enum, trait, struct, impl, type alias
-    assert!(entities.contains_key(&local_ruvector::extractors::EntityKind::Enum));
-    assert!(entities.contains_key(&local_ruvector::extractors::EntityKind::Interface));
-    assert!(entities.contains_key(&local_ruvector::extractors::EntityKind::Struct));
-    assert!(entities.contains_key(&local_ruvector::extractors::EntityKind::Class));
+    assert!(entities.contains_key(&local_codesearch::extractors::EntityKind::Enum));
+    assert!(entities.contains_key(&local_codesearch::extractors::EntityKind::Interface));
+    assert!(entities.contains_key(&local_codesearch::extractors::EntityKind::Struct));
+    assert!(entities.contains_key(&local_codesearch::extractors::EntityKind::Class));
 
     // Check references
     let call_refs: Vec<_> = result.references.iter()
-        .filter(|r| r.ref_kind == local_ruvector::extractors::RefKind::Calls)
+        .filter(|r| r.ref_kind == local_codesearch::extractors::RefKind::Calls)
         .collect();
     assert!(!call_refs.is_empty(), "Should have function call references");
 
     let type_refs: Vec<_> = result.references.iter()
-        .filter(|r| r.ref_kind == local_ruvector::extractors::RefKind::Uses)
+        .filter(|r| r.ref_kind == local_codesearch::extractors::RefKind::Uses)
         .collect();
     assert!(!type_refs.is_empty(), "Should have type usage references");
 
     let imports: Vec<_> = result.references.iter()
-        .filter(|r| r.ref_kind == local_ruvector::extractors::RefKind::Imports)
+        .filter(|r| r.ref_kind == local_codesearch::extractors::RefKind::Imports)
         .collect();
     assert!(!imports.is_empty(), "Should have import references");
 

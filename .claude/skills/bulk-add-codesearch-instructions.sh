@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_DIR="${SCRIPT_DIR}/../agents/cfn-dev-team"
 
 # CodeSearch instruction block to add
-RUVECTOR_BLOCK='
+CODESEARCH_BLOCK='
 # IMPORTANT: CodeSearch Semantic Search (Before Making Changes)
 # Before implementing any changes, ALWAYS query the codebase for similar patterns:
 #   /codebase-search "relevant search terms for your task" --top 5
@@ -31,7 +31,7 @@ add_codesearch_instructions() {
 
     # Find the line with post-edit pipeline and insert after its block
     if grep -q "Post-Edit Pipeline Requirement" "$file"; then
-        awk -v block="$RUVECTOR_BLOCK" '
+        awk -v block="$CODESEARCH_BLOCK" '
         /^# IMPORTANT: Post-Edit Pipeline Requirement/ {in_section=1}
         in_section && /^$/ && !added {
             print block

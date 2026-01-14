@@ -48,17 +48,21 @@ Errors: none
 
 ---
 
-## 2. RuVector Semantic Search
+## 2. CodeSearch Semantic Search
 
 **When:** Finding code patterns, implementations, or "where is X?"
 
 ```bash
-./.claude/skills/cfn-ruvector-codebase-index/search.sh "query" --top 5
+# SQL (fastest - 0.002s)
+sqlite3 ~/.local/share/codesearch/index_v2.db "SELECT file_path, line_number FROM entities WHERE name LIKE '%query%';"
+
+# CLI
+./.claude/skills/cfn-codesearch/query-local.sh "query" --max-results 5
 ```
 
-Query past errors before similar work:
+Query past errors/patterns before similar work:
 ```bash
-./.claude/skills/cfn-ruvector-codebase-index/query-error-patterns.sh "task description"
+./.claude/skills/cfn-codesearch/query-agent-patterns.sh "task description"
 ```
 
 ---

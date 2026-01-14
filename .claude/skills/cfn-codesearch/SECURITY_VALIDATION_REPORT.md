@@ -477,7 +477,7 @@ No cryptographic operations in the audit scope. Path validation and SQL paramete
 
 ## THREAT MODEL VERIFICATION
 
-Based on DATABASE_SAFETY_AUDIT.md and RUVECTOR_ISOLATION_AUDIT.md:
+Based on DATABASE_SAFETY_AUDIT.md and CODESEARCH_ISOLATION_AUDIT.md:
 
 | Threat | Mitigation | Status |
 |--------|-----------|--------|

@@ -4,7 +4,7 @@ set -euo pipefail
 INPUT=$(timeout 1 cat || echo "{}")
 CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
 
-log() { echo "[$(date '+%H:%M:%S')] $*" >> /tmp/ruvector-bash-hook.log; }
+log() { echo "[$(date '+%H:%M:%S')] $*" >> /tmp/codesearch-bash-hook.log; }
 
 # Load API key from .env if not set
 load_api_key() {
@@ -49,7 +49,7 @@ if [ -z "$PATTERN" ] || [ ${#PATTERN} -lt 3 ] || [[ "$PATTERN" == -* ]]; then
   exit 0
 fi
 
-DB_PATH="$HOME/.local/share/ruvector/index_v2.db"
+DB_PATH="$HOME/.local/share/codesearch/index_v2.db"
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 CONTEXT=""
@@ -63,18 +63,18 @@ if [ -f "$DB_PATH" ]; then
     "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 6" 2>/dev/null || true)
 
   if [ -n "$RESULTS" ]; then
-    CONTEXT="RuVector indexed matches for '$PATTERN':\n$RESULTS"
+    CONTEXT="CodeSearch indexed matches for '$PATTERN':\n$RESULTS"
     log "SQL context injected for: $PATTERN"
   fi
 fi
 
 # Fallback to semantic search if SQL found nothing
-if [ -z "$CONTEXT" ] && command -v local-ruvector >/dev/null 2>&1; then
+if [ -z "$CONTEXT" ] && command -v local-codesearch >/dev/null 2>&1; then
   if load_api_key; then
     log "SQL returned nothing, trying semantic search for: $PATTERN"
-    SEMANTIC=$(timeout 5 local-ruvector query "$PATTERN" --max-results 5 --threshold 0.3 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -6 || true)
+    SEMANTIC=$(timeout 5 local-codesearch query "$PATTERN" --max-results 5 --threshold 0.3 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -6 || true)
     if [ -n "$SEMANTIC" ]; then
-      CONTEXT="RuVector semantic matches for '$PATTERN':\n$SEMANTIC"
+      CONTEXT="CodeSearch semantic matches for '$PATTERN':\n$SEMANTIC"
       log "Semantic context injected for: $PATTERN"
     fi
   fi

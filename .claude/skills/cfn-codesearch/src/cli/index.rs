@@ -1,4 +1,4 @@
-//! # RuVector Index Command
+//! # CodeSearch Index Command
 //!
 //! ## IMPORTANT: Run from PROJECT ROOT
 //!
@@ -8,7 +8,7 @@
 //! ## Recommended Usage:
 //! ```bash
 //! cd /path/to/project-root
-//! local-ruvector index --path . --types rs,ts,js,json,md,sh --force
+//! local-codesearch index --path . --types rs,ts,js,json,md,sh --force
 //! ```
 //!
 //! ## Supported File Types (default):
@@ -23,7 +23,7 @@
 //! - Cache: .cache, __pycache__, .pytest_cache, .mypy_cache, .ruff_cache, coverage, .nyc_output
 //! - Virtual envs: .venv, venv, env
 //! - IaC: .terraform, .serverless, .aws-sam
-//! - Project-specific: .artifacts, .ruvector, .archive, archive, .archived, archived
+//! - Project-specific: .artifacts, .codesearch, .archive, archive, .archived, archived
 //! - Backups/temp: backups, .backups, backup, tmp, .tmp, temp, logs
 //! - Test artifacts: __snapshots__, __mocks__, playwright-report, test-results
 //! - Doc builds: _site, .docusaurus, site
@@ -39,7 +39,7 @@
 //!
 //! ## Multi-Project Isolation:
 //! - Each project root is isolated via project_root column in v2 schema
-//! - Centralized database at ~/.local/share/ruvector/index_v2.db
+//! - Centralized database at ~/.local/share/codesearch/index_v2.db
 //! - Queries are scoped to the project root passed during indexing
 
 use anyhow::{Result, Context, anyhow};
@@ -121,7 +121,7 @@ const EXCLUDED_DIRS: &[&str] = &[
 
     // Project-specific
     ".artifacts",        // CFN Loop artifacts
-    ".ruvector",         // RuVector local index (avoid self-indexing)
+    ".codesearch",         // CodeSearch local index (avoid self-indexing)
     ".archive",          // Archived/deprecated code
     "archive",           // Archive directories
     ".archived",         // Archived code (alternate naming)

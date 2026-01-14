@@ -2,7 +2,7 @@
 
 ## Overview
 
-Implemented schema migration to add multi-project isolation support to RuVector database, enabling safe indexing of multiple projects in a single database instance.
+Implemented schema migration to add multi-project isolation support to CodeSearch database, enabling safe indexing of multiple projects in a single database instance.
 
 ## Implementation Date
 

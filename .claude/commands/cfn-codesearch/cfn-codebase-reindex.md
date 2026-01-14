@@ -40,16 +40,16 @@ fi
 echo "✅ OpenAI key: ${OPENAI_API_KEY:0:12}..."
 
 # --- Setup ---
-RUVECTOR_BIN="${HOME}/.local/bin/local-codesearch"
-[ ! -f "$RUVECTOR_BIN" ] && RUVECTOR_BIN="./.claude/skills/cfn-local-codesearch-accelerator/target/release/local-codesearch"
+CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
+[ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="./.claude/skills/cfn-codesearch/target/release/local-codesearch"
 LOG_FILE="/tmp/codesearch-index.log"
 
 echo "📝 Logging to: $LOG_FILE"
 echo "   Monitor with: tail -f $LOG_FILE"
 
 # Incremental (default - only changed files)
-"$RUVECTOR_BIN" index --path . --types rs,ts,js,py,sh,md 2>&1 | tee "$LOG_FILE"
+"$CODESEARCH_BIN" index --path . --types rs,ts,js,py,sh,md 2>&1 | tee "$LOG_FILE"
 
 # Full rebuild (when needed)
-# "$RUVECTOR_BIN" index --path . --types rs,ts,js,py,sh,md --force 2>&1 | tee "$LOG_FILE"
+# "$CODESEARCH_BIN" index --path . --types rs,ts,js,py,sh,md --force 2>&1 | tee "$LOG_FILE"
 ```

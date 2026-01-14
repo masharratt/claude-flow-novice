@@ -33,9 +33,9 @@ if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]] && [[ -f ".env" ]]; then
 fi
 [[ ! "$OPENAI_API_KEY" =~ ^sk- ]] && { echo "❌ OPENAI_API_KEY invalid. Add to .env" >&2; exit 1; }
 
-RUVECTOR_BIN="${HOME}/.local/bin/local-codesearch"
-[ ! -f "$RUVECTOR_BIN" ] && RUVECTOR_BIN="./.claude/skills/cfn-local-codesearch-accelerator/target/release/local-codesearch"
+CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
+[ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="./.claude/skills/cfn-codesearch/target/release/local-codesearch"
 
 # Use threshold 0.1 for better results (default 0.3 is too strict)
-"$RUVECTOR_BIN" query "{{query}}" --max-results {{#if top}}{{top}}{{else}}10{{/if}} --threshold 0.1
+"$CODESEARCH_BIN" query "{{query}}" --max-results {{#if top}}{{top}}{{else}}10{{/if}} --threshold 0.1
 ```

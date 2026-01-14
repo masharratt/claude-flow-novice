@@ -152,7 +152,7 @@ Need to automate something?
 - `/launch-web-dashboard` - Start web portal (http://localhost:3000)
 - `/list-agents-rebuild` - Regenerate agent list from discovery
 
-### RuVector Integration
+### CodeSearch Integration
 - `/codebase-search` - Semantic search through codebase
 - `/detect-stale-docs` - Find outdated documentation
 - `/codebase-reindex` - Update codebase vector index

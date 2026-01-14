@@ -1,4 +1,4 @@
-# Transaction Management in AST-Aware RuVector Accelerator
+# Transaction Management in AST-Aware CodeSearch Accelerator
 
 ## Overview
 

@@ -43,7 +43,7 @@ impl CleanupCommand {
         }
 
         let search_engine = SearchEngine::new(&self.project_dir)?;
-        let store = SqliteStore::new(&self.project_dir.join(".ruvector").join("index.db"))?;
+        let store = SqliteStore::new(&self.project_dir.join(".codesearch").join("index.db"))?;
 
         // Check if there's anything to clean
         let stats = store.get_stats()?;

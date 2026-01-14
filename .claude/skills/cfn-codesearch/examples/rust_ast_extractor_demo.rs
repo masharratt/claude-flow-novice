@@ -3,7 +3,7 @@
 //! This example shows how to extract entities and references from Rust source code.
 
 use anyhow::Result;
-use local_ruvector::extractors::{Extractor, create_rust_extractor};
+use local_codesearch::extractors::{Extractor, create_rust_extractor};
 
 fn main() -> Result<()> {
     // Initialize logging
@@ -106,11 +106,11 @@ fn main() -> Result<()> {
     for entity in &result.entities {
         println!("  {} {} ({}:{}:{}) - {}",
             match entity.kind {
-                local_ruvector::extractors::EntityKind::Function => "fn",
-                local_ruvector::extractors::EntityKind::Struct => "struct",
-                local_ruvector::extractors::EntityKind::Interface => "trait",
-                local_ruvector::extractors::EntityKind::Class => "impl",
-                local_ruvector::extractors::EntityKind::Enum => "enum",
+                local_codesearch::extractors::EntityKind::Function => "fn",
+                local_codesearch::extractors::EntityKind::Struct => "struct",
+                local_codesearch::extractors::EntityKind::Interface => "trait",
+                local_codesearch::extractors::EntityKind::Class => "impl",
+                local_codesearch::extractors::EntityKind::Enum => "enum",
                 _ => "?",
             },
             entity.name,
@@ -118,19 +118,19 @@ fn main() -> Result<()> {
             entity.line + 1,
             entity.column + 1,
             match entity.visibility {
-                local_ruvector::extractors::Visibility::Public => "pub",
+                local_codesearch::extractors::Visibility::Public => "pub",
                 _ => "priv",
             }
         );
 
         // Show metadata for certain entity types
         match entity.kind {
-            local_ruvector::extractors::EntityKind::Function => {
+            local_codesearch::extractors::EntityKind::Function => {
                 if let Some(return_type) = entity.metadata.get("return_type") {
                     println!("    → Returns: {}", return_type);
                 }
             }
-            local_ruvector::extractors::EntityKind::Struct => {
+            local_codesearch::extractors::EntityKind::Struct => {
                 for (key, value) in entity.metadata.iter() {
                     if key.starts_with("field_") {
                         println!("    → Field: {}", value);
@@ -145,10 +145,10 @@ fn main() -> Result<()> {
     println!("\n🔗 Extracted References:");
     for reference in &result.references {
         let ref_type = match reference.ref_kind {
-            local_ruvector::extractors::RefKind::Calls => "calls",
-            local_ruvector::extractors::RefKind::Uses => "uses",
-            local_ruvector::extractors::RefKind::Imports => "imports",
-            local_ruvector::extractors::RefKind::Implements => "implements",
+            local_codesearch::extractors::RefKind::Calls => "calls",
+            local_codesearch::extractors::RefKind::Uses => "uses",
+            local_codesearch::extractors::RefKind::Imports => "imports",
+            local_codesearch::extractors::RefKind::Implements => "implements",
             _ => "?",
         };
 

@@ -1,10 +1,10 @@
 # TDD Pattern Examples - What "Patterns" Means in Practice
 
-These are actual examples of patterns that get stored in RuVector and reused. They're not just code snippets - they're successful approaches with context.
+These are actual examples of patterns that get stored in CodeSearch and reused. They're not just code snippets - they're successful approaches with context.
 
 ## Example 1: Rust API Handler Pattern
 
-**Stored in RuVector after successful generation:**
+**Stored in CodeSearch after successful generation:**
 
 ```json
 {
@@ -200,7 +200,7 @@ describe('UserProfile', () => {
 
 ## Example 3: Python Service Layer Pattern
 
-**Pattern tracked in RuVector:**
+**Pattern tracked in CodeSearch:**
 ```python
 # Successful Pattern: Service Layer with Business Logic
 # Key elements that made this successful:

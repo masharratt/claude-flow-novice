@@ -136,7 +136,7 @@ Used by:
 - `.claude/agents/cfn-v3-coordinator.md` - Query for similar tasks
 - Main Chat post-execution - Update playbook after PROCEED
 - Loop 5 retrospective - Extract patterns and update playbook
-- RuVector integration - Auto-update via semantic analysis
+- CodeSearch integration - Auto-update via semantic analysis
 
 ## Directory Structure
 

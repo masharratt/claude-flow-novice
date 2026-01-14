@@ -4,7 +4,7 @@ set -euo pipefail
 # Default configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_PATH="${COORDINATION_DB_PATH:-$SCRIPT_DIR/generations.db}"
-RUVECTOR_INDEX="${RUVECTOR_INDEX_PATH:-./.claude/skills/cfn-ruvector-codebase-index/data}"
+CODESEARCH_INDEX="${CODESEARCH_INDEX_PATH:-./.claude/skills/cfn-codesearch/data}"
 MAX_ATTEMPTS="${MAX_GENERATION_ATTEMPTS:-3}"
 TEST_TIMEOUT="${DEFAULT_TEST_TIMEOUT:-60}"
 MODEL="${CEREBRAS_MODEL:-qwen2.5-coder-32b}"
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS generations (
     error_message TEXT,
     attempts INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ruvector_id TEXT,
+    codesearch_id TEXT,
     confidence_score REAL,
     performance_ms REAL
 );
@@ -87,29 +87,29 @@ CREATE INDEX IF NOT EXISTS idx_success ON generations(success);
 CREATE INDEX IF NOT EXISTS idx_created_at ON generations(created_at);
 EOF
 
-# Function to query successful patterns from RuVector
-query_ruvector_patterns() {
+# Function to query successful patterns from CodeSearch
+query_codesearch_patterns() {
     local file_ext="${FILE_PATH##*.}"
     local prompt_keywords=$(echo "$PROMPT" | tr '[:upper:]' '[:lower:]' | grep -o '[a-z]\{3,\}' | tr '\n' ' ' | head -c 200)
 
-    log "Querying RuVector for patterns: file_type=$file_ext, keywords=$prompt_keywords"
+    log "Querying CodeSearch for patterns: file_type=$file_ext, keywords=$prompt_keywords"
 
-    # Use RuVector search to find similar successful patterns
-    if [[ -f "$RUVECTOR_INDEX/search.sh" ]]; then
-        "$RUVECTOR_INDEX/search.sh" "$file_ext $prompt_keywords" --top 5 2>/dev/null | \
+    # Use CodeSearch search to find similar successful patterns
+    if [[ -f "$CODESEARCH_INDEX/search.sh" ]]; then
+        "$CODESEARCH_INDEX/search.sh" "$file_ext $prompt_keywords" --top 5 2>/dev/null | \
         jq -r '.[] | select(.success == true) | .prompt' 2>/dev/null | \
         head -3 | \
         sed 's/"/\\"/g' | \
         awk '{printf "\"%s\"\\n", $0}' || \
         echo ""
     else
-        log "RuVector not found at $RUVECTOR_INDEX, skipping pattern lookup"
+        log "CodeSearch not found at $CODESEARCH_INDEX, skipping pattern lookup"
         echo ""
     fi
 }
 
-# Function to store generation in RuVector
-store_in_ruvector() {
+# Function to store generation in CodeSearch
+store_in_codesearch() {
     local success="$1"
     local prompt="$2"
     local generated_code="$3"
@@ -129,10 +129,10 @@ store_in_ruvector() {
 EOF
 )
 
-    # Use RuVector to store the pattern
-    if [[ -f "$RUVECTOR_INDEX/store.sh" ]]; then
+    # Use CodeSearch to store the pattern
+    if [[ -f "$CODESEARCH_INDEX/store.sh" ]]; then
         echo "$prompt" | \
-        "$RUVECTOR_INDEX/store.sh" --metadata "$metadata" --type "prompt_pattern" 2>/dev/null || true
+        "$CODESEARCH_INDEX/store.sh" --metadata "$metadata" --type "prompt_pattern" 2>/dev/null || true
     fi
 }
 
@@ -240,8 +240,8 @@ log "File type: ${FILE_PATH##*.}"
 # Extract file type
 FILE_TYPE="${FILE_PATH##*.}"
 
-# Query RuVector for successful patterns
-PATTERNS=$(query_ruvector_patterns)
+# Query CodeSearch for successful patterns
+PATTERNS=$(query_codesearch_patterns)
 log "Found ${#PATTERNS} pattern examples"
 
 # Build enhanced prompt with patterns
@@ -362,8 +362,8 @@ INSERT INTO generations (
 );
 EOF
 
-# Store in RuVector for future learning
-store_in_ruvector "$FINAL_SUCCESS" "$PROMPT" "$FINAL_CODE" "$FILE_TYPE"
+# Store in CodeSearch for future learning
+store_in_codesearch "$FINAL_SUCCESS" "$PROMPT" "$FINAL_CODE" "$FILE_TYPE"
 
 # Final result
 if [[ "$FINAL_SUCCESS" == "true" ]]; then
@@ -371,7 +371,7 @@ if [[ "$FINAL_SUCCESS" == "true" ]]; then
     echo "📁 File: $FILE_PATH"
     echo "🔧 Attempts: $((ATTEMPT - 1))/$MAX_ATTEMPTS"
     echo "📊 Confidence: $(printf '%.1f%%' $(echo "$CONFIDENCE * 100" | bc -l))"
-    echo "💾 Pattern stored in RuVector"
+    echo "💾 Pattern stored in CodeSearch"
 else
     echo "❌ Code generation failed after $MAX_ATTEMPTS attempts"
     echo "📁 File: $FILE_PATH"

@@ -1,14 +1,14 @@
 {
   "executionMode": "cfn-loop",
   "metadata": {
-    "epicId": "ruvector-ast-agent-accelerator",
-    "name": "AST-Aware RuVector Agent Accelerator",
-    "description": "Transform RuVector from line-based indexing to AST-aware semantic indexing for Rust and TypeScript. Enable agents to replace slow grep/search operations with instant database queries for code intelligence: finding functions by type usage, tracking cross-file references, mapping module dependencies, and supporting large-scale refactoring workflows.",
+    "epicId": "codesearch-ast-agent-accelerator",
+    "name": "AST-Aware CodeSearch Agent Accelerator",
+    "description": "Transform CodeSearch from line-based indexing to AST-aware semantic indexing for Rust and TypeScript. Enable agents to replace slow grep/search operations with instant database queries for code intelligence: finding functions by type usage, tracking cross-file references, mapping module dependencies, and supporting large-scale refactoring workflows.",
     "status": "not_started",
     "priority": "high",
     "estimatedDuration": "3 weeks",
     "owner": "cfn-dev-team",
-    "targetPath": ".claude/skills/cfn-local-ruvector-accelerator"
+    "targetPath": ".claude/skills/cfn-codesearch"
   },
   "goals": [
     "Replace grep-based code search with sub-50ms database queries",
@@ -177,8 +177,8 @@
           "sprintId": "sprint-4-2",
           "name": "CLI Integration",
           "tasks": [
-            "Add 'ruvector find' subcommand with --kind, --uses-type, --called-by flags",
-            "Add 'ruvector refs' subcommand for reference queries",
+            "Add 'codesearch find' subcommand with --kind, --uses-type, --called-by flags",
+            "Add 'codesearch refs' subcommand for reference queries",
             "Add --json output format for programmatic use",
             "Add natural language query parsing (optional)",
             "Update help documentation"
@@ -251,8 +251,8 @@
     "consensusThreshold": 0.90,
     "gateThreshold": 0.95,
     "maxIterations": 10,
-    "testCommand": "cd .claude/skills/cfn-local-ruvector-accelerator && cargo test",
-    "buildCommand": "cd .claude/skills/cfn-local-ruvector-accelerator && cargo build --release"
+    "testCommand": "cd .claude/skills/cfn-codesearch && cargo test",
+    "buildCommand": "cd .claude/skills/cfn-codesearch && cargo build --release"
   },
   "technicalContext": {
     "language": "rust",

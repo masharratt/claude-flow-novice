@@ -4,7 +4,7 @@ set -euo pipefail
 # TDD-driven Cerebras coordinator - Tests first, then implementation
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_PATH="${COORDINATION_DB_PATH:-$SCRIPT_DIR/generations.db}"
-RUVECTOR_INDEX="${RUVECTOR_INDEX_PATH:-./.claude/skills/cfn-ruvector-codebase-index/data}"
+CODESEARCH_INDEX="${CODESEARCH_INDEX_PATH:-./.claude/skills/cfn-codesearch/data}"
 
 # Parse arguments
 AGENT_ID=""
@@ -87,7 +87,7 @@ detect_test_framework() {
     esac
 }
 
-# Query TDD patterns from RuVector
+# Query TDD patterns from CodeSearch
 query_tdd_patterns() {
     local file_ext="${FILE_PATH##*.}"
     local framework=$(detect_test_framework)
@@ -95,17 +95,17 @@ query_tdd_patterns() {
     log "Querying TDD patterns for: $file_ext with $framework framework"
 
     # Search for TDD patterns
-    if [[ -f "$RUVECTOR_INDEX/search.sh" ]]; then
-        "$RUVECTOR_INDEX/search.sh" "TDD test-first $file_ext $framework" --top 3 2>/dev/null | \
+    if [[ -f "$CODESEARCH_INDEX/search.sh" ]]; then
+        "$CODESEARCH_INDEX/search.sh" "TDD test-first $file_ext $framework" --top 3 2>/dev/null | \
         jq -r '.[] | select(.success == true) | .prompt' 2>/dev/null || \
         echo "No TDD patterns found"
     else
-        log "RuVector not found, using built-in TDD patterns"
+        log "CodeSearch not found, using built-in TDD patterns"
         get_builtin_tdd_patterns "$file_ext" "$framework"
     fi
 }
 
-# Built-in TDD patterns when RuVector is not available
+# Built-in TDD patterns when CodeSearch is not available
 get_builtin_tdd_patterns() {
     local file_type="$1"
     local framework="$2"
@@ -609,7 +609,7 @@ refactor_implementation
 # Step 7: Store TDD pattern
 echo
 echo "Step 7: Storing TDD pattern for future learning..."
-if [[ -f "$RUVECTOR_INDEX/store.sh" ]]; then
+if [[ -f "$CODESEARCH_INDEX/store.sh" ]]; then
     metadata=$(cat <<EOF
 {
     "type": "tdd_pattern",
@@ -622,7 +622,7 @@ if [[ -f "$RUVECTOR_INDEX/store.sh" ]]; then
 EOF
 )
 
-    cat <<EOF | "$RUVECTOR_INDEX/store.sh" --metadata "$metadata" --type "tdd_pattern" 2>/dev/null || true
+    cat <<EOF | "$CODESEARCH_INDEX/store.sh" --metadata "$metadata" --type "tdd_pattern" 2>/dev/null || true
 TDD Pattern for $FEATURE:
 
 Tests written first for $FILE_PATH

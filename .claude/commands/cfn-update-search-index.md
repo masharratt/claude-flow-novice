@@ -1,10 +1,10 @@
 ---
-description: "Update RuVector search index automatically"
+description: "Update CodeSearch search index automatically"
 ---
 
 # /update-search-index - Refresh Search Index
 
-Updates the RuVector semantic search index with recent code changes.
+Updates the CodeSearch semantic search index with recent code changes.
 
 ## What it does
 

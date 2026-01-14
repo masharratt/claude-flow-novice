@@ -196,7 +196,7 @@ test_integration_mock() {
     log_info "Full integration test requires:"
     log_info "  - Valid ZAI_API_KEY"
     log_info "  - Test project with runnable tests"
-    log_info "  - RuVector index (optional)"
+    log_info "  - CodeSearch index (optional)"
     log_info ""
     log_info "Example usage:"
     log_info "  $COORDINATOR \\"

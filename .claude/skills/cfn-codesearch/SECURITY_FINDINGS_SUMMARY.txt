@@ -1,7 +1,7 @@
 SECURITY VALIDATION REPORT - EXECUTIVE SUMMARY
 ==============================================
 
-Project: RuVector V2 Multi-Project Isolation
+Project: CodeSearch V2 Multi-Project Isolation
 Audit Date: 2025-12-11
 Confidence Score: 0.80 (pending critical fixes)
 

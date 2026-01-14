@@ -1,11 +1,11 @@
 #!/bin/bash
-# Fix existing code with errors using TDD and RuVector patterns - Version 2
+# Fix existing code with errors using TDD and CodeSearch patterns - Version 2
 # Compatible with bash/shell environments
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_PATH="${COORDINATION_DB_PATH:-$SCRIPT_DIR/generations.db}"
-RUVECTOR_INDEX="${RUVECTOR_INDEX_PATH:-./.claude/skills/cfn-ruvector-codebase-index/data}"
+CODESEARCH_INDEX="${CODESEARCH_INDEX_PATH:-./.claude/skills/cfn-codesearch/data}"
 
 # Parse arguments
 AGENT_ID=""

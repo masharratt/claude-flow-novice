@@ -1,10 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# Fix existing code with errors using TDD and RuVector patterns
+# Fix existing code with errors using TDD and CodeSearch patterns
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_PATH="${COORDINATION_DB_PATH:-$SCRIPT_DIR/generations.db}"
-RUVECTOR_INDEX="${RUVECTOR_INDEX_PATH:-./.claude/skills/cfn-ruvector-codebase-index/data}"
+CODESEARCH_INDEX="${CODESEARCH_INDEX_PATH:-./.claude/skills/cfn-codesearch/data}"
 
 # Parse arguments
 AGENT_ID=""
@@ -79,16 +79,16 @@ analyze_errors() {
     echo "$file_errors"
 }
 
-# Step 2: Query fix patterns from RuVector
+# Step 2: Query fix patterns from CodeSearch
 query_fix_patterns() {
     local error_pattern="$1"
     local file_type="${FILE_PATH##*.}"
 
     log "Querying fix patterns for: $file_type errors - $error_pattern"
 
-    if [[ -f "$RUVECTOR_INDEX/search.sh" ]]; then
+    if [[ -f "$CODESEARCH_INDEX/search.sh" ]]; then
         # Search for similar fix patterns
-        "$RUVECTOR_INDEX/search.sh" "fix $file_type $error_pattern" --top 5 2>/dev/null | \
+        "$CODESEARCH_INDEX/search.sh" "fix $file_type $error_pattern" --top 5 2>/dev/null | \
         jq -r '.[] | select(.success == true) | .prompt' 2>/dev/null || \
         get_builtin_fix_patterns "$file_type" "$error_pattern"
     else
@@ -96,7 +96,7 @@ query_fix_patterns() {
     fi
 }
 
-# Built-in fix patterns when RuVector not available
+# Built-in fix patterns when CodeSearch not available
 get_builtin_fix_patterns() {
     local file_type="$1"
     local error_pattern="$2"
@@ -439,8 +439,8 @@ INSERT INTO code_fixes (
 );
 EOF
 
-    # Store pattern in RuVector
-    if [[ -f "$RUVECTOR_INDEX/store.sh" ]]; then
+    # Store pattern in CodeSearch
+    if [[ -f "$CODESEARCH_INDEX/store.sh" ]]; then
         local metadata=$(cat <<EOF
 {
     "type": "code_fix",
@@ -453,7 +453,7 @@ EOF
 )
 
         echo "$fix_applied" | \
-        "$RUVECTOR_INDEX/store.sh" \
+        "$CODESEARCH_INDEX/store.sh" \
             --metadata "$metadata" \
             --type "code_fix" \
             --tags "fix,${FILE_PATH##*.}" \
@@ -464,7 +464,7 @@ EOF
 }
 
 # Main execution
-echo "🔧 Code Fix with Cerebras + RuVector"
+echo "🔧 Code Fix with Cerebras + CodeSearch"
 echo "==================================="
 echo "File: $FILE_PATH"
 echo "Agent: $AGENT_ID"

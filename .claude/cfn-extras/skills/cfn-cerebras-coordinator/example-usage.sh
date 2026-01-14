@@ -202,5 +202,5 @@ echo "Next steps:"
 echo "  1. Review generated tests and implementation"
 echo "  2. Run full test suite"
 echo "  3. Check conversation file in conversations/"
-echo "  4. Query RuVector for learned patterns"
+echo "  4. Query CodeSearch for learned patterns"
 echo

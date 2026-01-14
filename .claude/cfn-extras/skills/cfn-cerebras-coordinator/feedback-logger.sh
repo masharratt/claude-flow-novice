@@ -4,7 +4,7 @@ set -euo pipefail
 # Feedback logger for learning from generation results
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_PATH="${COORDINATION_DB_PATH:-$SCRIPT_DIR/generations.db}"
-RUVECTOR_INDEX="${RUVECTOR_INDEX_PATH:-./.claude/skills/cfn-ruvector-codebase-index/data}"
+CODESEARCH_INDEX="${CODESEARCH_INDEX_PATH:-./.claude/skills/cfn-codesearch/data}"
 
 # Parse arguments
 GENERATION_ID=""
@@ -110,7 +110,7 @@ INSERT INTO feedback (
 );
 EOF
 
-# Extract learnings for RuVector
+# Extract learnings for CodeSearch
 extract_learnings() {
     local pattern_type=""
     local tags=""
@@ -146,8 +146,8 @@ extract_learnings() {
         learning_content="Failed generation: $ERROR_MESSAGE"
     fi
 
-    # Store in RuVector if available
-    if [[ -f "$RUVECTOR_INDEX/store.sh" ]]; then
+    # Store in CodeSearch if available
+    if [[ -f "$CODESEARCH_INDEX/store.sh" ]]; then
         local metadata=$(cat <<EOF
 {
     "type": "$pattern_type",
@@ -162,7 +162,7 @@ EOF
 )
 
         echo "$learning_content" | \
-        "$RUVECTOR_INDEX/store.sh" \
+        "$CODESEARCH_INDEX/store.sh" \
             --metadata "$metadata" \
             --type "$pattern_type" \
             --tags "$tags" \

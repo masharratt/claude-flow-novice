@@ -26,7 +26,7 @@ mode_support: [mvp, standard, enterprise]
 # This is mandatory for all file edits to ensure code quality and validation.
 # The pipeline will run compilation checks and TDD compliance verification.
 
-→ **Skills**:  RuVector (semantic search) | Post-edit hook (file validation)
+→ **Skills**:  CodeSearch (semantic search) | Post-edit hook (file validation)
 
 # NPM Package Specialist
 

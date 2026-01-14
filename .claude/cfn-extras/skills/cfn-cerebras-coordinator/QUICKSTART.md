@@ -39,7 +39,7 @@ cd /path/to/project
 3. Generates implementation (GREEN phase)
 4. Runs tests - if fail, enters fix loop
 5. Saves conversation to `conversations/` directory
-6. Indexes pattern to RuVector
+6. Indexes pattern to CodeSearch
 
 **Expected output**:
 ```

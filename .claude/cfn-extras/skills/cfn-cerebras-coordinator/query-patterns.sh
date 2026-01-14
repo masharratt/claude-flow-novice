@@ -4,7 +4,7 @@ set -euo pipefail
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DB_PATH="${COORDINATION_DB_PATH:-$SCRIPT_DIR/generations.db}"
-RUVECTOR_INDEX="${RUVECTOR_INDEX_PATH:-./.claude/skills/cfn-ruvector-codebase-index/data}"
+CODESEARCH_INDEX="${CODESEARCH_INDEX_PATH:-./.claude/skills/cfn-codesearch/data}"
 
 # Parse arguments
 FILE_TYPE=""
@@ -49,24 +49,24 @@ LIMIT $LIMIT;
 EOF
 }
 
-# Query patterns from RuVector
-query_ruvector_patterns() {
+# Query patterns from CodeSearch
+query_codesearch_patterns() {
     local query=""
 
     [[ -n "$FILE_TYPE" ]] && query="$query $FILE_TYPE"
     [[ -n "$PATTERN" ]] && query="$query $PATTERN"
 
     if [[ -z "$query" ]]; then
-        echo "No query specified for RuVector search"
+        echo "No query specified for CodeSearch search"
         return 1
     fi
 
-    if [[ -f "$RUVECTOR_INDEX/search.sh" ]]; then
-        echo "Querying RuVector for: $query"
-        "$RUVECTOR_INDEX/search.sh" "$query" --top "$LIMIT" 2>/dev/null || \
-        echo "RuVector search failed"
+    if [[ -f "$CODESEARCH_INDEX/search.sh" ]]; then
+        echo "Querying CodeSearch for: $query"
+        "$CODESEARCH_INDEX/search.sh" "$query" --top "$LIMIT" 2>/dev/null || \
+        echo "CodeSearch search failed"
     else
-        echo "RuVector not found at $RUVECTOR_INDEX"
+        echo "CodeSearch not found at $CODESEARCH_INDEX"
     fi
 }
 

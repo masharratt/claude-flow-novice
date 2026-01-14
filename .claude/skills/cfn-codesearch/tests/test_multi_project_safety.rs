@@ -1,4 +1,4 @@
-//! Comprehensive security test suite for multi-project isolation in RuVector
+//! Comprehensive security test suite for multi-project isolation in CodeSearch
 //!
 //! CRITICAL: These tests validate that reindexing one project does NOT
 //! accidentally delete data from other projects in the centralized database.
@@ -12,8 +12,8 @@ use tempfile::TempDir;
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 
-use local_ruvector::store_v2::{StoreV2, Entity};
-use local_ruvector::schema_v2::{SchemaV2, EntityKind, Visibility};
+use local_codesearch::store_v2::{StoreV2, Entity};
+use local_codesearch::schema_v2::{SchemaV2, EntityKind, Visibility};
 
 /// Test setup: Create a test database with entities from multiple projects
 struct TestProject {

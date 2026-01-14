@@ -6,14 +6,14 @@ Iterative Test-Driven Development with Cerebras LLM and conversation memory for 
 
 This coordinator implements a complete TDD workflow (Red-Green-Refactor) with:
 - **Conversation Memory**: Full history tracked across iterations for context-aware fixes
-- **Context Gathering**: RuVector pattern queries + explicit context files
+- **Context Gathering**: CodeSearch pattern queries + explicit context files
 - **Iterative Refinement**: Failed tests trigger fix loops with error context
-- **Success Logging**: Successful patterns indexed to RuVector for learning
+- **Success Logging**: Successful patterns indexed to CodeSearch for learning
 
 ## Workflow Phases
 
 ### Phase 1: Context Gathering
-- Query RuVector for similar patterns in codebase
+- Query CodeSearch for similar patterns in codebase
 - Load explicit context files (types, utilities, related code)
 - Store context in conversation metadata
 
@@ -34,7 +34,7 @@ This coordinator implements a complete TDD workflow (Red-Green-Refactor) with:
 
 ### Phase 5: GREEN - Verify Pass
 - Run tests to check if implementation works
-- If pass: success, log to RuVector
+- If pass: success, log to CodeSearch
 - If fail: enter fix loop
 
 ### Phase 6: FIX - Iterative Refinement
@@ -44,7 +44,7 @@ This coordinator implements a complete TDD workflow (Red-Green-Refactor) with:
 - Repeat until tests pass or max iterations reached
 
 ### Phase 7: Success Logging
-- Index successful pattern to RuVector
+- Index successful pattern to CodeSearch
 - Save full conversation JSON for learning
 - Store in `conversations/` directory
 
@@ -129,7 +129,7 @@ This coordinator implements a complete TDD workflow (Red-Green-Refactor) with:
   - Recommended: `zai-glm-4.6` for fast code generation
   - Alternative: `llama3.1-70b` for complex reasoning
 - `MAX_TDD_ITERATIONS` - Default max iterations (default: 5)
-- `RUVECTOR_INDEX_PATH` - RuVector index location (default: `./.claude/skills/cfn-local-ruvector-accelerator`)
+- `CODESEARCH_INDEX_PATH` - CodeSearch index location (default: `./.claude/skills/cfn-codesearch`)
 
 ### SessionStart Hook Integration
 
@@ -205,12 +205,12 @@ The coordinator automatically determines test file paths based on language:
 | Go | `pkg/handler.go` | `pkg/handler_test.go` |
 | Other | `path/file.ext` | `path/file.test.ext` |
 
-## Integration with RuVector
+## Integration with CodeSearch
 
 ### Query Phase (Phase 1)
 ```bash
-# Queries RuVector for similar patterns
-./.claude/skills/cfn-local-ruvector-accelerator/query-local.sh \
+# Queries CodeSearch for similar patterns
+./.claude/skills/cfn-codesearch/query-local.sh \
   --pattern "Email validation function" \
   --limit 3
 ```
@@ -218,7 +218,7 @@ The coordinator automatically determines test file paths based on language:
 ### Success Phase (Phase 7)
 ```bash
 # Indexes successful implementation
-./.claude/skills/cfn-local-ruvector-accelerator/index-code.sh \
+./.claude/skills/cfn-codesearch/index-code.sh \
   --path ./src/validators/email.ts \
   --source tdd-cerebras \
   --success true
@@ -262,7 +262,7 @@ Tests failed:
 
 ### After Success
 - `./.claude/skills/cfn-cerebras-coordinator/conversations/{date}-{agent-id}.json` - Saved conversation
-- RuVector index updated with successful pattern
+- CodeSearch index updated with successful pattern
 
 ## Best Practices
 
@@ -384,24 +384,24 @@ cat /tmp/cerebras-tdd-*.json | jq '.messages[] | select(.role == "user") | .cont
 --max-iterations 10  # May indicate deeper issues
 ```
 
-### RuVector Integration Issues
+### CodeSearch Integration Issues
 **Symptom**: Context gathering or success logging fails
 
 **Causes**:
-- RuVector index not initialized
-- Incorrect `RUVECTOR_INDEX_PATH`
+- CodeSearch index not initialized
+- Incorrect `CODESEARCH_INDEX_PATH`
 - Permission issues
 
 **Solutions**:
 ```bash
-# Check RuVector installation
-ls -la ./.claude/skills/cfn-local-ruvector-accelerator/
+# Check CodeSearch installation
+ls -la ./.claude/skills/cfn-codesearch/
 
 # Initialize index if needed
-./.claude/skills/cfn-local-ruvector-accelerator/initialize-index.sh
+./.claude/skills/cfn-codesearch/initialize-index.sh
 
 # Set custom path
-export RUVECTOR_INDEX_PATH="/path/to/ruvector"
+export CODESEARCH_INDEX_PATH="/path/to/codesearch"
 ```
 
 ## Testing
@@ -516,7 +516,7 @@ export ZAI_MODEL="glm-4.6"  # vs more expensive alternatives
 
 - [Test-Driven Development](https://en.wikipedia.org/wiki/Test-driven_development)
 - [Given-When-Then](https://martinfowler.com/bliki/GivenWhenThen.html)
-- [RuVector Semantic Search](..//cfn-local-ruvector-accelerator/README.md)
+- [CodeSearch Semantic Search](..//cfn-codesearch/README.md)
 - [CFN Agent Spawning](../cfn-agent-spawning/SKILL.md)
 - [Project Tests Guide](../../../tests/CLAUDE.md)
 

@@ -246,7 +246,7 @@ fn main() -> Result<()> {
     info!("Project: {}", project_path.display());
 
     // Check if CodeSearch is initialized for most commands
-    let ruvector_dir = project_path.join(".codesearch");
+    let codesearch_dir = project_path.join(".codesearch");
 
     match cli.command {
         Commands::Init { force } => {
@@ -381,8 +381,8 @@ fn main() -> Result<()> {
                 return Ok(());
             }
             
-            if ruvector_dir.exists() {
-                std::fs::remove_dir_all(&ruvector_dir)?;
+            if codesearch_dir.exists() {
+                std::fs::remove_dir_all(&codesearch_dir)?;
                 println!("✅ Reset complete: removed .codesearch directory");
             } else {
                 println!("ℹ️  No CodeSearch data found to reset");
