@@ -1,6 +1,6 @@
 # Feature Status
 
-**Last Updated:** 2026-01-13 | **Version:** 2.18.40 | **Status:** Production
+**Last Updated:** 2026-01-14 | **Version:** 2.19.0 | **Status:** Production
 
 ---
 
@@ -80,7 +80,10 @@ This file MUST be updated when:
 
 | Skill | Status | Tests | Location | Description |
 |-------|--------|-------|----------|-------------|
-| cfn-codesearch | ✅ Prod | ✅ | `cfn-codesearch/` | Semantic codebase indexing (400x faster than grep) |
+| cfn-codesearch | ✅ Prod | ✅ | `cfn-codesearch/` | Hybrid SQLite + pgvector semantic search |
+| pgvector-storage | ✅ Prod | ✅ | `cfn-codesearch/src/store_pgvector.rs` | HNSW-indexed vector embeddings |
+| doc-comment-extraction | ✅ Prod | ✅ | `cfn-codesearch/src/cli/index.rs` | Rust (///) and JSDoc (/**/) extraction |
+| embedding-validation | ✅ Prod | ✅ | `cfn-codesearch/src/store_*.rs` | Dimension validation (1536) |
 | cfn-codebase-reindex | ✅ Prod | ✅ | `cfn-codesearch/cfn-codebase-reindex/` | Incremental indexing |
 | cfn-codebase-search | ✅ Prod | ✅ | `cfn-codesearch/cfn-codebase-search/` | Query interface |
 | cfn-detect-stale-docs | ✅ Prod | ✅ | `cfn-codesearch/cfn-detect-stale-docs/` | Documentation freshness checking |
@@ -188,8 +191,8 @@ This file MUST be updated when:
 | Agent | Status | Tests | Location | Description |
 |-------|--------|-------|----------|-------------|
 | supabase-specialist | ✅ Prod | ✅ | `developers/database/` | Supabase CLI, migrations |
-| memgraph-specialist | ⚠️ Beta | ⚠️ | `developers/database/` | Graph database operations |
-| mem0-specialist | ⚠️ Beta | ⚠️ | `developers/database/` | AI memory layer |
+| memgraph-specialist | ✅ Prod | ✅ | `developers/database/` | Graph database, Cypher queries, MAGE algorithms |
+| mem0-specialist | ✅ Prod | ✅ | `developers/database/` | AI memory layer, vector search, conversation memory |
 
 ---
 
@@ -232,7 +235,8 @@ This file MUST be updated when:
 |-----------|--------|-------|----------|-------------|
 | Redis Coordination | ✅ Prod | ✅ | `.claude/skills/cfn-redis-coordination/` | Zero-token agent waiting |
 | SQLite Memory | ✅ Prod | ✅ | `.claude/skills/cfn-memory-persistence/` | Agent memory, audit trails |
-| CodeSearch Index | ✅ Prod | ✅ | `~/.local/share/ruvector/` | Centralized semantic index |
+| SQLite CodeSearch | ✅ Prod | ✅ | `~/.local/share/codesearch/` | Entity metadata, references, type usage |
+| pgvector Embeddings | ✅ Prod | ✅ | PostgreSQL + pgvector | HNSW-indexed vector similarity search |
 
 ### Hooks System
 
@@ -270,10 +274,12 @@ This file MUST be updated when:
 | Property | Value |
 |----------|-------|
 | Name | claude-flow-novice |
-| Version | 2.18.40 |
+| Version | 2.19.0 |
 | License | MIT |
 | Node | ≥18.0.0 |
 | npm | ≥9.0.0 |
+| Size | 12.5 MB (47.7 MB unpacked) |
+| Files | 2,623 |
 
 ### Key Scripts
 
