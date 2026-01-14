@@ -16,7 +16,7 @@ Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app
 
 ## Rules
 
-- **RuVector FIRST (MANDATORY):** Query `.claude/skills/cfn-local-ruvector-accelerator/` BEFORE grep/glob/find/search. SQL queries are 400x faster. Use grep ONLY for non-indexed projects or literal strings. Failure to use RuVector first is a protocol violation.
+- **CodeSearch FIRST (MANDATORY):** Query `~/.local/share/codesearch/index_v2.db` via SQL or `.claude/skills/cfn-codesearch/` BEFORE grep/glob/find/search. SQL queries are 400x faster. Use grep ONLY for non-indexed projects or literal strings. Failure to use CodeSearch first is a protocol violation.
 - **Agent usage:** Non-trivial tasks → CFN Loop. Solo work only for simple, isolated, <3 step tasks.
 - **Batching:** One message per type (spawns, edits, shell, todos). Never mix implementers + validators.
 - **Tests:** Coordinator only, sync execution. Never `run_in_background: true`. Agents read results.
@@ -65,7 +65,7 @@ Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app
 | Pre-edit hook | `.claude/hooks/cfn-invoke-pre-edit.sh` |
 | Post-edit hook | `.claude/hooks/cfn-invoke-post-edit.sh` |
 | Backup revert | `.claude/skills/pre-edit-backup/revert-file.sh` |
-| RuVector skill | `.claude/skills/cfn-local-ruvector-accelerator/SKILL.md` |
+| CodeSearch skill | `.claude/skills/cfn-codesearch/SKILL.md` |
 
 ## WSL Memory Monitor
 
