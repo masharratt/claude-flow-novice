@@ -1,0 +1,269 @@
+;; ═══════════════════════════════════════════════════════════════════════════
+;; AISP Agent Binding Contract Template v5.1
+;; Usage: Defines formal handoff contracts between CFN personas
+;; ═══════════════════════════════════════════════════════════════════════════
+
+𝔸5.1.epic-bindings@{{DATE}}
+γ≔{{EPIC_ID}}.agent.bindings
+ρ≔⟨personas,handoffs,validation,evidence⟩
+⊢ND∧Ambig<0.02
+
+;; ─── Σ: PERSONA TYPES ───
+
+⟦Σ:Types⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ BINDING STATES                                               │
+  ;; │ Four possible states for any agent handoff                   │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  BindState≜{
+    ⊤:3:zero_cost,    ;; Perfect compatibility
+    λ:2:adapt,        ;; Type mismatch, adaptation possible
+    ∅:1:null,         ;; Socket mismatch, connection fails
+    ⊥:0:crash         ;; Logical contradiction
+  }
+
+  ;; Priority order: crash overrides all
+  Priority≜⊥≻∅≻λ≻⊤
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ PERSONA OUTPUT TYPES                                         │
+  ;; │ What each persona produces                                   │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  SimplifierOutput≜⟨
+    natural:ScopeRecommendations,
+    aisp:∅                         ;; No AISP output
+  ⟩
+
+  ProductOwnerOutput≜⟨
+    natural:⟨userStories:List⟨𝕊⟩,acceptance:List⟨𝕊⟩⟩,
+    aisp:∅
+  ⟩
+
+  ArchitectOutput≜⟨
+    natural:ArchitectureDescription,
+    aisp:⟨types:⟦Σ⟧,rules:⟦Γ⟧,interfaces:⟦Λ⟧⟩
+  ⟩
+
+  SecurityOutput≜⟨
+    natural:ThreatModel,
+    aisp:⟨safety:V_S,constraints:⟦Γ⟧⟩
+  ⟩
+
+  BackendOutput≜⟨
+    natural:ImplementationNotes,
+    aisp:⟨endpoints:⟦Λ⟧,schemas:⟦Σ⟧⟩
+  ⟩
+
+  FrontendOutput≜⟨
+    natural:UIComponents,
+    aisp:⟨consumes:⟦Λ⟧.ref⟩        ;; References backend AISP
+  ⟩
+
+  DevOpsOutput≜⟨
+    natural:InfrastructureSpec,
+    aisp:∅
+  ⟩
+
+  TesterOutput≜⟨
+    natural:TestStrategy,
+    aisp:⟨predicates:⟦Γ⟧⟩         ;; Test conditions as rules
+  ⟩
+
+  CodeStandardsOutput≜⟨
+    natural:NamingConventions,
+    aisp:⟨typeCheck:Binding⟩       ;; Type alignment validation
+  ⟩
+
+  StrategicAlignmentOutput≜⟨
+    natural:IntegrationGaps,
+    aisp:⟨bindingValidation:List⟨BindState⟩⟩
+  ⟩
+}
+
+;; ─── Γ: BINDING RULES ───
+
+⟦Γ:Binding⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ FOUR-STATE BINDING FUNCTION                                  │
+  ;; │ Determines compatibility between any two personas            │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  Δ⊗λ≜λ(A,B).case[
+    Logic(A)∩Logic(B)⇒⊥ → 0,       ;; Logical contradiction
+    Sock(A)∩Sock(B)≡∅   → 1,       ;; Socket mismatch
+    Type(A)≠Type(B)     → 2,       ;; Type mismatch (adaptable)
+    Post(A)⊆Pre(B)      → 3        ;; Perfect handoff
+  ]
+
+  ;; Determinism: exactly one binding state
+  ∀A,B:|{Δ⊗λ(A,B)}|≡1
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ SPECIFIC PERSONA BINDINGS                                    │
+  ;; │ Define handoff rules for the 11-persona flow                 │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Simplifier(Initial) → ProductOwner
+  ;; No AISP handoff - natural language scope recommendations
+  Δ⊗λ(Simplifier,ProductOwner)≜3  ;; Always zero-cost (no types)
+
+  ;; ProductOwner → Architect
+  ;; User stories inform architecture design
+  Δ⊗λ(ProductOwner,Architect)≜3   ;; Always zero-cost (no types)
+
+  ;; Architect → Security
+  ;; Security reviews architecture types
+  Δ⊗λ(Architect,Security)≜case[
+    Security.reads(Architect.aisp.types) → 3,
+    _ → 2
+  ]
+
+  ;; Architect → Backend (CRITICAL HANDOFF)
+  ;; Backend MUST implement Architect's AISP types exactly
+  Δ⊗λ(Architect,Backend)≜case[
+    Post(Architect.aisp.interfaces)⊆Pre(Backend.implementation) → 3,
+    Type(Architect.aisp.types)≢Type(Backend.schemas) → 2,
+    _ → 1  ;; Fail if types don't match
+  ]
+
+  ;; Backend → Frontend (CRITICAL HANDOFF)
+  ;; Frontend MUST consume Backend's AISP API contracts
+  Δ⊗λ(Backend,Frontend)≜case[
+    Post(Backend.aisp.endpoints)⊆Pre(Frontend.aisp.consumes) → 3,
+    Type(Backend.aisp.schemas)≢Type(Frontend.expectedTypes) → 2,
+    _ → 1  ;; Fail if API contract broken
+  ]
+
+  ;; Frontend → DevOps
+  ;; No type handoff - DevOps reads infra requirements
+  Δ⊗λ(Frontend,DevOps)≜3
+
+  ;; DevOps → Tester
+  ;; Tester validates deployment artifacts
+  Δ⊗λ(DevOps,Tester)≜3
+
+  ;; Tester → CodeStandards
+  ;; Code standards validates test predicates match types
+  Δ⊗λ(Tester,CodeStandards)≜case[
+    Tester.aisp.predicates.types⊆Epic.contracts.types → 3,
+    _ → 2
+  ]
+
+  ;; CodeStandards → StrategicAlignment
+  ;; Final validation of all bindings
+  Δ⊗λ(CodeStandards,StrategicAlignment)≜3
+
+  ;; StrategicAlignment → Simplifier(Final)
+  ;; Final scope check
+  Δ⊗λ(StrategicAlignment,Simplifier)≜3
+}
+
+;; ─── Γ: VALIDATION RULES ───
+
+⟦Γ:Rules⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ EPIC COMPLETION REQUIREMENTS                                 │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; All critical handoffs must be zero-cost
+  ∀epic:Complete(epic)⇒
+    Δ⊗λ(Architect,Backend)≡3∧
+    Δ⊗λ(Backend,Frontend)≡3
+
+  ;; No crash states allowed
+  ∀A,B∈Personas:Δ⊗λ(A,B)≠0
+
+  ;; At most one adapt state per pipeline
+  |{(A,B)|Δ⊗λ(A,B)≡2}|≤1
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ TYPE CONSISTENCY                                             │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Architect types propagate unchanged
+  ∀t∈Architect.aisp.types:
+    Backend.schemas.contains(t)∧
+    Frontend.expectedTypes.contains(t)
+
+  ;; Enum values never become strings
+  ∀e:EnumType:
+    ¬(∃persona:persona.output.hasString(e.name))
+}
+
+;; ─── Λ: BINDING FUNCTIONS ───
+
+⟦Λ:Funcs⟧{
+  ;; Calculate binding state
+  calculateBinding:(Persona×Persona)→BindState
+  calculateBinding≜λ(A,B).Δ⊗λ(A,B)
+
+  ;; Validate all bindings in epic
+  validateBindings:Epic→List⟨⟨Persona,Persona,BindState⟩⟩
+  validateBindings≜λepic.
+    [(A,B,Δ⊗λ(A,B))|∀A,B∈adjacent(epic.personas)]
+
+  ;; Check if epic is ready for implementation
+  isReady:Epic→𝔹
+  isReady≜λepic.
+    ∀(A,B,s)∈validateBindings(epic):s≥2
+
+  ;; Get blocking issues
+  getBlockers:Epic→List⟨⟨Persona,Persona,Issue⟩⟩
+  getBlockers≜λepic.
+    [(A,B,diagnose(A,B))|(A,B,s)∈validateBindings(epic)∧s<2]
+}
+
+;; ─── Χ: ERROR HANDLING ───
+
+⟦Χ:Errors⟧{
+  ;; Crash binding - logical contradiction
+  ε_crash≜⟨Δ⊗λ(A,B)≡0,⟨BLOCK,"Logical contradiction between "⧺A.name⧺" and "⧺B.name⟩⟩
+
+  ;; Null binding - socket mismatch
+  ε_null≜⟨Δ⊗λ(A,B)≡1,⟨BLOCK,"Socket mismatch: "⧺A.name⧺" output incompatible with "⧺B.name⧺" input"⟩⟩
+
+  ;; Adapt binding - type mismatch (warning)
+  ε_adapt≜⟨Δ⊗λ(A,B)≡2,⟨WARN,"Type adaptation needed between "⧺A.name⧺" and "⧺B.name⟩⟩
+
+  ;; Recovery actions
+  ρ_crash≜λ(A,B).requireArchitectReview(A,B)
+  ρ_null≜λ(A,B).addAdapterLayer(A,B)
+  ρ_adapt≜λ(A,B).generateTypeAdapter(A.types,B.types)
+}
+
+;; ─── Ε: EVIDENCE ───
+
+⟦Ε⟧⟨
+  δ≜0.82
+  φ≜100
+  τ≜◊⁺⁺
+  ⊢Binding:all_defined
+  ⊢Personas:11/11
+  ⊢CriticalHandoffs:⟨arch_back,back_front⟩
+  ⊢Ambig(D)<0.02
+⟩
+
+;; ═══════════════════════════════════════════════════════════════════════════
+;; USAGE IN EPIC JSON
+;; ═══════════════════════════════════════════════════════════════════════════
+;;
+;; After Strategic Alignment Reviewer runs, epic.bindings should contain:
+;;
+;; "bindings": {
+;;   "simplifier_to_productowner": { "state": 3, "symbol": "⊤" },
+;;   "productowner_to_architect": { "state": 3, "symbol": "⊤" },
+;;   "architect_to_security": { "state": 3, "symbol": "⊤" },
+;;   "architect_to_backend": { "state": 3, "symbol": "⊤" },
+;;   "backend_to_frontend": { "state": 3, "symbol": "⊤" },
+;;   "frontend_to_devops": { "state": 3, "symbol": "⊤" },
+;;   "devops_to_tester": { "state": 3, "symbol": "⊤" },
+;;   "tester_to_codestandards": { "state": 3, "symbol": "⊤" },
+;;   "codestandards_to_strategic": { "state": 3, "symbol": "⊤" },
+;;   "strategic_to_simplifier": { "state": 3, "symbol": "⊤" },
+;;   "all_zero_cost": true,
+;;   "blocking_issues": []
+;; }
+;;
+;; ═══════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,540 @@
+;; ═══════════════════════════════════════════════════════════════════════════
+;; AISP Error Handling Contract Template v5.1
+;; Usage: Define standardized errors across backend, frontend, and tests
+;; ═══════════════════════════════════════════════════════════════════════════
+
+𝔸5.1.epic-errors@{{DATE}}
+γ≔{{EPIC_ID}}.error.contracts
+ρ≔⟨codes,messages,recovery,evidence⟩
+⊢ND∧Ambig<0.02
+
+;; ─── Σ: ERROR TYPES ───
+
+⟦Σ:ErrorTypes⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ HTTP STATUS CODES                                            │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  HTTPStatus≜⟨
+    200:OK|
+    201:Created|
+    204:NoContent|
+    400:BadRequest|
+    401:Unauthorized|
+    403:Forbidden|
+    404:NotFound|
+    409:Conflict|
+    422:UnprocessableEntity|
+    429:TooManyRequests|
+    500:InternalServerError|
+    502:BadGateway|
+    503:ServiceUnavailable
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ ERROR CATEGORIES                                             │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ErrorCategory≜⟨
+    validation|      ;; Input validation failures
+    authentication|  ;; Auth/identity issues
+    authorization|   ;; Permission issues
+    not_found|       ;; Resource doesn't exist
+    conflict|        ;; State/uniqueness conflicts
+    rate_limit|      ;; Throttling
+    network|         ;; Connectivity issues
+    internal         ;; Server-side failures
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ ERROR STRUCTURE                                              │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  Error≜⟨
+    code:ErrorCode,
+    status:HTTPStatus,
+    category:ErrorCategory,
+    message:Message,
+    retry:RetryStrategy,
+    user_visible:𝔹
+  ⟩
+
+  Message≜⟨
+    technical:𝕊,         ;; For developers/logs
+    user_friendly:𝕊,     ;; For general users
+    senior_friendly:𝕊    ;; For senior audience (simpler language)
+  ⟩
+
+  RetryStrategy≜⟨
+    none|                          ;; Don't retry
+    immediate|                     ;; Retry once immediately
+    exponential_backoff(max:ℕ)|    ;; Retry with backoff
+    redirect(url:𝕊)|               ;; Redirect user
+    refresh_auth                   ;; Re-authenticate and retry
+  ⟩
+}
+
+;; ─── Σ: ERROR CODE DEFINITIONS ───
+
+⟦Σ:ErrorCodes⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ VALIDATION ERRORS (400)                                      │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  VALIDATION_ERROR≜⟨
+    code:"VALIDATION_ERROR",
+    status:400,
+    category:validation,
+    message:⟨
+      technical:"Request validation failed",
+      user_friendly:"Please check your input",
+      senior_friendly:"Something doesn't look right. Please check what you entered."
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  NAME_TOO_SHORT≜⟨
+    code:"NAME_TOO_SHORT",
+    status:400,
+    category:validation,
+    message:⟨
+      technical:"Name must be at least 3 characters",
+      user_friendly:"Name is too short (minimum 3 characters)",
+      senior_friendly:"Please enter a longer name (at least 3 letters)"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  NAME_TOO_LONG≜⟨
+    code:"NAME_TOO_LONG",
+    status:400,
+    category:validation,
+    message:⟨
+      technical:"Name cannot exceed 100 characters",
+      user_friendly:"Name is too long (maximum 100 characters)",
+      senior_friendly:"Please use a shorter name (100 letters or less)"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  INVALID_EMAIL≜⟨
+    code:"INVALID_EMAIL",
+    status:400,
+    category:validation,
+    message:⟨
+      technical:"Invalid email format",
+      user_friendly:"Please enter a valid email address",
+      senior_friendly:"That email address doesn't look right. Please check it."
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  INVALID_ENUM_VALUE≜⟨
+    code:"INVALID_ENUM_VALUE",
+    status:400,
+    category:validation,
+    message:⟨
+      technical:"Value must be one of the allowed options",
+      user_friendly:"Please select a valid option",
+      senior_friendly:"Please choose one of the options shown"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ AUTHENTICATION ERRORS (401)                                  │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  UNAUTHORIZED≜⟨
+    code:"UNAUTHORIZED",
+    status:401,
+    category:authentication,
+    message:⟨
+      technical:"Authentication required",
+      user_friendly:"Please sign in to continue",
+      senior_friendly:"Please sign in to your account"
+    ⟩,
+    retry:redirect("/login"),
+    user_visible:⊤
+  ⟩
+
+  TOKEN_EXPIRED≜⟨
+    code:"TOKEN_EXPIRED",
+    status:401,
+    category:authentication,
+    message:⟨
+      technical:"JWT token has expired",
+      user_friendly:"Your session has expired. Please sign in again.",
+      senior_friendly:"You've been signed out. Please sign in again."
+    ⟩,
+    retry:refresh_auth,
+    user_visible:⊤
+  ⟩
+
+  INVALID_TOKEN≜⟨
+    code:"INVALID_TOKEN",
+    status:401,
+    category:authentication,
+    message:⟨
+      technical:"JWT token is invalid or malformed",
+      user_friendly:"Session error. Please sign in again.",
+      senior_friendly:"Something went wrong. Please sign in again."
+    ⟩,
+    retry:redirect("/login"),
+    user_visible:⊤
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ AUTHORIZATION ERRORS (403)                                   │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  FORBIDDEN≜⟨
+    code:"FORBIDDEN",
+    status:403,
+    category:authorization,
+    message:⟨
+      technical:"User lacks permission for this action",
+      user_friendly:"You don't have permission to do this",
+      senior_friendly:"You don't have permission for this"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  NOT_FAMILY_MEMBER≜⟨
+    code:"NOT_FAMILY_MEMBER",
+    status:403,
+    category:authorization,
+    message:⟨
+      technical:"User is not a member of this family",
+      user_friendly:"You're not a member of this family",
+      senior_friendly:"You're not part of this family group"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  NOT_FAMILY_OWNER≜⟨
+    code:"NOT_FAMILY_OWNER",
+    status:403,
+    category:authorization,
+    message:⟨
+      technical:"Only family owner can perform this action",
+      user_friendly:"Only the family owner can do this",
+      senior_friendly:"Only the person who created this family can do this"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ NOT FOUND ERRORS (404)                                       │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  NOT_FOUND≜⟨
+    code:"NOT_FOUND",
+    status:404,
+    category:not_found,
+    message:⟨
+      technical:"Requested resource does not exist",
+      user_friendly:"We couldn't find what you're looking for",
+      senior_friendly:"We couldn't find that"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  FAMILY_NOT_FOUND≜⟨
+    code:"FAMILY_NOT_FOUND",
+    status:404,
+    category:not_found,
+    message:⟨
+      technical:"Family with given ID does not exist",
+      user_friendly:"This family doesn't exist",
+      senior_friendly:"We couldn't find that family"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  INVALID_INVITE_CODE≜⟨
+    code:"INVALID_INVITE_CODE",
+    status:404,
+    category:not_found,
+    message:⟨
+      technical:"No family found with this invite code",
+      user_friendly:"This invite code is invalid",
+      senior_friendly:"That code doesn't work. Please check it and try again."
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ CONFLICT ERRORS (409)                                        │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  CONFLICT≜⟨
+    code:"CONFLICT",
+    status:409,
+    category:conflict,
+    message:⟨
+      technical:"Resource state conflict",
+      user_friendly:"This action conflicts with current state",
+      senior_friendly:"Something changed. Please refresh and try again."
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  ALREADY_MEMBER≜⟨
+    code:"ALREADY_MEMBER",
+    status:409,
+    category:conflict,
+    message:⟨
+      technical:"User is already a member of this family",
+      user_friendly:"You're already a member of this family",
+      senior_friendly:"You're already part of this family"
+    ⟩,
+    retry:none,
+    user_visible:⊤
+  ⟩
+
+  INVITE_CODE_COLLISION≜⟨
+    code:"INVITE_CODE_COLLISION",
+    status:500,
+    category:internal,
+    message:⟨
+      technical:"Generated invite code already exists",
+      user_friendly:"Please try again",
+      senior_friendly:"Creating your family..."
+    ⟩,
+    retry:exponential_backoff(max:10),
+    user_visible:⊥  ;; Hidden from user - auto-retry
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ RATE LIMIT ERRORS (429)                                      │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  RATE_LIMITED≜⟨
+    code:"RATE_LIMITED",
+    status:429,
+    category:rate_limit,
+    message:⟨
+      technical:"Rate limit exceeded",
+      user_friendly:"Too many requests. Please wait a moment.",
+      senior_friendly:"Please wait a moment before trying again."
+    ⟩,
+    retry:exponential_backoff(max:3),
+    user_visible:⊤
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ NETWORK ERRORS                                               │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  NETWORK_ERROR≜⟨
+    code:"NETWORK_ERROR",
+    status:0,
+    category:network,
+    message:⟨
+      technical:"Network request failed",
+      user_friendly:"Connection error. Please check your internet.",
+      senior_friendly:"Can't connect. Please check your internet connection."
+    ⟩,
+    retry:exponential_backoff(max:3),
+    user_visible:⊤
+  ⟩
+
+  TIMEOUT≜⟨
+    code:"TIMEOUT",
+    status:408,
+    category:network,
+    message:⟨
+      technical:"Request timed out after 30 seconds",
+      user_friendly:"Request timed out. Please try again.",
+      senior_friendly:"This is taking too long. Please try again."
+    ⟩,
+    retry:immediate,
+    user_visible:⊤
+  ⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ INTERNAL ERRORS (500)                                        │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  INTERNAL_ERROR≜⟨
+    code:"INTERNAL_ERROR",
+    status:500,
+    category:internal,
+    message:⟨
+      technical:"Internal server error",
+      user_friendly:"Something went wrong. Please try again later.",
+      senior_friendly:"Something went wrong on our end. Please try again."
+    ⟩,
+    retry:exponential_backoff(max:2),
+    user_visible:⊤
+  ⟩
+
+  DATABASE_ERROR≜⟨
+    code:"DATABASE_ERROR",
+    status:500,
+    category:internal,
+    message:⟨
+      technical:"Database operation failed",
+      user_friendly:"We couldn't save your changes. Please try again.",
+      senior_friendly:"We couldn't save that. Please try again."
+    ⟩,
+    retry:exponential_backoff(max:3),
+    user_visible:⊤
+  ⟩
+}
+
+;; ─── Γ: ERROR RULES ───
+
+⟦Γ:Rules⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ MESSAGE INVARIANTS                                           │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Every error MUST have senior_friendly message
+  ∀ε:Error:∃ε.message.senior_friendly∧len(ε.message.senior_friendly)>0
+
+  ;; Senior messages must not contain technical jargon
+  ∀ε:Error:
+    ¬contains(ε.message.senior_friendly,"UUID")∧
+    ¬contains(ε.message.senior_friendly,"JWT")∧
+    ¬contains(ε.message.senior_friendly,"database")∧
+    ¬contains(ε.message.senior_friendly,"server")∧
+    ¬contains(ε.message.senior_friendly,"validation")
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ STATUS CODE CONSISTENCY                                      │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Category determines status code range
+  ∀ε:Error:ε.category≡validation⇒ε.status∈{400,422}
+  ∀ε:Error:ε.category≡authentication⇒ε.status≡401
+  ∀ε:Error:ε.category≡authorization⇒ε.status≡403
+  ∀ε:Error:ε.category≡not_found⇒ε.status≡404
+  ∀ε:Error:ε.category≡conflict⇒ε.status≡409
+  ∀ε:Error:ε.category≡rate_limit⇒ε.status≡429
+  ∀ε:Error:ε.category≡internal⇒ε.status∈{500,502,503}
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ RETRY POLICY                                                 │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; 4xx errors (except 429) should not auto-retry
+  ∀ε:Error:ε.status∈{400,401,403,404,409}⇒ε.retry∈{none,redirect(_)}
+
+  ;; 5xx errors should retry with backoff
+  ∀ε:Error:ε.status∈{500,502,503}⇒ε.retry≡exponential_backoff(_)
+
+  ;; Rate limited should always have backoff
+  ∀ε:Error:ε.status≡429⇒ε.retry≡exponential_backoff(_)
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ ERROR PRECEDENCE                                             │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; When multiple errors apply, use this priority
+  ErrorPrecedence≜
+    authentication≻authorization≻validation≻not_found≻conflict≻rate_limit≻network≻internal
+}
+
+;; ─── Λ: ERROR HANDLING FUNCTIONS ───
+
+⟦Λ:Functions⟧{
+  ;; Get appropriate message for audience
+  getMessage:Error×Audience→𝕊
+  getMessage≜λ(ε,aud).case[
+    aud≡developer → ε.message.technical,
+    aud≡senior    → ε.message.senior_friendly,
+    _             → ε.message.user_friendly
+  ]
+
+  ;; Determine if error should be shown to user
+  shouldShow:Error→𝔹
+  shouldShow≜λε.ε.user_visible
+
+  ;; Get retry delay (exponential backoff)
+  getRetryDelay:Error×ℕ→ℕ  ;; milliseconds
+  getRetryDelay≜λ(ε,attempt).case[
+    ε.retry≡none           → ∞,
+    ε.retry≡immediate      → 0,
+    ε.retry≡exponential_backoff(max) →
+      attempt>max → ∞ | min(1000×(2^attempt),30000)
+  ]
+
+  ;; Map HTTP status to error
+  fromStatus:HTTPStatus→Error
+  fromStatus≜λstatus.case[
+    status≡400 → VALIDATION_ERROR,
+    status≡401 → UNAUTHORIZED,
+    status≡403 → FORBIDDEN,
+    status≡404 → NOT_FOUND,
+    status≡409 → CONFLICT,
+    status≡429 → RATE_LIMITED,
+    status≥500 → INTERNAL_ERROR
+  ]
+}
+
+;; ─── Σ: TERM TRANSLATIONS ───
+
+⟦Σ:SeniorFriendlyTerms⟧{
+  ;; Technical term → Senior-friendly replacement
+  Translations≜{
+    "authentication"  → "sign in",
+    "database"        → "our system",
+    "server"          → "our website",
+    "network"         → "internet connection",
+    "validation"      → "check",
+    "required"        → "needed",
+    "characters"      → "letters",
+    "UUID"            → "ID",
+    "invalid"         → "doesn't work",
+    "expired"         → "timed out",
+    "permission"      → "access",
+    "unauthorized"    → "not signed in",
+    "forbidden"       → "not allowed",
+    "conflict"        → "already exists",
+    "timeout"         → "took too long"
+  }
+}
+
+;; ─── Ε: EVIDENCE ───
+
+⟦Ε⟧⟨
+  δ≜0.88
+  φ≜100
+  τ≜◊⁺⁺
+  ⊢ErrorCodes:{{ERROR_COUNT}}/{{ERROR_COUNT}}
+  ⊢Categories:8
+  ⊢SeniorMessages:all_present
+  ⊢RetryPolicies:all_defined
+  ⊢Ambig(D)<0.02
+⟩
+
+;; ═══════════════════════════════════════════════════════════════════════════
+;; USAGE IN CODE
+;; ═══════════════════════════════════════════════════════════════════════════
+;;
+;; Backend (Rust):
+;;   return Err(ApiError::from(NAME_TOO_SHORT));
+;;
+;; Frontend (TypeScript):
+;;   const message = getMessage(error, isSenior ? 'senior' : 'user');
+;;   toast.error(message);
+;;
+;; Tests:
+;;   expect(response.body.code).toBe('NAME_TOO_SHORT');
+;;   expect(response.status).toBe(400);
+;;
+;; ═══════════════════════════════════════════════════════════════════════════

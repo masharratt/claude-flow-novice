@@ -1,0 +1,346 @@
+;; ═══════════════════════════════════════════════════════════════════════════
+;; AISP Database Schema Contract Template v5.1
+;; Usage: Define database tables, constraints, and RLS policies
+;; ═══════════════════════════════════════════════════════════════════════════
+
+𝔸5.1.epic-schema@{{DATE}}
+γ≔{{EPIC_ID}}.database.schema
+ρ≔⟨tables,constraints,rls,indexes,evidence⟩
+⊢ND∧Ambig<0.02
+
+;; ─── Σ: COLUMN TYPES ───
+
+⟦Σ:ColumnTypes⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ PRIMITIVE DATABASE TYPES                                     │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  UUID≜𝕊:len(36):gen_random_uuid()
+  SERIAL≜ℕ:auto_increment
+  TEXT≜𝕊:unbounded
+  VARCHAR≜λn.𝕊:len(m)∧m≤n
+  TIMESTAMP≜ISO8601:with_timezone
+  BOOLEAN≜𝔹
+  JSONB≜JSON:binary
+  INTEGER≜ℤ
+  NUMERIC≜λ(p,s).ℝ:precision(p):scale(s)
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ COLUMN MODIFIERS                                             │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  Modifier≜⟨
+    primary_key|
+    not_null|
+    unique|
+    default(value)|
+    references(table.column)|
+    check(predicate)|
+    generated_always
+  ⟩
+}
+
+;; ─── Σ: TABLE DEFINITIONS ───
+
+⟦Σ:Tables⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ ENUM TYPES (create before tables)                            │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; CREATE TYPE family_type AS ENUM (...)
+  {{EnumName}}_enum≜⟨{{variant_1}}|{{variant_2}}|{{variant_3}}⟩
+
+  ;; Example:
+  ;; family_type_enum≜⟨core|extended|chosen⟩
+  ;; privacy_enum≜⟨public|private⟩
+  ;; member_role_enum≜⟨owner|member|editor⟩
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ TABLE SCHEMAS                                                │
+  ;; │ Format: column_name:type:modifiers                           │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  {{table_name}}≜⟨
+    id:UUID:primary_key:default(gen_random_uuid()),
+    {{column_1}}:{{type_1}}:{{modifiers}},
+    {{column_2}}:{{type_2}}:{{modifiers}},
+    created_at:TIMESTAMP:not_null:default(now()),
+    updated_at:TIMESTAMP:not_null:default(now())
+  ⟩
+
+  ;; Example: families table
+  ;; families≜⟨
+  ;;   id:UUID:primary_key:default(gen_random_uuid()),
+  ;;   name:VARCHAR(100):not_null:check(len(name)≥3),
+  ;;   type:family_type_enum:not_null:default('core'),
+  ;;   privacy:privacy_enum:not_null:default('private'),
+  ;;   invite_code:VARCHAR(6):unique:not_null,
+  ;;   created_by:UUID:not_null:references(auth.users.id),
+  ;;   created_at:TIMESTAMP:not_null:default(now()),
+  ;;   updated_at:TIMESTAMP:not_null:default(now())
+  ;; ⟩
+
+  ;; Example: family_members junction table
+  ;; family_members≜⟨
+  ;;   id:UUID:primary_key:default(gen_random_uuid()),
+  ;;   family_id:UUID:not_null:references(families.id):on_delete(cascade),
+  ;;   user_id:UUID:not_null:references(auth.users.id):on_delete(cascade),
+  ;;   role:member_role_enum:not_null:default('member'),
+  ;;   joined_at:TIMESTAMP:not_null:default(now()),
+  ;;   UNIQUE(family_id,user_id)
+  ;; ⟩
+}
+
+;; ─── Γ: CONSTRAINTS ───
+
+⟦Γ:Constraints⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ CHECK CONSTRAINTS                                            │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Name length validation
+  ∀f:families:len(f.name)≥3∧len(f.name)≤100
+
+  ;; Invite code format
+  ∀f:families:len(f.invite_code)≡6∧uppercase(f.invite_code)
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ REFERENTIAL INTEGRITY                                        │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Foreign key constraints
+  ∀m:family_members:∃f:families:m.family_id≡f.id
+  ∀m:family_members:∃u:auth.users:m.user_id≡u.id
+
+  ;; No orphaned records
+  ∀m:family_members:m.family_id∈{f.id|f∈families}
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ UNIQUENESS CONSTRAINTS                                       │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Invite codes globally unique
+  ∀f1,f2:families:f1.invite_code≡f2.invite_code⇒f1.id≡f2.id
+
+  ;; User can only be member once per family
+  ∀m1,m2:family_members:
+    m1.family_id≡m2.family_id∧m1.user_id≡m2.user_id⇒m1.id≡m2.id
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ BUSINESS RULES                                               │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Every family must have exactly one owner
+  ∀f:families:∃!m:family_members:m.family_id≡f.id∧m.role≡'owner'
+
+  ;; Creator becomes owner
+  ∀f:families:∃m:family_members:
+    m.family_id≡f.id∧m.user_id≡f.created_by∧m.role≡'owner'
+}
+
+;; ─── Γ: ROW LEVEL SECURITY ───
+
+⟦Γ:RLS⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ ENABLE RLS ON TABLES                                         │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  RLS_ENABLED≜{families,family_members,family_invitations}
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ SELECT POLICIES                                              │
+  ;; │ Users can only see rows they have access to                  │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Families: user must be a member
+  policy_families_select≜
+    ∀user,f:families:
+      canSelect(user,f)⇔
+        ∃m:family_members:m.family_id≡f.id∧m.user_id≡user.id
+
+  ;; Family members: user must be in same family
+  policy_members_select≜
+    ∀user,m:family_members:
+      canSelect(user,m)⇔
+        ∃m2:family_members:m2.family_id≡m.family_id∧m2.user_id≡user.id
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ INSERT POLICIES                                              │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Families: any authenticated user can create
+  policy_families_insert≜
+    ∀user,f:families:
+      canInsert(user,f)⇔authenticated(user)∧f.created_by≡user.id
+
+  ;; Family members: only owner/editor can add members
+  policy_members_insert≜
+    ∀user,m:family_members:
+      canInsert(user,m)⇔
+        ∃m2:family_members:
+          m2.family_id≡m.family_id∧
+          m2.user_id≡user.id∧
+          m2.role∈{owner,editor}
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ UPDATE POLICIES                                              │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Families: only owner can update
+  policy_families_update≜
+    ∀user,f:families:
+      canUpdate(user,f)⇔
+        ∃m:family_members:m.family_id≡f.id∧m.user_id≡user.id∧m.role≡'owner'
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ DELETE POLICIES                                              │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  ;; Families: only owner can delete
+  policy_families_delete≜
+    ∀user,f:families:
+      canDelete(user,f)⇔
+        ∃m:family_members:m.family_id≡f.id∧m.user_id≡user.id∧m.role≡'owner'
+
+  ;; Members: owner can remove anyone, members can remove self
+  policy_members_delete≜
+    ∀user,m:family_members:
+      canDelete(user,m)⇔
+        m.user_id≡user.id∨  ;; Self-removal
+        (∃m2:family_members:m2.family_id≡m.family_id∧m2.user_id≡user.id∧m2.role≡'owner')
+}
+
+;; ─── Λ: INDEXES ───
+
+⟦Λ:Indexes⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ PRIMARY KEY INDEXES (automatic)                              │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  idx_families_pkey≜families(id):btree:unique
+  idx_members_pkey≜family_members(id):btree:unique
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ FOREIGN KEY INDEXES (for JOIN performance)                   │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  idx_members_family≜family_members(family_id):btree
+  idx_members_user≜family_members(user_id):btree
+  idx_families_creator≜families(created_by):btree
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ LOOKUP INDEXES                                               │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  idx_families_invite≜families(invite_code):btree:unique
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ COMPOSITE INDEXES                                            │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  idx_members_family_user≜family_members(family_id,user_id):btree:unique
+}
+
+;; ─── Λ: TRIGGERS & FUNCTIONS ───
+
+⟦Λ:Triggers⟧{
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ AUTO-UPDATE TIMESTAMP                                        │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  trigger_updated_at≜
+    BEFORE UPDATE ON {{table}}
+    FOR EACH ROW
+    SET NEW.updated_at≔now()
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ INVITE CODE GENERATION                                       │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  fn_generate_invite_code:Unit→InviteCode
+  fn_generate_invite_code≜λ().
+    let chars≔'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' in  ;; No I,O,0,1
+    let code≔random_string(chars,6) in
+    ∃f:families:f.invite_code≡code → fn_generate_invite_code() | code
+
+  trigger_invite_code≜
+    BEFORE INSERT ON families
+    FOR EACH ROW
+    WHEN NEW.invite_code IS NULL
+    SET NEW.invite_code≔fn_generate_invite_code()
+
+  ;; ┌─────────────────────────────────────────────────────────────┐
+  ;; │ AUTO-ADD CREATOR AS OWNER                                    │
+  ;; └─────────────────────────────────────────────────────────────┘
+
+  trigger_add_owner≜
+    AFTER INSERT ON families
+    FOR EACH ROW
+    INSERT INTO family_members(family_id,user_id,role)
+    VALUES(NEW.id,NEW.created_by,'owner')
+}
+
+;; ─── Χ: ERROR HANDLING ───
+
+⟦Χ:Errors⟧{
+  ;; Unique violation on invite code
+  ε_invite_collision≜⟨
+    code:23505,
+    constraint:families_invite_code_key,
+    recovery:retry(fn_generate_invite_code,max:10)
+  ⟩
+
+  ;; Foreign key violation
+  ε_fk_violation≜⟨
+    code:23503,
+    recovery:reject∧message("Referenced record does not exist")
+  ⟩
+
+  ;; RLS violation
+  ε_rls_denied≜⟨
+    code:42501,
+    recovery:reject∧message("Access denied")
+  ⟩
+
+  ;; Check constraint violation
+  ε_check_failed≜⟨
+    code:23514,
+    recovery:reject∧validation_error
+  ⟩
+}
+
+;; ─── Ε: EVIDENCE ───
+
+⟦Ε⟧⟨
+  δ≜0.85
+  φ≜100
+  τ≜◊⁺⁺
+  ⊢Tables:{{TABLE_COUNT}}/{{TABLE_COUNT}}
+  ⊢Constraints:{{CONSTRAINT_COUNT}}
+  ⊢RLS:{{POLICY_COUNT}}_policies
+  ⊢Indexes:{{INDEX_COUNT}}
+  ⊢Triggers:{{TRIGGER_COUNT}}
+  ⊢Ambig(D)<0.02
+⟩
+
+;; ═══════════════════════════════════════════════════════════════════════════
+;; SQL GENERATION GUIDE
+;; ═══════════════════════════════════════════════════════════════════════════
+;;
+;; This AISP contract should generate migrations like:
+;;
+;; -- 001_create_enums.sql
+;; CREATE TYPE family_type AS ENUM ('core', 'extended', 'chosen');
+;; CREATE TYPE privacy_type AS ENUM ('public', 'private');
+;; CREATE TYPE member_role AS ENUM ('owner', 'member', 'editor');
+;;
+;; -- 002_create_families.sql
+;; CREATE TABLE families (
+;;   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+;;   name VARCHAR(100) NOT NULL CHECK (length(name) >= 3),
+;;   ...
+;; );
+;; ALTER TABLE families ENABLE ROW LEVEL SECURITY;
+;; CREATE POLICY families_select ON families FOR SELECT USING (...);
+;;
+;; ═══════════════════════════════════════════════════════════════════════════
