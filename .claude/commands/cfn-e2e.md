@@ -1,6 +1,6 @@
 ---
 description: "Smart parallel E2E test execution with automatic batching. Optimizes Playwright tests for memory-constrained WSL2 environments by grouping tests into fast/medium/large batches."
-argument-hint: "[--mode=direct|task|error] [--batch=smoke|fast|medium|large|all] [--parallelism=N]"
+argument-hint: "[--mode=direct|task|error|parallel] [--batch=smoke|fast|medium|large|all] [--parallelism=N]"
 allowed-tools: ["Bash", "Read", "TodoWrite", "Task", "Skill"]
 ---
 
@@ -18,7 +18,13 @@ Execute E2E tests with intelligent batching for optimal memory usage.
 |------|---------|----------|
 | `task` | `/cfn-loop-task` | Autonomous execution with iteration on failures |
 | `error` | `/cfn-fix-errors` | Fix compilation/test errors after failures |
+| `parallel` | `cfn-parallel-execute` | Run multiple tasks in parallel via pipeline |
 | `direct` | Script only | Simple test run without orchestration |
+
+**Keyword triggers:**
+- "in parallel" / "parallel" → `--mode=parallel`
+- "task mode" / "cfn loop" → `--mode=task`
+- "fix errors" / "error mode" → `--mode=error`
 
 ---
 
@@ -61,6 +67,43 @@ Invoke the Fix Errors command:
 
 ---
 
+## Mode: parallel (Pipeline Execution)
+
+**When `--mode=parallel` or user says "in parallel":**
+
+1. Generate task list from E2E test files:
+
+```bash
+# Create E2E task list
+./.claude/skills/cfn-e2e/analyze-batches.sh tests/e2e --json /tmp/e2e-batches.json
+```
+
+2. Convert to parallel execute format:
+
+```markdown
+# E2E Test Parallel Execution
+
+## Critical (Smoke Tests)
+1. Run smoke tests - Agent: playwright-tester - File: tests/e2e/smoke-test.spec.ts
+
+## High Priority (Fast Tests)
+2. Run onboarding tests - Agent: playwright-tester - File: tests/e2e/onboarding.spec.ts
+3. Run auth tests - Agent: playwright-tester - File: tests/e2e/authentication.spec.ts
+
+## Medium Priority (Large Tests)
+4. Run story tests - Agent: playwright-tester - File: tests/e2e/story-creation.spec.ts
+```
+
+3. Delegate to parallel executor:
+
+```bash
+cfn-parallel-execute --tasks=/tmp/e2e-tasks.md --agents=3
+```
+
+**Command reference:** `.claude/skills/cfn-parallel-execute/SKILL.md`
+
+---
+
 ## Mode: direct (Script Only)
 
 **When `--mode=direct` or simple execution requested:**
@@ -100,6 +143,9 @@ User Request
     ├── "fix e2e errors" / "error mode" / "--mode=error"
     │   └── Invoke: /cfn-fix-errors typescript
     │
+    ├── "run e2e in parallel" / "parallel" / "--mode=parallel"
+    │   └── Invoke: cfn-parallel-execute --tasks=e2e-tasks.md --agents=3
+    │
     └── "run e2e" / "run tests" / "--mode=direct" / (default)
         └── Execute: ./.claude/skills/cfn-e2e/run-e2e-smart.sh
 ```
@@ -137,6 +183,7 @@ User Request
 
 - `/cfn-loop-task` - Full CFN Loop orchestration
 - `/cfn-fix-errors` - Error coordination and fixing
+- `cfn-parallel-execute` - Pipeline-based parallel execution
 
 ## Skill Location
 

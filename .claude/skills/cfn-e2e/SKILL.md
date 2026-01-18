@@ -143,6 +143,23 @@ This triggers the error coordination workflow:
 
 **Command reference:** `.claude/commands/cfn-fix-errors.md`
 
+### Parallel Mode (Pipeline Execution)
+
+**For running E2E tests in parallel via cfn-parallel-execute:**
+
+```bash
+cfn-parallel-execute --tasks=/tmp/e2e-tasks.md --agents=3
+```
+
+This triggers the pipeline execution engine:
+1. Spawns N agents to work through test files
+2. Maintains agent count via exit notification-driven replacement
+3. No polling - preserves context window
+
+**Trigger keywords:** "in parallel", "parallel execution"
+
+**Command reference:** `.claude/skills/cfn-parallel-execute/SKILL.md`
+
 ### Direct Mode (Script Only)
 
 **For simple test execution without CFN orchestration:**
