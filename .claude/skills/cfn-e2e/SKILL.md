@@ -110,12 +110,57 @@ export PLAYWRIGHT_TIMEOUT=30000
 - Bash 4.0+
 - CFN Utilities (optional, for structured logging)
 
+## Execution Modes
+
+### Task Mode (CFN Loop)
+
+**For autonomous E2E execution with iteration on failures:**
+
+```bash
+/cfn-loop-task "Run E2E tests and fix failures" --mode=standard
+```
+
+This triggers the full CFN Loop workflow:
+1. Loop 3: Implementation agents run E2E tests
+2. Gate Check: Validates pass rate against threshold
+3. Loop 2: Validator agents review failures
+4. Product Owner: Decides PROCEED/ITERATE/ABORT
+
+**Command reference:** `.claude/commands/cfn-loop-task.md`
+
+### Error Mode (Fix Failures)
+
+**When E2E tests fail and need fixing:**
+
+```bash
+/cfn-fix-errors typescript --max-parallel=5
+```
+
+This triggers the error coordination workflow:
+1. Phase 0: Fix root-cause files (type definitions, configs)
+2. Phase 1: Parallel fixes for remaining files
+3. Phase 2: Cross-file cleanup
+
+**Command reference:** `.claude/commands/cfn-fix-errors.md`
+
+### Direct Mode (Script Only)
+
+**For simple test execution without CFN orchestration:**
+
+```bash
+./.claude/skills/cfn-e2e/run-e2e-smart.sh
+```
+
 ## Integration
 
 ### CFN Loop Integration
 
 ```bash
+# Full autonomous loop with E2E validation
 /cfn-loop-task "Run E2E tests" --mode=standard --config='{"batch_size":"smoke"}'
+
+# On failures, trigger error fixing
+/cfn-fix-errors typescript
 ```
 
 ### CI/CD Integration
