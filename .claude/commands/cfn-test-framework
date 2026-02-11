@@ -1,5 +1,0 @@
-#!/bin/bash
-# Wrapper script for cfn-test-framework CLI
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-"$SCRIPT_DIR/../skills/cfn-test-framework/execute.sh" "$@"

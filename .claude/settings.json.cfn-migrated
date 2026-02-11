@@ -1,0 +1,50 @@
+{
+  "env": {
+    "_ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.6",
+    "_ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
+    "_ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
+    "_ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "_ANTHROPIC_AUTH_TOKEN": "[REDACTED]"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npx claude-flow-novice :*)",
+      "Bash(npm run lint)",
+      "Bash(npm run test:*)",
+      "Bash(npm test :*)",
+      "Bash(git status)",
+      "Bash(git diff :*)",
+      "Bash(git log :*)",
+      "Bash(git add :*)",
+      "Bash(git commit :*)",
+      "Bash(git push)",
+      "Bash(jq :*)",
+      "Bash(node :*)",
+      "Bash(which :*)",
+      "Bash(pwd)",
+      "Bash(ls :*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/cfn-SessionStart-cfn-build-ruvector.sh",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "disabledMcpjsonServers": [
+    "n8n-mcp",
+    "shadcn",
+    "zai-mcp-server",
+    "ruv-swarm",
+    "claude-flow",
+    "chrome-devtools"
+  ]
+}
