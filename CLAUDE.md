@@ -83,3 +83,25 @@ Background process kills test runner memory leaks. Runs on session start.
 - Redact: credentials, tokens, PII → `[REDACTED]`
 - Incidents: capture command, commit, env, logs
 - Rollback: use backup scripts, not `git checkout`
+
+## WSL2 Port Forwarding
+
+WSL2 `localhostForwarding` is unreliable. Use `netsh portproxy` to access dev servers from Windows:
+
+```bash
+# Get WSL IP
+hostname -I | awk '{print $1}'
+```
+
+```cmd
+# Add portproxy (elevated CMD/PowerShell) - replace PORT and WSL_IP
+netsh interface portproxy add v4tov4 listenport=PORT listenaddress=127.0.0.1 connectport=PORT connectaddress=WSL_IP
+
+# Verify
+netsh interface portproxy show all
+
+# Remove when done
+netsh interface portproxy delete v4tov4 listenport=PORT listenaddress=127.0.0.1
+```
+
+**Note:** WSL IP changes on restart. Re-run with new IP if connection breaks.
