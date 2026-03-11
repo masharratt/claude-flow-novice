@@ -196,57 +196,12 @@ Thresholds:
 
 ## 10. Project Port Assignments
 
-To prevent conflicts when running multiple frontends concurrently, each project has dedicated port ranges.
-
-### Port Ranges
-
-| Project | Frontend Ports | Services | Notes |
-|---------|---------------|----------|-------|
-| **fireside-family** | 3100-3109 | 8080-8090, 9093 | 10 frontends allocated |
-| **daily-platform** | 3200-3209 | 8002, 5432, 6379 | 10 frontends allocated |
-| daily-automations | — | 8080 | API only |
-| daily-coverage | 3000 | — | Single frontend |
-| daily-dashboards | 3000-3001 | 6379 | Existing assignment |
-| daily-seo | 4000, 3090 | 6333 | Existing assignment |
-
-### fireside-family Ports (3100-3109)
-| Port | Service | Purpose |
-|------|---------|---------|
-| 3100 | Main Web | Primary React frontend |
-| 3101 | Admin | Admin dashboard |
-| 3102 | Mobile Dev | Expo dev server |
-| 3103 | Storybook | Component library |
-| 3104 | Docs | Documentation site |
-| 3105 | Preview | PR previews |
-| 3106 | E2E Tests | Playwright tests |
-| 3107 | Staging | Staging frontend |
-| 3108 | Analytics Dashboard | Internal analytics |
-| 3109 | Reserved | Future use |
-
-### daily-platform Ports (3200-3209)
-| Port | Service | Purpose |
-|------|---------|---------|
-| 3200 | Main Web | Primary frontend |
-| 3201 | Admin | Admin dashboard |
-| 3202 | API Docs | OpenAPI/Swagger |
-| 3203 | Storybook | Component library |
-| 3204 | Docs | Documentation site |
-| 3205 | Preview | PR previews |
-| 3206 | E2E Tests | Playwright tests |
-| 3207 | Staging | Staging frontend |
-| 3208 | Dashboard | Internal dashboard |
-| 3209 | Reserved | Future use |
-
-### Existing Service Ports (Do Not Reassign)
-| Project | Port | Service |
-|---------|------|---------|
-| fireside-family | 8080-8090 | Rust microservices |
-| fireside-family | 9093 | Prometheus |
-| fireside-family | 3000 | Backend API (legacy) |
-| daily-automations | 8080 | API |
-| daily-platform | 8002 | API |
-| daily-platform | 5432 | PostgreSQL |
-| daily-platform | 6379 | Redis |
+| Project | Frontend Ports |
+|---------|----------------|
+| fireside-family | 3100-3109 |
+| daily-platform | 3200-3209 |
+| daily-todo | 3300-3309 |
+| daily-reach | 3400-3409 |
 
 ---
 
