@@ -8,3 +8,7 @@ function hook_test_function() {
 function another_test_fn() {
     echo "Second function for verification"
 }
+
+function third_hook_test() {
+    echo "Added by hook validation test"
+}
