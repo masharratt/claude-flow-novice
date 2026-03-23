@@ -12,3 +12,7 @@ function another_test_fn() {
 function third_hook_test() {
     echo "Added by hook validation test"
 }
+
+function final_hook_validation() {
+    echo "If this appears in the index, the hook works end-to-end"
+}
