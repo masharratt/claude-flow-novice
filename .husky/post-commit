@@ -1,0 +1,4 @@
+#!/bin/bash
+# Post-commit: update CodeSearch index for changed files
+HOOK="$HOME/.claude/hooks/cfn-post-commit-codesearch-index.sh"
+[ -x "$HOOK" ] && "$HOOK"

@@ -1,3 +1,6 @@
+# Model cache (fastembed ONNX weights)
+.fastembed_cache/
+
 # Dependencies
 node_modules/
 .deno/
