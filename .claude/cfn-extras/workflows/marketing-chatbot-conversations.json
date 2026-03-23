@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "instanceId": "chatbot-conversations-workflow",
+    "name": "Marketing Chatbot Conversations",
+    "description": "BANT qualification and lead routing workflow"
+  },
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "routing": [
+            {"source": "Intercom", "destination": "Intercom API"},
+            {"source": "Drift", "destination": "Drift API"}
+          ]
+        }
+      },
+      "name": "Platform Switch",
+      "type": "n8n-nodes-base.switch",
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": `
+// MANDATORY BANT scoring function
+const conversation = $input.item.json.conversation;
+let score = 0;
+
+// Budget (0-40 points)
+if (conversation.mentions_budget) score += 40;
+else if (conversation.price_sensitive) score += 20;
+
+// Authority (0-20 points)
+if (conversation.decision_maker) score += 20;
+else if (conversation.influencer) score += 10;
+
+// Need (0-20 points)
+if (conversation.active_pain_point) score += 20;
+else if (conversation.passive_need) score += 10;
+
+// Timeline (0-20 points)
+if (conversation.urgent) score += 20;
+else if (conversation.within_quarter) score += 10;
+
+return {
+  qualified: score >= 60,
+  score: score,
+  tier: score >= 60 ? 'MQL' : 'Unqualified'
+};`
+      },
+      "name": "BANT Qualification",
+      "type": "n8n-nodes-base.function",
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "errorHandling": {
+          "default": "Fallback to Human Agent",
+          "timeout": 5000
+        }
+      },
+      "name": "Response Generation",
+      "type": "n8n-nodes-base.function",
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        {"node": "Platform Switch"}
+      ]
+    },
+    "Platform Switch": {
+      "main": [
+        {"node": "BANT Qualification"}
+      ]
+    },
+    "BANT Qualification": {
+      "main": [
+        {"node": "Response Generation"}
+      ]
+    }
+  }
+}

@@ -1,0 +1,243 @@
+#!/bin/bash
+# Git Hooks Installation Script
+# Installs security-focused git hooks to prevent credential exposure
+# Usage: bash .claude/hooks/install-git-hooks.sh [--force]
+
+set -euo pipefail
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# Configuration
+PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+GIT_HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
+HOOKS_SOURCE_DIR="$PROJECT_ROOT/.claude/hooks"
+FORCE_INSTALL=false
+
+# Exit codes
+EXIT_SUCCESS=0
+EXIT_ERROR=1
+
+# Parse arguments
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force)
+                FORCE_INSTALL=true
+                shift
+                ;;
+            --help)
+                show_help
+                exit $EXIT_SUCCESS
+                ;;
+            *)
+                echo "Unknown argument: $1"
+                show_help
+                exit $EXIT_ERROR
+                ;;
+        esac
+    done
+}
+
+# Show help message
+show_help() {
+    cat << 'EOF'
+Usage: bash .claude/hooks/install-git-hooks.sh [OPTIONS]
+
+Install git hooks to prevent credential exposure and ensure code quality.
+
+Options:
+  --force         Overwrite existing hooks without confirmation
+  --help          Show this help message
+
+Installed Hooks:
+  .git/hooks/pre-commit - Scans staged files for credentials before commit
+
+Exit Codes:
+  0 - Installation successful
+  1 - Installation failed
+
+Examples:
+  # Install with confirmation prompts
+  bash .claude/hooks/install-git-hooks.sh
+
+  # Install with force overwrite (CI/CD)
+  bash .claude/hooks/install-git-hooks.sh --force
+
+For more information, see .claude/hooks/README-GIT-HOOKS.md
+EOF
+}
+
+# Validate project structure
+validate_project() {
+    if [ ! -d "$PROJECT_ROOT/.git" ]; then
+        echo -e "${RED}ERROR: Not a git repository${NC}"
+        echo "Run this script from the root of a git repository"
+        return $EXIT_ERROR
+    fi
+
+    if [ ! -d "$HOOKS_SOURCE_DIR" ]; then
+        echo -e "${RED}ERROR: .claude/hooks directory not found${NC}"
+        echo "Expected location: $HOOKS_SOURCE_DIR"
+        return $EXIT_ERROR
+    fi
+
+    return $EXIT_SUCCESS
+}
+
+# Check if .artifacts/logs directory exists, create if needed
+ensure_logs_directory() {
+    local logs_dir="$PROJECT_ROOT/.artifacts/logs"
+    if [ ! -d "$logs_dir" ]; then
+        mkdir -p "$logs_dir"
+        echo -e "${BLUE}Created logs directory: $logs_dir${NC}"
+    fi
+}
+
+# Install a single git hook
+install_hook() {
+    local hook_source="$1"
+    local hook_name=$(basename "$hook_source")
+    local hook_dest="$GIT_HOOKS_DIR/$hook_name"
+
+    # Check if hook source exists
+    if [ ! -f "$hook_source" ]; then
+        echo -e "${YELLOW}WARNING: Hook source not found: $hook_source${NC}"
+        return 1
+    fi
+
+    # Check if destination hook already exists
+    if [ -f "$hook_dest" ]; then
+        if [ "$FORCE_INSTALL" = false ]; then
+            echo -e "${YELLOW}Hook already exists: $hook_name${NC}"
+            read -p "Overwrite? (y/n) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${BLUE}Skipped: $hook_name${NC}"
+                return 0
+            fi
+        else
+            echo -e "${BLUE}Overwriting: $hook_name${NC}"
+        fi
+    fi
+
+    # Copy hook file
+    cp "$hook_source" "$hook_dest"
+    chmod +x "$hook_dest"
+
+    # Validate installation
+    if [ ! -f "$hook_dest" ] || [ ! -x "$hook_dest" ]; then
+        echo -e "${RED}FAILED to install: $hook_name${NC}"
+        return $EXIT_ERROR
+    fi
+
+    echo -e "${GREEN}Installed: $hook_name${NC}"
+    return $EXIT_SUCCESS
+}
+
+# Validate hook is functional
+validate_hook() {
+    local hook_name="$1"
+    local hook_path="$GIT_HOOKS_DIR/$hook_name"
+
+    if [ ! -f "$hook_path" ]; then
+        echo -e "${RED}VALIDATION FAILED: Hook file not found${NC}"
+        return $EXIT_ERROR
+    fi
+
+    if [ ! -x "$hook_path" ]; then
+        echo -e "${RED}VALIDATION FAILED: Hook is not executable${NC}"
+        return $EXIT_ERROR
+    fi
+
+    # Check for bash shebang
+    if ! head -1 "$hook_path" | grep -q "^#!/bin/bash"; then
+        echo -e "${RED}VALIDATION FAILED: Hook missing bash shebang${NC}"
+        return $EXIT_ERROR
+    fi
+
+    echo -e "${GREEN}VALIDATION PASSED: $hook_name${NC}"
+    return $EXIT_SUCCESS
+}
+
+# Main installation logic
+main() {
+    echo -e "${BOLD}Git Hooks Installation${NC}"
+    echo "========================================"
+    echo ""
+
+    # Parse arguments
+    parse_arguments "$@"
+
+    # Validate project structure
+    if ! validate_project; then
+        exit $EXIT_ERROR
+    fi
+
+    # Ensure logs directory exists
+    ensure_logs_directory
+
+    echo -e "${BLUE}Installing git hooks to: $GIT_HOOKS_DIR${NC}"
+    echo ""
+
+    local install_count=0
+    local fail_count=0
+
+    # Install pre-commit hook
+    if install_hook "$PROJECT_ROOT/.git/hooks/pre-commit"; then
+        install_count=$((install_count + 1))
+    else
+        fail_count=$((fail_count + 1))
+    fi
+
+    echo ""
+
+    # Validate installations
+    echo -e "${BOLD}Validating installations...${NC}"
+    echo ""
+
+    if ! validate_hook "pre-commit"; then
+        fail_count=$((fail_count + 1))
+    fi
+
+    echo ""
+    echo -e "${BOLD}Installation Summary${NC}"
+    echo "========================================"
+    echo "Installed hooks: $install_count"
+    echo "Failed hooks: $fail_count"
+    echo ""
+
+    if [ $fail_count -eq 0 ]; then
+        echo -e "${GREEN}✅ All hooks installed successfully${NC}"
+        echo ""
+        echo -e "${BOLD}Next steps:${NC}"
+        echo "  1. Try committing a file with a mock credential:"
+        echo "     git add test.txt"
+        echo "     echo 'API_KEY=sk-ant-test123456789' >> test.txt"
+        echo "     git commit -m 'Test credential detection'"
+        echo ""
+        echo "  2. The pre-commit hook will block the commit"
+        echo ""
+        echo "  3. For test files, use whitelisted patterns:"
+        echo "     - sk-ant-mock"
+        echo "     - npm_MockTestKey"
+        echo "     - test_key / mock_key"
+        echo "     - [REDACTED]"
+        echo ""
+        echo -e "${BOLD}Documentation:${NC}"
+        echo "  .claude/hooks/README-GIT-HOOKS.md"
+        echo ""
+        return $EXIT_SUCCESS
+    else
+        echo -e "${RED}❌ Installation failed${NC}"
+        return $EXIT_ERROR
+    fi
+}
+
+# Execute main function
+main "$@"

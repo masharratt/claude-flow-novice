@@ -1,0 +1,110 @@
+#!/bin/bash
+
+# Post-Edit Hook for CFN Retrospective Skills
+
+# Determine PROJECT_ROOT portably
+if [[ -z "$PROJECT_ROOT" ]]; then
+    # Resolve script location (handle symlinks)
+    SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+    if [[ -L "$SCRIPT_SOURCE" ]]; then
+        SCRIPT_SOURCE="$(readlink -f "$SCRIPT_SOURCE" 2>/dev/null)" || {
+            echo "❌ Failed to resolve symlink for ${BASH_SOURCE[0]}" >&2
+            exit 1
+        }
+    fi
+
+    # Get script directory
+    SCRIPT_DIR="$(dirname "$SCRIPT_SOURCE")"
+    if ! cd "$SCRIPT_DIR" 2>/dev/null; then
+        echo "❌ Failed to cd to script directory: $SCRIPT_DIR" >&2
+        exit 1
+    fi
+    SCRIPT_DIR="$(pwd)"
+
+    # Navigate to project root (.claude/hooks -> ../..)
+    if ! cd "$SCRIPT_DIR/../.." 2>/dev/null; then
+        echo "❌ Failed to navigate to project root from $SCRIPT_DIR" >&2
+        exit 1
+    fi
+
+    export PROJECT_ROOT="$(pwd)"
+
+    # Return to original directory (optional, for safety)
+    cd - >/dev/null || true
+fi
+
+# Validate script permissions
+validate_script_permissions() {
+    local script_path="$1"
+    if [[ ! -x "$script_path" ]]; then
+        echo "❌ Script is not executable: $script_path"
+        chmod +x "$script_path" && echo "✅ Made script executable: $script_path"
+    fi
+}
+
+# Basic JSON validation
+validate_json_syntax() {
+    local file_path="$1"
+    if ! jq empty "$file_path" >/dev/null 2>&1; then
+        echo "❌ Invalid JSON syntax in $file_path"
+        return 1
+    fi
+    echo "✅ JSON syntax valid: $file_path"
+}
+
+# Specific validation for retrospective components
+validate_retrospective_skills() {
+    local base_path="${PROJECT_ROOT}/.claude/skills"
+    local skills=(
+        "pattern-extraction/extract-patterns.sh"
+        "playbook-auto-update/auto-update-playbook.sh"
+        "improvement-recommender/recommend-improvements.sh"
+        "retrospective-report/generate-report.sh"
+    )
+
+    for skill in "${skills[@]}"; do
+        full_path="${base_path}/${skill}"
+
+        # Validate script permissions
+        validate_script_permissions "$full_path"
+
+        # Run basic validation for shell scripts
+        if ! bash -n "$full_path" >/dev/null 2>&1; then
+            echo "❌ Syntax error in shell script: $skill"
+            return 1
+        fi
+    done
+
+    echo "✅ All retrospective skill scripts validated successfully"
+}
+
+# Validate playbook JSON
+validate_playbook() {
+    local playbook_path="${PROJECT_ROOT}/docs/PLAYBOOK.json"
+    validate_json_syntax "$playbook_path"
+}
+
+# Main validation function
+main() {
+    local edited_file="$1"
+    echo "🔍 Validating edited file: $edited_file"
+
+    # Determine validation based on file path
+    case "$edited_file" in
+        *".claude/skills/pattern-extraction"* | \
+        *".claude/skills/playbook-auto-update"* | \
+        *".claude/skills/improvement-recommender"* | \
+        *".claude/skills/retrospective-report"* | \
+        */PLAYBOOK.json)
+            validate_retrospective_skills
+            validate_playbook
+            ;;
+        *)
+            echo "✅ No specific validation required for this file"
+            exit 0
+            ;;
+    esac
+}
+
+# Run validation
+main "$1"

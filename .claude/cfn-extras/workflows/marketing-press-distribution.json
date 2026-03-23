@@ -1,0 +1,224 @@
+{
+  "name": "Press Distribution Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Webhook",
+      "type": "webhook",
+      "position": [100, 300],
+      "webhookId": "press-distribution-trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "path": "validate-request"
+      },
+      "name": "Request Validation",
+      "type": "function",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "routing": [
+            {
+              "value": "PR_NEWSWIRE",
+              "output": "PR Newswire Distribution"
+            },
+            {
+              "value": "BUSINESS_WIRE",
+              "output": "Business Wire Distribution"
+            },
+            {
+              "value": "PRWEB",
+              "output": "PRWeb Distribution"
+            }
+          ]
+        }
+      },
+      "name": "Platform Router",
+      "type": "switch",
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.prnewswire.com/v1/press-release/distribute",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "credentialsType": "prNewswireApi"
+      },
+      "name": "PR Newswire Distribution",
+      "type": "httpRequest",
+      "position": [550, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://api.businesswire.com/v1/press-release/distribute",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "credentialsType": "businessWireApi"
+      },
+      "name": "Business Wire Distribution",
+      "type": "httpRequest",
+      "position": [550, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.prweb.com/v1/press-release/distribute",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "credentialsType": "prWebApi"
+      },
+      "name": "PRWeb Distribution",
+      "type": "httpRequest",
+      "position": [550, 400]
+    },
+    {
+      "parameters": {
+        "url": "https://api.prnewswire.com/v1/distribution/status",
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "credentialsType": "prNewswireApi"
+      },
+      "name": "Get Distribution Status",
+      "type": "httpRequest",
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://api.prnewswire.com/v1/distribution/metrics",
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "credentialsType": "prNewswireApi"
+      },
+      "name": "Get Pickup Metrics",
+      "type": "httpRequest",
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "path": "list-templates"
+      },
+      "name": "List Templates",
+      "type": "function",
+      "position": [700, 400]
+    },
+    {
+      "parameters": {},
+      "name": "Error Handling",
+      "type": "errorTrigger",
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Request Validation",
+            "type": "main",
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Request Validation": {
+      "main": [
+        [
+          {
+            "node": "Platform Router",
+            "type": "main",
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Platform Router": {
+      "main": [
+        [
+          {
+            "node": "PR Newswire Distribution",
+            "type": "main",
+            "output": "PR_NEWSWIRE"
+          },
+          {
+            "node": "Business Wire Distribution",
+            "type": "main",
+            "output": "BUSINESS_WIRE"
+          },
+          {
+            "node": "PRWeb Distribution",
+            "type": "main",
+            "output": "PRWEB"
+          }
+        ]
+      ]
+    },
+    "PR Newswire Distribution": {
+      "main": [
+        [
+          {
+            "node": "Get Distribution Status",
+            "type": "main",
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Business Wire Distribution": {
+      "main": [
+        [
+          {
+            "node": "Get Distribution Status",
+            "type": "main",
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "PRWeb Distribution": {
+      "main": [
+        [
+          {
+            "node": "Get Distribution Status",
+            "type": "main",
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Get Distribution Status": {
+      "main": [
+        [
+          {
+            "node": "Get Pickup Metrics",
+            "type": "main",
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Get Pickup Metrics": {
+      "main": [
+        [
+          {
+            "node": "List Templates",
+            "type": "main",
+            "output": 0
+          }
+        ]
+      ]
+    },
+    "Error Handling": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "Error Handling",
+    "saveManualExecutions": true,
+    "webhookTimeout": 300
+  }
+}

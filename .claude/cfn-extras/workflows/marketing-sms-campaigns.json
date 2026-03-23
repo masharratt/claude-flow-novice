@@ -1,0 +1,81 @@
+{
+  "meta": {
+    "instanceId": "sms-campaigns-workflow",
+    "name": "Marketing SMS Campaigns",
+    "description": "TCPA compliant SMS campaign management"
+  },
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Campaign Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": `
+// CRITICAL: TCPA compliance validation
+const phone = $input.item.json.phone;
+const optIn = await $getWorkflowStaticData('node').optIns[phone];
+const dnc = await $getWorkflowStaticData('node').dncList[phone];
+
+if (!optIn) {
+  throw new Error('TCPA Violation: No opt-in consent');
+}
+
+if (dnc) {
+  throw new Error('DNC Violation: Phone on Do Not Call list');
+}
+
+// Log compliance check
+await $logs.push({phone, optIn, dnc, timestamp: new Date()});
+
+return $input.item.json;`
+      },
+      "name": "TCPA Compliance Check",
+      "type": "n8n-nodes-base.function",
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "routing": [
+            {"provider": "Twilio", "destination": "Twilio SMS API"},
+            {"provider": "Plivo", "destination": "Plivo SMS API"}
+          ]
+        }
+      },
+      "name": "SMS Provider Switch",
+      "type": "n8n-nodes-base.switch",
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "errorHandling": {
+          "default": "Opt-Out Confirmation",
+          "timeout": 1000
+        }
+      },
+      "name": "Opt-Out Processing",
+      "type": "n8n-nodes-base.function",
+      "position": [700, 300]
+    }
+  ],
+  "connections": {
+    "Campaign Webhook": {
+      "main": [
+        {"node": "TCPA Compliance Check"}
+      ]
+    },
+    "TCPA Compliance Check": {
+      "main": [
+        {"node": "SMS Provider Switch"}
+      ]
+    },
+    "SMS Provider Switch": {
+      "main": [
+        {"node": "Opt-Out Processing"}
+      ]
+    }
+  }
+}

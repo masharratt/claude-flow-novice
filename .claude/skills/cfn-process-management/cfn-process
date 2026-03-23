@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CLI_SCRIPT="${SCRIPT_DIR}/cli/process-manager"
+
+if [[ ! -f "$CLI_SCRIPT" ]]; then
+    echo "ERROR: Process manager CLI script not found: $CLI_SCRIPT" >&2
+    exit 1
+fi
+
+if [[ ! -x "$CLI_SCRIPT" ]]; then
+    chmod +x "$CLI_SCRIPT"
+fi
+
+exec "$CLI_SCRIPT" "$@"

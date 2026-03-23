@@ -1,0 +1,38 @@
+{
+  "domain": "data-engineering",
+  "validation_criteria": {
+    "critical": [
+      "Data pipeline executes successfully",
+      "Data quality checks pass (completeness, accuracy, consistency)",
+      "Schema validation successful",
+      "No data loss or corruption",
+      "Performance SLAs met"
+    ],
+    "important": [
+      "Data lineage documented",
+      "Error handling and retry logic implemented",
+      "Idempotency ensured (re-runnable without duplicates)",
+      "Monitoring and alerting configured",
+      "Data privacy compliance (PII handling, encryption)",
+      "Partitioning strategy appropriate",
+      "Testing coverage adequate (unit, integration)"
+    ],
+    "nice_to_have": [
+      "Pipeline performance optimized",
+      "Cost efficiency analyzed",
+      "Data catalog entries created",
+      "Data quality metrics tracked over time",
+      "Pipeline documentation comprehensive"
+    ]
+  },
+  "success_metrics": {
+    "gate_threshold": 0.75,
+    "consensus_threshold": 0.90
+  },
+  "deliverable_requirements": [
+    "Pipeline code/configuration",
+    "Data quality validation passed",
+    "Schema documentation",
+    "Performance test results"
+  ]
+}

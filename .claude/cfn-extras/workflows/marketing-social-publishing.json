@@ -1,0 +1,86 @@
+{
+    "name": "Marketing Social Publishing Workflow",
+    "nodes": [
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Authenticate with Social Platforms",
+            "parameters": {
+                "authentication": "OAuth2",
+                "oauthTokenUrl": "${META_TOKEN_URL}",
+                "oauthClientId": "${META_CLIENT_ID}",
+                "oauthClientSecret": "${META_CLIENT_SECRET}",
+                "oauthScopes": ["pages_manage_posts", "pages_read_engagement"]
+            }
+        },
+        {
+            "type": "n8n-nodes-base.set",
+            "name": "Prepare Post Parameters",
+            "parameters": {
+                "values": {
+                    "post_content": "{{$json.post_content}}",
+                    "media_url": "{{$json.media_url}}",
+                    "platforms": "{{$json.platforms}}"
+                }
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Upload Media to Platforms",
+            "parameters": {
+                "method": "POST",
+                "url": "${META_API_BASE}/me/photos",
+                "authentication": "predefinedCredentialType",
+                "errorHandler": {
+                    "mode": "exponentialBackoff",
+                    "maxRetries": 2
+                }
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Create Social Media Post",
+            "parameters": {
+                "method": "POST",
+                "url": "${META_API_BASE}/me/feed",
+                "authentication": "predefinedCredentialType"
+            }
+        },
+        {
+            "type": "n8n-nodes-base.httpRequest",
+            "name": "Get Post Statistics",
+            "parameters": {
+                "method": "GET",
+                "url": "${META_API_BASE}/post/{{$json.post_id}}/insights",
+                "authentication": "predefinedCredentialType"
+            }
+        },
+        {
+            "type": "n8n-nodes-base.switch",
+            "name": "Post Status Check",
+            "parameters": {
+                "rules": [
+                    {
+                        "condition": "{{$json.status === 'published'}}",
+                        "output": "Success Path"
+                    },
+                    {
+                        "condition": "{{$json.status === 'failed'}}",
+                        "output": "Error Path"
+                    }
+                ]
+            }
+        }
+    ],
+    "connections": {
+        "Authenticate with Social Platforms": {
+            "main": [["Prepare Post Parameters"]]
+        },
+        "Prepare Post Parameters": {
+            "main": [["Upload Media to Platforms"]]
+        }
+    },
+    "settings": {
+        "errorWorkflow": true,
+        "saveExecutionProgress": true
+    }
+}

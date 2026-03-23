@@ -1,0 +1,102 @@
+{
+    "teams": {
+        "marketing": {
+            "coordinator": {
+                "provider": "anthropic",
+                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
+                "model": "claude-sonnet-4-20250514",
+                "baseUrl": "https://api.anthropic.com"
+            },
+            "workers": {
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "baseUrl": "https://api.z.ai/api/anthropic",
+                "models": {
+                    "simple": "claude-3-5-haiku-20241022",
+                    "complex": "claude-3-5-sonnet-20241022"
+                }
+            },
+            "routing_strategy": "dynamic"
+        },
+        "engineering": {
+            "coordinator": {
+                "provider": "anthropic",
+                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
+                "model": "claude-sonnet-4-20250514",
+                "baseUrl": "https://api.anthropic.com"
+            },
+            "workers": {
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "baseUrl": "https://api.z.ai/api/anthropic",
+                "models": {
+                    "simple": "claude-3-5-haiku-20241022",
+                    "complex": "claude-3-5-sonnet-20241022"
+                }
+            },
+            "routing_strategy": "performance"
+        },
+        "sales": {
+            "coordinator": {
+                "provider": "anthropic",
+                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
+                "model": "claude-sonnet-4-20250514",
+                "baseUrl": "https://api.anthropic.com"
+            },
+            "workers": {
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "baseUrl": "https://api.z.ai/api/anthropic",
+                "models": {
+                    "simple": "claude-3-5-haiku-20241022",
+                    "complex": "claude-3-5-sonnet-20241022"
+                }
+            },
+            "routing_strategy": "cost-optimized"
+        },
+        "support": {
+            "coordinator": {
+                "provider": "anthropic",
+                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
+                "model": "claude-sonnet-4-20250514",
+                "baseUrl": "https://api.anthropic.com"
+            },
+            "workers": {
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "baseUrl": "https://api.z.ai/api/anthropic",
+                "models": {
+                    "simple": "claude-3-5-haiku-20241022",
+                    "complex": "claude-3-5-sonnet-20241022"
+                }
+            },
+            "routing_strategy": "reliability"
+        },
+        "finance": {
+            "coordinator": {
+                "provider": "anthropic",
+                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
+                "model": "claude-sonnet-4-20250514",
+                "baseUrl": "https://api.anthropic.com"
+            },
+            "workers": {
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "baseUrl": "https://api.z.ai/api/anthropic",
+                "models": {
+                    "simple": "claude-3-5-haiku-20241022",
+                    "complex": "claude-3-5-sonnet-20241022"
+                }
+            },
+            "routing_strategy": "compliance"
+        }
+    },
+    "global_config": {
+        "max_concurrent_workers": 10,
+        "fallback_provider": "anthropic",
+        "monitoring_enabled": true,
+        "default_complexity": "simple",
+        "retry_on_failure": true,
+        "timeout_seconds": 300
+    }
+}

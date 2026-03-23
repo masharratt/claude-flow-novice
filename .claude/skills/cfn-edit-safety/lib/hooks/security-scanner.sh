@@ -1,0 +1,1 @@
+/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/hook-pipeline/security-scanner.sh

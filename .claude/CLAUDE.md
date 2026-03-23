@@ -3,7 +3,7 @@
 ## Coordination Patterns and Namespace Isolation
 
 - Coordination patterns: see `.claude/skills/cfn-coordination/SKILL.md` (chain, broadcast, mesh, consensus collection).
-- Namespace structure: agents `.claude/agents/cfn-dev-team/`; skills `.claude/skills/cfn-*/`; hooks `.claude/hooks/cfn-*`; commands `.claude/commands/cfn/`.
+- Namespace structure (project is source of truth, `~/.claude/` reverse-symlinks here): agents `.claude/agents/cfn-dev-team/`; skills `.claude/skills/cfn-*/`; hooks `.claude/hooks/cfn-*`; commands `.claude/commands/cfn/`.
 - Enhanced orchestrator v3.0: `./.claude/skills/cfn-loop-orchestration/orchestrate.sh`
 - Orchestration flow: Loop 3 executes and tests -> gate check -> Loop 2 validators -> Product Owner decision (PROCEED/ITERATE/ABORT) -> iterate or finish.
 - Task mode agents: return output directly; no Redis signaling.

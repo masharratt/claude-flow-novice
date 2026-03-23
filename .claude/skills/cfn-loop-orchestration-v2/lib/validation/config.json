@@ -1,0 +1,161 @@
+{
+  "modes": {
+    "mvp": {
+      "gateThreshold": 0.70,
+      "consensusThreshold": 0.85,
+      "maxIterations": 5,
+      "maxLoop2Iterations": 5,
+      "maxLoop3Iterations": 5,
+      "validatorCount": 2,
+      "validatorsToSpawn": 2,
+      "validatorTypes": ["reviewer", "tester"],
+      "productOwnerStructure": "single",
+      "description": "MVP mode - Fast iteration with minimal validation for rapid prototyping",
+      "features": [
+        "Basic syntax validation",
+        "Core functionality checks",
+        "Rapid iteration focus",
+        "Skip architecture review",
+        "Skip enterprise security audit"
+      ],
+      "skipValidations": ["architecture-review", "enterprise-security-audit"],
+      "specialInstructions": "MVP mode: Focus on rapid iteration and core functionality. Skip comprehensive architecture reviews. Acceptable to have technical debt for later refinement."
+    },
+    "standard": {
+      "gateThreshold": 0.80,
+      "consensusThreshold": 0.90,
+      "maxIterations": 10,
+      "maxLoop2Iterations": 10,
+      "maxLoop3Iterations": 10,
+      "validatorCount": 4,
+      "validatorsToSpawn": 4,
+      "validatorTypes": ["reviewer", "security-specialist", "tester", "analyst"],
+      "productOwnerStructure": "single",
+      "description": "Standard mode - Comprehensive validation with balanced performance",
+      "features": [
+        "Complete syntax validation",
+        "Resource dependency analysis",
+        "Security best practices",
+        "Performance optimization checks",
+        "Code quality metrics",
+        "Test coverage requirements"
+      ],
+      "specialInstructions": "Standard mode: Balance between quality and speed. Implement best practices and ensure adequate test coverage."
+    },
+    "enterprise": {
+      "gateThreshold": 0.90,
+      "consensusThreshold": 0.95,
+      "maxIterations": 15,
+      "maxLoop2Iterations": 15,
+      "maxLoop3Iterations": 15,
+      "validatorCount": 5,
+      "validatorsToSpawn": 8,
+      "validatorTypes": [
+        "reviewer",
+        "security-specialist",
+        "tester",
+        "analyst",
+        "architect"
+      ],
+      "productOwnerStructure": "team",
+      "planningConsensus": {
+        "enabled": true,
+        "architectTypes": ["architect", "system-architect", "security-specialist"],
+        "threshold": 0.85
+      },
+      "productOwnerTeam": {
+        "roles": [
+          { "name": "cto", "weight": 0.35 },
+          { "name": "product-owner", "weight": 0.30 },
+          { "name": "user-power", "weight": 0.20 },
+          { "name": "user-accessibility", "weight": 0.15 }
+        ],
+        "votingAlgorithm": "weighted-confidence"
+      },
+      "description": "Enterprise mode - Advanced validation with maximum security and compliance",
+      "features": [
+        "Complete syntax validation",
+        "Advanced dependency analysis",
+        "Enterprise security standards",
+        "Compliance validation (GDPR, SOC2, etc.)",
+        "Disaster recovery checks",
+        "Multi-region deployment analysis",
+        "Advanced performance optimization",
+        "Detailed cost analysis",
+        "Audit trail logging",
+        "Architecture review board",
+        "Planning consensus (Loop 0.5)",
+        "Product owner team decision (Loop 4)"
+      ],
+      "specialInstructions": "Enterprise mode: Maximum quality and security. All decisions require board approval. Implement comprehensive security measures and compliance checks."
+    }
+  },
+  "validators": {
+    "baseValidators": [
+      "SyntaxValidator",
+      "DependencyValidator",
+      "ResourceValidator"
+    ],
+    "standardValidators": [
+      "SyntaxValidator",
+      "DependencyValidator",
+      "ResourceValidator",
+      "SecurityValidator"
+    ],
+    "enterpriseValidators": [
+      "SyntaxValidator",
+      "DependencyValidator",
+      "ResourceValidator",
+      "SecurityValidator",
+      "ComplianceValidator",
+      "PerformanceValidator",
+      "CostValidator",
+      "DisasterRecoveryValidator"
+    ]
+  },
+  "retry": {
+    "backoffStrategy": "exponential",
+    "maxBackoffTime": 30000,
+    "initialBackoffTime": 1000,
+    "jitter": true
+  },
+  "evidence": {
+    "retentionPeriod": 2592000,
+    "maxEvidenceSize": "10MB",
+    "compression": true
+  },
+  "performance": {
+    "maxConcurrentValidators": 8,
+    "timeoutPerValidator": 30000,
+    "cacheResults": true,
+    "cacheTTL": 3600
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "fileOutput": true,
+    "maxFileSize": "100MB",
+    "maxFiles": 5
+  },
+  "thresholdComparison": {
+    "description": "Comparison of threshold requirements across modes",
+    "mvp": {
+      "confidence_gate": 0.70,
+      "consensus": 0.85,
+      "planning": null,
+      "escalation_trigger": 0.60
+    },
+    "standard": {
+      "confidence_gate": 0.80,
+      "consensus": 0.90,
+      "planning": null,
+      "escalation_trigger": 0.70
+    },
+    "enterprise": {
+      "confidence_gate": 0.90,
+      "consensus": 0.95,
+      "planning": 0.85,
+      "escalation_trigger": 0.85
+    }
+  }
+}

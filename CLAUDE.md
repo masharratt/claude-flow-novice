@@ -2,22 +2,26 @@
 
 ## Project Structure
 
-This is the CFN development project. CFN infrastructure lives at `~/.claude/` and is symlinked into this project for development.
+This is the CFN development project. **This project is the source of truth** for CFN infrastructure. `~/.claude/` dirs are reverse-symlinked back here so all projects share the same files.
 
-### Symlinks (→ `~/.claude/`)
+### Reverse Symlinks (`~/.claude/` → project)
 
-| Local Path | Target | Purpose |
-|------------|--------|---------|
-| `.claude/skills/` | `~/.claude/skills/` | All CFN skills (universal) |
-| `.claude/hooks/` | `~/.claude/hooks/` | All CFN hooks (universal) |
-| `.claude/commands/` | `~/.claude/commands/` | All CFN commands (universal) |
-| `.claude/agents/cfn-dev-team/` | `~/.claude/agents/cfn-dev-team/` | CFN agent profiles (universal) |
-| `.claude/core/` | `~/.claude/core/` | Core libraries (universal) |
-| `.claude/helpers/` | `~/.claude/helpers/` | Helper scripts (universal) |
-| `.claude/cfn-config/` | `~/.claude/cfn-config/` | CFN configuration (universal) |
-| `.claude/cfn-data/` | `~/.claude/cfn-data/` | CFN data files (universal) |
-| `.claude/cfn-extras/` | `~/.claude/cfn-extras/` | CFN extras (universal) |
-| `.claude/cfn-scripts/` | `~/.claude/cfn-scripts/` | CFN scripts (universal) |
+| `~/.claude/` Symlink | Points To (project source) | Purpose |
+|-----------------------|---------------------------|---------|
+| `~/.claude/skills/` | `.claude/skills/` | All CFN skills (universal) |
+| `~/.claude/hooks/` | `.claude/hooks/` | All CFN hooks (universal) |
+| `~/.claude/commands/` | `.claude/commands/` | All CFN commands (universal) |
+| `~/.claude/agents/cfn-dev-team/` | `.claude/agents/cfn-dev-team/` | CFN agent profiles (universal) |
+| `~/.claude/core/` | `.claude/core/` | Core libraries (universal) |
+| `~/.claude/helpers/` | `.claude/helpers/` | Helper scripts (universal) |
+| `~/.claude/cfn-config/` | `.claude/cfn-config/` | CFN configuration (universal) |
+| `~/.claude/cfn-data/` | `.claude/cfn-data/` | CFN data files (universal) |
+| `~/.claude/cfn-extras/` | `.claude/cfn-extras/` | CFN extras (universal) |
+| `~/.claude/cfn-scripts/` | `.claude/cfn-scripts/` | CFN scripts (universal) |
+| `~/.claude/adaptive-context/` | `.claude/adaptive-context/` | Adaptive context (universal) |
+| `~/.claude/agent-principles/` | `.claude/agent-principles/` | Agent principles (universal) |
+| `~/.claude/prompts/` | `.claude/prompts/` | Prompts (universal) |
+| `~/.claude/tooling/` | `.claude/tooling/` | Tooling (universal) |
 
 ### Project-Local (not symlinked)
 
@@ -30,9 +34,9 @@ This is the CFN development project. CFN infrastructure lives at `~/.claude/` an
 
 ### Editing CFN Files
 
-Edits via symlinks write directly to `~/.claude/`. Changes apply to all projects immediately. Use either path:
-- `.claude/skills/cfn-parallel-execute/execute.sh` (via symlink)
-- `~/.claude/skills/cfn-parallel-execute/execute.sh` (direct)
+Edit files directly in this project — changes propagate to all projects via reverse symlinks. Both paths resolve to the same files:
+- `.claude/skills/cfn-parallel-execute/execute.sh` (project source)
+- `~/.claude/skills/cfn-parallel-execute/execute.sh` (via reverse symlink)
 
 ### Z.ai Configuration
 

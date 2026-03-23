@@ -1,3 +1,15 @@
+# === CFN Infrastructure (reversed symlinks) ===
+# Codesearch Rust build artifacts (6.7G)
+.claude/skills/cfn-codesearch/target/
+
+# Tooling binaries
+.claude/tooling/jq
+
+# Runtime databases
+.claude/cfn-data/*.db
+.claude/cfn-data/*.db-wal
+.claude/cfn-data/*.db-journal
+
 # Model cache (fastembed ONNX weights)
 .fastembed_cache/
 

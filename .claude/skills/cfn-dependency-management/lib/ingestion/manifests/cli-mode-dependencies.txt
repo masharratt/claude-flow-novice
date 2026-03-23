@@ -1,0 +1,219 @@
+# CLI Mode Dependencies - Implementation & Code Only
+# Version: 3.2.0
+# Last Updated: 2025-11-26
+# Purpose: Code-only dependencies for CFN Loop CLI Mode (excludes all documentation/tests)
+# Focus: Core CLI coordination, agent spawning, Redis coordination, orchestration
+# Token Estimate: ~12,000 tokens (core CLI/coordination code)
+
+# ============================================================================
+# TRIGGER.DEV CLI IMPLEMENTATION (1 file)
+# ============================================================================
+# Trigger.dev configuration file for CLI mode execution
+
+docker/trigger-dev/trigger.config.ts
+
+# ============================================================================
+# COORDINATOR INFRASTRUCTURE (5 files)
+# ============================================================================
+# Docker-based coordinator for batch task management and orchestration
+# Implements memory management, wave-based spawning, and iteration loops
+
+docker/coordinator/main/coordinator.js
+docker/coordinator/main/escalation-handler.js
+docker/coordinator/team/coordinator.js
+docker/coordinator/team/agent-manager.js
+docker/coordinator/team/resource-tracker.js
+
+# ============================================================================
+# AGENT SPAWNING SKILLS (7 files)
+# ============================================================================
+# Core agent spawning and selection utilities for CLI mode
+
+.claude/skills/cfn-agent-spawning/spawn-agent.sh
+.claude/skills/cfn-agent-spawning/spawn-agent-wrapper.sh
+.claude/skills/cfn-agent-spawning/spawn-worker.sh
+.claude/skills/cfn-agent-spawning/spawn-templates.sh
+.claude/skills/cfn-agent-spawning/get-agent-provider-env.sh
+.claude/skills/cfn-agent-spawning/parse-agent-provider.sh
+.claude/skills/cfn-agent-spawning/check-dependencies.sh
+
+# ============================================================================
+# AGENT SELECTION & EXECUTION SKILLS (5 files)
+# ============================================================================
+# Agent type selection and execution utilities
+
+.claude/skills/cfn-agent-selector/select-agents.sh
+.claude/skills/cfn-agent-selection-with-fallback/select-agents.sh
+.claude/skills/cfn-agent-selection-with-fallback/select-agents-ts.sh
+.claude/skills/cfn-agent-selection-with-fallback/task-classifier.sh
+.claude/skills/cfn-agent-execution/execute-agent.sh
+
+# ============================================================================
+# AGENT LIFECYCLE MANAGEMENT (2 files)
+# ============================================================================
+# Agent lifecycle hooks and audit trails
+
+.claude/skills/agent-lifecycle/execute-lifecycle-hook.sh
+.claude/skills/agent-lifecycle/simple-audit.sh
+
+# ============================================================================
+# MEMORY & STATE PERSISTENCE (2 files)
+# ============================================================================
+# Memory persistence for agent outputs and state
+
+.claude/skills/cfn-automatic-memory-persistence/persist-agent-output.sh
+.claude/skills/cfn-automatic-memory-persistence/query-agent-history.sh
+
+# ============================================================================
+# DOCKER RUNTIME CONTRACT (1 file)
+# ============================================================================
+# Environment variable contract for all Docker-based execution modes
+
+docker/runtime/cfn-runtime.contract.yml
+
+# ============================================================================
+# PROJECT CONFIGURATION (2 files)
+# ============================================================================
+# Main configuration files at project root
+
+docker-compose.yml
+.env.example
+
+# ============================================================================
+# ANALYSIS & STATISTICS
+# ============================================================================
+# Total Files: 25 code files (no documentation, no tests)
+#
+# Breakdown:
+#   - Trigger.dev CLI Implementation:              1 file
+#   - Coordinator Infrastructure:                  5 files
+#   - Agent Spawning Skills:                       7 files
+#   - Agent Selection & Execution Skills:          5 files
+#   - Agent Lifecycle Management:                  2 files
+#   - Memory & State Persistence:                  2 files
+#   - Docker Runtime Contract:                     1 file
+#   - Project Configuration:                       2 files
+#
+# Token Estimate: 12,000 tokens (core CLI implementation)
+# Context Utilization: ~6% of 200K window
+#
+# Note: Actual file count reflects verified code files in project
+# Last scanned: 2025-11-26
+
+# ============================================================================
+# MANIFEST USAGE INSTRUCTIONS
+# ============================================================================
+# For CLI mode context, ingest in order:
+#
+#   1. Primary: This file (cli-mode-dependencies.txt) - code only, ~12K tokens
+#   2. Secondary: shared-dependencies.txt - coordination infrastructure, ~2.2K tokens
+#
+# Example ingestion command:
+#   node .claude/skills/cfn-dependency-ingestion/dist/ingest-dependencies.js \
+#     --manifest .claude/skills/cfn-dependency-ingestion/manifests/cli-mode-dependencies.txt \
+#     --inject-content \
+#     --skip-validation
+#
+# Combined Context:
+#   Total: ~14.2K tokens (~7% of 200K window)
+#   Sufficient for CLI mode architecture analysis and implementation
+#
+# CRITICAL: Exclude all files:
+#   - *.md (documentation)
+#   - *.test.ts (test files)
+#   - *.spec.ts (test specs)
+#   - docs/ (documentation directory)
+#   - planning/ (planning documents)
+#   - coverage/ (test coverage reports)
+#   - .backup, .bak (backup files)
+#   - README.md, SKILL.md (skill documentation)
+#   - node_modules/ (dependencies)
+#   - dist/ (compiled output)
+
+# ============================================================================
+# FILE CATEGORIZATION GUIDE
+# ============================================================================
+# Use this guide when adding or removing files from manifest
+#
+# INCLUDE (Code):
+#   ✓ docker/trigger-dev/*.ts - SDK configuration files
+#   ✓ docker/coordinator/**/*.js - Coordinator implementation
+#   ✓ .claude/skills/cfn-agent-spawning/*.sh - Agent spawning
+#   ✓ .claude/skills/cfn-agent-selector/*.sh - Agent selection
+#   ✓ .claude/skills/cfn-agent-selection-with-fallback/*.sh - Advanced selection
+#   ✓ .claude/skills/cfn-agent-execution/*.sh - Agent execution
+#   ✓ .claude/skills/agent-lifecycle/*.sh - Lifecycle management
+#   ✓ .claude/skills/cfn-automatic-memory-persistence/*.sh - Memory/state
+#   ✓ docker/runtime/cfn-runtime.contract.yml - Runtime contract
+#   ✓ docker-compose.yml, .env.example - Project configuration
+#
+# EXCLUDE (Documentation & Tests):
+#   ✗ *.md files - Documentation (use for reference only)
+#   ✗ *.test.ts, *.spec.ts - Test files
+#   ✗ docs/ directory - Documentation
+#   ✗ planning/ directory - Planning documents
+#   ✗ coverage/ directory - Test coverage
+#   ✗ dist/ directory - Compiled output (except for specific cases)
+#   ✗ node_modules/ - Dependencies
+#   ✗ README.md, SKILL.md - Skill documentation
+
+# ============================================================================
+# NOTES ON FILE SELECTION
+# ============================================================================
+# This manifest focuses on executable code for CLI mode, including:
+#
+# 1. Trigger.dev Configuration
+#    - Minimal SDK configuration file
+#    - Located in: docker/trigger-dev/
+#    - Core for task definition and trigger.dev integration
+#
+# 2. Docker Coordinator Implementation
+#    - Batch task management and orchestration
+#    - Located in: docker/coordinator/
+#    - Handles memory allocation, wave-based spawning, iterations
+#
+# 3. Agent Spawning and Selection
+#    - Core spawning scripts with provider routing
+#    - Selection logic for appropriate agent types
+#    - Located in: .claude/skills/cfn-agent-spawning/
+#    - Extended selection with fallback: .claude/skills/cfn-agent-selection-with-fallback/
+#
+# 4. Agent Lifecycle and Memory
+#    - Lifecycle hooks for agent execution tracking
+#    - Memory persistence for output and state
+#    - Located in: .claude/skills/agent-lifecycle/ and cfn-automatic-memory-persistence/
+#
+# 5. Runtime Contract
+#    - Standardized environment variables for all modes
+#    - Located in: docker/runtime/cfn-runtime.contract.yml
+#    - Ensures compatibility between CLI and Trigger.dev modes
+
+# ============================================================================
+# VERSION HISTORY
+# ============================================================================
+# 3.2.0 (2025-11-26)
+#   - MAJOR: Curated to include only verified files that exist in project
+#   - Reduced from 69 files to 25 verified code files
+#   - Added agent spawning and selection skills
+#   - Added agent lifecycle and memory persistence skills
+#   - Refined file categorization guide
+#   - Improved notes on file selection and project structure
+#   - Token estimate: 12K (realistic for this project structure)
+#   - All listed files verified to exist
+#
+# 3.1.0 (2025-11-26)
+#   - Updated to match actual Claude Flow Novice project structure
+#   - Changed focus from non-existent src/cli files to docker/trigger-dev
+#   - Added Trigger.dev SDK configuration and test scripts
+#   - Total code files: 69 (unverified)
+#
+# 3.0.0 (2025-11-26)
+#   - Complete restructure focusing on code-only files
+#   - Included Redis coordination and orchestration files
+#   - Removed all .md documentation references
+#
+# 2.0.0 (2025-11-24)
+#   - Initial code-focused manifest
+#
+# 1.0.0 (2025-11-20)
+#   - Initial manifest created

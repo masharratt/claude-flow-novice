@@ -1,0 +1,335 @@
+{
+  "executionMode": "cfn-loop",
+  "metadata": {
+    "epicId": "codesearch-ast-agent-accelerator",
+    "name": "AST-Aware CodeSearch Agent Accelerator",
+    "description": "Transform CodeSearch from line-based indexing to AST-aware semantic indexing for Rust and TypeScript. Enable agents to replace slow grep/search operations with instant database queries for code intelligence: finding functions by type usage, tracking cross-file references, mapping module dependencies, and supporting large-scale refactoring workflows.",
+    "status": "not_started",
+    "priority": "high",
+    "estimatedDuration": "3 weeks",
+    "owner": "cfn-dev-team",
+    "targetPath": ".claude/skills/cfn-codesearch"
+  },
+  "goals": [
+    "Replace grep-based code search with sub-50ms database queries",
+    "Enable semantic queries like 'functions that use Album type'",
+    "Track cross-file references for safe refactoring",
+    "Support both Rust and TypeScript codebases",
+    "Reduce agent context gathering from 10-30s to <100ms",
+    "Provide structured entity extraction (functions, classes, types, imports)"
+  ],
+  "phases": [
+    {
+      "phaseId": "phase-1-schema",
+      "name": "Database Schema Redesign",
+      "description": "Replace flat pattern-based schema with structured entity/reference schema supporting multi-language AST data",
+      "status": "not_started",
+      "estimatedDuration": "2 days",
+      "dependencies": [],
+      "sprints": [
+        {
+          "sprintId": "sprint-1-1",
+          "name": "Entity Schema",
+          "tasks": [
+            "Create entities table with kind, name, signature, visibility, parent_id fields",
+            "Create refs table for cross-file reference tracking (calls, imports, extends, implements)",
+            "Create type_usage table for 'functions using Type X' queries",
+            "Create modules table for import/export tracking",
+            "Add indexes for fast queries on kind, name, file_path, target_name"
+          ],
+          "acceptanceCriteria": [
+            "Schema supports Rust and TypeScript entity types",
+            "Indexes enable sub-10ms lookups by name or type",
+            "Migration from old schema preserves file metadata"
+          ]
+        }
+      ],
+      "deliverables": [
+        "src/schema_v2.rs with new table definitions",
+        "Migration script from v1 to v2 schema"
+      ],
+      "agents": ["database-architect", "backend-developer"]
+    },
+    {
+      "phaseId": "phase-2-rust-extractor",
+      "name": "Rust AST Extractor",
+      "description": "Implement tree-sitter-rust based extraction of Rust code entities and references",
+      "status": "not_started",
+      "estimatedDuration": "4 days",
+      "dependencies": ["phase-1-schema"],
+      "sprints": [
+        {
+          "sprintId": "sprint-2-1",
+          "name": "Core Entity Extraction",
+          "tasks": [
+            "Add tree-sitter and tree-sitter-rust dependencies to Cargo.toml",
+            "Create src/extractors/mod.rs with Extractor trait",
+            "Implement function_item extraction (fn name, params, return type, visibility)",
+            "Implement struct_item extraction (name, fields, generics)",
+            "Implement impl_item extraction (impl Type, methods, trait bounds)",
+            "Implement trait_item extraction (trait name, methods, supertraits)",
+            "Implement enum_item and type_alias extraction"
+          ],
+          "acceptanceCriteria": [
+            "All Rust entity types extracted with correct metadata",
+            "Visibility (pub, pub(crate), private) correctly identified",
+            "Generic parameters captured in signatures"
+          ]
+        },
+        {
+          "sprintId": "sprint-2-2",
+          "name": "Reference Extraction",
+          "tasks": [
+            "Extract use_declaration for import tracking",
+            "Extract call_expression for function call references",
+            "Extract type_identifier for type usage tracking",
+            "Map method calls to their impl blocks",
+            "Track trait implementations (impl Trait for Type)"
+          ],
+          "acceptanceCriteria": [
+            "Cross-file function calls tracked",
+            "Type usage in parameters/returns/fields recorded",
+            "Import statements parsed with source module"
+          ]
+        }
+      ],
+      "deliverables": [
+        "src/extractors/rust.rs with full AST extraction",
+        "Unit tests for each entity type"
+      ],
+      "agents": ["rust-developer", "backend-developer"]
+    },
+    {
+      "phaseId": "phase-3-typescript-extractor",
+      "name": "TypeScript AST Extractor",
+      "description": "Implement tree-sitter-typescript based extraction for TypeScript/JavaScript codebases",
+      "status": "not_started",
+      "estimatedDuration": "4 days",
+      "dependencies": ["phase-1-schema"],
+      "sprints": [
+        {
+          "sprintId": "sprint-3-1",
+          "name": "Core Entity Extraction",
+          "tasks": [
+            "Add tree-sitter-typescript dependency",
+            "Implement function_declaration extraction",
+            "Implement class_declaration extraction (name, extends, implements)",
+            "Implement method_definition extraction (class methods)",
+            "Implement interface_declaration extraction",
+            "Implement type_alias_declaration extraction",
+            "Handle export modifiers for visibility"
+          ],
+          "acceptanceCriteria": [
+            "All TypeScript entity types extracted",
+            "Export/default export correctly mapped to visibility",
+            "Class inheritance chain captured"
+          ]
+        },
+        {
+          "sprintId": "sprint-3-2",
+          "name": "Reference Extraction",
+          "tasks": [
+            "Extract import_statement with source paths",
+            "Extract call_expression for function calls",
+            "Extract new_expression for class instantiation",
+            "Extract type_reference for type usage",
+            "Handle re-exports and barrel files"
+          ],
+          "acceptanceCriteria": [
+            "Import paths resolved relative to project",
+            "Type references in generics captured",
+            "JSX component usage tracked as calls"
+          ]
+        }
+      ],
+      "deliverables": [
+        "src/extractors/typescript.rs with full AST extraction",
+        "Unit tests for TypeScript patterns"
+      ],
+      "agents": ["typescript-specialist", "backend-developer"]
+    },
+    {
+      "phaseId": "phase-4-query-api",
+      "name": "Agent Query API",
+      "description": "Create high-level query interface for agent use cases, replacing grep patterns",
+      "status": "not_started",
+      "estimatedDuration": "3 days",
+      "dependencies": ["phase-2-rust-extractor", "phase-3-typescript-extractor"],
+      "sprints": [
+        {
+          "sprintId": "sprint-4-1",
+          "name": "Query Implementation",
+          "tasks": [
+            "Implement 'functions using Type X' query",
+            "Implement 'callers of function X' query",
+            "Implement 'types defined in file X used elsewhere' query",
+            "Implement 'implementations of trait/interface X' query",
+            "Implement 'public API surface of module X' query",
+            "Implement 'references to path X' query for refactoring"
+          ],
+          "acceptanceCriteria": [
+            "All queries return results in <50ms for 10k+ entity indexes",
+            "Results include file path, line number, and context",
+            "Queries work across Rust and TypeScript"
+          ]
+        },
+        {
+          "sprintId": "sprint-4-2",
+          "name": "CLI Integration",
+          "tasks": [
+            "Add 'codesearch find' subcommand with --kind, --uses-type, --called-by flags",
+            "Add 'codesearch refs' subcommand for reference queries",
+            "Add --json output format for programmatic use",
+            "Add natural language query parsing (optional)",
+            "Update help documentation"
+          ],
+          "acceptanceCriteria": [
+            "CLI provides structured query interface",
+            "JSON output parseable by agents",
+            "Error messages guide correct usage"
+          ]
+        }
+      ],
+      "deliverables": [
+        "src/query_api.rs with query functions",
+        "src/cli/find.rs with CLI subcommand",
+        "Updated CLI help and examples"
+      ],
+      "agents": ["backend-developer", "api-designer-persona"]
+    },
+    {
+      "phaseId": "phase-5-integration",
+      "name": "Index Rebuild and Integration Testing",
+      "description": "Rebuild indexes with new schema, validate query performance, integrate with agent workflows",
+      "status": "not_started",
+      "estimatedDuration": "2 days",
+      "dependencies": ["phase-4-query-api"],
+      "sprints": [
+        {
+          "sprintId": "sprint-5-1",
+          "name": "Index Rebuild",
+          "tasks": [
+            "Update IndexCommand to use AST extractors instead of line-based",
+            "Add language detection for file routing",
+            "Implement incremental indexing (only changed files)",
+            "Run full re-index of claude-flow-novice codebase",
+            "Benchmark index size vs old approach (target: 80% reduction)"
+          ],
+          "acceptanceCriteria": [
+            "Full index completes in <5 minutes",
+            "Database size <500MB (vs 5GB+ line-based)",
+            "All entity types correctly extracted"
+          ]
+        },
+        {
+          "sprintId": "sprint-5-2",
+          "name": "Integration Testing",
+          "tasks": [
+            "Test 'functions using Album' style queries on real codebase",
+            "Test 'callers of X outside module Y' queries",
+            "Test refactoring workflow: find references, split file, verify no breaks",
+            "Benchmark query latency (target: <50ms p99)",
+            "Document agent integration patterns"
+          ],
+          "acceptanceCriteria": [
+            "All example queries from planning doc work correctly",
+            "Query latency meets <50ms target",
+            "Agent workflow documented with examples"
+          ]
+        }
+      ],
+      "deliverables": [
+        "Rebuilt index with AST-aware schema",
+        "Performance benchmarks",
+        "Agent integration documentation"
+      ],
+      "agents": ["integration-tester", "performance-benchmarker"]
+    }
+  ],
+  "configuration": {
+    "loopMode": "standard",
+    "consensusThreshold": 0.90,
+    "gateThreshold": 0.95,
+    "maxIterations": 10,
+    "testCommand": "cd .claude/skills/cfn-codesearch && cargo test",
+    "buildCommand": "cd .claude/skills/cfn-codesearch && cargo build --release"
+  },
+  "technicalContext": {
+    "language": "rust",
+    "dependencies": [
+      "tree-sitter = \"0.20\"",
+      "tree-sitter-rust = \"0.20\"",
+      "tree-sitter-typescript = \"0.20\""
+    ],
+    "existingFiles": {
+      "schema": "src/sqlite_store.rs",
+      "indexer": "src/cli/index.rs",
+      "search": "src/search_engine.rs",
+      "embeddings": "src/embeddings.rs"
+    },
+    "contextFilesToRead": {
+      "phase-1": [
+        "src/sqlite_store.rs:28-57 (existing schema to extend)",
+        "src/search_engine.rs:78-87 (IndexMetadata struct to replace)"
+      ],
+      "phase-2": [
+        "src/cli/index.rs:238-274 (extract_patterns to replace)",
+        "Cargo.toml (add tree-sitter deps)"
+      ],
+      "phase-3": [
+        "src/extractors/rust.rs (copy pattern for TypeScript)",
+        "Cargo.toml (add tree-sitter-typescript)"
+      ],
+      "phase-4": [
+        "src/sqlite_store.rs:118-136 (search_patterns to extend)",
+        "src/cli/query.rs (existing query command to extend)"
+      ],
+      "phase-5": [
+        "src/cli/index.rs:176-236 (process_files to modify)",
+        "src/main.rs (CLI entry point)"
+      ]
+    },
+    "treeSitterNodeTypes": {
+      "rust": {
+        "function_item": "Extract: name (identifier child), parameters (parameters child), return_type (type child), visibility_modifier",
+        "struct_item": "Extract: name (type_identifier), fields (field_declaration_list), type_parameters",
+        "impl_item": "Extract: type (type child), trait (optional), methods (function_item children in body)",
+        "trait_item": "Extract: name, method signatures (function_signature_item), supertraits",
+        "enum_item": "Extract: name, variants (enum_variant_list)",
+        "use_declaration": "Extract: path segments, alias (optional)",
+        "call_expression": "Extract: function name (identifier or field_expression), arguments",
+        "type_identifier": "Extract: name (for type_usage tracking)"
+      },
+      "typescript": {
+        "function_declaration": "Extract: name (identifier), parameters (formal_parameters), return_type (type_annotation), export keyword",
+        "class_declaration": "Extract: name, heritage (extends/implements clauses), body methods",
+        "method_definition": "Extract: name, parameters, return_type, accessibility (public/private)",
+        "interface_declaration": "Extract: name, extends, properties and method signatures",
+        "type_alias_declaration": "Extract: name, value (type definition)",
+        "import_statement": "Extract: specifiers (named/default), source path",
+        "call_expression": "Extract: function (identifier or member_expression), arguments",
+        "new_expression": "Extract: constructor name, arguments"
+      }
+    },
+    "treeSitterAPIPattern": {
+      "setup": "let mut parser = Parser::new(); parser.set_language(tree_sitter_rust::language())?;",
+      "parse": "let tree = parser.parse(&source_code, None)?; let root = tree.root_node();",
+      "traverse": "let mut cursor = root.walk(); for node in root.children(&mut cursor) { match node.kind() { ... } }",
+      "getText": "let text = &source_code[node.start_byte()..node.end_byte()];",
+      "getChild": "node.child_by_field_name(\"name\") or node.named_child(0)",
+      "getPosition": "node.start_position().row (0-indexed line number)"
+    },
+    "targetQueries": [
+      "SELECT * FROM entities WHERE kind='function' AND id IN (SELECT entity_id FROM type_usage WHERE type_name='Album')",
+      "SELECT * FROM refs WHERE target_name='create_album' AND ref_kind='calls' AND file_path NOT LIKE '%source_module%'",
+      "SELECT e.name, COUNT(*) FROM entities e JOIN type_usage tu ON e.name=tu.type_name WHERE e.file_path LIKE '%module.rs' GROUP BY e.name"
+    ]
+  },
+  "successMetrics": {
+    "queryLatency": "<50ms p99",
+    "indexSize": "<500MB for 4600 files",
+    "indexTime": "<5 minutes full rebuild",
+    "entityCoverage": ">95% of functions, classes, types extracted",
+    "agentSpeedup": "10-30s grep → <100ms database query"
+  }
+}

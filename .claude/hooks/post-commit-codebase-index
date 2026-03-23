@@ -1,0 +1,109 @@
+#!/bin/bash
+# Post-commit hook - incremental CodeSearch indexing
+# Handles: Added, Modified, Deleted, and Renamed files
+# Symlink: ln -sf ../../.claude/hooks/post-commit-codebase-index .git/hooks/post-commit
+
+set -euo pipefail
+
+# Config
+INDEXABLE_EXT="ts|tsx|js|jsx|rs|py|sh|md"
+LOG_FILE="/tmp/codesearch-post-commit.log"
+DB_PATH="$HOME/.local/share/codesearch/index_v2.db"
+PROJECT_ROOT="$(pwd)"
+
+# Colors
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+log() { echo -e "${BLUE}[CodeSearch]${NC} $1" | tee -a "$LOG_FILE"; }
+log_success() { echo -e "${GREEN}[CodeSearch]${NC} $1" | tee -a "$LOG_FILE"; }
+log_warn() { echo -e "${YELLOW}[CodeSearch]${NC} $1" | tee -a "$LOG_FILE"; }
+
+# Find codesearch binary
+CODESEARCH_BIN="${CODESEARCH_BIN:-}"
+[ -z "$CODESEARCH_BIN" ] && command -v local-codesearch >/dev/null && CODESEARCH_BIN="local-codesearch"
+[ -z "$CODESEARCH_BIN" ] && [ -x "$HOME/.local/bin/local-codesearch" ] && CODESEARCH_BIN="$HOME/.local/bin/local-codesearch"
+
+# Check if binary exists
+if [ -z "$CODESEARCH_BIN" ]; then
+  log_warn "local-codesearch binary not found"
+  exit 0
+fi
+
+# Check if auto-index is enabled
+if [ "${CODESEARCH_AUTO_INDEX:-true}" != "true" ]; then
+  log_warn "Auto-indexing disabled"
+  exit 0
+fi
+
+log "Checking committed files..."
+
+# === Handle DELETED files (D) ===
+DELETED_FILES=$(git diff-tree --no-commit-id --name-only --diff-filter=D -r HEAD 2>/dev/null || true)
+DELETED_INDEXABLE=$(echo "$DELETED_FILES" | grep -E "\.($INDEXABLE_EXT)$" || true)
+
+if [ -n "$DELETED_INDEXABLE" ] && [ -f "$DB_PATH" ]; then
+  DELETE_COUNT=$(echo "$DELETED_INDEXABLE" | grep -c . || echo 0)
+  log "Removing $DELETE_COUNT deleted file(s) from index..."
+
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    FULL_PATH="$PROJECT_ROOT/$file"
+    # Escape single quotes for SQL
+    SAFE_PATH=$(echo "$FULL_PATH" | sed "s/'/''/g")
+    sqlite3 "$DB_PATH" "DELETE FROM entities WHERE file_path = '$SAFE_PATH';" 2>/dev/null || true
+    echo "  Removed: $file" >> "$LOG_FILE"
+  done <<< "$DELETED_INDEXABLE"
+
+  log_success "Removed $DELETE_COUNT deleted file(s) from index"
+fi
+
+# === Handle RENAMED files (R) ===
+# Git shows renames as: R100\told_path\tnew_path
+RENAMED_FILES=$(git diff-tree --no-commit-id -r -M --diff-filter=R HEAD 2>/dev/null | awk '{print $6 "\t" $7}' || true)
+
+if [ -n "$RENAMED_FILES" ] && [ -f "$DB_PATH" ]; then
+  RENAME_COUNT=$(echo "$RENAMED_FILES" | grep -c . || echo 0)
+  log "Updating $RENAME_COUNT renamed file(s) in index..."
+
+  while IFS=$'\t' read -r old_path new_path; do
+    [ -z "$old_path" ] || [ -z "$new_path" ] && continue
+    # Only process indexable file types
+    if echo "$new_path" | grep -qE "\.($INDEXABLE_EXT)$"; then
+      OLD_FULL="$PROJECT_ROOT/$old_path"
+      NEW_FULL="$PROJECT_ROOT/$new_path"
+      SAFE_OLD=$(echo "$OLD_FULL" | sed "s/'/''/g")
+      SAFE_NEW=$(echo "$NEW_FULL" | sed "s/'/''/g")
+      sqlite3 "$DB_PATH" "UPDATE entities SET file_path = '$SAFE_NEW' WHERE file_path = '$SAFE_OLD';" 2>/dev/null || true
+      echo "  Renamed: $old_path -> $new_path" >> "$LOG_FILE"
+    fi
+  done <<< "$RENAMED_FILES"
+
+  log_success "Updated $RENAME_COUNT renamed file(s) in index"
+fi
+
+# === Handle ADDED and MODIFIED files (AM) ===
+# Check for API key (only needed for indexing new/modified files)
+if [ -z "${OPENAI_API_KEY:-}" ] && [ -z "${ZAI_API_KEY:-}" ]; then
+  log_warn "No API key found - skipping new file indexing"
+  exit 0
+fi
+
+FILES=$(git diff-tree --no-commit-id --name-only --diff-filter=AM -r HEAD 2>/dev/null || true)
+INDEXABLE_FILES=$(echo "$FILES" | grep -E "\.($INDEXABLE_EXT)$" || true)
+
+if [ -z "$INDEXABLE_FILES" ]; then
+  log "No new/modified indexable files"
+  exit 0
+fi
+
+FILE_COUNT=$(echo "$INDEXABLE_FILES" | grep -c . || echo 0)
+log "$FILE_COUNT file(s) added/modified, triggering incremental index..."
+echo "$INDEXABLE_FILES" >> "$LOG_FILE"
+nohup bash -c "$CODESEARCH_BIN index --path . >> '$LOG_FILE' 2>&1 && echo '[CodeSearch] Index updated' >> '$LOG_FILE'" >/dev/null 2>&1 &
+log "Indexing started in background (log: $LOG_FILE)"
+
+exit 0

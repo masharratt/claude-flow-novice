@@ -1,0 +1,111 @@
+{
+  "skill": {
+    "name": "event-bus",
+    "version": "1.0.0",
+    "description": "Centralized event-driven communication system for agent coordination and lifecycle tracking",
+    "status": "operational",
+    "author": "Claude Flow Novice System",
+    "created": "2025-10-19"
+  },
+  "capabilities": [
+    "event-publishing",
+    "event-subscription",
+    "lifecycle-tracking",
+    "event-filtering",
+    "statistics-collection",
+    "trace-propagation"
+  ],
+  "dependencies": {
+    "core": [
+      ".claude/core/cfn-event-bus.js"
+    ],
+    "external": [
+      "node",
+      "jq",
+      "bash"
+    ],
+    "optional": [
+      "redis-cli"
+    ]
+  },
+  "scripts": {
+    "publish": "./invoke-event-publish.sh",
+    "subscribe": "./invoke-event-subscribe.sh",
+    "track": "./invoke-lifecycle-track.sh",
+    "test": "./test-event-bus.sh"
+  },
+  "configuration": {
+    "debug": {
+      "env": "EVENTBUS_DEBUG",
+      "default": false,
+      "description": "Enable verbose event logging"
+    },
+    "stats": {
+      "env": "EVENTBUS_STATS",
+      "default": false,
+      "description": "Collect detailed event statistics"
+    },
+    "persist": {
+      "env": "EVENTBUS_PERSIST",
+      "default": false,
+      "description": "Persist lifecycle events to Redis"
+    },
+    "maxListeners": {
+      "env": "EVENTBUS_MAX_LISTENERS",
+      "default": 100,
+      "description": "Maximum listeners per event"
+    }
+  },
+  "eventTypes": {
+    "system": [
+      "agent:spawned",
+      "agent:completed",
+      "agent:failed",
+      "agent:timeout",
+      "task:started",
+      "task:completed",
+      "consensus:reached",
+      "validation:passed",
+      "validation:failed"
+    ],
+    "lifecycle": [
+      "spawn",
+      "complete",
+      "fail",
+      "timeout"
+    ]
+  },
+  "integration": {
+    "redis-coordination": {
+      "description": "Combined event + blocking coordination",
+      "pattern": "Publish events for notifications, use Redis BLPOP for synchronization"
+    },
+    "cfn-loop": {
+      "description": "Lifecycle tracking across iterations",
+      "pattern": "Track spawn/complete for each iteration, broadcast consensus events"
+    },
+    "agent-spawning": {
+      "description": "Agent creation and termination events",
+      "pattern": "Emit spawn event on creation, complete/fail/timeout on termination"
+    }
+  },
+  "testing": {
+    "suite": "./test-event-bus.sh",
+    "coverage": [
+      "Event publishing",
+      "Event subscription",
+      "Lifecycle tracking (all stages)",
+      "Event filtering",
+      "Statistics collection",
+      "Invalid input handling",
+      "Trace ID propagation"
+    ]
+  },
+  "futureEnhancements": [
+    "WASM JSON processing",
+    "Event replay and time-travel debugging",
+    "Persistent event store integration",
+    "Event sourcing for agent state",
+    "Real-time event streaming API"
+  ]
+}

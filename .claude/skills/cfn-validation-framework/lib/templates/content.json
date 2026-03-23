@@ -1,0 +1,38 @@
+{
+  "domain": "content-creation",
+  "validation_criteria": {
+    "critical": [
+      "Content is original (no plagiarism)",
+      "Factually accurate (sources verified)",
+      "Meets minimum word count or length requirement",
+      "No spelling or grammar errors",
+      "Complies with legal/regulatory requirements"
+    ],
+    "important": [
+      "Readability score ≥ target (Flesch-Kincaid, etc.)",
+      "Brand voice and tone consistent",
+      "SEO keywords properly integrated (if applicable)",
+      "Target audience appropriately addressed",
+      "Clear structure with headings, paragraphs, lists",
+      "Call-to-action included (if applicable)",
+      "Links and references valid"
+    ],
+    "nice_to_have": [
+      "Engaging storytelling or narrative",
+      "Multimedia elements suggested (images, videos)",
+      "Meta descriptions and titles optimized",
+      "Internal/external linking strategy",
+      "Conversion optimization techniques used"
+    ]
+  },
+  "success_metrics": {
+    "gate_threshold": 0.75,
+    "consensus_threshold": 0.90
+  },
+  "deliverable_requirements": [
+    "Content file created (markdown, doc, html)",
+    "No plagiarism detected",
+    "Factual accuracy verified",
+    "Brand guidelines followed"
+  ]
+}

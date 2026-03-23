@@ -1,0 +1,159 @@
+SECURITY VALIDATION REPORT - EXECUTIVE SUMMARY
+==============================================
+
+Project: CodeSearch V2 Multi-Project Isolation
+Audit Date: 2025-12-11
+Confidence Score: 0.80 (pending critical fixes)
+
+CRITICAL ISSUES (PRODUCTION BLOCKER)
+====================================
+
+1. test_entity_crud Column Index Bug [CRITICAL]
+   File: src/store_v2.rs::row_to_entity()
+   Issue: Accessing row.get(14) and row.get(15) when only 14 columns exist (0-13)
+   Fix: Change to row.get(12) and row.get(13)
+   Impact: Breaks all entity CRUD operations - cannot insert or retrieve data
+   Status: MUST FIX BEFORE DEPLOYMENT
+
+HIGH PRIORITY ISSUES
+====================
+
+2. SQL LIKE Pattern Escaping Missing [HIGH]
+   File: src/store_v2.rs (multiple functions)
+   Issue: Wildcard characters (%, _) in project_root are not escaped
+   Risk: Cross-project data leakage if paths contain special characters
+   Fix: Implement escape_like_pattern() function
+   Example: /home/user/proj_a → /home/user/projXa would incorrectly match
+   Status: MUST FIX BEFORE DEPLOYMENT
+
+POSITIVE FINDINGS
+=================
+
+Path Validation: EXCELLENT (9/10)
+  ✅ canonicalize() resolves all symlinks
+  ✅ prevent_traversal() blocks ".." and null bytes
+  ✅ validate_against_root() enforces project boundaries
+  ✅ All 8 path validation tests PASS
+
+SQL Injection Prevention: EXCELLENT (9.5/10)
+  ✅ All queries use parameterized statements
+  ✅ No dynamic SQL construction
+  ✅ params! macro used throughout
+  ✅ Verified against multiple injection vectors
+
+Project Isolation: STRONG (8.5/10)
+  ✅ LIKE pattern filtering added to 9 functions
+  ✅ project_root parameter passed to all queries
+  ✅ CLI integration updated
+  ✅ Prevents cross-project data deletion
+
+Transaction Safety: STRONG (9/10)
+  ✅ delete_file_entities() wrapped in transaction
+  ✅ All-or-nothing semantics for DELETE operations
+  ✅ FK constraints ordered correctly
+  ✅ Handles partial failure scenarios
+
+Input Validation: STRONG (9/10)
+  ✅ Multi-layer validation (prevent_traversal + validate_against_root)
+  ✅ Type-safe project_root parameter
+  ✅ All edge cases handled (relative paths, symlinks, empty strings)
+
+Audit Logging: STRONG (9/10)
+  ✅ info! logs for high-level operations
+  ✅ debug! logs for detailed steps
+  ✅ warn! logs for security violations
+  ✅ error! logs for critical failures
+
+TEST RESULTS
+============
+
+Passing: 31/32 tests (97%)
+  ✅ path_validator (8 tests) - ALL PASS
+  ✅ schema_v2 (4 tests) - ALL PASS
+  ✅ query_v2 (1 test) - PASS
+  ✅ migration_v2 (2 tests) - PASS
+  ✅ extractors (16 tests) - ALL PASS
+
+Failing: 1 test
+  ❌ store_v2::tests::test_entity_crud - CRITICAL
+
+THREAT MODEL COVERAGE
+=====================
+
+Mitigated Threats:
+  ✅ Cross-project data deletion
+  ✅ Cross-project query leakage
+  ✅ Directory traversal attacks
+  ✅ SQL injection attacks
+  ✅ Partial failure data loss
+  ✅ Symlink escape attempts
+
+RECOMMENDATIONS
+===============
+
+Immediate Actions (Before Deployment):
+  1. Fix column index bug in row_to_entity() - 5 minutes
+  2. Implement LIKE pattern escaping - 30 minutes
+  3. Run security test suite - 5 minutes
+  4. Test multi-project isolation - 15 minutes
+
+Follow-up (Next Release):
+  1. Add dedicated security test suite
+  2. Document validation pipeline
+  3. Add transaction rollback tests
+  4. Remove unused code (validate_ids function)
+
+Long-term:
+  1. Add project_root column to schema (reduces pattern matching)
+  2. Implement audit logging table
+  3. Add rate limiting per project
+  4. Enhanced monitoring for suspicious patterns
+
+FILES MODIFIED
+==============
+
+Core Security:
+  src/path_validator.rs - New path validation module
+  src/store_v2.rs - Updated with project_root parameters and transactions
+  src/query_v2.rs - Updated with project_root in search queries
+  src/cli/index.rs - Updated to pass project_root to delete_file_entities
+
+OWASP COVERAGE
+==============
+
+A01: Broken Access Control - ✅ MITIGATED (project isolation)
+A02: Cryptographic Failures - ✅ N/A (no crypto needed)
+A03: Injection - ✅ MITIGATED (parameterized) ⚠️ (needs LIKE escaping)
+A04: Insecure Design - ✅ MITIGATED (transactions)
+A05: Security Misconfiguration - ✅ MITIGATED (proper logging)
+A06: Vulnerable Components - ✅ CLEAN
+A07: Authentication/Authorization - ✅ N/A
+A08: Software & Data Integrity - ⚠️ NEEDS LIKE ESCAPING
+A09: Logging & Monitoring - ✅ ADEQUATE
+A10: SSRF - ✅ N/A
+
+FINAL ASSESSMENT
+================
+
+Security Posture: STRONG (with critical bugs)
+
+The implementation demonstrates excellent security architecture with:
+- Layered path validation
+- Comprehensive parameterization
+- Transaction atomicity
+- Proper project isolation design
+
+However, DEPLOYMENT IS BLOCKED by:
+1. Critical test failure (breaks CRUD operations)
+2. Missing LIKE pattern escaping (potential data leakage)
+
+Estimated Fix Time: 45 minutes
+Target Confidence Score: 0.85+
+
+Once fixed, this will be a robust, production-ready multi-project search index.
+
+===
+
+Report File: SECURITY_VALIDATION_REPORT.md (detailed findings)
+Generated: 2025-12-11
+Reviewer: Security Specialist Agent
