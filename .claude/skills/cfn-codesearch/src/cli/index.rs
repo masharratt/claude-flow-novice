@@ -147,6 +147,9 @@ const EXCLUDED_DIRS: &[&str] = &[
     "output",            // Generated output directories
     "outputs",           // Generated output directories
 
+    // Generated code (often massive, machine-produced)
+    "generated",         // GraphQL codegen, protobuf, OpenAPI, etc.
+
     // Test artifacts (not source code)
     "__snapshots__",     // Jest snapshots
     "__mocks__",         // Jest mocks (usually generated)

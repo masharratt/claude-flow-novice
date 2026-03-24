@@ -4,11 +4,36 @@
 //! using tree-sitter and regex-based pattern matching.
 
 use anyhow::Result;
+use regex::Regex;
 use std::collections::HashMap;
-use tree_sitter::{Parser};
+use std::sync::LazyLock;
+use tree_sitter::Parser;
 
 use crate::extractors::utils::*;
 use crate::extractors::*;
+
+// Static regex patterns — compiled once, reused across all files
+static FUNC_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^(export\s+)?(?:async\s+)?function\s+(\w+)\s*\([^)]*\)(?:\s*:\s*[^{]+)?\s*\{").unwrap()
+});
+static ARROW_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:\([^)]*\)|[^=]+)\s*=>").unwrap()
+});
+static CLASS_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^(export\s+)?(?:abstract\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?(?:\s+implements\s+([^{]+))?").unwrap()
+});
+static INTERFACE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^(export\s+)?interface\s+(\w+)(?:\s+extends\s+([^{]+))?").unwrap()
+});
+static TYPE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^(export\s+)?type\s+(\w+)\s*=\s*([^;]+);").unwrap()
+});
+static DEFAULT_IMPORT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?m)^import\s+(\w+)\s+from\s+["']([^"']+)["'];"#).unwrap()
+});
+static NAMED_IMPORT_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"(?m)^import\s*\{([^}]+)\}\s+from\s+["']([^"']+)["'];"#).unwrap()
+});
 
 /// TypeScript extractor implementation
 pub struct TypeScriptExtractor {
@@ -75,14 +100,9 @@ impl TypeScriptExtractor {
         })
     }
 
-    /// Simple function extraction using regex
+    /// Simple function extraction using static regex
     fn extract_functions_simple(&self, source: &str, file_path: &str, entities: &mut Vec<Entity>) {
-        use regex::Regex;
-
-        // Match function declarations: export function name(params): type {}
-        let func_regex = Regex::new(r"(?m)^(export\s+)?(?:async\s+)?function\s+(\w+)\s*\([^)]*\)(?:\s*:\s*[^{]+)?\s*\{").unwrap();
-
-        for caps in func_regex.captures_iter(source) {
+        for caps in FUNC_REGEX.captures_iter(source) {
             let name = caps.get(2).unwrap().as_str();
             let is_exported = caps.get(1).is_some();
 
@@ -108,10 +128,7 @@ impl TypeScriptExtractor {
             });
         }
 
-        // Match arrow functions: const name = (params): type => {}
-        let arrow_regex = Regex::new(r"(?m)^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:\([^)]*\)|[^=]+)\s*=>").unwrap();
-
-        for caps in arrow_regex.captures_iter(source) {
+        for caps in ARROW_REGEX.captures_iter(source) {
             let name = caps.get(1).unwrap().as_str();
 
             let line_num = source[..caps.get(0).unwrap().start()].lines().count();
@@ -131,14 +148,9 @@ impl TypeScriptExtractor {
         }
     }
 
-    /// Simple class extraction using regex
+    /// Simple class extraction using static regex
     fn extract_classes_simple(&self, source: &str, file_path: &str, entities: &mut Vec<Entity>) {
-        use regex::Regex;
-
-        // Match class declarations: export class Name extends Base {}
-        let class_regex = Regex::new(r"(?m)^(export\s+)?(?:abstract\s+)?class\s+(\w+)(?:\s+extends\s+(\w+))?(?:\s+implements\s+([^{]+))?").unwrap();
-
-        for caps in class_regex.captures_iter(source) {
+        for caps in CLASS_REGEX.captures_iter(source) {
             let name = caps.get(2).unwrap().as_str();
             let is_exported = caps.get(1).is_some();
             let extends = caps.get(3).map(|m| m.as_str());
@@ -168,14 +180,9 @@ impl TypeScriptExtractor {
         }
     }
 
-    /// Simple interface extraction using regex
+    /// Simple interface extraction using static regex
     fn extract_interfaces_simple(&self, source: &str, file_path: &str, entities: &mut Vec<Entity>) {
-        use regex::Regex;
-
-        // Match interface declarations: export interface Name extends Base {}
-        let interface_regex = Regex::new(r"(?m)^(export\s+)?interface\s+(\w+)(?:\s+extends\s+([^{]+))?").unwrap();
-
-        for caps in interface_regex.captures_iter(source) {
+        for caps in INTERFACE_REGEX.captures_iter(source) {
             let name = caps.get(2).unwrap().as_str();
             let is_exported = caps.get(1).is_some();
             let extends = caps.get(3).map(|m| m.as_str());
@@ -205,14 +212,9 @@ impl TypeScriptExtractor {
         }
     }
 
-    /// Simple type alias extraction using regex
+    /// Simple type alias extraction using static regex
     fn extract_type_aliases_simple(&self, source: &str, file_path: &str, entities: &mut Vec<Entity>) {
-        use regex::Regex;
-
-        // Match type aliases: export type Name = ...
-        let type_regex = Regex::new(r"(?m)^(export\s+)?type\s+(\w+)\s*=\s*([^;]+);").unwrap();
-
-        for caps in type_regex.captures_iter(source) {
+        for caps in TYPE_REGEX.captures_iter(source) {
             let name = caps.get(2).unwrap().as_str();
             let type_def = caps.get(3).unwrap().as_str().trim();
             let is_exported = caps.get(1).is_some();
@@ -240,14 +242,9 @@ impl TypeScriptExtractor {
         }
     }
 
-    /// Simple import extraction using regex
+    /// Simple import extraction using static regex
     fn extract_imports_simple(&self, source: &str, file_path: &str, references: &mut Vec<Reference>) {
-        use regex::Regex;
-
-        // Match default imports: import Name from 'module' or "module"
-        let default_regex = Regex::new(r#"(?m)^import\s+(\w+)\s+from\s+["']([^"']+)["'];"#).unwrap();
-
-        for caps in default_regex.captures_iter(source) {
+        for caps in DEFAULT_IMPORT_REGEX.captures_iter(source) {
             let name = caps.get(1).unwrap().as_str();
             let module = caps.get(2).unwrap().as_str();
 
@@ -270,10 +267,7 @@ impl TypeScriptExtractor {
             });
         }
 
-        // Match named imports: import { Name1, Name2 } from 'module' or "module"
-        let named_regex = Regex::new(r#"(?m)^import\s*\{([^}]+)\}\s+from\s+["']([^"']+)["'];"#).unwrap();
-
-        for caps in named_regex.captures_iter(source) {
+        for caps in NAMED_IMPORT_REGEX.captures_iter(source) {
             let imports = caps.get(1).unwrap().as_str();
             let module = caps.get(2).unwrap().as_str();
 
