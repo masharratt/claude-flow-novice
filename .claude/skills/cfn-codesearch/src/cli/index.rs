@@ -142,6 +142,11 @@ const EXCLUDED_DIRS: &[&str] = &[
     "logs",              // Log directories
     ".logs",             // Hidden logs
 
+    // Evaluation & output data
+    "evals",             // AI/ML evaluation results (large JSON datasets)
+    "output",            // Generated output directories
+    "outputs",           // Generated output directories
+
     // Test artifacts (not source code)
     "__snapshots__",     // Jest snapshots
     "__mocks__",         // Jest mocks (usually generated)
@@ -420,14 +425,17 @@ impl IndexCommand {
             None
         };
 
+        // Canonicalize project_dir and source_path to ensure consistent absolute paths
+        // This prevents relative/absolute path mismatches in file_hashes and entities
+        let canonical_project_dir = path_validator::canonicalize(project_dir)?;
         let source_path = if path.as_os_str().is_empty() || path == Path::new(".") {
-            project_dir.to_path_buf()
+            canonical_project_dir.clone()
         } else {
-            path.to_path_buf()
+            path_validator::canonicalize(path)?
         };
 
         Ok(Self {
-            project_dir: project_dir.to_path_buf(),
+            project_dir: canonical_project_dir,
             source_path,
             index_path,
             file_types,
@@ -464,6 +472,12 @@ impl IndexCommand {
         let files = self.collect_files()?;
 
         let stats = self.process_files(files)?;
+
+        // Prune stale files (deleted from disk but still in index)
+        let pruned = self.prune_stale_files()?;
+        if pruned > 0 {
+            info!("Pruned {} stale files from index (deleted from disk)", pruned);
+        }
 
         info!("Index complete: {} files, {} entities, {} references, {} embeddings",
               stats.files_processed, stats.entities_extracted,
@@ -662,15 +676,25 @@ impl IndexCommand {
         self.store_references(file_path, &extraction_result.references, &entity_ids)?;
         self.store_type_usage(file_path, &extraction_result.entities, &entity_ids)?;
 
-        let embeddings = self.generate_entity_embeddings(&extraction_result.entities, &content)?;
+        // Skip embedding generation for text/non-code files (md, json, yaml, sh, etc.)
+        // These still get stored in SQLite and Memgraph but don't need vector search
+        let language = self.detect_language(file_path)?;
+        let is_code_file = matches!(language.as_str(), "rust" | "typescript" | "javascript");
 
-        // Store embeddings in SQLite entity_embeddings table (metadata)
-        for (entity_id, embedding) in entity_ids.iter().zip(embeddings.iter()) {
-            self.store_v2.store_embedding(*entity_id, embedding, "text-embedding-3-small")?;
-        }
+        let embeddings = if is_code_file {
+            let embs = self.generate_entity_embeddings(&extraction_result.entities, &content)?;
+            // Store embeddings in SQLite entity_embeddings table (metadata)
+            for (entity_id, embedding) in entity_ids.iter().zip(embs.iter()) {
+                self.store_v2.store_embedding(*entity_id, embedding, "text-embedding-3-small")?;
+            }
+            Some(embs)
+        } else {
+            debug!("Skipping embeddings for non-code file: {}", file_path.display());
+            None
+        };
 
-        // Store embeddings in pgvector if available
-        if let Some(ref pgvector_store) = self.pgvector_store {
+        // Store embeddings in pgvector if available (code files only)
+        if let (Some(ref embeddings), Some(ref pgvector_store)) = (&embeddings, &self.pgvector_store) {
             if let Some(ref rt) = self.tokio_runtime {
                 // Build entities the same way store_entities does
                 for (i, entity) in extraction_result.entities.iter().enumerate() {
@@ -731,8 +755,8 @@ impl IndexCommand {
             }
         }
 
-        // Store entities + embeddings in Qdrant (if available)
-        if let (Some(ref qdrant_store), Some(ref rt)) = (&self.qdrant_store, &self.tokio_runtime) {
+        // Store entities + embeddings in Qdrant (code files only — skip text/md)
+        if let (Some(ref embeddings), Some(ref qdrant_store), Some(ref rt)) = (&embeddings, &self.qdrant_store, &self.tokio_runtime) {
             // Build store entities for Qdrant
             let store_entities: Vec<codesearch::store_v2::Entity> = extraction_result.entities.iter()
                 .enumerate()
@@ -840,7 +864,7 @@ impl IndexCommand {
             s.files_processed += 1;
             s.entities_extracted += extraction_result.entities.len();
             s.references_extracted += extraction_result.references.len();
-            s.embeddings_generated += embeddings.len();
+            s.embeddings_generated += embeddings.as_ref().map_or(0, |e| e.len());
         }
 
         self.mark_file_indexed(file_path, &file_hash, extraction_result.entities.len())?;
@@ -977,7 +1001,14 @@ impl IndexCommand {
                 if start < source_lines.len() {
                     let body: String = source_lines[start..end].join("\n");
                     let mut text = format!("{}\n{}", declaration, body);
-                    text.truncate(MAX_EMBED_CHARS);
+                    if text.len() > MAX_EMBED_CHARS {
+                        // Find nearest char boundary at or before MAX_EMBED_CHARS
+                        let mut end = MAX_EMBED_CHARS;
+                        while !text.is_char_boundary(end) && end > 0 {
+                            end -= 1;
+                        }
+                        text.truncate(end);
+                    }
                     text
                 } else {
                     declaration
@@ -1076,11 +1107,11 @@ impl IndexCommand {
 
     fn calculate_file_hash(&self, file_path: &Path) -> Result<String> {
         use std::io::Read;
-        
+
         let mut file = fs::File::open(file_path)?;
         let mut hasher = Sha256::new();
         let mut buffer = [0; 8192];
-        
+
         loop {
             let n = file.read(&mut buffer)?;
             if n == 0 {
@@ -1088,8 +1119,80 @@ impl IndexCommand {
             }
             hasher.update(&buffer[..n]);
         }
-        
+
         Ok(format!("{:x}", hasher.finalize()))
+    }
+
+    /// Prune stale files: remove index entries for files that no longer exist on disk.
+    /// Cleans up SQLite (entities, refs, type_usage, embeddings, file_hashes),
+    /// Qdrant vectors, and Memgraph graph nodes for each stale file.
+    fn prune_stale_files(&mut self) -> Result<usize> {
+        let project_root_str = self.project_dir.to_string_lossy().to_string();
+
+        // Query all indexed file paths that belong to this project.
+        // Use raw SQL query and collect fully before entering the mutable loop.
+        let indexed_files: Vec<String> = {
+            let prefix = format!("{}%", project_root_str);
+            let mut stmt = self.store_v2.conn.prepare(
+                "SELECT file_path FROM file_hashes WHERE file_path LIKE ?1"
+            )?;
+            let mut rows = stmt.query(params![prefix])?;
+            let mut files = Vec::new();
+            while let Some(row) = rows.next()? {
+                if let Ok(path) = row.get::<_, String>(0) {
+                    files.push(path);
+                }
+            }
+            files
+        };
+
+        let mut pruned = 0;
+
+        for file_path_str in &indexed_files {
+            let path = Path::new(file_path_str);
+            if path.exists() {
+                continue;
+            }
+
+            info!("Pruning stale file: {}", file_path_str);
+
+            // 1. Delete from SQLite v2 store (entities, refs, type_usage, embeddings)
+            if let Err(e) = self.store_v2.delete_file_entities(file_path_str, &self.project_dir) {
+                warn!("Failed to prune SQLite entities for {}: {}", file_path_str, e);
+            }
+
+            // 2. Delete from file_hashes
+            if let Err(e) = self.store_v2.conn.execute(
+                "DELETE FROM file_hashes WHERE file_path = ?",
+                params![file_path_str],
+            ) {
+                warn!("Failed to prune file_hashes for {}: {}", file_path_str, e);
+            }
+
+            // 3. Delete from files table (legacy)
+            let _ = self.store_v2.conn.execute(
+                "DELETE FROM files WHERE path = ?",
+                params![file_path_str],
+            );
+
+            // 4. Delete from Qdrant
+            if let (Some(ref qdrant_store), Some(ref rt)) = (&self.qdrant_store, &self.tokio_runtime) {
+                if let Err(e) = rt.block_on(qdrant_store.delete_file_entities(file_path_str, &project_root_str)) {
+                    warn!("Failed to prune Qdrant entries for {}: {}", file_path_str, e);
+                }
+            }
+
+            // 5. Delete from Memgraph
+            if let (Some(ref memgraph_store), Some(ref rt)) = (&self.memgraph_store, &self.tokio_runtime) {
+                if let Err(e) = rt.block_on(memgraph_store.delete_file_graph(file_path_str, &project_root_str)) {
+                    warn!("Failed to prune Memgraph entries for {}: {}", file_path_str, e);
+                }
+            }
+
+            pruned += 1;
+        }
+
+        Ok(pruned)
     }
 }
 
