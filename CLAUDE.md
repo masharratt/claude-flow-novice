@@ -1,10 +1,16 @@
-# CFN Operating Guide
+## Code Search
 
-## Project Structure
+**STOP. Before using grep, glob, find, or any file search — query CodeSearch first.**
+Run `/codebase-search "your query"` for instant semantic results (400x faster than grep).
+Only fall back to grep if CodeSearch returns zero results.
 
-This is the CFN development project. **This project is the source of truth** for CFN infrastructure. `~/.claude/` dirs are reverse-symlinked back here so all projects share the same files.
+---
 
-### Reverse Symlinks (`~/.claude/` → project)
+# CFN Development Project
+
+This project is the source of truth for CFN infrastructure. `~/.claude/` dirs are reverse-symlinked back here so all projects share the same files.
+
+## Reverse Symlinks (`~/.claude/` → project)
 
 | `~/.claude/` Symlink | Points To (project source) | Purpose |
 |-----------------------|---------------------------|---------|
@@ -56,26 +62,6 @@ Z.ai settings are per-project in `.claude/settings.json` `env` section. Each pro
 
 Speak plainly, no fluff. Bullets > prose. Cite paths with line numbers (`src/app.ts:42`). Redact secrets as `[REDACTED]`. Avoid exaggeration, 'you're right', and self-congratulatory language. Do not give code examples unless specifically asked.
 
-## Rules
-
-- **CodeSearch FIRST (MANDATORY):** Query `~/.local/share/codesearch/index_v2.db` via SQL or `~/.claude/skills/cfn-codesearch/` BEFORE grep/glob/find/search. SQL queries are 400x faster. Use grep ONLY for non-indexed projects or literal strings.
-- **Agent usage:** Non-trivial tasks → CFN Loop. Solo work only for simple, isolated, <3 step tasks.
-- **Batching:** One message per type (spawns, edits, shell, todos). Never mix implementers + validators.
-- **Tests:** Coordinator only, sync execution. Never `run_in_background: true`. Agents read results.
-- **Files:** Subdirs only, never project root. Temp files → `/tmp/`.
-- **Secrets:** Never hardcode. Always redact.
-
-## Task Mode
-
-**Command:** `/cfn-loop-task "description" --mode=standard`
-
-1. Parse command, validate params
-2. Spawn agents with context + success criteria
-3. Agents execute, return results (no Redis)
-4. Iterate on validator/PO feedback
-
-**CLI Mode:** See `docs/CFN_LOOP_CLI_MODE.md`
-
 ## Output Locations
 
 | Type | Path |
@@ -94,10 +80,3 @@ Background process kills test runner memory leaks. Runs on session start.
 - Never kills: bash, sh, zsh (even if running tests)
 - Status: `~/.local/bin/wsl-memory-monitor.sh --status`
 - Log: `/tmp/wsl-memory-monitor.log`
-
-## Security
-
-- Validate inputs: type, size, permissions
-- Redact: credentials, tokens, PII → `[REDACTED]`
-- Incidents: capture command, commit, env, logs
-- Rollback: use backup scripts, not `git checkout`
