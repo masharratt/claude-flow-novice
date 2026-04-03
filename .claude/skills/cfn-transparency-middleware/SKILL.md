@@ -6,6 +6,10 @@ tags: [middleware, logging, security, transparency, memory, rust]
 status: production
 ---
 
+## Build
+
+Requires Rust toolchain. Build with: `cd .claude/skills/cfn-transparency-middleware && cargo build --release`. The binary must be compiled before first use.
+
 ## Transparency Middleware (Rust Implementation)
 
 ### Overview

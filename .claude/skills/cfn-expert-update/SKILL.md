@@ -147,3 +147,7 @@ bash .claude/skills/cfn-expert-update/update-expert.sh --force
 ```bash
 bash .claude/skills/cfn-expert-update/update-expert.sh --dry-run --since=HEAD~5
 ```
+
+## Limitations
+
+Knowledge blocks injected into the agent file are not pruned automatically. If the agent file grows beyond 500 lines, manually trim older knowledge blocks to prevent context bloat.

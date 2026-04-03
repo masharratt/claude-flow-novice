@@ -4,28 +4,6 @@ description: "Update CodeSearch search index automatically"
 
 # /update-search-index - Refresh Search Index
 
-Updates the CodeSearch semantic search index with recent code changes.
+Runs incremental CodeSearch index update. For full rebuild, use `/codebase-reindex --force`. This command is a convenience alias for the cfn-codesearch reindex functionality.
 
-## What it does
-
-- Automatically detects changed files since last update
-- Updates only what's needed (incremental update)
-- Makes new code searchable via `/search`
-
-## When to use
-
-- After large code changes
-- If `/search` isn't finding recent code
-- Before starting a new feature
-
-## Advanced Options
-
-For full rebuild:
-```bash
-/codebase-reindex
-```
-
-To check index status:
-```bash
-ls -la data/codebase_index.db
-```
+See `/cfn-codesearch:cfn-codebase-reindex` for the full implementation, including OpenAI key validation, binary resolution, and logging.

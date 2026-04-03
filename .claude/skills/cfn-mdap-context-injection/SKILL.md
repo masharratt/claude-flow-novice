@@ -4,6 +4,7 @@ description: Inject MDAP codebase files for troubleshooting (coordinator, implem
 version: 1.0.0
 tags: context-injection, debugging, mdap
 status: production
+---
 
 # What it does
 Outputs portions of CFN MDAP codebase grouped by functional area for debugging. Provides immediate context without reading entire codebase.

@@ -50,3 +50,23 @@ process-management/
 ### 1.0.0 (2025-12-02)
 - Consolidated 2 process skills into mega-skill
 
+---
+
+## Quick Start
+
+Start process instrumentation for an agent:
+```bash
+bash .claude/skills/cfn-process-management/lib/instrumentation/instrument.sh --agent-id <agent-id> --metrics cpu,memory
+```
+
+Manage process lifecycle (start, stop, restart):
+```bash
+bash .claude/skills/cfn-process-management/lib/lifecycle/manage.sh --action start --process <process-name>
+bash .claude/skills/cfn-process-management/lib/lifecycle/manage.sh --action stop --process <process-name>
+```
+
+Check process health and metrics:
+```bash
+bash .claude/skills/cfn-process-management/lib/instrumentation/instrument.sh --agent-id <agent-id> --report
+```
+

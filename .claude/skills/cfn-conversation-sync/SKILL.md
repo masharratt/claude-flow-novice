@@ -14,6 +14,8 @@ author: Claude Code
 
 # Conversation Sync Skill
 
+**Note:** This skill references `.codex/sessions` which may be outdated. Verify session storage paths match your Claude Code version before use.
+
 This skill copies Claude Code conversation session files from `.codex/sessions` to the repository's `.claude.json` file for context preservation and backup.
 
 ## Purpose

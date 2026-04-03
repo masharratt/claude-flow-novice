@@ -107,3 +107,11 @@ knowledge-base/
 ### 1.0.0 (2025-12-02)
 - Consolidated workflow + playbook into unified knowledge base
 
+---
+
+## Learnings Integration
+
+A lightweight per-project learnings system complements the knowledge base. While the knowledge base stores structured workflow and playbook data in SQLite, the learnings system uses append-only JSONL files for fast, low-friction logging of patterns, pitfalls, and preferences discovered during agent work.
+
+See [LEARNINGS.md](./LEARNINGS.md) for the full specification, including storage format, subcommands (`/learn`), auto-logging hooks, and pruning rules.
+

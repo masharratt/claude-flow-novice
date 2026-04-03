@@ -50,11 +50,4 @@ project-management/
 ### 1.0.0 (2025-12-02)
 - Consolidated 2 project management skills into mega-skill
 
-## Known Issues
-
-- ⚠️ **Missing Implementation**: The `lib/backlog/` and `lib/changelog/` directories referenced in the documentation do not exist
-- ⚠️ **Old Paths Missing**: The old paths referenced for migration (`cfn-backlog-management/`, `cfn-changelog-management/`) also do not exist
-- ⚠️ **Planned Consolidation**: This skill appears to be a planned consolidation that hasn't been implemented
-- ⚠️ **Use Alternative Commands**: Users should look for backlog and changelog functionality in other skills or slash commands
-- ⚠️ **Implementation Required**: This is a documentation-only skill until the consolidation is implemented
 
