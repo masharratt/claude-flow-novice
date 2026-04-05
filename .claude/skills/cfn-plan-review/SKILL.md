@@ -21,6 +21,17 @@ Run after any plan is written and before implementation begins. Especially criti
 
 ## Protocol
 
+### Phase 0: DRY & Modularity Check
+
+Before reviewing completeness, apply the DRY and modularity rules from `~/.claude/rules/code-quality.md` (DRY & Modularity section) to the plan:
+
+- Does the plan introduce logic that already exists elsewhere?
+- Does it touch 8+ files? If so, pause and verify minimum viable scope.
+- Are there shared types, schemas, or constants that need a single source of truth?
+- Does any multi-file feature have a shared orchestrator, or are there multiple entry points?
+
+Surface any violations as numbered findings in Phase 5. Do not duplicate the rules here — consult `code-quality.md` directly.
+
 ### Phase 1: Assumption Extraction
 
 Read the plan and extract every implicit assumption into an explicit, testable statement.
