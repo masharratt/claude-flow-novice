@@ -1,10 +1,17 @@
 #!/bin/bash
-set -euo pipefail
+set -uo pipefail
 exec 2>/tmp/codesearch-search-hook.log
 
 INPUT=$(timeout 1 cat || echo "{}")
-TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty')
-PATTERN=$(echo "$INPUT" | jq -r '.tool_input.pattern // empty')
+
+# Parse JSON without jq (may not be installed)
+if command -v jq >/dev/null 2>&1; then
+    TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty')
+    PATTERN=$(echo "$INPUT" | jq -r '.tool_input.pattern // empty')
+else
+    TOOL_NAME=$(echo "$INPUT" | sed -n 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+    PATTERN=$(echo "$INPUT" | sed -n 's/.*"pattern"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+fi
 
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >> /tmp/codesearch-search-hook.log
@@ -112,13 +119,8 @@ fi
 
 # Output context if we have any
 if [[ -n "$CONTEXT" ]]; then
-    # Try JSON output first
-    if command -v jq >/dev/null 2>&1; then
-        echo "$INPUT" | jq --arg context "$CONTEXT" '. + {additionalContext: $context}'
-    else
-        # Fallback to plain text
-        echo "$CONTEXT"
-    fi
+    # Output as plain text (jq may not be available)
+    echo "$CONTEXT"
     log "Context injected successfully"
 else
     log "No additional context found"
