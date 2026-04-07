@@ -43,6 +43,7 @@ Common hidden assumptions:
 - "This API is only called by one consumer" (grep for the endpoint across all projects)
 - "The data fits in memory / can be migrated in one pass" (check row counts)
 - "Existing data is clean and consistent" (check for nulls, orphans, constraint violations)
+- "My custom header reaches the backend" (check proxy/gateway header whitelists; Next.js catch-all routes, nginx, and API gateways silently strip unknown headers)
 
 Output format:
 ```
@@ -72,6 +73,11 @@ For every entity the plan touches (table, API, module, config), trace dependenci
 - Cron jobs, pipelines, background workers
 - Frontend code that renders its data
 - API consumers (internal and external)
+
+**For API/HTTP changes, also check the request path:**
+- Does the request pass through a reverse proxy, API gateway, or frontend proxy before reaching the backend? (e.g., Next.js catch-all route, nginx, Cloudflare Workers)
+- Does the proxy have a header whitelist? Custom auth headers (X-Research-Key, X-Custom-Auth, etc.) are silently stripped by proxies that only forward known headers. This causes 401s that are impossible to reproduce when testing the backend directly.
+- Are there middleware layers (CORS, CSRF, auth) mounted at the router level in server.ts that don't appear in the route file itself? Check `app.use()` calls, not just per-route middleware.
 
 For database operations, the investigation MUST include:
 ```sql
