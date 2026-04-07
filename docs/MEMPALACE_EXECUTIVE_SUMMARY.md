@@ -14,6 +14,41 @@ MemPalace is **production-grade software with proof-of-concept reliability**. Th
 
 ---
 
+## Firsthand Testing (CFN Project, April 7 2026)
+
+We installed mempalace 2.0.0 via `uv tool install` and tested it against the CFN project (~31,850 files). Key observations:
+
+### Installation and Init
+- `mempalace init` has a `--yes` flag for entities but still prompts interactively for room approval. Required piping `echo ""` to bypass. Confirms issue #8 (no non-interactive mode).
+- Entity detection surfaced generic terms ("Redis", "Security", "Loop", "Pattern") instead of meaningful project concepts. Confirms issue #97.
+
+### Mining Performance
+- Project had 31,850 total files; 14,844 were Rust `target/` build artifacts, 1,076 `.log` files, 562 `.map` files.
+- Mempalace's `SKIP_DIRS` excludes `dist`, `coverage`, `node_modules` but not `target`, `logs`. No `.mempalaceignore` support. Confirms issue #102.
+- We patched the miner to add `target`, `logs`, `.backups` to `SKIP_DIRS` and `.log`/`.map` to skip extensions, reducing from 10,337 to 6,208 mineable files.
+- Mining stalled at 10,000 drawers. Process consumed 1,027 minutes of CPU time and 300MB RAM before we killed it. Consistent with issues #19 (performance) and #72 (no checkpoints/recovery).
+- The `mempalace status` command showed drawer count frozen at 10,000 while the process continued running, suggesting a batch commit issue or ChromaDB bottleneck.
+
+### Search Quality
+- With 2,672 drawers (partial mine), search returned relevant results for "CFN Loop orchestration coordination" (match score 0.425) and "agent spawning validator consensus" (0.179).
+- Wake-up context (`mempalace wake-up --wing claude_flow_novice`) produced 789 tokens but mostly regurgitated CLAUDE.md and test file content rather than distilled project knowledge.
+
+### MCP Server
+- MCP server responded correctly to JSON-RPC `initialize` and `tools/list` calls.
+- 19 tools exposed (search, knowledge graph, diary, traverse, etc.). Architecture is sound.
+- We did not test under load or with search errors (issue #88 reports crashes via `sys.exit(1)`).
+
+### Decision: Uninstalled
+After reviewing 60+ GitHub issues alongside our testing, we uninstalled mempalace and removed the MCP server config. The combination of silent data loss risks, mining performance problems, and misleading documentation made it unsuitable for CFN's needs.
+
+### Files Cleaned Up
+- Removed `~/.mempalace/` (285MB palace DB)
+- Removed `mempalace.yaml` and `entities.json` from project root
+- Removed MCP server entry from `.claude/settings.json`
+- Uninstalled via `uv tool uninstall mempalace`
+
+---
+
 ## The Problem Landscape
 
 ### Silent Data Loss (Worst Category)

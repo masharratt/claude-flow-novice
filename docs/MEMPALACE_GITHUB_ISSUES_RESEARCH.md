@@ -7,6 +7,22 @@
 
 ---
 
+## CFN Firsthand Verification
+
+Several issues were independently confirmed during hands-on testing with the CFN project (31,850 files, WSL2):
+
+| Issue | Confirmed Behavior |
+|-------|-------------------|
+| **#8** (non-interactive) | `--yes` only covers entities; room approval still prompts. Required `echo "" \|` workaround. |
+| **#97** (entity detection) | Detected "Redis", "Security", "Loop" instead of meaningful CFN concepts. |
+| **#102** (no ignore file) | `target/` (14,844 files), `logs/`, `.log`, `.map` all mined. Required patching `SKIP_DIRS` in source. |
+| **#19** (performance) | Mining 6,208 files consumed 1,027 CPU-minutes and stalled at 10,000 drawers. Process killed. |
+| **#72** (no checkpoints) | No way to resume after killing the stalled mining process. Full re-mine required. |
+
+Search quality with partial data (2,672 drawers) was reasonable (0.425 similarity for relevant queries). MCP server responded correctly to protocol handshake. Core architecture is sound; execution is not production-ready.
+
+---
+
 ## Executive Summary
 
 MemPalace exhibits **systemic architectural problems** alongside critical data corruption and security vulnerabilities. The project shows a pattern of **readme-driven development** where marketing claims significantly outpace implementation. While the memory indexing foundation is sound, production readiness is compromised by:
