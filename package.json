@@ -95,7 +95,6 @@
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "bull": "^4.12.2",
-    "cerebras": "^1.0.0",
     "chalk": "^5.3.0",
     "claude-flow-novice": "^2.18.6",
     "commander": "^11.1.0",
@@ -122,7 +121,6 @@
     "yaml": "^2.3.4"
   },
   "devDependencies": {
-    "@cerebras/cerebras_cloud_sdk": "^1.59.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",

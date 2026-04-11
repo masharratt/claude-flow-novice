@@ -25,9 +25,6 @@
     "prepare": "chmod +x bin/fix-errors.sh",
     "postinstall": "echo 'CFN Compilation Error Fixer installed successfully! Run: npm run fix:rust or npm run fix:ts'"
   },
-  "optionalDependencies": {
-    "@cerebras/cerebras_cloud_sdk": "^1.59.0"
-  },
   "engines": {
     "node": ">=18.0.0"
   },
