@@ -1,35 +1,30 @@
 #!/usr/bin/env bash
-# CFN Status Line: shows API provider + context window + weekly usage (Anthropic only)
+# CFN Status Line: shows API provider + context window + weekly usage
 
 input=$(cat)
 
-# Detect provider from ANTHROPIC_BASE_URL (without underscore prefix).
-# The underscore-prefixed _ANTHROPIC_BASE_URL is a Z.ai convention but
-# doesn't reliably indicate the actual endpoint in use.
-base_url="${ANTHROPIC_BASE_URL:-}"
+# Debug: log raw input (remove after confirming)
+echo "$input" > /tmp/statusline-debug.json
 
-# Determine provider
-if [ -n "$base_url" ] && echo "$base_url" | grep -q "api.z.ai"; then
+# Model ID: Anthropic direct uses "claude-*", Z.ai routes to "glm-*"
+model_id=$(echo "$input" | jq -r '.model.id // empty' 2>/dev/null || true)
+
+if echo "$model_id" | grep -q "^claude-"; then
+  provider="Anthropic"
+elif [ -n "$model_id" ]; then
   provider="ZAI"
 else
-  provider="Anthropic"
+  provider=""
 fi
 
 # Context window usage
 ctx_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty' 2>/dev/null || true)
 
-# 7-day rate limit usage (Anthropic Pro/Max only)
-week_pct=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty' 2>/dev/null || true)
-
 # Build output
 parts="$provider"
 
 if [ -n "$ctx_pct" ]; then
-  parts="$parts  ctx:${ctx_pct}%"
-fi
-
-if [ "$provider" = "Anthropic" ] && [ -n "$week_pct" ]; then
-  parts="$parts  week:${week_pct}%"
+  parts="${parts:+$parts  }ctx:${ctx_pct}%"
 fi
 
 printf "%s" "$parts"
