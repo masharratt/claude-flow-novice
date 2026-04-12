@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-# CFN Status Line: shows API provider + context window + weekly usage
+# CFN Status Line: provider | ctx% | git | diff stats | duration | worktree
 
 input=$(cat)
 
-# Debug: log raw input (remove after confirming)
-echo "$input" > /tmp/statusline-debug.json
-
-# Model ID: Anthropic direct uses "claude-*", Z.ai routes to "glm-*"
+# --- Provider detection (model.id prefix) ---
 model_id=$(echo "$input" | jq -r '.model.id // empty' 2>/dev/null || true)
-
 if echo "$model_id" | grep -q "^claude-"; then
   provider="Anthropic"
 elif [ -n "$model_id" ]; then
@@ -17,14 +13,78 @@ else
   provider=""
 fi
 
-# Context window usage
+# --- Context window with color thresholds ---
 ctx_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty' 2>/dev/null || true)
-
-# Build output
-parts="$provider"
-
+ctx_part=""
 if [ -n "$ctx_pct" ]; then
-  parts="${parts:+$parts  }ctx:${ctx_pct}%"
+  if [ "$ctx_pct" -gt 85 ] 2>/dev/null; then
+    ctx_part="\033[31mctx:${ctx_pct}%\033[0m"
+  elif [ "$ctx_pct" -gt 50 ] 2>/dev/null; then
+    ctx_part="\033[33mctx:${ctx_pct}%\033[0m"
+  else
+    ctx_part="\033[32mctx:${ctx_pct}%\033[0m"
+  fi
 fi
 
-printf "%s" "$parts"
+# --- Git branch + dirty indicator ---
+cwd=$(echo "$input" | jq -r '.cwd // empty' 2>/dev/null || true)
+git_part=""
+if [ -n "$cwd" ] && [ -d "$cwd/.git" ] || git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
+  branch=$(git -C "$cwd" symbolic-ref --short HEAD 2>/dev/null || git -C "$cwd" rev-parse --short HEAD 2>/dev/null)
+  if [ -n "$branch" ]; then
+    dirty=""
+    if [ -n "$(git -C "$cwd" status --porcelain 2>/dev/null | head -1)" ]; then
+      dirty="*"
+    fi
+    ahead=$(git -C "$cwd" rev-list --count @{u}..HEAD 2>/dev/null || echo "")
+    ahead_part=""
+    if [ -n "$ahead" ] && [ "$ahead" -gt 0 ] 2>/dev/null; then
+      ahead_part=" ↑${ahead}"
+    fi
+    git_part="${branch}${dirty}${ahead_part}"
+  fi
+fi
+
+# --- Diff stats (lines added/removed this session) ---
+lines_added=$(echo "$input" | jq -r '.cost.total_lines_added // empty' 2>/dev/null || true)
+lines_removed=$(echo "$input" | jq -r '.cost.total_lines_removed // empty' 2>/dev/null || true)
+diff_part=""
+if [ -n "$lines_added" ] || [ -n "$lines_removed" ]; then
+  diff_part="+${lines_added:-0}/-${lines_removed:-0}"
+fi
+
+# --- Session duration ---
+duration_ms=$(echo "$input" | jq -r '.cost.total_duration_ms // empty' 2>/dev/null || true)
+dur_part=""
+if [ -n "$duration_ms" ] && [ "$duration_ms" -gt 0 ] 2>/dev/null; then
+  total_sec=$((duration_ms / 1000))
+  if [ "$total_sec" -ge 3600 ]; then
+    dur_part="$((total_sec / 3600))h$((total_sec % 3600 / 60))m"
+  elif [ "$total_sec" -ge 60 ]; then
+    dur_part="$((total_sec / 60))m"
+  else
+    dur_part="${total_sec}s"
+  fi
+fi
+
+# --- Worktree indicator ---
+project_dir=$(echo "$input" | jq -r '.workspace.project_dir // empty' 2>/dev/null || true)
+wt_part=""
+if [ -n "$cwd" ] && [ -n "$project_dir" ] && [ "$cwd" != "$project_dir" ]; then
+  wt_name=$(basename "$cwd")
+  wt_part="wt:${wt_name}"
+elif [ -n "$cwd" ] && [ -f "$cwd/.git" ]; then
+  # .git is a file (not dir) in worktrees
+  wt_name=$(basename "$cwd")
+  wt_part="wt:${wt_name}"
+fi
+
+# --- Assemble ---
+parts="$provider"
+[ -n "$ctx_part" ] && parts="${parts:+$parts  }${ctx_part}"
+[ -n "$git_part" ] && parts="${parts:+$parts  }${git_part}"
+[ -n "$diff_part" ] && parts="${parts:+$parts  }${diff_part}"
+[ -n "$dur_part" ] && parts="${parts:+$parts  }${dur_part}"
+[ -n "$wt_part" ] && parts="${parts:+$parts  }${wt_part}"
+
+printf "%b" "$parts"
