@@ -1,6 +1,6 @@
 ---
 name: cfn-e2e
-description: "Smart parallel E2E test execution with automatic batching. Optimizes Playwright tests for memory-constrained WSL2 environments by grouping tests into fast/medium/large batches."
+description: "MUST BE USED instead of running Playwright tests directly in WSL2. Automatically batches tests to avoid OOM on memory-constrained environments. Smart parallel E2E test execution with automatic batching. Optimizes Playwright tests for memory-constrained WSL2 environments by grouping tests into fast/medium/large batches."
 version: 1.0.0
 tags: [testing, e2e, playwright, parallel, batching]
 status: production

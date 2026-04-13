@@ -1,6 +1,6 @@
 ---
 name: api-documentation
-description: Specialized API documentation and developer experience optimization
+description: MUST BE USED when writing, updating, or reviewing API documentation. Use PROACTIVELY after any API endpoint is added or changed. Keywords: API docs, OpenAPI, swagger, endpoint documentation, developer experience.
 model: haiku
 color: blue
 type: specialist

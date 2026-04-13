@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: MUST BE USED for code quality validation, security review, and quality assurance.
+description: MUST BE USED for code quality validation, security review, and quality assurance. Use PROACTIVELY after any implementation, before merging, or when code changes touch shared logic. Keywords - code review, quality assurance, security validation, pull request, merge, code changes
 type: validator
 model: haiku
 color: "#E74C3C"

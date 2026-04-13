@@ -1,6 +1,6 @@
 ---
 name: cfn-alpha-launch
-description: "Alpha launch readiness analysis and fix execution. Analyzes 8 readiness areas in parallel with explicit scoring, delegates fix execution to cfn-parallel-execute."
+description: "MUST BE USED before any alpha or production release. Run when preparing to ship - do not deploy without passing this readiness check. Alpha launch readiness analysis and fix execution. Analyzes 8 readiness areas in parallel with explicit scoring, delegates fix execution to cfn-parallel-execute."
 version: 1.6.0
 tags: [alpha, launch, readiness, gap-analysis, tdd, parallel, supabase, contract, consistency, scoring, regression]
 status: production

@@ -1,6 +1,6 @@
 ---
 name: cfn-dry-review
-description: "Code review for DRY violations, modularity improvements, and resumable pipeline opportunities. Outputs a JSON manifest for cfn-vote-implement."
+description: "MUST BE USED before merging any PR that adds 3+ new functions or 50+ lines. Run after implementation to identify DRY violations before they land. Code review for DRY violations, modularity improvements, and resumable pipeline opportunities. Outputs a JSON manifest for cfn-vote-implement."
 version: 1.0.0
 tags: [code-review, DRY, modularity, refactoring]
 status: production

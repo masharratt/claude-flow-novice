@@ -1,6 +1,6 @@
 ---
 name: product-owner
-description: "CFN Loop Product Owner using Goal-Oriented Action Planning (GOAP) for autonomous scope enforcement and decision authority."
+description: "MUST BE USED for scope enforcement, feature prioritization, and autonomous product decisions using GOAP planning. Use PROACTIVELY when tasks risk scope creep or need prioritization trade-offs."
 model: sonnet
 color: purple
 type: strategic

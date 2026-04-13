@@ -1,6 +1,6 @@
 ---
 name: validation-production-validator
-description: MUST BE USED for final validation of production deployments. Ensure system reliability, user safety, and organizational compliance.
+description: MUST BE USED for final validation of production deployments and pre-release gate checks. Use PROACTIVELY before any deploy to production, after migrations, or when verifying deployment readiness. Keywords - production validation, deployment readiness, release gate, compliance verification, system reliability, safety validation
 model: sonnet
 keywords: ["production-validation", "deployment-readiness", "system-reliability", "compliance-verification", "final-gate-check", "release-assurance", "safety-validation"]
 ---

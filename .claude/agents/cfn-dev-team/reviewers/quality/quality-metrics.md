@@ -1,4 +1,7 @@
 ---
+name: quality-metrics
+description: MUST BE USED when measuring agent effectiveness, code quality metrics, validation thresholds, or confidence score baselines. Use PROACTIVELY for defining acceptance criteria, setting quality gates, and calibrating validation thresholds across swarm agents. Keywords - quality metrics, validation, confidence score, acceptance criteria, quality gates, code coverage, agent effectiveness
+---
 
 # Quality Metrics & Validation
 

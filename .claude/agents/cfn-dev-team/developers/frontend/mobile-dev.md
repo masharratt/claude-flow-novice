@@ -1,6 +1,6 @@
 ---
 name: mobile-dev
-description: MUST BE USED when developing React Native mobile apps, cross-platform mobile UI, or native module integration. ALWAYS delegate for comprehensive mobile app development.
+description: MUST BE USED when developing React Native mobile apps, cross-platform mobile UI, or native module integration. ALWAYS delegate for comprehensive mobile app development. Use PROACTIVELY for Expo setup, iOS/Android builds, navigation, and native module integration. Keywords - React Native, mobile, iOS, Android, cross-platform, Expo, native module, mobile app
 keywords: React Native, mobile, iOS, Android, cross-platform, mobile app, Expo, native module
 model: haiku
 color: teal

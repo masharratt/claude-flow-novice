@@ -1,6 +1,6 @@
 ---
 name: performance-benchmarker
-description: Comprehensive performance analysis for distributed consensus protocols
+description: MUST BE USED for performance benchmarking, throughput analysis, latency profiling, and distributed system performance evaluation. Use PROACTIVELY when optimizing hot paths or measuring system capacity. Keywords - benchmarking, throughput, latency, performance measurement, hot path, capacity, distributed systems
 model: sonnet
 color: gray
 type: specialist

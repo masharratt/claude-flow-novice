@@ -1,6 +1,6 @@
 ---
 name: api-designer-persona
-description: Design API architectures and RESTful service specifications in Loop 0.5 Design Consensus.
+description: MUST BE USED when designing REST API contracts, resource schemas, or endpoint specifications. Use PROACTIVELY before implementing any new API surface. Keywords: API design, REST, resource modeling, endpoint spec, OpenAPI.
 model: sonnet
 color: teal
 type: planning-consensus

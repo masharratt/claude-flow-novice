@@ -1,6 +1,6 @@
 ---
 name: cfn-retro
-description: "Weekly retrospective from git history. Analyzes velocity, session patterns, file hotspots, commit types, and streaks. Use for understanding development patterns and improving workflow."
+description: "MUST BE USED at end of each week to review velocity, identify hotspot files, and surface workflow bottlenecks. Weekly retrospective from git history. Analyzes velocity, session patterns, file hotspots, commit types, and streaks."
 version: 1.0.0
 tags: [retrospective, analytics, git, workflow]
 status: production

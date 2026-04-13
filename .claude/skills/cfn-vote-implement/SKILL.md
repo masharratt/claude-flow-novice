@@ -1,6 +1,6 @@
 ---
 name: cfn-vote-implement
-description: "3-agent specialized voting on code review suggestions. Unanimous items auto-implemented with TDD. Split votes surfaced to user."
+description: "MUST BE USED after cfn-dry-review produces a manifest. Do not manually implement code review suggestions - always route through this skill for consensus. 3-agent specialized voting on code review suggestions. Unanimous items auto-implemented with TDD. Split votes surfaced to user."
 version: 1.0.0
 tags: [voting, consensus, TDD, implementation, code-review]
 status: production

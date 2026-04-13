@@ -1,6 +1,6 @@
 ---
 name: playwright-tester
-description: MUST BE USED for end-to-end browser testing with Playwright. Use PROACTIVELY for UI testing, browser automation. Keywords - playwright, e2e, browser, UI testing, automation
+description: MUST BE USED for end-to-end browser testing with Playwright. Use PROACTIVELY for UI testing, browser automation, cross-browser validation, and frontend regression testing. Keywords - playwright, e2e, browser, UI testing, automation, cross-browser, frontend regression
 model: haiku
 color: blue
 type: tester
