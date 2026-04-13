@@ -3,7 +3,7 @@
 
 input=$(cat)
 
-# --- Provider detection (model.id prefix) ---
+# --- Provider + model detection ---
 model_id=$(echo "$input" | jq -r '.model.id // empty' 2>/dev/null || true)
 if echo "$model_id" | grep -q "^claude-"; then
   provider="Anthropic"
@@ -11,6 +11,20 @@ elif [ -n "$model_id" ]; then
   provider="ZAI"
 else
   provider=""
+fi
+
+# Short model name: claude-opus-4-6 -> Opus4.6, glm-5.1 -> glm-5.1
+model_short=""
+if [ -n "$model_id" ]; then
+  case "$model_id" in
+    claude-opus-*)    model_short="Opus${model_id##claude-opus-}" ;;
+    claude-sonnet-*)  model_short="Sonnet${model_id##claude-sonnet-}" ;;
+    claude-haiku-*)   model_short="Haiku${model_id##claude-haiku-}" ;;
+    claude-*)         model_short="$model_id" ;;
+    *)                model_short="$model_id" ;;
+  esac
+  # Normalize dashes in version: 4-6 -> 4.6
+  model_short=$(echo "$model_short" | sed 's/\([0-9]\)-\([0-9]\)/\1.\2/g')
 fi
 
 # --- Context window with color thresholds ---
@@ -81,6 +95,7 @@ fi
 
 # --- Assemble ---
 parts="$provider"
+[ -n "$model_short" ] && parts="${parts:+$parts }${model_short}"
 [ -n "$ctx_part" ] && parts="${parts:+$parts  }${ctx_part}"
 [ -n "$git_part" ] && parts="${parts:+$parts  }${git_part}"
 [ -n "$diff_part" ] && parts="${parts:+$parts  }${diff_part}"
