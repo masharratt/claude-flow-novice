@@ -27,6 +27,12 @@ if [ -n "$model_id" ]; then
   model_short=$(echo "$model_short" | sed 's/\([0-9]\)-\([0-9]\)/\1.\2/g')
 fi
 
+# Append 1M if context window is >= 1,000,000
+ctx_size=$(echo "$input" | jq -r '.context_window.context_window_size // empty' 2>/dev/null || true)
+if [ -n "$ctx_size" ] && [ "$ctx_size" -ge 1000000 ] 2>/dev/null; then
+  model_short="${model_short}[1M]"
+fi
+
 # --- Context window with color thresholds ---
 ctx_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty' 2>/dev/null || true)
 ctx_part=""
