@@ -1,29 +1,20 @@
 ---
-description: "Semantic code search with CodeSearch (400x faster than grep)"
+description: "Search codebase using CodeSearch index (SQL + semantic). Alias for /cfn-codesearch-search."
 argument-hint: "<query>"
 ---
 
-# CodeSearch Search
+# /codebase-search - CodeSearch Query
 
-Quick semantic search through your indexed codebase. SQL-first (no API key needed), with optional semantic fallback.
+Alias for `/cfn-codesearch-search`. SQL-first (no API key needed), with optional semantic fallback.
 
 ## Usage
 
 ```
-/cfn-codesearch-search "authentication middleware"
-/cfn-codesearch-search "error handling pattern"
+/codebase-search "authentication middleware"
+/codebase-search "pipeline orchestrator"
 ```
 
-## What it does
-
-- Queries pre-built SQLite index first (no API key, 0.002s)
-- Falls back to semantic search if API key available
-- Returns file paths with line numbers
-- 400x faster than grep for indexed projects
-
 ---
-
-Execute search:
 
 ```bash
 QUERY="$ARGUMENTS"

@@ -2,6 +2,10 @@
 set -uo pipefail
 exec 2>/tmp/codesearch-search-hook.log
 
+# Structured logging
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/cfn-codesearch-logger.sh"
+
 INPUT=$(timeout 3 cat || echo "{}")
 
 # Parse JSON without jq (may not be installed)
@@ -45,6 +49,7 @@ fi
 # Skip conditions
 if [[ ${#PATTERN} -lt 2 ]]; then
     log "Pattern too short (< 2 chars), skipping"
+    cs_log "search:skip" "$PATTERN" 0 "smart-hook" "too short (${#PATTERN} chars)"
     exit 0
 fi
 
@@ -52,12 +57,14 @@ fi
 # For Grep tool: regex chars like *, ?, [] are valid search patterns - don't skip
 if [[ "$TOOL_NAME" == "Glob" ]]; then
     log "Glob tool uses file patterns, skipping CodeSearch"
+    cs_log "search:skip" "$PATTERN" 0 "smart-hook" "glob tool"
     exit 0
 fi
 
 # Skip only full absolute paths (not partial path fragments used as search terms)
 if [[ "$PATTERN" == /* ]] && [[ -e "$PATTERN" ]]; then
     log "Pattern is an existing absolute path, skipping"
+    cs_log "search:skip" "$PATTERN" 0 "smart-hook" "absolute path"
     exit 0
 fi
 
@@ -92,7 +99,10 @@ if [[ -f "$DB_PATH" ]]; then
         CODESEARCH_RESULTS=$(timeout 3 sqlite3 -separator ':' "$DB_PATH" \
             "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 8" 2>/dev/null | head -10 || true)
         if [[ -n "$CODESEARCH_RESULTS" ]]; then
+            local result_count
+            result_count=$(echo "$CODESEARCH_RESULTS" | wc -l)
             log "CodeSearch SQL returned results"
+            cs_log "search:hit" "$PATTERN" "$result_count" "smart-hook" "sql"
             CONTEXT="${CONTEXT}CodeSearch indexed matches for '$PATTERN':
 $CODESEARCH_RESULTS
 
@@ -110,17 +120,24 @@ if [[ -z "$CODESEARCH_RESULTS" ]] && command -v local-codesearch >/dev/null 2>&1
         # Strip ANSI codes from output
         SEMANTIC_RESULTS=$(timeout 5 local-codesearch query "$PATTERN" --max-results 5 --threshold 0.3 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -8 || true)
         if [[ -n "$SEMANTIC_RESULTS" ]]; then
+            local sem_count
+            sem_count=$(echo "$SEMANTIC_RESULTS" | wc -l)
             log "Semantic search returned results"
+            cs_log "search:hit" "$PATTERN" "$sem_count" "smart-hook" "semantic"
             CONTEXT="${CONTEXT}CodeSearch semantic matches for '$PATTERN':
 $SEMANTIC_RESULTS
 
 "
         else
             log "Semantic search returned no results"
+            cs_log "search:miss" "$PATTERN" 0 "smart-hook" "sql+semantic empty"
         fi
     else
         log "No API key available for semantic search"
+        cs_log "search:miss" "$PATTERN" 0 "smart-hook" "sql empty, no api key"
     fi
+elif [[ -z "$CODESEARCH_RESULTS" ]]; then
+    cs_log "search:miss" "$PATTERN" 0 "smart-hook" "sql empty, no semantic binary"
 fi
 
 # Output context if we have any

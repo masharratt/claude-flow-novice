@@ -1,6 +1,10 @@
 #!/bin/bash
 set -uo pipefail
 
+# Structured logging
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/cfn-codesearch-logger.sh"
+
 INPUT=$(timeout 3 cat || echo "{}")
 if command -v jq >/dev/null 2>&1; then
     CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
@@ -67,8 +71,10 @@ if [ -f "$DB_PATH" ]; then
     "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 6" 2>/dev/null || true)
 
   if [ -n "$RESULTS" ]; then
+    result_count=$(echo "$RESULTS" | wc -l)
     CONTEXT="CodeSearch indexed matches for '$PATTERN':\n$RESULTS"
     log "SQL context injected for: $PATTERN"
+    cs_log "search:hit" "$PATTERN" "$result_count" "bash-hook" "sql"
   fi
 fi
 
@@ -78,10 +84,18 @@ if [ -z "$CONTEXT" ] && command -v local-codesearch >/dev/null 2>&1; then
     log "SQL returned nothing, trying semantic search for: $PATTERN"
     SEMANTIC=$(timeout 5 local-codesearch query "$PATTERN" --max-results 5 --threshold 0.3 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | grep -v "^$" | grep -v "INFO\|ERROR\|WARN" | head -6 || true)
     if [ -n "$SEMANTIC" ]; then
+      sem_count=$(echo "$SEMANTIC" | wc -l)
       CONTEXT="CodeSearch semantic matches for '$PATTERN':\n$SEMANTIC"
       log "Semantic context injected for: $PATTERN"
+      cs_log "search:hit" "$PATTERN" "$sem_count" "bash-hook" "semantic"
+    else
+      cs_log "search:miss" "$PATTERN" 0 "bash-hook" "sql+semantic empty"
     fi
+  else
+    cs_log "search:miss" "$PATTERN" 0 "bash-hook" "sql empty, no api key"
   fi
+elif [ -z "$CONTEXT" ]; then
+  cs_log "search:miss" "$PATTERN" 0 "bash-hook" "sql empty, no semantic binary"
 fi
 
 if [ -n "$CONTEXT" ]; then

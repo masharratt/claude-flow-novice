@@ -20,22 +20,44 @@ Search your indexed codebase using CodeSearch. Uses SQLite index for fast lookup
 
 **Prerequisites:**
 - Codebase must be indexed: `/cfn-codebase-reindex`
-- OPENAI_API_KEY must be set for indexing
+- OPENAI_API_KEY optional (SQL search works without it, semantic search needs it)
 
 ---
 
 Execute the search:
 
 ```bash
-# Load from .env if current key is invalid
-if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]] && [[ -f ".env" ]]; then
-    export OPENAI_API_KEY=$(grep "^OPENAI_API_KEY=" .env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+QUERY="{{query}}"
+MAX_RESULTS={{#if top}}{{top}}{{else}}10{{/if}}
+DB_PATH="$HOME/.local/share/codesearch/index_v2.db"
+PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+
+# Try SQL first (no API key needed, fastest path)
+if [ -f "$DB_PATH" ]; then
+    SAFE_Q=$(echo "$QUERY" | sed "s/'/''/g")
+    SAFE_ROOT=$(echo "$PROJECT_ROOT" | sed "s/'/''/g")
+    SQL_RESULTS=$(sqlite3 -separator ' | ' "$DB_PATH" \
+        "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, kind, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_Q}%' OR file_path LIKE '%${SAFE_Q}%') LIMIT $MAX_RESULTS" 2>/dev/null || true)
+    if [ -n "$SQL_RESULTS" ]; then
+        echo "=== CodeSearch SQL Results ==="
+        echo "$SQL_RESULTS"
+        echo ""
+    fi
 fi
-[[ ! "$OPENAI_API_KEY" =~ ^sk- ]] && { echo "❌ OPENAI_API_KEY invalid. Add to .env" >&2; exit 1; }
 
-CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
-[ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="./.claude/skills/cfn-codesearch/target/release/local-codesearch"
+# Try semantic search if API key available
+if [[ "${OPENAI_API_KEY:-}" != sk-* ]] && [[ -f ".env" ]]; then
+    export OPENAI_API_KEY=$(grep "^OPENAI_API_KEY=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || true)
+fi
 
-# Use threshold 0.1 for better results (default 0.3 is too strict)
-"$CODESEARCH_BIN" query "{{query}}" --max-results {{#if top}}{{top}}{{else}}10{{/if}} --threshold 0.1
+if [[ "${OPENAI_API_KEY:-}" == sk-* ]]; then
+    CODESEARCH_BIN="${HOME}/.local/bin/local-codesearch"
+    [ ! -f "$CODESEARCH_BIN" ] && CODESEARCH_BIN="./.claude/skills/cfn-codesearch/target/release/local-codesearch"
+    if [ -x "$CODESEARCH_BIN" ]; then
+        echo "=== CodeSearch Semantic Results ==="
+        "$CODESEARCH_BIN" query "$QUERY" --max-results "$MAX_RESULTS" --threshold 0.1 2>/dev/null || true
+    fi
+elif [ -z "${SQL_RESULTS:-}" ]; then
+    echo "No results. Index may be missing for this project. Run: /cfn-codebase-reindex"
+fi
 ```

@@ -6,6 +6,10 @@
 
 set -euo pipefail
 
+# Structured logging
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HOOK_DIR/cfn-codesearch-logger.sh"
+
 BINARY="${HOME}/.local/bin/local-codesearch"
 INDEX_DB="${HOME}/.local/share/codesearch/index_v2.db"
 QDRANT_URL="http://localhost:6334"
@@ -46,6 +50,7 @@ do_update() {
             echo "$ext" | grep -qE "^($INDEXED_TYPES)$" || continue
 
             log "DELETE: $file"
+            cs_log "index:delete" "$file" 1 "post-commit" ""
 
             # Remove from SQLite
             sqlite3 "$INDEX_DB" "DELETE FROM entity_embeddings WHERE entity_id IN (SELECT id FROM entities WHERE file_path = '$file' AND project_root = '$PROJECT_ROOT');" 2>/dev/null || true
@@ -95,6 +100,7 @@ do_update() {
             while IFS= read -r dir; do
                 [ -d "$PROJECT_ROOT/$dir" ] || continue
                 log "INDEX: $dir"
+                cs_log "index:file" "$dir" 1 "post-commit" ""
                 # Include Memgraph if reachable, skip if not
                 local memgraph_flag=""
                 if ! nc -z "${MEMGRAPH_BOLT%%:*}" "${MEMGRAPH_BOLT##*:}" 2>/dev/null; then
@@ -117,6 +123,7 @@ do_update() {
     changed_count=$(echo "$changed_files" | grep -c '.' 2>/dev/null || echo 0)
     deleted_count=$(echo "$deleted_files" | grep -c '.' 2>/dev/null || echo 0)
     log "Post-commit index update done: $changed_count changed, $deleted_count deleted"
+    cs_log "index:complete" "" "$changed_count" "post-commit" "$deleted_count deleted"
 }
 
 # Run in background so the commit returns immediately
