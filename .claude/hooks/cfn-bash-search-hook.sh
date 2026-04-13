@@ -1,8 +1,12 @@
 #!/bin/bash
-set -euo pipefail
+set -uo pipefail
 
-INPUT=$(timeout 1 cat || echo "{}")
-CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+INPUT=$(timeout 3 cat || echo "{}")
+if command -v jq >/dev/null 2>&1; then
+    CMD=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+else
+    CMD=$(echo "$INPUT" | sed -n 's/.*"command"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+fi
 
 log() { echo "[$(date '+%H:%M:%S')] $*" >> /tmp/codesearch-bash-hook.log; }
 
@@ -45,7 +49,7 @@ if [ -z "$PATTERN" ]; then
   PATTERN=$(echo "$CMD" | grep -oE '\-name\s+"[^"]+"' | sed 's/-name\s*"//' | tr -d '"' || true)
 fi
 
-if [ -z "$PATTERN" ] || [ ${#PATTERN} -lt 3 ] || [[ "$PATTERN" == -* ]]; then
+if [ -z "$PATTERN" ] || [ ${#PATTERN} -lt 2 ] || [[ "$PATTERN" == -* ]]; then
   exit 0
 fi
 

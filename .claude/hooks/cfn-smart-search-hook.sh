@@ -2,7 +2,7 @@
 set -uo pipefail
 exec 2>/tmp/codesearch-search-hook.log
 
-INPUT=$(timeout 1 cat || echo "{}")
+INPUT=$(timeout 3 cat || echo "{}")
 
 # Parse JSON without jq (may not be installed)
 if command -v jq >/dev/null 2>&1; then
@@ -43,20 +43,21 @@ if [[ -z "$PATTERN" || -z "$TOOL_NAME" ]]; then
 fi
 
 # Skip conditions
-if [[ ${#PATTERN} -lt 3 ]]; then
-    log "Pattern too short, skipping"
+if [[ ${#PATTERN} -lt 2 ]]; then
+    log "Pattern too short (< 2 chars), skipping"
     exit 0
 fi
 
-# Skip glob patterns (file discovery, not semantic)
-if [[ "$PATTERN" == *"*"* ]] || [[ "$PATTERN" == *"?"* ]] || [[ "$PATTERN" == *"["* ]]; then
-    log "Pattern looks like glob, skipping"
+# For Glob tool: skip glob patterns (file discovery, not semantic search)
+# For Grep tool: regex chars like *, ?, [] are valid search patterns - don't skip
+if [[ "$TOOL_NAME" == "Glob" ]]; then
+    log "Glob tool uses file patterns, skipping CodeSearch"
     exit 0
 fi
 
-# Skip exact paths (contains / and . extension)
-if [[ "$PATTERN" == *"/"* ]] && [[ "$PATTERN" == *"."* ]]; then
-    log "Pattern looks like exact path, skipping"
+# Skip only full absolute paths (not partial path fragments used as search terms)
+if [[ "$PATTERN" == /* ]] && [[ -e "$PATTERN" ]]; then
+    log "Pattern is an existing absolute path, skipping"
     exit 0
 fi
 
@@ -81,17 +82,22 @@ DB_PATH="$HOME/.local/share/codesearch/index_v2.db"
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 if [[ -f "$DB_PATH" ]]; then
     log "Querying CodeSearch SQL for: $PATTERN (project: $PROJECT_ROOT)"
-    # Escape pattern for SQL LIKE
-    SAFE_PATTERN=$(echo "$PATTERN" | sed "s/'/''/g")
-    SAFE_ROOT=$(echo "$PROJECT_ROOT" | sed "s/'/''/g")
-    CODESEARCH_RESULTS=$(timeout 3 sqlite3 -separator ':' "$DB_PATH" \
-        "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 8" 2>/dev/null | head -10 || true)
-    if [[ -n "$CODESEARCH_RESULTS" ]]; then
-        log "CodeSearch SQL returned results"
-        CONTEXT="${CONTEXT}CodeSearch indexed matches for '$PATTERN':
+    # Strip regex metacharacters and escape for SQL LIKE
+    SAFE_PATTERN=$(echo "$PATTERN" | sed 's/\\[swdSWDbBnrt+]//g' | sed 's/[.*+?^${}()|\\]//g; s/\[//g; s/\]//g; s/  */ /g; s/^ *//; s/ *$//' | sed "s/'/''/g")
+    if [[ ${#SAFE_PATTERN} -lt 2 ]]; then
+        log "Pattern too short after stripping regex, skipping SQL"
+        CODESEARCH_RESULTS=""
+    else
+        SAFE_ROOT=$(echo "$PROJECT_ROOT" | sed "s/'/''/g")
+        CODESEARCH_RESULTS=$(timeout 3 sqlite3 -separator ':' "$DB_PATH" \
+            "SELECT REPLACE(file_path, '$SAFE_ROOT/', ''), line_number, name FROM entities WHERE project_root = '$SAFE_ROOT' AND (name LIKE '%${SAFE_PATTERN}%' OR file_path LIKE '%${SAFE_PATTERN}%') LIMIT 8" 2>/dev/null | head -10 || true)
+        if [[ -n "$CODESEARCH_RESULTS" ]]; then
+            log "CodeSearch SQL returned results"
+            CONTEXT="${CONTEXT}CodeSearch indexed matches for '$PATTERN':
 $CODESEARCH_RESULTS
 
 "
+        fi
     fi
 else
     log "CodeSearch index not found at $DB_PATH"
