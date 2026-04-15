@@ -1,0 +1,36 @@
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* React Flow overrides */
+.react-flow__node {
+  cursor: grab;
+}
+
+.react-flow__node:active {
+  cursor: grabbing;
+}
+
+.react-flow__edge-path {
+  stroke-linecap: round;
+}
+
+.react-flow__controls {
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+}
+
+.react-flow__controls button {
+  border: none !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.react-flow__controls button:last-child {
+  border-bottom: none !important;
+}
