@@ -58,6 +58,14 @@ should_retry() {
 ERROR_CATEGORY=$(categorize_error "$EXIT_CODE" "$STDERR")
 RETRY_RECOMMENDED=$(should_retry "$ERROR_CATEGORY")
 
+# Check decision log for prior similar errors
+PRIOR_ERRORS=""
+if [ -f "$HOME/.claude/decision-log/decisions.db" ]; then
+    SEARCH_TERMS="${ERROR_CATEGORY} ${AGENT_TYPE}"
+    [ -n "$STDERR" ] && SEARCH_TERMS="$SEARCH_TERMS $(echo "$STDERR" | head -c 200 | sed 's/[^a-zA-Z0-9 ]/ /g' | tr -s ' ' | head -c 100)"
+    PRIOR_ERRORS=$(timeout 2s "$HOME/.claude/skills/decision-log/query.sh" "$SEARCH_TERMS" 3 2>/dev/null || echo "")
+fi
+
 # Ensure logs directory exists
 mkdir -p ".claude/logs/errors"
 
@@ -74,7 +82,8 @@ cat <<EOF > "$ERROR_LOG_FILE"
     "stderr": "$(echo "$STDERR" | base64 -w 0)",
     "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
     "retry_recommended": $RETRY_RECOMMENDED,
-    "error_log_file": "$ERROR_LOG_FILE"
+    "error_log_file": "$ERROR_LOG_FILE",
+    "prior_errors": "$(echo "$PRIOR_ERRORS" | base64 -w 0)"
 }
 EOF
 

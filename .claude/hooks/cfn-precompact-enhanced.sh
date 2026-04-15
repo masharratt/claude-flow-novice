@@ -253,6 +253,18 @@ echo ""
 echo "Full context saved to: ${SESSION_FILE#${PROJECT_DIR}/}"
 echo ""
 
+# Decision log: inject relevant prior decisions based on what we've been working on
+if [ -f "$HOME/.claude/decision-log/decisions.db" ] && [ -n "${MODIFIED_FILES:-}" ]; then
+    PROJECT_NAME=$(basename "$(git -C "${PROJECT_DIR}" rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || basename "${PROJECT_DIR}")
+    WORK_TERMS=$(echo "$MODIFIED_FILES" | head -5 | sed 's|.*/||; s|\.[^.]*$||; s|[-_]| |g' | tr '\n' ' ')
+    PRIOR_DECISIONS=$(timeout 2s "$HOME/.claude/skills/decision-log/query.sh" "$WORK_TERMS" 3 "$PROJECT_NAME" 2>/dev/null || echo "")
+    if [ -n "$PRIOR_DECISIONS" ]; then
+        echo "=== PRIOR DECISIONS (related to current work) ==="
+        echo "$PRIOR_DECISIONS" | head -10
+        echo ""
+    fi
+fi
+
 echo "=== CLAUDE.md REMINDERS ==="
 echo "• Use CFN Loop for multi-step tasks"
 echo "• Batch operations in single messages"

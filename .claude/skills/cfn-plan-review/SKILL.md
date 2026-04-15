@@ -34,6 +34,8 @@ Surface any violations as numbered findings in Phase 5. Do not duplicate the rul
 
 ### Phase 1: Assumption Extraction
 
+Before extracting assumptions, query the decision log for prior plans involving the same entities: `~/.claude/skills/decision-log/query.sh '<entity-names>' 5 <project>`. Prior failed assumptions from past plans should be checked first.
+
 Read the plan and extract every implicit assumption into an explicit, testable statement.
 
 Common hidden assumptions:

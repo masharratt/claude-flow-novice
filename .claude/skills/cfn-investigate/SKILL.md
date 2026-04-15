@@ -18,6 +18,7 @@ status: production
 - Identify when the bug was introduced (`git log`, `git bisect`).
 - Reproduce deterministically. If you cannot reproduce, you cannot fix.
 - Check cfn-knowledge-base for prior similar issues.
+- Query decision log for prior investigations: `~/.claude/skills/decision-log/query.sh '<error-message-keywords>' 5 <project>`
 
 ### Phase 2: Root Cause Hypothesis
 
