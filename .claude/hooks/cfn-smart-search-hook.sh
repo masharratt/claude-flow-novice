@@ -46,6 +46,13 @@ if [[ -z "$PATTERN" || -z "$TOOL_NAME" ]]; then
     exit 0
 fi
 
+# Bypass flag: prefix pattern with ! to force raw grep (escape hatch)
+if [[ "$PATTERN" == "!"* ]]; then
+    log "Bypass flag (!) detected, skipping CodeSearch"
+    cs_log "search:skip" "$PATTERN" 0 "smart-hook" "bypass flag"
+    exit 0
+fi
+
 # Skip conditions
 if [[ ${#PATTERN} -lt 2 ]]; then
     log "Pattern too short (< 2 chars), skipping"
@@ -140,11 +147,31 @@ elif [[ -z "$CODESEARCH_RESULTS" ]]; then
     cs_log "search:miss" "$PATTERN" 0 "smart-hook" "sql empty, no semantic binary"
 fi
 
-# Output context if we have any
+# Count total results
+TOTAL_RESULTS=0
+if [[ -n "$CODESEARCH_RESULTS" ]]; then
+    TOTAL_RESULTS=$(echo "$CODESEARCH_RESULTS" | wc -l)
+elif [[ -n "${SEMANTIC_RESULTS:-}" ]]; then
+    TOTAL_RESULTS=$(echo "$SEMANTIC_RESULTS" | wc -l)
+fi
+
+# Block mode: if CodeSearch found >=3 results, block Grep and return indexed results
+# This forces agents to use Read on specific files instead of scanning with grep.
+# Escape hatch: prefix pattern with ! to bypass (e.g., grep "!error message")
+if [[ "$TOTAL_RESULTS" -ge 3 ]] && [[ -n "$CONTEXT" ]]; then
+    log "BLOCK MODE: $TOTAL_RESULTS results, blocking Grep for pattern: $PATTERN"
+    cs_log "search:block" "$PATTERN" "$TOTAL_RESULTS" "smart-hook" "blocked grep, >=3 results"
+    echo "BLOCKED: CodeSearch found $TOTAL_RESULTS indexed matches for functions/classes/files. Use Read on these files.
+For literal strings, error messages, comments, or config values: prefix with ! (e.g., pattern: \"!$PATTERN\")
+
+$CONTEXT"
+    exit 2
+fi
+
+# Passthrough mode: <3 results, let Grep run and inject context alongside
 if [[ -n "$CONTEXT" ]]; then
-    # Output as plain text (jq may not be available)
     echo "$CONTEXT"
-    log "Context injected successfully"
+    log "Context injected (passthrough, $TOTAL_RESULTS results)"
 else
     log "No additional context found"
 fi

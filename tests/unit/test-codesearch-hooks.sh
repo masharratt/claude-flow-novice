@@ -128,6 +128,52 @@ test_sanitize 'DB' 'DB' 'short identifier unchanged'
 test_sanitize 'src/hooks' 'src/hooks' 'path separators preserved'
 
 echo ""
+echo "--- Block Mode Tests ---"
+
+# Test: Pattern with >=3 results should block (exit 2)
+# "entities" will match many things in the index
+# Block message goes to stdout (stderr is redirected to log by exec 2>)
+OUT=$(echo '{"tool_name":"Grep","tool_input":{"pattern":"entities"}}' | timeout 5 bash "$SMART_HOOK" 2>/dev/null)
+RC=$?
+BLOCK_MSG="$OUT"
+
+if [[ $RC -eq 2 ]]; then
+    echo "  PASS: Block mode triggers on >=3 results (exit 2)"
+    ((PASS++))
+else
+    echo "  FAIL: Block mode should exit 2 on >=3 results (got exit $RC)"
+    ((FAIL++))
+fi
+
+# Test: Block output contains BLOCKED message
+if echo "$BLOCK_MSG" | grep -q "BLOCKED"; then
+    echo "  PASS: Block output contains BLOCKED message"
+    ((PASS++))
+else
+    echo "  FAIL: Block output should contain BLOCKED (got: '$BLOCK_MSG')"
+    ((FAIL++))
+fi
+
+# Test: Block output includes escape hatch instructions
+if echo "$BLOCK_MSG" | grep -q '!'; then
+    echo "  PASS: Block output includes bypass instructions"
+    ((PASS++))
+else
+    echo "  FAIL: Block output should mention ! bypass"
+    ((FAIL++))
+fi
+
+# Test: Bypass flag (!) skips CodeSearch entirely
+OUT=$(run_smart_hook '{"tool_name":"Grep","tool_input":{"pattern":"!entities"}}')
+RC=$?
+assert_exit "Bypass flag (!) exits 0 (lets grep through)" "0" "$RC"
+assert_output "Bypass flag produces no output" "empty" "$OUT"
+
+# Test: search:block logged
+BLOCK_LOG=$(grep "search:block" "$HOME/.local/share/codesearch/logs/codesearch-$(date '+%Y-%m').tsv" 2>/dev/null | tail -1 || echo "")
+assert_output "Block event logged in structured log" "notempty" "$BLOCK_LOG"
+
+echo ""
 echo "=== Bash Search Hook Tests ==="
 
 # Test: Non-search command exits immediately
