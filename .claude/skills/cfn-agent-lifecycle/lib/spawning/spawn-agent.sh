@@ -160,7 +160,25 @@ spawn_agents() {
     log_info "Agents spawned successfully"
   else
     log_error "Failed to spawn agents (exit code: $exit_code)"
-    exit $exit_code
+    if [[ "$agents" != *","* ]] && command -v node &>/dev/null; then
+      local substitute
+      substitute=$(echo "{\"failedAgent\":\"$agents\",\"category\":\"${TASK_CATEGORY:-default}\",\"role\":\"${AGENT_ROLE:-loop3}\",\"excludedAgents\":[\"$agents\"]}" \
+        | node "$(git rev-parse --show-toplevel)/dist/planning/agent-selection/cli.js" 2>/dev/null \
+        | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('substitute',''))" 2>/dev/null || echo "")
+      if [[ -n "$substitute" && "$substitute" != "null" ]]; then
+        log_info "GOAP replanning: substituting '$agents' with '$substitute'"
+        agents="$substitute"
+        exit_code=0
+        if [[ -n "$redis_channel" ]]; then
+          npx claude-flow-spawn "$task" --agents="$agents" --provider="$provider" --redis-channel="$redis_channel" || exit_code=$?
+        else
+          npx claude-flow-spawn "$task" --agents="$agents" --provider="$provider" || exit_code=$?
+        fi
+      fi
+    fi
+    if [[ $exit_code -ne 0 ]]; then
+      exit $exit_code
+    fi
   fi
 }
 

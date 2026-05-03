@@ -3,6 +3,8 @@
  * Collects Loop 2 validator scores and validates against thresholds
  */
 
+import { getModeConfig, OrchestratorMode } from '../../../../../../../src/planning/orchestration/mode-config';
+
 export interface ConsensusResult {
   scores: number[];
   average: number;
@@ -19,13 +21,7 @@ export interface ConsensusValidation {
   gap: number;
 }
 
-export type Mode = 'mvp' | 'standard' | 'enterprise';
-
-const MODE_THRESHOLDS: Record<Mode, number> = {
-  mvp: 0.80,
-  standard: 0.90,
-  enterprise: 0.95
-};
+export type Mode = OrchestratorMode;
 
 /**
  * Collects consensus scores from multiple validators
@@ -70,9 +66,10 @@ export function validateConsensus(params: {
   mode: Mode | string;
 }): ConsensusValidation {
   // Use explicit threshold if provided, otherwise use mode default
+  const modeConfig = getModeConfig(params.mode as OrchestratorMode);
   const threshold = params.threshold !== undefined
     ? params.threshold
-    : MODE_THRESHOLDS[params.mode as Mode] || 0.90;
+    : (modeConfig ? modeConfig.consensusThreshold : 0.90);
 
   const passed = params.average >= threshold;
   const gap = params.average - threshold;

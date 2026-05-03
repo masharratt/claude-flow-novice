@@ -34,13 +34,26 @@ export interface CategoryMapping {
 /**
  * Full agent mappings configuration
  */
+export interface AgentAliasCost {
+  tokens: number;
+  time_ms: number;
+  dollars: number;
+}
+
+export interface AgentAliasObject {
+  path: string;
+  cost?: AgentAliasCost;
+}
+
+export type AgentAliasEntry = string | AgentAliasObject;
+
 export interface AgentMappings {
   categories: {
     [key: string]: Omit<CategoryMapping, 'keywords'>;
   };
   product_owner: string;
   agent_aliases: {
-    [key: string]: string;
+    [key: string]: AgentAliasEntry;
   };
 }
 
@@ -302,13 +315,14 @@ export class AgentSelector {
    */
   private async validateAgent(agentName: string, mappings: AgentMappings): Promise<boolean> {
     const agentAliases = mappings.agent_aliases || {};
-    const agentPath = agentAliases[agentName];
+    const aliasEntry = agentAliases[agentName];
 
-    if (!agentPath) {
+    if (!aliasEntry) {
       return false;
     }
 
-    const fullPath = path.join(this.agentsDir, agentPath);
+    const resolvedPath = typeof aliasEntry === 'string' ? aliasEntry : aliasEntry.path;
+    const fullPath = path.join(this.agentsDir, resolvedPath);
 
     try {
       await fs.promises.access(fullPath, fs.constants.F_OK);

@@ -65,6 +65,9 @@ CREATE TABLE IF NOT EXISTS lifecycle_events (
     reasoning TEXT,
     phase TEXT,
     iteration INTEGER,
+    tokens_used INTEGER,
+    cost_usd REAL,
+    duration_ms INTEGER,
     timestamp TEXT NOT NULL,
     FOREIGN KEY (agent_id) REFERENCES agents(id)
 );
@@ -78,6 +81,13 @@ CREATE INDEX IF NOT EXISTS idx_lifecycle_event_type ON lifecycle_events(event_ty
 EOF
         log_success "Database initialized successfully"
     fi
+
+    sqlite3 "$DB_PATH" "PRAGMA table_info(lifecycle_events);" | grep -q "tokens_used" || \
+        sqlite3 "$DB_PATH" "ALTER TABLE lifecycle_events ADD COLUMN tokens_used INTEGER;"
+    sqlite3 "$DB_PATH" "PRAGMA table_info(lifecycle_events);" | grep -q "cost_usd" || \
+        sqlite3 "$DB_PATH" "ALTER TABLE lifecycle_events ADD COLUMN cost_usd REAL;"
+    sqlite3 "$DB_PATH" "PRAGMA table_info(lifecycle_events);" | grep -q "duration_ms" || \
+        sqlite3 "$DB_PATH" "ALTER TABLE lifecycle_events ADD COLUMN duration_ms INTEGER;"
 }
 
 # Validate agent ID format

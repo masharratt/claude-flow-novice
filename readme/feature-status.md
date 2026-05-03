@@ -404,6 +404,26 @@ Consumer Project
 
 ---
 
+---
+
+## GOAP Planning System
+
+| Module | Status | Tests | Location | Description |
+|--------|--------|-------|----------|-------------|
+| goap-core | Beta | 33 | `src/planning/goap/` | A* planner, world state, cost model, bash CLI bridge |
+| agent-selection | Beta | 7 | `src/planning/agent-selection/` | GOAP-based spawn-failure substitution |
+| error-recovery | Beta | 11 | `src/planning/error-recovery/` | GOAP-driven retry/recover/escalate decisions |
+| orchestration-planner | Beta | 12 | `src/planning/orchestration/` | Budget-aware loop gate decisions |
+| dependency-extractor | Beta | 11 | `src/planning/dependency-extractor/` | Epic markdown parser, DAG builder, critical path |
+| scheduling | Beta | 7 | `src/planning/scheduling/` | GOAP-based task batch scheduling with failure replanning |
+| product-owner-goap | Beta | 34 | `src/cfn-loop/product-owner/` | MVP + Enterprise PO decision engines |
+
+**Dependencies:** GOAP core required by all other GOAP modules. Compiled output at `dist/planning/` required for bash CLI bridges.
+
+**Known limitations:** Bash CLI bridges require `npm run build` before activation. Slug matching in dependency-extractor requires `Dependencies: Phase N` (without trailing description) to match phase IDs reliably.
+
+---
+
 ## Current Development Phase
 
 **Phase:** Production

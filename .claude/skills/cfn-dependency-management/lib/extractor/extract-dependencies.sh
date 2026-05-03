@@ -26,34 +26,23 @@ done
 # Dependency mapping function
 map_dependencies() {
     local criteria="$1"
-    
+    local project_root
+    project_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+    local cli_path="${project_root}/dist/planning/dependency-extractor/cli.js"
+
+    if [[ -f "$cli_path" ]] && command -v node &>/dev/null; then
+        node "$cli_path" --criteria "$criteria"
+        return
+    fi
+
     cat << JSON
 {
     "dependencies": {
-        "oauth2": [],
-        "sessions": ["oauth2"],
-        "2fa": ["oauth2"],
-        "admin_dashboard": ["oauth2", "sessions"],
-        "security_audit": ["oauth2", "sessions", "2fa", "admin_dashboard"]
+        "task-1": []
     },
-    "execution_order": [
-        ["oauth2"],
-        ["sessions", "2fa"],
-        ["admin_dashboard"],
-        ["security_audit"]
-    ],
-    "critical_path": [
-        "oauth2", 
-        "sessions", 
-        "admin_dashboard", 
-        "security_audit"
-    ],
-    "parallel_opportunities": [
-        {
-            "sprint": "sessions",
-            "can_run_parallel_with": "2fa"
-        }
-    ]
+    "execution_order": [["task-1"]],
+    "critical_path": ["task-1"],
+    "parallel_opportunities": []
 }
 JSON
 }

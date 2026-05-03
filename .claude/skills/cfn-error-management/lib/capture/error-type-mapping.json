@@ -1,0 +1,7 @@
+{
+  "TIMEOUT": "timeout",
+  "CRASH": "agent-spawn",
+  "DEPENDENCY_FAILURE": "dependency",
+  "INVALID_OUTPUT": "validation",
+  "NO_DELIVERABLES": "validation"
+}

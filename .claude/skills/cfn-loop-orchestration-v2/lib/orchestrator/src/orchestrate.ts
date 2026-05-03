@@ -10,6 +10,9 @@ import { gateCheck, GateCheckParams } from './helpers/gate-check';
 import { collectConsensus, validateConsensus } from './helpers/consensus';
 import { spawnLoop3Agents, spawnLoop2Agents, SpawnResult } from './helpers/spawn-agents';
 import { TestResult, ExecutionMode } from './types';
+import { getModeConfig as getCanonicalModeConfig } from '../../../../../../src/planning/orchestration/mode-config';
+import { decideNextAction } from '../../../../../../src/planning/orchestration/index.js';
+import type { OrchestratorContext } from '../../../../../../src/planning/orchestration/index.js';
 import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs/promises';
@@ -48,6 +51,7 @@ export interface OrchestrationConfig {
   timeouts?: TimeoutConfig;
   workspace?: string;
   taskDescription?: string;
+  budgetCap?: number;
 }
 
 /**
@@ -115,6 +119,9 @@ export interface OrchestrationState {
   failedAgents: Set<string>;
   startTime: number;
   lastUpdateTime: number;
+  dollarSpent: number;
+  budgetRemaining: number;
+  timeRemainingMs: number;
 }
 
 /**
@@ -128,32 +135,6 @@ export interface IterationFeedback {
   timestamp?: number;
 }
 
-/**
- * Mode-specific configuration
- */
-interface ModeThresholds {
-  gateThreshold: number;
-  consensusThreshold: number;
-  maxIterations: number;
-}
-
-const MODE_CONFIG: Record<ExecutionMode, ModeThresholds> = {
-  mvp: {
-    gateThreshold: 0.70,
-    consensusThreshold: 0.80,
-    maxIterations: 5,
-  },
-  standard: {
-    gateThreshold: 0.95,
-    consensusThreshold: 0.90,
-    maxIterations: 10,
-  },
-  enterprise: {
-    gateThreshold: 0.98,
-    consensusThreshold: 0.95,
-    maxIterations: 15,
-  },
-};
 
 /**
  * Shell escape utility for safe command execution
@@ -244,6 +225,9 @@ export class Orchestrator {
       failedAgents: new Set(),
       startTime: now,
       lastUpdateTime: now,
+      dollarSpent: 0,
+      budgetRemaining: config.budgetCap ?? 5.0,
+      timeRemainingMs: config.timeouts?.loop3Agent != null ? config.timeouts.loop3Agent * 1000 : 3600000,
     };
   }
 
@@ -279,14 +263,14 @@ export class Orchestrator {
    * Get gate threshold for current mode
    */
   public getGateThreshold(): number {
-    return MODE_CONFIG[this.config.mode].gateThreshold;
+    return getCanonicalModeConfig(this.config.mode).gateThreshold;
   }
 
   /**
    * Get consensus threshold for current mode
    */
   public getConsensusThreshold(): number {
-    return MODE_CONFIG[this.config.mode].consensusThreshold;
+    return getCanonicalModeConfig(this.config.mode).consensusThreshold;
   }
 
   /**
@@ -967,6 +951,19 @@ export class Orchestrator {
     this.state.failedAgents.clear();
   }
 
+  private buildPlannerContext(gatePassed: boolean, consensusPassed: boolean, poConsulted: boolean): OrchestratorContext {
+    return {
+      iteration: this.state.iteration,
+      maxIterations: this.config.maxIterations,
+      gatePassed,
+      consensusPassed,
+      poConsulted,
+      budgetRemaining: this.state.budgetRemaining,
+      timeRemainingMs: this.state.timeRemainingMs,
+      dollarSpent: this.state.dollarSpent,
+    };
+  }
+
   /**
    * Get orchestration summary
    */
@@ -1049,7 +1046,19 @@ export class Orchestrator {
       const gateResult = this.checkGate(aggregated.passRate);
       console.log(`Gate Check: ${gateResult.passed ? 'PASSED' : 'FAILED'} (threshold: ${(gateResult.threshold * 100).toFixed(2)}%)`);
 
+      this.state.dollarSpent += 0.054;
+      this.state.budgetRemaining = Math.max(0, this.state.budgetRemaining - 0.054);
+
       if (!gateResult.passed) {
+        const plannerDecision = decideNextAction(
+          this.buildPlannerContext(false, false, false)
+        );
+        if (plannerDecision.action === 'abort_mission') {
+          console.log(`GOAP planner: abort (budget: $${this.state.budgetRemaining.toFixed(3)} remaining)`);
+          this.recordDecision('ABORT');
+          break;
+        }
+
         console.log(`Gate failed. Iterating...`);
 
         // Prepare feedback for next iteration
@@ -1096,7 +1105,19 @@ export class Orchestrator {
         timeouts.loop2Agent
       );
 
+      this.state.dollarSpent += 0.150;
+      this.state.budgetRemaining = Math.max(0, this.state.budgetRemaining - 0.150);
+
       if (completedValidatorIds.length === 0) {
+        const plannerDecision = decideNextAction(
+          this.buildPlannerContext(true, false, false)
+        );
+        if (plannerDecision.action === 'abort_mission') {
+          console.log(`GOAP planner: abort after no validators completed (budget: $${this.state.budgetRemaining.toFixed(3)} remaining)`);
+          this.recordDecision('ABORT');
+          break;
+        }
+
         console.error('No validators completed successfully. Iterating...');
         this.prepareFeedback({
           reasons: ['No Loop 2 validators completed'],
@@ -1131,6 +1152,15 @@ export class Orchestrator {
       );
 
       if (!consensusValidation.passed) {
+        const plannerDecision = decideNextAction(
+          this.buildPlannerContext(true, false, false)
+        );
+        if (plannerDecision.action === 'abort_mission') {
+          console.log(`GOAP planner: abort after consensus failure`);
+          this.recordDecision('ABORT');
+          break;
+        }
+
         console.log(`Consensus failed. Iterating...`);
 
         // Prepare feedback for next iteration

@@ -115,28 +115,97 @@
   },
   "product_owner": "product-owner",
   "agent_aliases": {
-    "backend-developer": "developers/backend-developer.md",
-    "api-gateway-specialist": "developers/api-gateway-specialist.md",
-    "react-frontend-engineer": "developers/frontend/react-frontend-engineer.md",
-    "typescript-specialist": "developers/frontend/typescript-specialist.md",
-    "mobile-dev": "developers/frontend/mobile-dev.md",
-    "devops-engineer": "dev-ops/devops-engineer.md",
-    "docker-specialist": "dev-ops/docker-specialist.md",
-    "kubernetes-specialist": "dev-ops/kubernetes-specialist.md",
-    "security-specialist": "reviewers/quality/security-specialist.md",
-    "ui-designer": "developers/frontend/ui-designer.md",
-    "database-architect": "developers/database/database-architect.md",
-    "perf-analyzer": "reviewers/quality/perf-analyzer.md",
-    "code-reviewer": "reviewers/code-reviewer.md",
-    "tester": "testers/tester.md",
-    "api-testing-specialist": "testers/api-testing-specialist.md",
-    "integration-tester": "testers/integration-tester.md",
-    "playwright-tester": "testers/playwright-tester.md",
-    "interaction-tester": "testers/interaction-tester.md",
-    "chaos-engineering-specialist": "testers/chaos-engineering-specialist.md",
-    "data-engineer": "developers/data/data-engineer.md",
-    "performance-benchmarker": "reviewers/quality/performance-benchmarker.md",
-    "code-quality-validator": "reviewers/quality/code-quality-validator.md",
-    "product-owner": "product-owners/product-owner.md"
+    "backend-developer": {
+      "path": "developers/backend-developer.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "api-gateway-specialist": {
+      "path": "developers/api-gateway-specialist.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "react-frontend-engineer": {
+      "path": "developers/frontend/react-frontend-engineer.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "typescript-specialist": {
+      "path": "developers/frontend/typescript-specialist.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "mobile-dev": {
+      "path": "developers/frontend/mobile-dev.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "devops-engineer": {
+      "path": "dev-ops/devops-engineer.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "docker-specialist": {
+      "path": "dev-ops/docker-specialist.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "kubernetes-specialist": {
+      "path": "dev-ops/kubernetes-specialist.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "security-specialist": {
+      "path": "reviewers/quality/security-specialist.md",
+      "cost": { "tokens": 60000, "time_ms": 240000, "dollars": 0.030 }
+    },
+    "ui-designer": {
+      "path": "developers/frontend/ui-designer.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "database-architect": {
+      "path": "developers/database/database-architect.md",
+      "cost": { "tokens": 60000, "time_ms": 240000, "dollars": 0.030 }
+    },
+    "perf-analyzer": {
+      "path": "reviewers/quality/perf-analyzer.md",
+      "cost": { "tokens": 60000, "time_ms": 240000, "dollars": 0.030 }
+    },
+    "code-reviewer": {
+      "path": "reviewers/code-reviewer.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    },
+    "tester": {
+      "path": "testers/tester.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    },
+    "api-testing-specialist": {
+      "path": "testers/api-testing-specialist.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    },
+    "integration-tester": {
+      "path": "testers/integration-tester.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    },
+    "playwright-tester": {
+      "path": "testers/playwright-tester.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    },
+    "interaction-tester": {
+      "path": "testers/interaction-tester.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    },
+    "chaos-engineering-specialist": {
+      "path": "testers/chaos-engineering-specialist.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    },
+    "data-engineer": {
+      "path": "developers/data/data-engineer.md",
+      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
+    },
+    "performance-benchmarker": {
+      "path": "reviewers/quality/performance-benchmarker.md",
+      "cost": { "tokens": 60000, "time_ms": 240000, "dollars": 0.030 }
+    },
+    "code-quality-validator": {
+      "path": "reviewers/quality/code-quality-validator.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    },
+    "product-owner": {
+      "path": "product-owners/product-owner.md",
+      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
+    }
   }
 }

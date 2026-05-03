@@ -3,7 +3,9 @@
  * Validates Loop 3 self-assessment against test pass rate thresholds
  */
 
-export type Mode = 'mvp' | 'standard' | 'enterprise';
+import { getModeConfig, OrchestratorMode } from '../../../../../../../src/planning/orchestration/mode-config';
+
+export type Mode = OrchestratorMode;
 
 export interface GateCheckParams {
   passRate: number;
@@ -21,19 +23,10 @@ export interface GateCheckResult {
 }
 
 /**
- * Mode-specific thresholds
- */
-const MODE_THRESHOLDS: Record<Mode, number> = {
-  mvp: 0.70,
-  standard: 0.95,
-  enterprise: 0.98,
-};
-
-/**
  * Get threshold for a specific mode
  */
 export function getModeThreshold(mode: Mode): number {
-  return MODE_THRESHOLDS[mode];
+  return getModeConfig(mode).gateThreshold;
 }
 
 /**

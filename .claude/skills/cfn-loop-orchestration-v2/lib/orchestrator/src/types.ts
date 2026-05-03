@@ -3,6 +3,8 @@
  * TypeScript v3.0 - Test-Driven validation
  */
 
+import { getModeConfig as getCanonicalModeConfig, MODE_CONFIGS } from '../../../../../../src/planning/orchestration/mode-config';
+
 /**
  * Execution mode determines test gate thresholds and consensus requirements
  */
@@ -99,24 +101,9 @@ export interface TimeoutConfig {
  * Mode configuration map
  */
 export const MODE_CONFIG: Record<ExecutionMode, ModeConfig> = {
-  mvp: {
-    testPassRateGate: 0.7,
-    consensusThreshold: 0.8,
-    maxIterations: 5,
-    validatorCount: 2,
-  },
-  standard: {
-    testPassRateGate: 0.95,
-    consensusThreshold: 0.9,
-    maxIterations: 10,
-    validatorCount: 3,
-  },
-  enterprise: {
-    testPassRateGate: 0.98,
-    consensusThreshold: 0.95,
-    maxIterations: 15,
-    validatorCount: 5,
-  },
+  mvp:        { testPassRateGate: MODE_CONFIGS.mvp.gateThreshold,        consensusThreshold: MODE_CONFIGS.mvp.consensusThreshold,        maxIterations: MODE_CONFIGS.mvp.maxIterations,        validatorCount: MODE_CONFIGS.mvp.validatorCount },
+  standard:   { testPassRateGate: MODE_CONFIGS.standard.gateThreshold,   consensusThreshold: MODE_CONFIGS.standard.consensusThreshold,   maxIterations: MODE_CONFIGS.standard.maxIterations,   validatorCount: MODE_CONFIGS.standard.validatorCount },
+  enterprise: { testPassRateGate: MODE_CONFIGS.enterprise.gateThreshold, consensusThreshold: MODE_CONFIGS.enterprise.consensusThreshold, maxIterations: MODE_CONFIGS.enterprise.maxIterations, validatorCount: MODE_CONFIGS.enterprise.validatorCount },
 };
 
 /**
@@ -187,7 +174,8 @@ export function isValidProductOwnerDecision(value: unknown): value is ProductOwn
  * Get mode configuration for execution mode
  */
 export function getModeConfig(mode: ExecutionMode): ModeConfig {
-  return MODE_CONFIG[mode];
+  const canonical = getCanonicalModeConfig(mode);
+  return { testPassRateGate: canonical.gateThreshold, consensusThreshold: canonical.consensusThreshold, maxIterations: canonical.maxIterations, validatorCount: canonical.validatorCount };
 }
 
 /**
