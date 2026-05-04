@@ -73,6 +73,32 @@ describe('buildDAG', () => {
     expect(dag.edges.get('phase-2')).toEqual(['phase-1']);
     expect(dag.edges.get('phase-1')).toEqual([]);
   });
+
+  it('resolves short dep slug to full phase ID via prefix match', () => {
+    // Parser produces short slugs from "Dependencies: Phase 1" => 'phase-1'
+    // but heading "Phase 1: Core Authentication" has ID 'phase-1-core-authentication'
+    const epic: EpicDoc = {
+      title: 'Test',
+      phases: [
+        { id: 'phase-1-core-authentication', name: 'Phase 1: Core Authentication', dependencies: [] },
+        { id: 'phase-2-session-management', name: 'Phase 2: Session Management', dependencies: ['phase-1'] },
+      ],
+    };
+    const dag = buildDAG(epic);
+    expect(dag.edges.get('phase-2-session-management')).toEqual(['phase-1-core-authentication']);
+  });
+
+  it('keeps exact dep ID when it already matches a node', () => {
+    const epic: EpicDoc = {
+      title: 'Test',
+      phases: [
+        { id: 'phase-1', name: 'Phase 1', dependencies: [] },
+        { id: 'phase-2', name: 'Phase 2', dependencies: ['phase-1'] },
+      ],
+    };
+    const dag = buildDAG(epic);
+    expect(dag.edges.get('phase-2')).toEqual(['phase-1']);
+  });
 });
 
 describe('topologicalLevels', () => {

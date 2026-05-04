@@ -1,10 +1,17 @@
 import type { EpicDoc, DAG } from './types.js';
 
+function resolveDepId(depSlug: string, nodeIds: string[]): string {
+  if (nodeIds.includes(depSlug)) return depSlug;
+  const prefix = depSlug + '-';
+  const match = nodeIds.find((id) => id.startsWith(prefix));
+  return match ?? depSlug;
+}
+
 export function buildDAG(epic: EpicDoc): DAG {
   const nodes = epic.phases.map((p) => p.id);
   const edges = new Map<string, string[]>();
   for (const phase of epic.phases) {
-    edges.set(phase.id, [...phase.dependencies]);
+    edges.set(phase.id, phase.dependencies.map((dep) => resolveDepId(dep, nodes)));
   }
   return { nodes, edges };
 }
