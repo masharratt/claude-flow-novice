@@ -47,7 +47,7 @@ should_retry() {
     if command -v node &>/dev/null; then
         local project_root
         project_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-        local cli_path="${project_root}/dist/planning/error-recovery/cli.js"
+        local cli_path="${project_root}/dist/src/planning/error-recovery/cli.js"
         if [[ -f "$cli_path" ]]; then
             local budget_exhausted="false"
             [[ $attempt_count -ge $max_attempts ]] && budget_exhausted="true"

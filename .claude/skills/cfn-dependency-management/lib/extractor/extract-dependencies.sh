@@ -28,7 +28,7 @@ map_dependencies() {
     local criteria="$1"
     local project_root
     project_root=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
-    local cli_path="${project_root}/dist/planning/dependency-extractor/cli.js"
+    local cli_path="${project_root}/dist/src/planning/dependency-extractor/cli.js"
 
     if [[ -f "$cli_path" ]] && command -v node &>/dev/null; then
         node "$cli_path" --criteria "$criteria"

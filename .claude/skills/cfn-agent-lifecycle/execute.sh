@@ -128,6 +128,8 @@ handle_spawn_agent() {
     local agent_id=""
     local provider=""
     local dry_run="false"
+    local category=""
+    local role=""
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -151,6 +153,14 @@ handle_spawn_agent() {
                 dry_run="true"
                 shift
                 ;;
+            --category)
+                category="$2"
+                shift 2
+                ;;
+            --role)
+                role="$2"
+                shift 2
+                ;;
             *)
                 echo "Unknown option: $1" >&2
                 return 1
@@ -163,7 +173,10 @@ handle_spawn_agent() {
         return 1
     fi
 
-    exec "$SCRIPT_DIR/lib/spawning/spawn-agent.sh" \
+    exec env \
+        TASK_CATEGORY="${category:-${TASK_CATEGORY:-default}}" \
+        AGENT_ROLE="${role:-${AGENT_ROLE:-loop3}}" \
+        "$SCRIPT_DIR/lib/spawning/spawn-agent.sh" \
         --task "$task" \
         --agents "$agents" \
         ${agent_id:+--agent-id "$agent_id"} \

@@ -163,7 +163,7 @@ spawn_agents() {
     if [[ "$agents" != *","* ]] && command -v node &>/dev/null; then
       local substitute
       substitute=$(echo "{\"failedAgent\":\"$agents\",\"category\":\"${TASK_CATEGORY:-default}\",\"role\":\"${AGENT_ROLE:-loop3}\",\"excludedAgents\":[\"$agents\"]}" \
-        | node "$(git rev-parse --show-toplevel)/dist/planning/agent-selection/cli.js" 2>/dev/null \
+        | node "$(git rev-parse --show-toplevel)/dist/src/planning/agent-selection/cli.js" 2>/dev/null \
         | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('substitute',''))" 2>/dev/null || echo "")
       if [[ -n "$substitute" && "$substitute" != "null" ]]; then
         log_info "GOAP replanning: substituting '$agents' with '$substitute'"
@@ -284,6 +284,14 @@ main() {
             ;;
           --redis-channel)
             redis_channel="$2"
+            shift 2
+            ;;
+          --category)
+            export TASK_CATEGORY="$2"
+            shift 2
+            ;;
+          --role)
+            export AGENT_ROLE="$2"
             shift 2
             ;;
           *)
