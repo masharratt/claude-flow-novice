@@ -58,9 +58,7 @@ export async function main(): Promise<void> {
   process.stdout.write(JSON.stringify(output) + '\n');
 }
 
-if (require.main === module) {
-  main().catch((err) => {
-    process.stderr.write(String(err) + '\n');
-    process.exit(1);
-  });
-}
+main().catch((err) => {
+  process.stderr.write(String(err) + '\n');
+  process.exit(1);
+});

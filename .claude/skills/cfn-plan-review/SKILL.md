@@ -177,6 +177,7 @@ Format:
 
 ## Integration
 
+- Preceded by `cfn-goap-plan` (goal state modeling, A* action sequence) for non-trivial tasks
 - Run after `/write-plan` or any Plan Mode session
 - Feeds into cfn-investigate if gaps reveal deeper issues
 - Log significant findings to cfn-knowledge-base for future reference

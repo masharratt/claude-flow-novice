@@ -15,6 +15,7 @@ Generate structured implementation plan BEFORE executing CFN Loop. Outputs plan 
 ## What This Does
 
 **Pre-planning phase for CFN Loop:**
+0. **GOAP goal modeling** (for non-trivial tasks): run `/cfn-goap-plan` first to define goal state, derive optimal action sequence via A*, surface assumptions. Skip only for single-file edits or obvious fixes.
 1. Analyzes task complexity
 2. Selects appropriate agents
 3. Defines test cases and success criteria
@@ -214,16 +215,23 @@ console.log(`/cfn-loop-cli "$ARGUMENTS" --mode=${mode}`);
 
 **Workflow:**
 ```
+0. /cfn-goap-plan  (non-trivial tasks only)
+   ↓ Models goal state, derives A* action sequence, surfaces assumptions
+
 1. /write-plan "Task description" --mode=standard
    ↓ Generates planning/PLAN_task.md
 
-2. Human reviews plan (optional)
+2. /cfn-plan-review  (data, APIs, shared state)
+   ↓ Dependency trace, blast radius, gap analysis
+
+3. Human reviews plan (optional)
    ↓ Approve or request changes
 
-3. /cfn-loop-cli "Task description" --mode=standard
+4. /cfn-loop-cli "Task description" --mode=standard
    ↓ Executes implementation following plan
 
-4. CFN Loop autonomously implements following TDD phases
+5. CFN Loop autonomously implements following TDD phases
+   ↓ 3-strike failure → /cfn-goap-plan replan mode
 ```
 
 ## Mode Comparison
