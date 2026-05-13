@@ -1,6 +1,6 @@
 # Code File Manifest Summary
 
-**Generated:** 2025-11-26  
+**Generated:** 2026-05-13  
 **Status:** Manifest files created in `.claude/` directory  
 **Total Code Files Indexed:** 7,246
 
@@ -124,8 +124,8 @@ docker/trigger-dev/
 .claude/skills/
 ├── cfn-agent-spawning/         # Agent lifecycle
 │   └── src/spawn-agent.sh      # Main spawning logic
-├── cfn-redis-coordination/     # Redis primitives
-│   └── src/redis-client.ts     # Redis wrapper
+├── cfn-coordination/           # Coordination primitives
+│   └── SKILL.md                # chain/broadcast/mesh/consensus
 ├── cfn-loop-orchestration/     # Loop control
 │   └── orchestrate.sh          # Main orchestrator
 └── cfn-loop-validation/        # Test gates

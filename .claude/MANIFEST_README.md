@@ -1,7 +1,7 @@
 # File Manifest System
 
 **Status:** Operational
-**Last Updated:** 2025-11-26
+**Last Updated:** 2026-05-13
 **Total Code Files Indexed:** 7,246
 
 ---
@@ -159,7 +159,7 @@ Generated                ~2,200 files  dist/, build/
 ```
 /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/
 ├── cfn-agent-spawning/       Agent lifecycle
-├── cfn-redis-coordination/   Redis primitives
+├── cfn-coordination/         Coordination primitives (chain/broadcast/mesh)
 ├── cfn-loop-orchestration/   Loop control
 └── cfn-loop-validation/      Test gates
 ```

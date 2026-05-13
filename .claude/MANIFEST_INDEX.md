@@ -1,6 +1,6 @@
 # Code Manifest Index
 
-**Last Updated:** 2025-11-26  
+**Last Updated:** 2026-05-13  
 **Total Code Files:** 7,246  
 **Scope:** TypeScript, JavaScript, YAML, Docker, SQL configurations
 
@@ -176,10 +176,10 @@ grep -r "id: \"cfn-agent-coordinator\"" src/trigger/
 └── src/spawn-agent.sh
 ```
 
-**Redis Coordination:**
+**Coordination:**
 ```
-/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-redis-coordination/
-└── src/redis-client.ts
+/mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-coordination/
+└── SKILL.md  (chain, broadcast, mesh, consensus patterns)
 ```
 
 **Loop Orchestration:**
