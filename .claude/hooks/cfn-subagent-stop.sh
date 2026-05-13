@@ -100,8 +100,10 @@ EOF
         AGENT_SUCCESS="false"
     fi
 
-    # Call CodeSearch ingestion script (non-blocking, logs errors)
-    CODESEARCH_SCRIPT="${PROJECT_ROOT}/.claude/skills/cfn-codesearch/ingest-agent-transcript.sh"
+    # Call CodeSearch ingestion script (non-blocking, logs errors).
+    # Resolve via $HOME/.claude/skills/ symlink so the path works from any
+    # project, not just claude-flow-novice (PROJECT_ROOT is per-caller).
+    CODESEARCH_SCRIPT="$HOME/.claude/skills/cfn-codesearch/ingest-agent-transcript.sh"
     if [ -f "$CODESEARCH_SCRIPT" ]; then
         "$CODESEARCH_SCRIPT" \
             --transcript "$TRANSCRIPT_ARCHIVE" \

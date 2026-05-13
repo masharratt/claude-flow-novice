@@ -1,9 +1,9 @@
 #!/bin/bash
 # SessionStart hook: Ensure CodeSearch binary is available (global or local)
 GLOBAL_BINARY="$HOME/.local/bin/local-codesearch"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-CODESEARCH_DIR="$PROJECT_ROOT/.claude/skills/cfn-local-codesearch-accelerator"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
+CODESEARCH_DIR="$PROJECT_ROOT/.claude/skills/cfn-codesearch"
 LOCAL_BINARY="$CODESEARCH_DIR/target/release/local-codesearch"
 
 # Check global first (preferred)

@@ -35,8 +35,9 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 CONFIG_FILE="$SCRIPT_DIR/cfn-post-edit.config.json"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 
 # Ensure jq is available (fallback to local download if sudo unavailable)
 JQ_CMD="jq"
@@ -102,6 +103,17 @@ fi
 
 # Get pipeline path from config
 PIPELINE=$("$JQ_CMD" -r '.pipeline // "config/hooks/post-edit-pipeline.js"' "$CONFIG_FILE")
+
+# Resolve relative pipeline path against the CFN repo root so the hook works
+# from any project that calls it via the ~/.claude/hooks symlink.
+if [[ "$PIPELINE" != /* ]]; then
+    PIPELINE="$REPO_ROOT/$PIPELINE"
+fi
+
+if [ ! -f "$PIPELINE" ]; then
+    echo "Error: Post-edit pipeline not found: $PIPELINE" >&2
+    exit 1
+fi
 
 # Build memory key
 MEMORY_KEY="swarm/${AGENT_ID}/hook-results"
