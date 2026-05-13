@@ -15,9 +15,11 @@ AGENT_TRANSCRIPT_PATH="${AGENT_TRANSCRIPT_PATH:-}"
 TASK_ID="${TASK_ID:-unknown}"
 COMPLETED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# Project paths
+# Project paths. Lifecycle DB follows the AGENT_LIFECYCLE_DB convention from
+# .claude/skills/cfn-agent-lifecycle/lib/audit/execute-lifecycle-hook.sh.
+# cfn-redis-coordination is deprecated; the skill dir no longer exists.
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
-DB_PATH="${PROJECT_ROOT}/.claude/skills/cfn-redis-coordination/data/cfn-loop.db"
+DB_PATH="${AGENT_LIFECYCLE_DB:-${PROJECT_ROOT}/data/agent-lifecycle.db}"
 LOG_PATH="${PROJECT_ROOT}/.artifacts/logs/subagent-lifecycle.log"
 TRANSCRIPT_DIR="${PROJECT_ROOT}/.artifacts/transcripts"
 

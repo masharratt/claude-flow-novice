@@ -12,8 +12,10 @@ AGENT_TYPE="$2"
 CONFIDENCE="${3:-0.0}"
 STATUS="${4:-spawned}"
 
-# Resolve database path relative to script location
-DB_PATH="${SCRIPT_DIR}/../../../claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db"
+# Lifecycle DB follows the AGENT_LIFECYCLE_DB convention. Default matches
+# execute-lifecycle-hook.sh: <repo-root>/data/agent-lifecycle.db.
+# cfn-redis-coordination is deprecated.
+DB_PATH="${AGENT_LIFECYCLE_DB:-${SCRIPT_DIR}/../../../../../data/agent-lifecycle.db}"
 
 if [[ -z "$AGENT_ID" || -z "$AGENT_TYPE" ]]; then
     echo "Usage: $0 <agent_id> <agent_type> [confidence] [status]"
