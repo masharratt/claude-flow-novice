@@ -32,6 +32,7 @@ Context:
 - User args: {ARGS}
 
 Steps:
+0. **SEO pre-flight (if applicable):** If `scripts/seo-check.sh` exists in repo root, run `bash scripts/seo-check.sh` BEFORE staging. If it exits non-zero, abort the commit and return the violation output to the user. Do not auto-fix. This catches SEO regressions (trailing slashes, canonical URLs, hardcoded fly.dev domains) before they reach the pre-commit hook, giving clearer error attribution.
 1. Run `git status` (no -uall flag) to see untracked/modified files.
 2. Run `git diff --stat HEAD` to understand scope of changes.
 3. Run `git log --oneline -5` to match existing commit message style.
