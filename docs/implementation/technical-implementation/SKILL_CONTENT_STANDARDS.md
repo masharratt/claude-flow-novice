@@ -336,7 +336,7 @@ tags: [coordination, redis, cfn-loop]
 status: deployed
 author: CFN Team
 description: Coordination protocols for CFN Loop execution with Redis backend
-dependencies: [redis, cfn-redis-coordination]
+dependencies: [redis, cfn-loop-orchestration-v2]
 created: 2025-01-15
 updated: 2025-11-16
 complexity: High

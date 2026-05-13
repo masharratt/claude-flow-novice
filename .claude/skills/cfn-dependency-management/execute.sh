@@ -145,7 +145,6 @@ generate_context_from_extraction() {
         echo ""
         echo "# Coordination Layer Files:"
         echo "Read: .claude/skills/cfn-loop-orchestration/SKILL.md"
-        echo "Read: .claude/skills/cfn-redis-coordination/SKILL.md"
         echo ""
     fi
     
@@ -162,7 +161,6 @@ generate_context_from_extraction() {
             echo "Read: .claude/agents/cfn-dev-team/cfn-implementation-agent.md"
             echo "Read: .claude/agents/cfn-dev-team/cfn-validator.md"
             echo "Read: .claude/skills/cfn-loop-orchestration/SKILL.md"
-            echo "Read: .claude/skills/cfn-redis-coordination/SKILL.md"
             echo "Read: .claude/skills/cfn-agent-spawning/SKILL.md"
             
             if [[ "$mode" == "enterprise" ]]; then

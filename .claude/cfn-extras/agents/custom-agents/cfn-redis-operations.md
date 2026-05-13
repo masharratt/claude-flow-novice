@@ -473,16 +473,6 @@ echo "CFN_REDIS_PASSWORD=${CFN_REDIS_PASSWORD:+(set)}"
 ```bash
 # Basic Redis connectivity
 redis-cli ping
-
-# Check active coordination
-node -e "
-const { RedisCoordinator } = require('./.claude/skills/cfn-redis-coordination/dist/redis-client.js');
-const coordinator = new RedisCoordinator();
-coordinator.initialize().then(() => {
-  console.log('Redis canUseRedis:', coordinator.canUseRedis);
-  console.log('Mode:', coordinator.mode);
-}).catch(console.error);
-"
 ```
 
 ### Key Pattern Reference

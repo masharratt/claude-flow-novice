@@ -37,6 +37,5 @@ Task("cfn-v3-coordinator", "Execute CFN Loop for: [task]")
 Coordinator handles all agent spawning internally via orchestration scripts.
 
 ## Related Skills
-- `.claude/skills/cfn-redis-coordination/` - Multi-agent coordination patterns
 - `.claude/skills/cfn-loop-validation/` - CFN Loop mechanics
 - `.claude/skills/cfn-agent-spawning/` - CLI spawning patterns

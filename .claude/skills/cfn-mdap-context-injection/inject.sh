@@ -113,7 +113,6 @@ CLI_MODE_FILES=(
   "scripts/cli/spawn-agent.sh"
   "scripts/cli/coordinator.sh"
   ".claude/skills/cfn-agent-spawning/SKILL.md"
-  ".claude/skills/cfn-redis-coordination/SKILL.md"
   "docs/CLI_MODE_ARCHITECTURE.md"
 )
 

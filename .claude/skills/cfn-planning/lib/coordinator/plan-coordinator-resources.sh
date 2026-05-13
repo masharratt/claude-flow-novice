@@ -3,7 +3,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../cfn-redis-coordination/redis-utils.sh"
 
 # Configuration
 DEFAULT_MEMORY_PER_COORDINATOR=2048  # MB

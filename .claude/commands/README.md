@@ -5,11 +5,11 @@
 ### Skills (Most Common) - Building Blocks
 **What:** Single-purpose bash scripts in `.claude/skills/`
 **When:** Most tasks - they're the building blocks
-**Example:** `cfn-redis-coordination`, `cfn-agent-spawning`, `cfn-loop-validation`
+**Example:** `cfn-agent-spawning`, `cfn-loop-validation`
 
 ```bash
 # Direct skill invocation
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
+./.claude/skills/cfn-agent-spawning/spawn-agent.sh \
   --task-id "task-123" \
   --agent-id "coder-1"
 ```
@@ -73,10 +73,10 @@ Need to automate something?
 ## Examples
 
 ### Example 1: Simple Task (Use Skill)
-**Goal:** Enter waiting mode for agent
+**Goal:** Spawn an agent for a task
 
 ```bash
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
+./.claude/skills/cfn-agent-spawning/spawn-agent.sh \
   --task-id "task-123" --agent-id "coder-1"
 ```
 

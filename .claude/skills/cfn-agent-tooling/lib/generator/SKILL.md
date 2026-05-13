@@ -371,18 +371,6 @@ RESULTS=$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh 
     "jest" "$TEST_OUTPUT")
 ```
 
-### 3. Redis Coordination
-
-**Integration Point:** Generated agents include completion reporting using `report-completion.sh`.
-
-**Pattern:**
-```bash
-./.claude/skills/cfn-redis-coordination/report-completion.sh \
-    --task-id "$TASK_ID" \
-    --agent-id "$AGENT_ID" \
-    --test-results "$RESULTS"
-```
-
 ---
 
 ## Future Enhancements

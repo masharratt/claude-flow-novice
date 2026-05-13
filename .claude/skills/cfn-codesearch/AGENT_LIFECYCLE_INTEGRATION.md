@@ -269,7 +269,7 @@ CREATE TABLE confidence_calibration (
 
 Monitor database growth:
 ```bash
-du -h .claude/skills/cfn-redis-coordination/data/cfn-loop.db
+du -h data/agent-lifecycle.db
 ```
 
 Archive old transcripts:
@@ -317,15 +317,15 @@ Run failure analysis manually:
 
 Check database tables exist:
 ```bash
-sqlite3 .claude/skills/cfn-redis-coordination/data/cfn-loop.db ".tables"
+sqlite3 data/agent-lifecycle.db ".tables"
 ```
 
 ### Query returns no results
 
 Check if data exists:
 ```bash
-sqlite3 .claude/skills/cfn-redis-coordination/data/cfn-loop.db "SELECT COUNT(*) FROM agent_transcripts;"
-sqlite3 .claude/skills/cfn-redis-coordination/data/cfn-loop.db "SELECT COUNT(*) FROM agent_failure_patterns;"
+sqlite3 data/agent-lifecycle.db "SELECT COUNT(*) FROM agent_transcripts;"
+sqlite3 data/agent-lifecycle.db "SELECT COUNT(*) FROM agent_failure_patterns;"
 ```
 
 Run with broader query:
@@ -338,4 +338,4 @@ Run with broader query:
 - Analysis document: `docs/CODESEARCH_INTEGRATION_ANALYSIS.md`
 - Subagent hooks: `.claude/hooks/cfn-subagent-*.sh`
 - CodeSearch accelerator: `.claude/skills/cfn-local-codesearch-accelerator/`
-- Lifecycle database: `.claude/skills/cfn-redis-coordination/data/cfn-loop.db`
+- Lifecycle database: `data/agent-lifecycle.db`

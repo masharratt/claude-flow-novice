@@ -139,7 +139,7 @@ import { DatabaseService } from '../lib/database-service';
 const dbService = new DatabaseService({
   sqlite: {
     type: 'sqlite',
-    database: './claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db',
+    database: './data/agent-lifecycle.db',
   },
 });
 

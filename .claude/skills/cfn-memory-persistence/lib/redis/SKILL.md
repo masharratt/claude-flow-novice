@@ -1,5 +1,5 @@
 ---
-name: cfn-redis-coordination
+name: cfn-memory-persistence-redis
 description: Redis-based agent coordination with pub/sub and waiting mode
 version: 1.0.0
 tags: [redis, coordination, pub-sub, waiting-mode]

@@ -31,8 +31,8 @@ cleanup() {
     fi
 
     # Clean up SQLite test records
-    if [[ -f "./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db" ]]; then
-      sqlite3 "./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db" \
+    if [[ -f "${AGENT_LIFECYCLE_DB:-${PROJECT_ROOT}/data/agent-lifecycle.db}" ]]; then
+      sqlite3 "${AGENT_LIFECYCLE_DB:-${PROJECT_ROOT}/data/agent-lifecycle.db}" \
         "DELETE FROM agents WHERE id LIKE '%${TASK_ID}%';" 2>/dev/null || true
     fi
   fi
@@ -221,8 +221,8 @@ test_full_loop3_spawning_chain() {
   # Validate SQLite lifecycle tracking
   log_info "Validating SQLite agent lifecycle records..."
 
-  if [[ -f "./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db" ]]; then
-    AGENT_COUNT=$(sqlite3 "./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db" \
+  if [[ -f "${AGENT_LIFECYCLE_DB:-${PROJECT_ROOT}/data/agent-lifecycle.db}" ]]; then
+    AGENT_COUNT=$(sqlite3 "${AGENT_LIFECYCLE_DB:-${PROJECT_ROOT}/data/agent-lifecycle.db}" \
       "SELECT COUNT(*) FROM agents WHERE id LIKE '%${TASK_ID}%' OR metadata LIKE '%${TASK_ID}%';" 2>/dev/null || echo "0")
 
     if [[ "$AGENT_COUNT" -gt 0 ]]; then
@@ -230,7 +230,7 @@ test_full_loop3_spawning_chain() {
 
       # Show agent records for debugging
       log_info "SQLite agent records:"
-      sqlite3 "./claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db" \
+      sqlite3 "${AGENT_LIFECYCLE_DB:-${PROJECT_ROOT}/data/agent-lifecycle.db}" \
         "SELECT id, type, status, confidence FROM agents WHERE id LIKE '%${TASK_ID}%' OR metadata LIKE '%${TASK_ID}%';" 2>/dev/null || true
     else
       fail "SQLite lifecycle tracking (no agent records found)"

@@ -657,7 +657,6 @@ Exit Code: 1 (overridden)
 
 ## Related Skills
 
-- **cfn-redis-coordination:** Redis signaling
 - **cfn-task-audit:** Audit data retrieval
 - **cfn-backlog-management:** Deferred item processing
 - **cfn-loop-validation:** Loop progression validation

@@ -425,5 +425,5 @@ All data transfer points function identically in cost-savings mode.
 
 - Data Flow Map: `tests/cfn-v3-orchestration/DATA-FLOW-MAP.md`
 - CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration/SKILL.md`
-- Redis Coordination: `.claude/skills/cfn-redis-coordination/SKILL.md`
+- Coordination: `.claude/skills/cfn-loop-orchestration-v2/SKILL.md` (replaces deprecated cfn-redis-coordination)
 - Test Suite: `tests/cfn-v3-orchestration/README.md`

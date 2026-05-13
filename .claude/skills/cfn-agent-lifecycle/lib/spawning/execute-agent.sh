@@ -100,25 +100,6 @@ echo "2. Implement streaming response handling"
 echo "3. Add tool execution support"
 echo ""
 
-# For CFN Loop agents, simulate completion protocol
-if [ -n "$TASK_ID" ]; then
-  echo "=== CFN Loop Simulation ==="
-  echo "This agent would execute the following protocol:"
-  echo ""
-  echo "1. Execute task work"
-  echo "2. redis-cli lpush \"swarm:${TASK_ID}:${AGENT_ID}:done\" \"complete\""
-  echo "3. ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \\"
-  echo "     --task-id \"$TASK_ID\" \\"
-  echo "     --agent-id \"$AGENT_ID\" \\"
-  echo "     --confidence 0.85 \\"
-  echo "     --iteration $ITERATION"
-  echo "4. ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \\"
-  echo "     --task-id \"$TASK_ID\" \\"
-  echo "     --agent-id \"$AGENT_ID\" \\"
-  echo "     --context \"iteration-complete\""
-  echo ""
-fi
-
 # Clean up prompt file
 rm -f "$PROMPT_FILE"
 

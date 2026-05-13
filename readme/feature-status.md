@@ -72,7 +72,6 @@ This file MUST be updated when:
 |-------|--------|-------|----------|-------------|
 | cfn-loop-orchestration | ✅ Prod | ✅ | `cfn-loop-orchestration/` | Core orchestrator v3.0 |
 | cfn-loop-orchestration-v2 | ✅ Prod | ✅ | `cfn-loop-orchestration-v2/` | Gate checks, consensus |
-| cfn-redis-coordination | ✅ Prod | ✅ | `cfn-redis-coordination/` | Zero-token agent waiting via BLPOP |
 | cfn-agent-lifecycle | ✅ Prod | ✅ | `cfn-agent-lifecycle/` | Agent creation → deletion |
 | cfn-agent-spawning | ✅ Prod | ✅ | `cfn-agent-spawning/` | CLI agent spawning |
 
@@ -233,7 +232,6 @@ This file MUST be updated when:
 
 | Component | Status | Tests | Location | Description |
 |-----------|--------|-------|----------|-------------|
-| Redis Coordination | ✅ Prod | ✅ | `.claude/skills/cfn-redis-coordination/` | Zero-token agent waiting |
 | SQLite Memory | ✅ Prod | ✅ | `.claude/skills/cfn-memory-persistence/` | Agent memory, audit trails |
 | SQLite CodeSearch | ✅ Prod | ✅ | `~/.local/share/codesearch/` | Entity metadata, references, type usage |
 | pgvector Embeddings | ✅ Prod | ✅ | PostgreSQL + pgvector | HNSW-indexed vector similarity search |

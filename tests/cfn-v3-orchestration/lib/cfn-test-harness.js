@@ -85,7 +85,7 @@ export class CfnTestHarness extends EventEmitter {
     const startTime = Date.now();
     this.log(`Spawning coordinator: ${coordinatorId}`);
 
-    const scriptPath = options.scriptPath || path.join(__dirname, '../../../.claude/skills/cfn-redis-coordination/orchestrate-cfn-loop-v3.sh');
+    const scriptPath = options.scriptPath || path.join(__dirname, '../../../.claude/skills/cfn-loop-orchestration-v2/orchestrate-cfn-loop-v3.sh');
 
     const env = {
       ...process.env,

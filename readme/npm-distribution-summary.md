@@ -47,7 +47,7 @@ claude-assets/                 # Auto-generated during npm pack
   │       └── utility/         # analyst, researcher, claude-code-expert
   ├── skills/                  # 61 cfn-* prefixed skills
   │   ├── cfn-ace-system/      # Adaptive Context Extension (NEW)
-  │   ├── cfn-redis-coordination/
+  │   ├── cfn-loop-orchestration-v2/
   │   ├── cfn-agent-spawning/
   │   ├── cfn-loop-validation/
   │   ├── cfn-loop-orchestration/

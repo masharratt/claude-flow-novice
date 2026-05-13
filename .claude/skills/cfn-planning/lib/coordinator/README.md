@@ -200,7 +200,6 @@ This skill integrates with the existing CFN Loop ecosystem:
 
 ### Redis Coordination
 - Uses existing Redis coordination patterns
-- Integrates with `cfn-redis-coordination` skill
 - Maintains namespace isolation standards
 
 ## Best Practices

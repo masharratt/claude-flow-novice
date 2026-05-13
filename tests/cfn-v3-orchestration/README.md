@@ -396,7 +396,7 @@ jobs:
 ## Related Documentation
 
 - [CFN Loop Complete Guide](../../docs/cfn-loop/CFN_LOOP_COMPLETE_GUIDE.md)
-- [Redis Coordination Skill](../../.claude/skills/cfn-redis-coordination/SKILL.md)
+- [Coordination Skill](../../.claude/skills/cfn-loop-orchestration-v2/SKILL.md) [replaces deprecated cfn-redis-coordination]
 - [SQLite Memory](../../src/sqlite/MemoryStoreAdapter.cjs)
 - [Test Architecture](./ARCHITECTURE.md)
 

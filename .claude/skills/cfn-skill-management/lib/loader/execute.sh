@@ -203,7 +203,7 @@ if [[ "$BENCHMARK" == "true" ]]; then
     const dbService = new DatabaseService({
       sqlite: {
         type: 'sqlite',
-        database: '${PROJECT_ROOT}/.claude/skills/cfn-redis-coordination/data/cfn-loop.db'
+        database: '${AGENT_LIFECYCLE_DB:-${PROJECT_ROOT}/data/agent-lifecycle.db}'
       }
     });
 
@@ -288,7 +288,7 @@ run_typescript "
   const dbService = new DatabaseService({
     sqlite: {
       type: 'sqlite',
-      database: '${PROJECT_ROOT}/.claude/skills/cfn-redis-coordination/data/cfn-loop.db'
+      database: '${AGENT_LIFECYCLE_DB:-${PROJECT_ROOT}/data/agent-lifecycle.db}'
     }
   });
 

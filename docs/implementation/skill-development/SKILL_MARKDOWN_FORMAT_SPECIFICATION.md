@@ -179,12 +179,12 @@ Frontmatter is YAML-formatted metadata at the beginning of the file, enclosed by
 
 ```yaml
 ---
-name: cfn-redis-coordination
+name: cfn-loop-orchestration-v2
 version: 2.1.0
 category: coordination
 status: active
 author: CFN Team
-tags: [redis, coordination, blocking, pub-sub]
+tags: [coordination, blocking, pub-sub]
 dependencies: [cfn-environment-sanitization]
 ---
 ```

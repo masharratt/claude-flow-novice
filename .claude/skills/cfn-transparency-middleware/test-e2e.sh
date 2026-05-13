@@ -398,24 +398,4 @@ main
 
 exit_code=$?
 
-# Signal CFN completion (even if tests fail)
-if [[ "$exit_code" -eq 0 ]]; then
-    CONFIDENCE=0.95
-else
-    CONFIDENCE=0.60
-fi
-
-# Report confidence to CFN Loop
-"$SCRIPT_DIR/.claude/skills/cfn-cfn-redis-coordination/invoke-waiting-mode.sh" report \
-    --task-id "sprint-1.3-testing" \
-    --agent-id "backend-dev" \
-    --confidence "$CONFIDENCE" \
-    --iteration 1 2>/dev/null || true
-
-# Enter waiting mode
-"$SCRIPT_DIR/.claude/skills/cfn-cfn-redis-coordination/invoke-waiting-mode.sh" enter \
-    --task-id "sprint-1.3-testing" \
-    --agent-id "backend-dev" \
-    --context "iteration-1-complete" 2>/dev/null || true
-
 exit "$exit_code"

@@ -121,9 +121,9 @@ Defect resolution, error handling improvements.
 Incompatible changes requiring user/agent migration.
 ```bash
 --type "breaking"
---summary "Rename skill cfn-redis-coordination → cfn-swarm-coordination"
+--summary "Rename skill cfn-old-name → cfn-new-name"
 --impact "All agent spawn commands must update skill references"
---migration "Run: sed -i 's/cfn-redis-coordination/cfn-swarm-coordination/g' .claude/agents/**/*.md"
+--migration "Run: sed -i 's/cfn-old-name/cfn-new-name/g' .claude/agents/**/*.md"
 ```
 
 ### Dependency

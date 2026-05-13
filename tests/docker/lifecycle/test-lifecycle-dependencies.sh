@@ -12,7 +12,7 @@ source "$PROJECT_ROOT/tests/test-utils.sh"
 # CONFIGURATION
 # ============================================================================
 
-DB_PATH="$PROJECT_ROOT/claude-assets/skills/cfn-redis-coordination/data/cfn-loop.db"
+DB_PATH="${AGENT_LIFECYCLE_DB:-$PROJECT_ROOT/data/agent-lifecycle.db}"
 TASK_ID="dependency-test-$(date +%s)"
 TEMP_DIR=""
 

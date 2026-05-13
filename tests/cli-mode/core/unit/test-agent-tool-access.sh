@@ -430,7 +430,7 @@ test_coordination_tool_requirements() {
   log_step "GIVEN coordination protocol tool requirements"
 
   # WHEN checking coordination protocol dependencies
-  local coordination_dir="$PROJECT_ROOT/.claude/skills/cfn-redis-coordination"
+  local coordination_dir="$PROJECT_ROOT/.claude/skills/cfn-loop-orchestration-v2"
 
   # THEN verify coordination skill directory exists
   if [[ -d "$coordination_dir" ]]; then

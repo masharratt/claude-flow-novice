@@ -99,7 +99,7 @@ echo "" >> "$REPORT"
 echo "4. **Created Test Infrastructure:**" >> "$REPORT"
 echo "   - \`run-all-tests.sh\` - Comprehensive test runner" >> "$REPORT"
 echo "   - Test result logging and reporting" >> "$REPORT"
-echo "   - Created \`.claude/skills/cfn-redis-coordination/data/\` directory" >> "$REPORT"
+echo "   - Created \`data/\` directory for agent lifecycle DB" >> "$REPORT"
 echo "" >> "$REPORT"
 
 echo "### Known Issues" >> "$REPORT"

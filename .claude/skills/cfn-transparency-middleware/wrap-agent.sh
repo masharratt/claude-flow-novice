@@ -112,21 +112,5 @@ main() {
 main "$@"
 exit_status=$?
 
-# Signal completion to Redis coordination
-redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete" > /dev/null
-
-# Invoke waiting mode report
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-  --task-id "${TASK_ID}" \
-  --agent-id "${AGENT_ID}" \
-  --confidence 0.80 \
-  --iteration 1
-
-# Enter waiting mode
-./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
-  --task-id "${TASK_ID}" \
-  --agent-id "${AGENT_ID}" \
-  --context "iteration-1-complete"
-
 # Exit with original command's exit status
 exit ${exit_status}

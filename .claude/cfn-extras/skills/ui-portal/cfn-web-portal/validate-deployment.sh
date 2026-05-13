@@ -64,21 +64,10 @@ check_integration_hooks() {
 
 # Main Validation Function
 main() {
-    # Redis coordination entry
-    .claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
-        --task-id "deployment-validation" \
-        --agent-id "deployment-checker"
-
     validate_dependencies
     test_redis_connection
     validate_permissions
     check_integration_hooks
-
-    # Report successful validation
-    .claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-        --task-id "deployment-validation" \
-        --agent-id "deployment-checker" \
-        --confidence 0.95
 }
 
 # Execute main validation

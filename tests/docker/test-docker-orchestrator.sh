@@ -232,8 +232,8 @@ test_consistency_with_cli() {
         ((consistency_score++))
     fi
 
-    # Check 4: Similar Redis coordination
-    if grep -q "REDIS_COORDINATION_SKILL\|cfn-redis-coordination" "$DOCKER_ORCHESTRATOR"; then
+    # Check 4: Similar coordination
+    if grep -q "COORDINATION_SKILL\|cfn-loop-orchestration" "$DOCKER_ORCHESTRATOR"; then
         ((consistency_score++))
     fi
 

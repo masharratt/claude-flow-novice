@@ -353,14 +353,6 @@ When participating in CFN Loop or multi-agent workflows:
    ```bash
    redis-cli lpush "swarm:${TASK_ID}:cto-agent:done" "complete"
    ```
-3. **Report confidence and decision:**
-   ```bash
-   ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-     --task-id "$TASK_ID" \
-     --agent-id "cto-agent" \
-     --confidence 0.92 \
-     --iteration 1
-   ```
 
 ## Agent Metadata
 

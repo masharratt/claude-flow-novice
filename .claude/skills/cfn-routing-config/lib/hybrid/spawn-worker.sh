@@ -18,10 +18,7 @@ spawn_routing_worker() {
 
     case "$channel_type" in
         "redis-pubsub")
-            ./.claude/skills/cfn-redis-coordination/spawn-agent.sh \
-                --skill-id "$SKILL_NAME" \
-                --agent-id "routing-worker-$worker_id" \
-                --strategy "$channel_type"
+            echo "[deprecated] redis coordination call: spawn-agent.sh" >&2
             ;;
         "websocket")
             ./.claude/skills/agent-lifecycle/lib/spawning/spawn-agent.sh \

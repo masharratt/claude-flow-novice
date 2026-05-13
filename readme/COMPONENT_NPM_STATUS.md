@@ -37,7 +37,7 @@ package/
 │       └── testers/              ← tester, playwright-tester
 │
 ├── .claude/skills/               ← ✅ 43 skills (all cfn-* prefixed)
-│   ├── cfn-redis-coordination/
+│   ├── cfn-loop-orchestration-v2/
 │   ├── cfn-agent-spawning/
 │   ├── cfn-loop-validation/
 │   └── ... (40 more cfn-* skills)
@@ -455,7 +455,7 @@ node_modules/claude-flow-novice/
 node_modules/claude-flow-novice/
 └── .claude/
     └── skills/
-        ├── cfn-redis-coordination/
+        ├── cfn-loop-orchestration-v2/
         ├── cfn-agent-spawning/
         └── cfn-loop-validation/
 ```

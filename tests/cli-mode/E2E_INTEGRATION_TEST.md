@@ -611,7 +611,7 @@ docker run --rm \
 - **CLI Mode Guide:** `.claude/commands/cfn-loop-cli.md`
 - **Coordinator Agent:** `.claude/agents/cfn-dev-team/coordinators/cfn-v3-coordinator.md`
 - **Orchestration:** `.claude/skills/cfn-loop-orchestration/SKILL.md`
-- **Redis Coordination:** `.claude/skills/cfn-redis-coordination/SKILL.md`
+- **Coordination:** `.claude/skills/cfn-loop-orchestration-v2/SKILL.md` [replaces deprecated cfn-redis-coordination]
 
 ## Changelog
 

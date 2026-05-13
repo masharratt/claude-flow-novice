@@ -140,21 +140,6 @@ main() {
         \"*\" \
         10 | jq '.' >/dev/null" "Memory query failed"
 
-    # CFN Protocol: Signal task completion
-    redis-cli lpush "swarm:sprint-1.3-testing:interaction-tester:done" "complete" >/dev/null
-
-    # Report confidence and enter waiting mode
-    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-        --task-id "sprint-1.3-testing" \
-        --agent-id "interaction-tester" \
-        --confidence 0.95 \
-        --iteration 1
-
-    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh enter \
-        --task-id "sprint-1.3-testing" \
-        --agent-id "interaction-tester" \
-        --context "iteration-1-complete"
-
     log "INFO" "✅ Integration test complete"
 }
 

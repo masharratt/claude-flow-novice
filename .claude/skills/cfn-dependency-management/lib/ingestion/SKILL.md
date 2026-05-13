@@ -177,7 +177,6 @@ Read: .claude/skills/cfn-loop-orchestration/src/helpers/context-lookup.ts
 
 # Step 4: Read coordination layer (Redis/Shell)
 Read: .claude/skills/cfn-coordination/coordination-wait.sh
-Read: .claude/skills/cfn-redis-coordination/report-completion.sh
 ...
 ```
 
@@ -345,10 +344,9 @@ fi
 
 These files are referenced in the dependency diagram but do not exist:
 
-1. `.claude/skills/cfn-redis-coordination/SKILL.md`
-2. `.claude/agents/cfn-dev-team/coordinators/cfn-cli-dependency-maintainer.md`
-3. `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
-4. `.claude/commands/CFN_LOOP_TASK_MODE.md`
+1. `.claude/agents/cfn-dev-team/coordinators/cfn-cli-dependency-maintainer.md`
+2. `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`
+3. `.claude/commands/CFN_LOOP_TASK_MODE.md`
 
 **Action:** Update dependency diagram to remove references or create missing files.
 

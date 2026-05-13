@@ -236,14 +236,6 @@ signal_agent_completion() {
 
     # Signal completion
     redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-
-    # Report via coordination script
-    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-      --task-id "$TASK_ID" \
-      --agent-id "$AGENT_ID" \
-      --confidence "$confidence" \
-      --iteration "$iteration" \
-      --result "{\"deliverables\": \"${deliverables}\"}"
   fi
 }
 
@@ -257,14 +249,6 @@ signal_validator_completion() {
 
     # Signal validation completion
     redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-
-    # Report consensus
-    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh report \
-      --task-id "$TASK_ID" \
-      --agent-id "$AGENT_ID" \
-      --confidence "$consensus_score" \
-      --iteration "$CURRENT_ITERATION" \
-      --result "{\"consensus\": \"${consensus_score}\", \"feedback\": \"${validation_feedback}\"}"
   fi
 }
 

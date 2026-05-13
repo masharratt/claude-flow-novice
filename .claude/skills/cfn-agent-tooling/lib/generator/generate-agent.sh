@@ -271,12 +271,6 @@ if [[ -n "\$TEST_CMD" ]]; then
     # Parse test results using CFN helper
     RESULTS=\$(./.claude/skills/cfn-loop-orchestration/helpers/parse-test-results.sh \\
         "jest" "\$TEST_OUTPUT")
-
-    # Report test results (NOT confidence scores)
-    ./.claude/skills/cfn-redis-coordination/report-completion.sh \\
-        --task-id "\$TASK_ID" \\
-        --agent-id "\$AGENT_ID" \\
-        --test-results "\$RESULTS"
 else
     echo "⚠️  No test command found in success criteria"
     echo "   Proceeding without test validation"

@@ -149,7 +149,7 @@ node_modules/claude-flow-novice/
 │   │       └── testers/
 │   │
 │   ├── skills/                     # 43 cfn-* prefixed skills
-│   │   ├── cfn-redis-coordination/
+│   │   ├── cfn-loop-orchestration-v2/
 │   │   ├── cfn-agent-spawning/
 │   │   ├── cfn-loop-validation/
 │   │   └── ... (40 more cfn-* skills)
@@ -185,7 +185,7 @@ your-project/
 │   │   └── your-custom-team/      # ⚠️ Preserved (not overwritten)
 │   │
 │   ├── skills/
-│   │   ├── cfn-redis-coordination/ # ✅ Copied
+│   │   ├── cfn-loop-orchestration-v2/ # ✅ Copied
 │   │   ├── cfn-agent-spawning/    # ✅ Copied
 │   │   └── your-custom-skill/     # ⚠️ Preserved
 │   │

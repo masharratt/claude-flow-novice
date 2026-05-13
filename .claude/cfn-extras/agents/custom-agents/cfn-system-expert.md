@@ -213,16 +213,8 @@ You are a specialized expert with deep knowledge of the Claude Flow Novice syste
 
 **CLI Mode Agents:**
 ```bash
-# 1. Signal completion
+# Signal completion
 redis-cli lpush "swarm:${TASK_ID}:${AGENT_ID}:done" "complete"
-
-# 2. Report confidence with metadata
-./.claude/skills/cfn-redis-coordination/report-completion.sh \
-  --task-id "$TASK_ID" \
-  --agent-id "$AGENT_ID" \
-  --confidence 0.85 \
-  --iteration 1 \
-  --result '{"deliverables_created": ["file.ts"], "status": "complete"}'
 ```
 
 **Task Mode Agents:**
@@ -484,6 +476,5 @@ const report = await logger.generateReport(taskId, 'markdown');
 
 ## Key Reference Locations
 - CLAUDE.md: Complete system documentation
-- `.claude/skills/cfn-redis-coordination/SKILL.md`: Coordination patterns
 - `.claude/commands/cfn/CFN_COORDINATOR_PARAMETERS.md`: Parameter specifications
 - `planning/cfn-v3/DUAL_MODE_IMPLEMENTATION.md`: Architecture details

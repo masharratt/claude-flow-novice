@@ -145,9 +145,8 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
 
   # Step 2: Collect Loop 3 confidence scores
   echo "[Loop 3] Collecting confidence scores..."
-  LOOP3_CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
-    --task-id "$TASK_ID" \
-    --agent-ids "$LOOP3_AGENTS" | tail -1)
+  echo "[deprecated] redis coordination call: invoke-waiting-mode.sh collect" >&2
+  LOOP3_CONSENSUS=0
 
   echo "[Loop 3] Average confidence: $LOOP3_CONSENSUS"
 
@@ -156,16 +155,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
     echo "❌ Gate FAILED ($LOOP3_CONSENSUS < $GATE)"
     echo "Decision: RELAUNCH iteration $((ITERATION + 1))"
 
-    # Wake Loop 3 agents for next iteration
-    IFS=',' read -ra AGENTS <<< "$LOOP3_AGENTS"
-    for AGENT in "${AGENTS[@]}"; do
-      ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
-        --task-id "$TASK_ID" \
-        --agent-id "$AGENT" \
-        --reason "gate_failed" \
-        --iteration $((ITERATION + 1)) \
-        --feedback "Improve confidence from $LOOP3_CONSENSUS to >$GATE"
-    done
+    echo "[deprecated] redis coordination call: invoke-waiting-mode.sh wake (gate_failed)" >&2
 
     continue  # Next iteration
   fi
@@ -196,9 +186,8 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
 
   # Step 4: Collect Loop 2 consensus scores
   echo "[Loop 2] Collecting consensus scores..."
-  LOOP2_CONSENSUS=$(./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh collect \
-    --task-id "$TASK_ID" \
-    --agent-ids "$LOOP2_AGENTS" | tail -1)
+  echo "[deprecated] redis coordination call: invoke-waiting-mode.sh collect" >&2
+  LOOP2_CONSENSUS=0
 
   echo "[Loop 2] Average consensus: $LOOP2_CONSENSUS"
 
@@ -230,15 +219,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
       echo "🎉 CFN Loop Complete!"
       echo "Final Consensus: $LOOP2_CONSENSUS (Iteration $ITERATION)"
 
-      # Wake all agents with completion signal
-      IFS=',' read -ra ALL_AGENTS <<< "$LOOP3_AGENTS,$LOOP2_AGENTS"
-      for AGENT in "${ALL_AGENTS[@]}"; do
-        ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
-          --task-id "$TASK_ID" \
-          --agent-id "$AGENT" \
-          --reason "cfn_complete" \
-          --iteration "$ITERATION"
-      done
+      echo "[deprecated] redis coordination call: invoke-waiting-mode.sh wake (cfn_complete)" >&2
 
       exit 0
     fi
@@ -257,15 +238,7 @@ for ITERATION in $(seq 1 $MAX_ITERATIONS); do
 
   # Wake all agents for next iteration
   echo "[Coordinator] Waking agents for iteration $((ITERATION + 1))..."
-  IFS=',' read -ra ALL_AGENTS <<< "$LOOP3_AGENTS,$LOOP2_AGENTS"
-  for AGENT in "${ALL_AGENTS[@]}"; do
-    ./.claude/skills/cfn-redis-coordination/invoke-waiting-mode.sh wake \
-      --task-id "$TASK_ID" \
-      --agent-id "$AGENT" \
-      --reason "cfn_loop_iteration" \
-      --iteration $((ITERATION + 1)) \
-      --feedback "Improve consensus from $LOOP2_CONSENSUS to >=$CONSENSUS"
-  done
+  echo "[deprecated] redis coordination call: invoke-waiting-mode.sh wake (cfn_loop_iteration)" >&2
 
   echo ""
 done

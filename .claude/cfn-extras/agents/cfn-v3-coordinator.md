@@ -92,19 +92,7 @@ if [[ "$USE_TYPESCRIPT" == "true" && -f "$PROJECT_ROOT/dist/coordination/store-t
     --description "$TASK_DESCRIPTION" \
     --mode "$MODE" \
     --max-iterations "$MAX_ITERATIONS" 2>&1 || {
-    echo "⚠️  Warning: TypeScript storage failed, falling back to bash"
-    USE_TYPESCRIPT=false
-  }
-fi
-
-if [[ "$USE_TYPESCRIPT" == "false" ]]; then
-  # Bash fallback
-  "$PROJECT_ROOT/.claude/skills/cfn-redis-coordination/store-task-context.sh" \
-    --task-id "$TASK_ID" \
-    --description "$TASK_DESCRIPTION" \
-    --mode "$MODE" \
-    --max-iterations "$MAX_ITERATIONS" 2>&1 || {
-    echo "⚠️  Warning: Failed to store context, falling back to direct Redis"
+    echo "⚠️  Warning: TypeScript storage failed, falling back to direct Redis"
     redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" \
       HSET "swarm:${TASK_ID}:context" "task_description" "$TASK_DESCRIPTION" >/dev/null 2>&1
     redis-cli -h "${REDIS_HOST:-localhost}" -p "${REDIS_PORT:-6379}" \
@@ -136,16 +124,6 @@ CRITERIA_JSON='{
 if [[ "$USE_TYPESCRIPT" == "true" && -f "$PROJECT_ROOT/dist/coordination/store-success-criteria.js" ]]; then
   # TypeScript implementation
   node "$PROJECT_ROOT/dist/coordination/store-success-criteria.js" \
-    --task-id "$TASK_ID" \
-    --criteria "$CRITERIA_JSON" 2>&1 || {
-    echo "⚠️  Warning: TypeScript criteria storage failed, falling back to bash"
-    "$PROJECT_ROOT/.claude/skills/cfn-redis-coordination/store-success-criteria.sh" \
-      --task-id "$TASK_ID" \
-      --criteria "$CRITERIA_JSON" 2>&1
-  }
-else
-  # Bash fallback
-  "$PROJECT_ROOT/.claude/skills/cfn-redis-coordination/store-success-criteria.sh" \
     --task-id "$TASK_ID" \
     --criteria "$CRITERIA_JSON" 2>&1
 fi
@@ -268,8 +246,6 @@ fi
 - `store-task-context.js` - Stores task metadata
 - `store-success-criteria.js` - Stores test configuration
 - `coordination-wrapper.js` - Redis coordination layer
-
-**Fallback:** `.claude/skills/cfn-redis-coordination/*.sh` (bash)
 
 **Storage:**
 - `swarm:${TASK_ID}:context` - Task description, mode, iterations

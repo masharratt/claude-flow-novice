@@ -648,7 +648,7 @@ performance_tests:
 
 **Implementation Files:**
 - claude-flow-novice: `.claude/skills/cfn-loop-orchestration/orchestrate.sh` (gates)
-- claude-flow-novice: `.claude/skills/cfn-redis-coordination/` (coordination)
+- claude-flow-novice: `.claude/skills/cfn-loop-orchestration-v2/` (coordination)
 - daa: `crates/daa-ai/src/agent.rs` (agent structure)
 - daa: `daa-orchestrator/src/lib.rs` (orchestrator)
 - QuDAG: `qudag-exchange/plans/swarm-orchestration.md` (TDD convergence)
