@@ -1,8 +1,8 @@
 ---
 name: cfn-dependency-ingestion
-description: Unified atomic ingestion of CFN dependency manifests (trigger-dev, cli-mode, shared)
+description: Unified atomic ingestion of CFN dependency manifests (cli-mode, shared)
 version: 2.0.0
-tags: [cfn-loop, dependency-management, dynamic-ingestion, trigger-dev, cli-mode]
+tags: [cfn-loop, dependency-management, dynamic-ingestion, cli-mode]
 ---
 
 # CFN Dependency Ingestion Skill
@@ -15,12 +15,6 @@ tags: [cfn-loop, dependency-management, dynamic-ingestion, trigger-dev, cli-mode
 # List available manifests
 bash .claude/skills/cfn-dependency-ingestion/ingest.sh --list-manifests
 
-# Trigger.dev infrastructure (P0 critical, ~17K tokens)
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest trigger-dev --priority P0 --inject-content --skip-validation
-
-# Trigger.dev full context (P0+P1, ~32K tokens)
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest trigger-dev --inject-content --skip-validation
-
 # CLI mode dependencies
 bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --inject-content --skip-validation
 
@@ -28,7 +22,7 @@ bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --inj
 bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest shared --inject-content
 
 # Filter by type (TypeScript only)
-bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest trigger-dev --type TS --inject-content
+bash .claude/skills/cfn-dependency-ingestion/ingest.sh --manifest cli-mode --type TS --inject-content
 ```
 
 ### Legacy: Diagram-Based Ingestion
@@ -370,12 +364,14 @@ When files are added/removed from the dependency diagram:
 
 ## Version History
 
+- **3.1.0** (2026-05-13): Trigger.dev manifests removed
+  - **Removed:** `trigger-dev` and `trigger-mode` manifests (deprecated subsystem)
+  - **Available Manifests:** `cli-mode`, `shared`
+
 - **3.0.0** (2025-11-24): Unified ingestion script
   - **Merged Skills:** Combined trigger-dev-dependency-ingestion and cfn-dependency-ingestion into single tool
   - **Unified Interface:** `--manifest <name>` for all manifest-based ingestion
-  - **Available Manifests:** trigger-dev, cli-mode, shared, trigger-mode
   - **Legacy Support:** `--diagram <type>` for diagram-based parsing
-  - **Token Estimates:** trigger-dev P0 ~17K tokens, full ~32K tokens
 
 - **2.1.0** (2025-11-20): Chunked mode for Task tool agents
   - **Enhancement #6:** Automatic chunking into 20k token files for parallel reads

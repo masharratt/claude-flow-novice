@@ -42,7 +42,7 @@ const externalNodes: Node<PipelineNodeData>[] = [
       category: 'external',
       file: 'trigger/deep-dive.ts',
       line: 62,
-      description: 'trigger.dev task entry',
+      description: 'task entry',
     },
   },
 ];

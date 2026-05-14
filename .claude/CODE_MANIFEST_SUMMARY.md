@@ -1,26 +1,22 @@
 # Code File Manifest Summary
 
 **Generated:** 2026-05-13  
-**Status:** Manifest files created in `.claude/` directory  
-**Total Code Files Indexed:** 7,246
+**Status:** Active manifests in `.claude/`  
+**Scope:** TypeScript, JavaScript, YAML, Docker, SQL configurations
+
+> Historical snapshot. Trigger.dev and Redis-coordination sections were removed when those subsystems were deprecated. For the live architecture, see `.claude/CLAUDE.md` and the skills directory.
 
 ---
 
 ## Files Created
 
-1. **`.claude/FILE_MANIFEST.md`** - Comprehensive code file index
-   - 7,246 code files indexed
-   - Organized by functional category
-   - Includes file type statistics
-   - Provides access patterns
-
-2. **`.claude/TRIGGER_TASKS_MANIFEST.md`** - Trigger.dev task implementations
-   - Task file locations
-   - Task ID mapping
-   - Configuration reference
-   - Deployment checklist
-
+1. **`.claude/MANIFEST_INDEX.md`** - Navigation hub for manifests
+2. **`.claude/MANIFEST_README.md`** - Manifest system overview
 3. **`.claude/CODE_MANIFEST_SUMMARY.md`** - This file
+
+Archived (no longer accurate):
+- `docs/archive/FILE_MANIFEST.md` - was trigger.dev-only index
+- `docs/archive/TRIGGER_TASKS_MANIFEST.md` - was trigger.dev task catalog
 
 ---
 
@@ -29,29 +25,22 @@
 ### Top-Level Directories
 
 ```
-/mnt/c/Users/masha/Documents/claude-flow-novice/
+claude-flow-novice/
 ├── src/                          # Core implementation
-│   ├── trigger/                  # Trigger.dev task definitions
 │   ├── cli-executor.ts           # CLI integration
-│   └── mdap-*.ts                 # Message-driven primitives
+│   └── mdap-*.ts                 # Message-driven primitives (replaces trigger.dev)
 ├── packages/                     # NPM workspaces
 │   ├── cli/                      # CLI package
 │   ├── sdk/                      # SDK package
 │   └── ...
-├── docker/                       # Infrastructure
-│   ├── trigger-dev/              # Trigger.dev docker-compose
-│   │   ├── webapp/               # Webapp services
-│   │   └── worker/               # Worker services
-│   └── ...
+├── lib/                          # Active replacement code
+│   └── mdap/                     # MDAP orchestration (extracted from trigger.dev migration)
 ├── .claude/                      # Agent coordination
 │   ├── agents/cfn-dev-team/      # Agent definitions
 │   ├── skills/cfn-*/             # Coordination skills
 │   ├── hooks/cfn-*/              # Git hooks
 │   └── commands/cfn/             # Slash commands
 └── tests/                        # Test infrastructure
-    ├── cli-mode/                 # CLI mode tests
-    ├── docker-mode/              # Docker mode tests
-    └── ...
 ```
 
 ---
@@ -60,62 +49,43 @@
 
 ### By Type
 
-| File Type | Count | Location |
-|-----------|-------|----------|
-| TypeScript (*.ts) | ~3,200 | src/, packages/, .claude/skills/ |
+| File Type | Approx Count | Location |
+|-----------|--------------|----------|
+| TypeScript (*.ts) | ~3,000 | src/, packages/, lib/, .claude/skills/ |
 | JavaScript (*.js) | ~2,400 | dist/, .artifacts/, .claude/ |
 | TypeScript React (*.tsx) | ~800 | packages/web/, packages/ui/ |
-| YAML/YML | ~150 | .claude/config/, docker/, kubernetes/ |
+| YAML/YML | ~150 | .claude/config/, kubernetes/ |
 | SQL | ~45 | .claude/skills/cfn-ace-system/, migrations/ |
-| Dockerfiles | ~15 | docker/ |
-| Docker Compose | ~8 | docker/trigger-dev/, docker/compose/ |
+| Dockerfiles | ~10 | docker/ |
 
-**Total:** 7,246 code files
+Counts are approximate; for an authoritative count, run `find . -type f -name '*.ts' | wc -l` etc.
 
 ### By Functional Area
 
-| Area | Files | Purpose |
-|------|-------|---------|
-| Trigger.dev Implementation | ~200 | Task definitions, CLI, webhook integration |
-| Infrastructure & DevOps | ~45 | Docker, Kubernetes, CI/CD |
-| Core Coordination | ~250 | Agent spawning, Redis, orchestration |
-| Database | ~45 | Schemas, migrations, SQL |
-| Application Code | ~4,000+ | All packages and src/ |
-| Utilities & Helpers | ~500 | Logging, validation, error handling |
-| Generated/Build | ~2,200 | dist/, build artifacts (indexed but excluded) |
+| Area | Purpose |
+|------|---------|
+| MDAP Orchestration | Task definitions, executors, validators (replaces trigger.dev) |
+| Infrastructure & DevOps | Docker, Kubernetes, CI/CD |
+| Core Coordination | Agent spawning, orchestration |
+| Database | Schemas, migrations, SQL |
+| Application Code | All packages and src/ |
+| Utilities & Helpers | Logging, validation, error handling |
 
 ---
 
 ## Key Implementation Files
 
-### Trigger.dev Integration
+### MDAP Orchestration
+
+`lib/mdap/` is the local replacement for trigger.dev in the CFN Loop architecture. Key files:
 
 ```
-src/trigger/
-├── hello-world.ts              # Example task
-├── cfn-agent-coordinator.ts    # Agent coordination task
-├── cfn-implementer.ts          # Implementation task
-├── cfn-validator.ts            # Validation task
-├── cfn-product-owner.ts        # Product owner task
-└── [other CFN tasks]
-
-trigger.config.ts              # Global configuration
-```
-
-### Infrastructure
-
-```
-docker/trigger-dev/
-├── webapp/
-│   ├── docker-compose.yml      # PostgreSQL, Redis, Registry, MinIO
-│   ├── Dockerfile              # Webapp image
-│   └── .env                    # Environment config
-├── worker/
-│   ├── docker-compose.yml      # Supervisor, task runners
-│   ├── Dockerfile              # Worker image
-│   └── .env                    # Environment config
-└── shared/
-    └── .env.example            # Template
+lib/mdap/
+├── orchestrator.ts
+├── implementer.ts
+├── decomposers/
+├── diff-applicator.ts
+└── ...
 ```
 
 ### Coordination Framework
@@ -123,101 +93,46 @@ docker/trigger-dev/
 ```
 .claude/skills/
 ├── cfn-agent-spawning/         # Agent lifecycle
-│   └── src/spawn-agent.sh      # Main spawning logic
 ├── cfn-coordination/           # Coordination primitives
 │   └── SKILL.md                # chain/broadcast/mesh/consensus
-├── cfn-loop-orchestration/     # Loop control
-│   └── orchestrate.sh          # Main orchestrator
-└── cfn-loop-validation/        # Test gates
-    └── src/validation.ts       # Gate logic
+├── cfn-loop-orchestration-v2/  # Loop control (mega-skill)
+└── cfn-agent-lifecycle/        # SQLite tracking
 ```
 
 ---
 
 ## Access Patterns
 
-### Find Trigger.dev Tasks
-```bash
-find ./src/trigger -name "*.ts" | xargs grep -l "task("
-```
-
-### Find Infrastructure Files
-```bash
-find ./docker -name "docker-compose.yml" -o -name "Dockerfile*"
-```
-
 ### Find Coordination Code
 ```bash
 find ./.claude/skills -name "*.ts" -o -name "*.sh" | grep -v node_modules
 ```
 
-### Find Task Configurations
+### Find MDAP Tasks
 ```bash
-grep -r "trigger.config\|TRIGGER_API_URL" ./src --include="*.ts"
+find ./lib/mdap -name "*.ts" -not -name "*.test.ts"
 ```
 
----
-
-## Implementation Highlights
-
-### Trigger.dev v4 Architecture
-
-**Webapp** (Port 8030):
-- PostgreSQL 15 database
-- Redis 7 coordination
-- Docker Registry (Port 5000)
-- MinIO object storage
-
-**Worker**:
-- Supervisor process
-- Dynamic task runners
-- Container resource limits
-- Automatic cleanup
-
-### CFN Loop Integration
-
-**Task Definitions:**
-- `cfn-agent-coordinator.ts` - Main coordinator
-- `cfn-implementer.ts` - Implementation task
-- `cfn-validator.ts` - Validation task
-- `cfn-product-owner.ts` - Decision task
-
-**Coordination:**
-- Redis BLPOP signaling
-- Task result collection
-- Gate checking (70-98% threshold)
-- Consensus validation (80-95% threshold)
-
-### CLI Integration
-
-**Execution Path:**
-- `src/cli-executor.ts` - CLI wrapper
-- Subprocess spawning with timeout
-- stdout/stderr capture
-- Exit code handling
+### Find Hook Implementations
+```bash
+ls .claude/hooks/cfn-*.sh
+```
 
 ---
 
 ## Next Steps
 
-1. **Review Manifests:** Check `.claude/FILE_MANIFEST.md` for complete file list
-2. **Trigger.dev Setup:** Reference `.claude/TRIGGER_TASKS_MANIFEST.md` for task deployment
-3. **Code Navigation:** Use access patterns above for file discovery
-4. **Infrastructure:** Reference `docker/trigger-dev/` for service definitions
+1. **Code Navigation:** Use CodeSearch (`/codebase-search`) before grep
+2. **Live Architecture:** See `.claude/CLAUDE.md` for current coordination guide
+3. **Skill Index:** See `.claude/MANIFEST_INDEX.md`
 
 ---
 
 ## Manifest Maintenance
 
+This document is a manual snapshot; no auto-generator currently runs.
+
 **Update Triggers:**
-- Adding new task files to `src/trigger/`
-- Adding new infrastructure (Dockerfile, docker-compose)
-- Adding new coordination skills
+- Major file reorganization
+- Adding new skills under `.claude/skills/`
 - Quarterly comprehensive refresh
-
-**Update Command:**
-```bash
-# Run manifest generator
-bash ./.claude/FILE_MANIFEST_GENERATOR.sh
-```
-

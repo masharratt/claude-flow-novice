@@ -1,6 +1,3 @@
-// Export all jobs
-export { seoScrapingJob } from "./jobs/seo-scraping.job";
-
 // Health check endpoint
 export const healthCheck = async () => {
   return {
