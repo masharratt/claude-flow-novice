@@ -101,7 +101,7 @@ DOCKER_FILES=(
 
 # CFN Loop orchestration files
 CFN_LOOP_FILES=(
-  ".claude/skills/cfn-loop-orchestration/orchestrate.sh"
+  ".claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh"
   ".claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/orchestrate.sh"
   ".claude/commands/cfn-loop/cfn-loop-cli.md"
   ".claude/commands/cfn-loop/cfn-loop-task.md"

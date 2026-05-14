@@ -354,7 +354,7 @@ done
 
 **Invocation:**
 ```bash
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
   --task-id "$TASK_ID" \
   --mode=standard \
   --task-description "Implement JWT authentication"
@@ -492,7 +492,7 @@ if [ "$ERRORS" -gt 50 ]; then
   # Step 5: Delegate wave execution to orchestrator
   # Coordinator NEVER spawns Docker containers directly
   # orchestrate.sh manages all agent lifecycle (spawning, monitoring, cleanup)
-  ./.claude/skills/cfn-loop-orchestration/orchestrate.sh execute-waves \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh execute-waves \
     --task-id "$TASK_ID" \
     --batching-plan "$PLAN"
 
@@ -655,7 +655,7 @@ cat /tmp/execution-plan.json | jq '.'
 # Step 6: Delegate to orchestrate.sh
 TASK_ID="auth-impl-$(date +%s)"
 
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh execute \
+./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh execute \
   --task-id "$TASK_ID" \
   --mode=standard \
   --task-description "$TASK" \
@@ -756,7 +756,7 @@ The coordinator delegates all agent lifecycle management to `orchestrate.sh`. Th
   --output=/tmp/batching-plan.json
 
 # 2. Delegate wave execution to orchestrator
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh execute-waves \
+./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh execute-waves \
   --task-id "$TASK_ID" \
   --batching-plan /tmp/batching-plan.json
 
@@ -824,7 +824,7 @@ cat > /tmp/execution-plan.json <<EOF
 EOF
 
 # 2. Delegate to orchestrator
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh execute \
+./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh execute \
   --task-id "$TASK_ID" \
   --task-description "$DESCRIPTION" \
   --execution-plan /tmp/execution-plan.json \

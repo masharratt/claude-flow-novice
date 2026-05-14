@@ -242,7 +242,7 @@ for i in $(seq 0 $((TOTAL_SPRINTS - 1))); do
   SPRINT_ID=$(echo "$SPRINT" | jq -r '.sprint_id')
 
   # Execute CFN Loop for this micro-sprint
-  ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
     --task-id "$TASK_ID" \
     --sprint "$SPRINT" \
     --mode standard

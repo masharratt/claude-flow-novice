@@ -41,7 +41,7 @@ All developers follow:
 **In CFN Loop:**
 Automatically spawned by orchestrator in Loop 3:
 ```bash
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
   --loop3-agents "backend-dev,react-frontend-engineer"
 ```
 

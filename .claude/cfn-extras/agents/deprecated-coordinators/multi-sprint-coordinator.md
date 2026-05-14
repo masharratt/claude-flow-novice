@@ -160,7 +160,7 @@ EOF
 
   # Execute CFN Loop for this sprint
   SPRINT_TASK_ID="${TASK_ID}-sprint-${sprint_num}"
-  ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
     --task-id "$SPRINT_TASK_ID" \
     --mode "$MODE" \
     --epic-context "$SPRINT_CONTEXT" \

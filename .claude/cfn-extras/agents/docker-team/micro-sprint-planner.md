@@ -715,7 +715,7 @@ CFN_JUSTIFIED=$(echo "$PLAN" | jq -r '.cfn_loop_justified')
 # Execute based on CFN Loop justification
 if [ "$CFN_JUSTIFIED" = "true" ]; then
   # Spawn agents via orchestrate.sh
-  ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  ./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
     --agents="$AGENTS" \
     --task-description="$TASK" \
     --scope="$SCOPE"

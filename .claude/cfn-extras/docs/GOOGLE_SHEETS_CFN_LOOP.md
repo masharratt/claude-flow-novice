@@ -564,7 +564,7 @@ Task("google-sheets-coordinator", "
 ### Enhanced Monitoring (v3.0)
 ```bash
 # Orchestrator tracks agent health
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
   --task-id "$TASK_ID" \
   --mode standard \
   --health-check-interval 30

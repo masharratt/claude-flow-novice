@@ -17,7 +17,7 @@ keywords:
 
 **Status:** Active (CFN v3 - Modular Architecture)
 **Version:** 3.0 (2025-10-23)
-**Orchestrator:** `.claude/skills/cfn-loop-orchestration/orchestrate.sh`
+**Orchestrator:** `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
 
 ## Recent Fixes (2025-10-23)
 - Context injection fixed (deliverables passed to agents)
@@ -292,7 +292,7 @@ The registry uses keyword matching and pattern recognition to select optimal age
 ```bash
 # WRONG - DO NOT USE:
 Bash(
-  command: "./.claude/skills/cfn-loop-orchestration/orchestrate.sh ...",
+  command: "./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh ...",
   timeout: 600000  # ❌ Will fail - orchestrator needs hours, not minutes
 )
 ```
@@ -337,7 +337,7 @@ SUCCESS_CRITERIA_JSON="{
 # Launch orchestrator in background (using Bash tool with run_in_background)
 # Use dynamically selected agents from Step 2 and extracted context from Step 1
 Bash(
-  command: "./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+  command: "./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
     --task-id '$TASK_ID' \
     --mode ${MODE:-standard} \
     --loop3-agents '$LOOP3_AGENTS' \
@@ -576,7 +576,7 @@ trap 'cleanup_orchestrator $?' EXIT
 ## Error Handling
 
 If orchestrator fails:
-1. Check orchestrator script exists: `./.claude/skills/cfn-loop-orchestration/orchestrate.sh`
+1. Check orchestrator script exists: `./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
 2. Verify CLI command works: `npx cfn-spawn agent --help`
 3. Check Redis is running: `redis-cli ping`
 4. Review agent completion signals: `redis-cli KEYS "swarm:*:done"`
@@ -590,7 +590,7 @@ If orchestrator fails:
 ```bash
 # WRONG - Synchronous execution (will timeout at 10 minutes)
 Bash(
-  command: "./.claude/skills/cfn-loop-orchestration/orchestrate.sh ...",
+  command: "./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh ...",
   timeout: 600000  # ❌ orchestrator needs hours, not 10 minutes
 )
 ```
@@ -599,7 +599,7 @@ Bash(
 ```bash
 # CORRECT - Background execution
 Bash(
-  command: "./.claude/skills/cfn-loop-orchestration/orchestrate.sh ...",
+  command: "./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh ...",
   run_in_background: true  # ✅ orchestrator runs for hours
 )
 ```
@@ -658,7 +658,7 @@ npx cfn-spawn agent reviewer --task "..."
 ✅ **ALWAYS** use orchestrator script:
 ```bash
 # CORRECT - Orchestrator manages all agent spawning
-./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
   --task-id "$TASK_ID" \
   --mode standard \
   --loop3-agents "researcher,backend-dev,devops" \

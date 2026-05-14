@@ -436,7 +436,7 @@ node dist/cli/validate-deliverables.js --help
 
 - CFN Loop Orchestration: `.claude/skills/cfn-loop-orchestration/SKILL.md`
 - Gate Checker: `src/gate-checker/gate-checker.ts`
-- Orchestrator Integration: `.claude/skills/cfn-loop-orchestration/orchestrate.sh`
+- Orchestrator Integration: `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
 
 ## Support
 

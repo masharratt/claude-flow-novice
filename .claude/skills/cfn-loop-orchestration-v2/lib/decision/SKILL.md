@@ -668,4 +668,4 @@ Exit Code: 1 (overridden)
 - **CFN Loop Architecture:** `docs/CFN_LOOP_ARCHITECTURE.md`
 - **Success Criteria:** `docs/guides/SUCCESS_CRITERIA_EXAMPLES.md`
 - **Test-Driven Gates:** `docs/guides/TEST_DRIVEN_CFN_LOOP_GUIDE.md`
-- **Orchestrator:** `./.claude/skills/cfn-loop-orchestration/orchestrate.sh`
+- **Orchestrator:** `./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`

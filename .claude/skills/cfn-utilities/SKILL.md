@@ -163,7 +163,7 @@ with_lock "/tmp/database.lock" 60 ./scripts/migrate-db.sh
 **Used By**:
 - `.claude/hooks/cfn-invoke-pre-edit.sh` - atomic backup creation
 - `.claude/skills/cfn-coordination/` - structured logging
-- `.claude/skills/cfn-loop-orchestration/orchestrate.sh` - retry logic
+- `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh` - retry logic
 - All CFN agents - standardized error handling
 
 **Correlation IDs**:

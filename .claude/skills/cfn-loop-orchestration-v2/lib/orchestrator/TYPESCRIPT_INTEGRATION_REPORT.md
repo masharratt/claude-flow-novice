@@ -588,7 +588,7 @@ node .claude/skills/cfn-loop-orchestration/dist/cli/orchestrator-cli.js \
 1. `package.json` - Added orchestrator build scripts
 
 ### No Changes Required
-- `.claude/skills/cfn-loop-orchestration/orchestrate.sh` - Preserved (deprecated)
+- `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh` - Preserved (deprecated)
 - `.claude/skills/cfn-loop-orchestration/src/orchestrate.ts` - Unchanged (TypeScript core)
 - All bash scripts in `.claude/skills/cfn-*/` - Unchanged (fallback)
 

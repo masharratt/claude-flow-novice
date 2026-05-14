@@ -194,7 +194,7 @@ for level in $(seq 0 $((LEVELS - 1))); do
   # Execute sprints (parallel if multiple)
   for sprint_id in $SPRINT_IDS; do
     # Spawn CFN Loop for this sprint
-    ./.claude/skills/cfn-loop-orchestration/orchestrate.sh \
+    ./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh \
       --task-id "$TASK_ID" \
       --sprint "$sprint_id" \
       --mode standard &

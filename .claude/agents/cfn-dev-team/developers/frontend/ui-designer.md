@@ -192,7 +192,7 @@ Test Execution Summary:
 
 **Gate Evaluation Location & Logic:**
 
-The Loop 3 → Loop 2 gate is evaluated in `.claude/skills/cfn-loop-orchestration/orchestrate.sh`:
+The Loop 3 → Loop 2 gate is evaluated in `.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`:
 
 # Parse natively (no external dependencies)
 PASS=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passing)' || echo "0")

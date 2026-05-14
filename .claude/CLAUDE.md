@@ -3,7 +3,7 @@
 ## Coordination Patterns and Namespace Isolation
 
 - Coordination patterns: see `.claude/skills/cfn-coordination/SKILL.md` (chain, broadcast, mesh, consensus collection).
-- Enhanced orchestrator v3.0: `./.claude/skills/cfn-loop-orchestration/orchestrate.sh`
+- Enhanced orchestrator v3.0: `./.claude/skills/cfn-loop-orchestration-v2/cli/orchestrate.sh`
 - Orchestration flow: Loop 3 executes and tests -> gate check -> Loop 2 validators -> Product Owner decision (PROCEED/ITERATE/ABORT) -> iterate or finish.
 - Task mode agents: return output directly; no Redis signaling.
 
