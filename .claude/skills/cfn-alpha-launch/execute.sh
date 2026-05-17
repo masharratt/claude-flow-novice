@@ -40,11 +40,13 @@ OPTIONS:
 MODES:
     analyze                 Run readiness analysis (spawns 8 parallel agents)
     fix                     Execute priority fixes with parallel agents
+    manifest                Convert docs/alpha/fix-list.md to cfn-vote-implement JSON manifest
 
 EXAMPLES:
     $0 -m analyze
     $0 -m fix
     $0 -m fix --agents 5
+    $0 -m manifest
 
 ANALYSIS OUTPUTS:
     docs/alpha/readiness-test.md        - Test coverage, type safety, build
@@ -97,10 +99,10 @@ validate_args() {
     fi
 
     case "$MODE" in
-        analyze|fix)
+        analyze|fix|manifest)
             ;;
         *)
-            error_exit "Invalid mode: $MODE. Must be analyze or fix."
+            error_exit "Invalid mode: $MODE. Must be analyze, fix, or manifest."
             ;;
     esac
 
@@ -376,11 +378,38 @@ COLD START: Ignore previous alpha reports. Evaluate current state only.")
    5. [gap description] - Agent: [type] - File: [location]
    6. ...
    ```
-5. Run `/cfn-alpha-launch:fix` to execute fixes
+5. Emit cfn-vote-implement manifest from fix-list.md:
+   ```bash
+   .claude/skills/cfn-alpha-launch/execute.sh --mode manifest
+   ```
+   Writes /tmp/cfn-review-alpha-<ts>.json. Ingestible by /cfn-vote-implement.
+
+6. Run `/cfn-alpha-launch:fix` to execute fixes, OR
+   Run `/cfn-vote-implement latest` to route findings through 3-agent voting first.
 
 ANALYZE_INSTRUCTIONS
 
     log "Analyze mode instructions printed above"
+}
+
+# Manifest mode - convert fix-list.md to cfn-vote-implement JSON manifest
+mode_manifest() {
+    log "Mode: manifest"
+
+    if [[ ! -f "$FIX_LIST" ]]; then
+        error_exit "Fix list not found: $FIX_LIST
+
+Run analyze mode first:
+  cfn-alpha-launch --mode analyze"
+    fi
+
+    local converter="${SCRIPT_DIR}/lib/fixlist-to-manifest.sh"
+    if [[ ! -x "$converter" ]]; then
+        error_exit "Converter not found or not executable: $converter"
+    fi
+
+    log "Converting $FIX_LIST to manifest..."
+    "$converter" "$FIX_LIST" --source cfn-alpha-launch
 }
 
 # Fix mode - delegates to cfn-parallel-execute
@@ -423,6 +452,9 @@ main() {
             ;;
         fix)
             mode_fix
+            ;;
+        manifest)
+            mode_manifest
             ;;
     esac
 

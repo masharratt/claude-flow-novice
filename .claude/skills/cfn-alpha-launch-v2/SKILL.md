@@ -1,7 +1,7 @@
 ---
 name: cfn-alpha-launch-v2
 description: "Group-based alpha readiness analysis. Analyzes all features in a priority group (CRITICAL/HIGH/MEDIUM/LOW) at once, generates consolidated fix lists, marks group complete when done."
-version: 2.1.0
+version: 2.2.0
 tags: [alpha, launch, readiness, focused, group-based, incremental, progress-tracking, feature-status]
 status: production
 ---
@@ -152,6 +152,34 @@ Generated: docs/alpha/fixes-by-priority/fix-list-CRITICAL.md
 - Works through consolidated fix list for the group
 - Follows pipeline maintenance protocol (STOP/wait for exit notifications)
 
+### Mode: Manifest
+
+```bash
+/cfn-alpha-launch-v2:manifest                  # Uses next priority group
+/cfn-alpha-launch-v2:manifest -p HIGH           # Convert HIGH group fix-list
+/cfn-alpha-launch-v2:manifest -f 2              # Convert feature #2 fix-list
+```
+
+**Purpose:** Convert priority-group or single-feature fix-list to `cfn-vote-implement`-compatible JSON manifest.
+
+**Output:** `/tmp/cfn-review-alpha-v2-{PRIORITY}-<ts>.json` matching cfn-dry-review schema.
+
+**Field mapping:**
+| Source | Manifest field |
+|--------|----------------|
+| Filename `fix-list-CRITICAL.md` | `impact: high`, `priority: critical` (all items) |
+| Filename `fix-list-HIGH.md` | `impact: high`, `priority: high` |
+| Filename `fix-list-MEDIUM.md` | `impact: medium`, `priority: medium` |
+| `## Feature #N: Title` | feature context (fallback `category`) |
+| `- Agent: <type>` | `category: <type>` |
+| `- File: <path>` | `files: ["<path>"]` |
+
+**Use case:** Route alpha findings through 3-agent consensus voting before implementation:
+```bash
+/cfn-alpha-launch-v2:manifest -p HIGH
+/cfn-vote-implement latest
+```
+
 ### Mode: Complete
 
 ```bash
@@ -249,6 +277,7 @@ Next Priority Group: HIGH (3 features)
 | `docs/alpha/fixes-by-priority/fix-list-MEDIUM.md` | MEDIUM priority fixes |
 | `docs/alpha/fixes-by-priority/fix-list-LOW.md` | LOW priority fixes |
 | `docs/alpha/readiness-feature-N.md` | Individual feature analysis reports |
+| `/tmp/cfn-review-alpha-v2-{PRIORITY}-<ts>.json` | cfn-vote-implement JSON manifest (emitted by `manifest` mode) |
 
 ## Priority Group Structure
 
@@ -492,6 +521,11 @@ Next Priority Group: CRITICAL (1 feature)
 - More satisfying progress than feature-by-feature
 
 ## Version History
+
+### 2.2.0 (2026-05-17)
+- **Manifest emission mode** - `--mode manifest` converts priority-group fix-list to `/tmp/cfn-review-alpha-v2-<PRIORITY>-<ts>.json`
+- **cfn-vote-implement integration** - findings can route through 3-agent voting via shared converter
+- **Shared converter** - reuses `cfn-alpha-launch/lib/fixlist-to-manifest.sh`
 
 ### 2.1.0 (2026-01-18)
 - **Changed to group-based analysis** (was single-feature)

@@ -1,7 +1,7 @@
 ---
 name: cfn-vote-implement
-description: "MUST BE USED after cfn-dry-review produces a manifest. Do not manually implement code review suggestions - always route through this skill for consensus. 3-agent specialized voting on code review suggestions. Unanimous items auto-implemented with TDD. Split votes surfaced to user."
-version: 1.0.0
+description: "MUST BE USED after cfn-dry-review or cfn-alpha-launch:manifest produces a manifest. Do not manually implement code review suggestions - always route through this skill for consensus. 3-agent specialized voting on code review suggestions. Unanimous items auto-implemented with TDD. Split votes surfaced to user."
+version: 1.1.0
 tags: [voting, consensus, TDD, implementation, code-review]
 status: production
 ---
@@ -12,8 +12,18 @@ status: production
 
 ## Inputs
 
-- `$1`: Path to a review manifest JSON (output of `/cfn-dry-review`), or `latest` to use the most recent manifest in `/tmp/`
+- `$1`: Path to a review manifest JSON, or `latest` to use the most recent manifest in `/tmp/`
 - `--dry-run`: Show what would happen without implementing anything
+
+### Accepted Manifest Sources
+
+Any skill emitting the shared manifest schema works. Discovery glob for `latest`:
+```
+/tmp/cfn-dry-review-*.json          # cfn-dry-review
+/tmp/cfn-review-alpha-*.json         # cfn-alpha-launch (v1)
+/tmp/cfn-review-alpha-v2-*.json      # cfn-alpha-launch-v2
+```
+Pick the most recent by mtime. Manifest's `source` field (if present) records the producing skill.
 
 ## Outputs
 
@@ -90,4 +100,6 @@ The manifest tracks processing state. If interrupted:
 
 ## Related
 
-- `/cfn-dry-review` - Phase 1: generates the review manifest
+- `/cfn-dry-review` - generates the DRY/modularity review manifest
+- `/cfn-alpha-launch:manifest` - emits alpha-readiness fix-list as manifest
+- `/cfn-alpha-launch-v2:manifest` - emits priority-group fix-list as manifest

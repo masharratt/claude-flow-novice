@@ -47,6 +47,7 @@ MODES:
     fix                     Execute fixes for priority group
     status                  Show overall alpha readiness progress
     complete                Mark all features in group as complete
+    manifest                Convert priority-group fix-list to cfn-vote-implement JSON manifest
 
 EXAMPLES:
     $0 -m select
@@ -106,10 +107,10 @@ validate_args() {
     fi
 
     case "$MODE" in
-        select|analyze|fix|status|complete)
+        select|analyze|fix|status|complete|manifest)
             ;;
         *)
-            error_exit "Invalid mode: $MODE. Must be select, analyze, fix, status, or complete."
+            error_exit "Invalid mode: $MODE. Must be select, analyze, fix, status, complete, or manifest."
             ;;
     esac
 
@@ -714,6 +715,46 @@ COMPLETE_INSTRUCTIONS
     log "Complete mode instructions printed above"
 }
 
+# Mode: Manifest emission - convert priority-group fix-list to JSON manifest
+mode_manifest() {
+    log "Mode: manifest"
+
+    local target_priority="$PRIORITY"
+    local fix_list=""
+
+    if [[ -n "${FEATURE_NUM:-}" ]]; then
+        local info=$(extract_feature_info "$FEATURE_NUM")
+        IFS='|' read -r title status priority description <<< "$info"
+        local slug=$(echo "$title" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -ch '[:alnum:]-')
+        fix_list="${FIX_LIST_DIR}/fix-list-${FEATURE_NUM}-${slug}.md"
+    else
+        if [[ -z "$target_priority" ]]; then
+            local next=$(find_next_priority_group)
+            if [[ "$next" == "ALL_COMPLETE" ]]; then
+                echo "All features complete. Nothing to emit."
+                return
+            fi
+            IFS='|' read -r target_priority count <<< "$next"
+            log "Auto-selected priority: $target_priority"
+        fi
+        fix_list="${FIX_LIST_DIR}/fix-list-${target_priority}.md"
+    fi
+
+    if [[ ! -f "$fix_list" ]]; then
+        error_exit "Fix list not found: $fix_list
+
+Run analyze mode first."
+    fi
+
+    local converter="${SCRIPT_DIR}/../cfn-alpha-launch/lib/fixlist-to-manifest.sh"
+    if [[ ! -x "$converter" ]]; then
+        error_exit "Converter not found or not executable: $converter"
+    fi
+
+    log "Converting $fix_list to manifest..."
+    "$converter" "$fix_list" --source cfn-alpha-launch-v2
+}
+
 # Main execution function
 main() {
     log "Starting cfn-alpha-launch-v2..."
@@ -735,6 +776,9 @@ main() {
             ;;
         complete)
             mode_complete
+            ;;
+        manifest)
+            mode_manifest
             ;;
     esac
 
