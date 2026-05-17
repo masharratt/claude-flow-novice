@@ -1,8 +1,8 @@
 ---
 name: cfn-plan-review
-description: "Post-planning completeness review. Extracts implicit assumptions, traces dependencies, analyzes blast radius, and surfaces gaps before implementation begins. Use after writing any plan that touches data, APIs, or shared state."
-version: 1.0.0
-tags: [planning, review, completeness, dependencies]
+description: "Post-planning completeness review. Extracts implicit assumptions, traces dependencies, analyzes blast radius, checks alpha-readiness, and surfaces gaps before implementation begins. Use after writing any plan that touches data, APIs, or shared state."
+version: 1.1.0
+tags: [planning, review, completeness, dependencies, alpha-readiness]
 status: production
 ---
 
@@ -30,7 +30,7 @@ Before reviewing completeness, apply the DRY and modularity rules from `~/.claud
 - Are there shared types, schemas, or constants that need a single source of truth?
 - Does any multi-file feature have a shared orchestrator, or are there multiple entry points?
 
-Surface any violations as numbered findings in Phase 5. Do not duplicate the rules here — consult `code-quality.md` directly.
+Surface any violations as numbered findings in Phase 6. Do not duplicate the rules here. Consult `code-quality.md` directly.
 
 ### Phase 1: Assumption Extraction
 
@@ -155,24 +155,99 @@ Surface scenarios the plan does not address:
 - Are there ordering constraints? (table A must exist before table B due to FKs)
 - Does the plan assume downtime? If not, how is consistency maintained?
 
-### Phase 5: Findings Summary
+### Phase 5: Alpha Readiness Check
 
-Present all gaps and untested assumptions as numbered questions, one per issue. Each question includes:
+Whatever the plan implements MUST be at least alpha-ready when merged. Alpha-ready = could ship to real users behind a feature flag without on-call paging or data loss. Score the plan against the same 8 dimensions used by `cfn-alpha-launch`. Each dimension is PASS, GAP, or N/A. Any GAP becomes a numbered finding in Phase 6.
+
+**Hard requirements (any miss = BLOCKER):**
+
+| Area | Requirement | Check |
+|------|-------------|-------|
+| **test** | TDD plan present | Each implementation step names the failing test written first. Bug fixes name the reproducing test. |
+| **test** | Regression coverage | Edge cases from Phase 4 each map to a test (unit, integration, or e2e). |
+| **security** | RLS on new tables | Every new Supabase table has a Row Level Security policy in the same migration. |
+| **security** | Auth boundaries | New endpoints state the auth check (Clerk session, API key, public). No "TBD auth". |
+| **security** | No secrets in code | Plan does not hardcode tokens, keys, or DB URLs. Secrets routed via Fly secrets or env. |
+| **security** | Headers + RLS audit | New HTTP routes inherit HSTS/CSP/X-Frame-Options via shared middleware; not bypassed. |
+| **backend** | Error handling at boundaries | External API calls, DB queries, and user input have explicit error paths. |
+| **backend** | No unscoped DELETE/TRUNCATE | Any DELETE in test setup/teardown or migration has WHERE clause targeting test rows only. |
+| **frontend** | UI verification step | If frontend touched, plan includes Playwright or manual browser check (golden path + 1 edge case). |
+| **architect** | Rollback path | Plan states how to undo if alpha users hit a blocker (revert migration, feature flag off, redeploy prior tag). |
+| **supabase** | Migration reversibility | New migrations have `down` direction OR explicitly documented why they cannot be rolled back. |
+| **supabase** | Schema sync step | Plan ends with `~/.claude/skills/supabase-schema-sync/execute.sh` after any migration. |
+| **contract** | Inter-service typing | Cross-service calls (API, trigger payload, queue message) define a shared Zod schema or TS interface. |
+| **contract** | Enum completeness | New enum values traced through ALL consumers (DB, switch/match, serializers, UI). |
+| **consistency** | Canonical constants | No hardcoded path/schema/limit strings duplicated across files; routed through shared config. |
+| **consistency** | Doc updates | Plan includes updates to `readme/feature-status.md` and `readme/state-machines.md` if entity is stateful. |
+
+**Deployment readiness (Fly.io specific):**
+
+- Static-export apps (Next.js export, Expo web): all `NEXT_PUBLIC_*` / `EXPO_PUBLIC_*` env vars added as Docker build args in `fly.toml` AND `ARG`/`ENV` in Dockerfile.
+- SSR/ISR apps: env vars added as Fly secrets via `fly secrets set`.
+- Plan includes post-deploy verification: `curl` of key page (not just `/health`) confirms real content renders.
+- If touching blog/SEO: plan includes GSC validation timing (no "Validate Fix" same day as deploy).
+
+**Observability:**
+
+- Decision points (auth allow/deny, gate pass/fail, retry vs abort) have a log line with enough context to debug a paged incident.
+- Errors include the entity ID, the request ID, and the user/tenant ID where available.
+- Plan names the dashboard or log query someone on-call would run to see if this feature is healthy.
+
+**Anti-patterns that auto-fail this phase:**
+
+- "We'll add tests after"
+- "Auth will be added later"
+- "RLS in a follow-up migration"
+- "Will document once stable"
+- "Skip rollback path, we'll redeploy"
+- Any Anthropic API call in project code (BANNED per `~/.claude/CLAUDE.md`)
+- `claude -p` invocation without `--budget` cap or `unset ANTHROPIC_API_KEY`
+
+Output format:
+```
+## Alpha Readiness Check
+
+| Area | Status | Notes |
+|------|--------|-------|
+| test | GAP | No failing test specified for new pricing logic |
+| security | PASS | RLS policy in same migration, auth via Clerk session |
+| backend | GAP | External Stripe call has no error handler |
+| frontend | N/A | Backend-only change |
+| architect | PASS | Rollback = feature flag off + revert migration 0123 |
+| supabase | GAP | Migration missing schema-sync step |
+| contract | PASS | Shared Zod schema in packages/contracts |
+| consistency | GAP | Doc updates missing |
+
+**Alpha-ready: NO** (4 gaps blocking)
+```
+
+### Phase 6: Findings Summary
+
+Present all gaps from Phases 1-5 as numbered questions, one per issue. Each question includes:
 - What was found
 - Why it matters
+- Source phase (assumption / dependency / blast radius / edge case / alpha readiness)
 - A recommended action
 
 Format:
 ```
 ## Plan Review Findings
 
-1. **golfer_profiles table missing from migration**
+1. **golfer_profiles table missing from migration** [Phase 3: blast radius]
    The listings table has an FK to golfer_profiles.id. Migrating listings without golfer_profiles will fail on insert due to FK constraint violation.
    Recommendation: Add golfer_profiles to migration scope, execute before listings.
 
-2. **Assumption untested: no other service writes to listings**
+2. **Assumption untested: no other service writes to listings** [Phase 1: assumption]
    The plan assumes daily-seo is the only writer. If golfer-collective still has write access during migration, data will diverge.
    Recommendation: Verify by checking database connection logs or revoking golfer-collective write access before cutover.
+
+3. **No RLS policy on new pricing_tiers table** [Phase 5: alpha readiness: security]
+   Plan creates pricing_tiers without RLS. Per CFN security rules, every new Supabase table requires RLS before deployment.
+   Recommendation: Add RLS policy in the same migration. Default-deny + per-tenant allow.
+
+4. **No failing test for compute_price() change** [Phase 5: alpha readiness: test]
+   Plan modifies pricing logic but does not name the failing test written first. Per TDD protocol, no implementation without a failing test.
+   Recommendation: Add Phase 1.5 to plan: write failing test for new pricing rule before touching production code.
 ```
 
 ## Integration
