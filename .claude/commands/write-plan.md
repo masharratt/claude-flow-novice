@@ -15,11 +15,12 @@ Generate structured implementation plan BEFORE executing CFN Loop. Outputs plan 
 ## What This Does
 
 **Pre-planning phase for CFN Loop:**
-0. **GOAP goal modeling** (for non-trivial tasks): run `/cfn-goap-plan` first to define goal state, derive optimal action sequence via A*, surface assumptions. Skip only for single-file edits or obvious fixes.
+0a. **SPA pre-plan (REQUIRED for non-trivial work):** run `/cfn-spa-plan` first to produce `planning/SPEC_*.md`, `PSEUDO_*.md`, `ARCH_*.md`. This command auto-detects those artifacts and consumes them. If missing for non-trivial work (multi-file, shared state, new feature), HALT and instruct user to run `/cfn-spa-plan` first.
+0b. **GOAP goal modeling** (optional): run `/cfn-goap-plan` to define goal state, derive optimal action sequence via A*, surface assumptions.
 1. Analyzes task complexity
 2. Selects appropriate agents
-3. Defines test cases and success criteria
-4. Creates implementation roadmap
+3. Defines test cases and success criteria (sourced from SPEC acceptance criteria + edge cases when present)
+4. Creates implementation roadmap (sourced from ARCH components and PSEUDO operations when present)
 5. Outputs plan document for approval
 
 **Then run:**
@@ -48,44 +49,72 @@ Generate structured implementation plan BEFORE executing CFN Loop. Outputs plan 
 
 ## Execution Pattern
 
+### Step 0: Detect SPA Artifacts (REQUIRED)
+
+Before analyzing, check for SPA bundle. Build sanitized task slug, then probe:
+
+```bash
+SLUG=$(echo "$ARGUMENTS" | tr '[:upper:] ' '[:lower:]_' | tr -cd '[:alnum:]_-' | cut -c1-60)
+SPEC="planning/SPEC_${SLUG}.md"
+PSEUDO="planning/PSEUDO_${SLUG}.md"
+ARCH="planning/ARCH_${SLUG}.md"
+
+SPA_FOUND=0
+[ -f "$SPEC" ]   && SPA_FOUND=$((SPA_FOUND+1))
+[ -f "$PSEUDO" ] && SPA_FOUND=$((SPA_FOUND+1))
+[ -f "$ARCH" ]   && SPA_FOUND=$((SPA_FOUND+1))
+```
+
+**Three branches:**
+
+1. **All three present (`SPA_FOUND == 3`)** — Read all via the `Read` tool. Inject content into Step 1 planner prompt as authoritative context. Test cases derive from SPEC acceptance criteria + edge cases. Agent count derives from ARCH NEW/EXTEND counts.
+
+2. **Partial (`1 <= SPA_FOUND < 3`)** — HALT. Tell user which artifacts are missing. Instruct: `Run /cfn-spa-plan "$ARGUMENTS" to complete the bundle, then re-run /write-plan`. Do not generate a partial plan.
+
+3. **None (`SPA_FOUND == 0`)** — Classify task:
+   - **Trivial** (single-file fix, rename, bug fix with reproducing test): proceed to Step 1 with generic heuristics.
+   - **Non-trivial** (multi-file, shared state, new feature, security/auth): HALT. Instruct: `Run /cfn-spa-plan "$ARGUMENTS" first. SPA pre-planning is required for non-trivial work (see global CLAUDE.md Plan Mode Protocol)`.
+   - If unclear, use `AskUserQuestion` to ask whether to run SPA first or treat as trivial.
+
 ### Step 1: Analyze Task
 
 ```javascript
+const spaContext = SPA_FOUND === 3
+  ? `\nSPA BUNDLE (authoritative source of truth):\n--- SPEC ---\n${spec}\n--- PSEUDO ---\n${pseudo}\n--- ARCH ---\n${arch}\n`
+  : '';
+
 Task("planner", `
   ANALYZE TASK FOR CFN LOOP PLANNING
 
   Task: $ARGUMENTS
   Mode: ${mode}
+  ${spaContext}
 
   ANALYSIS REQUIRED:
   1. Complexity Assessment:
-     - Estimated files: 1-2 (simple) | 3-5 (standard) | >5 (complex)
+     ${SPA_FOUND === 3
+       ? '- Use ARCH "Components" table: count NEW vs EXTEND vs REUSE for true scope'
+       : '- Estimated files: 1-2 (simple) | 3-5 (standard) | >5 (complex)'}
      - Estimated LOC: <200 (simple) | 200-500 (standard) | >500 (complex)
      - Keywords: security, performance, frontend, mobile, etc.
 
   2. Agent Selection:
-     - Loop 3 (Implementation): Based on task type
-       * Backend: backend-dev, researcher, devops
-       * Full-stack: backend-dev, react-frontend-engineer, devops
-       * Mobile: mobile-dev, backend-dev
-       * Security: security-specialist, backend-dev
-     - Loop 2 (Validation): Scale by complexity
-       * Simple: reviewer, tester
-       * Standard: +architect, +security-specialist
-       * Complex: +code-analyzer, +performance-benchmarker
+     ${SPA_FOUND === 3
+       ? '- Implementer count = ARCH NEW components + ceil(EXTEND/2)\n     - Validators driven by NFRs in SPEC: security NFR -> security-specialist; perf NFR -> performance-benchmarker; accessibility NFR -> accessibility-advocate-persona; observability NFR -> devops-engineer'
+       : '- Loop 3 (Implementation): Based on task type\n       * Backend: backend-dev, researcher, devops\n       * Full-stack: backend-dev, react-frontend-engineer, devops\n       * Mobile: mobile-dev, backend-dev\n       * Security: security-specialist, backend-dev\n     - Loop 2 (Validation): Scale by complexity\n       * Simple: reviewer, tester\n       * Standard: +architect, +security-specialist\n       * Complex: +code-analyzer, +performance-benchmarker'}
 
   3. Test Cases (TDD Approach):
-     - Red Phase: Failure scenarios
-     - Green Phase: Minimal passing implementation
-     - Refactor Phase: Quality improvements
+     ${SPA_FOUND === 3
+       ? '- Red Phase: ONE test per SPEC edge case (EC-1..EC-N) + ONE per acceptance criterion (AC scenarios); no skipping\n     - Green Phase: implementations satisfying SPEC postconditions per PSEUDO operation\n     - Refactor Phase: address PSEUDO complexity flags (O(n^2)+, >3 I/O calls)'
+       : '- Red Phase: Failure scenarios\n     - Green Phase: Minimal passing implementation\n     - Refactor Phase: Quality improvements'}
 
   4. Success Criteria:
-     - Test coverage target (≥80%)
-     - Performance benchmarks (if applicable)
-     - Security requirements (if applicable)
-     - Deliverables list
+     ${SPA_FOUND === 3
+       ? '- Every SPEC FR has a passing test\n     - Every SPEC EC has a passing test (mandatory; no skipping)\n     - All NFRs measurably met (cite the threshold from SPEC)\n     - DRY audit honored: no NEW component duplicates an existing one'
+       : '- Test coverage target (≥80%)\n     - Performance benchmarks (if applicable)\n     - Security requirements (if applicable)\n     - Deliverables list'}
 
-  OUTPUT: planning/PLAN_${sanitize($ARGUMENTS)}.md
+  OUTPUT: planning/PLAN_${SLUG}.md
+  ${SPA_FOUND === 3 ? 'CROSS-REFERENCE: Plan must cite SPEC/PSEUDO/ARCH file paths in every section.' : ''}
 `)
 ```
 
@@ -215,23 +244,28 @@ console.log(`/cfn-loop-cli "$ARGUMENTS" --mode=${mode}`);
 
 **Workflow:**
 ```
-0. /cfn-goap-plan  (non-trivial tasks only)
-   ↓ Models goal state, derives A* action sequence, surfaces assumptions
+0a. /cfn-spa-plan "Task description"  (REQUIRED for non-trivial)
+    ↓ Generates planning/SPEC_*.md, PSEUDO_*.md, ARCH_*.md
+    ↓ Edge cases enumerated, branch coverage mapped, DRY audited
 
-1. /write-plan "Task description" --mode=standard
-   ↓ Generates planning/PLAN_task.md
+0b. /cfn-goap-plan  (optional, for complex multi-step goals)
+    ↓ Models goal state, derives A* action sequence
 
-2. /cfn-plan-review  (data, APIs, shared state)
-   ↓ Dependency trace, blast radius, gap analysis
+1.  /write-plan "Task description" --mode=standard
+    ↓ Auto-detects SPA bundle in planning/ and consumes it
+    ↓ Generates planning/PLAN_task.md
 
-3. Human reviews plan (optional)
-   ↓ Approve or request changes
+2.  /cfn-plan-review  (data, APIs, shared state)
+    ↓ Dependency trace, blast radius, gap analysis
 
-4. /cfn-loop-cli "Task description" --mode=standard
-   ↓ Executes implementation following plan
+3.  Human reviews plan (optional)
+    ↓ Approve or request changes
 
-5. CFN Loop autonomously implements following TDD phases
-   ↓ 3-strike failure → /cfn-goap-plan replan mode
+4.  /cfn-loop-cli "Task description" --mode=standard
+    ↓ Executes implementation following plan
+
+5.  CFN Loop autonomously implements following TDD phases
+    ↓ 3-strike failure → /cfn-goap-plan replan mode
 ```
 
 ## Mode Comparison
