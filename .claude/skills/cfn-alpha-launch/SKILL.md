@@ -42,7 +42,7 @@ Spawns 8 agents in parallel to analyze:
 /cfn-alpha-launch:manifest
 ```
 
-Converts `docs/alpha/fix-list.md` into a `cfn-vote-implement`-compatible JSON manifest at `/tmp/cfn-review-alpha-<ts>.json`. Use when you want 3-agent consensus voting on findings before implementation, instead of direct parallel-execute.
+Converts `docs/alpha/fix-list.md` into a `cfn-vote-implement`-compatible JSON manifest at `<project-root>/.cfn-cache/manifests/cfn-review-alpha-<ts>.json`. Use when you want 3-agent consensus voting on findings before implementation, instead of direct parallel-execute.
 
 **Manifest schema:** matches `cfn-dry-review` output — see `cfn-vote-implement` SKILL.md.
 
@@ -258,7 +258,7 @@ Tasks in fix-list.md must follow this format:
 | `docs/alpha/readiness-contract.md` | API contracts, GraphQL schema, types |
 | `docs/alpha/readiness-consistency.md` | Naming, conventions, code patterns |
 | `docs/alpha/fix-list.md` | Prioritized list of required fixes |
-| `/tmp/cfn-review-alpha-<ts>.json` | cfn-vote-implement JSON manifest (emitted by `manifest` mode) |
+| `<project-root>/.cfn-cache/manifests/cfn-review-alpha-<ts>.json` | cfn-vote-implement JSON manifest (emitted by `manifest` mode) |
 
 ## Configuration
 
@@ -371,7 +371,7 @@ Follows pipeline maintenance protocol:
 ## Version History
 
 ### 1.7.0 (2026-05-17)
-- **Manifest emission mode** - `--mode manifest` converts `fix-list.md` to `/tmp/cfn-review-alpha-<ts>.json`
+- **Manifest emission mode** - `--mode manifest` converts `fix-list.md` to `<project-root>/.cfn-cache/manifests/cfn-review-alpha-<ts>.json`
 - **cfn-vote-implement integration** - manifest matches cfn-dry-review schema; findings can route through 3-agent voting
 - **Shared converter** - `lib/fixlist-to-manifest.sh` parses Critical/High/Medium sections + Agent/File metadata
 

@@ -20,7 +20,7 @@ status: production
 
 ## Outputs
 
-- JSON manifest at `/tmp/cfn-dry-review-<timestamp>.json`
+- JSON manifest at `<project-root>/.cfn-cache/manifests/cfn-dry-review-<timestamp>.json` (auto-gitignored, timestamps are nanosecond-precision)
 - Human-readable summary to stdout
 
 ## Manifest Schema

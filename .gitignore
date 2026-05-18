@@ -295,3 +295,6 @@ legacy/v1/**/.next/planning/global/
 
 # RuVector database
 .ruvector/
+
+# CFN local cache (manifests, scratch state)
+.cfn-cache/

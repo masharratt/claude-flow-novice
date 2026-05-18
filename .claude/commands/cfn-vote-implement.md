@@ -14,8 +14,16 @@ Three specialized agents independently review a manifest of code suggestions, vo
 
 ## Step 1: Load Manifest
 
-- If argument is `latest` or empty: find the most recent `/tmp/cfn-dry-review-*.json`
-- Otherwise: read the specified path
+Manifest discovery directory (project-scoped):
+
+```bash
+MANIFEST_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.cfn-cache/manifests"
+```
+
+- If argument is `latest` or empty: pick the most recent file matching `${MANIFEST_DIR}/cfn-dry-review-*.json` (fall back to `cfn-review-alpha-*.json` / `cfn-review-alpha-v2-*.json` if no dry-review manifest exists). Use `ls -1t "${MANIFEST_DIR}"/cfn-*.json 2>/dev/null | head -1`.
+- Otherwise: read the specified path.
+
+If no manifests exist in `${MANIFEST_DIR}`, also check legacy `/tmp/cfn-*.json` for transition compatibility and warn the user to re-run the producing skill.
 
 Parse the manifest. Report: `"Loaded <N> suggestions from <review_id>"`
 

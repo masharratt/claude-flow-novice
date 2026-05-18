@@ -382,7 +382,7 @@ COLD START: Ignore previous alpha reports. Evaluate current state only.")
    ```bash
    .claude/skills/cfn-alpha-launch/execute.sh --mode manifest
    ```
-   Writes /tmp/cfn-review-alpha-<ts>.json. Ingestible by /cfn-vote-implement.
+   Writes <project-root>/.cfn-cache/manifests/cfn-review-alpha-<ts>.json. Ingestible by /cfn-vote-implement.
 
 6. Run `/cfn-alpha-launch:fix` to execute fixes, OR
    Run `/cfn-vote-implement latest` to route findings through 3-agent voting first.

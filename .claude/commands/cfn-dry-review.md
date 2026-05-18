@@ -76,7 +76,19 @@ The agent must output a JSON array of suggestions, each with:
 
 ## Step 4: Write Manifest
 
-Write the manifest to `/tmp/cfn-dry-review-<timestamp>.json`:
+Resolve the project-scoped manifest directory first:
+
+```bash
+MANIFEST_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.cfn-cache/manifests"
+mkdir -p "$MANIFEST_DIR"
+# Ensure .cfn-cache/ is gitignored at project root
+GITIGNORE="$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.gitignore"
+grep -qxE '\.cfn-cache/?' "$GITIGNORE" 2>/dev/null || printf '\n# CFN local cache\n.cfn-cache/\n' >> "$GITIGNORE"
+TS=$(date +%s%N 2>/dev/null || echo "$(date +%s)-$$")
+MANIFEST_PATH="${MANIFEST_DIR}/cfn-dry-review-${TS}.json"
+```
+
+Write the manifest to `${MANIFEST_PATH}`:
 
 ```json
 {
@@ -102,7 +114,7 @@ By category:
 By impact:
   High: <n>  Medium: <n>  Low: <n>
 
-Manifest: /tmp/cfn-dry-review-<timestamp>.json
+Manifest: ${MANIFEST_PATH}
 
 Next: /cfn-vote-implement latest
 ```

@@ -12,18 +12,22 @@ status: production
 
 ## Inputs
 
-- `$1`: Path to a review manifest JSON, or `latest` to use the most recent manifest in `/tmp/`
+- `$1`: Path to a review manifest JSON, or `latest` to use the most recent manifest in `<project-root>/.cfn-cache/manifests/`
 - `--dry-run`: Show what would happen without implementing anything
 
 ### Accepted Manifest Sources
 
-Any skill emitting the shared manifest schema works. Discovery glob for `latest`:
+Any skill emitting the shared manifest schema works. Manifests live under
+`<project-root>/.cfn-cache/manifests/` (auto-gitignored). Discovery glob for `latest`:
 ```
-/tmp/cfn-dry-review-*.json          # cfn-dry-review
-/tmp/cfn-review-alpha-*.json         # cfn-alpha-launch (v1)
-/tmp/cfn-review-alpha-v2-*.json      # cfn-alpha-launch-v2
+.cfn-cache/manifests/cfn-dry-review-*.json          # cfn-dry-review
+.cfn-cache/manifests/cfn-review-alpha-*.json         # cfn-alpha-launch (v1)
+.cfn-cache/manifests/cfn-review-alpha-v2-*.json      # cfn-alpha-launch-v2
 ```
 Pick the most recent by mtime. Manifest's `source` field (if present) records the producing skill.
+
+Filenames include nanosecond-precision timestamps to prevent collisions on rapid-fire runs.
+Legacy `/tmp/cfn-*.json` paths are checked only as a fallback during transition.
 
 ## Outputs
 
@@ -92,7 +96,7 @@ The manifest tracks processing state. If interrupted:
 /cfn-vote-implement latest
 
 # Vote on a specific manifest
-/cfn-vote-implement /tmp/cfn-dry-review-1712345678.json
+/cfn-vote-implement .cfn-cache/manifests/cfn-dry-review-1712345678000000000.json
 
 # Preview without implementing
 /cfn-vote-implement latest --dry-run

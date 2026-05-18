@@ -32,10 +32,14 @@
 #
 # Defaults:
 #   --source: auto-detected from path (cfn-alpha-launch vs cfn-alpha-launch-v2)
-#   --out:    /tmp/cfn-review-alpha-<ts>.json (v1) or
-#             /tmp/cfn-review-alpha-v2-<PRIORITY>-<ts>.json (v2)
+#   --out:    <project-root>/.cfn-cache/manifests/cfn-review-alpha-<ts>.json (v1) or
+#             <project-root>/.cfn-cache/manifests/cfn-review-alpha-v2-<PRIORITY>-<ts>.json (v2)
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../../cfn-utilities/lib/manifest-path.sh
+source "${SCRIPT_DIR}/../../cfn-utilities/lib/manifest-path.sh"
 
 if ! command -v jq >/dev/null 2>&1; then
     echo "ERROR: jq required but not installed" >&2
@@ -83,15 +87,20 @@ if [[ "$BASENAME" =~ fix-list-(CRITICAL|HIGH|MEDIUM|LOW) ]]; then
     GROUP_PRIORITY="${BASH_REMATCH[1]}"
 fi
 
-TS=$(date +%s)
+# Nanosecond-precision timestamp avoids collisions on same-second invocations.
+# date may not support %N (e.g. BSD); fall back to seconds + PID.
+TS=$(date +%s%N 2>/dev/null)
+if [[ -z "$TS" || "$TS" == *N ]]; then
+    TS="$(date +%s)-$$"
+fi
 ISO_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 REVIEW_ID="alpha-review-${TS}"
 
 if [[ -z "$OUT_PATH" ]]; then
     if [[ -n "$GROUP_PRIORITY" ]]; then
-        OUT_PATH="/tmp/cfn-review-alpha-v2-${GROUP_PRIORITY}-${TS}.json"
+        OUT_PATH=$(cfn_manifest_path "cfn-review-alpha-v2-${GROUP_PRIORITY}-${TS}.json")
     else
-        OUT_PATH="/tmp/cfn-review-alpha-${TS}.json"
+        OUT_PATH=$(cfn_manifest_path "cfn-review-alpha-${TS}.json")
     fi
 fi
 
