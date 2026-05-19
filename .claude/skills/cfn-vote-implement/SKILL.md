@@ -1,7 +1,7 @@
 ---
 name: cfn-vote-implement
-description: "MUST BE USED after cfn-dry-review or cfn-alpha-launch:manifest produces a manifest. Do not manually implement code review suggestions - always route through this skill for consensus. 3-agent specialized voting on code review suggestions. Unanimous items auto-implemented with TDD. Split votes surfaced to user."
-version: 1.1.0
+description: "MUST BE USED after cfn-dry-review or cfn-alpha-launch:manifest produces a manifest. Also the verification phase of /cfn-loop-task. Do not manually implement code review suggestions - always route through this skill. 3-agent specialized voting. Unanimous (3/3) auto-implemented with TDD. 2/3 routed to product-owner agent. 1/3 surfaced to user via AskUserQuestion (batched 4 per call, at end)."
+version: 2.0.0
 tags: [voting, consensus, TDD, implementation, code-review]
 status: production
 ---
@@ -49,13 +49,14 @@ Legacy `/tmp/cfn-*.json` paths are checked only as a fallback during transition.
 2. Each agent independently votes YES/NO per suggestion with 1-2 sentence reasoning
 3. Votes are collected and tallied per suggestion:
 
-| Votes | Action |
-|-------|--------|
-| 3 YES | Auto-implement via subagent with full TDD |
-| 1-2 YES | Surface to user with AskUserQuestion. Present each agent's reasoning. One decision per question. |
-| 0 YES | Skip silently |
+| Votes (YES) | Action | Timing |
+|-------------|--------|--------|
+| **3/3** | Auto-implement via subagent with full TDD | Inline during vote pass |
+| **2/3** | Spawn `product-owner` agent (GOAP) to decide IMPLEMENT / DEFER / REJECT | Inline during vote pass |
+| **1/3** | Queue for batched user decision | Surfaced at end (after all 3/3 and 2/3 resolved) |
+| **0/3** | Skip silently | n/a |
 
-## Implementation Protocol (3-vote items)
+## Implementation Protocol (3/3 items)
 
 Implemented sequentially (not parallel) since earlier changes affect later ones:
 
@@ -65,22 +66,56 @@ Implemented sequentially (not parallel) since earlier changes affect later ones:
 4. Run existing test suite to catch regressions
 5. Move to next item
 
-## User Decision Format (1-2 vote items)
+## 2/3 Routing: Product Owner Agent
 
-Each split-vote item is presented as a single question:
+Spawn the `product-owner` agent (GOAP planner) one item at a time. Pass:
+
+- The suggestion text + location
+- The two YES votes (lens + reasoning)
+- The one NO vote (lens + reasoning)
+- Current project scope and any active epic context
+
+Product Owner returns one of:
+
+| Decision | Action |
+|----------|--------|
+| `IMPLEMENT` | Apply now via TDD protocol (same as 3/3) |
+| `DEFER` | Log to backlog (`docs/BACKLOG.md`), do not implement |
+| `REJECT` | Skip; mark manifest item `status: rejected` with PO reasoning |
+
+The Product Owner is the ONLY decision maker for 2/3 items. Do not surface 2/3 items to the user.
+
+## 1/3 Routing: Batched User Prompts
+
+1/3 items accumulate during the vote pass. After every 3/3 and 2/3 item is resolved, surface them to the user.
+
+**Batch protocol:**
+- 4 questions per `AskUserQuestion` call (the tool's maximum)
+- One decision per question
+- Options per question: `Apply`, `Skip`, `Defer to backlog`
+- Question body lists all three vote reasonings so the user understands the split
+
+**Example question (one of 4 in a batch):**
 
 ```
-Suggestion S003: Extract shared validation logic from auth.ts and billing.ts
+Suggestion S007: Extract shared validation logic from auth.ts and billing.ts
 
-Votes: 2/3 (Correctness: YES, Value: YES, Feasibility: NO)
+Votes: 1/3 (Correctness: YES, Consistency: NO, Feasibility: NO)
 
 Reasoning:
-- Correctness: "Both files duplicate the same email regex and null checks. Extracting prevents future drift."
-- Consistency: "The codebase already uses a shared validators/ directory for cross-module validation. This fits that pattern."
-- Feasibility: "The two validators have subtly different error return types. Unifying requires a breaking change to billing's error contract."
+- Correctness (YES): "Both files duplicate the same email regex and null checks. Extracting prevents future drift."
+- Consistency (NO): "Project convention prefers in-file validation; a shared module would be the only one of its kind."
+- Feasibility (NO): "The two validators have subtly different error return types. Unifying requires a breaking change to billing's error contract."
 
-Implement this suggestion? (yes/no)
+Apply / Skip / Defer to backlog?
 ```
+
+After each batch returns:
+- `Apply` items: implement via TDD protocol immediately
+- `Skip` items: mark `status: skipped`
+- `Defer to backlog` items: append to `docs/BACKLOG.md`
+
+Continue batching until 1/3 queue is empty.
 
 ## Manifest Resumability
 

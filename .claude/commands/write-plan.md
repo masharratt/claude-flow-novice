@@ -8,7 +8,7 @@ allowed-tools: ["Task", "TodoWrite", "Read", "Write", "Bash"]
 
 Generate structured implementation plan BEFORE executing CFN Loop. Outputs plan document for review.
 
-🎯 **Use this BEFORE /cfn-loop-cli or /cfn-loop-task**
+🎯 **Use this BEFORE /cfn-loop-task** (standard CFN Loop execution)
 
 **Task**: $ARGUMENTS
 
@@ -23,13 +23,14 @@ Generate structured implementation plan BEFORE executing CFN Loop. Outputs plan 
 4. Creates implementation roadmap (sourced from ARCH components and PSEUDO operations when present)
 5. Outputs plan document for approval
 
-**Then run:**
+**Then run (standard CFN Loop, subscription-backed):**
 ```bash
 # After reviewing plan
-/cfn-loop-cli "Implement JWT authentication" --mode=standard
-# OR
 /cfn-loop-task "Implement JWT authentication" --mode=standard
 ```
+
+Standard mode = full epic implementation, then vote-based verification via `cfn-vote-implement`.
+Use `/cfn-loop-cli` only when external API billing required (e.g. delegating to non-Claude providers).
 
 ## Command Options
 
@@ -213,10 +214,8 @@ Task("planner", `
 ## Next Steps
 
 1. Review this plan
-2. Execute CFN Loop:
+2. Execute CFN Loop (standard, subscription-backed):
    \`\`\`bash
-   /cfn-loop-cli "$ARGUMENTS" --mode=${mode}
-   # OR for debugging:
    /cfn-loop-task "$ARGUMENTS" --mode=${mode}
    \`\`\`
 ```
@@ -236,8 +235,8 @@ console.log(`- Loop 2 Validators: ${loop2Agents.length}`);
 console.log(`- Test Cases: ${testCases.length}`);
 console.log(`- Success Criteria: ${successCriteria.length}`);
 console.log('');
-console.log('Next: Review plan, then execute CFN Loop');
-console.log(`/cfn-loop-cli "$ARGUMENTS" --mode=${mode}`);
+console.log('Next: Review plan, then execute CFN Loop (standard)');
+console.log(`/cfn-loop-task "$ARGUMENTS" --mode=${mode}`);
 ```
 
 ## Integration with CFN Loop
@@ -261,11 +260,10 @@ console.log(`/cfn-loop-cli "$ARGUMENTS" --mode=${mode}`);
 3.  Human reviews plan (optional)
     ↓ Approve or request changes
 
-4.  /cfn-loop-cli "Task description" --mode=standard
-    ↓ Executes implementation following plan
-
-5.  CFN Loop autonomously implements following TDD phases
-    ↓ 3-strike failure → /cfn-goap-plan replan mode
+4.  /cfn-loop-task "Task description" --mode=standard
+    ↓ Full epic implementation (TDD, subscription-backed)
+    ↓ Then vote-based verification via cfn-vote-implement
+    ↓ Unanimous fixes auto-implemented; 2/3 → product-owner decides; 1/3 → batched user prompts at end
 ```
 
 ## Mode Comparison
@@ -290,8 +288,8 @@ Analyzing task...
 - Test Cases: 8
 - Success Criteria: 6
 
-Next: Review plan, then execute CFN Loop
-/cfn-loop-cli "Implement JWT authentication" --mode=standard
+Next: Review plan, then execute CFN Loop (standard)
+/cfn-loop-task "Implement JWT authentication" --mode=standard
 ```
 
 ## Best Practices
@@ -303,13 +301,13 @@ Next: Review plan, then execute CFN Loop
 - ✅ Learning CFN Loop workflow
 
 **When to Skip:**
-- Simple bug fixes (go straight to /cfn-loop-cli)
+- Simple bug fixes (go straight to /cfn-loop-task)
 - Urgent hotfixes (no time for planning)
 - Well-understood patterns (agent knows what to do)
 
 ## Related Commands
 
-- **Execute Plan**: `/cfn-loop-cli` (production) or `/cfn-loop-task` (debugging)
+- **Execute Plan**: `/cfn-loop-task` (standard, subscription-backed). `/cfn-loop-cli` only for external-API delegation.
 - **Document Results**: `/cfn-loop-document` (after completion)
 
 ---
