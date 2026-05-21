@@ -117,7 +117,7 @@ docker build -f docker/Dockerfile.agent -t cfn-agent:latest .
 - **Method**: rsync to `/tmp/cfn-build` (Linux native), build there, return image
 - **Impact**: WSL2 Windows mount I/O is catastrophically slow for Docker context transfer
 
-**See:** CLAUDE.md lines 60-90 for complete Docker Build Requirements
+**See:** `~/.claude/rules/code-quality.md` § Docker & Build for complete Docker Build Requirements
 
 ---
 

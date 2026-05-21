@@ -12,22 +12,7 @@ This project is the source of truth for CFN infrastructure. `~/.claude/` dirs ar
 
 ## Reverse Symlinks (`~/.claude/` → project)
 
-| `~/.claude/` Symlink | Points To (project source) | Purpose |
-|-----------------------|---------------------------|---------|
-| `~/.claude/skills/` | `.claude/skills/` | All CFN skills (universal) |
-| `~/.claude/hooks/` | `.claude/hooks/` | All CFN hooks (universal) |
-| `~/.claude/commands/` | `.claude/commands/` | All CFN commands (universal) |
-| `~/.claude/agents/cfn-dev-team/` | `.claude/agents/cfn-dev-team/` | CFN agent profiles (universal) |
-| `~/.claude/core/` | `.claude/core/` | Core libraries (universal) |
-| `~/.claude/helpers/` | `.claude/helpers/` | Helper scripts (universal) |
-| `~/.claude/cfn-config/` | `.claude/cfn-config/` | CFN configuration (universal) |
-| `~/.claude/cfn-data/` | `.claude/cfn-data/` | CFN data files (universal) |
-| `~/.claude/cfn-extras/` | `.claude/cfn-extras/` | CFN extras (universal) |
-| `~/.claude/cfn-scripts/` | `.claude/cfn-scripts/` | CFN scripts (universal) |
-| `~/.claude/adaptive-context/` | `.claude/adaptive-context/` | Adaptive context (universal) |
-| `~/.claude/agent-principles/` | `.claude/agent-principles/` | Agent principles (universal) |
-| `~/.claude/prompts/` | `.claude/prompts/` | Prompts (universal) |
-| `~/.claude/tooling/` | `.claude/tooling/` | Tooling (universal) |
+Each `~/.claude/<dir>/` is a reverse symlink to `.claude/<dir>/` in this project, so all projects share one source. Symlinked dirs: `skills/`, `hooks/`, `commands/`, `agents/cfn-dev-team/`, `core/`, `helpers/`, `cfn-config/`, `cfn-data/`, `cfn-extras/`, `cfn-scripts/`, `adaptive-context/`, `agent-principles/`, `prompts/`, `tooling/`.
 
 ### Project-Local (not symlinked)
 
