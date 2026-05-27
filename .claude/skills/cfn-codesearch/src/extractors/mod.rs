@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 pub mod rust;
 pub mod typescript;
+pub mod python;
 pub mod text_fallback;
 
 /// Create a Rust extractor instance
@@ -20,6 +21,11 @@ pub fn create_rust_extractor() -> Result<rust::RustExtractor> {
 /// Create a TypeScript extractor instance
 pub fn create_typescript_extractor() -> Result<typescript::TypeScriptExtractor> {
     typescript::TypeScriptExtractor::new()
+}
+
+/// Create a Python extractor instance
+pub fn create_python_extractor() -> Result<python::PythonExtractor> {
+    python::PythonExtractor::new()
 }
 
 /// Create a text fallback extractor instance

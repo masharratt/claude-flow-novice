@@ -59,6 +59,7 @@ use crate::sqlite_store::SqliteStore;
 use crate::extractors::{Extractor, ExtractionResult, Entity, Reference};
 use crate::extractors::rust::RustExtractor;
 use crate::extractors::typescript::TypeScriptExtractor;
+use crate::extractors::python::PythonExtractor;
 use crate::extractors::text_fallback::TextFallbackExtractor;
 use crate::store_v2::{StoreV2, Entity as StoreEntity, Reference as StoreReference, TypeUsage};
 use crate::schema_v2::{EntityKind, RefKind, Visibility};
@@ -268,6 +269,7 @@ pub struct IndexCommand {
     tokio_runtime: Option<tokio::runtime::Runtime>,
     rust_extractor: RustExtractor,
     typescript_extractor: TypeScriptExtractor,
+    python_extractor: PythonExtractor,
     text_fallback_extractor: TextFallbackExtractor,
 }
 
@@ -457,6 +459,7 @@ impl IndexCommand {
             tokio_runtime,
             rust_extractor: RustExtractor::new()?,
             typescript_extractor: TypeScriptExtractor::new()?,
+            python_extractor: PythonExtractor::new()?,
             text_fallback_extractor: TextFallbackExtractor::new()?,
         })
     }
@@ -889,6 +892,10 @@ impl IndexCommand {
                 let mut extractor = self.typescript_extractor.clone();
                 extractor.extract(&file_path.to_string_lossy(), content)?
             },
+            "python" => {
+                let mut extractor = self.python_extractor.clone();
+                extractor.extract(&file_path.to_string_lossy(), content)?
+            },
             "text" => {
                 // Use text fallback extractor for non-code files
                 let mut extractor = self.text_fallback_extractor.clone();
@@ -912,6 +919,7 @@ impl IndexCommand {
                 "js" => Ok("javascript".to_string()),
                 "tsx" => Ok("typescript".to_string()),
                 "jsx" => Ok("javascript".to_string()),
+                "py" => Ok("python".to_string()),
                 // Text-based file types
                 "json" | "yaml" | "yml" | "md" | "markdown" | "sh" | "bash" | "txt" | "config" | "conf" | "env" => {
                     Ok("text".to_string())
