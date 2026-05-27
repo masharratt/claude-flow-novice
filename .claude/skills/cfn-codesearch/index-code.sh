@@ -11,7 +11,7 @@ PATH_TO_INDEX="."
 FILE_TYPES="ts,tsx,js,jsx,py,sh,sql,rs"
 HELP=false
 QDRANT_URL="${CODESEARCH_QDRANT_URL:-http://localhost:6334}"
-MEMGRAPH_URL="${CODESEARCH_MEMGRAPH_URL:-bolt://localhost:7687}"
+MEMGRAPH_URL="${CODESEARCH_MEMGRAPH_URL:-bolt://localhost:7689}"
 MEMGRAPH_USER="${CODESEARCH_MEMGRAPH_USER:-}"
 MEMGRAPH_PASSWORD="${CODESEARCH_MEMGRAPH_PASSWORD:-}"
 SKIP_QDRANT=false
@@ -121,8 +121,22 @@ else
     [[ -n "$MEMGRAPH_PASSWORD" ]] && EXTRA_ARGS="$EXTRA_ARGS --memgraph-password $MEMGRAPH_PASSWORD"
 fi
 
-# Run the indexer
-$BINARY $EXTRA_ARGS index --path "$PATH_TO_INDEX" --types "$FILE_TYPES"
+# Run the indexer under a hard timeout. If a backend (qdrant/memgraph) is
+# unreachable the client blocks forever — timeout kills it instead of hanging.
+# 30min is generous for a manual whole-project index; override via INDEX_TIMEOUT.
+INDEX_TIMEOUT="${INDEX_TIMEOUT:-1800}"
+# --project-dir tags entities' project_root. Must equal the indexed path, else
+# rows get tagged with the caller's cwd and /codebase-search (which filters by
+# project_root) can't find them.
+if ! timeout --signal=KILL "$INDEX_TIMEOUT" $BINARY --project-dir "$PATH_TO_INDEX" $EXTRA_ARGS index --path "$PATH_TO_INDEX" --types "$FILE_TYPES"; then
+    rc=$?
+    if [ "$rc" = "137" ]; then
+        echo "❌ Indexing TIMED OUT after ${INDEX_TIMEOUT}s — check backends: docker ps | grep codesearch"
+    else
+        echo "❌ Indexing failed (rc=$rc)"
+    fi
+    exit "$rc"
+fi
 
 echo ""
 echo "✅ Indexing complete!"
