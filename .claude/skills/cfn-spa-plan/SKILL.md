@@ -1,6 +1,6 @@
 ---
 name: cfn-spa-plan
-description: "SPARC orchestrator. Auto-chains Specification, Pseudocode, and Architecture phases (cfn-spec + cfn-pseudo + cfn-arch) to produce a complete SPA artifact bundle BEFORE /write-plan or plan mode. Use as the entry point for non-trivial work to lock intent and catch edge cases early."
+description: "SPARC orchestrator. Auto-chains cfn-spec + cfn-pseudo + cfn-arch into one SPA artifact bundle BEFORE /write-plan or plan mode. Use as entry point for non-trivial work to lock intent, catch edge cases early."
 version: 1.0.0
 tags: [planning, sparc, orchestrator, spec, pseudo, arch]
 status: production
@@ -34,7 +34,7 @@ status: production
 /cfn-plan-review     <- blast radius + dependency trace
    |
    v
-/cfn-loop-cli        <- execution
+/cfn-loop-task       <- execution (default; /cfn-loop-cli only for external-API)
 ```
 
 ## Protocol
@@ -128,7 +128,7 @@ Write `planning/SPA_SUMMARY_<sanitized>.md`:
 
 ## Next Step
 Run: /write-plan "<task>" --mode=<inferred-mode>
-(Then: /cfn-plan-review, then /cfn-loop-cli)
+(Then: /cfn-plan-review, then /cfn-loop-task)
 ```
 
 ### Step 5: Hand-off to /write-plan
@@ -165,6 +165,6 @@ Tell user the bundle is ready. `/write-plan` should be invoked with the SPA arti
 ## Related
 
 - Phases: `cfn-spec`, `cfn-pseudo`, `cfn-arch`
-- Downstream: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-cli`
+- Downstream: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)
 - Replanning: `/cfn-goap-plan` (replan mode, post 3-strike)
 - Decision log: `~/.claude/skills/decision-log/` (referenced by cfn-plan-review)

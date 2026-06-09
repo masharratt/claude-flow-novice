@@ -64,9 +64,9 @@ Need to automate something?
 ├─ Complex logic (conditionals, events, parallel)?
 │  └─ Create WORKFLOW (YAML via /workflow)
 └─ CFN Loop execution?
-   ├─ Planning first? → /write-plan then /cfn-loop-cli
-   ├─ Production? → /cfn-loop-cli
-   ├─ Debugging? → /cfn-loop-task
+   ├─ Planning first? → /write-plan then /cfn-loop-task
+   ├─ Default? → /cfn-loop-task (subscription-backed, full visibility)
+   ├─ External-API delegation? → /cfn-loop-cli (cost-optimized)
    └─ Frontend? → /cfn-loop-frontend
 ```
 

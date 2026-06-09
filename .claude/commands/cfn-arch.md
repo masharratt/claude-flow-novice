@@ -1,5 +1,5 @@
 ---
-description: "SPARC Architecture phase. DRY audit, component boundaries, typed interface contracts. Requires prior /cfn-spec; /cfn-pseudo recommended."
+description: "SPARC Architecture phase. Define component boundaries, interface contracts, integration points, DRY reuse BEFORE implementation. Use after cfn-spec and cfn-pseudo to lock structure, catch integration mismatches early."
 argument-hint: "<task description>"
 allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 ---
@@ -47,4 +47,4 @@ Spawn the `system-architect` agent (`.claude/agents/cfn-dev-team/architecture/sy
 ## Next steps
 
 - `/write-plan "$ARGUMENTS"` (auto-consumes SPA bundle)
-- Then: `/cfn-plan-review` → `/cfn-loop-cli`
+- Then: `/cfn-plan-review` → `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)

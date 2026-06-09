@@ -6,8 +6,8 @@ description: Toggle CFN Loop v3 spawning mode (cli vs task) for cost optimizatio
 Toggle between CLI spawning (cost-optimized, Z.ai routing) and Task spawning (simplified, full visibility).
 
 **Usage:**
-/cfn-mode cli      # Enable CLI spawning (default, 95-98% savings)
-/cfn-mode task     # Enable Task spawning (debugging, full visibility)
+/cfn-mode cli      # Enable CLI spawning (95-98% savings; external-API delegation)
+/cfn-mode task     # Enable Task spawning (default, full visibility, subscription-backed)
 /cfn-mode status   # Show current mode
 
 **Current Mode:**

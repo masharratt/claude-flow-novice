@@ -1,5 +1,5 @@
 ---
-description: "SPARC Specification phase. Generate testable acceptance criteria, edge cases, pre/post conditions for a task BEFORE design."
+description: "SPARC Specification phase. Make testable acceptance criteria, edge cases, pre/post conditions, invariants BEFORE planning implementation. Use when starting any non-trivial task to lock intent, surface ambiguity early."
 argument-hint: "<task description>"
 allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 ---
@@ -33,4 +33,4 @@ Spawn the `specification-agent` (defined in `.claude/agents/cfn-dev-team/sparc/s
 
 - For full design: `/cfn-pseudo "$ARGUMENTS"` then `/cfn-arch "$ARGUMENTS"`
 - Or chain all three: `/cfn-spa-plan "$ARGUMENTS"`
-- Then: `/write-plan` → `/cfn-plan-review` → `/cfn-loop-cli`
+- Then: `/write-plan` → `/cfn-plan-review` → `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)

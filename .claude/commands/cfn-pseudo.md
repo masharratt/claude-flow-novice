@@ -1,5 +1,5 @@
 ---
-description: "SPARC Pseudocode phase. Trace algorithm logic, enumerate branches, map branch coverage to acceptance criteria. Requires prior /cfn-spec output."
+description: "SPARC Pseudocode phase. Trace logic, enumerate branches, find failure paths, verify branch coverage BEFORE writing real code. Use after cfn-spec to catch logic gaps before implementation."
 argument-hint: "<task description>"
 allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 ---
@@ -45,4 +45,4 @@ Spawn the `pseudocode` agent (defined in `.claude/agents/cfn-dev-team/sparc/pseu
 
 - `/cfn-arch "$ARGUMENTS"` for component design
 - Or finish chain: `/cfn-spa-plan` re-orchestrates if used standalone
-- Then: `/write-plan` → `/cfn-plan-review` → `/cfn-loop-cli`
+- Then: `/write-plan` → `/cfn-plan-review` → `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)

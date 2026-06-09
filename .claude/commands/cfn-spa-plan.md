@@ -1,5 +1,5 @@
 ---
-description: "SPARC orchestrator: auto-chain cfn-spec + cfn-pseudo + cfn-arch BEFORE /write-plan. Surfaces edge cases, branch gaps, and DRY violations early."
+description: "SPARC orchestrator. Auto-chains cfn-spec + cfn-pseudo + cfn-arch into one SPA artifact bundle BEFORE /write-plan or plan mode. Use as entry point for non-trivial work to lock intent, catch edge cases early."
 argument-hint: "<task description>"
 allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 ---
@@ -41,7 +41,7 @@ Then follow Steps 0–5 of `.claude/skills/cfn-spa-plan/SKILL.md` exactly.
    ↓
 /cfn-plan-review    <- blast radius + dependency trace
    ↓
-/cfn-loop-cli       <- execution
+/cfn-loop-task      <- execution (default; /cfn-loop-cli only for external-API)
 ```
 
 ## Skip rules
@@ -52,4 +52,4 @@ Do not run for: single-line fixes, pure renames, bug fixes with existing reprodu
 
 - Phases: `/cfn-spec`, `/cfn-pseudo`, `/cfn-arch`
 - Skill source: `.claude/skills/cfn-spa-plan/SKILL.md`
-- Next: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-cli`
+- Next: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)
