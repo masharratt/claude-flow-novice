@@ -1,0 +1,328 @@
+{
+  "video_summary": "Zapier workflow editor connecting a Gravity Forms WordPress submission to Bloomerang CRM. The narrator wants to replace the flaky Gravity Forms trigger with a webhook and standardize the downstream Bloomerang steps (Split PKU, Find Constituent, Create Interaction, Update Address) into a reusable subzap used across multiple forms.",
+  "screens": [
+    {
+      "id": "s1",
+      "name": "Zap Editor - Mailing List Workflow",
+      "t_start": "00:00",
+      "t_end": "00:10",
+      "purpose": "Main automation canvas showing the full 5-step workflow and the expired Gravity Forms connection error.",
+      "ui_elements": [
+        {
+          "type": "card",
+          "label": "1. Form Data - Gravity Forms",
+          "location": "main",
+          "state": "active",
+          "behavior": "Trigger step; currently in error state requiring reconnection."
+        },
+        {
+          "type": "card",
+          "label": "2. Split PKU Connection - Formatter by Zapier",
+          "location": "main",
+          "state": "default",
+          "behavior": "Transforms the PKU relationship value into two separate IDs."
+        },
+        {
+          "type": "card",
+          "label": "3. Find Constituent - Bloomerang",
+          "location": "main",
+          "state": "default",
+          "behavior": "Looks up or creates a Bloomerang constituent."
+        },
+        {
+          "type": "card",
+          "label": "4. Create Interaction - Bloomerang",
+          "location": "main",
+          "state": "default",
+          "behavior": "Creates an interaction record in Bloomerang."
+        },
+        {
+          "type": "card",
+          "label": "5. Update Constituent - Add Address - Bloomerang",
+          "location": "main",
+          "state": "default",
+          "behavior": "Fallback step to ensure the constituent address is written."
+        },
+        {
+          "type": "other",
+          "label": "Status: Cannot publish Zap - Please reconnect this account",
+          "location": "sidebar",
+          "state": "error",
+          "behavior": "Blocking alert that prevents publishing until the Gravity Forms account is reconnected."
+        }
+      ],
+      "narration": "The Gravity Forms to Zapier connection keeps breaking and needs to be replaced with a webhook trigger."
+    },
+    {
+      "id": "s2",
+      "name": "Gravity Forms Admin - Relationship to PKU Values",
+      "t_start": "00:10",
+      "t_end": "00:25",
+      "purpose": "WordPress Gravity Forms field editor showing the numeric IDs passed for the PKU relationship dropdown.",
+      "ui_elements": [
+        {
+          "type": "dropdown",
+          "label": "Relationship to PKU (Required)",
+          "location": "main",
+          "state": "active",
+          "behavior": "Form field with predefined choices."
+        },
+        {
+          "type": "table",
+          "label": "Choices: Label / Value pairs",
+          "location": "main",
+          "state": "default",
+          "behavior": "Shows hidden values sent to Zapier; e.g., 'I have PKU' maps to 19480.981853185 (constituent ID), 'My child has PKU' maps to 19490.665277485 (interaction ID), etc."
+        }
+      ],
+      "narration": "The form values being passed include two different PKU relationship IDs—one for the constituent record and one for the interaction record."
+    },
+    {
+      "id": "s3",
+      "name": "Zapier Step Config - Find Constituent",
+      "t_start": "00:25",
+      "t_end": "01:15",
+      "purpose": "Configuration panel for the Bloomerang Find Constituent step showing field mappings and upsert behavior.",
+      "ui_elements": [
+        {
+          "type": "toggle",
+          "label": "Create Bloomerang Constituent if it doesn't exist yet?",
+          "location": "main",
+          "state": "active",
+          "behavior": "When enabled, performs an upsert (creates if not found)."
+        },
+        {
+          "type": "input",
+          "label": "First Name",
+          "location": "main",
+          "state": "default",
+          "behavior": "Mapped from Gravity Forms submission data."
+        },
+        {
+          "type": "input",
+          "label": "Last Name",
+          "location": "main",
+          "state": "default",
+          "behavior": "Mapped from Gravity Forms submission data."
+        },
+        {
+          "type": "input",
+          "label": "Email",
+          "location": "main",
+          "state": "default",
+          "behavior": "Mapped from Gravity Forms submission data."
+        },
+        {
+          "type": "input",
+          "label": "Primary Address Street / City / State / ZIP",
+          "location": "main",
+          "state": "default",
+          "behavior": "Mapped from Gravity Forms address fields."
+        }
+      ],
+      "narration": "This step upserts a constituent if they don't already exist; the data structure is nearly identical across all Zaps."
+    },
+    {
+      "id": "s4",
+      "name": "Zapier Step Config - Create Interaction",
+      "t_start": "01:15",
+      "t_end": "02:40",
+      "purpose": "Configuration panel for the Bloomerang Create Interaction step, highlighting required address fields and fallback logic.",
+      "ui_elements": [
+        {
+          "type": "dropdown",
+          "label": "Channel",
+          "location": "main",
+          "state": "default",
+          "behavior": "Set to Website."
+        },
+        {
+          "type": "toggle",
+          "label": "Initiated by Constituent?",
+          "location": "main",
+          "state": "active",
+          "behavior": "Set to True."
+        },
+        {
+          "type": "input",
+          "label": "Address / City / State / Zip",
+          "location": "main",
+          "state": "default",
+          "behavior": "Required for interaction creation; mapped from form data."
+        },
+        {
+          "type": "input",
+          "label": "Connection to PKU",
+          "location": "main",
+          "state": "default",
+          "behavior": "Uses the second ID output from the Split PKU Formatter step."
+        },
+        {
+          "type": "input",
+          "label": "Comments",
+          "location": "main",
+          "state": "default",
+          "behavior": "Mapped from form comments."
+        }
+      ],
+      "narration": "Interaction creation fails if there is no address. When the form doesn't require an address, the step should fall back to the constituent's primary address already in Bloomerang."
+    },
+    {
+      "id": "s5",
+      "name": "Zapier Dashboard & Workflows List",
+      "t_start": "02:40",
+      "t_end": "03:15",
+      "purpose": "Navigate and review all Zaps that need the same standardization.",
+      "ui_elements": [
+        {
+          "type": "nav",
+          "label": "Zaps",
+          "location": "sidebar",
+          "state": "active",
+          "behavior": "Navigates to the Zap workflows list."
+        },
+        {
+          "type": "table",
+          "label": "Zap workflows",
+          "location": "main",
+          "state": "default",
+          "behavior": "Lists all automations: True PKU, Contact Us, Mailing List, Volunteer Program, Request Support Kit, Mentor Program, Community Conference Contact Form, etc."
+        },
+        {
+          "type": "toggle",
+          "label": "Status toggle per Zap",
+          "location": "main",
+          "state": "default",
+          "behavior": "Enables or disables each workflow."
+        }
+      ],
+      "narration": "Need to standardize the subzap across all listed Zaps except True PKU, which has a slightly different setup."
+    }
+  ],
+  "conditional_logic": [
+    {
+      "id": "c1",
+      "trigger": "Step 3 (Find Constituent) runs",
+      "condition": "Bloomerang constituent does not already exist",
+      "action": "Create a new Bloomerang Constituent (upsert)",
+      "affected_screens": [
+        "s3"
+      ],
+      "t": "01:01",
+      "narration_quote": "this will upsert someone, if they're not already existing"
+    },
+    {
+      "id": "c2",
+      "trigger": "Step 4 (Create Interaction) runs",
+      "condition": "Address is not provided in the form submission AND constituent record has a primary address",
+      "action": "Use the constituent's primary address as the fallback for the interaction address fields",
+      "affected_screens": [
+        "s4"
+      ],
+      "t": "01:55",
+      "narration_quote": "we can use the address fallback address from the constituent if they're already present"
+    },
+    {
+      "id": "c3",
+      "trigger": "Step 4 (Create Interaction) runs",
+      "condition": "No address is available from the form or from the constituent fallback",
+      "action": "Interaction creation fails",
+      "affected_screens": [
+        "s4"
+      ],
+      "t": "01:52",
+      "narration_quote": "Interaction will fail if there is no address"
+    },
+    {
+      "id": "c4",
+      "trigger": "Mapping data into standardized subzap",
+      "condition": "Incoming webhook field does not match the standardized subzap input schema",
+      "action": "Map the unmatched field into a blank/placeholder field",
+      "affected_screens": [
+        "s1"
+      ],
+      "t": "00:33",
+      "narration_quote": "if it's not, we can map it in and just like put it in a blank"
+    },
+    {
+      "id": "c5",
+      "trigger": "Form submission includes Relationship to PKU value",
+      "condition": "Raw value contains two numeric IDs separated for different record types",
+      "action": "Formatter splits into two outputs; first ID feeds constituent mapping, second ID feeds interaction mapping",
+      "affected_screens": [
+        "s1",
+        "s2"
+      ],
+      "t": "01:30",
+      "narration_quote": "that's what this split PKU does... the first one is the constituent, the second one is the interaction"
+    }
+  ],
+  "data_model": [
+    {
+      "entity": "FormSubmission",
+      "fields": [
+        "first_name",
+        "last_name",
+        "email",
+        "address_street",
+        "address_city",
+        "address_state",
+        "address_zip",
+        "phone",
+        "relationship_to_pku",
+        "comments",
+        "preferred_contact_method"
+      ],
+      "notes": "Originates from Gravity Forms via webhook. relationship_to_pku carries two embedded IDs."
+    },
+    {
+      "entity": "Constituent",
+      "fields": [
+        "first_name",
+        "last_name",
+        "email",
+        "primary_address_street",
+        "primary_address_city",
+        "primary_address_state",
+        "primary_address_zip",
+        "primary_email",
+        "primary_phone",
+        "pku_relationship_id"
+      ],
+      "notes": "Upserted via Find Constituent step; serves as fallback address source for interactions."
+    },
+    {
+      "entity": "Interaction",
+      "fields": [
+        "date",
+        "subject",
+        "purpose",
+        "channel",
+        "initiated_by_constituent",
+        "note",
+        "address_street",
+        "address_city",
+        "address_state",
+        "address_zip",
+        "connection_to_pku_id",
+        "comments"
+      ],
+      "notes": "Created after Find Constituent. Address fields are required; must fallback to constituent address if form address missing."
+    }
+  ],
+  "integrations": [
+    {
+      "name": "Gravity Forms (WordPress)",
+      "purpose": "Source form submissions; native Zapier integration is unstable and being replaced by webhook."
+    },
+    {
+      "name": "Zapier Formatter",
+      "purpose": "Splits the composite PKU relationship ID into constituent-level and interaction-level IDs."
+    },
+    {
+      "name": "Bloomerang",
+      "purpose": "Destination CRM for constituent upserts, interaction creation, and address updates."
+    }
+  ],
+  "build_notes": "1. Replace the Gravity Forms native trigger with the Gravity Forms webhook add-on to avoid connection expiry issues. 2. Extract steps 2-4 (or 2-5) into a Zapier Subzap so the same Bloomerang logic can be reused across Contact Us, Mailing List, Volunteer Program, Request Support Kit, and Mentor Program. 3. True PKU has a different setup and should be excluded from the first pass. 4. The PKU dropdown sends numeric values where the first value corresponds to the Constituent record and the second to the Interaction record; confirm with stakeholders whether the values shown (e.g., 19480.xxx vs 19490.xxx) are stable or if they should be fetched dynamically. 5. Address handling is critical: the Interaction step requires an address. Implement a fallback chain: (a) use form address, (b) if empty use constituent primary address from Bloomerang, (c) if still empty the interaction will error. 6. The 'Update Constituent - Add Address' step exists because the initial upsert does not reliably write the address; verify if this step should run unconditionally or only when the address is missing."
+}

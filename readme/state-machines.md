@@ -74,3 +74,29 @@ Entity lifecycle documentation for stateful CFN systems.
 | pending | blocked | upstream task moves to failed (transitively) |
 
 Task does not have a `failed` state in the scheduler. Failure is recorded externally; scheduler marks all transitive dependents `blocked` and replans the remaining schedulable set.
+
+---
+
+## Video Ingest Run (glm-video-ingest)
+
+**States:** `resolve | download | analyze | render | done | failed`
+
+| From | To | Trigger |
+|------|----|---------|
+| resolve | download | Loom mp4 URL + transcript resolved (loom type); or input is direct url/file |
+| resolve | failed | no Loom video URL (private/unresolvable) |
+| download | analyze | bytes fetched for file-needing provider (kimi/gemini); zai skips, sends URL |
+| analyze | render | provider returns 200 with non-empty content |
+| analyze | analyze | HTTP 429, retry with backoff (kimi/zai, up to 4 attempts) |
+| analyze | failed | non-200 after retries, empty content, or expired/invalid key |
+| render | done | model output parses as valid JSON; JSON + MD written, usage/cost logged |
+| render | failed | model output not valid JSON (raw saved, MD render aborted) |
+
+### Gemini Files API upload (sub-state of `analyze`, gemini provider only)
+
+**States:** `PROCESSING | ACTIVE | FAILED`
+
+| From | To | Trigger |
+|------|----|---------|
+| PROCESSING | ACTIVE | file processed; generateContent proceeds |
+| PROCESSING | FAILED | Gemini rejects/fails processing → run `failed` |

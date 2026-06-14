@@ -87,6 +87,14 @@ This file MUST be updated when:
 | cfn-codebase-search | ✅ Prod | ✅ | `cfn-codesearch/cfn-codebase-search/` | Query interface |
 | cfn-detect-stale-docs | ✅ Prod | ✅ | `cfn-codesearch/cfn-detect-stale-docs/` | Documentation freshness checking |
 
+### Media & Ingestion Skills
+
+| Skill | Status | Tests | Location | Description |
+|-------|--------|-------|----------|-------------|
+| glm-video-ingest | ⚠️ Beta | ✅ | `glm-video-ingest/` | Loom/video → UI build spec (JSON+MD). Multi-provider: kimi-k2.6 (default, working), zai GLM-5V, gemini. Logs token usage per run. |
+
+**Known limitations (glm-video-ingest):** Loom mp4/transcript endpoints unofficial; public Loom only (no workspace-private auth); zai needs paid balance; gemini `GOOGLE_API_KEY` expired. kimi-k2.6 verified end-to-end.
+
 ### Validation & Testing Skills
 
 | Skill | Status | Tests | Location | Description |
