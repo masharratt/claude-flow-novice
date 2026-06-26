@@ -101,8 +101,8 @@ Task("planner", `
 
   2. Agent Selection:
      ${SPA_FOUND === 3
-       ? '- Implementer count = ARCH NEW components + ceil(EXTEND/2)\n     - Validators driven by NFRs in SPEC: security NFR -> security-specialist; perf NFR -> performance-benchmarker; accessibility NFR -> accessibility-advocate-persona; observability NFR -> devops-engineer'
-       : '- Loop 3 (Implementation): Based on task type\n       * Backend: backend-dev, researcher, devops\n       * Full-stack: backend-dev, react-frontend-engineer, devops\n       * Mobile: mobile-dev, backend-dev\n       * Security: security-specialist, backend-dev\n     - Loop 2 (Validation): Scale by complexity\n       * Simple: reviewer, tester\n       * Standard: +architect, +security-specialist\n       * Complex: +code-analyzer, +performance-benchmarker'}
+       ? '- Implementer count = ARCH NEW components + ceil(EXTEND/2)\n     - Validators driven by NFRs in SPEC: security NFR -> security-specialist; perf NFR -> perf-analyzer; accessibility NFR -> accessibility-advocate-persona; observability NFR -> devops-engineer'
+       : '- Loop 3 (Implementation): Based on task type\n       * Backend: backend-dev, researcher, devops\n       * Full-stack: backend-dev, react-frontend-engineer, devops\n       * Mobile: mobile-dev, backend-dev\n       * Security: security-specialist, backend-dev\n     - Loop 2 (Validation): Scale by complexity\n       * Simple: reviewer, tester\n       * Standard: +architect, +security-specialist\n       * Complex: +code-analyzer, +perf-analyzer'}
 
   3. Test Cases (TDD Approach):
      ${SPA_FOUND === 3
@@ -113,6 +113,11 @@ Task("planner", `
      ${SPA_FOUND === 3
        ? '- Every SPEC FR has a passing test\n     - Every SPEC EC has a passing test (mandatory; no skipping)\n     - All NFRs measurably met (cite the threshold from SPEC)\n     - DRY audit honored: no NEW component duplicates an existing one'
        : '- Test coverage target (≥80%)\n     - Performance benchmarks (if applicable)\n     - Security requirements (if applicable)\n     - Deliverables list'}
+
+  5. Build Discipline (standing instruction to every Loop 3 implementer):
+     - Climb the cfn-arch build ladder before writing anything: YAGNI -> reuse in-codebase -> stdlib -> native platform -> reuse installed dep -> one line -> minimum new code -> (last resort) add a NEW dep.
+     - A NEW dependency is a planned line item, never an implementer's silent choice. If the plan needs one, name it here so cfn-plan-review can blast-radius it.
+     - Security carve-out: never hand-roll crypto/auth/parsing/sanitization to avoid a dep — a vetted dep wins there.
 
   OUTPUT: planning/PLAN_${SLUG}.md
   ${SPA_FOUND === 3 ? 'CROSS-REFERENCE: Plan must cite SPEC/PSEUDO/ARCH file paths in every section.' : ''}

@@ -114,6 +114,7 @@ This file MUST be updated when:
 | cfn-task-intelligence | ✅ Prod | ✅ | `cfn-task-intelligence/` | Task classification, complexity estimation |
 | cfn-epic-creator | ✅ Prod | ✅ | `cfn-epic-creator/` | Epic workflow (11 persona reviews) |
 | cfn-epic-parser | ✅ Prod | ✅ | `cfn-epic-parser/` | MDAP epic conversion |
+| cfn-tech-debt | ✅ Prod | ✅ | `cfn-tech-debt/` | Harvest `cfn:` shortcut markers into a ledger; flags no-trigger rot. Feeds Product Owner gate (cfn-loop-task Phase 3.5) |
 
 ### Infrastructure Skills
 

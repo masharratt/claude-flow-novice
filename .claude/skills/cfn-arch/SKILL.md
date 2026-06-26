@@ -1,6 +1,6 @@
 ---
 name: cfn-arch
-description: "SPARC Architecture phase. Define component boundaries, interface contracts, integration points, and DRY reuse opportunities BEFORE implementation. Use after cfn-spec and cfn-pseudo to lock structural decisions and catch integration mismatches early."
+description: "SPARC Architecture phase. Define component boundaries, interface contracts, integration points, DRY reuse BEFORE implementation. Use after cfn-spec and cfn-pseudo to lock structure, catch integration mismatches early."
 version: 1.0.0
 tags: [planning, sparc, architecture, contracts, components, integration]
 status: production
@@ -32,7 +32,26 @@ Refuse to run if either missing or in `draft` status with unresolved gaps.
 
 ### Step 0: DRY Audit (MANDATORY)
 
-Before designing anything new, query the codebase for existing capabilities. Use `/codebase-search` for every Operation listed in PSEUDO. Categorize each operation:
+Before designing anything new, query the codebase for existing capabilities. Use `/codebase-search` for every Operation listed in PSEUDO.
+
+**The build ladder — stop at the first rung that holds.** Run this for every Operation. The disposition (REUSE/EXTEND/NEW) falls out of which rung stops you:
+
+1. **Does this need to exist at all?** Speculative need → cut it, note why in one line. (YAGNI)
+2. **Already in this codebase?** A helper, util, type, or pattern that already lives here → REUSE it. Look before you write; re-implementing what sits a few files over is the most common waste.
+3. **Stdlib does it?** Use it.
+4. **Native platform feature covers it?** DB constraint over app code, CSS over JS, `<input type="date">` over a picker lib.
+5. **Already-installed dependency solves it?** Use it. Reusing a vetted dep beats reinventing it.
+6. **Can it be one line?** One line.
+7. **Minimum NEW code that works?** Write it. Justify why nothing above fit.
+8. **Only then — add a NEW dependency.** Last resort, and gated:
+   - **Trivial functionality** (a few lines)? Do NOT add a dep — rung 7 wins. (left-pad / event-stream were trivial deps that should have been a few lines.)
+   - **Security-sensitive** (crypto, auth, JWT/token parsing, HTML/SQL sanitization, parsing untrusted input)? A widely-audited dep WINS — never hand-roll these. Rolling your own is the dangerous path, not the lazy one.
+   - **Pin with a cooldown.** Adopt a release only after a supply-chain cooldown (~90 days old) so a compromised or malicious publish has time to be caught and yanked — don't be patient-zero. Then move the pin forward progressively, only as far as you need.
+   - **CVE override.** The cooldown does NOT apply to security patches. If a newer release fixes a known vulnerability in your pinned version, take it immediately. An age-pin requires `npm audit` / Dependabot watching the pinned version, or "old and stable" silently rots into "old and vulnerable."
+
+The ladder shortens the solution, never the reading: climb it only after you understand the task and trace the real flow end to end.
+
+Categorize each operation by the rung that stopped it:
 
 - **REUSE:** existing module/function does this. Document the path.
 - **EXTEND:** existing module covers 80%; small extension needed. Document the extension point.
@@ -206,6 +225,9 @@ This artifact + SPEC + PSEUDO form the complete SPA bundle. Hand off to `/write-
 ## Anti-Patterns
 
 - New component when an existing one already does the job (DRY violation)
+- Adding a NEW dependency when stdlib, a native platform feature, or a few lines suffice (ladder rung 8)
+- Hand-rolling crypto, auth, or input sanitization to dodge a dependency (rung 8 security carve-out — a vetted dep wins)
+- Adopting a dependency release with no cooldown, or pinning to an old release without watching it for CVEs
 - Anonymous types/shapes at component boundaries
 - External integration without retry/timeout/circuit breaker policy
 - Database table without RLS policy

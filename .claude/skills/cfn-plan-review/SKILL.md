@@ -1,6 +1,6 @@
 ---
 name: cfn-plan-review
-description: "Post-planning completeness review. Extracts implicit assumptions, traces dependencies, analyzes blast radius, checks alpha-readiness, and surfaces gaps before implementation begins. Use after writing any plan that touches data, APIs, or shared state."
+description: "Post-planning completeness review. Extracts assumptions, traces dependencies, analyzes blast radius, checks alpha-readiness, surfaces gaps before implementation. Use after writing any plan that touches data, APIs, or shared state."
 version: 1.1.0
 tags: [planning, review, completeness, dependencies, alpha-readiness]
 status: production
@@ -30,7 +30,12 @@ Before reviewing completeness, apply the DRY and modularity rules from `~/.claud
 - Are there shared types, schemas, or constants that need a single source of truth?
 - Does any multi-file feature have a shared orchestrator, or are there multiple entry points?
 
-Surface any violations as numbered findings in Phase 6. Do not duplicate the rules here. Consult `code-quality.md` directly.
+**New dependency audit** (apply the `cfn-arch` build ladder rung 8):
+- Does the plan add a NEW dependency? If so, could stdlib, a native platform feature, or a few lines do it instead? Trivial functionality must not pull a dep.
+- Security carve-out: if the dep covers crypto/auth/parsing/sanitization, a vetted dep is correct — flag any plan that hand-rolls these instead.
+- Is the dep version pinned with a supply-chain cooldown (~90 days old), and is there a CVE-watch (`npm audit`/Dependabot) so a known vuln overrides the cooldown? A new dep with no pin/cooldown/watch is a finding.
+
+Surface any violations as numbered findings in Phase 6. Do not duplicate the rules here. Consult `code-quality.md` and `cfn-arch` directly.
 
 ### Phase 1: Assumption Extraction
 

@@ -1,6 +1,6 @@
 ---
 name: cfn-dry-review
-description: "MUST BE USED before merging any PR that adds 3+ new functions or 50+ lines. Run after implementation to identify DRY violations before they land. Code review for DRY violations, modularity improvements, and resumable pipeline opportunities. Outputs a JSON manifest for cfn-vote-implement."
+description: "MUST BE USED before merging any PR that adds 3+ new functions or 50+ lines. Run after implementation. Reviews code for DRY violations, modularity, resumable pipeline opportunities. Outputs JSON manifest for cfn-vote-implement."
 version: 1.0.0
 tags: [code-review, DRY, modularity, refactoring]
 status: production
@@ -34,6 +34,8 @@ status: production
     {
       "id": "S001",
       "category": "dry | modularity | resumable",
+      "tag": "delete | stdlib | native | yagni | shrink",
+      "one_liner": "L12-38: stdlib: 27-line validator class. \"@\" check is 1 line; real validation is the confirmation mail.",
       "title": "Short description",
       "description": "What the problem is and why it matters",
       "files": ["path/to/file.ts:42", "path/to/other.ts:17"],
@@ -53,6 +55,30 @@ status: production
 | `dry` | Duplicated logic, copy-pasted blocks, repeated patterns across files, string literals that should be constants |
 | `modularity` | God functions/files, mixed concerns, missing abstractions at natural boundaries, tight coupling between modules |
 | `resumable` | Pipelines that lose progress on failure, missing checkpoints, non-idempotent operations, batch processes without resume capability |
+
+## Suggestion Tags & Grammar
+
+Every suggestion carries one `tag` (orthogonal to `category` — it sharpens the fix) and a one-line `one_liner` in imperative form:
+
+`L<line>: <tag> <what>. <replacement>.`  (use `<file>:L<line>: ...` for multi-file diffs)
+
+| Tag | Means |
+|-----|-------|
+| `delete` | Dead code, unused flexibility, speculative feature. Replacement: nothing. |
+| `stdlib` | Hand-rolled thing the standard library ships. Name the function. |
+| `native` | Dependency or code doing what the platform/DB/framework already does. Name the feature. |
+| `yagni` | Abstraction with one implementation, config nobody sets, a layer with one caller. |
+| `shrink` | Same logic, fewer lines. Show the shorter form. |
+
+Imperative, not Socratic:
+- ❌ "This EmailValidator class might be more complex than necessary, have you considered whether all these rules are needed?"
+- ✅ `L12-38: stdlib: 27-line validator class. "@" check is 1 line; real validation is the confirmation mail.`
+
+End the stdout summary with one metric: `net: -<N> lines possible.` (or `Lean already. Ship.` if nothing to cut).
+
+### Scope Lock
+
+This review covers minimalism ONLY: DRY, modularity, resumable, over-engineering. **Correctness bugs, security holes, and performance are explicitly OUT of scope — route those to `/code-review`.** Do not mix axes; the scope lock is what keeps findings terse and the manifest focused.
 
 ## Usage
 

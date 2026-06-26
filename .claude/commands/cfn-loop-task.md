@@ -183,6 +183,17 @@ IF pass_rate < threshold:
 
 **DO NOT proceed to Loop 2 if gate failed. ITERATE.**
 
+### Step 3.5: Harvest Tech-Debt Ledger (Product Owner input)
+
+After the gate passes, inventory the deliberate shortcuts implementers took so the Product Owner decides with debt visible, not hidden:
+
+```bash
+./.claude/skills/cfn-tech-debt/harvest.sh 2>&1 | tee /tmp/cfn-debt-${TASK_ID}.txt
+```
+
+- Each `cfn: <ceiling>, <trigger>` marker becomes a ledger row; markers with no trigger are flagged `no-trigger` (rot risk).
+- Carry the `<N> markers, <M> with no trigger` line into every `product-owner` 2/3 decision (Phase 4) and the final report (Phase 5). A high `no-trigger` count is a signal to ITERATE or to file backlog items, not silently PROCEED.
+
 ---
 
 ## PHASE 4: VOTE VERIFICATION (replaces Loop 2 validators)
