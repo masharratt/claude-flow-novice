@@ -56,7 +56,7 @@ test_case "Valid with all parameters" 0 "$CLI" \
   --max-iterations 15 \
   --loop3-agents backend-dev,coder \
   --loop2-agents code-reviewer,tester \
-  --product-owner cto-agent \
+  --product-owner product-owner \
   --success-criteria enabled
 
 # Test 9: MVP mode

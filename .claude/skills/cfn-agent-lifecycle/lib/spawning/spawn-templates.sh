@@ -190,7 +190,7 @@ spawn_api_development() {
   local channel="${2:-swarm:api-dev}"
 
   $SPAWN_CLI "$task" \
-    --agents=api-designer-persona,backend-dev,api-docs,security-specialist,tester \
+    --agents=system-architect,backend-dev,api-docs,security-specialist,tester \
     --provider $DEFAULT_PROVIDER \
     --redis-channel "$channel" \
     --topology sequential

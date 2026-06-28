@@ -293,7 +293,7 @@ EXAMPLES:
     --max-iterations 5 \
     --loop3-agents backend-dev,coder \
     --loop2-agents code-reviewer,tester \
-    --product-owner cto-agent
+    --product-owner product-owner
 
   # With success criteria enabled
   orchestrator-cli \

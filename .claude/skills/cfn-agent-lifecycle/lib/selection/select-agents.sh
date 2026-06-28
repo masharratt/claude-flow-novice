@@ -53,7 +53,7 @@ LOOP2_AGENTS[devops]="code-reviewer,security-specialist"
 LOOP2_AGENTS[testing]="code-reviewer,qa-specialist"
 LOOP2_AGENTS[security]="code-reviewer,security-specialist"
 LOOP2_AGENTS[data]="code-reviewer,database-architect"
-LOOP2_AGENTS[performance]="code-reviewer,performance-benchmarker"
+LOOP2_AGENTS[performance]="code-reviewer,perf-analyzer"
 LOOP2_AGENTS[general]="code-reviewer,tester"
 
 # Select agents based on classification

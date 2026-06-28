@@ -2,13 +2,12 @@
   "categories": {
     "backend-api": {
       "loop3": [
-        "backend-developer",
-        "api-gateway-specialist"
+        "backend-developer"
       ],
       "loop2": [
         "code-reviewer",
         "tester",
-        "api-testing-specialist"
+        "integration-tester"
       ],
       "confidence": 0.92
     },
@@ -47,7 +46,7 @@
       "loop2": [
         "code-reviewer",
         "tester",
-        "chaos-engineering-specialist"
+        "integration-tester"
       ],
       "confidence": 0.93
     },
@@ -96,7 +95,7 @@
       "loop2": [
         "code-reviewer",
         "tester",
-        "performance-benchmarker"
+        "perf-analyzer"
       ],
       "confidence": 0.87
     },
@@ -117,10 +116,6 @@
   "agent_aliases": {
     "backend-developer": {
       "path": "developers/backend-developer.md",
-      "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
-    },
-    "api-gateway-specialist": {
-      "path": "developers/api-gateway-specialist.md",
       "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
     },
     "react-frontend-engineer": {
@@ -171,10 +166,6 @@
       "path": "testers/tester.md",
       "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
     },
-    "api-testing-specialist": {
-      "path": "testers/api-testing-specialist.md",
-      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
-    },
     "integration-tester": {
       "path": "testers/integration-tester.md",
       "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
@@ -187,17 +178,9 @@
       "path": "testers/interaction-tester.md",
       "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
     },
-    "chaos-engineering-specialist": {
-      "path": "testers/chaos-engineering-specialist.md",
-      "cost": { "tokens": 30000, "time_ms": 120000, "dollars": 0.015 }
-    },
     "data-engineer": {
       "path": "developers/data/data-engineer.md",
       "cost": { "tokens": 50000, "time_ms": 180000, "dollars": 0.025 }
-    },
-    "performance-benchmarker": {
-      "path": "reviewers/quality/performance-benchmarker.md",
-      "cost": { "tokens": 60000, "time_ms": 240000, "dollars": 0.030 }
     },
     "code-quality-validator": {
       "path": "reviewers/quality/code-quality-validator.md",

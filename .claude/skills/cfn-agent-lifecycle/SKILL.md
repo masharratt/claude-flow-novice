@@ -1,6 +1,6 @@
 ---
 name: cfn-agent-lifecycle
-description: "Unified agent management from selection through completion - spawning, execution, output processing. Use when selecting agents for tasks, spawning agents with dependency validation, processing agent outputs, or tracking agent lifecycle events with audit trails."
+description: "Unified agent management selection through completion: spawn, execute, process output. Use when selecting agents for tasks, spawning agents with dependency validation, processing agent outputs, or tracking agent lifecycle events with audit trails."
 version: 2.0.0
 tags: [mega-skill, agent-management, lifecycle, spawning]
 status: production
@@ -130,14 +130,14 @@ agent-lifecycle/
 **Task Categories:**
 | Category | Loop 3 Agents | Loop 2 Agents |
 |----------|---------------|---------------|
-| backend-api | backend-developer, api-gateway-specialist | code-reviewer, tester, api-testing-specialist |
+| backend-api | backend-developer | code-reviewer, tester, integration-tester |
 | fullstack | backend-developer, react-frontend-engineer | code-reviewer, tester, integration-tester |
 | mobile | mobile-dev, backend-developer | code-reviewer, tester, interaction-tester |
-| infrastructure | devops-engineer, docker-specialist | code-reviewer, tester, chaos-engineering-specialist |
+| infrastructure | devops-engineer, docker-specialist | code-reviewer, tester, integration-tester |
 | security | security-specialist, backend-developer | code-reviewer, tester, security-specialist |
 | frontend | react-frontend-engineer, typescript-specialist | code-reviewer, tester, playwright-tester |
 | database | database-architect, backend-developer | code-reviewer, tester, data-engineer |
-| performance | backend-developer, perf-analyzer | code-reviewer, tester, performance-benchmarker |
+| performance | backend-developer, perf-analyzer | code-reviewer, tester, perf-analyzer |
 | default | backend-developer, devops-engineer | code-reviewer, tester, code-quality-validator |
 
 ### Spawning Module (lib/spawning/)
