@@ -67,6 +67,9 @@ fi
 
 # Validate DATABASE_URL present (never source .env)
 RAW_URL=$(grep '^DATABASE_URL=' "$ENV_FILE" | cut -d'=' -f2-)
+# Strip surrounding single/double quotes (matches db-query/execute.sh behavior).
+RAW_URL="${RAW_URL%\"}"; RAW_URL="${RAW_URL#\"}"
+RAW_URL="${RAW_URL%\'}"; RAW_URL="${RAW_URL#\'}"
 if [[ -z "$RAW_URL" ]]; then
   echo "ERROR: DATABASE_URL not found in $ENV_FILE" >&2
   exit 1
@@ -114,7 +117,10 @@ else
     exit 1
   fi
 
-  IFS=$'\n' read -ra SCHEMAS <<< "$SCHEMA_LIST"
+  # `read -ra` consumes only the first line; multi-line schema lists were truncated
+  # to a single schema (bug surfaced when the first schema, e.g. `auth`, got filtered
+  # out, leaving an empty set). mapfile reads every line into the array.
+  mapfile -t SCHEMAS <<< "$SCHEMA_LIST"
 fi
 
 # Filter out auth schema unless --include-auth is set

@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FILE_TYPES="${1:-rs,ts,tsx,js,jsx,py,sh,json,yaml,sql}"
 QDRANT_URL="${CODESEARCH_QDRANT_URL:-http://localhost:6334}"
-MEMGRAPH_URL="${CODESEARCH_MEMGRAPH_URL:-bolt://localhost:7687}"
+MEMGRAPH_URL="${CODESEARCH_MEMGRAPH_URL:-bolt://localhost:7689}"
 SKIP_QDRANT="${SKIP_QDRANT:-false}"
 SKIP_MEMGRAPH="${SKIP_MEMGRAPH:-false}"
 
@@ -33,7 +33,7 @@ else
     fi
 fi
 
-if nc -z "${MEMGRAPH_URL#bolt://}" 2>/dev/null || nc -z localhost 7687 2>/dev/null; then
+if nc -z "${MEMGRAPH_URL#bolt://}" 2>/dev/null || nc -z localhost 7689 2>/dev/null; then
     echo "  Memgraph: reachable at $MEMGRAPH_URL"
 else
     echo "  Memgraph: NOT reachable at $MEMGRAPH_URL"
@@ -64,10 +64,17 @@ for dir in ~/projects/*/; do
     # Only index directories that look like code projects
     if [[ -d "$dir/.git" || -f "$dir/package.json" || -f "$dir/Cargo.toml" ]]; then
         echo "Indexing: $dir"
-        if $BINARY --project-dir "$dir" $EXTRA_ARGS index --path . --types "$FILE_TYPES"; then
+        # Hard timeout per project: a hung backend blocks the client forever,
+        # which would otherwise stall the whole sweep. Override via INDEX_TIMEOUT.
+        if timeout --signal=KILL "${INDEX_TIMEOUT:-1800}" $BINARY --project-dir "$dir" $EXTRA_ARGS index --path . --types "$FILE_TYPES"; then
             ((indexed++))
         else
-            echo "  Warning: indexing failed for $dir"
+            rc=$?
+            if [ "$rc" = "137" ]; then
+                echo "  Warning: indexing TIMED OUT for $dir after ${INDEX_TIMEOUT:-1800}s (backend unreachable?)"
+            else
+                echo "  Warning: indexing failed for $dir (rc=$rc)"
+            fi
         fi
     else
         ((skipped++))

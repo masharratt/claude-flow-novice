@@ -17,7 +17,9 @@ BINARY="${HOME}/.local/bin/local-codesearch"
 INDEX_DB="${HOME}/.local/share/codesearch/index_v2.db"
 QDRANT_URL="http://localhost:6334"
 QDRANT_REST="http://localhost:6333"
-MEMGRAPH_BOLT="localhost:7687"
+# codesearch-memgraph maps bolt to host 7689 (7687 is fireside-memgraph; see
+# ~/.claude/references/project-ports.md). Pointing here avoids the wrong-DB hang.
+MEMGRAPH_BOLT="localhost:7689"
 LOG="/tmp/codesearch-post-commit.log"
 LOCK_FILE="/tmp/codesearch-post-commit.lock"
 QUEUE_DIR="/tmp/codesearch-queue"
@@ -116,7 +118,13 @@ index_dir() {
     if ! nc -z "${MEMGRAPH_BOLT%%:*}" "${MEMGRAPH_BOLT##*:}" 2>/dev/null; then
         memgraph_flag="--skip-memgraph"
     fi
-    cd "$PROJECT_ROOT" && "$BINARY" \
+    # Hard timeout: a single-dir incremental index takes seconds. If a backend
+    # is missing/wrong the client blocks forever (futex) — timeout guarantees the
+    # indexer dies instead of leaking. 600s is generous for the largest dir.
+    # `|| rc=$?` swallows the failure so `set -e` does not abort the drain loop.
+    cd "$PROJECT_ROOT" || return 0
+    local rc=0
+    timeout --signal=KILL "${INDEX_TIMEOUT:-600}" "$BINARY" \
         --project-dir . \
         --qdrant-url "$QDRANT_URL" \
         --memgraph-url "bolt://$MEMGRAPH_BOLT" \
@@ -124,7 +132,12 @@ index_dir() {
         index \
         --path "$dir" \
         --types "$(echo "$INDEXED_TYPES" | tr '|' ',')" \
-        2>>"$LOG" || log "WARN: index failed for $dir"
+        2>>"$LOG" || rc=$?
+    if [ "$rc" = "137" ]; then
+        log "WARN: index TIMED OUT for $dir (backend unreachable?) — killed after ${INDEX_TIMEOUT:-600}s"
+    elif [ "$rc" != "0" ]; then
+        log "WARN: index failed for $dir (rc=$rc)"
+    fi
 }
 
 # Drain the queue: aggregate all pending jobs, apply deletes, then index each

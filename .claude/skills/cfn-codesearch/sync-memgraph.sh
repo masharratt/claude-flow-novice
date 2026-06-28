@@ -7,7 +7,7 @@ set -euo pipefail
 
 INDEX_DB="${HOME}/.local/share/codesearch/index_v2.db"
 MEMGRAPH_HOST="${MEMGRAPH_HOST:-localhost}"
-MEMGRAPH_PORT="${MEMGRAPH_PORT:-7687}"
+MEMGRAPH_PORT="${MEMGRAPH_PORT:-7689}"
 PROJECT_ROOT="${1:-$(pwd)}"
 BATCH_SIZE="${BATCH_SIZE:-500}"
 LOG="/tmp/sync-memgraph.log"
