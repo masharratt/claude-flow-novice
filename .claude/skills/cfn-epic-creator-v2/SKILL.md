@@ -1,6 +1,6 @@
 ---
 name: cfn-epic-creator-v2
-description: "Hybrid AISP epic creation with formal API contracts and natural language user content. Uses AISP (AI Symbolic Protocol) for type definitions and agent binding contracts while preserving human-readable descriptions."
+description: "Hybrid AISP epic creation: formal API contracts plus natural language content. Use when epic needs AISP (AI Symbolic Protocol) type definitions and agent binding contracts alongside human-readable descriptions."
 version: 2.0.0
 tags: [epic, creator, aisp, contracts, types, hybrid]
 status: production

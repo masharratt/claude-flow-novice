@@ -1,6 +1,6 @@
 ---
 name: cfn-sprint-execution
-description: Sprint planning, execution, and checkpointing for CFN Loop
+description: "Sprint planning, execution, checkpointing for CFN Loop. Use when running sprints or checkpointing sprint progress."
 version: 1.0.0
 tags: [mega-skill, sprint, planning, execution, checkpoint]
 status: production

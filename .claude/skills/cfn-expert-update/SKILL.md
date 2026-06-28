@@ -1,6 +1,6 @@
 ---
 name: cfn-expert-update
-description: Update CFN system expert agent with relevant git commits and project changes
+description: Update CFN system expert agent knowledge with relevant git commits and project changes. Use after notable CFN changes to keep expert agent current.
 version: 1.0.0
 tags: [expert, update, git, knowledge]
 status: production

@@ -1,6 +1,6 @@
 ---
 name: cfn-coordination
-description: "Agent coordination patterns for task-mode multi-agent workflows. Use when planning how to spawn agents, sequence dependencies, or aggregate results in a single message. Covers chain, broadcast, mesh, and consensus collection without Redis."
+description: "Agent coordination patterns for task-mode multi-agent workflows (no Redis): chain, broadcast, mesh, consensus collection. Use when planning how to spawn agents, sequence dependencies, or aggregate results in a single message."
 version: 1.0.0
 tags: [coordination, patterns, task-mode, multi-agent]
 status: production

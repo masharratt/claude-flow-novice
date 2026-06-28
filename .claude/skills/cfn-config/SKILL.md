@@ -1,6 +1,6 @@
 ---
 name: cfn-config
-description: "Configuration management and environment sanitization. Use when you need to manage configuration files, validate environment variables, sanitize sensitive data, or update system settings across CFN Loop components."
+description: "Config management and environment sanitization. Use when managing config files, validating env vars, sanitizing sensitive data, or updating system settings across CFN Loop components."
 version: 1.0.0
 tags: [mega-skill, config, environment, sanitization]
 status: production

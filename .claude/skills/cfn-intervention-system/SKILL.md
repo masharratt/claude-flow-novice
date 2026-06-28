@@ -1,6 +1,6 @@
 ---
 name: cfn-intervention-system
-description: "Human intervention detection and orchestration for CFN Loop. Use when automated processes need human oversight, when escalation is required, or when managing intervention workflows and approval gates."
+description: "Human intervention detection and orchestration for CFN Loop. Use when automated processes need human oversight, escalation required, or managing intervention workflows and approval gates."
 version: 1.0.0
 tags: [mega-skill, intervention, human-in-the-loop, escalation]
 status: production

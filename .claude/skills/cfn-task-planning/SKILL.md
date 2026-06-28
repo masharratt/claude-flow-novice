@@ -1,6 +1,6 @@
 ---
 name: cfn-task-planning
-description: Classify tasks, initialize structured configs with scope boundaries, decompose complex tasks
+description: Classify tasks, init structured configs with scope boundaries, decompose complex tasks. Use when starting CFN Loop Task Mode (scope config before spawning), setting scope contracts, or breaking one task into sequential subtasks.
 version: 1.0.0
 tags: planning, classification, scope, decomposition, task-mode
 status: production

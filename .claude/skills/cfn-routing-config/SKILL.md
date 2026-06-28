@@ -1,6 +1,6 @@
 ---
 name: cfn-routing-config
-description: Provider routing and hybrid configuration for CFN
+description: "Provider routing and hybrid routing config for CFN. Use when configuring which API provider handles requests, or setting up hybrid multi-provider routing."
 version: 1.0.0
 tags: [mega-skill, routing, provider, hybrid, api]
 status: production

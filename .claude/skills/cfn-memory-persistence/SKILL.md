@@ -1,6 +1,6 @@
 ---
 name: cfn-memory-persistence
-description: Data persistence for CFN Loop - SQLite storage, Redis coordination, automatic memory persistence
+description: "Data persistence for CFN Loop: SQLite storage, Redis coordination, auto memory persistence. Use when storing/retrieving CFN state, coordinating via Redis, or persisting agent memory."
 version: 1.0.0
 tags: [mega-skill, persistence, sqlite, redis, memory]
 status: production

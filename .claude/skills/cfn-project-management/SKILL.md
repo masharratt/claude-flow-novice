@@ -1,6 +1,6 @@
 ---
 name: cfn-project-management
-description: Backlog and changelog management for CFN projects
+description: Backlog and changelog management for CFN projects. Use when adding backlog items or updating changelog.
 version: 1.0.0
 tags: [mega-skill, backlog, changelog, tracking]
 status: production

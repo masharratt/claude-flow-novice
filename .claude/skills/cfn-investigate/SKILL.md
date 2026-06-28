@@ -1,6 +1,6 @@
 ---
 name: cfn-investigate
-description: "Structured root-cause debugging with 5-phase protocol, 3-strike escalation, and scope lock. Use when diagnosing bugs, system failures, or unexpected behavior. Enforces investigation before fixes."
+description: "Root-cause debugging: 5-phase protocol, 3-strike escalation, scope lock. Enforces investigation before fixes. Use when diagnosing bugs, system failures, or unexpected behavior."
 version: 1.0.0
 tags: [debugging, root-cause, investigation, safety]
 status: production

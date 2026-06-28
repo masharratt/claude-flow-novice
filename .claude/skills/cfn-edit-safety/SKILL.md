@@ -1,6 +1,6 @@
 ---
 name: cfn-edit-safety
-description: "Pre-edit backup and post-edit validation for safe file modifications. Use when you need to capture file state before edits, validate changes after modifications, revert files to previous state, or ensure edit safety with automatic backup and validation hooks."
+description: "Pre-edit backup + post-edit validation for safe file edits. Use to capture file state before edits, validate changes after edits, revert files to prior state, or ensure edit safety via auto backup/validation hooks."
 version: 1.0.0
 tags: [mega-skill, backup, hooks, validation, safety]
 status: production

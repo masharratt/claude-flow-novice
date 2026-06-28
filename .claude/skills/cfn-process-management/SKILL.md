@@ -1,6 +1,6 @@
 ---
 name: cfn-process-management
-description: Process instrumentation and lifecycle management
+description: "Process instrumentation and lifecycle management. Use when starting/stopping/tracking OS processes, instrumenting process metrics, or managing process lifecycle for CFN."
 version: 1.0.0
 tags: [mega-skill, process, monitoring, lifecycle]
 status: production

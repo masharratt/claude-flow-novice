@@ -1,5 +1,5 @@
 ---
-description: "Code review for DRY violations, modularity improvements, and resumable pipeline opportunities. Outputs a JSON manifest for cfn-vote-implement."
+description: "MUST BE USED before merging any PR that adds 3+ new functions or 50+ lines. Run after implementation. Reviews code for DRY violations, modularity, resumable pipeline opportunities. Outputs JSON manifest for cfn-vote-implement."
 argument-hint: "[path | --diff | --diff=<ref>] [--category=dry|modularity|resumable|all]"
 allowed-tools: ["Agent", "Read", "Grep", "Glob", "Bash", "Write"]
 ---

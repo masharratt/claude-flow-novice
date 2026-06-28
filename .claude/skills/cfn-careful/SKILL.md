@@ -1,6 +1,6 @@
 ---
 name: cfn-careful
-description: "PreToolUse hook that warns before destructive bash commands (rm -rf, DROP TABLE, git push --force, etc.). Activates via /careful command. Whitelists safe deletions (node_modules, .next, dist)."
+description: "PreToolUse hook. Warns before destructive bash commands (rm -rf, DROP TABLE, git push --force, etc). Activates via /careful. Whitelists safe deletions (node_modules, .next, dist)."
 version: 1.0.0
 tags: [safety, guardrails, hooks, destructive-commands]
 status: production

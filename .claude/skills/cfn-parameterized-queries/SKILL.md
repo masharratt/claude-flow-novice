@@ -1,6 +1,6 @@
 ---
 name: cfn-parameterized-queries
-description: "Secure SQL query execution with parameterized queries to prevent SQL injection attacks. Use when executing database queries, inserting/updating records, or performing any SQL operations that require security hardening."
+description: "Parameterized SQL execution, blocks injection. Use when executing DB queries, inserting/updating records, or any SQL op needing security hardening."
 version: 1.0.0
 tags: [security, sql, database, parameterized-queries, injection-prevention]
 status: production

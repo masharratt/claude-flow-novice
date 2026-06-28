@@ -1,6 +1,6 @@
 ---
 name: cfn-utilities
-description: "Reusable bash utility functions for CFN Loop - logging, error handling, retry, file operations. Use when you need structured logging, atomic file operations, retry logic with exponential backoff, or standardized error handling in bash scripts."
+description: "Reusable bash utility functions for CFN Loop: logging, error handling, retry, file ops. Use when you need structured logging, atomic file operations, retry logic with exponential backoff, or standardized error handling in bash scripts."
 version: 1.0.0
 tags: [bash, logging, error-handling, retry, file-operations, utilities]
 status: production

@@ -1,6 +1,6 @@
 ---
 name: cfn-operations
-description: File and log operations for CFN
+description: "File and log operations for CFN. Use when reading/writing/managing files or appending/reading/rotating log files in CFN workflows."
 version: 1.0.0
 tags: [mega-skill, file-io, logging, operations]
 status: production

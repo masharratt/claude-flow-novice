@@ -1,3 +1,7 @@
+---
+description: "Hybrid AISP epic creation: formal API contracts plus natural language content. Use when epic needs AISP (AI Symbolic Protocol) type definitions and agent binding contracts alongside human-readable descriptions."
+---
+
 # Epic Creator v2 (AISP Hybrid)
 
 Generates structured epics with formal AISP (AI Symbolic Protocol) API contracts and natural language user content. Runs 11 persona reviews (simplifier, product owner, architect, security, backend, frontend, devops, tester, code standards, strategic alignment, final simplifier) to produce a validated epic with typed contracts, agent binding scores, and an evidence block.

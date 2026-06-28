@@ -1,5 +1,5 @@
 ---
-description: "3-agent specialized voting on code review suggestions. Unanimous items auto-implemented with TDD. Split votes surfaced to user."
+description: "MUST BE USED after cfn-dry-review or cfn-alpha-launch:manifest produces a manifest. Also verification phase of /cfn-loop-task. Never manually implement code review suggestions - route through this skill. 3-agent voting: 3/3 auto-implemented with TDD, 2/3 to product-owner agent, 1/3 surfaced to user via AskUserQuestion (batched 4 per call, at end)."
 argument-hint: "[manifest-path | latest] [--dry-run]"
 allowed-tools: ["Agent", "Read", "Write", "Edit", "Bash", "Grep", "Glob", "AskUserQuestion"]
 ---

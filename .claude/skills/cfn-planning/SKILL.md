@@ -1,6 +1,6 @@
 ---
 name: cfn-planning
-description: "Epic decomposition, coordinator planning, and scope management. Use when breaking down epics into sprints and tasks, coordinating multi-coordinator workflows, or simplifying and managing project scope boundaries."
+description: "Epic decomposition, coordinator planning, scope management. Use when breaking epics into sprints/tasks, coordinating multi-coordinator workflows, or simplifying/managing project scope boundaries."
 version: 1.0.0
 tags: [mega-skill, epic, planning, scope, decomposition]
 status: production

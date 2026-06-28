@@ -1,5 +1,5 @@
 ---
-description: "Smart parallel E2E test execution with automatic batching. Optimizes Playwright tests for memory-constrained WSL2 environments by grouping tests into fast/medium/large batches."
+description: "MUST BE USED instead of running Playwright tests directly in WSL2. Parallel E2E execution, auto-batches tests (fast/medium/large) to avoid OOM on memory-constrained WSL2. Use for Playwright/E2E test runs."
 argument-hint: "[--mode=direct|task|error|parallel] [--batch=smoke|fast|medium|large|all] [--parallelism=N]"
 allowed-tools: ["Bash", "Read", "TodoWrite", "Task", "Skill"]
 ---

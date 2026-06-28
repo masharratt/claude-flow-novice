@@ -1,6 +1,6 @@
 ---
 name: cfn-canary
-description: "MUST BE USED within 10 minutes of any production deployment. Post-deploy health monitoring. Polls a URL for 10 minutes checking for errors, performance regressions, and availability."
+description: "MUST BE USED within 10 minutes of any production deployment. Post-deploy health monitoring: polls a URL for 10 minutes checking errors, performance regressions, availability."
 version: 1.0.0
 tags: [deployment, monitoring, canary, health-check]
 status: production

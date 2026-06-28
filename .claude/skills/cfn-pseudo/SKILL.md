@@ -1,6 +1,6 @@
 ---
 name: cfn-pseudo
-description: "SPARC Pseudocode phase. Trace algorithm logic, enumerate branches, identify failure paths, and verify branch coverage BEFORE writing real code. Use after cfn-spec to catch logical gaps before implementation."
+description: "SPARC Pseudocode phase. Trace logic, enumerate branches, find failure paths, verify branch coverage BEFORE writing real code. Use after cfn-spec to catch logic gaps before implementation."
 version: 1.0.0
 tags: [planning, sparc, pseudocode, algorithm, logic, branch-coverage]
 status: production

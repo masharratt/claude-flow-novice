@@ -1,6 +1,6 @@
 ---
 name: conversation-sync
-description: Sync conversation history from .codex/sessions to .claude.json for context preservation
+description: "Sync conversation history from .codex/sessions to .claude.json for context preservation. Use when copying/syncing conversations, importing sessions, or backing up conversation context."
 version: 1.0.1
 tags: [conversations, sync, backup, context]
 status: production

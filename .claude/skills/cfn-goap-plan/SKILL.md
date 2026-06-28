@@ -1,6 +1,6 @@
 ---
 name: cfn-goap-plan
-description: "GOAP-based planning bookend. Run BEFORE plan mode to model goal state and derive optimal action sequence. Run DURING implementation when 3-strike rule fires to replan from current world state."
+description: "GOAP planning bookend. Run BEFORE plan mode to model goal state, derive optimal action sequence. Run DURING implementation when 3-strike rule fires to replan from current world state."
 version: 1.0.0
 tags: [planning, goap, goal-modeling, replanning, pre-plan]
 status: production

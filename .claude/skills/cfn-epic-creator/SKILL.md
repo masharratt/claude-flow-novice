@@ -1,6 +1,6 @@
 ---
 name: cfn-epic-creator
-description: "Creates comprehensive epic definitions with sequential reviews from 10 key personas. Use when you need to analyze requirements from multiple perspectives and generate structured epic documentation with cost estimates and risk assessments."
+description: "Build epic definitions via sequential 10-persona review. Use when generating structured epic docs with cost estimates and risk assessments, analyzing requirements from multiple perspectives."
 version: 1.0.0
 tags: [epic, creator, personas, analysis, cost-estimation, requirements]
 status: production

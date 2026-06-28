@@ -1,6 +1,6 @@
 ---
 name: cfn-task-intelligence
-description: Classify tasks (type/domain), estimate complexity/iterations, recommend specialists from feedback themes
+description: Classify tasks (type/domain), estimate complexity/iterations, recommend specialists from feedback themes. Use for new task to pick CFN Loop config/agents, estimate loop count, or recommend specialist after recurring feedback.
 version: 1.0.0
 tags: classification, complexity, specialists, cfn-loop
 status: production

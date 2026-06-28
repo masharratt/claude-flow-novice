@@ -1,6 +1,6 @@
 ---
 name: cfn-epic-parser
-description: "Converts natural language epic documents from markdown into structured JSON configurations for MDAP or CFN Loop execution. Use when you need to parse epic documents, validate epic structure, or generate execution configurations from planning documents."
+description: "Convert markdown epic documents into structured JSON configs for MDAP or CFN Loop execution. Use when parsing epic documents, validating epic structure, or generating execution configs from planning docs."
 version: 1.0.0
 tags: [epic, parser, mdap, cfn-loop, planning]
 status: production

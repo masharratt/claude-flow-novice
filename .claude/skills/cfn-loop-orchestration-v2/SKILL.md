@@ -1,6 +1,6 @@
 ---
 name: cfn-loop-orchestration-v2
-description: "CFN Loop coordination and orchestration - gate checks, validation, consensus, Product Owner decisions. Use when orchestrating multi-agent workflows, managing iteration cycles, or coordinating Loop 2/Loop 3 dependencies."
+description: "CFN Loop orchestration: gate checks, validation, consensus, Product Owner decisions. Use when orchestrating multi-agent workflows, managing iteration cycles, or coordinating Loop 2/Loop 3 dependencies."
 version: 1.1.0
 tags: [mega-skill, cfn-loop, orchestration, validation]
 status: production

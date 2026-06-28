@@ -1,6 +1,6 @@
 ---
 name: cfn-alpha-launch-v2
-description: "Group-based alpha readiness analysis. Analyzes all features in a priority group (CRITICAL/HIGH/MEDIUM/LOW) at once, generates consolidated fix lists, marks group complete when done."
+description: "Group-based alpha readiness analysis. Use when analyzing all features in one priority group (CRITICAL/HIGH/MEDIUM/LOW) at once; generates consolidated fix lists, marks group complete when done."
 version: 2.2.0
 tags: [alpha, launch, readiness, focused, group-based, incremental, progress-tracking, feature-status]
 status: production

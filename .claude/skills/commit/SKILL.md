@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Stage, commit, and push changes using a background github-commit-agent. Accepts optional args for message override or push control.
+description: Stage, commit, push changes via background github-commit-agent. Optional args for message override or push control. Use when committing/pushing work.
 version: 1.0.0
 tags: [git, commit, push, background]
 status: production

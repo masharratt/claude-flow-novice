@@ -1,6 +1,6 @@
 ---
 name: cfn-mdap-context-injection
-description: Inject MDAP codebase files for troubleshooting (coordinator, implementers, validators, Docker, orchestration)
+description: Inject MDAP codebase files for troubleshooting. Use when debugging MDAP coordinator, implementers, validators, Docker mode, or orchestration deadlocks.
 version: 1.0.0
 tags: context-injection, debugging, mdap
 status: production

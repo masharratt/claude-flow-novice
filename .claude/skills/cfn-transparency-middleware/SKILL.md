@@ -1,6 +1,6 @@
 ---
 name: cfn-transparency-middleware
-description: "Agent interaction capture, logging, and analysis with memory tracking and security (Rust implementation). Use when you need to capture and analyze agent interactions, track tool usage and performance metrics, query execution history, or export audit trails for compliance."
+description: "Agent interaction capture, logging, analysis with memory tracking + security (Rust). Use to capture/analyze agent interactions, track tool usage and perf metrics, query execution history, or export audit trails for compliance."
 version: 1.0.0
 tags: [middleware, logging, security, transparency, memory, rust]
 status: production

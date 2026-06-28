@@ -1,6 +1,6 @@
 ---
 name: cfn-error-management
-description: "Unified error handling, batching, and logging for CFN Loop. Use when you need to capture agent errors, batch multiple errors for processing, log structured error data, or categorize and recover from agent failures."
+description: "Error handling, batching, logging for CFN Loop. Use to capture agent errors, batch errors for processing, log structured error data, or categorize/recover from agent failures."
 version: 1.0.0
 tags: [mega-skill, errors, logging, batch-processing]
 status: production

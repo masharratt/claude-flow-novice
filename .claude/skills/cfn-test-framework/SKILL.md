@@ -1,6 +1,6 @@
 ---
 name: cfn-test-framework
-description: Test execution, running, and webapp testing for CFN
+description: Test execution and webapp testing for CFN. Use to run unit/integration/webapp tests.
 version: 1.0.0
 tags: [mega-skill, testing, execution, playwright, webapp]
 status: production

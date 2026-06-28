@@ -3,7 +3,7 @@ name: supabase-schema-sync
 version: 1.0.0
 tags: [supabase, postgres, schema, migration, context]
 status: production
-description: "Introspects Supabase DB after migrations and updates project db-query skill with current schema. Run after any migration to keep agent context accurate."
+description: "Introspects Supabase DB, updates project db-query skill with current schema. Run after any migration to keep agent context accurate."
 ---
 
 # supabase-schema-sync

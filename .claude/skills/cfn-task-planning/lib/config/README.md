@@ -109,7 +109,7 @@ Based on task analysis:
 **Complexity → Validators:**
 - Simple (1-2 files): reviewer, tester
 - Standard (3-5 files): +architect, +security-specialist
-- Complex (>5 files): +code-analyzer, +performance-benchmarker
+- Complex (>5 files): +code-analyzer, +perf-analyzer
 
 ## Integration
 
