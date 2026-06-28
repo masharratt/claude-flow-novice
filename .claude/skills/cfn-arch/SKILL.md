@@ -120,6 +120,14 @@ Client --POST /users--> UserController
                        EventBus --queue--> WelcomeMailer
 ```
 
+**Route / navigation map (when a frontend exists).** Arch owns the screen *structure*; `cfn-ux` owns the in-flow navigation *behavior*. Define here:
+- **Routes** — the URL/route for each screen (`/courses/:id/book`), and which are public vs auth-gated.
+- **Deep-linking** — which screens are directly addressable (bookmarkable / shareable) and what state they need from the URL (params, query) vs from a load.
+- **Screen graph** — how screens connect (which links/redirects lead where), so `cfn-ux` maps journeys onto a real route structure instead of inventing one.
+- **Redirects / guards** — unauthenticated access to a gated route → where it lands (login, preserving return intent).
+
+`cfn-ux` Phase 3b consumes this map for cross-screen journeys; do not duplicate journey behavior here.
+
 ### Step 4: Integration Points & External Contracts
 
 For every external system (DB, third-party API, queue, cache):
@@ -254,6 +262,24 @@ interface ...
 ## Handoff
 
 This artifact + SPEC + PSEUDO form the complete SPA bundle. Hand off to `/write-plan` which converts SPA into implementation roadmap + agent dispatch.
+
+## Review Mode (audit implemented code)
+
+Invoked as `cfn-arch --review <path(s)>`. Formalizes the "standalone review of existing systems" use-case into a structured audit. Instead of designing components forward from PSEUDO, it reads shipped code, recovers the actual component boundaries + contracts, and audits them against the same rules (DRY, typed boundaries, retry/timeout on external I/O, RLS, failure handling).
+
+No SPEC/PSEUDO required. Code is the input.
+
+### Steps
+
+1. **Recover components.** Map real modules to responsibilities; flag any with >1 responsibility (SRP) or duplicated logic across modules (DRY — cite both paths).
+2. **Contract audit.** Every cross-module / external boundary: is the shape a named type/Zod schema, or a loose/anonymous object? Loose object at a boundary = finding. Error returns typed, or bare strings/throws?
+3. **Integration audit.** Every external call (DB, API, queue): retry policy, timeout, circuit breaker present? Missing any = finding (cross-reference the failure inventory).
+4. **State + error taxonomy.** Stateful entities with illegal transitions reachable in code (Step 9 rules)? Error codes ad-hoc per call site instead of one canonical enum (Step 10)?
+5. **Defer** storage detail to `cfn-data --review` and ops/deployment to a `cfn-ops` review — arch keeps boundaries, contracts, failure inventory.
+
+### Output
+
+Write `planning/AUDIT_ARCH_<slug>.md`: findings table (`file:line | concern | rule | severity | fix`). Empty = PASS, state it. Third leg of the reverse trio after `cfn-data --review` and `cfn-ux --review`.
 
 ## Anti-Patterns
 

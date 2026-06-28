@@ -19,10 +19,21 @@ Entry point for any non-trivial build: multi-file, shared state (DB/API/types), 
 ## Invocation
 
 ```
-/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise]
+/cfn-megaplan "<task>" [--tier=mvp|beta|enterprise]      # forward: plan a build
+/cfn-megaplan --review <path(s)>                          # reverse: audit shipped code
 ```
 
 If `--tier` omitted, infer from the spec (see Step 2) and confirm with the user via `AskUserQuestion` when ambiguous.
+
+### Reverse mode (audit already-implemented work)
+
+`--review` runs the phases BACKWARD against existing code instead of planning forward. It chains the three review-capable phases as the single entry point (one-entry-point rule):
+
+1. `cfn-data --review` — recover the real schema, audit floor (RLS/unscoped-delete/PII), emit the true field-bindings.
+2. `cfn-ux --review` — read shipped UI, diff each field's rendered control vs the affordance map (catches FK-field-as-textbox post-hoc). Consumes step 1's bindings, so it does not guess.
+3. `cfn-arch --review` — recover component boundaries + contracts, audit DRY / typed-boundary / retry-timeout / failure handling.
+
+Each emits `planning/AUDIT_<PHASE>_<slug>.md` (findings table, `file:line | issue | severity | fix`). Synthesis (Step 7) merges them into `planning/AUDIT_<slug>.md` with a single severity-ranked list. Skip a phase when its surface is absent (no UI → skip ux; no DB → skip data). This is the catch for defects that already shipped; the forward pipeline prevents them, this finds the ones that slipped.
 
 ## Pipeline shape (8-level DAG)
 

@@ -81,6 +81,7 @@ Per screen, name:
 - **Visual hierarchy:** what is primary (the main action), secondary, and tertiary. Size, weight, and color tokens that express the hierarchy.
 - **Design tokens:** the color, type, and spacing tokens used, each by name from the token source in Phase 1. Hardcoded hex / px is a Phase 1 violation surfaced here.
 - **Responsive breakpoints:** how the layout reflows at each breakpoint (mobile / tablet / desktop). Name what stacks, hides, or reflows. Reference breakpoint tokens.
+- **Touch / pointer:** on touch viewports, interactive targets meet the minimum hit size (44x44 CSS px). No affordance is hover-only — anything revealed on hover has a tap/focus equivalent. Name any gesture (swipe to delete) and its non-gesture fallback. cfn-ux named the affordance; here you make it operable by finger.
 
 The six UX states (loading / empty / error / success / partial / disabled) each need a visual treatment, not just a control treatment: the skeleton shape for loading, the empty illustration / copy slot, the error banner styling, the disabled token. `cfn-ux` named what renders in each state; you name how it looks.
 
@@ -137,6 +138,17 @@ export const BookingError = z.object({
 });
 ```
 
+### Phase 6: Content & Microcopy (content design)
+
+`cfn-ux` named *what* renders in each state and flow; here you write *the words*. Every user-facing string is content design, not an afterthought left to the implementer. This is where the dropdown's label, the empty state's invitation, and the error's next-step come from.
+
+- **Labels + button verbs:** field labels and action buttons name the outcome, not the mechanism ("Book course", not "Submit"). One voice across the surface.
+- **Error messages:** every error from the `cfn-ux` error states and the API error envelope (Phase 5) gets human copy that says what went wrong AND the next step ("That date is full. Pick another date or join the waitlist."). No raw codes, no "An error occurred."
+- **Empty-state copy:** the `empty` state's words — what it means and the one action that fills it (ties to cfn-ux empty-as-onboarding).
+- **Confirmation / undo copy:** the text of destructive confirms and undo toasts (cfn-ux 3c named that they exist; you write them).
+- **Tone:** state the voice (plain / formal / playful) once; it applies to all of the above. At `light` (mvp), labels + error copy + empty copy are required; full tone guide is `full`+.
+- **Localization handoff:** every string named here is a catalog key when Phase 4 (i18n) runs. No hardcoded strings survive into components.
+
 ## Output
 
 Write to: `planning/DESIGN_<slug>.md`
@@ -175,6 +187,9 @@ Template:
 // shared contract
 ```
 - Error shape / deprecation / backward-compat
+
+## 6. Content & Microcopy
+- Labels + button verbs / error message copy (what + next step) / empty-state copy / confirm + undo copy / tone
 
 ## Open Items
 - [OPEN] <decisions needing user input>

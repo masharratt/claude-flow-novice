@@ -449,8 +449,8 @@ Consumer Project
 | cfn-research | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-research/` | Pre-spec feasibility, prior-art query |
 | cfn-decide | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-decide/` | Decision register + structured decision-log write |
 | cfn-data | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-data/` | Forward DB design + field-bindings (RLS floor) |
-| cfn-ux | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ux/` | Affordance map (FK→dropdown); kills dropdown-as-textbox |
-| cfn-design | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-design/` | Layout/design-system/a11y/i18n + API contract |
+| cfn-ux | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ux/` | Full interaction: affordance map (FK→dropdown) + per-field interaction + edge states + flows/journeys + feedback/undo + role visibility |
+| cfn-design | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-design/` | Visual/layout/design-system/a11y/i18n + responsive/touch + content/microcopy + API contract |
 | cfn-test-plan | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-test-plan/` | AC→executable-check table (feeds Bar A) |
 | cfn-ops | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ops/` | Threat model/observability/rollout (beta+) |
 
@@ -461,6 +461,8 @@ Consumer Project
 | Structured decision store | ✅ Prod | ✅ | `.claude/skills/decision-log/{schema.sql,record.sh,decisions.sh}` | SQLite `decisions` table; cross-session, per-project; write via record.sh, read via decisions.sh |
 
 **Dependencies:** cfn-megaplan reads cfn-spec build flags to route conditional phases. cfn-ux consumes cfn-data field-bindings. cfn-decide writes to decision-log SQLite (read by cfn-megaplan Step 0 + cfn-plan-review Phase 1).
+
+**Reverse/audit mode:** `cfn-megaplan --review <path>` chains `cfn-data --review` -> `cfn-ux --review` -> `cfn-arch --review` to audit already-implemented code (recover artifacts from code, run phase rules as findings, emit `planning/AUDIT_*_<slug>.md`). cfn-ux review is the post-hoc catch for the FK-field-as-textbox bug. Other phases remain forward-only.
 
 **Known limitations:** Phase skills validated for wiring (structural smoke), not yet exercised by a full live orchestration run. Bars enforced via prompt + scan, no automated regression harness yet. Global `~/.claude/CLAUDE.md` canonical-entry switch to cfn-megaplan is local config, not tracked in this repo.
 

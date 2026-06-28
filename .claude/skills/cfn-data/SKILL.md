@@ -291,6 +291,38 @@ WHERE user_id IN (SELECT id FROM public.users WHERE email LIKE 'test-%@integrati
 - 3-line summary (tables created, RLS posture, migration reversibility)
 - `[OPEN]` items needing a user decision (ambiguous retention window, unclear tenant key, FK on-delete ambiguity)
 
+## Review Mode (audit implemented code)
+
+Invoked as `cfn-data --review [<migration-dir>|<model-path>|--live]`. Reads the SHIPPED schema instead of designing forward, then audits it against the same floor and emits the real field-bindings table for `cfn-ux --review` to consume.
+
+No SPEC/DECISIONS required. Schema is the input. Source priority: `--live` (pull actual schema via `./.claude/skills/db-query/execute.sh` or the supabase-schema-sync output — read-only, never mutate) > migration files > ORM models.
+
+### Steps
+
+1. **Dump the real schema.** Every table in scope: columns (type, nullable, default), constraints, FKs (both directions), indexes, RLS state + policies, triggers.
+2. **Floor audit** (these are violations, not suggestions):
+   - **RLS** — any table with no `ENABLE ROW LEVEL SECURITY` + policy. HIGH.
+   - **Unscoped delete risk** — any function/trigger/migration with `DELETE`/`TRUNCATE` lacking a row-targeting `WHERE`, or `session_replication_role='replica'`. HIGH.
+   - **PII unguarded** — columns matching email/name/phone/address/token with no stated handling. HIGH if present.
+   - **Schema-qualification** — queries relying on `search_path` default instead of explicit schema. MED.
+3. **Integrity audit:** FK columns without an FK constraint; nullable columns the app treats as non-null at the boundary; aggregate results (`MAX`/`COUNT`) consumed without null/cast handling. MED.
+4. **Index audit:** query patterns (from the calling code, if provided) with no supporting index; unused indexes. LOW/MED.
+5. **Migration reversibility:** migrations with no `down` / rollback. MED.
+6. **Emit real field-bindings.** Same table shape as forward Step 2 — but derived from the actual schema. This is the source of truth `cfn-ux --review` reads so the UI audit is not guessing.
+
+### Output
+
+Write `planning/AUDIT_DATA_<slug>.md`: a floor/integrity findings table (`object | issue | severity | fix`) PLUS the recovered field-bindings table (so the trio chains). Empty findings = PASS, state it.
+
+```
+| object | issue | severity | fix |
+|--------|-------|----------|-----|
+| public.bookings | no RLS policy | HIGH | enable RLS + owner policy in a migration |
+| fn cleanup_old() | DELETE without WHERE | HIGH | scope to test/expired rows only |
+```
+
+Read-only: this mode never writes to the database and never proposes a destructive migration without the global DELETE/TRUNCATE approval protocol.
+
 ## Anti-Patterns
 
 - **Table without RLS.** A `CREATE TABLE` with no `ENABLE ROW LEVEL SECURITY` + policy in the same migration. Floor violation.

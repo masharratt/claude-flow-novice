@@ -1,6 +1,6 @@
 ---
 name: cfn-ux
-description: "MUST BE USED for the interaction-design phase of any frontend build. Derives every UI control from its data binding (field-to-control derivation), enumerates UI states, and maps user flows. Kills the dropdown-as-textbox bug — the class of error where a planner specs a free-text input for a field actually backed by a database list. Use after cfn-data, before cfn-design."
+description: "MUST BE USED for the interaction-design phase of any frontend build. Owns the full interaction experience: derives every UI control from its data binding (field-to-control derivation), per-field interaction (defaults, autofocus, validation timing), enumerates UI + edge states, maps single-task flows AND cross-screen journeys (wizards, onboarding, save/resume), confirmation/feedback/undo behavior, and role-based visibility. Kills the dropdown-as-textbox bug. Hands visual/responsive/copy to cfn-design and route structure to cfn-arch. Use after cfn-data, before cfn-design."
 version: 1.0.0
 tags: [planning, ux, interaction-design, affordance, controls, states, flows, frontend]
 status: production
@@ -12,7 +12,12 @@ status: production
 
 **Phase:** UX interaction design. MegaPlan DAG level 5 (runs parallel with `cfn-arch`). Conditional on the `frontend` build flag. Agent type: `ui-designer`.
 
-**Scope boundary:** Interaction correctness, not visual polish. Layout, spacing, color, tokens, full WCAG audit belong to `cfn-design` downstream. This phase decides *what control* and *what states*, not *how it looks*. It floors at MVP because the dropdown bug is a correctness defect, not a polish defect.
+**Scope boundary (cohesion split):** This phase owns *interaction behavior* — controls, states, per-field interaction, flows, journeys, feedback/undo, role-based visibility. It does NOT own:
+- **Visual / responsive / touch / microcopy** → `cfn-design` (how it looks, breakpoints, copy/tone, full WCAG).
+- **Route structure / deep-linking / screen-to-screen architecture** → `cfn-arch` Step 3 (the navigation *map*; cfn-ux owns navigation *affordances within a flow*).
+- **AuthZ enforcement** (operation × role) → `cfn-arch` Step 6; cfn-ux consumes that matrix to decide what each role *sees* (hidden vs disabled), not whether they are *allowed*.
+
+It floors at MVP because broken interaction (wrong control, no error path, dead-end journey) is a correctness defect, not polish.
 
 ## When to Use
 
@@ -69,6 +74,15 @@ Rules:
 
 Emit one row per field. No field is exempt. A field with no binding listed is an `[OPEN]` item, not a free-text default.
 
+**Per-field interaction (extend each row).** Control type is necessary, not sufficient. For every field also name:
+- **Default value** — pre-filled, empty, or derived (and from what). No silent empties on fields that have a sensible default.
+- **Autofocus** — which single field gets focus on screen entry (at most one).
+- **Autocomplete / input mask** — `autocomplete` token for known fields (email, name, address); mask/format for structured input (phone, card, currency).
+- **Validation timing** — when the field validates: on-blur, on-change, or on-submit. Default: on-blur for format, on-submit for cross-field. Inline error shows adjacent, not only a summary.
+- **Help text** — present when the constraint is non-obvious (format, why it is required). Name it or mark `none needed`.
+
+A field with a control but no validation timing is `[OPEN]` — the implementer would guess when the error fires.
+
 ### Phase 2: State Enumeration
 
 For every screen / surface, enumerate these states and name what renders in each. No screen ships with only the happy (success) state.
@@ -84,15 +98,42 @@ For every screen / surface, enumerate these states and name what renders in each
 
 A screen that only specifies the success state fails this phase. Loading, empty, and error are mandatory for any screen that fetches data.
 
-### Phase 3: User Flow Mapping
+**Edge states (beyond the happy six).** For any screen behind auth or editing shared data, also name what renders for:
 
-For each task in the spec, map: **entry → action → result → error path.** Name the affordances explicitly:
+| Edge state | Must name |
+|---|---|
+| session expired | what happens when the token dies mid-screen (redirect to login preserving intent, or inline re-auth) — never a silent failed save |
+| concurrent edit / stale data | what shows when the row changed underneath the user (conflict prompt, reload, last-write-wins warning) |
+| timeout / slow network | when the loading state escalates (e.g. "still working" after 10s, cancel affordance) |
+| offline | whether the screen degrades, queues, or blocks when the network is gone |
 
+`light` (mvp) requires the happy six; edge states required at `full` for any screen that mutates shared/persistent data.
+
+### Phase 3: Flows, Journeys, Feedback & Visibility
+
+**3a — Single-task flow.** For each task in the spec, map **entry → action → result → error path.** Name affordances explicitly:
 - What is clickable (buttons, links, rows).
-- What is disabled and the exact condition that disables it (e.g. "Submit disabled until course selected and date in range").
+- What is disabled and the exact condition (e.g. "Submit disabled until course selected and date in range").
 - The error path: what the user sees and can do when the action fails. A flow with no error path fails this phase.
 
 Cover the primary flow for every task. Under `full`, also map secondary flows (edit, delete, cancel) and the recovery flow (what the user does after an error).
+
+**3b — Cross-screen journey.** A task that spans more than one screen is a journey, not a flow. For each, map:
+- **Steps + progress** — the ordered screens and how the user knows where they are (step indicator, breadcrumb).
+- **Forward/back** — can the user go back without losing input; what each step's back does.
+- **Save / resume** — is partial progress persisted (draft), and how the user resumes. A multi-step form that loses everything on reload fails this.
+- **Entry + exit points** — how the journey is entered (deep-link? only from screen X?) and where completion/abandonment lands the user. Name the route map source: `cfn-arch` Step 3 owns the route structure; cfn-ux owns the in-journey navigation behavior.
+- **First-run / onboarding** — when the journey is a user's first encounter, the `empty` state is an activation opportunity, not a blank. Name the empty-as-onboarding content.
+
+**3c — Confirmation, feedback & undo.** For every action that mutates data:
+- **Feedback** — what confirms success (toast, inline, redirect). Optimistic update or wait-for-server, and how a rollback shows if the optimistic write fails.
+- **Destructive confirm** — delete / irreversible actions require an explicit confirm step (named), OR an undo window. State which.
+- **Undo** — where an undo affordance exists and its window. Prefer undo over a confirm dialog for reversible actions.
+A mutating action with no success feedback fails this phase.
+
+**3d — Role-based visibility.** Consume `cfn-arch` Step 6 AuthZ matrix (operation × role). For each role, name per restricted affordance: **hidden** (not in DOM) vs **disabled** (visible, inert, with reason). Default: hide what the role cannot do; disable only when the user should know the action exists. cfn-ux decides *what is seen*; cfn-arch decides *what is allowed* — never re-implement the permission check here.
+
+`light` (mvp): 3a + 3c success feedback only. `full`: all of 3a-3d.
 
 ### Phase 4: Analytics / Telemetry Events (extra — gap G26, only when in extras)
 
@@ -123,16 +164,27 @@ Template:
 **Status:** draft | reviewed | locked
 
 ## 1. Field → Control Map
-| Field | Binding (from DATA) | Control | Value source | Validation |
+| Field | Binding (from DATA) | Control | Value source | Validation | Default | Autofocus | Validate-when | Help |
 
 ## 2. Screen States
 ### <screen-name>
 | State | Renders |
+(happy six; + edge states — session-expired / stale / timeout / offline — at full for mutating screens)
 
-## 3. User Flows
+## 3a. Flows
 ### <task-name>
 entry -> action -> result -> error path
 Affordances: <clickable>, <disabled-when>
+
+## 3b. Journeys  (multi-screen tasks)
+### <journey-name>
+steps + progress | forward/back | save+resume | entry/exit (route map: ARCH Step 3) | first-run/onboarding
+
+## 3c. Feedback & Undo
+| Action | Success feedback | Destructive confirm? | Undo window |
+
+## 3d. Role Visibility  (consumes ARCH Step 6 AuthZ)
+| Affordance | Role | Hidden | Disabled (+reason) |
 
 ## 4. Analytics Events  (only if in extras)
 | Event | Trigger | Properties |
@@ -192,6 +244,40 @@ Return exactly:
 - Artifact path: `planning/UX_<slug>.md`
 - A 3-line summary (fields mapped, screens with full state coverage, flows mapped).
 - Any `[OPEN]` items needing a user decision (e.g. ambiguous binding, missing value source).
+
+## Review Mode (audit implemented code)
+
+Invoked as `cfn-ux --review <path-to-ui-component(s)>` (optionally `--data planning/DATA_<slug>.md` or `--schema <migration|model>`). Runs the affordance map BACKWARD: instead of deriving controls from a data model to write a spec, it reads shipped UI, recovers each field's real control + real binding, and flags every mismatch. This is the post-hoc catch for the dropdown-as-textbox bug that already shipped.
+
+No planning artifacts required here. Code is the input.
+
+### Steps
+
+1. **Enumerate fields.** Parse the target form / screen. For every user-editable field emit: `file:line`, field name, **rendered control** (`<input type=text>`, `<select>`, `<textarea>`, checkbox, date-picker, etc.).
+2. **Recover the real binding.** For each field, determine what it is actually backed by — read it, do not guess:
+   - prefer `--data` / `--schema`: the field-bindings table or the migration/ORM model gives FK / enum / lookup / boolean / date / numeric / free-text directly.
+   - else infer from the column the field writes (FK name `*_id` referencing a table, a CHECK/enum constraint, a `bool`/`timestamptz` type) and from the submit handler.
+   - if binding cannot be established, mark the field `binding-unknown` (a finding in itself — the code is ambiguous).
+3. **Apply the affordance map** (same table as forward mode) → expected control.
+4. **Diff.** rendered vs expected. Every mismatch = finding. The load-bearing one: **FK / lookup / enum field rendered as a free-text `<input>`.**
+5. **State audit.** Does the component handle loading / empty / error / disabled for any async-backed control? Each missing state = finding.
+6. **Flow audit.** Error path rendered on submit failure? Disable conditions wired (submit gated until a required select is chosen)? Missing = finding.
+
+### Output
+
+Write `planning/AUDIT_UX_<slug>.md`. Findings table — each row verifiable against the cited line:
+
+```
+| file:line | field | rendered | expected | binding | severity | fix |
+|-----------|-------|----------|----------|---------|----------|-----|
+| BookingForm.tsx:42 | course | <input type=text> | <select> | FK -> public.courses | HIGH | replace with select sourced from courses |
+| BookingForm.tsx:55 | status | <input> | radio/select | enum(active,closed) | HIGH | enum -> select |
+| BookingForm.tsx:- | (form) | no error state | error banner on submit fail | - | MED | add error path |
+```
+
+Severity: HIGH = wrong control on a constrained field (invalid data enterable) or missing error path; MED = missing non-error state; LOW = suboptimal control (raw select where >20 rows wants type-ahead). Empty findings table = PASS, state it explicitly.
+
+Pairs with `cfn-data --review`: run that first so bindings come from the real schema, not inference. The reverse trio for shipped work is `cfn-data --review` -> `cfn-ux --review` -> `cfn-arch --review`.
 
 ## Anti-Patterns
 
