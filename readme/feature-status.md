@@ -431,6 +431,41 @@ Consumer Project
 
 ---
 
+## Planning Pipeline (MegaPlan)
+
+### Tiered Orchestrator
+
+| Feature | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| cfn-megaplan orchestrator | ⚠️ Beta | ⚠️ wiring | `.claude/skills/cfn-megaplan/` | Tiered DAG entry point; supersedes cfn-spa-plan |
+| Inclusion profiles | ✅ Prod | ✅ | `.claude/skills/cfn-megaplan/profiles/` | mvp/beta/enterprise phase inclusion (JSON-validated) |
+| Bar A: verifiable-done | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-megaplan/bars/verifiable-done.md` | Every AC carries executable check; cfn-loop-task gate |
+| Bar B: haiku-executable | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-megaplan/bars/haiku-executable.md` | Every step unambiguous; static+probe scan |
+
+### Planning Phase Skills
+
+| Feature | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| cfn-research | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-research/` | Pre-spec feasibility, prior-art query |
+| cfn-decide | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-decide/` | Decision register + structured decision-log write |
+| cfn-data | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-data/` | Forward DB design + field-bindings (RLS floor) |
+| cfn-ux | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ux/` | Affordance map (FK→dropdown); kills dropdown-as-textbox |
+| cfn-design | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-design/` | Layout/design-system/a11y/i18n + API contract |
+| cfn-test-plan | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-test-plan/` | AC→executable-check table (feeds Bar A) |
+| cfn-ops | ⚠️ Beta | ⚠️ | `.claude/skills/cfn-ops/` | Threat model/observability/rollout (beta+) |
+
+### Decision Log (structured records)
+
+| Feature | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| Structured decision store | ✅ Prod | ✅ | `.claude/skills/decision-log/{schema.sql,record.sh,decisions.sh}` | SQLite `decisions` table; cross-session, per-project; write via record.sh, read via decisions.sh |
+
+**Dependencies:** cfn-megaplan reads cfn-spec build flags to route conditional phases. cfn-ux consumes cfn-data field-bindings. cfn-decide writes to decision-log SQLite (read by cfn-megaplan Step 0 + cfn-plan-review Phase 1).
+
+**Known limitations:** Phase skills validated for wiring (structural smoke), not yet exercised by a full live orchestration run. Bars enforced via prompt + scan, no automated regression harness yet. Global `~/.claude/CLAUDE.md` canonical-entry switch to cfn-megaplan is local config, not tracked in this repo.
+
+---
+
 ## Current Development Phase
 
 **Phase:** Production

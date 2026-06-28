@@ -1,0 +1,21 @@
+{
+  "tier": "enterprise",
+  "version": "1.0.0",
+  "description": "Critical / compliance / scale. Everything full + threat model, capacity, multi-tenancy, i18n, plan judge, risk register. All 36 gaps active.",
+  "bars": { "verifiable_done": "full", "haiku_executable": "full" },
+  "floor": ["rls", "auth_boundaries", "secrets_handling", "no_unscoped_delete", "pii_if_present"],
+  "phases": {
+    "research":    { "directive": "full", "level": 1, "agent": "researcher" },
+    "spec":        { "directive": "full", "level": 2, "agent": "specification-agent" },
+    "decide":      { "directive": "full", "level": 3, "extras": ["alternatives_panel"] },
+    "pseudo":      { "directive": "full", "level": 3, "agent": "pseudocode" },
+    "data":        { "directive": "conditional:db", "level": 4, "agent": "database-architect", "extras": ["lifecycle", "concurrency", "multi_tenancy", "compliance", "retention"] },
+    "arch":        { "directive": "full", "level": 5, "agent": "system-architect", "extras": ["error_taxonomy"] },
+    "ux":          { "directive": "conditional:frontend", "level": 5, "agent": "ui-designer" },
+    "design":      { "directive": "conditional:frontend", "level": 6, "agent": "ui-designer", "extras": ["i18n", "a11y_full"] },
+    "test_plan":   { "directive": "full", "level": 6, "extras": ["integration", "contract", "mocking_strategy", "load", "soak", "nonfunctional"] },
+    "ops":         { "directive": "full", "level": 6, "extras": ["threat", "observability", "rollout", "canary", "metrics", "failure_mode", "rollback_rehearsal", "capacity", "cost_model", "runbook"] },
+    "write_plan":  { "directive": "full", "level": 7, "extras": ["estimation", "risk_register"] },
+    "plan_review": { "directive": "full", "level": 8, "extras": ["full_alpha_readiness", "plan_judge", "compliance"] }
+  }
+}

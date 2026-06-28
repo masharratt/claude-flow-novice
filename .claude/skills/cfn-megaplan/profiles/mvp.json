@@ -1,0 +1,21 @@
+{
+  "tier": "mvp",
+  "version": "1.0.0",
+  "description": "Prove it works. Correctness + security floor + buildability. No ops/rollout/compliance. Ugly-but-functional ok. Still gets ux (the dropdown bug is correctness, not polish).",
+  "bars": { "verifiable_done": "full", "haiku_executable": "full" },
+  "floor": ["rls", "auth_boundaries", "secrets_handling", "no_unscoped_delete", "pii_if_present"],
+  "phases": {
+    "research":    { "directive": "conditional:unknowns", "level": 1, "agent": "researcher" },
+    "spec":        { "directive": "full",  "level": 2, "agent": "specification-agent" },
+    "decide":      { "directive": "light", "level": 3, "drops": ["alternatives_panel", "non_blocking_forks"] },
+    "pseudo":      { "directive": "full",  "level": 3, "agent": "pseudocode" },
+    "data":        { "directive": "conditional:db", "level": 4, "agent": "database-architect", "drops": ["lifecycle", "multi_tenancy", "concurrency"] },
+    "arch":        { "directive": "light", "level": 5, "agent": "system-architect", "drops": ["error_taxonomy"] },
+    "ux":          { "directive": "conditional:frontend", "level": 5, "agent": "ui-designer" },
+    "design":      { "directive": "conditional:frontend", "level": 6, "agent": "ui-designer", "drops": ["i18n", "a11y_full"] },
+    "test_plan":   { "directive": "light", "level": 6, "drops": ["integration", "contract", "load", "soak", "mocking_strategy"] },
+    "ops":         { "directive": "skip",  "level": 6, "drops": ["threat", "observability", "rollout", "metrics", "capacity", "runbook", "failure_mode", "rollback_rehearsal"] },
+    "write_plan":  { "directive": "full",  "level": 7, "drops": ["estimation", "risk_register"] },
+    "plan_review": { "directive": "light", "level": 8, "drops": ["plan_judge", "compliance", "full_alpha_readiness"] }
+  }
+}

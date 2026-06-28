@@ -39,7 +39,7 @@ Surface any violations as numbered findings in Phase 6. Do not duplicate the rul
 
 ### Phase 1: Assumption Extraction
 
-Before extracting assumptions, query the decision log for prior plans involving the same entities: `~/.claude/skills/decision-log/query.sh '<entity-names>' 5 <project>`. Prior failed assumptions from past plans should be checked first.
+Before extracting assumptions, query the decision log for prior plans involving the same entities: `~/.claude/skills/decision-log/query.sh '<entity-names>' 5 <project>` (conversation FTS) and `~/.claude/skills/decision-log/decisions.sh search '<entity-names>'` (structured register of RESOLVED forks). Prior failed assumptions and settled decisions from past plans should be checked first — do not re-open a fork already marked RESOLVED unless it is `superseded`.
 
 Read the plan and extract every implicit assumption into an explicit, testable statement.
 
@@ -225,6 +225,16 @@ Output format:
 
 **Alpha-ready: NO** (4 gaps blocking)
 ```
+
+### Phase 5.5: Plan Judge (gap G35 — enterprise tier only)
+
+Completeness (Phases 1-5) checks whether the plan covers the system. The judge checks whether the *chosen approach* is the right one. Run only when invoked at `enterprise` tier (or on explicit request).
+
+Spawn a small panel (2-3) of independent reviewers, each with a distinct lens — maintainability, simplicity (could a smaller approach hit the same acceptance criteria?), and risk. Each scores the plan's approach 1-5 and names one concretely better alternative if it exists. If a majority scores ≤3 or all three name the same alternative, surface "approach may be wrong" as a Phase 6 finding with the alternative. This is the design-altitude check completeness cannot give.
+
+### Phase 5.6: Haiku-Executable Gate (Bar B)
+
+When run inside `cfn-megaplan`, this phase also invokes `bars/haiku-executable.md`: static weasel-word scan, structural scan (every step has file path + signature + control type + error path), branch-coverage scan, then the live haiku probe. Any finding routes to its owning phase (ui_control -> cfn-ux, value source -> cfn-data/cfn-arch, branch -> cfn-pseudo) and that phase re-runs. Re-run until clean. Outside megaplan, run it manually before declaring the plan ready.
 
 ### Phase 6: Findings Summary
 

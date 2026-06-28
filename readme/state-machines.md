@@ -100,3 +100,28 @@ Task does not have a `failed` state in the scheduler. Failure is recorded extern
 |------|----|---------|
 | PROCESSING | ACTIVE | file processed; generateContent proceeds |
 | PROCESSING | FAILED | Gemini rejects/fails processing → run `failed` |
+
+---
+
+## Decision Record (decision-log structured store)
+
+**Entity:** a resolved planning fork, written by `cfn-decide` via `record.sh`, keyed `(project, slug, decision_id)`.
+
+**States:** `proposed | accepted | superseded`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | proposed | record.sh with `--status proposed` | fork surfaced, user not yet answered |
+| (none) | accepted | record.sh (default status) | fork resolved (user-answered or self-resolved) |
+| proposed | accepted | record.sh upsert, same key, status accepted | answer returned |
+| accepted | accepted | record.sh upsert, same key | re-run; in-place update, no duplicate |
+| accepted | superseded | newer record.sh with `--supersede <this-id>` | a later plan reverses the decision |
+| proposed | superseded | newer record.sh `--supersede <this-id>` | reversed before acceptance |
+
+**Illegal:** `superseded → accepted` (reversal of a reversal must be a NEW decision_id with its own `--supersede`, not a status flip — preserves audit trail). Delete is never used for reversal.
+
+```
+proposed ──answer──> accepted ──(--supersede by Dn)──> superseded
+   │                                                       ▲
+   └──────────────(--supersede by Dn)─────────────────────┘
+```

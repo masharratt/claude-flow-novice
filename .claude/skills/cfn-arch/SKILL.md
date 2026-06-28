@@ -169,6 +169,39 @@ This is a mini blast-radius analysis — `cfn-plan-review` will do a deeper one 
 - Backwards compatibility plan (if changing existing contract)
 - Rollback procedure
 
+### Step 9: State Machines (gap G17)
+
+For every stateful entity in scope, design the lifecycle AT PLAN TIME (not at commit time when `readme/state-machines.md` is updated). For each entity:
+- **States** — enumerate every valid state.
+- **Transitions** — `from -> to`, the trigger, and the guard condition.
+- **Illegal transitions** — states that must be rejected (these become edge-case tests).
+- **Diagram** — mermaid or ASCII.
+
+```
+Entity: booking
+States: draft -> pending -> confirmed -> cancelled | completed
+Transition: pending -> confirmed  trigger: payment_ok  guard: seat still available
+Illegal: completed -> pending (reject), cancelled -> confirmed (reject)
+```
+
+The commit-time `readme/state-machines.md` update is then a copy of this section, not a fresh design.
+
+### Step 10: Error Taxonomy (gap G25 — `error_taxonomy` extra, beta+)
+
+When the orchestrator passes the `error_taxonomy` extra, define a single cross-surface error contract so every component returns the same shape and codes, sourced from one file:
+- **Error code enum** — one canonical list (`INVALID_X`, `NOT_FOUND`, `FORBIDDEN`, ...), single source-of-truth path.
+- **Shape** — the typed error object every boundary returns (reuse the Step 2 contract style).
+- **Mapping** — which operation raises which code, and the HTTP status each maps to.
+
+Skip for `mvp` (light arch drops this extra).
+
+### Under cfn-megaplan: division of labor
+
+When run inside `cfn-megaplan`, defer detail to the dedicated phases to avoid duplication (DRY):
+- **Storage (Step 5)** → hand to `cfn-data` when the `db` flag is set; arch keeps only the component-level data ownership, cfn-data owns schema/index/RLS/migration detail.
+- **Deployment + observability + failure mitigation (Steps 6-8)** → hand to `cfn-ops` for beta+ tiers; arch keeps the failure *inventory*, cfn-ops owns the mitigation *design* (circuit breakers, rollout, runbook).
+- Standalone (no megaplan), arch covers all ten steps itself.
+
 ## Output
 
 Write to: `planning/ARCH_<sanitized-task-name>.md`

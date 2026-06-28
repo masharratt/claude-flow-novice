@@ -201,15 +201,24 @@ Task("planner", `
 - [Benchmark 1]
 - [Benchmark 2]
 
-## Potential Blockers
+## Estimation (gap G29 — gated by mode/extras)
 
-**Technical:**
-- [Potential blocker 1]
-- [Mitigation strategy]
+Skip for `mvp`. Light for `standard` (beta). Full for `enterprise`.
 
-**Dependencies:**
-- [External dependency 1]
-- [Fallback plan]
+- **Effort**: per Loop 3 phase, a coarse size (S/M/L) tied to ARCH NEW/EXTEND counts.
+- **Token budget**: estimated implementer + validator spend; if any step uses `claude -p` or an external provider, cite a `--budget` cap (per CLAUDE.md cost-safety).
+- **Wall-clock**: critical-path phase count (the build is a DAG, not a list).
+
+## Risk Register (gap G30 — replaces flat "blockers"; gated by mode/extras)
+
+Skip for `mvp`. Light for `standard`. Full for `enterprise`. Each risk is a row, not a bullet.
+
+| id | risk | likelihood (L/M/H) | impact (L/M/H) | mitigation | owner/trigger |
+|----|------|:--:|:--:|-----------|---------------|
+| R1 | [external dep unavailable] | M | H | [fallback plan] | [who/what triggers it] |
+| R2 | [data volume exceeds single-pass migration] | L | H | [batched migration] | [row-count check before cutover] |
+
+Technical risks and dependency risks both live here. A risk with no mitigation AND no trigger is incomplete.
 
 ## Iteration Strategy
 - Max iterations: ${mode === 'enterprise' ? 15 : mode === 'standard' ? 10 : 5}

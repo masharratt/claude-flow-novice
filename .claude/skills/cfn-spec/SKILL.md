@@ -1,6 +1,6 @@
 ---
 name: cfn-spec
-description: "SPARC Specification phase. Generate testable acceptance criteria, enumerate edge cases, define pre/post conditions and invariants BEFORE planning implementation. Use when starting any non-trivial task to lock intent and surface ambiguity early."
+description: "SPARC Specification phase. Make testable acceptance criteria, edge cases, pre/post conditions, invariants BEFORE planning implementation. Use when starting any non-trivial task to lock intent, surface ambiguity early."
 version: 1.0.0
 tags: [planning, sparc, specification, requirements, edge-cases]
 status: production
@@ -135,9 +135,24 @@ Operation: ...
 - Q-1: ...
 ```
 
+### Step 8: Build Flags (REQUIRED when run under cfn-megaplan)
+
+The orchestrator routes conditional phases off four flags derived from the spec. Emit them explicitly so `cfn-megaplan` does not have to guess:
+
+```
+## 8. Build Flags
+- frontend: yes|no   (spec mentions UI, screens, components, user-facing forms)
+- db:       yes|no   (spec touches a table, schema, or persisted state)
+- pii:      yes|no   (spec handles personal / identifying / financial data)
+- unknowns: yes|no   (any [OPEN] question or feasibility risk remains)
+- tier-hint: mvp|beta|enterprise  (from audience: prototype/internal -> mvp; real-user-behind-flag -> beta; critical/compliance/scale/external -> enterprise)
+```
+
+`frontend` gates cfn-ux + cfn-design. `db` gates cfn-data. `pii` forces the privacy floor. `unknowns` gates cfn-research (and means spec ran on incomplete info). `tier-hint` seeds tier inference; the orchestrator confirms with the user when ambiguous.
+
 ## Handoff
 
-This artifact is the input to `cfn-pseudo`. Do not advance to pseudocode phase until all `[OPEN]` questions are resolved or accepted as parking-lot items.
+This artifact is the input to `cfn-pseudo`. Do not advance to pseudocode phase until all `[OPEN]` questions are resolved or accepted as parking-lot items. Under `cfn-megaplan`, the Build Flags block (Step 8) is also consumed directly by the orchestrator to resolve `conditional:` phases.
 
 ## Anti-Patterns
 
