@@ -52,6 +52,6 @@ jq -n \
     --argjson themes "$(printf '%s\n' "${THEMES[@]}" | jq -R . | jq -s '.')" \
     '{
         "add_specialist": $specialist,
-        "reasoning": "Recurring feedback themes: \(join(", ", $themes)). Added as number of occurrences reached required threshold.",
+        "reasoning": "Recurring feedback themes: \($themes | join(", ")). Added as number of occurrences reached required threshold.",
         "new_loop3_agents": [$current_agents, $specialist]
     }'
