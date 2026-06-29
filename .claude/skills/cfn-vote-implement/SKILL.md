@@ -23,6 +23,8 @@ Any skill emitting the shared manifest schema works. Manifests live under
 .cfn-cache/manifests/cfn-dry-review-*.json           # cfn-dry-review
 .cfn-cache/manifests/cfn-security-review-*.json      # cfn-security-review
 .cfn-cache/manifests/cfn-dep-audit-*.json            # cfn-dep-audit
+.cfn-cache/manifests/cfn-perf-gate-*.json            # cfn-perf-gate
+.cfn-cache/manifests/cfn-a11y-gate-*.json            # cfn-a11y-gate
 .cfn-cache/manifests/cfn-review-alpha-*.json         # cfn-alpha-launch (v1)
 .cfn-cache/manifests/cfn-review-alpha-v2-*.json      # cfn-alpha-launch-v2
 ```

@@ -75,6 +75,14 @@ Node dependencies (orchestrator must honor; do not spawn a node before its deps 
 2. If estimate is 8+ files, pause and negotiate scope via `AskUserQuestion` before continuing.
 3. Query prior art (gap G06): `~/.claude/skills/cfn-knowledge-base`, `~/.claude/skills/decision-log/query.sh '<entities>' 5 <project>` (conversation FTS), and `~/.claude/skills/decision-log/decisions.sh search '<entities>'` (structured register — settled forks from past plans). Inject any prior playbook / failed-assumption / RESOLVED fork into the spec prompt so it is not re-litigated.
 4. Pull recent retro signal (gap G36): read the latest `cfn-retro` output (hotspot files, workflow bottlenecks). If the task touches a known hotspot file, flag it in the spec prompt so the plan accounts for the churn/fragility already observed there.
+5. Ingest the tech-debt ledger (closes the `cfn-tech-debt` feedback loop). If `.cfn-cache/tech-debt-ledger.json` exists, READ it (never re-harvest) and list any open `cfn:` shortcut that lives in the files/area in scope as candidate backlog entries. Inject them into the spec prompt and carry them to Step 7 so deliberate shortcuts surface for the user instead of silently rotting. `no_trigger` rows (rot risk) rank first.
+
+```bash
+# Read open tech debt in scope. Surfaces all open debt unfiltered (no relevance scoring).
+# cfn: surfaces every ledger row, add path/keyword relevance filter when a ledger exceeds ~50 markers
+LEDGER=".cfn-cache/tech-debt-ledger.json"
+[ -f "$LEDGER" ] && jq -r '.markers[] | "\(.file):\(.line) ceiling: \(.ceiling). upgrade: \(.upgrade_trigger // "NONE")."' "$LEDGER"
+```
 
 ### Step 1: Build the slug
 
@@ -150,6 +158,9 @@ Tier: <tier>   Build flags: <frontend? db? pii? unknowns?>   Generated: <date>
 ## Open decisions resolved
 <from cfn-decide register>
 
+## Open tech debt in scope
+<rows from .cfn-cache/tech-debt-ledger.json whose file/area is touched by this plan; no_trigger rows first. Empty if the ledger is absent or clean. These are backlog candidates for the user, not auto-scheduled work.>
+
 ## Next
 /cfn-loop-task "<task>" --mode=<tier>   (reads VERIFY_<slug>.md as completion gate)
 ```
@@ -178,5 +189,6 @@ Tier: <tier>   Build flags: <frontend? db? pii? unknowns?>   Generated: <date>
 - Phases: `cfn-research`, `cfn-spec`, `cfn-decide`, `cfn-pseudo`, `cfn-data`, `cfn-arch`, `cfn-ux`, `cfn-design`, `cfn-test-plan`, `cfn-ops`
 - Gates: `bars/verifiable-done.md`, `bars/haiku-executable.md`
 - Profiles: `profiles/{mvp,beta,enterprise}.json`
+- Inputs: `cfn-tech-debt` (Step 0 reads its `.cfn-cache/tech-debt-ledger.json` so open `cfn:` shortcuts in scope surface as backlog candidates)
 - Downstream: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-task`
 - Backlog + design rationale: `docs/PLANNING_PIPELINE_GAPS.md`

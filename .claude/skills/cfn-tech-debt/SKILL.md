@@ -37,8 +37,13 @@ Rule: if you write a `cfn:` marker, name the trigger. A shortcut with no trigger
 
 - stdout: one row per marker, grouped — `<file>:<line>: ceiling: <ceiling>. upgrade: <trigger|NONE>.`
 - Summary line: `<N> markers, <M> with no trigger.` (or `No cfn: debt. Clean ledger.`)
-- With `--persist`: `docs/TECH_DEBT.md`
+- Machine ledger (always written when `jq` is present): `.cfn-cache/tech-debt-ledger.json`. Gitignored, project-scoped. Shape: `{generated, total, no_trigger, markers:[{file, line, ceiling, upgrade_trigger|null, has_trigger}]}`. This is the feed `cfn-megaplan` reads during scoping (see below).
+- With `--persist`: `docs/TECH_DEBT.md` (human-facing markdown)
 - exit code: 0 = success
+
+## Feeds cfn-megaplan (the loop)
+
+The JSON ledger closes the "later means never" loop. `cfn-megaplan` reads `.cfn-cache/tech-debt-ledger.json` during its Step 0 scope check and surfaces open debt in the files/area being planned as candidate backlog entries. Deliberate shortcuts become visible at the next planning pass instead of rotting. The harvester writes; megaplan only reads. Run this skill after implementation so the ledger stays current for the next plan.
 
 ## Usage
 
@@ -67,3 +72,4 @@ The harvest reads and reports only by default; `--persist` is the only thing tha
 - `cfn-arch` — the build ladder that decides when a shortcut is justified
 - `cfn-dry-review` — finds accidental over-engineering (opposite axis)
 - `cfn-project-management` — promote rot-risk markers to backlog
+- `cfn-megaplan` (reads `.cfn-cache/tech-debt-ledger.json` at scope time so open debt in the planned area surfaces as backlog candidates)

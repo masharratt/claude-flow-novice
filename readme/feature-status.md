@@ -468,10 +468,20 @@ Consumer Project
 |---------|--------|-------|----------|-------------|
 | cfn-security-review | ✅ Prod | ✅ 10/10 | `.claude/skills/cfn-security-review/` | Post-impl security gate on the diff (injection, authz, secrets, RLS, headers, unscoped DELETE, input). Emits manifest. Never auto-fixes |
 | cfn-dep-audit | ✅ Prod | ✅ 8/8 | `.claude/skills/cfn-dep-audit/` | Supply-chain gate: ~90-day cooldown on new deps + immediate-CVE carve-out (npm/pnpm/yarn/cargo audit). Emits manifest |
+| cfn-perf-gate | ✅ Prod | ✅ 29/29 | `.claude/skills/cfn-perf-gate/` | Runs CFN_PERF_BENCH_CMD, diffs vs `.cfn-cache/perf-baseline.json`, emits manifest per path regressed beyond CFN_PERF_THRESHOLD_PCT (default 10). Never auto-fixes |
+| cfn-a11y-gate | ✅ Prod | ✅ 5/5 | `.claude/skills/cfn-a11y-gate/` | Local WCAG gate: axe-core via Playwright against CFN_A11Y_URLS, emits manifest per violation. Not a GitHub Action. Requires axe-core preinstalled, degrades with install instruction |
 | cfn-migration-rehearsal | ✅ Prod | ✅ 6/6 | `.claude/skills/cfn-migration-rehearsal/` | Rehearses migration up+down round-trip against CFN_SCRATCH_DATABASE_URL only; refuses prod. Executes what cfn-ops designs |
 | docs-sync pre-commit check | ✅ Prod | ✅ 9/9 | `.claude/hooks/cfn-docs-sync-check.sh` | Warns (blocks if CFN_DOCS_SYNC_STRICT=1) when a code commit omits feature-status.md / state-machines.md |
 
-**Gate dependencies:** cfn-security-review + cfn-dep-audit emit manifests to `.cfn-cache/manifests/` consumed by cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user). cfn-migration-rehearsal pairs with cfn-ops (designs up+down) + supabase-schema-sync. docs-sync wired into `.git/hooks/pre-commit`.
+**Gate dependencies:** cfn-security-review + cfn-dep-audit + cfn-perf-gate + cfn-a11y-gate emit manifests to `.cfn-cache/manifests/` consumed by cfn-vote-implement (3/3 auto, 2/3 product-owner, 1/3 batched user). cfn-migration-rehearsal pairs with cfn-ops (designs up+down) + supabase-schema-sync. docs-sync wired into `.git/hooks/pre-commit`.
+
+### Runtime / Deploy Gates
+
+| Feature | Status | Tests | Location | Description |
+|---------|--------|-------|----------|-------------|
+| cfn-monitor | ✅ Prod | ✅ 34/34 | `.claude/skills/cfn-monitor/` | Post-deploy health gate: probes CFN_MONITOR_TARGETS for status + latency, JSON summary, exit nonzero on any failure. Stateless single-shot. Ships RUNBOOK.md (Fly rollback, log/secret/dep triage). Run after `fly deploy` as go/no-go |
+
+**Tech-debt feedback loop:** cfn-tech-debt writes a machine-readable ledger to `.cfn-cache/tech-debt-ledger.json`; cfn-megaplan Step 0 reads it to surface open `cfn:` shortcuts as backlog candidates when scoping new work (rot-risk `no_trigger` rows ranked first). Closes the harvest -> plan loop.
 
 **Reverse/audit mode:** `cfn-megaplan --review <path>` chains `cfn-data --review` -> `cfn-ux --review` -> `cfn-arch --review` to audit already-implemented code (recover artifacts from code, run phase rules as findings, emit `planning/AUDIT_*_<slug>.md`). cfn-ux review is the post-hoc catch for the FK-field-as-textbox bug. Other phases remain forward-only.
 

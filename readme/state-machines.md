@@ -130,7 +130,7 @@ proposed ──answer──> accepted ──(--supersede by Dn)──> supersede
 
 ## Manifest Suggestion (cfn-vote-implement processing)
 
-**Entity:** a single code-review suggestion inside a `.cfn-cache/manifests/` manifest. Producers: cfn-dry-review, cfn-security-review, cfn-dep-audit, cfn-alpha-launch. Status field tracks resumable processing.
+**Entity:** a single code-review suggestion inside a `.cfn-cache/manifests/` manifest. Producers: cfn-dry-review, cfn-security-review, cfn-dep-audit, cfn-perf-gate, cfn-a11y-gate, cfn-alpha-launch. Status field tracks resumable processing.
 
 **States:** `pending | implemented | skipped | failed | deferred | rejected`
 
@@ -154,3 +154,20 @@ pending ──3/3 / PO IMPLEMENT / user Apply──> implemented
    ├──── PO DEFER / user Defer ──────────────> deferred
    └──── PO REJECT ──────────────────────────> rejected
 ```
+
+---
+
+## Monitor Probe (cfn-monitor health gate)
+
+**Entity:** one target endpoint probed by cfn-monitor. Stateless single-shot per run; no persistence between runs.
+
+**States:** `unprobed | healthy | status_mismatch | latency_breach | unreachable`
+
+| From | To | Trigger |
+|------|----|---------|
+| unprobed | healthy | HTTP response status == expected AND latency within budget |
+| unprobed | status_mismatch | response status != expected |
+| unprobed | latency_breach | status OK but latency > budget_ms |
+| unprobed | unreachable | curl fails (timeout CFN_MONITOR_TIMEOUT_S, DNS, connection refused) |
+
+Run exit code: 0 if every target `healthy`, 1 if any target in a failure state, 2 if no targets configured, 3 on CFN_MONITOR_TARGETS JSON parse error. Consecutive-failure tracking is a `cfn:` upgrade path (needs scheduled polling, not single-shot).
