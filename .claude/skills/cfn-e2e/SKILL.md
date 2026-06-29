@@ -15,6 +15,8 @@ Smart parallel E2E test execution with automatic batching optimization. Reduces 
 
 **Core Innovation:** Runs fast batches in parallel (2-3 concurrent), large batches sequentially to avoid overwhelming RAM while maximizing throughput.
 
+> **Leaked workers:** If a Playwright/test runner dies and orphans worker processes (reparented to PID 1), `.claude/hooks/reap-orphan-test-workers.sh` reaps them so they do not burn CPU/RAM.
+
 ## Inputs
 
 | Name | Type | Required | Default | Description |

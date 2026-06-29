@@ -112,9 +112,8 @@ Notes:
 
 ## Related Skills
 
-- `cfn-loop-orchestration-v2/` — full Loop 2/3 orchestration, gate checks, Product Owner decisions
-- `cfn-agent-spawning/` — agent lifecycle (spawn, audit, transcript)
-- `cfn-agent-lifecycle/` — SQLite tracking via `AGENT_LIFECYCLE_DB`
+- `cfn-loop-orchestration-v2/`: full Loop 2/3 orchestration, gate checks, Product Owner decisions
+- `cfn-agent-lifecycle/`: agent lifecycle (spawn, audit, transcript) and SQLite tracking via `AGENT_LIFECYCLE_DB`. Consolidates the former `cfn-agent-spawning/`.
 
 ## History
 

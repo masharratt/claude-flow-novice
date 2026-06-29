@@ -36,6 +36,22 @@ routing-config/
 
 ---
 
+## GUARDRAIL: Anthropic API Ban (CRITICAL)
+
+**Anthropic API calls are BANNED in project code.** This covers Claude SDK calls, direct Anthropic provider integrations, and benchmark candidates referencing `anthropic:claude-*` models. Claude Code itself stays in use for development; the ban applies only to programmatic API usage from project code.
+
+Any routing config MUST resolve Anthropic model ids to their xAI replacements:
+
+| Banned model | Replacement |
+|--------------|-------------|
+| `anthropic:claude-sonnet-*` | `xai:grok-4-1-fast-non-reasoning` |
+| `anthropic:claude-opus-*` | `xai:grok-4.20-beta-0309-reasoning` |
+| `anthropic:claude-haiku-*` | `xai:grok-4-1-fast-non-reasoning` |
+
+Adding any Anthropic provider integration requires explicit per-request user permission. No exceptions, no defaults.
+
+---
+
 ## Migration Paths
 
 | Old Path | New Path |

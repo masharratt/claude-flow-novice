@@ -46,6 +46,8 @@ The skill classifies commits into three relevance levels:
 - CFN loop related files
 - CFN commands and workflows
 - Core system architecture changes
+- `cfn-megaplan` and the SPARC+ phase skills (`cfn-research`, `cfn-spec`, `cfn-decide`, `cfn-pseudo`, `cfn-data`, `cfn-arch`, `cfn-ux`, `cfn-design`, `cfn-ops`, `cfn-test-plan`): the canonical planning pipeline
+- `cfn-loop-task`: the current default execution path
 
 ### Medium Priority (usually included)
 - CFN skill updates
@@ -55,6 +57,9 @@ The skill classifies commits into three relevance levels:
 - Adaptive context changes
 - Consensus mechanisms
 - Swarm intelligence features
+- `cfn-vote-implement`: review-manifest voting and TDD implementation
+- `decision-log`: cross-session decision register and prior-art query
+- `cfn-tech-debt`: `cfn:` shortcut harvesting and trigger-rot flagging
 
 ### Low Priority (sometimes included)
 - CFN agent updates

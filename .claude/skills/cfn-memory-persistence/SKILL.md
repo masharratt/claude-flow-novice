@@ -19,7 +19,7 @@ status: production
 
 This mega-skill provides complete data persistence:
 - **SQLite** - Local database storage with ACL
-- **Redis** - Pub/sub coordination and state
+- **Redis** - Pub/sub coordination and state (CLI-mode only; task mode is the default and uses no Redis)
 - **Auto** - Automatic confidence persistence
 - **Management** - Memory limits and heap profiling
 

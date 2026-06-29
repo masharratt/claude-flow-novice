@@ -284,7 +284,7 @@ SQLX_OFFLINE=true cargo check 2>&1 | grep -c "^error\["
 # 2. Run Phase 1 (Cerebras bulk fixer)
 cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer
 export CEREBRAS_API_KEY="your-key"
-npm run fix:rust 2>&1 | tee /tmp/rust-fix.log
+OUT=/tmp/test-${PWD##*/}-$(date +%s).txt; npm run fix:rust 2>&1 | tee "$OUT"
 # Output: 342 → 15 (95.6% reduction)
 
 # 3. Validate Phase 1 results
@@ -312,7 +312,7 @@ npm run type-check 2>&1 | grep -c "error TS"
 # 2. Run Phase 1 (Cerebras bulk fixer)
 cd /mnt/c/Users/masha/Documents/claude-flow-novice/.claude/skills/cfn-compilation-error-fixer
 export CEREBRAS_API_KEY="your-key"
-npm run fix:ts 2>&1 | tee /tmp/typescript-fix.log
+OUT=/tmp/test-${PWD##*/}-$(date +%s).txt; npm run fix:ts 2>&1 | tee "$OUT"
 # Output: 156 → 7 (95.5% reduction)
 
 # 3. Validate Phase 1 results

@@ -97,7 +97,7 @@ error-management/
 - TIMEOUT - Agent execution timeout
 - CRASH - Agent process crash
 - VALIDATION - Output validation failure
-- COORDINATION - Redis coordination failure
+- COORDINATION - Redis coordination failure (CLI mode only; task-mode default has no Redis)
 - UNKNOWN - Uncategorized errors
 
 **Features:**

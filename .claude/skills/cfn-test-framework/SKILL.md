@@ -24,6 +24,23 @@ This mega-skill provides complete testing capabilities:
 
 ---
 
+## Running Tests (standard capture pattern)
+
+Capture full output to a project-unique file, then read the file for all errors in one run. No watch mode, no bail/fail-fast flag.
+
+```bash
+OUT=/tmp/test-${PWD##*/}-$(date +%s).txt
+<test-cmd> 2>&1 | tee "$OUT"
+# then read "$OUT" for the complete failure set
+```
+
+- `${PWD##*/}` plus the timestamp keeps the filename unique across concurrent project runs.
+- Use `vitest run` (not `vitest`), drop `-x`/`--bail`/`--fail-fast`, keep verbose + full traces so every failure shows on the first pass.
+- Compile errors are not test failures: dump all compile errors first (`tsc --noEmit`, `cargo check --message-format=short`, `go build ./...`) before blaming tests.
+- **Leaked workers:** if a runner dies and orphans worker processes (reparented to PID 1), `.claude/hooks/reap-orphan-test-workers.sh` reaps them so they do not burn CPU/RAM.
+
+---
+
 ## Directory Structure
 
 ```

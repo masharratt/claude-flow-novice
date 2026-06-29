@@ -12,6 +12,8 @@ status: production
 
 The cfn-epic-parser skill converts natural language epic documents written in markdown format into structured JSON configurations suitable for execution in either MDAP or CFN Loop modes.
 
+> **Pipeline context:** The `maxTaskSize: 50`, `consensusThreshold: 0.90`, and `gateThreshold: 0.95` values below are CLI-mode / MDAP defaults, not the only execution path. The current default execution path is `cfn-loop-task` (task mode, no Redis). Planning artifacts now come from `cfn-megaplan`, which emits `planning/*.md` (RESEARCH, SPEC, DECISIONS, DATA, ARCH, UX, DESIGN, TEST, OPS, MEGAPLAN); this parser consumes those markdown epics.
+
 ## Usage
 
 ### Basic Usage
@@ -122,6 +124,7 @@ Description of phase goals.
     "atomicExecution": true,
     "contextInjection": "pre-loaded"
   }
+  // maxTaskSize 50 is the MDAP default; cfn-loop-task is the default execution path.
 }
 ```
 

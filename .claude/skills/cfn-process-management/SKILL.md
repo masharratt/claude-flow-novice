@@ -21,6 +21,8 @@ This mega-skill provides process management:
 - **Instrumentation** - Process metrics and monitoring
 - **Lifecycle** - Process start/stop/restart management
 
+> **Orphan reaper (complements this skill's internal cleanup):** `.claude/hooks/reap-orphan-test-workers.sh` reaps leaked test workers (reparented to PID 1) and stuck CodeSearch indexers out-of-band. It is a safety net for processes this skill's lifecycle management did not stop, not a replacement for it.
+
 ---
 
 ## Directory Structure

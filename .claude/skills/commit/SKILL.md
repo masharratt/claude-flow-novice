@@ -8,7 +8,7 @@ status: production
 
 # Commit and Push Skill
 
-**Purpose:** Stage relevant changes, create a conventional commit, and push to remote — all delegated to a background `github-commit-agent` so the main conversation stays unblocked.
+**Purpose:** Stage relevant changes, create a conventional commit, and push to remote, all delegated to a background `github-commit-agent` so the main conversation stays unblocked.
 
 ## Usage
 
@@ -37,12 +37,13 @@ Steps:
 2. Run `git diff --stat HEAD` to understand scope of changes.
 3. Run `git log --oneline -5` to match existing commit message style.
 4. Stage relevant files by name (avoid `git add -A` or `git add .` to prevent accidentally including secrets or large binaries). Skip: .env, *.key, *.pem, credentials.*, *.secret.
+4b. **Commit-time docs (MANDATORY per CLAUDE.md):** Every commit must update `readme/feature-status.md` (production readiness tracker) and `readme/state-machines.md` (entity lifecycle) when features, statuses, test coverage, or stateful transitions change. Create them if missing. The pre-commit hook `cfn-docs-sync-check.sh` warns when these are stale or missing; do not ignore the warning.
 5. If the user provided a message override in args, use it. Otherwise draft a conventional commit message (feat/fix/chore/docs/refactor) focused on "why" not "what", 1-2 sentences max.
 6. Commit using HEREDOC format:
    git commit -m "$(cat <<'EOF'
    <message>
 
-   Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+   Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
    EOF
    )"
 7. Unless --no-push was passed, run `git push`.

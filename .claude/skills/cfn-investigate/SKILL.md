@@ -42,7 +42,12 @@ status: production
 - Fix the root cause, not the symptom.
 - Minimal diff. Do not refactor surrounding code.
 - Write a regression test that fails without the fix and passes with it.
-- Run full test suite.
+- Run full test suite using the standard capture pattern so all failures show in one pass:
+  ```bash
+  OUT=/tmp/test-${PWD##*/}-$(date +%s).txt
+  <test-cmd> 2>&1 | tee "$OUT"
+  ```
+  No watch mode, no bail/fail-fast flag. Read `"$OUT"` for the complete failure set.
 
 ### Phase 5: Verification
 

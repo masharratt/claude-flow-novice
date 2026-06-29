@@ -90,7 +90,7 @@ echo 'export OPENAI_API_KEY="sk-..."' >> ~/.bashrc
 source ~/.bashrc
 
 # Option 3: Inline with command
-OPENAI_API_KEY="sk-..." ./local-codesearch index --path /project
+OPENAI_API_KEY="sk-..." ./local-codesearch --project-dir /project index --path . --types rs,ts,py,sh,json,yaml,sql
 ```
 
 **Verify key is set:**
@@ -102,7 +102,8 @@ echo $OPENAI_API_KEY  # Should show your key (not empty)
 
 ```bash
 # Index a project (first time or full rebuild)
-local-codesearch index --path /path/to/project --types rs,ts,py
+# project_root is tagged via --project-dir; the inner `index --path .` walks that dir.
+local-codesearch --project-dir /path/to/project index --path . --types rs,ts,tsx,js,jsx,py,sh,json,yaml,sql
 
 # Incremental update (after code changes)
 /codebase-reindex
@@ -110,6 +111,13 @@ local-codesearch index --path /path/to/project --types rs,ts,py
 # Check index stats
 sqlite3 ~/.local/share/codesearch/index_v2.db "SELECT project_root, COUNT(*) FROM entities GROUP BY project_root;"
 ```
+
+## Indexing Internals
+
+- **`.claude/worktrees` (and `worktrees`, `.worktrees`) are excluded** from indexing. They are ephemeral CFN agent git clones that duplicate source and nest `node_modules`; indexing them caused data collisions and memory blowup.
+- **Python (`.py`) is supported** as a first-class indexed language, alongside rs/ts/tsx/js/jsx/sh/json/yaml/sql.
+- **No memory runaway:** the post-commit indexer enqueues each commit's changes as a job file, then a single worker drains the queue under an `flock`. Concurrent commits never stack indexers; jobs are aggregated and deduped before indexing.
+- **Index stays fresh automatically** via the post-commit hook `.claude/hooks/cfn-post-commit-codesearch-index.sh` (enqueue on every commit, single locked drain worker).
 
 ## Key Features
 
