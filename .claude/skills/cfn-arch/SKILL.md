@@ -10,12 +10,12 @@ status: production
 
 **Purpose:** Convert pseudocode operations into a concrete component design with interface contracts. Catches integration mismatches, missing shared types, and DRY violations BEFORE the implementer wires them wrong.
 
-**Phase:** Architecture (SPARC step 3 of 3 used by `/cfn-spa-plan`).
+**Phase:** Architecture. DAG level 4 in the canonical `cfn-megaplan` pipeline (after `cfn-data`, in parallel with `cfn-ux`); hands storage detail to `cfn-data`, ops/deployment to `cfn-ops`, and the route/navigation map to `cfn-ux`. Also SPARC step 3 of 3 in the lighter `cfn-spa-plan` sub-pipeline.
 
 ## When to Use
 
 - After `cfn-spec` and `cfn-pseudo` artifacts exist
-- Auto-invoked by `/cfn-spa-plan` orchestrator
+- Auto-invoked by `/cfn-megaplan` (canonical) and the lighter `/cfn-spa-plan` sub-pipeline
 - Standalone for architecture review of existing systems
 
 Skip only for: tasks confined to a single existing function with no new interface.
@@ -207,8 +207,9 @@ Skip for `mvp` (light arch drops this extra).
 
 When run inside `cfn-megaplan`, defer detail to the dedicated phases to avoid duplication (DRY):
 - **Storage (Step 5)** → hand to `cfn-data` when the `db` flag is set; arch keeps only the component-level data ownership, cfn-data owns schema/index/RLS/migration detail.
+- **Route / navigation map (Step 3)** → hand to `cfn-ux` when the `frontend` flag is set; arch keeps the route structure, cfn-ux owns in-flow navigation behavior and journeys.
 - **Deployment + observability + failure mitigation (Steps 6-8)** → hand to `cfn-ops` for beta+ tiers; arch keeps the failure *inventory*, cfn-ops owns the mitigation *design* (circuit breakers, rollout, runbook).
-- Standalone (no megaplan), arch covers all ten steps itself.
+- Standalone (no megaplan, e.g. under `cfn-spa-plan`), arch covers all ten steps itself.
 
 ## Output
 
@@ -295,7 +296,8 @@ Write `planning/AUDIT_ARCH_<slug>.md`: findings table (`file:line | concern | ru
 
 ## Related
 
-- Previous phases: `cfn-spec`, `cfn-pseudo`
-- Orchestrator: `cfn-spa-plan`
+- Canonical orchestrator: `cfn-megaplan` (runs arch at DAG level 4; hands storage→`cfn-data`, ops→`cfn-ops`, route-map→`cfn-ux`)
+- Previous phases: `cfn-spec`, `cfn-pseudo`; parallel: `cfn-ux`; upstream data: `cfn-data`
+- Lighter orchestrator: `cfn-spa-plan`
 - Downstream: `/write-plan` consumes ARCH + SPEC + PSEUDO
-- Post-plan: `/cfn-plan-review` validates against codebase
+- Post-plan: `/cfn-plan-review` validates against codebase (invoked internally by `cfn-megaplan`)

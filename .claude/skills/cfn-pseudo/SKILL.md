@@ -10,12 +10,12 @@ status: production
 
 **Purpose:** Force a logic trace through every acceptance criterion and edge case BEFORE code exists. Surfaces algorithmic gaps, missing branches, and complexity issues at the cheapest possible stage.
 
-**Phase:** Pseudocode (SPARC step 2 of 3 used by `/cfn-spa-plan`).
+**Phase:** Pseudocode. DAG level 3 in the canonical `cfn-megaplan` pipeline (after `cfn-spec`, in parallel with `cfn-decide`). Also SPARC step 2 of 3 in the lighter `cfn-spa-plan` sub-pipeline.
 
 ## When to Use
 
 - After `cfn-spec` produces `planning/SPEC_<task>.md`
-- Auto-invoked by `/cfn-spa-plan` orchestrator
+- Auto-invoked by `/cfn-megaplan` (canonical) and the lighter `/cfn-spa-plan` sub-pipeline
 - Standalone when reviewing existing code for logical completeness
 
 Skip only for: pure config changes, declarative schema updates with no procedural logic.
@@ -156,6 +156,8 @@ Input to `cfn-arch`. Do not proceed to architecture phase if branch coverage has
 
 ## Related
 
+- Canonical orchestrator: `cfn-megaplan` (runs this at DAG level 3, parallel with `cfn-decide`)
 - Previous phase: `cfn-spec`
+- Parallel phase: `cfn-decide` (decision register)
 - Next phase: `cfn-arch`
-- Orchestrator: `cfn-spa-plan`
+- Lighter orchestrator: `cfn-spa-plan`

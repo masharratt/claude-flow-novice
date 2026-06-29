@@ -12,7 +12,7 @@ status: production
 
 ## When to Use
 
-Run after any plan is written and before implementation begins. Especially critical for:
+Invoked internally by `cfn-megaplan` (the canonical planning pipeline) at its plan-review step, after `/write-plan`. Run it standalone only when iterating on an existing plan, or after the lighter `/cfn-spa-plan` + `/write-plan` path. Run after any plan is written and before implementation begins. Especially critical for:
 - Database migrations or schema changes
 - Cross-project data movement
 - API contract changes
@@ -267,8 +267,9 @@ Format:
 
 ## Integration
 
-- Preceded by `cfn-goap-plan` (goal state modeling, A* action sequence) for non-trivial tasks
-- Run after `/write-plan` or any Plan Mode session
+- Invoked internally by `cfn-megaplan` (canonical pipeline) at the plan-review step, after `/write-plan`
+- Optionally preceded by `cfn-goap-plan` (goal state modeling, A* action sequence) for non-trivial tasks
+- Standalone: run after `/write-plan` or any Plan Mode session (including the lighter `/cfn-spa-plan` path)
 - Feeds into cfn-investigate if gaps reveal deeper issues
 - Log significant findings to cfn-knowledge-base for future reference
 - Works with any project type (not database-specific, but database examples are most common)

@@ -20,7 +20,7 @@ Manifest discovery directory (project-scoped):
 MANIFEST_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.cfn-cache/manifests"
 ```
 
-- If argument is `latest` or empty: pick the most recent file matching `${MANIFEST_DIR}/cfn-dry-review-*.json` (fall back to `cfn-review-alpha-*.json` / `cfn-review-alpha-v2-*.json` if no dry-review manifest exists). Use `ls -1t "${MANIFEST_DIR}"/cfn-*.json 2>/dev/null | head -1`.
+- If argument is `latest` or empty: pick the most recent file matching `${MANIFEST_DIR}/cfn-*.json` (producers: `cfn-dry-review-*`, `cfn-security-review-*`, `cfn-dep-audit-*`, `cfn-review-alpha-*`, `cfn-review-alpha-v2-*`). Use `ls -1t "${MANIFEST_DIR}"/cfn-*.json 2>/dev/null | head -1`.
 - Otherwise: read the specified path.
 
 If no manifests exist in `${MANIFEST_DIR}`, also check legacy `/tmp/cfn-*.json` for transition compatibility and warn the user to re-run the producing skill.
@@ -103,18 +103,19 @@ Output a JSON object mapping suggestion IDs to votes:
 
 Collect results from all 3 agents. For each suggestion, count YES votes:
 
-| YES Votes | Action |
-|-----------|--------|
-| 3 | Queue for auto-implementation |
-| 1 or 2 | Queue for user decision |
-| 0 | Mark as `"status": "skipped"` |
+| YES Votes | Action | Timing |
+|-----------|--------|--------|
+| 3 | Auto-implement via subagent with full TDD | Inline (Step 4) |
+| 2 | Spawn `product-owner` agent (GOAP) to decide IMPLEMENT / DEFER / REJECT | Inline (Step 4.5) |
+| 1 | Queue for batched user decision | Surfaced at end (Step 5) |
+| 0 | Mark as `"status": "skipped"` | n/a |
 
 Report tally:
 ```
-Vote results: <N> unanimous (auto-implement), <N> split (user decision), <N> rejected
+Vote results: <N> unanimous (auto-implement), <N> 2/3 (product-owner), <N> 1/3 (user decision), <N> rejected
 ```
 
-If `--dry-run` was specified: print the tally with per-suggestion vote details and stop here. Do not implement or ask questions.
+If `--dry-run` was specified: print the tally with per-suggestion vote details and stop here. Do not implement, route to product-owner, or ask questions.
 
 ## Step 4: Implement Unanimous Items (SEQUENTIAL)
 
@@ -139,11 +140,35 @@ If a test suite doesn't exist or isn't runnable, skip steps 3 and 5 but still wr
 
 If implementation fails (test suite breaks), revert the change, mark the suggestion as `"status": "failed"`, and continue to the next item.
 
-## Step 5: Surface Split Decisions to User
+## Step 4.5: Route 2/3 Items to Product Owner (SEQUENTIAL)
 
-For each 1-2 vote suggestion, ask the user ONE question per suggestion using AskUserQuestion:
+For each 2-vote suggestion, spawn the `product-owner` agent (GOAP planner) ONE item at a time. The Product Owner is the ONLY decision maker for 2/3 items. Do NOT surface them to the user.
 
-Format:
+Pass to the agent:
+- The suggestion text + location
+- The two YES votes (lens + reasoning)
+- The one NO vote (lens + reasoning)
+- Current project scope and any active epic context
+
+Product Owner returns one of:
+
+| Decision | Action |
+|----------|--------|
+| `IMPLEMENT` | Apply now via the Step 4 TDD protocol |
+| `DEFER` | Append to `docs/BACKLOG.md`; mark manifest item `"status": "deferred"` |
+| `REJECT` | Mark manifest item `"status": "rejected"` with PO reasoning |
+
+## Step 5: Surface 1/3 Items to User (BATCHED)
+
+1/3 items accumulate during the vote pass. After every 3/3 and 2/3 item is resolved, surface them to the user in batches via AskUserQuestion.
+
+**Batch protocol:**
+- 4 questions per `AskUserQuestion` call (the tool's maximum)
+- One suggestion per question
+- Options per question: `Apply`, `Skip`, `Defer to backlog`
+- Question body lists all three vote reasonings so the user understands the split
+
+Question body format:
 ```
 **<title>** (<category>, impact: <impact>, effort: <effort>)
 
@@ -153,16 +178,18 @@ Files: <file list>
 
 Suggested approach: <suggested_approach>
 
-Votes: <N>/3
+Votes: 1/3
 - Correctness: <YES/NO> - "<reasoning>"
 - Consistency: <YES/NO> - "<reasoning>"
 - Feasibility: <YES/NO> - "<reasoning>"
-
-Implement this suggestion?
 ```
 
-If user says yes: implement using the same TDD protocol as Step 4.
-If user says no: mark as `"status": "skipped"`.
+After each batch returns:
+- `Apply`: implement via the Step 4 TDD protocol
+- `Skip`: mark `"status": "skipped"`
+- `Defer to backlog`: append to `docs/BACKLOG.md`, mark `"status": "deferred"`
+
+Continue batching until the 1/3 queue is empty.
 
 ## Step 6: Save Updated Manifest and Report
 
@@ -171,9 +198,10 @@ Write the updated manifest back to the same path (with status fields updated).
 Print summary:
 ```
 Vote & Implement complete:
-  Implemented: <N> (unanimous) + <N> (user-approved)
-  Skipped: <N> (rejected) + <N> (user-declined)
-  Failed: <N>
+  Implemented: <N> (unanimous) + <N> (product-owner) + <N> (user-approved)
+  Deferred:    <N> (product-owner) + <N> (user) -> docs/BACKLOG.md
+  Skipped:     <N> (rejected) + <N> (product-owner reject) + <N> (user-declined)
+  Failed:      <N>
 
 Updated manifest: <path>
 ```
@@ -183,7 +211,8 @@ Updated manifest: <path>
 ## Rules
 
 - Voting agents must READ the actual code, not just the suggestion text.
-- Each user question is exactly ONE suggestion. Never batch decisions.
+- 3/3 = auto-implement, 2/3 = product-owner agent decides, 1/3 = user decision. Never route 2/3 items to the user.
+- User questions are BATCHED: 4 per `AskUserQuestion` call, one suggestion per question, surfaced at the end after all 3/3 and 2/3 items resolve.
 - Implementations are sequential. Earlier changes must be committed before later ones start.
 - Full TDD: no implementation without a failing test first.
 - If the project has no test framework set up, write tests anyway in the most appropriate format and note the framework gap.

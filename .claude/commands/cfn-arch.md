@@ -46,5 +46,6 @@ Spawn the `system-architect` agent (`.claude/agents/cfn-dev-team/architecture/sy
 
 ## Next steps
 
-- `/write-plan "$ARGUMENTS"` (auto-consumes SPA bundle)
+- Canonical full pipeline: `/cfn-megaplan "$ARGUMENTS"` (runs arch at DAG level 4; hands storage→`/cfn-data`, ops→`/cfn-ops`, route-map→`/cfn-ux`)
+- `/write-plan "$ARGUMENTS"` (auto-consumes the design bundle)
 - Then: `/cfn-plan-review` → `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)

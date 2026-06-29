@@ -118,10 +118,39 @@ Task does not have a `failed` state in the scheduler. Failure is recorded extern
 | accepted | superseded | newer record.sh with `--supersede <this-id>` | a later plan reverses the decision |
 | proposed | superseded | newer record.sh `--supersede <this-id>` | reversed before acceptance |
 
-**Illegal:** `superseded → accepted` (reversal of a reversal must be a NEW decision_id with its own `--supersede`, not a status flip — preserves audit trail). Delete is never used for reversal.
+**Illegal:** `superseded → accepted` (reversal of a reversal must be a NEW decision_id with its own `--supersede`, not a status flip, preserves audit trail). Delete is never used for reversal.
 
 ```
 proposed ──answer──> accepted ──(--supersede by Dn)──> superseded
    │                                                       ▲
    └──────────────(--supersede by Dn)─────────────────────┘
+```
+
+---
+
+## Manifest Suggestion (cfn-vote-implement processing)
+
+**Entity:** a single code-review suggestion inside a `.cfn-cache/manifests/` manifest. Producers: cfn-dry-review, cfn-security-review, cfn-dep-audit, cfn-alpha-launch. Status field tracks resumable processing.
+
+**States:** `pending | implemented | skipped | failed | deferred | rejected`
+
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| (none) | pending | manifest emitted by producer skill | not yet voted |
+| pending | implemented | 3/3 vote, or product-owner IMPLEMENT, or user Apply; TDD passes | test suite green |
+| pending | failed | implementation attempted, test suite breaks | change reverted |
+| pending | skipped | 0/3 vote, or user Skip | n/a |
+| pending | deferred | product-owner DEFER, or user Defer to backlog | appended to docs/BACKLOG.md |
+| pending | rejected | product-owner REJECT (2/3 path) | PO reasoning recorded |
+
+**Routing by tally:** 3/3 → auto-implement (TDD), 2/3 → product-owner agent (IMPLEMENT/DEFER/REJECT), 1/3 → batched user prompt (4 per AskUserQuestion call). 2/3 items never reach the user.
+
+**Illegal:** any transition out of a terminal state (implemented/skipped/failed/deferred/rejected). Re-running the manifest only processes `pending` items; resumability depends on terminal states being final.
+
+```
+pending ──3/3 / PO IMPLEMENT / user Apply──> implemented
+   ├──── test breaks ────────────────────────> failed
+   ├──── 0/3 / user Skip ────────────────────> skipped
+   ├──── PO DEFER / user Defer ──────────────> deferred
+   └──── PO REJECT ──────────────────────────> rejected
 ```

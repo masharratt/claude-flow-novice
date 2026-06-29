@@ -1,6 +1,6 @@
 ---
 name: cfn-goap-plan
-description: "GOAP planning bookend. Run BEFORE plan mode to model goal state, derive optimal action sequence. Run DURING implementation when 3-strike rule fires to replan from current world state."
+description: "Optional GOAP planning bookend around cfn-megaplan (the canonical pipeline). Run BEFORE plan mode to model goal state and derive an optimal action sequence. Run DURING implementation when the 3-strike rule fires to replan from current world state."
 version: 1.0.0
 tags: [planning, goap, goal-modeling, replanning, pre-plan]
 status: production
@@ -174,12 +174,14 @@ Do not attempt a 4th hypothesis.
 
 ## Integration
 
+Optional bookend around the canonical `cfn-megaplan` pipeline. Megaplan runs `/write-plan` + `/cfn-plan-review` internally; GOAP wraps it: goal modeling before, replanning during.
+
 | When | What |
 |------|------|
-| Before plan mode | Run Mode 1, output feeds `/write-plan` |
-| After `/write-plan` | Run `cfn-plan-review` as normal |
+| Before `/cfn-megaplan` (or plan mode) | Run Mode 1, output seeds the goal state for megaplan / `/write-plan` |
+| After the plan is written | `/cfn-plan-review` runs (internally under megaplan, or standalone) |
 | 3-strike fires | Run Mode 2, revise plan, re-enter implementation |
-| Replan also fails | Escalate to user — do not guess further |
+| Replan also fails | Escalate to user. Do not guess further |
 
 ## What This Skill Does NOT Do
 

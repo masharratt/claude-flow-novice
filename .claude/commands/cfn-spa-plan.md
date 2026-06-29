@@ -1,5 +1,5 @@
 ---
-description: "SPARC orchestrator. Auto-chains cfn-spec + cfn-pseudo + cfn-arch into one SPA artifact bundle BEFORE /write-plan or plan mode. Use as entry point for non-trivial work to lock intent, catch edge cases early."
+description: "Lighter SPARC-only sub-pipeline. Auto-chains cfn-spec + cfn-pseudo + cfn-arch into one SPA artifact bundle. cfn-megaplan is the canonical entry point and supersedes this. Use directly only when you want no tiering and no extra phases."
 argument-hint: "<task description>"
 allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 ---
@@ -8,7 +8,7 @@ allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 
 Run SPARC Specification + Pseudocode + Architecture phases as a chained orchestration. Produces artifact bundle in `planning/` that `/write-plan` consumes.
 
-Required before `/write-plan` for any non-trivial work (see global CLAUDE.md Plan Mode Protocol).
+**`/cfn-megaplan` is the canonical planning entry point and supersedes this command.** Megaplan runs the full tiered DAG (research, spec, decide, pseudo, data, arch, ux, design, test-plan, ops) and wraps `/write-plan` + `/cfn-plan-review` behind the verifiable-done + haiku-executable bars. Use `/cfn-spa-plan` directly ONLY when you explicitly want the spec+pseudo+arch trio with no tiering and no extra phases.
 
 **Task:** $ARGUMENTS
 
@@ -35,7 +35,12 @@ Then follow Steps 0–5 of `.claude/skills/cfn-spa-plan/SKILL.md` exactly.
 ## Workflow position
 
 ```
-/cfn-spa-plan       <- you are here
+/cfn-megaplan       <- CANONICAL entry point (tiered DAG; supersedes this)
+   |  (composes spec+pseudo+arch among its phases; runs write-plan + plan-review internally)
+   |
+   |  (or, for the lighter no-tiering path only:)
+   |
+/cfn-spa-plan       <- lighter sub-pipeline (spec + pseudo + arch only)
    ↓
 /write-plan         <- consumes SPEC + PSEUDO + ARCH
    ↓
@@ -46,10 +51,11 @@ Then follow Steps 0–5 of `.claude/skills/cfn-spa-plan/SKILL.md` exactly.
 
 ## Skip rules
 
-Do not run for: single-line fixes, pure renames, bug fixes with existing reproducing test.
+Do not run for: single-line fixes, pure renames, bug fixes with existing reproducing test. For non-trivial builds, prefer `/cfn-megaplan` over this command.
 
 ## Related
 
+- Canonical pipeline (supersedes this): `/cfn-megaplan`
 - Phases: `/cfn-spec`, `/cfn-pseudo`, `/cfn-arch`
 - Skill source: `.claude/skills/cfn-spa-plan/SKILL.md`
 - Next: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)

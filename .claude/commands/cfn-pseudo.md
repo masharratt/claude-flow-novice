@@ -44,5 +44,6 @@ Spawn the `pseudocode` agent (defined in `.claude/agents/cfn-dev-team/sparc/pseu
 ## Next steps
 
 - `/cfn-arch "$ARGUMENTS"` for component design
-- Or finish chain: `/cfn-spa-plan` re-orchestrates if used standalone
+- Canonical full pipeline: `/cfn-megaplan "$ARGUMENTS"` (runs pseudo at DAG level 3, parallel with `/cfn-decide`)
+- Lighter trio: `/cfn-spa-plan` re-orchestrates spec + pseudo + arch if used standalone
 - Then: `/write-plan` → `/cfn-plan-review` → `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)

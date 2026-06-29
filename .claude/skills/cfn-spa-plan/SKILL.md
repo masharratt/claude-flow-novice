@@ -1,31 +1,33 @@
 ---
 name: cfn-spa-plan
-description: "SPARC orchestrator. Auto-chains cfn-spec + cfn-pseudo + cfn-arch into one SPA artifact bundle BEFORE /write-plan or plan mode. Use as entry point for non-trivial work to lock intent, catch edge cases early."
+description: "Lighter SPARC-only sub-pipeline. Auto-chains cfn-spec + cfn-pseudo + cfn-arch into one SPA artifact bundle. cfn-megaplan is the canonical planning entry point and supersedes this. Use cfn-spa-plan directly only when you want no tiering and no extra phases."
 version: 1.0.0
 tags: [planning, sparc, orchestrator, spec, pseudo, arch]
 status: production
 ---
 
-# CFN SPA Plan Orchestrator
+# CFN SPA Plan (lighter SPARC-only sub-pipeline)
 
-**Purpose:** Single entry point that runs Specification -> Pseudocode -> Architecture in sequence (with parallel where dependencies allow) and produces a synthesized SPA bundle ready for `/write-plan`.
+**Purpose:** Runs Specification -> Pseudocode -> Architecture in sequence (with parallel where dependencies allow) and produces a synthesized SPA bundle ready for `/write-plan`.
 
-**Why this exists:** Plans drift from intent and miss edge cases because there is no forced step between "task description" and "implementation roadmap" that demands testable acceptance criteria, branch coverage, and component contracts. SPA fills that gap.
+**Canonical entry point is `/cfn-megaplan`, not this.** `cfn-megaplan` runs the full tiered DAG (research, spec, decide, pseudo, data, arch, ux, design, test-plan, ops) and wraps `/write-plan` + `/cfn-plan-review`, gated by verifiable-done + haiku-executable bars. `cfn-spa-plan` is the lighter sub-pipeline that megaplan supersedes: spec + pseudo + arch only, no tiering, no conditional phases.
+
+**Why this exists:** Plans drift from intent and miss edge cases because there is no forced step between "task description" and "implementation roadmap" that demands testable acceptance criteria, branch coverage, and component contracts. SPA fills that gap when you do not need the full megaplan DAG.
 
 ## When to Use
 
-**Required for:**
-- Any task touching 3+ files
-- Any change to shared state (DB, API contracts, shared types)
-- Any new feature (not a bug fix)
-- Any security or auth change
-- Any change crossing project boundaries
+Use `cfn-spa-plan` directly ONLY when you explicitly want the spec+pseudo+arch trio with no tiering and no extra phases (no research, decide, data, ux, design, test-plan, ops). For any non-trivial build (multi-file, shared state, new feature, security/auth, cross-project), prefer `/cfn-megaplan` so the conditional phases and the two completion bars apply.
 
-**Optional for:** Single-file edits, rename refactors, obvious bug fixes with reproducing test.
+**Skip entirely for:** Single-file edits, rename refactors, obvious bug fixes with reproducing test.
 
 **Workflow position:**
 ```
-/cfn-spa-plan        <- you are here (intent + design)
+/cfn-megaplan        <- CANONICAL entry point (tiered DAG; supersedes this)
+   |  (megaplan composes spec+pseudo+arch among its phases and runs write-plan + plan-review internally)
+   |
+   |  (or, for the lighter no-tiering path only:)
+   |
+/cfn-spa-plan        <- lighter sub-pipeline (spec + pseudo + arch only)
    |
    v
 /write-plan          <- implementation roadmap + agent dispatch
@@ -148,7 +150,8 @@ Tell user the bundle is ready. `/write-plan` should be invoked with the SPA arti
 
 ## Anti-Patterns
 
-- Running `/write-plan` without `/cfn-spa-plan` for multi-file work
+- Reaching for `/cfn-spa-plan` when the build is non-trivial: prefer `/cfn-megaplan` (it adds research, decide, data, ux, design, test-plan, ops, plus the two completion bars)
+- Running `/write-plan` with no design pipeline (spa-plan or megaplan) for multi-file work
 - Skipping the DRY audit in ARCH phase
 - Accepting fewer than 5 edge cases in SPEC
 - Treating SPA artifacts as documentation instead of design contracts
@@ -158,13 +161,14 @@ Tell user the bundle is ready. `/write-plan` should be invoked with the SPA arti
 
 | Option | Default | Effect |
 |--------|---------|--------|
-| Mode (inferred from spec) | standard | Affects downstream `/write-plan --mode` |
+| Mode (inferred from spec) | beta | Affects downstream `/write-plan --mode` (mvp/beta/enterprise) |
 | Parallel pseudo+arch | true | Set false to run strictly sequential |
 | Edge case minimum | 5 | Lower at your own risk |
 
 ## Related
 
+- Canonical pipeline (supersedes this): `cfn-megaplan` (tiered DAG + verifiable-done + haiku-executable bars)
 - Phases: `cfn-spec`, `cfn-pseudo`, `cfn-arch`
 - Downstream: `/write-plan`, `/cfn-plan-review`, `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)
-- Replanning: `/cfn-goap-plan` (replan mode, post 3-strike)
+- Replanning: `/cfn-goap-plan` (optional bookend; replan mode, post 3-strike)
 - Decision log: `~/.claude/skills/decision-log/` (referenced by cfn-plan-review)

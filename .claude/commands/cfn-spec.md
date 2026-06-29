@@ -8,7 +8,7 @@ allowed-tools: ["Task", "Read", "Write", "Bash", "Skill", "AskUserQuestion"]
 
 Standalone Specification phase. Produces `planning/SPEC_<task>.md` with functional requirements, NFRs, Gherkin acceptance criteria, ≥5 enumerated edge cases, pre/post conditions.
 
-For full SPA chain (Spec + Pseudo + Arch), use `/cfn-spa-plan` instead. Use this command when you only need the spec phase (e.g. drafting requirements for human review before deciding to build).
+For any non-trivial build, prefer `/cfn-megaplan` (canonical pipeline: research, spec, decide, pseudo, data, arch, ux, design, test-plan, ops, gated by verifiable-done + haiku-executable). For the lighter spec+pseudo+arch chain with no tiering, use `/cfn-spa-plan`. Use this command when you only need the spec phase (e.g. drafting requirements for human review before deciding to build).
 
 **Task:** $ARGUMENTS
 
@@ -31,6 +31,7 @@ Spawn the `specification-agent` (defined in `.claude/agents/cfn-dev-team/sparc/s
 
 ## Next steps
 
-- For full design: `/cfn-pseudo "$ARGUMENTS"` then `/cfn-arch "$ARGUMENTS"`
-- Or chain all three: `/cfn-spa-plan "$ARGUMENTS"`
+- Canonical full pipeline: `/cfn-megaplan "$ARGUMENTS"` (supersedes the manual chain below)
+- For full design manually: `/cfn-pseudo "$ARGUMENTS"` then `/cfn-arch "$ARGUMENTS"`
+- Or chain the lighter trio: `/cfn-spa-plan "$ARGUMENTS"` (spec + pseudo + arch, no tiering)
 - Then: `/write-plan` → `/cfn-plan-review` → `/cfn-loop-task` (`/cfn-loop-cli` only for external-API)

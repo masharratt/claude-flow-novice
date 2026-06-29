@@ -20,7 +20,9 @@ status: production
 Any skill emitting the shared manifest schema works. Manifests live under
 `<project-root>/.cfn-cache/manifests/` (auto-gitignored). Discovery glob for `latest`:
 ```
-.cfn-cache/manifests/cfn-dry-review-*.json          # cfn-dry-review
+.cfn-cache/manifests/cfn-dry-review-*.json           # cfn-dry-review
+.cfn-cache/manifests/cfn-security-review-*.json      # cfn-security-review
+.cfn-cache/manifests/cfn-dep-audit-*.json            # cfn-dep-audit
 .cfn-cache/manifests/cfn-review-alpha-*.json         # cfn-alpha-launch (v1)
 .cfn-cache/manifests/cfn-review-alpha-v2-*.json      # cfn-alpha-launch-v2
 ```
@@ -41,7 +43,7 @@ Legacy `/tmp/cfn-*.json` paths are checked only as a fallback during transition.
 |-------|------|-----------|
 | **Correctness Agent** (code-reviewer) | Risk and correctness | Will this change break anything? Is the suggested approach technically sound? Are there edge cases or regressions? |
 | **Consistency Agent** (code-standards-reviewer) | Codebase alignment | Does this follow existing patterns? Would it create a second way of doing something? Does the abstraction match the project's style? |
-| **Feasibility Agent** (architect) | Implementation feasibility | Can this be done cleanly? Are there hidden dependencies? Does it fit the existing architecture? What's the real effort? |
+| **Feasibility Agent** (system-architect) | Implementation feasibility | Can this be done cleanly? Are there hidden dependencies? Does it fit the existing architecture? What's the real effort? |
 
 ## Voting Protocol
 

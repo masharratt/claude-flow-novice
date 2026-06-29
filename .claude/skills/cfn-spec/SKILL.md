@@ -10,14 +10,14 @@ status: production
 
 **Purpose:** Convert vague task descriptions into testable, unambiguous specifications. Force explicit enumeration of edge cases and acceptance criteria before any code or pseudocode exists.
 
-**Phase:** Specification (SPARC step 1 of 3 used by `/cfn-spa-plan`).
+**Phase:** Specification. DAG level 2 in the canonical `cfn-megaplan` pipeline (after `cfn-research`, in parallel with downstream `cfn-decide`/`cfn-pseudo`). Also SPARC step 1 of 3 in the lighter `cfn-spa-plan` sub-pipeline.
 
 ## When to Use
 
 - Any task touching 2+ files, shared state, or external APIs
 - Any task where the user's words leave room for interpretation
 - Before `/write-plan`, `/cfn-loop-cli`, or plan mode for non-trivial work
-- Auto-invoked by `/cfn-spa-plan` orchestrator (preferred entry point)
+- Auto-invoked by `/cfn-megaplan` (canonical entry point) and by the lighter `/cfn-spa-plan` sub-pipeline
 
 Skip only for: single-line fixes, rename refactors with no logic change, obvious bug fixes with reproducing test.
 
@@ -164,7 +164,8 @@ This artifact is the input to `cfn-pseudo`. Do not advance to pseudocode phase u
 
 ## Related
 
-- Next phase: `cfn-pseudo` (algorithm trace)
+- Canonical orchestrator: `cfn-megaplan` (tiered DAG; consumes the Build Flags block to route conditional phases)
+- Next phase: `cfn-pseudo` (algorithm trace), in parallel with `cfn-decide` (decision register)
 - Then: `cfn-arch` (component contracts)
-- Orchestrator: `cfn-spa-plan` (auto-chains all three)
+- Lighter orchestrator: `cfn-spa-plan` (auto-chains spec + pseudo + arch only)
 - Downstream: `/write-plan` consumes SPEC artifact
