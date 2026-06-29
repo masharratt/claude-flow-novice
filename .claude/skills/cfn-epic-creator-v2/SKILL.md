@@ -8,6 +8,8 @@ status: production
 
 # CFN Epic Creator v2 (AISP Hybrid)
 
+> Supersedes **cfn-epic-creator** (v1, deprecated). For full tiered planning with the verifiable-done + haiku-executable gates, **cfn-megaplan** is the canonical entry point; use cfn-epic-creator-v2 directly when you specifically need AISP formal contracts in an epic doc. Output feeds cfn-epic-parser.
+
 ## Overview
 
 Epic Creator v2 integrates AISP (AI Symbolic Protocol) for **formal API contracts** while keeping **natural language for user-facing content**. This hybrid approach:

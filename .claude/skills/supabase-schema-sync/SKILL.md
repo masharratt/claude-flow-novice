@@ -14,6 +14,8 @@ Introspects a live Supabase database via psql and writes a project-local `db-que
 
 Running this after each migration keeps agent schema knowledge accurate with zero per-task overhead.
 
+This skill generates and refreshes the `db-query` skill, which is the canonical DB-query path per CLAUDE.md. The injection-safe execution layer beneath db-query is `cfn-parameterized-queries`.
+
 ## Usage
 
 ```bash

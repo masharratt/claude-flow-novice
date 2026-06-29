@@ -1,12 +1,14 @@
 ---
 name: cfn-epic-creator
-description: "Build epic definitions via sequential 10-persona review. Use when generating structured epic docs with cost estimates and risk assessments, analyzing requirements from multiple perspectives."
-version: 1.0.0
-tags: [epic, creator, personas, analysis, cost-estimation, requirements]
-status: production
+description: "DEPRECATED. Use cfn-epic-creator-v2 (adds AISP formal contracts, prevents type drift). For full tiered planning use cfn-megaplan. v1 kept for the simpler single-domain prose-epic flow only."
+version: 1.0.1
+tags: [epic, creator, personas, analysis, cost-estimation, requirements, deprecated]
+status: deprecated
 ---
 
 # CFN Epic Creator
+
+> **DEPRECATED.** Prefer **cfn-epic-creator-v2** (same persona review plus AISP formal API contracts that eliminate type drift across agents). For non-trivial builds, **cfn-megaplan** is the canonical planning entry point and runs equivalent multi-perspective review through its DAG phases (decide/data/arch/ux/design/test-plan/ops). Use v1 only for a quick single-domain prose epic with no formal contracts. Output still feeds cfn-epic-parser.
 
 ## Overview
 

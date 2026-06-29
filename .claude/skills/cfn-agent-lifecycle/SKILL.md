@@ -118,7 +118,13 @@ agent-lifecycle/
 
 ### Selection Module (lib/selection/)
 
-**Purpose:** Task classification and agent selection
+> **Note:** Task *classification* (type/domain) and complexity/iteration estimation now
+> live in **cfn-task-planning** (`.claude/skills/cfn-task-planning/SKILL.md`), which
+> absorbed the deprecated cfn-task-intelligence. This module consumes that classification
+> to *select* and *spawn* agents. Use cfn-task-planning to classify; do not duplicate task
+> classification here.
+
+**Purpose:** Agent selection from a task classification (selection, not re-classification)
 
 **Features:**
 - Task classification into 9 categories
@@ -285,6 +291,7 @@ node ./lib/selection/dist/cli.cjs "Implement auth"
 
 ## Related Skills
 
+- **cfn-task-planning** (`.claude/skills/cfn-task-planning/`) - Task classification + complexity/iteration estimation + specialist recommendation. Planning classifies; lifecycle selects and spawns from that classification.
 - **task-classifier** (`.claude/skills/task-classifier/`) - Standalone task classification
 - **cfn-docker-agent-spawning** (`.claude/skills/cfn-docker-agent-spawning/`) - Docker-specific spawning
 - **cfn-product-owner-decision** (`.claude/skills/cfn-product-owner-decision/`) - Product owner output processing
