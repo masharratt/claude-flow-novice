@@ -29,9 +29,9 @@ If `--tier` omitted, infer from the spec (see Step 2) and confirm with the user 
 
 `--review` runs the phases BACKWARD against existing code instead of planning forward. It chains the three review-capable phases as the single entry point (one-entry-point rule):
 
-1. `cfn-data --review` — recover the real schema, audit floor (RLS/unscoped-delete/PII), emit the true field-bindings.
-2. `cfn-ux --review` — read shipped UI, diff each field's rendered control vs the affordance map (catches FK-field-as-textbox post-hoc). Consumes step 1's bindings, so it does not guess.
-3. `cfn-arch --review` — recover component boundaries + contracts, audit DRY / typed-boundary / retry-timeout / failure handling.
+1. `cfn-data --review`: recover the real schema, audit floor (RLS/unscoped-delete/PII), emit the true field-bindings.
+2. `cfn-ux --review`: read shipped UI, diff each field's rendered control vs the affordance map (catches FK-field-as-textbox post-hoc). Consumes step 1's bindings, so it does not guess.
+3. `cfn-arch --review`: recover component boundaries + contracts, audit DRY / typed-boundary / retry-timeout / failure handling.
 
 Each emits `planning/AUDIT_<PHASE>_<slug>.md` (findings table, `file:line | issue | severity | fix`). Synthesis (Step 7) merges them into `planning/AUDIT_<slug>.md` with a single severity-ranked list. Skip a phase when its surface is absent (no UI → skip ux; no DB → skip data). This is the catch for defects that already shipped; the forward pipeline prevents them, this finds the ones that slipped.
 
@@ -46,7 +46,7 @@ L3 decide ∥ pseudo
 L4 data                (conditional: db)
 L5 arch ∥ ux           (ux conditional: frontend)
 L6 design ∥ test_plan ∥ ops   (design conditional: frontend)
-L7 write_plan          JOIN — synthesizes all branches; runs Bar A
+L7 write_plan          JOIN: synthesizes all branches; runs Bar A
 L8 plan_review         runs Bar B; loops failing phase, not whole pipeline
 ```
 
@@ -54,7 +54,7 @@ Node dependencies (orchestrator must honor; do not spawn a node before its deps 
 
 | Node | Deps | Phase skill |
 |---|---|---|
-| research | — | `cfn-research` |
+| research | (none) | `cfn-research` |
 | spec | research | `cfn-spec` |
 | decide | spec | `cfn-decide` |
 | pseudo | spec | `cfn-pseudo` |
@@ -71,9 +71,9 @@ Node dependencies (orchestrator must honor; do not spawn a node before its deps 
 
 ### Step 0: Scope check
 
-1. `/codebase-search "<task keywords>"` — if existing capability covers the task, abort and point to it.
+1. `/codebase-search "<task keywords>"`: if existing capability covers the task, abort and point to it.
 2. If estimate is 8+ files, pause and negotiate scope via `AskUserQuestion` before continuing.
-3. Query prior art (gap G06): `~/.claude/skills/cfn-knowledge-base`, `~/.claude/skills/decision-log/query.sh '<entities>' 5 <project>` (conversation FTS), and `~/.claude/skills/decision-log/decisions.sh search '<entities>'` (structured register — settled forks from past plans). Inject any prior playbook / failed-assumption / RESOLVED fork into the spec prompt so it is not re-litigated.
+3. Query prior art (gap G06): `~/.claude/skills/cfn-knowledge-base`, `~/.claude/skills/decision-log/query.sh '<entities>' 5 <project>` (conversation FTS), and `~/.claude/skills/decision-log/decisions.sh search '<entities>'` (structured register of settled forks from past plans). Inject any prior playbook / failed-assumption / RESOLVED fork into the spec prompt so it is not re-litigated.
 4. Pull recent retro signal (gap G36): read the latest `cfn-retro` output (hotspot files, workflow bottlenecks). If the task touches a known hotspot file, flag it in the spec prompt so the plan accounts for the churn/fragility already observed there.
 5. Ingest the tech-debt ledger (closes the `cfn-tech-debt` feedback loop). If `.cfn-cache/tech-debt-ledger.json` exists, READ it (never re-harvest) and list any open `cfn:` shortcut that lives in the files/area in scope as candidate backlog entries. Inject them into the spec prompt and carry them to Step 7 so deliberate shortcuts surface for the user instead of silently rotting. `no_trigger` rows (rot risk) rank first.
 
@@ -94,14 +94,14 @@ All artifacts land in `planning/` named `<PHASE>_<SLUG>.md` (e.g. `SPEC_<slug>.m
 
 ### Step 2: Run spec, infer tier + build flags
 
-Spawn `cfn-spec` (L2). It is the hard barrier — nothing else starts until it returns.
+Spawn `cfn-spec` (L2). It is the hard barrier: nothing else starts until it returns.
 
 From the spec, derive **build flags** (drives `conditional:` directives) and **tier**:
 
-- `frontend` — spec mentions UI, screens, components, user-facing forms.
-- `db` — spec touches a database table, schema, or persisted state.
-- `pii` — spec handles personal/identifying/financial data.
-- `unknowns` — spec contains `[OPEN]` questions or feasibility risk.
+- `frontend`: spec mentions UI, screens, components, user-facing forms.
+- `db`: spec touches a database table, schema, or persisted state.
+- `pii`: spec handles personal/identifying/financial data.
+- `unknowns`: spec contains `[OPEN]` questions or feasibility risk.
 
 Tier inference: complexity + audience. Prototype / internal / throwaway → `mvp`. Real-user-behind-flag → `beta`. Critical / compliance / scale / external customers → `enterprise`. If the spec is ambiguous about audience, **ask the user** with `AskUserQuestion` (one question, plain English, recommend based on the spec).
 
@@ -118,7 +118,7 @@ For each phase in the profile:
 
 ### Step 4: Walk the DAG, batch by level
 
-For levels L3 → L6, spawn every active phase at that level **in a single message** (true parallel — they are independent within a level). Wait for the whole level to return before advancing (join). Each phase prompt carries:
+For levels L3 → L6, spawn every active phase at that level **in a single message** (true parallel; they are independent within a level). Wait for the whole level to return before advancing (join). Each phase prompt carries:
 
 ```
 Follow .claude/skills/<phase-skill>/SKILL.md exactly. Read the skill file first.
@@ -130,13 +130,13 @@ Write artifact: planning/<PHASE>_<slug>.md
 Return: artifact path + a 3-line summary + any [OPEN] items needing a user decision.
 ```
 
-If any phase returns `[OPEN]` items, batch them and surface via `AskUserQuestion` before advancing past the level. Record every resolved decision to the decision log (closes gap G35/decision-log loop) — `cfn-decide` owns the register; the orchestrator forwards mid-level decisions to it.
+If any phase returns `[OPEN]` items, batch them and surface via `AskUserQuestion` before advancing past the level. Record every resolved decision to the decision log (closes gap G35/decision-log loop). `cfn-decide` owns the register; the orchestrator forwards mid-level decisions to it.
 
-### Step 5: L7 — write_plan + Bar A
+### Step 5: L7: write_plan + Bar A
 
 Run `/write-plan "<task>" --mode=<tier>`; it consumes every `planning/<PHASE>_<slug>.md` artifact. Then run **Bar A** (`bars/verifiable-done.md`): convert success criteria to executable AC rows, emit `planning/VERIFY_<slug>.md`. If Bar A fails (any non-executable AC, any unmapped FR/EC), loop back to the owning phase (usually `test_plan` or `spec`), not the whole pipeline.
 
-### Step 6: L8 — plan_review + Bar B
+### Step 6: L8: plan_review + Bar B
 
 Run `cfn-plan-review` (assumptions, dependency trace, blast radius, alpha-readiness scaled to tier). Then run **Bar B** (`bars/haiku-executable.md`): static + structural + coverage scans, then the live haiku probe. Any finding routes to the owning phase (ui_control → `cfn-ux`, value source → `cfn-data`/`cfn-arch`, branch → `cfn-pseudo`) and that phase re-runs. Re-run Bar B until clean.
 
@@ -178,7 +178,7 @@ Tier: <tier>   Build flags: <frontend? db? pii? unknowns?>   Generated: <date>
 
 ## Anti-patterns
 
-- Running phases strictly sequentially (ignore the level batching) — wastes wall-clock.
+- Running phases strictly sequentially (ignore the level batching), wastes wall-clock.
 - Spawning a node before its deps return.
 - Letting a tier knob disable a `floor` item (RLS/auth/secrets/PII).
 - Treating Bar A/Bar B as advisory. They are hard gates.

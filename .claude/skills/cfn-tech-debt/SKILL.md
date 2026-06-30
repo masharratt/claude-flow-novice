@@ -23,7 +23,7 @@ cfn: <ceiling>, <upgrade trigger>
 - **Valid** (names ceiling AND trigger):
   - `# cfn: global lock, per-account locks if throughput matters`
   - `// cfn: O(n^2) scan, switch to index when list > 1k rows`
-- **Invalid — `no-trigger`** (states a limit but no trigger to revisit; these silently rot):
+- **Invalid: `no-trigger`** (states a limit but no trigger to revisit; these silently rot):
   - `// cfn: this is the naive version`
   - `# cfn: hardcoded for now`
 
@@ -31,11 +31,11 @@ Rule: if you write a `cfn:` marker, name the trigger. A shortcut with no trigger
 
 ## Inputs
 
-- `$1`: `--persist` (optional) — write the ledger to `docs/TECH_DEBT.md`. Default: report to stdout only, change nothing.
+- `$1`: `--persist` (optional): write the ledger to `docs/TECH_DEBT.md`. Default: report to stdout only, change nothing.
 
 ## Outputs
 
-- stdout: one row per marker, grouped — `<file>:<line>: ceiling: <ceiling>. upgrade: <trigger|NONE>.`
+- stdout: one row per marker, grouped: `<file>:<line>: ceiling: <ceiling>. upgrade: <trigger|NONE>.`
 - Summary line: `<N> markers, <M> with no trigger.` (or `No cfn: debt. Clean ledger.`)
 - Machine ledger (always written when `jq` is present): `.cfn-cache/tech-debt-ledger.json`. Gitignored, project-scoped. Shape: `{generated, total, no_trigger, markers:[{file, line, ceiling, upgrade_trigger|null, has_trigger}]}`. This is the feed `cfn-megaplan` reads during scoping (see below).
 - With `--persist`: `docs/TECH_DEBT.md` (human-facing markdown)
@@ -64,12 +64,12 @@ The harvest reads and reports only by default; `--persist` is the only thing tha
 ## Anti-Patterns
 
 - Writing a `cfn:` marker with no trigger (creates rot the ledger will flag)
-- Using `cfn:` to excuse skipped validation, error handling, security, or accessibility — those are never legitimate shortcuts (see `code-quality.md` Definition of Done)
+- Using `cfn:` to excuse skipped validation, error handling, security, or accessibility (those are never legitimate shortcuts, see `code-quality.md` Definition of Done)
 - Treating the ledger as a backlog substitute: high-impact `no-trigger` rows should graduate to `cfn-project-management` backlog items
 
 ## Related
 
-- `cfn-arch` — the build ladder that decides when a shortcut is justified
-- `cfn-dry-review` — finds accidental over-engineering (opposite axis)
-- `cfn-project-management` — promote rot-risk markers to backlog
+- `cfn-arch`: the build ladder that decides when a shortcut is justified
+- `cfn-dry-review`: finds accidental over-engineering (opposite axis)
+- `cfn-project-management`: promote rot-risk markers to backlog
 - `cfn-megaplan` (reads `.cfn-cache/tech-debt-ledger.json` at scope time so open debt in the planned area surfaces as backlog candidates)
