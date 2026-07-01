@@ -52,26 +52,51 @@ parse_flag_target() {
       ;;
   esac
 
-  # Peel numeric suffixes from the right for params.
-  # "path:status:budget" or "path:status" or "path" (no params).
-  local path="$path_and_rest" status="" budget=""
+  # Peel status/budget params from the right.
+  #  - With a path present, params trail the path ("path:status:budget"); any
+  #    trailing numerics are params (the port colon is safely left of the path).
+  #  - With NO path, params trail the host ("host[:port]:status:budget"). A lone
+  #    trailing numeric here could be a port, so only treat it as a status when
+  #    it is a valid HTTP status (100-599). This keeps "host:port" intact and
+  #    lets path-less public targets like "site.com:200:3000" parse correctly.
+  local path="$path_and_rest" host="$hostport" status="" budget=""
 
-  if [[ "$path" =~ ^(.*):([0-9]+)$ ]]; then
-    local val1="${BASH_REMATCH[2]}"
-    local rest1="${BASH_REMATCH[1]}"
-    if [[ "$rest1" =~ ^(.*):([0-9]+)$ ]]; then
-      # Two numeric suffixes: second-from-right = status, rightmost = budget
-      status="${BASH_REMATCH[2]}"
-      path="${BASH_REMATCH[1]}"
-      budget="$val1"
-    else
-      # One numeric suffix: it is the status, no budget
-      status="$val1"
-      path="$rest1"
+  if [[ -n "$path_and_rest" ]]; then
+    if [[ "$path" =~ ^(.*):([0-9]+)$ ]]; then
+      local val1="${BASH_REMATCH[2]}"
+      local rest1="${BASH_REMATCH[1]}"
+      if [[ "$rest1" =~ ^(.*):([0-9]+)$ ]]; then
+        # Two numeric suffixes: second-from-right = status, rightmost = budget
+        status="${BASH_REMATCH[2]}"
+        path="${BASH_REMATCH[1]}"
+        budget="$val1"
+      else
+        # One numeric suffix: it is the status, no budget
+        status="$val1"
+        path="$rest1"
+      fi
+    fi
+  else
+    # No path: params trail the host. Guard the port with an HTTP-status range
+    # check so a bare "host:port" is never mistaken for "host:status".
+    if [[ "$host" =~ ^(.*):([0-9]+):([0-9]+)$ ]]; then
+      local maybe_status="${BASH_REMATCH[2]}" maybe_budget="${BASH_REMATCH[3]}"
+      if (( maybe_status >= 100 && maybe_status <= 599 )); then
+        status="$maybe_status"
+        budget="$maybe_budget"
+        host="${BASH_REMATCH[1]}"
+      fi
+    fi
+    if [[ -z "$status" && "$host" =~ ^(.*):([0-9]+)$ ]]; then
+      local maybe_status="${BASH_REMATCH[2]}"
+      if (( maybe_status >= 100 && maybe_status <= 599 )); then
+        status="$maybe_status"
+        host="${BASH_REMATCH[1]}"
+      fi
     fi
   fi
 
-  local url="${scheme}${hostport}${path}"
+  local url="${scheme}${host}${path}"
   TARGETS+=("${url}|${status:-200}|${budget}")
 }
 

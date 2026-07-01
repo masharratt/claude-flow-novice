@@ -479,7 +479,7 @@ Consumer Project
 
 | Feature | Status | Tests | Location | Description |
 |---------|--------|-------|----------|-------------|
-| cfn-monitor | ✅ Prod | ✅ 34/34 | `.claude/skills/cfn-monitor/` | Post-deploy health gate: probes CFN_MONITOR_TARGETS for status + latency, JSON summary, exit nonzero on any failure. Stateless single-shot. Ships RUNBOOK.md (Fly rollback, log/secret/dep triage). Run after `fly deploy` as go/no-go |
+| cfn-monitor | ✅ Prod | ✅ 42/42 | `.claude/skills/cfn-monitor/` | Post-deploy health gate: probes CFN_MONITOR_TARGETS for status + latency, JSON summary, exit nonzero on any failure. Stateless single-shot. Bare-host targets (`site.com:200:3000`, no path) parse correctly (port guarded by HTTP-status range). Ships RUNBOOK.md (Fly rollback, log/secret/dep triage). Wired as deploy gate in fireside-family, golfer_collective, daily-automations |
 
 **Tech-debt feedback loop:** cfn-tech-debt writes a machine-readable ledger to `.cfn-cache/tech-debt-ledger.json`; cfn-megaplan Step 0 reads it to surface open `cfn:` shortcuts as backlog candidates when scoping new work (rot-risk `no_trigger` rows ranked first). Closes the harvest -> plan loop.
 

@@ -224,6 +224,35 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Case 11: Bare host (no path) with status param. Regression: the parser used
+# to glue ":status" onto the host:port slot, so curl tried a bogus port and
+# every path-less public target (e.g. https://site.com:200:3000) failed.
+# Here host:port has no path; ":200" must be read as the expected status, and
+# the port must be preserved.
+# ---------------------------------------------------------------------------
+OUT=$(bash "$SCRIPT" --target "http://127.0.0.1:${FREE_PORT}:200" 2>/dev/null); RC=$?
+check_rc "no-path host:port + status: exit 0" 0 "$RC"
+check_jq "no-path host:port + status: targets_pass=1" '.targets_pass' "1" "$OUT"
+check_jq "no-path host:port + status: status=pass" '.results[0].status' "pass" "$OUT"
+
+# ---------------------------------------------------------------------------
+# Case 12: Bare host (no path) with status AND budget params. Both must parse,
+# port preserved, generous budget passes.
+# ---------------------------------------------------------------------------
+OUT=$(bash "$SCRIPT" --target "http://127.0.0.1:${FREE_PORT}:200:60000" 2>/dev/null); RC=$?
+check_rc "no-path host:port + status + budget: exit 0" 0 "$RC"
+check_jq "no-path host:port + status + budget: targets_pass=1" '.targets_pass' "1" "$OUT"
+check_jq "no-path host:port + status + budget: latency_ok=true" '.results[0].latency_ok' "true" "$OUT"
+
+# ---------------------------------------------------------------------------
+# Case 13: Bare host:port, no params at all. The single ":port" numeric must
+# NOT be mistaken for a status; port stays intact and probe succeeds.
+# ---------------------------------------------------------------------------
+OUT=$(bash "$SCRIPT" --target "http://127.0.0.1:${FREE_PORT}" 2>/dev/null); RC=$?
+check_rc "no-path host:port, no params: exit 0" 0 "$RC"
+check_jq "no-path host:port, no params: targets_pass=1" '.targets_pass' "1" "$OUT"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo ""
