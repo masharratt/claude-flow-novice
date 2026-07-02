@@ -2,10 +2,10 @@
     "teams": {
         "marketing": {
             "coordinator": {
-                "provider": "anthropic",
-                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
-                "model": "claude-sonnet-4-20250514",
-                "baseUrl": "https://api.anthropic.com"
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "model": "glm-5.2",
+                "baseUrl": "https://api.z.ai/api/anthropic"
             },
             "workers": {
                 "provider": "zai",
@@ -20,10 +20,10 @@
         },
         "engineering": {
             "coordinator": {
-                "provider": "anthropic",
-                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
-                "model": "claude-sonnet-4-20250514",
-                "baseUrl": "https://api.anthropic.com"
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "model": "glm-5.2",
+                "baseUrl": "https://api.z.ai/api/anthropic"
             },
             "workers": {
                 "provider": "zai",
@@ -38,10 +38,10 @@
         },
         "sales": {
             "coordinator": {
-                "provider": "anthropic",
-                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
-                "model": "claude-sonnet-4-20250514",
-                "baseUrl": "https://api.anthropic.com"
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "model": "glm-5.2",
+                "baseUrl": "https://api.z.ai/api/anthropic"
             },
             "workers": {
                 "provider": "zai",
@@ -56,10 +56,10 @@
         },
         "support": {
             "coordinator": {
-                "provider": "anthropic",
-                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
-                "model": "claude-sonnet-4-20250514",
-                "baseUrl": "https://api.anthropic.com"
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "model": "glm-5.2",
+                "baseUrl": "https://api.z.ai/api/anthropic"
             },
             "workers": {
                 "provider": "zai",
@@ -74,10 +74,10 @@
         },
         "finance": {
             "coordinator": {
-                "provider": "anthropic",
-                "apiKeyEnvVar": "ANTHROPIC_API_KEY",
-                "model": "claude-sonnet-4-20250514",
-                "baseUrl": "https://api.anthropic.com"
+                "provider": "zai",
+                "apiKeyEnvVar": "ZAI_API_KEY",
+                "model": "glm-5.2",
+                "baseUrl": "https://api.z.ai/api/anthropic"
             },
             "workers": {
                 "provider": "zai",
@@ -93,7 +93,7 @@
     },
     "global_config": {
         "max_concurrent_workers": 10,
-        "fallback_provider": "anthropic",
+        "fallback_provider": "zai",
         "monitoring_enabled": true,
         "default_complexity": "simple",
         "retry_on_failure": true,
