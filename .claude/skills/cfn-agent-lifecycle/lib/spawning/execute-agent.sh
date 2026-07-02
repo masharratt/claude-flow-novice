@@ -67,22 +67,32 @@ fi
 echo "API Provider: $API_PROVIDER"
 echo ""
 
-# Map agent model to API model name
-case "$AGENT_MODEL" in
-  haiku)
-    API_MODEL="claude-3-5-haiku-20241022"
-    ;;
-  sonnet)
-    API_MODEL="claude-3-5-sonnet-20241022"
-    ;;
-  opus)
-    API_MODEL="claude-3-opus-20240229"
-    ;;
-  *)
-    echo "Warning: Unknown model '$AGENT_MODEL', defaulting to haiku" >&2
-    API_MODEL="claude-3-5-haiku-20241022"
-    ;;
-esac
+# Resolve the concrete model id from the single source of truth
+# (.claude/cfn-config/provider-models.json), keyed by provider + Claude tier.
+# The old hardcoded case sent claude-3-5-* Anthropic ids to whatever endpoint
+# API_PROVIDER pointed at, so z.ai workers requested nonexistent models.
+PROVIDER_MODELS_FILE=".claude/cfn-config/provider-models.json"
+if [ ! -f "$PROVIDER_MODELS_FILE" ]; then
+  echo "Error: $PROVIDER_MODELS_FILE not found (source of truth for model ids)" >&2
+  exit 1
+fi
+
+API_MODEL=$(jq -r --arg p "$API_PROVIDER" --arg t "$AGENT_MODEL" \
+  '.providers[$p].models[$t] // empty' "$PROVIDER_MODELS_FILE")
+
+if [ -z "$API_MODEL" ]; then
+  DEFAULT_TIER=$(jq -r '.defaultTier // "haiku"' "$PROVIDER_MODELS_FILE")
+  echo "Warning: no model for provider='$API_PROVIDER' tier='$AGENT_MODEL'; falling back to tier '$DEFAULT_TIER'" >&2
+  API_MODEL=$(jq -r --arg p "$API_PROVIDER" --arg t "$DEFAULT_TIER" \
+    '.providers[$p].models[$t] // empty' "$PROVIDER_MODELS_FILE")
+fi
+
+if [ -z "$API_MODEL" ]; then
+  echo "Error: could not resolve a model id for provider='$API_PROVIDER'" >&2
+  exit 1
+fi
+
+echo "Resolved Model: $API_MODEL"
 
 # For now, we'll simulate agent execution by echoing the prompt
 # TODO: Implement actual API calls when API client is ready

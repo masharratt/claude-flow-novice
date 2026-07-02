@@ -41,11 +41,13 @@ describe('spawn-agents', () => {
       expect(summary.results[0]!.agentType).toBe('loop2');
     });
 
-    test('rejects invalid agent type', async () => {
+    // Agent types are open-ended (any profile under .claude/agents), so validation
+    // is charset-only: reject names with characters outside [a-z0-9_-].
+    test('rejects agent type with invalid characters', async () => {
       const config: SpawnAgentsConfig = {
         taskId: 'test-task-3',
         iteration: 1,
-        agents: ['invalid-agent'],
+        agents: ['invalid agent!'],
         originalContext: '{"task": "test"}',
         dryRun: true,
       };
@@ -57,7 +59,7 @@ describe('spawn-agents', () => {
       const config: SpawnAgentsConfig = {
         taskId: 'test-task-4',
         iteration: 1,
-        agents: ['loop3', 'unknown'],
+        agents: ['loop3', 'bad type!'],
         originalContext: '{"task": "test"}',
         dryRun: true,
       };
@@ -235,7 +237,7 @@ describe('spawn-agents', () => {
 
   describe('convenience functions', () => {
     test('spawnLoop3Agents works correctly', async () => {
-      const summary = await spawnLoop3Agents('test-task-12', 1, 'context', true);
+      const summary = await spawnLoop3Agents('test-task-12', 1, ['loop3'], 'context', true);
       expect(summary.totalSpawned).toBe(1);
       expect(summary.successCount).toBe(1);
       expect(summary.results).toHaveLength(1);
@@ -243,7 +245,7 @@ describe('spawn-agents', () => {
     });
 
     test('spawnLoop2Agents works correctly', async () => {
-      const summary = await spawnLoop2Agents('test-task-13', 2, 'context', true);
+      const summary = await spawnLoop2Agents('test-task-13', 2, ['loop2'], 'context', true);
       expect(summary.totalSpawned).toBe(1);
       expect(summary.successCount).toBe(1);
       expect(summary.results).toHaveLength(1);

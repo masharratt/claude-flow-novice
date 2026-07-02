@@ -8,7 +8,8 @@
     "orchestrator-cli": "./dist/cli/orchestrator-cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.worker.json",
+    "build:worker": "tsc -p tsconfig.worker.json",
     "build:watch": "tsc --watch",
     "dev": "ts-node src/index.ts",
     "dev:cli": "ts-node src/cli/orchestrator-cli.ts",

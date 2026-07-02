@@ -16,6 +16,8 @@ import type { OrchestratorContext } from '../../../../../../src/planning/orchest
 import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { Coordinator } from './coordination/coordinator';
+import { FileCoordinator } from './coordination/file-coordinator';
 
 /**
  * Execution phases in the CFN Loop
@@ -155,6 +157,7 @@ export class Orchestrator {
   private decision: ProductOwnerDecision = null;
   private errors: Map<string, Error> = new Map();
   private phaseHistory: PhaseTransition[] = [];
+  private coordinator: Coordinator = new FileCoordinator();
 
   constructor(config: OrchestrationConfig) {
     // Validate configuration
@@ -592,75 +595,31 @@ export class Orchestrator {
     spawnResults: SpawnResult[],
     timeoutSeconds: number = 300
   ): Promise<string[]> {
-    const completedAgents: string[] = [];
-    const startTime = Date.now();
-    const projectRoot = process.env.PROJECT_ROOT || process.cwd();
-
-    console.log(`Waiting for ${spawnResults.length} agents to complete (timeout: ${timeoutSeconds}s)...`);
-
-    for (const result of spawnResults) {
-      if (!result.success) {
-        console.warn(`Skipping failed agent: ${result.agentId}`);
-        continue;
+    const successfulIds = spawnResults.filter((r) => r.success).map((r) => r.agentId);
+    for (const r of spawnResults) {
+      if (!r.success) {
+        console.warn(`Skipping failed agent: ${r.agentId}`);
       }
+    }
 
-      const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
-      const remainingTimeout = timeoutSeconds - elapsedSeconds;
+    console.log(`Waiting for ${successfulIds.length} agents to complete (timeout: ${timeoutSeconds}s)...`);
 
-      if (remainingTimeout <= 0) {
-        console.error(`Global timeout reached. Remaining agents will not be waited for.`);
-        this.recordTimeout(result.agentId, timeoutSeconds);
-        break;
-      }
+    // File-based coordination: workers write a done marker when finished.
+    const completedAgents = await this.coordinator.waitForDone(
+      this.config.taskId,
+      successfulIds,
+      timeoutSeconds
+    );
 
-      try {
-        // Agents push completion to legacy done list: swarm:{taskId}:{agentId}:done
-        const redisHost = process.env.CFN_REDIS_HOST || process.env.REDIS_HOST || 'localhost';
-        const redisPort = process.env.CFN_REDIS_PORT || process.env.REDIS_PORT || '6379';
-        const doneListKey = `swarm:${this.config.taskId}:${result.agentId}:done`;
+    for (const agentId of completedAgents) {
+      console.log(`✓ Agent ${agentId} completed`);
+      this.markAgentComplete(agentId, 'loop3');
+    }
 
-        const escapedHost = escapeShellArg(redisHost);
-        const escapedPort = escapeShellArg(redisPort);
-        const escapedDoneKey = escapeShellArg(doneListKey);
-
-        // Use short blocking chunks to stay under tool time limits
-        const chunkTimeout = Math.min(Math.max(remainingTimeout, 5), 60); // 5-60s
-
-        console.log(
-          `Waiting for agent ${result.agentId} via Redis BLPOP ${doneListKey} (chunk: ${chunkTimeout}s, remaining: ${remainingTimeout}s)...`
-        );
-
-        // First a quick length check to avoid blocking if already complete
-        try {
-          const len = parseInt(
-            execSync(`redis-cli -h ${escapedHost} -p ${escapedPort} LLEN ${escapedDoneKey}`, { encoding: 'utf8' }).trim(),
-            10
-          );
-          if (!Number.isNaN(len) && len > 0) {
-            execSync(`redis-cli -h ${escapedHost} -p ${escapedPort} LPOP ${escapedDoneKey}`, { stdio: 'ignore' });
-            console.log(`✓ Agent ${result.agentId} completed (pre-existing done signal)`);
-            completedAgents.push(result.agentId);
-            this.markAgentComplete(result.agentId, 'loop3');
-            continue;
-          }
-        } catch {
-          // ignore LLEN errors and continue to BLPOP
-        }
-
-        // Blocking wait chunk
-        execSync(`redis-cli -h ${escapedHost} -p ${escapedPort} BLPOP ${escapedDoneKey} ${chunkTimeout}`, {
-          stdio: 'ignore',
-          timeout: chunkTimeout * 1000,
-          cwd: projectRoot,
-        });
-
-        console.log(`✓ Agent ${result.agentId} completed`);
-        completedAgents.push(result.agentId);
-        this.markAgentComplete(result.agentId, 'loop3');
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        console.error(`✗ Agent ${result.agentId} failed or timed out: ${errorMsg}`);
-        this.recordExecutionError(result.agentId, new Error(errorMsg));
+    for (const agentId of successfulIds) {
+      if (!completedAgents.includes(agentId)) {
+        console.error(`✗ Agent ${agentId} failed or timed out`);
+        this.recordTimeout(agentId, timeoutSeconds);
       }
     }
 
@@ -684,43 +643,27 @@ export class Orchestrator {
 
     for (const agentId of agentIds) {
       try {
-        // Retrieve agent output from Redis
-        const testResultJson = this.getRedisValue(`swarm:${this.config.taskId}:agent:${agentId}:test-result`);
-        const confidenceStr = this.getRedisValue(`swarm:${this.config.taskId}:agent:${agentId}:confidence`);
-        const deliverablesJson = this.getRedisValue(`swarm:${this.config.taskId}:agent:${agentId}:deliverables`);
+        // Retrieve agent output via the file-based coordinator
+        const result = this.coordinator.getResult(this.config.taskId, agentId);
 
         const agentOutput: { testResult?: TestResult; confidence?: number; deliverables?: string[] } = {};
 
-        // Parse test results
-        if (testResultJson) {
-          try {
-            const testResult = JSON.parse(testResultJson) as TestResult;
-            agentOutput.testResult = testResult;
-            this.recordTestResult(agentId, testResult);
-            console.log(`  ${agentId}: Test results collected (${testResult.pass} pass, ${testResult.fail} fail)`);
-          } catch (parseError) {
-            console.warn(`  ${agentId}: Failed to parse test results: ${parseError}`);
-          }
-        }
+        if (result) {
+          agentOutput.testResult = result.testResult;
+          this.recordTestResult(agentId, result.testResult);
+          console.log(
+            `  ${agentId}: Test results collected (${result.testResult.pass} pass, ${result.testResult.fail} fail)`
+          );
 
-        // Parse confidence score
-        if (confidenceStr) {
-          const confidence = parseFloat(confidenceStr);
-          if (!isNaN(confidence) && confidence >= 0 && confidence <= 1) {
-            agentOutput.confidence = confidence;
-            console.log(`  ${agentId}: Confidence score: ${(confidence * 100).toFixed(2)}%`);
+          if (result.confidence >= 0 && result.confidence <= 1) {
+            agentOutput.confidence = result.confidence;
+            console.log(`  ${agentId}: Confidence score: ${(result.confidence * 100).toFixed(2)}%`);
           }
-        }
 
-        // Parse deliverables
-        if (deliverablesJson) {
-          try {
-            const deliverables = JSON.parse(deliverablesJson) as string[];
-            agentOutput.deliverables = deliverables;
-            console.log(`  ${agentId}: Deliverables: ${deliverables.length} files`);
-          } catch (parseError) {
-            console.warn(`  ${agentId}: Failed to parse deliverables: ${parseError}`);
-          }
+          agentOutput.deliverables = result.deliverables;
+          console.log(`  ${agentId}: Deliverables: ${result.deliverables.length} files`);
+        } else {
+          console.warn(`  ${agentId}: No result found`);
         }
 
         outputs.set(agentId, agentOutput);
@@ -732,33 +675,6 @@ export class Orchestrator {
 
     console.log(`Successfully collected outputs from ${outputs.size}/${agentIds.length} agents`);
     return outputs;
-  }
-
-  /**
-   * Get value from Redis using redis-cli
-   *
-   * @param key - Redis key
-   * @returns Value or null if not found
-   */
-  private getRedisValue(key: string): string | null {
-    try {
-      const redisHost = process.env.REDIS_HOST || 'localhost';
-      const redisPort = process.env.REDIS_PORT || '6379';
-
-      // Properly escape all user-controlled inputs to prevent shell injection
-      const escapedHost = escapeShellArg(redisHost);
-      const escapedPort = escapeShellArg(redisPort);
-      const escapedKey = escapeShellArg(key);
-
-      const result = execSync(`redis-cli -h ${escapedHost} -p ${escapedPort} GET ${escapedKey}`, {
-        encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'ignore'], // Suppress stderr
-      }).trim();
-
-      return result === '(nil)' ? null : result;
-    } catch (error) {
-      return null;
-    }
   }
 
   /**
@@ -1270,18 +1186,15 @@ export class Orchestrator {
         console.log(`  - Consensus: ${(iterationFeedback.consensusAverage! * 100).toFixed(2)}%`);
         console.log(`  - Reasons: ${iterationFeedback.reasons?.join(', ')}`);
 
-        // Store iteration feedback in Redis for next Loop 3 agents to access
-        // Using proper escaping to prevent Redis command injection (CVSS 9.8)
+        // Store iteration feedback via the file-based coordinator for next Loop 3 agents
         try {
-          const feedbackKey = escapeShellArg(`swarm:${this.config.taskId}:iteration:${iteration + 1}:feedback`);
-          const gatePassRateVal = escapeShellArg(String(iterationFeedback.gatePassRate));
-          const consensusAverageVal = escapeShellArg(String(iterationFeedback.consensusAverage));
-          const reasonsVal = escapeShellArg(iterationFeedback.reasons?.join('; ') || '');
+          this.coordinator.writeFeedback(this.config.taskId, iteration + 1, {
+            gate_pass_rate: String(iterationFeedback.gatePassRate),
+            consensus_average: String(iterationFeedback.consensusAverage),
+            reasons: iterationFeedback.reasons?.join('; ') || '',
+          });
 
-          const cmd = `redis-cli HSET ${feedbackKey} "gate_pass_rate" ${gatePassRateVal} "consensus_average" ${consensusAverageVal} "reasons" ${reasonsVal}`;
-          execSync(cmd, { encoding: 'utf-8' });
-
-          console.log(`Iteration feedback stored in Redis for iteration ${iteration + 1}`);
+          console.log(`Iteration feedback stored for iteration ${iteration + 1}`);
         } catch (error: unknown) {
           console.warn(`Failed to store iteration feedback: ${error instanceof Error ? error.message : String(error)}`);
         }

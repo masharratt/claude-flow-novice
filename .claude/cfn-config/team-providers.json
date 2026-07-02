@@ -12,8 +12,8 @@
                 "apiKeyEnvVar": "ZAI_API_KEY",
                 "baseUrl": "https://api.z.ai/api/anthropic",
                 "models": {
-                    "simple": "claude-3-5-haiku-20241022",
-                    "complex": "claude-3-5-sonnet-20241022"
+                    "simple": "glm-4.7",
+                    "complex": "glm-5.1"
                 }
             },
             "routing_strategy": "dynamic"
@@ -30,8 +30,8 @@
                 "apiKeyEnvVar": "ZAI_API_KEY",
                 "baseUrl": "https://api.z.ai/api/anthropic",
                 "models": {
-                    "simple": "claude-3-5-haiku-20241022",
-                    "complex": "claude-3-5-sonnet-20241022"
+                    "simple": "glm-4.7",
+                    "complex": "glm-5.1"
                 }
             },
             "routing_strategy": "performance"
@@ -48,8 +48,8 @@
                 "apiKeyEnvVar": "ZAI_API_KEY",
                 "baseUrl": "https://api.z.ai/api/anthropic",
                 "models": {
-                    "simple": "claude-3-5-haiku-20241022",
-                    "complex": "claude-3-5-sonnet-20241022"
+                    "simple": "glm-4.7",
+                    "complex": "glm-5.1"
                 }
             },
             "routing_strategy": "cost-optimized"
@@ -66,8 +66,8 @@
                 "apiKeyEnvVar": "ZAI_API_KEY",
                 "baseUrl": "https://api.z.ai/api/anthropic",
                 "models": {
-                    "simple": "claude-3-5-haiku-20241022",
-                    "complex": "claude-3-5-sonnet-20241022"
+                    "simple": "glm-4.7",
+                    "complex": "glm-5.1"
                 }
             },
             "routing_strategy": "reliability"
@@ -84,8 +84,8 @@
                 "apiKeyEnvVar": "ZAI_API_KEY",
                 "baseUrl": "https://api.z.ai/api/anthropic",
                 "models": {
-                    "simple": "claude-3-5-haiku-20241022",
-                    "complex": "claude-3-5-sonnet-20241022"
+                    "simple": "glm-4.7",
+                    "complex": "glm-5.1"
                 }
             },
             "routing_strategy": "compliance"

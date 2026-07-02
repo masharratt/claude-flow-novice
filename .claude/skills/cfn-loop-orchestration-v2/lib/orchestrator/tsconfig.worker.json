@@ -1,0 +1,15 @@
+{
+  "//": "Standalone build for the headless worker runtime. The main `tsc` build emits a deep dist/ tree because orchestrate.ts/types.ts import across the package boundary (src/planning/orchestration), which pulls tsc's rootDir up to the repo root. The worker subgraph (spawn-agent-cli + coordination) has no such imports, so it builds flat here to dist-worker/ and is spawned from there by spawn-agents.ts.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist-worker",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": [
+    "src/cli/spawn-agent-cli.ts",
+    "src/coordination/coordinator.ts",
+    "src/coordination/file-coordinator.ts"
+  ]
+}

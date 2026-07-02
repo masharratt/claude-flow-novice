@@ -2,7 +2,8 @@
  * Agent Spawning Helper - TypeScript Implementation
  *
  * Spawns Loop 3 and Loop 2 agents with enriched context injection.
- * Wraps npx claude-flow-novice agent with format validation and dry-run support.
+ * Invokes the built headless worker runtime (dist/cli/spawn-agent-cli.js) via
+ * `node`, with format validation and dry-run support.
  *
  * @module helpers/spawn-agents
  */
@@ -10,6 +11,7 @@
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs/promises';
+import { existsSync } from 'fs';
 
 /**
  * Agent spawning result
@@ -39,7 +41,8 @@ export interface SpawnSummary {
 export interface SpawnAgentsConfig {
   taskId: string;
   iteration: number;
-  phase: 'loop3' | 'loop2' | 'product-owner';
+  // Informational only (set by the loop3/loop2 wrappers); not read by spawn logic.
+  phase?: 'loop3' | 'loop2' | 'product-owner';
   agents: string[];
   originalContext: string;
   dryRun?: boolean;
@@ -75,9 +78,34 @@ function generateAgentId(
   return `${agentType}-${iteration}-${instanceNum}`;
 }
 
+/** Nearest ancestor directory containing a package.json (the orchestrator package root). */
+function findPackageRoot(startDir: string): string {
+  let dir = path.resolve(startDir);
+  const fsRoot = path.parse(dir).root;
+  for (;;) {
+    if (existsSync(path.join(dir, 'package.json'))) {
+      return dir;
+    }
+    if (dir === fsRoot) {
+      return path.resolve(startDir);
+    }
+    dir = path.dirname(dir);
+  }
+}
+
+/**
+ * Absolute path to the built headless worker runtime.
+ * The worker is built flat by tsconfig.worker.json to <pkgRoot>/dist-worker/ (the
+ * main tsc build emits a deep tree due to cross-package imports, so it cannot be
+ * relied on for a stable sibling path). Override with CFN_WORKER_SCRIPT.
+ */
+const WORKER_SCRIPT =
+  process.env.CFN_WORKER_SCRIPT ||
+  path.join(findPackageRoot(__dirname), 'dist-worker', 'cli', 'spawn-agent-cli.js');
+
 /**
  * Formats the agent spawn CLI command
- * Correct format: npx claude-flow-novice agent <type> --task-id <id> --context <ctx>
+ * Correct format: node <worker>/spawn-agent-cli.js <type> --task-id <id> --agent-id <id> --iteration <n> --context <ctx>
  */
 function formatSpawnCommand(
   agentType: string,
@@ -87,9 +115,8 @@ function formatSpawnCommand(
   context: string
 ): string[] {
   return [
-    'npx',
-    'claude-flow-novice',
-    'agent',
+    'node',
+    WORKER_SCRIPT,
     agentType,
     '--task-id',
     taskId,
@@ -110,11 +137,15 @@ function validateCommandFormat(command: string[]): boolean {
     return false;
   }
 
-  if (command[0] !== 'npx' || command[1] !== 'claude-flow-novice') {
+  // Expected shape: node <worker>/spawn-agent-cli.js <agentType> --task-id ...
+  if (command[0] !== 'node') {
     return false;
   }
-
-  if (command[2] !== 'agent') {
+  if (typeof command[1] !== 'string' || !command[1].endsWith('spawn-agent-cli.js')) {
+    return false;
+  }
+  // command[2] is the positional agent type.
+  if (typeof command[2] !== 'string' || command[2].length === 0) {
     return false;
   }
 

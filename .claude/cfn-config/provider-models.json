@@ -1,0 +1,45 @@
+{
+  "_comment": "Single source of truth: provider + Claude-tier -> concrete model id. Consumed by the CLI worker runtime (spawn-agent-cli) and get-agent-provider-env.sh. Claude Code main chat / coordinator is NOT routed here; it stays on whatever the harness login provides. Workers default to zai so headless subagents run off-subscription while main chat stays Claude.",
+  "defaultProvider": "zai",
+  "defaultTier": "sonnet",
+  "tiers": ["haiku", "sonnet", "opus"],
+  "agentTierOverrides": {
+    "_comment": "Optional agentType -> tier. Unlisted agents use defaultTier.",
+    "reviewer": "sonnet",
+    "code-reviewer": "sonnet",
+    "security-specialist": "opus",
+    "system-architect": "opus",
+    "researcher": "sonnet",
+    "tester": "haiku",
+    "coder": "sonnet",
+    "backend-dev": "sonnet",
+    "backend-developer": "sonnet"
+  },
+  "providers": {
+    "zai": {
+      "baseUrl": "https://api.z.ai/api/anthropic",
+      "apiKeyEnvVar": "ZAI_API_KEY",
+      "models": { "haiku": "glm-4.7", "sonnet": "glm-5.1", "opus": "glm-5.2" }
+    },
+    "kimi": {
+      "baseUrl": "https://api.moonshot.ai/anthropic",
+      "apiKeyEnvVar": "KIMI_API_KEY",
+      "models": { "haiku": "kimi-k2-turbo-preview", "sonnet": "kimi-k2-turbo-preview", "opus": "kimi-k2-0905-preview" }
+    },
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "apiKeyEnvVar": "OPENROUTER_API_KEY",
+      "models": { "haiku": "anthropic/claude-3-5-haiku", "sonnet": "anthropic/claude-sonnet-4.5", "opus": "anthropic/claude-opus-4.1" }
+    },
+    "xai": {
+      "baseUrl": "https://api.x.ai/v1",
+      "apiKeyEnvVar": "XAI_API_KEY",
+      "models": { "haiku": "grok-4-1-fast-non-reasoning", "sonnet": "grok-4-1-fast-non-reasoning", "opus": "grok-4.20-beta-0309-reasoning" }
+    },
+    "anthropic": {
+      "baseUrl": null,
+      "apiKeyEnvVar": "ANTHROPIC_API_KEY",
+      "models": { "haiku": "claude-3-5-haiku-20241022", "sonnet": "claude-sonnet-4-20250514", "opus": "claude-opus-4-20250514" }
+    }
+  }
+}

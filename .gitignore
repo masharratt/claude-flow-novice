@@ -233,6 +233,10 @@ claude-flow.config.json
 .claude-flow/
 memory/
 coordination/
+# CFN worker runtime coordination SOURCE (the broad coordination/ ignore above
+# targets the legacy claude-flow runtime data dir, not these tracked .ts sources).
+!.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/coordination/
+!.claude/skills/cfn-loop-orchestration-v2/lib/orchestrator/src/coordination/**
 memory/claude-flow-data.json
 memory/sessions/*
 !memory/sessions/README.md
