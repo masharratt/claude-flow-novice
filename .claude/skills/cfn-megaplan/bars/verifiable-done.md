@@ -46,14 +46,20 @@ AC-11 | new payouts table denies cross-tenant reads
 | HTTP | `curl` + status/body assertion | `curl -s /api/x \| jq .ok == true` |
 | build/type | `tsc --noEmit` / `cargo check` exit 0 | compile clean |
 | static/lint | grep/ast assertion | `no occurrences of <antipattern>` |
+| assembled-path | real trigger through the running system (no direct-fn call, no self-seed, no no-throw) | spawned worker publishes a seeded due row within one interval; builder-saved options render as the exact `<select>` set |
 
 ## Gate logic (orchestrator runs this)
 
 1. Parse every AC row from the plan.
 2. For each AC: assert `check` is non-empty AND matches one check-taxonomy form AND `pass condition` is a decidable predicate (no "appropriately", "as needed", "etc").
 3. Assert every SPEC functional requirement (FR-n) and edge case (EC-n) maps to ≥1 AC.
-4. **FAIL the plan** if any AC has no executable check, any FR/EC is unmapped, or any pass condition is non-decidable.
-5. Emit `planning/VERIFY_<slug>.md`: the AC table + a `done = all checks green` manifest that `cfn-loop-task` consumes as its completion gate.
+4. **Assembled-path check (the anti-stub rule).** Read the SPEC `[core]` flags. For **every `[core]` FR**, assert ≥1 mapped AC is `kind: assembled-path` AND its pass condition is not a banned shortcut. Banned-shortcut heuristics — FAIL if the assembled-path row's check/pass matches any:
+   - **Wiring stub:** check calls a private/inner fn directly (e.g. names a `*_tick`/handler fn) with no sibling AC asserting that fn is registered/spawned/mounted/routed (look for a `grep`/AST bootstrap-guard AC on the same `[core]` FR).
+   - **Self-seeded seam:** a handoff/downstream AC whose fixture seeds the exact data an upstream `[core]` stage is supposed to write (the upstream write must be produced by the real upstream stage, then read).
+   - **Shallow assertion:** pass condition is only "does not throw" / "renders" / "exists" / "compiles" / "no error" with no content/state/persistence predicate.
+   - If SPEC marks **no** FR `[core]`, FAIL with `no_core_flag` (spec must mark the mechanism, or explicitly declare "no core mechanism" with reason).
+5. **FAIL the plan** if any AC has no executable check, any FR/EC is unmapped, any pass condition is non-decidable, or any `[core]` FR lacks a clean assembled-path AC (step 4).
+6. Emit `planning/VERIFY_<slug>.md`: the AC table + a `done = all checks green` manifest that `cfn-loop-task` consumes as its completion gate.
 
 ## Output contract (consumed by cfn-loop-task)
 
@@ -61,11 +67,15 @@ AC-11 | new payouts table denies cross-tenant reads
 {
   "slug": "<task-slug>",
   "acs": [
-    { "id": "AC-3", "check": "playwright: select#course ...", "kind": "e2e", "pass": "<predicate>", "maps_to": ["FR-2", "EC-1"] }
+    { "id": "AC-3", "check": "playwright: select#course ...", "kind": "e2e", "pass": "<predicate>", "maps_to": ["FR-2", "EC-1"] },
+    { "id": "AC-38", "check": "cargo test ...::spawned_worker_publishes_within_interval", "kind": "assembled-path", "pass": "row status flips to published within one tick", "maps_to": ["FR-2"] }
   ],
   "done_rule": "all acs green",
-  "coverage": { "fr_total": 8, "fr_mapped": 8, "ec_total": 6, "ec_mapped": 6 }
+  "coverage": {
+    "fr_total": 8, "fr_mapped": 8, "ec_total": 6, "ec_mapped": 6,
+    "core_fr": ["FR-2"], "core_fr_assembled_path_ok": ["FR-2"]
+  }
 }
 ```
 
-`cfn-loop-task` reads this manifest, runs each `check`, and reports done only when every AC is green. Unmapped FR/EC → gate refuses to start.
+`cfn-loop-task` reads this manifest, runs each `check`, and reports done only when every AC is green. Unmapped FR/EC → gate refuses to start. Any `core_fr` not in `core_fr_assembled_path_ok` → gate refuses to start (a core mechanism with no clean assembled-path check is a stub-risk the gate must not pass).

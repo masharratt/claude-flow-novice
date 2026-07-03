@@ -40,6 +40,12 @@ FR-1: System SHALL <behavior> WHEN <trigger> GIVEN <preconditions>.
 FR-2: ...
 ```
 
+**Flag the core mechanism `[core]`.** Mark the FR(s) that must actually fire end-to-end for the feature to exist at all — the worker that publishes, the save that persists, the render that shows the data, the scheduled job that runs. Everything else is supporting. Downstream `cfn-test-plan` owes every `[core]` FR an *assembled-path* check: one that drives the real wired path in the running system, not a direct inner-function call, a self-seeded seam, or a "does not throw" assertion. This is the single biggest defense against the failure mode where a feature passes every gate but never works in prod — an unregistered worker, an unmounted route, a handler that forgot to persist the value the next stage reads. Phrase `[core]` FRs so the observable outcome is a state change or output content, never existence of a symbol.
+
+```
+FR-2 [core]: System SHALL publish a scheduled story AND notify the family WHEN the scheduled time passes, GIVEN the publish worker is running.
+```
+
 ### Step 2: Non-Functional Requirements
 
 Performance, security, accessibility, observability. Each NFR must include a measurable threshold.
@@ -113,6 +119,7 @@ Template:
 
 ## 1. Functional Requirements
 FR-1: ...
+FR-2 [core]: ...   (mark every mechanism that must fire end-to-end for the feature to exist)
 
 ## 2. Non-Functional Requirements
 NFR-1: ...
@@ -160,6 +167,8 @@ This artifact is the input to `cfn-pseudo`. Do not advance to pseudocode phase u
 - "Handles errors gracefully" without specifying behavior
 - Fewer than 5 edge cases (signals shallow thinking)
 - Acceptance criteria that don't map to a testable observable
+- **Existence / structural acceptance criteria** — "function X exists", "endpoint defined", "component renders without throwing", "type compiles". A do-nothing stub passes every one. Every AC asserts observable behavior, output content, or a state/persistence change.
+- **No `[core]` flag on the mechanism that must actually fire.** If nothing is marked `[core]`, the test plan has no signal for which FR needs an assembled-path check, and the core logic ships unit-tested-only (green gate, dead feature).
 - Assuming missing information instead of recording as Open Question
 
 ## Related

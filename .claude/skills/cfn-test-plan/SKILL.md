@@ -25,7 +25,7 @@ Skip only for: single-line fixes, renames, or a bug fix that already has a repro
 ## Input
 
 Required:
-- `planning/SPEC_<slug>.md` — functional requirements (FR-n), edge cases (EC-n), NFRs with thresholds, pre/post conditions. This is what you turn into checks.
+- `planning/SPEC_<slug>.md` — functional requirements (FR-n), edge cases (EC-n), NFRs with thresholds, pre/post conditions. This is what you turn into checks. **`[core]`-flagged FRs are the mechanisms that must fire end-to-end; each owes an assembled-path AC row (Phase 3).** If the spec marked nothing `[core]`, emit an `[OPEN]` back to spec rather than guessing which FR is core.
 - `planning/ARCH_<slug>.md` — component boundaries and interface contracts. Tells you what is a unit vs an integration seam vs a cross-service contract.
 
 Optional but authoritative when present:
@@ -104,6 +104,16 @@ Rules (match Bar A exactly):
 - **binding** names the source of truth: a SPEC EC id, an RLS policy name, a DB query, a contract schema.
 - Every FR-n and every EC-n maps to >=1 AC row. Bar A fails the plan on any unmapped FR/EC.
 
+**Assembled-path requirement (FLOORED, every tier).** Every FR the spec marked `[core]` (the mechanism that must actually fire for the feature to exist) gets **>=1 AC row whose check drives the fully-assembled path through the running system**: real trigger -> real wired entry point -> observable outcome. This row is *in addition to* any unit rows for the same FR. A `[core]` FR covered only by the shortcut checks below is a hard defect in this phase — Bar A treats an unmet assembled-path requirement like an unmapped FR. (If the spec marked nothing `[core]`, raise an `[OPEN]` back to spec; do not guess.)
+
+Three banned shortcuts for a `[core]`-FR assembled-path row (each is how a green gate ships a dead feature):
+
+- **Wiring stub.** Calling a private/inner fn directly (`publish_due_tick()`, a route handler fn, a job body) while nothing asserts that fn is registered / spawned / mounted / routed into the running process. The row must exercise the REAL entry point (the spawned worker, the mounted route, the registered handler) and observe the outcome. Add a cheap source/bootstrap guard AC that the wiring call exists (e.g. `grep`/AST assert `lib.rs` spawns the worker) so it cannot be deleted silently. An unregistered worker or unmounted route passes every direct-fn test.
+- **Self-seeded seam.** A handoff test that seeds the data the UPSTREAM stage was supposed to write (a worker-read test that inserts the `metadata` the handler should have persisted). The row must let the REAL upstream stage produce that data, then assert the downstream stage consumes it. Each half tested in isolation does not prove the join; a dropped upstream write stays green.
+- **Shallow assertion.** A pass condition of "does not throw" / "element exists" / "compiles" / "renders shell" on core logic. A stub returning blank/empty passes. Assert the actual output **content**, the state transition, or the persisted value (rendered DOM contains the field's label AND value; the `<select>` option set equals the query result; the row's status flips to `published` and `published_at` is set).
+
+**Flip test** for each `[core]` FR before you accept its rows: *"Could a hand-written stub that does nothing real pass every check on this FR?"* If yes, the assembled-path row is missing or shortcut-ed. Fix it here — this is exactly the class of miss that survives to prod.
+
 Check taxonomy (pick one per AC):
 
 | Kind | Form | Example |
@@ -114,6 +124,7 @@ Check taxonomy (pick one per AC):
 | HTTP | `curl` + status / body assertion | `curl -s /api/x \| jq .ok == true` |
 | build / type | `tsc --noEmit` / `cargo check` exit 0 | compile clean |
 | static / lint | grep / ast assertion | `no occurrences of <antipattern>` |
+| assembled-path | real trigger through the running system — no direct-fn call, no self-seed, no no-throw | spawned worker publishes a seeded due row within one interval; builder-saved options render as the exact `<select>` set; source guard asserts the worker is registered in bootstrap |
 
 For a DB-backed dropdown the check is a playwright snapshot asserting the `<select>` option set equals the `SELECT` query result. See the worked example below.
 
@@ -261,6 +272,9 @@ Return exactly:
 - **Disabling FK checks to fix cleanup ordering.** `session_replication_role = 'replica'` means the cleanup is too broad. Use scoped deletes with `CASCADE`.
 - **"Add tests after".** Tests are designed here, before code, and written failing-first (Phase 6). No implementation without a failing test.
 - **Happy-path only.** Every EC from the spec and every UI state from UX gets a check, not just the success flow.
+- **Wiring stub passes while the feature is dead.** Every check on a `[core]` FR calls the inner fn directly; nothing asserts it is registered / spawned / mounted / routed into the running process. An unregistered worker or unmounted route ships green. Each `[core]` mechanism needs one assembled-path row + a wiring guard.
+- **Self-seeded seam.** A handoff test seeds the data the upstream stage should have produced, so a dropped upstream write stays green. Let the real upstream write it; assert the downstream reads it.
+- **"No throw" / "exists" on core logic.** "renders without throwing", "endpoint defined", "component exists", "compiles" — a hollow stub passes. Assert output content, state transition, or persisted value.
 - **Everything lumped as one "red phase".** Assign each criterion its real level (unit / integration / contract / e2e / load). A logic check is a fast unit test, not a slow e2e.
 - **Watch mode / bail.** `vitest` not `vitest run`, or `-x` / `--bail`, hides failures and forces re-runs. Verbose, full run, capture to file.
 - **Mock that drifts from the real contract.** A stub returning a shape the real dependency never returns hides integration bugs. Mocks assert the real contract shape.
