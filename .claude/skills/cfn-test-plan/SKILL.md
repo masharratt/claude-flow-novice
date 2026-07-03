@@ -112,6 +112,10 @@ Three banned shortcuts for a `[core]`-FR assembled-path row (each is how a green
 - **Self-seeded seam.** A handoff test that seeds the data the UPSTREAM stage was supposed to write (a worker-read test that inserts the `metadata` the handler should have persisted). The row must let the REAL upstream stage produce that data, then assert the downstream stage consumes it. Each half tested in isolation does not prove the join; a dropped upstream write stays green.
 - **Shallow assertion.** A pass condition of "does not throw" / "element exists" / "compiles" / "renders shell" on core logic. A stub returning blank/empty passes. Assert the actual output **content**, the state transition, or the persisted value (rendered DOM contains the field's label AND value; the `<select>` option set equals the query result; the row's status flips to `published` and `published_at` is set).
 
+**Runtime-observed form (out-of-band core mechanisms).** When a `[core]` FR's trigger fires in a spawned worker, cron job, queue consumer, or any async path the caller does not directly await, its assembled-path row should be the **runtime-observed** form: the check reads a concrete runtime signal the real process emits for the test's own input — a log line, telemetry/metric event, or audit row. This is the codified "watch it work in the logs": the machine asserts the exact signal a human would have eyeballed, so a silently-dead async worker cannot pass. Two obligations attach:
+- **The signal must be a planned deliverable.** You cannot assert a log line or metric no implementation step emits. If the runtime-observed row needs `log.info("published story=<id>")` or a `stories_published_total` counter, add that emit as an explicit step in the plan (and in Phase 6 ordering) — otherwise the row is untestable and becomes an `[OPEN]`.
+- **Sequence it late, never as the first red test.** A runtime-observed check needs the emitting code AND the assembled process running; it belongs at the integration/e2e stage after the wiring exists, not as a pre-code failing unit test. In Phase 6, order it after the unit reds and the wiring-guard step for the same FR. Do not place any check that requires a deploy or a fully-assembled runtime ahead of the steps that build that runtime — a check that can only run post-assembly is sequenced post-assembly.
+
 **Flip test** for each `[core]` FR before you accept its rows: *"Could a hand-written stub that does nothing real pass every check on this FR?"* If yes, the assembled-path row is missing or shortcut-ed. Fix it here — this is exactly the class of miss that survives to prod.
 
 Check taxonomy (pick one per AC):
@@ -125,6 +129,7 @@ Check taxonomy (pick one per AC):
 | build / type | `tsc --noEmit` / `cargo check` exit 0 | compile clean |
 | static / lint | grep / ast assertion | `no occurrences of <antipattern>` |
 | assembled-path | real trigger through the running system — no direct-fn call, no self-seed, no no-throw | spawned worker publishes a seeded due row within one interval; builder-saved options render as the exact `<select>` set; source guard asserts the worker is registered in bootstrap |
+| assembled-path (runtime-observed) | strongest form — assembled-path check that ALSO reads the runtime signal a human would have watched in the logs: a specific log line, telemetry/metric event, or audit row emitted by the real process for the test's own input | worker logs `published story=<id>` and test captures the structured-log sink / stdout and asserts the line for the seeded id; handler bumps `stories_published_total` and test reads the counter delta |
 
 For a DB-backed dropdown the check is a playwright snapshot asserting the `<select>` option set equals the `SELECT` query result. See the worked example below.
 
@@ -165,6 +170,7 @@ No implementation without a failing test. For each implementation step the plan 
 - For each FR / step: name the test file + case that must be written and must fail before the production code is written (red), then pass after (green).
 - **Bug fixes start with a reproducing test.** If this build includes a bug fix, name the reproducing test that fails with the current bug and passes after the fix. The test name references the bug.
 - Order the tests so each maps to one named implementation step from the plan. This list is what `cfn-loop-task` uses to enforce test-first.
+- **Assembly-dependent checks sequence last, by construction.** A check runs at the earliest step whose code makes it *runnable*, never before. Unit reds come first (pure logic, no wiring). The wiring-guard (source/bootstrap grep) lands with the step that registers/mounts/spawns the mechanism. The assembled-path row — and especially the **runtime-observed** row that reads a log/telemetry signal — comes last for that FR: it needs the emit code plus the assembled process, so it cannot be the first red and must not gate a step that ships before the runtime exists. If a `[core]` FR's runtime-observed check depends on a signal emit, that emit is its own ordered step that precedes the check. Rule of thumb: never place a check that requires a deploy or a running assembled system ahead of the steps that build that system. Mark each Phase 6 row with the stage it becomes runnable (unit / wiring / assembled / runtime-observed) so the loop cannot run a post-assembly check pre-assembly.
 
 ## Output
 
@@ -202,7 +208,7 @@ Coverage: FR <m/m> mapped, EC <k/k> mapped.
 | Test | Threshold (SPEC NFR) | Check |
 
 ## 6. TDD Ordering
-| Step | Failing test written first | Red -> Green |
+| Step | Failing test written first | Runnable at (unit/wiring/assembled/runtime-observed) | Red -> Green |
 
 ## Open Items
 - [OPEN] <criteria with no runnable check, missing NFR threshold, ambiguous binding>
@@ -246,11 +252,11 @@ Coverage: FR 2/2 mapped, EC 2/2 mapped, UX states mapped.
 
 **6. TDD Ordering**
 
-| Step | Failing test written first | Red -> Green |
-|---|---|---|
-| render course select | `tests/booking.e2e.ts::course_is_select` | fails (no select) -> passes |
-| reject invalid email | `tests/email.spec.ts::rejects_invalid` | fails (accepts) -> passes |
-| block over-capacity | `tests/seats.spec.ts::over_capacity` | fails (allows) -> passes |
+| Step | Failing test written first | Runnable at | Red -> Green |
+|---|---|---|---|
+| reject invalid email | `tests/email.spec.ts::rejects_invalid` | unit | fails (accepts) -> passes |
+| block over-capacity | `tests/seats.spec.ts::over_capacity` | unit | fails (allows) -> passes |
+| render course select | `tests/booking.e2e.ts::course_is_select` | assembled | fails (no select) -> passes |
 
 ## Handoff
 
