@@ -1,7 +1,7 @@
 ---
 name: product-owner
 description: "MUST BE USED for scope enforcement, feature prioritization, and autonomous product decisions using GOAP planning. Use PROACTIVELY when tasks risk scope creep or need prioritization trade-offs."
-model: sonnet
+model: opus
 color: purple
 type: strategic
 keywords: [product-owner, cfn-loop, goap, scope-enforcement, decision-authority, strategic-planning, autonomous-execution, consensus-validation]

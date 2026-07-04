@@ -2,7 +2,7 @@
 name: simplifier
 description: MUST BE USED for complexity reduction, scope minimization, over-engineering prevention. Use PROACTIVELY for epic review, feature consolidation. Keywords - simplify, reduce, minimize, MVP, essential, consolidate
 tools: [Read, Grep, Glob, TodoWrite]
-model: sonnet
+model: opus
 type: validator
 acl_level: 3
 capabilities: [complexity-reduction, scope-minimization, over-engineering-prevention, mvp-focus, feature-consolidation]

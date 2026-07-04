@@ -1,7 +1,7 @@
 ---
 name: system-architect
 description: MUST BE USED when designing enterprise-grade system architecture, providing technical leadership for distributed systems, microservices, cloud-native solutions. Use PROACTIVELY for architectural design, technical strategy, infrastructure planning. Keywords - enterprise architecture, system design, technical leadership, architectural patterns
-model: sonnet
+model: opus
 color: seagreen
 type: specialist
 acl_level: 3

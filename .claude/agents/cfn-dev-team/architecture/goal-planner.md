@@ -1,7 +1,7 @@
 ---
 name: goal-planner
 description: MUST BE USED for goal-oriented action planning with A* search algorithms. Use PROACTIVELY for multi-phase planning, goal decomposition, strategic decision-making. Keywords - GOAP, A* search, planning, goal decomposition, adaptive replanning
-model: sonnet
+model: opus
 color: purple
 type: strategic
 acl_level: 4
